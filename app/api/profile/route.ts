@@ -1,0 +1,4 @@
+import {z} from 'zod';
+import {user,db,errorResponse,guard} from '@/lib/server/store';
+const schema=z.object({username:z.string().regex(/^[a-z0-9_-]{3,30}$/),displayName:z.string().trim().min(2).max(50),region:z.string().regex(/^[A-Z]{2}$/),currency:z.enum(['IDR','USD','JPY']),timezone:z.string().refine(v=>{try{new Intl.DateTimeFormat('en',{timeZone:v});return true}catch{return false}}),locale:z.enum(['en','id'])});
+export async function POST(req:Request){try{guard(req);const p=await user();const v=schema.parse(await req.json());await db().prepare('UPDATE profiles SET username=?,display_name=?,region=?,currency=?,timezone=?,locale=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(v.username,v.displayName,v.region,v.currency,v.timezone,v.locale,p.id).run();return Response.json({ok:true})}catch(e){return errorResponse(e)}}

@@ -1,0 +1,7 @@
+import {z} from 'zod';
+export const rawCard=z.object({code:z.string().trim().min(1).max(40),name:z.string().trim().min(1).max(120),color:z.string().trim(),type:z.string().trim()}).strict();
+export type NormalizedCard=z.infer<typeof rawCard>;
+export type Diff={code:string;status:'NEW'|'CHANGED'|'REMOVED'|'CONFLICT'|'FAILED';before?:NormalizedCard;after?:NormalizedCard;error?:string};
+export interface CardSourceAdapter{fetchSets():Promise<unknown[]>;fetchCards():Promise<unknown[]>;fetchPrintings():Promise<unknown[]>;fetchMetadata():Promise<{sourceUrl:string;rightsStatus:string}>}
+export function normalizeAndDiff(raw:unknown[],canonical:NormalizedCard[]):Diff[]{const result:Diff[]=[];const seen=new Set<string>();for(const row of raw){const parsed=rawCard.safeParse(row);if(!parsed.success){result.push({code:'unknown',status:'FAILED',error:parsed.error.message});continue}const after={...parsed.data,code:parsed.data.code.toUpperCase()};if(seen.has(after.code)){result.push({code:after.code,status:'CONFLICT',after});continue}seen.add(after.code);const before=canonical.find(c=>c.code===after.code);if(!before)result.push({code:after.code,status:'NEW',after});else if(JSON.stringify(before)!==JSON.stringify(after))result.push({code:after.code,status:'CHANGED',before,after});}for(const before of canonical)if(!seen.has(before.code))result.push({code:before.code,status:'REMOVED',before});return result;}
+// REMOVED is a review signal only. No canonical deletion exists in the import pipeline.

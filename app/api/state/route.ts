@@ -1,0 +1,2 @@
+import {user,collection,savedDecks,db,errorResponse} from '@/lib/server/store';
+export async function GET(){try{const p=await user();const [items,decks,wishlist]=await Promise.all([collection(p.id),savedDecks(p.id),db().prepare('SELECT printing_id AS printingId FROM wishlists WHERE owner_id=?').bind(p.id).all()]);return Response.json({profile:p,collection:items,decks,wishlist:wishlist.results},{headers:{'Cache-Control':'private, no-store'}})}catch(e){return errorResponse(e)}}

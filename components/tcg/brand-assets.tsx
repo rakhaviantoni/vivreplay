@@ -1,0 +1,14 @@
+import type {SVGProps} from 'react';
+
+type IconProps=SVGProps<SVGSVGElement>&{size?:number;label?:string};
+const hidden=(label?:string)=>label?{role:'img','aria-label':label}:{'aria-hidden':true};
+
+/** Primary brand emblem generated for VivrePlay; keep the familiar product mark in one component. */
+export function VivreMark({size=28,label,className}:IconProps){return <img src="/brand/vivreplay-compass.png" width={size} height={size} alt={label??''} aria-hidden={label?undefined:true} className={`vivre-brand-mark ${className??''}`}/>;}
+
+/** Small visual primitives for card, deck, share, meta, and market surfaces. */
+export function DeckSealIcon({size=20,label,...props}:IconProps){return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" {...hidden(label)} {...props}><path d="M5 7.2 12 3l7 4.2v9.6L12 21l-7-4.2V7.2Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"/><path d="m8.3 9.1 3.7 2.2 3.7-2.2M12 11.4V16" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/></svg>}
+export function CardCompassIcon({size=20,label,...props}:IconProps){return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" {...hidden(label)} {...props}><rect x="4" y="3" width="16" height="18" rx="2.5" stroke="currentColor" strokeWidth="1.6"/><circle cx="12" cy="12" r="4.2" stroke="currentColor" strokeWidth="1.5"/><path d="m13.7 8.5-3 6.8 6.6-3.1-3.6-3.7Z" fill="currentColor" opacity=".78"/></svg>}
+export function MetaTideIcon({size=20,label,...props}:IconProps){return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" {...hidden(label)} {...props}><path d="M4 17.5c2.2 0 2.2-3.6 4.4-3.6 2.1 0 2.1 3.6 4.2 3.6 2.2 0 2.2-7.9 4.5-7.9 1.2 0 1.9 1.2 2.9 2.2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"/><path d="M17.3 5.7h2.8v2.8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+export function MarketTagIcon({size=20,label,...props}:IconProps){return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" {...hidden(label)} {...props}><path d="M4.2 5.2h7.6l7.9 7.7-6 6-7.8-7.8V5.2Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"/><circle cx="8.5" cy="8.5" r="1.25" fill="currentColor"/><path d="m13.3 11.7 2.7 2.7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>}
+export function ShareRouteIcon({size=20,label,...props}:IconProps){return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" {...hidden(label)} {...props}><circle cx="6" cy="12" r="2" stroke="currentColor" strokeWidth="1.7"/><circle cx="17.7" cy="6.2" r="2" stroke="currentColor" strokeWidth="1.7"/><circle cx="17.7" cy="17.8" r="2" stroke="currentColor" strokeWidth="1.7"/><path d="m7.9 11.1 7.8-4M7.9 12.9l7.8 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/></svg>}

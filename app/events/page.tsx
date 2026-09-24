@@ -1,0 +1,2 @@
+import Link from 'next/link';
+export default function Page(){return <main className="page"><section className="roadmap"><p className="eyebrow">COMING IN A LATER MILESTONE</p><h1>Bring your crew to the table.</h1><p>Tournament play follows the rules engine and multiplayer milestones. Financial workflows remain separate from match results.</p><ol><li>Registration and deck-version lock</li><li>Swiss pairings and standings</li><li>Judge tools and filtered spectator state</li></ol><Link href="/decks/builder" className="button mt-8">Build a deck</Link></section></main>}

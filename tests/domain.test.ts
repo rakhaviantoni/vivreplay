@@ -1,0 +1,28 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {cards,printingFor} from '../packages/card-data/catalog';
+import {collectionInput,ownership,valueFromObservations,validateDeck,formatMoney, type CollectionItem,type PriceObservation} from '../packages/domain/index';
+import {normalizeAndDiff} from '../packages/imports/index';
+import {canShare} from '../packages/platform/contracts';
+const base={id:'40000000-0000-4000-8000-000000000001',printingId:printingFor(cards[0].id).id,type:'RAW' as const,quantity:3,condition:'NM',provider:null,grade:null,certification:null,visibility:'private' as const,acquisitionAmount:0,currency:'IDR'};
+test('raw duplicates count, but unique slabs do not count as playable owned cards',()=>{const slab:CollectionItem={...base,type:'GRADED',quantity:1,provider:'Independent Grader',grade:'10',certification:'CERT-001'};assert.equal(ownership([{cardId:cards[0].id,quantity:4}],[base,slab])[0].missing,1);assert.equal(collectionInput.safeParse({...slab,quantity:2}).success,false);assert.equal(collectionInput.safeParse(slab).success,true)});
+test('language printings are distinct but shared identity ownership combines playable copies',()=>{assert.notEqual(printingFor(cards[0].id,'EN').id,printingFor(cards[0].id,'JP').id);assert.equal(ownership([{cardId:cards[0].id,quantity:4}],[base,{...base,printingId:printingFor(cards[0].id,'JP').id,quantity:1}])[0].missing,0)});
+test('valuation isolates raw, provider, grade, currency and ignores asking prices',()=>{const row:PriceObservation={amount:100,currency:'IDR',saleType:'completed_sale',observedAt:'2026-01-01',grader:null,grade:null,printingId:base.printingId};const rows=[row,{...row,amount:200},{...row,grader:'PSA',grade:'10',amount:9000},{...row,currency:'USD',amount:50},{...row,saleType:'active_listing' as const,amount:999999}];const result=valueFromObservations(rows,row);assert.equal(result?.estimatedValue,150);assert.equal(result?.sampleSize,2);assert.equal(result?.confidence,'low');assert.equal(valueFromObservations(rows,{...row,grader:'BGS',grade:'10'}),null)});
+test('deck validation catches color mismatch, leaders in main deck and invalid copy counts',()=>{const errors=validateDeck(cards[0].id,[{cardId:cards[1].id,quantity:5},{cardId:cards[0].id,quantity:1}]);assert.ok(errors.some(x=>x.includes('color')));assert.ok(errors.some(x=>x.includes('1–4')));assert.ok(errors.some(x=>x.includes('invalid card')));assert.ok(errors.some(x=>x.includes('/50')))});
+test('imports flag removals and conflicts instead of deleting or silently accepting',()=>{const a={code:'DEMO-001',name:'Captain',color:'Red',type:'Leader'};const result=normalizeAndDiff([{...a,code:'demo-002'},{...a,code:'DEMO-002'},{}],[a]);assert.deepEqual(result.map(r=>r.status),['NEW','CONFLICT','FAILED','REMOVED']);assert.equal(result[0].after?.code,'DEMO-002')});
+test('private shares require exact owner identity',()=>{const entity={type:'DECK' as const,id:'a',ownerId:'owner',visibility:'private' as const,canonicalPath:'/decks/a',title:'a',description:'a'};assert.equal(canShare(entity),false);assert.equal(canShare(entity,'other'),false);assert.equal(canShare(entity,'owner'),true)});
+test('money formatting uses integer minor units for USD and units for IDR',()=>{assert.equal(formatMoney(12345,'USD'),'$123.45');assert.ok(formatMoney(185000,'IDR').includes('185,000'))});
+import {splitArchetypeTraits} from '../components/tcg/library-directory';
+test('archetype traits separate every printed subtype and repair the known typo',()=>{
+  assert.deepEqual(splitArchetypeTraits('Water Seven The Franky Family'),['Water Seven','The Franky Family']);
+  assert.deepEqual(splitArchetypeTraits('Fish-Man New Fish-Man Pirates'),['Fish-Man','New Fish-Man Pirates']);
+  assert.deepEqual(splitArchetypeTraits('Fish-Man The Sun Pirates'),['Fish-Man','The Sun Pirates']);
+  assert.deepEqual(splitArchetypeTraits('Giant Elbaph New Giant Pirates'),['Giant','Elbaph','New Giant Pirates']);
+  assert.deepEqual(splitArchetypeTraits('Goa Kingdom Bluejam Pirates'),['Goa Kingdom','Bluejam Pirates']);
+  assert.deepEqual(splitArchetypeTraits('Fish-Man Former Arlong Pirates'),['Fish-Man','Former Arlong Pirates']);
+  assert.deepEqual(splitArchetypeTraits('East Blue Black Cat Pirates'),['East Blue','Black Cat Pirates']);
+  assert.deepEqual(splitArchetypeTraits('East Blue Krieg Pirates'),['East Blue','Krieg Pirates']);
+  assert.deepEqual(splitArchetypeTraits('Fish-Man Merfolk New Fish-Man Pirates'),['Fish-Man','Merfolk','New Fish-Man Pirates']);
+  assert.deepEqual(splitArchetypeTraits('Straw Hat Cre'),['Straw Hat Crew']);
+  assert.deepEqual(splitArchetypeTraits('Galley-La Company Water Seven'),['Galley-La Company','Water Seven']);
+});

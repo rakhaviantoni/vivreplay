@@ -1,0 +1,12 @@
+{
+  "name": "VivrePlay · One Piece Card Game companion",
+  "short_name": "VivrePlay",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#08131b",
+  "theme_color": "#08131b",
+  "icons": [
+    {"src":"/brand/vivreplay-icon-192.png","sizes":"192x192","type":"image/png","purpose":"any"},
+    {"src":"/brand/vivreplay-icon-512.png","sizes":"512x512","type":"image/png","purpose":"any"}
+  ]
+}

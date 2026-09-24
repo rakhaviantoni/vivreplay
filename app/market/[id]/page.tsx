@@ -1,0 +1,9 @@
+import {notFound} from 'next/navigation';
+import Link from 'next/link';
+import {db} from '@/lib/server/store';
+import {cardFor,printings} from '@/packages/card-data/catalog';
+import {formatMoney,Listing} from '@/packages/domain';
+import {CardArt} from '@/components/tcg/card-art';
+import {ShareButton} from '@/components/tcg/share';
+export const dynamic='force-dynamic';
+export default async function Page({params}:{params:Promise<{id:string}>}){const {id}=await params;const l=await db().prepare(`SELECT l.id,l.printing_id AS printingId,l.title,l.amount,l.currency,l.quantity,l.condition,l.city,p.display_name AS seller,p.username FROM listings l JOIN profiles p ON p.id=l.seller_id WHERE l.id=? AND l.status='ACTIVE'`).bind(id).first<Listing&{username:string}>();if(!l)notFound();const c=cardFor(l.printingId)!;return <main className="page"><Link className="back-link" href="/market">← Back to Market</Link><div className="detail-layout"><div className="detail-art"><CardArt card={c}/></div><div className="detail-info"><p className="eyebrow">{c.code} · {printings.find(p=>p.id===l.printingId)?.language}</p><h1>{l.title}</h1><strong className="listing-price my-6">{formatMoney(l.amount,l.currency)}</strong><p className="muted">{l.condition} · {l.quantity} available · Ships from {l.city}</p><div className="effect-block"><h3>Listed by <Link href={`/players/${l.username}`}>{l.seller}</Link></h3><p>No verified transaction history yet.</p></div><p className="notice mb-6">Checkout is not available in this release. No payment, escrow, or seller settlement is offered.</p><ShareButton title={l.title} path={`/market/${l.id}`}/><div className="detail-links"><Link href={`/cards/${c.code}`}>Explore card printings ↗</Link><Link href={`/decks/builder?card=${c.id}`}>Build a deck with this card ↗</Link></div></div></div></main>}

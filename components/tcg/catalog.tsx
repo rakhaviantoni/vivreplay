@@ -1,0 +1,166 @@
+'use client';
+
+import {useEffect, useMemo, useRef, useState} from 'react';
+import {MagnifyingGlassIcon as Search, CheckIcon as Check, XIcon as X, CaretDownIcon as ChevronDown, SquaresFourIcon as Grid3X3} from '@phosphor-icons/react';
+import {useCatalogTools} from './catalog-tools';
+import {colors, type Card} from '@/packages/card-data/catalog';
+import {CardArt} from './card-art';
+import {displayCardName} from './card-name';
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
+import {CardPreviewModal} from './card-preview-modal';
+import {createClient} from '@/utils/supabase/client';
+
+type LibraryCard = Card & {setCode:string;setName:string;attribute:string;counter:number;block:string;keywords:string[];variant:string;printingCode:string};
+type FilterOption = string | {value:string;label:string};
+
+/** Shared compact select used by the collection, market, and deck tools. */
+export function Picker({value,onChange,options,label}:{value:string;onChange:(v:string)=>void;options:FilterOption[];label:string}) {
+  return <Select value={value} onValueChange={onChange}><SelectTrigger aria-label={label}><SelectValue/></SelectTrigger><SelectContent>{options.map(item=>{const option=typeof item==='string'?{value:item,label:item}:item;return <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>})}</SelectContent></Select>;
+}
+
+function MultiFilter({label,values,selected,onToggle}:{label:string;values:FilterOption[];selected:string[];onToggle:(value:string)=>void}) {
+  const [open,setOpen]=useState(false); const [query,setQuery]=useState(''); const ref=useRef<HTMLDivElement>(null); const colour=label==='Colour'; const searchable=label==='Set';
+  const matches=values.filter(item=>{const option=typeof item==='string'?{value:item,label:item}:item;return option.label.toLowerCase().includes(query.toLowerCase())||option.value.toLowerCase().includes(query.toLowerCase())});
+  useEffect(()=>{const close=(event:PointerEvent)=>{if(!ref.current?.contains(event.target as Node))setOpen(false)};const escape=(event:KeyboardEvent)=>{if(event.key==='Escape')setOpen(false)};document.addEventListener('pointerdown',close);document.addEventListener('keydown',escape);return()=>{document.removeEventListener('pointerdown',close);document.removeEventListener('keydown',escape)}},[]);
+  return <div ref={ref} className={`filter-menu ${open?'is-open':''} ${selected.length?'has-selection':''} ${colour?'colour-menu':''} ${label==='Set'?'set-menu':''}`}>
+    <button type="button" className="filter-trigger" aria-expanded={open} onClick={()=>setOpen(value=>!value)}>{label}{selected.length>0&&<b>{selected.length}</b>}<ChevronDown size={14}/></button>
+    {open&&<div className="filter-options">{searchable&&<label className="filter-option-search"><Search size={14}/><input value={query} onChange={event=>setQuery(event.target.value)} placeholder="Find a set" autoFocus/></label>}{matches.map(item=>{const option=typeof item==='string'?{value:item,label:item}:item;return <button type="button" key={option.value} onClick={()=>onToggle(option.value)} aria-pressed={selected.includes(option.value)}>{!colour&&selected.includes(option.value)&&<Check size={14}/>} {colour&&<i className="filter-colour" style={{background:colors[option.value]}}/>}<span>{option.label}</span></button>})}</div>}
+  </div>;
+}
+
+function GridDensity({value,onChange}:{value:string;onChange:(value:string)=>void}) {
+  const [open,setOpen]=useState(false);const ref=useRef<HTMLDivElement>(null);const choices=['auto','4','5','6','7','8','9'];
+  useEffect(()=>{const close=(event:PointerEvent)=>{if(!ref.current?.contains(event.target as Node))setOpen(false)};const escape=(event:KeyboardEvent)=>{if(event.key==='Escape')setOpen(false)};document.addEventListener('pointerdown',close);document.addEventListener('keydown',escape);return()=>{document.removeEventListener('pointerdown',close);document.removeEventListener('keydown',escape)}},[]);
+  return <div ref={ref} className={`filter-menu density-menu ${open?'is-open':''}`}><button className="filter-trigger" type="button" aria-label="Cards per row" aria-expanded={open} onClick={()=>setOpen(current=>!current)}><Grid3X3 size={14}/><span>{value==='auto'?'Auto':value}</span><ChevronDown size={14}/></button>{open&&<div className="filter-options">{choices.map(choice=><button type="button" key={choice} aria-pressed={value===choice} onClick={()=>{onChange(choice);setOpen(false)}}>{value===choice&&<Check size={14}/>}<span>{choice==='auto'?'Auto':`${choice} cards per row`}</span></button>)}</div>}</div>;
+}
+
+function setRank(code:string){
+  const normalized=code.toUpperCase(); const match=normalized.match(/^(OP|EB|ST|PRB|P|DON)[-_ ]?0*(\d+)/);
+  if(!match)return 0; const series:{[key:string]:number}={OP:600,EB:500,ST:400,PRB:300,P:200,DON:100};
+  return (series[match[1]]??0)*1000+Number(match[2]);
+}
+
+function blockForSet(code:string,payload?:{block?:string|number;block_value?:string|number}|null){
+  const direct=payload?.block_value??payload?.block;
+  if(direct!==undefined&&direct!==null&&String(direct).trim()) return String(direct).toUpperCase();
+  const match=code.toUpperCase().match(/^(OP|EB|ST|PRB)[-_ ]?0*(\d+)/);
+  if(!match)return 'X'; const number=Number(match[2]);
+  if(match[1]==='OP')return String(Math.min(5,Math.max(1,Math.ceil(number/4))));
+  if(match[1]==='EB')return String(Math.min(5,Math.max(1,Math.ceil((number+1)/2)+1)));
+  if(match[1]==='ST')return number>=28?'5':number>=20?'4':number>=11?'3':number>=5?'2':'1';
+  return number>=2?'5':'4';
+}
+
+const sortLabels={
+  'latest-leaders':'Latest sets · leaders first',
+  'leaders-latest':'Leaders · latest first',
+  latest:'Latest sets',
+  name:'Name A–Z',
+} as const;
+type SortOrder=keyof typeof sortLabels;
+
+function SortOrderPicker({value,onChange}:{value:SortOrder;onChange:(value:SortOrder)=>void}) {
+  const [open,setOpen]=useState(false);const ref=useRef<HTMLDivElement>(null);
+  useEffect(()=>{const close=(event:PointerEvent)=>{if(!ref.current?.contains(event.target as Node))setOpen(false)};const escape=(event:KeyboardEvent)=>{if(event.key==='Escape')setOpen(false)};document.addEventListener('pointerdown',close);document.addEventListener('keydown',escape);return()=>{document.removeEventListener('pointerdown',close);document.removeEventListener('keydown',escape)}},[]);
+  return <div ref={ref} className={`filter-menu sort-menu ${open?'is-open':''}`}><button className="filter-trigger" type="button" aria-expanded={open} onClick={()=>setOpen(current=>!current)}><span>Sort</span><ChevronDown size={14}/></button>{open&&<div className="filter-options">{(Object.entries(sortLabels) as [SortOrder,string][]).map(([option,label])=><button type="button" key={option} aria-pressed={value===option} onClick={()=>{onChange(option);setOpen(false)}}>{value===option&&<Check size={14}/>}<span>{label}</span></button>)}</div>}</div>;
+}
+
+function CatalogTile({primary,variants,language,onOpen}:{primary:Card;variants:Card[];language:string;onOpen:(card:Card,origin:DOMRect)=>void}){
+  const visible=variants.slice(0,4);
+  const cardColours=primary.color.split(/\s*(?:\/|&|,|·)\s*|\s+/).map(colour=>colour.trim()).filter(colour=>Boolean(colors[colour]));
+  const identityColours=cardColours.map(colour=>colors[colour]);
+  const identityBackground=identityColours.length>1?`linear-gradient(135deg,${identityColours.map((colour,index)=>`${colour} ${(index/identityColours.length)*100}% ${((index+1)/identityColours.length)*100}%`).join(',')})`:identityColours[0]??'#657180';
+  return <button type="button" onClick={event=>{const source=event.currentTarget.querySelector('.tcg-card');onOpen(primary,(source??event.currentTarget).getBoundingClientRect())}} style={{'--card-colour':identityColours[0]??'#657180','--card-colour-secondary':identityColours[1]??identityColours[0]??'#657180'} as React.CSSProperties} className={`catalog-card catalog-card-button ${variants.length>1?'has-printing-stack':''}`}>
+    <div className="card-stage printing-stack">
+      {visible.map((variant,index)=><div className="stacked-printing" style={{'--stack-index':index} as React.CSSProperties} key={variant.id}><CardArt card={variant}/></div>)}
+    </div>
+    <div className="card-meta"><span>{primary.code} · {language}</span><span className={`rarity rarity-${primary.rarity}`}>{primary.rarity}</span></div>
+    <div className="card-title"><i className="filter-colour identity-colour" aria-hidden="true" style={{background:identityBackground}}/><h3>{primary.name}</h3><span className="card-bottom" aria-label={`${primary.color} ${primary.type}`}>{primary.type}</span></div>
+  </button>
+}
+
+function printingPriority(card:LibraryCard) {
+  const variant=card.variant.toLowerCase();
+  if (variant==='standard'||variant==='base'||!variant) return 0;
+  if (/parallel|alternate|alt art|_p\d+/i.test(variant)) return 2;
+  return 1;
+}
+
+export function Catalog({home=false,initialSet}:{home?:boolean;initialSet?:string}) {
+  const [query,setQuery] = useState('');
+  const [color,setColor] = useState('All colors');
+  const [types,setTypes] = useState<string[]>([]);
+  const [selectedColors,setSelectedColors] = useState<string[]>([]);
+  const [rarities,setRarities] = useState<string[]>([]);
+  const [language,setLanguage] = useState('EN');
+  const [gridColumns,setGridColumns] = useState('5');
+  const [sortOrder,setSortOrder] = useState<SortOrder>('leaders-latest');
+  const [preview,setPreview] = useState<Card>();
+  const [previewOrigin,setPreviewOrigin] = useState<DOMRect>();
+  const [liveCards,setLiveCards] = useState<LibraryCard[]>([]);
+  const [catalogPage,setCatalogPage] = useState(0);
+  const [catalogLoading,setCatalogLoading] = useState(true);
+  useEffect(()=>{
+    let active=true; const client=createClient();
+    const select='id,card_image_url,rarity,variant,printing_code,set_code,set_name,language,attribute,counter_amount,sub_types,source_payload,tcg_card_assets(kind,object_key),tcg_card_identities!inner(id,code,name,color,card_type,cost,power,effect_text)';
+    function toCards(rows:Record<string,unknown>[]){
+      return Array.from(new Map(rows.map(row=>[String(row.id),row])).values()).map((row,index)=>{
+        const identity=row.tcg_card_identities as {id:string;code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number;effect_text:string};
+        const keywords=[...identity.effect_text.matchAll(/\[([^\]]+)\]/g)].map(match=>match[1]).filter(Boolean);
+        if(/blocker/i.test(identity.effect_text)&&!keywords.some(keyword=>/block/i.test(keyword)))keywords.push('Blocker');
+        const payload=row.source_payload as {block?:string|number;block_value?:string|number}|null;
+        const assets=(row.tcg_card_assets??[]) as Array<{kind:string;object_key:string}>;
+        return {id:String(row.id),code:identity.code,name:displayCardName(identity.name,identity.code),color:identity.color,type:identity.card_type,cost:identity.cost,power:identity.power,rarity:String(row.rarity??''),art:index%6,effect:identity.effect_text,imageUrl:String(row.card_image_url||'')||undefined,imageSource:'external' as const,setCode:String(row.set_code??''),setName:String(row.set_name??row.set_code??''),language:String(row.language??''),attribute:String(row.attribute??''),counter:Number(row.counter_amount??0),block:blockForSet(String(row.set_code??''),payload),keywords,variant:String(row.variant??''),printingCode:String(row.printing_code??identity.code),assetPath:assets.find(asset=>asset.kind==='small')?.object_key};
+      });
+    }
+    async function loadCatalog(){
+      setCatalogLoading(true);setCatalogPage(0);setLiveCards([]);const rows:Record<string,unknown>[]=[];
+      for(let from=0;;from+=1000){
+        const {data,error}=await client.from('tcg_card_printings').select(select).eq('language',language).not('card_image_url','is',null).range(from,from+999);
+        if(error)throw error;rows.push(...((data??[]) as unknown as Record<string,unknown>[]));
+        if((data??[]).length<1000)break;
+      }
+      if(active){
+        const mapped=toCards(rows);
+        mapped.sort((a,b)=>setRank(b.setCode)-setRank(a.setCode)||(a.type==='Leader'?0:1)-(b.type==='Leader'?0:1)||a.code.localeCompare(b.code));
+        setLiveCards(mapped);
+        setCatalogLoading(false);
+      }
+    }
+    loadCatalog().catch(()=>{if(active)setCatalogLoading(false)});return()=>{active=false};
+  },[language]);
+  useCatalogTools(setQuery,setColor,value=>setTypes(value==='All types'?[]:[value]));
+  const [attributes,setAttributes] = useState<string[]>([]); const [counters,setCounters] = useState<string[]>([]); const [keywords,setKeywords] = useState<string[]>([]); const [sets,setSets] = useState<string[]>(initialSet?[initialSet]:[]);
+  const [blocks,setBlocks] = useState<string[]>([]);
+  const filtered = [...liveCards].sort((a,b)=>{
+    const latestSet=setRank(b.setCode)-setRank(a.setCode);
+    const leaderFirst=(a.type==='Leader'?0:1)-(b.type==='Leader'?0:1);
+    if(sortOrder==='name') return a.name.localeCompare(b.name)||a.code.localeCompare(b.code);
+    if(sortOrder==='leaders-latest') return leaderFirst||latestSet||a.code.localeCompare(b.code);
+    if(sortOrder==='latest') return latestSet||a.code.localeCompare(b.code);
+    return latestSet||leaderFirst||a.code.localeCompare(b.code);
+  }).filter(card => (card.name + card.code).toLowerCase().includes(query.toLowerCase()) && (!selectedColors.length || selectedColors.some(value=>card.color.includes(value))) && (!types.length || types.includes(card.type)) && (!rarities.length || rarities.includes(card.rarity)) && (!attributes.length || attributes.includes(card.attribute)) && (!counters.length || counters.includes(card.counter>0?`+${card.counter}`:'No counter')) && (!keywords.length || keywords.some(value=>card.keywords.some(keyword=>keyword.toLowerCase().includes(value.toLowerCase())))) && (!sets.length || sets.includes(card.setCode)) && (!blocks.length || blocks.includes(card.block)));
+  const groups = Array.from(filtered.reduce((map,card)=>{const group=map.get(card.code)??[];group.push(card);map.set(card.code,group);return map},new Map<string,LibraryCard[]>()).values()).map(group=>[...new Map(group.sort((a,b)=>printingPriority(a)-printingPriority(b)||a.printingCode.localeCompare(b.printingCode)).map(card=>[card.printingCode,card])).values()]);
+  const headerCards=useMemo(()=>{const unique=Array.from(new Map(liveCards.map(card=>[card.code,card])).values());return [...unique].sort(()=>Math.random()-.5).slice(0,6)},[liveCards]);
+
+  return <main className="page catalog-page">
+    <section className="library-intro">
+      <div className="library-intro-copy">
+        <p className="kicker">CARD LIBRARY</p>
+        <h1>{home ? 'Find your next card.' : 'Find cards, sets, and exact art.'}</h1>
+        <p>Search by name or number, compare languages, and build with the live card pool.</p>
+      </div>
+      <div className="library-intro-rail library-intro-random-rail" aria-hidden="true"><div className="library-intro-rail-cards">{headerCards.map((card,index)=><div className={`library-intro-rail-card rail-card-${index}`} key={card.id}><CardArt card={card}/></div>)}{!headerCards.length&&Array.from({length:6},(_,index)=><i className={`library-intro-rail-skeleton rail-card-${index}`} key={index}/>)}</div></div>
+    </section>
+    <section className="library-controls" aria-label="Card library controls">
+      <label className="search-box"><Search size={18}/><input placeholder="Search name or card number" value={query} onChange={e=>setQuery(e.target.value)}/></label>
+      <div className="filter-workbench"><div className="filter-primary"><MultiFilter label="Type" values={['Leader','Character','Event','Stage','DON!!']} selected={types} onToggle={value=>setTypes(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])}/><MultiFilter label="Colour" values={Object.keys(colors)} selected={selectedColors} onToggle={value=>setSelectedColors(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])}/><MultiFilter label="Attribute" values={[...new Set(liveCards.map(card=>card.attribute).filter(Boolean))].sort()} selected={attributes} onToggle={value=>setAttributes(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])}/><MultiFilter label="Rarity" values={[...new Set(liveCards.map(card=>card.rarity).filter(Boolean))].sort()} selected={rarities} onToggle={value=>setRarities(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])}/><MultiFilter label="Counter" values={[...new Set(liveCards.map(card=>card.counter>0?`+${card.counter}`:'No counter'))].sort()} selected={counters} onToggle={value=>setCounters(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])}/><MultiFilter label="Keyword" values={[...new Set(liveCards.flatMap(card=>card.keywords).filter(keyword=>/^(Rush|Blocker|When Attacking|On Play|On K\.O\.|On Your Opponent's Attack|Activate: Main|Once Per Turn|Trigger|Your Turn|Opponent's Turn|Counter|DON!!)/i.test(keyword)))].sort()} selected={keywords} onToggle={value=>setKeywords(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])}/><MultiFilter label="Block" values={['1','2','3','4','5','X']} selected={blocks} onToggle={value=>setBlocks(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])}/><MultiFilter label="Set" values={[...new Map(liveCards.map(card=>[card.setCode,{value:card.setCode,label:`${card.setCode} — ${card.setName}`}])).values()]} selected={sets} onToggle={value=>setSets(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])}/></div><div className="filter-secondary"><SortOrderPicker value={sortOrder} onChange={setSortOrder}/><GridDensity value={gridColumns} onChange={setGridColumns}/><div className="language-switch" aria-label="Printing language"><button aria-pressed={language==='EN'} onClick={()=>{setLanguage('EN');setCatalogPage(0);setCatalogLoading(true)}}>EN</button><button aria-pressed={language==='JP'} onClick={()=>{setLanguage('JP');setCatalogPage(0);setCatalogLoading(true)}}>JP</button></div>{(selectedColors.length||types.length||rarities.length||attributes.length||counters.length||keywords.length||blocks.length||sets.length||query)&&<div className="filter-status"><button onClick={()=>{setQuery('');setColor('All colors');setSelectedColors([]);setTypes([]);setRarities([]);setAttributes([]);setCounters([]);setKeywords([]);setBlocks([]);setSets([])}}><X size={13}/>Clear</button></div>}</div></div>
+    </section>
+    <div className="card-grid" style={{'--catalog-grid-mode':gridColumns==='auto'?'auto-fit':gridColumns} as React.CSSProperties}>
+      {groups.slice(0,(catalogPage+1)*240).map(variants=><CatalogTile key={variants[0].id} primary={variants[0]} variants={variants} language={language} onOpen={(card,origin)=>{setPreviewOrigin(origin);setPreview(card)}}/>)}
+    </div>
+    {catalogLoading&&<div className="catalog-loading" role="status"><div className="catalog-skeleton-grid">{Array.from({length:10},(_,index)=><i key={index}/>)}</div><span className="sr-only">Loading card printings</span></div>}{!filtered.length&&!catalogLoading && <div className="empty-state"><h2>No card matches that search.</h2><p>Try the card number, a shorter name, or reset the filters.</p><button className="button secondary" onClick={()=>{setQuery('');setColor('All colors');setSelectedColors([]);setTypes([]);setRarities([]);setAttributes([]);setCounters([]);setKeywords([]);setBlocks([]);setSets([])}}>Reset library filters</button></div>}
+    {!catalogLoading&&groups.length>(catalogPage+1)*240&&<button className="button secondary browse-all" onClick={()=>setCatalogPage(page=>page+1)}>Load more catalog cards</button>}
+    {preview&&<CardPreviewModal card={preview} origin={previewOrigin} language={language as 'EN'|'JP'} cards={groups.map(group=>group[0])} onClose={()=>{setPreview(undefined);setPreviewOrigin(undefined)}} onNavigate={setPreview}/>} 
+  </main>;
+}

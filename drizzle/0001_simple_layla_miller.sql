@@ -1,0 +1,1 @@
+ALTER TABLE `profiles` ADD `updated_at` text DEFAULT '1970-01-01T00:00:00Z' NOT NULL;
