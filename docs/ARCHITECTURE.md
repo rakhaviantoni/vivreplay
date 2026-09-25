@@ -12,13 +12,13 @@ Card discovery → EN/JP printing → authenticated raw/slab Vault → versioned
 - Private items and photos are authorized server-side. Acquisition prices are excluded from public pages. Explicit visibility controls public sharing.
 - Each save appends a deck version. Draft validation is surfaced; there is no simulated legal gameplay. Race conflicts fail transactionally; callers can retry after refreshing.
 - Listing stock is checked atomically against active listings. Indonesia seller restriction does not block global browsing/collections/decks. No wallet, payment, escrow, settlement or checkout exists.
-- R2 photo storage, 5 MB limit, image signature checks, private delivery, and maximum eight photos. Uploads remain unverified; production moderation and malware/image processing are launch gates.
+- Supabase Storage photo storage, 5 MB limit, image signature checks, private delivery, and maximum eight photos. Uploads remain unverified; production moderation and malware/image processing are launch gates.
 - Raw-vs-graded valuation filters completed sales by exact printing, grader, grade, and currency. No live observations exist, so portfolio value stays unavailable.
 - Import normalizer/diff handles NEW/CHANGED/REMOVED/CONFLICT/FAILED. Admin page is read-only sample output. No canonical mutation or administrator approval API is exposed.
 
 ## Runtime and target-stack boundary
 
-This working private deployment uses Sites dispatch authentication, D1 SQL, and R2. Local development identity is provided by the starter and is excluded from production. Deploy only through Sites: the identity headers are trusted at the Sites dispatch boundary, not arbitrary public request headers.
+This working private deployment uses Sites dispatch authentication, D1 SQL, and Supabase Storage. Local development identity is provided by the starter and is excluded from production. Deploy only through Sites: the identity headers are trusted at the Sites dispatch boundary, not arbitrary public request headers.
 
 The user’s recommended production stack includes Supabase Auth/PostgreSQL, Hono, pnpm/Turborepo and Durable Objects. These are NOT silently represented as installed or provisioned. `lib/server/store.ts` is the current persistence/auth boundary. A production migration must introduce a Supabase JWT verifier, map auth subject to profile, implement PostgreSQL repositories and RLS, migrate IDs preserving relationships, and verify isolation before public launch. The domain packages are storage-independent.
 

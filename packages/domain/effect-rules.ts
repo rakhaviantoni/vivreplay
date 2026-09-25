@@ -33,7 +33,7 @@ export type EffectAction=
  | {kind:'shuffle';scope:'self'|'opponent'}
  | {kind:'recover';source:'trash';destination:'hand';amount:number;maxCost?:number;trait?:string}
  | {kind:'attack-permission';scope:'own-character';activeTargets?:boolean}
- | {kind:'attack-restriction';scope:'opponent-leader'|'opponent-character';until:'turn-end'|'opponent-next-turn'}
+ | {kind:'attack-restriction';scope:'opponent-leader'|'opponent-character';until:'turn-end'|'opponent-next-turn'|'next-own-turn'}
  | {kind:'prevent-ready';scope:'opponent-character'|'opponent-don';until:'opponent-next-refresh'}
  | {kind:'prevent-ko';scope:'own-character';by:'battle'|'effect'|'any'}
  | {kind:'activate-main-effect'}
@@ -46,13 +46,17 @@ export type EffectAction=
  | {kind:'move-to-life';scope:'own'|'opponent';amount:number;faceUp?:boolean;position:'top'|'bottom'|'choice'}
  | {kind:'trash-life';scope:'own'|'opponent'|'both';amount:number}
  | {kind:'set-cost';amount:number;target:EffectTarget;until:'turn-end'}
- | {kind:'activate-referenced-effect';trigger:'on-play'|'main'}
+ | {kind:'activate-referenced-effect';trigger:'on-play'|'main'|'counter'}
  | {kind:'prevent-rest';scope:'opponent-character';until:'opponent-next-turn'}
  | {kind:'swap-power';until:'turn-end'}
  | {kind:'base-power';amount:number;target:EffectTarget;until:'turn-end'}
  | {kind:'negate-effect';scope:'opponent-character'|'opponent-card';amount:number;until:'turn-end'}
  | {kind:'cost-reduction';amount:number;cardType?:Card['type'];trait?:string;minimumCost?:number}
  | {kind:'replacement';event:'removed-by-effect'|'ko-by-effect';cost:{kind:'rest-card'|'bottom-deck-own-character'|'return-self-hand'}}
+ | {kind:'copy-base-power';target:'own-character';from:'opponent-character';until:'turn-end'}
+ | {kind:'reorder-life';scope:'own'|'either';amount:number;addSelfToHand?:boolean}
+ | {kind:'play-or-life';source:'hand';maxCost?:number;faceUp?:boolean}
+ | {kind:'bottom-deck-hand';scope:'self';amount:'all'}
  | {kind:'unimplemented';text:string};
 
 export type EffectCost=
@@ -78,17 +82,22 @@ function parseEffectText(source:string):ParsedEffect[]{
  if(/draw cards? equal to the number you returned to your deck/i.test(text))actions.push({kind:'draw-by',source:'returned-hand'});
  const resetMatch=text.match(/(you|your opponent) returns? all cards? in (?:their|your) hand to (?:their|your) deck.*?draws? (\d+) cards?/i); if(resetMatch)actions.push({kind:'hand-reset',scope:/opponent/i.test(resetMatch[1])?'opponent':'self',draw:Number(resetMatch[2])});
  if(/(?:you|your opponent) returns? all cards? in (?:their|your) hand to (?:their|your) deck/i.test(text)&&!resetMatch)actions.push({kind:'hand-reset',scope:/your opponent/i.test(text)?'opponent':'self'});
+ if(/place all cards in your hand at the bottom of your deck/i.test(text))actions.push({kind:'bottom-deck-hand',scope:'self',amount:'all'});
  if(/(?:you|your opponent) (?:shuffles?|shuffle) (?:their|your) deck/i.test(text))actions.push({kind:'shuffle',scope:/your opponent/i.test(text)?'opponent':'self'});
  const trashRecovery=text.match(/add up to (\d+) .*?(?:Character )?cards?.*?from your trash to your hand/i); if(trashRecovery)actions.push({kind:'recover',source:'trash',destination:'hand',amount:Number(trashRecovery[1]),maxCost:costLimit(text),trait:text.match(/\[([^\]]+)\] (?:or \[[^\]]+\] )?type (?:Character )?cards?/i)?.[1]});
  const broadRecovery=text.match(/(?:add|select) up to (\d+) .*?from your trash (?:to your hand|and play)/i); if(broadRecovery)actions.push({kind:'recover',source:'trash',destination:'hand',amount:Number(broadRecovery[1]),maxCost:costLimit(text),trait:text.match(/(?:\{|\[)([^}\]]+)(?:\}|\]) type/i)?.[1]});
  const fixedPower=text.match(/set the power of up to \d+ of your opponent's Characters? to (\d+)/i); if(fixedPower)actions.push({kind:'set-power',amount:Number(fixedPower[1]),target:'opponent-character',until:'turn-end'});
  const directPower=text.match(/give up to \d+ of your opponent's Characters? (\d+) power during this turn/i); if(directPower)actions.push({kind:'power',amount:Number(directPower[1]),until:'turn-end',target:'opponent-character'});
+ const selfPower=text.match(/give this Character ([+\-]?\d+) power/i); if(selfPower)actions.push({kind:'power',amount:Number(selfPower[1]),until:/during this battle/i.test(text)?'battle':'turn-end',target:'own-character'});
+ const opponentCardPower=text.match(/give up to \d+ of your opponent's Leader or Character cards? ([+\-]?\d+) power/i); if(opponentCardPower)actions.push({kind:'power',amount:Number(opponentCardPower[1]),until:'turn-end',target:'opponent-character'});
  const fixedCost=text.match(/set the cost of up to \d+ of your opponent's Characters?.*?to (\d+) during this turn/i); if(fixedCost)actions.push({kind:'set-cost',amount:Number(fixedCost[1]),target:'opponent-character',until:'turn-end'});
  const power=Number(text.match(/([+\-]\d+)\s*power/i)?.[1]??0); if(power)actions.push({kind:'power',amount:power,until:/during this battle/i.test(text)?'battle':'turn-end',target:/opponent/i.test(text)?'opponent-character':/Leader/i.test(text)?'own-leader':'own-character'});
  const cost=Number(text.match(/([+\-]\d+)\s*cost/i)?.[1]??0); if(cost)actions.push({kind:'cost',amount:cost,target:'opponent-character'});
  if(/K\.O\.\s+(?:all|(?:up to\s+)?\d*\s*(?:of your opponent's )?(?:rested )?characters?)/i.test(text))actions.push({kind:'ko',maxCost:costLimit(text),maxPower:powerLimit(text),restedOnly:/rested Characters?/i.test(text)});
+ if(/K\.O\.\s+(?:up to\s+)?\d+\s+of your opponent's .*?Characters?/i.test(text))actions.push({kind:'ko',maxCost:costLimit(text),maxPower:powerLimit(text),restedOnly:/rested Characters?/i.test(text)});
  if(/return\s+(?:up to\s+)?\d*\s*(?:of your opponent's )?characters?.*?(?:to the owner's )?hand/i.test(text))actions.push({kind:'return-to-hand',scope:'opponent-character',maxCost:costLimit(text)});
  if(/return\s+(?:up to\s+)?\d*\s*(?:of your )?[^.]*?Characters?.*?(?:to the owner's )?hand/i.test(text)&&/of your /i.test(text))actions.push({kind:'return-to-hand',scope:'own-character',maxCost:costLimit(text)});
+ if(/return this Character to the owner's hand/i.test(text))actions.push({kind:'return-to-hand',scope:'own-character'});
  if(/place\s+(?:up to\s+)?\d*\s*(?:of your opponent's )?characters?.*?bottom of (?:the )?owner's deck/i.test(text))actions.push({kind:'bottom-deck',scope:'opponent-character',maxCost:costLimit(text)});
  if(/at the end of a battle.*?place the opponent's Character you battled with at the bottom of the owner's deck/i.test(text))actions.push({kind:'bottom-deck',scope:'opponent-character',maxCost:costLimit(text)});
  if(/place all Characters? with a cost of \d+ or less at the bottom of the owner's deck/i.test(text))actions.push({kind:'bottom-deck',scope:'any-character',maxCost:costLimit(text)});
@@ -122,14 +131,17 @@ function parseEffectText(source:string):ParsedEffect[]{
  }
  const namedDeckSearch=text.match(/reveal up to\s+(\d+)\s+\[([^\]]+)\]\s+from your deck and add it to your hand/i); if(namedDeckSearch)actions.push({kind:'search',amount:0,choose:Number(namedDeckSearch[1]),destination:'hand',trait:namedDeckSearch[2]});
  const lifeToHand=numberAfter(text,/add\s+(?:up to\s+)?(\d+)\s+cards? from the (?:top|top or bottom) of your Life cards? to your hand/i); if(lifeToHand)actions.push({kind:'life',operation:'add-to-hand',amount:lifeToHand});
+ const lifeReorder=numberAfter(text,/look at\s+(?:up to\s+)?(\d+)\s+cards? from the top of your or your opponent's Life cards?/i); if(lifeReorder)actions.push({kind:'reorder-life',scope:'either',amount:lifeReorder,addSelfToHand:/add this card to your hand/i.test(text)});
  const lifePlacement=text.match(/(?:add|place) up to (\d+) .*?(?:Character|card).*?to the (top|bottom)( or bottom)? of (?:your opponent's|the owner's|your) Life cards?(?: (face-up|face-down))?/i); if(lifePlacement)actions.push({kind:'move-to-life',scope:/your opponent/i.test(lifePlacement[0])?'opponent':'own',amount:Number(lifePlacement[1]),position:lifePlacement[3]?'choice':lifePlacement[2].toLowerCase() as 'top'|'bottom',faceUp:lifePlacement[4]==='face-up'});
  const handReveal=numberAfter(text,/choose (\d+) cards? from your opponent's hand; your opponent reveals?/i); if(handReveal)actions.push({kind:'reveal-hand',scope:'opponent',amount:handReveal});
  if(/trash cards? from your hands until you each have (\d+) cards? in your hands/i.test(text))actions.push({kind:'hand-limit',scope:'both',amount:numberAfter(text,/until you each have (\d+)/i)});
  if(/trash (\d+) cards? from the top of each of your and your opponent's Life cards?/i.test(text))actions.push({kind:'trash-life',scope:'both',amount:numberAfter(text,/trash (\d+) cards? from the top of each/i)});
+ const opponentLifeTrash=numberAfter(text,/trash (?:up to )?(\d+) cards? from the top of your opponent's Life cards?/i); if(opponentLifeTrash)actions.push({kind:'trash-life',scope:'opponent',amount:opponentLifeTrash});
  if(/play this card/i.test(text))actions.push({kind:'play',source:'life'});
  const attachMatch=text.match(/give up to (\d+) (?:total of your currently given )?(?:rested )?DON!! cards? to (?:your Leader or )?(?:1 of your )?Characters?/i); if(attachMatch)actions.push({kind:'attach-don',amount:Number(attachMatch[1]),source:/currently given/i.test(attachMatch[0])?'attached':'cost-area'});
  const anyAttach=text.match(/give up to (\d+) rested DON!! cards? to .*?(?:Leader|Character)/i); if(anyAttach)actions.push({kind:'attach-don',amount:Number(anyAttach[1]),source:'cost-area'});
  if(/play up to\s+\d+.*?from your hand/i.test(text))actions.push({kind:'play',source:'hand',maxCost:costLimit(text),rested:/from your hand rested/i.test(text)});
+ if(/select up to\s+\d+.*?from your hand and play it or add it to the top of your Life cards?/i.test(text))actions.push({kind:'play-or-life',source:'hand',maxCost:costLimit(text),faceUp:/face-up/i.test(text)});
  if(/(?:activate|select) up to\s+\d+.*?Event.*?from your hand/i.test(text))actions.push({kind:'play',source:'hand',maxCost:costLimit(text)});
  if(/play up to\s+\d+.*?from your trash/i.test(text))actions.push({kind:'play',source:'trash',maxCost:costLimit(text),rested:/from your trash rested/i.test(text)});
  if(/\[Blocker\]/i.test(text))actions.push({kind:'blocker'});
@@ -142,17 +154,25 @@ function parseEffectText(source:string):ParsedEffect[]{
  if(/activate this card's \[Main\] effect/i.test(text))actions.push({kind:'activate-main-effect'});
  if(/activate this card's \[On Play\] effect/i.test(text))actions.push({kind:'activate-referenced-effect',trigger:'on-play'});
  if(/activate this card's \[Main\] effect/i.test(text))actions.push({kind:'activate-referenced-effect',trigger:'main'});
+ if(/activate this card's \[Counter\] effect/i.test(text))actions.push({kind:'activate-referenced-effect',trigger:'counter'});
  if(/(?:can also )?attack active Characters? (?:during this turn|on the turn in which they are played)/i.test(text)||/can attack Characters? on the turn in which (?:it|they are) played/i.test(text)||/this Character can attack Characters? on the turn in which it is played/i.test(text))actions.push({kind:'attack-permission',scope:'own-character',activeTargets:/active Characters?/i.test(text)});
- if(/(?:Leader|Character|card)s? cannot attack until (?:the (?:start|end) of )?your opponent's next (?:turn|End Phase)/i.test(text))actions.push({kind:'attack-restriction',scope:/Leader/i.test(text)?'opponent-leader':'opponent-character',until:'opponent-next-turn'});
+ if(/(?:Leader|Character|card)s?(?:\s+with[^.]*?)? cannot attack until (?:the (?:start|end) of )?your opponent's next (?:turn|End Phase)/i.test(text))actions.push({kind:'attack-restriction',scope:/Leader/i.test(text)?'opponent-leader':'opponent-character',until:'opponent-next-turn'});
+ if(/(?:Leader|Character|card)s?(?:\s+with[^.]*?)? cannot attack until the start of your next turn/i.test(text))actions.push({kind:'attack-restriction',scope:'opponent-character',until:'next-own-turn'});
  if(/(?:Leader|Character|card)s? cannot attack during this turn/i.test(text))actions.push({kind:'attack-restriction',scope:/Leader/i.test(text)?'opponent-leader':'opponent-character',until:'turn-end'});
  if(/will not become active in your opponent's next Refresh Phase/i.test(text))actions.push({kind:'prevent-ready',scope:/DON!!/i.test(text)?'opponent-don':'opponent-character',until:'opponent-next-refresh'});
  if(/cannot be rested until the end of your opponent's next/i.test(text))actions.push({kind:'prevent-rest',scope:'opponent-character',until:'opponent-next-turn'});
  if(/swap the base power of the selected Characters? with each other during this turn/i.test(text))actions.push({kind:'swap-power',until:'turn-end'});
+ if(/this Character's base power becomes the same as the selected Character's power during this turn/i.test(text))actions.push({kind:'copy-base-power',target:'own-character',from:'opponent-character',until:'turn-end'});
  const basePower=text.match(/base power (?:becomes?|become) (\d+)/i); if(basePower)actions.push({kind:'base-power',amount:Number(basePower[1]),target:/Leader/i.test(text)?'own-leader':'own-character',until:'turn-end'});
  if(/cannot be K\.O\.'d in battle/i.test(text))actions.push({kind:'prevent-ko',scope:'own-character',by:'battle'});
  if(/cannot be K\.O\.'d by (?:your opponent's )?effects/i.test(text))actions.push({kind:'prevent-ko',scope:'own-character',by:'effect'});
+ if(/cannot be removed from the field by your opponent's effects?/i.test(text))actions.push({kind:'prevent-ko',scope:'own-character',by:'effect'});
+ if(/can be K\.O\.'d by effects until the end of your opponent's next turn/i.test(text))actions.push({kind:'prevent-ko',scope:'own-character',by:'effect'});
  const negate=text.match(/negate the effects? of up to (\d+) of your opponent's (Characters?|Leader or Character cards?)/i); if(negate)actions.push({kind:'negate-effect',scope:/Leader or Character/i.test(negate[2])?'opponent-card':'opponent-character',amount:Number(negate[1]),until:'turn-end'});
+ if(/negate the effects? of your opponent's Leader and all of their Characters during this turn/i.test(text))actions.push({kind:'negate-effect',scope:'opponent-card',amount:0,until:'turn-end'});
+ if(/negate the effect of up to \d+ of each of your opponent's Leader and Character cards during this turn/i.test(text))actions.push({kind:'negate-effect',scope:'opponent-card',amount:2,until:'turn-end'});
  const reduction=text.match(/cost of playing (?:\[([^\]]+)\] type )?(Character|Event|Stage) cards? with a cost of (\d+) or more from your hand will be reduced by (\d+)/i); if(reduction)actions.push({kind:'cost-reduction',trait:reduction[1],cardType:reduction[2] as Card['type'],minimumCost:Number(reduction[3]),amount:Number(reduction[4])});
+ const nextReduction=text.match(/next time you play \[([^\]]+)\](?: type)?(?: Character)? with a cost of (\d+) or more from your hand during this turn, the cost will be reduced by (\d+)/i); if(nextReduction)actions.push({kind:'cost-reduction',trait:nextReduction[1],cardType:'Character',minimumCost:Number(nextReduction[2]),amount:Number(nextReduction[3])});
  if(/would be removed from the field by your opponent's effect.*?rest \d+ of your (?:active )?cards? instead/i.test(text))actions.push({kind:'replacement',event:'removed-by-effect',cost:{kind:'rest-card'}});
  if(/would be removed from the field by your opponent's effect.*?place \d+ of your Characters?.*?bottom of the owner's deck instead/i.test(text))actions.push({kind:'replacement',event:'removed-by-effect',cost:{kind:'bottom-deck-own-character'}});
  if(/would be removed from the field by your opponent's effect.*?return this Character to the owner's hand instead/i.test(text))actions.push({kind:'replacement',event:'removed-by-effect',cost:{kind:'return-self-hand'}});

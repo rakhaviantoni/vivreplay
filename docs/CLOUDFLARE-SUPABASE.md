@@ -6,7 +6,7 @@ Supabase is the canonical card catalog and private `tcg-card-images` bucket. Clo
 2. Create a Supabase secret key in Project Settings, API Keys. Set it only as `SUPABASE_SECRET_KEY` in the trusted importer environment.
 3. Run `npx tsx scripts/import-optcg-to-supabase.ts` once with the URL and secret key available. The script downloads images with six concurrent workers and writes WebP `thumb` (180px), `small` (420px), and `large` (960px) variants to the private Supabase bucket.
 4. Run `node --env-file=.env.local --import tsx scripts/import-oplay-jp-images.ts` to derive and verify JP `small` image URLs for every saved EN printing. Only images returning HTTP 200 create JP printing and asset-source records.
-4. In Cloudflare Sites, preserve the existing `DB` D1 and `BUCKET` R2 bindings. Add `SUPABASE_URL` and `SUPABASE_SECRET_KEY` as encrypted Worker secrets. Do not add the secret key to `.env.local`, client code, or a public binding.
+4. In Cloudflare Sites, preserve the `DB` D1 binding. Do not bind R2: this account does not have R2 enabled, and site images plus slab photos live in the private Supabase `tcg-card-images` bucket. Add `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SECRET_KEY` as encrypted Worker secrets. Do not add the secret key to client code or a public binding. Upload site images with `npm run assets:upload` (`/art/*` is excluded).
 
 ## Deck Coach
 

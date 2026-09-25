@@ -77,7 +77,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
     });
     return sort==='Price: low to high'?[...matches].sort((a,b)=>a.amount-b.amount):matches;
   },[initialCards,lang,listings,query,sort]);
-  const signInToContinue=(returnTo='/market')=>{if(accountLoading){toast.message('Checking your account…');return false}if(data)return true;router.push(`/signin-with-chatgpt?return_to=${encodeURIComponent(returnTo)}`);return false};
+  const signInToContinue=(returnTo='/market')=>{if(accountLoading){toast.message('Checking your account…');return false}if(data)return true;router.push(`/sign-in?return_to=${encodeURIComponent(returnTo)}`);return false};
   const beginListing=()=>{if(!signInToContinue())return;setCollectionOpen(false);setContinueToListing(false);setSelectedCard(undefined);setCardSearch('');setSaveError('');setListingPrice('');setListingTitle('');setListingCity('');setBenchmarkMultiplier(100);setOpen(true)};
   const sellCard=(card:Card)=>{if(!signInToContinue(`/market?sell=${card.id}`))return;setCollectionOpen(false);setContinueToListing(false);setSelectedCard(card);setCardSearch(card.name);setSaveError('');setListingPrice('');setListingTitle(card.name);setListingCity('Jakarta');setBenchmarkMultiplier(100);setOpen(true)};
   const addToVault=(card:Card)=>{if(!signInToContinue(`/market?sell=${card.id}`))return;setSelectedCard(card);setContinueToListing(false);setCollectionOpen(true)};

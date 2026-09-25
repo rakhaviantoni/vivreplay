@@ -13,7 +13,8 @@
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test tests/*.test.ts"
+    "test": "node --import tsx --test tests/*.test.ts",
+    "assets:upload": "node --env-file=.env.local --import tsx scripts/upload-site-assets.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -22,6 +23,7 @@
     "@shadcn/react": "^0.3.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.116.0",
+    "better-auth": "^1.7.5",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "cmdk": "^1.1.1",
