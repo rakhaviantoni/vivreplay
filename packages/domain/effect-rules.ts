@@ -129,7 +129,7 @@ function parseEffectText(source:string):ParsedEffect[]{
  const deckTrash=numberAfter(text,/trash\s+(\d+)\s+cards? from the top of your deck/i); if(deckTrash)actions.push({kind:'trash',scope:'deck',amount:deckTrash});
  const opponentHandTrash=numberAfter(text,/opponent trashes?\s+(\d+)\s+cards? from their hand/i); if(opponentHandTrash)actions.push({kind:'trash',scope:'opponent-hand',amount:opponentHandTrash});
  const directOpponentHandTrash=numberAfter(text,/trash\s+(\d+)\s+cards? from your opponent's hand/i); if(directOpponentHandTrash)actions.push({kind:'trash',scope:'opponent-hand',amount:directOpponentHandTrash});
- if(/trash this (?:character|stage)/i.test(text))actions.push({kind:'trash',scope:'self',amount:1});
+ if(/trash this (?:character|stage)/i.test(text)){actions.push({kind:'trash',scope:'self',amount:1});if(/trash this (?:character|stage)\s*:/i.test(text))costs.push({kind:'trash',scope:'self',amount:1,optional});}
  const look=numberAfter(text,/look at\s+(?:up to\s+)?(\d+)\s+cards? from the top of your deck/i);
  const reorderOnly=look&&/place them at the top of your deck in any order/i.test(text)&&!/add .*?to your hand/i.test(text);
  if(reorderOnly)actions.push({kind:'reorder-deck',amount:look,position:'top'});
@@ -197,6 +197,12 @@ function parseEffectText(source:string):ParsedEffect[]{
   const searchPosition=text.search(/look at/i),discardPosition=text.search(/trash\s+\d+\s+[^:]*?from your hand/i);
   if(discardPosition>searchPosition&&handDiscardIndex<searchIndex){const [discard]=actions.splice(handDiscardIndex,1);actions.splice(actions.findIndex(action=>action.kind==='search')+1,0,discard);}
  }
+ const drawIndex=actions.findIndex(action=>action.kind==='draw');
+ const discardIndex=actions.findIndex(action=>action.kind==='trash'&&action.scope==='hand');
+ if(drawIndex>=0&&discardIndex>=0&&!costs.some(cost=>cost.kind==='trash'&&cost.scope==='hand')){
+  const discardPosition=text.search(/trash\s+\d+\s+[^:]*?from your hand/i),drawPosition=text.search(/draw\s+\d+\s+card/i);
+  if(discardPosition>=0&&discardPosition<drawPosition&&discardIndex>drawIndex){const [discard]=actions.splice(discardIndex,1);actions.splice(drawIndex,0,discard);}
+ }
  for(const action of actions){
   const quantity=action.kind==='ko'?text.match(/K\.O\.\s+(?:(up to)\s+)?(\d+|all)\b/i):action.kind==='rest'&&action.scope!=='self'?text.match(/rest\s+(?:(up to)\s+)?(\d+|all)\s+(?:of\s+)?your opponent/i):action.kind==='cost'?text.match(/give\s+(?:(up to)\s+)?(\d+|all)\s+of your opponent's Characters?\s+[+\-]\d+\s+cost/i):null;
   if(quantity)action.selection={min:quantity[1]?0:quantity[2].toLowerCase()==='all'?0:Number(quantity[2]),max:quantity[2].toLowerCase()==='all'?'all':Number(quantity[2])};
@@ -233,7 +239,7 @@ export function compileEffectDocument(card:Card):EffectDocument{
  const handlerPart=(value:string)=>value.replace(/[^A-Za-z0-9]+/g,'_').replace(/^_|_$/g,'').toUpperCase();
  const ast=parsed.map(effect=>({rawText:effect.source,trigger:effect.trigger,conditions:effect.conditions,costs:effect.costs,actions:effect.actions.map(action=>action.kind==='custom-resolver'?{...action,handler:`${handlerPart(card.code)}_${handlerPart(effect.trigger)}`}:action)}));
  const resolver:EffectResolver=custom?{type:'CUSTOM',handler:ast.flatMap(effect=>effect.actions).find((action):action is Extract<EffectAction,{kind:'custom-resolver'}>=>action.kind==='custom-resolver')?.handler??`${handlerPart(card.code)}_CUSTOM`}:{type:'DSL'};
- const normalized=ast.map(effect=>{const actions=effect.actions.filter(action=>!effect.costs.some(cost=>cost.kind==='trash'&&cost.scope==='hand'&&action.kind==='trash'&&action.scope==='hand'&&cost.amount===action.amount&&Boolean(cost.requiresTrigger)===Boolean(action.requiresTrigger)));return {timing:effect.trigger,optional:/\bYou may\b/i.test(effect.rawText),conditions:effect.conditions,sequence:[...effect.costs.map(cost=>({type:'PAY_COST' as const,cost})),...actions.map(action=>({type:'RESOLVE' as const,action}))]};});
+ const normalized=ast.map(effect=>{const actions=effect.actions.filter(action=>!effect.costs.some(cost=>(cost.kind==='trash'&&action.kind==='trash'&&cost.scope===action.scope&&cost.amount===action.amount&&Boolean(cost.requiresTrigger)===Boolean(action.requiresTrigger))||(cost.kind==='rest'&&cost.scope==='self'&&action.kind==='rest'&&action.scope==='self')||(cost.kind==='return-don'&&action.kind==='return-don'&&cost.amount===action.amount)));return {timing:effect.trigger,optional:/\bYou may\b/i.test(effect.rawText),conditions:effect.conditions,sequence:[...effect.costs.map(cost=>({type:'PAY_COST' as const,cost})),...actions.map(action=>({type:'RESOLVE' as const,action}))]};});
  const implementationStatus:EffectImplementationStatus=resolver.type==='CUSTOM'&&customResolverStatus(resolver.handler)==='RAW'?'RAW':'PARSED';
  return {rawEffectText,parserVersion:EFFECT_PARSER_VERSION,parseConfidence:custom?.65:rawEffectText?0.94:1,implementationStatus,ast,normalized,resolver};
 }

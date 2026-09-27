@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import {ArrowRightIcon as ArrowRight, CardsIcon as Cards, CheckCircleIcon as CheckCircle, GameControllerIcon as GameController, GraduationCapIcon as GraduationCap, PlayCircleIcon as PlayCircle, SwordIcon as Sword, TrophyIcon as Trophy, UsersThreeIcon as UsersThree} from '@phosphor-icons/react';
+import {ArrowLeftIcon as ArrowLeft, ArrowRightIcon as ArrowRight, CardsIcon as Cards, CheckCircleIcon as CheckCircle, GameControllerIcon as GameController, GraduationCapIcon as GraduationCap, PlayCircleIcon as PlayCircle, SwordIcon as Sword, TrophyIcon as Trophy, UsersThreeIcon as UsersThree} from '@phosphor-icons/react';
 import {useEffect,useMemo,useState} from 'react';
 import {createClient} from '@/utils/supabase/client';
 import {CardArt} from './card-art';
@@ -31,5 +31,187 @@ export function ArenaLobby(){
  </main>;
 }
 
-const tutorialChapters=['Basics: the table','The cards','The game begins','Your first action','Play a Character','Attack!','When you can attack','Blockers','Counters','Triggers','Choosing targets','Abilities','Keywords and costs','The table itself','The turn and its phases','Playing online'];
-export function ArenaTutorialIndex(){const phases=[{title:'Read the table',range:'Chapters 1–4',copy:'Learn the zones, card types, setup, and the first decision of a turn.'},{title:'Win a battle',range:'Chapters 5–9',copy:'Play cards, attack, use Blockers, Counter, and understand Life.'},{title:'Resolve the details',range:'Chapters 10–13',copy:'Work through Triggers, targets, abilities, keywords, and costs.'},{title:'Play a full match',range:'Chapters 14–16',copy:'Put a turn together, handle the table, and take the flow online.'}];return <main className="page arena-tutorial-index tutorial-index-page"><section className="library-intro tutorial-index-intro"><div className="library-intro-copy"><p className="kicker">LEARN TO PLAY</p><h1>Learn the table, then play it.</h1><p>Start with a guided board tour. Every chapter points to the actual part of the table it explains.</p></div><Link className="tutorial-index-start" href="/play/table">Start Chapter 1 <PlayCircle size={17}/></Link></section><section className="tutorial-path"><header className="section-heading"><div><p className="eyebrow">YOUR PATH</p><h2>One complete game, in sixteen chapters.</h2><p>Chapter 1 is ready now. The rest unlock as the interactive lessons are completed.</p></div><span className="tutorial-path-status">1 of 16 ready</span></header><div className="tutorial-phase-grid">{phases.map((phase,index)=><article className={index===0?'tutorial-phase current':'tutorial-phase'} key={phase.title}><span>{String(index+1).padStart(2,'0')}</span><small>{phase.range}</small><h3>{phase.title}</h3><p>{phase.copy}</p>{index===0?<Link href="/play/table">Open Chapter 1 <ArrowRight size={14}/></Link>:<em>Coming with the next lesson</em>}</article>)}</div></section><section className="tutorial-chapters-section"><header className="section-heading"><div><p className="eyebrow">CHAPTERS</p><h2>Follow the table in order.</h2></div></header><div className="tutorial-chapter-grid">{tutorialChapters.map((title,index)=>index===0?<Link href="/play/table" key={title} className="tutorial-chapter active"><b>1</b><span>{title}</span><em>Start <PlayCircle size={15}/></em></Link>:<article key={title} className="tutorial-chapter locked"><b>{index+1}</b><span>{title}</span><em>Locked</em></article>)}</div></section></main>}
+const tutorialModules = [
+  {
+    number: '01',
+    title: 'Table Foundations',
+    range: 'Lessons 1 to 4',
+    copy: 'Learn the playmat layout, 50-card deck regulations, DON!! resource pool, and your Leader card.',
+    startStep: 0,
+  },
+  {
+    number: '02',
+    title: 'Field Zones & Combat',
+    range: 'Lessons 5 to 8',
+    copy: 'Deploy Characters, activate Stage cards, defend your Life cards, and navigate the Trash.',
+    startStep: 4,
+  },
+  {
+    number: '03',
+    title: 'Hand & Turn Flow',
+    range: 'Lessons 9 to 10',
+    copy: 'Manage hidden hand cards, sort by cost or counter value, and orchestrate full turn phases.',
+    startStep: 8,
+  },
+];
+
+const tutorialLessons = [
+  {
+    step: 0,
+    number: '01',
+    title: 'Welcome to the table',
+    zone: 'Playmat overview',
+    copy: 'Orient yourself on the maritime playmat, your player seat, and primary win conditions.',
+  },
+  {
+    step: 1,
+    number: '02',
+    title: 'The Deck',
+    zone: 'Deck zone',
+    copy: '50-card regulation size, drawing each turn, and the 4-copy rule.',
+  },
+  {
+    step: 2,
+    number: '03',
+    title: 'DON!! System',
+    zone: 'Cost area',
+    copy: '10-card DON!! deck, active vs rested states, and attaching power to units.',
+  },
+  {
+    step: 3,
+    number: '04',
+    title: 'The Leader',
+    zone: 'Leader zone',
+    copy: 'Leader colour identity, base battle power, and Life counters.',
+  },
+  {
+    step: 4,
+    number: '05',
+    title: 'Characters',
+    zone: 'Character area',
+    copy: 'Summoning Characters with DON!!, 5-card board limit, and attack sequencing.',
+  },
+  {
+    step: 5,
+    number: '06',
+    title: 'The Stage',
+    zone: 'Stage zone',
+    copy: 'Persistent field cards providing continuous advantages for your crew.',
+  },
+  {
+    step: 6,
+    number: '07',
+    title: 'Life & Triggers',
+    zone: 'Life stack',
+    copy: 'Taking damage into hand, preserving Life cards, and checking Trigger opportunities.',
+  },
+  {
+    step: 7,
+    number: '08',
+    title: 'The Trash',
+    zone: 'Trash zone',
+    copy: 'Graveyard mechanics, reviewing discarded cards, and on-K.O. interactions.',
+  },
+  {
+    step: 8,
+    number: '09',
+    title: 'Your Hand',
+    zone: 'Hand tray',
+    copy: 'Hidden information, mulligan decisions, and sorting by type, cost, or counter power.',
+  },
+  {
+    step: 9,
+    number: '10',
+    title: 'The Whole Table',
+    zone: 'Full board',
+    copy: 'Synthesize turn flow: Refresh Phase, Draw Phase, DON!! Phase, and Main Phase.',
+  },
+];
+
+export function ArenaTutorialIndex() {
+  return (
+    <main className="page arena-tutorial-index tutorial-index-page">
+      <section className="library-intro tutorial-index-intro">
+        <div className="library-intro-copy">
+          <p className="kicker">TUTORIAL</p>
+          <h1>Learn the table, then play it.</h1>
+          <p>
+            Master the official One Piece Card Game rules directly at the interactive table.
+            Every lesson highlights the specific board zone with live simulator mechanics.
+          </p>
+          <div className="tutorial-intro-cta">
+            <Link className="tutorial-index-start" href="/play/tutorial?step=0">
+              <PlayCircle size={18} weight="bold" />
+              <span>Start interactive tutorial</span>
+            </Link>
+            <Link className="tutorial-index-secondary" href="/play">
+              <ArrowLeft size={16} />
+              <span>Arena lobby</span>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="tutorial-path">
+        <header className="section-heading">
+          <div>
+            <p className="eyebrow">CURRICULUM</p>
+            <h2>Structured table training in three modules.</h2>
+            <p>Ten interactive lessons teaching fundamental zones, combat rules, and turn progression.</p>
+          </div>
+          <span className="tutorial-path-status">10 lessons · Interactive table</span>
+        </header>
+        <div className="tutorial-phase-grid">
+          {tutorialModules.map((mod) => (
+            <article className="tutorial-phase" key={mod.title}>
+              <span>{mod.number}</span>
+              <small>{mod.range}</small>
+              <h3>{mod.title}</h3>
+              <p>{mod.copy}</p>
+              <Link href={`/play/tutorial?step=${mod.startStep}`}>
+                <span>Start module</span>
+                <ArrowRight size={14} weight="bold" />
+              </Link>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="tutorial-chapters-section">
+        <header className="section-heading">
+          <div>
+            <p className="eyebrow">ALL LESSONS</p>
+            <h2>Jump directly into any lesson.</h2>
+          </div>
+        </header>
+        <div className="tutorial-chapter-grid">
+          {tutorialLessons.map((item) => (
+            <Link
+              href={`/play/tutorial?step=${item.step}`}
+              key={item.title}
+              className="tutorial-chapter"
+            >
+              <b>{item.number}</b>
+              <div className="tutorial-chapter-info">
+                <span>{item.title}</span>
+                <small>{item.zone}</small>
+              </div>
+              <em>
+                <span>Play</span>
+                <PlayCircle size={16} weight="bold" />
+              </em>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <div className="tutorial-back">
+        <Link href="/play" className="text-action">
+          <ArrowLeft size={14} />
+          <span>Return to Arena</span>
+        </Link>
+      </div>
+    </main>
+  );
+}
+

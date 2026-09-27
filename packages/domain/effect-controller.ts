@@ -33,17 +33,21 @@ export function advanceEffectExecution(execution:EffectExecution,selection:Effec
  const conditionResults={...execution.conditionResults};
  while(index<execution.commands.length){
   const command=execution.commands[index];
-  const checks=(command.conditions??[]).map(text=>{if(text in conditionResults)return conditionResults[text];const result=evaluateEffectCondition(text,state,execution.actor);if(result!==undefined)conditionResults[text]=result;return result;});
+  const checks=(command.conditions??[]).map(text=>{const key=`${command.abilityId??0}:${text}`;if(key in conditionResults)return conditionResults[key];const result=evaluateEffectCondition(text,state,execution.actor);if(result!==undefined)conditionResults[key]=result;return result;});
   if(checks.includes(undefined))return {execution:{...execution,state,conditionResults,commandIndex:index},complete:false,error:'This effect has an unsupported condition.'};
   if(checks.includes(false)){index++;continue;}
-  if(selection.choice==='decline'&&command.kind==='pay-cost'&&(command.value as EffectCost).optional){
-   return {execution:{...execution,state,conditionResults,commandIndex:execution.commands.length},complete:true};
+  if(!usedSelection&&selection.choice==='decline'&&command.kind==='pay-cost'&&(command.value as EffectCost).optional){
+   const ability=command.abilityId;
+   if(ability===undefined)return {execution:{...execution,state,conditionResults,commandIndex:execution.commands.length},complete:true};
+   while(index<execution.commands.length&&execution.commands[index].abilityId===ability)index++;
+   usedSelection=true;
+   continue;
   }
   const input=usedSelection?{}:selection;
   const value=command.value as EffectAction|EffectCost;
-  const sourceBound=(command.kind==='pay-cost'&&value.kind==='rest'&&value.scope==='self')
+  const sourceBound=(command.kind==='pay-cost'&&(value.kind==='rest'||value.kind==='trash')&&value.scope==='self')
    ||(command.kind==='resolve-action'&&((value.kind==='rest'&&value.scope==='self')||(value.kind==='trash'&&value.scope==='self')||(value.kind==='ready'&&value.scope==='self')));
-  const resolvedInput=sourceBound&&!input.targetId?{...input,targetId:execution.sourceId}:input;
+  const resolvedInput=sourceBound?{...input,targetId:execution.sourceId}:input;
   const result=command.kind==='pay-cost'
    ?payEffectCost(state,execution.actor,command.value as EffectCost,resolvedInput)
    :applyEffectAction(state,execution.actor,command.value as EffectAction,resolvedInput);

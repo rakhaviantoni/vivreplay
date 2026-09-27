@@ -44,8 +44,8 @@ export default function AdminEmailsPage() {
 
   useEffect(() => {
     fetch('/api/admin/emails/preview')
-      .then((res) => res.json())
-      .then((data: { emails: EmailData[] }) => {
+      .then((res) => res.json() as Promise<{ emails: EmailData[] }>)
+      .then((data) => {
         if (data?.emails) {
           setEmails(data.emails);
         }

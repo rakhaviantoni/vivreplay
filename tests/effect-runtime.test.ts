@@ -184,3 +184,72 @@ test('rest all resolves every eligible card without a target prompt',()=>{
  assert.equal(done.complete,true);
  assert.deepEqual(done.execution.state.cards.filter(card=>card.rested).map(card=>card.id),['a','b']);
 });
+
+test('DON return costs execute once before drawing',()=>{
+ const doc=compileEffectDocument({id:'source',code:'TEST-DON-COST',name:'Test',color:'Purple',type:'Character',cost:1,power:0,counter:0,rarity:'C',art:0,effect:'[Activate: Main] DON!! -1: Draw 1 card.'});
+ const commands=resolveCardEffect(doc,'activate-main').commands;
+ assert.deepEqual(commands.map(command=>command.value.kind),['return-don','draw']);
+ const initial:MatchEffectState={turn:'player',turnEffects:[],restrictions:[],delayed:[],cards:[{id:'don',owner:'player',zone:'cost-area',type:'DON!!'},{id:'next',owner:'player',zone:'deck'}]};
+ const pending=beginEffectExecution(initial,'player','source','activate-main',commands);
+ const done=advanceEffectExecution(pending.execution,{cardIds:['don']});
+ assert.equal(done.complete,true);
+ assert.equal(done.execution.state.cards[0].zone,'don-deck');
+ assert.equal(done.execution.state.cards[1].zone,'hand');
+});
+
+test('self-trash costs bind the source, reject replay, and precede the reward',()=>{
+ const doc=compileEffectDocument({id:'source',code:'TEST-SELF-COST',name:'Test',color:'Red',type:'Character',cost:1,power:0,counter:0,rarity:'C',art:0,effect:'[Activate: Main] You may trash this Character: Draw 1 card.'});
+ const commands=resolveCardEffect(doc,'activate-main').commands;
+ assert.deepEqual(commands.map(command=>[command.kind,command.value.kind]),[['pay-cost','trash'],['resolve-action','draw']]);
+ const initial:MatchEffectState={turn:'player',turnEffects:[],restrictions:[],delayed:[],cards:[{id:'source',owner:'player',zone:'character'},{id:'other',owner:'player',zone:'character'},{id:'next',owner:'player',zone:'deck'}]};
+ const done=advanceEffectExecution({actor:'player',sourceId:'source',timing:'activate-main',commands,commandIndex:0,state:initial},{targetId:'other'});
+ assert.equal(done.complete,true);
+ assert.equal(done.execution.state.cards[0].zone,'trash');
+ assert.equal(done.execution.state.cards[1].zone,'character');
+ assert.equal(done.execution.state.cards[2].zone,'hand');
+ assert.ok(beginEffectExecution(done.execution.state,'player','source','activate-main',commands).error);
+});
+
+test('declining one optional ability does not cancel an independent ability at the same timing',()=>{
+ const doc=compileEffectDocument({id:'source',code:'TEST-INDEPENDENT',name:'Test',color:'Black',type:'Character',cost:1,power:0,counter:0,rarity:'C',art:0,effect:'[On Play] You may trash 1 card from your hand: Draw 2 cards.\n[On Play] Draw 1 card.'});
+ const initial:MatchEffectState={turn:'player',turnEffects:[],restrictions:[],delayed:[],cards:[{id:'held',owner:'player',zone:'hand'},{id:'a',owner:'player',zone:'deck'},{id:'b',owner:'player',zone:'deck'}]};
+ const pending=beginEffectExecution(initial,'player','source','on-play',resolveCardEffect(doc,'on-play').commands);
+ const done=advanceEffectExecution(pending.execution,{choice:'decline'});
+ assert.equal(done.complete,true);
+ assert.equal(done.execution.state.cards.find(card=>card.id==='held')?.zone,'hand');
+ assert.equal(done.execution.state.cards.find(card=>card.id==='a')?.zone,'hand');
+ assert.equal(done.execution.state.cards.find(card=>card.id==='b')?.zone,'deck');
+});
+
+test('independent abilities recheck conditions after earlier abilities change the hand',()=>{
+ const doc=compileEffectDocument({id:'source',code:'TEST-CONDITIONS',name:'Test',color:'Black',type:'Character',cost:1,power:0,counter:0,rarity:'C',art:0,effect:'[On Play] If you have 0 or less cards in your hand, draw 1 card.\n[On Play] If you have 0 or less cards in your hand, draw 1 card.'});
+ const initial:MatchEffectState={turn:'player',turnEffects:[],restrictions:[],delayed:[],cards:[{id:'a',owner:'player',zone:'deck'},{id:'b',owner:'player',zone:'deck'}]};
+ const done=beginEffectExecution(initial,'player','source','on-play',resolveCardEffect(doc,'on-play').commands);
+ assert.equal(done.complete,true);
+ assert.equal(done.execution.state.cards.filter(card=>card.zone==='hand').length,1);
+});
+
+test('discard then draw cannot use the future drawn card to satisfy its discard',()=>{
+ const doc=compileEffectDocument({id:'source',code:'TEST-DISCARD-DRAW',name:'Test',color:'Black',type:'Character',cost:1,power:0,counter:0,rarity:'C',art:0,effect:'[On Play] Trash 1 card from your hand. Then, draw 1 card.'});
+ const commands=resolveCardEffect(doc,'on-play').commands;
+ assert.deepEqual(commands.map(command=>command.value.kind),['trash','draw']);
+ const initial:MatchEffectState={turn:'player',turnEffects:[],restrictions:[],delayed:[],cards:[{id:'held',owner:'player',zone:'hand'},{id:'future',owner:'player',zone:'deck'}]};
+ const pending=beginEffectExecution(initial,'player','source','on-play',commands);
+ assert.equal(pending.execution.state.cards[1].zone,'deck');
+ assert.ok(advanceEffectExecution(pending.execution,{cardIds:['future']}).error);
+ const done=advanceEffectExecution(pending.execution,{cardIds:['held']});
+ assert.equal(done.complete,true);
+ assert.equal(done.execution.state.cards[0].zone,'trash');
+ assert.equal(done.execution.state.cards[1].zone,'hand');
+});
+
+test('draw then discard allows discarding the newly drawn card',()=>{
+ const doc=compileEffectDocument({id:'source',code:'TEST-DRAW-DISCARD',name:'Test',color:'Black',type:'Character',cost:1,power:0,counter:0,rarity:'C',art:0,effect:'[On Play] Draw 1 card. Then, trash 1 card from your hand.'});
+ const initial:MatchEffectState={turn:'player',turnEffects:[],restrictions:[],delayed:[],cards:[{id:'held',owner:'player',zone:'hand'},{id:'drawn',owner:'player',zone:'deck'}]};
+ const pending=beginEffectExecution(initial,'player','source','on-play',resolveCardEffect(doc,'on-play').commands);
+ assert.equal(pending.execution.state.cards[1].zone,'hand');
+ const done=advanceEffectExecution(pending.execution,{cardIds:['drawn']});
+ assert.equal(done.complete,true);
+ assert.equal(done.execution.state.cards[0].zone,'hand');
+ assert.equal(done.execution.state.cards[1].zone,'trash');
+});

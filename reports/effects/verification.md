@@ -35,3 +35,31 @@ The published rules are unchanged. In the downloaded published snapshot, Boa lac
 Search remainder ordering, all multi-target counts, all optional target choices, custom resolver execution, timing dispatch, replacement effects, and turn/battle duration expiry still need further work and board-level verification. Some board paths still use separate handlers. No catalog-wide gameplay-complete claim is justified.
 
 The current candidate report compares 2,997 cards and identifies 1,313 semantic schema differences across 4,288 parsed timing entries. Parsing now yields PARSED status rather than automatically claiming IMPLEMENTED or TESTED. No database writes or deployment were performed for this verification pass.
+
+## Additional regression pass
+
+96 tests pass after these fixes:
+
+- K.O., opponent-rest, and cost-reduction actions preserve explicit target counts. Up-to choices allow zero, multiple targets are validated before mutation, and all-target actions resolve without choosing a single card.
+- The board target chooser supports multiple selections and choosing none for those schemas.
+- Battle power and keyword grants expire separately from turn-long grants; turn-end cost modifiers expire on either player's cards. Leaving play clears those modifiers and their expiry records.
+- Self-trash is an activation cost, bound to its actual source. A card already in Trash cannot pay it again. Rest-self and DON-return costs are no longer duplicated in the subsequent action list.
+- The board's self-trash attachment flow updates the source zone and releases its attached DON!! rested.
+
+These are local changes. Production schemas are unchanged. This pass does not complete replacement effects, all timing windows, or every duration type.
+
+## Independent abilities and discard sequencing
+
+Added engine scenarios for independent abilities at the same timing: declining an optional cost only skips its own ability, and conditions are reevaluated for each independent ability. Discard-before-draw and draw-before-discard now have separate state-transition tests. The board routes supported hand-discard/draw sequences through the shared executor and resumes the saved command after selection. These changes do not implement player-chosen ordering of simultaneous abilities or every conditional clause.
+
+## Life ordering pass
+
+Engine scenarios now verify top/bottom placement, explicit placement choice, source ownership and unknown-ID rejection, attached DON!! release, exact Life reorder permutations, and the identity of the next Life card taken in battle. Life-to-hand and Life-to-Trash clear Life face-up state. Ambiguous add-to-Life actions and source-dependent reorder variants return an explicit unsupported error instead of log-only success.
+
+These Life changes are engine-level. The board still needs a corresponding complete Life selection interface; they are not claimed as browser-verified or deployed.
+
+## Life board integration and effect-play pass
+
+The tutorial now reserves actual deck instances for Life, displays the engine's player Life count, and uses the ordered opponent Life instances for damage. Supported cost-free On Play Life sequences enter the shared target flow, including card ordering and owner/placement choices where specified. These UI paths compile but still require targeted browser scenarios against corrected stored schemas.
+
+Additional engine scenarios cover recovery prompting, unknown IDs, mixed-colour recovery, effect-play summoning restrictions, invalid Event targets, and Stage replacement. The suite has 107 passing tests. Playing beyond the Character limit currently reports that replacement is needed; its replacement chooser remains unfinished. Published rules remain unchanged.

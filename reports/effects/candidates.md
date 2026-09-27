@@ -2,11 +2,11 @@
 
 These are parser candidates, not certified gameplay rules. No published records were changed.
 
-Cards compared: 2997. Semantically changed schemas: 1313.
+Cards compared: 2997. Semantically changed schemas: 1638.
 
 | Card | Timing | Conditions | Actions | Gameplay verification |
 | --- | --- | --- | --- | --- |
-| OP17-036 | main | 0 | ko, ko, rest | Not verified |
+| OP17-036 | main | 0 | ko, rest | Not verified |
 | OP17-036 | counter | 0 | power | Not verified |
 | DON_87 | unknown | 0 | don-power | Not verified |
 | OP06-095 | main | 0 | power | Not verified |
@@ -86,12 +86,12 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | EB03-053 | on-play | 1 | attach-don | Not verified |
 | EB03-053 | on-ko | 0 | play, on-ko | Not verified |
 | OP06-038 | counter | 1 | power | Not verified |
-| OP06-038 | trigger | 0 | ko, ko | Not verified |
+| OP06-038 | trigger | 0 | ko | Not verified |
 | OP11-076 | unknown | 0 | blocker | Not verified |
 | OP11-076 | on-play | 1 | play | Not verified |
 | DON_56 | unknown | 0 | don-power | Not verified |
 | OP13-049 | unknown | 0 |  | Not verified |
-| OP06-040 | main | 0 | ko, ko | Not verified |
+| OP06-040 | main | 0 | ko | Not verified |
 | OP06-040 | main | 0 | activate-main-effect, activate-referenced-effect | Not verified |
 | DON_150 | unknown | 0 | don-power | Not verified |
 | OP11-041 | continuous | 1 | draw, attach-don-required | Not verified |
@@ -130,14 +130,14 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP09-080 | continuous | 0 | rest, add-don | Not verified |
 | OP07-043 | continuous | 0 | power | Not verified |
 | OP07-043 | on-play | 0 | power | Not verified |
-| OP02-119 | main | 0 | ko, ko | Not verified |
+| OP02-119 | main | 0 | ko | Not verified |
 | OP02-119 | trigger | 0 | draw, trash | Not verified |
 | PRB02-015 | unknown | 1 | cost, blocker, grant-keyword | Not verified |
-| PRB02-015 | on-ko | 1 | ko, ko, on-ko | Not verified |
+| PRB02-015 | on-ko | 1 | ko, on-ko | Not verified |
 | DON_143 | unknown | 0 | don-power | Not verified |
 | OP13-017 | continuous | 1 | power | Not verified |
 | OP04-098 | on-play | 1 | life, trash | Not verified |
-| EB04-033 | on-play | 1 | ko, ko | Not verified |
+| EB04-033 | on-play | 1 | ko | Not verified |
 | OP05-044 | unknown | 0 |  | Not verified |
 | DON_6 | unknown | 0 | don-power | Not verified |
 | OP17-049 | on-play | 0 | draw, trash | Not verified |
@@ -146,7 +146,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP09-095 | activate-main | 0 | search | Not verified |
 | OP06-058 | main | 0 | bottom-deck | Not verified |
 | OP06-058 | trigger | 0 | bottom-deck | Not verified |
-| ST13-008 | on-play | 0 | ko, ko | Not verified |
+| ST13-008 | on-play | 0 | ko | Not verified |
 | OP17-068 | when-attacking | 1 | add-don, trash | Not verified |
 | OP14-090 | unknown | 1 | attack-permission | Not verified |
 | OP14-090 | on-play | 0 | rest | Not verified |
@@ -199,8 +199,8 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP03-031 | unknown | 0 | blocker | Not verified |
 | ST12-001 | unknown | 0 | attach-don-required | Not verified |
 | ST12-001 | when-attacking | 0 | return-to-hand, ready | Not verified |
-| EB01-059 | main | 0 | ko, ko | Not verified |
-| EB01-059 | trigger | 0 | ko, ko | Not verified |
+| EB01-059 | main | 0 | ko | Not verified |
+| EB01-059 | trigger | 0 | ko | Not verified |
 | OP11-046 | unknown | 1 | blocker | Not verified |
 | OP12-058 | main | 3 | reveal, rush, grant-keyword | Not verified |
 | OP12-058 | trigger | 0 | draw | Not verified |
@@ -212,7 +212,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | ST22-001 | activate-main | 0 | draw | Not verified |
 | OP16-093 | on-play | 0 | draw, trash, attach-don | Not verified |
 | OP14-101 | unknown | 0 |  | Not verified |
-| OP01-007 | on-ko | 0 | ko, ko, on-ko | Not verified |
+| OP01-007 | on-ko | 0 | ko, on-ko | Not verified |
 | DON_162 | unknown | 0 | don-power | Not verified |
 | OP02-015 | activate-main | 0 | power, rest | Not verified |
 | EB01-003 | unknown | 0 | rush | Not verified |
@@ -263,12 +263,12 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP04-068 | unknown | 0 | blocker | Not verified |
 | OP04-068 | opponent-attack | 0 | return-to-hand, return-to-hand, return-don | Not verified |
 | OP02-108 | unknown | 0 | blocker | Not verified |
-| ST05-016 | main | 0 | ko, ko, return-don | Not verified |
+| ST05-016 | main | 0 | ko, return-don | Not verified |
 | ST05-016 | trigger | 0 | add-don | Not verified |
 | ST02-016 | counter | 0 | power, ready | Not verified |
 | OP04-065 | on-play | 1 | attack-restriction | Not verified |
 | OP04-065 | trigger | 0 | return-don, play | Not verified |
-| OP09-077 | main | 0 | ko, ko | Not verified |
+| OP09-077 | main | 0 | ko | Not verified |
 | OP09-077 | trigger | 0 | add-don | Not verified |
 | OP06-020 | activate-main | 0 | rest | Not verified |
 | OP02-085 | on-play | 0 | return-don | Not verified |
@@ -307,11 +307,11 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP07-078 | trigger | 0 | add-don | Not verified |
 | OP05-099 | opponent-attack | 1 | power, power, rest | Not verified |
 | EB03-039 | on-play | 1 | draw, trash, play | Not verified |
-| EB03-051 | on-play | 1 | ko, ko | Not verified |
+| EB03-051 | on-play | 1 | ko | Not verified |
 | P-028 | unknown | 0 | double-attack | Not verified |
 | P-029_R1 | end-turn | 0 | rest, ready | Not verified |
 | OP13-091 | unknown | 1 | blocker, prevent-ko, grant-keyword | Not verified |
-| OP13-091 | on-play | 0 | ko, ko, trash | Not verified |
+| OP13-091 | on-play | 0 | ko, trash | Not verified |
 | OP16-043 | unknown | 0 | blocker | Not verified |
 | OP16-043 | on-ko | 0 | on-ko | Not verified |
 | ST08-012 | unknown | 0 |  | Not verified |
@@ -360,7 +360,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | EB02-041 | activate-main | 1 | cost, rest | Not verified |
 | OP15-064 | activate-main | 1 | rest, rest | Not verified |
 | ST30-002 | on-play | 0 | search | Not verified |
-| OP15-020 | main | 1 | power, ko, ko, trash | Not verified |
+| OP15-020 | main | 1 | power, ko, trash | Not verified |
 | OP17-083 | unknown | 1 | power, blocker, grant-keyword | Not verified |
 | OP10-001 | continuous | 0 | power | Not verified |
 | OP10-001 | activate-main | 1 | ready | Not verified |
@@ -368,8 +368,8 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP10-118 | when-attacking | 1 | trash | Not verified |
 | OP11-083 | unknown | 0 | blocker | Not verified |
 | OP11-083 | on-play | 0 | trash | Not verified |
-| EB01-010 | counter | 0 | ko, ko | Not verified |
-| EB01-010 | trigger | 0 | ko, ko | Not verified |
+| EB01-010 | counter | 0 | ko | Not verified |
+| EB01-010 | trigger | 0 | ko | Not verified |
 | EB04-038 | unknown | 0 | blocker | Not verified |
 | EB04-038 | on-play | 1 | draw, add-don | Not verified |
 | OP08-093 | unknown | 0 | cost, attach-don-required | Not verified |
@@ -378,7 +378,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP11-017 | unknown | 0 |  | Not verified |
 | OP04-119 | continuous | 1 | prevent-ko | Not verified |
 | OP04-119 | on-play | 0 | rest, play | Not verified |
-| OP11-081 | main | 1 | ko, ko | Not verified |
+| OP11-081 | main | 1 | ko | Not verified |
 | OP11-081 | trigger | 0 | add-don | Not verified |
 | OP06-032 | unknown | 0 | blocker | Not verified |
 | OP17-047 | end-turn | 1 | bottom-deck | Not verified |
@@ -391,10 +391,10 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | P-072 | on-play | 0 | rest | Not verified |
 | P-072 | on-ko | 0 | rest, on-ko | Not verified |
 | OP17-090 | unknown | 1 | power | Not verified |
-| OP17-090 | on-play | 1 | ko, ko | Not verified |
+| OP17-090 | on-play | 1 | ko | Not verified |
 | OP10-010 | when-attacking | 1 | power | Not verified |
 | OP04-023 | unknown | 0 |  | Not verified |
-| OP15-018 | when-attacking | 0 | ko, ko | Not verified |
+| OP15-018 | when-attacking | 0 | ko | Not verified |
 | OP07-059 | when-attacking | 1 | return-don, prevent-ready | Not verified |
 | OP04-001 | unknown | 0 | custom-resolver | Not verified |
 | OP04-001 | activate-main | 0 | draw, rush, grant-keyword | Not verified |
@@ -419,7 +419,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP05-094 | main | 0 | cost | Not verified |
 | OP05-094 | trigger | 0 | draw, trash | Not verified |
 | OP14-048 | on-play | 0 | return-to-hand, return-to-hand | Not verified |
-| OP13-039 | counter | 0 | ko, ko | Not verified |
+| OP13-039 | counter | 0 | ko | Not verified |
 | OP13-039 | counter | 0 | activate-referenced-effect | Not verified |
 | OP03-061 | unknown | 0 |  | Not verified |
 | P-044 | unknown | 1 | power, attach-don-required | Not verified |
@@ -464,7 +464,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | P-043 | on-play | 0 | return-to-hand | Not verified |
 | OP03-111 | unknown | 0 |  | Not verified |
 | DON_57 | unknown | 0 | don-power | Not verified |
-| ST01-015 | main | 0 | ko, ko | Not verified |
+| ST01-015 | main | 0 | ko | Not verified |
 | ST01-015 | main | 0 | activate-main-effect, activate-referenced-effect | Not verified |
 | OP07-088 | continuous | 0 | power | Not verified |
 | OP07-088 | on-play | 0 | power | Not verified |
@@ -504,7 +504,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP06-069 | on-play | 1 | draw | Not verified |
 | OP14-098 | main | 1 | cost | Not verified |
 | OP14-098 | counter | 0 | power | Not verified |
-| ST29-017 | counter | 1 | power, ko, ko | Not verified |
+| ST29-017 | counter | 1 | power, ko | Not verified |
 | ST29-017 | trigger | 0 | draw, trash | Not verified |
 | OP16-100 | main | 1 | custom-resolver | Not verified |
 | OP16-100 | counter | 0 | power | Not verified |
@@ -513,7 +513,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP13-106 | trigger | 0 | play | Not verified |
 | ST08-009 | on-play | 1 | draw | Not verified |
 | DON_48 | unknown | 0 | don-power | Not verified |
-| ST09-009 | trigger | 0 | ko, ko | Not verified |
+| ST09-009 | trigger | 0 | ko | Not verified |
 | EB02-005 | continuous | 0 | power | Not verified |
 | EB02-005 | continuous | 0 | power | Not verified |
 | OP03-033 | trigger | 1 | play | Not verified |
@@ -541,7 +541,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | ST35-003 | when-attacking | 1 | trash, trash | Not verified |
 | P-037 | when-attacking | 1 | power | Not verified |
 | OP10-087 | activate-main | 1 | rest, trash, trash | Not verified |
-| OP05-116 | main | 0 | ko, ko | Not verified |
+| OP05-116 | main | 0 | ko | Not verified |
 | OP05-116 | main | 0 | activate-main-effect, activate-referenced-effect | Not verified |
 | P-101 | unknown | 0 | blocker | Not verified |
 | P-101 | on-play | 0 | attach-don | Not verified |
@@ -572,11 +572,11 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | EB04-021 | on-play | 1 | draw, trash | Not verified |
 | EB04-021 | activate-main | 0 | trash, attach-don | Not verified |
 | OP10-069 | unknown | 0 | attach-don-required | Not verified |
-| OP10-069 | when-attacking | 0 | ko, ko | Not verified |
+| OP10-069 | when-attacking | 0 | ko | Not verified |
 | OP02-067 | main | 0 | return-to-hand | Not verified |
 | OP02-067 | main | 0 | activate-main-effect, activate-referenced-effect | Not verified |
 | OP15-035 | unknown | 1 | replacement | Not verified |
-| OP05-011 | on-play | 0 | ko, ko | Not verified |
+| OP05-011 | on-play | 0 | ko | Not verified |
 | OP05-011 | trigger | 1 | play | Not verified |
 | OP08-039 | activate-main | 1 | rest, ready | Not verified |
 | OP08-039 | end-turn | 0 | ready | Not verified |
@@ -603,7 +603,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | DON_113 | unknown | 0 | don-power | Not verified |
 | OP09-050 | when-attacking | 0 | search | Not verified |
 | OP09-002 | on-play | 0 | search | Not verified |
-| OP12-038 | main | 0 | ko, ko | Not verified |
+| OP12-038 | main | 0 | ko | Not verified |
 | OP12-038 | counter | 0 | power | Not verified |
 | EB04-029 | main | 1 | search | Not verified |
 | EB04-029 | counter | 0 | power, trash | Not verified |
@@ -616,7 +616,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP03-083 | on-play | 0 | search | Not verified |
 | OP07-066 | unknown | 0 | blocker | Not verified |
 | OP07-066 | on-play | 1 | add-don | Not verified |
-| OP08-004 | on-play | 1 | ko, ko | Not verified |
+| OP08-004 | on-play | 1 | ko | Not verified |
 | OP04-041 | on-play | 0 | trash, search | Not verified |
 | ST30-008 | unknown | 0 | blocker | Not verified |
 | ST30-008 | on-ko | 0 | trash, on-ko | Not verified |
@@ -633,9 +633,9 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | P-092 | when-attacking | 1 | base-power | Not verified |
 | OP17-061 | on-play | 1 | life, move-to-life | Not verified |
 | OP17-061 | activate-main | 0 | trash, play | Not verified |
-| OP12-096 | main | 1 | ko, ko | Not verified |
+| OP12-096 | main | 1 | ko | Not verified |
 | OP12-096 | trigger | 0 | draw, trash | Not verified |
-| OP01-056 | main | 0 | ko, ko | Not verified |
+| OP01-056 | main | 0 | ko | Not verified |
 | OP09-032 | unknown | 0 | blocker | Not verified |
 | OP09-032 | opponent-attack | 0 | ready | Not verified |
 | OP09-025 | unknown | 1 | prevent-ko | Not verified |
@@ -648,8 +648,8 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | ST22-011 | continuous | 0 | power | Not verified |
 | ST22-011 | on-play | 0 | power | Not verified |
 | ST30-015 | counter | 1 | power | Not verified |
-| ST30-015 | trigger | 0 | ko, ko | Not verified |
-| OP01-108 | on-ko | 0 | ko, ko, return-don, on-ko | Not verified |
+| ST30-015 | trigger | 0 | ko | Not verified |
+| OP01-108 | on-ko | 0 | ko, return-don, on-ko | Not verified |
 | EB03-041 | continuous | 0 | power | Not verified |
 | EB03-041 | on-play | 0 | draw, trash | Not verified |
 | OP11-102 | continuous | 0 | custom-resolver | Not verified |
@@ -657,9 +657,9 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP13-092 | on-play | 1 | play | Not verified |
 | ST01-009 | unknown | 0 |  | Not verified |
 | OP08-084 | unknown | 0 | cost | Not verified |
-| OP08-084 | activate-main | 0 | draw, ko, ko, rest, trash | Not verified |
+| OP08-084 | activate-main | 0 | draw, ko, rest, trash | Not verified |
 | EB02-012 | unknown | 1 | blocker, grant-keyword | Not verified |
-| ST21-017 | main | 1 | power, ko, ko | Not verified |
+| ST21-017 | main | 1 | power, ko | Not verified |
 | ST21-017 | main | 0 | activate-main-effect, activate-referenced-effect | Not verified |
 | OP01-111 | unknown | 0 | blocker | Not verified |
 | OP01-111 | on-block | 0 | power, return-don, on-block | Not verified |
@@ -683,7 +683,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP07-111 | trigger | 1 | play | Not verified |
 | EB03-005 | on-play | 1 | play | Not verified |
 | OP11-028 | on-play | 0 | prevent-ready | Not verified |
-| OP11-028 | trigger | 0 | ko, ko | Not verified |
+| OP11-028 | trigger | 0 | ko | Not verified |
 | OP11-074 | activate-main | 1 | rest, rest | Not verified |
 | OP12-069 | opponent-attack | 1 | power | Not verified |
 | OP06-009 | unknown | 0 | blocker | Not verified |
@@ -699,9 +699,9 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP13-087 | on-play | 0 | trash | Not verified |
 | OP01-097 | on-play | 0 | power, return-don, rush, grant-keyword | Not verified |
 | OP08-030 | unknown | 0 | blocker | Not verified |
-| OP08-030 | on-ko | 0 | ko, ko, rest, on-ko | Not verified |
+| OP08-030 | on-ko | 0 | ko, rest, on-ko | Not verified |
 | OP06-025 | on-play | 0 | search | Not verified |
-| OP17-016 | on-play | 0 | ko, ko | Not verified |
+| OP17-016 | on-play | 0 | ko | Not verified |
 | OP13-041 | on-play | 0 | draw | Not verified |
 | OP05-051 | on-play | 0 | bottom-deck | Not verified |
 | OP17-104 | continuous | 1 | life, move-to-life, play | Not verified |
@@ -715,7 +715,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP14-080 | activate-main | 0 | power | Not verified |
 | OP14-080 | when-attacking | 0 | life, trash, move-to-life | Not verified |
 | DON_66 | unknown | 0 | don-power | Not verified |
-| OP02-098 | on-play | 0 | ko, ko, trash | Not verified |
+| OP02-098 | on-play | 0 | ko, trash | Not verified |
 | OP03-049 | on-play | 1 | return-to-hand | Not verified |
 | OP15-106 | trigger | 0 | draw, play | Not verified |
 | ST07-011 | activate-main | 0 | rest, banish, grant-keyword | Not verified |
@@ -765,7 +765,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP10-038 | continuous | 1 | power | Not verified |
 | OP15-015 | on-play | 0 | power | Not verified |
 | OP15-011 | continuous | 1 | power, blocker, grant-keyword | Not verified |
-| OP15-011 | on-ko | 1 | ko, ko, on-ko | Not verified |
+| OP15-011 | on-ko | 1 | ko, on-ko | Not verified |
 | OP11-038 | main | 0 | rest | Not verified |
 | OP11-038 | counter | 0 | power | Not verified |
 | OP07-107 | trigger | 1 | draw, play | Not verified |
@@ -788,7 +788,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP12-097 | main | 0 | activate-main-effect, activate-referenced-effect | Not verified |
 | OP11-012 | continuous | 0 | power | Not verified |
 | ST13-004 | on-play | 0 | life | Not verified |
-| OP13-061 | on-play | 1 | ko, ko, add-don | Not verified |
+| OP13-061 | on-play | 1 | ko, add-don | Not verified |
 | ST10-010 | unknown | 0 | blocker | Not verified |
 | ST10-010 | on-play | 1 | return-don, trash | Not verified |
 | OP09-004 | unknown | 0 | rush | Not verified |
@@ -800,7 +800,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP16-095 | on-play | 0 | grant-keyword, grant-keyword | Not verified |
 | DON_51 | unknown | 0 | don-power | Not verified |
 | OP13-005 | on-play | 0 | attach-don | Not verified |
-| OP08-113 | trigger | 1 | ko, ko, trash, play | Not verified |
+| OP08-113 | trigger | 1 | ko, trash, play | Not verified |
 | EB03-062 | unknown | 0 | rush | Not verified |
 | EB03-062 | activate-main | 0 | life, trash, trash, move-to-life, play | Not verified |
 | OP14-086 | unknown | 1 | power, cost | Not verified |
@@ -815,7 +815,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | ST31-005 | activate-main | 0 | rest | Not verified |
 | OP11-011 | unknown | 0 |  | Not verified |
 | DON_117 | unknown | 0 | don-power | Not verified |
-| OP02-046 | main | 0 | ko, ko | Not verified |
+| OP02-046 | main | 0 | ko | Not verified |
 | OP02-046 | trigger | 0 | play | Not verified |
 | EB04-007 | on-play | 0 | power | Not verified |
 | EB04-007 | activate-main | 1 | custom-resolver | Not verified |
@@ -837,8 +837,8 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP12-107 | continuous | 0 | life, move-to-life | Not verified |
 | OP12-107 | on-ko | 0 | life, move-to-life, on-ko | Not verified |
 | OP13-112 | unknown | 1 | blocker, grant-keyword | Not verified |
-| OP03-013 | continuous | 0 | ko, ko | Not verified |
-| OP03-013 | on-play | 0 | ko, ko | Not verified |
+| OP03-013 | continuous | 0 | ko | Not verified |
+| OP03-013 | on-play | 0 | ko | Not verified |
 | OP03-013 | on-ko | 0 | trash, on-ko | Not verified |
 | OP02-053 | unknown | 0 |  | Not verified |
 | EB02-004 | unknown | 0 |  | Not verified |
@@ -852,14 +852,14 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | DON_49 | unknown | 0 | don-power | Not verified |
 | EB04-024 | activate-main | 0 | rest, trash, grant-keyword, grant-keyword | Not verified |
 | ST14-002 | unknown | 0 | attach-don-required | Not verified |
-| ST14-002 | when-attacking | 1 | ko, ko | Not verified |
+| ST14-002 | when-attacking | 1 | ko | Not verified |
 | OP16-076 | main | 0 | power | Not verified |
 | OP16-076 | counter | 1 | power | Not verified |
-| OP07-092 | on-play | 0 | ko, ko | Not verified |
+| OP07-092 | on-play | 0 | ko | Not verified |
 | EB02-053 | on-play | 0 | reorder-life | Not verified |
 | EB02-053 | on-ko | 0 | reorder-life, on-ko | Not verified |
 | P-102 | on-play | 1 | ready | Not verified |
-| OP08-118 | on-play | 0 | ko, ko | Not verified |
+| OP08-118 | on-play | 0 | ko | Not verified |
 | OP09-081 | on-play | 0 | custom-resolver | Not verified |
 | OP09-081 | on-play | 0 | trash | Not verified |
 | OP15-028 | on-play | 1 | custom-resolver | Not verified |
@@ -872,11 +872,11 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP09-109 | trigger | 1 | play | Not verified |
 | EB02-061 | unknown | 1 | rush, grant-keyword | Not verified |
 | EB02-061 | when-attacking | 0 | return-to-hand, ready, life | Not verified |
-| OP03-034 | on-play | 0 | ko, ko | Not verified |
+| OP03-034 | on-play | 0 | ko | Not verified |
 | OP13-023 | on-play | 0 | ready | Not verified |
 | OP13-023 | on-ko | 0 | play, on-ko | Not verified |
 | DON_108 | unknown | 0 | don-power | Not verified |
-| OP10-081 | on-play | 0 | ko, ko, trash | Not verified |
+| OP10-081 | on-play | 0 | ko, trash | Not verified |
 | PRB02-006 | continuous | 1 | blocker | Not verified |
 | OP14-092 | continuous | 1 | custom-resolver | Not verified |
 | ST03-008 | unknown | 0 | blocker | Not verified |
@@ -891,7 +891,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | ST30-004 | on-play | 0 | draw, trash | Not verified |
 | OP11-104 | unknown | 0 | blocker | Not verified |
 | OP11-104 | on-play | 0 | search | Not verified |
-| OP05-095 | counter | 1 | power, ko, ko | Not verified |
+| OP05-095 | counter | 1 | power, ko | Not verified |
 | ST31-003 | continuous | 1 | power, blocker, grant-keyword | Not verified |
 | OP13-116 | main | 0 | search | Not verified |
 | OP13-116 | main | 0 | activate-main-effect, activate-referenced-effect | Not verified |
@@ -902,7 +902,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP16-083 | on-play | 0 | draw, trash | Not verified |
 | ST14-009 | unknown | 0 | attach-don-required | Not verified |
 | ST14-009 | continuous | 1 | power, prevent-ko | Not verified |
-| OP05-019 | main | 1 | power, ko, ko | Not verified |
+| OP05-019 | main | 1 | power, ko | Not verified |
 | OP05-019 | main | 0 | activate-main-effect, activate-referenced-effect | Not verified |
 | OP15-117 | main | 0 | draw, attach-don | Not verified |
 | OP15-117 | trigger | 1 | draw | Not verified |
@@ -922,13 +922,13 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | P-057_P1 | main | 1 | prevent-ready | Not verified |
 | P-057_P1 | main | 0 | activate-main-effect, activate-referenced-effect | Not verified |
 | OP10-053 | unknown | 1 | blocker, grant-keyword | Not verified |
-| OP16-013 | on-ko | 0 | ko, ko, on-ko | Not verified |
+| OP16-013 | on-ko | 0 | ko, on-ko | Not verified |
 | OP12-100 | unknown | 1 | cost, blocker, grant-keyword | Not verified |
 | OP12-100 | on-play | 0 | draw, trash, life | Not verified |
 | ST12-007 | on-play | 1 | ready | Not verified |
 | EB01-019 | counter | 0 | power, search | Not verified |
 | OP05-114 | counter | 1 | power | Not verified |
-| OP05-114 | trigger | 0 | ko, ko | Not verified |
+| OP05-114 | trigger | 0 | ko | Not verified |
 | OP05-032 | end-turn | 1 | ready | Not verified |
 | OP16-039 | main | 1 | rest, double-attack, grant-keyword | Not verified |
 | OP16-039 | trigger | 0 | custom-resolver | Not verified |
@@ -968,7 +968,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | ST05-014 | on-play | 0 | search | Not verified |
 | OP04-085 | on-play | 1 | cost, trash | Not verified |
 | OP04-085 | when-attacking | 1 | cost, trash | Not verified |
-| EB03-036 | on-play | 0 | ko, ko | Not verified |
+| EB03-036 | on-play | 0 | ko | Not verified |
 | OP03-019 | main | 0 | power | Not verified |
 | OP03-019 | trigger | 0 | power, power | Not verified |
 | OP14-044 | unknown | 0 | blocker | Not verified |
@@ -985,7 +985,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP06-064 | activate-main | 1 | return-don, trash, play | Not verified |
 | OP04-002 | activate-main | 0 | power, rest, search | Not verified |
 | OP04-044 | on-play | 0 | return-to-hand | Not verified |
-| OP04-112 | on-play | 1 | ko, ko, life, move-to-life | Not verified |
+| OP04-112 | on-play | 1 | ko, life, move-to-life | Not verified |
 | OP03-099 | unknown | 0 | attach-don-required | Not verified |
 | OP03-099 | when-attacking | 0 | power, reorder-life | Not verified |
 | ST13-009 | on-play | 1 | trash-life | Not verified |
@@ -997,10 +997,10 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP05-109 | continuous | 0 | custom-resolver | Not verified |
 | OP05-109 | trigger | 0 | draw, trash | Not verified |
 | OP09-046 | on-play | 0 | play | Not verified |
-| OP04-003 | on-ko | 0 | ko, ko, on-ko | Not verified |
+| OP04-003 | on-ko | 0 | ko, on-ko | Not verified |
 | OP07-012 | on-play | 0 | power | Not verified |
 | ST06-014 | counter | 0 | power, ko | Not verified |
-| ST06-014 | trigger | 0 | ko, ko | Not verified |
+| ST06-014 | trigger | 0 | ko | Not verified |
 | ST06-004 | unknown | 1 | attach-don-required, double-attack, prevent-ko, grant-keyword | Not verified |
 | OP17-081 | unknown | 1 | cost | Not verified |
 | OP17-081 | on-play | 0 | recover, recover, trash | Not verified |
@@ -1048,7 +1048,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP05-035 | unknown | 0 |  | Not verified |
 | EB02-028 | on-play | 1 | search, play | Not verified |
 | OP10-105 | unknown | 0 |  | Not verified |
-| OP17-111 | on-play | 0 | ko, ko | Not verified |
+| OP17-111 | on-play | 0 | ko | Not verified |
 | OP17-111 | trigger | 0 | play | Not verified |
 | OP16-051 | on-play | 1 | draw | Not verified |
 | OP14-018 | counter | 1 | power | Not verified |
@@ -1061,7 +1061,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | ST30-007 | on-play | 0 | rush, grant-keyword | Not verified |
 | ST30-007 | when-attacking | 0 | power | Not verified |
 | OP05-068 | on-play | 1 | ready | Not verified |
-| EB02-051 | main | 0 | ko, ko | Not verified |
+| EB02-051 | main | 0 | ko | Not verified |
 | P-029 | end-turn | 0 | rest, ready | Not verified |
 | EB01-012 | on-play | 1 | ready | Not verified |
 | EB01-012 | when-attacking | 1 | ready | Not verified |
@@ -1072,14 +1072,14 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | P-140 | unknown | 0 | blocker | Not verified |
 | P-140 | on-play | 0 | attach-don | Not verified |
 | EB01-023 | on-play | 0 | draw | Not verified |
-| OP08-081 | when-attacking | 0 | ko, ko | Not verified |
+| OP08-081 | when-attacking | 0 | ko | Not verified |
 | EB04-027 | on-play | 0 | draw, trash | Not verified |
 | EB04-027 | trigger | 0 | custom-resolver | Not verified |
 | EB04-027 | trigger | 0 | custom-resolver | Not verified |
 | OP02-042 | unknown | 0 | custom-resolver | Not verified |
 | OP02-042 | on-play | 0 | rest | Not verified |
-| OP11-018 | main | 0 | power, ko, ko | Not verified |
-| OP11-018 | trigger | 0 | ko, ko | Not verified |
+| OP11-018 | main | 0 | power, ko | Not verified |
+| OP11-018 | trigger | 0 | ko | Not verified |
 | OP02-090 | main | 0 | power, return-don | Not verified |
 | OP02-090 | trigger | 1 | custom-resolver | Not verified |
 | OP05-037 | counter | 0 | power, trash | Not verified |
@@ -1109,7 +1109,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP07-007 | unknown | 0 |  | Not verified |
 | P-063 | on-play | 0 | rest | Not verified |
 | ST14-016 | main | 0 | draw, cost | Not verified |
-| ST14-016 | trigger | 0 | ko, ko | Not verified |
+| ST14-016 | trigger | 0 | ko | Not verified |
 | OP09-069 | on-play | 0 | search | Not verified |
 | OP07-082 | on-play | 0 | cost, trash | Not verified |
 | OP13-055 | when-attacking | 1 | power | Not verified |
@@ -1122,7 +1122,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP02-093 | activate-main | 1 | power, cost | Not verified |
 | OP11-044 | activate-main | 0 | power, trash | Not verified |
 | DON_130 | unknown | 0 | don-power | Not verified |
-| OP17-071 | on-play | 0 | ko, ko, return-don | Not verified |
+| OP17-071 | on-play | 0 | ko, return-don | Not verified |
 | OP17-071 | trigger | 0 | play | Not verified |
 | OP12-101 | activate-main | 0 | power, rest | Not verified |
 | P-020 | on-play | 0 | power | Not verified |
@@ -1167,7 +1167,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP13-089 | on-ko | 0 | draw, on-ko | Not verified |
 | DON_141 | unknown | 0 | don-power | Not verified |
 | OP17-117 | counter | 0 | power | Not verified |
-| OP17-117 | trigger | 1 | ko, ko | Not verified |
+| OP17-117 | trigger | 1 | ko | Not verified |
 | OP08-054 | counter | 0 | power, reveal | Not verified |
 | OP03-114 | on-play | 1 | life, move-to-life, trash-life | Not verified |
 | OP17-103 | continuous | 1 | power, life, move-to-life | Not verified |
@@ -1214,7 +1214,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP05-026 | when-attacking | 0 | ready | Not verified |
 | ST34-004 | on-play | 0 | life, trash, move-to-life, base-power | Not verified |
 | OP10-102 | activate-main | 0 | power, life | Not verified |
-| OP01-115 | main | 0 | ko, ko, add-don | Not verified |
+| OP01-115 | main | 0 | ko, add-don | Not verified |
 | OP01-115 | main | 0 | activate-main-effect, activate-referenced-effect | Not verified |
 | ST07-005 | unknown | 0 | attach-don-required | Not verified |
 | ST07-005 | when-attacking | 0 | life, life, move-to-life | Not verified |
@@ -1234,9 +1234,9 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP13-020 | main | 0 | activate-main-effect, activate-referenced-effect | Not verified |
 | OP04-052 | activate-main | 0 | draw, rest | Not verified |
 | OP04-052 | trigger | 0 | play | Not verified |
-| OP13-071 | on-play | 1 | ko, ko | Not verified |
+| OP13-071 | on-play | 1 | ko | Not verified |
 | OP02-082 | activate-main | 0 | power, return-don | Not verified |
-| OP04-116 | counter | 1 | power, ko, ko | Not verified |
+| OP04-116 | counter | 1 | power, ko | Not verified |
 | OP04-116 | trigger | 0 | draw | Not verified |
 | EB03-022 | unknown | 0 | blocker | Not verified |
 | EB03-022 | on-play | 0 | bottom-deck | Not verified |
@@ -1281,12 +1281,12 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP17-031 | end-turn | 0 | ready | Not verified |
 | EB02-055 | trigger | 1 | play | Not verified |
 | OP11-001 | continuous | 1 | attack-permission | Not verified |
-| OP07-110 | on-play | 0 | ko, ko, life | Not verified |
+| OP07-110 | on-play | 0 | ko, life | Not verified |
 | OP07-110 | trigger | 1 | play | Not verified |
 | ST04-014 | main | 0 | draw, add-don | Not verified |
 | ST04-014 | main | 0 | activate-main-effect, activate-referenced-effect | Not verified |
 | OP10-064 | unknown | 0 | blocker | Not verified |
-| OP03-093 | on-play | 1 | ko, ko, trash | Not verified |
+| OP03-093 | on-play | 1 | ko, trash | Not verified |
 | EB04-058 | unknown | 0 | blocker | Not verified |
 | EB04-058 | on-play | 1 | life, move-to-life | Not verified |
 | ST22-014 | unknown | 0 |  | Not verified |
@@ -1300,11 +1300,11 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP10-096 | main | 0 | ko | Not verified |
 | OP10-096 | trigger | 0 | ko | Not verified |
 | DON_142 | unknown | 0 | don-power | Not verified |
-| OP10-095 | on-play | 0 | ko, ko, trash | Not verified |
+| OP10-095 | on-play | 0 | ko, trash | Not verified |
 | P-060 | main | 0 | rest | Not verified |
 | OP02-117 | main | 0 | cost | Not verified |
-| OP02-117 | trigger | 0 | ko, ko | Not verified |
-| OP06-033 | on-play | 0 | ko, ko, trash | Not verified |
+| OP02-117 | trigger | 0 | ko | Not verified |
+| OP06-033 | on-play | 0 | ko, trash | Not verified |
 | OP11-004 | on-play | 0 | search | Not verified |
 | OP11-004 | activate-main | 0 | power, trash | Not verified |
 | OP04-079 | activate-main | 0 | cost, trash | Not verified |
@@ -1356,11 +1356,11 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP03-014 | when-attacking | 0 | play | Not verified |
 | OP13-029 | unknown | 0 |  | Not verified |
 | EB01-054 | unknown | 0 | blocker | Not verified |
-| EB01-054 | on-play | 1 | ko, ko | Not verified |
+| EB01-054 | on-play | 1 | ko | Not verified |
 | P-023 | unknown | 0 |  | Not verified |
 | ST15-002 | on-play | 0 | attach-don | Not verified |
-| ST15-002 | activate-main | 0 | ko, ko, rest | Not verified |
-| OP13-097 | main | 1 | ko, ko | Not verified |
+| ST15-002 | activate-main | 0 | ko, rest | Not verified |
+| OP13-097 | main | 1 | ko | Not verified |
 | OP13-097 | counter | 0 | power | Not verified |
 | OP04-006 | when-attacking | 0 | power | Not verified |
 | OP06-063 | on-play | 1 | recover, recover, trash | Not verified |
@@ -1372,9 +1372,9 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP13-043 | on-play | 1 | draw, trash | Not verified |
 | EB03-009 | activate-main | 0 | power, rest | Not verified |
 | DON_26 | unknown | 0 | don-power | Not verified |
-| EB01-039 | main | 0 | ko, ko, return-don | Not verified |
+| EB01-039 | main | 0 | ko, return-don | Not verified |
 | EB01-039 | trigger | 0 | custom-resolver | Not verified |
-| OP14-064 | on-ko | 0 | ko, ko, add-don, on-ko | Not verified |
+| OP14-064 | on-ko | 0 | ko, add-don, on-ko | Not verified |
 | OP17-110 | continuous | 0 | play, rush, grant-keyword | Not verified |
 | OP17-110 | on-play | 0 | play, rush, grant-keyword | Not verified |
 | OP17-110 | trigger | 0 | play | Not verified |
@@ -1393,7 +1393,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP02-025 | activate-main | 1 | custom-resolver | Not verified |
 | OP06-118 | when-attacking | 0 | ready | Not verified |
 | OP06-118 | activate-main | 0 | ready | Not verified |
-| OP10-079 | main | 0 | ko, ko, add-don | Not verified |
+| OP10-079 | main | 0 | ko, add-don | Not verified |
 | OP10-079 | trigger | 0 | add-don | Not verified |
 | OP11-016 | activate-main | 0 | attach-don | Not verified |
 | EB04-044 | continuous | 1 | custom-resolver | Not verified |
@@ -1418,7 +1418,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP14-009 | unknown | 0 | rush | Not verified |
 | OP14-009 | opponent-attack | 0 | trash | Not verified |
 | OP06-100 | unknown | 0 | attach-don-required | Not verified |
-| OP06-100 | when-attacking | 0 | ko, ko, trash | Not verified |
+| OP06-100 | when-attacking | 0 | ko, trash | Not verified |
 | OP06-100 | trigger | 1 | play | Not verified |
 | DON_44 | unknown | 0 | don-power | Not verified |
 | OP01-023 | unknown | 0 |  | Not verified |
@@ -1463,12 +1463,12 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP07-108 | unknown | 0 |  | Not verified |
 | DON_112 | unknown | 0 | don-power | Not verified |
 | ST08-013 | unknown | 1 | attach-don-required | Not verified |
-| OP16-114 | on-ko | 0 | ko, ko, on-ko | Not verified |
+| OP16-114 | on-ko | 0 | ko, on-ko | Not verified |
 | OP16-114 | trigger | 0 | on-ko | Not verified |
 | OP01-057 | counter | 0 | power, ready | Not verified |
-| OP01-057 | trigger | 0 | ko, ko | Not verified |
+| OP01-057 | trigger | 0 | ko | Not verified |
 | OP08-040 | on-play | 1 | return-to-hand, return-to-hand | Not verified |
-| EB01-016 | activate-main | 0 | ko, ko, rest | Not verified |
+| EB01-016 | activate-main | 0 | ko, rest | Not verified |
 | P-034 | unknown | 0 | attach-don-required | Not verified |
 | P-034 | continuous | 1 | power | Not verified |
 | OP07-064 | unknown | 1 | cost, blocker | Not verified |
@@ -1486,7 +1486,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | EB04-034 | unknown | 0 | blocker | Not verified |
 | EB04-034 | opponent-attack | 1 | power, trash | Not verified |
 | OP16-112 | unknown | 0 |  | Not verified |
-| OP07-085 | on-play | 0 | ko, ko | Not verified |
+| OP07-085 | on-play | 0 | ko | Not verified |
 | ST36-004 | on-play | 0 | draw, trash | Not verified |
 | EB04-016 | activate-main | 0 | ready | Not verified |
 | EB04-016 | when-attacking | 1 | rest | Not verified |
@@ -1496,15 +1496,15 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP01-119 | counter | 1 | power, add-don | Not verified |
 | OP01-119 | trigger | 0 | add-don | Not verified |
 | OP10-086 | continuous | 0 | power | Not verified |
-| OP10-086 | activate-main | 1 | ko, ko | Not verified |
+| OP10-086 | activate-main | 1 | ko | Not verified |
 | OP03-021 | activate-main | 0 | rest | Not verified |
 | OP03-059 | when-attacking | 0 | return-don, banish, grant-keyword | Not verified |
 | OP11-020 | main | 0 | power, power | Not verified |
-| OP11-020 | trigger | 0 | ko, ko | Not verified |
+| OP11-020 | trigger | 0 | ko | Not verified |
 | OP14-033 | on-play | 0 | prevent-rest | Not verified |
 | OP14-033 | on-ko | 0 | play, on-ko | Not verified |
 | OP01-017 | unknown | 0 | attach-don-required | Not verified |
-| OP01-017 | when-attacking | 0 | ko, ko | Not verified |
+| OP01-017 | when-attacking | 0 | ko | Not verified |
 | EB03-024 | unknown | 0 | blocker | Not verified |
 | EB03-024 | on-play | 0 | play | Not verified |
 | P-061_R1 | unknown | 0 |  | Not verified |
@@ -1513,7 +1513,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | ST09-015 | trigger | 0 | draw | Not verified |
 | OP15-096 | main | 1 | trash | Not verified |
 | OP15-096 | counter | 0 | power, trash | Not verified |
-| ST28-001 | on-play | 1 | ko, ko | Not verified |
+| ST28-001 | on-play | 1 | ko | Not verified |
 | DON_96 | unknown | 0 | don-power | Not verified |
 | OP10-113 | unknown | 1 | rush, grant-keyword | Not verified |
 | OP10-113 | trigger | 1 | trash, play | Not verified |
@@ -1526,7 +1526,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP03-068 | on-ko | 1 | add-don, on-ko | Not verified |
 | EB01-005 | unknown | 0 |  | Not verified |
 | OP07-099 | trigger | 0 | power | Not verified |
-| ST11-003 | main | 1 | ko, ko, rest | Not verified |
+| ST11-003 | main | 1 | ko, rest | Not verified |
 | OP17-102 | on-ko | 0 | play, on-ko | Not verified |
 | OP17-102 | trigger | 0 | play | Not verified |
 | P-003 | unknown | 0 | attach-don-required, double-attack, grant-keyword | Not verified |
@@ -1584,7 +1584,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP02-056 | when-attacking | 0 | bottom-deck, trash | Not verified |
 | OP12-108 | on-play | 0 | search | Not verified |
 | ST29-003 | unknown | 1 | power | Not verified |
-| ST29-003 | trigger | 0 | ko, ko | Not verified |
+| ST29-003 | trigger | 0 | ko | Not verified |
 | OP03-067 | unknown | 0 | attach-don-required | Not verified |
 | OP03-067 | when-attacking | 1 | add-don | Not verified |
 | OP09-054 | unknown | 0 | blocker | Not verified |
@@ -1599,7 +1599,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | ST23-002 | on-play | 1 | power | Not verified |
 | OP08-114 | unknown | 1 | power, attach-don-required, prevent-ko | Not verified |
 | OP08-114 | trigger | 1 | trash, play | Not verified |
-| OP05-102 | on-play | 0 | ko, ko | Not verified |
+| OP05-102 | on-play | 0 | ko | Not verified |
 | OP11-075 | on-play | 1 | draw | Not verified |
 | OP11-075 | on-play | 0 | activate-referenced-effect | Not verified |
 | ST29-004 | on-play | 0 | search | Not verified |
@@ -1610,7 +1610,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP12-007 | on-play | 0 | rush, grant-keyword | Not verified |
 | OP05-105 | trigger | 0 | trash, play | Not verified |
 | PRB02-001 | continuous | 1 | power | Not verified |
-| PRB02-001 | when-attacking | 1 | draw, ko, ko | Not verified |
+| PRB02-001 | when-attacking | 1 | draw, ko | Not verified |
 | ST01-002 | unknown | 0 | attach-don-required | Not verified |
 | ST01-002 | when-attacking | 0 | blocker | Not verified |
 | ST01-002 | trigger | 0 | play | Not verified |
@@ -1625,7 +1625,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP10-059 | main | 0 | activate-main-effect, activate-referenced-effect | Not verified |
 | OP16-117 | main | 0 | trash, negate-effect | Not verified |
 | OP16-117 | trigger | 0 | recover, recover | Not verified |
-| ST10-016 | main | 0 | ko, ko | Not verified |
+| ST10-016 | main | 0 | ko | Not verified |
 | ST10-016 | trigger | 0 | power | Not verified |
 | OP10-031 | unknown | 0 |  | Not verified |
 | OP05-008 | unknown | 0 | attach-don-required | Not verified |
@@ -1653,7 +1653,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP02-010 | activate-main | 0 | rest, play | Not verified |
 | OP02-043 | unknown | 0 |  | Not verified |
 | OP10-115 | counter | 1 | draw, power | Not verified |
-| OP10-115 | trigger | 0 | ko, ko | Not verified |
+| OP10-115 | trigger | 0 | ko | Not verified |
 | OP06-061 | on-play | 1 | power, rush, grant-keyword | Not verified |
 | EB02-019 | unknown | 1 | attack-permission | Not verified |
 | EB02-019 | on-play | 1 | rest | Not verified |
@@ -1664,7 +1664,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP01-012 | unknown | 0 |  | Not verified |
 | OP08-060 | on-play | 1 | rush, grant-keyword | Not verified |
 | EB02-049 | on-play | 0 | attach-don | Not verified |
-| EB02-049 | activate-main | 1 | ko, ko, rest | Not verified |
+| EB02-049 | activate-main | 1 | ko, rest | Not verified |
 | OP14-085 | on-ko | 0 | draw, trash, on-ko | Not verified |
 | EB04-032 | on-play | 0 | draw, trash | Not verified |
 | EB04-032 | activate-main | 1 | add-don | Not verified |
@@ -1680,7 +1680,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP08-050 | on-play | 0 | draw | Not verified |
 | OP16-050 | unknown | 0 | blocker | Not verified |
 | OP16-050 | on-play | 0 | draw, return-to-hand, trash | Not verified |
-| EB04-049 | main | 0 | ko, ko, trash | Not verified |
+| EB04-049 | main | 0 | ko, trash | Not verified |
 | EB04-049 | main | 0 | activate-main-effect, activate-referenced-effect | Not verified |
 | ST35-005 | unknown | 0 | cost | Not verified |
 | ST35-005 | on-play | 0 | attach-don, play | Not verified |
@@ -1713,11 +1713,11 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP04-057 | counter | 0 | power, bottom-deck | Not verified |
 | OP04-057 | trigger | 0 | return-to-hand | Not verified |
 | OP13-045 | when-attacking | 1 | draw | Not verified |
-| OP13-013 | on-play | 0 | ko, ko | Not verified |
+| OP13-013 | on-play | 0 | ko | Not verified |
 | OP15-057 | on-play | 1 | draw | Not verified |
 | OP15-057 | opponent-attack | 0 | power, rest, trash | Not verified |
 | ST15-005 | continuous | 2 | power, power, rush, grant-keyword | Not verified |
-| OP07-118 | on-play | 0 | ko, ko, trash | Not verified |
+| OP07-118 | on-play | 0 | ko, trash | Not verified |
 | OP02-029 | end-turn | 0 | ready | Not verified |
 | ST18-004 | on-play | 0 | search | Not verified |
 | DON_131 | unknown | 0 | don-power | Not verified |
@@ -1730,7 +1730,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP15-083 | activate-main | 1 | trash, attach-don | Not verified |
 | ST21-015 | unknown | 0 | attach-don-required, rush, grant-keyword | Not verified |
 | ST21-015 | on-ko | 0 | play, on-ko | Not verified |
-| EB01-049 | on-play | 0 | ko, ko | Not verified |
+| EB01-049 | on-play | 0 | ko | Not verified |
 | OP09-041 | counter | 1 | power, ready | Not verified |
 | OP09-041 | trigger | 0 | rest | Not verified |
 | OP07-086 | on-play | 0 | cost, trash | Not verified |
@@ -1749,7 +1749,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | EB01-002 | on-play | 0 | attach-don | Not verified |
 | EB01-002 | opponent-attack | 1 | power, power, trash | Not verified |
 | OP02-027 | unknown | 1 | prevent-ko | Not verified |
-| OP03-096 | main | 0 | ko, ko | Not verified |
+| OP03-096 | main | 0 | ko | Not verified |
 | OP03-096 | trigger | 0 | draw | Not verified |
 | OP14-049 | unknown | 0 | rush, grant-keyword | Not verified |
 | OP14-049 | on-play | 0 | draw, return-to-hand, return-to-hand | Not verified |
@@ -1796,7 +1796,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP04-115 | trigger | 0 | power | Not verified |
 | OP01-005 | on-play | 0 | recover, recover | Not verified |
 | OP12-113 | on-ko | 1 | play, on-ko | Not verified |
-| OP12-113 | trigger | 0 | ko, ko | Not verified |
+| OP12-113 | trigger | 0 | ko | Not verified |
 | ST23-001 | unknown | 1 | cost, blocker | Not verified |
 | OP17-114 | continuous | 0 | draw, power, life, move-to-life | Not verified |
 | OP17-114 | on-play | 0 | draw, power, life, move-to-life | Not verified |
@@ -1806,7 +1806,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP07-019 | opponent-attack | 0 | rest | Not verified |
 | OP01-060 | unknown | 0 | attach-don-required | Not verified |
 | OP01-060 | when-attacking | 1 | reveal | Not verified |
-| OP10-024 | on-play | 1 | ko, ko, rest | Not verified |
+| OP10-024 | on-play | 1 | ko, rest | Not verified |
 | OP04-049 | on-ko | 0 | draw, on-ko | Not verified |
 | EB02-003 | unknown | 0 | attach-don-required | Not verified |
 | EB02-003 | continuous | 0 | power | Not verified |
@@ -1832,11 +1832,11 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP08-048 | unknown | 0 |  | Not verified |
 | EB01-033 | on-play | 1 | return-don, play | Not verified |
 | OP15-063 | on-play | 0 | draw | Not verified |
-| OP15-063 | on-ko | 1 | ko, ko, on-ko | Not verified |
+| OP15-063 | on-ko | 1 | ko, on-ko | Not verified |
 | OP07-063 | on-play | 1 | return-don, attack-restriction | Not verified |
 | ST04-007 | unknown | 0 |  | Not verified |
-| OP12-109 | trigger | 0 | ko, ko | Not verified |
-| OP17-060 | on-play | 1 | ko, ko, add-don | Not verified |
+| OP12-109 | trigger | 0 | ko | Not verified |
+| OP17-060 | on-play | 1 | ko, add-don | Not verified |
 | OP15-067 | unknown | 1 | rush, grant-keyword | Not verified |
 | OP15-067 | on-play | 0 | draw | Not verified |
 | OP12-061 | continuous | 1 | life | Not verified |
@@ -1914,9 +1914,9 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | ST14-017 | unknown | 0 | cost | Not verified |
 | ST14-017 | on-play | 1 | draw | Not verified |
 | OP01-113 | on-ko | 0 | add-don, on-ko | Not verified |
-| OP09-090 | activate-main | 1 | ko, ko, rest | Not verified |
+| OP09-090 | activate-main | 1 | ko, rest | Not verified |
 | OP09-090 | on-ko | 0 | draw, on-ko | Not verified |
-| ST02-005 | on-play | 0 | ko, ko | Not verified |
+| ST02-005 | on-play | 0 | ko | Not verified |
 | ST02-005 | trigger | 0 | play | Not verified |
 | EB04-006 | on-play | 0 | search | Not verified |
 | OP10-066 | opponent-attack | 0 | rest | Not verified |
@@ -1997,7 +1997,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP07-076 | trigger | 0 | add-don | Not verified |
 | ST36-005 | opponent-attack | 0 | custom-resolver | Not verified |
 | ST36-005 | activate-main | 0 | attach-don | Not verified |
-| OP10-041 | main | 0 | ko, ko, rest | Not verified |
+| OP10-041 | main | 0 | ko, rest | Not verified |
 | OP10-041 | trigger | 0 | rest | Not verified |
 | OP17-007 | on-play | 1 | play | Not verified |
 | OP12-033 | unknown | 0 | blocker | Not verified |
@@ -2009,8 +2009,8 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP03-024 | on-play | 1 | rest | Not verified |
 | OP16-025 | when-attacking | 1 | play | Not verified |
 | OP10-021 | activate-main | 1 | rest, attach-don | Not verified |
-| OP04-038 | main | 0 | ko, ko, rest | Not verified |
-| OP04-038 | counter | 0 | ko, ko, rest | Not verified |
+| OP04-038 | main | 0 | ko, rest | Not verified |
+| OP04-038 | counter | 0 | ko, rest | Not verified |
 | OP04-038 | trigger | 0 | ready | Not verified |
 | OP12-040 | unknown | 0 | custom-resolver | Not verified |
 | ST12-004 | unknown | 0 |  | Not verified |
@@ -2025,9 +2025,9 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP11-072 | activate-main | 0 | bottom-deck, rest, life | Not verified |
 | P-046 | on-play | 1 | bottom-deck-hand | Not verified |
 | ST22-009 | unknown | 0 | blocker | Not verified |
-| EB01-051 | main | 0 | ko, ko, trash | Not verified |
+| EB01-051 | main | 0 | ko, trash | Not verified |
 | DON_159 | unknown | 0 | don-power | Not verified |
-| OP08-033 | on-play | 1 | ko, ko | Not verified |
+| OP08-033 | on-play | 1 | ko | Not verified |
 | ST07-015 | main | 0 | life, trash-life | Not verified |
 | ST07-015 | main | 0 | activate-main-effect, activate-referenced-effect | Not verified |
 | OP14-097 | main | 0 | search | Not verified |
@@ -2043,7 +2043,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP12-119 | on-play | 0 | cost, life, trash, move-to-life | Not verified |
 | OP12-119 | continuous | 0 | life, move-to-life | Not verified |
 | OP12-119 | on-ko | 0 | life, move-to-life, on-ko | Not verified |
-| OP14-108 | on-play | 1 | ko, ko | Not verified |
+| OP14-108 | on-play | 1 | ko | Not verified |
 | OP14-108 | on-play | 0 | activate-referenced-effect | Not verified |
 | ST07-016 | counter | 0 | power, reorder-life | Not verified |
 | ST07-016 | trigger | 0 | draw | Not verified |
@@ -2060,7 +2060,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP17-070 | unknown | 0 |  | Not verified |
 | PRB02-013 | on-play | 1 | attach-don, play | Not verified |
 | ST12-006 | unknown | 0 | attach-don-required | Not verified |
-| ST12-006 | when-attacking | 0 | ko, ko, rest | Not verified |
+| ST12-006 | when-attacking | 0 | ko, rest | Not verified |
 | OP08-068 | on-ko | 0 | add-don, on-ko | Not verified |
 | OP08-068 | trigger | 0 | play | Not verified |
 | DON_100 | unknown | 0 | don-power | Not verified |
@@ -2108,12 +2108,12 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | ST12-010 | on-play | 0 | reveal | Not verified |
 | ST12-010 | when-attacking | 0 | draw | Not verified |
 | DON_176 | unknown | 0 | don-power | Not verified |
-| OP10-019 | main | 0 | ko, ko | Not verified |
+| OP10-019 | main | 0 | ko | Not verified |
 | OP10-019 | counter | 0 | power | Not verified |
-| OP03-073 | main | 1 | ko, ko, return-don | Not verified |
+| OP03-073 | main | 1 | ko, return-don | Not verified |
 | OP03-073 | main | 0 | activate-main-effect, activate-referenced-effect | Not verified |
 | OP16-052 | activate-main | 0 | attach-don | Not verified |
-| OP05-093 | on-play | 0 | ko, ko | Not verified |
+| OP05-093 | on-play | 0 | ko | Not verified |
 | EB03-035 | unknown | 0 | blocker | Not verified |
 | EB03-035 | on-play | 1 | add-don | Not verified |
 | ST10-012 | on-play | 1 | add-don | Not verified |
@@ -2121,11 +2121,11 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | EB03-033 | continuous | 1 | add-don | Not verified |
 | OP14-119 | continuous | 0 | prevent-rest | Not verified |
 | OP14-119 | opponent-attack | 0 | power, trash | Not verified |
-| OP10-098 | main | 1 | ko, ko | Not verified |
+| OP10-098 | main | 1 | ko | Not verified |
 | OP10-098 | trigger | 0 | negate-effect | Not verified |
 | OP10-094 | unknown | 0 | attach-don-required, double-attack, grant-keyword | Not verified |
 | OP11-110 | unknown | 1 | custom-resolver | Not verified |
-| OP11-110 | on-play | 0 | ko, ko, life | Not verified |
+| OP11-110 | on-play | 0 | ko, life | Not verified |
 | OP14-066 | unknown | 0 |  | Not verified |
 | OP12-111 | unknown | 0 |  | Not verified |
 | OP17-062 | unknown | 0 | blocker | Not verified |
@@ -2139,7 +2139,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP14-070 | unknown | 1 | ready, blocker | Not verified |
 | OP10-088 | activate-main | 0 | draw, rest, trash | Not verified |
 | OP04-032 | end-turn | 0 | ready, trash | Not verified |
-| ST06-002 | on-play | 0 | ko, ko, trash | Not verified |
+| ST06-002 | on-play | 0 | ko, trash | Not verified |
 | OP10-045 | when-attacking | 0 | draw, trash | Not verified |
 | ST21-005 | unknown | 0 |  | Not verified |
 | ST10-013 | on-play | 0 | power, return-don | Not verified |
@@ -2157,8 +2157,8 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP09-029 | end-turn | 0 | ready | Not verified |
 | OP04-064 | on-play | 1 | draw, add-don | Not verified |
 | OP04-064 | trigger | 0 | return-don, play | Not verified |
-| OP06-019 | main | 0 | ko, ko | Not verified |
-| OP06-019 | trigger | 0 | ko, ko | Not verified |
+| OP06-019 | main | 0 | ko | Not verified |
+| OP06-019 | trigger | 0 | ko | Not verified |
 | OP09-048 | unknown | 0 | blocker | Not verified |
 | OP09-048 | on-play | 0 | draw, trash | Not verified |
 | OP01-019 | unknown | 0 | attach-don-required, blocker | Not verified |
@@ -2175,7 +2175,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP13-076 | counter | 0 | power, trash | Not verified |
 | OP04-056 | main | 0 | bottom-deck | Not verified |
 | OP04-056 | trigger | 0 | bottom-deck | Not verified |
-| OP03-080 | on-play | 0 | ko, ko | Not verified |
+| OP03-080 | on-play | 0 | ko | Not verified |
 | OP05-038 | counter | 1 | power, ready, trash | Not verified |
 | OP05-038 | trigger | 0 | rest | Not verified |
 | OP14-073 | unknown | 0 |  | Not verified |
@@ -2190,7 +2190,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP11-060 | main | 0 | activate-main-effect, activate-referenced-effect | Not verified |
 | DON_67 | unknown | 0 | don-power | Not verified |
 | OP08-003 | unknown | 0 | blocker | Not verified |
-| EB03-056 | on-play | 0 | ko, ko | Not verified |
+| EB03-056 | on-play | 0 | ko | Not verified |
 | OP04-017 | counter | 1 | power, power | Not verified |
 | OP12-043 | unknown | 1 | cost | Not verified |
 | OP12-043 | on-play | 0 | trash, attack-restriction | Not verified |
@@ -2201,7 +2201,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP13-021 | trigger | 0 | power | Not verified |
 | OP07-101 | unknown | 0 | blocker | Not verified |
 | OP07-101 | trigger | 1 | play | Not verified |
-| ST04-010 | on-play | 0 | ko, ko, return-don | Not verified |
+| ST04-010 | on-play | 0 | ko, return-don | Not verified |
 | ST04-010 | trigger | 0 | play | Not verified |
 | OP05-047 | unknown | 0 | blocker | Not verified |
 | OP05-047 | on-block | 1 | draw, power, on-block | Not verified |
@@ -2256,11 +2256,11 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | DON_16 | unknown | 0 | don-power | Not verified |
 | OP07-029 | continuous | 2 | rest, blocker, grant-keyword | Not verified |
 | ST21-003 | on-play | 1 | blocker | Not verified |
-| OP15-115 | main | 0 | ko, ko, life | Not verified |
+| OP15-115 | main | 0 | ko, life | Not verified |
 | OP05-052 | unknown | 0 | blocker | Not verified |
 | ST13-013 | on-play | 0 | search | Not verified |
 | OP14-042 | on-play | 1 | search | Not verified |
-| OP11-103 | activate-main | 1 | ko, ko, rest | Not verified |
+| OP11-103 | activate-main | 1 | ko, rest | Not verified |
 | ST13-015 | activate-main | 1 | draw, power | Not verified |
 | EB04-017 | continuous | 1 | custom-resolver | Not verified |
 | EB04-017 | on-play | 1 | play | Not verified |
@@ -2270,7 +2270,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP17-073 | on-play | 1 | add-don, trash | Not verified |
 | OP10-009 | on-play | 1 | power | Not verified |
 | OP03-097 | counter | 0 | power, trash | Not verified |
-| OP03-097 | trigger | 0 | draw, ko, ko | Not verified |
+| OP03-097 | trigger | 0 | draw, ko | Not verified |
 | OP02-103 | unknown | 0 | attach-don-required | Not verified |
 | OP02-103 | when-attacking | 0 | cost | Not verified |
 | OP01-084 | unknown | 0 | attach-don-required | Not verified |
@@ -2291,9 +2291,9 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP07-072 | on-play | 0 | return-don, search, play | Not verified |
 | OP07-030 | unknown | 1 | blocker, grant-keyword | Not verified |
 | EB04-004 | when-attacking | 0 | base-power | Not verified |
-| OP16-101 | main | 1 | power, ko, ko | Not verified |
+| OP16-101 | main | 1 | power, ko | Not verified |
 | OP16-101 | trigger | 0 | recover | Not verified |
-| OP17-025 | on-ko | 0 | ko, ko, on-ko | Not verified |
+| OP17-025 | on-ko | 0 | ko, on-ko | Not verified |
 | OP17-025 | activate-main | 0 | attach-don | Not verified |
 | OP17-064 | unknown | 0 | blocker | Not verified |
 | OP17-064 | opponent-attack | 0 | power, trash | Not verified |
@@ -2304,10 +2304,10 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP09-058 | main | 0 | custom-resolver | Not verified |
 | OP09-058 | trigger | 0 | return-to-hand | Not verified |
 | OP06-101 | on-play | 0 | banish, grant-keyword | Not verified |
-| OP06-101 | trigger | 0 | ko, ko | Not verified |
+| OP06-101 | trigger | 0 | ko | Not verified |
 | OP12-012 | on-play | 0 | blocker, grant-keyword | Not verified |
-| OP03-018 | main | 0 | ko, ko, trash | Not verified |
-| OP03-018 | trigger | 0 | ko, ko | Not verified |
+| OP03-018 | main | 0 | ko, trash | Not verified |
+| OP03-018 | trigger | 0 | ko | Not verified |
 | OP13-102 | activate-main | 1 | draw, rest, trash | Not verified |
 | OP13-102 | trigger | 0 | draw, rest | Not verified |
 | OP15-069 | unknown | 1 | custom-resolver | Not verified |
@@ -2331,7 +2331,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | P-039 | unknown | 1 | power, attach-don-required, banish | Not verified |
 | OP17-010 | activate-main | 1 | power, blocker, grant-keyword | Not verified |
 | OP06-026 | on-play | 0 | ready | Not verified |
-| ST06-001 | activate-main | 0 | ko, ko, trash | Not verified |
+| ST06-001 | activate-main | 0 | ko, trash | Not verified |
 | DON_177 | unknown | 0 | don-power | Not verified |
 | OP08-043 | on-play | 1 | trash | Not verified |
 | OP16-056 | activate-main | 0 | draw, trash, attack-restriction | Not verified |
@@ -2342,7 +2342,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP07-117 | end-turn | 1 | custom-resolver | Not verified |
 | OP07-117 | trigger | 0 | play | Not verified |
 | OP14-030 | unknown | 0 |  | Not verified |
-| OP09-018 | main | 0 | ko, ko | Not verified |
+| OP09-018 | main | 0 | ko | Not verified |
 | OP12-036 | unknown | 1 | power, prevent-ko | Not verified |
 | EB03-004 | unknown | 0 | blocker | Not verified |
 | EB03-004 | continuous | 1 | power | Not verified |
@@ -2355,7 +2355,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | ST29-002 | when-attacking | 0 | rest | Not verified |
 | OP10-077 | unknown | 0 | blocker | Not verified |
 | OP10-077 | on-block | 0 | add-don, on-block | Not verified |
-| OP06-116 | main | 1 | ko, ko, life | Not verified |
+| OP06-116 | main | 1 | ko, life | Not verified |
 | OP06-116 | trigger | 0 | draw | Not verified |
 | EB02-009 | activate-main | 0 | rest | Not verified |
 | P-056 | on-play | 0 | return-to-hand | Not verified |
@@ -2387,7 +2387,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP09-005 | unknown | 0 | blocker | Not verified |
 | OP09-005 | on-play | 1 | draw, trash | Not verified |
 | OP08-116 | counter | 1 | power, life, life, move-to-life | Not verified |
-| ST34-002 | on-play | 1 | ko, ko, add-don | Not verified |
+| ST34-002 | on-play | 1 | ko, add-don | Not verified |
 | OP03-077 | unknown | 0 | attach-don-required | Not verified |
 | OP03-077 | when-attacking | 1 | life, trash, move-to-life | Not verified |
 | OP01-085 | on-play | 1 | attack-restriction | Not verified |
@@ -2446,19 +2446,19 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | EB03-008 | when-attacking | 0 | attack-permission | Not verified |
 | EB03-008 | activate-main | 0 | power | Not verified |
 | ST35-001 | unknown | 0 | blocker | Not verified |
-| ST35-001 | on-play | 0 | ko, ko | Not verified |
+| ST35-001 | on-play | 0 | ko | Not verified |
 | P-062 | activate-main | 0 | power, rest, life | Not verified |
 | OP17-013 | unknown | 1 | cost | Not verified |
 | OP17-013 | on-play | 1 | power | Not verified |
 | ST09-012 | when-attacking | 0 | power, life | Not verified |
 | OP09-119 | on-play | 0 | draw, rush, grant-keyword | Not verified |
 | OP10-092 | activate-main | 0 | power | Not verified |
-| OP08-094 | main | 0 | ko, ko | Not verified |
-| OP08-094 | counter | 0 | ko, ko | Not verified |
+| OP08-094 | main | 0 | ko | Not verified |
+| OP08-094 | counter | 0 | ko | Not verified |
 | OP08-094 | main | 0 | activate-main-effect, activate-referenced-effect | Not verified |
 | OP12-063 | unknown | 1 | power, cost, blocker | Not verified |
 | ST26-004 | on-play | 0 | power, return-don | Not verified |
-| OP07-017 | main | 0 | ko, ko | Not verified |
+| OP07-017 | main | 0 | ko | Not verified |
 | OP07-017 | main | 0 | activate-main-effect, activate-referenced-effect | Not verified |
 | DON_60 | unknown | 0 | don-power | Not verified |
 | OP01-059 | main | 0 | ready, trash | Not verified |
@@ -2471,10 +2471,10 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP01-065 | unknown | 0 |  | Not verified |
 | OP14-027 | continuous | 0 | rest | Not verified |
 | OP14-027 | continuous | 1 | custom-resolver | Not verified |
-| OP05-039 | counter | 0 | power, ko, ko | Not verified |
-| OP05-039 | trigger | 0 | ko, ko | Not verified |
+| OP05-039 | counter | 0 | power, ko | Not verified |
+| OP05-039 | trigger | 0 | ko | Not verified |
 | EB02-027 | on-play | 0 | bottom-deck | Not verified |
-| OP03-115 | on-play | 0 | ko, ko, trash | Not verified |
+| OP03-115 | on-play | 0 | ko, trash | Not verified |
 | OP05-079 | on-play | 0 | bottom-deck | Not verified |
 | EB02-008 | main | 0 | search | Not verified |
 | EB02-008 | main | 0 | activate-main-effect, activate-referenced-effect | Not verified |
@@ -2487,7 +2487,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP14-114 | trigger | 1 | play | Not verified |
 | OP02-070 | activate-main | 1 | draw, rest, trash | Not verified |
 | EB03-043 | unknown | 0 | blocker | Not verified |
-| EB03-043 | on-play | 0 | ko, ko | Not verified |
+| EB03-043 | on-play | 0 | ko | Not verified |
 | OP07-038 | continuous | 1 | draw | Not verified |
 | ST04-012 | unknown | 0 |  | Not verified |
 | OP05-106 | on-play | 0 | search | Not verified |
@@ -2497,7 +2497,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | ST36-002 | on-play | 1 | life, move-to-life | Not verified |
 | ST36-002 | trigger | 1 | play | Not verified |
 | EB02-001 | unknown | 0 |  | Not verified |
-| OP15-100 | on-play | 0 | ko, ko, trash, life | Not verified |
+| OP15-100 | on-play | 0 | ko, trash, life | Not verified |
 | P-026 | when-attacking | 0 | cost | Not verified |
 | OP01-101 | unknown | 0 | attach-don-required | Not verified |
 | OP01-101 | when-attacking | 0 | add-don, trash | Not verified |
@@ -2506,7 +2506,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP06-059 | counter | 0 | draw, power | Not verified |
 | OP06-059 | trigger | 0 | search | Not verified |
 | OP04-014 | unknown | 0 | banish | Not verified |
-| ST10-006 | continuous | 0 | ko, ko, blocker, rush | Not verified |
+| ST10-006 | continuous | 0 | ko, blocker, rush | Not verified |
 | OP07-054 | unknown | 0 | blocker | Not verified |
 | OP07-054 | on-play | 0 | draw | Not verified |
 | PRB02-011 | unknown | 0 | blocker | Not verified |
@@ -2535,7 +2535,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP14-057 | trigger | 0 | draw | Not verified |
 | EB01-056 | on-play | 0 | draw, life | Not verified |
 | OP11-096 | unknown | 1 | blocker, grant-keyword | Not verified |
-| OP06-065 | on-play | 1 | ko, ko, return-to-hand, return-to-hand | Not verified |
+| OP06-065 | on-play | 1 | ko, return-to-hand, return-to-hand | Not verified |
 | OP03-104 | unknown | 0 | blocker | Not verified |
 | OP03-104 | on-play | 0 | reorder-life | Not verified |
 | OP03-008 | unknown | 0 | prevent-ko | Not verified |
@@ -2569,18 +2569,18 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | ST21-002 | continuous | 0 | power | Not verified |
 | OP10-049 | unknown | 1 | return-to-hand, replacement | Not verified |
 | OP07-011 | unknown | 0 | attach-don-required | Not verified |
-| OP07-011 | when-attacking | 0 | ko, ko | Not verified |
+| OP07-011 | when-attacking | 0 | ko | Not verified |
 | DON_164 | unknown | 0 | don-power | Not verified |
 | OP02-031 | unknown | 1 | blocker, grant-keyword | Not verified |
 | OP17-005 | unknown | 1 | cost | Not verified |
 | OP17-005 | on-play | 0 | base-power | Not verified |
-| OP14-028 | continuous | 0 | ko, ko | Not verified |
+| OP14-028 | continuous | 0 | ko | Not verified |
 | OP01-083 | unknown | 0 | attach-don-required | Not verified |
 | OP01-083 | continuous | 1 | power | Not verified |
 | OP02-044 | on-play | 0 | play | Not verified |
 | OP14-011 | unknown | 0 | attach-don-required, blocker, grant-keyword | Not verified |
 | OP17-009 | continuous | 0 | power | Not verified |
-| OP17-009 | on-play | 0 | ko, ko | Not verified |
+| OP17-009 | on-play | 0 | ko | Not verified |
 | ST29-014 | unknown | 0 |  | Not verified |
 | ST29-014 | activate-main | 0 | draw, trash, attach-don | Not verified |
 | OP01-081 | unknown | 0 |  | Not verified |
@@ -2589,7 +2589,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP07-050 | on-play | 1 | return-to-hand, return-to-hand | Not verified |
 | DON_181 | unknown | 0 | don-power | Not verified |
 | OP13-053 | when-attacking | 0 | draw, banish, grant-keyword | Not verified |
-| OP04-034 | end-turn | 1 | ko, ko | Not verified |
+| OP04-034 | end-turn | 1 | ko | Not verified |
 | EB03-061 | activate-main | 0 | rest, ready | Not verified |
 | EB03-061 | end-turn | 0 | ready | Not verified |
 | OP04-011 | when-attacking | 1 | power, reveal | Not verified |
@@ -2599,7 +2599,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP14-103 | on-play | 0 | life, life, move-to-life | Not verified |
 | OP14-103 | trigger | 0 | play | Not verified |
 | OP14-062 | on-ko | 0 | rest, on-ko | Not verified |
-| OP14-037 | main | 0 | ko, ko | Not verified |
+| OP14-037 | main | 0 | ko | Not verified |
 | OP14-037 | counter | 0 | power | Not verified |
 | ST06-006 | activate-main | 0 | rest | Not verified |
 | EB03-054 | on-play | 0 | life, move-to-life | Not verified |
@@ -2619,8 +2619,8 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP14-041 | continuous | 0 | draw, attach-don-required | Not verified |
 | P-058_P1 | main | 1 | custom-resolver | Not verified |
 | P-058_P1 | trigger | 0 | custom-resolver | Not verified |
-| EB02-007 | main | 0 | power, ko, ko | Not verified |
-| EB02-007 | trigger | 0 | ko, ko | Not verified |
+| EB02-007 | main | 0 | power, ko | Not verified |
+| EB02-007 | trigger | 0 | ko | Not verified |
 | ST09-005 | unknown | 0 | attach-don-required, double-attack, grant-keyword | Not verified |
 | ST09-005 | on-ko | 0 | life, trash, move-to-life, on-ko | Not verified |
 | OP14-005 | activate-main | 0 | attach-don | Not verified |
@@ -2629,11 +2629,11 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP16-069 | when-attacking | 0 | add-don | Not verified |
 | PRB02-010 | on-play | 1 | draw, return-don, play | Not verified |
 | OP02-115 | unknown | 0 | attach-don-required | Not verified |
-| OP02-115 | when-attacking | 0 | ko, ko | Not verified |
-| OP12-029 | on-play | 0 | ko, ko, rest | Not verified |
+| OP02-115 | when-attacking | 0 | ko | Not verified |
+| OP12-029 | on-play | 0 | ko, rest | Not verified |
 | OP03-052 | unknown | 0 |  | Not verified |
 | DON_52 | unknown | 0 | don-power | Not verified |
-| OP01-026 | counter | 0 | power, ko, ko | Not verified |
+| OP01-026 | counter | 0 | power, ko | Not verified |
 | OP01-026 | trigger | 0 | power, power | Not verified |
 | ST05-008 | unknown | 1 | prevent-ko | Not verified |
 | DON_50 | unknown | 0 | don-power | Not verified |
@@ -2642,7 +2642,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP07-016 | main | 0 | activate-main-effect, activate-referenced-effect | Not verified |
 | OP08-009 | unknown | 0 |  | Not verified |
 | OP05-054 | on-play | 0 | draw | Not verified |
-| ST06-012 | activate-main | 0 | ko, ko, rest, trash | Not verified |
+| ST06-012 | activate-main | 0 | ko, rest, trash | Not verified |
 | OP05-061 | unknown | 0 | attach-don-required | Not verified |
 | OP05-061 | when-attacking | 1 | rest | Not verified |
 | OP01-033 | on-play | 0 | rest | Not verified |
@@ -2675,7 +2675,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP06-051 | on-play | 0 | trash | Not verified |
 | OP16-080 | continuous | 0 | cost | Not verified |
 | OP16-080 | trigger | 0 | trash | Not verified |
-| OP13-019 | main | 0 | power, ko, ko | Not verified |
+| OP13-019 | main | 0 | power, ko | Not verified |
 | OP13-019 | counter | 0 | power | Not verified |
 | OP02-112 | activate-main | 0 | power, cost, rest | Not verified |
 | EB03-048 | unknown | 0 | blocker | Not verified |
@@ -2692,16 +2692,16 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP10-061 | main | 0 | draw, return-to-hand, return-to-hand | Not verified |
 | OP10-061 | trigger | 0 | return-to-hand | Not verified |
 | EB03-014 | activate-main | 0 | rest, attach-don | Not verified |
-| ST04-015 | main | 0 | ko, ko, add-don | Not verified |
+| ST04-015 | main | 0 | ko, add-don | Not verified |
 | ST04-015 | trigger | 0 | add-don | Not verified |
 | ST04-016 | counter | 0 | power, return-don | Not verified |
-| P-038 | on-play | 0 | ko, ko | Not verified |
+| P-038 | on-play | 0 | ko | Not verified |
 | EB02-025 | activate-main | 1 | search | Not verified |
-| OP13-117 | main | 0 | ko, ko | Not verified |
+| OP13-117 | main | 0 | ko | Not verified |
 | OP13-117 | trigger | 0 | draw | Not verified |
 | OP01-003 | activate-main | 0 | power, ready | Not verified |
 | ST06-009 | unknown | 0 |  | Not verified |
-| EB01-037 | opponent-attack | 0 | ko, ko, return-don | Not verified |
+| EB01-037 | opponent-attack | 0 | ko, return-don | Not verified |
 | OP14-022 | end-turn | 1 | ready | Not verified |
 | ST30-009 | unknown | 1 | draw, trash | Not verified |
 | OP11-009 | unknown | 0 | attach-don-required | Not verified |
@@ -2712,10 +2712,10 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP03-048 | on-play | 1 | return-to-hand, return-to-hand | Not verified |
 | OP17-019 | main | 0 | search | Not verified |
 | OP17-019 | trigger | 0 | power | Not verified |
-| OP05-063 | on-play | 1 | ko, ko | Not verified |
+| OP05-063 | on-play | 1 | ko | Not verified |
 | OP15-080 | unknown | 1 | power | Not verified |
 | OP15-080 | on-ko | 0 | on-ko | Not verified |
-| ST04-003 | on-play | 0 | ko, ko, return-don, rush, grant-keyword | Not verified |
+| ST04-003 | on-play | 0 | ko, return-don, rush, grant-keyword | Not verified |
 | OP08-112 | on-play | 0 | custom-resolver | Not verified |
 | OP08-112 | on-play | 0 | activate-referenced-effect | Not verified |
 | OP02-105 | unknown | 0 | attach-don-required | Not verified |
@@ -2730,7 +2730,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | ST04-002 | on-play | 0 | return-don, play | Not verified |
 | OP13-086 | on-play | 0 | search, trash | Not verified |
 | OP16-075 | on-play | 1 | add-don | Not verified |
-| OP08-061 | when-attacking | 0 | ko, ko | Not verified |
+| OP08-061 | when-attacking | 0 | ko | Not verified |
 | ST32-003 | continuous | 0 | draw, trash | Not verified |
 | ST32-003 | on-play | 1 | play | Not verified |
 | OP01-071 | on-play | 0 | bottom-deck | Not verified |
@@ -2739,7 +2739,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | EB02-042 | unknown | 0 |  | Not verified |
 | OP06-056 | main | 0 | bottom-deck | Not verified |
 | EB04-047 | activate-main | 0 | trash, play | Not verified |
-| OP15-075 | main | 1 | power, ko, ko | Not verified |
+| OP15-075 | main | 1 | power, ko | Not verified |
 | OP15-075 | counter | 0 | power | Not verified |
 | ST29-015 | counter | 1 | power, power | Not verified |
 | OP10-100 | unknown | 0 | attach-don-required | Not verified |
@@ -2757,7 +2757,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP16-089 | on-play | 0 | draw, trash | Not verified |
 | P-103 | on-play | 0 | draw, attach-don | Not verified |
 | ST21-010 | unknown | 0 | attach-don-required | Not verified |
-| ST21-010 | when-attacking | 0 | ko, ko | Not verified |
+| ST21-010 | when-attacking | 0 | ko | Not verified |
 | DON_153 | unknown | 0 | don-power | Not verified |
 | OP06-008 | unknown | 0 |  | Not verified |
 | OP03-091 | on-play | 0 | set-cost | Not verified |
@@ -2775,15 +2775,15 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP14-052 | on-play | 0 | trash, play | Not verified |
 | P-800 | unknown | 0 | custom-resolver | Not verified |
 | OP12-089 | unknown | 1 | cost, blocker, grant-keyword | Not verified |
-| OP12-089 | on-ko | 1 | ko, ko, on-ko | Not verified |
+| OP12-089 | on-ko | 1 | ko, on-ko | Not verified |
 | OP12-080 | activate-main | 1 | search | Not verified |
 | OP12-080 | trigger | 0 | play | Not verified |
-| OP16-010 | on-play | 0 | ko, ko | Not verified |
+| OP16-010 | on-play | 0 | ko | Not verified |
 | OP09-007 | unknown | 0 | blocker | Not verified |
 | OP09-007 | on-play | 0 | power | Not verified |
 | DON_187 | unknown | 0 | don-power | Not verified |
 | OP17-028 | unknown | 0 | blocker | Not verified |
-| OP17-028 | on-play | 0 | ko, ko | Not verified |
+| OP17-028 | on-play | 0 | ko | Not verified |
 | DON_163 | unknown | 0 | don-power | Not verified |
 | OP08-089 | unknown | 0 |  | Not verified |
 | ST31-002 | unknown | 0 | blocker | Not verified |
@@ -2824,12 +2824,12 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP17-003 | on-play | 1 | power | Not verified |
 | OP09-082 | unknown | 0 |  | Not verified |
 | OP07-040 | on-play | 0 | return-to-hand | Not verified |
-| OP06-036 | on-play | 0 | ko, ko | Not verified |
-| OP06-036 | on-ko | 0 | ko, ko, on-ko | Not verified |
+| OP06-036 | on-play | 0 | ko | Not verified |
+| OP06-036 | on-ko | 0 | ko, on-ko | Not verified |
 | OP12-037 | main | 0 | custom-resolver | Not verified |
 | OP12-037 | counter | 0 | power | Not verified |
 | OP02-004 | on-play | 0 | power, attach-don-required | Not verified |
-| OP02-004 | when-attacking | 0 | ko, ko | Not verified |
+| OP02-004 | when-attacking | 0 | ko | Not verified |
 | OP17-048 | unknown | 0 |  | Not verified |
 | OP17-048 | when-attacking | 0 | power, trash | Not verified |
 | OP17-048 | opponent-attack | 0 | power, trash | Not verified |
@@ -2851,13 +2851,13 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP03-057 | main | 0 | bottom-deck | Not verified |
 | OP03-057 | trigger | 0 | bottom-deck | Not verified |
 | OP14-075 | on-ko | 0 | power, add-don, on-ko | Not verified |
-| OP11-106 | on-play | 0 | ko, ko, life | Not verified |
+| OP11-106 | on-play | 0 | ko, life | Not verified |
 | EB04-037 | on-play | 1 | search | Not verified |
-| OP05-103 | on-play | 1 | ko, ko | Not verified |
+| OP05-103 | on-play | 1 | ko | Not verified |
 | DON_127 | unknown | 0 | don-power | Not verified |
 | OP10-109 | on-ko | 0 | trash-life, on-ko | Not verified |
 | OP10-109 | trigger | 0 | draw, trash | Not verified |
-| OP05-020 | main | 0 | power, ko, ko | Not verified |
+| OP05-020 | main | 0 | power, ko | Not verified |
 | OP05-020 | trigger | 0 | power | Not verified |
 | OP04-004 | activate-main | 0 | rest, attach-don | Not verified |
 | OP13-080 | unknown | 1 | rush, prevent-ko, grant-keyword | Not verified |
@@ -2889,7 +2889,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | ST14-014 | counter | 1 | power | Not verified |
 | ST14-014 | trigger | 0 | recover, recover | Not verified |
 | ST05-005 | activate-main | 1 | rest, add-don, trash | Not verified |
-| OP13-077 | main | 1 | ko, ko | Not verified |
+| OP13-077 | main | 1 | ko | Not verified |
 | OP13-077 | counter | 0 | power | Not verified |
 | DON_166 | unknown | 0 | don-power | Not verified |
 | OP08-101 | activate-main | 1 | life | Not verified |
@@ -2898,10 +2898,10 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP14-058 | main | 0 | return-to-hand, return-to-hand, play | Not verified |
 | OP14-058 | counter | 0 | draw, power | Not verified |
 | P-019 | unknown | 0 | attach-don-required | Not verified |
-| P-019 | when-attacking | 0 | ko, ko | Not verified |
+| P-019 | when-attacking | 0 | ko | Not verified |
 | OP11-065 | unknown | 1 | blocker, grant-keyword | Not verified |
 | OP10-067 | on-play | 0 | recover, ready | Not verified |
-| OP03-066 | on-play | 1 | ko, ko, add-don | Not verified |
+| OP03-066 | on-play | 1 | ko, add-don | Not verified |
 | OP10-015 | on-play | 0 | power | Not verified |
 | OP07-097 | unknown | 0 | custom-resolver | Not verified |
 | OP07-097 | activate-main | 0 | play-or-life | Not verified |
@@ -2917,7 +2917,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | P-148 | unknown | 0 | blocker | Not verified |
 | P-148 | activate-main | 1 | attach-don | Not verified |
 | OP08-072 | unknown | 0 | blocker | Not verified |
-| OP14-069 | on-play | 1 | ko, ko, return-don, prevent-rest | Not verified |
+| OP14-069 | on-play | 1 | ko, return-don, prevent-rest | Not verified |
 | PRB02-018 | on-play | 1 | play | Not verified |
 | OP08-052 | on-play | 0 | reveal | Not verified |
 | OP02-020 | unknown | 0 |  | Not verified |
@@ -2946,7 +2946,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP06-037 | unknown | 0 |  | Not verified |
 | DON_43 | unknown | 0 | don-power | Not verified |
 | OP05-009 | on-play | 0 | draw | Not verified |
-| EB04-059 | main | 1 | ko, ko | Not verified |
+| EB04-059 | main | 1 | ko | Not verified |
 | EB04-059 | trigger | 0 | draw, trash | Not verified |
 | ST08-005 | on-play | 0 | ko, trash | Not verified |
 | ST03-009 | on-play | 0 | return-to-hand | Not verified |
@@ -2964,8 +2964,8 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP15-041 | on-ko | 0 | draw, on-ko | Not verified |
 | OP15-041 | activate-main | 0 | rush, grant-keyword | Not verified |
 | OP12-032 | unknown | 0 |  | Not verified |
-| ST14-003 | on-play | 1 | ko, ko | Not verified |
-| OP09-026 | on-play | 1 | ko, ko | Not verified |
+| ST14-003 | on-play | 1 | ko | Not verified |
+| OP09-026 | on-play | 1 | ko | Not verified |
 | P-064 | unknown | 0 |  | Not verified |
 | OP15-079 | on-ko | 0 | recover, recover, on-ko | Not verified |
 | OP15-079 | trigger | 0 | on-ko | Not verified |
@@ -2997,10 +2997,10 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP08-115 | trigger | 0 | draw, trash | Not verified |
 | OP14-072 | on-play | 0 | add-don | Not verified |
 | OP14-072 | on-ko | 0 | life, move-to-life, on-ko | Not verified |
-| ST16-004 | on-play | 0 | ko, ko | Not verified |
+| ST16-004 | on-play | 0 | ko | Not verified |
 | DON_62 | unknown | 0 | don-power | Not verified |
 | OP11-115 | counter | 1 | power | Not verified |
-| OP11-115 | trigger | 0 | ko, ko | Not verified |
+| OP11-115 | trigger | 0 | ko | Not verified |
 | OP02-023 | main | 1 | custom-resolver | Not verified |
 | OP02-023 | trigger | 0 | power | Not verified |
 | OP01-009 | trigger | 0 | play | Not verified |
@@ -3008,8 +3008,8 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | P-006 | continuous | 0 | power | Not verified |
 | OP02-092 | activate-main | 0 | rest, trash, search | Not verified |
 | EB03-037 | on-play | 1 | power | Not verified |
-| OP10-040 | main | 0 | ko, ko | Not verified |
-| OP10-040 | counter | 0 | ko, ko | Not verified |
+| OP10-040 | main | 0 | ko | Not verified |
+| OP10-040 | counter | 0 | ko | Not verified |
 | ST10-008 | on-play | 1 | add-don | Not verified |
 | ST08-006 | unknown | 0 | blocker | Not verified |
 | ST08-006 | on-play | 0 | cost | Not verified |
@@ -3056,7 +3056,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP09-075 | on-play | 1 | add-don, life | Not verified |
 | ST25-005 | unknown | 1 | cost, blocker, grant-keyword | Not verified |
 | ST25-005 | on-ko | 1 | draw, on-ko | Not verified |
-| OP11-095 | on-play | 1 | ko, ko, attach-don | Not verified |
+| OP11-095 | on-play | 1 | ko, attach-don | Not verified |
 | OP01-032 | unknown | 1 | power, attach-don-required | Not verified |
 | ST08-011 | unknown | 0 |  | Not verified |
 | OP10-106 | on-ko | 1 | search, on-ko | Not verified |
@@ -3070,7 +3070,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | DON_170 | unknown | 0 | don-power | Not verified |
 | EB03-032 | continuous | 0 | power | Not verified |
 | EB03-032 | on-play | 0 | power | Not verified |
-| OP04-091 | on-play | 1 | ko, ko, trash | Not verified |
+| OP04-091 | on-play | 1 | ko, trash | Not verified |
 | OP12-021 | unknown | 1 | blocker | Not verified |
 | EB04-035 | unknown | 0 | blocker | Not verified |
 | EB04-035 | continuous | 1 | add-don | Not verified |
@@ -3081,7 +3081,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP07-020 | unknown | 0 | blocker | Not verified |
 | OP07-020 | on-ko | 1 | play, on-ko | Not verified |
 | OP08-076 | main | 1 | add-don | Not verified |
-| OP17-098 | main | 1 | ko, ko | Not verified |
+| OP17-098 | main | 1 | ko | Not verified |
 | OP17-098 | counter | 0 | power | Not verified |
 | OP06-070 | unknown | 0 |  | Not verified |
 | P-079 | unknown | 0 | blocker | Not verified |
@@ -3098,7 +3098,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP16-098 | activate-main | 0 | trash, play | Not verified |
 | OP06-084 | on-ko | 0 | power, on-ko | Not verified |
 | OP11-055 | unknown | 0 |  | Not verified |
-| OP03-037 | main | 0 | ko, ko | Not verified |
+| OP03-037 | main | 0 | ko | Not verified |
 | OP03-037 | trigger | 0 | custom-resolver | Not verified |
 | OP03-037 | trigger | 0 | custom-resolver | Not verified |
 | OP06-093 | on-play | 1 | cost, trash | Not verified |
@@ -3107,16 +3107,16 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | EB02-016 | unknown | 0 | custom-resolver | Not verified |
 | EB02-016 | on-play | 0 | play | Not verified |
 | OP09-045 | unknown | 1 | prevent-ko | Not verified |
-| OP08-091 | on-play | 0 | ko, ko, trash | Not verified |
-| OP08-091 | trigger | 0 | ko, ko | Not verified |
+| OP08-091 | on-play | 0 | ko, trash | Not verified |
+| OP08-091 | trigger | 0 | ko | Not verified |
 | P-048 | unknown | 0 | attach-don-required | Not verified |
 | P-048 | when-attacking | 1 | bottom-deck | Not verified |
 | OP03-002 | unknown | 0 | attach-don-required | Not verified |
 | OP03-002 | when-attacking | 0 | blocker | Not verified |
 | OP16-062 | unknown | 0 |  | Not verified |
-| ST10-007 | continuous | 0 | ko, ko | Not verified |
-| OP08-097 | main | 1 | ko, ko | Not verified |
-| OP08-097 | trigger | 0 | ko, ko | Not verified |
+| ST10-007 | continuous | 0 | ko | Not verified |
+| OP08-097 | main | 1 | ko | Not verified |
+| OP08-097 | trigger | 0 | ko | Not verified |
 | EB01-057 | unknown | 0 | life, move-to-life, blocker | Not verified |
 | DON_186 | unknown | 0 | don-power | Not verified |
 | OP11-086 | on-play | 0 | trash | Not verified |
@@ -3128,7 +3128,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | EB02-052 | when-attacking | 1 | power, life, trash, move-to-life | Not verified |
 | OP08-103 | activate-main | 0 | power, life | Not verified |
 | OP16-119 | on-play | 0 | life, search, move-to-life | Not verified |
-| OP16-119 | trigger | 0 | ko, ko, negate-effect | Not verified |
+| OP16-119 | trigger | 0 | ko, negate-effect | Not verified |
 | OP13-093 | unknown | 0 | blocker | Not verified |
 | OP13-093 | on-play | 0 | draw, trash | Not verified |
 | ST04-011 | unknown | 0 | blocker | Not verified |
@@ -3141,7 +3141,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP17-055 | main | 0 | grant-keyword | Not verified |
 | OP17-055 | counter | 0 | power | Not verified |
 | OP15-109 | on-play | 1 | life, life, move-to-life, play | Not verified |
-| OP04-030 | on-play | 0 | ko, ko | Not verified |
+| OP04-030 | on-play | 0 | ko | Not verified |
 | OP04-030 | opponent-attack | 0 | rest | Not verified |
 | ST30-011 | unknown | 1 | rest, blocker | Not verified |
 | PRB02-005 | continuous | 1 | custom-resolver | Not verified |
@@ -3169,15 +3169,15 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP10-070 | on-play | 0 | prevent-ko | Not verified |
 | OP12-118 | unknown | 0 | blocker | Not verified |
 | OP12-118 | on-play | 1 | draw, ready, trash | Not verified |
-| EB01-046 | on-play | 0 | cost, ko, ko | Not verified |
-| EB01-046 | when-attacking | 0 | cost, ko, ko | Not verified |
+| EB01-046 | on-play | 0 | cost, ko | Not verified |
+| EB01-046 | when-attacking | 0 | cost, ko | Not verified |
 | OP04-105 | activate-main | 0 | rest, trash | Not verified |
 | ST16-003 | unknown | 1 | power | Not verified |
 | EB03-020 | counter | 1 | power | Not verified |
 | OP11-059 | counter | 1 | power | Not verified |
 | OP11-059 | trigger | 0 | return-to-hand | Not verified |
 | OP02-017 | unknown | 0 | attach-don-required | Not verified |
-| OP02-017 | when-attacking | 0 | ko, ko | Not verified |
+| OP02-017 | when-attacking | 0 | ko | Not verified |
 | OP10-051 | unknown | 0 | attach-don-required | Not verified |
 | OP10-051 | when-attacking | 0 | search | Not verified |
 | OP11-080 | main | 1 | add-don | Not verified |
@@ -3196,7 +3196,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP16-038 | counter | 0 | power | Not verified |
 | OP05-013 | unknown | 0 | blocker | Not verified |
 | OP13-026 | activate-main | 0 | power | Not verified |
-| ST23-003 | on-play | 1 | ko, ko, trash | Not verified |
+| ST23-003 | on-play | 1 | ko, trash | Not verified |
 | OP09-083 | activate-main | 1 | rest | Not verified |
 | OP09-083 | on-ko | 0 | draw, on-ko | Not verified |
 | OP04-077 | unknown | 0 | blocker | Not verified |
@@ -3206,7 +3206,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP01-004 | unknown | 0 | attach-don-required | Not verified |
 | OP01-004 | continuous | 0 | draw | Not verified |
 | OP12-027 | unknown | 1 | rest, blocker | Not verified |
-| OP09-114 | on-play | 1 | ko, ko | Not verified |
+| OP09-114 | on-play | 1 | ko | Not verified |
 | OP09-114 | trigger | 1 | play | Not verified |
 | OP04-019 | end-turn | 0 | ready | Not verified |
 | ST03-016 | counter | 0 | return-to-hand | Not verified |
@@ -3236,10 +3236,10 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP06-004 | on-play | 0 | play | Not verified |
 | OP14-100 | on-ko | 0 | search, on-ko | Not verified |
 | OP14-100 | trigger | 0 | play | Not verified |
-| OP08-117 | main | 0 | ko, ko | Not verified |
+| OP08-117 | main | 0 | ko | Not verified |
 | OP08-117 | trigger | 0 | life, life, move-to-life | Not verified |
 | OP02-121 | continuous | 0 | cost | Not verified |
-| OP02-121 | on-play | 0 | ko, ko | Not verified |
+| OP02-121 | on-play | 0 | ko | Not verified |
 | OP08-108 | unknown | 0 |  | Not verified |
 | OP10-048 | on-play | 0 | return-to-hand, return-to-hand | Not verified |
 | ST06-007 | unknown | 0 | blocker | Not verified |
@@ -3263,15 +3263,15 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP02-003 | unknown | 0 |  | Not verified |
 | OP15-114 | on-play | 0 | ko | Not verified |
 | OP15-114 | activate-main | 0 | attach-don | Not verified |
-| OP11-098 | main | 0 | ko, ko, trash | Not verified |
+| OP11-098 | main | 0 | ko, trash | Not verified |
 | OP11-098 | trigger | 0 | power | Not verified |
 | OP03-036 | main | 0 | custom-resolver | Not verified |
-| OP03-036 | trigger | 0 | ko, ko | Not verified |
+| OP03-036 | trigger | 0 | ko | Not verified |
 | ST22-016 | counter | 1 | power, reveal | Not verified |
 | ST22-016 | trigger | 0 | draw | Not verified |
 | EB01-038 | counter | 1 | return-don | Not verified |
 | EB01-038 | trigger | 0 | draw, return-don | Not verified |
-| OP11-002 | on-play | 0 | power, ko, ko | Not verified |
+| OP11-002 | on-play | 0 | power, ko | Not verified |
 | OP13-118 | unknown | 0 | double-attack | Not verified |
 | OP13-118 | on-play | 1 | ready | Not verified |
 | DON_94 | unknown | 0 | don-power | Not verified |
@@ -3290,7 +3290,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP03-028 | on-play | 0 | rest, ready | Not verified |
 | P-098 | unknown | 0 | blocker | Not verified |
 | P-098 | on-play | 1 | custom-resolver | Not verified |
-| OP03-025 | on-play | 0 | ko, ko, attach-don-required, trash, double-attack, grant-keyword | Not verified |
+| OP03-025 | on-play | 0 | ko, attach-don-required, trash, double-attack, grant-keyword | Not verified |
 | EB01-031 | on-play | 1 | recover, recover, return-don | Not verified |
 | OP04-092 | on-play | 0 | search | Not verified |
 | OP08-046 | continuous | 1 | bottom-deck, rest | Not verified |
@@ -3300,13 +3300,13 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | ST01-012 | unknown | 0 | attach-don-required, rush | Not verified |
 | ST01-012 | when-attacking | 0 | blocker | Not verified |
 | OP02-073 | on-play | 0 | play | Not verified |
-| ST29-013 | trigger | 0 | ko, ko | Not verified |
+| ST29-013 | trigger | 0 | ko | Not verified |
 | DON_151 | unknown | 0 | don-power | Not verified |
 | ST04-013 | unknown | 0 |  | Not verified |
 | OP01-010 | unknown | 0 |  | Not verified |
 | OP12-083 | unknown | 0 |  | Not verified |
 | P-025 | unknown | 0 | attach-don-required, prevent-ko | Not verified |
-| OP06-007 | on-play | 0 | ko, ko | Not verified |
+| OP06-007 | on-play | 0 | ko | Not verified |
 | OP08-026 | unknown | 0 | attach-don-required | Not verified |
 | OP08-026 | when-attacking | 0 | prevent-ready | Not verified |
 | OP13-090 | unknown | 0 |  | Not verified |
@@ -3332,23 +3332,23 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | ST03-003 | on-block | 0 | bottom-deck, on-block | Not verified |
 | OP16-092 | on-play | 0 | draw, trash | Not verified |
 | EB03-030 | unknown | 0 |  | Not verified |
-| OP14-002 | when-attacking | 1 | draw, ko, ko | Not verified |
+| OP14-002 | when-attacking | 1 | draw, ko | Not verified |
 | OP17-056 | main | 0 | return-to-hand, return-to-hand | Not verified |
 | OP17-056 | counter | 0 | power | Not verified |
 | DON_109 | unknown | 0 | don-power | Not verified |
 | OP11-013 | when-attacking | 0 | blocker | Not verified |
-| OP07-109 | activate-main | 1 | draw, ko, ko, trash | Not verified |
-| OP07-109 | trigger | 0 | ko, ko | Not verified |
+| OP07-109 | activate-main | 1 | draw, ko, trash | Not verified |
+| OP07-109 | trigger | 0 | ko | Not verified |
 | DON_85 | unknown | 0 | don-power | Not verified |
 | OP03-107 | unknown | 0 | blocker | Not verified |
-| OP03-121 | main | 0 | ko, ko | Not verified |
-| OP03-121 | trigger | 0 | ko, ko | Not verified |
-| OP06-076 | continuous | 0 | ko, ko | Not verified |
+| OP03-121 | main | 0 | ko | Not verified |
+| OP03-121 | trigger | 0 | ko | Not verified |
+| OP06-076 | continuous | 0 | ko | Not verified |
 | OP16-096 | unknown | 0 | grant-keyword | Not verified |
 | OP16-096 | on-ko | 0 | play, on-ko | Not verified |
 | OP01-037 | trigger | 0 | play | Not verified |
 | OP04-082 | unknown | 1 | custom-resolver | Not verified |
-| OP04-082 | on-play | 1 | ko, ko, trash | Not verified |
+| OP04-082 | on-play | 1 | ko, trash | Not verified |
 | OP04-045 | on-play | 0 | draw | Not verified |
 | OP10-068 | unknown | 0 |  | Not verified |
 | EB01-034 | unknown | 0 | blocker | Not verified |
@@ -3372,21 +3372,21 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | ST10-003 | continuous | 1 | power | Not verified |
 | ST10-003 | when-attacking | 0 | power, return-don | Not verified |
 | OP08-085 | unknown | 0 | attach-don-required | Not verified |
-| OP08-085 | when-attacking | 1 | ko, ko | Not verified |
+| OP08-085 | when-attacking | 1 | ko | Not verified |
 | OP13-028 | on-play | 0 | custom-resolver | Not verified |
 | ST33-003 | on-play | 0 | bottom-deck, trash | Not verified |
-| OP15-036 | on-play | 0 | ko, ko | Not verified |
-| OP15-036 | when-attacking | 0 | ko, ko | Not verified |
+| OP15-036 | on-play | 0 | ko | Not verified |
+| OP15-036 | when-attacking | 0 | ko | Not verified |
 | OP07-034 | when-attacking | 1 | power | Not verified |
 | OP01-028 | counter | 0 | power, power | Not verified |
 | OP01-028 | counter | 0 | activate-referenced-effect | Not verified |
 | OP07-096 | main | 1 | draw, cost | Not verified |
-| OP07-096 | trigger | 0 | ko, ko | Not verified |
-| OP03-016 | main | 1 | power, ko, ko, double-attack, grant-keyword | Not verified |
-| OP03-016 | trigger | 0 | ko, ko | Not verified |
+| OP07-096 | trigger | 0 | ko | Not verified |
+| OP03-016 | main | 1 | power, ko, double-attack, grant-keyword | Not verified |
+| OP03-016 | trigger | 0 | ko | Not verified |
 | OP04-118 | unknown | 0 | rush, grant-keyword | Not verified |
 | OP04-053 | continuous | 0 | draw, attach-don-required | Not verified |
-| OP08-077 | main | 1 | ko, ko | Not verified |
+| OP08-077 | main | 1 | ko | Not verified |
 | OP04-084 | on-play | 0 | search | Not verified |
 | OP13-101 | unknown | 0 |  | Not verified |
 | OP12-085 | unknown | 1 | cost | Not verified |
@@ -3397,14 +3397,14 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP05-018 | trigger | 0 | play | Not verified |
 | OP16-111 | unknown | 0 | blocker | Not verified |
 | OP16-111 | trigger | 1 | play | Not verified |
-| OP16-006 | on-play | 0 | ko, ko | Not verified |
+| OP16-006 | on-play | 0 | ko | Not verified |
 | DON_122 | unknown | 0 | don-power | Not verified |
 | OP15-095 | main | 1 | power | Not verified |
 | OP15-095 | counter | 1 | power | Not verified |
 | ST03-011 | unknown | 0 |  | Not verified |
 | EB04-053 | unknown | 0 | blocker | Not verified |
 | EB04-053 | on-block | 1 | draw, on-block | Not verified |
-| EB03-013 | activate-main | 1 | ko, ko, play | Not verified |
+| EB03-013 | activate-main | 1 | ko, play | Not verified |
 | ST08-010 | unknown | 0 |  | Not verified |
 | ST08-003 | unknown | 0 |  | Not verified |
 | OP06-114 | on-play | 0 | search | Not verified |
@@ -3418,14 +3418,14 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | P-111 | continuous | 1 | custom-resolver | Not verified |
 | ST03-004 | on-play | 0 | recover | Not verified |
 | P-088 | trigger | 1 | play | Not verified |
-| OP06-102 | activate-main | 0 | ko, ko | Not verified |
+| OP06-102 | activate-main | 0 | ko | Not verified |
 | OP03-009 | activate-main | 0 | attach-don | Not verified |
 | OP07-057 | main | 1 | power, blocker | Not verified |
 | OP07-057 | trigger | 0 | draw | Not verified |
-| OP03-029 | on-play | 0 | ko, ko | Not verified |
+| OP03-029 | on-play | 0 | ko | Not verified |
 | OP03-029 | trigger | 0 | play | Not verified |
 | OP15-005 | when-attacking | 1 | power | Not verified |
-| EB04-018 | on-play | 0 | ko, ko, rest | Not verified |
+| EB04-018 | on-play | 0 | ko, rest | Not verified |
 | ST03-006 | unknown | 0 |  | Not verified |
 | OP07-022 | on-play | 0 | search | Not verified |
 | OP13-107 | unknown | 0 |  | Not verified |
@@ -3451,12 +3451,12 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | DON_154 | unknown | 0 | don-power | Not verified |
 | EB01-032 | unknown | 0 |  | Not verified |
 | OP14-081 | on-play | 0 | trash | Not verified |
-| OP14-081 | on-ko | 0 | ko, ko, on-ko | Not verified |
+| OP14-081 | on-ko | 0 | ko, on-ko | Not verified |
 | OP04-093 | main | 1 | power, double-attack, grant-keyword | Not verified |
 | OP04-093 | trigger | 0 | draw, trash | Not verified |
 | OP01-067 | unknown | 0 | cost, attach-don-required, banish | Not verified |
-| OP02-099 | on-play | 0 | ko, ko, trash | Not verified |
-| OP16-090 | on-play | 0 | draw, ko, ko, trash | Not verified |
+| OP02-099 | on-play | 0 | ko, trash | Not verified |
+| OP16-090 | on-play | 0 | draw, ko, trash | Not verified |
 | OP13-108 | on-play | 1 | rush, grant-keyword | Not verified |
 | OP13-108 | trigger | 1 | rest | Not verified |
 | OP15-040 | on-play | 0 | search | Not verified |
@@ -3472,7 +3472,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP10-090 | on-ko | 0 | play, on-ko | Not verified |
 | OP05-034 | activate-main | 0 | rest, search | Not verified |
 | EB04-045 | activate-main | 1 | power, rest | Not verified |
-| OP06-039 | main | 0 | ko, ko, rest | Not verified |
+| OP06-039 | main | 0 | ko, rest | Not verified |
 | OP06-039 | main | 0 | activate-main-effect, activate-referenced-effect | Not verified |
 | PRB02-004 | unknown | 0 | blocker | Not verified |
 | PRB02-004 | opponent-attack | 0 | ready | Not verified |
@@ -3485,7 +3485,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP11-094 | unknown | 0 |  | Not verified |
 | OP02-084 | unknown | 0 |  | Not verified |
 | OP10-020 | main | 1 | power, power | Not verified |
-| OP10-020 | trigger | 0 | ko, ko | Not verified |
+| OP10-020 | trigger | 0 | ko | Not verified |
 | OP09-089 | activate-main | 1 | draw, trash, trash | Not verified |
 | DON_5 | unknown | 0 | don-power | Not verified |
 | OP14-115 | continuous | 0 | life, move-to-life | Not verified |
@@ -3518,7 +3518,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | ST02-013 | unknown | 0 | attach-don-required, blocker | Not verified |
 | ST02-013 | end-turn | 0 | custom-resolver | Not verified |
 | EB03-012 | activate-main | 0 | rest, rest | Not verified |
-| OP04-072 | opponent-attack | 0 | ko, ko, rest, return-don | Not verified |
+| OP04-072 | opponent-attack | 0 | ko, rest, return-don | Not verified |
 | OP03-078 | unknown | 0 | attach-don-required | Not verified |
 | OP03-078 | continuous | 0 | cost | Not verified |
 | OP03-078 | on-play | 1 | trash | Not verified |
@@ -3553,7 +3553,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP08-002 | activate-main | 0 | draw, power | Not verified |
 | OP08-055 | main | 0 | bottom-deck | Not verified |
 | OP10-002 | unknown | 0 | attach-don-required | Not verified |
-| OP10-002 | when-attacking | 0 | ko, ko, return-to-hand | Not verified |
+| OP10-002 | when-attacking | 0 | ko, return-to-hand | Not verified |
 | OP04-070 | opponent-attack | 0 | power, return-don | Not verified |
 | OP11-052 | unknown | 0 |  | Not verified |
 | OP11-050 | when-attacking | 0 | return-to-hand, trash | Not verified |
@@ -3563,7 +3563,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP15-047 | unknown | 0 | blocker | Not verified |
 | OP15-047 | on-play | 0 | grant-keyword, grant-keyword | Not verified |
 | OP04-013 | unknown | 0 | attach-don-required | Not verified |
-| OP04-013 | when-attacking | 0 | ko, ko | Not verified |
+| OP04-013 | when-attacking | 0 | ko | Not verified |
 | ST02-007 | activate-main | 0 | rest, search | Not verified |
 | P-107 | on-play | 1 | power | Not verified |
 | OP07-058 | activate-main | 1 | return-to-hand, rest, trash | Not verified |
@@ -3586,19 +3586,19 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP09-056 | on-play | 0 | search | Not verified |
 | OP10-044 | on-play | 0 | return-to-hand, return-to-hand | Not verified |
 | P-106 | end-turn | 0 | ready | Not verified |
-| P-106 | trigger | 0 | draw, ko, ko | Not verified |
-| ST04-004 | on-play | 0 | ko, ko, return-don | Not verified |
+| P-106 | trigger | 0 | draw, ko | Not verified |
+| ST04-004 | on-play | 0 | ko, return-don | Not verified |
 | OP13-006 | on-play | 0 | custom-resolver | Not verified |
 | OP08-016 | activate-main | 1 | power, rest | Not verified |
 | P-030 | on-ko | 0 | bottom-deck, on-ko | Not verified |
 | OP12-094 | on-play | 1 | play | Not verified |
 | OP14-055 | unknown | 0 |  | Not verified |
-| ST14-015 | main | 1 | power, ko, ko | Not verified |
-| ST14-015 | trigger | 1 | ko, ko | Not verified |
+| ST14-015 | main | 1 | power, ko | Not verified |
+| ST14-015 | trigger | 1 | ko | Not verified |
 | OP12-106 | unknown | 0 | blocker | Not verified |
 | ST08-008 | on-play | 0 | cost | Not verified |
-| OP13-095 | on-play | 1 | ko, ko, trash | Not verified |
-| OP01-054 | on-play | 0 | ko, ko | Not verified |
+| OP13-095 | on-play | 1 | ko, trash | Not verified |
+| OP01-054 | on-play | 0 | ko | Not verified |
 | OP04-028 | unknown | 0 | attach-don-required, blocker | Not verified |
 | OP04-028 | end-turn | 1 | ready | Not verified |
 | OP14-109 | unknown | 0 | blocker | Not verified |
@@ -3620,8 +3620,8 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | ST13-016 | on-play | 0 | custom-resolver | Not verified |
 | OP15-031 | on-play | 1 | custom-resolver | Not verified |
 | OP17-099 | when-attacking | 0 | life, trash, trash, move-to-life | Not verified |
-| OP05-096 | main | 1 | draw, ko, ko, return-to-hand, return-to-hand | Not verified |
-| OP05-096 | trigger | 0 | ko, ko | Not verified |
+| OP05-096 | main | 1 | draw, ko, return-to-hand, return-to-hand | Not verified |
+| OP05-096 | trigger | 0 | ko | Not verified |
 | OP14-082 | on-ko | 0 | cost, on-ko | Not verified |
 | OP15-045 | unknown | 0 | blocker | Not verified |
 | OP15-045 | on-play | 0 | draw, trash | Not verified |
@@ -3643,10 +3643,10 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP13-066 | on-play | 1 | rest, add-don | Not verified |
 | EB02-031 | main | 0 | search | Not verified |
 | EB02-031 | main | 0 | activate-main-effect, activate-referenced-effect | Not verified |
-| OP09-066 | on-play | 1 | ko, ko | Not verified |
+| OP09-066 | on-play | 1 | ko | Not verified |
 | OP10-027 | activate-main | 0 | play | Not verified |
 | OP07-106 | unknown | 0 | attach-don-required | Not verified |
-| OP07-106 | when-attacking | 1 | ko, ko | Not verified |
+| OP07-106 | when-attacking | 1 | ko | Not verified |
 | OP05-072 | on-play | 1 | power | Not verified |
 | OP05-090 | unknown | 0 | blocker | Not verified |
 | OP05-090 | on-play | 0 | power | Not verified |
@@ -3654,9 +3654,9 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | DON_120 | unknown | 0 | don-power | Not verified |
 | OP14-016 | continuous | 1 | attach-don-required | Not verified |
 | OP14-016 | when-attacking | 0 | power | Not verified |
-| OP02-021 | main | 1 | ko, ko | Not verified |
+| OP02-021 | main | 1 | ko | Not verified |
 | OP02-021 | trigger | 0 | power, power | Not verified |
-| OP08-106 | on-play | 1 | draw, ko, ko, trash | Not verified |
+| OP08-106 | on-play | 1 | draw, ko, trash | Not verified |
 | OP08-106 | on-play | 0 | activate-referenced-effect | Not verified |
 | OP02-077 | unknown | 0 |  | Not verified |
 | EB04-050 | main | 0 | attack-permission | Not verified |
@@ -3688,13 +3688,13 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | ST15-003 | continuous | 0 | power | Not verified |
 | OP08-019 | main | 0 | power, power | Not verified |
 | OP08-019 | counter | 0 | power, power | Not verified |
-| OP08-019 | trigger | 0 | ko, ko | Not verified |
+| OP08-019 | trigger | 0 | ko | Not verified |
 | OP07-003 | activate-main | 0 | power, trash | Not verified |
 | OP06-027 | on-ko | 0 | rest, on-ko | Not verified |
 | OP17-018 | main | 0 | custom-resolver | Not verified |
 | OP17-018 | counter | 1 | power | Not verified |
 | OP14-068 | continuous | 1 | add-don | Not verified |
-| OP08-102 | on-play | 0 | ko, ko, trash | Not verified |
+| OP08-102 | on-play | 0 | ko, trash | Not verified |
 | OP16-049 | activate-main | 0 | draw, rest | Not verified |
 | OP09-105 | trigger | 1 | life, trash, move-to-life | Not verified |
 | OP13-105 | on-play | 0 | custom-resolver | Not verified |
@@ -3706,11 +3706,11 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP09-100 | unknown | 0 | blocker | Not verified |
 | OP09-100 | trigger | 1 | play | Not verified |
 | DON_72 | unknown | 0 | don-power | Not verified |
-| OP10-116 | main | 0 | ko, ko, reorder-life | Not verified |
+| OP10-116 | main | 0 | ko, reorder-life | Not verified |
 | OP10-116 | trigger | 0 | draw, trash | Not verified |
 | OP10-003 | end-turn | 1 | ready | Not verified |
 | OP10-003 | continuous | 0 | add-don | Not verified |
-| P-042 | trigger | 0 | ko, ko | Not verified |
+| P-042 | trigger | 0 | ko | Not verified |
 | OP01-063 | unknown | 0 | attach-don-required | Not verified |
 | OP01-063 | activate-main | 1 | rest, reveal-hand | Not verified |
 | OP14-089 | on-ko | 0 | draw, trash, on-ko | Not verified |
@@ -3719,18 +3719,18 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP07-052 | on-play | 1 | bottom-deck | Not verified |
 | DON_58 | unknown | 0 | don-power | Not verified |
 | OP14-021 | continuous | 1 | life, prevent-ready | Not verified |
-| OP02-011 | on-play | 0 | ko, ko | Not verified |
+| OP02-011 | on-play | 0 | ko | Not verified |
 | OP04-101 | continuous | 0 | draw | Not verified |
 | OP04-101 | on-play | 0 | draw | Not verified |
-| OP04-101 | trigger | 0 | ko, ko, play | Not verified |
+| OP04-101 | trigger | 0 | ko, play | Not verified |
 | OP03-123 | on-play | 0 | move-to-life | Not verified |
 | OP03-079 | unknown | 0 | attach-don-required, prevent-ko | Not verified |
 | OP04-037 | counter | 1 | power | Not verified |
-| OP04-037 | trigger | 0 | ko, ko | Not verified |
+| OP04-037 | trigger | 0 | ko | Not verified |
 | OP02-008 | unknown | 1 | attach-don-required, rush, grant-keyword | Not verified |
 | OP17-116 | main | 0 | custom-resolver | Not verified |
 | OP17-116 | counter | 1 | power | Not verified |
-| OP09-115 | main | 0 | ko, ko | Not verified |
+| OP09-115 | main | 0 | ko | Not verified |
 | OP09-115 | trigger | 0 |  | Not verified |
 | OP09-115 | trigger | 0 | draw | Not verified |
 | OP03-088 | unknown | 0 | blocker, prevent-ko | Not verified |
@@ -3757,12 +3757,12 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | EB04-023 | on-play | 0 | draw, power | Not verified |
 | OP17-072 | unknown | 0 | blocker | Not verified |
 | OP17-072 | opponent-attack | 0 | power, trash | Not verified |
-| OP05-028 | activate-main | 0 | ko, ko, trash | Not verified |
+| OP05-028 | activate-main | 0 | ko, trash | Not verified |
 | OP06-085 | unknown | 0 | attach-don-required | Not verified |
 | OP06-085 | continuous | 0 | power | Not verified |
 | OP01-025 | unknown | 0 | rush | Not verified |
 | OP17-101 | activate-main | 0 | power, life | Not verified |
-| OP17-101 | trigger | 0 | ko, ko, trash | Not verified |
+| OP17-101 | trigger | 0 | ko, trash | Not verified |
 | EB04-008 | main | 1 | power | Not verified |
 | EB04-008 | counter | 0 | power | Not verified |
 | EB01-045 | on-play | 1 | rush, grant-keyword | Not verified |
@@ -3821,7 +3821,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | ST35-004 | on-play | 0 | attach-don, play | Not verified |
 | OP06-016 | activate-main | 0 | power | Not verified |
 | OP05-004 | activate-main | 1 | play | Not verified |
-| OP16-008 | on-play | 0 | ko, ko | Not verified |
+| OP16-008 | on-play | 0 | ko | Not verified |
 | OP13-031 | unknown | 1 | blocker, grant-keyword | Not verified |
 | OP13-031 | on-play | 0 | return-to-hand, play | Not verified |
 | OP06-097 | main | 0 | trash | Not verified |
@@ -3830,7 +3830,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP15-003 | activate-main | 0 | attach-don | Not verified |
 | P-018 | unknown | 0 | blocker | Not verified |
 | OP01-038 | unknown | 0 | attach-don-required | Not verified |
-| OP01-038 | when-attacking | 0 | ko, ko | Not verified |
+| OP01-038 | when-attacking | 0 | ko | Not verified |
 | OP01-038 | on-ko | 0 | on-ko | Not verified |
 | OP07-065 | on-play | 1 | add-don | Not verified |
 | DON_91 | unknown | 0 | don-power | Not verified |
@@ -3858,7 +3858,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP17-108 | trigger | 0 | rest | Not verified |
 | DON_101 | unknown | 0 | don-power | Not verified |
 | OP04-094 | main | 1 | custom-resolver | Not verified |
-| OP04-094 | trigger | 0 | ko, ko | Not verified |
+| OP04-094 | trigger | 0 | ko | Not verified |
 | OP13-050 | on-play | 1 | play | Not verified |
 | P-066 | continuous | 1 | power | Not verified |
 | OP12-014 | on-play | 0 | search | Not verified |
@@ -3887,7 +3887,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP04-016 | trigger | 0 | power, power | Not verified |
 | DON_174 | unknown | 0 | don-power | Not verified |
 | OP09-039 | counter | 1 | power | Not verified |
-| OP09-039 | trigger | 0 | ko, ko | Not verified |
+| OP09-039 | trigger | 0 | ko | Not verified |
 | OP12-054 | on-play | 1 | return-to-hand | Not verified |
 | OP09-006 | unknown | 0 |  | Not verified |
 | OP03-069 | on-ko | 1 | draw, trash, on-ko | Not verified |
@@ -3898,17 +3898,17 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | ST09-008 | unknown | 0 | attach-don-required | Not verified |
 | ST09-008 | when-attacking | 0 | life, play | Not verified |
 | OP04-008 | unknown | 0 | attach-don-required | Not verified |
-| OP04-008 | when-attacking | 1 | power, ko, ko | Not verified |
+| OP04-008 | when-attacking | 1 | power, ko | Not verified |
 | OP02-035 | activate-main | 0 | return-to-hand, play | Not verified |
 | P-035 | unknown | 0 | attach-don-required | Not verified |
-| P-035 | when-attacking | 0 | ko, ko, trash | Not verified |
+| P-035 | when-attacking | 0 | ko, trash | Not verified |
 | ST01-010 | unknown | 0 |  | Not verified |
 | OP01-008 | on-play | 0 | life, rush, grant-keyword | Not verified |
 | OP13-009 | unknown | 1 | double-attack, grant-keyword | Not verified |
 | OP02-064 | unknown | 0 | attach-don-required | Not verified |
 | OP02-064 | when-attacking | 0 | bottom-deck, trash | Not verified |
 | OP02-047 | main | 0 | rest | Not verified |
-| OP02-047 | trigger | 0 | ko, ko | Not verified |
+| OP02-047 | trigger | 0 | ko | Not verified |
 | OP15-014 | unknown | 1 | trash | Not verified |
 | OP15-014 | on-play | 0 | play | Not verified |
 | EB04-031 | unknown | 1 | custom-resolver | Not verified |
@@ -3937,7 +3937,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP05-119 | on-play | 0 | return-don | Not verified |
 | OP05-119 | activate-main | 0 | add-don | Not verified |
 | OP07-035 | counter | 1 | power | Not verified |
-| OP07-035 | trigger | 0 | ko, ko | Not verified |
+| OP07-035 | trigger | 0 | ko | Not verified |
 | ST12-008 | unknown | 0 | attach-don-required | Not verified |
 | ST12-008 | when-attacking | 0 | rest | Not verified |
 | OP17-033 | on-play | 0 | search | Not verified |
@@ -3956,12 +3956,12 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | EB01-021 | end-turn | 0 | return-to-hand, add-don | Not verified |
 | ST21-013 | unknown | 0 |  | Not verified |
 | OP09-015 | unknown | 0 | blocker | Not verified |
-| OP09-015 | on-ko | 1 | ko, ko, on-ko | Not verified |
+| OP09-015 | on-ko | 1 | ko, on-ko | Not verified |
 | ST06-017 | on-play | 0 | cost | Not verified |
 | ST06-017 | activate-main | 1 | cost, rest | Not verified |
-| EB01-040 | activate-main | 0 | ko, ko | Not verified |
+| EB01-040 | activate-main | 0 | ko | Not verified |
 | OP06-018 | main | 1 | power | Not verified |
-| OP06-018 | trigger | 0 | ko, ko | Not verified |
+| OP06-018 | trigger | 0 | ko | Not verified |
 | OP12-048 | continuous | 1 | rest, trash | Not verified |
 | ST22-005 | unknown | 1 | trash | Not verified |
 | ST22-005 | activate-main | 0 | return-to-hand, ready | Not verified |
@@ -3974,7 +3974,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP06-087 | unknown | 0 | blocker | Not verified |
 | OP12-102 | unknown | 1 | custom-resolver | Not verified |
 | OP12-102 | continuous | 1 | power | Not verified |
-| ST08-004 | activate-main | 0 | ko, ko, rest | Not verified |
+| ST08-004 | activate-main | 0 | ko, rest | Not verified |
 | OP05-086 | unknown | 1 | blocker, grant-keyword | Not verified |
 | DON_136 | unknown | 0 | don-power | Not verified |
 | OP06-109 | unknown | 1 | attach-don-required, prevent-ko | Not verified |
@@ -3987,7 +3987,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP13-064 | on-play | 0 | power | Not verified |
 | ST33-004 | unknown | 0 | blocker | Not verified |
 | EB02-015 | on-play | 0 | ready, prevent-ready | Not verified |
-| OP05-017 | when-attacking | 1 | ko, ko | Not verified |
+| OP05-017 | when-attacking | 1 | ko | Not verified |
 | OP05-017 | trigger | 1 | trash, play | Not verified |
 | OP16-060 | activate-main | 0 | return-to-hand, play | Not verified |
 | OP10-084 | unknown | 0 |  | Not verified |
@@ -3998,7 +3998,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP07-010 | unknown | 0 | blocker | Not verified |
 | OP07-010 | opponent-attack | 0 | power, trash | Not verified |
 | OP08-012 | unknown | 0 | attach-don-required | Not verified |
-| OP08-012 | when-attacking | 1 | ko, ko | Not verified |
+| OP08-012 | when-attacking | 1 | ko | Not verified |
 | DON_156 | unknown | 0 | don-power | Not verified |
 | OP08-013 | unknown | 0 | attach-don-required, rush, grant-keyword | Not verified |
 | EB04-003 | unknown | 0 | rush | Not verified |
@@ -4020,11 +4020,11 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP03-003 | on-play | 0 | search | Not verified |
 | OP17-088 | unknown | 0 |  | Not verified |
 | DON_74 | unknown | 0 | don-power | Not verified |
-| OP02-076 | on-play | 0 | ko, ko, return-don | Not verified |
+| OP02-076 | on-play | 0 | ko, return-don | Not verified |
 | OP05-043 | on-play | 1 | search | Not verified |
 | OP16-097 | on-play | 0 | recover, recover, play | Not verified |
 | OP05-046 | on-ko | 0 | draw, on-ko | Not verified |
-| OP10-091 | activate-main | 0 | ko, ko, rest, trash | Not verified |
+| OP10-091 | activate-main | 0 | ko, rest, trash | Not verified |
 | OP02-106 | on-play | 0 | cost | Not verified |
 | OP06-015 | activate-main | 0 | play | Not verified |
 | OP04-067 | unknown | 0 | blocker | Not verified |
@@ -4034,10 +4034,10 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP03-045 | unknown | 0 | blocker | Not verified |
 | OP03-045 | continuous | 1 | power | Not verified |
 | ST21-016 | main | 0 | power, blocker | Not verified |
-| ST21-016 | trigger | 0 | ko, ko | Not verified |
+| ST21-016 | trigger | 0 | ko | Not verified |
 | OP07-102 | trigger | 0 | return-to-hand, return-to-hand | Not verified |
 | OP07-023 | unknown | 1 | power, blocker | Not verified |
-| OP11-066 | activate-main | 1 | ko, ko, rest, add-don | Not verified |
+| OP11-066 | activate-main | 1 | ko, rest, add-don | Not verified |
 | EB03-002 | unknown | 0 |  | Not verified |
 | P-081 | activate-main | 1 | return-to-hand, play | Not verified |
 | OP09-053 | on-play | 0 | search, play | Not verified |
@@ -4047,7 +4047,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP11-062 | opponent-attack | 0 | power | Not verified |
 | OP15-084 | on-play | 1 | trash | Not verified |
 | OP15-084 | on-ko | 1 | draw, on-ko | Not verified |
-| OP17-014 | on-play | 0 | ko, ko | Not verified |
+| OP17-014 | on-play | 0 | ko | Not verified |
 | OP17-014 | opponent-attack | 0 | power, trash | Not verified |
 | ST17-005 | activate-main | 0 | attach-don | Not verified |
 | OP01-043 | unknown | 0 |  | Not verified |
@@ -4056,7 +4056,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP04-096 | unknown | 1 | attack-permission | Not verified |
 | OP11-019 | counter | 1 | power | Not verified |
 | OP11-019 | trigger | 0 | power | Not verified |
-| ST08-015 | main | 0 | ko, ko | Not verified |
+| ST08-015 | main | 0 | ko | Not verified |
 | ST08-015 | trigger | 0 | draw | Not verified |
 | OP07-113 | trigger | 1 | rest | Not verified |
 | OP04-095 | counter | 1 | power | Not verified |
@@ -4068,7 +4068,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP13-001 | opponent-attack | 1 | power | Not verified |
 | OP11-084 | on-play | 0 | trash | Not verified |
 | OP11-084 | when-attacking | 0 | attack-permission | Not verified |
-| OP12-075 | on-play | 0 | ko, ko, add-don | Not verified |
+| OP12-075 | on-play | 0 | ko, add-don | Not verified |
 | OP12-075 | trigger | 0 | play | Not verified |
 | OP08-088 | on-play | 0 | cost | Not verified |
 | OP04-036 | counter | 0 | search | Not verified |
@@ -4112,13 +4112,13 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | ST01-003 | unknown | 0 |  | Not verified |
 | OP09-008 | activate-main | 0 | power | Not verified |
 | OP05-023 | unknown | 0 | attach-don-required | Not verified |
-| OP05-023 | when-attacking | 0 | ko, ko | Not verified |
+| OP05-023 | when-attacking | 0 | ko | Not verified |
 | OP01-075 | unknown | 0 | blocker | Not verified |
 | OP05-050 | on-play | 0 | draw | Not verified |
 | OP15-077 | main | 0 | draw, prevent-ready | Not verified |
 | OP12-011 | unknown | 0 |  | Not verified |
 | ST01-013 | unknown | 0 | power, attach-don-required | Not verified |
-| OP01-096 | on-play | 0 | ko, ko, return-don | Not verified |
+| OP01-096 | on-play | 0 | ko, return-don | Not verified |
 | OP12-041 | activate-main | 0 | play | Not verified |
 | OP12-041 | when-attacking | 1 | add-don | Not verified |
 | OP17-109 | on-play | 0 | draw, trash | Not verified |
@@ -4138,7 +4138,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP13-104 | on-ko | 1 | life, trash, move-to-life, on-ko | Not verified |
 | DON_183 | unknown | 0 | don-power | Not verified |
 | OP10-017 | on-play | 1 | play | Not verified |
-| OP03-119 | main | 1 | ko, ko | Not verified |
+| OP03-119 | main | 1 | ko | Not verified |
 | OP03-119 | trigger | 0 | custom-resolver | Not verified |
 | OP03-119 | trigger | 0 | custom-resolver | Not verified |
 | OP01-048 | on-play | 0 | rest | Not verified |
@@ -4146,19 +4146,19 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP15-074 | counter | 0 | power | Not verified |
 | OP01-116 | main | 0 | search | Not verified |
 | ST22-007 | activate-main | 1 | reveal, attach-don | Not verified |
-| ST34-005 | when-attacking | 0 | ko, ko | Not verified |
+| ST34-005 | when-attacking | 0 | ko | Not verified |
 | ST17-001 | on-play | 1 | draw, reveal | Not verified |
 | ST10-009 | on-play | 0 | add-don | Not verified |
 | ST09-002 | trigger | 0 | rest | Not verified |
 | EB01-013 | activate-main | 0 | draw, trash, play | Not verified |
 | OP02-009 | on-play | 1 | power, life | Not verified |
 | OP17-059 | unknown | 0 | blocker | Not verified |
-| OP17-059 | on-play | 0 | draw, ko, ko, return-don | Not verified |
+| OP17-059 | on-play | 0 | draw, ko, return-don | Not verified |
 | ST09-010 | continuous | 1 | custom-resolver | Not verified |
-| OP05-010 | on-play | 0 | ko, ko | Not verified |
+| OP05-010 | on-play | 0 | ko | Not verified |
 | EB04-010 | continuous | 0 | power | Not verified |
 | EB04-010 | on-play | 0 | set-power | Not verified |
-| ST07-009 | activate-main | 0 | ko, ko, rest, life | Not verified |
+| ST07-009 | activate-main | 0 | ko, rest, life | Not verified |
 | ST07-009 | trigger | 0 | trash, play | Not verified |
 | OP10-073 | unknown | 0 |  | Not verified |
 | OP15-104 | on-play | 1 | draw, trash | Not verified |
@@ -4178,7 +4178,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | ST26-005 | on-play | 1 | return-don, base-power | Not verified |
 | ST26-005 | when-attacking | 1 | return-don, base-power | Not verified |
 | OP12-081 | continuous | 1 | draw | Not verified |
-| ST10-015 | counter | 0 | power, ko, ko | Not verified |
+| ST10-015 | counter | 0 | power, ko | Not verified |
 | OP04-010 | on-play | 0 | play | Not verified |
 | ST13-005 | unknown | 0 | blocker | Not verified |
 | ST13-005 | on-play | 0 | custom-resolver | Not verified |
@@ -4218,12 +4218,12 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP01-082 | trigger | 0 | play | Not verified |
 | OP11-070 | on-play | 0 | search | Not verified |
 | OP11-070 | activate-main | 0 | rest | Not verified |
-| OP09-040 | main | 1 | ko, ko | Not verified |
+| OP09-040 | main | 1 | ko | Not verified |
 | OP09-040 | trigger | 0 | rest | Not verified |
-| OP02-072 | when-attacking | 0 | power, ko, ko, return-don | Not verified |
+| OP02-072 | when-attacking | 0 | power, ko, return-don | Not verified |
 | DON_77 | unknown | 0 | don-power | Not verified |
 | OP16-011 | on-play | 0 | draw, attach-don-required | Not verified |
-| OP16-011 | when-attacking | 0 | ko, ko | Not verified |
+| OP16-011 | when-attacking | 0 | ko | Not verified |
 | DON_135 | unknown | 0 | don-power | Not verified |
 | OP17-079 | unknown | 0 | blocker, grant-keyword | Not verified |
 | OP03-060 | when-attacking | 0 | draw, return-don, trash | Not verified |
@@ -4249,20 +4249,20 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | OP16-031 | on-ko | 0 | play, on-ko | Not verified |
 | DON_41 | unknown | 0 | don-power | Not verified |
 | OP04-081 | unknown | 0 | attach-don-required | Not verified |
-| OP04-081 | when-attacking | 0 | ko, ko, trash | Not verified |
+| OP04-081 | when-attacking | 0 | ko, trash | Not verified |
 | OP17-097 | main | 0 | custom-resolver | Not verified |
 | OP17-097 | counter | 0 | power | Not verified |
-| OP05-007 | on-play | 0 | ko, ko | Not verified |
+| OP05-007 | on-play | 0 | ko | Not verified |
 | OP12-115 | counter | 1 | recover, power | Not verified |
 | OP17-038 | main | 0 | rest | Not verified |
 | OP17-038 | counter | 0 | power, trash | Not verified |
 | OP08-015 | on-play | 0 | search | Not verified |
-| OP16-109 | on-ko | 1 | draw, ko, ko, on-ko | Not verified |
+| OP16-109 | on-ko | 1 | draw, ko, on-ko | Not verified |
 | OP16-109 | trigger | 0 | on-ko | Not verified |
 | ST36-003 | trigger | 0 | draw, base-power | Not verified |
 | OP07-093 | on-play | 0 | trash | Not verified |
 | OP17-075 | on-play | 0 | trash | Not verified |
-| OP11-114 | main | 1 | ko, ko | Not verified |
+| OP11-114 | main | 1 | ko | Not verified |
 | OP11-114 | counter | 0 | power | Not verified |
 | OP17-004 | on-play | 0 | rush, grant-keyword | Not verified |
 | ST13-019 | main | 0 | search | Not verified |
@@ -4280,7 +4280,7 @@ Cards compared: 2997. Semantically changed schemas: 1313.
 | EB01-053 | trigger | 0 | power | Not verified |
 | ST05-001 | activate-main | 0 | power, return-don | Not verified |
 | OP09-067 | unknown | 0 |  | Not verified |
-| OP12-104 | trigger | 0 | ko, ko | Not verified |
+| OP12-104 | trigger | 0 | ko | Not verified |
 | OP17-012 | unknown | 0 | blocker | Not verified |
 | OP17-012 | on-ko | 0 | play, on-ko | Not verified |
 | OP12-070 | unknown | 1 | power | Not verified |

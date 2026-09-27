@@ -3,7 +3,7 @@ import type {EffectAction,EffectCost,EffectDocument,EffectTrigger} from './effec
 import {resolveCustomEffect,type CustomInstruction} from './custom-effect-resolvers';
 import {applyEffectAction,payEffectCost,type EffectSelection,type MatchEffectState,type PlayerId} from './match-effect-state';
 
-export type EffectCommand={conditions?:string[];kind:'pay-cost'|'resolve-action';value:EffectCost|EffectAction};
+export type EffectCommand={abilityId?:number;conditions?:string[];kind:'pay-cost'|'resolve-action';value:EffectCost|EffectAction};
 export type RuntimeResolution={status:'ready'|'custom';commands:EffectCommand[];instructions?:CustomInstruction[];handler?:string};
 export type CardEffectResolution=RuntimeResolution&{actions:EffectAction[];costs:EffectCost[]};
 
@@ -16,7 +16,7 @@ export function resolveEffectTiming(document:EffectDocument,timing:EffectTrigger
   const resolved=resolveCustomEffect(handler);
   return resolved.status==='ready'?{status:'ready',commands:[],instructions:resolved.instructions,handler}:{status:'custom',commands:[],handler};
  }
- const commands=document.normalized.filter(effect=>effect.timing===timing).flatMap(effect=>effect.sequence.map(step=>step.type==='PAY_COST'?{conditions:effect.conditions.map(condition=>condition.text),kind:'pay-cost' as const,value:step.cost}:{conditions:effect.conditions.map(condition=>condition.text),kind:'resolve-action' as const,value:step.action}));
+ const commands=document.normalized.filter(effect=>effect.timing===timing).flatMap((effect,abilityId)=>effect.sequence.map(step=>step.type==='PAY_COST'?{abilityId,conditions:effect.conditions.map(condition=>condition.text),kind:'pay-cost' as const,value:step.cost}:{abilityId,conditions:effect.conditions.map(condition=>condition.text),kind:'resolve-action' as const,value:step.action}));
  return {status:'ready',commands};
 }
 
@@ -39,7 +39,7 @@ export function executeEffectCommands(
  const conditionResults=new Map<string,boolean>();
  for(let index=0;index<commands.length;index++){
   const command=commands[index];
-  const checks=(command.conditions??[]).map(text=>{if(conditionResults.has(text))return conditionResults.get(text);const result=evaluateEffectCondition(text,current,actor);if(result!==undefined)conditionResults.set(text,result);return result;});
+  const checks=(command.conditions??[]).map(text=>{const key=`${command.abilityId??0}:${text}`;if(conditionResults.has(key))return conditionResults.get(key);const result=evaluateEffectCondition(text,current,actor);if(result!==undefined)conditionResults.set(key,result);return result;});
   if(checks.includes(undefined))return {state:current,nextCommand:index,error:'This effect has an unsupported condition.'};
   if(checks.includes(false))continue;
   const selection=selections[index]??{};

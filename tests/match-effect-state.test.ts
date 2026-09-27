@@ -469,3 +469,62 @@ test('overlapping keyword grants expire only after the last applicable grant',as
  assert.equal(afterTurn.cards[0].temporaryKeywords,undefined);
  assert.deepEqual(afterTurn.cards[0].keywords,['blocker']);
 });
+
+test('Life placement respects top and bottom and releases attached DON!!',()=>{
+ const initial:MatchEffectState={...state(),cards:[{id:'character',owner:'player',zone:'character',type:'Character'},{id:'don',owner:'player',zone:'cost-area',type:'DON!!',attachedTo:'character'},{id:'life',owner:'player',zone:'life'},{id:'hand',owner:'player',zone:'hand'}]};
+ const top=applyEffectAction(initial,'player',{kind:'move-to-life',scope:'own',amount:1,faceUp:true,position:'top'},{cardIds:['character']});
+ assert.deepEqual(top.state.cards.filter(card=>card.zone==='life').map(card=>card.id),['character','life']);
+ assert.equal(top.state.cards.find(card=>card.id==='character')?.faceUp,true);
+ assert.equal(top.state.cards.find(card=>card.id==='don')?.attachedTo,undefined);
+ assert.equal(top.state.cards.find(card=>card.id==='don')?.rested,true);
+ const bottom=applyEffectAction(top.state,'player',{kind:'move-to-life',scope:'own',amount:1,position:'bottom'},{cardIds:['hand']});
+ assert.deepEqual(bottom.state.cards.filter(card=>card.zone==='life').map(card=>card.id),['character','life','hand']);
+ const taken=applyEffectAction(bottom.state,'player',{kind:'life',operation:'add-to-hand',amount:1});
+ assert.equal(taken.state.cards.find(card=>card.id==='character')?.zone,'hand');
+});
+
+test('Life placement requires a choice and rejects foreign or unknown cards',()=>{
+ const action={kind:'move-to-life',scope:'own',amount:1,position:'choice'} as const;
+ assert.ok(applyEffectAction(state(),'player',action).requiresSelection);
+ assert.ok(applyEffectAction(state(),'player',action,{cardIds:['own-hand']}).requiresSelection);
+ for(const id of ['missing','enemy-active'])assert.ok(applyEffectAction(state(),'player',action,{cardIds:[id],position:'top'}).error);
+ assert.deepEqual(applyEffectAction(state(),'player',action,{cardIds:[]}).state,state());
+});
+
+test('reordered opponent Life determines the next damage card without changing your Life',()=>{
+ const initial:MatchEffectState={...state(),cards:[{id:'attacker',owner:'player',zone:'leader'},{id:'defender',owner:'opponent',zone:'leader'},{id:'own-life',owner:'player',zone:'life'},...['a','b','c'].map(id=>({id,owner:'opponent' as const,zone:'life' as const}))]};
+ const action={kind:'reorder-life',scope:'either',amount:2} as const;
+ assert.ok(applyEffectAction(initial,'player',action).requiresSelection);
+ assert.ok(applyEffectAction(initial,'player',action,{owner:'opponent',cardIds:['a','c']}).error);
+ const reordered=applyEffectAction(initial,'player',action,{owner:'opponent',cardIds:['b','a']});
+ assert.deepEqual(reordered.state.cards.filter(card=>card.zone==='life'&&card.owner==='opponent').map(card=>card.id),['b','a','c']);
+ const hit=resolveBattle(reordered.state,'attacker','defender',5000,5000);
+ assert.equal(hit.lifeCardId,'b');
+ assert.equal(hit.state.cards.find(card=>card.id==='own-life')?.zone,'life');
+});
+
+test('recovery pauses for a choice and validates mixed-colour and unknown cards',()=>{
+ const initial:MatchEffectState={...state(),cards:[{id:'mixed',owner:'player',zone:'trash',type:'Character',color:'Black/Yellow',cost:2}]};
+ const action={kind:'recover',source:'trash',destination:'hand',amount:1,color:'Black'} as const;
+ assert.ok(applyEffectAction(initial,'player',action).requiresSelection);
+ assert.ok(applyEffectAction(initial,'player',action,{cardIds:['missing']}).error);
+ assert.deepEqual(applyEffectAction(initial,'player',action,{cardIds:[]}).state,initial);
+ assert.equal(applyEffectAction(initial,'player',action,{cardIds:['mixed']}).state.cards[0].zone,'hand');
+});
+
+test('a Character played by an effect cannot attack immediately without Rush',()=>{
+ const initial:MatchEffectState={...state(),cards:[{id:'played',owner:'player',zone:'trash',type:'Character',cost:2},{id:'leader',owner:'opponent',zone:'leader',type:'Leader'}]};
+ const result=applyEffectAction(initial,'player',{kind:'play',source:'trash',amount:1,maxCost:2},{cardIds:['played']});
+ assert.equal(result.error,undefined);
+ assert.deepEqual(result.state.playedThisTurn,['played']);
+ assert.match(declareAttack(result.state,'player','played','leader').error??'',/without Rush/);
+});
+
+test('effect plays reject Events and replace an existing Stage',()=>{
+ const initial:MatchEffectState={...state(),cards:[{id:'event',owner:'player',zone:'hand',type:'Event'},{id:'new-stage',owner:'player',zone:'hand',type:'Stage'},{id:'old-stage',owner:'player',zone:'stage',type:'Stage'}]};
+ const action={kind:'play',source:'hand',amount:1} as const;
+ assert.ok(applyEffectAction(initial,'player',action,{cardIds:['event']}).error);
+ const result=applyEffectAction(initial,'player',action,{cardIds:['new-stage']});
+ assert.equal(result.state.cards.find(card=>card.id==='old-stage')?.zone,'trash');
+ assert.equal(result.state.cards.find(card=>card.id==='new-stage')?.zone,'stage');
+});
