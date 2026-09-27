@@ -25,7 +25,14 @@ export type CollectionItem={
 };
 export type DeckEntry={cardId:string;quantity:number};
 export type SavedDeck={id:string;name:string;leaderId:string;visibility:'public'|'private';version:number;versionId:string;cards:DeckEntry[]};
-export type Listing={id:string;printingId:string;title:string;amount:number;currency:string;quantity:number;condition:string;type:string;seller:string;city:string;demo?:boolean};
+export type ListingItem={
+  printingId:string;
+  quantity:number;
+  /** Condition and price belong to an individual card line in a multi-card listing. */
+  condition?:string;
+  unitAmount?:number;
+};
+export type Listing={id:string;printingId:string;title:string;amount:number;currency:string;quantity:number;condition:string;type:string;seller:string;city:string;createdAt?:string;items?:ListingItem[]};
 const catalogCardInput=z.object({code:z.string().trim().min(2).max(40),name:z.string().trim().min(1).max(140),color:z.string().trim().max(80),type:z.enum(['Leader','Character','Event']),cost:z.number().int().min(0).max(99),power:z.number().int().min(0).max(999999),rarity:z.string().trim().max(40),effect:z.string().max(4000),setCode:z.string().trim().max(40).optional(),language:z.enum(['EN','JP']).optional(),imageUrl:z.string().url().max(2048).optional()});
 export const collectionInput=z.object({
   id:z.string().uuid().optional(),
@@ -42,7 +49,7 @@ export const collectionInput=z.object({
   currency:z.enum(['IDR','USD','JPY']),
   acquiredAt:z.string().optional().nullable(),
   notes:z.string().max(2000).optional().nullable(),
-  subgrades:z.record(z.union([z.number(),z.string()])).optional().nullable(),
+  subgrades:z.record(z.string(),z.union([z.number(),z.string()])).optional().nullable(),
   favorite:z.boolean().optional(),
 }).superRefine((v,ctx)=>{if(v.type==='GRADED'&&(v.quantity!==1||!v.provider||!v.grade||!v.certification))ctx.addIssue({code:'custom',message:'A slab requires quantity 1, provider, grade, and certification.'});});
 export const deckInput=z.object({id:z.string().uuid().optional(),name:z.string().trim().min(2).max(80),leaderId:z.string().uuid(),visibility:z.enum(['private','public']),cards:z.array(z.object({cardId:z.string().uuid(),quantity:z.number().int().min(1).max(4)})).max(50)});
@@ -80,4 +87,3 @@ export const GRADING_PROVIDERS=[
 ] as const;
 export type PriceObservation={amount:number;currency:string;saleType:'completed_sale'|'active_listing'|'marketplace_ask'|'marketplace_bid';observedAt:string;grader:string|null;grade:string|null;printingId:string};
 export function valueFromObservations(observations:PriceObservation[],key:Pick<PriceObservation,'printingId'|'grader'|'grade'|'currency'>){const rows=observations.filter(x=>x.printingId===key.printingId&&x.grader===key.grader&&x.grade===key.grade&&x.currency===key.currency&&x.saleType==='completed_sale').sort((a,b)=>a.amount-b.amount);if(!rows.length)return null;const n=rows.length;return {estimatedValue:Math.round((rows[Math.floor((n-1)/2)].amount+rows[Math.ceil((n-1)/2)].amount)/2),lowEstimate:rows[0].amount,highEstimate:rows[n-1].amount,sampleSize:n,confidence:n>=20?'high':n>=5?'medium':'low',lastUpdatedAt:rows.map(x=>x.observedAt).sort().at(-1)};}
-

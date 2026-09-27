@@ -7,18 +7,18 @@ if (!url || !secret) throw new Error('Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_
 const supabase = createClient(url, secret, { auth: { persistSession: false, autoRefreshToken: false } });
 
 async function main() {
-  const printings: { id: string; card_image_id: string | null }[] = [];
+  const printings: { id: string; card_image_id: string | null; set_code: string }[] = [];
   for (let from = 0; ; from += 1000) {
-    const { data, error } = await supabase.from('tcg_card_printings').select('id,card_image_id').eq('language', 'JP').range(from, from + 999);
+    const { data, error } = await supabase.from('tcg_card_printings').select('id,card_image_id,set_code').eq('language', 'JP').range(from, from + 999);
     if (error) throw error;
     printings.push(...data);
     if (data.length < 1000) break;
   }
   const rows = printings.flatMap(printing => {
-    const code = printing.card_image_id?.toLowerCase();
+    const code = printing.card_image_id?.toUpperCase();
     if (!code) return [];
-    const setFolder = code.split('-')[0];
-    return ([['thumb', 180], ['small', 420], ['large', 960]] as const).map(([kind, width]) => ({
+    const setFolder = printing.set_code.toUpperCase().replaceAll('-', '');
+    return ([['small', 420]] as const).map(([kind, width]) => ({
       printing_id: printing.id,
       kind,
       object_key: `one-piece/${setFolder}/jp/${kind}/${code}.webp`,

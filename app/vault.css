@@ -1,0 +1,1215 @@
+/* ==========================================================================
+   VIVREPLAY VAULT — ARCHIVE, BINDER, SLABS & PORTFOLIO
+   Visual Direction: Warm Ivory / Parchment, Graphite, Restrained Gold/Brass
+   Card art remains the strongest visual element.
+   ========================================================================== */
+
+:root {
+  --vault-paper: #f5f1e6;
+  --vault-parchment: #ece6d7;
+  --vault-panel: #fcf9f2;
+  --vault-surface-warm: #faf6ed;
+  --vault-border: #ded7c6;
+  --vault-border-light: #ece6d8;
+  --vault-ink: #1b1916;
+  --vault-ink-secondary: #585348;
+  --vault-ink-muted: #857d6e;
+  --vault-gold: #c68a2c;
+  --vault-gold-deep: #8f5c15;
+  --vault-gold-soft: #f4e8d3;
+  --vault-brass: #b89158;
+  --vault-graphite: #1f2228;
+  --vault-graphite-card: #282c34;
+  --vault-slot-bg: #eae3d2;
+  --vault-slot-border: #dcd3be;
+  --vault-slot-shadow: inset 0 2px 5px rgba(45, 36, 21, 0.08), 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+:root[data-theme='dark'] {
+  --vault-paper: #131519;
+  --vault-parchment: #1a1e24;
+  --vault-panel: #1e222a;
+  --vault-surface-warm: #181b21;
+  --vault-border: #2d333f;
+  --vault-border-light: #242933;
+  --vault-ink: #f5f3ee;
+  --vault-ink-secondary: #c2c8d2;
+  --vault-ink-muted: #838c9c;
+  --vault-gold: #e2a63b;
+  --vault-gold-deep: #b27a1b;
+  --vault-gold-soft: #382c16;
+  --vault-brass: #cca76e;
+  --vault-graphite: #0f1115;
+  --vault-graphite-card: #181c22;
+  --vault-slot-bg: #14171d;
+  --vault-slot-border: #262c37;
+  --vault-slot-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.4), 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* Base Vault Layout */
+.vault-page {
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 24px clamp(16px, 3.5vw, 48px) 80px;
+  color: var(--vault-ink);
+  font-family: inherit;
+}
+
+/* Vault Header */
+.vault-header {
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.vault-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.vault-title-group .vault-eyebrow {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--vault-gold);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vault-title-group h1 {
+  font-family: var(--display-font, Georgia, serif);
+  font-size: clamp(32px, 4vw, 46px);
+  font-weight: 600;
+  line-height: 1.05;
+  color: var(--vault-ink);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.vault-title-group .vault-subtitle {
+  font-size: 13px;
+  color: var(--vault-ink-secondary);
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vault-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Button Variants for Vault */
+.vault-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.vault-btn-primary {
+  background: var(--vault-gold);
+  color: #fff9ed;
+  box-shadow: 0 2px 6px rgba(183, 122, 25, 0.25);
+}
+
+.vault-btn-primary:hover {
+  background: var(--vault-gold-deep);
+  transform: translateY(-1px);
+}
+
+.vault-btn-secondary {
+  background: var(--vault-panel);
+  border-color: var(--vault-border);
+  color: var(--vault-ink);
+}
+
+.vault-btn-secondary:hover {
+  background: var(--vault-slot-bg);
+  border-color: var(--vault-gold);
+}
+
+.vault-btn-ghost {
+  background: transparent;
+  color: var(--vault-ink-secondary);
+}
+
+.vault-btn-ghost:hover {
+  background: var(--vault-border-light);
+  color: var(--vault-ink);
+}
+
+/* Key Metrics Overview Bar */
+.vault-metrics-card {
+  margin-top: 20px;
+  padding: 18px 24px;
+  border-radius: 14px;
+  background: var(--vault-panel);
+  border: 1px solid var(--vault-border);
+  box-shadow: 0 4px 18px rgba(35, 28, 16, 0.04);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 20px;
+  align-items: center;
+}
+
+.vault-metric-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  position: relative;
+}
+
+.vault-metric-item:not(:first-child)::before {
+  content: "";
+  position: absolute;
+  left: -10px;
+  top: 15%;
+  bottom: 15%;
+  width: 1px;
+  background: var(--vault-border-light);
+}
+
+.vault-metric-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--vault-ink-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vault-metric-value {
+  font-family: var(--display-font, Georgia, serif);
+  font-size: clamp(22px, 2.4vw, 28px);
+  font-weight: 600;
+  color: var(--vault-ink);
+  line-height: 1.1;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.vault-metric-sub {
+  font-size: 11px;
+  color: var(--vault-ink-secondary);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.vault-metric-sub.positive {
+  color: #2e8b57;
+  font-weight: 600;
+}
+
+.vault-metric-sub.negative {
+  color: #c0392b;
+  font-weight: 600;
+}
+
+/* Privacy Masked Value & Toggle */
+.vault-value-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vault-privacy-toggle {
+  background: none;
+  border: none;
+  color: var(--vault-ink-muted);
+  cursor: pointer;
+  padding: 3px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease;
+}
+
+.vault-privacy-toggle:hover {
+  color: var(--vault-gold);
+}
+
+.vault-confidence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 12px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: var(--vault-gold-soft);
+  color: var(--vault-gold-deep);
+  border: 1px solid rgba(198, 138, 44, 0.25);
+}
+
+/* Vault Navigation Tabs */
+.vault-nav-tabs {
+  margin-top: 24px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-bottom: 1px solid var(--vault-border);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.vault-nav-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.vault-tab-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--vault-ink-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: color 0.18s ease;
+  white-space: nowrap;
+}
+
+.vault-tab-btn:hover {
+  color: var(--vault-ink);
+}
+
+.vault-tab-btn.is-active {
+  color: var(--vault-ink);
+}
+
+.vault-tab-btn.is-active::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 12px;
+  right: 12px;
+  height: 2.5px;
+  border-radius: 2px 2px 0 0;
+  background: var(--vault-gold);
+}
+
+.vault-tab-count {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: var(--vault-border-light);
+  color: var(--vault-ink-muted);
+}
+
+.vault-tab-btn.is-active .vault-tab-count {
+  background: var(--vault-gold-soft);
+  color: var(--vault-gold-deep);
+}
+
+/* Filter & Controls Toolbar */
+.vault-toolbar {
+  margin-top: 18px;
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--vault-panel);
+  border: 1px solid var(--vault-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.vault-toolbar-search {
+  flex: 1;
+  min-width: 240px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: 8px;
+  background: var(--vault-slot-bg);
+  border: 1px solid var(--vault-border);
+  color: var(--vault-ink);
+}
+
+.vault-toolbar-search input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 12.5px;
+  color: var(--vault-ink);
+}
+
+.vault-toolbar-search input::placeholder {
+  color: var(--vault-ink-muted);
+}
+
+.vault-toolbar-filters {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.vault-select-compact {
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 8px;
+  background: var(--vault-panel);
+  border: 1px solid var(--vault-border);
+  color: var(--vault-ink);
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  outline: none;
+}
+
+.vault-select-compact:focus {
+  border-color: var(--vault-gold);
+}
+
+/* View Mode Switcher */
+.vault-view-toggle {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 8px;
+  background: var(--vault-slot-bg);
+  border: 1px solid var(--vault-border);
+}
+
+.vault-view-toggle button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 30px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--vault-ink-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.vault-view-toggle button:hover {
+  color: var(--vault-ink);
+}
+
+.vault-view-toggle button.is-active {
+  background: var(--vault-panel);
+  color: var(--vault-ink);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* ==========================================================================
+   FLAGSHIP DIGITAL BINDER VIEW
+   3x3 or 4x3 desktop presentation, 2-column mobile.
+   Warm surface, faint slot framing, slight card depth.
+   ========================================================================== */
+
+.vault-binder-container {
+  position: relative;
+  background: var(--vault-parchment);
+  border: 1px solid var(--vault-border);
+  border-radius: 18px;
+  padding: 28px clamp(16px, 3vw, 36px);
+  box-shadow: 0 8px 30px rgba(35, 28, 16, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  min-height: 520px;
+  display: flex;
+  flex-direction: column;
+}
+
+.vault-binder-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed var(--vault-border);
+}
+
+.vault-binder-page-title {
+  font-family: var(--display-font, Georgia, serif);
+  font-size: 15px;
+  font-style: italic;
+  color: var(--vault-ink-secondary);
+}
+
+.vault-binder-pagination {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--vault-ink-secondary);
+}
+
+.vault-binder-pagination button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--vault-border);
+  background: var(--vault-panel);
+  color: var(--vault-ink);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.vault-binder-pagination button:hover:not(:disabled) {
+  border-color: var(--vault-gold);
+  background: var(--vault-gold-soft);
+  color: var(--vault-gold-deep);
+}
+
+.vault-binder-pagination button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* 3x3 Desktop Grid Presentation (or 4x3 on extra wide) */
+.vault-binder-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px 18px;
+  flex: 1;
+}
+
+@media (min-width: 1280px) {
+  .vault-binder-grid.grid-4-col {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .vault-binder-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px 12px;
+  }
+}
+
+@media (max-width: 580px) {
+  .vault-binder-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px 10px;
+    padding: 0;
+  }
+  .vault-binder-container {
+    padding: 16px 12px;
+    border-radius: 12px;
+  }
+}
+
+/* Card Slot Styling — Faint Slot Framing with Archival Depth */
+.vault-slot {
+  position: relative;
+  border-radius: 12px;
+  background: var(--vault-slot-bg);
+  border: 1px solid var(--vault-slot-border);
+  box-shadow: var(--vault-slot-shadow);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.22s cubic-bezier(0.2, 0.75, 0.25, 1), box-shadow 0.22s ease, border-color 0.22s ease;
+  cursor: pointer;
+}
+
+.vault-slot:hover {
+  transform: translateY(-4px);
+  border-color: var(--vault-brass);
+  box-shadow: 0 12px 24px rgba(35, 28, 16, 0.09), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+/* Card Stage within Slot */
+.vault-slot-card-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 420 / 580;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #1a1e24;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.vault-slot-card-stage .tcg-card {
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+}
+
+/* Badges positioned over the card stage */
+.vault-slot-badges-top {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.vault-badge-qty {
+  pointer-events: auto;
+  background: rgba(23, 25, 30, 0.88);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fffaf0;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  letter-spacing: 0.04em;
+}
+
+.vault-badge-lang {
+  pointer-events: auto;
+  background: rgba(198, 138, 44, 0.9);
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.vault-favorite-btn {
+  pointer-events: auto;
+  background: rgba(23, 25, 30, 0.7);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #d8d0c2;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.vault-favorite-btn:hover,
+.vault-favorite-btn.is-favorite {
+  color: #f1c40f;
+  background: rgba(23, 25, 30, 0.92);
+  transform: scale(1.1);
+}
+
+.vault-slot-badge-bottom {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.vault-grade-pill {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(18, 20, 24, 0.92);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(198, 138, 44, 0.4);
+  color: #f5f0e6;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.vault-grade-pill b {
+  color: var(--vault-gold);
+}
+
+.vault-raw-pill {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(23, 25, 30, 0.82);
+  color: #d5cfc5;
+  font-size: 9.5px;
+  font-weight: 700;
+}
+
+/* Card Slot Meta Below Art */
+.vault-slot-info {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.vault-slot-name {
+  font-family: var(--display-font, Georgia, serif);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--vault-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+
+.vault-slot-meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10.5px;
+  color: var(--vault-ink-muted);
+}
+
+.vault-slot-value {
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--vault-ink);
+}
+
+/* Empty Binder Slot */
+.vault-slot-empty {
+  position: relative;
+  border-radius: 12px;
+  background: transparent;
+  border: 1px dashed var(--vault-border);
+  aspect-ratio: 420 / 640;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--vault-ink-muted);
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.vault-slot-empty:hover {
+  background: var(--vault-panel);
+  border-color: var(--vault-gold);
+  color: var(--vault-gold-deep);
+}
+
+/* ==========================================================================
+   DEDICATED SLABS TAB & SLAB CARD FRAMING
+   Slabs tab should feel more premium than raw collection.
+   Restrained card-like framing, not imitating official PSA/CGC labels.
+   ========================================================================== */
+
+.vault-slabs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 24px 20px;
+}
+
+.vault-slab-card {
+  position: relative;
+  border-radius: 16px;
+  background: linear-gradient(145deg, #1d2128, #14171d);
+  border: 1px solid #363d4a;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  padding: 14px;
+  color: #f7f3ec;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+.vault-slab-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--vault-gold);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(226, 166, 59, 0.2);
+}
+
+/* Slab Header / Archival Plate */
+.vault-slab-plate {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.vault-slab-plate-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vault-slab-provider {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--vault-gold);
+}
+
+.vault-slab-grade-num {
+  font-family: var(--display-font, Georgia, serif);
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.vault-slab-cert-pill {
+  font-size: 9px;
+  font-family: var(--font-mono, monospace);
+  color: #a4adba;
+  letter-spacing: 0.05em;
+}
+
+.vault-slab-art-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 420 / 580;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.vault-slab-art-stage .tcg-card {
+  width: 100%;
+  height: 100%;
+  border-radius: 6px;
+}
+
+.vault-slab-footer {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.vault-slab-title {
+  font-family: var(--display-font, Georgia, serif);
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #fffdfa;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+
+.vault-slab-subtitle {
+  font-size: 10.5px;
+  color: #9ea7b4;
+}
+
+.vault-slab-value-row {
+  margin-top: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.vault-slab-est-value {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--vault-gold);
+}
+
+.vault-slab-verified-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #4ade80;
+}
+
+/* ==========================================================================
+   SETS TAB — SET COLLECTION & COMPLETION SILHOUETTES
+   ========================================================================== */
+
+.vault-sets-overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.vault-set-card {
+  border-radius: 14px;
+  background: var(--vault-panel);
+  border: 1px solid var(--vault-border);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: all 0.2s ease;
+}
+
+.vault-set-card:hover {
+  border-color: var(--vault-brass);
+  box-shadow: 0 8px 24px rgba(35, 28, 16, 0.06);
+}
+
+.vault-set-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.vault-set-code {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--vault-gold-deep);
+}
+
+.vault-set-title {
+  font-family: var(--display-font, Georgia, serif);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--vault-ink);
+  margin: 3px 0 0;
+}
+
+.vault-set-percent {
+  font-family: var(--display-font, Georgia, serif);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--vault-gold);
+}
+
+.vault-set-progress-track {
+  height: 6px;
+  border-radius: 4px;
+  background: var(--vault-slot-bg);
+  overflow: hidden;
+  position: relative;
+}
+
+.vault-set-progress-bar {
+  height: 100%;
+  border-radius: 4px;
+  background: var(--vault-gold);
+  transition: width 0.4s ease;
+}
+
+.vault-set-stats-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: var(--vault-ink-secondary);
+}
+
+.vault-set-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* Set Inspection Grid (Official Order + Missing Silhouettes) */
+.vault-set-inspect-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 16px 12px;
+  margin-top: 20px;
+}
+
+.vault-set-item-slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.vault-set-item-slot.is-missing .vault-slot-card-stage {
+  filter: grayscale(100%) opacity(0.35);
+  background: #101216;
+}
+
+.vault-set-item-slot.is-missing::after {
+  content: "MISSING";
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(23, 25, 30, 0.85);
+  color: #fffaf0;
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  padding: 3px 6px;
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+/* Completion Achievement Moment (Restrained Archival Banner) */
+.vault-completion-banner {
+  padding: 16px 20px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #fefbf5, #f5ecd9);
+  border: 1px solid #d4a34b;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 14px rgba(183, 122, 25, 0.12);
+}
+
+.vault-completion-banner-text h3 {
+  font-family: var(--display-font, Georgia, serif);
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--vault-gold-deep);
+  margin: 0 0 2px;
+}
+
+.vault-completion-banner-text p {
+  font-size: 12px;
+  color: var(--vault-ink-secondary);
+  margin: 0;
+}
+
+/* ==========================================================================
+   WISHLIST TAB
+   ========================================================================== */
+
+.vault-wishlist-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 18px;
+}
+
+.vault-wishlist-card {
+  border-radius: 12px;
+  background: var(--vault-panel);
+  border: 1px solid var(--vault-border);
+  padding: 16px;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.vault-wishlist-art {
+  width: 74px;
+  flex-shrink: 0;
+}
+
+.vault-wishlist-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.vault-wishlist-info h4 {
+  font-family: var(--display-font, Georgia, serif);
+  font-size: 14.5px;
+  font-weight: 600;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vault-wishlist-target {
+  font-size: 11px;
+  color: var(--vault-ink-secondary);
+}
+
+.vault-wishlist-target b {
+  color: var(--vault-gold-deep);
+}
+
+/* ==========================================================================
+   PORTFOLIO TAB — COLLECTOR-FIRST INSIGHTS
+   ========================================================================== */
+
+.vault-portfolio-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.vault-portfolio-charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.vault-chart-card {
+  border-radius: 14px;
+  background: var(--vault-panel);
+  border: 1px solid var(--vault-border);
+  padding: 20px;
+}
+
+.vault-chart-card h3 {
+  font-family: var(--display-font, Georgia, serif);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--vault-ink);
+  margin: 0 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.vault-alloc-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  font-size: 11.5px;
+}
+
+.vault-alloc-label {
+  width: 100px;
+  font-weight: 600;
+  color: var(--vault-ink-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vault-alloc-bar-track {
+  flex: 1;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--vault-slot-bg);
+  overflow: hidden;
+}
+
+.vault-alloc-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: var(--vault-gold);
+}
+
+.vault-alloc-value {
+  width: 65px;
+  text-align: right;
+  font-weight: 700;
+  color: var(--vault-ink);
+}
+
+/* ==========================================================================
+   EMPTY VAULT STATE — TASTEFUL CARD-SLOT COMPOSITION
+   ========================================================================== */
+
+.vault-empty-state {
+  margin: 40px auto;
+  max-width: 580px;
+  padding: 50px 32px;
+  border-radius: 20px;
+  background: var(--vault-panel);
+  border: 1px solid var(--vault-border);
+  text-align: center;
+  box-shadow: 0 10px 32px rgba(35, 28, 16, 0.05);
+}
+
+.vault-empty-slot-composition {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.vault-empty-dummy-slot {
+  width: 72px;
+  height: 100px;
+  border-radius: 8px;
+  background: var(--vault-slot-bg);
+  border: 1px dashed var(--vault-slot-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--vault-ink-muted);
+}
+
+.vault-empty-dummy-slot:nth-child(2) {
+  transform: translateY(-8px) scale(1.08);
+  border-color: var(--vault-gold);
+  color: var(--vault-gold);
+  background: var(--vault-gold-soft);
+}
+
+.vault-empty-state h2 {
+  font-family: var(--display-font, Georgia, serif);
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--vault-ink);
+  margin: 0 0 8px;
+}
+
+.vault-empty-state p {
+  font-size: 13.5px;
+  color: var(--vault-ink-secondary);
+  line-height: 1.6;
+  max-width: 420px;
+  margin: 0 auto 24px;
+}
+
+.vault-empty-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+/* Responsive Overrides */
+@media (max-width: 768px) {
+  .vault-metrics-card {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 14px 16px;
+    gap: 14px;
+  }
+  .vault-metric-item:not(:first-child)::before {
+    display: none;
+  }
+  .vault-header-top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .vault-actions-group {
+    width: 100%;
+  }
+  .vault-actions-group .vault-btn {
+    flex: 1;
+    justify-content: center;
+  }
+}

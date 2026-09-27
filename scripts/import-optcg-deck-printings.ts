@@ -9,7 +9,7 @@ const supabase=createClient(url,secret,{auth:{persistSession:false,autoRefreshTo
 const bucket='tcg-card-images';
 const normalizedDeck=deckCode.replaceAll('-','');
 type SourceCard={card_name:string;set_name:string;card_text:string|null;set_id:string;rarity:string|null;card_set_id:string;card_color:string;card_type:string;life:string|null;card_cost:string|null;card_power:string|null;sub_types:string|null;counter_amount:number|null;attribute:string|null;date_scraped:string|null;card_image_id:string;card_image:string|null};
-const variants=[['thumb',180,72],['small',420,78],['large',960,84]] as const;
+const variants=[['small',420,78]] as const;
 const number=(value:string|null)=>Number(value??0)||0;
 
 async function imageVariants(card:SourceCard){

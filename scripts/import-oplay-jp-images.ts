@@ -102,9 +102,9 @@ async function importImage(printing: EnglishPrinting) {
     if (response.status === 404) return { printing, sourceUrl, variants: {}, error: 'not_available' as const };
     if (!response.ok) throw new Error(`returned ${response.status}`);
     const source = Buffer.from(await response.arrayBuffer());
-    const folder = `one-piece/${setFolder.toLowerCase()}/jp`;
+    const folder = `one-piece/${setFolder.toUpperCase().replaceAll('-', '')}/jp`;
     const variants = Object.fromEntries(await Promise.all([
-      ['thumb', 180, 72], ['small', 420, 78], ['large', 960, 84],
+      ['small', 420, 78],
     ].map(async ([name, width, quality]) => {
       const path = `${folder}/${name}/${code.toLowerCase()}.webp`;
       const body = await sharp(source).rotate().resize({ width: Number(width), withoutEnlargement: true }).webp({ quality: Number(quality), effort: 4 }).toBuffer();
@@ -157,7 +157,7 @@ async function main() {
     const assetRows = available.flatMap(({ printing, variants }) => {
       const printingId = printingIdByKey.get(`${printing.identity_id}:${printing.set_code}:${printing.variant}`);
       if (!printingId) return [];
-      return ([['thumb', 180], ['small', 420], ['large', 960]] as const)
+      return ([['small', 420]] as const)
         .filter(([kind]) => Boolean(variants[kind]))
         .map(([kind, width]) => ({ printing_id: printingId, kind, object_key: variants[kind] as string, width }));
     });

@@ -21,11 +21,20 @@ npm test
 npm run build
 ```
 
-Hosted state uses Sites sign-in, D1, and the private Supabase `tcg-card-images` bucket. Cloudflare R2 is unused. Local sign-in is a development-only fixture. Follow `docs/ARCHITECTURE.md` before production launch.
+Hosted state uses Better Auth, D1, and the private Supabase `tcg-card-images` bucket. Cloudflare R2 is unused. Follow `docs/ARCHITECTURE.md` before production launch.
 
 ## Authentication
 
-VivrePlay uses Better Auth with the `DB` Cloudflare D1 binding. Copy `.env.example` to `.env.local` for local development and set a unique `BETTER_AUTH_SECRET` with at least 32 bytes of entropy. In Cloudflare, add `BETTER_AUTH_SECRET` as an encrypted Worker secret and set `BETTER_AUTH_URL` to the deployed VivrePlay origin. The D1 database ID is configured in `vite.config.ts`; it is not a secret and does not need an environment variable.
+VivrePlay uses Better Auth with the `DB` Cloudflare D1 binding. Copy `.env.example` to `.env.local` for local development. Set a unique `BETTER_AUTH_SECRET`, Google OAuth credentials, and a Resend API key. In Cloudflare, store `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `RESEND_API_KEY` as Worker secrets. The production `BETTER_AUTH_URL` is `https://vivreplay.com`.
+
+Register both Google OAuth callback URIs in Google Cloud Console:
+
+```text
+http://localhost:5173/api/auth/callback/google
+https://vivreplay.com/api/auth/callback/google
+```
+
+The production sender defaults to `VivrePlay <noreply@vivreplay.com>` on the verified `@vivreplay.com` domain. You can override it via `VIVREPLAY_EMAIL_FROM` if needed.
 
 Apply the Better Auth schema to the production D1 database before deploying the authentication code:
 

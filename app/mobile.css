@@ -1,0 +1,185 @@
+/* Responsive foundation. This loads last so every public surface shares the same
+   gutters, touch targets, and reflow rules instead of accumulating page patches. */
+:root { --mobile-gutter: clamp(14px, 4vw, 20px); }
+
+@media (max-width: 760px) {
+  html, body { max-width: 100%; overflow-x: clip; }
+  body { padding-bottom: env(safe-area-inset-bottom); }
+  :where(button, a, input, select, summary) { -webkit-tap-highlight-color: transparent; }
+  :where(button, select, summary, .button):not(.tcg-card) { min-height: 40px; }
+
+  .page,
+  .catalog-page,
+  .sets-page,
+  .deck-library-page,
+  .meta-page,
+  .about-page,
+  .profile-page,
+  .arena-lobby,
+  .arena-tutorial-index { padding-inline: var(--mobile-gutter) !important; }
+
+  .masthead { height: 60px !important; padding-inline: var(--mobile-gutter) !important; }
+  .masthead-actions { gap: 6px !important; }
+  .masthead-actions .search-link { width: 38px; padding-inline: 0; justify-content: center; }
+  .masthead-actions .search-link span,
+  .masthead-actions .locale-toggle { display: none !important; }
+  .context-row { padding-inline: var(--mobile-gutter) !important; }
+
+  .library-intro,
+  .builder-hero,
+  .deck-library-intro,
+  .meta-page .meta-hero { margin-inline: calc(-1 * var(--mobile-gutter)) !important; padding-inline: var(--mobile-gutter) !important; }
+  .library-intro { padding-block: 32px 26px !important; }
+  .library-intro h1,
+  .builder-hero h1,
+  .deck-library-intro h1 { font-size: clamp(35px, 11vw, 48px) !important; line-height: .98 !important; }
+  .library-counts { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .library-counts > div { min-width: 0; padding-inline: 8px !important; }
+  .library-counts b { font-size: 16px !important; }
+
+  .library-controls,
+  .filter-workbench { gap: 10px !important; }
+  .filter-primary,
+  .filter-secondary,
+  .select-row { width: 100% !important; min-width: 0; }
+  .search-box { flex-basis: 100% !important; width: 100%; }
+  .filter-secondary { justify-content: flex-start !important; }
+  .filter-menu { max-width: 100%; }
+  .filter-options { max-width: calc(100vw - (var(--mobile-gutter) * 2)); }
+  .card-grid,
+  .home-card-row { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 22px 12px !important; }
+  .catalog-card h3 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .home-hero { min-height: auto !important; padding: 50px var(--mobile-gutter) 42px !important; }
+  .home-hero-copy { padding: 0 !important; }
+  .home-hero h1 { font-size: clamp(42px, 13vw, 58px) !important; }
+  .hero-actions { align-items: stretch; flex-direction: column; gap: 10px; }
+  .hero-actions > * { justify-content: center; }
+  .hero-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; margin-top: 30px; }
+  .hero-stats div { min-width: 0; padding-inline: 8px !important; }
+  .hero-stats dd { font-size: 16px !important; }
+  .home-utility,
+  .home-featured { padding-inline: var(--mobile-gutter) !important; }
+
+  .live-detail-layout,
+  .detail-layout,
+  .market-listing-layout,
+  .builder-workspace { display: grid !important; grid-template-columns: minmax(0, 1fr) !important; gap: 22px !important; }
+  .live-detail-art,
+  .market-listing-primary,
+  .detail-art { width: min(100%, 310px); margin-inline: auto; }
+  .live-detail-copy,
+  .market-listing-primary + * { min-width: 0; }
+  .live-detail-copy .card-detail-title,
+  .live-detail-copy h1 { font-size: clamp(34px, 10vw, 45px) !important; }
+  .live-stats,
+  .viewer-stats { margin-inline: calc(-1 * var(--mobile-gutter)); padding-inline: var(--mobile-gutter); scroll-padding-inline: var(--mobile-gutter); }
+  .live-stats > div,
+  .viewer-stats > div { min-width: 90px !important; }
+  .printing-switch { align-items: flex-start; flex-direction: column; gap: 8px; }
+
+  .deck-builder-hero { padding-block: 30px !important; }
+  .builder-workspace { margin-top: 16px; }
+  .builder-catalog { position: static !important; max-height: none !important; }
+  .live-builder-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 18px 10px !important; max-height: none !important; }
+  .deck-panel { position: static !important; }
+  .deck-command-bar,
+  .deck-library-heading,
+  .deck-library-actions { align-items: stretch !important; flex-direction: column !important; }
+  .deck-library-actions > * { justify-content: center; }
+
+  .vault-page { padding: 22px var(--mobile-gutter) 88px !important; }
+  .vault-header-top,
+  .vault-toolbar { align-items: stretch !important; flex-direction: column !important; }
+  .vault-actions-group,
+  .vault-toolbar-filters { width: 100%; }
+  .vault-actions-group > *,
+  .vault-toolbar-filters > * { flex: 1 1 0; }
+  .vault-metrics-card { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .vault-metric-item { min-width: 0; padding: 13px 10px !important; }
+  .vault-binder-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 12px !important; }
+  .vault-slabs-grid,
+  .vault-wishlist-grid,
+  .vault-sets-overview,
+  .vault-portfolio-charts-grid { grid-template-columns: 1fr !important; }
+
+  .market-store-promo { min-height: 30px; padding-inline: var(--mobile-gutter); font-size: 10px; }
+  .market-store-nav { position: sticky; grid-template-columns: auto minmax(0, 1fr) auto auto !important; gap: 7px !important; padding: 9px var(--mobile-gutter) !important; }
+  .market-back-link > :not(svg),
+  .market-nav-divider,
+  .market-store-wordmark,
+  .market-store-link,
+  .market-store-locale,
+  .market-list-button > :not(svg) { display: none !important; }
+  .market-back-link,
+  .market-store-theme,
+  .market-list-button { display: grid !important; place-items: center; width: 38px; min-width: 38px; padding: 0 !important; }
+  .market-store-search { height: 38px !important; margin: 0 !important; }
+  .market-feed-page { padding: 0 0 82px !important; }
+  .market-feed-shell { padding: 18px var(--mobile-gutter) 0 !important; }
+  .market-feed-intro { min-height: 0 !important; padding: 22px 0 18px !important; }
+  .market-feed-tabs { align-items: flex-start; flex-direction: column; gap: 10px; padding-block: 12px; }
+  .market-feed-tabs > span { display: none; }
+  .market-feed-filters { width: 100%; justify-content: space-between; }
+  .market-feed-filters label { min-width: 0; }
+  .market-feed-filters .picker { max-width: 130px; }
+  .market-feed-row,
+  .market-feed-list.is-grid .market-feed-row { grid-template-columns: 66px minmax(0, 1fr) !important; min-height: 0 !important; gap: 11px !important; padding: 12px 0 !important; border-radius: 0 !important; }
+  .market-feed-stack,
+  .market-feed-list.is-grid .market-feed-stack { width: 66px !important; height: 92px !important; }
+  .market-feed-art { width: 58px !important; }
+  .market-feed-copy { min-width: 0; }
+  .market-feed-copy h2 { font-size: 15px !important; white-space: normal; }
+  .market-feed-trade { grid-column: 2; grid-row: 2; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .market-feed-status { display: flex !important; }
+  .market-feed-price strong { font-size: 14px !important; }
+  .market-listing-detail { padding-inline: var(--mobile-gutter) !important; }
+  .market-listing-heading { align-items: flex-start; flex-direction: column; gap: 10px; }
+  .market-listing-facts { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; margin-top: 18px; }
+  .market-listing-facts > div:nth-child(odd) { padding-left: 0; border-left: 0; }
+  .market-listing-facts > div:nth-child(n + 3) { border-top: 1px solid var(--line); }
+  .market-listing-selection { position: sticky; bottom: max(10px, env(safe-area-inset-bottom)); z-index: 10; }
+
+  .card-viewer-backdrop { padding: 0 !important; }
+  .card-viewer { min-height: 100dvh; border: 0 !important; border-radius: 0 !important; }
+  .card-viewer-body { padding: 22px var(--mobile-gutter) 34px !important; }
+  .viewer-primary-art { width: min(100%, 250px); }
+  .viewer-details h2,
+  .viewer-details .card-detail-title { font-size: clamp(30px, 9vw, 40px) !important; }
+  .viewer-printings { overflow-x: clip; }
+
+  .sets-controls { padding: 8px !important; }
+  .sets-controls > label,
+  .sets-family { width: 100%; min-width: 0 !important; }
+  .sets-family { flex-wrap: nowrap !important; overflow-x: auto; padding-bottom: 2px; }
+  .sets-family button { flex: 0 0 auto; }
+  .meta-page .meta-summary { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; }
+  .meta-page .meta-summary span { min-width: 0; padding-inline: 8px; }
+
+  .arena-mode-grid { grid-template-columns: 1fr !important; }
+  .arena-mode { min-height: 0 !important; }
+  .tutorial-dialog,
+  .tutorial-dock { width: calc(100vw - (var(--mobile-gutter) * 2)) !important; max-width: none !important; }
+  .tutorial-dialog { padding: 22px var(--mobile-gutter) 18px !important; }
+
+  .play-fullscreen { min-width: 0; overflow-x: auto; overscroll-behavior-x: contain; }
+  .play-fullscreen .battle-table { width: 760px !important; min-width: 760px !important; margin-inline: auto; }
+  .play-fullscreen .game-log { right: 12px !important; width: min(300px, calc(100vw - 24px)) !important; }
+  .play-fullscreen .end-turn { right: 14px !important; bottom: max(14px, env(safe-area-inset-bottom)) !important; }
+
+  .site-shell .footer-top { grid-template-columns: 1fr 1fr !important; gap: 28px 18px !important; padding-inline: var(--mobile-gutter) !important; }
+  .site-shell .footer-bottom { padding-inline: var(--mobile-gutter) !important; }
+}
+
+@media (max-width: 420px) {
+  .card-grid,
+  .home-card-row { gap: 18px 10px !important; }
+  .library-counts { grid-template-columns: 1fr; }
+  .library-counts > div { display: flex; align-items: baseline; justify-content: space-between; }
+  .live-builder-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  .vault-metrics-card,
+  .market-listing-facts { grid-template-columns: 1fr !important; }
+  .market-listing-facts > div { padding-inline: 0 !important; border-left: 0 !important; }
+  .market-listing-facts > div + div { border-top: 1px solid var(--line); }
+  .site-shell .footer-top { grid-template-columns: 1fr !important; }
+}

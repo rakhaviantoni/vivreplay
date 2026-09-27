@@ -3,23 +3,34 @@
 import {useEffect, useRef, useState} from 'react';
 import {Card, colors} from '@/packages/card-data/catalog';
 
-function localCardImage(card:Card,size:'thumb'|'small'){
+export function cardImageUrl(card:Card){
   if(!card.imageUrl)return undefined;
   if(!card.imageUrl.startsWith('http'))return card.imageUrl;
   if(card.assetPath)return `/${card.assetPath.replace(/^one-piece\/([^/]+)\//,(_,setCode)=>`${setCode.replaceAll('-','')}/`)}`;
-  if(card.setCode&&card.language&&card.printingCode)return `/${encodeURIComponent(card.setCode)}/${encodeURIComponent(card.language.toLowerCase())}/${size}/${encodeURIComponent(card.printingCode)}.webp`;
-  return `/api/card-assets/${card.id}?kind=${size}`;
+  // Every public card image goes through the set route, which reads the private
+  // Supabase tcg-card-images bucket. Avoid a printing-id API URL in page markup.
+  if(card.setCode)return `/${encodeURIComponent(card.setCode.replaceAll('-',''))}/${encodeURIComponent((card.language??'EN').toLowerCase())}/${encodeURIComponent(card.printingCode??card.code)}.webp`;
+  return undefined;
 }
 
-export function CardArt({card,small=false}:{card:Card;small?:boolean}) {
-  const size=small?'thumb':'small';
-  const storedImage=localCardImage(card,size);
+export function CardArt({card,small=false,priority=false}:{card:Card;small?:boolean;priority?:boolean}) {
+  const preview=card.code.toUpperCase()==='P-163';
+  const storedImage=cardImageUrl(card);
   const [loaded,setLoaded]=useState(false);
   const imageRef=useRef<HTMLImageElement>(null);
-  useEffect(()=>{setLoaded(Boolean(imageRef.current?.complete));},[storedImage]);
-  if (storedImage) return <div className={`tcg-card printing-image ${small?'small':''} ${loaded?'is-loaded':'is-loading'}`}>
-    <span className="card-image-skeleton" aria-hidden="true"/>
-    <img ref={imageRef} src={storedImage} alt={`${card.name} card printing`} loading="lazy" decoding="async" width="420" height="580" onLoad={()=>setLoaded(true)} onError={()=>setLoaded(true)}/>
+  useEffect(()=>{
+    setLoaded(false);
+    const image=imageRef.current;
+    if(!image)return;
+    const finish=()=>setLoaded(true);
+    image.addEventListener('load',finish);
+    image.addEventListener('error',finish);
+    if(image.complete)finish();
+    return()=>{image.removeEventListener('load',finish);image.removeEventListener('error',finish);};
+  },[storedImage]);
+  if (storedImage) return <div className={`tcg-card printing-image ${small?'small':''} ${loaded?'is-loaded':'is-loading'} ${preview?'is-preview-card':''}`} aria-label={preview?"Preview of a set that hasn’t launched yet. You can play it in Casual, New Cards, and Extended, but not Ranked. Its image and text may still change.":undefined}>
+    {preview&&<span className="preview-card-badge" aria-hidden="true">Preview</span>}<span className="card-image-skeleton" aria-hidden="true"/>
+    <img ref={imageRef} src={storedImage} alt={`${card.name} card printing`} loading={priority?"eager":"lazy"} fetchPriority={priority?"high":undefined} decoding="async" width="420" height="580" onLoad={()=>setLoaded(true)} onError={()=>setLoaded(true)}/>
   </div>;
   return <div className={`tcg-card missing-printing ${small?'small':''}`} style={{'--card-color':colors[card.color]} as React.CSSProperties} aria-label={`${card.name} artwork unavailable`}>
     <div className="card-top"><b>{card.type==='Leader'?'L':card.cost}</b><strong>{card.power>0?card.power.toLocaleString():card.type.toUpperCase()}</strong></div>

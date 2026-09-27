@@ -7,7 +7,7 @@ if(!url||!secret) throw new Error('Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SEC
 const supabase=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
 const bucket='tcg-card-images';
 const concurrency=Math.max(1,Number(process.env.STANDARD_RECONCILE_CONCURRENCY||8));
-const variants=[['thumb',180,72],['small',420,78],['large',960,84]] as const;
+const variants=[['small',420,78]] as const;
 type Identity={code:string};
 type Printing={id:string;identity_id:string;language:string;set_id:string|null;set_code:string;set_name:string;rarity:string|null;variant:string|null;source_kind:string|null;life:number|null;sub_types:string|null;counter_amount:number|null;attribute:string|null;source_payload:Record<string,unknown>|null;card_image_url:string|null;tcg_card_identities:Identity|Identity[]};
 type Repair={seed:Printing;code:string;language:string;reason:'missing-row'|'wrong-art'};

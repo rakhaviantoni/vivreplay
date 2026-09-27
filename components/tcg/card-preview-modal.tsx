@@ -5,11 +5,14 @@ import Link from 'next/link';
 import {CaretLeftIcon as ChevronLeft, CaretRightIcon as ChevronRight, ArrowSquareOutIcon as ExternalLink, PlusIcon as Plus, StorefrontIcon as Store, XIcon as X} from '@phosphor-icons/react';
 import type {Card} from '@/packages/card-data/catalog';
 import {CardArt} from './card-art';
-import {BlockValue} from './block-value';
-import {SetInformation} from './set-information';
 import {createClient} from '@/utils/supabase/client';
+import {CardMarketPanel} from './card-market-panel';
+import {CardPrintingSelector,orderPrintings,type CardPrinting} from './card-printing-selector';
+import {CardDetailContent} from './card-detail-content';
 
-type Printing = {id:string;language:string;variant:string|null;rarity:string|null;set_code:string|null;set_name:string|null;printing_code:string|null;card_image_url:string|null;counter_amount:number|null;life:number|null;attribute:string|null;source_payload?:{block?:string|number;block_value?:string|number}|null;tcg_card_assets?:Array<{kind:string;object_key:string}>};
+type Printing = CardPrinting & {rarity:string|null;set_code:string|null;set_name:string|null;counter_amount:number|null;life:number|null;attribute:string|null;source_payload?:{block?:string|number;block_value?:string|number}|null;tcg_card_assets?:Array<{kind:string;object_key:string}>};
+type IdentityRecord={id:string;code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number;effect_text:string|null};
+type PrintingLookup={identity_id:string;tcg_card_identities:IdentityRecord|IdentityRecord[]|null};
 
 
 function blockForSet(code:string,payload?:{block?:string|number;block_value?:string|number}|null){
@@ -75,49 +78,39 @@ function splitDisclaimer(text:string) {
   return match ? {effect:text.slice(0,match.index).trim(),disclaimer:match[1].trim()} : {effect:text,disclaimer:null};
 }
 
-function printingLabel(variant:string|null) {
-  if (!variant) return 'Standard';
-  const cleaned=variant.replace(/(?:^|[\s·,/_-])p\d+(?=$|[\s·,/_-])/ig,'').replace(/[·,/_-]+\s*$/,'').trim();
-  return cleaned || 'Alt art';
-}
-
-function printingOrder(variant:string|null) {
-  const label=printingLabel(variant).toLowerCase();
-  if (label==='standard' || label==='base') return 0;
-  return 1;
-}
-
 function cardFromPrinting(card:Card,printing:Printing):Card {
   return {...card,id:printing.id,rarity:printing.rarity??card.rarity,imageUrl:printing.card_image_url??undefined,imageSource:'external',setCode:printing.set_code??card.setCode,language:printing.language,printingCode:printing.printing_code??card.printingCode,assetPath:printing.tcg_card_assets?.find(asset=>asset.kind==='small')?.object_key};
 }
 
-export function CardPreviewModal({card, origin, language, cards, onClose, onNavigate}:{card:Card;origin?:DOMRect;language:'EN'|'JP';cards:Card[];onClose:()=>void;onNavigate:(card:Card)=>void}) {
+export function CardPreviewModal({card, origin, language, cards, context='catalog', onClose, onNavigate}:{card:Card;origin?:DOMRect;language:'EN'|'JP';cards:Card[];context?:'catalog'|'builder';onClose:()=>void;onNavigate:(card:Card)=>void}) {
   const [printings,setPrintings]=useState<Printing[]>([]); const [selected,setSelected]=useState(card.id);
+  const [resolvedCard,setResolvedCard]=useState<Card>(card);
   const [detailsLoading,setDetailsLoading]=useState(true); const [artLoading,setArtLoading]=useState(false);
-  const [previousArt,setPreviousArt]=useState<Card|null>(null); const artRef=useRef<Card|null>(null);
-  const hasFlown=useRef(false);const [phase,setPhase]=useState<'flight'|'landed'|'shell'>(origin?'flight':'shell');const [flightStyle,setFlightStyle]=useState<CSSProperties>();const [landingStyle,setLandingStyle]=useState<CSSProperties>();
-  useEffect(()=>{setSelected(card.id);setPrintings([]);setDetailsLoading(true);let active=true;const client=createClient();void (async()=>{try{const {data}=await client.from('tcg_card_printings').select('identity_id').eq('id',card.id).maybeSingle();if(!data||!active)return;const {data:rows}=await client.from('tcg_card_printings').select('id,language,variant,rarity,set_code,set_name,printing_code,card_image_url,counter_amount,life,attribute,source_payload,tcg_card_assets(kind,object_key)').eq('identity_id',data.identity_id).order('language').order('variant');if(active)setPrintings((rows??[]) as Printing[]);}finally{if(active)setDetailsLoading(false)}})();return()=>{active=false};},[card.id]);
-  const orderedPrintings=useMemo(()=>[...printings].sort((a,b)=>printingOrder(a.variant)-printingOrder(b.variant)||printingLabel(a.variant).localeCompare(printingLabel(b.variant))),[printings]);
-  const active=orderedPrintings.find(item=>item.id===selected)??orderedPrintings.find(item=>item.language===language)??orderedPrintings[0];
-  const current:Card=active?cardFromPrinting(card,active):card;
-  const artStack=active?orderedPrintings.filter(item=>item.language===active.language&&item.id!==active.id&&item.card_image_url).slice(0,2):[];
-  useEffect(()=>{
-    const prior=artRef.current;
-    if(prior&&prior.id!==current.id){
-      setPreviousArt(prior);
-      const clear=window.setTimeout(()=>setPreviousArt(null),420);
-      artRef.current=current;
-      return()=>window.clearTimeout(clear);
-    }
-    artRef.current=current;
-  },[current.id]);
+  const hasFlown=useRef(false);const [phase,setPhase]=useState<'flight'|'landed'|'shell'>(origin&&origin.width>=60?'flight':'shell');const [flightStyle,setFlightStyle]=useState<CSSProperties>();const [landingStyle,setLandingStyle]=useState<CSSProperties>();
+  useEffect(()=>{setSelected(card.id);setPrintings([]);setResolvedCard(card);setDetailsLoading(true);let active=true;const client=createClient();void (async()=>{try{
+    // Market fixtures and imported listings may only retain a printing code. The
+    // library supplies a printing UUID, so support both inputs in this shared viewer.
+    let {data:lookup}=await client.from('tcg_card_printings').select('identity_id,tcg_card_identities(id,code,name,color,card_type,cost,power,effect_text)').eq('id',card.id).maybeSingle<PrintingLookup>();
+    if(!lookup){const code=card.printingCode??card.code;const result=await client.from('tcg_card_printings').select('identity_id,tcg_card_identities(id,code,name,color,card_type,cost,power,effect_text)').eq('language',card.language??language).ilike('printing_code',code).limit(1).maybeSingle<PrintingLookup>();lookup=result.data;}
+    if(!lookup||!active)return;
+    const identity=Array.isArray(lookup.tcg_card_identities)?lookup.tcg_card_identities[0]:lookup.tcg_card_identities;
+    if(identity) setResolvedCard(current=>({...current,id:identity.id,code:identity.code,name:identity.name,color:identity.color,type:identity.card_type,cost:identity.cost,power:identity.power,effect:identity.effect_text??''}));
+    const {data:rows}=await client.from('tcg_card_printings').select('id,language,variant,rarity,set_code,set_name,printing_code,card_image_url,counter_amount,life,attribute,source_payload,tcg_card_assets(kind,object_key)').eq('identity_id',lookup.identity_id).order('language').order('variant');if(active)setPrintings((rows??[]) as Printing[]);
+  }finally{if(active)setDetailsLoading(false)}})();return()=>{active=false};},[card,language]);
+  const orderedPrintings=useMemo(()=>orderPrintings(printings),[printings]);
+  const availablePrintings=useMemo<Printing[]>(()=>orderedPrintings.length?orderedPrintings:[{id:card.id,language:card.language??language,variant:'Standard',printing_code:card.printingCode??card.code,card_image_url:card.imageUrl??null,rarity:card.rarity,set_code:card.setCode??null,set_name:null,counter_amount:null,life:null,attribute:null}], [card,language,orderedPrintings]);
+  const active=availablePrintings.find(item=>item.id===selected)??availablePrintings.find(item=>item.language===language)??availablePrintings[0];
+  const current:Card=active?cardFromPrinting(resolvedCard,active):resolvedCard;
+  // The viewer content belongs to the card identity. Printing choices only replace its artwork.
+  const detailPrinting=active??availablePrintings.find(item=>item.language===language);
+  const artStack=active?availablePrintings.filter(item=>item.language===active.language&&item.id!==active.id&&item.card_image_url).slice(0,2):[];
   useEffect(()=>{const url=active?.card_image_url;if(!url){setArtLoading(false);return}let mounted=true;setArtLoading(true);const image=new Image();image.onload=image.onerror=()=>{if(mounted)setArtLoading(false)};image.src=url;return()=>{mounted=false}},[active?.id,active?.card_image_url]);
-  const effect=splitDisclaimer(card.effect||'');
-  const languages=useMemo(()=>[...new Set(orderedPrintings.map(item=>item.language))],[orderedPrintings]); const index=cards.findIndex(item=>item.id===card.id);
+  const effect=splitDisclaimer(resolvedCard.effect||'');
+  const languages=useMemo(()=>[...new Set(availablePrintings.map(item=>item.language))],[availablePrintings]); const index=cards.findIndex(item=>item.id===card.id);
   function navigate(amount:number){if(!cards.length)return;onNavigate(cards[(index+amount+cards.length)%cards.length]);}
   useEffect(()=>{function keys(event:KeyboardEvent){if(event.key==='Escape')onClose();if(event.key==='ArrowLeft')navigate(-1);if(event.key==='ArrowRight')navigate(1);}window.addEventListener('keydown',keys);return()=>window.removeEventListener('keydown',keys);});
   useLayoutEffect(()=>{
-    if(!origin||hasFlown.current){setPhase('shell');return}
+    if(!origin||origin.width<60||hasFlown.current){setPhase('shell');return}
     if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){hasFlown.current=true;setPhase('shell');return}
     const modalWidth=Math.min(1180,window.innerWidth-176);
     const targetWidth=Math.min(360,Math.max(230,modalWidth*.305));
@@ -125,23 +118,27 @@ export function CardPreviewModal({card, origin, language, cards, onClose, onNavi
     const shellHeight=Math.min(820,window.innerHeight-64);
     const targetTop=(window.innerHeight-shellHeight)/2+88;
     hasFlown.current=true;
-    const scale=targetWidth/origin.width;
-    setFlightStyle({left:origin.left,top:origin.top,width:origin.width,height:origin.height,'--flight-x':`${targetLeft-origin.left}px`,'--flight-y':`${targetTop-origin.top}px`,'--flight-scale':String(scale)} as CSSProperties);
-    setLandingStyle({left:targetLeft,top:targetTop,width:targetWidth,height:origin.height*scale} as CSSProperties);
+    const sourceWidth=Math.max(42,origin.width);
+    const sourceHeight=sourceWidth*580/420;
+    const sourceLeft=origin.left+origin.width/2-sourceWidth/2;
+    const sourceTop=origin.top+origin.height/2-sourceHeight/2;
+    const scale=targetWidth/sourceWidth;
+    setFlightStyle({left:sourceLeft,top:sourceTop,width:sourceWidth,height:sourceHeight,'--flight-x':`${targetLeft-sourceLeft}px`,'--flight-y':`${targetTop-sourceTop}px`,'--flight-scale':String(scale)} as CSSProperties);
+    setLandingStyle({left:targetLeft,top:targetTop,width:targetWidth,height:targetWidth*580/420} as CSSProperties);
     const landed=window.setTimeout(()=>{setPhase('landed');setFlightStyle(undefined)},470);
     const complete=window.setTimeout(()=>{setPhase('shell');setLandingStyle(undefined)},870);
     return()=>{window.clearTimeout(landed);window.clearTimeout(complete)}
   },[origin]);
-  const block=blockForSet(active?.set_code??card.code,active?.source_payload);
+  const block=blockForSet(active?.set_code??resolvedCard.code,active?.source_payload);
   return <div className={`card-viewer-backdrop ${phase==='flight'?'is-flying':''}`} role="presentation" onMouseDown={onClose}>
     {phase==='flight'&&flightStyle&&<div className="viewer-flight-card" aria-hidden="true" style={flightStyle}><CardArt card={current}/></div>}
     {phase==='landed'&&landingStyle&&<div className="viewer-landing-card" aria-hidden="true" style={landingStyle}><CardArt card={current}/></div>}
     {phase!=='flight'&&<>
     <button className="viewer-nav viewer-prev" aria-label="Previous card" onMouseDown={event=>event.stopPropagation()} onClick={event=>{event.stopPropagation();navigate(-1)}}><ChevronLeft/></button>
     <section className="card-viewer" role="dialog" aria-modal="true" aria-labelledby="card-preview-title" onMouseDown={event=>event.stopPropagation()}>
-      <header><div><span>{card.code}</span></div><button onClick={onClose} aria-label="Close card viewer"><X size={20}/></button></header>
-      <div className={`card-viewer-body ${detailsLoading?'is-resolving':''}`}><aside className="viewer-primary-art" aria-busy={detailsLoading||artLoading}><div className="viewer-art-stack">{artStack.map((printing,index)=><div key={printing.id} className={`viewer-art-underlay viewer-art-underlay-${index}`} aria-hidden="true"><CardArt card={cardFromPrinting(card,printing)}/></div>)}{previousArt&&<div className="viewer-art-previous" aria-hidden="true"><CardArt card={previousArt}/></div>}<div key={current.id} className="viewer-art-current"><CardArt card={current}/></div></div><div className="viewer-art-skeleton" aria-hidden="true"/><p><b>Printing</b>{active?.set_code||'—'} · {active?.language||language}</p></aside>
-      <div className="viewer-details" aria-busy={detailsLoading}><div className="viewer-detail-skeleton" aria-hidden="true"><i/><i/><span/><span/><span/><b/><b/><b/></div><h2 id="card-preview-title">{card.name}</h2><p className="viewer-kind">{card.type} <span>·</span> {active?.rarity||card.rarity} {active?.attribute&&<><span>·</span>{active.attribute}</>}</p><div className="viewer-stats">{card.type!=='Leader'&&<div><dt>Cost</dt><dd>{card.cost}</dd></div>}<div><dt>Power</dt><dd>{card.power?card.power.toLocaleString():'—'}</dd></div>{active?.life!==null&&active?.life!==undefined&&<div><dt>Life</dt><dd>{active.life}</dd></div>}<div><dt>Block</dt><dd><BlockValue value={block}/></dd></div><SetInformation compact setCode={active?.set_code} fallbackName={active?.set_name}/></div><section className="viewer-effect"><h3>Effect</h3><p>{effect.effect?<EffectText text={effect.effect}/>: 'No effect text is available for this identity.'}</p>{effect.disclaimer&&<p className="effect-disclaimer">{effect.disclaimer}</p>}</section><section className="viewer-printings"><div className="printing-title"><h3>Printings</h3><div>{languages.map(item=><button key={item} className={active?.language===item?'active':''} onClick={()=>setSelected(orderedPrintings.find(printing=>printing.language===item&&printing.card_image_url)?.id??selected)}>{item}</button>)}</div></div><div className="printing-strip">{[...new Map(orderedPrintings.filter(item=>(!active||item.language===active.language)&&item.card_image_url).map(item=>[item.printing_code??item.id,item])).values()].map(item=>{const thumbnail:Card={...card,id:item.id,rarity:item.rarity??'',imageUrl:item.card_image_url??undefined,imageSource:'external',setCode:item.set_code??card.setCode,language:item.language,printingCode:item.printing_code??card.printingCode,assetPath:item.tcg_card_assets?.find(asset=>asset.kind==='small')?.object_key};return <button key={item.id} className={item.id===active?.id?'selected':''} onClick={()=>setSelected(item.id)}><CardArt card={thumbnail}/><span>{printingLabel(item.variant)}</span></button>})}</div></section><div className="viewer-actions"><Link className="button" href={`/decks/builder?card=${card.id}`}><Plus size={16}/>Add to deck</Link><Link className="button secondary" href={`/market?sell=${active?.id??card.id}`}><Store size={16}/>Sell this card</Link><Link className="button secondary" href={`/cards/${card.code}?lang=${active?.language??language}`}><ExternalLink size={16}/>Open card page</Link></div><span className="sr-only" role="status">{detailsLoading||artLoading?'Loading card details':''}</span></div></div>
+      <header><div><span>{resolvedCard.code}</span></div><button onClick={onClose} aria-label="Close card viewer"><X size={20}/></button></header>
+      <div className={`card-viewer-body ${detailsLoading?'is-resolving':''}`}><aside className="viewer-primary-art" aria-busy={detailsLoading||artLoading}><div className="viewer-art-stack">{artStack.map((printing,index)=><div key={printing.id} className={`viewer-art-underlay viewer-art-underlay-${index}`} aria-hidden="true"><CardArt card={cardFromPrinting(resolvedCard,printing)}/></div>)}<div key={current.id} className="viewer-art-current"><CardArt card={current}/></div></div><div className="viewer-art-skeleton" aria-hidden="true"/><p><b>Printing</b>{active?.set_code||'—'} · {active?.language||language}</p></aside>
+      <div className="viewer-details" aria-busy={detailsLoading}><div className="viewer-detail-skeleton" aria-hidden="true"><i/><i/><span/><span/><span/><b/><b/><b/></div><CardDetailContent code={resolvedCard.code} title={resolvedCard.name} titleId="card-preview-title" heading="h2" type={resolvedCard.type} rarity={detailPrinting?.rarity||resolvedCard.rarity} attribute={detailPrinting?.attribute} cost={resolvedCard.cost} power={resolvedCard.power} life={detailPrinting?.life} block={block} setCode={detailPrinting?.set_code} setName={detailPrinting?.set_name} effect={<><p>{effect.effect?<EffectText text={effect.effect}/>: 'No effect text is available for this identity.'}</p>{effect.disclaimer&&<p className="effect-disclaimer">{effect.disclaimer}</p>}</>}/><CardPrintingSelector printings={availablePrintings} language={active?.language??language} selectedId={active?.id} onLanguageChange={nextLanguage=>setSelected(availablePrintings.find(printing=>printing.language===nextLanguage&&printing.card_image_url)?.id??selected)} onSelect={setSelected} renderCard={item=><CardArt card={cardFromPrinting(resolvedCard,item)}/>}/>{active?.language==='JP'&&<CardMarketPanel printingId={active.id}/> }<div className="viewer-actions">{context!=='builder'&&<Link className="button" href={`/decks/builder?card=${active?.id??card.id}`}><Plus size={16}/>Build with card</Link>}<Link className={context==='builder'?'button':'button secondary'} href={`/cards/${resolvedCard.code}?lang=${active?.language??language}`}><ExternalLink size={16}/>Open card page</Link><Link className="button secondary" href={`/market?card=${resolvedCard.code}`}><Store size={16}/>Find listings</Link><Link className="button secondary" href={`/market?sell=${active?.id??card.id}`}><Store size={16}/>Sell a copy</Link></div><span className="sr-only" role="status">{detailsLoading||artLoading?'Loading card details':''}</span></div></div>
     </section>
     <button className="viewer-nav viewer-next" aria-label="Next card" onMouseDown={event=>event.stopPropagation()} onClick={event=>{event.stopPropagation();navigate(1)}}><ChevronRight/></button>
     </>}

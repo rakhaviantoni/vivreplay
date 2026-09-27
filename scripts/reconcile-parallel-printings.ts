@@ -11,7 +11,7 @@ const maxSuffix = Math.max(1, Number(process.env.PARALLEL_MAX_SUFFIX || 12));
 const wantedCodes = new Set((process.env.PARALLEL_CODES || '').split(',').map(value => value.trim().toUpperCase()).filter(Boolean));
 const offset = Math.max(0, Number(process.env.PARALLEL_OFFSET || 0));
 const limit = Math.max(0, Number(process.env.PARALLEL_LIMIT || 0));
-const imageVariants = [['thumb', 180, 72], ['small', 420, 78], ['large', 960, 84]] as const;
+const imageVariants = [['small', 420, 78]] as const;
 
 type Row = { id: string; identity_id: string; language: string; set_id: string | null; set_code: string; set_name: string; rarity: string | null; source_kind: string | null; life: number | null; sub_types: string | null; counter_amount: number | null; attribute: string | null; source_payload: Record<string, unknown> | null; tcg_card_identities: { code: string } | { code: string }[] };
 type Candidate = { base: Row; code: string; language: string; suffix: number; folder: string; sourceUrl: string };

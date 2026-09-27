@@ -1,6 +1,6 @@
 import {createClient} from '@supabase/supabase-js';
 
-const allowedKinds=new Set(['thumb','small','large']);
+const allowedKinds=new Set(['small']);
 
 export async function GET(request:Request,{params}:{params:Promise<{printingId:string}>}) {
   const {printingId}=await params;

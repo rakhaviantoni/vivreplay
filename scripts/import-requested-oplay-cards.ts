@@ -47,15 +47,15 @@ const requested: RequestedCard[] = [
   },
 ];
 
-function assetPath(card: RequestedCard, kind: 'thumb' | 'small' | 'large') {
-  return `one-piece/${card.setCode.toLowerCase()}/en/${kind}/${card.code.toLowerCase()}.webp`;
+function assetPath(card: RequestedCard, kind: 'small') {
+  return `one-piece/${card.setCode.toUpperCase().replaceAll('-', '')}/en/${kind}/${card.code.toUpperCase()}.webp`;
 }
 
 async function uploadAssets(card: RequestedCard, printingId: string) {
   const response = await fetch(card.imageUrl);
   if (!response.ok) throw new Error(`${card.code} image returned ${response.status}`);
   const source = Buffer.from(await response.arrayBuffer());
-  const sizes: Array<['thumb' | 'small' | 'large', number, number]> = [['thumb', 180, 72], ['small', 420, 78], ['large', 960, 84]];
+  const sizes: Array<['small', number, number]> = [['small', 420, 78]];
   const assets = [] as Array<{ printing_id: string; kind: string; object_key: string; width: number }>;
   for (const [kind, width, quality] of sizes) {
     const objectKey = assetPath(card, kind);
@@ -98,7 +98,7 @@ async function main() {
   if (printingLookupError) throw printingLookupError;
   const printingIdByCode = new Map((printingRows ?? []).map(printing => [printing.printing_code, printing.id]));
 
-  const sources = requested.map(card => ({ printing_id: printingIdByCode.get(card.code), source_type: 'oplaytcg', source_url: card.imageUrl, rights_status: 'user_requested_import_pending_review', observed_at: new Date().toISOString(), storage_path: assetPath(card, 'small'), storage_variants: { thumb: assetPath(card, 'thumb'), small: assetPath(card, 'small'), large: assetPath(card, 'large') }, stored_format: 'webp', approved_for_display: false, approved_for_storage: false }));
+  const sources = requested.map(card => ({ printing_id: printingIdByCode.get(card.code), source_type: 'oplaytcg', source_url: card.imageUrl, rights_status: 'user_requested_import_pending_review', observed_at: new Date().toISOString(), storage_path: assetPath(card, 'small'), storage_variants: { small: assetPath(card, 'small') }, stored_format: 'webp', approved_for_display: false, approved_for_storage: false }));
   const { error: sourceError } = await supabase.from('tcg_card_asset_sources').upsert(sources, { onConflict: 'source_url' });
   if (sourceError) throw sourceError;
   for (const card of requested) {

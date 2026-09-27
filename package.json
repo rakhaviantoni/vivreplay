@@ -14,7 +14,10 @@
     "db:generate": "drizzle-kit generate",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test tests/*.test.ts",
-    "assets:upload": "node --env-file=.env.local --import tsx scripts/upload-site-assets.ts"
+    "effects:verify": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/verify-effect-pipeline.ts",
+    "effects:runtime": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/verify-effect-runtime.ts",
+    "assets:upload": "node --env-file=.env.local --import tsx scripts/upload-site-assets.ts",
+    "play:coverage": "node --env-file=.env.local --import tsx scripts/audit-play-runtime.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -47,7 +50,7 @@
     "sonner": "^2.0.8",
     "tailwind-merge": "3.6.0",
     "vaul": "^1.1.2",
-    "zod": "^3.25.76"
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "1.37.1",

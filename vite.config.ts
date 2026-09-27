@@ -1,5 +1,5 @@
 import vinext from "vinext";
-import { defineConfig } from "vite";
+import { defineConfig, loadEnv } from "vite";
 import hostingConfig from "./.openai/hosting.json";
 import { readExecutionProfile } from "./scripts/execution-profile.mjs";
 import { sites } from "./build/sites-vite-plugin";
@@ -14,8 +14,15 @@ const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
 const managedLinux = readExecutionProfile() === "managed-linux";
 
 const localBindingConfig = {
+  name: "vivreplay",
   main: "vinext/server/fetch-handler",
   compatibility_flags: ["nodejs_compat"],
+  vars: {
+    BETTER_AUTH_URL: "https://vivreplay.com",
+    NEXT_PUBLIC_SUPABASE_URL: "https://shqwaqxpxsyjafxdcibj.supabase.co",
+    SUPABASE_JWKS_URL:
+      "https://shqwaqxpxsyjafxdcibj.supabase.co/auth/v1/.well-known/jwks.json",
+  } as Record<string, string>,
   d1_databases: d1
     ? [
         {
@@ -25,9 +32,36 @@ const localBindingConfig = {
         },
       ]
     : [],
+  kv_namespaces: [
+    {
+      binding: "VIVREPLAY_IMAGE_CACHE",
+      id: "2897168f677a438091045edba1a8afa8",
+    },
+  ],
 };
 
-export default defineConfig(async () => {
+export default defineConfig(async ({ command, mode }) => {
+  if (command === "serve") {
+    localBindingConfig.vars.BETTER_AUTH_URL = "http://localhost:5173";
+
+    // Cloudflare's local worker only receives explicit bindings. Keep the AI
+    // gateway credential local to Miniflare, sourced from ignored .env files.
+    const localEnv = loadEnv(mode, process.cwd(), "");
+    for (const key of [
+      "AZEKHA_AI_GATEWAY_TOKEN",
+      "AZEKHA_AI_GATEWAY_API_KEY",
+      "AI_GATEWAY_INTERNAL_TOKEN",
+      "OPENAI_API_KEY",
+      "SUMOPOD_API_KEY",
+      "ZAI_API_KEY",
+    ]) {
+      if (localEnv[key]) {
+        localBindingConfig.vars[key] = localEnv[key];
+        break;
+      }
+    }
+  }
+
   // Use Miniflare's local Request.cf placeholder unless fetching is requested.
   process.env.CLOUDFLARE_CF_FETCH_ENABLED ??= "false";
   process.env.WRANGLER_SEND_METRICS ??= "false";

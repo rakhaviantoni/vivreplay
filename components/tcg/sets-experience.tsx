@@ -9,6 +9,7 @@ import {CardArt} from './card-art';
 import {displayCardName} from './card-name';
 import {DepthCarousel} from './depth-carousel';
 import type {Card} from '@/packages/card-data/catalog';
+import {isPlayableSet} from '@/packages/domain/release-availability';
 
 type Row={id:string;set_code:string;set_name:string;card_image_url:string|null;rarity:string|null;variant:string|null;printing_code:string|null;language:string;tcg_card_assets?:Array<{kind:string;object_key:string}>;tcg_card_identities:{code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number;effect_text:string}};
 type Release={code:string;name:string;count:number;cards:Card[]};
@@ -22,7 +23,7 @@ function ReleaseTile({release}:{release:Release}){const router=useRouter();retur
 
 export function SetsExperience({compact=false}:{compact?:boolean}){
   const [rows,setRows]=useState<Row[]>([]);const [query,setQuery]=useState('');const [setFamily,setSetFamily]=useState<SetFamily>('all');
-  useEffect(()=>{let live=true;const client=createClient();const load=async()=>{const all:Row[]=[];for(let from=0;;from+=1000){const {data,error}=await client.from('tcg_card_printings').select('id,set_code,set_name,card_image_url,rarity,variant,printing_code,language,tcg_card_assets(kind,object_key),tcg_card_identities!inner(code,name,color,card_type,cost,power,effect_text)').eq('language','EN').not('card_image_url','is',null).range(from,from+999);if(error||!data)break;all.push(...(data as unknown as Row[]));if(data.length<1000)break}if(live)setRows(all)};void load();return()=>{live=false}},[]);
+  useEffect(()=>{let live=true;const client=createClient();const load=async()=>{const all:Row[]=[];for(let from=0;;from+=1000){const {data,error}=await client.from('tcg_card_printings').select('id,set_code,set_name,card_image_url,rarity,variant,printing_code,language,tcg_card_assets(kind,object_key),tcg_card_identities!inner(code,name,color,card_type,cost,power,effect_text)').eq('language','EN').not('card_image_url','is',null).range(from,from+999);if(error||!data)break;all.push(...(data as unknown as Row[]).filter(row=>isPlayableSet(row.set_code)));if(data.length<1000)break}if(live)setRows(all)};void load();return()=>{live=false}},[]);
   const sets=useMemo<Release[]>(()=>{const groups=new Map<string,Row[]>();rows.forEach(row=>groups.set(row.set_code,[...(groups.get(row.set_code)??[]),row]));return [...groups.entries()].map(([code,cards])=>{const bestByIdentity=new Map<string,Row>();for(const printing of [...cards].sort((a,b)=>rarityScore(b)-rarityScore(a)||a.id.localeCompare(b.id))){if(!bestByIdentity.has(printing.tcg_card_identities.code))bestByIdentity.set(printing.tcg_card_identities.code,printing)}return {code,name:cards[0].set_name,count:new Set(cards.map(item=>item.tcg_card_identities.code)).size,cards:[...bestByIdentity.values()].slice(0,4).map(card)}}).sort((a,b)=>rank(b.code)-rank(a.code))},[rows]);
   const visible=useMemo(()=>sets.filter(set=>(setFamily==='all'||family(set.code)===setFamily)&&`${set.code} ${set.name}`.toLowerCase().includes(query.trim().toLowerCase())),[sets,query,setFamily]);
   const shown=compact?sets.slice(0,6):visible;

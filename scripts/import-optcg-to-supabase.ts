@@ -73,12 +73,10 @@ async function uploadImage(card: NormalizedOPTCGCard) {
     if (!response.ok) throw new Error(`image returned ${response.status}`);
     const length = Number(response.headers.get('content-length') ?? 0);
     if (length > 8 * 1024 * 1024) throw new Error('image exceeds 8 MB limit');
-    const folder = `one-piece/${card.setCode.toLowerCase().replace(/[^a-z0-9-]/g, '-')}/en`;
+    const folder = `one-piece/${card.setCode.toUpperCase().replaceAll('-', '')}/en`;
     const source = Buffer.from(await response.arrayBuffer());
     const variants = Object.fromEntries(await Promise.all([
-      ['thumb', 180, 72],
       ['small', 420, 78],
-      ['large', 960, 84],
     ].map(async ([name, width, quality]) => {
       const path = `${folder}/${name}/${card.code.toLowerCase()}.webp`;
       const body = await sharp(source).rotate().resize({ width: Number(width), withoutEnlargement: true }).webp({ quality: Number(quality), effort: 4 }).toBuffer();
@@ -148,7 +146,7 @@ async function main() {
     const assetRows = batch.cards.flatMap(card => {
       const printingId = idByCode.get(card.code) ? printingIdByIdentityId.get(idByCode.get(card.code)!) : undefined;
       const variants = resultByCode.get(card.code)?.variants as Record<string, string> | undefined;
-      return printingId && variants ? ([['thumb', 180], ['small', 420], ['large', 960]].filter(([kind]) => variants[kind]).map(([kind, width]) => ({ printing_id: printingId, kind, object_key: variants[kind], width }))) : [];
+      return printingId && variants ? ([['small', 420]].filter(([kind]) => variants[kind]).map(([kind, width]) => ({ printing_id: printingId, kind, object_key: variants[kind], width }))) : [];
     });
     await upsertInBatches('tcg_card_assets', assetRows, 'printing_id,kind');
     const priceRows = batch.cards.flatMap(card => {

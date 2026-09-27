@@ -1,5 +1,5 @@
 import {createClient} from '@supabase/supabase-js';
-import {parseEffects} from '../packages/domain/effect-rules';
+import {compileEffectDocument} from '../packages/domain/effect-rules';
 
 const url=process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key=process.env.SUPABASE_SECRET_KEY;
@@ -24,7 +24,7 @@ for(;;){
  const {data,error}=await db.from('tcg_card_identities').select('id,code,name,color,card_type,cost,power,effect_text').range(from,from+pageSize-1);
  if(error)throw error;
  if(!data?.length)break;
- const revisions=data.map(row=>({ruleset_id:ruleset.id,identity_id:row.id,effect_text:row.effect_text??'',effect_schema:parseEffects({id:row.id,code:row.code,name:row.name,color:row.color,type:row.card_type,cost:row.cost,power:row.power,counter:0,rarity:'',art:0,effect:row.effect_text??''}),errata_reference:null,source_url:cardList}));
+ const revisions=data.map(row=>({ruleset_id:ruleset.id,identity_id:row.id,effect_text:row.effect_text??'',effect_schema:compileEffectDocument({id:row.id,code:row.code,name:row.name,color:row.color,type:row.card_type,cost:row.cost,power:row.power,counter:0,rarity:'',art:0,effect:row.effect_text??''}),errata_reference:null,source_url:cardList}));
  const {error:revisionError}=await db.from('tcg_card_rule_revisions').upsert(revisions,{onConflict:'ruleset_id,identity_id'});
  if(revisionError)throw revisionError;
  total+=revisions.length;

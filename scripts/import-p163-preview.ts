@@ -1,0 +1,33 @@
+import {createClient} from '@supabase/supabase-js';
+import sharp from 'sharp';
+
+const url=process.env.NEXT_PUBLIC_SUPABASE_URL;
+const secret=process.env.SUPABASE_SECRET_KEY;
+if(!url||!secret)throw new Error('Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SECRET_KEY.');
+const supabase=createClient(url,secret,{auth:{persistSession:false,autoRefreshToken:false}});
+const bucket='tcg-card-images';
+const card={
+ code:'P-163',setCode:'P',setName:'Promotional Cards',name:'Dracule Mihawk',color:'Green',type:'Leader',cost:0,power:5000,life:5,counter:0,rarity:'P',attribute:'Slash',traits:'The Seven Warlords of the Sea',
+ effect:'[Activate: Main] [Once Per Turn] You may rest 1 of your cards: If there is a Character with a cost of 5 or more, give up to 3 rested DON!! cards to this Leader.',
+ imageUrl:'https://cards.oplaytcg.com/P/en/P-163.webp',
+};
+const objectKey=(kind:'small')=>`one-piece/P/en/${kind}/P-163.webp`;
+
+async function main(){
+ const {data:game,error:gameError}=await supabase.from('tcg_games').upsert({slug:'one-piece',name:'One Piece Card Game'},{onConflict:'slug'}).select('id').single();if(gameError)throw gameError;
+ const {error:setError}=await supabase.from('tcg_sets').upsert({game_id:game.id,external_set_id:card.setCode,name:card.setName,set_kind:'promo'},{onConflict:'game_id,external_set_id'});if(setError)throw setError;
+ const {data:set,error:setLookupError}=await supabase.from('tcg_sets').select('id').eq('game_id',game.id).eq('external_set_id',card.setCode).single();if(setLookupError)throw setLookupError;
+ const now=new Date().toISOString();
+ const identitySeed={game_id:game.id,code:card.code,name:card.name,color:card.color,card_type:card.type,cost:card.cost,power:card.power,effect_text:card.effect,updated_at:now};
+ const {error:identityError}=await supabase.from('tcg_card_identities').upsert(identitySeed,{onConflict:'game_id,code'});if(identityError)throw identityError;
+ const {data:identity,error:identityLookupError}=await supabase.from('tcg_card_identities').select('id').eq('game_id',game.id).eq('code',card.code).single();if(identityLookupError)throw identityLookupError;
+ const rule={identity_id:identity.id,colors:[card.color],card_type:card.type,cost:card.cost,power:card.power,life:card.life,counter_amount:card.counter,attributes:[card.attribute],traits:card.traits.split(' / '),updated_at:now};const localization={identity_id:identity.id,language:'EN',name:card.name,effect_text:card.effect,traits_text:card.traits,updated_at:now};const printing={identity_id:identity.id,language:'EN',set_id:set.id,set_code:card.setCode,set_name:card.setName,printing_code:card.code,rarity:card.rarity,variant:'Preview',source_kind:'oplaytcg-preview',life:card.life,sub_types:card.traits,counter_amount:card.counter,attribute:card.attribute,card_image_id:card.code,card_image_url:card.imageUrl,source_payload:{source:'oplaytcg',preview:true,queue_eligibility:['casual','new-cards','extended'],ranked_eligible:false,imported_at:now}};const {data:existingRule,error:ruleLookupError}=await supabase.from('tcg_card_rules').select('identity_id').eq('identity_id',identity.id).maybeSingle();if(ruleLookupError)throw ruleLookupError;const {data:existingLocalization,error:localizationLookupError}=await supabase.from('tcg_card_localizations').select('identity_id').eq('identity_id',identity.id).eq('language','EN').maybeSingle();if(localizationLookupError)throw localizationLookupError;const {data:existingPrinting,error:printingLookupError}=await supabase.from('tcg_card_printings').select('id').eq('identity_id',identity.id).eq('language','EN').eq('set_code',card.setCode).eq('variant','Preview').maybeSingle();if(printingLookupError)throw printingLookupError;const writes=await Promise.all([existingRule?supabase.from('tcg_card_rules').update(rule).eq('identity_id',existingRule.identity_id):supabase.from('tcg_card_rules').insert(rule),existingLocalization?supabase.from('tcg_card_localizations').update(localization).eq('identity_id',existingLocalization.identity_id).eq('language','EN'):supabase.from('tcg_card_localizations').insert(localization),existingPrinting?supabase.from('tcg_card_printings').update(printing).eq('id',existingPrinting.id):supabase.from('tcg_card_printings').insert(printing)]);for(const write of writes)if(write.error)throw write.error;
+ const {data:printingRow,error:printingRowLookupError}=await supabase.from('tcg_card_printings').select('id').eq('identity_id',identity.id).eq('language','EN').eq('set_code',card.setCode).eq('variant','Preview').single();if(printingRowLookupError||!printingRow)throw printingRowLookupError??new Error('Preview printing was not created.');
+ const response=await fetch(card.imageUrl);if(!response.ok)throw new Error(`Image returned ${response.status}`);const image=Buffer.from(await response.arrayBuffer());
+ const assets=[] as Array<{printing_id:string;kind:string;object_key:string;width:number}>;
+ for(const [kind,width,quality] of [['small',420,78]] as const){const body=await sharp(image).rotate().resize({width,withoutEnlargement:true}).webp({quality,effort:4}).toBuffer();const {error}=await supabase.storage.from(bucket).upload(objectKey(kind),body,{contentType:'image/webp',cacheControl:'31536000',upsert:true});if(error)throw error;assets.push({printing_id:printingRow.id,kind,object_key:objectKey(kind),width});}
+ for(const asset of assets){const {data:existingAsset,error:assetLookupError}=await supabase.from('tcg_card_assets').select('id').eq('printing_id',asset.printing_id).eq('kind',asset.kind).maybeSingle();if(assetLookupError)throw assetLookupError;const assetWrite=existingAsset?await supabase.from('tcg_card_assets').update(asset).eq('id',existingAsset.id):await supabase.from('tcg_card_assets').insert(asset);if(assetWrite.error)throw assetWrite.error;}
+ const source={printing_id:printingRow.id,source_type:'oplaytcg',source_url:card.imageUrl,rights_status:'user_requested_import_pending_review',observed_at:now,storage_path:objectKey('small'),storage_variants:{small:objectKey('small')},stored_format:'webp',approved_for_display:false,approved_for_storage:false};const {data:existingSource,error:sourceLookupError}=await supabase.from('tcg_card_asset_sources').select('id').eq('source_url',card.imageUrl).maybeSingle();if(sourceLookupError)throw sourceLookupError;const sourceWrite=existingSource?await supabase.from('tcg_card_asset_sources').update(source).eq('id',existingSource.id):await supabase.from('tcg_card_asset_sources').insert(source);if(sourceWrite.error)throw sourceWrite.error;
+ console.log(JSON.stringify({imported:card.code,printingId:printingRow.id,preview:true,rankedEligible:false},null,2));
+}
+await main();

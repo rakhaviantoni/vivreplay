@@ -9,9 +9,29 @@ import {displayCardName} from './card-name';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
 import {CardPreviewModal} from './card-preview-modal';
 import {createClient} from '@/utils/supabase/client';
+import {isPlayableSet} from '@/packages/domain/release-availability';
 
 type LibraryCard = Card & {setCode:string;setName:string;attribute:string;counter:number;block:string;keywords:string[];variant:string;printingCode:string};
 type FilterOption = string | {value:string;label:string};
+
+const keywordAliases=new Map([
+  ['rush','Rush'],['blocker','Blocker'],['when attacking','When Attacking'],['on play','On Play'],['on k.o.','On K.O.'],
+  ["on your opponent's attack","On Your Opponent's Attack"],['activate: main','Activate: Main'],['once per turn','Once Per Turn'],
+  ['trigger','Trigger'],['your turn','Your Turn'],["opponent's turn","Opponent's Turn"],['counter','Counter'],['main','Main'],
+]);
+
+function cardKeywords(effect:string|undefined|null){
+  const keywords=new Set<string>();
+  for(const match of (effect??'').matchAll(/\[([^\]]+)\]/g)){
+    const raw=match[1].replace(/\s+/g,' ').replace(/\s*:\s*/g,': ').trim();
+    const alias=keywordAliases.get(raw.toLowerCase());
+    if(alias)keywords.add(alias);
+    const don=raw.match(/^DON!!\s*(?:x|×)\s*(\d+)$/i);
+    if(don)keywords.add(`DON!! ×${don[1]}`);
+  }
+  if(/\bblocker\b/i.test(effect??''))keywords.add('Blocker');
+  return [...keywords];
+}
 
 /** Shared compact select used by the collection, market, and deck tools. */
 export function Picker({value,onChange,options,label}:{value:string;onChange:(v:string)=>void;options:FilterOption[];label:string}) {
@@ -106,8 +126,7 @@ export function Catalog({home=false,initialSet}:{home?:boolean;initialSet?:strin
     function toCards(rows:Record<string,unknown>[]){
       return Array.from(new Map(rows.map(row=>[String(row.id),row])).values()).map((row,index)=>{
         const identity=row.tcg_card_identities as {id:string;code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number;effect_text:string};
-        const keywords=[...identity.effect_text.matchAll(/\[([^\]]+)\]/g)].map(match=>match[1]).filter(Boolean);
-        if(/blocker/i.test(identity.effect_text)&&!keywords.some(keyword=>/block/i.test(keyword)))keywords.push('Blocker');
+        const keywords=cardKeywords(identity.effect_text);
         const payload=row.source_payload as {block?:string|number;block_value?:string|number}|null;
         const assets=(row.tcg_card_assets??[]) as Array<{kind:string;object_key:string}>;
         return {id:String(row.id),code:identity.code,name:displayCardName(identity.name,identity.code),color:identity.color,type:identity.card_type,cost:identity.cost,power:identity.power,rarity:String(row.rarity??''),art:index%6,effect:identity.effect_text,imageUrl:String(row.card_image_url||'')||undefined,imageSource:'external' as const,setCode:String(row.set_code??''),setName:String(row.set_name??row.set_code??''),language:String(row.language??''),attribute:String(row.attribute??''),counter:Number(row.counter_amount??0),block:blockForSet(String(row.set_code??''),payload),keywords,variant:String(row.variant??''),printingCode:String(row.printing_code??identity.code),assetPath:assets.find(asset=>asset.kind==='small')?.object_key};
@@ -121,7 +140,7 @@ export function Catalog({home=false,initialSet}:{home?:boolean;initialSet?:strin
         if((data??[]).length<1000)break;
       }
       if(active){
-        const mapped=toCards(rows);
+        const mapped=toCards(rows).filter(card=>isPlayableSet(card.setCode));
         mapped.sort((a,b)=>setRank(b.setCode)-setRank(a.setCode)||(a.type==='Leader'?0:1)-(b.type==='Leader'?0:1)||a.code.localeCompare(b.code));
         setLiveCards(mapped);
         setCatalogLoading(false);
@@ -139,7 +158,7 @@ export function Catalog({home=false,initialSet}:{home?:boolean;initialSet?:strin
     if(sortOrder==='leaders-latest') return leaderFirst||latestSet||a.code.localeCompare(b.code);
     if(sortOrder==='latest') return latestSet||a.code.localeCompare(b.code);
     return latestSet||leaderFirst||a.code.localeCompare(b.code);
-  }).filter(card => (card.name + card.code).toLowerCase().includes(query.toLowerCase()) && (!selectedColors.length || selectedColors.some(value=>card.color.includes(value))) && (!types.length || types.includes(card.type)) && (!rarities.length || rarities.includes(card.rarity)) && (!attributes.length || attributes.includes(card.attribute)) && (!counters.length || counters.includes(card.counter>0?`+${card.counter}`:'No counter')) && (!keywords.length || keywords.some(value=>card.keywords.some(keyword=>keyword.toLowerCase().includes(value.toLowerCase())))) && (!sets.length || sets.includes(card.setCode)) && (!blocks.length || blocks.includes(card.block)));
+  }).filter(card => (card.name + card.code).toLowerCase().includes(query.toLowerCase()) && (!selectedColors.length || selectedColors.some(value=>card.color.includes(value))) && (!types.length || types.includes(card.type)) && (!rarities.length || rarities.includes(card.rarity)) && (!attributes.length || attributes.includes(card.attribute)) && (!counters.length || counters.includes(card.counter>0?`+${card.counter}`:'No counter')) && (!keywords.length || keywords.some(value=>card.keywords.includes(value))) && (!sets.length || sets.includes(card.setCode)) && (!blocks.length || blocks.includes(card.block)));
   const groups = Array.from(filtered.reduce((map,card)=>{const group=map.get(card.code)??[];group.push(card);map.set(card.code,group);return map},new Map<string,LibraryCard[]>()).values()).map(group=>[...new Map(group.sort((a,b)=>printingPriority(a)-printingPriority(b)||a.printingCode.localeCompare(b.printingCode)).map(card=>[card.printingCode,card])).values()]);
   const headerCards=useMemo(()=>{const unique=Array.from(new Map(liveCards.map(card=>[card.code,card])).values());return [...unique].sort(()=>Math.random()-.5).slice(0,6)},[liveCards]);
 
@@ -154,7 +173,7 @@ export function Catalog({home=false,initialSet}:{home?:boolean;initialSet?:strin
     </section>
     <section className="library-controls" aria-label="Card library controls">
       <label className="search-box"><Search size={18}/><input placeholder="Search name or card number" value={query} onChange={e=>setQuery(e.target.value)}/></label>
-      <div className="filter-workbench"><div className="filter-primary"><MultiFilter label="Type" values={['Leader','Character','Event','Stage','DON!!']} selected={types} onToggle={value=>setTypes(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])}/><MultiFilter label="Colour" values={Object.keys(colors)} selected={selectedColors} onToggle={value=>setSelectedColors(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])}/><MultiFilter label="Attribute" values={[...new Set(liveCards.map(card=>card.attribute).filter(Boolean))].sort()} selected={attributes} onToggle={value=>setAttributes(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])}/><MultiFilter label="Rarity" values={[...new Set(liveCards.map(card=>card.rarity).filter(Boolean))].sort()} selected={rarities} onToggle={value=>setRarities(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])}/><MultiFilter label="Counter" values={[...new Set(liveCards.map(card=>card.counter>0?`+${card.counter}`:'No counter'))].sort()} selected={counters} onToggle={value=>setCounters(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])}/><MultiFilter label="Keyword" values={[...new Set(liveCards.flatMap(card=>card.keywords).filter(keyword=>/^(Rush|Blocker|When Attacking|On Play|On K\.O\.|On Your Opponent's Attack|Activate: Main|Once Per Turn|Trigger|Your Turn|Opponent's Turn|Counter|DON!!)/i.test(keyword)))].sort()} selected={keywords} onToggle={value=>setKeywords(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])}/><MultiFilter label="Block" values={['1','2','3','4','5','X']} selected={blocks} onToggle={value=>setBlocks(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])}/><MultiFilter label="Set" values={[...new Map(liveCards.map(card=>[card.setCode,{value:card.setCode,label:`${card.setCode} — ${card.setName}`}])).values()]} selected={sets} onToggle={value=>setSets(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])}/></div><div className="filter-secondary"><SortOrderPicker value={sortOrder} onChange={setSortOrder}/><GridDensity value={gridColumns} onChange={setGridColumns}/><div className="language-switch" aria-label="Printing language"><button aria-pressed={language==='EN'} onClick={()=>{setLanguage('EN');setCatalogPage(0);setCatalogLoading(true)}}>EN</button><button aria-pressed={language==='JP'} onClick={()=>{setLanguage('JP');setCatalogPage(0);setCatalogLoading(true)}}>JP</button></div>{(selectedColors.length||types.length||rarities.length||attributes.length||counters.length||keywords.length||blocks.length||sets.length||query)&&<div className="filter-status"><button onClick={()=>{setQuery('');setColor('All colors');setSelectedColors([]);setTypes([]);setRarities([]);setAttributes([]);setCounters([]);setKeywords([]);setBlocks([]);setSets([])}}><X size={13}/>Clear</button></div>}</div></div>
+      <div className="filter-workbench"><div className="filter-primary"><MultiFilter label="Type" values={['Leader','Character','Event','Stage','DON!!']} selected={types} onToggle={value=>setTypes(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])}/><MultiFilter label="Colour" values={Object.keys(colors)} selected={selectedColors} onToggle={value=>setSelectedColors(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])}/><MultiFilter label="Attribute" values={[...new Set(liveCards.map(card=>card.attribute).filter(Boolean))].sort()} selected={attributes} onToggle={value=>setAttributes(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])}/><MultiFilter label="Rarity" values={[...new Set(liveCards.map(card=>card.rarity).filter(Boolean))].sort()} selected={rarities} onToggle={value=>setRarities(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])}/><MultiFilter label="Counter" values={[...new Set(liveCards.map(card=>card.counter>0?`+${card.counter}`:'No counter'))].sort()} selected={counters} onToggle={value=>setCounters(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])}/><MultiFilter label="Keyword" values={[...new Set(liveCards.flatMap(card=>card.keywords))].sort()} selected={keywords} onToggle={value=>setKeywords(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])}/><MultiFilter label="Block" values={['1','2','3','4','5','X']} selected={blocks} onToggle={value=>setBlocks(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])}/><MultiFilter label="Set" values={[...new Map(liveCards.map(card=>[card.setCode,{value:card.setCode,label:`${card.setCode} — ${card.setName}`}])).values()]} selected={sets} onToggle={value=>setSets(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])}/></div><div className="filter-secondary"><SortOrderPicker value={sortOrder} onChange={setSortOrder}/><GridDensity value={gridColumns} onChange={setGridColumns}/><div className="language-switch" aria-label="Printing language"><button aria-pressed={language==='EN'} onClick={()=>{setLanguage('EN');setCatalogPage(0);setCatalogLoading(true)}}>EN</button><button aria-pressed={language==='JP'} onClick={()=>{setLanguage('JP');setCatalogPage(0);setCatalogLoading(true)}}>JP</button></div>{(selectedColors.length||types.length||rarities.length||attributes.length||counters.length||keywords.length||blocks.length||sets.length||query)&&<div className="filter-status"><button onClick={()=>{setQuery('');setColor('All colors');setSelectedColors([]);setTypes([]);setRarities([]);setAttributes([]);setCounters([]);setKeywords([]);setBlocks([]);setSets([])}}><X size={13}/>Clear</button></div>}</div></div>
     </section>
     <div className="card-grid" style={{'--catalog-grid-mode':gridColumns==='auto'?'auto-fit':gridColumns} as React.CSSProperties}>
       {groups.slice(0,(catalogPage+1)*240).map(variants=><CatalogTile key={variants[0].id} primary={variants[0]} variants={variants} language={language} onOpen={(card,origin)=>{setPreviewOrigin(origin);setPreview(card)}}/>)}
