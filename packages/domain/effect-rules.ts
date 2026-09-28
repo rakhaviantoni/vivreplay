@@ -2,7 +2,7 @@ import type {Card} from '../card-data/catalog';
 import {customResolverStatus} from './custom-effect-resolvers';
 
 export type EffectTrigger='on-play'|'when-attacking'|'activate-main'|'main'|'trigger'|'counter'|'on-ko'|'on-block'|'opponent-attack'|'end-turn'|'continuous'|'unknown';
-export type EffectTarget='self'|'own-character'|'own-leader'|'opponent-character'|'opponent-leader'|'opponent-hand'|'deck'|'trash'|'life';
+export type EffectTarget='own-card'|'self'|'own-character'|'own-leader'|'opponent-character'|'opponent-leader'|'opponent-hand'|'deck'|'trash'|'life';
 export type EffectAction=(
  | {kind:'draw';amount:number}
  | {kind:'reorder-deck';amount:number;position:'top'|'bottom'}
@@ -31,7 +31,7 @@ export type EffectAction=(
  | {kind:'reveal';source:'deck'|'life';amount:number}
  | {kind:'life';operation:'add-to-hand'|'add-to-life'|'trash';amount:number}
  | {kind:'grant-keyword';keyword:'rush'|'blocker'|'double-attack'|'banish'|'unblockable';until:'turn-end'|'battle'}
- | {kind:'hand-reset';scope:'self'|'opponent';draw?:number}
+ | {kind:'hand-reset';scope:'self'|'opponent';draw?:number;shuffle?:boolean}
  | {kind:'shuffle';scope:'self'|'opponent'}
  | {kind:'recover';source:'trash';destination:'hand';amount:number;maxCost?:number;trait?:string;color?:string;excludeName?:string}
  | {kind:'attack-permission';scope:'own-character';activeTargets?:boolean}
@@ -81,17 +81,18 @@ const powerLimit=(text:string)=>{const match=text.match(/(\d+)\s+power or less/i
 function parseEffectText(source:string):ParsedEffect[]{
  const text=source.replace(/^NULL$/i,'').replace(/−/g,'-').trim();
  if(!text)return [{trigger:'unknown',actions:[],costs:[],conditions:[],optional:false,source:''}];
- const trigger:EffectTrigger=/\[On Play\]/i.test(text)?'on-play':/\[When Attacking\]/i.test(text)?'when-attacking':/\[Activate\s*:\s*Main\]/i.test(text)?'activate-main':/\[Main\]/i.test(text)?'main':/\[Counter\]/i.test(text)?'counter':/\[Trigger\]/i.test(text)?'trigger':/\[On K\.O\.\]/i.test(text)?'on-ko':/\[On Block\]/i.test(text)?'on-block':/\[On Your Opponent's Attack\]/i.test(text)?'opponent-attack':/\[End of Your Turn\]/i.test(text)?'end-turn':/\[(?:Your Turn|Opponent's Turn|Once Per Turn)\]/i.test(text)?'continuous':'unknown';
+ const timingText=text.replace(/activate this card's \[(?:Main|Counter|On Play)\] effect/gi,'');
+ const trigger:EffectTrigger=/\[On Play\]/i.test(timingText)?'on-play':/\[When Attacking\]/i.test(timingText)?'when-attacking':/\[Activate\s*:\s*Main\]/i.test(timingText)?'activate-main':/\[Main\]/i.test(timingText)?'main':/\[Counter\]/i.test(timingText)?'counter':/\[Trigger\]/i.test(timingText)?'trigger':/\[On K\.O\.\]/i.test(timingText)?'on-ko':/\[On Block\]/i.test(timingText)?'on-block':/\[On Your Opponent's Attack\]/i.test(timingText)?'opponent-attack':/\[End of Your Turn\]/i.test(timingText)?'end-turn':/\[(?:Your Turn|Opponent's Turn|Once Per Turn)\]/i.test(timingText)?'continuous':'unknown';
  const actions:EffectAction[]=[]; const costs:EffectCost[]=[]; const conditions:EffectCondition[]=[]; const optional=/\bYou may\b/i.test(text);
  for(const match of text.matchAll(/\bIf\s+([^,:]+)(?:[:,])/gi)) conditions.push({kind:'text',text:match[1].trim()});
  const draw=numberAfter(text,/draw\s+(\d+)\s+card/i); if(draw)actions.push({kind:'draw',amount:draw});
  if(/^(?:\[Your Turn\]\s*)?Your Turn\s*\+1000$/i.test(text))actions.push({kind:'don-power',amount:1000,during:'your-turn'});
  if(/^(?:\[Opponent's Turn\]\s*)?Opponent's Turn\s*\+1000$/i.test(text))actions.push({kind:'don-power',amount:1000,during:'opponent-turn'});
  if(/draw cards? equal to the number you returned to your deck/i.test(text))actions.push({kind:'draw-by',source:'returned-hand'});
- const resetMatch=text.match(/(you|your opponent) returns? all cards? in (?:their|your) hand to (?:their|your) deck.*?draws? (\d+) cards?/i); if(resetMatch)actions.push({kind:'hand-reset',scope:/opponent/i.test(resetMatch[1])?'opponent':'self',draw:Number(resetMatch[2])});
+ const resetMatch=text.match(/(you|your opponent) returns? all cards? in (?:their|your) hand to (?:their|your) deck.*?draws? (\d+) cards?/i); if(resetMatch){const drawIndex=actions.findIndex(action=>action.kind==='draw');if(drawIndex>=0)actions.splice(drawIndex,1);actions.push({kind:'hand-reset',scope:/opponent/i.test(resetMatch[1])?'opponent':'self',draw:Number(resetMatch[2]),shuffle:/shuffl/i.test(resetMatch[0])});}
  if(/(?:you|your opponent) returns? all cards? in (?:their|your) hand to (?:their|your) deck/i.test(text)&&!resetMatch)actions.push({kind:'hand-reset',scope:/your opponent/i.test(text)?'opponent':'self'});
  if(/place all cards in your hand at the bottom of your deck/i.test(text))actions.push({kind:'bottom-deck-hand',scope:'self',amount:'all'});
- if(/(?:you|your opponent) (?:shuffles?|shuffle) (?:their|your) deck/i.test(text))actions.push({kind:'shuffle',scope:/your opponent/i.test(text)?'opponent':'self'});
+ if(!resetMatch&&/(?:you|your opponent) (?:shuffles?|shuffle) (?:their|your) deck/i.test(text))actions.push({kind:'shuffle',scope:/your opponent/i.test(text)?'opponent':'self'});
  const trashRecovery=text.match(/add up to (\d+) .*?(?:Character )?cards?.*?from your trash to your hand/i); if(trashRecovery)actions.push({kind:'recover',source:'trash',destination:'hand',amount:Number(trashRecovery[1]),maxCost:costLimit(text),trait:text.match(/\[([^\]]+)\] (?:or \[[^\]]+\] )?type (?:Character )?cards?/i)?.[1]});
  const broadRecovery=text.match(/(?:add|select) up to (\d+) .*?from your trash (?:to your hand|and play)/i); if(broadRecovery){const source=broadRecovery[0];const trait=source.match(/(?:\{|\[|\")([^}\]\"]+)(?:\}|\]|\") type/i)?.[1];const color=source.match(/\b(black|blue|red|green|purple|yellow) (?:Character|card)/i)?.[1];const excludeName=source.match(/other than \[([^\]]+)\]/i)?.[1];actions.push({kind:'recover',source:'trash',destination:'hand',amount:Number(broadRecovery[1]),maxCost:costLimit(source),...(trait?{trait}:{}),...(color?{color}:{}),...(excludeName?{excludeName}:{})});}
  const fixedPower=text.match(/set the power of up to \d+ of your opponent's Characters? to (\d+)/i); if(fixedPower)actions.push({kind:'set-power',amount:Number(fixedPower[1]),target:'opponent-character',until:'turn-end'});
@@ -99,7 +100,7 @@ function parseEffectText(source:string):ParsedEffect[]{
  const selfPower=text.match(/give this Character ([+\-]?\d+) power/i); if(selfPower)actions.push({kind:'power',amount:Number(selfPower[1]),until:/during this battle/i.test(text)?'battle':'turn-end',target:'own-character'});
  const opponentCardPower=text.match(/give up to \d+ of your opponent's Leader or Character cards? ([+\-]?\d+) power/i); if(opponentCardPower)actions.push({kind:'power',amount:Number(opponentCardPower[1]),until:'turn-end',target:'opponent-character'});
  const fixedCost=text.match(/set the cost of up to \d+ of your opponent's Characters?.*?to (\d+) during this turn/i); if(fixedCost)actions.push({kind:'set-cost',amount:Number(fixedCost[1]),target:'opponent-character',until:'turn-end'});
- const power=Number(text.match(/([+\-]\d+)\s*power/i)?.[1]??0); if(power)actions.push({kind:'power',amount:power,until:/during this battle/i.test(text)?'battle':'turn-end',target:/opponent/i.test(text)?'opponent-character':/Leader/i.test(text)?'own-leader':'own-character'});
+ const power=Number(text.match(/([+\-]\d+)\s*power/i)?.[1]??0); if(power)actions.push({kind:'power',amount:power,until:/during this battle/i.test(text)?'battle':'turn-end',...(/Up to 1 of your Leader or Character cards gains/i.test(text)?{selection:{min:0,max:1}}:{}),target:/Up to 1 of your Leader or Character cards gains/i.test(text)?'own-card':/opponent/i.test(text)?'opponent-character':/Leader/i.test(text)?'own-leader':'own-character'});
  const cost=Number(text.match(/([+\-]\d+)\s*cost/i)?.[1]??0); if(cost)actions.push({kind:'cost',amount:cost,target:'opponent-character'});
  if(/K\.O\.\s+(?:all|(?:up to\s+)?\d*\s*(?:of your opponent's )?(?:rested )?characters?)/i.test(text))actions.push({kind:'ko',maxCost:costLimit(text),maxPower:powerLimit(text),restedOnly:/rested Characters?/i.test(text)});
  if(!actions.some(action=>action.kind==='ko')&&/K\.O\.\s+(?:up to\s+)?\d+\s+of your opponent's .*?Characters?/i.test(text))actions.push({kind:'ko',maxCost:costLimit(text),maxPower:powerLimit(text),restedOnly:/rested Characters?/i.test(text)});
@@ -135,7 +136,7 @@ function parseEffectText(source:string):ParsedEffect[]{
  if(reorderOnly)actions.push({kind:'reorder-deck',amount:look,position:'top'});
  if(look&&!reorderOnly){
   const cardType=text.match(/(?:up to\s+)?\d+\s+(?:\{[^}]+\}\s+type\s+)?(Character|Event|Stage|Leader)\s+card/i)?.[1] as Card['type']|undefined;
-  const trait=text.match(/(?:up to\s+)?\d+\s+\{([^}]+)\}\s+type(?:\s+(?:Character|Event|Stage|Leader))?\s+card/i)?.[1]??text.match(/(?:reveal|add)\s+(?:up to\s+)?\d+\s+\"([^\"]+)\"\s+type\s+card/i)?.[1]??text.match(/(?:reveal|add)\s+(?:up to\s+)?\d+\s+card with a type including\s+\"([^\"]+)\"/i)?.[1];
+  const trait=text.match(/(?:up to\s+)?\d+\s+\{([^}]+)\}\s+type(?:\s+(?:Character|Event|Stage|Leader))?\s+card/i)?.[1]??text.match(/(?:reveal|add)\s+(?:up to\s+)?\d+\s+\[([^\]]+)\]\s+type(?:\s+(?:Character|Event|Stage|Leader))?\s+card/i)?.[1]??text.match(/(?:reveal|add)\s+(?:up to\s+)?\d+\s+\"([^\"]+)\"\s+type\s+card/i)?.[1]??text.match(/(?:reveal|add)\s+(?:up to\s+)?\d+\s+card with a type including\s+\"([^\"]+)\"/i)?.[1];
   const excludeName=text.match(/other than\s+\[([^\]]+)\]/i)?.[1];
   const choose=numberAfter(text,/(?:reveal|add|choose)\s+(?:up to\s+)?(\d+)\s+(?:card|Character|Event|Stage|red Character)/i)||1;
   const namedOrColour=text.match(/reveal\s+(?:up to\s+)?(\d+)\s+\[([^\]]+)\]\s+or\s+(red|green|blue|purple|black|yellow)\s+(Event|Character|Stage)\b/i);
@@ -214,8 +215,9 @@ function parseEffectText(source:string):ParsedEffect[]{
 export function parseEffects(card:Card):ParsedEffect[]{
  const text=(card.effect??'').replace(/^NULL$/i,'').trim();
  if(!text)return [{trigger:'unknown',actions:[],costs:[],conditions:[],optional:false,source:''}];
- const boundaries=[...text.matchAll(/\[(?:On Play|When Attacking|Activate\s*:\s*Main|Main|Counter|Trigger|On K\.O\.|On Block|On Your Opponent's Attack|Your Turn|Opponent's Turn|End of Your Turn)\]/gim)].filter(marker=>{
+ const boundaries=[...text.matchAll(/\[(?:On Play|When Attacking|Activate\s*:\s*Main|Main|Counter|Trigger|On K\.O\.|On Block|On Your Opponent's Attack|Your Turn|Opponent's Turn|End of Your Turn|Once Per Turn)\]/gim)].filter(marker=>{
   const prefix=text.slice(0,marker.index),suffix=text.slice(marker.index!+marker[0].length);
+  if(/Once Per Turn/i.test(marker[0]))return /\.\s*\n\s*$/.test(prefix)&&/^\s*When\b/i.test(suffix);
   return !/with\s+(?:(?:a|an)\s+)?$/i.test(prefix)&&!/^\s+effects?\b/i.test(suffix);
  });
  if(!boundaries.length)return parseEffectText(text);

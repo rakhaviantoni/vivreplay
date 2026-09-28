@@ -528,3 +528,53 @@ test('effect plays reject Events and replace an existing Stage',()=>{
  assert.equal(result.state.cards.find(card=>card.id==='old-stage')?.zone,'trash');
  assert.equal(result.state.cards.find(card=>card.id==='new-stage')?.zone,'stage');
 });
+
+test('full-field normal play waits for replacement without paying DON!! early',()=>{
+ const initial:MatchEffectState={...state(),cards:[...Array.from({length:5},(_,i)=>({id:`c${i}`,owner:'player' as const,zone:'character' as const,type:'Character' as const})),{id:'new',owner:'player',zone:'hand',type:'Character',cost:1},{id:'don',owner:'player',zone:'cost-area',type:'DON!!'},{id:'attached',owner:'player',zone:'cost-area',type:'DON!!',attachedTo:'c0'}]};
+ const pending=playCard(initial,'player','new');
+ assert.ok(pending.requiresSelection);
+ assert.deepEqual(pending.state,initial);
+ assert.ok(playCard(initial,'player','new',['new']).error);
+ const played=playCard(initial,'player','new',['c0']);
+ assert.equal(played.error,undefined);
+ assert.equal(played.state.cards.filter(card=>card.zone==='character').length,5);
+ assert.equal(played.state.cards.find(card=>card.id==='c0')?.zone,'trash');
+ assert.equal(played.state.cards.find(card=>card.id==='attached')?.attachedTo,undefined);
+ assert.equal(played.state.cards.find(card=>card.id==='don')?.rested,true);
+});
+
+test('full-field effect play validates replacement before mutating either card',()=>{
+ const initial:MatchEffectState={...state(),cards:[...Array.from({length:5},(_,i)=>({id:`c${i}`,owner:'player' as const,zone:'character' as const,type:'Character' as const})),{id:'new',owner:'player',zone:'trash',type:'Character',cost:2},{id:'enemy',owner:'opponent',zone:'character',type:'Character'}]};
+ const action={kind:'play',source:'trash',amount:1,maxCost:2,rested:true} as const;
+ assert.ok(applyEffectAction(initial,'player',action,{cardIds:['new']}).requiresSelection);
+ const invalid=applyEffectAction(initial,'player',action,{cardIds:['new'],replacementIds:['enemy']});
+ assert.ok(invalid.error);assert.deepEqual(invalid.state,initial);
+ const played=applyEffectAction(initial,'player',action,{cardIds:['new'],replacementIds:['c2']});
+ assert.equal(played.state.cards.find(card=>card.id==='c2')?.zone,'trash');
+ assert.equal(played.state.cards.find(card=>card.id==='new')?.rested,true);
+ assert.equal(played.state.cards.filter(card=>card.owner==='player'&&card.zone==='character').length,5);
+});
+
+test('attached DON!! cannot pay a normal play or an activation rest cost',()=>{
+ const initial:MatchEffectState={...state(),cards:[{id:'incoming',owner:'player',zone:'hand',type:'Character',cost:1},{id:'attached',owner:'player',zone:'cost-area',type:'DON!!',attachedTo:'leader',rested:false}]};
+ assert.ok(playCard(initial,'player','incoming').error);
+ assert.ok(payEffectCost(initial,'player',{kind:'rest',scope:'don',amount:1,optional:true},{cardIds:['attached']}).error);
+});
+
+test('shuffle changes only the selected owner’s deck and preserves every card',async()=>{
+ const {shuffleDeck}=await import('../packages/domain/match-effect-state');
+ const initial:MatchEffectState={...state(),cards:[{id:'a',owner:'player',zone:'deck'},{id:'enemy',owner:'opponent',zone:'deck'},{id:'b',owner:'player',zone:'deck'},{id:'hand',owner:'player',zone:'hand'},{id:'c',owner:'player',zone:'deck'}]};
+ const shuffled=shuffleDeck(initial,'player',()=>0);
+ assert.deepEqual(shuffled.cards.filter(card=>card.owner==='player'&&card.zone==='deck').map(card=>card.id),['b','c','a']);
+ assert.equal(shuffled.cards[1],initial.cards[1]);
+ assert.equal(shuffled.cards[3],initial.cards[3]);
+ assert.deepEqual([...shuffled.cards.map(card=>card.id)].sort(),[...initial.cards.map(card=>card.id)].sort());
+ assert.deepEqual(initial.cards.map(card=>card.id),['a','enemy','b','hand','c']);
+});
+
+test('hand reset keeps returned cards below the remaining deck when no shuffle is printed',()=>{
+ const initial:MatchEffectState={...state(),cards:[{id:'held',owner:'player',zone:'hand'},...['a','b','c'].map(id=>({id,owner:'player' as const,zone:'deck' as const}))]};
+ const result=applyEffectAction(initial,'player',{kind:'hand-reset',scope:'self',draw:1});
+ assert.deepEqual(result.state.cards.filter(card=>card.zone==='deck').map(card=>card.id),['b','c','held']);
+ assert.deepEqual(result.state.cards.filter(card=>card.zone==='hand').map(card=>card.id),['a']);
+});

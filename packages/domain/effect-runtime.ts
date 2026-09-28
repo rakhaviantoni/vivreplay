@@ -8,7 +8,8 @@ export type RuntimeResolution={status:'ready'|'custom';commands:EffectCommand[];
 export type CardEffectResolution=RuntimeResolution&{actions:EffectAction[];costs:EffectCost[]};
 
 /** Converts a timing window into its ordered, executable resolution contract. */
-export function resolveEffectTiming(document:EffectDocument,timing:EffectTrigger):RuntimeResolution{
+export function resolveEffectTiming(document:EffectDocument,timing:EffectTrigger,visited:EffectTrigger[]=[]):RuntimeResolution{
+ if(visited.includes(timing))return {status:'custom',commands:[],handler:'CYCLIC_EFFECT_REFERENCE'};
  const windows=document.normalized.filter(effect=>effect.timing===timing);
  const custom=windows.flatMap(effect=>effect.sequence).find(step=>step.type==='RESOLVE'&&step.action.kind==='custom-resolver');
  if(custom?.type==='RESOLVE'&&custom.action.kind==='custom-resolver'){
@@ -16,7 +17,29 @@ export function resolveEffectTiming(document:EffectDocument,timing:EffectTrigger
   const resolved=resolveCustomEffect(handler);
   return resolved.status==='ready'?{status:'ready',commands:[],instructions:resolved.instructions,handler}:{status:'custom',commands:[],handler};
  }
- const commands=document.normalized.filter(effect=>effect.timing===timing).flatMap((effect,abilityId)=>effect.sequence.map(step=>step.type==='PAY_COST'?{abilityId,conditions:effect.conditions.map(condition=>condition.text),kind:'pay-cost' as const,value:step.cost}:{abilityId,conditions:effect.conditions.map(condition=>condition.text),kind:'resolve-action' as const,value:step.action}));
+ const commands:EffectCommand[]=[];
+ let nextAbilityId=0;
+ for(const effect of windows){
+  const abilityId=nextAbilityId++,conditions=effect.conditions.map(condition=>condition.text);
+  for(const step of effect.sequence){
+   if(step.type==='PAY_COST'){commands.push({abilityId,conditions,kind:'pay-cost',value:step.cost});continue;}
+   const action=step.action;
+   if(action.kind==='activate-main-effect'||action.kind==='activate-referenced-effect'){
+    // Older stored schemas emitted both Main aliases for one printed reference.
+    if(action.kind==='activate-main-effect'&&effect.sequence.some(s=>s.type==='RESOLVE'&&s.action.kind==='activate-referenced-effect'&&s.action.trigger==='main'))continue;
+    const reference=action.kind==='activate-main-effect'?'main':action.trigger;
+    if(!document.normalized.some(e=>e.timing===reference))return {status:'custom',commands:[],handler:'MISSING_EFFECT_REFERENCE'};
+    const nested=resolveEffectTiming(document,reference,[...visited,timing]);
+    if(nested.status!=='ready'||nested.instructions)return {status:'custom',commands:[],handler:nested.handler};
+    const ids=new Map<number,number>();
+    for(const command of nested.commands){
+     const nestedId=command.abilityId??0;
+     if(!ids.has(nestedId))ids.set(nestedId,nextAbilityId++);
+     commands.push({...command,abilityId:ids.get(nestedId),conditions:[...conditions,...command.conditions??[]]});
+    }
+   }else commands.push({abilityId,conditions,kind:'resolve-action',value:action});
+  }
+ }
  return {status:'ready',commands};
 }
 

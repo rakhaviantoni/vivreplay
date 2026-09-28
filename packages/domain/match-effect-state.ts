@@ -8,7 +8,7 @@ export type CardZone='deck'|'hand'|'life'|'trash'|'character'|'leader'|'stage'|'
 export type MatchCard={id:string;owner:PlayerId;zone:CardZone;type?:'Character'|'Leader'|'Stage'|'Event'|'DON!!';cost?:number;power?:number;counter?:number;name?:string;color?:string;traits?:string[];rested?:boolean;attachedTo?:string;faceUp?:boolean;keywords?:string[];powerModifier?:number;costModifier?:number;temporaryKeywords?:string[];cannotAttack?:boolean;cannotReady?:boolean;effectNegated?:boolean;preventKo?:'battle'|'effect'|'any';effectText?:string;effectSchema?:EffectDocument;code?:string};
 export type TurnPhase='refresh'|'draw'|'don'|'main'|'end';
 export type MatchEffectState={cards:MatchCard[];turn:PlayerId;turnEffects:Array<{kind:string;target?:string;amount?:number;detail?:string;expires?:'battle'|'turn-end'}>;restrictions:string[];delayed:Array<{when:'next-main-phase'|'end-turn'|'replacement';instruction:string}>;phase?:TurnPhase;turnNumber?:number;firstPlayer?:PlayerId;playedThisTurn?:string[]};
-export type EffectSelection={owner?:PlayerId;position?:'top'|'bottom';cardIds?:string[];targetId?:string;choice?:string};
+export type EffectSelection={replacementIds?:string[];owner?:PlayerId;position?:'top'|'bottom';cardIds?:string[];targetId?:string;choice?:string};
 export type EffectStepResult={state:MatchEffectState;requiresSelection?:string;error?:string};
 
 const other=(player:PlayerId):PlayerId=>player==='player'?'opponent':'player';
@@ -57,8 +57,15 @@ export function expireEffectModifiers(state:MatchEffectState,window:'battle'|'tu
  return {...state,cards,turnEffects:remaining};
 }
 
+export function shuffleDeck(state:MatchEffectState,owner:PlayerId,random:()=>number=Math.random):MatchEffectState{
+ const deck=cardsFor(state,owner,'deck').slice();
+ for(let index=deck.length-1;index>0;index--){const sample=random();if(sample<0||sample>=1||!Number.isFinite(sample))throw new Error('Shuffle random values must be in [0, 1).');const otherIndex=Math.floor(sample*(index+1));[deck[index],deck[otherIndex]]=[deck[otherIndex],deck[index]];}
+ let index=0;
+ return {...state,cards:state.cards.map(card=>card.owner===owner&&card.zone==='deck'?deck[index++]:card)};
+}
+
 export type TurnStartResult={state:MatchEffectState;drawnCardId?:string;addedDonIds:string[];gameOver?:PlayerId};
-export type CardPlayResult={state:MatchEffectState;playedCardId?:string;error?:string};
+export type CardPlayResult={state:MatchEffectState;playedCardId?:string;requiresSelection?:string;error?:string};
 export type AttackDeclaration={state:MatchEffectState;error?:string};
 export type CounterResult={state:MatchEffectState;total:number;error?:string};
 
@@ -78,21 +85,32 @@ export function beginTurn(state:MatchEffectState,actor:PlayerId,turnNumber=(stat
  return {state:nextState,drawnCardId:drawn?.id,addedDonIds:dons.map(card=>card.id),gameOver:!firstTurn&&deck.length===1?actor:undefined};
 }
 
+function replaceCharactersForPlay(state:MatchEffectState,actor:PlayerId,incoming:number,ids?:string[]):EffectStepResult{
+ const field=cardsFor(state,actor,'character');
+ const required=Math.max(0,field.length+incoming-5);
+ if(!required)return ids?.length?{state,error:'No Character replacement is needed.'}:{state};
+ if(!ids)return {state,requiresSelection:`Choose ${required} existing Character${required===1?'':'s'} to trash before playing.`};
+ if(ids.length!==required||new Set(ids).size!==ids.length||ids.some(id=>!field.some(card=>card.id===id)))return {state,error:'Choose the required number of different Characters from your Character area.'};
+ return {state:ids.reduce((next,id)=>move(next,id,'trash'),state)};
+}
+
 /** Pays a normal card cost with active DON!! and applies the ordinary play destination. */
-export function playCard(state:MatchEffectState,actor:PlayerId,cardId:string):CardPlayResult{
+export function playCard(state:MatchEffectState,actor:PlayerId,cardId:string,replacementIds?:string[]):CardPlayResult{
  if(state.phase&&state.phase!=='main')return {state,error:'Cards can only be played during the Main Phase.'};
  const card=state.cards.find(item=>item.id===cardId);
  if(!card||card.owner!==actor||card.zone!=='hand'||!['Character','Stage','Event'].includes(card.type??''))return {state,error:'Select a Character, Stage, or Event from your hand.'};
  if(card.type==='Event'&&!card.keywords?.includes('main'))return {state,error:'Only an Event with [Main] can be activated during the Main Phase.'};
- const cost=card.cost??0;const donors=cardsFor(state,actor,'cost-area').filter(item=>item.type==='DON!!'&&!item.rested).slice(0,cost);
+ const cost=card.cost??0;const donors=cardsFor(state,actor,'cost-area').filter(item=>item.type==='DON!!'&&!item.rested&&!item.attachedTo).slice(0,cost);
  if(donors.length!==cost)return {state,error:'There are not enough active DON!! cards to pay this cost.'};
- const next=state.cards.map(item=>donors.some(don=>don.id===item.id)?{...item,rested:true}:item).map(item=>{
+ const capacity=replaceCharactersForPlay(state,actor,card.type==='Character'?1:0,replacementIds);
+ if(capacity.error||capacity.requiresSelection)return capacity;
+ const next=capacity.state.cards.map(item=>donors.some(don=>don.id===item.id)?{...item,rested:true}:item).map(item=>{
   if(item.id!==cardId)return item;
   if(item.type==='Event')return {...item,zone:'trash' as CardZone,rested:false};
   return {...item,zone:(item.type==='Stage'?'stage':'character') as CardZone,rested:false};
  });
  const withStageReplacement=card.type==='Stage'?next.map(item=>item.owner===actor&&item.zone==='stage'&&item.id!==cardId?{...item,zone:'trash' as CardZone,rested:false}:item):next;
- return {state:{...state,cards:withStageReplacement,playedThisTurn:[...(state.playedThisTurn??[]),cardId]},playedCardId:cardId};
+ return {state:{...capacity.state,cards:withStageReplacement,playedThisTurn:[...(state.playedThisTurn??[]),cardId]},playedCardId:cardId};
 }
 
 /** An attack rests its active attacker; new Characters need Rush and the first player cannot attack on turn one. */
@@ -123,7 +141,7 @@ export function playCounters(state:MatchEffectState,defender:PlayerId,cardIds:st
 export function applyEffectAction(state:MatchEffectState,actor:PlayerId,action:EffectAction,selection:EffectSelection={}):EffectStepResult{
  if(selection.cardIds&&new Set(selection.cardIds).size!==selection.cardIds.length)return {state,error:'Each selected card must be unique.'};
  if(action.selection){
-  if(!['ko','rest','cost'].includes(action.kind))return {state,error:'Target-count metadata is unsupported for this action.'};
+  if(!['ko','rest','cost','power'].includes(action.kind))return {state,error:'Target-count metadata is unsupported for this action.'};
   const single={...action,selection:undefined};
   const candidates=state.cards.filter(card=>{const result=applyEffectAction(state,actor,single,{targetId:card.id});return !result.error&&!result.requiresSelection;});
   const all=action.selection.max==='all';
@@ -177,7 +195,7 @@ export function applyEffectAction(state:MatchEffectState,actor:PlayerId,action:E
    const untouched=state.cards.filter(card=>!revealed.some(item=>item.id===card.id));
    return {state:{...state,cards:[...untouched,...cards.map(card=>({...card,zone:'hand' as const})),...remainder.map(card=>({...card,zone:action.destination==='trash'?'trash' as const:'deck' as const}))]}};
   }
-  case 'play':{if(selection.cardIds?.length===0)return {state};const cards=targetCards();if(!cards.length)return {state,requiresSelection:'Select a card to play.'};if(cards.length!==(selection.cardIds?.length??1))return {state,error:'A selected play card does not exist.'};if(cards.length>(action.amount??1))return {state,error:'Too many cards selected.'};const legal=cards.every(card=>['Character','Stage'].includes(card.type??'')&&legalOwner(card,actor)&&card.zone===action.source&&(action.maxCost===undefined||(card.cost??Infinity)<=action.maxCost)&&(!action.trait||card.traits?.some(trait=>trait.toLowerCase()===action.trait!.toLowerCase()))&&(!action.color||card.color?.split(/[\s/]+/).some(color=>color.toLowerCase()===action.color!.toLowerCase()))&&(!action.excludeName||card.name?.toLowerCase()!==action.excludeName.toLowerCase()));if(!legal)return {state,error:'Selected card does not satisfy the printed play restriction.'};const characters=cards.filter(card=>card.type==='Character');if(cardsFor(state,actor,'character').length+characters.length>5)return {state,error:'Choose a Character to replace before playing beyond the five-Character limit.'};if(cards.filter(card=>card.type==='Stage').length>1)return {state,error:'Only one Stage can be played at a time.'};let next=state;if(cards.some(card=>card.type==='Stage'))for(const stage of cardsFor(state,actor,'stage'))next=move(next,stage.id,'trash');for(const card of cards)next=move(next,card.id,card.type==='Stage'?'stage':'character',{rested:Boolean(action.rested),faceUp:undefined});return {state:{...next,playedThisTurn:[...new Set([...(next.playedThisTurn??[]),...characters.map(card=>card.id)])]}};}
+  case 'play':{if(selection.cardIds?.length===0)return {state};const cards=targetCards();if(!cards.length)return {state,requiresSelection:'Select a card to play.'};if(cards.length!==(selection.cardIds?.length??1))return {state,error:'A selected play card does not exist.'};if(cards.length>(action.amount??1))return {state,error:'Too many cards selected.'};const legal=cards.every(card=>['Character','Stage'].includes(card.type??'')&&legalOwner(card,actor)&&card.zone===action.source&&(action.maxCost===undefined||(card.cost??Infinity)<=action.maxCost)&&(!action.trait||card.traits?.some(trait=>trait.toLowerCase()===action.trait!.toLowerCase()))&&(!action.color||card.color?.split(/[\s/]+/).some(color=>color.toLowerCase()===action.color!.toLowerCase()))&&(!action.excludeName||card.name?.toLowerCase()!==action.excludeName.toLowerCase()));if(!legal)return {state,error:'Selected card does not satisfy the printed play restriction.'};const characters=cards.filter(card=>card.type==='Character');const capacity=replaceCharactersForPlay(state,actor,characters.length,selection.replacementIds);if(capacity.error||capacity.requiresSelection)return capacity;if(cards.filter(card=>card.type==='Stage').length>1)return {state,error:'Only one Stage can be played at a time.'};let next=capacity.state;if(cards.some(card=>card.type==='Stage'))for(const stage of cardsFor(state,actor,'stage'))next=move(next,stage.id,'trash');for(const card of cards)next=move(next,card.id,card.type==='Stage'?'stage':'character',{rested:Boolean(action.rested),faceUp:undefined});return {state:{...next,playedThisTurn:[...new Set([...(next.playedThisTurn??[]),...characters.map(card=>card.id)])]}};}
   case 'life':{
    if(action.operation==='add-to-life')return {state,error:'Adding Life requires an explicit source and placement instruction.'};
    const life=cardsFor(state,actor,'life').slice(0,action.amount);
@@ -206,7 +224,14 @@ export function applyEffectAction(state:MatchEffectState,actor:PlayerId,action:E
   case 'recover':{if(!selection.cardIds&&!selection.targetId)return {state,requiresSelection:`Choose up to ${action.amount} cards from Trash.`};const cards=targetCards();if(cards.length!==(selection.cardIds?.length??1))return {state,error:'A selected recovery card does not exist.'};if(cards.length>action.amount)return {state,error:'Too many cards selected.'};if(cards.some(card=>!legalOwner(card,actor)||card.zone!=='trash'||(action.maxCost!==undefined&&Math.max(0,(card.cost??Infinity)+(card.costModifier??0))>action.maxCost)||(action.trait&&!card.traits?.some(trait=>trait.toLowerCase()===action.trait!.toLowerCase()))||(action.color&&!card.color?.split(/[\s/]+/).some(color=>color.toLowerCase()===action.color!.toLowerCase()))||(action.excludeName&&card.name?.toLowerCase()===action.excludeName.toLowerCase())))return {state,error:'Selected card does not satisfy the printed recovery restriction.'};return {state:{...state,cards:state.cards.map(card=>cards.some(item=>item.id===card.id)?{...card,zone:'hand'}:card)}};}
   case 'return-trash-to-deck-bottom':{const cards=targetCards();if(cards.length!==action.amount)return {state,requiresSelection:`Select ${action.amount} card${action.amount===1?'':'s'} from Trash.`};if(cards.some(card=>!legalOwner(card,actor)||card.zone!=='trash'))return {state,error:'Selected card is not in your Trash.'};return {state:moveToDeck(state,cards.map(card=>card.id),'bottom')};}
   case 'bottom-deck-hand':{return {state:moveToDeck(state,cardsFor(state,actor,'hand').map(card=>card.id),'bottom')};}
-  case 'hand-reset':{const owner=action.scope==='self'?actor:opponent;const hand=cardsFor(state,owner,'hand');const deck=cardsFor(state,owner,'deck');const combined=[...deck,...hand];const drawn=combined.slice(0,action.draw??hand.length).map(card=>card.id);return {state:{...state,cards:state.cards.map(card=>card.owner===owner&&card.zone==='hand'?{...card,zone:drawn.includes(card.id)?'hand':'deck'}:drawn.includes(card.id)?{...card,zone:'hand'}:card)}};}
+  case 'hand-reset':{
+   const owner=action.scope==='self'?actor:opponent,hand=cardsFor(state,owner,'hand');
+   let next=moveToDeck(state,hand.map(card=>card.id),'bottom');
+   if(action.shuffle)next=shuffleDeck(next,owner);
+   const draw=cardsFor(next,owner,'deck').slice(0,action.draw??hand.length);
+   return {state:draw.reduce((current,card)=>move(current,card.id,'hand'),next)};
+  }
+  case 'shuffle':return {state:shuffleDeck(state,action.scope==='self'?actor:opponent)};
   case 'reorder-life':{
    const owner=action.scope==='own'?actor:selection.owner;
    if(!owner)return {state,requiresSelection:'Choose which player’s Life to inspect.'};
@@ -230,7 +255,7 @@ export function applyEffectAction(state:MatchEffectState,actor:PlayerId,action:E
 }
 
 export function payEffectCost(state:MatchEffectState,actor:PlayerId,cost:EffectCost,selection:EffectSelection={}):EffectStepResult{
- if(cost.kind==='rest'&&cost.scope==='don'){const ids=selection.cardIds??[];if(new Set(ids).size!==ids.length)return {state,error:'Each payment card must be unique.'};const dons=cardsFor(state,actor,'cost-area').filter(card=>card.type==='DON!!'&&!card.rested);if(ids.length!==cost.amount)return {state,requiresSelection:`Select ${cost.amount} active DON!! card${cost.amount===1?'':'s'}.`};if(ids.some(id=>!dons.some(card=>card.id===id)))return {state,error:'A selected DON!! cannot pay this cost.'};return {state:{...state,cards:state.cards.map(card=>ids.includes(card.id)?{...card,rested:true}:card)}};}
+ if(cost.kind==='rest'&&cost.scope==='don'){const ids=selection.cardIds??[];if(new Set(ids).size!==ids.length)return {state,error:'Each payment card must be unique.'};const dons=cardsFor(state,actor,'cost-area').filter(card=>card.type==='DON!!'&&!card.rested&&!card.attachedTo);if(ids.length!==cost.amount)return {state,requiresSelection:`Select ${cost.amount} active DON!! card${cost.amount===1?'':'s'}.`};if(ids.some(id=>!dons.some(card=>card.id===id)))return {state,error:'A selected DON!! cannot pay this cost.'};return {state:{...state,cards:state.cards.map(card=>ids.includes(card.id)?{...card,rested:true}:card)}};}
  if(cost.kind==='trash'&&cost.scope==='hand'){if(!selection.cardIds)return {state,requiresSelection:`Select ${cost.amount} card${cost.amount===1?'':'s'} to pay the cost.`};if(selection.cardIds.length!==cost.amount)return {state,error:`The cost requires exactly ${cost.amount} cards.`};const payment=selectedCards(state,selection);if(payment.length!==cost.amount||payment.some(card=>card.owner!==actor||card.zone!=='hand'||(cost.requiresTrigger&&!hasTrigger(card))||(cost.color&&!card.color?.split(/[\s/]+/).some(color=>color.toLowerCase()===cost.color!.toLowerCase()))||(cost.trait&&!card.traits?.some(trait=>trait.toLowerCase()===cost.trait!.toLowerCase()))||(cost.cardType&&card.type!==cost.cardType)||(cost.maxCost!==undefined&&(card.cost??Infinity)>cost.maxCost)))return {state,error:'Selected cards cannot pay this cost.'};return applyEffectAction(state,actor,{kind:'trash',scope:'hand',amount:cost.amount,requiresTrigger:cost.requiresTrigger,color:cost.color,trait:cost.trait,cardType:cost.cardType,maxCost:cost.maxCost},selection);}
  if(cost.kind==='trash'&&cost.scope==='self'){
   const card=selected(state,selection);

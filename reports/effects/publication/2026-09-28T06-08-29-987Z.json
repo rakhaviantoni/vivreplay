@@ -1,0 +1,4083 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-09-28T06:08:29.986Z",
+  "candidates": [
+    {
+      "code": "ST20-004",
+      "printedText": "[On Play] You may add 1 card from the top of your Life cards to your hand: Set up to 1 of your \"Big Mom Pirates\" type Characters with a cost of 3 or less as active.\n\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 3 or less.",
+      "timings": [
+        "trigger"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-character",
+                "amount": 1
+              },
+              {
+                "kind": "life",
+                "amount": 1,
+                "operation": "add-to-hand"
+              }
+            ],
+            "rawText": "[On Play] You may add 1 card from the top of your Life cards to your hand: Set up to 1 of your \"Big Mom Pirates\" type Characters with a cost of 3 or less as active.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 3
+              }
+            ],
+            "rawText": "[Trigger] Rest up to 1 of your opponent's Characters with a cost of 3 or less.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-character",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life",
+                  "amount": 1,
+                  "operation": "add-to-hand"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 3
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] You may add 1 card from the top of your Life cards to your hand: Set up to 1 of your \"Big Mom Pirates\" type Characters with a cost of 3 or less as active.\n\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 3 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-character",
+                "amount": 1
+              },
+              {
+                "kind": "life",
+                "amount": 1,
+                "operation": "add-to-hand"
+              }
+            ],
+            "rawText": "[On Play] You may add 1 card from the top of your Life cards to your hand: Set up to 1 of your \"Big Mom Pirates\" type Characters with a cost of 3 or less as active.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "rawText": "[Trigger] Rest up to 1 of your opponent's Characters with a cost of 3 or less.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 3,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-character",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life",
+                  "amount": 1,
+                  "operation": "add-to-hand"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 3,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] You may add 1 card from the top of your Life cards to your hand: Set up to 1 of your \"Big Mom Pirates\" type Characters with a cost of 3 or less as active.\n\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 3 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "d2f88698601388cb7b2d169afb846ee42d10715e2c0168f3d826b1a146ee1aab",
+      "afterHash": "0c5bb4abb0d18676dcdd7eb33c6081d29b328fc325b179c02eb7e1ea6ef7b05c"
+    },
+    {
+      "code": "OP10-039",
+      "printedText": "[Main] If your Leader has the \"ODYSSEY\" type, look at 5 cards from the top of your deck; reveal up to 2 \"ODYSSEY\" type Character cards and add them to your hand. Then, place the rest at the bottom of your deck in any order.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 5 or less.",
+      "timings": [
+        "trigger"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom"
+              }
+            ],
+            "rawText": "[Main] If your Leader has the \"ODYSSEY\" type, look at 5 cards from the top of your deck; reveal up to 2 \"ODYSSEY\" type Character cards and add them to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "main",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the \"ODYSSEY\" type"
+              }
+            ]
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 5
+              }
+            ],
+            "rawText": "[Trigger] Rest up to 1 of your opponent's Characters with a cost of 5 or less.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the \"ODYSSEY\" type"
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 5
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] If your Leader has the \"ODYSSEY\" type, look at 5 cards from the top of your deck; reveal up to 2 \"ODYSSEY\" type Character cards and add them to your hand. Then, place the rest at the bottom of your deck in any order.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 5 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom"
+              }
+            ],
+            "rawText": "[Main] If your Leader has the \"ODYSSEY\" type, look at 5 cards from the top of your deck; reveal up to 2 \"ODYSSEY\" type Character cards and add them to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "main",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the \"ODYSSEY\" type"
+              }
+            ]
+          },
+          {
+            "rawText": "[Trigger] Rest up to 1 of your opponent's Characters with a cost of 5 or less.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 5,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the \"ODYSSEY\" type"
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 5,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] If your Leader has the \"ODYSSEY\" type, look at 5 cards from the top of your deck; reveal up to 2 \"ODYSSEY\" type Character cards and add them to your hand. Then, place the rest at the bottom of your deck in any order.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 5 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "6c034d0679ffee9f85085fc2bd8bf08f67448b65596ae9077dbfb868e6f33f54",
+      "afterHash": "d0797dfeaeaba20b6a84d3b09751aaa5ecabefd8509daceea74195010713ece1"
+    },
+    {
+      "code": "OP02-119",
+      "printedText": "[Main] K.O. up to 1 of your opponent's Characters with a cost of 1 or less. [Trigger] Draw 2 cards and trash 1 card from your hand.",
+      "timings": [
+        "main",
+        "trigger"
+      ],
+      "scenarioCount": 9,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 2
+              },
+              {
+                "kind": "ko",
+                "maxCost": 1,
+                "restedOnly": false
+              },
+              {
+                "kind": "ko",
+                "maxCost": 1,
+                "restedOnly": false
+              },
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "requiresTrigger": false
+              }
+            ],
+            "rawText": "[Main] K.O. up to 1 of your opponent's Characters with a cost of 1 or less. [Trigger] Draw 2 cards and trash 1 card from your hand.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 2
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 1,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 1,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "requiresTrigger": false
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] K.O. up to 1 of your opponent's Characters with a cost of 1 or less. [Trigger] Draw 2 cards and trash 1 card from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[Main] K.O. up to 1 of your opponent's Characters with a cost of 1 or less. [Trigger] Draw 2 cards and trash 1 card from your hand.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[Main] K.O. up to 1 of your opponent's Characters with a cost of 1 or less.",
+            "trigger": "main",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 1,
+                "restedOnly": false,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          },
+          {
+            "rawText": "[Trigger] Draw 2 cards and trash 1 card from your hand.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 2
+              },
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "requiresTrigger": false
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 1,
+                  "restedOnly": false,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 2
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "requiresTrigger": false
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "9e2265913ad3041a028f96db278c1ff3f4c87a5391652a2c2b87d6b3691bc2bc",
+      "afterHash": "bd02514e4e18a87fbcea7f2fd4af586d9b4f27e4d77ae5fdd695d028d0915ced"
+    },
+    {
+      "code": "OP11-039",
+      "printedText": "[Counter] Up to 1 of your \"Fish-Man\" or \"Merfolk\" type Leader or Character cards gains +3000 power during this battle. Then, rest up to 1 of your opponent's Characters with a cost of 3 or less.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+      "timings": [
+        "trigger"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "battle",
+                "amount": 3000,
+                "target": "opponent-character"
+              },
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 3
+              }
+            ],
+            "rawText": "[Counter] Up to 1 of your \"Fish-Man\" or \"Merfolk\" type Leader or Character cards gains +3000 power during this battle. Then, rest up to 1 of your opponent's Characters with a cost of 3 or less.",
+            "trigger": "counter",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 4
+              }
+            ],
+            "rawText": "[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "counter",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "battle",
+                  "amount": 3000,
+                  "target": "opponent-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 3
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 4
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Counter] Up to 1 of your \"Fish-Man\" or \"Merfolk\" type Leader or Character cards gains +3000 power during this battle. Then, rest up to 1 of your opponent's Characters with a cost of 3 or less.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "battle",
+                "amount": 3000,
+                "target": "opponent-character"
+              },
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 3
+              }
+            ],
+            "rawText": "[Counter] Up to 1 of your \"Fish-Man\" or \"Merfolk\" type Leader or Character cards gains +3000 power during this battle. Then, rest up to 1 of your opponent's Characters with a cost of 3 or less.",
+            "trigger": "counter",
+            "conditions": []
+          },
+          {
+            "rawText": "[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 4,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "counter",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "battle",
+                  "amount": 3000,
+                  "target": "opponent-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 3
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 4,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Counter] Up to 1 of your \"Fish-Man\" or \"Merfolk\" type Leader or Character cards gains +3000 power during this battle. Then, rest up to 1 of your opponent's Characters with a cost of 3 or less.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "ccbd7ddec90a5ab686a34f8e06e33583b01c0561ec6bd9adca2df51113d6e233",
+      "afterHash": "6696bedf18ba11673c73b52e187a7b8bfc985b387306ee56796ad6bb14019af2"
+    },
+    {
+      "code": "P-063",
+      "printedText": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 1 or less.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 1
+              }
+            ],
+            "rawText": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 1 or less.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 1
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 1 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 1 or less.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 1 or less.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 1,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 1,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "c69f1f6e56c40539cf04738ae04911ecd5871cbb47ca47c24d8e5477629a2504",
+      "afterHash": "c602d38f332cf7a116aeb0b632962e64f5b0de0a5c5924da3e78c2eebdd94665"
+    },
+    {
+      "code": "OP11-029",
+      "printedText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[On Play] Rest up to 1 of your opponent's Characters with a cost of 1 or less.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 1
+              }
+            ],
+            "rawText": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 1 or less.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 1
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[On Play] Rest up to 1 of your opponent's Characters with a cost of 1 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 1 or less.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 1,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 1,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[On Play] Rest up to 1 of your opponent's Characters with a cost of 1 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "d1a115391dbd243cc546d568b7ef910526a0dc44502cfb20f3f343009035fbb6",
+      "afterHash": "9b73650c21d335bd2cda641f8b892a8df3a56e3e594e9655503983770f1209b1"
+    },
+    {
+      "code": "EB02-018",
+      "printedText": "[On Play] If you have no other [Buggy] Characters, up to 1 of your Leader gains [Double Attack] during this turn.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+      "timings": [
+        "trigger"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "double-attack"
+              },
+              {
+                "kind": "grant-keyword",
+                "until": "turn-end",
+                "keyword": "double-attack"
+              }
+            ],
+            "rawText": "[On Play] If you have no other [Buggy] Characters, up to 1 of your Leader gains [Double Attack] during this turn.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have no other [Buggy] Characters"
+              }
+            ]
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 4
+              }
+            ],
+            "rawText": "[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "double-attack"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "grant-keyword",
+                  "until": "turn-end",
+                  "keyword": "double-attack"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have no other [Buggy] Characters"
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 4
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] If you have no other [Buggy] Characters, up to 1 of your Leader gains [Double Attack] during this turn.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "double-attack"
+              },
+              {
+                "kind": "grant-keyword",
+                "until": "turn-end",
+                "keyword": "double-attack"
+              }
+            ],
+            "rawText": "[On Play] If you have no other [Buggy] Characters, up to 1 of your Leader gains [Double Attack] during this turn.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have no other [Buggy] Characters"
+              }
+            ]
+          },
+          {
+            "rawText": "[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 4,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "double-attack"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "grant-keyword",
+                  "until": "turn-end",
+                  "keyword": "double-attack"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have no other [Buggy] Characters"
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 4,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] If you have no other [Buggy] Characters, up to 1 of your Leader gains [Double Attack] during this turn.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "74deaa34c6b7d8c8821d9b5a4be855ef07013fdeda88d1424f052221f8a46342",
+      "afterHash": "c77bbefa69ae0f4236b0e1f1ae3076b83270f8d97d23a1f2064f813ef4f8c4be"
+    },
+    {
+      "code": "EB04-020",
+      "printedText": "[Counter] Up to 1 of your {Fish-Man} type Leader or Character cards gains +3000 power during this battle. Then, set up to 1 of your {Fish-Man} type Characters as active.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+      "timings": [
+        "trigger"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "battle",
+                "amount": 3000,
+                "target": "own-leader"
+              },
+              {
+                "kind": "ready",
+                "scope": "own-character",
+                "amount": 1
+              }
+            ],
+            "rawText": "[Counter] Up to 1 of your {Fish-Man} type Leader or Character cards gains +3000 power during this battle. Then, set up to 1 of your {Fish-Man} type Characters as active.",
+            "trigger": "counter",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 4
+              }
+            ],
+            "rawText": "[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "counter",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "battle",
+                  "amount": 3000,
+                  "target": "own-leader"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-character",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 4
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Counter] Up to 1 of your {Fish-Man} type Leader or Character cards gains +3000 power during this battle. Then, set up to 1 of your {Fish-Man} type Characters as active.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "battle",
+                "amount": 3000,
+                "target": "own-leader"
+              },
+              {
+                "kind": "ready",
+                "scope": "own-character",
+                "amount": 1
+              }
+            ],
+            "rawText": "[Counter] Up to 1 of your {Fish-Man} type Leader or Character cards gains +3000 power during this battle. Then, set up to 1 of your {Fish-Man} type Characters as active.",
+            "trigger": "counter",
+            "conditions": []
+          },
+          {
+            "rawText": "[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 4,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "counter",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "battle",
+                  "amount": 3000,
+                  "target": "own-leader"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-character",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 4,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Counter] Up to 1 of your {Fish-Man} type Leader or Character cards gains +3000 power during this battle. Then, set up to 1 of your {Fish-Man} type Characters as active.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "0738e2da716b75b27f74db123a0c07758b0fe0a7795520bf0441b78d42f036fa",
+      "afterHash": "83368ae9a2ced304d45054539f4fe483c62bea2a6dadc9f86e0597447787ad4f"
+    },
+    {
+      "code": "OP09-041",
+      "printedText": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle. Then, if your Leader has the \"ODYSSEY\" type and you have 2 or more rested Characters, set up to 2 of your Characters as active.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+      "timings": [
+        "trigger"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "battle",
+                "amount": 2000,
+                "target": "own-leader"
+              },
+              {
+                "kind": "ready",
+                "scope": "own-character",
+                "amount": 2
+              }
+            ],
+            "rawText": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle. Then, if your Leader has the \"ODYSSEY\" type and you have 2 or more rested Characters, set up to 2 of your Characters as active.",
+            "trigger": "counter",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the \"ODYSSEY\" type and you have 2 or more rested Characters"
+              }
+            ]
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 4
+              }
+            ],
+            "rawText": "[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "counter",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "battle",
+                  "amount": 2000,
+                  "target": "own-leader"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-character",
+                  "amount": 2
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the \"ODYSSEY\" type and you have 2 or more rested Characters"
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 4
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle. Then, if your Leader has the \"ODYSSEY\" type and you have 2 or more rested Characters, set up to 2 of your Characters as active.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "battle",
+                "amount": 2000,
+                "target": "own-leader"
+              },
+              {
+                "kind": "ready",
+                "scope": "own-character",
+                "amount": 2
+              }
+            ],
+            "rawText": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle. Then, if your Leader has the \"ODYSSEY\" type and you have 2 or more rested Characters, set up to 2 of your Characters as active.",
+            "trigger": "counter",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the \"ODYSSEY\" type and you have 2 or more rested Characters"
+              }
+            ]
+          },
+          {
+            "rawText": "[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 4,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "counter",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "battle",
+                  "amount": 2000,
+                  "target": "own-leader"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-character",
+                  "amount": 2
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the \"ODYSSEY\" type and you have 2 or more rested Characters"
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 4,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle. Then, if your Leader has the \"ODYSSEY\" type and you have 2 or more rested Characters, set up to 2 of your Characters as active.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "b51e6c59c83f69db449af2b1768fb8915e140ea79114ddaaefa446a3fa9054bd",
+      "afterHash": "3721b2c0ac2c09357819913a8bc6b930d2269878e52a2cf3e5b36417752364bf"
+    },
+    {
+      "code": "OP16-036",
+      "printedText": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 4 or less.\n\n[When Attacking] This Character's base power becomes the same as your opponent's Leader during this turn.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 4
+              }
+            ],
+            "rawText": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "custom-resolver",
+                "handler": "OP16_036_WHEN_ATTACKING"
+              }
+            ],
+            "rawText": "[When Attacking] This Character's base power becomes the same as your opponent's Leader during this turn.",
+            "trigger": "when-attacking",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "OP16_036_WHEN_ATTACKING"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 4
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "when-attacking",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "custom-resolver",
+                  "handler": "OP16_036_WHEN_ATTACKING"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 4 or less.\n\n[When Attacking] This Character's base power becomes the same as your opponent's Leader during this turn.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 4,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "custom-resolver",
+                "handler": "OP16_036_WHEN_ATTACKING"
+              }
+            ],
+            "rawText": "[When Attacking] This Character's base power becomes the same as your opponent's Leader during this turn.",
+            "trigger": "when-attacking",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "OP16_036_WHEN_ATTACKING"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 4,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "timing": "when-attacking",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "custom-resolver",
+                  "handler": "OP16_036_WHEN_ATTACKING"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 4 or less.\n\n[When Attacking] This Character's base power becomes the same as your opponent's Leader during this turn.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "ec2516cf60fd6123aa0f7e2f416401c2784fb44d04a766bad35aa31b0e98d1ef",
+      "afterHash": "a938c3ec516cfc5f2e6af95e478bde7b09ee8ac9268853036eee6074c8aeafbe"
+    },
+    {
+      "code": "OP10-041",
+      "printedText": "[Main] Rest up to 1 of your opponent's Characters with a cost of 6 or less. Then, K.O. up to 1 of your opponent's rested Characters with a cost of 5 or less.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+      "timings": [
+        "trigger"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 6,
+                "restedOnly": true
+              },
+              {
+                "kind": "ko",
+                "maxCost": 6,
+                "restedOnly": true
+              },
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 6
+              }
+            ],
+            "rawText": "[Main] Rest up to 1 of your opponent's Characters with a cost of 6 or less. Then, K.O. up to 1 of your opponent's rested Characters with a cost of 5 or less.",
+            "trigger": "main",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 4
+              }
+            ],
+            "rawText": "[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 6,
+                  "restedOnly": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 6,
+                  "restedOnly": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 6
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 4
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Rest up to 1 of your opponent's Characters with a cost of 6 or less. Then, K.O. up to 1 of your opponent's rested Characters with a cost of 5 or less.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 6,
+                "restedOnly": true
+              },
+              {
+                "kind": "ko",
+                "maxCost": 6,
+                "restedOnly": true
+              },
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 6
+              }
+            ],
+            "rawText": "[Main] Rest up to 1 of your opponent's Characters with a cost of 6 or less. Then, K.O. up to 1 of your opponent's rested Characters with a cost of 5 or less.",
+            "trigger": "main",
+            "conditions": []
+          },
+          {
+            "rawText": "[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 4,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 6,
+                  "restedOnly": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 6,
+                  "restedOnly": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 6
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 4,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Rest up to 1 of your opponent's Characters with a cost of 6 or less. Then, K.O. up to 1 of your opponent's rested Characters with a cost of 5 or less.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "95834ec41f7ab8f00ba794c9fbc43d69a768973509dae6c33f8836e6fd63ab4d",
+      "afterHash": "00beb542488dd26ee06e5bdcd76545951c6aa620d9fd61b04ce88396c909e958"
+    },
+    {
+      "code": "OP12-033",
+      "printedText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[On Block] Rest up to 1 of your opponent's Characters with a cost of 5 or less.",
+      "timings": [
+        "on-block"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 5
+              },
+              {
+                "kind": "on-block"
+              }
+            ],
+            "rawText": "[On Block] Rest up to 1 of your opponent's Characters with a cost of 5 or less.",
+            "trigger": "on-block",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-block",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 5
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "on-block"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[On Block] Rest up to 1 of your opponent's Characters with a cost of 5 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On Block] Rest up to 1 of your opponent's Characters with a cost of 5 or less.",
+            "trigger": "on-block",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 5,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              },
+              {
+                "kind": "on-block"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-block",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 5,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "on-block"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[On Block] Rest up to 1 of your opponent's Characters with a cost of 5 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "417018f595e6a898191712427401cf4a9e8080fa1b1d42ac26da4161faa51edc",
+      "afterHash": "9ac41d556f174b31e2bd29dc006e2001de94fd3ca54f6c59d3e2a5240952097a"
+    },
+    {
+      "code": "EB02-021",
+      "printedText": "[Main] Up to 1 of your \"Straw Hat Crew\" type Characters gains +6000 power during this turn. Then, the selected Character will not become active in your next Refresh Phase.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+      "timings": [
+        "trigger"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 6000,
+                "target": "own-character"
+              }
+            ],
+            "rawText": "[Main] Up to 1 of your \"Straw Hat Crew\" type Characters gains +6000 power during this turn. Then, the selected Character will not become active in your next Refresh Phase.",
+            "trigger": "main",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 4
+              }
+            ],
+            "rawText": "[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 6000,
+                  "target": "own-character"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 4
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Up to 1 of your \"Straw Hat Crew\" type Characters gains +6000 power during this turn. Then, the selected Character will not become active in your next Refresh Phase.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 6000,
+                "target": "own-character"
+              }
+            ],
+            "rawText": "[Main] Up to 1 of your \"Straw Hat Crew\" type Characters gains +6000 power during this turn. Then, the selected Character will not become active in your next Refresh Phase.",
+            "trigger": "main",
+            "conditions": []
+          },
+          {
+            "rawText": "[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 4,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 6000,
+                  "target": "own-character"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 4,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Up to 1 of your \"Straw Hat Crew\" type Characters gains +6000 power during this turn. Then, the selected Character will not become active in your next Refresh Phase.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "8760cddb672f8c6e57b9400099091d538c3bea5d31c912910bfbcc9be8ed42de",
+      "afterHash": "bef08344c6a518c4dbfaede4402bbe1664e63d457f8bf72b45800fd8e506d019"
+    },
+    {
+      "code": "OP07-037",
+      "printedText": "[Main] Look at 5 cards from the top of your deck; reveal up to 1 [Supernovas] type card other than [More Pizza!!] and add it to your hand. Then, place the rest at the bottom of your deck in any order. [Trigger] Draw 1 card.",
+      "timings": [
+        "main",
+        "trigger"
+      ],
+      "scenarioCount": 7,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 1
+              },
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom"
+              }
+            ],
+            "rawText": "[Main] Look at 5 cards from the top of your deck; reveal up to 1 [Supernovas] type card other than [More Pizza!!] and add it to your hand. Then, place the rest at the bottom of your deck in any order. [Trigger] Draw 1 card.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Look at 5 cards from the top of your deck; reveal up to 1 [Supernovas] type card other than [More Pizza!!] and add it to your hand. Then, place the rest at the bottom of your deck in any order. [Trigger] Draw 1 card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[Main] Look at 5 cards from the top of your deck; reveal up to 1 [Supernovas] type card other than [More Pizza!!] and add it to your hand. Then, place the rest at the bottom of your deck in any order. [Trigger] Draw 1 card.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[Main] Look at 5 cards from the top of your deck; reveal up to 1 [Supernovas] type card other than [More Pizza!!] and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "main",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "trait": "Supernovas",
+                "excludeName": "More Pizza!!"
+              }
+            ]
+          },
+          {
+            "rawText": "[Trigger] Draw 1 card.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 1
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "trait": "Supernovas",
+                  "excludeName": "More Pizza!!"
+                }
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "f0151aa845e50f141693e23068a09bb244b342529e80cd038ed47909a3d9a105",
+      "afterHash": "28e46bb6b1a956d6e2f58610dc2f37f47d7289fb5d80ca462f3392d5095717f8"
+    },
+    {
+      "code": "OP06-036",
+      "printedText": "[On Play] / [On K.O.] K.O. up to 1 of your opponent's rested Characters with a cost of 4 or less.",
+      "timings": [
+        "on-play",
+        "on-ko"
+      ],
+      "scenarioCount": 6,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 4,
+                "restedOnly": true
+              },
+              {
+                "kind": "ko",
+                "maxCost": 4,
+                "restedOnly": true
+              },
+              {
+                "kind": "on-ko"
+              }
+            ],
+            "rawText": "[On Play] / [On K.O.] K.O. up to 1 of your opponent's rested Characters with a cost of 4 or less.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 4,
+                  "restedOnly": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 4,
+                  "restedOnly": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "on-ko"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] / [On K.O.] K.O. up to 1 of your opponent's rested Characters with a cost of 4 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[On Play] / [On K.O.] K.O. up to 1 of your opponent's rested Characters with a cost of 4 or less.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[On Play] K.O. up to 1 of your opponent's rested Characters with a cost of 4 or less.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 4,
+                "restedOnly": true,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          },
+          {
+            "rawText": "[On K.O.] K.O. up to 1 of your opponent's rested Characters with a cost of 4 or less.",
+            "trigger": "on-ko",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 4,
+                "restedOnly": true,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              },
+              {
+                "kind": "on-ko"
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 4,
+                  "restedOnly": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "timing": "on-ko",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 4,
+                  "restedOnly": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "on-ko"
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "0173aea8b717b152d60137a689b29fa6d994cf1a98c0578c77ee594bcae5f60f",
+      "afterHash": "27e8883a9e5fd3911efd4503a0a8a6b5f1fd6ec9add6dd6a84ab8afa805cbd9c"
+    },
+    {
+      "code": "OP11-023",
+      "printedText": "If your Leader has the \"Fish-Man\" type, you have 3 or less Life cards and your opponent has 5 or more rested cards, give this card in your hand 3 cost.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+      "timings": [
+        "trigger"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 4
+              }
+            ],
+            "rawText": "[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 4
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "If your Leader has the \"Fish-Man\" type, you have 3 or less Life cards and your opponent has 5 or more rested cards, give this card in your hand 3 cost.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 4,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 4,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "If your Leader has the \"Fish-Man\" type, you have 3 or less Life cards and your opponent has 5 or more rested cards, give this card in your hand 3 cost.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "485c35d7b60b13960755515d8175367142d08708b76af4c28de44a106bb962cd",
+      "afterHash": "ced2b5e9cd135579150fc75a472a40a28bf4b88808e73580d801a631dfe5438e"
+    },
+    {
+      "code": "OP06-027",
+      "printedText": "[On K.O.] Rest up to 1 of your opponent's Characters with a cost of 3 or less.",
+      "timings": [
+        "on-ko"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 3
+              },
+              {
+                "kind": "on-ko"
+              }
+            ],
+            "rawText": "[On K.O.] Rest up to 1 of your opponent's Characters with a cost of 3 or less.",
+            "trigger": "on-ko",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-ko",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 3
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "on-ko"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On K.O.] Rest up to 1 of your opponent's Characters with a cost of 3 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[On K.O.] Rest up to 1 of your opponent's Characters with a cost of 3 or less.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[On K.O.] Rest up to 1 of your opponent's Characters with a cost of 3 or less.",
+            "trigger": "on-ko",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 3,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              },
+              {
+                "kind": "on-ko"
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "on-ko",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 3,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "on-ko"
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "e983e3767b95714f684849a723557059eee03bc3c6e6e25044faf871fa43be04",
+      "afterHash": "45407dac08bd0fe703fd609c2292bcbaa9507f6dc2ee78379cc05307703f66cf"
+    },
+    {
+      "code": "OP13-038",
+      "printedText": "[Main] Rest up to 1 of your opponent's Characters with a cost of 5 or less. Then, set up to 2 of your DON!! cards as active at the end of this turn.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 5 or less.",
+      "timings": [
+        "trigger"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 5
+              },
+              {
+                "kind": "ready",
+                "scope": "self",
+                "amount": 2
+              }
+            ],
+            "rawText": "[Main] Rest up to 1 of your opponent's Characters with a cost of 5 or less. Then, set up to 2 of your DON!! cards as active at the end of this turn.",
+            "trigger": "main",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 5
+              }
+            ],
+            "rawText": "[Trigger] Rest up to 1 of your opponent's Characters with a cost of 5 or less.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 5
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "self",
+                  "amount": 2
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 5
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Rest up to 1 of your opponent's Characters with a cost of 5 or less. Then, set up to 2 of your DON!! cards as active at the end of this turn.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 5 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 5
+              },
+              {
+                "kind": "ready",
+                "scope": "self",
+                "amount": 2
+              }
+            ],
+            "rawText": "[Main] Rest up to 1 of your opponent's Characters with a cost of 5 or less. Then, set up to 2 of your DON!! cards as active at the end of this turn.",
+            "trigger": "main",
+            "conditions": []
+          },
+          {
+            "rawText": "[Trigger] Rest up to 1 of your opponent's Characters with a cost of 5 or less.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 5,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 5
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "self",
+                  "amount": 2
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 5,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Rest up to 1 of your opponent's Characters with a cost of 5 or less. Then, set up to 2 of your DON!! cards as active at the end of this turn.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 5 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "4363266addf618b24a844d8806550d0a1ec10a646dbfda358ae5f160ce611d22",
+      "afterHash": "d48c4b481800cb2e5f9020977d2c283c241e555a81b582bb48c1cc7f551f9699"
+    },
+    {
+      "code": "EB01-015",
+      "printedText": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 2 or less.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 2
+              }
+            ],
+            "rawText": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 2 or less.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 2
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 2 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 2 or less.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 2 or less.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 2,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 2,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "d5746d9ce19f46869c833a038b3fad5d03172183a0a0efbda84924af394516b1",
+      "afterHash": "ad233eadb7cdbd2da01427d06ee43ccba28f502ae06ddee582d32f5bdfbaab06"
+    },
+    {
+      "code": "OP06-023",
+      "printedText": "[On Play] You may trash 1 card from your hand: Up to 1 of your opponent's rested Leader cannot attack until the end of your opponent's next turn.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+      "timings": [
+        "trigger"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "optional": true,
+                "requiresTrigger": false
+              }
+            ],
+            "actions": [
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "requiresTrigger": false
+              },
+              {
+                "kind": "attack-restriction",
+                "scope": "opponent-leader",
+                "until": "opponent-next-turn"
+              }
+            ],
+            "rawText": "[On Play] You may trash 1 card from your hand: Up to 1 of your opponent's rested Leader cannot attack until the end of your opponent's next turn.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 4
+              }
+            ],
+            "rawText": "[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "optional": true,
+                  "requiresTrigger": false
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "requiresTrigger": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attack-restriction",
+                  "scope": "opponent-leader",
+                  "until": "opponent-next-turn"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 4
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] You may trash 1 card from your hand: Up to 1 of your opponent's rested Leader cannot attack until the end of your opponent's next turn.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "optional": true,
+                "requiresTrigger": false
+              }
+            ],
+            "actions": [
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "requiresTrigger": false
+              },
+              {
+                "kind": "attack-restriction",
+                "scope": "opponent-leader",
+                "until": "opponent-next-turn"
+              }
+            ],
+            "rawText": "[On Play] You may trash 1 card from your hand: Up to 1 of your opponent's rested Leader cannot attack until the end of your opponent's next turn.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "rawText": "[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 4,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "optional": true,
+                  "requiresTrigger": false
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "requiresTrigger": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attack-restriction",
+                  "scope": "opponent-leader",
+                  "until": "opponent-next-turn"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 4,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] You may trash 1 card from your hand: Up to 1 of your opponent's rested Leader cannot attack until the end of your opponent's next turn.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "cbf6e260bdd33964fe7acd94fd0020ea5c935ba571dc0bcb03ca3c6b3f8b984f",
+      "afterHash": "cf7388f2b8cba910db93012433c85be276a1e4c795ab65eb189bc35f1692a073"
+    },
+    {
+      "code": "OP17-108",
+      "printedText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 6 or less.",
+      "timings": [
+        "trigger"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 6
+              }
+            ],
+            "rawText": "[Trigger] Rest up to 1 of your opponent's Characters with a cost of 6 or less.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 6
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 6 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Trigger] Rest up to 1 of your opponent's Characters with a cost of 6 or less.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 6,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 6,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 6 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "eac66ac52081be2b4a97086e33a308c3700cb9dc1079488912c7ff7aaf56729d",
+      "afterHash": "5de0ad8323ec59bcccf5ceb7b0510657d294c17a71d858c349ff704d176d39c7"
+    },
+    {
+      "code": "OP02-047",
+      "printedText": "[Main] Rest up to 1 of your opponent's Characters with a cost of 4 or less. [Trigger] K.O. up to 1 of your opponent's rested Characters with a cost of 3 or less.",
+      "timings": [
+        "main",
+        "trigger"
+      ],
+      "scenarioCount": 11,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 4,
+                "restedOnly": true
+              },
+              {
+                "kind": "ko",
+                "maxCost": 4,
+                "restedOnly": true
+              },
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 4
+              }
+            ],
+            "rawText": "[Main] Rest up to 1 of your opponent's Characters with a cost of 4 or less. [Trigger] K.O. up to 1 of your opponent's rested Characters with a cost of 3 or less.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 4,
+                  "restedOnly": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 4,
+                  "restedOnly": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 4
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Rest up to 1 of your opponent's Characters with a cost of 4 or less. [Trigger] K.O. up to 1 of your opponent's rested Characters with a cost of 3 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[Main] Rest up to 1 of your opponent's Characters with a cost of 4 or less. [Trigger] K.O. up to 1 of your opponent's rested Characters with a cost of 3 or less.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[Main] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+            "trigger": "main",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 4,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          },
+          {
+            "rawText": "[Trigger] K.O. up to 1 of your opponent's rested Characters with a cost of 3 or less.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 3,
+                "restedOnly": true,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 4,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 3,
+                  "restedOnly": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "aaba88a09544d0c6636a0aa636ce03a7eda3c61ba28bccc0c80ce7cfa8838742",
+      "afterHash": "c502190e0d1e6b9a3f0a398aa40a1ebeb29fb9b106c0ff9aba38c14f073bf486"
+    },
+    {
+      "code": "OP07-114",
+      "printedText": "[Main] Look at 5 cards from the top of your deck; reveal up to 1 [Egghead] type card other than [He Possesses the World's Most Brilliant Mind] and add it to your hand. Then, place the rest at the bottom of your deck in any order. [Trigger] Draw 1 card.",
+      "timings": [
+        "main",
+        "trigger"
+      ],
+      "scenarioCount": 7,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 1
+              },
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom"
+              }
+            ],
+            "rawText": "[Main] Look at 5 cards from the top of your deck; reveal up to 1 [Egghead] type card other than [He Possesses the World's Most Brilliant Mind] and add it to your hand. Then, place the rest at the bottom of your deck in any order. [Trigger] Draw 1 card.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Look at 5 cards from the top of your deck; reveal up to 1 [Egghead] type card other than [He Possesses the World's Most Brilliant Mind] and add it to your hand. Then, place the rest at the bottom of your deck in any order. [Trigger] Draw 1 card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[Main] Look at 5 cards from the top of your deck; reveal up to 1 [Egghead] type card other than [He Possesses the World's Most Brilliant Mind] and add it to your hand. Then, place the rest at the bottom of your deck in any order. [Trigger] Draw 1 card.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[Main] Look at 5 cards from the top of your deck; reveal up to 1 [Egghead] type card other than [He Possesses the World's Most Brilliant Mind] and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "main",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "trait": "Egghead",
+                "excludeName": "He Possesses the World's Most Brilliant Mind"
+              }
+            ]
+          },
+          {
+            "rawText": "[Trigger] Draw 1 card.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 1
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "trait": "Egghead",
+                  "excludeName": "He Possesses the World's Most Brilliant Mind"
+                }
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "044398a96c2061be5c34ad9f0928848e75c85b9b3c9eabb28ba05822d271984c",
+      "afterHash": "5a14048e4900658c7b35e19a3de504944748bb5b3ed98fb8230fb684897503ec"
+    },
+    {
+      "code": "ST08-015",
+      "printedText": "[Main] K.O. up to 1 of your opponent's Characters with a cost of 2 or less. [Trigger] Draw 1 card.",
+      "timings": [
+        "main",
+        "trigger"
+      ],
+      "scenarioCount": 7,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 1
+              },
+              {
+                "kind": "ko",
+                "maxCost": 2,
+                "restedOnly": false
+              },
+              {
+                "kind": "ko",
+                "maxCost": 2,
+                "restedOnly": false
+              }
+            ],
+            "rawText": "[Main] K.O. up to 1 of your opponent's Characters with a cost of 2 or less. [Trigger] Draw 1 card.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 2,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 2,
+                  "restedOnly": false
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] K.O. up to 1 of your opponent's Characters with a cost of 2 or less. [Trigger] Draw 1 card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[Main] K.O. up to 1 of your opponent's Characters with a cost of 2 or less. [Trigger] Draw 1 card.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[Main] K.O. up to 1 of your opponent's Characters with a cost of 2 or less.",
+            "trigger": "main",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 2,
+                "restedOnly": false,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          },
+          {
+            "rawText": "[Trigger] Draw 1 card.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 1
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 2,
+                  "restedOnly": false,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "e1df1c8f6c4b01c1329582b706ed8804ae5d4da50067890d260eab549a3e5a5b",
+      "afterHash": "2897a22085cb7190f28ee008dc23baf5c190d3405f3f5ad245c1e57387f022e9"
+    },
+    {
+      "code": "OP15-037",
+      "printedText": "[Main] Look at 5 cards from the top of your deck; reveal up to 1 {East Blue} type card other than [The Outcome Will Tell Us Who's Strong and Who's Weak] and add it to your hand. Then, place the rest at the bottom of your deck in any order. [Trigger] Draw 1 card.",
+      "timings": [
+        "main",
+        "trigger"
+      ],
+      "scenarioCount": 7,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 1
+              },
+              {
+                "kind": "search",
+                "trait": "East Blue",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom"
+              }
+            ],
+            "rawText": "[Main] Look at 5 cards from the top of your deck; reveal up to 1 {East Blue} type card other than [The Outcome Will Tell Us Who's Strong and Who's Weak] and add it to your hand. Then, place the rest at the bottom of your deck in any order. [Trigger] Draw 1 card.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "trait": "East Blue",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Look at 5 cards from the top of your deck; reveal up to 1 {East Blue} type card other than [The Outcome Will Tell Us Who's Strong and Who's Weak] and add it to your hand. Then, place the rest at the bottom of your deck in any order. [Trigger] Draw 1 card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[Main] Look at 5 cards from the top of your deck; reveal up to 1 {East Blue} type card other than [The Outcome Will Tell Us Who's Strong and Who's Weak] and add it to your hand. Then, place the rest at the bottom of your deck in any order. [Trigger] Draw 1 card.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[Main] Look at 5 cards from the top of your deck; reveal up to 1 {East Blue} type card other than [The Outcome Will Tell Us Who's Strong and Who's Weak] and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "main",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "trait": "East Blue",
+                "excludeName": "The Outcome Will Tell Us Who's Strong and Who's Weak"
+              }
+            ]
+          },
+          {
+            "rawText": "[Trigger] Draw 1 card.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 1
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "trait": "East Blue",
+                  "excludeName": "The Outcome Will Tell Us Who's Strong and Who's Weak"
+                }
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "04a32085cd478b50bb30544fde72a72b6cbbb2ac9e782fc5da17c1dff712352b",
+      "afterHash": "393fa14ed771382bc584f4821706adb977be5e210e33e449082ece5ad94ef32b"
+    },
+    {
+      "code": "OP09-040",
+      "printedText": "[Main] If you have 2 or more rested Characters, K.O. up to 1 of your opponent's Characters with a cost of 4 or less.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+      "timings": [
+        "trigger"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 4,
+                "restedOnly": true
+              },
+              {
+                "kind": "ko",
+                "maxCost": 4,
+                "restedOnly": true
+              }
+            ],
+            "rawText": "[Main] If you have 2 or more rested Characters, K.O. up to 1 of your opponent's Characters with a cost of 4 or less.",
+            "trigger": "main",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 2 or more rested Characters"
+              }
+            ]
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 4
+              }
+            ],
+            "rawText": "[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 4,
+                  "restedOnly": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 4,
+                  "restedOnly": true
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 2 or more rested Characters"
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 4
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] If you have 2 or more rested Characters, K.O. up to 1 of your opponent's Characters with a cost of 4 or less.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 4,
+                "restedOnly": true
+              },
+              {
+                "kind": "ko",
+                "maxCost": 4,
+                "restedOnly": true
+              }
+            ],
+            "rawText": "[Main] If you have 2 or more rested Characters, K.O. up to 1 of your opponent's Characters with a cost of 4 or less.",
+            "trigger": "main",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 2 or more rested Characters"
+              }
+            ]
+          },
+          {
+            "rawText": "[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 4,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 4,
+                  "restedOnly": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 4,
+                  "restedOnly": true
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 2 or more rested Characters"
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 4,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] If you have 2 or more rested Characters, K.O. up to 1 of your opponent's Characters with a cost of 4 or less.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "5d41fc909fe0ac70c71c60d56702e7114b8a6e50cc7fa57822173368e2c14b09",
+      "afterHash": "a4f0aeffd8b49ca8825b7a019b8a7c1ac8c917f879637be5300d125c193e0c20"
+    }
+  ]
+}

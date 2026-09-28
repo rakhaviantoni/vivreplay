@@ -1,16 +1,8 @@
-import type {Metadata} from 'next';
 import {AboutExperience} from '@/components/tcg/about-experience';
 
-export const metadata: Metadata = {
-  title: 'About VivrePlay · One Piece TCG Companion',
-  description:
-    'Learn about VivrePlay: our mission, the Vivre Card inspiration, dual-language card archives from OP-01 to OP-17, deck builder, arena practice, and collector marketplace.',
-  openGraph: {
-    title: 'About VivrePlay · One Piece TCG Companion',
-    description:
-      'A dedicated table for the One Piece Card Game community. Card archives, deck building, market pricing, and tabletop practice in one reliable place.',
-  },
-};
+import {pageMetadata} from '@/lib/site-metadata';
+
+export const metadata=pageMetadata({title:'About VivrePlay',description:'Learn how VivrePlay brings card archives, deck building, collection tools, market listings, and table practice together for the One Piece Card Game community.',path:'/about'});
 
 export default function AboutPage() {
   return <AboutExperience />;

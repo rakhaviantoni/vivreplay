@@ -63,3 +63,22 @@ These Life changes are engine-level. The board still needs a corresponding compl
 The tutorial now reserves actual deck instances for Life, displays the engine's player Life count, and uses the ordered opponent Life instances for damage. Supported cost-free On Play Life sequences enter the shared target flow, including card ordering and owner/placement choices where specified. These UI paths compile but still require targeted browser scenarios against corrected stored schemas.
 
 Additional engine scenarios cover recovery prompting, unknown IDs, mixed-colour recovery, effect-play summoning restrictions, invalid Event targets, and Stage replacement. The suite has 107 passing tests. Playing beyond the Character limit currently reports that replacement is needed; its replacement chooser remains unfinished. Published rules remain unchanged.
+
+## Character capacity and payment pass
+
+Normal and effect-based plays now validate full-field replacement before mutation. Tests cover waiting without paying early, rejecting incoming/enemy replacement targets, keeping five Characters, releasing attached DON!! rested, and preserving the incoming card's rested state. The normal-play board exposes a replacement chooser and allows Stage replacement. Effect-play replacement is supported by the engine but still needs its board continuation UI.
+
+Normal card payments and activation rest costs now reject attached DON!! even if their rested flag is false. Replacement follows rule 3-7-6-1 in https://en.onepiece-cardgame.com/pdf/rule_comprehensive.pdf; it is a trash operation, not a K.O.
+
+## Effect replacement continuation and shuffle
+
+The board saves incoming effect-play selections while asking for existing Characters to trash, then resumes the same command. The engine regression confirms that preceding draws are not repeated, invalid replacements do not mutate state, and following draws wait. Supported effect plays now project the actual Character area and summoning state. Recovery clears stale discarded-hand flags when cards return to hand.
+
+Shuffle now permutes only the selected owner's deck. Hand-reset parsing removes its duplicate draw and includes the printed shuffle before drawing. Deterministic shuffle tests verify the permutation, preservation of every card, and unchanged opposing/hand cards. The suite reached 114 passing tests; typecheck and build passed. These changes are not a catalog-wide or browser-complete certification and remain unpublished.
+
+## Referenced timing execution (2026-09-28)
+
+- Added recursive execution of this card's Main, Counter, and On Play references, retaining choices and costs. Legacy duplicate Main aliases execute once. Missing/cyclic references report unsupported instead of ready.
+- Corrected timing detection so a referenced label cannot override the enclosing Trigger.
+- 951 bounded scenarios across 223 cards pass against local compiled schemas; published schemas fail 291 scenarios in this suite. The reference wording occurs on 67 catalog cards, but this does not certify all 67 complete effects.
+- 125 regression tests and TypeScript checks pass. These runtime changes have not been deployed and no additional database publication was performed in this pass.

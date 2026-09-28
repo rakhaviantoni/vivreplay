@@ -8,6 +8,7 @@ import {marketListingPreviews} from '@/lib/market/listing-previews';
 import {ListingArtRotator,MarketListingItems,type MarketListingCard} from '@/components/tcg/market-listing-items';
 import {MarketStoreNav} from '@/components/tcg/market-store-nav';
 import {MarketTimestamp} from '@/components/tcg/market-timestamp';
+import {pageMetadata} from '@/lib/site-metadata';
 
 export const dynamic='force-dynamic';
 
@@ -16,7 +17,7 @@ type StoredListing=Listing&{username:string};
 export async function generateMetadata({params}:{params:Promise<{id:string}>}){
   const {id}=await params;
   const preview=marketListingPreviews.find(item=>item.id===id);
-  return {title:preview?`${preview.title} | VivrePlay Market`:'Market listing | VivrePlay',alternates:{canonical:`/market/${id}`}};
+  return pageMetadata({title:preview?`${preview.title} · Market listing`:'Market listing',description:preview?`View this VivrePlay Market listing for ${preview.title}.`:'View this VivrePlay Market listing.',path:`/market/${encodeURIComponent(id)}`});
 }
 
 export default async function Page({params}:{params:Promise<{id:string}>}){

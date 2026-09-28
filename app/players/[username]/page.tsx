@@ -1,4 +1,6 @@
 import {notFound} from 'next/navigation';
+import {privateMetadata} from '@/lib/site-metadata';
+export const metadata=privateMetadata('Player profile','Player profiles are available by direct link only.');
 import {db} from '@/lib/server/store';
 import {ShareButton} from '@/components/tcg/share';
 export const dynamic='force-dynamic';

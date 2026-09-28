@@ -31,30 +31,6 @@ export function ArenaLobby(){
  </main>;
 }
 
-const tutorialModules = [
-  {
-    number: '01',
-    title: 'Table Foundations',
-    range: 'Lessons 1 to 4',
-    copy: 'Learn the playmat layout, 50-card deck regulations, DON!! resource pool, and your Leader card.',
-    startStep: 0,
-  },
-  {
-    number: '02',
-    title: 'Field Zones & Combat',
-    range: 'Lessons 5 to 8',
-    copy: 'Deploy Characters, activate Stage cards, defend your Life cards, and navigate the Trash.',
-    startStep: 4,
-  },
-  {
-    number: '03',
-    title: 'Hand & Turn Flow',
-    range: 'Lessons 9 to 10',
-    copy: 'Manage hidden hand cards, sort by cost or counter value, and orchestrate full turn phases.',
-    startStep: 8,
-  },
-];
-
 const tutorialLessons = [
   {
     step: 0,
@@ -130,59 +106,34 @@ const tutorialLessons = [
 
 export function ArenaTutorialIndex() {
   return (
-    <main className="page arena-tutorial-index tutorial-index-page">
-      <section className="library-intro tutorial-index-intro">
-        <div className="library-intro-copy">
-          <p className="kicker">TUTORIAL</p>
-          <h1>Learn the table, then play it.</h1>
-          <p>
-            Master the official One Piece Card Game rules directly at the interactive table.
-            Every lesson highlights the specific board zone with live simulator mechanics.
-          </p>
-          <div className="tutorial-intro-cta">
-            <Link className="tutorial-index-start" href="/play/tutorial?step=0">
-              <PlayCircle size={18} weight="bold" />
-              <span>Start interactive tutorial</span>
-            </Link>
-            <Link className="tutorial-index-secondary" href="/play">
-              <ArrowLeft size={16} />
-              <span>Arena lobby</span>
-            </Link>
-          </div>
+    <main className="page directory-page tutorial-index-page">
+      <header className="directory-hero page-intro-surface">
+        <p className="eyebrow">TUTORIAL</p>
+        <h1>Learn the table, then play it.</h1>
+        <p>
+          Master the official One Piece Card Game rules directly at the interactive table.
+          Every lesson highlights the specific board zone with live simulator mechanics.
+        </p>
+        <div className="tutorial-intro-cta">
+          <Link className="tutorial-index-start" href="/play/tutorial?step=0">
+            <PlayCircle size={18} weight="bold" />
+            <span>Start interactive tutorial</span>
+          </Link>
+          <Link className="tutorial-index-secondary" href="/play">
+            <ArrowLeft size={16} />
+            <span>Arena lobby</span>
+          </Link>
         </div>
-      </section>
-
-      <section className="tutorial-path">
-        <header className="section-heading">
-          <div>
-            <p className="eyebrow">CURRICULUM</p>
-            <h2>Structured table training in three modules.</h2>
-            <p>Ten interactive lessons teaching fundamental zones, combat rules, and turn progression.</p>
-          </div>
-          <span className="tutorial-path-status">10 lessons · Interactive table</span>
-        </header>
-        <div className="tutorial-phase-grid">
-          {tutorialModules.map((mod) => (
-            <article className="tutorial-phase" key={mod.title}>
-              <span>{mod.number}</span>
-              <small>{mod.range}</small>
-              <h3>{mod.title}</h3>
-              <p>{mod.copy}</p>
-              <Link href={`/play/tutorial?step=${mod.startStep}`}>
-                <span>Start module</span>
-                <ArrowRight size={14} weight="bold" />
-              </Link>
-            </article>
-          ))}
-        </div>
-      </section>
+      </header>
 
       <section className="tutorial-chapters-section">
         <header className="section-heading">
           <div>
-            <p className="eyebrow">ALL LESSONS</p>
-            <h2>Jump directly into any lesson.</h2>
+            <p className="eyebrow">INTERACTIVE LESSONS</p>
+            <h2>Learn one part of the table at a time.</h2>
+            <p>Each lesson opens the live board at the exact step it teaches.</p>
           </div>
+          <span className="tutorial-path-status">10 lessons · Interactive table</span>
         </header>
         <div className="tutorial-chapter-grid">
           {tutorialLessons.map((item) => (
@@ -214,4 +165,3 @@ export function ArenaTutorialIndex() {
     </main>
   );
 }
-

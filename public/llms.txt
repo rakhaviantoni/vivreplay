@@ -1,0 +1,21 @@
+# VivrePlay
+
+> VivrePlay is an independent companion for the One Piece Card Game: a card library, deck builder, collection vault, community market, meta page, and rules-guided practice table.
+
+## Public pages
+- https://vivreplay.com/cards — searchable One Piece Card Game card library.
+- https://vivreplay.com/cards/index — card index grouped by release.
+- https://vivreplay.com/archetypes — card traits and archetypes.
+- https://vivreplay.com/sets — release archive.
+- https://vivreplay.com/decks — local deck library and deck-building entry point.
+- https://vivreplay.com/market — community buy and sell listings.
+- https://vivreplay.com/meta — current meta overview.
+- https://vivreplay.com/play — Arena practice entry point.
+- https://vivreplay.com/play/tutorial — interactive table tutorial.
+- https://vivreplay.com/about — project scope and attribution.
+
+## Guidance
+- Card images, names, game content, and trademarks belong to their respective rights holders.
+- Treat printed card text and official Bandai rules as authoritative for gameplay.
+- Listings, player content, availability, and prices can change; do not treat them as permanent facts.
+- Account, Vault, admin, authentication, and API routes are private and should not be indexed.

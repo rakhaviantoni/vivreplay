@@ -20,6 +20,7 @@ const localBindingConfig = {
   vars: {
     BETTER_AUTH_URL: "https://vivreplay.com",
     NEXT_PUBLIC_SUPABASE_URL: "https://shqwaqxpxsyjafxdcibj.supabase.co",
+    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_yg4vygJx5VP-ecakkYF8WA_WTwBloIZ",
     SUPABASE_JWKS_URL:
       "https://shqwaqxpxsyjafxdcibj.supabase.co/auth/v1/.well-known/jwks.json",
   } as Record<string, string>,

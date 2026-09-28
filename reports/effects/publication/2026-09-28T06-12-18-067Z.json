@@ -1,0 +1,1451 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-09-28T06:12:18.066Z",
+  "candidates": [
+    {
+      "code": "ST01-014",
+      "printedText": "[Counter] Up to 1 of your Leader or Character cards gains +3000 power during this battle.[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+      "timings": [
+        "counter",
+        "trigger"
+      ],
+      "scenarioCount": 10,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "battle",
+                "amount": 3000,
+                "target": "own-leader"
+              }
+            ],
+            "rawText": "[Counter] Up to 1 of your Leader or Character cards gains +3000 power during this battle.[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+            "trigger": "counter",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "counter",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "battle",
+                  "amount": 3000,
+                  "target": "own-leader"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Counter] Up to 1 of your Leader or Character cards gains +3000 power during this battle.[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[Counter] Up to 1 of your Leader or Character cards gains +3000 power during this battle.[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[Counter] Up to 1 of your Leader or Character cards gains +3000 power during this battle.",
+            "trigger": "counter",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 3000,
+                "until": "battle",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                },
+                "target": "own-card"
+              }
+            ]
+          },
+          {
+            "rawText": "[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 1000,
+                "until": "turn-end",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                },
+                "target": "own-card"
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "counter",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 3000,
+                  "until": "battle",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "target": "own-card"
+                }
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 1000,
+                  "until": "turn-end",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "target": "own-card"
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "e716ab774a2c342f8a9313a4f9019b9e232682237a7295848fe5904167d5235f",
+      "afterHash": "cc03438676649ac5a8d3762bfbb8961448b787f063a531c543fdb67fe96e5db6"
+    },
+    {
+      "code": "P-024",
+      "printedText": "[Main] Your Leader gains +1000 power for each of your Characters during this turn.\n[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+      "timings": [
+        "trigger"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 1000,
+                "target": "own-leader"
+              }
+            ],
+            "rawText": "[Main] Your Leader gains +1000 power for each of your Characters during this turn.",
+            "trigger": "main",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 1000,
+                "target": "own-leader"
+              }
+            ],
+            "rawText": "[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 1000,
+                  "target": "own-leader"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 1000,
+                  "target": "own-leader"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Your Leader gains +1000 power for each of your Characters during this turn.\n[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 1000,
+                "target": "own-leader"
+              }
+            ],
+            "rawText": "[Main] Your Leader gains +1000 power for each of your Characters during this turn.",
+            "trigger": "main",
+            "conditions": []
+          },
+          {
+            "rawText": "[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 1000,
+                "until": "turn-end",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                },
+                "target": "own-card"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 1000,
+                  "target": "own-leader"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 1000,
+                  "until": "turn-end",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "target": "own-card"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Your Leader gains +1000 power for each of your Characters during this turn.\n[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "de8f7196baf2bea58c2c9bb051df175c3aec5ffa838f35e59295eb89d8c6341d",
+      "afterHash": "b972dcf9572e23360235c0d6429439b06e6ec7ded1ba083d714b9a03d2ebc50a"
+    },
+    {
+      "code": "OP10-018",
+      "printedText": "[Counter] Up to 1 of your Leader or Character cards gains +3000 power during this battle. Then, give up to 1 of your opponent's Leader or Character cards 2000 power during this turn.\n[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+      "timings": [
+        "trigger"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 2000,
+                "target": "opponent-character"
+              },
+              {
+                "kind": "power",
+                "until": "battle",
+                "amount": 3000,
+                "target": "opponent-character"
+              }
+            ],
+            "rawText": "[Counter] Up to 1 of your Leader or Character cards gains +3000 power during this battle. Then, give up to 1 of your opponent's Leader or Character cards 2000 power during this turn.",
+            "trigger": "counter",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 1000,
+                "target": "own-leader"
+              }
+            ],
+            "rawText": "[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "counter",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 2000,
+                  "target": "opponent-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "battle",
+                  "amount": 3000,
+                  "target": "opponent-character"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 1000,
+                  "target": "own-leader"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Counter] Up to 1 of your Leader or Character cards gains +3000 power during this battle. Then, give up to 1 of your opponent's Leader or Character cards 2000 power during this turn.\n[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 2000,
+                "target": "opponent-character"
+              },
+              {
+                "kind": "power",
+                "until": "battle",
+                "amount": 3000,
+                "target": "opponent-character"
+              }
+            ],
+            "rawText": "[Counter] Up to 1 of your Leader or Character cards gains +3000 power during this battle. Then, give up to 1 of your opponent's Leader or Character cards 2000 power during this turn.",
+            "trigger": "counter",
+            "conditions": []
+          },
+          {
+            "rawText": "[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 1000,
+                "until": "turn-end",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                },
+                "target": "own-card"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "counter",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 2000,
+                  "target": "opponent-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "battle",
+                  "amount": 3000,
+                  "target": "opponent-character"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 1000,
+                  "until": "turn-end",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "target": "own-card"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Counter] Up to 1 of your Leader or Character cards gains +3000 power during this battle. Then, give up to 1 of your opponent's Leader or Character cards 2000 power during this turn.\n[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "24819081583607df65130474b3d54921aeec4b8af0a827a6fba43d2458ea2661",
+      "afterHash": "66d458e773fa6175ac2e8d8cd3c90f33afcdfd068b4c4f1c3ba344ab8592c565"
+    },
+    {
+      "code": "P-020",
+      "printedText": "[On Play] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 1000,
+                "target": "own-leader"
+              }
+            ],
+            "rawText": "[On Play] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 1000,
+                  "target": "own-leader"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[On Play] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[On Play] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 1000,
+                "until": "turn-end",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                },
+                "target": "own-card"
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 1000,
+                  "until": "turn-end",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "target": "own-card"
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "2515a22e8214ce70dac9819a2607d8c174f4c779be242d9fcec1851a4d20c8da",
+      "afterHash": "350d55ef407176b6635d13c0b40a2df52c51fab056f396e31e7392d5ccfb7f17"
+    },
+    {
+      "code": "OP12-039",
+      "printedText": "[Main] Set your [Roronoa Zoro] Leader as active.\n[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+      "timings": [
+        "trigger"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "custom-resolver",
+                "handler": "OP12_039_MAIN"
+              }
+            ],
+            "rawText": "[Main] Set your [Roronoa Zoro] Leader as active.",
+            "trigger": "main",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 1000,
+                "target": "own-leader"
+              }
+            ],
+            "rawText": "[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "OP12_039_MAIN"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "custom-resolver",
+                  "handler": "OP12_039_MAIN"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 1000,
+                  "target": "own-leader"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Set your [Roronoa Zoro] Leader as active.\n[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "custom-resolver",
+                "handler": "OP12_039_MAIN"
+              }
+            ],
+            "rawText": "[Main] Set your [Roronoa Zoro] Leader as active.",
+            "trigger": "main",
+            "conditions": []
+          },
+          {
+            "rawText": "[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 1000,
+                "until": "turn-end",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                },
+                "target": "own-card"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "OP12_039_MAIN"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "custom-resolver",
+                  "handler": "OP12_039_MAIN"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 1000,
+                  "until": "turn-end",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "target": "own-card"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Set your [Roronoa Zoro] Leader as active.\n[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "154e55a2e05657f03e629a0ea0ad20bc90ce3ede808a6973e941c0b3f3a50512",
+      "afterHash": "88e7d3f4157e27a9e99d8df7f9f75f5618c996b88755feeefac33cd989ba1ba7"
+    },
+    {
+      "code": "OP06-084",
+      "printedText": "[On K.O.] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+      "timings": [
+        "on-ko"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 1000,
+                "target": "own-leader"
+              },
+              {
+                "kind": "on-ko"
+              }
+            ],
+            "rawText": "[On K.O.] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+            "trigger": "on-ko",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-ko",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 1000,
+                  "target": "own-leader"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "on-ko"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On K.O.] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[On K.O.] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[On K.O.] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+            "trigger": "on-ko",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 1000,
+                "until": "turn-end",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                },
+                "target": "own-card"
+              },
+              {
+                "kind": "on-ko"
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "on-ko",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 1000,
+                  "until": "turn-end",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "target": "own-card"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "on-ko"
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "07b96d8908c6b66e410c72eeb776983351868924c8e16ecf372331e9ec2a4316",
+      "afterHash": "8a8cff01deef427c7450b9d1a48dd90de3abb927c9367329c65716bce537c6ee"
+    },
+    {
+      "code": "OP11-098",
+      "printedText": "[Main] You may trash 3 cards from the top of your deck: K.O. up to 1 of your opponent's Characters with a cost of 2 or less.\n[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+      "timings": [
+        "trigger"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 2,
+                "restedOnly": false
+              },
+              {
+                "kind": "ko",
+                "maxCost": 2,
+                "restedOnly": false
+              },
+              {
+                "kind": "trash",
+                "scope": "deck",
+                "amount": 3
+              }
+            ],
+            "rawText": "[Main] You may trash 3 cards from the top of your deck: K.O. up to 1 of your opponent's Characters with a cost of 2 or less.",
+            "trigger": "main",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 1000,
+                "target": "own-leader"
+              }
+            ],
+            "rawText": "[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 2,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 2,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "deck",
+                  "amount": 3
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 1000,
+                  "target": "own-leader"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] You may trash 3 cards from the top of your deck: K.O. up to 1 of your opponent's Characters with a cost of 2 or less.\n[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 2,
+                "restedOnly": false
+              },
+              {
+                "kind": "ko",
+                "maxCost": 2,
+                "restedOnly": false
+              },
+              {
+                "kind": "trash",
+                "scope": "deck",
+                "amount": 3
+              }
+            ],
+            "rawText": "[Main] You may trash 3 cards from the top of your deck: K.O. up to 1 of your opponent's Characters with a cost of 2 or less.",
+            "trigger": "main",
+            "conditions": []
+          },
+          {
+            "rawText": "[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 1000,
+                "until": "turn-end",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                },
+                "target": "own-card"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 2,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 2,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "deck",
+                  "amount": 3
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 1000,
+                  "until": "turn-end",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "target": "own-card"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] You may trash 3 cards from the top of your deck: K.O. up to 1 of your opponent's Characters with a cost of 2 or less.\n[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "5a4e625c5078a77773a2942e9e93eac2e63e9ead9f0dd0c626ad8279b844604d",
+      "afterHash": "3b3ecece29f39ad222b0bef5d75bd22d9c63a3f88a6976c00cbc6350b0220a5f"
+    },
+    {
+      "code": "OP09-116",
+      "printedText": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle.\n[Trigger] Play up to 1 \"Revolutionary Army\" type Character card with a cost of 4 or less from your hand.",
+      "timings": [
+        "counter"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "battle",
+                "amount": 2000,
+                "target": "own-leader"
+              }
+            ],
+            "rawText": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle.",
+            "trigger": "counter",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "rested": false,
+                "source": "hand",
+                "maxCost": 4
+              }
+            ],
+            "rawText": "[Trigger] Play up to 1 \"Revolutionary Army\" type Character card with a cost of 4 or less from your hand.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "counter",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "battle",
+                  "amount": 2000,
+                  "target": "own-leader"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "rested": false,
+                  "source": "hand",
+                  "maxCost": 4
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle.\n[Trigger] Play up to 1 \"Revolutionary Army\" type Character card with a cost of 4 or less from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle.",
+            "trigger": "counter",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 2000,
+                "until": "battle",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                },
+                "target": "own-card"
+              }
+            ]
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "rested": false,
+                "source": "hand",
+                "maxCost": 4
+              }
+            ],
+            "rawText": "[Trigger] Play up to 1 \"Revolutionary Army\" type Character card with a cost of 4 or less from your hand.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "counter",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 2000,
+                  "until": "battle",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "target": "own-card"
+                }
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "rested": false,
+                  "source": "hand",
+                  "maxCost": 4
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle.\n[Trigger] Play up to 1 \"Revolutionary Army\" type Character card with a cost of 4 or less from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "640e8c5ba19dc5e489c4cb2704532da2b937bf17a633d0bcc5b0dcd6f12b88e0",
+      "afterHash": "2e1208943135672126327c374af8b1b6109f36f6c5f7c9bd14e9378859455747"
+    },
+    {
+      "code": "OP11-019",
+      "printedText": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle. Then, if your opponent has a Character with 6000 power or more, up to 1 of your Leader or Character cards gains +1000 power during this turn.\n[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+      "timings": [
+        "trigger"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "battle",
+                "amount": 2000,
+                "target": "opponent-character"
+              }
+            ],
+            "rawText": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle. Then, if your opponent has a Character with 6000 power or more, up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+            "trigger": "counter",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your opponent has a Character with 6000 power or more"
+              }
+            ]
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 1000,
+                "target": "own-leader"
+              }
+            ],
+            "rawText": "[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "counter",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "battle",
+                  "amount": 2000,
+                  "target": "opponent-character"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your opponent has a Character with 6000 power or more"
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 1000,
+                  "target": "own-leader"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle. Then, if your opponent has a Character with 6000 power or more, up to 1 of your Leader or Character cards gains +1000 power during this turn.\n[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "battle",
+                "amount": 2000,
+                "target": "opponent-character"
+              }
+            ],
+            "rawText": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle. Then, if your opponent has a Character with 6000 power or more, up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+            "trigger": "counter",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your opponent has a Character with 6000 power or more"
+              }
+            ]
+          },
+          {
+            "rawText": "[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 1000,
+                "until": "turn-end",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                },
+                "target": "own-card"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "counter",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "battle",
+                  "amount": 2000,
+                  "target": "opponent-character"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your opponent has a Character with 6000 power or more"
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 1000,
+                  "until": "turn-end",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "target": "own-card"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle. Then, if your opponent has a Character with 6000 power or more, up to 1 of your Leader or Character cards gains +1000 power during this turn.\n[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "f2855d92c9151f01fd5629f220a3fd5e767146a3d6b62c3b9ad4df99c3a32f99",
+      "afterHash": "fe29fcec62309302bb0b2891a7090a482557d020b4f8c9ef90d07cfe0c9fa9dc"
+    }
+  ]
+}

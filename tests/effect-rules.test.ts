@@ -161,3 +161,15 @@ test('a Trigger requirement in the middle of an ability is not a new timing wind
  assert.equal(parsed[1].trigger,'trigger');
  assert.deepEqual(parsed[1].actions,[{kind:'draw',amount:1}]);
 });
+
+test('hand reset owns its shuffle and draw instead of emitting a second draw',()=>{
+ const parsed=parseEffects(card('[Main] You return all cards in your hand to your deck, shuffle your deck, then draw 5 cards.'))[0];
+ assert.deepEqual(parsed.actions,[{kind:'hand-reset',scope:'self',draw:5,shuffle:true}]);
+});
+
+test('a separate natural-language once-per-turn ability does not contaminate On Play',()=>{
+ const document=compileEffectDocument(card('[On Play] Draw 1 card.\n[Once Per Turn] When your Leader with a type including "Rocks Pirates" attacks or is attacked, you may trash 1 card from your hand to activate this effect. Your Leader gains +3000 power during this battle.'));
+ const commands=resolveEffectTiming(document,'on-play').commands;
+ assert.deepEqual(commands.map(c=>c.value),[{kind:'draw',amount:1}]);
+ assert.equal(document.normalized.length,2);
+});

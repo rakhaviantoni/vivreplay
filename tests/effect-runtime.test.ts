@@ -253,3 +253,45 @@ test('draw then discard allows discarding the newly drawn card',()=>{
  assert.equal(done.execution.state.cards[0].zone,'hand');
  assert.equal(done.execution.state.cards[1].zone,'trash');
 });
+
+test('effect replacement resumes before the next command and does not repeat earlier draws',()=>{
+ const initial:MatchEffectState={turn:'player',turnEffects:[],restrictions:[],delayed:[],cards:[...Array.from({length:5},(_,i)=>({id:`field-${i}`,owner:'player' as const,zone:'character' as const,type:'Character' as const})),{id:'incoming',owner:'player',zone:'trash',type:'Character',cost:2},{id:'draw-first',owner:'player',zone:'deck'},{id:'draw-last',owner:'player',zone:'deck'},{id:'remain',owner:'player',zone:'deck'}]};
+ const pending=beginEffectExecution(initial,'player','source','on-play',[
+  {kind:'resolve-action',value:{kind:'draw',amount:1}},
+  {kind:'resolve-action',value:{kind:'play',source:'trash',amount:1,maxCost:2,rested:true}},
+  {kind:'resolve-action',value:{kind:'draw',amount:1}},
+ ]);
+ assert.equal(pending.execution.commandIndex,1);
+ const replacement=advanceEffectExecution(pending.execution,{cardIds:['incoming']});
+ assert.match(replacement.requiresSelection??'',/existing Character/);
+ assert.equal(replacement.execution.commandIndex,1);
+ assert.equal(replacement.execution.state.cards.find(card=>card.id==='draw-last')?.zone,'deck');
+ const invalid=advanceEffectExecution(replacement.execution,{cardIds:['incoming'],replacementIds:['incoming']});
+ assert.ok(invalid.error);
+ assert.deepEqual(invalid.execution.state,replacement.execution.state);
+ const done=advanceEffectExecution(replacement.execution,{cardIds:['incoming'],replacementIds:['field-2']});
+ assert.equal(done.complete,true);
+ assert.equal(done.execution.state.cards.find(card=>card.id==='field-2')?.zone,'trash');
+ assert.equal(done.execution.state.cards.find(card=>card.id==='incoming')?.zone,'character');
+ assert.equal(done.execution.state.cards.find(card=>card.id==='incoming')?.rested,true);
+ assert.equal(done.execution.state.cards.filter(card=>card.zone==='hand').length,2);
+ assert.equal(done.execution.state.cards.find(card=>card.id==='remain')?.zone,'deck');
+});
+
+test('Trigger references execute Main exactly once including its mandatory choices',()=>{
+ const document=compileEffectDocument({id:'test',code:'TEST',name:'Test',color:'Blue',type:'Event',cost:1,power:0,rarity:'C',art:0,effect:"[Main] Draw 2 cards and trash 1 card from your hand. [Trigger] Activate this card's [Main] effect."});
+ const resolution=resolveEffectTiming(document,'trigger');
+ assert.deepEqual(resolution.commands.map(c=>c.value.kind),['draw','trash']);
+ const state:MatchEffectState={turn:'player',turnEffects:[],restrictions:[],delayed:[],cards:[{id:'d1',owner:'player',zone:'deck',type:'Character'},{id:'d2',owner:'player',zone:'deck',type:'Character'}]};
+ const started=beginEffectExecution(state,'player','source','trigger',resolution.commands);
+ assert.ok(started.requiresSelection);
+ assert.equal(started.execution.state.cards.filter(c=>c.zone==='hand').length,2);
+ const done=advanceEffectExecution(started.execution,{cardIds:['d1']});
+ assert.ok(done.complete);
+ assert.equal(done.execution.state.cards.find(c=>c.id==='d1')?.zone,'trash');
+});
+test('missing and cyclic effect references cannot report ready',()=>{
+ const make=(effect:string)=>compileEffectDocument({id:'test',code:'TEST',name:'Test',color:'Blue',type:'Event',cost:1,power:0,rarity:'C',art:0,effect});
+ assert.equal(resolveEffectTiming(make("[Trigger] Activate this card's [Main] effect."),'trigger').status,'custom');
+ assert.equal(resolveEffectTiming(make("[Main] Activate this card's [Counter] effect. [Counter] Activate this card's [Main] effect."),'main').status,'custom');
+});

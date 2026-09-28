@@ -514,8 +514,17 @@ html[data-theme=dark] .masthead.is-scrolled{box-shadow:0 10px 28px #0008!importa
 @media(max-width:700px){.masthead.is-scrolled{height:58px!important}.masthead.is-scrolled .wordmark{transform:scale(.96)}}
 
 /* Browse directories use the same library language without pretending card traits are deck archetypes. */
-.directory-page{padding-top:48px;padding-bottom:82px}.directory-hero{padding:clamp(28px,4vw,56px);border-radius:26px}.directory-hero .eyebrow{display:flex;align-items:center;gap:7px}.directory-hero h1{max-width:720px}.directory-hero>p:not(.eyebrow){max-width:650px;margin-top:15px}.directory-hero>b{display:block;margin-top:25px;color:var(--vp-gold-deep);font:800 12px var(--game-font);letter-spacing:.06em}.directory-search{display:flex;align-items:center;gap:11px;max-width:620px;margin:28px 0 22px;padding:0 15px;border:1px solid #d5c8b0;border-radius:999px;background:#fffaf0;color:#84735d}.directory-search input{width:100%;min-height:46px;border:0;outline:0;background:transparent;color:inherit}.directory-loading{padding:64px 0;color:#897962;text-align:center}.set-index-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.set-index-section{padding:19px;border-top:3px solid #c69534;background:#fffaf0;border-radius:16px}.set-index-section header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding-bottom:12px;border-bottom:1px solid #e3d7c3}.set-index-section header>a{color:#4a3821;font:800 17px var(--game-font)}.set-index-section header span{color:#8a7c69;font:600 10px var(--game-font);text-align:right}.set-index-section>div{display:grid;grid-template-columns:1fr;gap:4px;margin-top:12px}.set-index-section>div>a,.archetype-item>div a{display:flex;gap:7px;min-width:0;padding:4px 0;color:#554d42;font:500 12px/1.25 var(--game-font)}.set-index-section>div>a:hover,.archetype-item>div a:hover{color:#b27616}.set-index-section>div b,.archetype-item>div b{flex:0 0 auto;color:#ae7b22;font:800 10px var(--game-font)}.set-index-section>div span,.archetype-item>div span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.archetype-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.archetype-item{border:1px solid #dfd2bc;border-radius:14px;background:#fffaf0;overflow:hidden}.archetype-item>button{display:flex;align-items:center;justify-content:space-between;width:100%;padding:14px 16px;border:0;background:transparent;color:#504638;text-align:left;font:800 13px var(--game-font)}.archetype-item>button b{display:grid;place-items:center;min-width:29px;height:24px;padding:0 7px;border-radius:999px;background:#f0e5cf;color:#a4711d;font:800 10px var(--game-font)}.archetype-item.open{grid-column:span 1;border-color:#c59641}.archetype-item>div{display:grid;gap:3px;max-height:360px;overflow:auto;padding:0 16px 15px;border-top:1px solid #eadfcb}
+.directory-page{padding-top:48px;padding-bottom:82px}.directory-hero,.tutorial-page-header{padding:clamp(28px,4vw,56px);border-radius:26px}.directory-hero .eyebrow,.tutorial-page-header .eyebrow{display:flex;align-items:center;gap:7px}.directory-hero h1,.tutorial-page-header h1{max-width:720px}.directory-hero>p:not(.eyebrow),.tutorial-page-header>p:not(.eyebrow){max-width:650px;margin-top:15px}.directory-hero>b{display:block;margin-top:25px;color:var(--vp-gold-deep);font:800 12px var(--game-font);letter-spacing:.06em}.directory-search{display:flex;align-items:center;gap:11px;max-width:620px;margin:28px 0 22px;padding:0 15px;border:1px solid #d5c8b0;border-radius:999px;background:#fffaf0;color:#84735d}.directory-search input{width:100%;min-height:46px;border:0;outline:0;background:transparent;color:inherit}.directory-loading{padding:64px 0;color:#897962;text-align:center}.set-index-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.set-index-section{padding:19px;border-top:3px solid #c69534;background:#fffaf0;border-radius:16px}.set-index-section header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding-bottom:12px;border-bottom:1px solid #e3d7c3}.set-index-section header>a{color:#4a3821;font:800 17px var(--game-font)}.set-index-section header span{color:#8a7c69;font:600 10px var(--game-font);text-align:right}.set-index-section>div{display:grid;grid-template-columns:1fr;gap:4px;margin-top:12px}.set-index-section>div>a,.archetype-item>div a{display:flex;gap:7px;min-width:0;padding:4px 0;color:#554d42;font:500 12px/1.25 var(--game-font)}.set-index-section>div>a:hover,.archetype-item>div a:hover{color:#b27616}.set-index-section>div b,.archetype-item>div b{flex:0 0 auto;color:#ae7b22;font:800 10px var(--game-font)}.set-index-section>div span,.archetype-item>div span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.archetype-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.archetype-item{border:1px solid #dfd2bc;border-radius:14px;background:#fffaf0;overflow:hidden}.archetype-item>button{display:flex;align-items:center;justify-content:space-between;width:100%;padding:14px 16px;border:0;background:transparent;color:#504638;text-align:left;font:800 13px var(--game-font)}.archetype-item>button b{display:grid;place-items:center;min-width:29px;height:24px;padding:0 7px;border-radius:999px;background:#f0e5cf;color:#a4711d;font:800 10px var(--game-font)}.archetype-item.open{grid-column:span 1;border-color:#c59641}.archetype-item>div{display:grid;gap:3px;max-height:360px;overflow:auto;padding:0 16px 15px;border-top:1px solid #eadfcb}.archetype-item>div .archetype-library-link{display:block;margin:11px 0 6px;padding:8px 10px;border:1px solid #d7c39d;border-radius:7px;background:#fff8e9;color:#946117;font:800 11px var(--game-font)}
 html[data-theme='dark'] .directory-hero,html[data-theme='dark'] .set-index-section,html[data-theme='dark'] .archetype-item,html[data-theme='dark'] .directory-search{background:#102128;border-color:#2c4650;color:#edf4ef}html[data-theme='dark'] .directory-hero>p:not(.eyebrow),html[data-theme='dark'] .set-index-section header span,html[data-theme='dark'] .set-index-section>div>a,html[data-theme='dark'] .archetype-item>button,html[data-theme='dark'] .archetype-item>div a{color:#bacac5}html[data-theme='dark'] .set-index-section header>a{color:#f6f0df}html[data-theme='dark'] .archetype-item>button b{background:#1d3b43;color:#e3b558}@media(max-width:920px){.set-index-grid,.archetype-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:580px){.set-index-grid,.archetype-grid{grid-template-columns:1fr}.directory-page{padding-inline:18px}.directory-hero{border-radius:20px}.set-index-section{border-radius:13px}}
+
+/* Tutorial uses the same page-intro surface as the directories, not a bespoke hero. */
+.tutorial-page-header.tutorial-index-intro{display:block!important;min-height:0!important;margin:0!important;padding:clamp(28px,4vw,56px)!important;border:0!important;border-radius:26px!important;background:none!important;box-shadow:none!important}.tutorial-page-header .tutorial-index-copy{width:min(100%,720px);text-align:left}.tutorial-page-header .tutorial-index-copy h1{font-size:clamp(36px,4vw,52px);letter-spacing:-.045em}.tutorial-page-header .tutorial-index-copy>p:not(.kicker){max-width:650px;margin-top:15px}.tutorial-chapters-section .section-heading{padding-bottom:18px;border-bottom:1px solid var(--vp-line)}html[data-theme='dark'] .tutorial-page-header.tutorial-index-intro{border:0!important;background:none!important}@media(max-width:640px){.tutorial-page-header.tutorial-index-intro{margin:0!important;padding:28px!important;border-radius:20px!important}.tutorial-page-header .tutorial-index-copy h1{font-size:clamp(34px,10vw,44px)}}
+
+/* The primary library filters fill two deliberate rows before utility controls. */
+@media(min-width:1181px){.filter-workbench{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start}.filter-primary{display:grid;grid-template-columns:repeat(5,max-content);grid-template-rows:repeat(2,36px);align-content:start;flex:none;gap:7px}.filter-secondary{align-self:start;margin-left:0}}
+
+/* Arena uses the card-led library header, including the same art-only lift and sheen. */
+.arena-intro .library-intro-rail-card{overflow:visible!important;isolation:isolate!important;filter:none!important}.arena-intro .library-intro-rail-card .tcg-card{position:relative!important;z-index:1!important;transition:transform .22s cubic-bezier(.2,.75,.25,1),filter .22s ease,box-shadow .22s ease!important}.arena-intro .library-intro-rail-card:hover .tcg-card{transform:translate3d(0,-3px,0)!important;filter:brightness(1.035) saturate(1.045)!important;box-shadow:0 7px 12px color-mix(in srgb,var(--ink) 16%,transparent)!important}.arena-intro .library-intro-rail-card .tcg-card.printing-image::after{content:""!important;position:absolute!important;z-index:3!important;inset:-50%!important;pointer-events:none!important;opacity:0!important;transform:translateX(-54%) rotate(20deg)!important;background:linear-gradient(105deg,transparent 42%,#ffffff10 45%,#fff9 50%,#ffffff12 54%,transparent 59%)!important;transition:transform .43s ease,opacity .16s ease!important}.arena-intro .library-intro-rail-card:hover .tcg-card.printing-image::after{opacity:.55!important;transform:translateX(54%) rotate(20deg)!important}
 .meta-data-notice{display:flex;align-items:flex-start;gap:18px;margin:0 auto 18px;max-width:1460px;padding:17px 21px;border:1px solid #d8c9ad;border-radius:16px;background:#fffaf0;color:#665a49}.meta-data-notice b{flex:0 0 auto;color:#9c6d1d;font:800 13px var(--game-font)}.meta-data-notice p{margin:0;max-width:760px;font:500 13px/1.5 var(--game-font)}html[data-theme='dark'] .meta-data-notice{border-color:#2e4b55;background:#102128;color:#c3d0cc}html[data-theme='dark'] .meta-data-notice b{color:#e4b24f}
 
 /* Meta begins with recorded pairings; broad rankings appear when the Arena sample supports them. */
@@ -637,3 +646,52 @@ html[data-theme='dark'] .meta-page .meta-hero{background:linear-gradient(112deg,
 /* Meta is a report, so it uses one reading surface rather than nested cards. */
 .meta-page .meta-hero{grid-template-columns:minmax(0,1fr);min-height:0}.meta-page .meta-hero-copy{max-width:760px}.meta-page .meta-hero-note{display:none}.meta-page .meta-preview{border:0;border-radius:0;background:transparent;box-shadow:none}.meta-page .meta-preview>header{padding:0 0 15px;border-bottom:1px solid #d8cbb5}.meta-page .meta-preview-grid{display:grid;grid-template-columns:1fr;gap:0;padding:0}.meta-page .meta-matchup{display:grid;grid-template-columns:minmax(0,1fr) minmax(190px,.45fr);align-items:center;gap:24px;padding:20px 0;border:0;border-bottom:1px solid #ded3c0;border-radius:0;background:transparent;box-shadow:none}.meta-page .meta-matchup:hover{transform:none;border-color:#b9904a;box-shadow:none}.meta-page .meta-matchup-result{margin:0;padding:0;border:0}.meta-page .meta-next{padding:25px 0;border:0;border-top:1px solid #d8cbb5;border-radius:0;background:transparent;box-shadow:none}.meta-page .meta-next p{margin-bottom:0}.meta-page .meta-next a{margin-left:auto}
 html[data-theme='dark'] .meta-page .meta-preview,html[data-theme='dark'] .meta-page .meta-matchup,html[data-theme='dark'] .meta-page .meta-next{background:transparent;border-color:#294653}@media(max-width:700px){.meta-page .meta-matchup{grid-template-columns:1fr;gap:16px;padding:17px 0}.meta-page .meta-matchup-result{max-width:300px}.meta-page .meta-next{align-items:flex-start}.meta-page .meta-next a{margin-left:0}}
+
+
+/* Tutorial index uses the same page frame and header surface as the card index. */
+.tutorial-index-page.directory-page{
+  max-width:1640px!important;
+  min-height:0!important;
+  margin:0 auto!important;
+  padding:48px 38px 82px!important;
+  background:transparent!important;
+  color:inherit!important;
+}
+.tutorial-index-page .directory-hero{
+  text-align:left!important;
+}
+.tutorial-index-page .directory-hero>.eyebrow{
+  justify-content:flex-start!important;
+}
+.tutorial-index-page .tutorial-chapters-section{
+  padding-top:30px!important;
+}
+.tutorial-index-page .section-heading{
+  display:flex;
+  align-items:end;
+  justify-content:space-between;
+  gap:24px;
+  text-align:left!important;
+}
+.tutorial-index-page .section-heading>div,
+.tutorial-index-page .section-heading p{
+  text-align:left!important;
+}
+.tutorial-index-page .section-heading .eyebrow{
+  justify-content:flex-start!important;
+}
+.tutorial-index-page .tutorial-path-status{
+  margin-inline:0!important;
+}
+.tutorial-index-page .tutorial-back{
+  width:auto!important;
+  text-align:left!important;
+}
+@media(max-width:900px){
+  .tutorial-index-page.directory-page{padding:34px 22px 82px!important;}
+}
+@media(max-width:760px){
+  .tutorial-index-page.directory-page{padding:30px var(--mobile-gutter) 72px!important;}
+  .tutorial-index-page .tutorial-chapters-section{padding-top:26px!important;}
+  .tutorial-index-page .section-heading{align-items:flex-start;flex-direction:column;gap:14px;}
+}
