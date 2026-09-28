@@ -28,11 +28,23 @@ function newestFirst(a:Card,b:Card){return setRank(b.setCode)-setRank(a.setCode)
 
 type DeckSortOption='cost-asc'|'cost-desc'|'name-asc'|'power-desc'|'counter-desc';
 function sortDeckCards(a:DeckCard,b:DeckCard,sort:DeckSortOption){
-  if(sort==='cost-desc')return b.cost-a.cost||a.name.localeCompare(b.name);
-  if(sort==='name-asc')return a.name.localeCompare(b.name)||a.cost-b.cost;
-  if(sort==='power-desc')return (b.power??0)-(a.power??0)||a.cost-b.cost||a.name.localeCompare(b.name);
-  if(sort==='counter-desc')return (b.counter??0)-(a.counter??0)||a.cost-b.cost||a.name.localeCompare(b.name);
-  return a.cost-b.cost||a.name.localeCompare(b.name);
+  const costA=Number(a.cost)||0;
+  const costB=Number(b.cost)||0;
+  const powerA=Number(a.power)||0;
+  const powerB=Number(b.power)||0;
+  const counterA=Number(a.counter)||0;
+  const counterB=Number(b.counter)||0;
+  const nameA=a.name||'';
+  const nameB=b.name||'';
+  const codeA=a.code||'';
+  const codeB=b.code||'';
+
+  if(sort==='cost-desc')return costB-costA||nameA.localeCompare(nameB)||codeA.localeCompare(codeB);
+  if(sort==='cost-asc')return costA-costB||nameA.localeCompare(nameB)||codeA.localeCompare(codeB);
+  if(sort==='name-asc')return nameA.localeCompare(nameB)||costA-costB||codeA.localeCompare(codeB);
+  if(sort==='power-desc')return powerB-powerA||costA-costB||nameA.localeCompare(nameB);
+  if(sort==='counter-desc')return counterB-counterA||costA-costB||nameA.localeCompare(nameB);
+  return costA-costB||nameA.localeCompare(nameB);
 }
 
 export function LiveDeckBuilder({initialCardId,localDeckId}:{initialCardId?:string;localDeckId?:string}){
@@ -72,6 +84,7 @@ export function LiveDeckBuilder({initialCardId,localDeckId}:{initialCardId?:stri
   const [coachLoading,setCoachLoading]=useState(false);
   const [language,setLanguage]=useState<'EN'|'ID'>('EN');
   const importRef=useRef<HTMLInputElement>(null);
+  const sortSelectRef=useRef<HTMLSelectElement>(null);
   const restoredRef=useRef(false);
 
   useEffect(()=>{const sync=()=>setLanguage(window.localStorage.getItem('vivreplay-locale')==='ID'?'ID':'EN');const onLocale=(event:Event)=>setLanguage((event as CustomEvent<'EN'|'ID'>).detail==='ID'?'ID':'EN');sync();window.addEventListener('vivreplay:locale',onLocale);return()=>window.removeEventListener('vivreplay:locale',onLocale);},[]);
@@ -135,7 +148,15 @@ export function LiveDeckBuilder({initialCardId,localDeckId}:{initialCardId?:stri
     if(deckStatFilter&&!matchesStatFilter(card,deckStatFilter))return false;
     return true;
   }),[deckCards,deckSearch,deckTypeFilter,deckStatFilter]);
-  const filteredGrouped=useMemo(()=>deckKinds.map(kind=>({kind,cards:filteredDeckCards.filter(card=>card.type===kind),total:filteredDeckCards.filter(card=>card.type===kind).reduce((sum,card)=>sum+(deck[card.id]??0),0)})).filter(group=>group.cards.length),[filteredDeckCards,deck]);
+  const sortedDeckCards=useMemo(()=>[...filteredDeckCards].sort((a,b)=>sortDeckCards(a,b,deckSort)),[filteredDeckCards,deckSort]);
+  const sortedGrouped=useMemo(()=>deckKinds.map(kind=>{
+    const cards=sortedDeckCards.filter(card=>card.type===kind);
+    return {
+      kind,
+      cards,
+      total:cards.reduce((sum,card)=>sum+(deck[card.id]??0),0)
+    };
+  }).filter(group=>group.cards.length),[sortedDeckCards,deck]);
   const filteredCount=useMemo(()=>filteredDeckCards.reduce((sum,card)=>sum+(deck[card.id]??0),0),[filteredDeckCards,deck]);
 
   function change(card:DeckCard,delta:number){if(!leader)return;setDeck(current=>{const next=(current[card.id]??0)+delta;if(next<1){const {[card.id]:_,...rest}=current;return rest;}if(next>4||total>=50&&delta>0)return current;return {...current,[card.id]:next};});}
@@ -217,26 +238,41 @@ export function LiveDeckBuilder({initialCardId,localDeckId}:{initialCardId?:stri
         </section>}
         {total>0&&<div className="deck-board-toolbar" aria-label="Deck board filters and actions">
           <div className="deck-board-filters">
-            <label className="deck-board-search"><Search size={13}/><input value={deckSearch} onChange={event=>setDeckSearch(event.target.value)} placeholder={t('Filter cards in deck…','Cari kartu di deck…')} aria-label="Filter cards in deck"/>{deckSearch&&<button type="button" onClick={()=>setDeckSearch('')} aria-label="Clear search"><X size={12}/></button>}</label>
+            <label className="deck-board-search" title={t('Filter cards in deck','Filter kartu di deck')}>
+              <Search size={13}/>
+              <input value={deckSearch} onChange={event=>setDeckSearch(event.target.value)} placeholder={t('Search…','Cari…')} aria-label="Filter cards in deck"/>
+              {deckSearch&&<button type="button" onClick={()=>setDeckSearch('')} aria-label="Clear search"><X size={12}/></button>}
+            </label>
             <div className="deck-board-type-tabs" role="group" aria-label="Filter by card type">
               {(['All','Character','Event','Stage'] as const).map(item=>{
                 const count=item==='All'?total:deckCards.filter(c=>c.type===item).reduce((sum,c)=>sum+(deck[c.id]??0),0);
                 if(item!=='All'&&count===0)return null;
-                return <button key={item} type="button" className={deckTypeFilter===item?'is-active':''} aria-pressed={deckTypeFilter===item} onClick={()=>setDeckTypeFilter(item)}><span>{item==='All'?t('All','Semua'):`${item}s`}</span><small>{count}</small></button>;
+                const label=item==='All'?t('All','Semua'):item==='Character'?t('Char','Karakter'):item;
+                return <button key={item} type="button" className={deckTypeFilter===item?'is-active':''} aria-pressed={deckTypeFilter===item} onClick={()=>setDeckTypeFilter(item)} title={`${item}s (${count})`}><span>{label}</span><small>{count}</small></button>;
               })}
             </div>
-            <label className="deck-board-sort" title={t('Sort deck cards','Urutkan kartu deck')}>
+            <div
+              className="deck-board-sort"
+              onClick={()=>{try{sortSelectRef.current?.showPicker?.();}catch{sortSelectRef.current?.focus();}}}
+              title={t('Sort deck cards','Urutkan kartu deck')}
+            >
               <ArrowsDownUp size={13}/>
-              <select value={deckSort} onChange={event=>setDeckSort(event.target.value as DeckSortOption)} aria-label={t('Sort cards in deck','Urutkan kartu di deck')}>
+              <select
+                ref={sortSelectRef}
+                value={deckSort}
+                onChange={event=>setDeckSort(event.target.value as DeckSortOption)}
+                onClick={event=>event.stopPropagation()}
+                aria-label={t('Sort cards in deck','Urutkan kartu di deck')}
+              >
                 <option value="cost-asc">{t('Cost: Low to High','Biaya: Rendah ke Tinggi')}</option>
                 <option value="cost-desc">{t('Cost: High to Low','Biaya: Tinggi ke Rendah')}</option>
                 <option value="name-asc">{t('Name: A to Z','Nama: A sampai Z')}</option>
                 <option value="power-desc">{t('Power: High to Low','Power: Tinggi ke Rendah')}</option>
                 <option value="counter-desc">{t('Counter: High to Low','Counter: Tinggi ke Rendah')}</option>
               </select>
-            </label>
+            </div>
             {deckStatFilter&&<span className="deck-board-active-filter"><span>{deckStatFilter.kind}: {deckStatFilter.value}</span><button type="button" onClick={()=>setDeckStatFilter(undefined)} aria-label="Remove filter"><X size={11}/></button></span>}
-            {(deckSearch||deckTypeFilter!=='All'||deckStatFilter||deckSort!=='cost-asc')&&<button type="button" className="deck-board-filter-reset" onClick={clearDeckFilters}><X size={12}/><span>{t('Reset filter','Reset filter')}</span></button>}
+            {(deckSearch||deckTypeFilter!=='All'||deckStatFilter||deckSort!=='cost-asc')&&<button type="button" className="deck-board-filter-reset" onClick={clearDeckFilters} title={t('Reset all filters','Reset semua filter')}><X size={12}/><span>{t('Reset','Reset')}</span></button>}
             {(deckSearch||deckTypeFilter!=='All'||deckStatFilter)&&<span className="deck-board-filter-count">{filteredCount}/{total}</span>}
           </div>
           <div className="deck-actions">
@@ -268,7 +304,7 @@ export function LiveDeckBuilder({initialCardId,localDeckId}:{initialCardId?:stri
             </button>
           </div>
         </div>}
-        <section className={`deck-board ${compactDeck?'is-compact':''}`}>{leaderCard?<div className="deck-card-group leader-group"><header><span>Leader</span></header><div className="deck-leader-art" onMouseEnter={event=>openHover(leaderCard,event)} onMouseLeave={()=>setHoveredCard(undefined)}><CardArt card={displayArt(leaderCard)}/><button type="button" className="deck-info-action leader-info-action" onClick={event=>openPreview(leaderCard,event.currentTarget)} aria-label={`View ${leaderCard.name} details`}><Info size={13}/></button><button type="button" className="deck-art-choice leader-art-choice" onClick={()=>setArtPicker(leaderCard)} aria-label={`Choose artwork for ${leaderCard.name}`}><Layers3 size={13}/></button></div></div>:<div className="deck-card-group leader-group"><header><span>Leader</span></header><button type="button" className="deck-leader-placeholder" onClick={()=>setLeaderPickerOpen(true)}>{t('Choose a leader','Pilih Leader')}</button></div>}{(compactDeck?[{kind:'Deck',cards:filteredDeckCards,total:filteredCount}]:filteredGrouped).map(group=><div className="deck-card-group" key={group.kind}><header><span>{group.kind==='Deck'?'Deck':`${group.kind}s`}</span><b>{group.total}</b></header><div className="deck-card-row">{[...group.cards].sort((a,b)=>sortDeckCards(a,b,deckSort)).map(card=>{const count=deck[card.id]??0;return <div key={card.id} className={`deck-card-stack ${count>1?'has-printing-stack':''} ${matchesHighlight(card)?'stat-active':''}`} onMouseEnter={event=>openHover(card,event)} onMouseLeave={()=>setHoveredCard(undefined)}><div className="card-stage printing-stack deck-printing-stack">{Array.from({length:Math.min(count,4)},(_,index)=><div className="stacked-printing" style={{'--stack-index':index} as React.CSSProperties} key={index}>{index===0?<div className="deck-stack-art" title={card.name}><CardArt card={displayArt(card)}/></div>:<CardArt card={displayArt(card)}/>}</div>)}<b>×{count}</b></div><button type="button" className="deck-info-action" onClick={event=>openPreview(card,event.currentTarget)} aria-label={`View ${card.name} details`}><Info size={13}/></button><button type="button" className="deck-art-choice" onClick={event=>{event.stopPropagation();setArtPicker(card)}} aria-label={`Choose artwork for ${card.name}`}><Layers3 size={13}/></button><span className="deck-stack-actions"><button type="button" onClick={event=>{event.stopPropagation();change(card,-1)}} aria-label={`Remove ${card.name}`}><Minus size={13}/></button><button type="button" disabled={count===4||total>=50} onClick={event=>{event.stopPropagation();change(card,1)}} aria-label={`Add ${card.name}`}><Plus size={13}/></button></span></div>;})}</div></div>)}{total>0&&filteredDeckCards.length===0&&<div className="deck-empty-filtered"><p>{t('No cards in your deck match the active filter.','Tidak ada kartu di deck yang cocok dengan filter.')}</p><button type="button" onClick={clearDeckFilters}>{t('Clear filters','Hapus filter')}</button></div>}{!leaderCard&&!loading&&<p className="deck-empty">Choose a leader first. Their colours will shape the cards available to this deck.</p>}{leaderCard&&!grouped.length&&<section className="deck-empty-state"><span>{t('Your deck starts here','Deck kamu dimulai di sini')}</span><h2>{t(`Build ${leaderCard.name} a first list.`,`Buat daftar awal untuk ${leaderCard.name}.`)}</h2><p>{t('Browse cards that match your Leader, or create a balanced 50-card starting list and refine it from there.','Lihat kartu yang cocok dengan Leader ini, atau buat daftar awal 50 kartu yang seimbang lalu sempurnakan.')}</p><div><button type="button" className="deck-empty-browse" onClick={()=>{document.querySelector<HTMLElement>('.builder-search input')?.focus();document.querySelector<HTMLElement>('.builder-catalog')?.scrollIntoView({behavior:'smooth',block:'start'});}}>{t('Browse compatible cards','Lihat kartu yang cocok')}</button><button type="button" className="deck-empty-complete" onClick={completeMetaStyleDeck}><Sparkles size={15}/>{t('Build a starting list','Buat daftar awal')}</button></div></section>}</section>
+        <section className={`deck-board ${compactDeck?'is-compact':''}`}>{leaderCard?<div className="deck-card-group leader-group"><header><span>Leader</span></header><div className="deck-leader-art" onMouseEnter={event=>openHover(leaderCard,event)} onMouseLeave={()=>setHoveredCard(undefined)}><CardArt card={displayArt(leaderCard)}/><button type="button" className="deck-info-action leader-info-action" onClick={event=>openPreview(leaderCard,event.currentTarget)} aria-label={`View ${leaderCard.name} details`}><Info size={13}/></button><button type="button" className="deck-art-choice leader-art-choice" onClick={()=>setArtPicker(leaderCard)} aria-label={`Choose artwork for ${leaderCard.name}`}><Layers3 size={13}/></button></div></div>:<div className="deck-card-group leader-group"><header><span>Leader</span></header><button type="button" className="deck-leader-placeholder" onClick={()=>setLeaderPickerOpen(true)}>{t('Choose a leader','Pilih Leader')}</button></div>}{(compactDeck?[{kind:'Deck',cards:sortedDeckCards,total:filteredCount}]:sortedGrouped).map(group=><div className="deck-card-group" key={group.kind}><header><span>{group.kind==='Deck'?'Deck':`${group.kind}s`}</span><b>{group.total}</b></header><div className="deck-card-row">{group.cards.map(card=>{const count=deck[card.id]??0;return <div key={card.id} className={`deck-card-stack ${count>1?'has-printing-stack':''} ${matchesHighlight(card)?'stat-active':''}`} onMouseEnter={event=>openHover(card,event)} onMouseLeave={()=>setHoveredCard(undefined)}><div className="card-stage printing-stack deck-printing-stack">{Array.from({length:Math.min(count,4)},(_,index)=><div className="stacked-printing" style={{'--stack-index':index} as React.CSSProperties} key={index}>{index===0?<div className="deck-stack-art" title={card.name}><CardArt card={displayArt(card)}/></div>:<CardArt card={displayArt(card)}/>}</div>)}<b>×{count}</b></div><button type="button" className="deck-info-action" onClick={event=>openPreview(card,event.currentTarget)} aria-label={`View ${card.name} details`}><Info size={13}/></button><button type="button" className="deck-art-choice" onClick={event=>{event.stopPropagation();setArtPicker(card)}} aria-label={`Choose artwork for ${card.name}`}><Layers3 size={13}/></button><span className="deck-stack-actions"><button type="button" onClick={event=>{event.stopPropagation();change(card,-1)}} aria-label={`Remove ${card.name}`}><Minus size={13}/></button><button type="button" disabled={count===4||total>=50} onClick={event=>{event.stopPropagation();change(card,1)}} aria-label={`Add ${card.name}`}><Plus size={13}/></button></span></div>;})}</div></div>)}{total>0&&filteredDeckCards.length===0&&<div className="deck-empty-filtered"><p>{t('No cards in your deck match the active filter.','Tidak ada kartu di deck yang cocok dengan filter.')}</p><button type="button" onClick={clearDeckFilters}>{t('Clear filters','Hapus filter')}</button></div>}{!leaderCard&&!loading&&<p className="deck-empty">Choose a leader first. Their colours will shape the cards available to this deck.</p>}{leaderCard&&!grouped.length&&<section className="deck-empty-state"><span>{t('Your deck starts here','Deck kamu dimulai di sini')}</span><h2>{t(`Build ${leaderCard.name} a first list.`,`Buat daftar awal untuk ${leaderCard.name}.`)}</h2><p>{t('Browse cards that match your Leader, or create a balanced 50-card starting list and refine it from there.','Lihat kartu yang cocok dengan Leader ini, atau buat daftar awal 50 kartu yang seimbang lalu sempurnakan.')}</p><div><button type="button" className="deck-empty-browse" onClick={()=>{document.querySelector<HTMLElement>('.builder-search input')?.focus();document.querySelector<HTMLElement>('.builder-catalog')?.scrollIntoView({behavior:'smooth',block:'start'});}}>{t('Browse compatible cards','Lihat kartu yang cocok')}</button><button type="button" className="deck-empty-complete" onClick={completeMetaStyleDeck}><Sparkles size={15}/>{t('Build a starting list','Buat daftar awal')}</button></div></section>}</section>
       </section>
     </div>
     {preview&&<CardPreviewModal card={preview} origin={previewOrigin} language="EN" cards={cards} context="builder" onClose={()=>{setPreview(undefined);setPreviewOrigin(undefined)}} onNavigate={next=>setPreview(next as DeckCard)}/>} 
