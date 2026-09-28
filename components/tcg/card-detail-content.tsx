@@ -3,9 +3,21 @@
 import type {ReactNode} from 'react';
 import {BlockValue} from './block-value';
 import {SetInformation} from './set-information';
+import {colors} from '@/packages/card-data/catalog';
+
+export function cardIdentityBackground(color?: string | null): string {
+  if (!color) return '#657180';
+  const cardColours = color.split(/\s*(?:\/|&|,|·)\s*|\s+/).map(c => c.trim()).filter(c => Boolean(colors[c]));
+  const identityColours = cardColours.map(c => colors[c]);
+  if (identityColours.length > 1) {
+    return `linear-gradient(135deg,${identityColours.map((c, i) => `${c} ${(i / identityColours.length) * 100}% ${((i + 1) / identityColours.length) * 100}%`).join(',')})`;
+  }
+  return identityColours[0] ?? '#657180';
+}
 
 type CardDetailContentProps={
   code:string;
+  color?:string|null;
   title:string;
   titleId?:string;
   heading:'h1'|'h2';
@@ -22,10 +34,14 @@ type CardDetailContentProps={
   afterEffect?:ReactNode;
 };
 
-export function CardDetailContent({code,title,titleId,heading,type,rarity,attribute,cost,power,life,block,setCode,setName,effect,afterEffect}:CardDetailContentProps) {
+export function CardDetailContent({code,color,title,titleId,heading,type,rarity,attribute,cost,power,life,block,setCode,setName,effect,afterEffect}:CardDetailContentProps) {
   const Heading=heading;
+  const identityBackground = cardIdentityBackground(color);
   return <>
-    <p className="eyebrow">{code}</p>
+    <p className="eyebrow">
+      <i className="filter-colour identity-colour" aria-hidden="true" style={{ background: identityBackground }} />
+      <span>{code}</span>
+    </p>
     <Heading id={titleId} className="card-detail-title">{title}</Heading>
     <p className="viewer-kind">{type} <span>·</span> {rarity||'Printing'} {attribute&&<><span>·</span>{attribute}</>}</p>
     <dl className="viewer-stats">

@@ -25,6 +25,7 @@ export default function RootLayout({children}:{children:React.ReactNode}){
   return (
     <html lang="en">
       <body>
+        <Script id="error-guard" strategy="beforeInteractive">{`window.addEventListener('error',function(e){if(e&&e.message&&e.message.indexOf("reading 'startTime'")!==-1){e.preventDefault();e.stopImmediatePropagation()}});`}</Script>
         <Script src="https://www.googletagmanager.com/gtag/js?id=G-2Z50572QD3" strategy="afterInteractive"/>
         <Script id="google-analytics" strategy="afterInteractive">{`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-2Z50572QD3');`}</Script>
         <Shell>{children}</Shell>
