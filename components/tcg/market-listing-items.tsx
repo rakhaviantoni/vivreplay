@@ -60,10 +60,27 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
     <div className="market-listing-card-grid">
       {items.map(item=>{
         const amount=selected[item.id]??0;
-        return <article className={`deck-card-stack market-listing-card ${amount?'is-selected':''}`} key={item.id}>
-          <div className="market-listing-card-stage">
-            {Array.from({length:Math.min(item.quantity-1,3)},(_,index)=><div className={`market-listing-card-underlay underlay-${index}`} key={index} aria-hidden="true"><CardArt card={item.card}/></div>)}
-            <div className="market-listing-card-art" aria-label={`View ${item.card.name}`}><CardArt card={item.card}/></div>
+        return <article className={`deck-card-stack market-listing-card ${item.quantity>1?'has-printing-stack':''} ${amount?'is-selected':''}`} key={item.id}>
+          <div className="card-stage printing-stack deck-printing-stack market-listing-card-stage">
+            {Array.from({length:Math.min(item.quantity,4)},(_,index)=>(
+              <div className="stacked-printing" style={{'--stack-index':index} as React.CSSProperties} key={index}>
+                {index===0 ? (
+                  <div
+                    className="deck-stack-art"
+                    title={item.card.name}
+                    onClick={()=>setPreview(item.card)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setPreview(item.card);}}}
+                  >
+                    <CardArt card={item.card}/>
+                  </div>
+                ) : (
+                  <CardArt card={item.card}/>
+                )}
+              </div>
+            ))}
+            {item.quantity>1 && <b>×{item.quantity}</b>}
             <button type="button" className="deck-info-action market-listing-info" onClick={()=>setPreview(item.card)} aria-label={`View ${item.card.name} details`}><Info size={13}/></button>
             <span className="deck-stack-actions market-listing-quantity" aria-label={`Select ${item.card.name}`}>
               <button type="button" onClick={()=>change(item.id,-1,item.quantity)} disabled={!amount} aria-label={`Remove one ${item.card.name}`}><Minus size={13}/></button>
@@ -82,7 +99,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
     {preview&&<CardPreviewModal card={preview} language={preview.language==='JP'?'JP':'EN'} cards={items.map(item=>item.card)} onClose={()=>setPreview(undefined)} onNavigate={setPreview}/>}
     <footer className="market-listing-selection" aria-live="polite">
       <div className="market-listing-selection-info">
-        <span>{submitted?'Offer sent — awaiting a response.':selectedCount?`${selectedCount} ${selectedCount===1?'card':'cards'} selected`:'Select cards to calculate a total'}</span>
+        <span>{submitted?'Offer sent - awaiting a response.':selectedCount?`${selectedCount} ${selectedCount===1?'card':'cards'} selected`:'Select cards to calculate a total'}</span>
         <strong>{formatMoney(selectedTotal,currency)}</strong>
       </div>
       <div className="market-listing-selection-actions">
