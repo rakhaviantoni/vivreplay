@@ -9,11 +9,17 @@ body { font-family:var(--game-font); }
 .hero-stats dd,.library-counts dd,.viewer-stats dd,.live-stats dd { font-family:var(--display-font)!important; }
 .theme-toggle:hover { border-color:#d9a83f; color:#f6c65a; }
 
-.library-controls { padding:14px; }
-.filter-workbench { display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:10px 14px; margin-top:12px; min-width:0; }
-.filter-primary,.filter-secondary,.filter-status { display:flex; align-items:center; gap:7px; min-width:0; }
-.filter-primary { flex:1 1 620px; flex-wrap:wrap; }
-.filter-secondary { flex:0 0 auto; margin-left:auto; flex-wrap:wrap; }
+.library-controls { padding:10px 14px; }
+.library-controls-top { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.library-controls-top .search-box { position:relative; display:flex; align-items:center; gap:8px; flex:1 1 240px; max-width:440px; height:36px !important; min-height:36px !important; padding:0 12px; border-radius:12px; border:1px solid #d8d4ca; background:#f6f4ee; color:#41444a; box-sizing:border-box; }
+.library-controls-top .search-box input { flex:1; width:100%; border:0; outline:0; background:transparent; color:inherit; font:500 12px/1 var(--game-font,Arial,sans-serif); padding:0; }
+.library-controls-top .search-box svg { flex:0 0 auto; color:#858a91; }
+.search-clear { display:grid; place-items:center; width:18px; height:18px; padding:0; border:0; border-radius:50%; background:#0001; color:#5c6066; cursor:pointer; flex:0 0 auto; transition:background .15s ease; }
+.search-clear:hover { background:#0002; color:#17191e; }
+.filter-workbench { display:flex; align-items:center; flex-wrap:wrap; gap:7px; margin-top:8px; min-width:0; }
+.filter-primary { display:flex; align-items:center; gap:7px; min-width:0; flex-wrap:wrap; }
+.filter-secondary { display:flex; align-items:center; gap:7px; min-width:0; flex:0 0 auto; margin-left:auto; }
+.filter-status { display:flex; align-items:center; gap:7px; min-width:0; }
 .filter-menu { position:relative; }
 .filter-menu.is-open { z-index:30; }
 .filter-trigger,.language-switch,.filter-status button {
@@ -146,14 +152,7 @@ html[data-theme=dark] .home-utility,html[data-theme=dark] .home-featured { backg
 html[data-theme=dark] .page-footer { background:#0d1219; border-color:#28313b; color:#9ba6b1; }
 
 @media (max-width:800px) {
-  .filter-workbench { align-items:flex-start; flex-direction:column; }
-  .filter-primary { flex-wrap:wrap; }
-  .filter-secondary { width:100%; justify-content:space-between; }
   .card-grid { --catalog-grid-mode:auto-fit !important; grid-template-columns:repeat(var(--catalog-grid-mode),minmax(132px,1fr)); gap:24px 14px; }
-}
-
-@media (max-width:1180px) {
-  .filter-secondary { width:100%; margin-left:0; justify-content:flex-end; }
 }
 
 @media (prefers-reduced-motion:reduce) {
@@ -520,8 +519,20 @@ html[data-theme='dark'] .directory-hero,html[data-theme='dark'] .set-index-secti
 /* Tutorial uses the same page-intro surface as the directories, not a bespoke hero. */
 .tutorial-page-header.tutorial-index-intro{display:block!important;min-height:0!important;margin:0!important;padding:clamp(28px,4vw,56px)!important;border:0!important;border-radius:26px!important;background:none!important;box-shadow:none!important}.tutorial-page-header .tutorial-index-copy{width:min(100%,720px);text-align:left}.tutorial-page-header .tutorial-index-copy h1{font-size:clamp(36px,4vw,52px);letter-spacing:-.045em}.tutorial-page-header .tutorial-index-copy>p:not(.kicker){max-width:650px;margin-top:15px}.tutorial-chapters-section .section-heading{padding-bottom:18px;border-bottom:1px solid var(--vp-line)}html[data-theme='dark'] .tutorial-page-header.tutorial-index-intro{border:0!important;background:none!important}@media(max-width:640px){.tutorial-page-header.tutorial-index-intro{margin:0!important;padding:28px!important;border-radius:20px!important}.tutorial-page-header .tutorial-index-copy h1{font-size:clamp(34px,10vw,44px)}}
 
-/* The primary library filters fill two deliberate rows before utility controls. */
-@media(min-width:1181px){.filter-workbench{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start}.filter-primary{display:grid;grid-template-columns:repeat(5,max-content);grid-template-rows:repeat(2,36px);align-content:start;flex:none;gap:7px}.filter-secondary{align-self:start;margin-left:0}}
+/* Clean 2-row responsive library controls: search & utility tools on row 1, unified filters on row 2. */
+html[data-theme='dark'] .library-controls-top .search-box { background:#111e29; border-color:#29435e; color:#dce7ee; }
+html[data-theme='dark'] .library-controls-top .search-box input { color:#edf5f0; }
+html[data-theme='dark'] .search-clear { background:#ffffff1a; color:#b0c2ce; }
+html[data-theme='dark'] .search-clear:hover { background:#ffffff33; color:#fff; }
+
+@media (max-width: 960px) {
+  .library-controls-top { flex-wrap:wrap; gap:8px; }
+  .library-controls-top .search-box { max-width:none; flex:1 1 100%; }
+  .library-controls-top .filter-secondary { width:100%; justify-content:flex-start; margin-left:0; flex-wrap:wrap; gap:6px; }
+  .filter-workbench { flex-wrap:nowrap; overflow-x:auto; padding-bottom:4px; margin-inline:-14px; padding-inline:14px; scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+  .filter-workbench::-webkit-scrollbar { display:none; }
+  .filter-workbench .filter-trigger { flex-shrink:0; white-space:nowrap; }
+}
 
 /* Arena uses the card-led library header, including the same art-only lift and sheen. */
 .arena-intro .library-intro-rail-card{overflow:visible!important;isolation:isolate!important;filter:none!important}.arena-intro .library-intro-rail-card .tcg-card{position:relative!important;z-index:1!important;transition:transform .22s cubic-bezier(.2,.75,.25,1),filter .22s ease,box-shadow .22s ease!important}.arena-intro .library-intro-rail-card:hover .tcg-card{transform:translate3d(0,-3px,0)!important;filter:brightness(1.035) saturate(1.045)!important;box-shadow:0 7px 12px color-mix(in srgb,var(--ink) 16%,transparent)!important}.arena-intro .library-intro-rail-card .tcg-card.printing-image::after{content:""!important;position:absolute!important;z-index:3!important;inset:-50%!important;pointer-events:none!important;opacity:0!important;transform:translateX(-54%) rotate(20deg)!important;background:linear-gradient(105deg,transparent 42%,#ffffff10 45%,#fff9 50%,#ffffff12 54%,transparent 59%)!important;transition:transform .43s ease,opacity .16s ease!important}.arena-intro .library-intro-rail-card:hover .tcg-card.printing-image::after{opacity:.55!important;transform:translateX(54%) rotate(20deg)!important}
