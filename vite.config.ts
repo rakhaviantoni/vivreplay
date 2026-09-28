@@ -78,6 +78,16 @@ export default defineConfig(async ({ command, mode }) => {
   const { cloudflare } = await import("@cloudflare/vite-plugin");
 
   return {
+    define: {
+      "process.env.NEXT_PUBLIC_SUPABASE_URL": JSON.stringify(
+        process.env.NEXT_PUBLIC_SUPABASE_URL ||
+        localBindingConfig.vars.NEXT_PUBLIC_SUPABASE_URL
+      ),
+      "process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": JSON.stringify(
+        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+        localBindingConfig.vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+      ),
+    },
     server: {
       ...(managedLinux ? { host: "0.0.0.0", allowedHosts: ["terminal.local"] } : {}),
       ...(isCodexSeatbeltSandbox ? { watch: { useFsEvents: false, usePolling: true } } : {}),
