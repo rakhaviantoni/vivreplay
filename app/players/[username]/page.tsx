@@ -6,7 +6,6 @@ import {
   CalendarBlankIcon as Calendar,
   StorefrontIcon as Store,
   StackIcon as Layers3,
-  MapPinIcon as MapPin,
   ArrowSquareOutIcon as ArrowSquareOut,
   CardsIcon as Cards,
 } from '@phosphor-icons/react/dist/ssr';
@@ -51,9 +50,9 @@ export default async function Page({params}: {params: Promise<{username: string}
 
   const [listingsRes, decksRes] = await Promise.all([
     db().prepare(`
-      SELECT id, printing_id AS printingId, title, amount, currency, quantity, condition, type, city, created_at AS createdAt
+      SELECT id, printing_id AS printingId, title, amount, currency, quantity, condition, type, city, created_at AS createdAt, expires_at AS expiresAt
       FROM listings
-      WHERE seller_id=? AND status='ACTIVE'
+      WHERE seller_id=? AND status='ACTIVE' AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
       ORDER BY created_at DESC
       LIMIT 12
     `).bind(p.id).all<{
@@ -67,6 +66,7 @@ export default async function Page({params}: {params: Promise<{username: string}
       type: string;
       city: string;
       createdAt: string;
+      expiresAt?: string;
     }>(),
     db().prepare(`
       SELECT d.id, d.name, d.created_at AS createdAt, v.leader_id AS leaderId
@@ -153,22 +153,19 @@ export default async function Page({params}: {params: Promise<{username: string}
                 {listings.map(item => {
                   const card = cardFor(item.printingId);
                   return (
-                    <Link key={item.id} href={`/market/${item.id}`} className="player-listing-card">
-                      <div className="player-listing-art">
+                    <article key={item.id} className="player-listing-card">
+                      <Link href={`/market/${item.id}`} className="player-listing-card-art">
                         {card ? <CardArt card={card}/> : <div className="player-listing-art-placeholder"><Cards size={32}/></div>}
+                      </Link>
+                      <div className="player-listing-card-copy">
+                        <strong>{item.title}</strong>
+                        <small>{item.condition}{item.city ? ` · ${item.city}` : ''}</small>
+                        <p>
+                          <span className={item.type === 'WTB' ? 'is-wtb' : 'is-wts'}>{item.type === 'WTB' ? 'WTB' : 'WTS'}</span>
+                          <b>{formatMoney(item.amount, item.currency)}</b>
+                        </p>
                       </div>
-                      <div className="player-listing-info">
-                        <span className={`player-listing-type ${item.type === 'WTB' ? 'is-wtb' : 'is-wts'}`}>
-                          {item.type === 'WTB' ? 'Buying' : 'Selling'}
-                        </span>
-                        <h3>{item.title}</h3>
-                        <p className="player-listing-price">{formatMoney(item.amount, item.currency)}</p>
-                        <div className="player-listing-meta">
-                          <span>{item.condition}</span>
-                          {item.city && <span>· <MapPin size={11}/> {item.city}</span>}
-                        </div>
-                      </div>
-                    </Link>
+                    </article>
                   );
                 })}
               </div>

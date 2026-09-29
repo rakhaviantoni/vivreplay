@@ -11,6 +11,7 @@ import {ShareButton} from './share';
 import {MarketTimestamp} from './market-timestamp';
 import {authClient} from '@/lib/auth-client';
 import {toast} from 'sonner';
+import {getDaysUntilExpiration, isListingExpired} from '@/lib/market/policy';
 
 type CourierRate={courier_name:string;courier_service_name:string;price:number;duration?:string;max_km?:number};
 const COURIER_LABELS:Record<string,string>={'jne':'JNE','jnt':'J&T Express','sicepat':'SiCepat','anteraja':'Anteraja','tiki':'TIKI','grab_instant':'Grab Instant','gojek_instant':'Gojek Instant'};
@@ -394,14 +395,22 @@ export function MarketListingDetailView({
   listingCards,
   primary,
   cardCount,
+  isOwner = false,
+  initialExpired = false,
 }: {
   listing: Listing;
   stored?: (Listing & { username: string }) | null;
   listingCards: MarketListingCard[];
   primary: MarketListingCard;
   cardCount: number;
+  isOwner?: boolean;
+  initialExpired?: boolean;
 }) {
   const [language, setLanguage] = useState<'EN' | 'ID'>('EN');
+  const [expiresAt, setExpiresAt] = useState<string | undefined>(listing.expiresAt);
+  const [status, setStatus] = useState<string>(initialExpired ? 'EXPIRED' : 'ACTIVE');
+  const [renewing, setRenewing] = useState(false);
+  const [closing, setClosing] = useState(false);
 
   useEffect(() => {
     const sync = () => setLanguage(window.localStorage.getItem('vivreplay-locale') === 'ID' ? 'ID' : 'EN');
@@ -413,7 +422,46 @@ export function MarketListingDetailView({
 
   const t = (en: string, idStr: string) => language === 'ID' ? idStr : en;
   const isBuying = listing.type === 'WTB';
-  const status = isBuying ? t('Buying', 'Dicari') : t('Selling', 'Dijual');
+  const typeLabel = isBuying ? t('Buying', 'Dicari') : t('Selling', 'Dijual');
+
+  const daysLeft = expiresAt ? getDaysUntilExpiration(expiresAt) : null;
+  const isExpired = status !== 'ACTIVE' || (expiresAt ? isListingExpired(expiresAt) : false);
+
+  const handleRenew = async () => {
+    setRenewing(true);
+    try {
+      const res = await fetch(`/api/listings/${encodeURIComponent(listing.id)}/renew`, {
+        method: 'POST',
+      });
+      const data = await res.json() as {ok?: boolean; expiresAt?: string; durationDays?: number; error?: string};
+      if (!res.ok) throw new Error(data.error || 'Failed to renew listing');
+      setExpiresAt(data.expiresAt);
+      setStatus('ACTIVE');
+      toast.success(language === 'ID' ? `Listing diperbarui untuk ${data.durationDays || 30} hari ke depan` : `Listing renewed for ${data.durationDays || 30} days`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Could not renew listing');
+    } finally {
+      setRenewing(false);
+    }
+  };
+
+  const handleClose = async () => {
+    if (!confirm(language === 'ID' ? 'Tutup listing ini?' : 'Close this listing?')) return;
+    setClosing(true);
+    try {
+      const res = await fetch(`/api/listings/${encodeURIComponent(listing.id)}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json() as {ok?: boolean; error?: string};
+      if (!res.ok) throw new Error(data.error || 'Failed to close listing');
+      setStatus('CLOSED');
+      toast.success(language === 'ID' ? 'Listing ditutup' : 'Listing closed');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Could not close listing');
+    } finally {
+      setClosing(false);
+    }
+  };
 
   return (
     <main className="page live-card-detail market-listing-detail">
@@ -434,7 +482,7 @@ export function MarketListingDetailView({
               </p>
               <h1>{listing.title}</h1>
             </div>
-            <span className={`market-listing-status ${isBuying ? 'is-buying' : 'is-selling'}`}>{status}</span>
+            <span className={`market-listing-status ${isBuying ? 'is-buying' : 'is-selling'}`}>{typeLabel}</span>
           </header>
 
           <dl className="market-listing-facts">
@@ -450,8 +498,56 @@ export function MarketListingDetailView({
               <dt>{t('Cards', 'Kartu')}</dt>
               <dd>{cardCount} {t('total', 'total')}</dd>
             </div>
+            {expiresAt && (
+              <div>
+                <dt>{isExpired ? t('Status', 'Status') : t('Expires', 'Berakhir')}</dt>
+                <dd>{isExpired ? (status === 'CLOSED' ? t('Closed', 'Ditutup') : t('Expired', 'Kedaluwarsa')) : `${daysLeft ?? 30} ${t('days left', 'hari lagi')}`}</dd>
+              </div>
+            )}
             {!isBuying && <ShippingOptions listingId={listing.id} courierCount={3}/>}
           </dl>
+
+          {isOwner && (
+            <aside className={`market-seller-banner ${isExpired ? 'is-expired' : ''}`} aria-label={t('Seller listing controls', 'Kontrol listing penjual')}>
+              <div className="market-seller-banner-copy">
+                <strong>{isExpired ? (status === 'CLOSED' ? t('Listing is closed', 'Listing ditutup') : t('Listing has expired', 'Listing telah kedaluwarsa')) : t('Your active listing', 'Listing aktif Anda')}</strong>
+                <small>
+                  {isExpired
+                    ? t('This listing is hidden from the Market feed. Renew to reactivate it.', 'Listing ini disembunyikan dari feed Market. Perbarui untuk mengaktifkannya kembali.')
+                    : daysLeft !== null
+                    ? (language === 'ID' ? `Listing aktif · Berakhir dalam ${daysLeft} hari (${expiresAt?.split(' ')[0]})` : `Active listing · Expires in ${daysLeft} days (${expiresAt?.split(' ')[0]})`)
+                    : t('Active on Market', 'Aktif di Market')}
+                </small>
+              </div>
+              <div className="market-seller-banner-actions">
+                <button
+                  type="button"
+                  className="btn-renew"
+                  disabled={renewing}
+                  onClick={handleRenew}
+                >
+                  {renewing ? t('Renewing...', 'Memperbarui...') : isExpired ? t('Renew (+30d)', 'Perbarui (+30h)') : t('Extend (+30d)', 'Perpanjang (+30h)')}
+                </button>
+                {!isExpired && (
+                  <button
+                    type="button"
+                    className="btn-close"
+                    disabled={closing}
+                    onClick={handleClose}
+                  >
+                    {closing ? t('Closing...', 'Menutup...') : t('Close', 'Tutup')}
+                  </button>
+                )}
+              </div>
+            </aside>
+          )}
+
+          {!isOwner && isExpired && (
+            <div className="market-expired-banner">
+              <strong>{status === 'CLOSED' ? t('This listing has been closed', 'Listing ini telah ditutup') : t('This listing has expired', 'Listing ini telah kedaluwarsa')}</strong>
+              <p>{t('The seller has not renewed this listing and it is no longer accepting offers.', 'Penjual belum memperbarui listing ini dan tidak lagi menerima penawaran.')}</p>
+            </div>
+          )}
 
           <section className="market-listing-seller">
             <span>{listing.seller.slice(0, 1).toUpperCase()}</span>
@@ -461,14 +557,16 @@ export function MarketListingDetailView({
             </div>
           </section>
 
-          <MarketListingItems
-            items={listingCards}
-            currency={listing.currency}
-            listingType={listing.type === 'WTB' ? 'WTB' : 'WTS'}
-            listingId={listing.id}
-            listingTitle={listing.title}
-            listingAmount={formatMoney(listing.amount, listing.currency)}
-          />
+          {!isExpired && (
+            <MarketListingItems
+              items={listingCards}
+              currency={listing.currency}
+              listingType={listing.type === 'WTB' ? 'WTB' : 'WTS'}
+              listingId={listing.id}
+              listingTitle={listing.title}
+              listingAmount={formatMoney(listing.amount, listing.currency)}
+            />
+          )}
         </section>
       </article>
     </main>

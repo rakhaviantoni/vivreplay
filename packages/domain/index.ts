@@ -32,7 +32,7 @@ export type ListingItem={
   condition?:string;
   unitAmount?:number;
 };
-export type Listing={id:string;printingId:string;title:string;amount:number;currency:string;quantity:number;condition:string;type:string;seller:string;city:string;createdAt?:string;items?:ListingItem[]};
+export type Listing={id:string;printingId:string;title:string;amount:number;currency:string;quantity:number;condition:string;type:string;seller:string;city:string;createdAt?:string;expiresAt?:string;items?:ListingItem[]};
 const catalogCardInput=z.object({code:z.string().trim().min(2).max(40),name:z.string().trim().min(1).max(140),color:z.string().trim().max(80),type:z.enum(['Leader','Character','Event']),cost:z.number().int().min(0).max(99),power:z.number().int().min(0).max(999999),rarity:z.string().trim().max(40),effect:z.string().max(4000),setCode:z.string().trim().max(40).optional(),language:z.enum(['EN','JP']).optional(),imageUrl:z.string().url().max(2048).optional()});
 export const collectionInput=z.object({
   id:z.string().uuid().optional(),
