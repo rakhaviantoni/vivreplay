@@ -228,14 +228,14 @@ function ProfileForm({
     }
   };
 
-  return <main className="page">
-    <div className="page-heading">
-      <div>
-        <p className="eyebrow">{t('YOUR TCG IDENTITY','IDENTITAS TCG ANDA')}</p>
-        <h1>{t('Player profile','Profil pemain')}</h1>
-        <p>{t('One identity for everything you collect, trade, and play.','Satu identitas untuk semua koleksi, transaksi pasar, dan permainan Anda.')}</p>
+  return <main className="page profile-page">
+    <section className="library-intro profile-intro">
+      <div className="library-intro-copy">
+        <p className="kicker">{t('PLAYER PROFILE','PROFIL PEMAIN')}</p>
+        <h1>{t('Player profile & settings.','Profil pemain & pengaturan.')}</h1>
+        <p>{t('Manage your collector identity, display preferences, and shipping address.','Atur identitas kolektor, preferensi tampilan, dan alamat pengiriman Anda.')}</p>
       </div>
-    </div>
+    </section>
 
     <div className="profile-layout">
       {/* Profile Card / Sidebar */}
@@ -422,13 +422,13 @@ function ProfileForm({
         ) : (
           <form className="form-stack profile-tab-content" onSubmit={saveShipping}>
             <div className="shipping-banner">
-              <Truck size={24}/>
+              <Truck size={22}/>
               <div>
-                <strong>{t('Biteship Courier Integration','Integrasi Pengiriman Biteship')}</strong>
+                <strong>{t('Delivery & Shipping Address','Alamat Pengiriman')}</strong>
                 <p>
                   {t(
-                    'Set your delivery address for calculating real-time courier quotes (J&T EZ, Grab Instant, Gojek Instant) and fulfilling marketplace transactions.',
-                    'Atur alamat Anda untuk menghitung tarif ongkir kurir otomatis (J&T EZ, Grab Instant, Gojek Instant) dan pemenuhan pesanan transaksi pasar.'
+                    'Saved address for calculating shipping rates at checkout and fulfilling marketplace orders.',
+                    'Alamat tersimpan untuk menghitung ongkos kirim saat transaksi dan pengiriman kartu di Market.'
                   )}
                 </p>
               </div>
@@ -496,8 +496,8 @@ function ProfileForm({
 
             <p className="notice">
               {t(
-                'Instant couriers (Grab / Gojek) require a local radius up to 40 km from the seller origin. J&T Express provides nationwide coverage.',
-                'Kurir instan (Grab / Gojek) mendukung jarak hingga 40 km dari lokasi penjual. J&T Express melayani pengiriman ke seluruh Indonesia.'
+                'Supports same-day instant delivery for local orders and standard express couriers nationwide.',
+                'Mendukung pengiriman instan untuk pesanan lokal dan kurir reguler ke seluruh Indonesia.'
               )}
             </p>
 
