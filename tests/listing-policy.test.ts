@@ -6,7 +6,7 @@ import {
   isListingExpired,
   getDaysUntilExpiration,
   LISTING_POLICIES,
-} from '../lib/market/policy.ts';
+} from '../lib/market/policy';
 
 test('listing policy defaults to free tier (30 days, 25 max listings)', () => {
   const policy = getListingPolicy(null);

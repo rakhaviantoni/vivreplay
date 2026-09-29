@@ -85,8 +85,12 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
   const visible=useMemo(()=>{
     const term=query.trim().toLowerCase();
     const matches=listings.filter(listing=>{
-      const card=cardFor(listing.printingId); const printing=printings.find(item=>item.id===listing.printingId);
-      return Boolean(card)&&(!initialCards.length||initialCards.includes(card!.id))&&(!term||[listing.title,card!.name,card!.code].some(value=>value.toLowerCase().includes(term)))&&(lang==='all'||printing?.language===lang);
+      const card=listing.card??cardFor(listing.printingId);
+      const printing=printings.find(item=>item.id===listing.printingId);
+      const cardLanguage=listing.language??printing?.language??'EN';
+      const cardName=card?.name??listing.title;
+      const cardCode=card?.code??'';
+      return (!initialCards.length||(card&&initialCards.includes(card.id)))&&(!term||[listing.title,cardName,cardCode].some(value=>value.toLowerCase().includes(term)))&&(lang==='all'||cardLanguage===lang);
     });
     return (sort==='price_asc')?[...matches].sort((a,b)=>a.amount-b.amount):matches;
   },[initialCards,lang,listings,query,sort]);
@@ -107,9 +111,12 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
     <div className="market-feed-tabs"><button className="active">Feed</button><span>{locale==='ID'?'Penawaran terbaru dari para kolektor':'Latest offers from collectors'}</span><div className="market-feed-filters"><label>{locale==='ID'?'Bahasa':'Language'}<Picker label={locale==='ID'?'Bahasa listing':'Listing language'} value={lang} onChange={v=>setLang(v as any)} options={[{value:'all',label:locale==='ID'?'Semua bahasa':'All languages'},{value:'EN',label:'EN'},{value:'JP',label:'JP'}]}/></label><label>{locale==='ID'?'Urutan':'Sort'}<Picker label={locale==='ID'?'Urutan listing':'Sort listings'} value={sort} onChange={v=>setSort(v as any)} options={[{value:'newest',label:locale==='ID'?'Terbaru':'Newest'},{value:'price_asc',label:locale==='ID'?'Harga: terendah':'Price: low to high'}]}/></label><div className="market-view-toggle" aria-label={locale==='ID'?'Tampilan listing':'Listing view'}><button type="button" className={listingView==='list'?'active':''} onClick={()=>setListingView('list')} aria-label={locale==='ID'?'Tampilan daftar':'List view'}><List size={16}/></button><button type="button" className={listingView==='grid'?'active':''} onClick={()=>setListingView('grid')} aria-label={locale==='ID'?'Tampilan kisi':'Grid view'}><Grid size={16}/></button></div></div></div>
     {error&&<div className="error-text market-feed-error" role="alert"><span>{error}</span><button type="button" onClick={()=>void refresh()}>{locale==='ID'?'Coba lagi':'Retry'}</button></div>}
     <section className={`market-feed-list is-${listingView}`} aria-label={locale==='ID'?'Daftar listing Market aktif':'Live marketplace listings'}>{displayListings.map(listing=>{
-      const items=listing.items?.length?listing.items:[{printingId:listing.printingId,quantity:listing.quantity}]; const card=cardFor(items[0].printingId)!; const printing=printings.find(item=>item.id===items[0].printingId);const totalCards=items.reduce((total,item)=>total+item.quantity,0);
-      const content=<><div className={`market-feed-stack ${items.length===1?'is-single':''}`}>{items.slice(0,3).map((item,index)=>{const stackCard=cardFor(item.printingId);return stackCard?<div key={`${item.printingId}-${index}`} className="market-feed-art" style={{'--stack-index':index} as CSSProperties}><CardArt card={stackCard}/></div>:null})}{items.length>3&&<span>+{items.length-3}</span>}</div>
-        <div className="market-feed-copy"><h2>{listing.title}</h2><p>{totalCards} {locale==='ID'?'kartu':(totalCards===1?'card':'cards')}{items.length===1&&<> <i>·</i> {printing?.language||'EN'}</>}</p><small><MapPin size={11}/>{listing.city} <b>·</b> {listing.seller}{listing.type==='WTS'&&<><b>·</b><ShippingOptions listingId={listing.id} courierCount={3} variant="compact"/></>}{listing.createdAt&&<><b>·</b><MarketTimestamp value={listing.createdAt}/></>}</small></div>
+      const items=listing.items?.length?listing.items:[{printingId:listing.printingId,quantity:listing.quantity}];
+      const printing=printings.find(item=>item.id===items[0].printingId);
+      const cardLanguage=listing.language??printing?.language??'EN';
+      const totalCards=items.reduce((total,item)=>total+item.quantity,0);
+      const content=<><div className={`market-feed-stack ${items.length===1?'is-single':''}`}>{items.slice(0,3).map((item,index)=>{const stackCard=(index===0&&listing.card)?listing.card:cardFor(item.printingId);return stackCard?<div key={`${item.printingId}-${index}`} className="market-feed-art" style={{'--stack-index':index} as CSSProperties}><CardArt card={stackCard}/></div>:null})}{items.length>3&&<span>+{items.length-3}</span>}</div>
+        <div className="market-feed-copy"><h2>{listing.title}</h2><p>{totalCards} {locale==='ID'?'kartu':(totalCards===1?'card':'cards')}{items.length===1&&<> <i>·</i> {cardLanguage}</>}</p><small><MapPin size={11}/>{listing.city} <b>·</b> {listing.seller}{listing.type==='WTS'&&<><b>·</b><ShippingOptions listingId={listing.id} courierCount={3} variant="compact"/></>}{listing.createdAt&&<><b>·</b><MarketTimestamp value={listing.createdAt}/></>}</small></div>
         <div className="market-feed-trade"><div className="market-feed-status"><b>{listing.type==='WTB'?(locale==='ID'?'Dicari':'Buying'):(locale==='ID'?'Dijual':'Selling')}</b></div><div className="market-feed-price"><strong>{formatMoney(listing.amount,listing.currency)}</strong></div></div></>;
       const rowClass=`market-feed-row ${listing.type==='WTB'?'is-wtb':'is-wts'}`;
       return <a href={`/market/${listing.id}`} key={listing.id} className={rowClass} aria-label={locale==='ID'?`Buka ${listing.title}`:`Open ${listing.title}`}>{content}</a>;

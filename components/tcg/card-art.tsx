@@ -11,7 +11,7 @@ export function cardImageUrl(card:Card){
   // Every public card image goes through the set route, which reads the private
   // Supabase tcg-card-images bucket. Avoid a printing-id API URL in page markup.
   if(card.setCode)return `/${encodeURIComponent(card.setCode.replaceAll('-',''))}/${encodeURIComponent((card.language??'EN').toLowerCase())}/${encodeURIComponent(card.printingCode??card.code)}.webp`;
-  return undefined;
+  return card.imageUrl;
 }
 
 export function CardArt({card,small=false,priority=false}:{card:Card;small?:boolean;priority?:boolean}) {

@@ -50,10 +50,35 @@ export default async function Page({params}: {params: Promise<{username: string}
 
   const [listingsRes, decksRes] = await Promise.all([
     db().prepare(`
-      SELECT id, printing_id AS printingId, title, amount, currency, quantity, condition, type, city, created_at AS createdAt, expires_at AS expiresAt
-      FROM listings
-      WHERE seller_id=? AND status='ACTIVE' AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
-      ORDER BY created_at DESC
+      SELECT
+        l.id,
+        l.printing_id AS printingId,
+        l.title,
+        l.amount,
+        l.currency,
+        l.quantity,
+        l.condition,
+        l.type,
+        l.city,
+        l.created_at AS createdAt,
+        l.expires_at AS expiresAt,
+        cp.image_url AS cardImageUrl,
+        cp.language AS cardLanguage,
+        cp.rarity AS cardRarity,
+        cp.set_code AS cardSetCode,
+        ci.id AS cardIdentityId,
+        ci.code AS cardCode,
+        ci.name AS cardName,
+        ci.color AS cardColor,
+        ci.type AS cardType,
+        ci.cost AS cardCost,
+        ci.power AS cardPower,
+        ci.effect AS cardEffect
+      FROM listings l
+      LEFT JOIN card_printings cp ON cp.id=l.printing_id
+      LEFT JOIN card_identities ci ON ci.id=cp.identity_id
+      WHERE l.seller_id=? AND l.status='ACTIVE' AND (l.expires_at IS NULL OR l.expires_at > CURRENT_TIMESTAMP)
+      ORDER BY l.created_at DESC
       LIMIT 12
     `).bind(p.id).all<{
       id: string;
@@ -67,6 +92,18 @@ export default async function Page({params}: {params: Promise<{username: string}
       city: string;
       createdAt: string;
       expiresAt?: string;
+      cardImageUrl?: string;
+      cardLanguage?: string;
+      cardRarity?: string;
+      cardSetCode?: string;
+      cardIdentityId?: string;
+      cardCode?: string;
+      cardName?: string;
+      cardColor?: string;
+      cardType?: string;
+      cardCost?: number;
+      cardPower?: number;
+      cardEffect?: string;
     }>(),
     db().prepare(`
       SELECT d.id, d.name, d.created_at AS createdAt, v.leader_id AS leaderId
@@ -151,7 +188,23 @@ export default async function Page({params}: {params: Promise<{username: string}
               </div>
               <div className="player-listings-grid">
                 {listings.map(item => {
-                  const card = cardFor(item.printingId);
+                  const card = cardFor(item.printingId) ?? ((item.cardCode || item.cardImageUrl) ? {
+                    id: item.cardIdentityId ?? item.printingId,
+                    code: item.cardCode ?? '',
+                    name: item.cardName ?? item.title,
+                    color: item.cardColor ?? 'Red',
+                    type: (item.cardType as any) ?? 'Character',
+                    cost: item.cardCost ?? 0,
+                    power: item.cardPower ?? 0,
+                    rarity: item.cardRarity ?? '',
+                    art: 0,
+                    effect: item.cardEffect ?? '',
+                    imageUrl: item.cardImageUrl,
+                    imageSource: 'external' as const,
+                    setCode: item.cardSetCode,
+                    language: item.cardLanguage,
+                    printingCode: item.cardCode,
+                  } : undefined);
                   return (
                     <article key={item.id} className="player-listing-card">
                       <Link href={`/market/${item.id}`} className="player-listing-card-art">
