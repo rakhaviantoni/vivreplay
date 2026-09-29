@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import {useEffect, useState} from 'react';
+import { useEffect, useState } from 'react';
 import {
   AnchorIcon as Anchor,
   ArrowRightIcon as ArrowRight,
@@ -20,7 +20,7 @@ import {
   SwordIcon as Sword,
   TrophyIcon as Trophy,
 } from '@phosphor-icons/react';
-import {VivreMark} from './brand-assets';
+import { VivreMark } from './brand-assets';
 
 type Locale = 'EN' | 'ID';
 
@@ -42,7 +42,7 @@ export function AboutExperience() {
   }, []);
 
   const toggleFaq = (index: number) => {
-    setExpandedFaq(current => (current === index ? null : index));
+    setExpandedFaq((current) => (current === index ? null : index));
   };
 
   const isId = language === 'ID';
@@ -77,44 +77,44 @@ export function AboutExperience() {
   const pillars = [
     {
       num: '01',
-      title: isId ? 'Arsip Kartu & Registri Varian' : 'Complete Card & Printing Archive',
+      title: isId ? 'Katalog Kartu & Registri Varian' : 'Card Database & Printings',
       tag: isId ? 'OP-01 s/d OP-18 · JP & EN' : 'OP-01 to OP-18 · JP & EN',
       desc: isId
-        ? 'Setiap rilisan dari Romance Dawn hingga seri terbaru OP-18, Extra Booster (EB-01 s/d EB-05), Starter Deck, dan kartu promo turnamen. Bandingkan versi Jepang dan Inggris, periksa varian Manga Rare, SP, parallel art, serta riwayat ralat aturan resmi Bandai.'
-        : 'Every card release from Romance Dawn up to the latest OP-18 booster, Extra Boosters (EB-01 to EB-05), Starter Decks, and tournament promos. Compare Japanese and English prints, check Manga Rares, SP cards, parallel arts, and official Bandai errata history.',
+        ? 'Setiap kartu dari Romance Dawn hingga rilisan terbaru OP-18, Extra Booster, Starter Deck, dan kartu promo turnamen. Bandingkan versi Jepang dan Inggris, telusuri varian parallel art dan Manga Rare, serta cek riwayat ralat aturan resmi Bandai.'
+        : 'Every set from Romance Dawn through OP-18, Extra Boosters, Starter Decks, and tournament promos. Compare Japanese and English prints side-by-side, view Manga Rares and parallel arts, and read official Bandai erratas.',
       link: '/cards',
-      linkText: isId ? 'Buka katalog kartu' : 'Explore card library',
+      linkText: isId ? 'Buka katalog kartu' : 'Browse card library',
       icon: Cards,
     },
     {
       num: '02',
-      title: isId ? 'Pembuat Deck & Analisis Taktis' : 'Tactical Deck Builder & Coach',
-      tag: isId ? 'Kurva Don!! · Sinergi Kartu' : 'Don!! Curve · Synergy Stats',
+      title: isId ? 'Pembuat Deck' : 'Deck Builder',
+      tag: isId ? 'Kurva Don!! · Sinergi Kartu' : 'Cost Curves · Synergy Stats',
       desc: isId
-        ? 'Susun dan uji deck dengan perhitungan kurva Don!!, distribusi kekuatan counter, dan sinergi warna Leader secara langsung. Manfaatkan fitur analisis untuk evaluasi susunan kartu dan bagikan kode visual deck untuk turnamen lokal.'
-        : 'Build and tune decks with live Don!! cost curves, counter power distribution, and leader color synergies. Evaluate your list with our coach feature and export visual deck codes ready for locals or online discussion.',
+        ? 'Susun dan uji deck dengan kalkulasi kurva biaya Don!!, distribusi counter power, dan sinergi Leader secara langsung. Ekspor gambar visual deck atau salin kode teks yang siap digunakan untuk turnamen.'
+        : 'Build and test decklists with live Don!! cost curves, counter distribution, and leader synergies. Export visual deck images or copy text codes ready for tournament deck registration.',
       link: '/decks/builder',
       linkText: isId ? 'Susun deck baru' : 'Build a deck',
       icon: Stack,
     },
     {
       num: '03',
-      title: isId ? 'Marketplace & Vault Koleksi' : 'Marketplace & Collection Vault',
-      tag: isId ? 'Benchmark Yuyu-tei · Raw & Slab' : 'Yuyu-tei Benchmark · Raw & Slabs',
+      title: isId ? 'Market & Vault Koleksi' : 'Market & Collection Vault',
+      tag: isId ? 'Tolok Ukur Yuyu-tei · Raw & Slab' : 'Yuyu-tei Benchmark · Raw & Slabs',
       desc: isId
-        ? 'Pantau portofolio koleksi Anda untuk kartu lepasan maupun slab bergradasi (PSA, BGS, CGC, ARS). Jelajahi listing jual-beli antar pemain dengan tolok ukur harga ritel Yuyu-tei Jepang dan unduh gambar komposit kartu untuk dibagikan.'
-        : 'Track your collection across raw binder cards and graded slabs (PSA, BGS, CGC, ARS). Browse player-to-player listings with fair pricing benchmarked against Japanese hobby giant Yuyu-tei, and export clean listing graphics to share.',
+        ? 'Catat kartu binder lepasan maupun slab bergradasi (PSA, BGS, CGC, ARS). Jelajahi listing jual-beli antar pemain dengan tolok ukur harga ritel toko hobi Yuyu-tei Jepang.'
+        : 'Catalog your raw binder cards and graded slabs (PSA, BGS, CGC, ARS). Browse player-to-player listings benchmarked against Japanese hobby retailer Yuyu-tei.',
       link: '/market',
-      linkText: isId ? 'Masuk ke marketplace' : 'Browse marketplace',
+      linkText: isId ? 'Buka Market & Vault' : 'Browse Market & Vault',
       icon: Storefront,
     },
     {
       num: '04',
-      title: isId ? 'Arena Latihan & Simulasi Aturan' : 'Arena Practice & Rules Engine',
-      tag: isId ? 'Aturan Resmi · Papan Panduan' : 'Comprehensive Rules · Guided Table',
+      title: isId ? 'Arena Simulasi Aturan' : 'Rules & Practice Arena',
+      tag: isId ? 'Aturan Resmi · Simulasi Meja' : 'Official Rules · Interactive Table',
       desc: isId
-        ? 'Pelajari dan latih urutan fase, penempelan Don!!, waktu trigger, serta penyelesaian efek kata kunci pada meja simulasi interaktif yang mengikuti buku aturan komprehensif resmi Bandai.'
-        : 'Practice turn phases, trigger sequencing, Don!! management, and keyword interactions on a guided digital table calibrated with official Bandai tournament rulesets.',
+        ? 'Pelajari alur fase giliran, alokasi Don!!, waktu trigger, dan penyelesaian efek kata kunci pada meja simulasi digital yang mengikuti buku aturan komprehensif resmi Bandai.'
+        : 'Learn turn phases, Don!! allocation, trigger timing, and keyword interactions on an interactive board calibrated against official Bandai tournament rules.',
       link: '/play',
       linkText: isId ? 'Masuk ke Arena' : 'Enter the arena',
       icon: Sword,
@@ -124,31 +124,31 @@ export function AboutExperience() {
   const principles = [
     {
       icon: Compass,
-      title: isId ? 'Fokus pada Pengalaman Pemain' : 'Designed for Focus',
+      title: isId ? 'Fokus & Bebas Iklan' : 'Fast & Ad-Free',
       desc: isId
-        ? 'Navigasi cepat, teks efek kartu yang jelas, dan antarmuka bersih tanpa banner iklan mengganggu atau konten spekulatif.'
-        : 'Fast navigation, clear card texts, and a calm layout free from intrusive banner ads or speculative crypto noise.',
+        ? 'Pemuatan cepat, navigasi ringkas, dan bebas dari iklan banner atau popup yang mengganggu.'
+        : 'Fast loading times, clean layouts, and zero intrusive ads, tracking banners, or paywalls.',
     },
     {
       icon: Scales,
-      title: isId ? 'Dukungan Setara JP & EN' : 'Equal Respect for JP & EN',
+      title: isId ? 'Dukungan Setara JP & EN' : 'First-Class JP & EN Support',
       desc: isId
-        ? 'Kartu edisi Jepang dan rilisan bahasa Inggris diperlakukan setara dengan verifikasi nomor seri, varian seni, dan tanggal rilis.'
-        : 'Both Japanese and English editions receive first-class treatment with authentic artwork variants, set numbers, and release dates.',
+        ? 'Perhatian penuh untuk rilisan asli Jepang maupun cetakan bahasa Inggris, dengan verifikasi nomor kartu dan tanggal rilis.'
+        : 'First-class treatment for both Japanese original releases and English editions with verified set numbers and errata dates.',
     },
     {
       icon: Sparkle,
-      title: isId ? 'Apresiasi Fisik Kartu' : 'Appreciation for Physical Cards',
+      title: isId ? 'Kualitas Gambar Kartu' : 'High-Quality Imagery',
       desc: isId
-        ? 'Tampilan gambar beresolusi tinggi yang memperlihatkan tekstur foil, cetakan khusus, dan sertifikasi slab gradasi dengan jelas.'
-        : 'High-fidelity card scans that highlight foil stamps, alternate art textures, and verified graded slab certifications.',
+        ? 'Tampilan gambar kartu yang tajam untuk memperlihatkan tekstur foil, parallel art, dan detail sertifikasi slab gradasi.'
+        : 'Crisp card imagery showing parallel art textures, foil stamps, and graded slab certification details.',
     },
     {
       icon: Trophy,
       title: isId ? 'Dibuat untuk Komunitas' : 'Built for the Community',
       desc: isId
-        ? 'Dibuat oleh pemain dan kolektor untuk sesama nakama. Seluruh pencarian kartu, perakitan deck, dan pelacakan koleksi dapat diakses bebas.'
-        : 'Created by active players and collectors for fellow fans. All card lookups, deck tools, and collection features remain free.',
+        ? 'Dibuat dan dirawat secara independen oleh sesama pemain kartu. Seluruh fitur dapat digunakan gratis.'
+        : 'Built and maintained independently by players for the community. All tools remain completely free.',
     },
   ];
 
@@ -156,32 +156,32 @@ export function AboutExperience() {
     {
       q: isId ? 'Apakah VivrePlay gratis digunakan?' : 'Is VivrePlay free to use?',
       a: isId
-        ? 'Ya, sepenuhnya gratis. Penelusuran kartu, pembuatan deck, pencarian di marketplace, pencatatan portofolio di Vault, dan simulasi di arena dapat digunakan tanpa biaya langganan.'
-        : 'Yes, completely free. Looking up cards, building decks, searching the marketplace, tracking your portfolio in the Vault, and practicing in the Arena require no paid subscription.',
+        ? 'Ya, 100% gratis. Mencari kartu, menyusun deck, mencatat koleksi di Vault, melihat listing di Market, dan latihan di Arena dapat diakses tanpa biaya atau langganan.'
+        : 'Yes, completely free. Looking up cards, building decks, managing your collection in the Vault, browsing Market listings, and practicing in the Arena require no paid subscription.',
     },
     {
       q: isId ? 'Bagaimana kartu versi Jepang (JP) dan Inggris (EN) dikelola?' : 'How are Japanese (JP) and English (EN) cards organized?',
       a: isId
-        ? 'Setiap kartu terhubung ke data cetakan bahasa Jepang dan bahasa Inggris. Anda dapat beralih bahasa di setiap halaman kartu untuk memeriksa perbedaan teks efek, varian kelangkaan, dan jadwal rilis.'
-        : 'Every card identity is connected to its Japanese and English printings. You can switch languages on any card page to compare card text, rarity differences, and release schedules across regions.',
+        ? 'Setiap kartu terhubung ke data cetakan bahasa Jepang dan bahasa Inggris. Anda dapat beralih bahasa di setiap kartu untuk memeriksa perbedaan teks efek, varian kelangkaan, dan tanggal rilis.'
+        : 'Every card entry links its Japanese and English printings. You can switch languages on any card page to compare effect texts, rarity variants, and regional release dates.',
     },
     {
       q: isId ? 'Dari mana asal tolok ukur harga pasar?' : 'Where do market benchmark prices come from?',
       a: isId
-        ? 'Harga patokan dihitung dari data ritel toko hobi Jepang terkemuka Yuyu-tei yang dipadukan dengan data transaksi komunitas terverifikasi, lalu dikonversi ke USD, JPY, dan IDR.'
-        : 'Benchmark prices are based on retail pricing from Japanese hobby retailer Yuyu-tei combined with verified community sales, converted into USD, JPY, and IDR for quick reference.',
+        ? 'Harga tolok ukur dihitung dari data ritel toko hobi Jepang terpercaya Yuyu-tei yang dipadukan dengan data transaksi komunitas, lalu dikonversi ke USD, JPY, dan IDR.'
+        : 'Benchmark prices are based on retail pricing from Japanese hobby retailer Yuyu-tei combined with community market sales, converted into USD, JPY, and IDR for quick reference.',
     },
     {
       q: isId ? 'Bisakah saya mencatat kartu slab gradasi di Vault?' : 'Can I track graded slabs in my collection?',
       a: isId
-        ? 'Bisa. Vault mendukung pencatatan kartu raw lepasan maupun slab bergradasi dari lembaga PSA, BGS (Beckett), CGC, dan ARS lengkap dengan nomor sertifikasi dan sub-grade.'
-        : 'Yes. The Vault lets you catalog raw binder cards as well as graded slabs from PSA, BGS (Beckett), CGC, and ARS, including grade numbers and certification IDs.',
+        ? 'Bisa. Vault mendukung kartu raw lepasan maupun slab gradasi dari PSA, BGS (Beckett), CGC, dan ARS lengkap dengan nomor sertifikasi dan sub-grade.'
+        : 'Yes. The Vault supports raw binder cards as well as graded slabs from PSA, BGS (Beckett), CGC, and ARS, including grade numbers and certification IDs.',
     },
     {
-      q: isId ? 'Bagaimana keakuratan ralat teks kartu dan aturan dijaga?' : 'How are card erratas and rules maintained?',
+      q: isId ? 'Bagaimana ralat teks kartu dan aturan resmi diperbarui?' : 'How are card erratas and rules maintained?',
       a: isId
-        ? 'Kami memperbarui teks efek dan catatan aturan berdasarkan dokumen ralat resmi dan lembar FAQ juri turnamen dari Bandai, sehingga persiapan tanding Anda tetap sesuai standar.'
-        : 'We update card texts and ruling notes based on official Bandai FAQ releases and tournament judge documents so your tournament preparations stay accurate.',
+        ? 'Kami memperbarui teks efek dan catatan aturan berdasarkan dokumen ralat resmi dan lembar FAQ juri turnamen dari Bandai secara berkala.'
+        : 'We regularly update card texts and ruling clarifications from official Bandai tournament FAQ sheets and errata announcements.',
     },
   ];
 
@@ -205,21 +205,21 @@ export function AboutExperience() {
           <h1 className="about-hero-title">
             {isId ? (
               <>
-                Meja kerja terpadu untuk komunitas <br />
+                Aplikasi pendamping terbuka untuk <br />
                 <span className="accent-highlight">One Piece Card Game.</span>
               </>
             ) : (
               <>
-                A dedicated table for the <br />
-                <span className="accent-highlight">One Piece Card Game</span> community.
+                A fast, open companion for the <br />
+                <span className="accent-highlight">One Piece Card Game.</span>
               </>
             )}
           </h1>
 
           <p className="about-hero-lead">
             {isId
-              ? 'Terinspirasi oleh Vivre Card, secarik kertas yang selalu mengarah ke rekan seperjuangan melintasi samudra, VivrePlay menyatukan pencarian kartu, perakitan deck, harga pasar, dan latihan bermain ke dalam satu tempat yang tenang dan terpercaya.'
-              : 'Inspired by the Vivre Card, the scrap of paper that always points toward your crew across any ocean, VivrePlay brings card discovery, deck building, market pricing, and tabletop practice into one quiet, reliable place.'}
+              ? 'VivrePlay menyatukan database kartu Jepang dan Inggris, pembuat deck, pencatatan koleksi vault, dan tolok ukur harga pasar ke dalam satu aplikasi web yang bersih — tanpa iklan, tanpa paywall, dan dibuat oleh sesama pemain.'
+              : 'VivrePlay combines a bilingual card catalog (JP & EN), deck builder, collection vault, and market price benchmarks into one clean web app — with no ads, no paywalls, and built by active players.'}
           </p>
 
           <div className="about-hero-actions">
@@ -242,7 +242,7 @@ export function AboutExperience() {
         {/* HERO STATS BAR */}
         <div className="about-stats-container">
           <div className="about-stats-grid">
-            {stats.map(stat => {
+            {stats.map((stat) => {
               const Icon = stat.icon;
               return (
                 <div key={stat.label} className="about-stat-card">
@@ -267,9 +267,9 @@ export function AboutExperience() {
           <div className="about-lore-header">
             <span className="about-section-kicker">
               <Anchor size={14} weight="bold" />
-              {isId ? 'LATAR BELAKANG' : 'THE INSPIRATION'}
+              {isId ? 'LATAR BELAKANG' : 'THE PROJECT'}
             </span>
-            <h2>{isId ? 'Mengapa kami menamainya VivrePlay' : 'Why we named it VivrePlay'}</h2>
+            <h2>{isId ? 'Mengapa VivrePlay?' : 'Why VivrePlay?'}</h2>
           </div>
 
           <div className="about-lore-grid">
@@ -277,10 +277,10 @@ export function AboutExperience() {
               <div className="about-quote-mark">“</div>
               <blockquote>
                 {isId
-                  ? 'Secarik kertas yang diresapi jiwa kehidupan. Di tengah badai dan kabut samudra, kertas ini akan selalu bergerak dan menunjuk ke arah pemiliknya.'
-                  : 'A scrap of paper imbued with life. Across storms and ocean fog, it always moves and points in the direction of its owner.'}
+                  ? 'Secarik kertas yang selalu mengarah ke rekan kru Anda melintasi samudra.'
+                  : 'A simple piece of paper that always points toward your crewmates.'}
               </blockquote>
-              <cite>{isId ? 'Konsep Vivre Card dalam One Piece' : 'The Vivre Card Concept in One Piece'}</cite>
+              <cite>{isId ? 'Konsep Vivre Card dalam One Piece' : 'The Vivre Card in One Piece'}</cite>
               <div className="about-lore-seal">
                 <VivreMark size={32} />
               </div>
@@ -289,23 +289,21 @@ export function AboutExperience() {
             <div className="about-lore-prose">
               <p>
                 {isId
-                  ? 'Dalam cerita One Piece, menjelajahi Grand Line membutuhkan lebih dari sekadar kompas biasa. Ketika rekan seperjuangan berpisah jalan, mereka merobek sepotong Vivre Card. Sekalipun terpisah lautan luas dan cuaca yang ganas, secarik kertas itu akan selalu menunjuk ke arah rekan mereka tanpa pernah keliru.'
-                  : 'In One Piece, navigating the Grand Line takes more than an ordinary compass. When crewmates part ways, they tear a piece of a Vivre Card. Even through turbulent waters and thick fog, that small piece of paper always pulls toward their companions.'}
+                  ? 'Kami membuat VivrePlay karena mencari informasi One Piece Card Game sering kali melelahkan. Catatan ralat teks dan klarifikasi juri tercecer di berbagai forum lama, daftar deck tersimpan di tangkapan layar buram, jadwal rilis kartu Jepang dan Inggris membingungkan, serta diskusi harga kerap tertutup spekulasi.'
+                  : 'We built VivrePlay because keeping up with the One Piece Card Game was unnecessarily fragmented. Errata notices and ruling updates were buried in old forum posts, deck lists lived in blurry screenshots, Japanese and English release dates were hard to compare, and market discussions were obscured by speculation.'}
               </p>
               <p>
                 {isId
-                  ? 'Sebagai pemain dan kolektor One Piece Card Game, kami merasakan kebutuhan yang serupa. Data kartu dan ralat teks sering tercecer di berbagai wiki lama, daftar deck tersimpan di tangkapan layar media sosial yang buram, lini masa rilis kartu Jepang dan Inggris membingungkan, serta perbincangan harga kerap tertutup hiruk-pikuk spekulasi.'
-                  : 'As One Piece Card Game players and collectors, we felt the community needed that same steady guide. Card data and erratas were scattered across disparate wikis, decklists were trapped in blurry screenshots, Japanese and English release timelines clashed, and pricing discussions were often obscured by noise.'}
+                  ? 'Seperti Vivre Card yang menjaga rekan kru tetap terhubung, VivrePlay dirancang untuk menjadi titik rujukan yang praktis dan andal: pencarian kartu instan, teks efek akurat, registri varian cetak asli, serta tolok ukur harga ritel yang transparan.'
+                  : 'Like the Vivre Card that keeps crewmates connected, VivrePlay is designed to be a straightforward reference point: fast card lookups, accurate effect texts, genuine variant registries, and fair retail benchmarks.'}
               </p>
               <p className="about-lore-conclusion">
                 <strong>
-                  {isId
-                    ? 'VivrePlay dibangun untuk menjadi kompas tersebut.'
-                    : 'VivrePlay was built to be that steady compass.'}
+                  {isId ? 'Satu meja kerja yang bersih dan terbuka.' : 'A clean, open workspace.'}
                 </strong>{' '}
                 {isId
-                  ? 'Sebuah meja kerja yang bersih dan cepat, tempat setiap versi cetak kartu, aturan permainan, dan ide susunan deck dapat ditelusuri dengan nyaman.'
-                  : 'A clean, fast workspace where every card printing, ruling clarification, and deck idea is simple to find and explore.'}
+                  ? 'Tempat setiap versi cetak kartu, aturan permainan, dan ide susunan deck dapat ditelusuri dengan nyaman oleh seluruh komunitas.'
+                  : 'Where every card printing, ruling clarification, and deck idea is easy to explore for everyone in the community.'}
               </p>
             </div>
           </div>
@@ -317,18 +315,18 @@ export function AboutExperience() {
         <div className="about-pillars-header">
           <span className="about-section-kicker">
             <BookOpen size={14} weight="bold" />
-            {isId ? 'FITUR UTAMA' : 'CORE CAPABILITIES'}
+            {isId ? 'FITUR UTAMA' : 'FEATURES'}
           </span>
-          <h2>{isId ? 'Empat pilar untuk melengkapi permainan Anda.' : 'Four pillars built for every stage of your play.'}</h2>
+          <h2>{isId ? 'Fitur yang dirancang untuk pemain dan kolektor.' : 'Features built for players and collectors.'}</h2>
           <p>
             {isId
-              ? 'Mulai dari menelusuri kartu parallel art di koleksi hingga mempersiapkan kurva deck turnamen, VivrePlay dirancang untuk memenuhi kebutuhan pemain dan kolektor.'
-              : 'From checking a parallel art in your binder to tuning your tournament deck curve, VivrePlay is engineered for collectors and competitors alike.'}
+              ? 'Mulai dari memeriksa kartu parallel art di koleksi hingga mempersiapkan kurva deck untuk turnamen, VivrePlay dibuat untuk melengkapi permainan Anda.'
+              : 'From checking a parallel art in your binder to tuning your tournament deck curve, VivrePlay covers every aspect of the physical card game.'}
           </p>
         </div>
 
         <div className="about-pillars-grid">
-          {pillars.map(pillar => {
+          {pillars.map((pillar) => {
             const Icon = pillar.icon;
             return (
               <article key={pillar.num} className="about-pillar-card">
@@ -359,9 +357,9 @@ export function AboutExperience() {
         <div className="about-tech-header">
           <span className="about-section-kicker">
             <CheckCircle size={14} weight="bold" />
-            {isId ? 'PRINSIP KAMI' : 'WHAT WE CARE ABOUT'}
+            {isId ? 'PRINSIP KAMI' : 'OUR PRINCIPLES'}
           </span>
-          <h2>{isId ? 'Standar yang kami pegang untuk setiap fitur.' : 'The standards we hold for every feature.'}</h2>
+          <h2>{isId ? 'Hal yang kami utamakan.' : 'What we care about.'}</h2>
           <p>
             {isId
               ? 'Kami meyakini bahwa komunitas permainan kartu berhak menikmati aplikasi yang praktis, cepat, dan menghargai kartu fisiknya.'
@@ -370,7 +368,7 @@ export function AboutExperience() {
         </div>
 
         <div className="about-tech-grid">
-          {principles.map(item => {
+          {principles.map((item) => {
             const Icon = item.icon;
             return (
               <div key={item.title} className="about-tech-card">
@@ -392,7 +390,7 @@ export function AboutExperience() {
             <Compass size={14} weight="bold" />
             {isId ? 'PERTANYAAN UMUM' : 'FREQUENTLY ASKED QUESTIONS'}
           </span>
-          <h2>{isId ? 'Pertanyaan seputar penggunaan VivrePlay.' : 'Common questions about VivrePlay.'}</h2>
+          <h2>{isId ? 'Pertanyaan seputar VivrePlay.' : 'Common questions about VivrePlay.'}</h2>
         </div>
 
         <div className="about-faq-list">
@@ -454,7 +452,7 @@ export function AboutExperience() {
         </div>
 
         <div className="about-disclaimer-footer">
-          <span>{isId ? 'Dibuat untuk para nakama dan pemain kartu di mana pun berada.' : 'Made for players, collectors, and nakama everywhere.'}</span>
+          <span>{isId ? 'Dibuat untuk para pemain dan kolektor kartu di mana pun berada.' : 'Made for players and collectors everywhere.'}</span>
           <Link href="/" className="about-footer-back-link">
             <span>{isId ? 'Kembali ke Beranda' : 'Return to Home'}</span>
             <ArrowUpRight size={14} />
