@@ -32,6 +32,7 @@ type ShippingOrigin = {
   city: string;
   postalCode: string;
   areaId: string | null;
+  shippingMethods?: string[];
   updatedAt: string | null;
 };
 
@@ -102,6 +103,7 @@ function ProfileForm({
   const [shippingAddress, setShippingAddress] = useState('');
   const [shippingCity, setShippingCity] = useState('');
   const [shippingPostalCode, setShippingPostalCode] = useState('');
+  const [shippingMethods, setShippingMethods] = useState<string[]>(['instant', 'regular']);
   const [savingShipping, setSavingShipping] = useState(false);
 
   useEffect(()=>{
@@ -113,6 +115,19 @@ function ProfileForm({
   },[]);
 
   const t=(en:string,idStr:string)=>language==='ID'?idStr:en;
+
+  const toggleShippingMethod = (methodId: string) => {
+    setShippingMethods(prev => {
+      if (prev.includes(methodId)) {
+        if (prev.length <= 1) {
+          toast.error(t('At least one shipping method must remain active.', 'Minimal satu metode pengiriman harus tetap aktif.'));
+          return prev;
+        }
+        return prev.filter(m => m !== methodId);
+      }
+      return [...prev, methodId];
+    });
+  };
 
   // Load saved shipping origin
   useEffect(()=>{
@@ -126,6 +141,9 @@ function ProfileForm({
         setShippingAddress(res.origin.addressLine||'');
         setShippingCity(res.origin.city||'');
         setShippingPostalCode(res.origin.postalCode||'');
+        if(Array.isArray(res.origin.shippingMethods)&&res.origin.shippingMethods.length>0){
+          setShippingMethods(res.origin.shippingMethods);
+        }
       })
       .catch(()=>{/* no-op */});
     return()=>{active=false};
@@ -199,12 +217,13 @@ function ProfileForm({
     e.preventDefault();
     setSavingShipping(true);
     try{
-      const res = await api<{ok: boolean; error?: string}>('/api/shipping/origin', {
+      const res = await api<{ok: boolean; shippingMethods?: string[]; error?: string}>('/api/shipping/origin', {
         recipientName: shippingRecipient.trim(),
         phone: shippingPhone.trim(),
         addressLine: shippingAddress.trim(),
         city: shippingCity.trim(),
         postalCode: shippingPostalCode.trim(),
+        shippingMethods,
         label: 'Primary origin',
       }, 'POST');
       if (res.ok) {
@@ -216,10 +235,11 @@ function ProfileForm({
           addressLine: shippingAddress.trim(),
           city: shippingCity.trim(),
           postalCode: shippingPostalCode.trim(),
+          shippingMethods,
           areaId: null,
           updatedAt: new Date().toISOString(),
         });
-        toast.success(t('Shipping address saved successfully!','Alamat pengiriman berhasil disimpan!'));
+        toast.success(t('Shipping settings saved successfully!','Alamat & metode pengiriman berhasil disimpan!'));
       }
     }catch(err){
       toast.error((err as Error).message);
@@ -494,16 +514,75 @@ function ProfileForm({
               </label>
             </div>
 
-            <p className="notice">
-              {t(
-                'Supports same-day instant delivery for local orders and standard express couriers nationwide.',
-                'Mendukung pengiriman instan untuk pesanan lokal dan kurir reguler ke seluruh Indonesia.'
-              )}
-            </p>
+            <div className="shipping-methods-container">
+              <div className="shipping-methods-header">
+                <strong>{t('Active Shipping Methods','Metode Pengiriman Aktif')}</strong>
+                <p>
+                  {t(
+                    'Select which fulfillment methods you accept for orders on Market. At least one method must be enabled.',
+                    'Pilih metode pengiriman yang Anda terima untuk pesanan di Market. Minimal satu metode harus aktif.'
+                  )}
+                </p>
+              </div>
+
+              <div className="shipping-methods-list">
+                {/* Instant Couriers */}
+                <div
+                  className={`shipping-method-item ${shippingMethods.includes('instant') ? 'is-active' : ''}`}
+                  onClick={() => toggleShippingMethod('instant')}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggleShippingMethod('instant'); } }}
+                  aria-pressed={shippingMethods.includes('instant')}
+                >
+                  <div className="shipping-method-main">
+                    <div className="shipping-method-title-row">
+                      <strong>{t('Instant Couriers (Grab / Gojek)','Kurir Instan (Grab / Gojek)')}</strong>
+                      <span className="shipping-method-badge">{t('Local · Up to 40 km','Lokal · Maks 40 km')}</span>
+                    </div>
+                    <p>
+                      {t(
+                        'Direct on-demand delivery for buyers within 40 km from your origin location.',
+                        'Pengiriman langsung untuk pembeli dalam radius hingga 40 km dari lokasi asal Anda.'
+                      )}
+                    </p>
+                  </div>
+                  <div className={`shipping-method-toggle ${shippingMethods.includes('instant') ? 'is-on' : ''}`} aria-hidden="true">
+                    <span className="shipping-toggle-thumb"/>
+                  </div>
+                </div>
+
+                {/* Regular Couriers */}
+                <div
+                  className={`shipping-method-item ${shippingMethods.includes('regular') ? 'is-active' : ''}`}
+                  onClick={() => toggleShippingMethod('regular')}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggleShippingMethod('regular'); } }}
+                  aria-pressed={shippingMethods.includes('regular')}
+                >
+                  <div className="shipping-method-main">
+                    <div className="shipping-method-title-row">
+                      <strong>{t('J&T Express & Regular Couriers','J&T Express & Kurir Reguler')}</strong>
+                      <span className="shipping-method-badge">{t('Nationwide','Seluruh Indonesia')}</span>
+                    </div>
+                    <p>
+                      {t(
+                        'Standard tracked parcel delivery with nationwide coverage across Indonesia.',
+                        'Pengiriman paket standar terlacak dengan jangkauan ke seluruh Indonesia.'
+                      )}
+                    </p>
+                  </div>
+                  <div className={`shipping-method-toggle ${shippingMethods.includes('regular') ? 'is-on' : ''}`} aria-hidden="true">
+                    <span className="shipping-toggle-thumb"/>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             <button className="button" disabled={savingShipping} type="submit">
               <Save size={16}/>
-              {savingShipping ? t('Saving...','Menyimpan...') : t('Save shipping address','Simpan alamat pengiriman')}
+              {savingShipping ? t('Saving...','Menyimpan...') : t('Save delivery settings','Simpan pengaturan pengiriman')}
             </button>
           </form>
         )}
