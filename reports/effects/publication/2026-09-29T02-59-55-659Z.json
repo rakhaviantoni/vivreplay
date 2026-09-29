@@ -1,0 +1,4951 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-09-29T02:59:55.658Z",
+  "candidates": [
+    {
+      "code": "OP04-029",
+      "printedText": "[End of Your Turn] Set up to 1 of your DON!! cards as active.",
+      "timings": [
+        "end-turn"
+      ],
+      "scenarioCount": 7,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-don",
+                "amount": 1
+              }
+            ],
+            "rawText": "[End of Your Turn] Set up to 1 of your DON!! cards as active.",
+            "trigger": "end-turn",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "end-turn",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-don",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[End of Your Turn] Set up to 1 of your DON!! cards as active.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "rawEffectText": "[End of Your Turn] Set up to 1 of your DON!! cards as active.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[End of Your Turn] Set up to 1 of your DON!! cards as active.",
+            "trigger": "end-turn",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-don",
+                "amount": 1,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "end-turn",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-don",
+                  "amount": 1,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "810b98b07ed46f095e5ecf7f057ce4d6c775d10b39e36ee81233b91ab44f91b9",
+      "afterHash": "967e7e661cfbada0d993b4730293e8439200522a8c2729a13c576dd59bb3015e"
+    },
+    {
+      "code": "ST29-005",
+      "printedText": "[Trigger] If your Leader is [Monkey.D.Luffy], play this card.",
+      "timings": [
+        "trigger"
+      ],
+      "scenarioCount": 4,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[Trigger] If your Leader is [Monkey.D.Luffy], play this card.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Trigger] If your Leader is [Monkey.D.Luffy], play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[Trigger] If your Leader is [Monkey.D.Luffy], play this card.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[Trigger] If your Leader is [Monkey.D.Luffy], play this card.",
+            "trigger": "trigger",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Monkey.D.Luffy]"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Monkey.D.Luffy]"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "520998e997ea7f6386c97af276ad50cfb625f863c283efe080f88f321bed6e35",
+      "afterHash": "573310c3cf68eb9ae4a34140e47593cc777fefdd07cc5c6140052f544f1383ae"
+    },
+    {
+      "code": "OP14-106",
+      "printedText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[Trigger] Play this card.",
+      "timings": [
+        "unknown",
+        "trigger"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[Trigger] Play this card.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[Trigger] Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[Trigger] Play this card.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "blocker"
+              }
+            ]
+          },
+          {
+            "rawText": "[Trigger] Play this card.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "3f45bc1b4944376e8c8fd32097ced0aa040f29f5341524d735139d13e86708bc",
+      "afterHash": "ff1a9c75600fd5124325194329458ac36e15b78f118b2bbdea67e782a0104647"
+    },
+    {
+      "code": "OP05-011",
+      "printedText": "[On Play] K.O. up to 1 of your opponent's Characters with 2000 power or less. [Trigger] If your Leader is multicolored, play this card.",
+      "timings": [
+        "on-play",
+        "trigger"
+      ],
+      "scenarioCount": 9,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxPower": 2000,
+                "restedOnly": false
+              },
+              {
+                "kind": "ko",
+                "maxPower": 2000,
+                "restedOnly": false
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[On Play] K.O. up to 1 of your opponent's Characters with 2000 power or less. [Trigger] If your Leader is multicolored, play this card.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is multicolored"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxPower": 2000,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxPower": 2000,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is multicolored"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] K.O. up to 1 of your opponent's Characters with 2000 power or less. [Trigger] If your Leader is multicolored, play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[On Play] K.O. up to 1 of your opponent's Characters with 2000 power or less. [Trigger] If your Leader is multicolored, play this card.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[On Play] K.O. up to 1 of your opponent's Characters with 2000 power or less.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxPower": 2000,
+                "restedOnly": false,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          },
+          {
+            "rawText": "[Trigger] If your Leader is multicolored, play this card.",
+            "trigger": "trigger",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is multicolored"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxPower": 2000,
+                  "restedOnly": false,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is multicolored"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "b2fb7af3d4871c3e8c4ef5fb6a0950c9c56318e93d97b99bc33c5f60bfe0c687",
+      "afterHash": "54e9f053a220e6a9421cd9d1e62459dcc1a128199f20a59ea776f7c26221d2ab"
+    },
+    {
+      "code": "OP07-111",
+      "printedText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 [Egghead] type card other than [Lilith] and add it to your hand. Then, place the rest at the bottom of your deck in any order. [Trigger] If your Leader is [Vegapunk], play this card.",
+      "timings": [
+        "on-play",
+        "trigger"
+      ],
+      "scenarioCount": 9,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom"
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 [Egghead] type card other than [Lilith] and add it to your hand. Then, place the rest at the bottom of your deck in any order. [Trigger] If your Leader is [Vegapunk], play this card.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Vegapunk]"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Vegapunk]"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 [Egghead] type card other than [Lilith] and add it to your hand. Then, place the rest at the bottom of your deck in any order. [Trigger] If your Leader is [Vegapunk], play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 [Egghead] type card other than [Lilith] and add it to your hand. Then, place the rest at the bottom of your deck in any order. [Trigger] If your Leader is [Vegapunk], play this card.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 [Egghead] type card other than [Lilith] and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "trait": "Egghead",
+                "excludeName": "Lilith"
+              }
+            ]
+          },
+          {
+            "rawText": "[Trigger] If your Leader is [Vegapunk], play this card.",
+            "trigger": "trigger",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Vegapunk]"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "trait": "Egghead",
+                  "excludeName": "Lilith"
+                }
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Vegapunk]"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "f43569e3f3b6a8ffb3f3f8e15de57a6dc6266cf693b43469198b82943f40c9f1",
+      "afterHash": "e089ceb548e5c3adeb9f7a3fea4239aa5b20c3a3c09a76cd52078a2c7ab2f87f"
+    },
+    {
+      "code": "OP17-022",
+      "printedText": "[Rush] (This card can attack on the turn in which it is played.)\n[On Play] Set up to 2 of your DON!! cards as active. Then, rest all of your opponent's Characters.",
+      "timings": [
+        "unknown",
+        "on-play"
+      ],
+      "scenarioCount": 12,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character"
+              },
+              {
+                "kind": "ready",
+                "scope": "self",
+                "amount": 2
+              }
+            ],
+            "rawText": "[On Play] Set up to 2 of your DON!! cards as active. Then, rest all of your opponent's Characters.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "self",
+                  "amount": 2
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Rush] (This card can attack on the turn in which it is played.)\n[On Play] Set up to 2 of your DON!! cards as active. Then, rest all of your opponent's Characters.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[Rush] (This card can attack on the turn in which it is played.)\n[On Play] Set up to 2 of your DON!! cards as active. Then, rest all of your opponent's Characters.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[Rush] (This card can attack on the turn in which it is played.)",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rush"
+              }
+            ]
+          },
+          {
+            "rawText": "[On Play] Set up to 2 of your DON!! cards as active. Then, rest all of your opponent's Characters.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-don",
+                "amount": 2,
+                "selection": {
+                  "min": 0,
+                  "max": 2
+                }
+              },
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "selection": {
+                  "min": 0,
+                  "max": "all"
+                }
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rush"
+                }
+              }
+            ]
+          },
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-don",
+                  "amount": 2,
+                  "selection": {
+                    "min": 0,
+                    "max": 2
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "selection": {
+                    "min": 0,
+                    "max": "all"
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "95349d28ff7339d3f7cb01bdba22c60ce595b7a26f9e33e759734262b33bf20c",
+      "afterHash": "874afd5a0ce33cf72abaf1a030b97ecd9c3140dfc5252dc84ff9c7a1664c76de"
+    },
+    {
+      "code": "OP09-109",
+      "printedText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[Trigger] If your Leader is [Nico Robin], play this card.",
+      "timings": [
+        "unknown",
+        "trigger"
+      ],
+      "scenarioCount": 4,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[Trigger] If your Leader is [Nico Robin], play this card.",
+            "trigger": "trigger",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Nico Robin]"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Nico Robin]"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[Trigger] If your Leader is [Nico Robin], play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[Trigger] If your Leader is [Nico Robin], play this card.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "blocker"
+              }
+            ]
+          },
+          {
+            "rawText": "[Trigger] If your Leader is [Nico Robin], play this card.",
+            "trigger": "trigger",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Nico Robin]"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Nico Robin]"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "071c7e6f5a415ed512f121a436dc0d4c4018ef98669af6a23a7ac42421483288",
+      "afterHash": "0d7ee4fe310875e669f606f304ebff3e13f1078be078f6e2f2728f774484b858"
+    },
+    {
+      "code": "ST29-009",
+      "printedText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[Trigger] If your Leader is [Monkey.D.Luffy], play this card.",
+      "timings": [
+        "unknown",
+        "trigger"
+      ],
+      "scenarioCount": 4,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[Trigger] If your Leader is [Monkey.D.Luffy], play this card.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[Trigger] If your Leader is [Monkey.D.Luffy], play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[Trigger] If your Leader is [Monkey.D.Luffy], play this card.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "blocker"
+              }
+            ]
+          },
+          {
+            "rawText": "[Trigger] If your Leader is [Monkey.D.Luffy], play this card.",
+            "trigger": "trigger",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Monkey.D.Luffy]"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Monkey.D.Luffy]"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "9d558e1ee72debdcaa231b5cfe73799054b1da51c5d34b8bae4a053a613946d3",
+      "afterHash": "0675114fa78cde68f32a9259d3e16d41414f447f9a16d3524f6f1195ccb1256e"
+    },
+    {
+      "code": "OP04-052",
+      "printedText": "[Activate:Main] (2) (You may rest the specified number of DON!! cards in your cost area.) You may rest this Character: Draw 1 card. [Trigger] Play this card.",
+      "timings": [
+        "trigger"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "self",
+                "amount": 1,
+                "optional": true
+              }
+            ],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 1
+              },
+              {
+                "kind": "rest",
+                "scope": "self"
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[Activate:Main] (2) (You may rest the specified number of DON!! cards in your cost area.) You may rest this Character: Draw 1 card. [Trigger] Play this card.",
+            "trigger": "activate-main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "rest",
+                  "scope": "self",
+                  "amount": 1,
+                  "optional": true
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "self"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Activate:Main] (2) (You may rest the specified number of DON!! cards in your cost area.) You may rest this Character: Draw 1 card. [Trigger] Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "self",
+                "amount": 1,
+                "optional": true
+              }
+            ],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 1
+              },
+              {
+                "kind": "rest",
+                "scope": "self"
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[Activate:Main] (2) (You may rest the specified number of DON!! cards in your cost area.) You may rest this Character: Draw 1 card. [Trigger] Play this card.",
+            "trigger": "activate-main",
+            "conditions": []
+          },
+          {
+            "rawText": "[Trigger] Play this card.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "rest",
+                  "scope": "self",
+                  "amount": 1,
+                  "optional": true
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "self"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Activate:Main] (2) (You may rest the specified number of DON!! cards in your cost area.) You may rest this Character: Draw 1 card. [Trigger] Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "fbf45ae065bc947f72cd49fd0a8e6abd26e5576e23c4131dc7d40f51b2a6b0a9",
+      "afterHash": "9699df828df9c1871a01090336a21b1a8c2df6d1122f62f8bde741a8465fe5b8"
+    },
+    {
+      "code": "ST29-008",
+      "printedText": "If your {Egghead} type Character would be K.O.'d by your opponent's effect, you may turn 1 card from the top of your Life cards face-up instead.\n[Trigger] If your Leader is [Monkey.D.Luffy], play this card.",
+      "timings": [
+        "trigger"
+      ],
+      "scenarioCount": 4,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[Trigger] If your Leader is [Monkey.D.Luffy], play this card.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "If your {Egghead} type Character would be K.O.'d by your opponent's effect, you may turn 1 card from the top of your Life cards face-up instead.\n[Trigger] If your Leader is [Monkey.D.Luffy], play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Trigger] If your Leader is [Monkey.D.Luffy], play this card.",
+            "trigger": "trigger",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Monkey.D.Luffy]"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Monkey.D.Luffy]"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "If your {Egghead} type Character would be K.O.'d by your opponent's effect, you may turn 1 card from the top of your Life cards face-up instead.\n[Trigger] If your Leader is [Monkey.D.Luffy], play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "42ce6d86004ed8baca4483fd204e01c90500a3c45cdbf4ec508dcad04c9d2602",
+      "afterHash": "c3dafc684729223d7145bb5a97c6def681fe0df7dcb3dfcaa6808c1f6e0ac472"
+    },
+    {
+      "code": "OP07-110",
+      "printedText": "[On Play] You may add 1 card from the top or bottom of your Life cards to your hand: K.O. up to 1 of your opponent's Characters with a cost of 2 or less. [Trigger] If your Leader is [Vegapunk], play this card.",
+      "timings": [
+        "trigger"
+      ],
+      "scenarioCount": 4,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 2,
+                "restedOnly": false
+              },
+              {
+                "kind": "ko",
+                "maxCost": 2,
+                "restedOnly": false
+              },
+              {
+                "kind": "life",
+                "amount": 1,
+                "operation": "add-to-hand"
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[On Play] You may add 1 card from the top or bottom of your Life cards to your hand: K.O. up to 1 of your opponent's Characters with a cost of 2 or less. [Trigger] If your Leader is [Vegapunk], play this card.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Vegapunk]"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 2,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 2,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life",
+                  "amount": 1,
+                  "operation": "add-to-hand"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Vegapunk]"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] You may add 1 card from the top or bottom of your Life cards to your hand: K.O. up to 1 of your opponent's Characters with a cost of 2 or less. [Trigger] If your Leader is [Vegapunk], play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 2,
+                "restedOnly": false
+              },
+              {
+                "kind": "ko",
+                "maxCost": 2,
+                "restedOnly": false
+              },
+              {
+                "kind": "life",
+                "amount": 1,
+                "operation": "add-to-hand"
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[On Play] You may add 1 card from the top or bottom of your Life cards to your hand: K.O. up to 1 of your opponent's Characters with a cost of 2 or less. [Trigger] If your Leader is [Vegapunk], play this card.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Vegapunk]"
+              }
+            ]
+          },
+          {
+            "rawText": "[Trigger] If your Leader is [Vegapunk], play this card.",
+            "trigger": "trigger",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Vegapunk]"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 2,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 2,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life",
+                  "amount": 1,
+                  "operation": "add-to-hand"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Vegapunk]"
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Vegapunk]"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] You may add 1 card from the top or bottom of your Life cards to your hand: K.O. up to 1 of your opponent's Characters with a cost of 2 or less. [Trigger] If your Leader is [Vegapunk], play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "ac310226e71a2ac88b34893733ab7cfea74cc30c5a859c55ef658e9c053f84a9",
+      "afterHash": "dbfdb115f1e67ce5b48a2e92dfc1d38aa0e104d00fe613381e7bccc642babe37"
+    },
+    {
+      "code": "ST12-002",
+      "printedText": "[Activate:Main] You may rest this Character: Rest up to 1 of your opponent's Characters with a cost of 4 or less. [Trigger] Play this card.",
+      "timings": [
+        "trigger"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "self",
+                "amount": 1,
+                "optional": true
+              }
+            ],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "self"
+              },
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 4
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[Activate:Main] You may rest this Character: Rest up to 1 of your opponent's Characters with a cost of 4 or less. [Trigger] Play this card.",
+            "trigger": "activate-main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "rest",
+                  "scope": "self",
+                  "amount": 1,
+                  "optional": true
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "self"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 4
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Activate:Main] You may rest this Character: Rest up to 1 of your opponent's Characters with a cost of 4 or less. [Trigger] Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "self",
+                "amount": 1,
+                "optional": true
+              }
+            ],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "self"
+              },
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 4
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[Activate:Main] You may rest this Character: Rest up to 1 of your opponent's Characters with a cost of 4 or less. [Trigger] Play this card.",
+            "trigger": "activate-main",
+            "conditions": []
+          },
+          {
+            "rawText": "[Trigger] Play this card.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "rest",
+                  "scope": "self",
+                  "amount": 1,
+                  "optional": true
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "self"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 4
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Activate:Main] You may rest this Character: Rest up to 1 of your opponent's Characters with a cost of 4 or less. [Trigger] Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "b6c639e0841d9cd294e094a3164021279612c3dd78d8e9ab4720bfa0de34840f",
+      "afterHash": "6fca20cd9475d71a20a42b70fd3123121758afc074195d73aba8d886c18873c2"
+    },
+    {
+      "code": "ST01-002",
+      "printedText": "[DON!! x2] [When Attacking] Your opponent cannot activate a [Blocker] Character that has 5000 or more power during this battle. [Trigger] Play this card.",
+      "timings": [
+        "trigger"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don-required",
+                "amount": 2
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              },
+              {
+                "kind": "blocker"
+              }
+            ],
+            "rawText": "[DON!! x2] [When Attacking] Your opponent cannot activate a [Blocker] Character that has 5000 or more power during this battle. [Trigger] Play this card.",
+            "trigger": "when-attacking",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "when-attacking",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 2
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x2] [When Attacking] Your opponent cannot activate a [Blocker] Character that has 5000 or more power during this battle. [Trigger] Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don-required",
+                "amount": 2
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              },
+              {
+                "kind": "blocker"
+              }
+            ],
+            "rawText": "[DON!! x2] [When Attacking] Your opponent cannot activate a [Blocker] Character that has 5000 or more power during this battle. [Trigger] Play this card.",
+            "trigger": "when-attacking",
+            "conditions": []
+          },
+          {
+            "rawText": "[Trigger] Play this card.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "when-attacking",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 2
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x2] [When Attacking] Your opponent cannot activate a [Blocker] Character that has 5000 or more power during this battle. [Trigger] Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "224361bf05266ab7cade887f06fddbf92669b6fcc2be1543e4a94cb754ad8226",
+      "afterHash": "e5bae2b2ab074edb8e788afaf0a2f222d7a311c7cac066da53a18e93ce9c71b9"
+    },
+    {
+      "code": "OP02-029",
+      "printedText": "[End of Your Turn] Set up to 1 of your DON!! cards as active.",
+      "timings": [
+        "end-turn"
+      ],
+      "scenarioCount": 7,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-don",
+                "amount": 1
+              }
+            ],
+            "rawText": "[End of Your Turn] Set up to 1 of your DON!! cards as active.",
+            "trigger": "end-turn",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "end-turn",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-don",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[End of Your Turn] Set up to 1 of your DON!! cards as active.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "rawEffectText": "[End of Your Turn] Set up to 1 of your DON!! cards as active.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[End of Your Turn] Set up to 1 of your DON!! cards as active.",
+            "trigger": "end-turn",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-don",
+                "amount": 1,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "end-turn",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-don",
+                  "amount": 1,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "810b98b07ed46f095e5ecf7f057ce4d6c775d10b39e36ee81233b91ab44f91b9",
+      "afterHash": "967e7e661cfbada0d993b4730293e8439200522a8c2729a13c576dd59bb3015e"
+    },
+    {
+      "code": "OP07-100",
+      "printedText": "[On Play] If you have 2 or less Life cards, draw 2 cards and trash 2 card from your hand. [Trigger] If your Leader is [Vegapunk], play this card.",
+      "timings": [
+        "trigger"
+      ],
+      "scenarioCount": 4,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 2
+              },
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 2,
+                "requiresTrigger": false
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[On Play] If you have 2 or less Life cards, draw 2 cards and trash 2 card from your hand. [Trigger] If your Leader is [Vegapunk], play this card.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 2 or less Life cards"
+              },
+              {
+                "kind": "text",
+                "text": "your Leader is [Vegapunk]"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 2
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 2,
+                  "requiresTrigger": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 2 or less Life cards"
+              },
+              {
+                "kind": "text",
+                "text": "your Leader is [Vegapunk]"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] If you have 2 or less Life cards, draw 2 cards and trash 2 card from your hand. [Trigger] If your Leader is [Vegapunk], play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 2
+              },
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 2,
+                "requiresTrigger": false
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[On Play] If you have 2 or less Life cards, draw 2 cards and trash 2 card from your hand. [Trigger] If your Leader is [Vegapunk], play this card.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 2 or less Life cards"
+              },
+              {
+                "kind": "text",
+                "text": "your Leader is [Vegapunk]"
+              }
+            ]
+          },
+          {
+            "rawText": "[Trigger] If your Leader is [Vegapunk], play this card.",
+            "trigger": "trigger",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Vegapunk]"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 2
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 2,
+                  "requiresTrigger": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 2 or less Life cards"
+              },
+              {
+                "kind": "text",
+                "text": "your Leader is [Vegapunk]"
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Vegapunk]"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] If you have 2 or less Life cards, draw 2 cards and trash 2 card from your hand. [Trigger] If your Leader is [Vegapunk], play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "adf32854e25c6f31fc97c449865bdeeed5a5230f1c37dc66f1bc8a1279b4d499",
+      "afterHash": "a14fba86b508a8b2fd121fbc0a8d63a3a45103cbe90459f62fa26cb266dbab43"
+    },
+    {
+      "code": "ST02-005",
+      "printedText": "[On Play] K.O. up to 1 of your opponent's rested Characters with a cost of 3 or less. [Trigger] Play this card.",
+      "timings": [
+        "on-play",
+        "trigger"
+      ],
+      "scenarioCount": 9,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 3,
+                "restedOnly": true
+              },
+              {
+                "kind": "ko",
+                "maxCost": 3,
+                "restedOnly": true
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[On Play] K.O. up to 1 of your opponent's rested Characters with a cost of 3 or less. [Trigger] Play this card.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 3,
+                  "restedOnly": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 3,
+                  "restedOnly": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] K.O. up to 1 of your opponent's rested Characters with a cost of 3 or less. [Trigger] Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[On Play] K.O. up to 1 of your opponent's rested Characters with a cost of 3 or less. [Trigger] Play this card.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[On Play] K.O. up to 1 of your opponent's rested Characters with a cost of 3 or less.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 3,
+                "restedOnly": true,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          },
+          {
+            "rawText": "[Trigger] Play this card.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 3,
+                  "restedOnly": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "998b016ef3baab0f7bf52af2ead2c44c1b69463733f5c36f877ded7073610ef9",
+      "afterHash": "ee2765b2cb1e27a4d4dd57087f6f3efc4f23840dd2c40a11d7986dfb2dab50ed"
+    },
+    {
+      "code": "OP04-038",
+      "printedText": "[Main] / [Counter] Rest up to 1 of your opponent's Leader or Character cards. Then, K.O. up to 1 of your opponent's rested Characters with a cost of 6 or less. [Trigger] Set up to 5 of your DON!! cards as active.",
+      "timings": [
+        "trigger"
+      ],
+      "scenarioCount": 7,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 6,
+                "restedOnly": true
+              },
+              {
+                "kind": "ko",
+                "maxCost": 6,
+                "restedOnly": true
+              },
+              {
+                "kind": "rest",
+                "scope": "opponent-card",
+                "maxCost": 6
+              },
+              {
+                "kind": "ready",
+                "scope": "self",
+                "amount": 5
+              }
+            ],
+            "rawText": "[Main] / [Counter] Rest up to 1 of your opponent's Leader or Character cards. Then, K.O. up to 1 of your opponent's rested Characters with a cost of 6 or less. [Trigger] Set up to 5 of your DON!! cards as active.",
+            "trigger": "main",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-don",
+                "amount": 5
+              }
+            ],
+            "rawText": "[Trigger] Set up to 5 of your DON!! cards as active.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 6,
+                  "restedOnly": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 6,
+                  "restedOnly": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-card",
+                  "maxCost": 6
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "self",
+                  "amount": 5
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-don",
+                  "amount": 5
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] / [Counter] Rest up to 1 of your opponent's Leader or Character cards. Then, K.O. up to 1 of your opponent's rested Characters with a cost of 6 or less. [Trigger] Set up to 5 of your DON!! cards as active.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 6,
+                "restedOnly": true
+              },
+              {
+                "kind": "ko",
+                "maxCost": 6,
+                "restedOnly": true
+              },
+              {
+                "kind": "rest",
+                "scope": "opponent-card",
+                "maxCost": 6
+              },
+              {
+                "kind": "ready",
+                "scope": "self",
+                "amount": 5
+              }
+            ],
+            "rawText": "[Main] / [Counter] Rest up to 1 of your opponent's Leader or Character cards. Then, K.O. up to 1 of your opponent's rested Characters with a cost of 6 or less. [Trigger] Set up to 5 of your DON!! cards as active.",
+            "trigger": "main",
+            "conditions": []
+          },
+          {
+            "rawText": "[Trigger] Set up to 5 of your DON!! cards as active.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-don",
+                "amount": 5,
+                "selection": {
+                  "min": 0,
+                  "max": 5
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 6,
+                  "restedOnly": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 6,
+                  "restedOnly": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-card",
+                  "maxCost": 6
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "self",
+                  "amount": 5
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-don",
+                  "amount": 5,
+                  "selection": {
+                    "min": 0,
+                    "max": 5
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] / [Counter] Rest up to 1 of your opponent's Leader or Character cards. Then, K.O. up to 1 of your opponent's rested Characters with a cost of 6 or less. [Trigger] Set up to 5 of your DON!! cards as active.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "3b28c7066093609e06bfd537c1ce4b83bd127a708ff740563108d1f8ffcd2bdd",
+      "afterHash": "bc010ff66265cc89280a895d7f9241286bb7c293da53dd526d5dc5fd4e7a2994"
+    },
+    {
+      "code": "ST02-015",
+      "printedText": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle. Then, set up to 1 of your DON!! cards as active. [Trigger] Set up to 2 of your DON!! cards as active.",
+      "timings": [
+        "trigger"
+      ],
+      "scenarioCount": 7,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "battle",
+                "amount": 2000,
+                "target": "own-leader"
+              },
+              {
+                "kind": "ready",
+                "scope": "self",
+                "amount": 1
+              }
+            ],
+            "rawText": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle. Then, set up to 1 of your DON!! cards as active. [Trigger] Set up to 2 of your DON!! cards as active.",
+            "trigger": "counter",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-don",
+                "amount": 2
+              }
+            ],
+            "rawText": "[Trigger] Set up to 2 of your DON!! cards as active.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "counter",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "battle",
+                  "amount": 2000,
+                  "target": "own-leader"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "self",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-don",
+                  "amount": 2
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle. Then, set up to 1 of your DON!! cards as active. [Trigger] Set up to 2 of your DON!! cards as active.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "battle",
+                "amount": 2000,
+                "target": "own-leader"
+              },
+              {
+                "kind": "ready",
+                "scope": "self",
+                "amount": 1
+              }
+            ],
+            "rawText": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle. Then, set up to 1 of your DON!! cards as active. [Trigger] Set up to 2 of your DON!! cards as active.",
+            "trigger": "counter",
+            "conditions": []
+          },
+          {
+            "rawText": "[Trigger] Set up to 2 of your DON!! cards as active.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-don",
+                "amount": 2,
+                "selection": {
+                  "min": 0,
+                  "max": 2
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "counter",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "battle",
+                  "amount": 2000,
+                  "target": "own-leader"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "self",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-don",
+                  "amount": 2,
+                  "selection": {
+                    "min": 0,
+                    "max": 2
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle. Then, set up to 1 of your DON!! cards as active. [Trigger] Set up to 2 of your DON!! cards as active.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "d09e1597d1309429d9cded26daa3d51766b7764eb6a39c3db3eae8fedbac033a",
+      "afterHash": "f58510f4c507ab26b68254380bd4470f5724be498bff120c14b370ffa4f3f8dc"
+    },
+    {
+      "code": "ST24-003",
+      "printedText": "[End of Your Turn] Set up to 1 of your DON!! cards as active.",
+      "timings": [
+        "end-turn"
+      ],
+      "scenarioCount": 7,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-don",
+                "amount": 1
+              }
+            ],
+            "rawText": "[End of Your Turn] Set up to 1 of your DON!! cards as active.",
+            "trigger": "end-turn",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "end-turn",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-don",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[End of Your Turn] Set up to 1 of your DON!! cards as active.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "rawEffectText": "[End of Your Turn] Set up to 1 of your DON!! cards as active.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[End of Your Turn] Set up to 1 of your DON!! cards as active.",
+            "trigger": "end-turn",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-don",
+                "amount": 1,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "end-turn",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-don",
+                  "amount": 1,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "810b98b07ed46f095e5ecf7f057ce4d6c775d10b39e36ee81233b91ab44f91b9",
+      "afterHash": "967e7e661cfbada0d993b4730293e8439200522a8c2729a13c576dd59bb3015e"
+    },
+    {
+      "code": "ST04-010",
+      "printedText": "[On Play] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): K.O. up to 1 of your opponent's Characters with a cost of 3 or less. [Trigger] Play this card.",
+      "timings": [
+        "on-play",
+        "trigger"
+      ],
+      "scenarioCount": 10,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 3,
+                "restedOnly": false
+              },
+              {
+                "kind": "ko",
+                "maxCost": 3,
+                "restedOnly": false
+              },
+              {
+                "kind": "return-don",
+                "amount": 1
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[On Play] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): K.O. up to 1 of your opponent's Characters with a cost of 3 or less. [Trigger] Play this card.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 3,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 3,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "return-don",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): K.O. up to 1 of your opponent's Characters with a cost of 3 or less. [Trigger] Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[On Play] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): K.O. up to 1 of your opponent's Characters with a cost of 3 or less. [Trigger] Play this card.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[On Play] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): K.O. up to 1 of your opponent's Characters with a cost of 3 or less.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [
+              {
+                "kind": "return-don",
+                "amount": 1,
+                "optional": false
+              }
+            ],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 3,
+                "restedOnly": false,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          },
+          {
+            "rawText": "[Trigger] Play this card.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "PAY_COST",
+                "cost": {
+                  "kind": "return-don",
+                  "amount": 1,
+                  "optional": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 3,
+                  "restedOnly": false,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "668d09eaf168629e8535a317333df1c226f5a4fdf648393ea58ff863d9c6580f",
+      "afterHash": "eccb9882588c729a6d05f434a058d2fedeb4c6e25f50f9649a14eb63ff8a4098"
+    },
+    {
+      "code": "OP04-111",
+      "printedText": "[Activate:Main] You may trash 1 of your [Homies] type Characters other than this Character and rest this Character: Set up to 1 of your [Charlotte Linlin] Characters as active. [Trigger] Play this card.",
+      "timings": [
+        "trigger"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "self",
+                "amount": 1,
+                "optional": true
+              }
+            ],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "self"
+              },
+              {
+                "kind": "ready",
+                "scope": "own-character",
+                "amount": 1
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[Activate:Main] You may trash 1 of your [Homies] type Characters other than this Character and rest this Character: Set up to 1 of your [Charlotte Linlin] Characters as active. [Trigger] Play this card.",
+            "trigger": "activate-main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "rest",
+                  "scope": "self",
+                  "amount": 1,
+                  "optional": true
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "self"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-character",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Activate:Main] You may trash 1 of your [Homies] type Characters other than this Character and rest this Character: Set up to 1 of your [Charlotte Linlin] Characters as active. [Trigger] Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "self",
+                "amount": 1,
+                "optional": true
+              }
+            ],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "self"
+              },
+              {
+                "kind": "ready",
+                "scope": "own-character",
+                "amount": 1
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[Activate:Main] You may trash 1 of your [Homies] type Characters other than this Character and rest this Character: Set up to 1 of your [Charlotte Linlin] Characters as active. [Trigger] Play this card.",
+            "trigger": "activate-main",
+            "conditions": []
+          },
+          {
+            "rawText": "[Trigger] Play this card.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "rest",
+                  "scope": "self",
+                  "amount": 1,
+                  "optional": true
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "self"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-character",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Activate:Main] You may trash 1 of your [Homies] type Characters other than this Character and rest this Character: Set up to 1 of your [Charlotte Linlin] Characters as active. [Trigger] Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "bfdc806893f98d9a34ee10d4c6d820f4d32aaa0b7ea8f4ef4d431dad8666b1e0",
+      "afterHash": "89fe3e4521fa2abb5a56cd9882459d249da648ce92af9c87636e7ec112de1b11"
+    },
+    {
+      "code": "OP05-106",
+      "printedText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 [Sky Island] type card other than [Shura] and add it to your hand. Then, place the rest at the bottom of your deck in any order. [Trigger] Play this card.",
+      "timings": [
+        "on-play",
+        "trigger"
+      ],
+      "scenarioCount": 8,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom"
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 [Sky Island] type card other than [Shura] and add it to your hand. Then, place the rest at the bottom of your deck in any order. [Trigger] Play this card.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 [Sky Island] type card other than [Shura] and add it to your hand. Then, place the rest at the bottom of your deck in any order. [Trigger] Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 [Sky Island] type card other than [Shura] and add it to your hand. Then, place the rest at the bottom of your deck in any order. [Trigger] Play this card.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 [Sky Island] type card other than [Shura] and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "trait": "Sky Island",
+                "excludeName": "Shura"
+              }
+            ]
+          },
+          {
+            "rawText": "[Trigger] Play this card.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "trait": "Sky Island",
+                  "excludeName": "Shura"
+                }
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "77adea45fe0fd0d0d7449e3e1f6cbb4ab6eccb9073e58756c9336d6d3fdadcbc",
+      "afterHash": "94bd066c101a5cad62dded01667f9feb7e46214d042bc50834f96d265eae5abe"
+    },
+    {
+      "code": "ST10-006",
+      "printedText": "[Rush] (This card can attack on the turn in which it is played.) [Once Per Turn] When your opponent activates a [Blocker], K.O. up to 1 of your opponent's Characters with 8000 power or less.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioCount": 6,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxPower": 8000,
+                "selection": {
+                  "max": 1,
+                  "min": 0
+                },
+                "restedOnly": false
+              },
+              {
+                "kind": "rush"
+              }
+            ],
+            "rawText": "[Rush] (This card can attack on the turn in which it is played.) [Once Per Turn] When your opponent activates a [Blocker], K.O. up to 1 of your opponent's Characters with 8000 power or less.",
+            "trigger": "continuous",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxPower": 8000,
+                  "selection": {
+                    "max": 1,
+                    "min": 0
+                  },
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rush"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Rush] (This card can attack on the turn in which it is played.) [Once Per Turn] When your opponent activates a [Blocker], K.O. up to 1 of your opponent's Characters with 8000 power or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "rawEffectText": "[Rush] (This card can attack on the turn in which it is played.) [Once Per Turn] When your opponent activates a [Blocker], K.O. up to 1 of your opponent's Characters with 8000 power or less.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[Rush] (This card can attack on the turn in which it is played.) [Once Per Turn] When your opponent activates a [Blocker], K.O. up to 1 of your opponent's Characters with 8000 power or less.",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxPower": 8000,
+                "restedOnly": false,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              },
+              {
+                "kind": "rush"
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxPower": 8000,
+                  "restedOnly": false,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rush"
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "b73f815af3932509d38ce692d66632c5dfc2bc6ac081f07ad00f8f7e209cdbde",
+      "afterHash": "2455399983fed2c33c3b15bf6a56614b63995332776151e47409fb0da08b9cad"
+    },
+    {
+      "code": "OP14-103",
+      "printedText": "[On Play] You may add 1 card from the top or bottom of your Life cards to your hand: Add up to 1 card from your hand to the top of your Life cards. [Trigger] Play this card.",
+      "timings": [
+        "trigger"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "life",
+                "amount": 1,
+                "operation": "add-to-life"
+              },
+              {
+                "kind": "life",
+                "amount": 1,
+                "operation": "add-to-hand"
+              },
+              {
+                "kind": "move-to-life",
+                "scope": "own",
+                "amount": 1,
+                "faceUp": false,
+                "position": "top"
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[On Play] You may add 1 card from the top or bottom of your Life cards to your hand: Add up to 1 card from your hand to the top of your Life cards. [Trigger] Play this card.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life",
+                  "amount": 1,
+                  "operation": "add-to-life"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life",
+                  "amount": 1,
+                  "operation": "add-to-hand"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "move-to-life",
+                  "scope": "own",
+                  "amount": 1,
+                  "faceUp": false,
+                  "position": "top"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] You may add 1 card from the top or bottom of your Life cards to your hand: Add up to 1 card from your hand to the top of your Life cards. [Trigger] Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "life",
+                "amount": 1,
+                "operation": "add-to-life"
+              },
+              {
+                "kind": "life",
+                "amount": 1,
+                "operation": "add-to-hand"
+              },
+              {
+                "kind": "move-to-life",
+                "scope": "own",
+                "amount": 1,
+                "faceUp": false,
+                "position": "top"
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[On Play] You may add 1 card from the top or bottom of your Life cards to your hand: Add up to 1 card from your hand to the top of your Life cards. [Trigger] Play this card.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "rawText": "[Trigger] Play this card.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life",
+                  "amount": 1,
+                  "operation": "add-to-life"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life",
+                  "amount": 1,
+                  "operation": "add-to-hand"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "move-to-life",
+                  "scope": "own",
+                  "amount": 1,
+                  "faceUp": false,
+                  "position": "top"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] You may add 1 card from the top or bottom of your Life cards to your hand: Add up to 1 card from your hand to the top of your Life cards. [Trigger] Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "227d7e1adcbc7e3fe2563b9da513b9caf1cfab5141739a7975d411db71563140",
+      "afterHash": "13f3bb44a037893bc2354d7887685e26ff5f5426589d0e28ff79407d408658af"
+    },
+    {
+      "code": "ST03-010",
+      "printedText": "[On Play] Look at 3 cards from the top of your deck and return them to the top or bottom of the deck in any order. [Trigger] Play this card.",
+      "timings": [
+        "trigger"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 3,
+                "choose": 1,
+                "destination": "hand"
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[On Play] Look at 3 cards from the top of your deck and return them to the top or bottom of the deck in any order. [Trigger] Play this card.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 3,
+                  "choose": 1,
+                  "destination": "hand"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Look at 3 cards from the top of your deck and return them to the top or bottom of the deck in any order. [Trigger] Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 3,
+                "choose": 1,
+                "destination": "hand"
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[On Play] Look at 3 cards from the top of your deck and return them to the top or bottom of the deck in any order. [Trigger] Play this card.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "rawText": "[Trigger] Play this card.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 3,
+                  "choose": 1,
+                  "destination": "hand"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Look at 3 cards from the top of your deck and return them to the top or bottom of the deck in any order. [Trigger] Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "c5bce6252249fb4bba702dff09362ba146add34f6f888ada28a9622c36ec6ab3",
+      "afterHash": "38d08836f488825941c0a6f061ca2a12fa61c329e934baaf8537630ca74eb2f4"
+    },
+    {
+      "code": "OP04-103",
+      "printedText": "[On Play] Up to 1 of your [Land of Wano] type Leader or Character cards gains +1000 power during this turn. [Trigger] Play this card.",
+      "timings": [
+        "trigger"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 1000,
+                "target": "own-leader"
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[On Play] Up to 1 of your [Land of Wano] type Leader or Character cards gains +1000 power during this turn. [Trigger] Play this card.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 1000,
+                  "target": "own-leader"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Up to 1 of your [Land of Wano] type Leader or Character cards gains +1000 power during this turn. [Trigger] Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 1000,
+                "target": "own-leader"
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[On Play] Up to 1 of your [Land of Wano] type Leader or Character cards gains +1000 power during this turn. [Trigger] Play this card.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "rawText": "[Trigger] Play this card.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 1000,
+                  "target": "own-leader"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Up to 1 of your [Land of Wano] type Leader or Character cards gains +1000 power during this turn. [Trigger] Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "457df0d1d6673fb09b184ba12d15519948e2b327f6ab199d97a96e2bbed5eeac",
+      "afterHash": "79e44d3b0db818d311f9c71f004f97aba07a36aeac105a22a6d9b8595867f58e"
+    },
+    {
+      "code": "OP13-027",
+      "printedText": "[On Play] Set up to 2 of your DON!! cards as active.\n[End of Your Turn] If your Leader has the \"FILM\" or \"Straw Hat Crew\" type, set up to 1 of your DON!! cards as active.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioCount": 7,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-don",
+                "amount": 2
+              }
+            ],
+            "rawText": "[On Play] Set up to 2 of your DON!! cards as active.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "self",
+                "amount": 1
+              }
+            ],
+            "rawText": "[End of Your Turn] If your Leader has the \"FILM\" or \"Straw Hat Crew\" type, set up to 1 of your DON!! cards as active.",
+            "trigger": "end-turn",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the \"FILM\" or \"Straw Hat Crew\" type"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-don",
+                  "amount": 2
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "end-turn",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "self",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the \"FILM\" or \"Straw Hat Crew\" type"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Set up to 2 of your DON!! cards as active.\n[End of Your Turn] If your Leader has the \"FILM\" or \"Straw Hat Crew\" type, set up to 1 of your DON!! cards as active.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "self",
+                "amount": 1
+              }
+            ],
+            "rawText": "[End of Your Turn] If your Leader has the \"FILM\" or \"Straw Hat Crew\" type, set up to 1 of your DON!! cards as active.",
+            "trigger": "end-turn",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the \"FILM\" or \"Straw Hat Crew\" type"
+              }
+            ]
+          },
+          {
+            "rawText": "[On Play] Set up to 2 of your DON!! cards as active.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-don",
+                "amount": 2,
+                "selection": {
+                  "min": 0,
+                  "max": 2
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "end-turn",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "self",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the \"FILM\" or \"Straw Hat Crew\" type"
+              }
+            ]
+          },
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-don",
+                  "amount": 2,
+                  "selection": {
+                    "min": 0,
+                    "max": 2
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Set up to 2 of your DON!! cards as active.\n[End of Your Turn] If your Leader has the \"FILM\" or \"Straw Hat Crew\" type, set up to 1 of your DON!! cards as active.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "333347b8b2e3381afb31f5a41bf190d672d730e11542b9f09348b83385a4affa",
+      "afterHash": "c1a0167c4f1e49693f495b7358c2b20bf4271bc304e52bad9173a77231f21f92"
+    },
+    {
+      "code": "OP04-019",
+      "printedText": "[End of Your Turn] Set up to 2 of your DON!! cards as active.",
+      "timings": [
+        "end-turn"
+      ],
+      "scenarioCount": 7,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-don",
+                "amount": 2
+              }
+            ],
+            "rawText": "[End of Your Turn] Set up to 2 of your DON!! cards as active.",
+            "trigger": "end-turn",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "end-turn",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-don",
+                  "amount": 2
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[End of Your Turn] Set up to 2 of your DON!! cards as active.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "rawEffectText": "[End of Your Turn] Set up to 2 of your DON!! cards as active.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[End of Your Turn] Set up to 2 of your DON!! cards as active.",
+            "trigger": "end-turn",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-don",
+                "amount": 2,
+                "selection": {
+                  "min": 0,
+                  "max": 2
+                }
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "end-turn",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-don",
+                  "amount": 2,
+                  "selection": {
+                    "min": 0,
+                    "max": 2
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "80b6c4448b5ffcd8735e4ca4932333164a33ffb45dea1e48e78f3d281941ea30",
+      "afterHash": "2a33d9a77a7a3fb4fc44249edc36ab2dacde2ff22e8b1169e0135d19ee6460f9"
+    },
+    {
+      "code": "PRB02-012",
+      "printedText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 \"Straw Hat Crew\" type card other than [Nami] and add it to your hand. Then, place the rest at the bottom of your deck in any order.[Trigger] Play this card.",
+      "timings": [
+        "on-play",
+        "trigger"
+      ],
+      "scenarioCount": 8,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom"
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 \"Straw Hat Crew\" type card other than [Nami] and add it to your hand. Then, place the rest at the bottom of your deck in any order.[Trigger] Play this card.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 \"Straw Hat Crew\" type card other than [Nami] and add it to your hand. Then, place the rest at the bottom of your deck in any order.[Trigger] Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 \"Straw Hat Crew\" type card other than [Nami] and add it to your hand. Then, place the rest at the bottom of your deck in any order.[Trigger] Play this card.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 \"Straw Hat Crew\" type card other than [Nami] and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "trait": "Straw Hat Crew",
+                "excludeName": "Nami"
+              }
+            ]
+          },
+          {
+            "rawText": "[Trigger] Play this card.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "trait": "Straw Hat Crew",
+                  "excludeName": "Nami"
+                }
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "4f56dcef941191db825cf49ab7c1b4914071363d537c233c0aea63f0099e428d",
+      "afterHash": "4998ab4647d9e373122f685da020216a450b9c9eb3172088a0006bc8bc422c12"
+    },
+    {
+      "code": "ST01-012",
+      "printedText": "[Rush] (This card can attack on the turn in which it is played.) [DON!! x2][When Attacking] Your opponent cannot activate [Blocker] during this battle.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioCount": 6,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don-required",
+                "amount": 2
+              },
+              {
+                "kind": "blocker"
+              },
+              {
+                "kind": "rush"
+              }
+            ],
+            "rawText": "[Rush] (This card can attack on the turn in which it is played.) [DON!! x2][When Attacking] Your opponent cannot activate [Blocker] during this battle.",
+            "trigger": "when-attacking",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "when-attacking",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 2
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rush"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Rush] (This card can attack on the turn in which it is played.) [DON!! x2][When Attacking] Your opponent cannot activate [Blocker] during this battle.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[Rush] (This card can attack on the turn in which it is played.) [DON!! x2][When Attacking] Your opponent cannot activate [Blocker] during this battle.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[Rush] (This card can attack on the turn in which it is played.) [DON!! x2][When Attacking] Your opponent cannot activate [Blocker] during this battle.",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don-required",
+                "amount": 2
+              },
+              {
+                "kind": "rush"
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 2
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rush"
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "93458580b7591696187a241e20d737a2ea1a1d2b122793d4fb372f9e05eb0edc",
+      "afterHash": "c3b8bd5254ee723c6dd5356b7e4b3d5f5ef18d569459efa62996d41390248153"
+    },
+    {
+      "code": "EB01-030",
+      "printedText": "[Activate:Main] You may place this card and 1 card from your hand at the bottom of your deck in any order: Draw 2 cards.[Trigger] Play this card.",
+      "timings": [
+        "trigger"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 2
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[Activate:Main] You may place this card and 1 card from your hand at the bottom of your deck in any order: Draw 2 cards.[Trigger] Play this card.",
+            "trigger": "activate-main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 2
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Activate:Main] You may place this card and 1 card from your hand at the bottom of your deck in any order: Draw 2 cards.[Trigger] Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 2
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[Activate:Main] You may place this card and 1 card from your hand at the bottom of your deck in any order: Draw 2 cards.[Trigger] Play this card.",
+            "trigger": "activate-main",
+            "conditions": []
+          },
+          {
+            "rawText": "[Trigger] Play this card.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 2
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Activate:Main] You may place this card and 1 card from your hand at the bottom of your deck in any order: Draw 2 cards.[Trigger] Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "8d3f71c4f7050259a84f488779883856de33fac3dab1f066c493a4e56a431bb1",
+      "afterHash": "0a83f17aa945d55b8c2aaacd1a80c4ebbe55bbc4d9c7068116fbb80262edaca3"
+    },
+    {
+      "code": "OP04-073",
+      "printedText": "[Activate:Main] You may trash this Character and 1 of your Characters with a type including \"Baroque Works\": Add up to 1 DON!! card from your DON!! deck and set it as active. [Trigger] Play this card.",
+      "timings": [
+        "trigger"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "add-don",
+                "amount": 1,
+                "rested": true
+              },
+              {
+                "kind": "trash",
+                "scope": "self",
+                "amount": 1
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[Activate:Main] You may trash this Character and 1 of your Characters with a type including \"Baroque Works\": Add up to 1 DON!! card from your DON!! deck and set it as active. [Trigger] Play this card.",
+            "trigger": "activate-main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "add-don",
+                  "amount": 1,
+                  "rested": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "self",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Activate:Main] You may trash this Character and 1 of your Characters with a type including \"Baroque Works\": Add up to 1 DON!! card from your DON!! deck and set it as active. [Trigger] Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "add-don",
+                "amount": 1,
+                "rested": true
+              },
+              {
+                "kind": "trash",
+                "scope": "self",
+                "amount": 1
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[Activate:Main] You may trash this Character and 1 of your Characters with a type including \"Baroque Works\": Add up to 1 DON!! card from your DON!! deck and set it as active. [Trigger] Play this card.",
+            "trigger": "activate-main",
+            "conditions": []
+          },
+          {
+            "rawText": "[Trigger] Play this card.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "add-don",
+                  "amount": 1,
+                  "rested": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "self",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Activate:Main] You may trash this Character and 1 of your Characters with a type including \"Baroque Works\": Add up to 1 DON!! card from your DON!! deck and set it as active. [Trigger] Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "e2e8bc6d2f79d4e3261cd8ae4e9e545d0f67d497eb03fe71ff32896d457dcc6b",
+      "afterHash": "3f8c8998b67b7f19d3c5ef010a2db5b9949ff23110597383489f4f3766a32074"
+    },
+    {
+      "code": "OP13-030",
+      "printedText": "[On Play] Set up to 2 of your DON!! cards as active.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioCount": 7,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-don",
+                "amount": 2
+              }
+            ],
+            "rawText": "[On Play] Set up to 2 of your DON!! cards as active.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-don",
+                  "amount": 2
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Set up to 2 of your DON!! cards as active.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "rawEffectText": "[On Play] Set up to 2 of your DON!! cards as active.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[On Play] Set up to 2 of your DON!! cards as active.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-don",
+                "amount": 2,
+                "selection": {
+                  "min": 0,
+                  "max": 2
+                }
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-don",
+                  "amount": 2,
+                  "selection": {
+                    "min": 0,
+                    "max": 2
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "cc1d1f8e988ddaf2bcb2c6794cb72756ddfd83d4b3681882a3e34728636328a3",
+      "afterHash": "bf5e4eaab2c8c000b8eb387e9000a863da901d214e946af3a72e145f0a7151e3"
+    }
+  ]
+}

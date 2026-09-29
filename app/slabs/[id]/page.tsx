@@ -105,7 +105,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                 <span style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.1em', color: 'var(--vault-gold)' }}>
                   {row.provider}
                 </span>
-                <div style={{ fontFamily: 'var(--display-font, Georgia, serif)', fontSize: '20px', fontWeight: 700 }}>
+                <div style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '20px', fontWeight: 700 }}>
                   {row.grade}
                 </div>
               </div>
@@ -164,7 +164,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
             )}
           </div>
 
-          <h1 style={{ fontFamily: 'var(--display-font, Georgia, serif)', fontSize: '34px', fontWeight: 600, margin: '0 0 4px', color: 'var(--vault-ink)' }}>
+          <h1 style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '34px', fontWeight: 600, margin: '0 0 4px', color: 'var(--vault-ink)' }}>
             {c.name}
           </h1>
           <p style={{ fontSize: '13px', color: 'var(--vault-ink-secondary)', margin: '0 0 20px' }}>
@@ -226,7 +226,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
                 {Object.entries(subgradesObj).map(([key, val]) => (
                   <div key={key} style={{ padding: '6px', background: 'var(--vault-panel)', borderRadius: '6px', textAlign: 'center', border: '1px solid var(--vault-border-light)' }}>
                     <small style={{ fontSize: '9px', color: 'var(--vault-ink-muted)', textTransform: 'uppercase' }}>{key}</small>
-                    <div style={{ fontFamily: 'var(--display-font, Georgia, serif)', fontSize: '15px', fontWeight: 700, color: 'var(--vault-ink)' }}>
+                    <div style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '15px', fontWeight: 700, color: 'var(--vault-ink)' }}>
                       {String(val)}
                     </div>
                   </div>

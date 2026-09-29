@@ -1,0 +1,198 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-09-29T04:45:23.194Z",
+  "candidates": [
+    {
+      "code": "OP01-038",
+      "printedText": "[DON!! x1] [When Attacking] K.O. up to 1 of your opponent's rested Characters with a cost of 2 or less. [On K.O.] Your opponent chooses 1 card from your hand; trash that card.  This card has been officially errata'd.",
+      "publishedText": "[DON!! x1] [When Attacking] K.O. up to 1 of your opponent's rested Characters with a cost of 2 or less. [On K.O.] Your opponent chooses 1 card from your hand; trash that card.  This card has been officially errata'd.",
+      "timings": [
+        "on-ko"
+      ],
+      "scenarioNames": [
+        "On K.O.: opponent chooses exactly one card from the effect owner hand to trash"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 2,
+                "restedOnly": true
+              },
+              {
+                "kind": "ko",
+                "maxCost": 2,
+                "restedOnly": true
+              },
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              },
+              {
+                "kind": "on-ko"
+              }
+            ],
+            "rawText": "[DON!! x1] [When Attacking] K.O. up to 1 of your opponent's rested Characters with a cost of 2 or less. [On K.O.] Your opponent chooses 1 card from your hand; trash that card.  This card has been officially errata'd.",
+            "trigger": "when-attacking",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "when-attacking",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 2,
+                  "restedOnly": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 2,
+                  "restedOnly": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "on-ko"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] [When Attacking] K.O. up to 1 of your opponent's rested Characters with a cost of 2 or less. [On K.O.] Your opponent chooses 1 card from your hand; trash that card.  This card has been officially errata'd.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 2,
+                "restedOnly": true
+              },
+              {
+                "kind": "ko",
+                "maxCost": 2,
+                "restedOnly": true
+              },
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              },
+              {
+                "kind": "on-ko"
+              }
+            ],
+            "rawText": "[DON!! x1] [When Attacking] K.O. up to 1 of your opponent's rested Characters with a cost of 2 or less. [On K.O.] Your opponent chooses 1 card from your hand; trash that card.  This card has been officially errata'd.",
+            "trigger": "when-attacking",
+            "conditions": []
+          },
+          {
+            "rawText": "[On K.O.] Your opponent chooses 1 card from your hand; trash that card.  This card has been officially errata'd.",
+            "trigger": "on-ko",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "chooser": "opponent"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "when-attacking",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 2,
+                  "restedOnly": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 2,
+                  "restedOnly": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "on-ko"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "on-ko",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "chooser": "opponent"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] [When Attacking] K.O. up to 1 of your opponent's rested Characters with a cost of 2 or less. [On K.O.] Your opponent chooses 1 card from your hand; trash that card.  This card has been officially errata'd.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "e03f7f224e554d999e54ee0d34d2b69253581ecdd17aab6ccca52410b073387e",
+      "afterHash": "7220911ec78a972bf1f11c4019025730397d7643ffc6093c4055fbbb14213b51"
+    }
+  ]
+}

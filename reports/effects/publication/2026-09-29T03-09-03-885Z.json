@@ -1,0 +1,3415 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-09-29T03:09:03.885Z",
+  "candidates": [
+    {
+      "code": "OP01-120",
+      "printedText": "[Rush] (This card can attack on the turn in which it is played.) [When Attacking] Your opponent cannot activate a [Blocker] Character that has 2000 or less power during this battle.",
+      "publishedText": "[Rush] (This card can attack on the turn in which it is played.) [When Attacking] Your opponent cannot activate a [Blocker] Character that has 2000 or less power during this battle.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioCount": 6,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "blocker"
+              },
+              {
+                "kind": "rush"
+              }
+            ],
+            "rawText": "[Rush] (This card can attack on the turn in which it is played.) [When Attacking] Your opponent cannot activate a [Blocker] Character that has 2000 or less power during this battle.",
+            "trigger": "when-attacking",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "when-attacking",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rush"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Rush] (This card can attack on the turn in which it is played.) [When Attacking] Your opponent cannot activate a [Blocker] Character that has 2000 or less power during this battle.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "blocker"
+              },
+              {
+                "kind": "rush"
+              }
+            ],
+            "rawText": "[Rush] (This card can attack on the turn in which it is played.) [When Attacking] Your opponent cannot activate a [Blocker] Character that has 2000 or less power during this battle.",
+            "trigger": "when-attacking",
+            "conditions": []
+          },
+          {
+            "rawText": "[Rush] (This card can attack on the turn in which it is played.)",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rush"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "when-attacking",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rush"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rush"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Rush] (This card can attack on the turn in which it is played.) [When Attacking] Your opponent cannot activate a [Blocker] Character that has 2000 or less power during this battle.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "777473372b5b131e6265a30f5cd0a9d151335a11ac915cb086031b44d654503a",
+      "afterHash": "aa659c418e2b9f1d2a607caa63964edfacafba17fd1142fc415df79d56edc416"
+    },
+    {
+      "code": "EB01-003",
+      "printedText": "[Rush] (This card can attack on the turn in which it is played.)[When Attacking] If your opponent has 2 or less Life cards, this Character gains +2000 power during this turn.",
+      "publishedText": "[Rush] (This card can attack on the turn in which it is played.)[When Attacking] If your opponent has 2 or less Life cards, this Character gains +2000 power during this turn.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioCount": 6,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 2000,
+                "target": "opponent-character"
+              },
+              {
+                "kind": "rush"
+              }
+            ],
+            "rawText": "[Rush] (This card can attack on the turn in which it is played.)[When Attacking] If your opponent has 2 or less Life cards, this Character gains +2000 power during this turn.",
+            "trigger": "when-attacking",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your opponent has 2 or less Life cards"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "when-attacking",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 2000,
+                  "target": "opponent-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rush"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your opponent has 2 or less Life cards"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Rush] (This card can attack on the turn in which it is played.)[When Attacking] If your opponent has 2 or less Life cards, this Character gains +2000 power during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 2000,
+                "target": "opponent-character"
+              },
+              {
+                "kind": "rush"
+              }
+            ],
+            "rawText": "[Rush] (This card can attack on the turn in which it is played.)[When Attacking] If your opponent has 2 or less Life cards, this Character gains +2000 power during this turn.",
+            "trigger": "when-attacking",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your opponent has 2 or less Life cards"
+              }
+            ]
+          },
+          {
+            "rawText": "[Rush] (This card can attack on the turn in which it is played.)",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rush"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "when-attacking",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 2000,
+                  "target": "opponent-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rush"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your opponent has 2 or less Life cards"
+              }
+            ]
+          },
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rush"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Rush] (This card can attack on the turn in which it is played.)[When Attacking] If your opponent has 2 or less Life cards, this Character gains +2000 power during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "158082b48e12a0a321f7af14eb89f1c9b8e9cac14f9bad517ca6d0478a96fcc6",
+      "afterHash": "94ae890da051649a9086bdf3f996b8b53f419e3ab325099024c1f45309b18ca5"
+    },
+    {
+      "code": "OP07-015",
+      "printedText": "[Rush](This card can attack on the turn in which it is played.) [On Play] Give up to 2 rested DON!! cards to your Leader or 1 of your Characters.",
+      "publishedText": "[Rush](This card can attack on the turn in which it is played.) [On Play] Give up to 2 rested DON!! cards to your Leader or 1 of your Characters.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioCount": 6,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don",
+                "amount": 2,
+                "source": "cost-area"
+              },
+              {
+                "kind": "attach-don",
+                "amount": 2,
+                "source": "cost-area"
+              },
+              {
+                "kind": "rush"
+              }
+            ],
+            "rawText": "[Rush](This card can attack on the turn in which it is played.) [On Play] Give up to 2 rested DON!! cards to your Leader or 1 of your Characters.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 2,
+                  "source": "cost-area"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 2,
+                  "source": "cost-area"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rush"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Rush](This card can attack on the turn in which it is played.) [On Play] Give up to 2 rested DON!! cards to your Leader or 1 of your Characters.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don",
+                "amount": 2,
+                "source": "cost-area"
+              },
+              {
+                "kind": "attach-don",
+                "amount": 2,
+                "source": "cost-area"
+              },
+              {
+                "kind": "rush"
+              }
+            ],
+            "rawText": "[Rush](This card can attack on the turn in which it is played.) [On Play] Give up to 2 rested DON!! cards to your Leader or 1 of your Characters.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "rawText": "[Rush](This card can attack on the turn in which it is played.)",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rush"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 2,
+                  "source": "cost-area"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 2,
+                  "source": "cost-area"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rush"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rush"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Rush](This card can attack on the turn in which it is played.) [On Play] Give up to 2 rested DON!! cards to your Leader or 1 of your Characters.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "85dadb4ee883dd88c46daf69249c40e1095808ce5ab59cddd3abd0e30fd296fe",
+      "afterHash": "67d10dfaaa510699cf9b4b0486dbe62fca163565a0c8596e2790a84c3d0e201d"
+    },
+    {
+      "code": "OP17-024",
+      "printedText": "[Banish] (When this card deals damage, the target card is trashed without activating its Trigger.) [On Play] Rest up to 1 of your opponent's Characters.",
+      "publishedText": "[Banish] (When this card deals damage, the target card is trashed without activating its Trigger.) [On Play] Rest up to 1 of your opponent's Characters.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioCount": 6,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character"
+              },
+              {
+                "kind": "banish"
+              }
+            ],
+            "rawText": "[Banish] (When this card deals damage, the target card is trashed without activating its Trigger.) [On Play] Rest up to 1 of your opponent's Characters.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "banish"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Banish] (When this card deals damage, the target card is trashed without activating its Trigger.) [On Play] Rest up to 1 of your opponent's Characters.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character"
+              },
+              {
+                "kind": "banish"
+              }
+            ],
+            "rawText": "[Banish] (When this card deals damage, the target card is trashed without activating its Trigger.) [On Play] Rest up to 1 of your opponent's Characters.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "rawText": "[Banish] (When this card deals damage, the target card is trashed without activating its Trigger.)",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "banish"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "banish"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "banish"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Banish] (When this card deals damage, the target card is trashed without activating its Trigger.) [On Play] Rest up to 1 of your opponent's Characters.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "edce0d53f1d5e5f394e7d334212ce83fa1ce21a76b3a197f2fcbaba7161c4d8c",
+      "afterHash": "0464ade42809e5379615ec81e7c901414ab2ccf7d7a552940d67a03ec587a3fa"
+    },
+    {
+      "code": "EB03-062",
+      "printedText": "[Rush]\n[Activate: Main] You may trash 1 card from your hand and trash this Character: Add up to 1 card from the top of your deck to the top of your Life cards. Then, play up to 1 [Trafalgar Law] with a cost of 7 or less from your hand.",
+      "publishedText": "[Rush]\n[Activate: Main] You may trash 1 card from your hand and trash this Character: Add up to 1 card from the top of your deck to the top of your Life cards. Then, play up to 1 [Trafalgar Law] with a cost of 7 or less from your hand.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioCount": 6,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "life",
+                "amount": 1,
+                "operation": "add-to-life"
+              },
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "requiresTrigger": false
+              },
+              {
+                "kind": "trash",
+                "scope": "self",
+                "amount": 1
+              },
+              {
+                "kind": "move-to-life",
+                "scope": "own",
+                "amount": 1,
+                "faceUp": false,
+                "position": "top"
+              },
+              {
+                "kind": "play",
+                "rested": false,
+                "source": "hand",
+                "maxCost": 7
+              }
+            ],
+            "rawText": "[Activate: Main] You may trash 1 card from your hand and trash this Character: Add up to 1 card from the top of your deck to the top of your Life cards. Then, play up to 1 [Trafalgar Law] with a cost of 7 or less from your hand.",
+            "trigger": "activate-main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life",
+                  "amount": 1,
+                  "operation": "add-to-life"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "requiresTrigger": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "self",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "move-to-life",
+                  "scope": "own",
+                  "amount": 1,
+                  "faceUp": false,
+                  "position": "top"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "rested": false,
+                  "source": "hand",
+                  "maxCost": 7
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Rush]\n[Activate: Main] You may trash 1 card from your hand and trash this Character: Add up to 1 card from the top of your deck to the top of your Life cards. Then, play up to 1 [Trafalgar Law] with a cost of 7 or less from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "life",
+                "amount": 1,
+                "operation": "add-to-life"
+              },
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "requiresTrigger": false
+              },
+              {
+                "kind": "trash",
+                "scope": "self",
+                "amount": 1
+              },
+              {
+                "kind": "move-to-life",
+                "scope": "own",
+                "amount": 1,
+                "faceUp": false,
+                "position": "top"
+              },
+              {
+                "kind": "play",
+                "rested": false,
+                "source": "hand",
+                "maxCost": 7
+              }
+            ],
+            "rawText": "[Activate: Main] You may trash 1 card from your hand and trash this Character: Add up to 1 card from the top of your deck to the top of your Life cards. Then, play up to 1 [Trafalgar Law] with a cost of 7 or less from your hand.",
+            "trigger": "activate-main",
+            "conditions": []
+          },
+          {
+            "rawText": "[Rush]",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rush"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life",
+                  "amount": 1,
+                  "operation": "add-to-life"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "requiresTrigger": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "self",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "move-to-life",
+                  "scope": "own",
+                  "amount": 1,
+                  "faceUp": false,
+                  "position": "top"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "rested": false,
+                  "source": "hand",
+                  "maxCost": 7
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rush"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Rush]\n[Activate: Main] You may trash 1 card from your hand and trash this Character: Add up to 1 card from the top of your deck to the top of your Life cards. Then, play up to 1 [Trafalgar Law] with a cost of 7 or less from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "c6007ed47853fd3e1a4c3070edcee053e1b8b9da21c60b02f1341f54a25b3608",
+      "afterHash": "798f2adf2c65e1509b866b59ddb33bdcdf30b04f9522dbe151a93dea09ac0538"
+    },
+    {
+      "code": "OP17-065",
+      "printedText": "[Banish]\n[On Play] DON!! -1: Draw 1 card, and up to 2 of your opponent's Characters with a cost of 5 or less cannot attack until the end of your opponent's next End Phase.",
+      "publishedText": "[Banish]\n[On Play] DON!! -1: Draw 1 card, and up to 2 of your opponent's Characters with a cost of 5 or less cannot attack until the end of your opponent's next End Phase.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioCount": 6,
+      "before": {
+        "ast": [
+          {
+            "costs": [
+              {
+                "kind": "return-don",
+                "amount": 1,
+                "optional": false
+              }
+            ],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 1
+              },
+              {
+                "kind": "return-don",
+                "amount": 1
+              },
+              {
+                "kind": "attack-restriction",
+                "scope": "opponent-character",
+                "until": "opponent-next-turn"
+              }
+            ],
+            "rawText": "[On Play] DON!! -1: Draw 1 card, and up to 2 of your opponent's Characters with a cost of 5 or less cannot attack until the end of your opponent's next End Phase.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "return-don",
+                  "amount": 1,
+                  "optional": false
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "return-don",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attack-restriction",
+                  "scope": "opponent-character",
+                  "until": "opponent-next-turn"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Banish]\n[On Play] DON!! -1: Draw 1 card, and up to 2 of your opponent's Characters with a cost of 5 or less cannot attack until the end of your opponent's next End Phase.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [
+              {
+                "kind": "return-don",
+                "amount": 1,
+                "optional": false
+              }
+            ],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 1
+              },
+              {
+                "kind": "return-don",
+                "amount": 1
+              },
+              {
+                "kind": "attack-restriction",
+                "scope": "opponent-character",
+                "until": "opponent-next-turn"
+              }
+            ],
+            "rawText": "[On Play] DON!! -1: Draw 1 card, and up to 2 of your opponent's Characters with a cost of 5 or less cannot attack until the end of your opponent's next End Phase.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "rawText": "[Banish]",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "banish"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "return-don",
+                  "amount": 1,
+                  "optional": false
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "return-don",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attack-restriction",
+                  "scope": "opponent-character",
+                  "until": "opponent-next-turn"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "banish"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Banish]\n[On Play] DON!! -1: Draw 1 card, and up to 2 of your opponent's Characters with a cost of 5 or less cannot attack until the end of your opponent's next End Phase.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "ad3889df630b824178c48ca3e25874eaa93cc092eaf9dc41c5b84ed9d4423e59",
+      "afterHash": "62954f26c0c3edb6a40c5eb358d1db39d379f906577af0a5bbbec4fe944db008"
+    },
+    {
+      "code": "OP14-009",
+      "printedText": "[Rush]\n[On Your Opponent's Attack] [Once Per Turn] You may trash 2 cards from your hand: Select your Leader and 1 Character. Swap the base power of the selected cards with each other during this battle.",
+      "publishedText": "[Rush]\n[On Your Opponent's Attack] [Once Per Turn] You may trash 2 cards from your hand: Select your Leader and 1 Character. Swap the base power of the selected cards with each other during this battle.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioCount": 6,
+      "before": {
+        "ast": [
+          {
+            "costs": [
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 2,
+                "optional": true,
+                "requiresTrigger": false
+              }
+            ],
+            "actions": [
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 2,
+                "requiresTrigger": false
+              }
+            ],
+            "rawText": "[On Your Opponent's Attack] [Once Per Turn] You may trash 2 cards from your hand: Select your Leader and 1 Character. Swap the base power of the selected cards with each other during this battle.",
+            "trigger": "opponent-attack",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "opponent-attack",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 2,
+                  "optional": true,
+                  "requiresTrigger": false
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 2,
+                  "requiresTrigger": false
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Rush]\n[On Your Opponent's Attack] [Once Per Turn] You may trash 2 cards from your hand: Select your Leader and 1 Character. Swap the base power of the selected cards with each other during this battle.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 2,
+                "optional": true,
+                "requiresTrigger": false
+              }
+            ],
+            "actions": [
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 2,
+                "requiresTrigger": false
+              }
+            ],
+            "rawText": "[On Your Opponent's Attack] [Once Per Turn] You may trash 2 cards from your hand: Select your Leader and 1 Character. Swap the base power of the selected cards with each other during this battle.",
+            "trigger": "opponent-attack",
+            "conditions": []
+          },
+          {
+            "rawText": "[Rush]",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rush"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "opponent-attack",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 2,
+                  "optional": true,
+                  "requiresTrigger": false
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 2,
+                  "requiresTrigger": false
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rush"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Rush]\n[On Your Opponent's Attack] [Once Per Turn] You may trash 2 cards from your hand: Select your Leader and 1 Character. Swap the base power of the selected cards with each other during this battle.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "dfca9627dc7d29230b21f2b5543445a0fba7ddaac9eae77d7008718d446265c2",
+      "afterHash": "8573fc719fe4eb5c24ebfccb0f7202ef4cb17e7884fc2453a708728640f5179a"
+    },
+    {
+      "code": "ST22-003",
+      "printedText": "[Double Attack] (This card deals 2 damage.)\n[On Play] Reveal 1 card from the top of your deck. If that card's type includes \"Whitebeard Pirates\", draw 2 cards.",
+      "publishedText": "[Double Attack] (This card deals 2 damage.)\n[On Play] Reveal 1 card from the top of your deck. If that card's type includes \"Whitebeard Pirates\", draw 2 cards.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioCount": 6,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 2
+              },
+              {
+                "kind": "reveal",
+                "amount": 1,
+                "source": "deck"
+              }
+            ],
+            "rawText": "[On Play] Reveal 1 card from the top of your deck. If that card's type includes \"Whitebeard Pirates\", draw 2 cards.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "that card's type includes \"Whitebeard Pirates\""
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 2
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "reveal",
+                  "amount": 1,
+                  "source": "deck"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "that card's type includes \"Whitebeard Pirates\""
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Double Attack] (This card deals 2 damage.)\n[On Play] Reveal 1 card from the top of your deck. If that card's type includes \"Whitebeard Pirates\", draw 2 cards.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 2
+              },
+              {
+                "kind": "reveal",
+                "amount": 1,
+                "source": "deck"
+              }
+            ],
+            "rawText": "[On Play] Reveal 1 card from the top of your deck. If that card's type includes \"Whitebeard Pirates\", draw 2 cards.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "that card's type includes \"Whitebeard Pirates\""
+              }
+            ]
+          },
+          {
+            "rawText": "[Double Attack] (This card deals 2 damage.)",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "double-attack"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 2
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "reveal",
+                  "amount": 1,
+                  "source": "deck"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "that card's type includes \"Whitebeard Pirates\""
+              }
+            ]
+          },
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "double-attack"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Double Attack] (This card deals 2 damage.)\n[On Play] Reveal 1 card from the top of your deck. If that card's type includes \"Whitebeard Pirates\", draw 2 cards.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "055fa353e5074b33a26b702cce05cf2712721bfbeb4bb17d2f70807bec1210f5",
+      "afterHash": "98dbec968f008c3ecf352844ff05c6d0327ba9d36c99d9cebe21a761ae96c891"
+    },
+    {
+      "code": "OP09-062",
+      "printedText": "[Banish] (When this card deals damage, the target card is trashed without activating its Trigger.)\n[When Attacking] You may trash 1 card with a [Trigger] from your hand: Add up to 1 DON!! card from your DON!! deck and rest it.",
+      "publishedText": "[Banish] (When this card deals damage, the target card is trashed without activating its Trigger.)\n[When Attacking] You may trash 1 card with a [Trigger] from your hand: Add up to 1 DON!! card from your DON!! deck and rest it.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioCount": 6,
+      "before": {
+        "ast": [
+          {
+            "costs": [
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "optional": true,
+                "requiresTrigger": true
+              }
+            ],
+            "actions": [
+              {
+                "kind": "add-don",
+                "amount": 1,
+                "rested": true
+              },
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "requiresTrigger": true
+              }
+            ],
+            "rawText": "[When Attacking] You may trash 1 card with a [Trigger] from your hand: Add up to 1 DON!! card from your DON!! deck and rest it.",
+            "trigger": "when-attacking",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "when-attacking",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "optional": true,
+                  "requiresTrigger": true
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "add-don",
+                  "amount": 1,
+                  "rested": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "requiresTrigger": true
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Banish] (When this card deals damage, the target card is trashed without activating its Trigger.)\n[When Attacking] You may trash 1 card with a [Trigger] from your hand: Add up to 1 DON!! card from your DON!! deck and rest it.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "optional": true,
+                "requiresTrigger": true
+              }
+            ],
+            "actions": [
+              {
+                "kind": "add-don",
+                "amount": 1,
+                "rested": true
+              },
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "requiresTrigger": true
+              }
+            ],
+            "rawText": "[When Attacking] You may trash 1 card with a [Trigger] from your hand: Add up to 1 DON!! card from your DON!! deck and rest it.",
+            "trigger": "when-attacking",
+            "conditions": []
+          },
+          {
+            "rawText": "[Banish] (When this card deals damage, the target card is trashed without activating its Trigger.)",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "banish"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "when-attacking",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "optional": true,
+                  "requiresTrigger": true
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "add-don",
+                  "amount": 1,
+                  "rested": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "requiresTrigger": true
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "banish"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Banish] (When this card deals damage, the target card is trashed without activating its Trigger.)\n[When Attacking] You may trash 1 card with a [Trigger] from your hand: Add up to 1 DON!! card from your DON!! deck and rest it.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "8556f92034597536092341b9ffe5c4e530a03c1c37c0b309cafc3d7758658e97",
+      "afterHash": "08d0ca9db3d7c5485cf67b55e85c0068ad6d77cf7d489e0d2656443dd256cca4"
+    },
+    {
+      "code": "OP05-100",
+      "printedText": "[Rush] [Once Per Turn] If this Character would leave the field, you may trash 1 card from the top of your Life cards instead. If there is a [Monkey.D.Luffy] Character, this effect is negated.",
+      "publishedText": "[Rush] [Once Per Turn] If this Character would leave the field, you may trash 1 card from the top of your Life cards instead. If there is a [Monkey.D.Luffy] Character, this effect is negated.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioCount": 6,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rush"
+              }
+            ],
+            "rawText": "[Rush] [Once Per Turn] If this Character would leave the field, you may trash 1 card from the top of your Life cards instead. If there is a [Monkey.D.Luffy] Character, this effect is negated.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character would leave the field"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rush"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character would leave the field"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Rush] [Once Per Turn] If this Character would leave the field, you may trash 1 card from the top of your Life cards instead. If there is a [Monkey.D.Luffy] Character, this effect is negated.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rush"
+              }
+            ],
+            "rawText": "[Rush] [Once Per Turn] If this Character would leave the field, you may trash 1 card from the top of your Life cards instead. If there is a [Monkey.D.Luffy] Character, this effect is negated.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character would leave the field"
+              }
+            ]
+          },
+          {
+            "rawText": "[Rush] [Once Per Turn] If this Character would leave the field, you may trash 1 card from the top of your Life cards instead. If there is a [Monkey.D.Luffy] Character, this effect is negated.",
+            "trigger": "unknown",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character would leave the field"
+              },
+              {
+                "kind": "text",
+                "text": "there is a [Monkey.D.Luffy] Character"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rush"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rush"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character would leave the field"
+              }
+            ]
+          },
+          {
+            "timing": "unknown",
+            "optional": true,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character would leave the field"
+              },
+              {
+                "kind": "text",
+                "text": "there is a [Monkey.D.Luffy] Character"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rush"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Rush] [Once Per Turn] If this Character would leave the field, you may trash 1 card from the top of your Life cards instead. If there is a [Monkey.D.Luffy] Character, this effect is negated.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "774c0ed5f09fb40f06d4c3e44c5a881c0e992ace0a25b48a870e4cf9fd8d3f6c",
+      "afterHash": "58bd46755f29d397023e70b8d37ef860ea7319c61441141be3661846f98cca0b"
+    },
+    {
+      "code": "OP14-015",
+      "printedText": "[Rush] (This card can attack on the turn in which it is played.)\n[When Attacking] Give up to 1 of your opponent's Characters -1000 power during this turn.",
+      "publishedText": "[Rush] (This card can attack on the turn in which it is played.)\n[When Attacking] Give up to 1 of your opponent's Characters -1000 power during this turn.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioCount": 6,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": -1000,
+                "target": "opponent-character"
+              }
+            ],
+            "rawText": "[When Attacking] Give up to 1 of your opponent's Characters -1000 power during this turn.",
+            "trigger": "when-attacking",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "when-attacking",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": -1000,
+                  "target": "opponent-character"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Rush] (This card can attack on the turn in which it is played.)\n[When Attacking] Give up to 1 of your opponent's Characters -1000 power during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": -1000,
+                "target": "opponent-character"
+              }
+            ],
+            "rawText": "[When Attacking] Give up to 1 of your opponent's Characters -1000 power during this turn.",
+            "trigger": "when-attacking",
+            "conditions": []
+          },
+          {
+            "rawText": "[Rush] (This card can attack on the turn in which it is played.)",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rush"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "when-attacking",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": -1000,
+                  "target": "opponent-character"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rush"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Rush] (This card can attack on the turn in which it is played.)\n[When Attacking] Give up to 1 of your opponent's Characters -1000 power during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "8103686f1a0946af572d9f671e4f7922ff5f810aa3227abb3293984651c84c8d",
+      "afterHash": "bd2236eb671e3a0b573c6d89510ba87e86d34af7070e304f6e1070a336911091"
+    },
+    {
+      "code": "EB01-036",
+      "printedText": "[Rush] (This card can attack on the turn in which it is played.)[On K.O.] If your Leader has the [Impel Down] type, add up to 1 DON!! card from your DON!! deck and rest it.",
+      "publishedText": "[Rush] (This card can attack on the turn in which it is played.)[On K.O.] If your Leader has the [Impel Down] type, add up to 1 DON!! card from your DON!! deck and rest it.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioCount": 6,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "add-don",
+                "amount": 1,
+                "rested": true
+              },
+              {
+                "kind": "rush"
+              },
+              {
+                "kind": "on-ko"
+              }
+            ],
+            "rawText": "[Rush] (This card can attack on the turn in which it is played.)[On K.O.] If your Leader has the [Impel Down] type, add up to 1 DON!! card from your DON!! deck and rest it.",
+            "trigger": "on-ko",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the [Impel Down] type"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-ko",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "add-don",
+                  "amount": 1,
+                  "rested": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rush"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "on-ko"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the [Impel Down] type"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Rush] (This card can attack on the turn in which it is played.)[On K.O.] If your Leader has the [Impel Down] type, add up to 1 DON!! card from your DON!! deck and rest it.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "add-don",
+                "amount": 1,
+                "rested": true
+              },
+              {
+                "kind": "rush"
+              },
+              {
+                "kind": "on-ko"
+              }
+            ],
+            "rawText": "[Rush] (This card can attack on the turn in which it is played.)[On K.O.] If your Leader has the [Impel Down] type, add up to 1 DON!! card from your DON!! deck and rest it.",
+            "trigger": "on-ko",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the [Impel Down] type"
+              }
+            ]
+          },
+          {
+            "rawText": "[Rush] (This card can attack on the turn in which it is played.)",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rush"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-ko",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "add-don",
+                  "amount": 1,
+                  "rested": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rush"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "on-ko"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the [Impel Down] type"
+              }
+            ]
+          },
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rush"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Rush] (This card can attack on the turn in which it is played.)[On K.O.] If your Leader has the [Impel Down] type, add up to 1 DON!! card from your DON!! deck and rest it.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "29735c9f30aa46cb267de69a3c72636f63b5b2b52dafc257fa19d61d53ec1bd1",
+      "afterHash": "1c98fef24ba8881e8f55c0e8d3aad4f6d86dd5d17f57616d882c2ea745759863"
+    },
+    {
+      "code": "OP06-022",
+      "printedText": "[Double Attack] (This card deals 2 damage.)\n[Activate:Main] [Once Per Turn] If your opponent has 3 or less Life cards, give up to 2 rested DON!! cards to 1 of your Characters.",
+      "publishedText": "[Double Attack] (This card deals 2 damage.)\n[Activate:Main] [Once Per Turn] If your opponent has 3 or less Life cards, give up to 2 rested DON!! cards to 1 of your Characters.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioCount": 6,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don",
+                "amount": 2,
+                "source": "cost-area"
+              },
+              {
+                "kind": "attach-don",
+                "amount": 2,
+                "source": "cost-area"
+              }
+            ],
+            "rawText": "[Activate:Main] [Once Per Turn] If your opponent has 3 or less Life cards, give up to 2 rested DON!! cards to 1 of your Characters.",
+            "trigger": "activate-main",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your opponent has 3 or less Life cards"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 2,
+                  "source": "cost-area"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 2,
+                  "source": "cost-area"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your opponent has 3 or less Life cards"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Double Attack] (This card deals 2 damage.)\n[Activate:Main] [Once Per Turn] If your opponent has 3 or less Life cards, give up to 2 rested DON!! cards to 1 of your Characters.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don",
+                "amount": 2,
+                "source": "cost-area"
+              },
+              {
+                "kind": "attach-don",
+                "amount": 2,
+                "source": "cost-area"
+              }
+            ],
+            "rawText": "[Activate:Main] [Once Per Turn] If your opponent has 3 or less Life cards, give up to 2 rested DON!! cards to 1 of your Characters.",
+            "trigger": "activate-main",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your opponent has 3 or less Life cards"
+              }
+            ]
+          },
+          {
+            "rawText": "[Double Attack] (This card deals 2 damage.)",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "double-attack"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 2,
+                  "source": "cost-area"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 2,
+                  "source": "cost-area"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your opponent has 3 or less Life cards"
+              }
+            ]
+          },
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "double-attack"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Double Attack] (This card deals 2 damage.)\n[Activate:Main] [Once Per Turn] If your opponent has 3 or less Life cards, give up to 2 rested DON!! cards to 1 of your Characters.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "1903363c76cbe2dc038f7f3ebc2f84cfc225dbbf4d74f0025b73d716bd2e8ca1",
+      "afterHash": "3564453f155a7b45772d1cb7e1e6934886b40c7f79c9b23fe6d3b21f0adbecc9"
+    },
+    {
+      "code": "OP10-030",
+      "printedText": "[Banish] (When this card deals damage, the target card is trashed without activating its Trigger.)\n[Activate: Main] Set up to 1 of your DON!! cards as active. Then, you cannot set DON!! cards as active using Character effects during this turn.",
+      "publishedText": "[Banish] (When this card deals damage, the target card is trashed without activating its Trigger.)\n[Activate: Main] Set up to 1 of your DON!! cards as active. Then, you cannot set DON!! cards as active using Character effects during this turn.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioCount": 6,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "self",
+                "amount": 1
+              }
+            ],
+            "rawText": "[Activate: Main] Set up to 1 of your DON!! cards as active. Then, you cannot set DON!! cards as active using Character effects during this turn.",
+            "trigger": "activate-main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "self",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Banish] (When this card deals damage, the target card is trashed without activating its Trigger.)\n[Activate: Main] Set up to 1 of your DON!! cards as active. Then, you cannot set DON!! cards as active using Character effects during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "self",
+                "amount": 1
+              }
+            ],
+            "rawText": "[Activate: Main] Set up to 1 of your DON!! cards as active. Then, you cannot set DON!! cards as active using Character effects during this turn.",
+            "trigger": "activate-main",
+            "conditions": []
+          },
+          {
+            "rawText": "[Banish] (When this card deals damage, the target card is trashed without activating its Trigger.)",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "banish"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "self",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "banish"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Banish] (When this card deals damage, the target card is trashed without activating its Trigger.)\n[Activate: Main] Set up to 1 of your DON!! cards as active. Then, you cannot set DON!! cards as active using Character effects during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "e85b5111437f96a1d7772adcee8b78b5417310f442102a8186346b6eb3a4def0",
+      "afterHash": "ed34c8ac8822faeb48ac4c0a598260d8fbabbf807b70a0b4eb66f249ef313f27"
+    },
+    {
+      "code": "OP11-118",
+      "printedText": "[Rush]\n[When Attacking] You may trash 1 card from your hand: Return up to 1 Character with a cost of 4 or less to the owner's hand. Then, give up to 1 rested DON!! card to your Leader or 1 of your Characters.",
+      "publishedText": "[Rush]\n[When Attacking] You may trash 1 card from your hand: Return up to 1 Character with a cost of 4 or less to the owner's hand. Then, give up to 1 rested DON!! card to your Leader or 1 of your Characters.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioCount": 6,
+      "before": {
+        "ast": [
+          {
+            "costs": [
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "optional": true,
+                "requiresTrigger": false
+              }
+            ],
+            "actions": [
+              {
+                "kind": "return-to-hand",
+                "scope": "opponent-character",
+                "maxCost": 4
+              },
+              {
+                "kind": "return-to-hand",
+                "scope": "own-character",
+                "maxCost": 4
+              },
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "requiresTrigger": false
+              },
+              {
+                "kind": "attach-don",
+                "amount": 1,
+                "source": "cost-area"
+              },
+              {
+                "kind": "attach-don",
+                "amount": 1,
+                "source": "cost-area"
+              }
+            ],
+            "rawText": "[When Attacking] You may trash 1 card from your hand: Return up to 1 Character with a cost of 4 or less to the owner's hand. Then, give up to 1 rested DON!! card to your Leader or 1 of your Characters.",
+            "trigger": "when-attacking",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "when-attacking",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "optional": true,
+                  "requiresTrigger": false
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "return-to-hand",
+                  "scope": "opponent-character",
+                  "maxCost": 4
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "return-to-hand",
+                  "scope": "own-character",
+                  "maxCost": 4
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "requiresTrigger": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 1,
+                  "source": "cost-area"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 1,
+                  "source": "cost-area"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Rush]\n[When Attacking] You may trash 1 card from your hand: Return up to 1 Character with a cost of 4 or less to the owner's hand. Then, give up to 1 rested DON!! card to your Leader or 1 of your Characters.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "optional": true,
+                "requiresTrigger": false
+              }
+            ],
+            "actions": [
+              {
+                "kind": "return-to-hand",
+                "scope": "opponent-character",
+                "maxCost": 4
+              },
+              {
+                "kind": "return-to-hand",
+                "scope": "own-character",
+                "maxCost": 4
+              },
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "requiresTrigger": false
+              },
+              {
+                "kind": "attach-don",
+                "amount": 1,
+                "source": "cost-area"
+              },
+              {
+                "kind": "attach-don",
+                "amount": 1,
+                "source": "cost-area"
+              }
+            ],
+            "rawText": "[When Attacking] You may trash 1 card from your hand: Return up to 1 Character with a cost of 4 or less to the owner's hand. Then, give up to 1 rested DON!! card to your Leader or 1 of your Characters.",
+            "trigger": "when-attacking",
+            "conditions": []
+          },
+          {
+            "rawText": "[Rush]",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rush"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "when-attacking",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "optional": true,
+                  "requiresTrigger": false
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "return-to-hand",
+                  "scope": "opponent-character",
+                  "maxCost": 4
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "return-to-hand",
+                  "scope": "own-character",
+                  "maxCost": 4
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "requiresTrigger": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 1,
+                  "source": "cost-area"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 1,
+                  "source": "cost-area"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rush"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Rush]\n[When Attacking] You may trash 1 card from your hand: Return up to 1 Character with a cost of 4 or less to the owner's hand. Then, give up to 1 rested DON!! card to your Leader or 1 of your Characters.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "fa62e0aa5842689c09f9fcffa1667d4d5f32c58e41f70439e30c629dad2d09a4",
+      "afterHash": "40f11b71328a200d357fd5c4c2a96f324934c47e311e127cd8cf064049fb092b"
+    },
+    {
+      "code": "OP13-046",
+      "printedText": "[Double Attack]\n[Once Per Turn] If this Character would be K.O.'d or would be removed from the field by your opponent's effect, you may trash 1 card with a type including \"Whitebeard Pirates\" from your hand instead.",
+      "publishedText": "[Double Attack]\n[Once Per Turn] If this Character would be K.O.'d or would be removed from the field by your opponent's effect, you may trash 1 card with a type including \"Whitebeard Pirates\" from your hand instead.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioCount": 6,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "double-attack"
+              }
+            ],
+            "rawText": "[Double Attack]\n[Once Per Turn] If this Character would be K.O.'d or would be removed from the field by your opponent's effect, you may trash 1 card with a type including \"Whitebeard Pirates\" from your hand instead.",
+            "trigger": "continuous",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "double-attack"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Double Attack]\n[Once Per Turn] If this Character would be K.O.'d or would be removed from the field by your opponent's effect, you may trash 1 card with a type including \"Whitebeard Pirates\" from your hand instead.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "double-attack"
+              }
+            ],
+            "rawText": "[Double Attack]\n[Once Per Turn] If this Character would be K.O.'d or would be removed from the field by your opponent's effect, you may trash 1 card with a type including \"Whitebeard Pirates\" from your hand instead.",
+            "trigger": "continuous",
+            "conditions": []
+          },
+          {
+            "rawText": "[Double Attack]\n[Once Per Turn] If this Character would be K.O.'d or would be removed from the field by your opponent's effect, you may trash 1 card with a type including \"Whitebeard Pirates\" from your hand instead.",
+            "trigger": "unknown",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character would be K.O.'d or would be removed from the field by your opponent's effect"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "requiresTrigger": false
+              },
+              {
+                "kind": "double-attack"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "double-attack"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "unknown",
+            "optional": true,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character would be K.O.'d or would be removed from the field by your opponent's effect"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "requiresTrigger": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "double-attack"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Double Attack]\n[Once Per Turn] If this Character would be K.O.'d or would be removed from the field by your opponent's effect, you may trash 1 card with a type including \"Whitebeard Pirates\" from your hand instead.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "dd2b5b492762913553c28dea6df441eccdc4ba6f87571b97169fbfe40f90457f",
+      "afterHash": "37e8577e2dd15064777c4ecf953b384188a3e31a7c31001a102ca49dc74f07ca"
+    },
+    {
+      "code": "OP13-118",
+      "printedText": "[Double Attack]\n[On Play] If your Leader is multicolored, set up to 4 of your DON!! cards as active. Then, you cannot play Character cards with a base cost of 5 or more during this turn.",
+      "publishedText": "[Double Attack]\n[On Play] If your Leader is multicolored, set up to 4 of your DON!! cards as active. Then, you cannot play Character cards with a base cost of 5 or more during this turn.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioCount": 6,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "self",
+                "amount": 4
+              }
+            ],
+            "rawText": "[On Play] If your Leader is multicolored, set up to 4 of your DON!! cards as active. Then, you cannot play Character cards with a base cost of 5 or more during this turn.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is multicolored"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "self",
+                  "amount": 4
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is multicolored"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Double Attack]\n[On Play] If your Leader is multicolored, set up to 4 of your DON!! cards as active. Then, you cannot play Character cards with a base cost of 5 or more during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "self",
+                "amount": 4
+              }
+            ],
+            "rawText": "[On Play] If your Leader is multicolored, set up to 4 of your DON!! cards as active. Then, you cannot play Character cards with a base cost of 5 or more during this turn.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is multicolored"
+              }
+            ]
+          },
+          {
+            "rawText": "[Double Attack]",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "double-attack"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "self",
+                  "amount": 4
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is multicolored"
+              }
+            ]
+          },
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "double-attack"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Double Attack]\n[On Play] If your Leader is multicolored, set up to 4 of your DON!! cards as active. Then, you cannot play Character cards with a base cost of 5 or more during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "6f65249cfab042cfbb5c3dd53433aeee2183e7e8f6084a014b5347c7db5f93c9",
+      "afterHash": "f3a7678ebfeac5584953b5b6684a80bb77b470c34666cacc0258f87fd8785227"
+    },
+    {
+      "code": "ST21-014",
+      "printedText": "[Rush] (This card can attack on the turn in which it is played.)\n[When Attacking] Give up to 1 rested DON!! card to your Leader or 1 of your Characters.",
+      "publishedText": "[Rush] (This card can attack on the turn in which it is played.)\n[When Attacking] Give up to 1 rested DON!! card to your Leader or 1 of your Characters.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioCount": 6,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don",
+                "amount": 1,
+                "source": "cost-area"
+              },
+              {
+                "kind": "attach-don",
+                "amount": 1,
+                "source": "cost-area"
+              }
+            ],
+            "rawText": "[When Attacking] Give up to 1 rested DON!! card to your Leader or 1 of your Characters.",
+            "trigger": "when-attacking",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "when-attacking",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 1,
+                  "source": "cost-area"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 1,
+                  "source": "cost-area"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Rush] (This card can attack on the turn in which it is played.)\n[When Attacking] Give up to 1 rested DON!! card to your Leader or 1 of your Characters.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don",
+                "amount": 1,
+                "source": "cost-area"
+              },
+              {
+                "kind": "attach-don",
+                "amount": 1,
+                "source": "cost-area"
+              }
+            ],
+            "rawText": "[When Attacking] Give up to 1 rested DON!! card to your Leader or 1 of your Characters.",
+            "trigger": "when-attacking",
+            "conditions": []
+          },
+          {
+            "rawText": "[Rush] (This card can attack on the turn in which it is played.)",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rush"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "when-attacking",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 1,
+                  "source": "cost-area"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 1,
+                  "source": "cost-area"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rush"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Rush] (This card can attack on the turn in which it is played.)\n[When Attacking] Give up to 1 rested DON!! card to your Leader or 1 of your Characters.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "dc07805951e5cbdfa2b28a95e634f1c615fae5e41ef6fb859c61d326d2aca9fb",
+      "afterHash": "16ad49a909ac3160756ff71b9f76f0a68525c8d129d51ca5a3a79c617d59416d"
+    },
+    {
+      "code": "ST13-016",
+      "printedText": "[Rush] (This card can attack on the turn in which it is played.)[On Play] Look at all your Life cards; place 1 at the top of your deck and place the rest back in your Life area in any order.DISCLAIMER: This card is a reprint of the pre-existing card in the ST13 set. The main difference between this card and the original print is the inclusion of \"EN\" on the right side, by the copyright information.",
+      "publishedText": "[Rush] (This card can attack on the turn in which it is played.)[On Play] Look at all your Life cards; place 1 at the top of your deck and place the rest back in your Life area in any order.DISCLAIMER: This card is a reprint of the pre-existing card in the ST13 set. The main difference between this card and the original print is the inclusion of \"EN\" on the right side, by the copyright information.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioCount": 6,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rush"
+              }
+            ],
+            "rawText": "[Rush] (This card can attack on the turn in which it is played.)[On Play] Look at all your Life cards; place 1 at the top of your deck and place the rest back in your Life area in any order.DISCLAIMER: This card is a reprint of the pre-existing card in the ST13 set. The main difference between this card and the original print is the inclusion of \"EN\" on the right side, by the copyright information.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rush"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Rush] (This card can attack on the turn in which it is played.)[On Play] Look at all your Life cards; place 1 at the top of your deck and place the rest back in your Life area in any order.DISCLAIMER: This card is a reprint of the pre-existing card in the ST13 set. The main difference between this card and the original print is the inclusion of \"EN\" on the right side, by the copyright information.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rush"
+              }
+            ],
+            "rawText": "[Rush] (This card can attack on the turn in which it is played.)[On Play] Look at all your Life cards; place 1 at the top of your deck and place the rest back in your Life area in any order.DISCLAIMER: This card is a reprint of the pre-existing card in the ST13 set. The main difference between this card and the original print is the inclusion of \"EN\" on the right side, by the copyright information.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "rawText": "[Rush] (This card can attack on the turn in which it is played.)",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rush"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rush"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rush"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Rush] (This card can attack on the turn in which it is played.)[On Play] Look at all your Life cards; place 1 at the top of your deck and place the rest back in your Life area in any order.DISCLAIMER: This card is a reprint of the pre-existing card in the ST13 set. The main difference between this card and the original print is the inclusion of \"EN\" on the right side, by the copyright information.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "0d09b02c0a89afc38acca2f7123f6dc2b76bdcdb771ea36e924dda7ebf31c189",
+      "afterHash": "0c51c47e1cc73f61672c507f9da67de9583e1f95f2d6cdc03cf549be2be6460d"
+    },
+    {
+      "code": "OP13-066",
+      "printedText": "[Rush]\n[On Play] If you have any DON!! cards given, rest up to 1 of your opponent's Characters with a cost of 5 or less. Then, add up to 1 DON!! card from your DON!! deck and set it as active at the end of this turn.",
+      "publishedText": "[Rush]\n[On Play] If you have any DON!! cards given, rest up to 1 of your opponent's Characters with a cost of 5 or less. Then, add up to 1 DON!! card from your DON!! deck and set it as active at the end of this turn.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioCount": 6,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 5
+              },
+              {
+                "kind": "add-don",
+                "amount": 1,
+                "rested": true
+              }
+            ],
+            "rawText": "[On Play] If you have any DON!! cards given, rest up to 1 of your opponent's Characters with a cost of 5 or less. Then, add up to 1 DON!! card from your DON!! deck and set it as active at the end of this turn.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have any DON!! cards given"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 5
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "add-don",
+                  "amount": 1,
+                  "rested": true
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have any DON!! cards given"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Rush]\n[On Play] If you have any DON!! cards given, rest up to 1 of your opponent's Characters with a cost of 5 or less. Then, add up to 1 DON!! card from your DON!! deck and set it as active at the end of this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 5
+              },
+              {
+                "kind": "add-don",
+                "amount": 1,
+                "rested": true
+              }
+            ],
+            "rawText": "[On Play] If you have any DON!! cards given, rest up to 1 of your opponent's Characters with a cost of 5 or less. Then, add up to 1 DON!! card from your DON!! deck and set it as active at the end of this turn.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have any DON!! cards given"
+              }
+            ]
+          },
+          {
+            "rawText": "[Rush]",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rush"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 5
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "add-don",
+                  "amount": 1,
+                  "rested": true
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have any DON!! cards given"
+              }
+            ]
+          },
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rush"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Rush]\n[On Play] If you have any DON!! cards given, rest up to 1 of your opponent's Characters with a cost of 5 or less. Then, add up to 1 DON!! card from your DON!! deck and set it as active at the end of this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "b8017a8b90d2aebc29bb9da91c35fe5d8f3a59976034e5aa09bf332ed4d2814c",
+      "afterHash": "6b8c120ddf4bc5f8a625cb28d56fd6835649e55146efecca22080f979bed1923"
+    },
+    {
+      "code": "EB04-003",
+      "printedText": "[Rush] (This card can attack on the turn in which it is played.)\n[Opponent's Turn] Your {Navy} type Leader's base power becomes 7000.",
+      "publishedText": "[Rush] (This card can attack on the turn in which it is played.)\n[Opponent's Turn] Your {Navy} type Leader's base power becomes 7000.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioCount": 6,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "base-power",
+                "until": "turn-end",
+                "amount": 7000,
+                "target": "own-leader"
+              }
+            ],
+            "rawText": "[Opponent's Turn] Your {Navy} type Leader's base power becomes 7000.",
+            "trigger": "continuous",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "base-power",
+                  "until": "turn-end",
+                  "amount": 7000,
+                  "target": "own-leader"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Rush] (This card can attack on the turn in which it is played.)\n[Opponent's Turn] Your {Navy} type Leader's base power becomes 7000.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "base-power",
+                "until": "turn-end",
+                "amount": 7000,
+                "target": "own-leader"
+              }
+            ],
+            "rawText": "[Opponent's Turn] Your {Navy} type Leader's base power becomes 7000.",
+            "trigger": "continuous",
+            "conditions": []
+          },
+          {
+            "rawText": "[Rush] (This card can attack on the turn in which it is played.)",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rush"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "base-power",
+                  "until": "turn-end",
+                  "amount": 7000,
+                  "target": "own-leader"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rush"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Rush] (This card can attack on the turn in which it is played.)\n[Opponent's Turn] Your {Navy} type Leader's base power becomes 7000.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "9a4c3d3847231198714c18ab8c03bca3745fb68e3131404f6c46e46ff09e1d78",
+      "afterHash": "ad987d59c49627c3343733372af44419e9a32bba0f20953a96464a99fa5bccec"
+    },
+    {
+      "code": "OP06-035",
+      "printedText": "[Rush] (This card can attack on the turn in which it is played.)\n[On Play] Rest up to a total of 2 of your opponent's Characters or DON!! cards. Then, add 1 card from the top of your Life cards to your hand.",
+      "publishedText": "[Rush] (This card can attack on the turn in which it is played.)\n[On Play] Rest up to a total of 2 of your opponent's Characters or DON!! cards. Then, add 1 card from the top of your Life cards to your hand.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioCount": 6,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "life",
+                "amount": 1,
+                "operation": "add-to-hand"
+              }
+            ],
+            "rawText": "[On Play] Rest up to a total of 2 of your opponent's Characters or DON!! cards. Then, add 1 card from the top of your Life cards to your hand.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life",
+                  "amount": 1,
+                  "operation": "add-to-hand"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Rush] (This card can attack on the turn in which it is played.)\n[On Play] Rest up to a total of 2 of your opponent's Characters or DON!! cards. Then, add 1 card from the top of your Life cards to your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "life",
+                "amount": 1,
+                "operation": "add-to-hand"
+              }
+            ],
+            "rawText": "[On Play] Rest up to a total of 2 of your opponent's Characters or DON!! cards. Then, add 1 card from the top of your Life cards to your hand.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "rawText": "[Rush] (This card can attack on the turn in which it is played.)",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rush"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life",
+                  "amount": 1,
+                  "operation": "add-to-hand"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rush"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Rush] (This card can attack on the turn in which it is played.)\n[On Play] Rest up to a total of 2 of your opponent's Characters or DON!! cards. Then, add 1 card from the top of your Life cards to your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "61dd317c64ab9a634f5deab912c19a6bf670dead359d7efcbc7499c3f365528b",
+      "afterHash": "366da242ef506bdc4dadab054bb5432662b8ca1b2b4ec3a7076c64af23d0a2c3"
+    }
+  ]
+}

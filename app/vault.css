@@ -1,5 +1,5 @@
 /* ==========================================================================
-   VIVREPLAY VAULT — ARCHIVE, BINDER, SLABS & PORTFOLIO
+   VIVREPLAY VAULT - ARCHIVE, BINDER, SLABS & PORTFOLIO
    Visual Direction: Warm Ivory / Parchment, Graphite, Restrained Gold/Brass
    Card art remains the strongest visual element.
    ========================================================================== */
@@ -23,6 +23,7 @@
   --vault-slot-bg: #eae3d2;
   --vault-slot-border: #dcd3be;
   --vault-slot-shadow: inset 0 2px 5px rgba(45, 36, 21, 0.08), 0 1px 0 rgba(255, 255, 255, 0.6);
+  --display-font: 'Plus Jakarta Sans', var(--font-sans), sans-serif;
 }
 
 :root[data-theme='dark'] {
@@ -82,7 +83,7 @@
 }
 
 .vault-title-group h1 {
-  font-family: var(--display-font, Georgia, serif);
+  font-family: var(--display-font, var(--font-sans));
   font-size: clamp(32px, 4vw, 46px);
   font-weight: 600;
   line-height: 1.05;
@@ -159,7 +160,7 @@
 .vault-metrics-card {
   margin-top: 20px;
   padding: 18px 24px;
-  border-radius: 14px;
+  border-radius: 12px;
   background: var(--vault-panel);
   border: 1px solid var(--vault-border);
   box-shadow: 0 4px 18px rgba(35, 28, 16, 0.04);
@@ -198,7 +199,7 @@
 }
 
 .vault-metric-value {
-  font-family: var(--display-font, Georgia, serif);
+  font-family: var(--display-font, var(--font-sans));
   font-size: clamp(22px, 2.4vw, 28px);
   font-weight: 600;
   color: var(--vault-ink);
@@ -318,7 +319,7 @@
 .vault-tab-count {
   font-size: 10px;
   padding: 1px 6px;
-  border-radius: 10px;
+  border-radius: 9999px;
   background: var(--vault-border-light);
   color: var(--vault-ink-muted);
 }
@@ -437,7 +438,7 @@
   position: relative;
   background: var(--vault-parchment);
   border: 1px solid var(--vault-border);
-  border-radius: 18px;
+  border-radius: 16px;
   padding: 28px clamp(16px, 3vw, 36px);
   box-shadow: 0 8px 30px rgba(35, 28, 16, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.6);
   min-height: 520px;
@@ -455,7 +456,7 @@
 }
 
 .vault-binder-page-title {
-  font-family: var(--display-font, Georgia, serif);
+  font-family: var(--display-font, var(--font-sans));
   font-size: 15px;
   font-style: italic;
   color: var(--vault-ink-secondary);
@@ -528,7 +529,7 @@
   }
 }
 
-/* Card Slot Styling — Faint Slot Framing with Archival Depth */
+/* Card Slot Styling - Faint Slot Framing with Archival Depth */
 .vault-slot {
   position: relative;
   border-radius: 12px;
@@ -553,10 +554,16 @@
   position: relative;
   width: 100%;
   aspect-ratio: 420 / 580;
-  border-radius: 8px;
+  border-radius: 16px;
   overflow: hidden;
   background: #1a1e24;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+@media (max-width: 580px) {
+  .vault-slot-card-stage {
+    border-radius: 8px;
+  }
 }
 
 .vault-slot-card-stage .tcg-card {
@@ -675,7 +682,7 @@
 }
 
 .vault-slot-name {
-  font-family: var(--display-font, Georgia, serif);
+  font-family: var(--display-font, var(--font-sans));
   font-size: 13.5px;
   font-weight: 600;
   color: var(--vault-ink);
@@ -781,7 +788,7 @@
 }
 
 .vault-slab-grade-num {
-  font-family: var(--display-font, Georgia, serif);
+  font-family: var(--display-font, var(--font-sans));
   font-size: 16px;
   font-weight: 700;
   color: #ffffff;
@@ -817,7 +824,7 @@
 }
 
 .vault-slab-title {
-  font-family: var(--display-font, Georgia, serif);
+  font-family: var(--display-font, var(--font-sans));
   font-size: 14.5px;
   font-weight: 600;
   color: #fffdfa;
@@ -857,7 +864,7 @@
 }
 
 /* ==========================================================================
-   SETS TAB — SET COLLECTION & COMPLETION SILHOUETTES
+   SETS TAB - SET COLLECTION & COMPLETION SILHOUETTES
    ========================================================================== */
 
 .vault-sets-overview {
@@ -867,7 +874,7 @@
 }
 
 .vault-set-card {
-  border-radius: 14px;
+  border-radius: 12px;
   background: var(--vault-panel);
   border: 1px solid var(--vault-border);
   padding: 20px;
@@ -896,7 +903,7 @@
 }
 
 .vault-set-title {
-  font-family: var(--display-font, Georgia, serif);
+  font-family: var(--display-font, var(--font-sans));
   font-size: 18px;
   font-weight: 600;
   color: var(--vault-ink);
@@ -904,7 +911,7 @@
 }
 
 .vault-set-percent {
-  font-family: var(--display-font, Georgia, serif);
+  font-family: var(--display-font, var(--font-sans));
   font-size: 22px;
   font-weight: 700;
   color: var(--vault-gold);
@@ -989,7 +996,7 @@
 }
 
 .vault-completion-banner-text h3 {
-  font-family: var(--display-font, Georgia, serif);
+  font-family: var(--display-font, var(--font-sans));
   font-size: 18px;
   font-weight: 600;
   color: var(--vault-gold-deep);
@@ -1036,7 +1043,7 @@
 }
 
 .vault-wishlist-info h4 {
-  font-family: var(--display-font, Georgia, serif);
+  font-family: var(--display-font, var(--font-sans));
   font-size: 14.5px;
   font-weight: 600;
   margin: 0;
@@ -1055,7 +1062,7 @@
 }
 
 /* ==========================================================================
-   PORTFOLIO TAB — COLLECTOR-FIRST INSIGHTS
+   PORTFOLIO TAB - COLLECTOR-FIRST INSIGHTS
    ========================================================================== */
 
 .vault-portfolio-container {
@@ -1071,14 +1078,14 @@
 }
 
 .vault-chart-card {
-  border-radius: 14px;
+  border-radius: 12px;
   background: var(--vault-panel);
   border: 1px solid var(--vault-border);
   padding: 20px;
 }
 
 .vault-chart-card h3 {
-  font-family: var(--display-font, Georgia, serif);
+  font-family: var(--display-font, var(--font-sans));
   font-size: 16px;
   font-weight: 600;
   color: var(--vault-ink);
@@ -1127,14 +1134,14 @@
 }
 
 /* ==========================================================================
-   EMPTY VAULT STATE — TASTEFUL CARD-SLOT COMPOSITION
+   EMPTY VAULT STATE - TASTEFUL CARD-SLOT COMPOSITION
    ========================================================================== */
 
 .vault-empty-state {
   margin: 40px auto;
   max-width: 580px;
   padding: 50px 32px;
-  border-radius: 20px;
+  border-radius: 16px;
   background: var(--vault-panel);
   border: 1px solid var(--vault-border);
   text-align: center;
@@ -1169,7 +1176,7 @@
 }
 
 .vault-empty-state h2 {
-  font-family: var(--display-font, Georgia, serif);
+  font-family: var(--display-font, var(--font-sans));
   font-size: 26px;
   font-weight: 600;
   color: var(--vault-ink);

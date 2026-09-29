@@ -11,22 +11,30 @@ function money(amount:number, currency:string) {
   return new Intl.NumberFormat('en-US', {style:'currency', currency, maximumFractionDigits:currency==='JPY'?0:2}).format(amount);
 }
 
-function formatDate(value:string){return new Intl.DateTimeFormat('en',{month:'short',day:'numeric',year:'numeric'}).format(new Date(value));}
+function formatDate(value:string,language:'EN'|'ID'='EN'){return new Intl.DateTimeFormat(language==='ID'?'id-ID':'en-US',{month:'short',day:'numeric',year:'numeric'}).format(new Date(value));}
 
-function PriceLine({history}:{history:Observation[]}) {
+function PriceLine({history,language}:{history:Observation[];language:'EN'|'ID'}) {
   const points=useMemo(()=>{
     const values=history.map(item=>item.amount); const low=Math.min(...values); const high=Math.max(...values); const range=high-low||1;
     return history.map((item,index)=>`${index/(history.length-1)*100},${100-(item.amount-low)/range*82-9}`).join(' ');
   },[history]);
   if(history.length<2||new Set(history.map(item=>item.amount)).size<2) return null;
-  return <figure className="card-price-line" aria-label="Yuyutei price history"><figcaption><span>Price history</span><small><time dateTime={history[0].observed_at}>{formatDate(history[0].observed_at)}</time> – <time dateTime={history.at(-1)!.observed_at}>{formatDate(history.at(-1)!.observed_at)}</time></small></figcaption><svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label="Price trend across Yuyutei price checks"><polyline points={points}/></svg></figure>;
+  return <figure className="card-price-line" aria-label={language==='ID'?'Riwayat harga Yuyutei':'Yuyutei price history'}><figcaption><span>{language==='ID'?'Riwayat harga':'Price history'}</span><small><time dateTime={history[0].observed_at}>{formatDate(history[0].observed_at,language)}</time> - <time dateTime={history.at(-1)!.observed_at}>{formatDate(history.at(-1)!.observed_at,language)}</time></small></figcaption><svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label={language==='ID'?'Tren harga menurut pantauan Yuyutei':'Price trend across Yuyutei price checks'}><polyline points={points}/></svg></figure>;
 }
 
 export function CardMarketPanel({printingId}:{printingId?:string}) {
   const [history,setHistory]=useState<Observation[]>();
+  const [language,setLanguage]=useState<'EN'|'ID'>('EN');
+  useEffect(()=>{
+    const sync=()=>setLanguage(window.localStorage.getItem('vivreplay-locale')==='ID'?'ID':'EN');
+    const onLocale=(event:Event)=>setLanguage((event as CustomEvent<'EN'|'ID'>).detail==='ID'?'ID':'EN');
+    sync();
+    window.addEventListener('vivreplay:locale',onLocale);
+    return()=>window.removeEventListener('vivreplay:locale',onLocale);
+  },[]);
   useEffect(()=>{if(!printingId){setHistory([]);return}let active=true;setHistory(undefined);void fetch(`/api/market/yuyutei?printingId=${encodeURIComponent(printingId)}`).then(async response=>response.ok?await response.json() as {history?:Observation[]}:{history:[]}).then(result=>{if(active)setHistory(result.history??[])},()=>{if(active)setHistory([])});return()=>{active=false};},[printingId]);
-  if(!history) return <section className="card-market-panel is-loading" aria-label="Loading market price"><p>Loading market benchmark…</p></section>;
+  if(!history) return <section className="card-market-panel is-loading" aria-label={language==='ID'?'Memuat harga pasar':'Loading market price'}><p>{language==='ID'?'Memuat tolok ukur pasar...':'Loading market benchmark...'}</p></section>;
   const benchmark=history.at(-1);
-  if(!benchmark) return <section className="card-market-panel" aria-label="Market price"><header><span>Market price</span><small>Yuyutei</small></header><p>No price is recorded for this exact printing.</p></section>;
-  const listingUrl=yuyuteiUrl(benchmark); return <section className="card-market-panel" aria-label="Yuyutei market price"><header><span>Market price</span><small>Yuyutei</small></header><div className="card-market-price"><strong>{money(benchmark.amount,benchmark.currency)}</strong><time dateTime={benchmark.observed_at}>Observed {formatDate(benchmark.observed_at)}</time></div><PriceLine history={history}/>{listingUrl&&<a className="card-market-source" href={listingUrl} target="_blank" rel="noopener noreferrer">View card on Yuyutei<ArrowSquareOut size={14}/></a>}</section>;
+  if(!benchmark) return <section className="card-market-panel" aria-label={language==='ID'?'Harga pasar':'Market price'}><header><span>{language==='ID'?'Harga pasar':'Market price'}</span><small>Yuyutei</small></header><p>{language==='ID'?'Belum ada riwayat harga untuk cetakan ini.':'No price is recorded for this exact printing.'}</p></section>;
+  const listingUrl=yuyuteiUrl(benchmark); return <section className="card-market-panel" aria-label={language==='ID'?'Harga pasar Yuyutei':'Yuyutei market price'}><header><span>{language==='ID'?'Harga pasar':'Market price'}</span><small>Yuyutei</small></header><div className="card-market-price"><strong>{money(benchmark.amount,benchmark.currency)}</strong><time dateTime={benchmark.observed_at}>{language==='ID'?'Tercatat ':'Observed '}{formatDate(benchmark.observed_at,language)}</time></div><PriceLine history={history} language={language}/>{listingUrl&&<a className="card-market-source" href={listingUrl} target="_blank" rel="noopener noreferrer">{language==='ID'?'Lihat kartu di Yuyutei':'View card on Yuyutei'}<ArrowSquareOut size={14}/></a>}</section>;
 }

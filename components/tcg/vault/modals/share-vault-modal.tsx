@@ -87,7 +87,7 @@ export function ShareVaultModal({
             <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.12em', color: 'var(--vault-gold)', textTransform: 'uppercase' }}>
               Collector Pride & Social Share
             </span>
-            <h3 style={{ fontFamily: 'var(--display-font, Georgia, serif)', fontSize: '22px', fontWeight: 600, margin: '2px 0 0' }}>
+            <h3 style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '22px', fontWeight: 600, margin: '2px 0 0' }}>
               Share Your Collection
             </h3>
           </div>
@@ -142,7 +142,7 @@ export function ShareVaultModal({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <ShieldCheck size={16} color="var(--vault-gold)" weight="fill" />
-              <strong style={{ fontFamily: 'var(--display-font, Georgia, serif)', fontSize: '15px', color: '#fff' }}>
+              <strong style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '15px', color: '#fff' }}>
                 VivrePlay
               </strong>
             </div>
@@ -219,7 +219,7 @@ export function ShareVaultModal({
                 </div>
                 <CardArt card={activeSlab.card} />
               </div>
-              <h4 style={{ fontFamily: 'var(--display-font, Georgia, serif)', fontSize: '16px', margin: '10px 0 2px' }}>
+              <h4 style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '16px', margin: '10px 0 2px' }}>
                 {activeSlab.card.name}
               </h4>
               <p style={{ fontSize: '11px', color: '#a0abb9', margin: 0 }}>
@@ -232,7 +232,7 @@ export function ShareVaultModal({
           {/* Format 3: Set Progress Card */}
           {shareFormat === 'set' && (
             <div style={{ padding: '10px 0' }}>
-              <h4 style={{ fontFamily: 'var(--display-font, Georgia, serif)', fontSize: '18px', margin: '0 0 4px' }}>
+              <h4 style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '18px', margin: '0 0 4px' }}>
                 {selectedSet ? selectedSet.name : 'OP-09 Emperors in the New World'}
               </h4>
               <div style={{ fontSize: '12px', color: '#a0abb9', marginBottom: '14px' }}>

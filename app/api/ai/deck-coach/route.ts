@@ -42,7 +42,7 @@ function localCoachFallback(input:{leader:CardSnapshot|null;deckSize:number;deck
 - **Ukuran deck:** ${input.deckSize}/50
 - **Kartu unik:** ${cards.length}
 - **Warna kartu:** ${colours.join(', ')||'belum ada'}
-- **Rata-rata cost:** ${average?average.toFixed(1):'—'}
+- **Rata-rata cost:** ${average?average.toFixed(1):'-'}
 - **Komposisi:** ${Object.entries(byType).map(([type,count])=>`${type} ${count}`).join(' · ')||'belum ada kartu'}
 
 Model Coach sedang tidak memberikan teks, tetapi konteks deck Anda terbaca. Pilih Leader bila belum ada, lengkapi hingga 50 kartu, lalu coba lagi untuk rekomendasi spesifik.`;
@@ -52,7 +52,7 @@ Model Coach sedang tidak memberikan teks, tetapi konteks deck Anda terbaca. Pili
 - **Deck size:** ${input.deckSize}/50
 - **Unique cards:** ${cards.length}
 - **Card colours:** ${colours.join(', ')||'none yet'}
-- **Average cost:** ${average?average.toFixed(1):'—'}
+- **Average cost:** ${average?average.toFixed(1):'-'}
 - **Mix:** ${Object.entries(byType).map(([type,count])=>`${type} ${count}`).join(' · ')||'no cards yet'}
 
 The Coach provider did not return text, but your deck context was received. Select a Leader if needed, complete the 50-card list, then try again for card-specific advice.`;

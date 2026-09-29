@@ -56,50 +56,51 @@ function escapeHtml(value: string): string {
 }
 
 export function messageFor(email: AuthEmail) {
-  const name = email.name?.trim() || "there";
+  const trimmedName = email.name?.trim();
+  const greeting = trimmedName ? `Hi ${trimmedName},` : "Hi,";
 
   switch (email.action) {
     case "verify":
       return {
-        subject: "Verify your email address · VivrePlay",
-        eyebrow: "ACCOUNT VERIFICATION",
-        title: "Confirm your email address",
-        copy: `Hi ${name}, thank you for joining VivrePlay! Confirm your email address to activate your account and start tracking your collection, crafting competition-ready decks, and trading on the marketplace.`,
-        action: "Verify email address",
-        note: "This link will expire in 1 hour. If you didn't create a VivrePlay account, you can safely ignore this email.",
+        subject: "Verify your email · VivrePlay",
+        eyebrow: "Account Verification",
+        title: "Verify your email",
+        copy: `${greeting} please confirm your email address to activate your VivrePlay account.`,
+        action: "Verify email",
+        note: "This link expires in 1 hour. If you didn't create an account, you can safely ignore this email.",
         showLinkFallback: true,
       };
 
     case "reset":
       return {
         subject: "Reset your password · VivrePlay",
-        eyebrow: "ACCOUNT SECURITY",
+        eyebrow: "Password Reset",
         title: "Reset your password",
-        copy: `Hi ${name}, we received a request to reset the password for your VivrePlay account. Click the button below to choose a new password.`,
+        copy: `${greeting} we received a request to reset your password. Click the button below to choose a new password.`,
         action: "Reset password",
-        note: "This link will expire in 1 hour. If you did not request a password reset, no further action is needed and your account remains secure.",
+        note: "This link expires in 1 hour. If you didn't request a password reset, you can safely ignore this email.",
         showLinkFallback: true,
       };
 
     case "password-changed":
       return {
-        subject: "Your password was updated · VivrePlay",
-        eyebrow: "SECURITY NOTIFICATION",
-        title: "Password updated successfully",
-        copy: `Hi ${name}, the password for your VivrePlay account was recently updated. If you made this change, your new password is now active and you're all set.`,
-        action: "Go to VivrePlay",
-        note: "If you did not make this change, please reset your password immediately or email support@vivreplay.com so we can help secure your account.",
+        subject: "Password changed · VivrePlay",
+        eyebrow: "Account Security",
+        title: "Password changed",
+        copy: `${greeting} your VivrePlay account password was changed successfully.`,
+        action: "Sign in",
+        note: "If you didn't make this change, please reset your password immediately or email support@vivreplay.com.",
         showLinkFallback: false,
       };
 
     case "welcome":
       return {
-        subject: "Welcome aboard · VivrePlay",
-        eyebrow: "WELCOME TO VIVREPLAY",
-        title: "Your voyage begins here",
-        copy: `Hi ${name}, your email is confirmed and your VivrePlay account is ready! Explore over 5,000+ One Piece Card Game printings, tune your curve in the deck builder, curate your vault, or test decks in the arena.`,
-        action: "Explore VivrePlay",
-        note: "Have questions or ideas? You can reach our team anytime at support@vivreplay.com.",
+        subject: "Welcome to VivrePlay",
+        eyebrow: "Welcome",
+        title: "Welcome to VivrePlay",
+        copy: `${greeting} your email has been confirmed and your account is ready.`,
+        action: "Open VivrePlay",
+        note: "If you have any questions, you can reach us anytime at support@vivreplay.com.",
         showLinkFallback: false,
       };
   }
@@ -174,7 +175,7 @@ export function renderAuthEmail(email: AuthEmail): RenderedEmail {
                           </a>
                         </td>
                         <td style="vertical-align: middle;">
-                          <a href="${appUrl}" style="color: #24352e; font-family: Georgia, 'Times New Roman', serif; font-size: 23px; font-weight: 700; letter-spacing: -0.7px; text-decoration: none;">
+                          <a href="${appUrl}" style="color: #24352e; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 23px; font-weight: 700; letter-spacing: -0.7px; text-decoration: none;">
                             VivrePlay
                           </a>
                         </td>
@@ -196,7 +197,7 @@ export function renderAuthEmail(email: AuthEmail): RenderedEmail {
               <p style="margin: 0 0 12px; color: #a06a18; font-family: Arial, sans-serif; font-size: 10px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase;">
                 ${escapeHtml(content.eyebrow)}
               </p>
-              <h1 class="email-title" style="margin: 0 0 16px; color: #26352e; font-family: Georgia, 'Times New Roman', serif; font-size: 30px; line-height: 1.16; font-weight: 700; letter-spacing: -0.7px;">
+              <h1 class="email-title" style="margin: 0 0 16px; color: #26352e; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 30px; line-height: 1.16; font-weight: 700; letter-spacing: -0.7px;">
                 ${escapeHtml(content.title)}
               </h1>
               <p class="email-copy" style="margin: 0 0 28px; color: #5f5a50; font-family: Arial, sans-serif; font-size: 15px; line-height: 1.65;">
@@ -288,24 +289,20 @@ export function renderAuthEmail(email: AuthEmail): RenderedEmail {
 </body>
 </html>`;
 
-  const text = `VIVREPLAY · ONE PIECE CARD GAME COMPANION
-==================================================
+  const text = `VivrePlay
 
-${content.title.toUpperCase()}
+${content.title}
 
 ${content.copy}
 
 ${content.action}:
 ${target}
 
---------------------------------------------------
 ${content.note}
 
 Sent to: ${email.to}
-Questions or assistance: ${DEFAULT_SUPPORT_EMAIL}
-Explore VivrePlay: ${appUrl}
-
-© ${new Date().getFullYear()} VivrePlay. All rights reserved.`;
+Support: ${DEFAULT_SUPPORT_EMAIL}
+`;
 
   return {
     subject: content.subject,

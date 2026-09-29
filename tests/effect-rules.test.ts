@@ -80,10 +80,14 @@ test('persistent effect documents preserve the four parser layers and custom esc
 });
 
 test('incomplete releases stay outside player-facing card pools',()=>{
- assert.equal(isPlayableSet('OP18'),false);
- assert.equal(isPlayableSet('OP-18'),false);
- assert.equal(isPlayableSet('EB05'),false);
- assert.equal(isPlayableSet('EB-05'),false);
+ assert.equal(isPlayableSet('OP19'),false);
+ assert.equal(isPlayableSet('OP-19'),false);
+ assert.equal(isPlayableSet('EB06'),false);
+ assert.equal(isPlayableSet('EB-06'),false);
+ assert.equal(isPlayableSet('OP18'),true);
+ assert.equal(isPlayableSet('OP-18'),true);
+ assert.equal(isPlayableSet('EB05'),true);
+ assert.equal(isPlayableSet('EB-05'),true);
  assert.equal(isPlayableSet('OP17'),true);
 });
 
@@ -98,6 +102,41 @@ test('Black Trash play retains color, trait, cost, rest, and self-exclusion rest
  const effects=parseEffects(card('[On Play] Play up to 1 black {Thriller Bark Pirates} type Character card with a cost of 2 or less other than [Perona] from your trash rested.'))[0].actions;
  const play=effects.find((action):action is Extract<typeof action,{kind:'play'}>=>action.kind==='play');
  assert.deepEqual(play,{kind:'play',source:'trash',amount:1,maxCost:2,rested:true,trait:'Thriller Bark Pirates',color:'black',excludeName:'Perona'});
+});
+
+test('deck plays retain exact cost, color, trait, and shuffle as ordered actions',()=>{
+ const parsed=parseEffects(card('[On K.O.] Play up to 1 green {Land of Wano} type Character card with a cost of 3 from your deck. Then, shuffle your deck.'))[0];
+ assert.deepEqual(parsed.actions.find(action=>action.kind==='play'),{kind:'play',source:'deck',amount:1,exactCost:3,trait:'Land of Wano',color:'green',cardType:'Character'});
+ assert.deepEqual(parsed.actions.filter(action=>action.kind==='shuffle'),[{kind:'shuffle',scope:'self'}]);
+});
+
+test('circled DON cost pays the printed amount before the activated effect',()=>{
+ const parsed=parseEffects(card('[Activate: Main] ③ (You may rest the specified number of DON!! cards in your cost area.): Set this Character as active.'))[0];
+ assert.deepEqual(parsed.costs.find(cost=>cost.kind==='rest'),{kind:'rest',scope:'don',amount:3,optional:false});
+});
+
+test('Kaku replacement is parsed separately from its On Play mill',()=>{
+ const document=compileEffectDocument({...card('[Once Per Turn] If your black Character with a base cost of 5 or less would be K.O.’d by your opponent’s effect, you may place 3 cards from your trash at the bottom of your deck in any order instead.\n[On Play] Trash 2 cards from the top of your deck.'),code:'EB04-043'});
+ assert.equal(document.resolver.type,'DSL');
+ const replacement=document.ast.find(effect=>effect.trigger==='continuous')?.actions.find(action=>action.kind==='replacement');
+ assert.deepEqual(replacement,{kind:'replacement',event:'ko-by-effect',cost:{kind:'bottom-deck-trash',amount:3},eligibility:{color:'black',cardType:'Character',maxBaseCost:5},oncePerTurn:true});
+ assert.ok(document.ast.find(effect=>effect.trigger==='on-play')?.actions.some(action=>action.kind==='trash'&&action.scope==='deck'&&action.amount===2));
+});
+
+test('Kuma separates thresholded deck-to-Life and On K.O. opponent-Life movement',()=>{
+ const document=compileEffectDocument({...card("[On Play] If you have 2 or less Life cards, add up to 1 card from the top of your deck to the top of your Life cards.\n[On K.O.] Add up to 1 card from the top of your opponent's Life cards to the owner's hand."),code:'EB04-054'});
+ assert.equal(document.resolver.type,'DSL');
+ const onPlay=document.ast.find(effect=>effect.trigger==='on-play');
+ assert.deepEqual(onPlay?.actions.find(action=>action.kind==='move-to-life'),{kind:'move-to-life',scope:'own',amount:1,position:'top',source:'deck-top',selection:{min:0,max:1}});
+ assert.equal(document.ast.find(effect=>effect.trigger==='on-ko')?.actions.find(action=>action.kind==='life'&&action.operation==='opponent-top-to-owner-hand')?.kind,'life');
+});
+
+test('Monkey.D.Luffy attaches rested DON and limits battle protection by Strike attribute and DON count',()=>{
+ const document=compileEffectDocument({...card('[DON!! x2] This Character cannot be K.O.\'d in battle by "Strike" attribute Characters. [Activate:Main] [Once Per Turn] Give this Character up to 2 rested DON!! cards.'),code:'OP01-024'});
+ assert.equal(document.resolver.type,'DSL');
+ const protection=document.ast.find(effect=>effect.trigger==='unknown')?.actions.find(action=>action.kind==='prevent-ko');
+ assert.deepEqual(protection,{kind:'prevent-ko',scope:'own-character',by:'battle',attribute:'Strike',requiresAttachedDon:2});
+ assert.deepEqual(document.ast.find(effect=>effect.trigger==='activate-main')?.actions.find(action=>action.kind==='attach-don'),{kind:'attach-don',amount:2,source:'cost-area',rested:true,recipient:'self',selection:{min:0,max:2}});
 });
 
 test('hand-trash costs preserve printed color, trait, type, and cost restrictions',()=>{
@@ -144,7 +183,7 @@ test('DON!! additions distinguish active and rested instructions',()=>{
  assert.equal(active?.kind==='add-don'&&active.rested,false);
  assert.equal(rested?.kind==='add-don'&&rested.rested,true);
  const ready=parseEffects(card('[Main] Set up to 2 of your DON!! cards as active.'))[0].actions.find(action=>action.kind==='ready');
- assert.deepEqual(ready,{kind:'ready',scope:'own-don',amount:2});
+ assert.deepEqual(ready,{kind:'ready',scope:'own-don',amount:2,selection:{min:0,max:2}});
 });
 
 test('adjacent timing labels share the same ability body and preserve printed keywords',()=>{

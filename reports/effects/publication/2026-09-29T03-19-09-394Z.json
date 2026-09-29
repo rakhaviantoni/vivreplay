@@ -1,0 +1,1783 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-09-29T03:19:09.393Z",
+  "candidates": [
+    {
+      "code": "OP13-106",
+      "printedText": "[Opponent's Turn] When a [Trigger] activates, this Character gains [Blocker] during this turn.\n[Trigger] Play this card.",
+      "publishedText": "[Opponent's Turn] When a [Trigger] activates, this Character gains [Blocker] during this turn.\n[Trigger] Play this card.",
+      "timings": [
+        "trigger"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "blocker"
+              },
+              {
+                "kind": "grant-keyword",
+                "until": "turn-end",
+                "keyword": "blocker"
+              }
+            ],
+            "rawText": "[Opponent's Turn] When a [Trigger] activates, this Character gains [Blocker] during this turn.",
+            "trigger": "trigger",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[Trigger] Play this card.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "grant-keyword",
+                  "until": "turn-end",
+                  "keyword": "blocker"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Opponent's Turn] When a [Trigger] activates, this Character gains [Blocker] during this turn.\n[Trigger] Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Trigger] Play this card.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Opponent's Turn] When a [Trigger] activates, this Character gains [Blocker] during this turn.\n[Trigger] Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "8b7cd05f9a775cbc6b6bb7d63298d7c496aecbe6aa88ce263138021516b174c9",
+      "afterHash": "6ad63c3599d94fc4e53e6a404fce8022159c9fdde26d9ff51b480a595ea9c86f"
+    },
+    {
+      "code": "OP17-040",
+      "printedText": "[On Play] Draw 1 card.\n[Once Per Turn] When your Leader with a type including \"Rocks Pirates\" attacks or is attacked, you may trash 1 card from your hand to activate this effect. Your Leader gains +3000 power during this battle.",
+      "publishedText": "[On Play] Draw 1 card.\n[Once Per Turn] When your Leader with a type including \"Rocks Pirates\" attacks or is attacked, you may trash 1 card from your hand to activate this effect. Your Leader gains +3000 power during this battle.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 1
+              },
+              {
+                "kind": "power",
+                "until": "battle",
+                "amount": 3000,
+                "target": "own-leader"
+              },
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "requiresTrigger": false
+              }
+            ],
+            "rawText": "[On Play] Draw 1 card.\n[Once Per Turn] When your Leader with a type including \"Rocks Pirates\" attacks or is attacked, you may trash 1 card from your hand to activate this effect. Your Leader gains +3000 power during this battle.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "battle",
+                  "amount": 3000,
+                  "target": "own-leader"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "requiresTrigger": false
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Draw 1 card.\n[Once Per Turn] When your Leader with a type including \"Rocks Pirates\" attacks or is attacked, you may trash 1 card from your hand to activate this effect. Your Leader gains +3000 power during this battle.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On Play] Draw 1 card.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 1
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 1
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Draw 1 card.\n[Once Per Turn] When your Leader with a type including \"Rocks Pirates\" attacks or is attacked, you may trash 1 card from your hand to activate this effect. Your Leader gains +3000 power during this battle.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "90514eb8e2e8b6b3f9eb013d5193203488fd3226e1e07a1526b04f9be45bb611",
+      "afterHash": "389baed21943b938b48bd6e378e7745b21782f07c881a87b40f561cd81f50df6"
+    },
+    {
+      "code": "OP01-106",
+      "printedText": "[On Play] Add up to 1 DON!! card from your DON!! deck and rest it. [Trigger] Play this card.  This card has been officially errata'd.",
+      "publishedText": "[On Play] Add up to 1 DON!! card from your DON!! deck and rest it. [Trigger] Play this card.  This card has been officially errata'd.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioCount": 10,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "add-don",
+                "amount": 1,
+                "rested": true
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[On Play] Add up to 1 DON!! card from your DON!! deck and rest it. [Trigger] Play this card.  This card has been officially errata'd.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "add-don",
+                  "amount": 1,
+                  "rested": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Add up to 1 DON!! card from your DON!! deck and rest it. [Trigger] Play this card.  This card has been officially errata'd.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On Play] Add up to 1 DON!! card from your DON!! deck and rest it.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "add-don",
+                "amount": 1,
+                "rested": true,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "add-don",
+                  "amount": 1,
+                  "rested": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Add up to 1 DON!! card from your DON!! deck and rest it. [Trigger] Play this card.  This card has been officially errata'd.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "ead33c9f653dbde12cfc74e91d6140fec0172f37d6bd8bc1dbdd47283fde81b9",
+      "afterHash": "ca1a90cfc7b3ffb894e621b76286dd6541514aa55577897aa098ab3f5990a8c5"
+    },
+    {
+      "code": "OP02-042",
+      "printedText": "Also treat this card's name as [Kouzuki Oden] according to the rules.\n[On Play] Rest up to 1 of your opponent's Characters with a cost of 6 or less.",
+      "publishedText": "Also treat this card's name as [Kouzuki Oden] according to the rules. [On Play] Rest up to 1 of your opponent's Characters with a cost of 6 or less.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 6
+              }
+            ],
+            "rawText": "Also treat this card's name as [Kouzuki Oden] according to the rules. [On Play] Rest up to 1 of your opponent's Characters with a cost of 6 or less.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 6
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "Also treat this card's name as [Kouzuki Oden] according to the rules. [On Play] Rest up to 1 of your opponent's Characters with a cost of 6 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 6 or less.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 6,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 6,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "Also treat this card's name as [Kouzuki Oden] according to the rules. [On Play] Rest up to 1 of your opponent's Characters with a cost of 6 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "83477c532b83c853dfd61f6a9a35c20cce291e4077870f05094c19c5eb26f61a",
+      "afterHash": "7baba48d8e8baed11d1f93ce016553d72acbabd4d33e5468d9dee2c218944266"
+    },
+    {
+      "code": "EB01-039",
+      "printedText": "[Main] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): K.O. up to 1 of your opponent's Characters with a cost of 8 or less.[Trigger] Ad up to 1 DON!! card from your DON!! deck and set it as active.",
+      "publishedText": "[Main] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): K.O. up to 1 of your opponent's Characters with a cost of 8 or less.[Trigger] Ad up to 1 DON!! card from your DON!! deck and set it as active.",
+      "timings": [
+        "main"
+      ],
+      "scenarioCount": 7,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 8,
+                "restedOnly": false
+              },
+              {
+                "kind": "ko",
+                "maxCost": 8,
+                "restedOnly": false
+              },
+              {
+                "kind": "return-don",
+                "amount": 1
+              }
+            ],
+            "rawText": "[Main] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): K.O. up to 1 of your opponent's Characters with a cost of 8 or less.[Trigger] Ad up to 1 DON!! card from your DON!! deck and set it as active.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 8,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 8,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "return-don",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): K.O. up to 1 of your opponent's Characters with a cost of 8 or less.[Trigger] Ad up to 1 DON!! card from your DON!! deck and set it as active.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Main] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): K.O. up to 1 of your opponent's Characters with a cost of 8 or less.",
+            "trigger": "main",
+            "conditions": [],
+            "costs": [
+              {
+                "kind": "return-don",
+                "amount": 1,
+                "optional": false
+              }
+            ],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 8,
+                "restedOnly": false,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "PAY_COST",
+                "cost": {
+                  "kind": "return-don",
+                  "amount": 1,
+                  "optional": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 8,
+                  "restedOnly": false,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): K.O. up to 1 of your opponent's Characters with a cost of 8 or less.[Trigger] Ad up to 1 DON!! card from your DON!! deck and set it as active.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "4251ae9b5e3a810fef7ed00ec5d3e35c2690b0d7b5362a436c36899ba33bb18a",
+      "afterHash": "b2518864247a9675c3141e35eaa447b931892da8a99c9c616d43e4210528382c"
+    },
+    {
+      "code": "ST10-016",
+      "printedText": "[Main] K.O. up to 1 of your opponent's Characters with 7000 power or less. [Trigger] Up to 1 of your Leader gains +1000 power until the end of your next turn.",
+      "publishedText": "[Main] K.O. up to 1 of your opponent's Characters with 7000 power or less. [Trigger] Up to 1 of your Leader gains +1000 power until the end of your next turn.",
+      "timings": [
+        "main"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 1000,
+                "target": "opponent-character"
+              },
+              {
+                "kind": "ko",
+                "maxPower": 7000,
+                "restedOnly": false
+              },
+              {
+                "kind": "ko",
+                "maxPower": 7000,
+                "restedOnly": false
+              }
+            ],
+            "rawText": "[Main] K.O. up to 1 of your opponent's Characters with 7000 power or less. [Trigger] Up to 1 of your Leader gains +1000 power until the end of your next turn.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 1000,
+                  "target": "opponent-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxPower": 7000,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxPower": 7000,
+                  "restedOnly": false
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] K.O. up to 1 of your opponent's Characters with 7000 power or less. [Trigger] Up to 1 of your Leader gains +1000 power until the end of your next turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Main] K.O. up to 1 of your opponent's Characters with 7000 power or less.",
+            "trigger": "main",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxPower": 7000,
+                "restedOnly": false,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxPower": 7000,
+                  "restedOnly": false,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] K.O. up to 1 of your opponent's Characters with 7000 power or less. [Trigger] Up to 1 of your Leader gains +1000 power until the end of your next turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "2dc9d1207bd593fcaee8e3f701dcbc0beaa819829ab38daa7542e0189a9bbcd2",
+      "afterHash": "08ef79bc81e21e3cbc1e84a772ebe632226182df41cb9f8d8f25691643c6095c"
+    },
+    {
+      "code": "OP04-024",
+      "printedText": "[Opponent's Turn] [Once Per Turn] When your opponent plays a Character, if your Leader has the [Donquixote Pirates] type, rest up to 1 of your opponent's Characters. Then, rest this Character. [On Play] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+      "publishedText": "[Opponent's Turn] [Once Per Turn] When your opponent plays a Character, if your Leader has the [Donquixote Pirates] type, rest up to 1 of your opponent's Characters. Then, rest this Character. [On Play] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "self"
+              },
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 4
+              }
+            ],
+            "rawText": "[Opponent's Turn] [Once Per Turn] When your opponent plays a Character, if your Leader has the [Donquixote Pirates] type, rest up to 1 of your opponent's Characters. Then, rest this Character. [On Play] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the [Donquixote Pirates] type"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "self"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 4
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the [Donquixote Pirates] type"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Opponent's Turn] [Once Per Turn] When your opponent plays a Character, if your Leader has the [Donquixote Pirates] type, rest up to 1 of your opponent's Characters. Then, rest this Character. [On Play] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 4,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 4,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Opponent's Turn] [Once Per Turn] When your opponent plays a Character, if your Leader has the [Donquixote Pirates] type, rest up to 1 of your opponent's Characters. Then, rest this Character. [On Play] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "80d34f3fa777f61a9ae4dfc76eb710916b4199a7a67f2df60fe191f30646b66f",
+      "afterHash": "d4185e0f236d2e2fd233fb18d3fc0bb35d576cad14412bb252b42d5bb1898488"
+    },
+    {
+      "code": "ST06-016",
+      "printedText": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle. [Trigger] Draw 1 card and none of your Characters can be K.O.'d during this turn.",
+      "publishedText": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle. [Trigger] Draw 1 card and none of your Characters can be K.O.'d during this turn.",
+      "timings": [
+        "counter"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 1
+              },
+              {
+                "kind": "power",
+                "until": "battle",
+                "amount": 2000,
+                "target": "own-leader"
+              }
+            ],
+            "rawText": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle. [Trigger] Draw 1 card and none of your Characters can be K.O.'d during this turn.",
+            "trigger": "counter",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "counter",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "battle",
+                  "amount": 2000,
+                  "target": "own-leader"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle. [Trigger] Draw 1 card and none of your Characters can be K.O.'d during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle.",
+            "trigger": "counter",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 2000,
+                "until": "battle",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                },
+                "target": "own-card"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "counter",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 2000,
+                  "until": "battle",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "target": "own-card"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle. [Trigger] Draw 1 card and none of your Characters can be K.O.'d during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "9d264a9eda49cb55b1c5efa93793c8305fd60de471540fee1df31048ec6f5628",
+      "afterHash": "7294148e200f3aac8f872c7407ea6ba0c75c51384b4eda3dc60382b1a6e5330b"
+    },
+    {
+      "code": "OP05-041",
+      "printedText": "[Activate:Main][Once Per Turn] You may trash 1 card from your hand: Draw 1 card. [When Attacking] Give up to 1 of your opponent's Characters -1 cost during this turn.",
+      "publishedText": "[Activate:Main][Once Per Turn] You may trash 1 card from your hand: Draw 1 card. [When Attacking] Give up to 1 of your opponent's Characters -1 cost during this turn.",
+      "timings": [
+        "when-attacking"
+      ],
+      "scenarioCount": 4,
+      "before": {
+        "ast": [
+          {
+            "costs": [
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "optional": true,
+                "requiresTrigger": false
+              }
+            ],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 1
+              },
+              {
+                "kind": "cost",
+                "amount": -1,
+                "target": "opponent-character"
+              },
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "requiresTrigger": false
+              }
+            ],
+            "rawText": "[Activate:Main][Once Per Turn] You may trash 1 card from your hand: Draw 1 card. [When Attacking] Give up to 1 of your opponent's Characters -1 cost during this turn.",
+            "trigger": "when-attacking",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "when-attacking",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "optional": true,
+                  "requiresTrigger": false
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "cost",
+                  "amount": -1,
+                  "target": "opponent-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "requiresTrigger": false
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Activate:Main][Once Per Turn] You may trash 1 card from your hand: Draw 1 card. [When Attacking] Give up to 1 of your opponent's Characters -1 cost during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[When Attacking] Give up to 1 of your opponent's Characters -1 cost during this turn.",
+            "trigger": "when-attacking",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "cost",
+                "amount": -1,
+                "target": "opponent-character",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "when-attacking",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "cost",
+                  "amount": -1,
+                  "target": "opponent-character",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Activate:Main][Once Per Turn] You may trash 1 card from your hand: Draw 1 card. [When Attacking] Give up to 1 of your opponent's Characters -1 cost during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "bb5c8ecd6fbb729525d5e44587c684ae921481b5f3ba3c8a995204392278dcab",
+      "afterHash": "db9c338e0e8afceb1da89041e732c5fd1e9de00f78d4166fb1225f117caa22a9"
+    },
+    {
+      "code": "OP07-105",
+      "printedText": "[On K.O.] If you have 2 or less Life cards, play up to 1 {Egghead} type Character card with a cost of 4 or less from your trash rested. [Trigger] If your Leader is [Vegapunk], play this card.",
+      "publishedText": "[On K.O.] If you have 2 or less Life cards, play up to 1 {Egghead} type Character card with a cost of 4 or less from your trash rested. [Trigger] If your Leader is [Vegapunk], play this card.",
+      "timings": [
+        "trigger"
+      ],
+      "scenarioCount": 4,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              },
+              {
+                "kind": "play",
+                "rested": true,
+                "source": "trash",
+                "maxCost": 4
+              },
+              {
+                "kind": "on-ko"
+              }
+            ],
+            "rawText": "[On K.O.] If you have 2 or less Life cards, play up to 1 {Egghead} type Character card with a cost of 4 or less from your trash rested. [Trigger] If your Leader is [Vegapunk], play this card.",
+            "trigger": "trigger",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 2 or less Life cards"
+              },
+              {
+                "kind": "text",
+                "text": "your Leader is [Vegapunk]"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "rested": true,
+                  "source": "trash",
+                  "maxCost": 4
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "on-ko"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 2 or less Life cards"
+              },
+              {
+                "kind": "text",
+                "text": "your Leader is [Vegapunk]"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On K.O.] If you have 2 or less Life cards, play up to 1 {Egghead} type Character card with a cost of 4 or less from your trash rested. [Trigger] If your Leader is [Vegapunk], play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Trigger] If your Leader is [Vegapunk], play this card.",
+            "trigger": "trigger",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Vegapunk]"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Vegapunk]"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On K.O.] If you have 2 or less Life cards, play up to 1 {Egghead} type Character card with a cost of 4 or less from your trash rested. [Trigger] If your Leader is [Vegapunk], play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "5c287690b458e2f8d78772cfd38933db3ff046e4a30f011cdf749de4cce7d203",
+      "afterHash": "d03ce946a8b763c46b4b07a86741a3befd65bb9371ee6b92c2e0aec35928375b"
+    },
+    {
+      "code": "EB01-027",
+      "printedText": "If your Leader's type includes \"Baroque Works\", this Character gains +1000 power for every 2 Events in your trash.[On Play] Draw 2 cards and trash 1 card from your hand.",
+      "publishedText": "If your Leader's type includes \"Baroque Works\", this Character gains +1000 power for every 2 Events in your trash.[On Play] Draw 2 cards and trash 1 card from your hand.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioCount": 4,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 2
+              },
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 1000,
+                "target": "own-leader"
+              },
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "requiresTrigger": false
+              }
+            ],
+            "rawText": "If your Leader's type includes \"Baroque Works\", this Character gains +1000 power for every 2 Events in your trash.[On Play] Draw 2 cards and trash 1 card from your hand.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader's type includes \"Baroque Works\""
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 2
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 1000,
+                  "target": "own-leader"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "requiresTrigger": false
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader's type includes \"Baroque Works\""
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "If your Leader's type includes \"Baroque Works\", this Character gains +1000 power for every 2 Events in your trash.[On Play] Draw 2 cards and trash 1 card from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On Play] Draw 2 cards and trash 1 card from your hand.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 2
+              },
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "requiresTrigger": false
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 2
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "requiresTrigger": false
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "If your Leader's type includes \"Baroque Works\", this Character gains +1000 power for every 2 Events in your trash.[On Play] Draw 2 cards and trash 1 card from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "379c8f182756af48021eef880e02cb10488e8729652c56d5e727a66600476d94",
+      "afterHash": "664c969aa07e9846ad2cdc5f25278cac495d2477b26d631333d0d040ee5a6e65"
+    },
+    {
+      "code": "OP07-098",
+      "printedText": "If you have less Life cards than your opponent, this Character cannot be K.O.'d in battle. [Trigger] If your Leader is [Vegapunk], play this card.",
+      "publishedText": "If you have less Life cards than your opponent, this Character cannot be K.O.'d in battle. [Trigger] If your Leader is [Vegapunk], play this card.",
+      "timings": [
+        "trigger"
+      ],
+      "scenarioCount": 4,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              },
+              {
+                "by": "battle",
+                "kind": "prevent-ko",
+                "scope": "own-character"
+              }
+            ],
+            "rawText": "If you have less Life cards than your opponent, this Character cannot be K.O.'d in battle. [Trigger] If your Leader is [Vegapunk], play this card.",
+            "trigger": "trigger",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have less Life cards than your opponent"
+              },
+              {
+                "kind": "text",
+                "text": "your Leader is [Vegapunk]"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "by": "battle",
+                  "kind": "prevent-ko",
+                  "scope": "own-character"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have less Life cards than your opponent"
+              },
+              {
+                "kind": "text",
+                "text": "your Leader is [Vegapunk]"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "If you have less Life cards than your opponent, this Character cannot be K.O.'d in battle. [Trigger] If your Leader is [Vegapunk], play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Trigger] If your Leader is [Vegapunk], play this card.",
+            "trigger": "trigger",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Vegapunk]"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Vegapunk]"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "If you have less Life cards than your opponent, this Character cannot be K.O.'d in battle. [Trigger] If your Leader is [Vegapunk], play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "a820bf36c4d9699a0960b2da99ee709cdd2f2081e378fcce1aec72dd04c8fafa",
+      "afterHash": "13e25dd13748e28da2fa722a44d5061d5038973542293a4f99fddfacc6986a8e"
+    },
+    {
+      "code": "EB04-023",
+      "printedText": "[Double Attack] (This card deals 2 damage.)\n[On Play] You may give your active Leader −5000 power during this turn: Draw 2 cards.",
+      "publishedText": "[Double Attack] (This card deals 2 damage.)\n[On Play] You may give your active Leader -5000 power during this turn: Draw 2 cards.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioCount": 6,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 2
+              },
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": -5000,
+                "target": "own-leader"
+              }
+            ],
+            "rawText": "[On Play] You may give your active Leader -5000 power during this turn: Draw 2 cards.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 2
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": -5000,
+                  "target": "own-leader"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Double Attack] (This card deals 2 damage.)\n[On Play] You may give your active Leader -5000 power during this turn: Draw 2 cards.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 2
+              },
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": -5000,
+                "target": "own-leader"
+              }
+            ],
+            "rawText": "[On Play] You may give your active Leader -5000 power during this turn: Draw 2 cards.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "rawText": "[Double Attack] (This card deals 2 damage.)",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "double-attack"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 2
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": -5000,
+                  "target": "own-leader"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "double-attack"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Double Attack] (This card deals 2 damage.)\n[On Play] You may give your active Leader -5000 power during this turn: Draw 2 cards.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "afb0e573d5658446bc03701c81f6f060aca4034d720571c60c1cba639ebf85d8",
+      "afterHash": "0f292f38f9c650ab3919ea3ba7f698e35129a8697f7e845e196626bc626a2aa5"
+    },
+    {
+      "code": "ST12-013",
+      "printedText": "[On Play] Look at 3 cards from the top of your deck and place them at the top or bottom of the deck in any order. [When Attacking] Reveal 1 card from the top of your deck and play up to 1 Character card with a cost of 2 rested. Then, place the rest at the top or bottom of your deck.",
+      "publishedText": "[On Play] Look at 3 cards from the top of your deck and place them at the top or bottom of the deck in any order. [When Attacking] Reveal 1 card from the top of your deck and play up to 1 Character card with a cost of 2 rested. Then, place the rest at the top or bottom of your deck.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioCount": 6,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "reveal",
+                "amount": 1,
+                "source": "deck"
+              },
+              {
+                "kind": "search",
+                "amount": 3,
+                "choose": 1,
+                "cardType": "Character",
+                "destination": "deck-bottom"
+              }
+            ],
+            "rawText": "[On Play] Look at 3 cards from the top of your deck and place them at the top or bottom of the deck in any order. [When Attacking] Reveal 1 card from the top of your deck and play up to 1 Character card with a cost of 2 rested. Then, place the rest at the top or bottom of your deck.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "reveal",
+                  "amount": 1,
+                  "source": "deck"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 3,
+                  "choose": 1,
+                  "cardType": "Character",
+                  "destination": "deck-bottom"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Look at 3 cards from the top of your deck and place them at the top or bottom of the deck in any order. [When Attacking] Reveal 1 card from the top of your deck and play up to 1 Character card with a cost of 2 rested. Then, place the rest at the top or bottom of your deck.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On Play] Look at 3 cards from the top of your deck and place them at the top or bottom of the deck in any order.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "reorder-deck",
+                "amount": 3,
+                "position": "choice"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "reorder-deck",
+                  "amount": 3,
+                  "position": "choice"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Look at 3 cards from the top of your deck and place them at the top or bottom of the deck in any order. [When Attacking] Reveal 1 card from the top of your deck and play up to 1 Character card with a cost of 2 rested. Then, place the rest at the top or bottom of your deck.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "4f15975c36e43dfc6c8a2d1796c3f0db0dc7e0a3159ad6737d55004f9356d533",
+      "afterHash": "f1532b2deb745f50ebe64140c9771a48846976bd4f552233fb5cbf0dc7eddd32"
+    }
+  ]
+}

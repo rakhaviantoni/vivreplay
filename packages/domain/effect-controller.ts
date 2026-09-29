@@ -11,6 +11,7 @@ export type EffectExecution={
  conditionResults?:Record<string,boolean>;
  commandIndex:number;
  state:MatchEffectState;
+ pendingSelection?:EffectSelection;
 };
 
 export type EffectExecutionResult={
@@ -22,7 +23,11 @@ export type EffectExecutionResult={
 
 /** Starts an ordered card effect without guessing any player-owned selection. */
 export function beginEffectExecution(state:MatchEffectState,actor:PlayerId,sourceId:string,timing:EffectTrigger,commands:EffectCommand[]):EffectExecutionResult{
- return advanceEffectExecution({actor,sourceId,timing,commands,commandIndex:0,state});
+ const source=state.cards.find(card=>card.id===sourceId);
+ const requiredDon=source?.effectSchema?.ast.filter(ability=>ability.trigger===timing).flatMap(ability=>ability.actions).filter((action):action is Extract<EffectAction,{kind:'attach-don-required'}>=>action.kind==='attach-don-required').reduce((maximum,action)=>Math.max(maximum,action.amount),0)??0;
+ const attachedDon=state.cards.filter(card=>card.owner===actor&&card.type==='DON!!'&&card.attachedTo===sourceId).length;
+ const execution={actor,sourceId,timing,commands,commandIndex:requiredDon>attachedDon?commands.length:0,state};
+ return advanceEffectExecution(execution);
 }
 
 /** Applies exactly one optional selection and advances through every deterministic command that follows it. */
@@ -43,18 +48,19 @@ export function advanceEffectExecution(execution:EffectExecution,selection:Effec
    usedSelection=true;
    continue;
   }
-  const input=usedSelection?{}:selection;
+  const input=usedSelection?{}:{...execution.pendingSelection,...selection};
   const value=command.value as EffectAction|EffectCost;
   const sourceBound=(command.kind==='pay-cost'&&(value.kind==='rest'||value.kind==='trash')&&value.scope==='self')
-   ||(command.kind==='resolve-action'&&((value.kind==='rest'&&value.scope==='self')||(value.kind==='trash'&&value.scope==='self')||(value.kind==='ready'&&value.scope==='self')));
+  ||(command.kind==='resolve-action'&&((value.kind==='rest'&&value.scope==='self')||(value.kind==='trash'&&value.scope==='self')||(value.kind==='ready'&&value.scope==='self')||(value.kind==='attach-don'&&value.recipient==='self')||(value.kind==='attack-permission'&&value.scope==='own-character')||(value.kind==='skip-next-refresh'&&value.scope==='self')));
   const resolvedInput=sourceBound?{...input,targetId:execution.sourceId}:input;
   const result=command.kind==='pay-cost'
    ?payEffectCost(state,execution.actor,command.value as EffectCost,resolvedInput)
    :applyEffectAction(state,execution.actor,command.value as EffectAction,resolvedInput);
   if(result.error||result.requiresSelection){
-   return {execution:{...execution,state:result.state,conditionResults,commandIndex:index},complete:false,requiresSelection:result.requiresSelection,error:result.error};
+   return {execution:{...execution,state:result.state,conditionResults,commandIndex:index,pendingSelection:input},complete:false,requiresSelection:result.requiresSelection,error:result.error};
   }
   state=result.state;
+  execution={...execution,pendingSelection:undefined};
   index++;
   usedSelection=true;
  }

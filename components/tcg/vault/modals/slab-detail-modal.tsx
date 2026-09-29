@@ -119,7 +119,7 @@ export function SlabDetailModal({
                 {vBadge.label}
               </span>
             </div>
-            <h2 style={{ fontFamily: 'var(--display-font, Georgia, serif)', fontSize: '28px', fontWeight: 600, margin: '4px 0 0', color: '#fff' }}>
+            <h2 style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '28px', fontWeight: 600, margin: '4px 0 0', color: '#fff' }}>
               {slab.card.name}
             </h2>
             <div style={{ fontSize: '12px', color: '#9da7b5', marginTop: '2px' }}>
@@ -182,7 +182,7 @@ export function SlabDetailModal({
                   <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--vault-gold)', letterSpacing: '0.08em' }}>
                     {slab.provider || 'PSA'}
                   </span>
-                  <div style={{ fontFamily: 'var(--display-font, Georgia, serif)', fontSize: '18px', fontWeight: 700, color: '#fff' }}>
+                  <div style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '18px', fontWeight: 700, color: '#fff' }}>
                     {slab.grade || '10'}
                   </div>
                 </div>
@@ -291,7 +291,7 @@ export function SlabDetailModal({
                 <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#8893a2' }}>
                   Acquired Cost
                 </span>
-                <div style={{ fontFamily: 'var(--display-font, Georgia, serif)', fontSize: '18px', fontWeight: 600, color: '#fff', marginTop: '2px' }}>
+                <div style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '18px', fontWeight: 600, color: '#fff', marginTop: '2px' }}>
                   {hideValues ? '••••••••' : formatCompactMoney(slab.acquisitionAmount || 28_000_000, 'IDR')}
                 </div>
                 <small style={{ fontSize: '10px', color: '#8893a2' }}>Aug 4, 2026</small>
@@ -301,7 +301,7 @@ export function SlabDetailModal({
                 <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#8893a2' }}>
                   Est. Market Value
                 </span>
-                <div style={{ fontFamily: 'var(--display-font, Georgia, serif)', fontSize: '18px', fontWeight: 600, color: 'var(--vault-gold)', marginTop: '2px' }}>
+                <div style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '18px', fontWeight: 600, color: 'var(--vault-gold)', marginTop: '2px' }}>
                   {hideValues ? '••••••••' : formatCompactMoney(slab.estimatedValue, 'IDR')}
                 </div>
                 <small style={{ fontSize: '10px', color: '#8893a2' }}>High confidence</small>
@@ -312,7 +312,7 @@ export function SlabDetailModal({
                   Unrealized Gain
                 </span>
                 <div style={{
-                  fontFamily: 'var(--display-font, Georgia, serif)',
+                  fontFamily: 'var(--display-font, var(--font-sans))',
                   fontSize: '18px',
                   fontWeight: 600,
                   color: '#4ade80',
@@ -349,7 +349,7 @@ export function SlabDetailModal({
                   {Object.entries(subgrades).map(([key, val]) => (
                     <div key={key} style={{ padding: '8px', background: '#1c212c', borderRadius: '8px', border: '1px solid #2d3646', textAlign: 'center' }}>
                       <span style={{ fontSize: '9px', color: '#9da7b5', display: 'block', textTransform: 'uppercase' }}>{key}</span>
-                      <strong style={{ fontFamily: 'var(--display-font, Georgia, serif)', fontSize: '16px', color: '#e2a63b' }}>
+                      <strong style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '16px', color: '#e2a63b' }}>
                         {String(val)}
                       </strong>
                     </div>

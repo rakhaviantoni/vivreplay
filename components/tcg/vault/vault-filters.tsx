@@ -20,6 +20,7 @@ interface VaultFiltersProps {
   viewMode: VaultViewMode;
   onChangeViewMode: (mode: VaultViewMode) => void;
   totalFilteredCount: number;
+  language?: 'EN' | 'ID';
 }
 
 export function VaultFilters({
@@ -28,7 +29,9 @@ export function VaultFilters({
   viewMode,
   onChangeViewMode,
   totalFilteredCount,
+  language = 'EN',
 }: VaultFiltersProps) {
+  const t = (en: string, idStr: string) => language === 'ID' ? idStr : en;
   const hasActiveFilters = Boolean(
     filters.search ||
     filters.setCode !== 'all' ||
@@ -67,14 +70,14 @@ export function VaultFilters({
           type="text"
           value={filters.search}
           onChange={e => onChangeFilters(prev => ({ ...prev, search: e.target.value }))}
-          placeholder="Search card name, code (e.g. OP05-119), or set..."
+          placeholder={t('Search card name, code (e.g. OP05-119), or set...','Cari nama kartu, kode (mis. OP05-119), atau set...')}
         />
         {filters.search && (
           <button
             type="button"
             onClick={() => onChangeFilters(prev => ({ ...prev, search: '' }))}
             style={{ background: 'none', border: 'none', color: 'var(--vault-ink-muted)', cursor: 'pointer', padding: '2px' }}
-            aria-label="Clear search"
+            aria-label={t('Clear search','Hapus pencarian')}
           >
             <X size={14} />
           </button>
@@ -88,9 +91,9 @@ export function VaultFilters({
           className="vault-select-compact"
           value={filters.setCode}
           onChange={e => onChangeFilters(prev => ({ ...prev, setCode: e.target.value }))}
-          aria-label="Filter by set"
+          aria-label={t('Filter by set','Filter berdasarkan set')}
         >
-          <option value="all">All Sets</option>
+          <option value="all">{t('All Sets','Semua Set')}</option>
           {SETS_CATALOG.map(s => (
             <option key={s.code} value={s.code}>
               {s.code} · {s.name}
@@ -103,9 +106,9 @@ export function VaultFilters({
           className="vault-select-compact"
           value={filters.language}
           onChange={e => onChangeFilters(prev => ({ ...prev, language: e.target.value }))}
-          aria-label="Filter by language"
+          aria-label={t('Filter by language','Filter berdasarkan bahasa')}
         >
-          <option value="all">All Langs</option>
+          <option value="all">{t('All Langs','Semua Bahasa')}</option>
           <option value="JP">Japanese (JP)</option>
           <option value="EN">English (EN)</option>
         </select>
@@ -115,11 +118,11 @@ export function VaultFilters({
           className="vault-select-compact"
           value={filters.typeFilter}
           onChange={e => onChangeFilters(prev => ({ ...prev, typeFilter: e.target.value as any }))}
-          aria-label="Filter by raw or slab"
+          aria-label={t('Filter by raw or slab','Filter kartu reguler atau slab')}
         >
-          <option value="all">Raw & Slabs</option>
-          <option value="raw">Raw Only</option>
-          <option value="graded">Slabs Only</option>
+          <option value="all">{t('Raw & Slabs','Reguler & Slab')}</option>
+          <option value="raw">{t('Raw Only','Hanya Reguler')}</option>
+          <option value="graded">{t('Slabs Only','Hanya Slab')}</option>
         </select>
 
         {/* Grading Provider (if slabs or all) */}
@@ -128,9 +131,9 @@ export function VaultFilters({
             className="vault-select-compact"
             value={filters.gradingProvider}
             onChange={e => onChangeFilters(prev => ({ ...prev, gradingProvider: e.target.value }))}
-            aria-label="Filter by grading provider"
+            aria-label={t('Filter by grading provider','Filter berdasarkan grading')}
           >
-            <option value="all">All Graders</option>
+            <option value="all">{t('All Graders','Semua Grader')}</option>
             {GRADING_PROVIDERS.map(p => (
               <option key={p.id} value={p.id}>
                 {p.shortName}
@@ -144,9 +147,9 @@ export function VaultFilters({
           className="vault-select-compact"
           value={filters.rarity}
           onChange={e => onChangeFilters(prev => ({ ...prev, rarity: e.target.value }))}
-          aria-label="Filter by rarity"
+          aria-label={t('Filter by rarity','Filter berdasarkan kelangkaan')}
         >
-          <option value="all">All Rarities</option>
+          <option value="all">{t('All Rarities','Semua Kelangkaan')}</option>
           <option value="SEC">SEC (Secret Rare)</option>
           <option value="L">L (Leader)</option>
           <option value="SR">SR (Super Rare)</option>
@@ -167,7 +170,7 @@ export function VaultFilters({
             color: filters.favoritesOnly ? 'var(--vault-gold-deep)' : undefined,
           }}
           onClick={() => onChangeFilters(prev => ({ ...prev, favoritesOnly: !prev.favoritesOnly }))}
-          title="Showcase items only"
+          title={t('Showcase items only','Hanya kartu showcase')}
         >
           <Star size={14} weight={filters.favoritesOnly ? 'fill' : 'regular'} />
           Showcase
@@ -178,14 +181,14 @@ export function VaultFilters({
           className="vault-select-compact"
           value={filters.sort}
           onChange={e => onChangeFilters(prev => ({ ...prev, sort: e.target.value as any }))}
-          aria-label="Sort collection"
+          aria-label={t('Sort collection','Urutkan koleksi')}
         >
-          <option value="recently_added">Recently Added</option>
-          <option value="set_order">Set Order</option>
-          <option value="value_high">Value: High to Low</option>
-          <option value="value_low">Value: Low to High</option>
-          <option value="name">Name (A-Z)</option>
-          <option value="grade">Grade (10 - 1)</option>
+          <option value="recently_added">{t('Recently Added','Baru Ditambahkan')}</option>
+          <option value="set_order">{t('Set Order','Urutan Set')}</option>
+          <option value="value_high">{t('Value: High to Low','Nilai: Tertinggi ke Terendah')}</option>
+          <option value="value_low">{t('Value: Low to High','Nilai: Terendah ke Tertinggi')}</option>
+          <option value="name">{t('Name (A-Z)','Nama (A-Z)')}</option>
+          <option value="grade">{t('Grade (10 - 1)','Grade (10 - 1)')}</option>
         </select>
 
         {/* Reset Filter Button if active */}
@@ -195,10 +198,10 @@ export function VaultFilters({
             className="vault-btn vault-btn-ghost"
             style={{ height: '36px', padding: '0 8px', color: 'var(--vault-gold-deep)' }}
             onClick={resetFilters}
-            title="Reset all active filters"
+            title={t('Reset all active filters','Reset semua filter aktif')}
           >
             <X size={14} />
-            Reset
+            {t('Reset','Reset')}
           </button>
         )}
 
@@ -208,8 +211,8 @@ export function VaultFilters({
             type="button"
             className={viewMode === 'binder' ? 'is-active' : ''}
             onClick={() => onChangeViewMode('binder')}
-            title="Binder View (3x3 Archival Presentation)"
-            aria-label="Binder view"
+            title={t('Binder View (3x3 Archival Presentation)','Tampilan Binder (Format Arsip 3x3)')}
+            aria-label={t('Binder view','Tampilan binder')}
           >
             <BookOpen size={16} />
           </button>
@@ -217,8 +220,8 @@ export function VaultFilters({
             type="button"
             className={viewMode === 'grid' ? 'is-active' : ''}
             onClick={() => onChangeViewMode('grid')}
-            title="Grid View"
-            aria-label="Grid view"
+            title={t('Grid View','Tampilan Kisi')}
+            aria-label={t('Grid view','Tampilan kisi')}
           >
             <GridIcon size={16} />
           </button>
@@ -226,8 +229,8 @@ export function VaultFilters({
             type="button"
             className={viewMode === 'list' ? 'is-active' : ''}
             onClick={() => onChangeViewMode('list')}
-            title="List View"
-            aria-label="List view"
+            title={t('List View','Tampilan Daftar')}
+            aria-label={t('List view','Tampilan daftar')}
           >
             <ListIcon size={16} />
           </button>

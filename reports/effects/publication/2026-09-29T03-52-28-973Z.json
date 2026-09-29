@@ -1,0 +1,185 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-09-29T03:52:28.972Z",
+  "candidates": [
+    {
+      "code": "OP11-022",
+      "printedText": "This Leader cannot attack.\n[Activate: Main] [Once Per Turn] You may rest 1 of your DON!! cards and turn 1 card from the top of your Life cards face-up: Play up to 1 \"Neptunian\" type Character card or \"Megalo\" with a cost equal to or less than the number of DON!! cards on your field from your hand.",
+      "publishedText": "This Leader cannot attack.\n[Activate: Main] [Once Per Turn] You may rest 1 of your DON!! cards and turn 1 card from the top of your Life cards face-up: Play up to 1 \"Neptunian\" type Character card or \"Megalo\" with a cost equal to or less than the number of DON!! cards on your field from your hand.",
+      "timings": [
+        "unknown",
+        "activate-main"
+      ],
+      "scenarioNames": [
+        "unknown: Leader attack prohibition blocks an otherwise legal attack",
+        "activate-main: rest DON, turn top Life face-up, and play only an eligible hand Character"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "rested": false,
+                "source": "hand"
+              }
+            ],
+            "rawText": "[Activate: Main] [Once Per Turn] You may rest 1 of your DON!! cards and turn 1 card from the top of your Life cards face-up: Play up to 1 \"Neptunian\" type Character card or \"Megalo\" with a cost equal to or less than the number of DON!! cards on your field from your hand.",
+            "trigger": "activate-main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "rested": false,
+                  "source": "hand"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "This Leader cannot attack.\n[Activate: Main] [Once Per Turn] You may rest 1 of your DON!! cards and turn 1 card from the top of your Life cards face-up: Play up to 1 \"Neptunian\" type Character card or \"Megalo\" with a cost equal to or less than the number of DON!! cards on your field from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "This Leader cannot attack.",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attack-prohibition",
+                "scope": "own-leader"
+              }
+            ]
+          },
+          {
+            "rawText": "[Activate: Main] [Once Per Turn] You may rest 1 of your DON!! cards and turn 1 card from the top of your Life cards face-up: Play up to 1 \"Neptunian\" type Character card or \"Megalo\" with a cost equal to or less than the number of DON!! cards on your field from your hand.",
+            "trigger": "activate-main",
+            "conditions": [],
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "don",
+                "amount": 1,
+                "optional": true
+              },
+              {
+                "kind": "turn-life",
+                "scope": "own",
+                "amount": 1,
+                "position": "top",
+                "faceUp": true,
+                "optional": true
+              }
+            ],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "hand",
+                "amount": 1,
+                "costAtMostDonField": true,
+                "cardType": "Character",
+                "alternatives": [
+                  {
+                    "trait": "Neptunian"
+                  },
+                  {
+                    "name": "Megalo"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attack-prohibition",
+                  "scope": "own-leader"
+                }
+              }
+            ]
+          },
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "PAY_COST",
+                "cost": {
+                  "kind": "rest",
+                  "scope": "don",
+                  "amount": 1,
+                  "optional": true
+                }
+              },
+              {
+                "type": "PAY_COST",
+                "cost": {
+                  "kind": "turn-life",
+                  "scope": "own",
+                  "amount": 1,
+                  "position": "top",
+                  "faceUp": true,
+                  "optional": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "hand",
+                  "amount": 1,
+                  "costAtMostDonField": true,
+                  "cardType": "Character",
+                  "alternatives": [
+                    {
+                      "trait": "Neptunian"
+                    },
+                    {
+                      "name": "Megalo"
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "This Leader cannot attack.\n[Activate: Main] [Once Per Turn] You may rest 1 of your DON!! cards and turn 1 card from the top of your Life cards face-up: Play up to 1 \"Neptunian\" type Character card or \"Megalo\" with a cost equal to or less than the number of DON!! cards on your field from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "b58c75ea456db4050d9c57a082447d46d496f414ddfe63fcc9595c2ecc37b159",
+      "afterHash": "bbce2d5563f4a68abd88070132862e4ee22491ae3ea888f5a47e3c2a277540fc"
+    }
+  ]
+}

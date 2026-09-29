@@ -1,0 +1,213 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-09-29T04:09:21.808Z",
+  "candidates": [
+    {
+      "code": "EB04-054",
+      "printedText": "[On Play] If you have 2 or less Life cards, add up to 1 card from the top of your deck to the top of your Life cards.\n[On K.O.] Add up to 1 card from the top of your opponent's Life cards to the owner's hand.",
+      "publishedText": "[On Play] If you have 2 or less Life cards, add up to 1 card from the top of your deck to the top of your Life cards.\n[On K.O.] Add up to 1 card from the top of your opponent's Life cards to the owner's hand.",
+      "timings": [
+        "on-play",
+        "on-ko"
+      ],
+      "scenarioNames": [
+        "on-play: only at two or less Life, choose whether to add the top deck card to Life",
+        "on-ko: add only the chosen top opponent Life card to Kuma owner hand"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "life",
+                "amount": 1,
+                "operation": "add-to-life"
+              },
+              {
+                "kind": "move-to-life",
+                "scope": "own",
+                "amount": 1,
+                "faceUp": false,
+                "position": "top"
+              }
+            ],
+            "rawText": "[On Play] If you have 2 or less Life cards, add up to 1 card from the top of your deck to the top of your Life cards.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 2 or less Life cards"
+              }
+            ]
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "on-ko"
+              }
+            ],
+            "rawText": "[On K.O.] Add up to 1 card from the top of your opponent's Life cards to the owner's hand.",
+            "trigger": "on-ko",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life",
+                  "amount": 1,
+                  "operation": "add-to-life"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "move-to-life",
+                  "scope": "own",
+                  "amount": 1,
+                  "faceUp": false,
+                  "position": "top"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 2 or less Life cards"
+              }
+            ]
+          },
+          {
+            "timing": "on-ko",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "on-ko"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] If you have 2 or less Life cards, add up to 1 card from the top of your deck to the top of your Life cards.\n[On K.O.] Add up to 1 card from the top of your opponent's Life cards to the owner's hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On Play] If you have 2 or less Life cards, add up to 1 card from the top of your deck to the top of your Life cards.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 2 or less Life cards"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "move-to-life",
+                "scope": "own",
+                "amount": 1,
+                "position": "top",
+                "source": "deck-top",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          },
+          {
+            "rawText": "[On K.O.] Add up to 1 card from the top of your opponent's Life cards to the owner's hand.",
+            "trigger": "on-ko",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "life",
+                "operation": "opponent-top-to-owner-hand",
+                "amount": 1,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 2 or less Life cards"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "move-to-life",
+                  "scope": "own",
+                  "amount": 1,
+                  "position": "top",
+                  "source": "deck-top",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "timing": "on-ko",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life",
+                  "operation": "opponent-top-to-owner-hand",
+                  "amount": 1,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] If you have 2 or less Life cards, add up to 1 card from the top of your deck to the top of your Life cards.\n[On K.O.] Add up to 1 card from the top of your opponent's Life cards to the owner's hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "25057e32ef9b8bef24878c9b9faf13abbd0fb32a78177919dda09a9f0f622b28",
+      "afterHash": "e0d92bb404eeaa079916bb6de3d24e3125b7ae1f65864ef88e0269d2247053e4"
+    }
+  ]
+}

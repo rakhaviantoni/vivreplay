@@ -167,7 +167,7 @@ export function ImportExportModal({
             <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.12em', color: 'var(--vault-gold)', textTransform: 'uppercase' }}>
               Collection Data Portability & Safety
             </span>
-            <h3 style={{ fontFamily: 'var(--display-font, Georgia, serif)', fontSize: '22px', fontWeight: 600, margin: '2px 0 0' }}>
+            <h3 style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '22px', fontWeight: 600, margin: '2px 0 0' }}>
               Import & Export Archive
             </h3>
           </div>

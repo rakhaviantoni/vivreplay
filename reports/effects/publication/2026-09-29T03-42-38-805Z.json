@@ -1,0 +1,324 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-09-29T03:42:38.805Z",
+  "candidates": [
+    {
+      "code": "OP02-085",
+      "printedText": "[On Play] DON!! −1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Your opponent returns 1 DON!! card from their field to their DON!! deck.\n[Opponent's Turn] When this Character is K.O.'d, your opponent returns 2 DON!! cards from their field to their DON!! deck.",
+      "publishedText": "[On Play] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Your opponent returns 1 DON!! card from their field to their DON!! deck. [Opponent's Turn] When this Character is K.O.'d, your opponent returns 2 DON!! cards from their field to their DON!! deck.",
+      "timings": [
+        "on-play",
+        "on-ko"
+      ],
+      "scenarioNames": [
+        "on-play: pay one own DON, then return one opponent DON",
+        "on-ko: opponent-turn effect makes opponent choose two DON to return"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "return-don",
+                "amount": 1
+              }
+            ],
+            "rawText": "[On Play] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Your opponent returns 1 DON!! card from their field to their DON!! deck. [Opponent's Turn] When this Character is K.O.'d, your opponent returns 2 DON!! cards from their field to their DON!! deck.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "return-don",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Your opponent returns 1 DON!! card from their field to their DON!! deck. [Opponent's Turn] When this Character is K.O.'d, your opponent returns 2 DON!! cards from their field to their DON!! deck.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On Play] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Your opponent returns 1 DON!! card from their field to their DON!! deck.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [
+              {
+                "kind": "return-don",
+                "amount": 1,
+                "optional": false
+              }
+            ],
+            "actions": [
+              {
+                "kind": "return-don",
+                "amount": 1,
+                "owner": "opponent"
+              }
+            ]
+          },
+          {
+            "rawText": "[Opponent's Turn] When this Character is K.O.'d, your opponent returns 2 DON!! cards from their field to their DON!! deck.",
+            "trigger": "on-ko",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "it is your opponent's turn"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "return-don",
+                "amount": 2,
+                "owner": "opponent"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "PAY_COST",
+                "cost": {
+                  "kind": "return-don",
+                  "amount": 1,
+                  "optional": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "return-don",
+                  "amount": 1,
+                  "owner": "opponent"
+                }
+              }
+            ]
+          },
+          {
+            "timing": "on-ko",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "it is your opponent's turn"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "return-don",
+                  "amount": 2,
+                  "owner": "opponent"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Your opponent returns 1 DON!! card from their field to their DON!! deck. [Opponent's Turn] When this Character is K.O.'d, your opponent returns 2 DON!! cards from their field to their DON!! deck.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "ca86de330ffae10b3b0e6a88d1d0d2de78f6172d97711f9d0686ec692b069ad3",
+      "afterHash": "1155ea392753bdf61c9686441b377a419f61c0cc2fe93d3e07b24364d911d347"
+    },
+    {
+      "code": "OP02-030",
+      "printedText": "[Activate: Main] [Once Per Turn] ③ (You may rest the specified number of DON!! cards in your cost area.): Set this Character as active.\n[On K.O.] Play up to 1 green {Land of Wano} type Character card with a cost of 3 from your deck. Then, shuffle your deck.",
+      "publishedText": "[Activate:Main] [Once Per Turn] (3) (You may rest the specified number of DON!! cards in your cost area.): Set this Character as active. [On K.O.] Play up to 1 green \"Land of Wano\" type Character card with a cost of 3 from your deck. Then, shuffle your deck.",
+      "timings": [
+        "activate-main",
+        "on-ko"
+      ],
+      "scenarioNames": [
+        "activate-main: pay three active DON before readying this Character",
+        "on-ko: choose exactly a green cost-3 Land of Wano Character from deck, then shuffle"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "self",
+                "amount": 1
+              },
+              {
+                "kind": "on-ko"
+              }
+            ],
+            "rawText": "[Activate:Main] [Once Per Turn] (3) (You may rest the specified number of DON!! cards in your cost area.): Set this Character as active. [On K.O.] Play up to 1 green \"Land of Wano\" type Character card with a cost of 3 from your deck. Then, shuffle your deck.",
+            "trigger": "activate-main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "self",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "on-ko"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Activate:Main] [Once Per Turn] (3) (You may rest the specified number of DON!! cards in your cost area.): Set this Character as active. [On K.O.] Play up to 1 green \"Land of Wano\" type Character card with a cost of 3 from your deck. Then, shuffle your deck.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Activate: Main] [Once Per Turn] ③ (You may rest the specified number of DON!! cards in your cost area.): Set this Character as active.",
+            "trigger": "activate-main",
+            "conditions": [],
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "don",
+                "amount": 3,
+                "optional": false
+              }
+            ],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "self",
+                "amount": 1
+              }
+            ]
+          },
+          {
+            "rawText": "[On K.O.] Play up to 1 green {Land of Wano} type Character card with a cost of 3 from your deck. Then, shuffle your deck.",
+            "trigger": "on-ko",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "shuffle",
+                "scope": "self"
+              },
+              {
+                "kind": "play",
+                "source": "deck",
+                "amount": 1,
+                "exactCost": 3,
+                "trait": "Land of Wano",
+                "color": "green",
+                "cardType": "Character"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "PAY_COST",
+                "cost": {
+                  "kind": "rest",
+                  "scope": "don",
+                  "amount": 3,
+                  "optional": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "self",
+                  "amount": 1
+                }
+              }
+            ]
+          },
+          {
+            "timing": "on-ko",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "shuffle",
+                  "scope": "self"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "deck",
+                  "amount": 1,
+                  "exactCost": 3,
+                  "trait": "Land of Wano",
+                  "color": "green",
+                  "cardType": "Character"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Activate:Main] [Once Per Turn] (3) (You may rest the specified number of DON!! cards in your cost area.): Set this Character as active. [On K.O.] Play up to 1 green \"Land of Wano\" type Character card with a cost of 3 from your deck. Then, shuffle your deck.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "e0ad80921ccffd8ba43aba0db5b092fe8f7afdd16b38aaaea881edef16ae2679",
+      "afterHash": "2396fc22fb68486d44aed4ccd50773fd0b33f7fcb9808e7fe143608efb1a1d0b"
+    }
+  ]
+}

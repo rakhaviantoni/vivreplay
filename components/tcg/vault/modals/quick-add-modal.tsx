@@ -11,17 +11,22 @@ import { toast } from 'sonner';
 import { cards, printings, Card } from '@/packages/card-data/catalog';
 import { CardArt } from '../card-art';
 import { api } from '@/lib/client';
+import { addLocalVaultItem } from '../local-vault';
 
 interface QuickAddModalProps {
   open: boolean;
   onClose: () => void;
   onItemAdded: () => Promise<void> | void;
+  isAnonymous?: boolean;
+  language?: 'EN' | 'ID';
 }
 
 export function QuickAddModal({
   open,
   onClose,
   onItemAdded,
+  isAnonymous = false,
+  language = 'EN',
 }: QuickAddModalProps) {
   const [query, setQuery] = useState('');
   const [busy, setBusy] = useState(false);
@@ -36,6 +41,32 @@ export function QuickAddModal({
     setBusy(true);
     try {
       const p = printings.find(item => item.cardId === card.id) || printings[0];
+      if (isAnonymous) {
+        addLocalVaultItem({
+          printingId: p.id,
+          card,
+          type: 'RAW',
+          quantity: 1,
+          condition: 'NM',
+          visibility: 'private',
+          acquisitionAmount: 0,
+          currency: 'IDR',
+          acquiredAt: new Date().toISOString(),
+          notes: 'Quick-added 1 Raw NM copy. Details can be updated anytime.',
+          provider: null,
+          grade: null,
+          certification: null,
+        });
+        toast.success(
+          language === 'ID'
+            ? `Berhasil menambahkan 1x ${card.name} (Raw NM) ke Vault lokal`
+            : `Added 1x ${card.name} (Raw NM) to local Vault`
+        );
+        await onItemAdded();
+        onClose();
+        return;
+      }
+
       await api('/api/collection', {
         printingId: p.id,
         catalogCard: card,
@@ -82,7 +113,7 @@ export function QuickAddModal({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Zap size={20} weight="fill" color="var(--vault-gold)" />
-            <h3 style={{ fontFamily: 'var(--display-font, Georgia, serif)', fontSize: '20px', fontWeight: 600, margin: 0 }}>
+            <h3 style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '20px', fontWeight: 600, margin: 0 }}>
               Quick Add to Vault
             </h3>
           </div>

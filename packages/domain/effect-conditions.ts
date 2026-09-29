@@ -3,6 +3,7 @@ import type {MatchEffectState, PlayerId} from './match-effect-state';
 export function evaluateEffectCondition(text:string,state:MatchEffectState,actor:PlayerId):boolean|undefined {
  const own=state.cards.filter(card=>card.owner===actor),enemy=state.cards.filter(card=>card.owner!==actor);
  const leader=own.find(card=>card.zone==='leader');
+ if(/^it is your opponent's turn$/i.test(text))return state.turn!==actor;
  const parts=text.split(/\s+and\s+/i);
  if(parts.length>1){const results=parts.map(part=>evaluateEffectCondition(part,state,actor));return results.includes(false)?false:results.includes(undefined)?undefined:true;}
  const name=text.match(/^your Leader is \[([^\]]+)\]$/i);

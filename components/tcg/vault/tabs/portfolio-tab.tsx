@@ -67,7 +67,7 @@ export function PortfolioTab({
             <span style={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--vault-gold)' }}>
               Collector Portfolio Summary
             </span>
-            <h2 style={{ fontFamily: 'var(--display-font, Georgia, serif)', fontSize: '28px', fontWeight: 600, margin: '4px 0 0' }}>
+            <h2 style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '28px', fontWeight: 600, margin: '4px 0 0' }}>
               Collection Valuation
             </h2>
           </div>
@@ -93,7 +93,7 @@ export function PortfolioTab({
             <span style={{ fontSize: '11px', color: 'var(--vault-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>
               Estimated Portfolio Value
             </span>
-            <div style={{ fontFamily: 'var(--display-font, Georgia, serif)', fontSize: '32px', fontWeight: 600, color: 'var(--vault-ink)', margin: '4px 0' }}>
+            <div style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '32px', fontWeight: 600, color: 'var(--vault-ink)', margin: '4px 0' }}>
               {hideValues ? 'Rp ••••••••' : formatCompactMoney(stats.estimatedValue, 'IDR')}
             </div>
             <span style={{ fontSize: '11.5px', color: 'var(--vault-ink-secondary)' }}>
@@ -105,7 +105,7 @@ export function PortfolioTab({
             <span style={{ fontSize: '11px', color: 'var(--vault-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>
               Acquisition Cost Basis
             </span>
-            <div style={{ fontFamily: 'var(--display-font, Georgia, serif)', fontSize: '32px', fontWeight: 600, color: 'var(--vault-ink)', margin: '4px 0' }}>
+            <div style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '32px', fontWeight: 600, color: 'var(--vault-ink)', margin: '4px 0' }}>
               {hideValues ? 'Rp ••••••••' : formatCompactMoney(stats.totalAcquisitionCost, 'IDR')}
             </div>
             <span style={{ fontSize: '11.5px', color: 'var(--vault-ink-secondary)' }}>
@@ -118,7 +118,7 @@ export function PortfolioTab({
               Unrealized Difference
             </span>
             <div style={{
-              fontFamily: 'var(--display-font, Georgia, serif)',
+              fontFamily: 'var(--display-font, var(--font-sans))',
               fontSize: '32px',
               fontWeight: 600,
               color: stats.unrealizedChangeAmount >= 0 ? '#2e8b57' : '#c0392b',

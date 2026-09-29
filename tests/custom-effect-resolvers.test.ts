@@ -25,7 +25,7 @@ test('delayed and replacement custom effects stay explicit contracts',()=>{
 test('tested custom handlers resolve through the normal timing API',()=>{
  const document=compileEffectDocument(card('OP06-092','[On Play] Choose one: • Trash up to 1 of your opponent\'s Characters with a cost of 4 or less. • Your opponent places 3 cards from their trash at bottom of their deck in any order.'));
  assert.equal(document.resolver.type,'CUSTOM');
- assert.equal(document.implementationStatus,'PARSED');
+ assert.equal(document.implementationStatus,'TESTED');
  const resolution=resolveEffectTiming(document,'on-play');
  assert.equal(resolution.status,'ready');
  assert.equal(resolution.instructions?.[0].kind,'choose-one');
@@ -35,6 +35,8 @@ test('implemented custom handlers resolve through the shared runtime contract',(
  const plan=resolveCustomEffect('OP02_025_ACTIVATE_MAIN');
  assert.equal(plan.status,'ready');
  assert.equal(plan.instructions[0]?.kind,'apply');
+ const document=compileEffectDocument(card('OP02-025','[Activate: Main] [Once Per Turn] If you have 1 or less Characters, the next time you play a {Land of Wano} type Character card with a cost of 3 or more from your hand during this turn, the cost will be reduced by 1.'));
+ assert.equal(document.implementationStatus,'IMPLEMENTED');
 });
 
 test('unknown custom handlers remain blocked from execution',()=>{

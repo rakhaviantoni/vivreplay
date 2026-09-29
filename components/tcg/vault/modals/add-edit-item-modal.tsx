@@ -12,6 +12,7 @@ import { cards, printings, Card } from '@/packages/card-data/catalog';
 import { GRADING_PROVIDERS } from '@/packages/domain';
 import { CardArt } from '../card-art';
 import { api } from '@/lib/client';
+import { addLocalVaultItem, updateLocalVaultItem } from '../local-vault';
 import type { EnrichedCollectionItem } from '../types';
 
 interface AddEditItemModalProps {
@@ -20,6 +21,8 @@ interface AddEditItemModalProps {
   onSaved: () => Promise<void> | void;
   editingItem?: EnrichedCollectionItem | null;
   initialCard?: Card;
+  isAnonymous?: boolean;
+  language?: 'EN' | 'ID';
 }
 
 export function AddEditItemModal({
@@ -28,6 +31,8 @@ export function AddEditItemModal({
   onSaved,
   editingItem,
   initialCard,
+  isAnonymous = false,
+  language = 'EN',
 }: AddEditItemModalProps) {
   const isEditing = Boolean(editingItem);
 
@@ -37,7 +42,7 @@ export function AddEditItemModal({
   const [itemType, setItemType] = useState<'RAW' | 'GRADED'>(
     editingItem ? editingItem.type : 'RAW'
   );
-  const [language, setLanguage] = useState<'EN' | 'JP'>('JP');
+  const [cardLanguage, setCardLanguage] = useState<'EN' | 'JP'>('JP');
   const [condition, setCondition] = useState(editingItem?.condition || 'NM');
   const [quantity, setQuantity] = useState(editingItem ? editingItem.quantity : 1);
   const [provider, setProvider] = useState(editingItem?.provider || 'PSA');
@@ -60,7 +65,7 @@ export function AddEditItemModal({
   if (!open) return null;
 
   const currentCard = cards.find(c => c.code === selectedCardCode) || cards[0];
-  const targetPrinting = printings.find(p => p.cardId === currentCard.id && p.language === language) || printings.find(p => p.cardId === currentCard.id) || printings[0];
+  const targetPrinting = printings.find(p => p.cardId === currentCard.id && p.language === cardLanguage) || printings.find(p => p.cardId === currentCard.id) || printings[0];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,6 +96,33 @@ export function AddEditItemModal({
         notes,
         subgrades: subgradesObj,
       };
+
+      if (isAnonymous) {
+        if (isEditing && editingItem) {
+          updateLocalVaultItem(editingItem.id, {
+            ...payload,
+            card: currentCard,
+          });
+          toast.success(
+            language === 'ID'
+              ? `Memperbarui ${currentCard.name} di Vault lokal Anda`
+              : `Updated ${currentCard.name} in your local Vault`
+          );
+        } else {
+          addLocalVaultItem({
+            ...payload,
+            card: currentCard,
+          });
+          toast.success(
+            language === 'ID'
+              ? `Menambahkan ${currentCard.name} (${itemType === 'GRADED' ? `${provider} ${grade}` : `${quantity}x ${condition}`}) ke Vault lokal`
+              : `Added ${currentCard.name} (${itemType === 'GRADED' ? `${provider} ${grade}` : `${quantity}x ${condition}`}) to local Vault`
+          );
+        }
+        await onSaved();
+        onClose();
+        return;
+      }
 
       if (isEditing) {
         await api('/api/collection', payload, 'PATCH');
@@ -137,7 +169,7 @@ export function AddEditItemModal({
             <span style={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '0.12em', color: 'var(--vault-gold)', textTransform: 'uppercase' }}>
               {isEditing ? 'Curate Archive Item' : 'New Collection Record'}
             </span>
-            <h2 style={{ fontFamily: 'var(--display-font, Georgia, serif)', fontSize: '24px', fontWeight: 600, margin: '2px 0 0' }}>
+            <h2 style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '24px', fontWeight: 600, margin: '2px 0 0' }}>
               {isEditing ? `Edit ${editingItem?.card.name}` : 'Add Card to Your Vault'}
             </h2>
           </div>
@@ -219,8 +251,8 @@ export function AddEditItemModal({
               <select
                 className="vault-select-compact"
                 style={{ width: '100%' }}
-                value={language}
-                onChange={e => setLanguage(e.target.value as any)}
+                value={cardLanguage}
+                onChange={e => setCardLanguage(e.target.value as any)}
               >
                 <option value="JP">Japanese (JP)</option>
                 <option value="EN">English (EN)</option>

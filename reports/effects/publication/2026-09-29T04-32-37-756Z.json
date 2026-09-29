@@ -1,0 +1,341 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-09-29T04:32:37.755Z",
+  "candidates": [
+    {
+      "code": "OP01-120",
+      "printedText": "[Rush] (This card can attack on the turn in which it is played.) [When Attacking] Your opponent cannot activate a [Blocker] Character that has 2000 or less power during this battle.",
+      "publishedText": "[Rush] (This card can attack on the turn in which it is played.) [When Attacking] Your opponent cannot activate a [Blocker] Character that has 2000 or less power during this battle.",
+      "timings": [
+        "when-attacking"
+      ],
+      "scenarioNames": [
+        "when-attacking: prevent eligible opponent Blockers from activating for this battle"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "blocker"
+              },
+              {
+                "kind": "rush"
+              }
+            ],
+            "rawText": "[Rush] (This card can attack on the turn in which it is played.) [When Attacking] Your opponent cannot activate a [Blocker] Character that has 2000 or less power during this battle.",
+            "trigger": "when-attacking",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rush"
+              }
+            ],
+            "rawText": "[Rush] (This card can attack on the turn in which it is played.)",
+            "trigger": "unknown",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "when-attacking",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rush"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "unknown",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rush"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Rush] (This card can attack on the turn in which it is played.) [When Attacking] Your opponent cannot activate a [Blocker] Character that has 2000 or less power during this battle.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rush"
+              }
+            ],
+            "rawText": "[Rush] (This card can attack on the turn in which it is played.)",
+            "trigger": "unknown",
+            "conditions": []
+          },
+          {
+            "rawText": "[When Attacking] Your opponent cannot activate a [Blocker] Character that has 2000 or less power during this battle.",
+            "trigger": "when-attacking",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "prevent-keyword-activation",
+                "keyword": "blocker",
+                "scope": "opponent-character",
+                "maxPower": 2000,
+                "until": "battle"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rush"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "when-attacking",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "prevent-keyword-activation",
+                  "keyword": "blocker",
+                  "scope": "opponent-character",
+                  "maxPower": 2000,
+                  "until": "battle"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Rush] (This card can attack on the turn in which it is played.) [When Attacking] Your opponent cannot activate a [Blocker] Character that has 2000 or less power during this battle.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "aa659c418e2b9f1d2a607caa63964edfacafba17fd1142fc415df79d56edc416",
+      "afterHash": "ac8ef6a8616ce540c536019e0cb2cc698e7762c8e2207c9c657f230223fb0020"
+    },
+    {
+      "code": "OP01-086",
+      "printedText": "[Counter] Up to 1 of your Leader or Character cards gains +4000 power during this battle. Then, return up to 1 active Character with a cost of 3 or less to the owner's hand. [Trigger] Return up to 1 card with a cost of 4 or less to the owner's hand.  This card has been officially errata'd.",
+      "publishedText": "[Counter] Up to 1 of your Leader or Character cards gains +4000 power during this battle. Then, return up to 1 active Character with a cost of 3 or less to the owner's hand. [Trigger] Return up to 1 card with a cost of 4 or less to the owner's hand.  This card has been officially errata'd.",
+      "timings": [
+        "counter",
+        "trigger"
+      ],
+      "scenarioNames": [
+        "counter: boost one own Leader/Character, then return an active cost-3-or-less Character",
+        "trigger: return any field card costing 4 or less, without limiting the owner"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "battle",
+                "amount": 4000,
+                "target": "own-leader"
+              },
+              {
+                "kind": "return-to-hand",
+                "scope": "own-character",
+                "maxCost": 3
+              }
+            ],
+            "rawText": "[Counter] Up to 1 of your Leader or Character cards gains +4000 power during this battle. Then, return up to 1 active Character with a cost of 3 or less to the owner's hand. [Trigger] Return up to 1 card with a cost of 4 or less to the owner's hand.  This card has been officially errata'd.",
+            "trigger": "counter",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "counter",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "battle",
+                  "amount": 4000,
+                  "target": "own-leader"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "return-to-hand",
+                  "scope": "own-character",
+                  "maxCost": 3
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Counter] Up to 1 of your Leader or Character cards gains +4000 power during this battle. Then, return up to 1 active Character with a cost of 3 or less to the owner's hand. [Trigger] Return up to 1 card with a cost of 4 or less to the owner's hand.  This card has been officially errata'd.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Counter] Up to 1 of your Leader or Character cards gains +4000 power during this battle. Then, return up to 1 active Character with a cost of 3 or less to the owner's hand.",
+            "trigger": "counter",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 4000,
+                "until": "battle",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                },
+                "target": "own-card"
+              },
+              {
+                "kind": "return-to-hand",
+                "scope": "any-character",
+                "maxCost": 3,
+                "activeOnly": true,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          },
+          {
+            "rawText": "[Trigger] Return up to 1 card with a cost of 4 or less to the owner's hand.  This card has been officially errata'd.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "return-to-hand",
+                "scope": "any-card",
+                "maxCost": 4,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "counter",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 4000,
+                  "until": "battle",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "target": "own-card"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "return-to-hand",
+                  "scope": "any-character",
+                  "maxCost": 3,
+                  "activeOnly": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "return-to-hand",
+                  "scope": "any-card",
+                  "maxCost": 4,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Counter] Up to 1 of your Leader or Character cards gains +4000 power during this battle. Then, return up to 1 active Character with a cost of 3 or less to the owner's hand. [Trigger] Return up to 1 card with a cost of 4 or less to the owner's hand.  This card has been officially errata'd.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "d2b24225de1a38d9509f0a5eb134bad7757e48eab9f8c99dea99d7bda92f5221",
+      "afterHash": "3cb077ae573cfdeaec08ec40e4c481d97fbab55e48ad335b21bcf34dc2892a16"
+    }
+  ]
+}

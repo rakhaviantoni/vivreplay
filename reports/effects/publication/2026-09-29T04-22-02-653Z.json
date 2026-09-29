@@ -1,0 +1,170 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-09-29T04:22:02.652Z",
+  "candidates": [
+    {
+      "code": "OP01-024",
+      "printedText": "[DON!! x2] This Character cannot be K.O.'d in battle by \"Strike\" attribute Characters. [Activate:Main] [Once Per Turn] Give this Character up to 2 rested DON!! cards.",
+      "publishedText": "[DON!! x2] This Character cannot be K.O.'d in battle by \"Strike\" attribute Characters. [Activate:Main] [Once Per Turn] Give this Character up to 2 rested DON!! cards.",
+      "timings": [
+        "unknown",
+        "activate-main"
+      ],
+      "scenarioNames": [
+        "unknown: DON!! ×2 protects only against battle K.O. by Strike Characters",
+        "activate-main: attach zero to two rested cost-area DON!! to this Character"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don-required",
+                "amount": 2
+              },
+              {
+                "by": "battle",
+                "kind": "prevent-ko",
+                "scope": "own-character"
+              }
+            ],
+            "rawText": "[DON!! x2] This Character cannot be K.O.'d in battle by \"Strike\" attribute Characters. [Activate:Main] [Once Per Turn] Give this Character up to 2 rested DON!! cards.",
+            "trigger": "activate-main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 2
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "by": "battle",
+                  "kind": "prevent-ko",
+                  "scope": "own-character"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x2] This Character cannot be K.O.'d in battle by \"Strike\" attribute Characters. [Activate:Main] [Once Per Turn] Give this Character up to 2 rested DON!! cards.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[DON!! x2] This Character cannot be K.O.'d in battle by \"Strike\" attribute Characters.",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don-required",
+                "amount": 2
+              },
+              {
+                "kind": "prevent-ko",
+                "scope": "own-character",
+                "by": "battle",
+                "attribute": "Strike",
+                "requiresAttachedDon": 2
+              }
+            ]
+          },
+          {
+            "rawText": "[Activate:Main] [Once Per Turn] Give this Character up to 2 rested DON!! cards.",
+            "trigger": "activate-main",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don",
+                "amount": 2,
+                "source": "cost-area",
+                "rested": true,
+                "recipient": "self",
+                "selection": {
+                  "min": 0,
+                  "max": 2
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 2
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "prevent-ko",
+                  "scope": "own-character",
+                  "by": "battle",
+                  "attribute": "Strike",
+                  "requiresAttachedDon": 2
+                }
+              }
+            ]
+          },
+          {
+            "timing": "activate-main",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 2,
+                  "source": "cost-area",
+                  "rested": true,
+                  "recipient": "self",
+                  "selection": {
+                    "min": 0,
+                    "max": 2
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x2] This Character cannot be K.O.'d in battle by \"Strike\" attribute Characters. [Activate:Main] [Once Per Turn] Give this Character up to 2 rested DON!! cards.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "4757f0754692d31ff4f273108b1fd31f1f139f67d7a00a3fd146bf66d474687d",
+      "afterHash": "5127d2250f3a4cb570320652947d9a61f09c4bbe0691df0b708872dff3c4cfe2"
+    }
+  ]
+}

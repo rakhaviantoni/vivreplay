@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+
 import { 
   BookOpenIcon as BookOpen, 
   ShieldCheckIcon as ShieldCheck, 
@@ -13,12 +14,22 @@ import {
   PlusIcon as Plus,
   MagnifyingGlassIcon as Search,
   DownloadSimpleIcon as Download,
-  StackIcon as Layers3
+  StackIcon as Layers3,
+  FloppyDiskIcon as Save,
+  UploadSimpleIcon as Upload
 } from '@phosphor-icons/react';
 
 import { useAccount, api } from '@/lib/client';
 import { cards, printings, Card } from '@/packages/card-data/catalog';
-import { AccountStatus } from './status';
+
+import {
+  getLocalVaultItems,
+  updateLocalVaultItem,
+  deleteLocalVaultItem,
+  hasLocalVaultCustomizations,
+  clearLocalVault
+} from './vault/local-vault';
+import type { CollectionItem } from '@/packages/domain';
 
 // Vault Subcomponents
 import { VaultHeader } from './vault/vault-header';
@@ -71,6 +82,9 @@ export function Vault() {
     slabs: 'private',
   });
   const [hideValues, setHideValues] = useState<boolean>(true);
+  const [language, setLanguage] = useState<'EN' | 'ID'>('EN');
+
+  const t = (en: string, idStr: string) => language === 'ID' ? idStr : en;
 
   // Showcase / Favorites Set
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
@@ -103,6 +117,21 @@ export function Vault() {
   const [importExportOpen, setImportExportOpen] = useState(false);
   const [selectedShareSet, setSelectedShareSet] = useState<any>(null);
 
+  // Local-first vault state for anonymous visitors and offline capability
+  const [localVaultItems, setLocalVaultItems] = useState<CollectionItem[]>([]);
+  const [hasCustomLocalItems, setHasCustomLocalItems] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
+  useEffect(() => {
+    const loadLocal = () => {
+      setLocalVaultItems(getLocalVaultItems());
+      setHasCustomLocalItems(hasLocalVaultCustomizations());
+    };
+    loadLocal();
+    window.addEventListener('vivreplay:vault-updated', loadLocal);
+    return () => window.removeEventListener('vivreplay:vault-updated', loadLocal);
+  }, []);
+
   // Load preferences from localStorage on mount
   useEffect(() => {
     try {
@@ -122,7 +151,12 @@ export function Vault() {
       if (savedPrivacy) {
         setPrivacy(JSON.parse(savedPrivacy));
       }
+      setLanguage(window.localStorage.getItem('vivreplay-locale') === 'ID' ? 'ID' : 'EN');
     } catch {}
+
+    const onLocale = (event: Event) => setLanguage((event as CustomEvent<'EN' | 'ID'>).detail === 'ID' ? 'ID' : 'EN');
+    window.addEventListener('vivreplay:locale', onLocale);
+    return () => window.removeEventListener('vivreplay:locale', onLocale);
   }, []);
 
   const handleViewModeChange = (mode: VaultViewMode) => {
@@ -167,14 +201,17 @@ export function Vault() {
     } catch {}
   };
 
-  // Determine collection items: use user collection if populated, or provide rich sample collection
+  // Determine collection items: use user collection if populated, or provide local vault collection
   const collectionItems = useMemo(() => {
     if (data && data.collection && data.collection.length > 0) {
       return data.collection;
     }
-    // If account has no collection items yet, display realistic collector seed so page is inspiring
-    return getDefaultCollectorSeed();
-  }, [data]);
+    if (data) {
+      return getDefaultCollectorSeed();
+    }
+    // Guest mode: use local vault items if present, else fallback to seed
+    return localVaultItems.length > 0 ? localVaultItems : getDefaultCollectorSeed();
+  }, [data, localVaultItems]);
 
   // Enrich collection items with card art, estimates, gain/loss, and favorite state
   const enrichedItems: EnrichedCollectionItem[] = useMemo(() => {
@@ -263,6 +300,16 @@ export function Vault() {
   };
 
   const handleAddCopy = async (item: EnrichedCollectionItem) => {
+    if (!data) {
+      updateLocalVaultItem(item.id, { quantity: item.quantity + 1 });
+      toast.success(
+        language === 'ID'
+          ? `Menambahkan 1 salinan ke ${item.card.name} (${item.quantity + 1} total)`
+          : `Added 1 copy to ${item.card.name} (${item.quantity + 1} total)`
+      );
+      setSelectedRawItem(null);
+      return;
+    }
     try {
       await api('/api/collection', {
         id: item.id,
@@ -279,6 +326,15 @@ export function Vault() {
   };
 
   const handleDeleteItem = async (itemId: string) => {
+    if (!data) {
+      deleteLocalVaultItem(itemId);
+      toast.success(
+        language === 'ID' ? 'Kartu dihapus dari Vault lokal' : 'Card removed from local Vault'
+      );
+      setSelectedRawItem(null);
+      setSelectedSlabItem(null);
+      return;
+    }
     try {
       await api('/api/collection', { id: itemId }, 'DELETE');
       toast.success('Card removed from Vault');
@@ -293,6 +349,14 @@ export function Vault() {
   };
 
   const handleMoveToWishlist = async (item: EnrichedCollectionItem) => {
+    if (!data) {
+      toast.success(
+        language === 'ID'
+          ? `${item.card.name} ditandai di wishlist lokal`
+          : `Marked ${item.card.name} on local wishlist`
+      );
+      return;
+    }
     try {
       await api('/api/wishlist', { printingId: item.printingId, saved: true });
       toast.success(`Added ${item.card.name} to your Wishlist`);
@@ -301,24 +365,144 @@ export function Vault() {
     }
   };
 
-  const username = data?.profile?.username || 'rakha';
+  const handleSyncLocalToCloud = async () => {
+    if (!data) return;
+    setSyncing(true);
+    try {
+      const itemsToSync = getLocalVaultItems();
+      let syncedCount = 0;
+      for (const item of itemsToSync) {
+        try {
+          await api('/api/collection', {
+            printingId: item.printingId,
+            type: item.type,
+            quantity: item.quantity,
+            condition: item.condition,
+            provider: item.provider,
+            grade: item.grade,
+            certification: item.certification,
+            visibility: item.visibility,
+            acquisitionAmount: item.acquisitionAmount,
+            currency: item.currency,
+            acquiredAt: item.acquiredAt,
+            notes: item.notes,
+            subgrades: item.subgrades,
+          }, 'POST');
+          syncedCount++;
+        } catch {}
+      }
+      clearLocalVault();
+      setHasCustomLocalItems(false);
+      toast.success(
+        language === 'ID'
+          ? `Berhasil menyinkronkan ${syncedCount} kartu ke akun Anda!`
+          : `Successfully synced ${syncedCount} cards to your account!`
+      );
+      await refresh();
+    } catch {
+      toast.error(
+        language === 'ID'
+          ? 'Gagal menyinkronkan koleksi lokal ke akun.'
+          : 'Failed to sync local collection to account.'
+      );
+    } finally {
+      setSyncing(false);
+    }
+  };
 
-  if (!data && loading) {
-    return (
-      <main className="page vault-page">
-        <AccountStatus error={error} retry={refresh} />
-      </main>
-    );
-  }
+  const username = data?.profile?.username || (language === 'ID' ? 'kolektor-tamu' : 'guest-collector');
 
   return (
     <main className="page vault-page">
+      {/* Guest Mode Banner (when not logged in) */}
+      {!data && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px',
+          padding: '12px 18px',
+          marginBottom: '20px',
+          borderRadius: '12px',
+          background: 'var(--vault-panel)',
+          border: '1px solid var(--vault-border)',
+          color: 'var(--vault-ink-secondary)',
+          fontSize: '12.5px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+            <Save size={18} color="var(--vault-gold)" weight="fill" />
+            <span>
+              {language === 'ID'
+                ? 'Mode Vault Lokal: Koleksi Anda disimpan di browser perangkat ini. Masuk untuk backup ke cloud dan bagikan vault Anda.'
+                : 'Local Vault Mode: Your collection is saved on this browser. Sign in to back up to the cloud and share your vault.'}
+            </span>
+          </div>
+          <button
+            type="button"
+            className="vault-btn vault-btn-primary"
+            style={{ height: '30px', fontSize: '11.5px', padding: '0 14px' }}
+            onClick={() => window.dispatchEvent(new CustomEvent('vivreplay:open-auth', { detail: 'sign-in' }))}
+          >
+            {language === 'ID' ? 'Masuk' : 'Sign in'}
+          </button>
+        </div>
+      )}
+
+      {/* Cloud Sync Prompt (when logged in and has local guest items) */}
+      {data && hasCustomLocalItems && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px',
+          padding: '12px 18px',
+          marginBottom: '20px',
+          borderRadius: '12px',
+          background: 'rgba(198, 138, 44, 0.1)',
+          border: '1px solid var(--vault-gold)',
+          color: 'var(--vault-ink)',
+          fontSize: '12.5px',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+            <Upload size={18} color="var(--vault-gold)" weight="bold" />
+            <span>
+              {language === 'ID'
+                ? 'Ditemukan kartu dari sesi tamu di perangkat ini. Gabungkan ke vault cloud akun Anda?'
+                : 'Found cards saved locally from your guest session. Merge them into your cloud vault?'}
+            </span>
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              type="button"
+              onClick={handleSyncLocalToCloud}
+              disabled={syncing}
+              className="vault-btn vault-btn-primary"
+              style={{ height: '30px', fontSize: '11.5px', padding: '0 14px' }}
+            >
+              {syncing
+                ? (language === 'ID' ? 'Menyinkronkan...' : 'Syncing...')
+                : (language === 'ID' ? 'Sinkronkan Sekarang' : 'Sync to Cloud')}
+            </button>
+            <button
+              type="button"
+              onClick={() => { clearLocalVault(); setHasCustomLocalItems(false); }}
+              className="vault-btn vault-btn-secondary"
+              style={{ height: '30px', fontSize: '11.5px', padding: '0 12px' }}
+            >
+              {language === 'ID' ? 'Abaikan' : 'Dismiss'}
+            </button>
+          </div>
+        </div>
+      )}
       {/* Vault Header & Key Metrics Bar */}
       <VaultHeader
         stats={stats}
         username={username}
         privacy={privacy}
         hideValues={hideValues}
+        language={language}
         onToggleHideValues={handleToggleHideValues}
         onOpenQuickAdd={() => setQuickAddOpen(true)}
         onOpenFullAdd={() => { setEditingItem(null); setFullAddOpen(true); }}
@@ -328,14 +512,14 @@ export function Vault() {
       />
 
       {/* Vault Navigation Tabs */}
-      <nav className="vault-nav-tabs" aria-label="Vault tabs">
+      <nav className="vault-nav-tabs" aria-label={t('Vault tabs','Tab Vault')}>
         <button
           type="button"
           className={`vault-tab-btn ${activeTab === 'collection' ? 'is-active' : ''}`}
           onClick={() => setActiveTab('collection')}
         >
           <BookOpen size={16} />
-          Collection
+          {t('Collection','Koleksi')}
           <span className="vault-tab-count">{enrichedItems.length}</span>
         </button>
 
@@ -345,7 +529,7 @@ export function Vault() {
           onClick={() => setActiveTab('slabs')}
         >
           <ShieldCheck size={16} />
-          Slabs
+          {t('Slabs','Slab')}
           <span className="vault-tab-count">{slabsList.length}</span>
         </button>
 
@@ -355,7 +539,7 @@ export function Vault() {
           onClick={() => setActiveTab('sets')}
         >
           <Layers3 size={16} />
-          Sets
+          {t('Sets','Set')}
           <span className="vault-tab-count">{setProgressList.length}</span>
         </button>
 
@@ -365,7 +549,7 @@ export function Vault() {
           onClick={() => setActiveTab('wishlist')}
         >
           <Heart size={16} />
-          Wishlist
+          {t('Wishlist','Daftar Keinginan')}
           <span className="vault-tab-count">{wishlistList.length}</span>
         </button>
 
@@ -375,7 +559,7 @@ export function Vault() {
           onClick={() => setActiveTab('portfolio')}
         >
           <TrendingUp size={16} />
-          Portfolio
+          {t('Portfolio','Portofolio')}
         </button>
 
         <button
@@ -384,7 +568,7 @@ export function Vault() {
           onClick={() => setActiveTab('activity')}
         >
           <Clock size={16} />
-          Activity
+          {t('Activity','Aktivitas')}
         </button>
       </nav>
 
@@ -397,6 +581,7 @@ export function Vault() {
             viewMode={viewMode}
             onChangeViewMode={handleViewModeChange}
             totalFilteredCount={filteredCollectionItems.length}
+            language={language}
           />
 
           {filteredCollectionItems.length === 0 ? (
@@ -406,8 +591,8 @@ export function Vault() {
                   <Search size={24} />
                 </div>
               </div>
-              <h2>No Cards Match That Search</h2>
-              <p>Try clearing your active filters or search terms to inspect your catalog.</p>
+              <h2>{t('No Cards Match That Search','Tidak Ada Kartu yang Cocok')}</h2>
+              <p>{t('Try clearing your active filters or search terms to inspect your catalog.','Coba hapus filter aktif atau kata kunci pencarian Anda.')}</p>
               <button
                 type="button"
                 className="vault-btn vault-btn-secondary"
@@ -424,7 +609,7 @@ export function Vault() {
                   favoritesOnly: false,
                 }))}
               >
-                Clear Filters
+                {t('Clear Filters','Hapus Filter')}
               </button>
             </div>
           ) : viewMode === 'binder' ? (
@@ -530,6 +715,8 @@ export function Vault() {
         open={quickAddOpen}
         onClose={() => setQuickAddOpen(false)}
         onItemAdded={refresh}
+        isAnonymous={!data}
+        language={language}
       />
 
       <AddEditItemModal
@@ -537,6 +724,8 @@ export function Vault() {
         onClose={() => { setFullAddOpen(false); setEditingItem(null); }}
         onSaved={refresh}
         editingItem={editingItem}
+        isAnonymous={!data}
+        language={language}
       />
 
       <RawDetailModal

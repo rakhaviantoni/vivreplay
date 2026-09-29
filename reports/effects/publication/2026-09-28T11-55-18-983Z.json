@@ -1,0 +1,1621 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-09-28T11:55:18.983Z",
+  "candidates": [
+    {
+      "code": "OP04-029",
+      "printedText": "[End of Your Turn] Set up to 1 of your DON!! cards as active.",
+      "timings": [
+        "end-turn"
+      ],
+      "scenarioCount": 7,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "self",
+                "amount": 1
+              }
+            ],
+            "rawText": "[End of Your Turn] Set up to 1 of your DON!! cards as active.",
+            "trigger": "end-turn",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "end-turn",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "self",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[End of Your Turn] Set up to 1 of your DON!! cards as active.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[End of Your Turn] Set up to 1 of your DON!! cards as active.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[End of Your Turn] Set up to 1 of your DON!! cards as active.",
+            "trigger": "end-turn",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-don",
+                "amount": 1
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "end-turn",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-don",
+                  "amount": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "ca03199bfee8736d9491743e2c8690fc5c5b8a969e8d9eb8156a9cd54ee38f25",
+      "afterHash": "810b98b07ed46f095e5ecf7f057ce4d6c775d10b39e36ee81233b91ab44f91b9"
+    },
+    {
+      "code": "OP11-029",
+      "printedText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[On Play] Rest up to 1 of your opponent's Characters with a cost of 1 or less.",
+      "timings": [
+        "unknown",
+        "on-play"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 1,
+                "selection": {
+                  "max": 1,
+                  "min": 0
+                }
+              }
+            ],
+            "rawText": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 1 or less.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 1,
+                  "selection": {
+                    "max": 1,
+                    "min": 0
+                  }
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[On Play] Rest up to 1 of your opponent's Characters with a cost of 1 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[On Play] Rest up to 1 of your opponent's Characters with a cost of 1 or less.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "blocker"
+              }
+            ]
+          },
+          {
+            "rawText": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 1 or less.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 1,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              }
+            ]
+          },
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 1,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "9b73650c21d335bd2cda641f8b892a8df3a56e3e594e9655503983770f1209b1",
+      "afterHash": "7fe640f53b5cdd3e467f11b8f5c16d907f66bb43812c7dc4df60960d607ec94f"
+    },
+    {
+      "code": "OP02-029",
+      "printedText": "[End of Your Turn] Set up to 1 of your DON!! cards as active.",
+      "timings": [
+        "end-turn"
+      ],
+      "scenarioCount": 7,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "self",
+                "amount": 1
+              }
+            ],
+            "rawText": "[End of Your Turn] Set up to 1 of your DON!! cards as active.",
+            "trigger": "end-turn",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "end-turn",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "self",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[End of Your Turn] Set up to 1 of your DON!! cards as active.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[End of Your Turn] Set up to 1 of your DON!! cards as active.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[End of Your Turn] Set up to 1 of your DON!! cards as active.",
+            "trigger": "end-turn",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-don",
+                "amount": 1
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "end-turn",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-don",
+                  "amount": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "ca03199bfee8736d9491743e2c8690fc5c5b8a969e8d9eb8156a9cd54ee38f25",
+      "afterHash": "810b98b07ed46f095e5ecf7f057ce4d6c775d10b39e36ee81233b91ab44f91b9"
+    },
+    {
+      "code": "OP10-055",
+      "printedText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[On K.O.] Return up to 1 of your opponent's Characters with a cost of 4 or less to the owner's hand.",
+      "timings": [
+        "unknown",
+        "on-ko"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "return-to-hand",
+                "scope": "opponent-character",
+                "maxCost": 4,
+                "selection": {
+                  "max": 1,
+                  "min": 0
+                }
+              },
+              {
+                "kind": "on-ko"
+              }
+            ],
+            "rawText": "[On K.O.] Return up to 1 of your opponent's Characters with a cost of 4 or less to the owner's hand.",
+            "trigger": "on-ko",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-ko",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "return-to-hand",
+                  "scope": "opponent-character",
+                  "maxCost": 4,
+                  "selection": {
+                    "max": 1,
+                    "min": 0
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "on-ko"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[On K.O.] Return up to 1 of your opponent's Characters with a cost of 4 or less to the owner's hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[On K.O.] Return up to 1 of your opponent's Characters with a cost of 4 or less to the owner's hand.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "blocker"
+              }
+            ]
+          },
+          {
+            "rawText": "[On K.O.] Return up to 1 of your opponent's Characters with a cost of 4 or less to the owner's hand.",
+            "trigger": "on-ko",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "return-to-hand",
+                "scope": "opponent-character",
+                "maxCost": 4,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              },
+              {
+                "kind": "on-ko"
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              }
+            ]
+          },
+          {
+            "timing": "on-ko",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "return-to-hand",
+                  "scope": "opponent-character",
+                  "maxCost": 4,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "on-ko"
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "487d22294e31f0e83894dad0dba9aee6b9908193cc941e43a822cde9b92df3ad",
+      "afterHash": "fa42b991f66327d0c27eb698745f925eb9cc32cc125818eed611d207abfa7293"
+    },
+    {
+      "code": "OP12-033",
+      "printedText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[On Block] Rest up to 1 of your opponent's Characters with a cost of 5 or less.",
+      "timings": [
+        "unknown",
+        "on-block"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 5,
+                "selection": {
+                  "max": 1,
+                  "min": 0
+                }
+              },
+              {
+                "kind": "on-block"
+              }
+            ],
+            "rawText": "[On Block] Rest up to 1 of your opponent's Characters with a cost of 5 or less.",
+            "trigger": "on-block",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-block",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 5,
+                  "selection": {
+                    "max": 1,
+                    "min": 0
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "on-block"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[On Block] Rest up to 1 of your opponent's Characters with a cost of 5 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[On Block] Rest up to 1 of your opponent's Characters with a cost of 5 or less.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "blocker"
+              }
+            ]
+          },
+          {
+            "rawText": "[On Block] Rest up to 1 of your opponent's Characters with a cost of 5 or less.",
+            "trigger": "on-block",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 5,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              },
+              {
+                "kind": "on-block"
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              }
+            ]
+          },
+          {
+            "timing": "on-block",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 5,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "on-block"
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "9ac41d556f174b31e2bd29dc006e2001de94fd3ca54f6c59d3e2a5240952097a",
+      "afterHash": "083735a1065a13d80535819400a221c945664395f70cf0dfbbfb202d6c49ad91"
+    },
+    {
+      "code": "ST24-003",
+      "printedText": "[End of Your Turn] Set up to 1 of your DON!! cards as active.",
+      "timings": [
+        "end-turn"
+      ],
+      "scenarioCount": 7,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "self",
+                "amount": 1
+              }
+            ],
+            "rawText": "[End of Your Turn] Set up to 1 of your DON!! cards as active.",
+            "trigger": "end-turn",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "end-turn",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "self",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[End of Your Turn] Set up to 1 of your DON!! cards as active.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[End of Your Turn] Set up to 1 of your DON!! cards as active.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[End of Your Turn] Set up to 1 of your DON!! cards as active.",
+            "trigger": "end-turn",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-don",
+                "amount": 1
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "end-turn",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-don",
+                  "amount": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "ca03199bfee8736d9491743e2c8690fc5c5b8a969e8d9eb8156a9cd54ee38f25",
+      "afterHash": "810b98b07ed46f095e5ecf7f057ce4d6c775d10b39e36ee81233b91ab44f91b9"
+    },
+    {
+      "code": "OP09-048",
+      "printedText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[On Play] Draw 2 cards and trash 1 card from your hand.",
+      "timings": [
+        "unknown",
+        "on-play"
+      ],
+      "scenarioCount": 4,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 2
+              },
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "requiresTrigger": false
+              }
+            ],
+            "rawText": "[On Play] Draw 2 cards and trash 1 card from your hand.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 2
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "requiresTrigger": false
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[On Play] Draw 2 cards and trash 1 card from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[On Play] Draw 2 cards and trash 1 card from your hand.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "blocker"
+              }
+            ]
+          },
+          {
+            "rawText": "[On Play] Draw 2 cards and trash 1 card from your hand.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 2
+              },
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "requiresTrigger": false
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              }
+            ]
+          },
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 2
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "requiresTrigger": false
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "ca3a95bf8d639597ae5bad6160c6db1c20308edc070be7595bb33859ccb776b7",
+      "afterHash": "28cb6909db227220bcf1a504575f844dc36a2333076b7b8708f4f287774ffb60"
+    },
+    {
+      "code": "OP17-028",
+      "printedText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[On Play] K.O. up to 1 of your opponent's rested Characters with a cost of 6 or less.",
+      "timings": [
+        "unknown",
+        "on-play"
+      ],
+      "scenarioCount": 6,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 6,
+                "selection": {
+                  "max": 1,
+                  "min": 0
+                },
+                "restedOnly": true
+              }
+            ],
+            "rawText": "[On Play] K.O. up to 1 of your opponent's rested Characters with a cost of 6 or less.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 6,
+                  "selection": {
+                    "max": 1,
+                    "min": 0
+                  },
+                  "restedOnly": true
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[On Play] K.O. up to 1 of your opponent's rested Characters with a cost of 6 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[On Play] K.O. up to 1 of your opponent's rested Characters with a cost of 6 or less.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "blocker"
+              }
+            ]
+          },
+          {
+            "rawText": "[On Play] K.O. up to 1 of your opponent's rested Characters with a cost of 6 or less.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 6,
+                "restedOnly": true,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              }
+            ]
+          },
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 6,
+                  "restedOnly": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "60ba32bb9def10e1ac6cb036564481d2f8843b995cf1b9fb8ab5fc2f8ec7f0c2",
+      "afterHash": "4069e93cb372bca15b65d2005babace9d48673c92871a8224f838ade2f5ff69c"
+    },
+    {
+      "code": "OP13-093",
+      "printedText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[On Play] Draw 2 cards and trash 2 cards from your hand.",
+      "timings": [
+        "unknown",
+        "on-play"
+      ],
+      "scenarioCount": 4,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 2
+              },
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 2,
+                "requiresTrigger": false
+              }
+            ],
+            "rawText": "[On Play] Draw 2 cards and trash 2 cards from your hand.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 2
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 2,
+                  "requiresTrigger": false
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[On Play] Draw 2 cards and trash 2 cards from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[On Play] Draw 2 cards and trash 2 cards from your hand.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "blocker"
+              }
+            ]
+          },
+          {
+            "rawText": "[On Play] Draw 2 cards and trash 2 cards from your hand.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 2
+              },
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 2,
+                "requiresTrigger": false
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              }
+            ]
+          },
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 2
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 2,
+                  "requiresTrigger": false
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "c23bcaee5ad3318733672e89a7f89cedb75ec9d00b0e8c462eddd916221a92de",
+      "afterHash": "c9b767a211a85ee02d0f89e0f012e1c5ffc50e5f57295f47d716e63ee4f7381e"
+    },
+    {
+      "code": "OP13-027",
+      "printedText": "[On Play] Set up to 2 of your DON!! cards as active.\n[End of Your Turn] If your Leader has the \"FILM\" or \"Straw Hat Crew\" type, set up to 1 of your DON!! cards as active.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioCount": 7,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "self",
+                "amount": 2
+              }
+            ],
+            "rawText": "[On Play] Set up to 2 of your DON!! cards as active.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "self",
+                "amount": 1
+              }
+            ],
+            "rawText": "[End of Your Turn] If your Leader has the \"FILM\" or \"Straw Hat Crew\" type, set up to 1 of your DON!! cards as active.",
+            "trigger": "end-turn",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the \"FILM\" or \"Straw Hat Crew\" type"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "self",
+                  "amount": 2
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "end-turn",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "self",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the \"FILM\" or \"Straw Hat Crew\" type"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Set up to 2 of your DON!! cards as active.\n[End of Your Turn] If your Leader has the \"FILM\" or \"Straw Hat Crew\" type, set up to 1 of your DON!! cards as active.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On Play] Set up to 2 of your DON!! cards as active.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-don",
+                "amount": 2
+              }
+            ]
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "self",
+                "amount": 1
+              }
+            ],
+            "rawText": "[End of Your Turn] If your Leader has the \"FILM\" or \"Straw Hat Crew\" type, set up to 1 of your DON!! cards as active.",
+            "trigger": "end-turn",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the \"FILM\" or \"Straw Hat Crew\" type"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-don",
+                  "amount": 2
+                }
+              }
+            ]
+          },
+          {
+            "timing": "end-turn",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "self",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the \"FILM\" or \"Straw Hat Crew\" type"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Set up to 2 of your DON!! cards as active.\n[End of Your Turn] If your Leader has the \"FILM\" or \"Straw Hat Crew\" type, set up to 1 of your DON!! cards as active.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "50cac57d38647861c6ed8e3ef2912e4c6365da149abf30b8917b1d23b4ebd41f",
+      "afterHash": "333347b8b2e3381afb31f5a41bf190d672d730e11542b9f09348b83385a4affa"
+    },
+    {
+      "code": "OP04-019",
+      "printedText": "[End of Your Turn] Set up to 2 of your DON!! cards as active.",
+      "timings": [
+        "end-turn"
+      ],
+      "scenarioCount": 7,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "self",
+                "amount": 2
+              }
+            ],
+            "rawText": "[End of Your Turn] Set up to 2 of your DON!! cards as active.",
+            "trigger": "end-turn",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "end-turn",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "self",
+                  "amount": 2
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[End of Your Turn] Set up to 2 of your DON!! cards as active.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[End of Your Turn] Set up to 2 of your DON!! cards as active.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[End of Your Turn] Set up to 2 of your DON!! cards as active.",
+            "trigger": "end-turn",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-don",
+                "amount": 2
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "end-turn",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-don",
+                  "amount": 2
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "480f8601d02aa50bd66c55a50e8dc064b6e2d7d720c92372d717dd59bcc550b2",
+      "afterHash": "80b6c4448b5ffcd8735e4ca4932333164a33ffb45dea1e48e78f3d281941ea30"
+    },
+    {
+      "code": "OP13-030",
+      "printedText": "[On Play] Set up to 2 of your DON!! cards as active.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioCount": 7,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "self",
+                "amount": 2
+              }
+            ],
+            "rawText": "[On Play] Set up to 2 of your DON!! cards as active.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "self",
+                  "amount": 2
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Set up to 2 of your DON!! cards as active.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[On Play] Set up to 2 of your DON!! cards as active.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[On Play] Set up to 2 of your DON!! cards as active.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-don",
+                "amount": 2
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-don",
+                  "amount": 2
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "ac950d8c61e870c1c5f58d8a228ee7bf6d95fbf6c0ea928788491ed42d2807aa",
+      "afterHash": "cc1d1f8e988ddaf2bcb2c6794cb72756ddfd83d4b3681882a3e34728636328a3"
+    },
+    {
+      "code": "OP17-108",
+      "printedText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 6 or less.",
+      "timings": [
+        "unknown",
+        "trigger"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 6,
+                "selection": {
+                  "max": 1,
+                  "min": 0
+                }
+              }
+            ],
+            "rawText": "[Trigger] Rest up to 1 of your opponent's Characters with a cost of 6 or less.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 6,
+                  "selection": {
+                    "max": 1,
+                    "min": 0
+                  }
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 6 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 6 or less.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "blocker"
+              }
+            ]
+          },
+          {
+            "rawText": "[Trigger] Rest up to 1 of your opponent's Characters with a cost of 6 or less.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 6,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 6,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "5de0ad8323ec59bcccf5ceb7b0510657d294c17a71d858c349ff704d176d39c7",
+      "afterHash": "16ea2e82804ea57dc09734069db9880363a3f2642b59efa23b0fa1a9e0b514fc"
+    }
+  ]
+}

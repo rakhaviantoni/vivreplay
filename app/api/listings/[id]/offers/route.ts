@@ -1,7 +1,7 @@
 import {z} from 'zod';
 import {db,errorResponse,guard,HttpError,user} from '@/lib/server/store';
 
-const schema=z.object({type:z.enum(['BUY','SELL']),items:z.array(z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(99)})).min(1).max(30),amount:z.number().int().positive(),currency:z.string().length(3)});
+const schema=z.object({type:z.enum(['BUY','SELL']),items:z.array(z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(99),unitAmount:z.number().int().positive().optional()})).min(1).max(30),amount:z.number().int().positive(),currency:z.string().length(3)});
 
 export async function POST(request:Request,{params}:{params:Promise<{id:string}>}){try{
   guard(request);const actor=await user();const {id}=await params;const value=schema.parse(await request.json());

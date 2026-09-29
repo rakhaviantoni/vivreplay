@@ -1,0 +1,343 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-09-29T04:59:32.162Z",
+  "candidates": [
+    {
+      "code": "OP01-112",
+      "printedText": "[Activate:Main] [Once Per Turn] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): This Character can also attack your opponent's active Characters during this turn.",
+      "publishedText": "[Activate:Main] [Once Per Turn] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): This Character can also attack your opponent's active Characters during this turn.",
+      "timings": [
+        "activate-main"
+      ],
+      "scenarioNames": [
+        "Activate Main: return exactly one DON!!, then attack an active opponent Character this turn"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [
+              {
+                "kind": "return-don",
+                "amount": 1,
+                "optional": false
+              }
+            ],
+            "actions": [
+              {
+                "kind": "attack-permission",
+                "scope": "own-character",
+                "activeTargets": true
+              }
+            ],
+            "rawText": "[Activate:Main] [Once Per Turn] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): This Character can also attack your opponent's active Characters during this turn.",
+            "trigger": "activate-main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "return-don",
+                  "amount": 1,
+                  "optional": false
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attack-permission",
+                  "scope": "own-character",
+                  "activeTargets": true
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Activate:Main] [Once Per Turn] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): This Character can also attack your opponent's active Characters during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Activate:Main] [Once Per Turn] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): This Character can also attack your opponent's active Characters during this turn.",
+            "trigger": "activate-main",
+            "conditions": [],
+            "costs": [
+              {
+                "kind": "return-don",
+                "amount": 1,
+                "optional": false
+              }
+            ],
+            "actions": [
+              {
+                "kind": "attack-permission",
+                "scope": "own-character",
+                "activeTargets": true,
+                "until": "turn-end"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "PAY_COST",
+                "cost": {
+                  "kind": "return-don",
+                  "amount": 1,
+                  "optional": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attack-permission",
+                  "scope": "own-character",
+                  "activeTargets": true,
+                  "until": "turn-end"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Activate:Main] [Once Per Turn] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): This Character can also attack your opponent's active Characters during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "42a65f2211d04f62fdd4441d7d8bd5604fd7d913ed79db3dc3ed7cddf24d2d10",
+      "afterHash": "2c6a7d39bd6c06a32ce22299e9c61a5e20b9f59e63a0cdb470eba297e3ee6c4b"
+    },
+    {
+      "code": "OP04-082",
+      "printedText": "If this Character would be K.O.'d, you may rest your Leader or 1 [Corrida Coliseum] instead. [On Play] If your Leader is [Rebecca], K.O. up to 1 of your opponent's Characters with a cost of 1 or less. Then, trash 1 card from the top of your deck.",
+      "publishedText": "If this Character would be K.O.'d, you may rest your Leader or 1 [Corrida Coliseum] instead. [On Play] If your Leader is [Rebecca], K.O. up to 1 of your opponent's Characters with a cost of 1 or less. Then, trash 1 card from the top of your deck.",
+      "timings": [
+        "on-play",
+        "unknown"
+      ],
+      "scenarioNames": [
+        "On Play: only under Rebecca Leader, K.O. a cost-1-or-less Character then trash the top deck card",
+        "unknown: choose an active Leader or Corrida Coliseum to replace Kyros’s K.O., or decline"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 1,
+                "restedOnly": false
+              },
+              {
+                "kind": "ko",
+                "maxCost": 1,
+                "restedOnly": false
+              },
+              {
+                "kind": "trash",
+                "scope": "deck",
+                "amount": 1
+              }
+            ],
+            "rawText": "If this Character would be K.O.'d, you may rest your Leader or 1 [Corrida Coliseum] instead. [On Play] If your Leader is [Rebecca], K.O. up to 1 of your opponent's Characters with a cost of 1 or less. Then, trash 1 card from the top of your deck.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Rebecca]"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 1,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 1,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "deck",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Rebecca]"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "If this Character would be K.O.'d, you may rest your Leader or 1 [Corrida Coliseum] instead. [On Play] If your Leader is [Rebecca], K.O. up to 1 of your opponent's Characters with a cost of 1 or less. Then, trash 1 card from the top of your deck.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On Play] If your Leader is [Rebecca], K.O. up to 1 of your opponent's Characters with a cost of 1 or less. Then, trash 1 card from the top of your deck.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Rebecca]"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 1,
+                "restedOnly": false,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              },
+              {
+                "kind": "trash",
+                "scope": "deck",
+                "amount": 1
+              }
+            ]
+          },
+          {
+            "rawText": "If this Character would be K.O.'d, you may rest your Leader or 1 [Corrida Coliseum] instead.",
+            "trigger": "unknown",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character would be K.O.'d"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "replacement",
+                "event": "ko",
+                "cost": {
+                  "kind": "rest-leader-or-stage",
+                  "amount": 1,
+                  "stageName": "Corrida Coliseum"
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Rebecca]"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 1,
+                  "restedOnly": false,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "deck",
+                  "amount": 1
+                }
+              }
+            ]
+          },
+          {
+            "timing": "unknown",
+            "optional": true,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character would be K.O.'d"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "replacement",
+                  "event": "ko",
+                  "cost": {
+                    "kind": "rest-leader-or-stage",
+                    "amount": 1,
+                    "stageName": "Corrida Coliseum"
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "If this Character would be K.O.'d, you may rest your Leader or 1 [Corrida Coliseum] instead. [On Play] If your Leader is [Rebecca], K.O. up to 1 of your opponent's Characters with a cost of 1 or less. Then, trash 1 card from the top of your deck.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "ce790c2d1b4dd873b0b04ae2b68d2a796dec5da30914fe963cbc0d3ce2066942",
+      "afterHash": "3cbf9a036783c4ea9fa1666782f0f6c2f87cbe21a11e442540b57a2862fba49c"
+    }
+  ]
+}

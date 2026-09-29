@@ -21,6 +21,7 @@ interface VaultHeaderProps {
   username: string;
   privacy: PrivacySettings;
   hideValues: boolean;
+  language?: 'EN' | 'ID';
   onToggleHideValues: () => void;
   onOpenQuickAdd: () => void;
   onOpenFullAdd: () => void;
@@ -34,6 +35,7 @@ export function VaultHeader({
   username,
   privacy,
   hideValues,
+  language = 'EN',
   onToggleHideValues,
   onOpenQuickAdd,
   onOpenFullAdd,
@@ -42,6 +44,7 @@ export function VaultHeader({
   onOpenImportExport,
 }: VaultHeaderProps) {
   const isPrivate = privacy.collection === 'private' || privacy.portfolioValue === 'private';
+  const t = (en: string, idStr: string) => language === 'ID' ? idStr : en;
 
   return (
     <header className="vault-header">
@@ -49,15 +52,15 @@ export function VaultHeader({
         <div className="vault-title-group">
           <p className="vault-eyebrow">
             <ShieldCheck size={14} weight="bold" />
-            Archive & Portfolio · VivrePlay Vault
+            {t('Archive & Portfolio · VivrePlay Vault','Arsip & Portofolio · VivrePlay Vault')}
           </p>
-          <h1>Your Vault</h1>
+          <h1>{t('Your Vault','Vault Anda')}</h1>
           <p className="vault-subtitle">
-            <span>@{username}&apos;s digital archive</span>
+            <span>{language === 'ID' ? `Arsip digital @${username}` : `@${username}'s digital archive`}</span>
             <span>·</span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
               <Lock size={12} />
-              {privacy.collection === 'public' ? 'Public Collection' : 'Private Collection'}
+              {privacy.collection === 'public' ? t('Public Collection','Koleksi Publik') : t('Private Collection','Koleksi Privat')}
             </span>
           </p>
         </div>
@@ -67,10 +70,10 @@ export function VaultHeader({
             type="button" 
             className="vault-btn vault-btn-secondary" 
             onClick={onOpenQuickAdd}
-            title="Fast 1-click add raw NM card"
+            title={t('Fast 1-click add raw NM card','Tambah cepat kartu reguler NM')}
           >
             <Zap size={15} weight="fill" color="#c68a2c" />
-            Quick Add
+            {t('Quick Add','Tambah Cepat')}
           </button>
           <button 
             type="button" 
@@ -78,34 +81,34 @@ export function VaultHeader({
             onClick={onOpenFullAdd}
           >
             <Plus size={15} weight="bold" />
-            Add to Vault
+            {t('Add to Vault','Simpan ke Vault')}
           </button>
           <button 
             type="button" 
             className="vault-btn vault-btn-secondary" 
             onClick={onOpenPrivacyModal}
-            title="Configure Vault and portfolio privacy"
+            title={t('Configure Vault and portfolio privacy','Atur privasi Vault dan portofolio')}
           >
             <Lock size={14} />
-            Privacy
+            {t('Privacy','Privasi')}
           </button>
           <button 
             type="button" 
             className="vault-btn vault-btn-secondary" 
             onClick={onOpenShareModal}
-            title="Generate Top 9 binder, slab, or set progress share card"
+            title={t('Generate Top 9 binder, slab, or set progress share card','Buat kartu showcase binder, slab, atau set')}
           >
             <Share2 size={14} />
-            Share
+            {t('Share','Bagikan')}
           </button>
           <button 
             type="button" 
             className="vault-btn vault-btn-ghost" 
             onClick={onOpenImportExport}
-            title="Import or Export collection data"
+            title={t('Import or Export collection data','Impor atau Ekspor data koleksi')}
           >
             <Download size={14} />
-            Import / Export
+            {t('Import / Export','Impor / Ekspor')}
           </button>
         </div>
       </div>
@@ -114,36 +117,36 @@ export function VaultHeader({
       <div className="vault-metrics-card">
         {/* Total & Unique Cards */}
         <div className="vault-metric-item">
-          <span className="vault-metric-label">Collection Size</span>
+          <span className="vault-metric-label">{t('Collection Size','Ukuran Koleksi')}</span>
           <div className="vault-metric-value">
-            {stats.totalCards} <small style={{ fontSize: '13px', fontWeight: 500, color: 'var(--vault-ink-muted)' }}>Cards</small>
+            {stats.totalCards} <small style={{ fontSize: '13px', fontWeight: 500, color: 'var(--vault-ink-muted)' }}>{t('Cards','Kartu')}</small>
           </div>
           <span className="vault-metric-sub">
-            <b>{stats.uniqueIdentities}</b> unique identities
+            <b>{stats.uniqueIdentities}</b> {t('unique identities','kartu unik')}
           </span>
         </div>
 
         {/* Graded Slabs */}
         <div className="vault-metric-item">
-          <span className="vault-metric-label">Graded Slabs</span>
+          <span className="vault-metric-label">{t('Graded Slabs','Slab Graded')}</span>
           <div className="vault-metric-value">
-            {stats.slabsCount} <small style={{ fontSize: '13px', fontWeight: 500, color: 'var(--vault-ink-muted)' }}>Slabs</small>
+            {stats.slabsCount} <small style={{ fontSize: '13px', fontWeight: 500, color: 'var(--vault-ink-muted)' }}>{t('Slabs','Slab')}</small>
           </div>
           <span className="vault-metric-sub">
-            {stats.rawCount} raw binder copies
+            {stats.rawCount} {t('raw binder copies','kartu reguler di binder')}
           </span>
         </div>
 
         {/* Estimated Value with Privacy Toggle & Confidence Badge */}
         <div className="vault-metric-item">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="vault-metric-label">Estimated Value</span>
+            <span className="vault-metric-label">{t('Estimated Value','Estimasi Nilai')}</span>
             <button
               type="button"
               className="vault-privacy-toggle"
               onClick={onToggleHideValues}
-              aria-label={hideValues ? 'Show portfolio value' : 'Hide portfolio value'}
-              title={hideValues ? 'Show value' : 'Hide value'}
+              aria-label={hideValues ? t('Show portfolio value','Tampilkan nilai portofolio') : t('Hide portfolio value','Sembunyikan nilai portofolio')}
+              title={hideValues ? t('Show value','Tampilkan nilai') : t('Hide value','Sembunyikan nilai')}
             >
               {hideValues ? <EyeOff size={14} /> : <Eye size={14} />}
             </button>
@@ -154,7 +157,7 @@ export function VaultHeader({
             ) : (
               <>
                 <span>{formatCompactMoney(stats.estimatedValue, 'IDR')}</span>
-                <span className="vault-confidence-badge" title={`Based on verified sales (${stats.observationCount} observations)`}>
+                <span className="vault-confidence-badge" title={language === 'ID' ? `Berdasarkan pantauan pasar (${stats.observationCount} data)` : `Based on verified sales (${stats.observationCount} observations)`}>
                   <Sparkles size={10} weight="fill" />
                   {stats.valuationConfidence}
                 </span>
@@ -163,10 +166,10 @@ export function VaultHeader({
           </div>
           <span className="vault-metric-sub">
             {hideValues ? (
-              'Value masked for privacy'
+              t('Value masked for privacy','Nilai disamarkan untuk privasi')
             ) : (
               <>
-                <span>Full: {formatMoney(stats.estimatedValue, 'IDR')}</span>
+                <span>{t('Full:','Total:')} {formatMoney(stats.estimatedValue, 'IDR')}</span>
               </>
             )}
           </span>
@@ -174,13 +177,13 @@ export function VaultHeader({
 
         {/* Acquisition Cost & Unrealized Difference */}
         <div className="vault-metric-item">
-          <span className="vault-metric-label">Acquisition Cost</span>
+          <span className="vault-metric-label">{t('Acquisition Cost','Biaya Akuisisi')}</span>
           <div className="vault-metric-value">
             {hideValues ? 'Rp ••••••••' : formatCompactMoney(stats.totalAcquisitionCost, 'IDR')}
           </div>
           <span className={`vault-metric-sub ${stats.unrealizedChangeAmount >= 0 ? 'positive' : 'negative'}`}>
             {hideValues ? (
-              'Hidden'
+              t('Hidden','Tersembunyi')
             ) : (
               <>
                 <TrendingUp size={12} />
@@ -193,12 +196,12 @@ export function VaultHeader({
 
         {/* 30-Day Market Change */}
         <div className="vault-metric-item">
-          <span className="vault-metric-label">30-Day Index</span>
+          <span className="vault-metric-label">{t('30-Day Index','Indeks 30 Hari')}</span>
           <div className="vault-metric-value" style={{ color: stats.change30DayPercent >= 0 ? '#2e8b57' : '#c0392b' }}>
             +{stats.change30DayPercent}%
           </div>
           <span className="vault-metric-sub">
-            OPTCG benchmark index
+            {t('OPTCG benchmark index','Indeks tolok ukur OPTCG')}
           </span>
         </div>
       </div>

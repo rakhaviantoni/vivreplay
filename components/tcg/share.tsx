@@ -1,6 +1,6 @@
 'use client';
 
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import {
   CopyIcon as Copy,
   CheckIcon as Check,
@@ -73,11 +73,13 @@ async function generateListingCompositeBlob({
   price,
   subtitle,
   cards,
+  language = 'EN',
 }: {
   title: string;
   price?: string;
   subtitle?: string;
   cards: ShareCardItem[];
+  language?: 'EN' | 'ID';
 }): Promise<Blob | null> {
   const canvasWidth = 1200;
   const paddingX = 54;
@@ -322,6 +324,15 @@ export function ShareButton({
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [language, setLanguage] = useState<'EN' | 'ID'>('EN');
+
+  useEffect(() => {
+    const sync = () => setLanguage(window.localStorage.getItem('vivreplay-locale') === 'ID' ? 'ID' : 'EN');
+    const onLocale = (event: Event) => setLanguage((event as CustomEvent<'EN' | 'ID'>).detail === 'ID' ? 'ID' : 'EN');
+    sync();
+    window.addEventListener('vivreplay:locale', onLocale);
+    return () => window.removeEventListener('vivreplay:locale', onLocale);
+  }, []);
 
   const cardList: ShareCardItem[] =
     cards && cards.length > 0 ? cards : card ? [{card, quantity: 1}] : [];
@@ -332,10 +343,10 @@ export function ShareButton({
     try {
       await navigator.clipboard.writeText(url);
       setCopied(true);
-      toast.success('Link copied to clipboard');
+      toast.success(language === 'ID' ? 'Tautan disalin ke papan klip' : 'Link copied to clipboard');
       window.setTimeout(() => setCopied(false), 2400);
     } catch {
-      toast.error('Copy unavailable. Please select and copy the link.');
+      toast.error(language === 'ID' ? 'Gagal menyalin. Silakan pilih dan salin tautan secara manual.' : 'Copy unavailable. Please select and copy the link.');
     }
   };
 
@@ -348,6 +359,7 @@ export function ShareButton({
         price,
         subtitle,
         cards: cardList,
+        language,
       });
       if (!blob) throw new Error('Image generation failed');
 
@@ -359,9 +371,9 @@ export function ShareButton({
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(objectUrl);
-      toast.success('Listing image saved');
+      toast.success(language === 'ID' ? 'Gambar listing tersimpan' : 'Listing image saved');
     } catch {
-      toast.error('Could not generate listing image');
+      toast.error(language === 'ID' ? 'Gagal membuat gambar listing' : 'Could not generate listing image');
     } finally {
       setDownloading(false);
     }
@@ -383,10 +395,10 @@ export function ShareButton({
         type="button"
         className={`share-action-button button secondary ${className}`}
         onClick={() => setOpen(true)}
-        aria-label={`Share ${title}`}
+        aria-label={language === 'ID' ? `Bagikan ${title}` : `Share ${title}`}
       >
         <ShareRouteIcon size={15} />
-        <span>Share</span>
+        <span>{language === 'ID' ? 'Bagikan' : 'Share'}</span>
       </button>
 
       <Dialog open={open} onOpenChange={setOpen}>
@@ -398,11 +410,11 @@ export function ShareButton({
               <i>|</i>
               <b>Market</b>
             </div>
-            <DialogTitle>Share listing</DialogTitle>
+            <DialogTitle>{language === 'ID' ? 'Bagikan listing' : 'Share listing'}</DialogTitle>
             <DialogDescription>
               {privateEntity
-                ? 'This listing is private. Only you can open this link.'
-                : 'Share with other players or save the showcase card.'}
+                ? (language === 'ID' ? 'Listing ini bersifat privat. Hanya Anda yang dapat membuka tautan ini.' : 'This listing is private. Only you can open this link.')
+                : (language === 'ID' ? 'Bagikan ke pemain lain atau simpan gambar showcase.' : 'Share with other players or save the showcase card.')}
             </DialogDescription>
           </DialogHeader>
 
@@ -441,7 +453,7 @@ export function ShareButton({
                 disabled={downloading}
               >
                 <DownloadSimple size={15} />
-                <span>{downloading ? 'Creating showcase card…' : 'Save listing image'}</span>
+                <span>{downloading ? (language === 'ID' ? 'Membuat gambar showcase...' : 'Creating showcase card...') : (language === 'ID' ? 'Simpan gambar listing' : 'Save listing image')}</span>
               </button>
             </div>
           )}
@@ -453,7 +465,7 @@ export function ShareButton({
               value={url}
               className="share-link-input"
               onFocus={(e) => e.target.select()}
-              aria-label="Listing share link"
+              aria-label={language === 'ID' ? 'Tautan listing' : 'Listing share link'}
             />
             <button
               type="button"
@@ -461,7 +473,7 @@ export function ShareButton({
               onClick={handleCopy}
             >
               {copied ? <Check size={15} /> : <Copy size={15} />}
-              <span>{copied ? 'Copied!' : 'Copy'}</span>
+              <span>{copied ? (language === 'ID' ? 'Tersalin!' : 'Copied!') : (language === 'ID' ? 'Salin' : 'Copy')}</span>
             </button>
           </div>
 
@@ -469,7 +481,7 @@ export function ShareButton({
             <div className="share-channels-grid">
               <a
                 className="share-channel-btn whatsapp"
-                href={`https://wa.me/?text=${encodeURIComponent(`${title} — ${url}`)}`}
+                href={`https://wa.me/?text=${encodeURIComponent(`${title} - ${url}`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -504,7 +516,7 @@ export function ShareButton({
               onClick={handleNativeShare}
             >
               <ShareRouteIcon size={15} />
-              <span>More sharing options</span>
+              <span>{language === 'ID' ? 'Opsi berbagi lainnya' : 'More sharing options'}</span>
             </button>
           )}
         </DialogContent>

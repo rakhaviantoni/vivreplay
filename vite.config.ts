@@ -33,12 +33,6 @@ const localBindingConfig = {
         },
       ]
     : [],
-  kv_namespaces: [
-    {
-      binding: "VIVREPLAY_IMAGE_CACHE",
-      id: "2897168f677a438091045edba1a8afa8",
-    },
-  ],
 };
 
 export default defineConfig(async ({ command, mode }) => {

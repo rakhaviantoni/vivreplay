@@ -77,7 +77,7 @@ export default function SignUpPage() {
                 className="button"
                 style={{ marginTop: 6, display: "inline-flex", width: "100%", justifyContent: "center" }}
               >
-                Go to Sign in
+                Sign in
               </Link>
             </div>
           ) : (

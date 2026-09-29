@@ -1,5 +1,5 @@
 import {supabaseAdmin} from '@/lib/server/supabase-storage';
-import {isPlayableSet} from '@/packages/domain/release-availability';
+import {isPlayableSet, PREVIEW_CARD_CODES} from '@/packages/domain/release-availability';
 
 type CatalogRow={
   id:string;
@@ -35,7 +35,7 @@ export async function GET(){
   }
 
   const cards=rows
-    .filter(row=>row.tcg_card_identities&&isPlayableSet(row.set_code))
+    .filter(row=>row.tcg_card_identities&&(isPlayableSet(row.set_code) || PREVIEW_CARD_CODES.has(row.tcg_card_identities.code.toUpperCase()) || row.variant === 'Preview'))
     .map(row=>{
       const asset=row.tcg_card_assets?.find(item=>item.kind==='small');
       return {...row,card_image_url:asset?publicCardPath(asset.object_key):null};

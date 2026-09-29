@@ -1,0 +1,807 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-09-28T11:03:43.781Z",
+  "candidates": [
+    {
+      "code": "ST06-010",
+      "printedText": "[On Play] Give up to 1 of your opponent's Characters -3 cost during this turn.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioCount": 4,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "cost",
+                "amount": -3,
+                "target": "opponent-character"
+              }
+            ],
+            "rawText": "[On Play] Give up to 1 of your opponent's Characters -3 cost during this turn.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "cost",
+                  "amount": -3,
+                  "target": "opponent-character"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Give up to 1 of your opponent's Characters -3 cost during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[On Play] Give up to 1 of your opponent's Characters -3 cost during this turn.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[On Play] Give up to 1 of your opponent's Characters -3 cost during this turn.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "cost",
+                "amount": -3,
+                "target": "opponent-character",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "cost",
+                  "amount": -3,
+                  "target": "opponent-character",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "ca13443726242a0470de303f3e723e5cac3f91e7c7c0af02711665a4e89b47c3",
+      "afterHash": "1ecd51a20a0d4789636042e78f76d77d2e4e93b172d577b54d693ad6c9688448"
+    },
+    {
+      "code": "OP02-117",
+      "printedText": "[Main] Give up to 1 of your opponent's Characters -5 cost during this turn. [Trigger] K.O. up to 1 of your opponent's Characters with a cost of 3 or less.",
+      "timings": [
+        "main",
+        "trigger"
+      ],
+      "scenarioCount": 9,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "cost",
+                "amount": -5,
+                "target": "opponent-character"
+              },
+              {
+                "kind": "ko",
+                "maxCost": 3,
+                "restedOnly": false
+              },
+              {
+                "kind": "ko",
+                "maxCost": 3,
+                "restedOnly": false
+              }
+            ],
+            "rawText": "[Main] Give up to 1 of your opponent's Characters -5 cost during this turn. [Trigger] K.O. up to 1 of your opponent's Characters with a cost of 3 or less.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "cost",
+                  "amount": -5,
+                  "target": "opponent-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 3,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 3,
+                  "restedOnly": false
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Give up to 1 of your opponent's Characters -5 cost during this turn. [Trigger] K.O. up to 1 of your opponent's Characters with a cost of 3 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[Main] Give up to 1 of your opponent's Characters -5 cost during this turn. [Trigger] K.O. up to 1 of your opponent's Characters with a cost of 3 or less.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[Main] Give up to 1 of your opponent's Characters -5 cost during this turn.",
+            "trigger": "main",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "cost",
+                "amount": -5,
+                "target": "opponent-character",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          },
+          {
+            "rawText": "[Trigger] K.O. up to 1 of your opponent's Characters with a cost of 3 or less.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 3,
+                "restedOnly": false,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "cost",
+                  "amount": -5,
+                  "target": "opponent-character",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 3,
+                  "restedOnly": false,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "546577a2af06a2fbf442c82ceab3c89ab7df2b359c5655b90ebfa5226d0f86c3",
+      "afterHash": "4102416bb3a7920bcd6118546debb472e1fe581a31a69d8c00094c92ceb23ad3"
+    },
+    {
+      "code": "ST06-005",
+      "printedText": "[When Attacking] Give up to 1 of your opponent's Characters -4 cost during this turn.",
+      "timings": [
+        "when-attacking"
+      ],
+      "scenarioCount": 4,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "cost",
+                "amount": -4,
+                "target": "opponent-character"
+              }
+            ],
+            "rawText": "[When Attacking] Give up to 1 of your opponent's Characters -4 cost during this turn.",
+            "trigger": "when-attacking",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "when-attacking",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "cost",
+                  "amount": -4,
+                  "target": "opponent-character"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[When Attacking] Give up to 1 of your opponent's Characters -4 cost during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[When Attacking] Give up to 1 of your opponent's Characters -4 cost during this turn.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[When Attacking] Give up to 1 of your opponent's Characters -4 cost during this turn.",
+            "trigger": "when-attacking",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "cost",
+                "amount": -4,
+                "target": "opponent-character",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "when-attacking",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "cost",
+                  "amount": -4,
+                  "target": "opponent-character",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "0bdd8b7133933639d25f7c7dd3743fa773bc3608addf95a973980e38a4fbff01",
+      "afterHash": "de82e94d9292048d734abb772c7096d8510ebffb7def7d49a97014f9edd3d93b"
+    },
+    {
+      "code": "OP02-096",
+      "printedText": "[On Play] Draw 1 card. [When Attacking] Give up to 1 of your opponent's Characters -4 cost during this turn.",
+      "timings": [
+        "on-play",
+        "when-attacking"
+      ],
+      "scenarioCount": 6,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 1
+              },
+              {
+                "kind": "cost",
+                "amount": -4,
+                "target": "opponent-character"
+              }
+            ],
+            "rawText": "[On Play] Draw 1 card. [When Attacking] Give up to 1 of your opponent's Characters -4 cost during this turn.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "cost",
+                  "amount": -4,
+                  "target": "opponent-character"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Draw 1 card. [When Attacking] Give up to 1 of your opponent's Characters -4 cost during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[On Play] Draw 1 card. [When Attacking] Give up to 1 of your opponent's Characters -4 cost during this turn.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[On Play] Draw 1 card.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 1
+              }
+            ]
+          },
+          {
+            "rawText": "[When Attacking] Give up to 1 of your opponent's Characters -4 cost during this turn.",
+            "trigger": "when-attacking",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "cost",
+                "amount": -4,
+                "target": "opponent-character",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 1
+                }
+              }
+            ]
+          },
+          {
+            "timing": "when-attacking",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "cost",
+                  "amount": -4,
+                  "target": "opponent-character",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "6e1294aa000315afa299daec52296f7b31e85f2c2962fad952d8eee82e032d96",
+      "afterHash": "47c66aecf8109afcb9a51fd7cafccccd7835b56f162276243d7d148f8536c2ec"
+    },
+    {
+      "code": "P-026",
+      "printedText": "[When Attacking] Give up to 1 of your opponent's Characters -3 cost during this turn.",
+      "timings": [
+        "when-attacking"
+      ],
+      "scenarioCount": 4,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "cost",
+                "amount": -3,
+                "target": "opponent-character"
+              }
+            ],
+            "rawText": "[When Attacking] Give up to 1 of your opponent's Characters -3 cost during this turn.",
+            "trigger": "when-attacking",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "when-attacking",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "cost",
+                  "amount": -3,
+                  "target": "opponent-character"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[When Attacking] Give up to 1 of your opponent's Characters -3 cost during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[When Attacking] Give up to 1 of your opponent's Characters -3 cost during this turn.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[When Attacking] Give up to 1 of your opponent's Characters -3 cost during this turn.",
+            "trigger": "when-attacking",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "cost",
+                "amount": -3,
+                "target": "opponent-character",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "when-attacking",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "cost",
+                  "amount": -3,
+                  "target": "opponent-character",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "075751de82ef67c8ad3981de474718df0f0a178bf45144e29b738a8f4602908f",
+      "afterHash": "f52782012045c7966e9dbf11158473eb36fcb87ee5f1c48e887a1e25c2879b59"
+    },
+    {
+      "code": "ST08-008",
+      "printedText": "[On Play] Give up to 1 of your opponent's Characters -2 cost during this turn.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioCount": 4,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "cost",
+                "amount": -2,
+                "target": "opponent-character"
+              }
+            ],
+            "rawText": "[On Play] Give up to 1 of your opponent's Characters -2 cost during this turn.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "cost",
+                  "amount": -2,
+                  "target": "opponent-character"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Give up to 1 of your opponent's Characters -2 cost during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[On Play] Give up to 1 of your opponent's Characters -2 cost during this turn.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[On Play] Give up to 1 of your opponent's Characters -2 cost during this turn.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "cost",
+                "amount": -2,
+                "target": "opponent-character",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "cost",
+                  "amount": -2,
+                  "target": "opponent-character",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "619668ff65174b484024e9686911fb95b6975781b7e9751730f559e3ee0aacc8",
+      "afterHash": "669fbc56dee22c06332cb6d9025ab410ab048c4fa3c174de8bb11a663883c35b"
+    },
+    {
+      "code": "OP02-106",
+      "printedText": "[On Play] Give up to 1 of your opponent's Characters -2 cost during this turn.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioCount": 4,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "cost",
+                "amount": -2,
+                "target": "opponent-character"
+              }
+            ],
+            "rawText": "[On Play] Give up to 1 of your opponent's Characters -2 cost during this turn.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "cost",
+                  "amount": -2,
+                  "target": "opponent-character"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Give up to 1 of your opponent's Characters -2 cost during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[On Play] Give up to 1 of your opponent's Characters -2 cost during this turn.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[On Play] Give up to 1 of your opponent's Characters -2 cost during this turn.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "cost",
+                "amount": -2,
+                "target": "opponent-character",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "cost",
+                  "amount": -2,
+                  "target": "opponent-character",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "619668ff65174b484024e9686911fb95b6975781b7e9751730f559e3ee0aacc8",
+      "afterHash": "669fbc56dee22c06332cb6d9025ab410ab048c4fa3c174de8bb11a663883c35b"
+    }
+  ]
+}

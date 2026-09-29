@@ -1,6 +1,6 @@
 'use client';
 
-import type {ReactNode} from 'react';
+import {useEffect, useState, type ReactNode} from 'react';
 import {BlockValue} from './block-value';
 import {SetInformation} from './set-information';
 import {colors} from '@/packages/card-data/catalog';
@@ -35,23 +35,33 @@ type CardDetailContentProps={
 };
 
 export function CardDetailContent({code,color,title,titleId,heading,type,rarity,attribute,cost,power,life,block,setCode,setName,effect,afterEffect}:CardDetailContentProps) {
+  const [locale,setLocale]=useState<'EN'|'ID'>('EN');
+  useEffect(()=>{
+    const syncLocale=()=>setLocale(window.localStorage.getItem('vivreplay-locale')==='ID'?'ID':'EN');
+    const onLocale=(event:Event)=>setLocale((event as CustomEvent<'EN'|'ID'>).detail);
+    syncLocale();
+    window.addEventListener('vivreplay:locale',onLocale);
+    return()=>window.removeEventListener('vivreplay:locale',onLocale);
+  },[]);
+  const id=locale==='ID';
   const Heading=heading;
   const identityBackground = cardIdentityBackground(color);
+  const displayType = id && type === 'Character' ? 'Karakter' : type;
   return <>
     <p className="eyebrow">
-      <i className="filter-colour identity-colour" aria-hidden="true" style={{ background: identityBackground }} />
+      <i className="filter-colour identity-colour" title={color || undefined} aria-label={color ? `${color} color` : undefined} style={{ background: identityBackground }} />
       <span>{code}</span>
     </p>
     <Heading id={titleId} className="card-detail-title">{title}</Heading>
-    <p className="viewer-kind">{type} <span>·</span> {rarity||'Printing'} {attribute&&<><span>·</span>{attribute}</>}</p>
+    <p className="viewer-kind">{displayType} <span>·</span> {rarity||(id?'Versi cetak':'Printing')} {attribute&&<><span>·</span>{attribute}</>}</p>
     <dl className="viewer-stats">
-      {type!=='Leader'&&<div><dt>Cost</dt><dd>{cost}</dd></div>}
-      <div><dt>Power</dt><dd>{power?power.toLocaleString():'—'}</dd></div>
-      {life!==null&&life!==undefined&&<div><dt>Life</dt><dd>{life}</dd></div>}
-      <div><dt>Block</dt><dd><BlockValue value={block}/></dd></div>
+      {type!=='Leader'&&<div><dt>{id?'Biaya':'Cost'}</dt><dd>{cost}</dd></div>}
+      <div><dt>{id?'Kekuatan':'Power'}</dt><dd>{power?power.toLocaleString():'-'}</dd></div>
+      {life!==null&&life!==undefined&&<div><dt>{id?'Nyawa':'Life'}</dt><dd>{life}</dd></div>}
+      <div><dt>{id?'Blok':'Block'}</dt><dd><BlockValue value={block}/></dd></div>
       <SetInformation compact setCode={setCode} fallbackName={setName}/>
     </dl>
-    <section className="card-detail-effect viewer-effect"><h3>Effect</h3>{effect}</section>
+    <section className="card-detail-effect viewer-effect"><h3>{id?'Efek':'Effect'}</h3>{effect}</section>
     {afterEffect}
   </>;
 }

@@ -22,6 +22,25 @@ test('the effect state applies a selected K.O. only when its printed restriction
  assert.match(rejected.error??'',/cost limit/);
 });
 
+test('Kaku replaces one eligible opponent-effect K.O. by bottom-decking exactly three own Trash cards',()=>{
+ const match=state();
+ const schema=compileEffectDocument({id:'kaku',code:'EB04-043',name:'Kaku',color:'Black',type:'Character',cost:3,power:4000,counter:0,rarity:'',art:0,effect:'[Once Per Turn] If your black Character with a base cost of 5 or less would be K.O.’d by your opponent’s effect, you may place 3 cards from your trash at the bottom of your deck in any order instead.\n[On Play] Trash 2 cards from the top of your deck.'});
+ match.cards.push({id:'kaku',owner:'opponent',zone:'character',type:'Character',name:'Kaku',color:'Black',cost:3,effectSchema:schema},{id:'saved',owner:'opponent',zone:'character',type:'Character',name:'Black target',color:'Black',cost:5},{id:'too-costly',owner:'opponent',zone:'character',type:'Character',color:'Black',cost:6},...['trash-a','trash-b','trash-c','trash-d'].map(id=>({id,owner:'opponent' as const,zone:'trash' as const,type:'Character' as const})));
+ const offer=applyEffectAction(match,'player',{kind:'ko'},{targetId:'saved'});
+ assert.match(offer.requiresSelection??'',/may place 3 cards/);assert.equal(offer.state,match);
+ const bad=applyEffectAction(match,'player',{kind:'ko'},{targetId:'saved',choice:'accept',cardIds:['trash-a','trash-b']});
+ assert.match(bad.error??'',/exactly 3/);assert.equal(bad.state,match);
+ const paid=applyEffectAction(match,'player',{kind:'ko'},{targetId:'saved',choice:'accept',cardIds:['trash-a','trash-c','trash-d']});
+ assert.equal(paid.state.cards.find(card=>card.id==='saved')?.zone,'character');
+ assert.equal(paid.state.cards.find(card=>card.id==='trash-a')?.zone,'deck');
+ assert.equal(paid.state.cards.find(card=>card.id==='trash-b')?.zone,'trash');
+ assert.deepEqual(paid.state.cards.filter(card=>['trash-a','trash-c','trash-d'].includes(card.id)).map(card=>card.id),['trash-a','trash-c','trash-d']);
+ const second=applyEffectAction(paid.state,'player',{kind:'ko'},{targetId:'too-costly'});
+ assert.equal(second.state.cards.find(card=>card.id==='too-costly')?.zone,'trash','Out-of-range cost should bypass Kaku replacement.');
+ const another=applyEffectAction(paid.state,'player',{kind:'ko'},{targetId:'saved'});
+ assert.equal(another.state.cards.find(card=>card.id==='saved')?.zone,'trash','Once-per-turn replacement must not be used twice.');
+});
+
 test('effect costs require the exact legal DON!! selection',()=>{
  const missing=payEffectCost(state(),'player',{kind:'rest',scope:'don',amount:2,optional:true},{cardIds:['own-don-1']});
  assert.match(missing.requiresSelection??'',/2 active DON/);
@@ -577,4 +596,17 @@ test('hand reset keeps returned cards below the remaining deck when no shuffle i
  const result=applyEffectAction(initial,'player',{kind:'hand-reset',scope:'self',draw:1});
  assert.deepEqual(result.state.cards.filter(card=>card.zone==='deck').map(card=>card.id),['b','c','held']);
  assert.deepEqual(result.state.cards.filter(card=>card.zone==='hand').map(card=>card.id),['a']);
+});
+
+test('shared displayed and battle power combines modifiers and DON without going below zero',async()=>{
+ const {effectiveCardPower}=await import('../packages/domain/match-effect-state');
+ const board:MatchEffectState={turn:'player',turnEffects:[],restrictions:[],delayed:[],cards:[
+  {id:'fighter',owner:'player',zone:'character',type:'Character',power:5000,powerModifier:-2000},
+  {id:'don',owner:'player',zone:'cost-area',type:'DON!!',attachedTo:'fighter'},
+ ]};
+ assert.equal(effectiveCardPower(board,'fighter'),4000);
+ assert.equal(effectiveCardPower({...board,turn:'opponent'},'fighter'),3000);
+ const reduced={...board,cards:board.cards.map(c=>c.id==='fighter'?{...c,powerModifier:-9000}:c)};
+ assert.equal(effectiveCardPower(reduced,'fighter'),0);
+ assert.equal(effectiveCardPower(board,'missing'),0);
 });

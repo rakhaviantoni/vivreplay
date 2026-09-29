@@ -7,6 +7,7 @@ import {createClient} from '@/utils/supabase/client';
 import {CardArt} from './card-art';
 import {SetsExperience} from './sets-experience';
 import type {Card} from '@/packages/card-data/catalog';
+import {isPlayableSet} from '@/packages/domain/release-availability';
 
 type Identity = {id:string;code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number;effect_text:string};
 type Row = {id:string;card_image_url:string|null;rarity:string|null;set_code:string;language:string;printing_code:string|null;tcg_card_assets?:Array<{kind:string;object_key:string}>;tcg_card_identities:Identity};
@@ -37,11 +38,11 @@ export function HomeExperience(){
       return printing?{...printing,tcg_card_identities:identity} as Row:null;
     }));
     Promise.all([
-      client.from('tcg_card_printings').select('id,card_image_url,rarity,set_code,language,printing_code,tcg_card_assets(kind,object_key),tcg_card_identities!inner(id,code,name,color,card_type,cost,power,effect_text)').eq('language','EN').not('card_image_url','is',null).limit(1000),
+      client.from('tcg_card_printings').select('id,card_image_url,rarity,set_code,language,printing_code,tcg_card_assets(kind,object_key),tcg_card_identities!inner(id,code,name,color,card_type,cost,power,effect_text)').eq('language','EN').not('card_image_url','is',null).order('created_at',{ascending:false}).limit(300),
       featuredLeaders,
       client.from('tcg_card_identities').select('*',{count:'exact',head:true}),
       client.from('tcg_card_printings').select('*',{count:'exact',head:true}),
-    ]).then(([featured,meta,identities,printings])=>{if(!active)return;const sorted=((featured.data??[]) as unknown as Row[]).sort((a,b)=>setRank(b.set_code)-setRank(a.set_code)||(a.tcg_card_identities.card_type==='Leader'?0:1)-(b.tcg_card_identities.card_type==='Leader'?0:1)||a.tcg_card_identities.code.localeCompare(b.tcg_card_identities.code));const liveMeta=meta.filter((row):row is Row=>Boolean(row));setCards(sorted.slice(0,12).map(asCard));setLeaders((liveMeta.length?liveMeta:sorted.filter(row=>row.tcg_card_identities.card_type==='Leader').slice(0,4)).map(asCard));setCounts({identities:identities.count??0,printings:printings.count??0});});
+    ]).then(([featured,meta,identities,printings])=>{if(!active)return;const sorted=((featured.data??[]) as unknown as Row[]).filter(row=>isPlayableSet(row.set_code)).sort((a,b)=>setRank(b.set_code)-setRank(a.set_code)||(a.tcg_card_identities.card_type==='Leader'?0:1)-(b.tcg_card_identities.card_type==='Leader'?0:1)||a.tcg_card_identities.code.localeCompare(b.tcg_card_identities.code));const liveMeta=meta.filter((row):row is Row=>Boolean(row));setCards(sorted.slice(0,12).map(asCard));setLeaders((liveMeta.length?liveMeta:sorted.filter(row=>row.tcg_card_identities.card_type==='Leader').slice(0,4)).map(asCard));setCounts({identities:identities.count??0,printings:printings.count??0});});
     return()=>{active=false};
   },[]);
   useEffect(()=>{
@@ -57,13 +58,65 @@ export function HomeExperience(){
     description:'Telusuri setiap versi cetak. Susun deck. Tentukan langkah berikutnya.',
     cards:'Jelajahi kartu', arena:'Masuk Arena', identities:'Identitas kartu', printings:'Versi cetak', languages:'Bahasa kartu',
     leftName:'Mihawk × Luffy & Ace', leftStatus:'Tidak diunggulkan · Mihawk', leftWins:'62 menang / 137 laga',
-    rightName:'Robin × Luffy', rightStatus:'Diunggulkan · Robin', rightWins:'151 menang / 280 laga', first:'Giliran 1', second:'Giliran 2', pause:'Jeda gerak', resume:'Lanjutkan gerak'
+    rightName:'Robin × Luffy', rightStatus:'Diunggulkan · Robin', rightWins:'151 menang / 280 laga', first:'Giliran 1', second:'Giliran 2', pause:'Jeda gerak', resume:'Lanjutkan gerak',
+    utilityEyebrow:'EKOSISTEM KARTU TERPADU',
+    utilityTitle:<>Mulai dari satu kartu.<br/>Bawa ke mana pun Anda melangkah.</>,
+    utilityDescription:'Satu kartu bisa menjadi poros deck, melengkapi koleksi, atau membalikkan jalannya laga. Pantau versi cetak, peran deck, dan riwayat koleksi dalam satu tempat.',
+    explorePrintings:'Jelajahi versi cetak',
+    explorePrintingsSub:'Temukan versi rilis EN atau JP secara akurat',
+    buildDeck:'Susun deck',
+    buildDeckSub:'Rancang daftar kartu dari data live terkini',
+    trackVault:'Kelola Vault Anda',
+    trackVaultSub:'Simpan kartu reguler dan slab gradasi bersamaan',
+    featuredEyebrow:'BARU SAJA DIKATALOGKAN',
+    featuredTitle:'Jelajahi koleksi.',
+    viewAllCards:'Lihat semua kartu',
+    marqueeLabel:'Kartu yang baru saja dikatalogkan',
+    marketEyebrow:'MARKET KARTU YANG LEBIH SEDERHANA',
+    marketTitle:<>Temukan kartunya.<br/>Tanpa kerumitan.</>,
+    marketDescription:'Telusuri listing berdasarkan versi cetak spesifik yang Anda koleksi. Informasi kondisi, bahasa, dan penjual yang transparan - tanpa tampilan bursa yang rumit.',
+    browseMarket:'Buka Market',
+    wantedTag:'DICARI',
+    completeDeck:'Lengkapi deck',
+    completeDeckDesc:'Cocokkan listing dengan kartu yang Anda butuhkan.',
+    collectTag:'KOLEKSI',
+    rawGraded:'Reguler & slab',
+    rawGradedDesc:'Satu katalog terpadu untuk kartu reguler dan slab.',
+    playTag:'TANDING',
+    seeFit:'Ketahui perannya',
+    seeFitDesc:'Buka listing dan lihat kecocokannya di dalam deck.',
   }:{
     title:<>Know the card.<br/><em>Own the match.</em></>,
     description:'Trace every printing. Build the deck. Make the next move.',
     cards:'Explore cards', arena:'Enter Arena', identities:'Card identities', printings:'Printings tracked', languages:'Card languages',
     leftName:'Mihawk × Luffy & Ace', leftStatus:'Unfavored · Mihawk', leftWins:'62 wins / 137 games',
-    rightName:'Robin × Luffy', rightStatus:'Favored · Robin', rightWins:'151 wins / 280 games', first:'1st', second:'2nd', pause:'Pause motion', resume:'Resume motion'
+    rightName:'Robin × Luffy', rightStatus:'Favored · Robin', rightWins:'151 wins / 280 games', first:'1st', second:'2nd', pause:'Pause motion', resume:'Resume motion',
+    utilityEyebrow:'A CONNECTED CARD LIFE',
+    utilityTitle:<>Start with one card.<br/>Go wherever it takes you.</>,
+    utilityDescription:'A card can anchor a deck, complete a collection, or swing a match. Keep its printings, deck roles, and collection history in one place.',
+    explorePrintings:'Explore printings',
+    explorePrintingsSub:'Find an exact EN or JP version',
+    buildDeck:'Build a deck',
+    buildDeckSub:'Shape a list from live card data',
+    trackVault:'Track your Vault',
+    trackVaultSub:'Keep raw cards and slabs together',
+    featuredEyebrow:'RECENTLY CATALOGUED',
+    featuredTitle:'Explore the collection.',
+    viewAllCards:'View all cards',
+    marqueeLabel:'Recently catalogued cards',
+    marketEyebrow:'THE MARKET, SIMPLIFIED',
+    marketTitle:<>Find the card.<br/>Skip the clutter.</>,
+    marketDescription:'Browse listings by the exact printing you collect. Clear condition, language, and seller information - no trading-floor dashboard.',
+    browseMarket:'Browse Market',
+    wantedTag:'WANTED',
+    completeDeck:'Complete a deck',
+    completeDeckDesc:'Match listings to the cards you are missing.',
+    collectTag:'COLLECT',
+    rawGraded:'Raw & graded',
+    rawGradedDesc:'Keep one catalogue for cards and slabs.',
+    playTag:'PLAY',
+    seeFit:'See where it fits',
+    seeFitDesc:'Open a listing and jump to deck use.',
   };
   const heroTone=useMemo(()=>({'--hero-left-aura':auraFor(leaders[2]?.color||leaders[3]?.color),'--hero-right-aura':auraFor(leaders[0]?.color||leaders[1]?.color)} as CSSProperties),[leaders]);
   function moveHero(event:React.PointerEvent<HTMLElement>){if(motionPaused||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;const rect=event.currentTarget.getBoundingClientRect();const x=((event.clientX-rect.left)/rect.width-.5)*10;const y=((event.clientY-rect.top)/rect.height-.5)*10;event.currentTarget.style.setProperty('--hero-x',`${x.toFixed(2)}px`);event.currentTarget.style.setProperty('--hero-y',`${y.toFixed(2)}px`)}
@@ -74,9 +127,9 @@ export function HomeExperience(){
       <div className="home-hero-copy"><h1>{copy.title}</h1><p>{copy.description}</p><div className="hero-actions"><Link className="button" href="/cards"><Library size={16}/>{copy.cards}</Link><Link className="text-action" href="/play"><CirclePlay size={16}/>{copy.arena}</Link></div><dl className="hero-stats"><div><dt>{copy.identities}</dt><dd>{counts.identities||'…'}</dd></div><div><dt>{copy.printings}</dt><dd>{counts.printings||'…'}</dd></div><div><dt>{copy.languages}</dt><dd>EN · JP</dd></div></dl></div>
       <div className="hero-printings hero-duel hero-duel-right" aria-label="Robin versus Luffy matchup">{leaders[0]&&<Link href={`/cards/${leaders[0].code}`} className="hero-card hero-card-1"><CardArt card={leaders[0]}/><small>{leaders[0].code}</small></Link>}{leaders[1]&&<Link href={`/cards/${leaders[1].code}`} className="hero-card hero-card-3"><CardArt card={leaders[1]}/><small>{leaders[1].code}</small></Link>}{!leaders.length&&<><div className="hero-card-skeletons" aria-hidden="true"><i/><i/></div><span className="sr-only" role="status">Loading leader cards</span></>}<Link href="/meta" className="hero-matchup"><span>{copy.rightName}</span><strong>54% <i>±5.8</i></strong><b>{copy.rightStatus}</b><small>{copy.rightWins}</small><div><em>{copy.first} <b>53%</b><i>192</i></em><em>{copy.second} <b>57%</b><i>88</i></em></div></Link><button type="button" className="hero-motion-toggle" onClick={()=>setMotionPaused(value=>!value)} aria-pressed={motionPaused} aria-label={motionPaused?copy.resume:copy.pause}>{motionPaused?<Play size={14}/>:<Pause size={14}/>}</button></div>
     </section>
-    <section className="home-utility home-reveal"><div><p className="eyebrow">A CONNECTED CARD LIFE</p><h2>Start with one card.<br/>Go wherever it takes you.</h2><p>A card can anchor a deck, complete a collection, or swing a match. Keep its printings, deck roles, and collection history in one place.</p></div><div className="utility-links"><Link href="/cards"><Layers3 size={20}/><span><b>Explore printings</b><small>Find an exact EN or JP version</small></span><ArrowUpRight size={16}/></Link><Link href="/decks/builder"><Swords size={20}/><span><b>Build a deck</b><small>Shape a list from live card data</small></span><ArrowUpRight size={16}/></Link><Link href="/vault"><BadgeCheck size={20}/><span><b>Track your Vault</b><small>Keep raw cards and slabs together</small></span><ArrowUpRight size={16}/></Link></div></section>
-    <section className="home-featured home-reveal"><div className="section-heading"><div><p className="eyebrow">RECENTLY CATALOGUED</p><h2>Explore the collection.</h2></div><Link className="text-action" href="/cards">View all cards <ArrowUpRight size={15}/></Link></div><div className="home-card-marquee" aria-label="Recently catalogued cards"><div className="home-card-track">{[...cards.slice(0,8),...cards.slice(0,8)].map((card,index)=><Link href={`/cards/${card.code}`} key={`${card.id}-${index}`} aria-label={`Open ${card.name}`}><CardArt card={card}/></Link>)}</div></div></section>
+    <section className="home-utility home-reveal"><div><p className="eyebrow">{copy.utilityEyebrow}</p><h2>{copy.utilityTitle}</h2><p>{copy.utilityDescription}</p></div><div className="utility-links"><Link href="/cards"><Layers3 size={20}/><span><b>{copy.explorePrintings}</b><small>{copy.explorePrintingsSub}</small></span><ArrowUpRight size={16}/></Link><Link href="/decks/builder"><Swords size={20}/><span><b>{copy.buildDeck}</b><small>{copy.buildDeckSub}</small></span><ArrowUpRight size={16}/></Link><Link href="/vault"><BadgeCheck size={20}/><span><b>{copy.trackVault}</b><small>{copy.trackVaultSub}</small></span><ArrowUpRight size={16}/></Link></div></section>
+    <section className="home-featured home-reveal"><div className="section-heading"><div><p className="eyebrow">{copy.featuredEyebrow}</p><h2>{copy.featuredTitle}</h2></div><Link className="text-action" href="/cards">{copy.viewAllCards} <ArrowUpRight size={15}/></Link></div><div className="home-card-marquee" aria-label={copy.marqueeLabel}><div className="home-card-track">{[...cards.slice(0,8),...cards.slice(0,8)].map((card,index)=><Link href={`/cards/${card.code}`} key={`${card.id}-${index}`} aria-label={`Open ${card.name}`}><CardArt card={card}/></Link>)}</div></div></section>
     <SetsExperience compact/>
-    <section className="home-market home-reveal"><div className="market-copy"><p className="eyebrow">THE MARKET, SIMPLIFIED</p><h2>Find the card.<br/>Skip the clutter.</h2><p>Browse listings by the exact printing you collect. Clear condition, language, and seller information—no trading-floor dashboard.</p><Link className="button" href="/market"><ShoppingBag size={16}/>Browse Market</Link></div><div className="market-board"><div><small>WANTED</small><b>Complete a deck</b><span>Match listings to the cards you are missing.</span></div><div><small>COLLECT</small><b>Raw & graded</b><span>Keep one catalogue for cards and slabs.</span></div><div><small>PLAY</small><b>See where it fits</b><span>Open a listing and jump to deck use.</span></div></div></section>
+    <section className="home-market home-reveal"><div className="market-copy"><p className="eyebrow">{copy.marketEyebrow}</p><h2>{copy.marketTitle}</h2><p>{copy.marketDescription}</p><Link className="button" href="/market"><ShoppingBag size={16}/>{copy.browseMarket}</Link></div><div className="market-board"><div><small>{copy.wantedTag}</small><b>{copy.completeDeck}</b><span>{copy.completeDeckDesc}</span></div><div><small>{copy.collectTag}</small><b>{copy.rawGraded}</b><span>{copy.rawGradedDesc}</span></div><div><small>{copy.playTag}</small><b>{copy.seeFit}</b><span>{copy.seeFitDesc}</span></div></div></section>
   </main>;
 }

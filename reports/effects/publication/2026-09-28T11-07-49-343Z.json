@@ -1,0 +1,137 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-09-28T11:07:49.342Z",
+  "candidates": [
+    {
+      "code": "OP10-055",
+      "printedText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[On K.O.] Return up to 1 of your opponent's Characters with a cost of 4 or less to the owner's hand.",
+      "timings": [
+        "on-ko"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "return-to-hand",
+                "scope": "opponent-character",
+                "maxCost": 4
+              },
+              {
+                "kind": "return-to-hand",
+                "scope": "own-character",
+                "maxCost": 4
+              },
+              {
+                "kind": "on-ko"
+              }
+            ],
+            "rawText": "[On K.O.] Return up to 1 of your opponent's Characters with a cost of 4 or less to the owner's hand.",
+            "trigger": "on-ko",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-ko",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "return-to-hand",
+                  "scope": "opponent-character",
+                  "maxCost": 4
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "return-to-hand",
+                  "scope": "own-character",
+                  "maxCost": 4
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "on-ko"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[On K.O.] Return up to 1 of your opponent's Characters with a cost of 4 or less to the owner's hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On K.O.] Return up to 1 of your opponent's Characters with a cost of 4 or less to the owner's hand.",
+            "trigger": "on-ko",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "return-to-hand",
+                "scope": "opponent-character",
+                "maxCost": 4,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              },
+              {
+                "kind": "on-ko"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-ko",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "return-to-hand",
+                  "scope": "opponent-character",
+                  "maxCost": 4,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "on-ko"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[On K.O.] Return up to 1 of your opponent's Characters with a cost of 4 or less to the owner's hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "9c92c04e53e03aab5e502a25395d73ff6de373f9088546134ff6f61a951898ed",
+      "afterHash": "487d22294e31f0e83894dad0dba9aee6b9908193cc941e43a822cde9b92df3ad"
+    }
+  ]
+}

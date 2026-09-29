@@ -58,8 +58,8 @@ test('timing discovery exposes the same ordered queue for On K.O. and opponent-a
   {id:'ko-card',owner:'player',zone:'character',type:'Character',effectText:'[On K.O.] You may trash 1 card from your hand: Draw 2 cards.'},
   {id:'defender',owner:'player',zone:'character',type:'Character',effectText:'[On Your Opponent\'s Attack] You may trash 1 card from your hand: Give this Character +1000 power during this battle.'},
  ]};
- assert.deepEqual(commandsForTiming(state,'ko-card','on-ko').map(command=>command.kind),['pay-cost','resolve-action','resolve-action']);
- assert.deepEqual(commandsForTiming(state,'defender','opponent-attack').map(command=>command.kind),['pay-cost','resolve-action','resolve-action']);
+ assert.deepEqual(commandsForTiming(state,'ko-card','on-ko').map(command=>command.kind),['pay-cost','resolve-action']);
+ assert.deepEqual(commandsForTiming(state,'defender','opponent-attack').map(command=>command.kind),['pay-cost','resolve-action']);
 });
 
 test('a negated Character does not expose printed timing commands',()=>{

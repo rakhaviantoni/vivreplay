@@ -1,0 +1,2097 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-09-29T03:05:27.470Z",
+  "candidates": [
+    {
+      "code": "OP02-119",
+      "printedText": "[Main] K.O. up to 1 of your opponent's Characters with a cost of 1 or less.",
+      "publishedText": "[Main] K.O. up to 1 of your opponent's Characters with a cost of 1 or less. [Trigger] Draw 2 cards and trash 1 card from your hand.",
+      "timings": [
+        "main"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 1,
+                "selection": {
+                  "max": 1,
+                  "min": 0
+                },
+                "restedOnly": false
+              }
+            ],
+            "rawText": "[Main] K.O. up to 1 of your opponent's Characters with a cost of 1 or less.",
+            "trigger": "main",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 2
+              },
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "requiresTrigger": false
+              }
+            ],
+            "rawText": "[Trigger] Draw 2 cards and trash 1 card from your hand.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 1,
+                  "selection": {
+                    "max": 1,
+                    "min": 0
+                  },
+                  "restedOnly": false
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 2
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "requiresTrigger": false
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] K.O. up to 1 of your opponent's Characters with a cost of 1 or less. [Trigger] Draw 2 cards and trash 1 card from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "rawEffectText": "[Main] K.O. up to 1 of your opponent's Characters with a cost of 1 or less.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[Main] K.O. up to 1 of your opponent's Characters with a cost of 1 or less.",
+            "trigger": "main",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 1,
+                "restedOnly": false,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 1,
+                  "restedOnly": false,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "bd02514e4e18a87fbcea7f2fd4af586d9b4f27e4d77ae5fdd695d028d0915ced",
+      "afterHash": "dad82898dea5f24c39f343161ea1b501e8790b389717aad85a7b408cac4700ec"
+    },
+    {
+      "code": "OP03-033",
+      "printedText": "",
+      "publishedText": "[Trigger] If your Leader has the [East Blue] type, play this card.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[Trigger] If your Leader has the [East Blue] type, play this card.",
+            "trigger": "trigger",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the [East Blue] type"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the [East Blue] type"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Trigger] If your Leader has the [East Blue] type, play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 1,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": []
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [],
+            "sequence": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "d4ab943d08d2be88f15fe4ecd76a41465f7508c9d51bb71607214bfbf7d55e5d",
+      "afterHash": "a212ef0e52726a9ee5af330ef8f15e689a53486e71484d8895ba7dd46133f3b5"
+    },
+    {
+      "code": "OP03-116",
+      "printedText": "[On Play] Draw 3 cards and trash 2 cards from your hand.",
+      "publishedText": "[On Play] Draw 3 cards and trash 2 cards from your hand. [Trigger] Play this card.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioCount": 4,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 3
+              },
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 2,
+                "requiresTrigger": false
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[On Play] Draw 3 cards and trash 2 cards from your hand. [Trigger] Play this card.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 3
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 2,
+                  "requiresTrigger": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Draw 3 cards and trash 2 cards from your hand. [Trigger] Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[On Play] Draw 3 cards and trash 2 cards from your hand.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[On Play] Draw 3 cards and trash 2 cards from your hand.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 3
+              },
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 2,
+                "requiresTrigger": false
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 3
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 2,
+                  "requiresTrigger": false
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "59ab495349a8f4f9e65a3ec21219fe174eecf14eedbae3f1e935b57495be128e",
+      "afterHash": "f578bae2ffc8ad1f20c36b81d4e02caa772be8b7b5f6837638a1ba72b869230b"
+    },
+    {
+      "code": "OP02-046",
+      "printedText": "[Main] K.O. up to 1 of your opponent's rested Characters with a cost of 4 or less.",
+      "publishedText": "[Main] K.O. up to 1 of your opponent's rested Characters with a cost of 4 or less. [Trigger] Play up to 1 Character card with a cost of 4 or less and no base effect from your hand.",
+      "timings": [
+        "main"
+      ],
+      "scenarioCount": 6,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 4,
+                "restedOnly": true
+              },
+              {
+                "kind": "ko",
+                "maxCost": 4,
+                "restedOnly": true
+              },
+              {
+                "kind": "play",
+                "rested": false,
+                "source": "hand",
+                "maxCost": 4
+              }
+            ],
+            "rawText": "[Main] K.O. up to 1 of your opponent's rested Characters with a cost of 4 or less. [Trigger] Play up to 1 Character card with a cost of 4 or less and no base effect from your hand.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 4,
+                  "restedOnly": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 4,
+                  "restedOnly": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "rested": false,
+                  "source": "hand",
+                  "maxCost": 4
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] K.O. up to 1 of your opponent's rested Characters with a cost of 4 or less. [Trigger] Play up to 1 Character card with a cost of 4 or less and no base effect from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[Main] K.O. up to 1 of your opponent's rested Characters with a cost of 4 or less.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[Main] K.O. up to 1 of your opponent's rested Characters with a cost of 4 or less.",
+            "trigger": "main",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 4,
+                "restedOnly": true,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 4,
+                  "restedOnly": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "b551034b730843bdc186f0f2c153b218d788f1bb60b8fc60a31fd3774beda3e6",
+      "afterHash": "68add6add589fffba889353a52329a94eda2c6821f5e35c265bd11bf1703bade"
+    },
+    {
+      "code": "OP02-091",
+      "printedText": "[Main] Add up to 1 DON!! card from your DON!! deck and set it as active.",
+      "publishedText": "[Main] Add up to 1 DON!! card from your DON!! deck and set it as active. [Trigger] If your opponent has 6 or more DON!! cards on their field, your opponent returns 1 DON!! card from their field to their DON!! deck.",
+      "timings": [
+        "main"
+      ],
+      "scenarioCount": 10,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "add-don",
+                "amount": 1,
+                "rested": true
+              }
+            ],
+            "rawText": "[Main] Add up to 1 DON!! card from your DON!! deck and set it as active. [Trigger] If your opponent has 6 or more DON!! cards on their field, your opponent returns 1 DON!! card from their field to their DON!! deck.",
+            "trigger": "main",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your opponent has 6 or more DON!! cards on their field"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "add-don",
+                  "amount": 1,
+                  "rested": true
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your opponent has 6 or more DON!! cards on their field"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Add up to 1 DON!! card from your DON!! deck and set it as active. [Trigger] If your opponent has 6 or more DON!! cards on their field, your opponent returns 1 DON!! card from their field to their DON!! deck.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[Main] Add up to 1 DON!! card from your DON!! deck and set it as active.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[Main] Add up to 1 DON!! card from your DON!! deck and set it as active.",
+            "trigger": "main",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "add-don",
+                "amount": 1,
+                "rested": false,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "add-don",
+                  "amount": 1,
+                  "rested": false,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "d1e99c304b9bacbc41626f34ef60cadae08d8e722413d505dba4f936252a2eb9",
+      "afterHash": "c110f3f8df5091c9cd605d4b9812489dd1a91525ff2980add8bec0c1f1c8d509"
+    },
+    {
+      "code": "OP03-100",
+      "printedText": "",
+      "publishedText": "[Trigger] You may trash 1 card from the top or bottom of your Life cards: Play this card.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[Trigger] You may trash 1 card from the top or bottom of your Life cards: Play this card.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Trigger] You may trash 1 card from the top or bottom of your Life cards: Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 1,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": []
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [],
+            "sequence": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "3c0f9b77ed1f70db6be6f5e5dbdfd6edeef088307040e43b876558391ab1f27d",
+      "afterHash": "a212ef0e52726a9ee5af330ef8f15e689a53486e71484d8895ba7dd46133f3b5"
+    },
+    {
+      "code": "OP02-075",
+      "printedText": "",
+      "publishedText": "[Trigger] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Play this card.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "return-don",
+                "amount": 1
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[Trigger] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Play this card.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "return-don",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Trigger] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 1,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": []
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [],
+            "sequence": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "3bf70497d9f0d05ddbb8c91542159928f86a22e5fc472765331d50bcec47f96e",
+      "afterHash": "a212ef0e52726a9ee5af330ef8f15e689a53486e71484d8895ba7dd46133f3b5"
+    },
+    {
+      "code": "EB04-027",
+      "printedText": "[On Play] Draw 2 cards and trash 1 card from your hand.",
+      "publishedText": "[On Play] Draw 2 cards and trash 1 card from your hand.\n[Trigger] Play up to 1 Character card with 5000 power or less and a [Trigger] from your hand.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioCount": 4,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 2
+              },
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "requiresTrigger": false
+              }
+            ],
+            "rawText": "[On Play] Draw 2 cards and trash 1 card from your hand.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "rested": false,
+                "source": "hand"
+              }
+            ],
+            "rawText": "[Trigger] Play up to 1 Character card with 5000 power or less and a [Trigger] from your hand.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 2
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "requiresTrigger": false
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "rested": false,
+                  "source": "hand"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Draw 2 cards and trash 1 card from your hand.\n[Trigger] Play up to 1 Character card with 5000 power or less and a [Trigger] from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[On Play] Draw 2 cards and trash 1 card from your hand.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[On Play] Draw 2 cards and trash 1 card from your hand.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 2
+              },
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "requiresTrigger": false
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 2
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "requiresTrigger": false
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "ab4daed93ef64302759acc2f49c1b0a3f4f16751cc99ea4ddeac05e9e09f8e89",
+      "afterHash": "fc6812bd9a936a011a3ff7790b7a507ae8bf679f941e54deda70ec2a052e71e0"
+    },
+    {
+      "code": "OP03-118",
+      "printedText": "[Counter] Up to 1 of your Leader or Character cards gains +5000 power during this battle.",
+      "publishedText": "[Counter] Up to 1 of your Leader or Character cards gains +5000 power during this battle. [Trigger] You may trash 2 cards from your hand: Add up to 1 card from the top of your deck to the top of your Life cards.",
+      "timings": [
+        "counter"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 2,
+                "optional": true,
+                "requiresTrigger": false
+              }
+            ],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "battle",
+                "amount": 5000,
+                "target": "own-leader"
+              },
+              {
+                "kind": "life",
+                "amount": 1,
+                "operation": "add-to-life"
+              },
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 2,
+                "requiresTrigger": false
+              },
+              {
+                "kind": "move-to-life",
+                "scope": "own",
+                "amount": 1,
+                "faceUp": false,
+                "position": "top"
+              }
+            ],
+            "rawText": "[Counter] Up to 1 of your Leader or Character cards gains +5000 power during this battle. [Trigger] You may trash 2 cards from your hand: Add up to 1 card from the top of your deck to the top of your Life cards.",
+            "trigger": "counter",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "counter",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 2,
+                  "optional": true,
+                  "requiresTrigger": false
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "battle",
+                  "amount": 5000,
+                  "target": "own-leader"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life",
+                  "amount": 1,
+                  "operation": "add-to-life"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 2,
+                  "requiresTrigger": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "move-to-life",
+                  "scope": "own",
+                  "amount": 1,
+                  "faceUp": false,
+                  "position": "top"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Counter] Up to 1 of your Leader or Character cards gains +5000 power during this battle. [Trigger] You may trash 2 cards from your hand: Add up to 1 card from the top of your deck to the top of your Life cards.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[Counter] Up to 1 of your Leader or Character cards gains +5000 power during this battle.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[Counter] Up to 1 of your Leader or Character cards gains +5000 power during this battle.",
+            "trigger": "counter",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 5000,
+                "until": "battle",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                },
+                "target": "own-card"
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "counter",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 5000,
+                  "until": "battle",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "target": "own-card"
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "1fbe2a9db717f58d4c8fd03a6b74e1fc2047c99070b727760a971d0be3569663",
+      "afterHash": "3c1e3024b89d7f6ea622d8381f64a18766d0237b5851bc1275911b06d8609898"
+    },
+    {
+      "code": "OP02-117",
+      "printedText": "[Main] Give up to 1 of your opponent's Characters −5 cost during this turn.",
+      "publishedText": "[Main] Give up to 1 of your opponent's Characters -5 cost during this turn. [Trigger] K.O. up to 1 of your opponent's Characters with a cost of 3 or less.",
+      "timings": [
+        "main"
+      ],
+      "scenarioCount": 4,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "cost",
+                "amount": -5,
+                "target": "opponent-character",
+                "selection": {
+                  "max": 1,
+                  "min": 0
+                }
+              }
+            ],
+            "rawText": "[Main] Give up to 1 of your opponent's Characters -5 cost during this turn.",
+            "trigger": "main",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 3,
+                "selection": {
+                  "max": 1,
+                  "min": 0
+                },
+                "restedOnly": false
+              }
+            ],
+            "rawText": "[Trigger] K.O. up to 1 of your opponent's Characters with a cost of 3 or less.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "cost",
+                  "amount": -5,
+                  "target": "opponent-character",
+                  "selection": {
+                    "max": 1,
+                    "min": 0
+                  }
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 3,
+                  "selection": {
+                    "max": 1,
+                    "min": 0
+                  },
+                  "restedOnly": false
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Give up to 1 of your opponent's Characters -5 cost during this turn. [Trigger] K.O. up to 1 of your opponent's Characters with a cost of 3 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "rawEffectText": "[Main] Give up to 1 of your opponent's Characters −5 cost during this turn.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[Main] Give up to 1 of your opponent's Characters -5 cost during this turn.",
+            "trigger": "main",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "cost",
+                "amount": -5,
+                "target": "opponent-character",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "cost",
+                  "amount": -5,
+                  "target": "opponent-character",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "4102416bb3a7920bcd6118546debb472e1fe581a31a69d8c00094c92ceb23ad3",
+      "afterHash": "cfea92f6e4c00d1e8bd4676e085f4fe7591d11037092876dd8bf9c39c0828328"
+    },
+    {
+      "code": "OP03-056",
+      "printedText": "[Main] Draw 2 cards.",
+      "publishedText": "[Main] Draw 2 cards. [Trigger] Activate this card's [Main] effect.",
+      "timings": [
+        "main"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 2
+              }
+            ],
+            "rawText": "[Main] Draw 2 cards.",
+            "trigger": "main",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "activate-main-effect"
+              },
+              {
+                "kind": "activate-referenced-effect",
+                "trigger": "main"
+              }
+            ],
+            "rawText": "[Trigger] Activate this card's [Main] effect.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 2
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "activate-main-effect"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "activate-referenced-effect",
+                  "trigger": "main"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Draw 2 cards. [Trigger] Activate this card's [Main] effect.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "rawEffectText": "[Main] Draw 2 cards.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[Main] Draw 2 cards.",
+            "trigger": "main",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 2
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 2
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "56ac27295e086011748aedacae5b01f3f7b28313830551c5b78766d6d407888d",
+      "afterHash": "3793a0a014086d8b4f7477e881acb75694db96d06a2cb0ed80cb592a79f10fa6"
+    },
+    {
+      "code": "OP03-042",
+      "printedText": "[On Play] Add up to 1 blue [Usopp] from your trash to your hand.",
+      "publishedText": "[On Play] Add up to 1 blue [Usopp from your trash to your hand.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioCount": 9,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "recover",
+                "amount": 1,
+                "source": "trash",
+                "destination": "hand"
+              }
+            ],
+            "rawText": "[On Play] Add up to 1 blue [Usopp from your trash to your hand.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "recover",
+                  "amount": 1,
+                  "source": "trash",
+                  "destination": "hand"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Add up to 1 blue [Usopp from your trash to your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[On Play] Add up to 1 blue [Usopp] from your trash to your hand.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[On Play] Add up to 1 blue [Usopp] from your trash to your hand.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "recover",
+                "source": "trash",
+                "destination": "hand",
+                "amount": 1,
+                "color": "blue",
+                "name": "Usopp"
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "recover",
+                  "source": "trash",
+                  "destination": "hand",
+                  "amount": 1,
+                  "color": "blue",
+                  "name": "Usopp"
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "d4d5afd55f0b9b60c1788bf75e0c69aeae6e8d72590723f17e1d1bbf676973ab",
+      "afterHash": "42a49edfb5278f97354dd296d8f5a56c687434e9adf62d06ba0cad654adf403e"
+    },
+    {
+      "code": "OP03-113",
+      "printedText": "[On K.O.] Look at 3 cards from the top of your deck; reveal up to 1 {Big Mom Pirates} type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+      "publishedText": "[On K.O.] Look at 3 cards from the top of your deck; reveal up to 1 [Big Mom Pirates] type card and add it to your hand. Then, place the rest at the bottom of your deck in any order. [Trigger] You may trash 1 card from your hand: Play this card.",
+      "timings": [
+        "on-ko"
+      ],
+      "scenarioCount": 4,
+      "before": {
+        "ast": [
+          {
+            "costs": [
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "optional": true,
+                "requiresTrigger": false
+              }
+            ],
+            "actions": [
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "requiresTrigger": false
+              },
+              {
+                "kind": "search",
+                "amount": 3,
+                "choose": 1,
+                "destination": "deck-bottom"
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              },
+              {
+                "kind": "on-ko"
+              }
+            ],
+            "rawText": "[On K.O.] Look at 3 cards from the top of your deck; reveal up to 1 [Big Mom Pirates] type card and add it to your hand. Then, place the rest at the bottom of your deck in any order. [Trigger] You may trash 1 card from your hand: Play this card.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "optional": true,
+                  "requiresTrigger": false
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "requiresTrigger": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 3,
+                  "choose": 1,
+                  "destination": "deck-bottom"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "on-ko"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On K.O.] Look at 3 cards from the top of your deck; reveal up to 1 [Big Mom Pirates] type card and add it to your hand. Then, place the rest at the bottom of your deck in any order. [Trigger] You may trash 1 card from your hand: Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[On K.O.] Look at 3 cards from the top of your deck; reveal up to 1 {Big Mom Pirates} type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[On K.O.] Look at 3 cards from the top of your deck; reveal up to 1 {Big Mom Pirates} type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-ko",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 3,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "trait": "Big Mom Pirates"
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "on-ko",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 3,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "trait": "Big Mom Pirates"
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "ac56084d0bba81291bb9a0c912f2aa437b62526c8acd31ed8f9ed45b2a2a4480",
+      "afterHash": "1735da7d9baca3087c6c896a0f141df4af0ec71f62543441c85ff55c64e248d5"
+    },
+    {
+      "code": "OP03-029",
+      "printedText": "[On Play] K.O. up to 1 of your opponent's rested Characters with a cost of 4 or less.",
+      "publishedText": "[On Play] K.O. up to 1 of your opponent's rested Characters with a cost of 4 or less. [Trigger] Play this card.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioCount": 6,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 4,
+                "restedOnly": true
+              },
+              {
+                "kind": "ko",
+                "maxCost": 4,
+                "restedOnly": true
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[On Play] K.O. up to 1 of your opponent's rested Characters with a cost of 4 or less. [Trigger] Play this card.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 4,
+                  "restedOnly": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 4,
+                  "restedOnly": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] K.O. up to 1 of your opponent's rested Characters with a cost of 4 or less. [Trigger] Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[On Play] K.O. up to 1 of your opponent's rested Characters with a cost of 4 or less.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[On Play] K.O. up to 1 of your opponent's rested Characters with a cost of 4 or less.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 4,
+                "restedOnly": true,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 4,
+                  "restedOnly": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "913bb0b93892c04489a491171c1f44fdadc6172e999fd7a08b4db5755bf68463",
+      "afterHash": "72b32d737a242060d7ebdbc20bdfe0a634d59f8545997839eeaf623f31c32ff8"
+    },
+    {
+      "code": "OP02-104",
+      "printedText": "",
+      "publishedText": "[Trigger] Play this card.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[Trigger] Play this card.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Trigger] Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 1,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": []
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [],
+            "sequence": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "0f6697329f223d708eb349b03f5bda76e453043c5535c7b3100fcea01e400351",
+      "afterHash": "a212ef0e52726a9ee5af330ef8f15e689a53486e71484d8895ba7dd46133f3b5"
+    },
+    {
+      "code": "OP02-047",
+      "printedText": "[Main] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+      "publishedText": "[Main] Rest up to 1 of your opponent's Characters with a cost of 4 or less. [Trigger] K.O. up to 1 of your opponent's rested Characters with a cost of 3 or less.",
+      "timings": [
+        "main"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 4,
+                "selection": {
+                  "max": 1,
+                  "min": 0
+                }
+              }
+            ],
+            "rawText": "[Main] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+            "trigger": "main",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 3,
+                "selection": {
+                  "max": 1,
+                  "min": 0
+                },
+                "restedOnly": true
+              }
+            ],
+            "rawText": "[Trigger] K.O. up to 1 of your opponent's rested Characters with a cost of 3 or less.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 4,
+                  "selection": {
+                    "max": 1,
+                    "min": 0
+                  }
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 3,
+                  "selection": {
+                    "max": 1,
+                    "min": 0
+                  },
+                  "restedOnly": true
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Rest up to 1 of your opponent's Characters with a cost of 4 or less. [Trigger] K.O. up to 1 of your opponent's rested Characters with a cost of 3 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "rawEffectText": "[Main] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[Main] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+            "trigger": "main",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 4,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 4,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "c502190e0d1e6b9a3f0a398aa40a1ebeb29fb9b106c0ff9aba38c14f073bf486",
+      "afterHash": "1e139a65394d7421d8dce99a69dee984ba4f52c57a743a23eac885cc303acc12"
+    },
+    {
+      "code": "OP02-076",
+      "printedText": "[On Play] DON!! −1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): K.O. up to 1 of your opponent's Characters with a cost of 1 or less.",
+      "publishedText": "[On Play] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): K.O. up to 1 of your opponent's Characters with a cost of 1 or less.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioCount": 7,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 1,
+                "restedOnly": false
+              },
+              {
+                "kind": "ko",
+                "maxCost": 1,
+                "restedOnly": false
+              },
+              {
+                "kind": "return-don",
+                "amount": 1
+              }
+            ],
+            "rawText": "[On Play] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): K.O. up to 1 of your opponent's Characters with a cost of 1 or less.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 1,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 1,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "return-don",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): K.O. up to 1 of your opponent's Characters with a cost of 1 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[On Play] DON!! −1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): K.O. up to 1 of your opponent's Characters with a cost of 1 or less.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[On Play] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): K.O. up to 1 of your opponent's Characters with a cost of 1 or less.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [
+              {
+                "kind": "return-don",
+                "amount": 1,
+                "optional": false
+              }
+            ],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 1,
+                "restedOnly": false,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "PAY_COST",
+                "cost": {
+                  "kind": "return-don",
+                  "amount": 1,
+                  "optional": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 1,
+                  "restedOnly": false,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "fefa00ec86b36e72f805418351d33bf6b08b25ef9d9867429010ed31b436391b",
+      "afterHash": "d2138fb71e18d1a3b8ceed7f60b1ad4b2fe038c2b27c651f33d23778d679bf47"
+    }
+  ]
+}

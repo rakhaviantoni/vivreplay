@@ -1,15 +1,147 @@
 'use client';
 
 import Link from 'next/link';
-import {useEffect,useMemo,useState} from 'react';
-import {InfoIcon as Info,MinusIcon as Minus,PlusIcon as Plus} from '@phosphor-icons/react';
+import {useEffect,useMemo,useRef,useState} from 'react';
+import {InfoIcon as Info, MinusIcon as Minus, PlusIcon as Plus, TruckIcon as Truck, XIcon as X, MapPinIcon as MapPin} from '@phosphor-icons/react';
 import type {Card} from '@/packages/card-data/catalog';
-import {formatMoney} from '@/packages/domain';
+import {formatMoney,Listing} from '@/packages/domain';
 import {CardArt} from './card-art';
 import {CardPreviewModal} from './card-preview-modal';
 import {ShareButton} from './share';
+import {MarketTimestamp} from './market-timestamp';
 import {authClient} from '@/lib/auth-client';
 import {toast} from 'sonner';
+
+type CourierRate={courier_name:string;courier_service_name:string;price:number;duration?:string;max_km?:number};
+const COURIER_LABELS:Record<string,string>={'jne':'JNE','jnt':'J&T Express','sicepat':'SiCepat','anteraja':'Anteraja','tiki':'TIKI','grab_instant':'Grab Instant','gojek_instant':'Gojek Instant'};
+const INSTANT_COURIERS=new Set(['grab_instant','gojek_instant']);
+
+const DEFAULT_COURIERS:CourierRate[]=[
+  {courier_name:'jnt',courier_service_name:'J&T EZ',price:0},
+  {courier_name:'grab_instant',courier_service_name:'Grab Instant',price:0,max_km:40},
+  {courier_name:'gojek_instant',courier_service_name:'Gojek Instant',price:0,max_km:40},
+];
+
+export function ShippingOptions({listingId,courierCount=3,variant='fact'}:{listingId:string;courierCount?:number;variant?:'fact'|'compact';}){
+  const [open,setOpen]=useState(false);
+  const [rates,setRates]=useState<CourierRate[]>([]);
+  const [loading,setLoading]=useState(false);
+  const [fetched,setFetched]=useState(false);
+  const [language,setLanguage]=useState<'EN'|'ID'>('EN');
+  const dialogRef=useRef<HTMLDivElement>(null);
+
+  useEffect(()=>{
+    const sync=()=>setLanguage(window.localStorage.getItem('vivreplay-locale')==='ID'?'ID':'EN');
+    const onLocale=(event:Event)=>setLanguage((event as CustomEvent<'EN'|'ID'>).detail==='ID'?'ID':'EN');
+    sync();
+    window.addEventListener('vivreplay:locale',onLocale);
+    return()=>window.removeEventListener('vivreplay:locale',onLocale);
+  },[]);
+
+  const t=(en:string,idStr:string)=>language==='ID'?idStr:en;
+
+  const openDialog=async()=>{
+    setOpen(true);
+    if(fetched)return;
+    setLoading(true);
+    try{
+      const res=await fetch('/api/shipping/quotes',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({listingId})});
+      const data=await res.json() as {pricing?:CourierRate[];error?:string};
+      if(res.ok&&Array.isArray(data.pricing)&&data.pricing.length>0)setRates(data.pricing);
+    }catch{/* no-op */}finally{setLoading(false);setFetched(true);}
+  };
+
+  useEffect(()=>{
+    if(!open)return;
+    const handler=(e:MouseEvent)=>{if(dialogRef.current&&!dialogRef.current.contains(e.target as Node))setOpen(false);};
+    document.addEventListener('mousedown',handler,true);
+    return()=>document.removeEventListener('mousedown',handler,true);
+  },[open]);
+
+  useEffect(()=>{
+    if(!open)return;
+    const handler=(e:KeyboardEvent)=>{if(e.key==='Escape')setOpen(false);};
+    document.addEventListener('keydown',handler);
+    return()=>document.removeEventListener('keydown',handler);
+  },[open]);
+
+  const activeRates=rates.length>0?rates:DEFAULT_COURIERS;
+  const noAddress=!loading&&fetched&&rates.length===0;
+
+  const modal=open?(
+    <div className="shipping-options-backdrop" role="presentation" onClick={e=>{e.preventDefault();e.stopPropagation();setOpen(false);}}>
+      <div className="shipping-options-dialog" ref={dialogRef} role="dialog" aria-modal="true" aria-label={t('Shipping Options','Opsi Pengiriman')} onClick={e=>{e.preventDefault();e.stopPropagation();}}>
+        <header className="shipping-options-header">
+          <strong>{t('Shipping Options','Opsi Pengiriman')}</strong>
+          <button type="button" className="shipping-options-close" onClick={e=>{e.preventDefault();e.stopPropagation();setOpen(false);}} aria-label={t('Close','Tutup')}><X size={15}/></button>
+        </header>
+        <div className="shipping-options-body">
+          {loading&&<p className="shipping-options-loading">{t('Loading shipping options…','Memuat opsi pengiriman…')}</p>}
+          {!loading&&(
+            <ul className="shipping-options-list">
+              {activeRates.map((rate,i)=>(
+                <li key={i} className="shipping-options-item">
+                  <span className="shipping-options-courier">
+                    <strong>{rate.courier_service_name||COURIER_LABELS[rate.courier_name]||rate.courier_name}</strong>
+                    {rate.courier_service_name&&COURIER_LABELS[rate.courier_name]&&rate.courier_service_name!==COURIER_LABELS[rate.courier_name]&&(
+                      <small>{COURIER_LABELS[rate.courier_name]}</small>
+                    )}
+                  </span>
+                  <div className="shipping-options-meta">
+                    {INSTANT_COURIERS.has(rate.courier_name)&&rate.max_km!=null&&(
+                      <span className="shipping-options-constraint">{t('max','maks')} {rate.max_km} km</span>
+                    )}
+                    {rate.price>0&&(
+                      <span className="shipping-options-rate-price">{formatMoney(rate.price,'IDR')}</span>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <footer className="shipping-options-footer">
+          <p>{t('Shipping fee is calculated from your address at checkout.','Ongkir dihitung dari alamatmu saat pembayaran.')}</p>
+          <Link href="/profile" className="button shipping-options-address-btn" onClick={e=>e.stopPropagation()}>
+            {t('Set address to calculate shipping','Atur alamat untuk lihat ongkir')}
+          </Link>
+        </footer>
+      </div>
+    </div>
+  ):null;
+
+  if(variant==='compact'){
+    return(
+      <>
+        <span
+          role="button"
+          tabIndex={0}
+          className="market-feed-shipping-trigger"
+          onClick={e=>{e.preventDefault();e.stopPropagation();openDialog();}}
+          onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();e.stopPropagation();openDialog();}}}
+          aria-haspopup="dialog"
+          aria-expanded={open}
+        >
+          <Truck size={11}/>
+          <span>{courierCount} {t('shipping options available','pengiriman tersedia')}</span>
+        </span>
+        {modal}
+      </>
+    );
+  }
+
+  return(
+    <div className="shipping-options-fact">
+      <dt><Truck size={11}/>{t('Shipping','Pengiriman')}</dt>
+      <dd>
+        <button type="button" className="shipping-options-trigger" onClick={openDialog} aria-haspopup="dialog" aria-expanded={open}>
+          {courierCount} {t('shipping options available','pengiriman tersedia')}
+        </button>
+        {modal}
+      </dd>
+    </div>
+  );
+}
 
 export type MarketListingCard={
   id:string;
@@ -39,27 +171,76 @@ export function ListingArtRotator({items}:{items:MarketListingCard[]}){
 
 export function MarketListingItems({items,currency,listingType,listingId,listingTitle,listingAmount}:{items:MarketListingCard[];currency:string;listingType:'WTS'|'WTB';listingId:string;listingTitle?:string;listingAmount?:string;}){
   const [selected,setSelected]=useState<Record<string,number>>({});
+  const [customPrices,setCustomPrices]=useState<Record<string,number>>({});
   const [preview,setPreview]=useState<Card>();
   const {data:session}=authClient.useSession();
   const [submitting,setSubmitting]=useState(false); const [submitted,setSubmitted]=useState(false);
+  const [language,setLanguage]=useState<'EN'|'ID'>('EN');
+
+  useEffect(()=>{
+    const sync=()=>setLanguage(window.localStorage.getItem('vivreplay-locale')==='ID'?'ID':'EN');
+    const onLocale=(event:Event)=>setLanguage((event as CustomEvent<'EN'|'ID'>).detail==='ID'?'ID':'EN');
+    sync();
+    window.addEventListener('vivreplay:locale',onLocale);
+    return()=>window.removeEventListener('vivreplay:locale',onLocale);
+  },[]);
+
+  const t=(en:string,idStr:string)=>language==='ID'?idStr:en;
+
   const selectedCount=useMemo(()=>Object.values(selected).reduce((total,amount)=>total+amount,0),[selected]);
-  const selectedTotal=useMemo(()=>items.reduce((total,item)=>total+(selected[item.id]??0)*item.unitAmount,0),[items,selected]);
+  const originalTotal=useMemo(()=>items.reduce((total,item)=>total+(selected[item.id]??0)*item.unitAmount,0),[items,selected]);
+  const selectedTotal=useMemo(()=>items.reduce((total,item)=>{
+    const qty=selected[item.id]??0;
+    const unitPrice=customPrices[item.id]!==undefined?customPrices[item.id]:item.unitAmount;
+    return total+qty*unitPrice;
+  },0),[items,selected,customPrices]);
+
+  const hasPriceAdjustments=useMemo(()=>{
+    return items.some(item=>{
+      const qty=selected[item.id]??0;
+      return qty>0&&customPrices[item.id]!==undefined&&customPrices[item.id]!==item.unitAmount;
+    });
+  },[items,selected,customPrices]);
+
+  const totalDiffPercent=originalTotal>0?Math.round(((selectedTotal-originalTotal)/originalTotal)*100):0;
+
+  const getUnitPrice=(item:MarketListingCard)=>{
+    return customPrices[item.id]!==undefined?customPrices[item.id]:item.unitAmount;
+  };
+
+  const adjustPricePercent=(item:MarketListingCard,percent:number)=>{
+    const raw=Math.round(item.unitAmount*(1+percent/100));
+    const rounded=currency==='IDR'&&item.unitAmount>=10000?Math.round(raw/1000)*1000:raw;
+    const finalPrice=Math.max(1,rounded);
+    setCustomPrices(prev=>({...prev,[item.id]:finalPrice}));
+  };
+
+  const resetPrice=(id:string)=>{
+    setCustomPrices(prev=>{
+      const next={...prev};
+      delete next[id];
+      return next;
+    });
+  };
+
   const change=(id:string,delta:number,maximum:number)=>setSelected(current=>{
     const next=Math.max(0,Math.min(maximum,(current[id]??0)+delta));
     return {...current,[id]:next};
   });
   const isBuying=listingType==='WTS';
-  const actionLabel=isBuying?'Make offer':'Offer cards';
+  const actionLabel=isBuying?t('Make offer','Ajukan penawaran'):t('Offer cards','Tawarkan kartu');
   const continueOffer=async()=>{
     if(!session){window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));return;}
-    setSubmitting(true);try{const response=await fetch(`/api/listings/${encodeURIComponent(listingId)}/offers`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({type:isBuying?'BUY':'SELL',items:items.flatMap(item=>{const quantity=selected[item.id]??0;return quantity?[{printingId:item.id,quantity}]:[]}),amount:selectedTotal,currency})});const payload=await response.json() as {error?:string};if(!response.ok)throw new Error(payload.error??'We could not send your offer.');setSubmitted(true);toast.success(isBuying?'Offer sent to the seller.':'Your cards were offered to the buyer.');}catch(error){toast.error(error instanceof Error?error.message:'We could not send your offer.')}finally{setSubmitting(false)}
+    setSubmitting(true);try{const offerItems=items.flatMap(item=>{const quantity=selected[item.id]??0;if(!quantity)return[];const unitAmount=getUnitPrice(item);return [{printingId:item.id,quantity,unitAmount}];});const response=await fetch(`/api/listings/${encodeURIComponent(listingId)}/offers`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({type:isBuying?'BUY':'SELL',items:offerItems,amount:selectedTotal,currency})});const payload=await response.json() as {error?:string};if(!response.ok)throw new Error(payload.error??t('We could not send your offer.','Gagal mengirimkan penawaran Anda.'));setSubmitted(true);toast.success(isBuying?t('Offer sent to the seller.','Penawaran dikirim ke penjual.'):t('Your cards were offered to the buyer.','Kartu Anda ditawarkan ke pembeli.'));}catch(error){toast.error(error instanceof Error?error.message:t('We could not send your offer.','Gagal mengirimkan penawaran Anda.'))}finally{setSubmitting(false)}
   };
 
   return <section className="market-listing-cards" aria-labelledby="listing-cards-heading">
-    <header><h2 id="listing-cards-heading">Cards in this listing</h2></header>
+    <header><h2 id="listing-cards-heading">{t('Cards in this listing','Kartu dalam listing ini')}</h2></header>
     <div className="market-listing-card-grid">
       {items.map(item=>{
         const amount=selected[item.id]??0;
+        const unitPrice=getUnitPrice(item);
+        const diffPercent=item.unitAmount>0?Math.round(((unitPrice-item.unitAmount)/item.unitAmount)*100):0;
         return <article className={`deck-card-stack market-listing-card ${item.quantity>1?'has-printing-stack':''} ${amount?'is-selected':''}`} key={item.id}>
           <div className="card-stage printing-stack deck-printing-stack market-listing-card-stage">
             {Array.from({length:Math.min(item.quantity,4)},(_,index)=>(
@@ -90,8 +271,78 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
           <div className="market-listing-card-copy">
             <strong>{item.card.name}</strong>
             <small>{item.card.code} · {item.card.rarity} · {item.language}</small>
-            <p><span>{item.condition}</span><em>{amount}/{item.quantity} selected</em></p>
-            <b>{formatMoney(item.unitAmount,currency)} each</b>
+            <p><span>{item.condition}</span><em>{amount}/{item.quantity} {t('selected','dipilih')}</em></p>
+            <b>{formatMoney(item.unitAmount,currency)} {t('each','per kartu')}</b>
+
+            {amount>0 && (
+              <div className="market-card-offer">
+                <div className="market-card-offer-label">
+                  <span>{t('Offer price / card:','Tawar harga / kartu:')}</span>
+                  {unitPrice!==item.unitAmount && (
+                    <span className={`market-card-offer-badge ${diffPercent<0?'is-below':'is-above'}`}>
+                      {diffPercent>0?`+${diffPercent}%`:`${diffPercent}%`}
+                    </span>
+                  )}
+                </div>
+                <div className="market-card-offer-input-row">
+                  <input
+                    type="number"
+                    min={1}
+                    step={currency==='IDR'?1000:1}
+                    value={unitPrice}
+                    onChange={e=>{
+                      const val=Math.max(1,Math.round(Number(e.target.value)||0));
+                      setCustomPrices(prev=>({...prev,[item.id]:val}));
+                    }}
+                    aria-label={`${t('Offer price for','Tawaran harga untuk')} ${item.card.name}`}
+                  />
+                </div>
+                <div className="market-card-offer-steppers">
+                  <button
+                    type="button"
+                    onClick={()=>adjustPricePercent(item,-10)}
+                    title={t('10% below asking','10% di bawah harga')}
+                  >
+                    -10%
+                  </button>
+                  <button
+                    type="button"
+                    onClick={()=>adjustPricePercent(item,-5)}
+                    title={t('5% below asking','5% di bawah harga')}
+                  >
+                    -5%
+                  </button>
+                  <button
+                    type="button"
+                    className={unitPrice===item.unitAmount?'is-active':''}
+                    onClick={()=>resetPrice(item.id)}
+                    title={t('Reset to asking price','Kembalikan ke harga asli')}
+                  >
+                    {t('Ask','Pas')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={()=>adjustPricePercent(item,5)}
+                    title={t('5% above asking','5% di atas harga')}
+                  >
+                    +5%
+                  </button>
+                  <button
+                    type="button"
+                    onClick={()=>adjustPricePercent(item,10)}
+                    title={t('10% above asking','10% di atas harga')}
+                  >
+                    +10%
+                  </button>
+                </div>
+                {amount>1 && (
+                  <div className="market-card-offer-subtotal">
+                    <small>{t('Line subtotal:','Subtotal baris:')}</small>
+                    <strong>{formatMoney(amount*unitPrice,currency)}</strong>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </article>;
       })}
@@ -99,24 +350,128 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
     {preview&&<CardPreviewModal card={preview} language={preview.language==='JP'?'JP':'EN'} cards={items.map(item=>item.card)} onClose={()=>setPreview(undefined)} onNavigate={setPreview}/>}
     <footer className="market-listing-selection" aria-live="polite">
       <div className="market-listing-selection-info">
-        <span>{submitted?'Offer sent - awaiting a response.':selectedCount?`${selectedCount} ${selectedCount===1?'card':'cards'} selected`:'Select cards to calculate a total'}</span>
-        <strong>{formatMoney(selectedTotal,currency)}</strong>
+        <span>{submitted?t('Offer sent - awaiting a response.','Penawaran terkirim - menunggu tanggapan.'):selectedCount?(language==='ID'?`${selectedCount} kartu dipilih`:`${selectedCount} ${selectedCount===1?'card':'cards'} selected`):t('Select cards to calculate a total','Pilih kartu untuk menghitung total')}</span>
+        <div className="market-listing-pricing-block">
+          {hasPriceAdjustments && originalTotal>0 && (
+            <span className="market-listing-asking-total">
+              <small>{t('Asking:','Harga listing:')}</small>
+              <s>{formatMoney(originalTotal,currency)}</s>
+            </span>
+          )}
+          <div className="market-listing-final-total">
+            {hasPriceAdjustments && <small>{t('Your offer:','Tawaran Anda:')}</small>}
+            <strong>{formatMoney(selectedTotal,currency)}</strong>
+            {hasPriceAdjustments && totalDiffPercent!==0 && (
+              <span className={`market-listing-diff-chip ${totalDiffPercent<0?'is-below':'is-above'}`}>
+                {totalDiffPercent>0?`+${totalDiffPercent}%`:`${totalDiffPercent}%`}
+              </span>
+            )}
+          </div>
+        </div>
       </div>
       <div className="market-listing-selection-actions">
-        <button type="button" className="button" disabled={!selectedCount||submitting||submitted} onClick={continueOffer}>{submitted?'Offer sent':submitting?'Sending…':session?actionLabel:`Sign in to ${actionLabel.toLowerCase()}`}</button>
+        <button type="button" className="button" disabled={!selectedCount||submitting||submitted} onClick={continueOffer}>{submitted?t('Offer sent','Penawaran terkirim'):submitting?t('Sending...','Mengirim...'):session?(hasPriceAdjustments?t('Submit offer','Kirim penawaran'):actionLabel):(language==='ID'?`Masuk untuk ${isBuying?'menawar':'menawarkan'}`:`Sign in to ${actionLabel.toLowerCase()}`)}</button>
         <ShareButton
-          title={listingTitle ?? 'Card listing'}
+          title={listingTitle ?? t('Card listing','Listing kartu')}
           path={`/market/${listingId}`}
           cards={items.map(item => ({
             card: item.card,
             quantity: item.quantity,
             condition: item.condition,
-            unitAmount: item.unitAmount,
+            unitAmount: getUnitPrice(item),
           }))}
-          price={listingAmount ?? formatMoney(selectedTotal || items[0]?.unitAmount, currency)}
-          subtitle={`${items.reduce((acc, it) => acc + it.quantity, 0)} ${items.reduce((acc, it) => acc + it.quantity, 0) === 1 ? 'card' : 'cards'} · ${items.length} ${items.length === 1 ? 'item' : 'items'}`}
+          price={formatMoney(selectedTotal || items[0]?.unitAmount, currency)}
+          subtitle={language==='ID'?`${items.reduce((acc, it) => acc + it.quantity, 0)} kartu · ${items.length} item`:`${items.reduce((acc, it) => acc + it.quantity, 0)} ${items.reduce((acc, it) => acc + it.quantity, 0) === 1 ? 'card' : 'cards'} · ${items.length} ${items.length === 1 ? 'item' : 'items'}`}
         />
       </div>
     </footer>
   </section>;
 }
+
+export function MarketListingDetailView({
+  listing,
+  stored,
+  listingCards,
+  primary,
+  cardCount,
+}: {
+  listing: Listing;
+  stored?: (Listing & { username: string }) | null;
+  listingCards: MarketListingCard[];
+  primary: MarketListingCard;
+  cardCount: number;
+}) {
+  const [language, setLanguage] = useState<'EN' | 'ID'>('EN');
+
+  useEffect(() => {
+    const sync = () => setLanguage(window.localStorage.getItem('vivreplay-locale') === 'ID' ? 'ID' : 'EN');
+    const onLocale = (event: Event) => setLanguage((event as CustomEvent<'EN' | 'ID'>).detail === 'ID' ? 'ID' : 'EN');
+    sync();
+    window.addEventListener('vivreplay:locale', onLocale);
+    return () => window.removeEventListener('vivreplay:locale', onLocale);
+  }, []);
+
+  const t = (en: string, idStr: string) => language === 'ID' ? idStr : en;
+  const isBuying = listing.type === 'WTB';
+  const status = isBuying ? t('Buying', 'Dicari') : t('Selling', 'Dijual');
+
+  return (
+    <main className="page live-card-detail market-listing-detail">
+      <Link className="back-link" href="/market">
+        ← {t('Back to Market', 'Kembali ke Market')}
+      </Link>
+      <article className="live-detail-layout market-listing-layout">
+        <aside className="live-detail-art viewer-primary-art market-listing-primary">
+          <ListingArtRotator items={listingCards}/>
+        </aside>
+
+        <section className="live-detail-copy market-listing-copy">
+          <header className="market-listing-heading">
+            <div>
+              <p className="eyebrow">
+                {primary.language} {t('printing', 'cetakan')}
+                {listing.createdAt && <> · <MarketTimestamp value={listing.createdAt}/></>}
+              </p>
+              <h1>{listing.title}</h1>
+            </div>
+            <span className={`market-listing-status ${isBuying ? 'is-buying' : 'is-selling'}`}>{status}</span>
+          </header>
+
+          <dl className="market-listing-facts">
+            <div>
+              <dt>{t('Price', 'Harga')}</dt>
+              <dd>{formatMoney(listing.amount, listing.currency)}</dd>
+            </div>
+            <div>
+              <dt>{isBuying ? t('Location', 'Lokasi') : t('Ships from', 'Dikirim dari')}</dt>
+              <dd>{listing.city}</dd>
+            </div>
+            <div>
+              <dt>{t('Cards', 'Kartu')}</dt>
+              <dd>{cardCount} {t('total', 'total')}</dd>
+            </div>
+            {!isBuying && <ShippingOptions listingId={listing.id} courierCount={3}/>}
+          </dl>
+
+          <section className="market-listing-seller">
+            <span>{listing.seller.slice(0, 1).toUpperCase()}</span>
+            <div>
+              <small>{isBuying ? t('Buyer', 'Pembeli') : t('Seller', 'Penjual')}</small>
+              <strong>{stored ? <Link href={`/players/${stored.username}`}>{listing.seller}</Link> : listing.seller}</strong>
+            </div>
+          </section>
+
+          <MarketListingItems
+            items={listingCards}
+            currency={listing.currency}
+            listingType={listing.type === 'WTB' ? 'WTB' : 'WTS'}
+            listingId={listing.id}
+            listingTitle={listing.title}
+            listingAmount={formatMoney(listing.amount, listing.currency)}
+          />
+        </section>
+      </article>
+    </main>
+  );
+}
+

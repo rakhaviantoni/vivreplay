@@ -1,0 +1,159 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-09-29T04:02:53.735Z",
+  "candidates": [
+    {
+      "code": "EB04-043",
+      "printedText": "[Once Per Turn] If your black Character with a base cost of 5 or less would be K.O.'d by your opponent's effect, you may place 3 cards from your trash at the bottom of your deck in any order instead.\n[On Play] Trash 2 cards from the top of your deck.",
+      "publishedText": "[Once Per Turn] If your black Character with a base cost of 5 or less would be K.O.'d by your opponent's effect, you may place 3 cards from your trash at the bottom of your deck in any order instead.\n[On Play] Trash 2 cards from the top of your deck.",
+      "timings": [
+        "continuous"
+      ],
+      "scenarioNames": [
+        "continuous: accept the once-per-turn replacement on any eligible black Character",
+        "continuous: decline or reject non-qualifying K.O. replacements"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "trash",
+                "scope": "deck",
+                "amount": 2
+              }
+            ],
+            "rawText": "[On Play] Trash 2 cards from the top of your deck.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "deck",
+                  "amount": 2
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Once Per Turn] If your black Character with a base cost of 5 or less would be K.O.'d by your opponent's effect, you may place 3 cards from your trash at the bottom of your deck in any order instead.\n[On Play] Trash 2 cards from the top of your deck.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "trash",
+                "scope": "deck",
+                "amount": 2
+              }
+            ],
+            "rawText": "[On Play] Trash 2 cards from the top of your deck.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "rawText": "[Once Per Turn] If your black Character with a base cost of 5 or less would be K.O.'d by your opponent's effect, you may place 3 cards from your trash at the bottom of your deck in any order instead.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your black Character with a base cost of 5 or less would be K.O.'d by your opponent's effect"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "replacement",
+                "event": "ko-by-effect",
+                "cost": {
+                  "kind": "bottom-deck-trash",
+                  "amount": 3
+                },
+                "eligibility": {
+                  "color": "black",
+                  "cardType": "Character",
+                  "maxBaseCost": 5
+                },
+                "oncePerTurn": true
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "deck",
+                  "amount": 2
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "continuous",
+            "optional": true,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your black Character with a base cost of 5 or less would be K.O.'d by your opponent's effect"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "replacement",
+                  "event": "ko-by-effect",
+                  "cost": {
+                    "kind": "bottom-deck-trash",
+                    "amount": 3
+                  },
+                  "eligibility": {
+                    "color": "black",
+                    "cardType": "Character",
+                    "maxBaseCost": 5
+                  },
+                  "oncePerTurn": true
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Once Per Turn] If your black Character with a base cost of 5 or less would be K.O.'d by your opponent's effect, you may place 3 cards from your trash at the bottom of your deck in any order instead.\n[On Play] Trash 2 cards from the top of your deck.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "76536051d7d69197473f8eed10f685a9591a41123cb7dd4633acc9b7227ec23c",
+      "afterHash": "efc957f0ba6701b19abd2adf948273e4d216f3087df339c4d660c796b083fe53"
+    }
+  ]
+}

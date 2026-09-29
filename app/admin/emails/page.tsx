@@ -121,7 +121,7 @@ export default function AdminEmailsPage() {
       case 'password-changed':
         return 'Password Changed';
       case 'welcome':
-        return 'Welcome Aboard';
+        return 'Welcome';
     }
   };
 

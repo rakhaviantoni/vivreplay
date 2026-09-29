@@ -1,5 +1,13 @@
 import {db,errorResponse,guard,user} from '@/lib/server/store';
 
+export async function GET(request:Request){
+  try{
+    guard(request);const profile=await user();
+    const origin=await db().prepare('SELECT owner_id AS ownerId, label, recipient_name AS recipientName, phone, address_line AS addressLine, city, postal_code AS postalCode, area_id AS areaId, latitude, longitude, updated_at AS updatedAt FROM seller_shipping_origins WHERE owner_id=?').bind(profile.id).first();
+    return Response.json({origin:origin||null});
+  }catch(error){return errorResponse(error)}
+}
+
 export async function POST(request:Request){
   try{
     guard(request);const profile=await user();const input=await request.json() as Record<string,unknown>;

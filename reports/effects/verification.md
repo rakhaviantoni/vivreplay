@@ -82,3 +82,13 @@ Shuffle now permutes only the selected owner's deck. Hand-reset parsing removes 
 - Corrected timing detection so a referenced label cannot override the enclosing Trigger.
 - 951 bounded scenarios across 223 cards pass against local compiled schemas; published schemas fail 291 scenarios in this suite. The reference wording occurs on 67 catalog cards, but this does not certify all 67 complete effects.
 - 125 regression tests and TypeScript checks pass. These runtime changes have not been deployed and no additional database publication was performed in this pass.
+
+## Printed Blocker family (2026-09-28)
+
+Added schema-backed Blocker declarations for unconditional printed Blocker abilities, retaining existing runtime keyword support. Negated printed Blocker effects no longer permit blocking. Five scenarios per exact-text matching card cover active/rested, owner, zone and negation; conditional or multi-ability text is excluded from this family coverage.
+
+43 cards add 215 scenarios. The full suite now covers 1,488 bounded scenarios across 558 cards with zero local failures; 213 published-schema scenarios elsewhere still fail and 2,437 cards have no individual scenario. No schema changes were required for this family.
+
+## DON card family (2026-09-28)
+
+187 exact-text `Your Turn +1000` cards now have six schema-driven domain scenarios each: attached, two attached, opponent turn, unattached, foreign owner, and an equal-power battle. Added effectiveCardPower and default battle-power calculation; explicit power callers retain their existing values. This does not verify the separate board power path. All 1,122 new scenarios pass locally and against database schemas. Total coverage is 2,610 scenarios on 745 cards; 213 published scenarios fail elsewhere, and 2,250 cards remain without individual scenarios.

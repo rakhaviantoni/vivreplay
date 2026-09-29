@@ -51,7 +51,7 @@ export function AboutExperience() {
     {
       value: '7,500+',
       label: isId ? 'Versi Cetak Kartu' : 'Card Printings',
-      sub: isId ? 'OP-01 s/d OP-17, EB, ST & Promo' : 'OP-01 to OP-17, EB, ST & Promos',
+      sub: isId ? 'OP-01 s/d OP-18, EB, ST & Promo' : 'OP-01 to OP-18, EB, ST & Promos',
       icon: Cards,
     },
     {
@@ -78,10 +78,10 @@ export function AboutExperience() {
     {
       num: '01',
       title: isId ? 'Arsip Kartu & Registri Varian' : 'Complete Card & Printing Archive',
-      tag: isId ? 'OP-01 s/d OP-17 · JP & EN' : 'OP-01 to OP-17 · JP & EN',
+      tag: isId ? 'OP-01 s/d OP-18 · JP & EN' : 'OP-01 to OP-18 · JP & EN',
       desc: isId
-        ? 'Setiap rilisan dari Romance Dawn hingga seri terbaru OP-17, Extra Booster (EB-01 s/d EB-03), Starter Deck, dan kartu promo turnamen. Bandingkan versi Jepang dan Inggris, periksa varian Manga Rare, SP, parallel art, serta riwayat ralat aturan resmi Bandai.'
-        : 'Every card release from Romance Dawn up to the latest OP-17 booster, Extra Boosters (EB-01 to EB-03), Starter Decks, and tournament promos. Compare Japanese and English prints, check Manga Rares, SP cards, parallel arts, and official Bandai errata history.',
+        ? 'Setiap rilisan dari Romance Dawn hingga seri terbaru OP-18, Extra Booster (EB-01 s/d EB-05), Starter Deck, dan kartu promo turnamen. Bandingkan versi Jepang dan Inggris, periksa varian Manga Rare, SP, parallel art, serta riwayat ralat aturan resmi Bandai.'
+        : 'Every card release from Romance Dawn up to the latest OP-18 booster, Extra Boosters (EB-01 to EB-05), Starter Decks, and tournament promos. Compare Japanese and English prints, check Manga Rares, SP cards, parallel arts, and official Bandai errata history.',
       link: '/cards',
       linkText: isId ? 'Buka katalog kartu' : 'Explore card library',
       icon: Cards,

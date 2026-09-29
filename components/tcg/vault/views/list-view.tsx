@@ -95,7 +95,7 @@ export function ListView({
                       />
                     </button>
                     <div>
-                      <strong style={{ fontFamily: 'var(--display-font, Georgia, serif)', fontSize: '13.5px', color: 'var(--vault-ink)' }}>
+                      <strong style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '13.5px', color: 'var(--vault-ink)' }}>
                         {item.card.name}
                       </strong>
                       <div style={{ fontSize: '10.5px', color: 'var(--vault-ink-secondary)', display: 'flex', gap: '6px' }}>
@@ -133,7 +133,7 @@ export function ListView({
                 {/* Acquired Cost */}
                 {!hideValues && (
                   <td style={{ padding: '10px 16px', textAlign: 'right', color: 'var(--vault-ink-secondary)' }}>
-                    {item.acquisitionAmount ? formatCompactMoney(item.acquisitionAmount, 'IDR') : '—'}
+                    {item.acquisitionAmount ? formatCompactMoney(item.acquisitionAmount, 'IDR') : '-'}
                   </td>
                 )}
 

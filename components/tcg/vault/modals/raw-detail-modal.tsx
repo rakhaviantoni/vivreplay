@@ -104,7 +104,7 @@ export function RawDetailModal({
               <span style={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '0.12em', color: 'var(--vault-gold)', textTransform: 'uppercase' }}>
                 {item.card.code} · {item.card.rarity} · {item.visibility.toUpperCase()}
               </span>
-              <h2 style={{ fontFamily: 'var(--display-font, Georgia, serif)', fontSize: '24px', fontWeight: 600, margin: '2px 0 0', color: 'var(--vault-ink)' }}>
+              <h2 style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '24px', fontWeight: 600, margin: '2px 0 0', color: 'var(--vault-ink)' }}>
                 {item.card.name}
               </h2>
             </div>
@@ -147,7 +147,7 @@ export function RawDetailModal({
               <span style={{ color: 'var(--vault-ink-muted)', display: 'block', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                 Acquisition Cost
               </span>
-              <strong>{hideValues ? '••••••••' : (item.acquisitionAmount ? formatMoney(item.acquisitionAmount, 'IDR') : '—')}</strong>
+              <strong>{hideValues ? '••••••••' : (item.acquisitionAmount ? formatMoney(item.acquisitionAmount, 'IDR') : '-')}</strong>
             </div>
 
             <div>

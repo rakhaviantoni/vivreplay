@@ -65,3 +65,47 @@ test('family coverage retains DON and turn qualifiers rather than treating effec
  assert.equal(familyScenarios('[DON!!×1] [When Attacking] Draw 1 card.').length,0);
  assert.equal(familyScenarios('[Your Turn] [On Play] Draw 1 card.').length,0);
 });
+test('cost reduction selects only opposing Characters, allows skipping and expires',()=>{
+ const effect="[On Play] Give up to 1 of your opponent's Characters -2 cost during this turn.";
+ const document=compileEffectDocument({id:'test',code:'TEST',name:'Test',color:'Black',type:'Character',cost:1,power:0,rarity:'C',art:0,effect});
+ const cases=familyScenarios(effect);assert.equal(cases.length,4);
+ for(const scenario of cases)scenario.run(document);
+});
+test('returning an opponent Character prompts once, detaches DON and allows zero targets',()=>{
+ const effect="[On K.O.] Return up to 1 of your opponent's Characters with a cost of 4 or less to the owner's hand.";
+ const document=compileEffectDocument({id:'test',code:'TEST',name:'Test',color:'Blue',type:'Character',cost:1,power:0,rarity:'C',art:0,effect});
+ const cases=familyScenarios(effect);assert.equal(cases.length,5);
+ for(const scenario of cases)scenario.run(document);
+ assert.equal(document.ast[0].actions.filter(a=>a.kind==='return-to-hand').length,1);
+});
+test('effectless-card coverage rejects phantom commands in stored schemas',()=>{
+ const document=compileEffectDocument({id:'test',code:'TEST',name:'Test',color:'Blue',type:'Character',cost:1,power:1000,rarity:'C',art:0,effect:''});
+ const cases=familyScenarios('');assert.equal(cases.length,1);cases[0].run(document);
+ document.normalized[0].sequence.push({type:'RESOLVE',action:{kind:'draw',amount:1}});
+ assert.throws(()=>cases[0].run(document),/Unexpected effect/);
+});
+test('printed Blocker schema supports legal blocking and respects negation',()=>{
+ const effect='[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)';
+ const document=compileEffectDocument({id:'test',code:'TEST',name:'Test',color:'Green',type:'Character',cost:1,power:1000,rarity:'C',art:0,effect});
+ const cases=familyScenarios(effect);assert.equal(cases.length,5);
+ for(const scenario of cases)scenario.run(document);
+ const broken=structuredClone(document);broken.ast[0].actions=[];
+ assert.throws(()=>cases[0].run(broken),/Active printed Blocker rejected/);
+});
+test('DON schemas contribute power only to their own attached card on their own turn',()=>{
+ const effect='Your Turn +1000';
+ const document=compileEffectDocument({id:'test',code:'DON_TEST',name:'DON!!',color:'',type:'Character',cost:0,power:0,rarity:'',art:0,effect});
+ const cases=familyScenarios(effect);assert.equal(cases.length,6);
+ for(const scenario of cases)scenario.run(document);
+ const broken=structuredClone(document);broken.ast[0].actions=[];
+ assert.throws(()=>cases[0].run(broken),/Incorrect turn\/attachment DON power/);
+});
+test('ready-DON scenarios reject attachments, enemy cards and excessive selection',()=>{
+ const effect='[End of Your Turn] Set up to 2 of your DON!! cards as active.';
+ const document=compileEffectDocument({id:'test',code:'TEST',name:'Test',color:'Green',type:'Character',cost:1,power:1000,rarity:'C',art:0,effect});
+ const cases=familyScenarios(effect);assert.equal(cases.length,7);
+ for(const scenario of cases)scenario.run(document);
+ const broken=structuredClone(document);
+ for(const step of broken.normalized[0].sequence)if(step.type==='RESOLVE'&&step.action.kind==='ready')step.action.scope='own-character';
+ assert.throws(()=>cases[0].run(broken),/Legal ready choice failed/);
+});

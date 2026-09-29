@@ -60,7 +60,7 @@ export function PrivacyModal({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Lock size={20} color="var(--vault-gold)" />
-            <h3 style={{ fontFamily: 'var(--display-font, Georgia, serif)', fontSize: '20px', fontWeight: 600, margin: 0 }}>
+            <h3 style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '20px', fontWeight: 600, margin: 0 }}>
               Collection Privacy Controls
             </h3>
           </div>
