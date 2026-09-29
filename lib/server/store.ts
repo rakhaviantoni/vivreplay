@@ -6,7 +6,30 @@ import {cards,printings,gameId} from '@/packages/card-data/catalog';
 import type {CollectionItem,SavedDeck,Listing} from '@/packages/domain';
 export function db(){if(!env.DB)throw new Error('Persistent storage is unavailable. Please retry shortly.');return env.DB;}
 export async function seed(){const d=db();const stmts=[d.prepare('INSERT OR IGNORE INTO games (id,slug,name) VALUES (?,?,?)').bind(gameId,'one-piece','One Piece Card Game')];for(let i=0;i<6;i++)stmts.push(d.prepare('INSERT OR IGNORE INTO card_asset_sources (id,source_type,source_url,rights_status,hash,approved_for_display,approved_for_storage) VALUES (?,?,?,?,?,1,1)').bind(`30000000-0000-4000-8000-${String(i+1).padStart(12,'0')}`,'generated',`/art/card-${i}.webp`,'original-generated',hashes[String(i) as keyof typeof hashes]));stmts.push(d.prepare('INSERT OR IGNORE INTO card_asset_sources (id,source_type,source_url,rights_status,hash,approved_for_display,approved_for_storage) VALUES (?,?,?,?,?,?,?)').bind('30000000-0000-4000-8000-000000000007',suppliedCardImage.sourceType,suppliedCardImage.sourceUrl,suppliedCardImage.rightsStatus,'external-url-not-stored',1,0));for(const c of cards)stmts.push(d.prepare('INSERT OR IGNORE INTO card_identities (id,game_id,code,name,color,type,cost,power,effect) VALUES (?,?,?,?,?,?,?,?,?)').bind(c.id,gameId,c.code,c.name,c.color,c.type,c.cost,c.power,c.effect));for(const p of printings){const c=cards.find(c=>c.id===p.cardId)!;stmts.push(d.prepare('INSERT INTO card_printings (id,identity_id,language,set_code,rarity,variant,asset_source_id,image_url) VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET asset_source_id=excluded.asset_source_id,image_url=excluded.image_url').bind(p.id,p.cardId,p.language,p.set,c.rarity,p.variant,p.assetSourceId,c.imageUrl??`/art/card-${c.art}.webp`));}await d.batch(stmts);}
-async function profileFor(auth:NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>){await seed();const d=db();let p=await d.prepare('SELECT * FROM profiles WHERE auth_subject=?').bind(auth.id).first<Record<string,string>>();if(!p){const id=crypto.randomUUID();await d.prepare('INSERT OR IGNORE INTO profiles (id,auth_subject,username,display_name) VALUES (?,?,?,?)').bind(id,auth.id,`player-${id.slice(0,8)}`,auth.name||'New collector').run();p=await d.prepare('SELECT * FROM profiles WHERE auth_subject=?').bind(auth.id).first<Record<string,string>>();}return p!;}
+function defaultUsername(email: string | undefined, id: string): string {
+  if (!email) return `player-${id.slice(0, 8)}`;
+  const prefix = (email.split('@')[0] || '').toLowerCase().replace(/[^a-z0-9_-]/g, '');
+  if (!prefix) return `player-${id.slice(0, 8)}`;
+  const clean = prefix.length < 3 ? `user-${prefix}` : prefix;
+  return clean.slice(0, 24);
+}
+
+async function profileFor(auth:NonNullable<Awaited<ReturnType<typeof getCurrentUser>>>){
+  await seed();
+  const d=db();
+  let p=await d.prepare('SELECT * FROM profiles WHERE auth_subject=?').bind(auth.id).first<Record<string,string>>();
+  if(!p){
+    const id=crypto.randomUUID();
+    let username=defaultUsername(auth.email, id);
+    const existing=await d.prepare('SELECT id FROM profiles WHERE username=?').bind(username).first();
+    if(existing){
+      username=`${username.slice(0, 20)}-${id.slice(0, 4)}`;
+    }
+    await d.prepare('INSERT OR IGNORE INTO profiles (id,auth_subject,username,display_name) VALUES (?,?,?,?)').bind(id,auth.id,username,auth.name||username||'New collector').run();
+    p=await d.prepare('SELECT * FROM profiles WHERE auth_subject=?').bind(auth.id).first<Record<string,string>>();
+  }
+  return p!;
+}
 export async function user(){const auth=await getCurrentUser();if(!auth)throw new HttpError(401,'Sign in to save to your account.');return profileFor(auth);}
 export async function optionalUser(){const auth=await getCurrentUser();return auth?profileFor(auth):null;}
 export class HttpError extends Error{constructor(public status:number,message:string){super(message)}}
