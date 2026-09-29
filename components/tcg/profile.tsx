@@ -68,8 +68,106 @@ const COMMON_TIMEZONES = [
 
 export function Profile(){
   const {data,error,refresh}=useAccount();
-  if(!data)return <main className="page"><AccountStatus error={error} retry={refresh}/></main>;
+  if(error)return <main className="page"><AccountStatus error={error} retry={refresh}/></main>;
+  if(!data)return <ProfileSkeleton/>;
   return <ProfileForm profile={data.profile} data={data} refresh={refresh}/>;
+}
+
+function ProfileSkeleton(){
+  return (
+    <main className="page profile-page profile-skeleton-page" aria-busy="true" aria-label="Loading profile">
+      <section className="library-intro profile-intro">
+        <div className="library-intro-copy">
+          <p className="kicker">PLAYER PROFILE</p>
+          <h1>Player profile & settings.</h1>
+          <p>Manage your collector identity, display preferences, and shipping address.</p>
+        </div>
+      </section>
+
+      <div className="profile-layout">
+        {/* Profile Card / Sidebar Skeleton */}
+        <section className="profile-card profile-skeleton-card">
+          <div className="profile-emblem profile-skeleton-shimmer profile-skeleton-avatar" />
+          <div className="profile-skeleton-shimmer profile-skeleton-line profile-skeleton-name" />
+          <div className="profile-skeleton-shimmer profile-skeleton-line profile-skeleton-handle" />
+          <div className="profile-skeleton-shimmer profile-skeleton-badge" />
+
+          <div className="profile-stats-grid">
+            <div className="profile-stat-box profile-skeleton-stat">
+              <div className="profile-skeleton-shimmer profile-skeleton-stat-num" />
+              <div className="profile-skeleton-shimmer profile-skeleton-stat-label" />
+            </div>
+            <div className="profile-stat-box profile-skeleton-stat">
+              <div className="profile-skeleton-shimmer profile-skeleton-stat-num" />
+              <div className="profile-skeleton-shimmer profile-skeleton-stat-label" />
+            </div>
+            <div className="profile-stat-box profile-skeleton-stat">
+              <div className="profile-skeleton-shimmer profile-skeleton-stat-num" />
+              <div className="profile-skeleton-shimmer profile-skeleton-stat-label" />
+            </div>
+          </div>
+
+          <div className="profile-facts profile-skeleton-facts">
+            <div className="profile-skeleton-shimmer profile-skeleton-fact" />
+            <div className="profile-skeleton-shimmer profile-skeleton-fact" />
+            <div className="profile-skeleton-shimmer profile-skeleton-fact" />
+          </div>
+
+          <div className="profile-card-actions">
+            <div className="profile-skeleton-shimmer profile-skeleton-btn" />
+            <div className="profile-skeleton-shimmer profile-skeleton-btn" />
+          </div>
+        </section>
+
+        {/* Main Settings Panel Skeleton */}
+        <section className="settings-panel profile-skeleton-panel">
+          <div className="profile-tab-bar">
+            <div className="profile-skeleton-shimmer profile-skeleton-tab" />
+            <div className="profile-skeleton-shimmer profile-skeleton-tab" />
+          </div>
+
+          <div className="profile-section-header">
+            <div className="profile-skeleton-shimmer profile-skeleton-line profile-skeleton-section-title" />
+            <div className="profile-skeleton-shimmer profile-skeleton-line profile-skeleton-section-desc" />
+          </div>
+
+          <div className="form-stack">
+            <div className="form-row">
+              <div className="profile-skeleton-input-group">
+                <div className="profile-skeleton-shimmer profile-skeleton-label" />
+                <div className="profile-skeleton-shimmer profile-skeleton-input" />
+              </div>
+              <div className="profile-skeleton-input-group">
+                <div className="profile-skeleton-shimmer profile-skeleton-label" />
+                <div className="profile-skeleton-shimmer profile-skeleton-input" />
+              </div>
+            </div>
+            <div className="form-row">
+              <div className="profile-skeleton-input-group">
+                <div className="profile-skeleton-shimmer profile-skeleton-label" />
+                <div className="profile-skeleton-shimmer profile-skeleton-input" />
+              </div>
+              <div className="profile-skeleton-input-group">
+                <div className="profile-skeleton-shimmer profile-skeleton-label" />
+                <div className="profile-skeleton-shimmer profile-skeleton-input" />
+              </div>
+            </div>
+            <div className="form-row">
+              <div className="profile-skeleton-input-group">
+                <div className="profile-skeleton-shimmer profile-skeleton-label" />
+                <div className="profile-skeleton-shimmer profile-skeleton-input" />
+              </div>
+              <div className="profile-skeleton-input-group">
+                <div className="profile-skeleton-shimmer profile-skeleton-label" />
+                <div className="profile-skeleton-shimmer profile-skeleton-input" />
+              </div>
+            </div>
+            <div className="profile-skeleton-shimmer profile-skeleton-save-btn" />
+          </div>
+        </section>
+      </div>
+    </main>
+  );
 }
 
 function ProfileForm({
@@ -309,7 +407,7 @@ function ProfileForm({
         </div>
 
         <div className="profile-card-actions">
-          <Link className="button secondary" href={`/players/${profile.username}`}>
+          <Link className="button secondary profile-public-btn" href={`/players/${profile.username}`}>
             <ArrowSquareOut size={16}/>
             {t('View public profile','Lihat profil publik')}
           </Link>
