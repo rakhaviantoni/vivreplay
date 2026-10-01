@@ -1,8 +1,44 @@
 /* Responsive foundation. This loads last so every public surface shares the same
    gutters, touch targets, and reflow rules instead of accumulating page patches. */
 :root { --mobile-gutter: clamp(14px, 4vw, 20px); }
+.mobile-deck-dock,
+.mobile-deck-close,
+.mobile-deck-backdrop { display: none; }
 
 @media (max-width: 760px) {
+  .live-builder { min-width: 0; padding-bottom: calc(142px + env(safe-area-inset-bottom)) !important; }
+  .live-builder .builder-workspace { grid-template-columns: minmax(0, 1fr) !important; min-width: 0; }
+  .live-builder .leader-selector-controls { align-items: stretch !important; flex-direction: column !important; gap: 8px !important; }
+  .live-builder .leader-selector-controls > label { box-sizing: border-box; width: 100%; min-width: 0; height: 42px !important; padding-inline: 10px !important; }
+  .live-builder .leader-selector-controls input { box-sizing: border-box; width: 100% !important; min-width: 0 !important; height: 40px !important; min-height: 0 !important; padding: 0 !important; font-size: 14px !important; }
+  .live-builder .leader-selector-controls > div { display: grid !important; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px !important; width: 100%; }
+  .live-builder .leader-selector-controls > div button { width: 100% !important; min-width: 0 !important; height: 38px !important; min-height: 38px !important; border-radius: 8px !important; font-size: 11px !important; }
+  .live-builder .leader-selector-controls > div i { width: 12px !important; height: 12px !important; }
+  .live-builder-grid article .catalog-info-action { top: 5px !important; right: 5px !important; display: grid !important; width: 30px !important; min-width: 30px !important; height: 30px !important; min-height: 30px !important; border: 0 !important; background: #111a22e8 !important; opacity: 1 !important; transform: none !important; }
+  .live-builder-grid article .catalog-info-action svg { width: 16px !important; height: 16px !important; }
+  .live-builder .live-deck-panel { display: none !important; }
+  .live-builder .live-deck-panel.is-mobile-open { position: fixed !important; z-index: 62; inset: auto 10px calc(64px + env(safe-area-inset-bottom)); display: flex !important; flex-direction: column; max-height: calc(100dvh - 92px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); min-height: 0 !important; overflow: auto; overscroll-behavior: contain; padding: 12px !important; }
+  .mobile-deck-backdrop { position: fixed; z-index: 61; inset: 0 0 calc(58px + env(safe-area-inset-bottom)); width: 100%; min-height: 0 !important; padding: 0 !important; border: 0; background: #101820a8; }
+  .mobile-deck-close { position: sticky; top: -12px; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; margin: -12px -12px 8px; padding: 8px 12px; border: 0; border-bottom: 1px solid var(--vp-line); background: var(--vp-panel); color: var(--vp-text); font-size: 12px; font-weight: 800; }
+  .mobile-deck-close > span:last-child { display: inline-flex; align-items: center; gap: 5px; color: var(--vp-muted); }
+  .deck-command-bar { position: sticky; top: 40px; z-index: 4; display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px !important; padding: 8px 0 10px !important; background: var(--vp-panel); }
+  .deck-command-bar > input { grid-column: 1 / -1; width: 100% !important; min-width: 0 !important; height: 44px !important; min-height: 44px !important; padding-inline: 11px !important; font-size: 15px !important; }
+  .deck-command-bar > strong { grid-column: 1; grid-row: 2; font-size: 20px !important; }
+  .deck-command-bar > span { grid-column: 2; grid-row: 2; justify-self: end; }
+  .deck-command-bar .deck-command-menu { min-width: 0; }
+  .deck-command-bar .deck-command-menu summary,
+  .deck-command-bar > button { box-sizing: border-box; width: 100%; min-width: 0; min-height: 40px !important; justify-content: center; padding-inline: 8px !important; font-size: 11px !important; }
+  .deck-command-bar .deck-command-menu summary { gap: 5px; }
+  .live-deck-panel.is-mobile-open .deck-start-warnings { order: 1; flex: none; }
+  .live-deck-panel.is-mobile-open .deck-board-toolbar { order: 2; }
+  .live-deck-panel.is-mobile-open .deck-board { order: 3; }
+  .live-deck-panel.is-mobile-open .deck-analysis { order: 4; }
+  .mobile-deck-dock { position: fixed; z-index: 50; right: 12px; bottom: calc(64px + env(safe-area-inset-bottom)); left: 12px; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; padding: 7px 12px 7px 15px; border: 1px solid #a87824; border-radius: 14px; background: #1c292f; color: #fff8e9; box-shadow: 0 8px 28px #07101a55; text-align: left; }
+  .mobile-deck-dock > span:first-child { display: grid; gap: 2px; min-width: 0; }
+  .mobile-deck-dock strong { font-size: 13px; }
+  .mobile-deck-dock small { overflow: hidden; color: #c4d0ce; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+  .mobile-deck-dock > span:last-child { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 5px; color: #f2c76d; font-size: 11px; font-weight: 800; }
+  .has-mobile-deck .mobile-deck-dock { display: none; }
   .live-builder .builder-filters { padding: 12px !important; }
   .live-builder .builder-filter-primary { gap: 8px !important; }
   .live-builder .builder-filter-primary .builder-search { height: 44px !important; min-height: 44px !important; }
