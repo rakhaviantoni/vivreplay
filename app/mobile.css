@@ -341,9 +341,11 @@
   .market-listing-facts > div:nth-child(n + 3) { border-top: 1px solid var(--line); }
   .market-listing-selection { position: fixed !important; bottom: max(12px, env(safe-area-inset-bottom)) !important; left: 12px !important; right: 12px !important; width: auto !important; transform: none !important; z-index: 100 !important; }
 
-  .card-viewer-backdrop { padding: 0 !important; }
-  .card-viewer { min-height: 100dvh; border: 0 !important; border-radius: 0 !important; }
-  .card-viewer-body { padding: 22px var(--mobile-gutter) 34px !important; }
+  .card-viewer-backdrop { overflow-y: auto !important; padding: 0 0 76px !important; }
+  .card-viewer { min-height: 100dvh !important; max-height: none !important; border: 0 !important; border-radius: 0 !important; }
+  .card-viewer-body { padding: 22px var(--mobile-gutter) calc(34px + 76px + env(safe-area-inset-bottom)) !important; }
+  .card-viewer > header button,
+  .viewer-nav { min-width: 44px !important; min-height: 44px !important; }
   .viewer-primary-art { width: min(100%, 250px); }
   .viewer-details h2,
   .viewer-details .card-detail-title { font-size: clamp(30px, 9vw, 40px) !important; }
@@ -405,12 +407,24 @@
     line-height: 1.55 !important;
   }
 
-  .feedback-dialog {
+  [data-slot="dialog-content"].feedback-dialog {
     box-sizing: border-box !important;
+    position: fixed !important;
+    top: auto !important;
+    bottom: 74px !important;
+    left: 14px !important;
+    right: 14px !important;
+    --tw-translate-x: -50% !important;
+    --tw-translate-y: 0 !important;
+    transform: none !important;
+    translate: none !important;
+    --tw-translate-x: 0px !important;
+    --tw-translate-y: 0px !important;
+    margin: 0 !important;
     width: calc(100vw - 28px) !important;
     max-width: calc(100vw - 28px) !important;
     min-width: 0 !important;
-    max-height: calc(100dvh - 28px) !important;
+    max-height: calc(100dvh - 92px) !important;
     padding: 16px !important;
     overflow-x: hidden !important;
     overflow-y: auto !important;
