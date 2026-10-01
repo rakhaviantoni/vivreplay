@@ -16,10 +16,10 @@ import {
   PlusIcon as Plus,
   MagnifyingGlassIcon as Search,
   SquaresFourIcon as Grid,
+  UserIcon as UserRound,
   StorefrontIcon as Store,
   SunIcon as Sun,
   TrashIcon as Trash,
-  UserIcon as UserRound,
   WalletIcon as WalletCards,
   XIcon as X,
 } from '@phosphor-icons/react';
@@ -853,7 +853,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
           {theme==='light'?<Moon size={17}/>:<Sun size={17}/>}
         </button>
         <button className="market-list-button join-link" type="button" onClick={beginListing} aria-label={data?(locale==='ID'?'Jual kartu':'Sell'):(locale==='ID'?'Masuk':'Sign in')}>
-          {data?<Plus size={15}/>:<ArrowRight size={15}/>}
+          {data?<Plus size={15}/>:<UserRound size={15}/>}
           <span className="market-list-button-text">
             {data?(locale==='ID'?'Jual kartu':'Sell'):(locale==='ID'?'Masuk':'Sign in')}
           </span>

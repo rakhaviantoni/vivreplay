@@ -6,6 +6,7 @@ import {
   ArrowRightIcon as ArrowRight,
   EyeIcon as Eye,
   EyeSlashIcon as EyeSlash,
+  UserIcon as UserRound,
 } from '@phosphor-icons/react';
 import {
   Dialog,
@@ -178,8 +179,8 @@ export function AuthDialog({ language }: { language: 'EN' | 'ID' }) {
         onClick={() => setOpen(true)}
         className="join-link"
       >
+        <UserRound size={15} aria-hidden="true" />
         <span>{copy.join}</span>
-        <ArrowRight size={15} />
       </button>
 
       <DialogContent className="auth-dialog">
