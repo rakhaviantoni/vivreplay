@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import {usePathname, useRouter} from 'next/navigation';
 import {ChartLineUpIcon as ChartNoAxesCombined, CaretDownIcon as ChevronDown, CaretLeftIcon as ChevronLeft, CaretRightIcon as ChevronRight, CookieIcon as Cookie, GameControllerIcon as Gamepad2, HouseIcon as Home, StackIcon as Layers3, BooksIcon as Library, MoonIcon as Moon, MagnifyingGlassIcon as Search, ShieldCheckIcon as ShieldCheck, StorefrontIcon as Store, SunIcon as Sun, TrophyIcon as Trophy, UserIcon as UserRound, XIcon as X} from '@phosphor-icons/react';
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useLayoutEffect, useRef, useState} from 'react';
 import {Toaster} from '@/components/ui/sonner';
 import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle} from '@/components/ui/dialog';
 import {useAccount} from '@/lib/client';
@@ -14,6 +14,8 @@ import type {Card} from '@/packages/card-data/catalog';
 import {VivreMark} from './brand-assets';
 import {AuthDialog} from './auth-dialog';
 import {NewCardsAnnouncement} from './new-cards-announcement';
+import {FeedbackForm} from './feedback-form';
+import {FeedbackLaunchButton,type FeedbackRequest} from './feedback-launch';
 
 type Locale='EN'|'ID';
 type NavItem={href:string;label:string;labelId:string;icon:typeof Home};
@@ -70,7 +72,7 @@ function Footer({language}:{language:Locale}) {
   const id=language==='ID';
   const getHref=(href:string)=>id?(href==='/'?'/id':`/id${href}`):href;
   const reopenCookies=()=>{window.localStorage.removeItem('vivreplay-cookies');window.dispatchEvent(new Event('vivreplay:cookie-preferences'))};
-  return <footer className="page-footer"><div className="footer-top"><div className="footer-intro"><Link className="footer-brand" href={getHref('/')}><VivreMark size={25}/>VivrePlay</Link><p>{id?'Tempat untuk menemukan kartu, membangun deck, mengelola koleksi, dan bermain.':'Find cards, build decks, manage your collection, and play.'}</p><Link className="footer-about-link" href={getHref('/about')}>{id?'Tentang VivrePlay':'About VivrePlay'}<ChevronRight size={14}/></Link></div><nav className="footer-column" aria-label={id?'Jelajahi':'Explore'}><b>{id?'Jelajahi':'Explore'}</b><Link href={getHref('/cards')}>{id?'Katalog kartu':'Card library'}</Link><Link href={getHref('/cards/index')}>{id?'Indeks kartu':'Card index'}</Link><Link href={getHref('/archetypes')}>{id?'Arketipe':'Archetypes'}</Link><Link href={getHref('/sets')}>{id?'Arsip set':'Sets'}</Link></nav><nav className="footer-column" aria-label={id?'Main dan koleksi':'Play and collect'}><b>{id?'Main dan koleksi':'Play & collect'}</b><Link href={getHref('/decks')}>{id?'Deck':'Decks'}</Link><Link href={getHref('/decks/builder')}>{id?'Pembuat deck':'Deck builder'}</Link><Link href={getHref('/play')}>Arena</Link><Link href={getHref('/market')}>Market</Link><Link href={getHref('/feedback')}>{id?'Masukan & laporan':'Feedback & reports'}</Link></nav></div><div className="footer-bottom"><p>Unofficial fan-made project, not affiliated with or endorsed by Bandai. “One Piece Card Game” © Bandai Co., Ltd. “One Piece” © Eiichiro Oda / Shueisha, Toei Animation. All trademarks, card images and game content belong to their respective owners and are used for informational and community purposes.</p><nav className="footer-legal" aria-label={id?'Legal':'Legal'}><Link href={getHref('/legal/terms')}>{id?'Ketentuan':'Terms'}</Link><Link href={getHref('/legal/privacy')}>{id?'Privasi':'Privacy'}</Link><button type="button" onClick={reopenCookies}>{id?'Preferensi cookie':'Cookie preferences'}</button></nav></div></footer>;
+  return <footer className="page-footer"><div className="footer-top"><div className="footer-intro"><Link className="footer-brand" href={getHref('/')}><VivreMark size={25}/>VivrePlay</Link><p>{id?'Tempat untuk menemukan kartu, membangun deck, mengelola koleksi, dan bermain.':'Find cards, build decks, manage your collection, and play.'}</p><Link className="footer-about-link" href={getHref('/about')}>{id?'Tentang VivrePlay':'About VivrePlay'}<ChevronRight size={14}/></Link></div><nav className="footer-column" aria-label={id?'Jelajahi':'Explore'}><b>{id?'Jelajahi':'Explore'}</b><Link href={getHref('/cards')}>{id?'Katalog kartu':'Card library'}</Link><Link href={getHref('/cards/index')}>{id?'Indeks kartu':'Card index'}</Link><Link href={getHref('/archetypes')}>{id?'Arketipe':'Archetypes'}</Link><Link href={getHref('/sets')}>{id?'Arsip set':'Sets'}</Link></nav><nav className="footer-column" aria-label={id?'Main dan koleksi':'Play and collect'}><b>{id?'Main dan koleksi':'Play & collect'}</b><Link href={getHref('/decks')}>{id?'Deck':'Decks'}</Link><Link href={getHref('/decks/builder')}>{id?'Pembuat deck':'Deck builder'}</Link><Link href={getHref('/play')}>Arena</Link><Link href={getHref('/market')}>Market</Link><FeedbackLaunchButton request={{initialCategory:'feedback'}} className="footer-feedback-trigger">{id?'Masukan & laporan':'Feedback & reports'}</FeedbackLaunchButton></nav></div><div className="footer-bottom"><p>Unofficial fan-made project, not affiliated with or endorsed by Bandai. “One Piece Card Game” © Bandai Co., Ltd. “One Piece” © Eiichiro Oda / Shueisha, Toei Animation. All trademarks, card images and game content belong to their respective owners and are used for informational and community purposes.</p><nav className="footer-legal" aria-label={id?'Legal':'Legal'}><Link href={getHref('/legal/terms')}>{id?'Ketentuan':'Terms'}</Link><Link href={getHref('/legal/privacy')}>{id?'Privasi':'Privacy'}</Link><button type="button" onClick={reopenCookies}>{id?'Preferensi cookie':'Cookie preferences'}</button></nav></div></footer>;
 }
 
 export function Shell({children}:{children:React.ReactNode}) {
@@ -82,6 +84,19 @@ export function Shell({children}:{children:React.ReactNode}) {
   const [theme,setTheme]=useState<'light'|'dark'>('light');
   const [language,setLanguage]=useState<Locale>('EN');
   const [scrolled,setScrolled]=useState(false);
+  const [feedbackOpen,setFeedbackOpen]=useState(false);
+  const [feedbackRequest,setFeedbackRequest]=useState<(FeedbackRequest&{key:number})|null>(null);
+  const feedbackSequence=useRef(0);
+
+  useLayoutEffect(()=>{
+    const open=(event:Event)=>{
+      const request=(event as CustomEvent<FeedbackRequest>).detail??{};
+      setFeedbackRequest({...request,sourcePath:request.sourcePath??`${window.location.pathname}${window.location.search}`,key:++feedbackSequence.current});
+      setFeedbackOpen(true);
+    };
+    window.addEventListener('vivreplay:open-feedback',open);
+    return()=>window.removeEventListener('vivreplay:open-feedback',open);
+  },[]);
 
   useEffect(()=>{const update=()=>setScrolled(window.scrollY>72);update();window.addEventListener('scroll',update,{passive:true});return()=>window.removeEventListener('scroll',update)},[]);
 
@@ -146,6 +161,15 @@ export function Shell({children}:{children:React.ReactNode}) {
     <div className="context-row"><span>VivrePlay</span><span aria-hidden="true">/</span><strong>{crumb}</strong></div>
     {children}
     <Footer language={language}/>
+    <Dialog open={feedbackOpen} onOpenChange={setFeedbackOpen}>
+      <DialogContent className="feedback-dialog">
+        <DialogHeader>
+          <DialogTitle>{language==='ID'?'Masukan & laporan':'Feedback & reports'}</DialogTitle>
+          <DialogDescription>{language==='ID'?'Ceritakan masalah atau ide Anda. Halaman yang sedang dibuka akan disertakan.':'Tell us what you found. The page you are viewing is attached automatically.'}</DialogDescription>
+        </DialogHeader>
+        {feedbackRequest&&<FeedbackForm key={feedbackRequest.key} initialCategory={feedbackRequest.initialCategory} cardCode={feedbackRequest.cardCode} printingId={feedbackRequest.printingId} listingId={feedbackRequest.listingId} sourcePath={feedbackRequest.sourcePath}/>}
+      </DialogContent>
+    </Dialog>
     <CookieNotice language={language}/>
     <NewCardsAnnouncement/>
     <MiniRail language={language}/>

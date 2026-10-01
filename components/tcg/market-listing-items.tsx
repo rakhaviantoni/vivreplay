@@ -13,6 +13,7 @@ import {MarketTimestamp} from './market-timestamp';
 import {authClient} from '@/lib/auth-client';
 import {toast} from 'sonner';
 import {getDaysUntilExpiration, isListingExpired} from '@/lib/market/policy';
+import {FeedbackLaunchButton} from './feedback-launch';
 
 type CourierRate={courier_name:string;courier_service_name:string;price:number;duration?:string;max_km?:number};
 const COURIER_LABELS:Record<string,string>={'jne':'JNE Express','jnt':'J&T Express','sicepat':'SiCepat Ekspres','anteraja':'Anteraja','tiki':'TIKI','pos':'Pos Indonesia','lion':'Lion Parcel','ninja':'Ninja Xpress','wahana':'Wahana Express','grab':'GrabExpress','gojek':'GoSend','grab_instant':'Grab Instant','gojek_instant':'Gojek Instant'};
@@ -40,6 +41,7 @@ export function ShippingOptions({listingId,courierCount=0,variant='fact'}:{listi
 
   const loadRates=useCallback(async(showLoading:boolean)=>{
     if(fetched)return;
+    if(courierCount===0)return;
     if(showLoading)setLoading(true);
     try{
       const res=await fetch('/api/shipping/quotes',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({listingId})});
@@ -51,7 +53,7 @@ export function ShippingOptions({listingId,courierCount=0,variant='fact'}:{listi
       }
       else if(res.ok&&Array.isArray(data.couriers))setRates(data.couriers.map(id=>({courier_name:id,courier_service_name:COURIER_LABELS[id]??id,price:0})));
     }catch{/* rates can be loaded when the buyer opens the panel */}finally{if(showLoading)setLoading(false);setFetched(true);}
-  },[fetched,listingId]);
+  },[courierCount,fetched,listingId]);
   const openDialog=async()=>{setOpen(true);await loadRates(true)};
 
   useEffect(()=>{
@@ -648,7 +650,7 @@ export function MarketListingDetailView({
               <strong>{stored ? <Link href={`/players/${stored.username}`}>{listing.seller}</Link> : listing.seller}</strong>
             </div>
           </section>
-          {!isOwner&&<Link className="market-report-link" href={`${language==='ID'?'/id':''}/feedback?type=market-report&listing=${encodeURIComponent(listing.id)}&from=${encodeURIComponent(`${language==='ID'?'/id':''}/market/${listing.id}`)}`}>{t('Report listing or seller','Laporkan listing atau penjual')}</Link>}
+          {!isOwner&&<FeedbackLaunchButton request={{initialCategory:'market-report',listingId:listing.id}} className="market-report-link">{t('Report listing or seller','Laporkan listing atau penjual')}</FeedbackLaunchButton>}
 
           {(!isExpired||isOwner)&&(
             <MarketListingItems

@@ -22,7 +22,7 @@
   .masthead-actions { gap: 6px !important; }
   .masthead-actions .search-link { width: 38px; padding-inline: 0; justify-content: center; }
   .masthead-actions .search-link span,
-  .masthead-actions .locale-toggle { display: none !important; }
+  .masthead:not(.market-store-nav) .masthead-actions .locale-toggle { display: none !important; }
   .context-row { padding-inline: var(--mobile-gutter) !important; }
 
   .library-intro,
@@ -123,10 +123,10 @@
   .market-nav-divider,
   .market-store-wordmark,
   .market-store-link,
-  .market-store-locale { display: none !important; }
-  .market-back-link { display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 38px !important; height: 38px !important; min-width: 38px !important; border-radius: 999px !important; border: 1px solid var(--line) !important; background: var(--surface-raised) !important; padding: 0 !important; }
-  .market-store-theme { display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 36px !important; height: 36px !important; min-width: 36px !important; min-height: 36px !important; border-radius: 50% !important; padding: 0 !important; }
-  .market-store-search { display: flex !important; flex: 1 1 auto !important; height: 38px !important; min-width: 0 !important; max-width: none !important; margin: 0 !important; }
+  .market-back-link { display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 40px !important; height: 40px !important; min-width: 40px !important; border-radius: 50% !important; border: 1px solid var(--line) !important; background: var(--surface-raised) !important; padding: 0 !important; }
+  .market-store-locale { display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 40px !important; height: 40px !important; min-width: 40px !important; min-height: 40px !important; padding: 0 !important; border-radius: 50% !important; }
+  .market-store-theme { display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 40px !important; height: 40px !important; min-width: 40px !important; min-height: 40px !important; border-radius: 50% !important; padding: 0 !important; }
+  .market-store-search { display: flex !important; flex: 1 1 auto !important; height: 40px !important; min-width: 0 !important; max-width: none !important; margin: 0 !important; }
   .market-store-search input { font-size: 13px !important; }
 
   .market-store-nav .market-list-button {
@@ -134,12 +134,12 @@
     align-items: center !important;
     justify-content: center !important;
     gap: 6px !important;
-    height: 38px !important;
-    min-height: 38px !important;
-    padding: 0 12px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    padding: 0 11px !important;
     width: auto !important;
-    min-width: 0 !important;
-    border-radius: 999px !important;
+    min-width: 40px !important;
+    border-radius: 20px !important;
     background: var(--accent) !important;
     color: #fffaf0 !important;
     font-size: 12.5px !important;

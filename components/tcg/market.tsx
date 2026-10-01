@@ -428,9 +428,13 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
     const language=window.localStorage.getItem('vivreplay-locale')==='ID'?'ID':'EN';
     setTheme(next);
     setLocale(language);
+    document.documentElement.dataset.theme=next;
+    document.documentElement.lang=language==='ID'?'id':'en';
     const onLocale=(event:Event)=>setLocale((event as CustomEvent<'EN'|'ID'>).detail==='ID'?'ID':'EN');
+    const onTheme=(event:Event)=>setTheme((event as CustomEvent<'light'|'dark'>).detail==='dark'?'dark':'light');
     window.addEventListener('vivreplay:locale',onLocale);
-    return()=>window.removeEventListener('vivreplay:locale',onLocale);
+    window.addEventListener('vivreplay:theme',onTheme);
+    return()=>{window.removeEventListener('vivreplay:locale',onLocale);window.removeEventListener('vivreplay:theme',onTheme)};
   },[]);
 
   // Prefill shipping origin city directly from signed-in seller's origin
@@ -830,40 +834,32 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
             }
           />
         </label>
+        <div className="masthead-actions market-store-actions">
         <Link href="/vault" className="market-store-link">
           {locale==='ID'?'Vault saya':'Vault'}
         </Link>
-        {data ? (
+        {data && (
           <Link href="/profile" className="market-store-profile" aria-label={locale === 'ID' ? 'Buka profil saya' : 'Open my profile'}>
             <div className="market-profile-avatar">
-              {data.profile.display_name?.charAt(0).toUpperCase() || data.profile.username?.charAt(0).toUpperCase() || <UserRound size={15}/>}
+              {data.profile.display_name?.charAt(0).toUpperCase() || data.profile.username?.charAt(0).toUpperCase() || <ArrowRight size={15}/>}
             </div>
             <span className="market-profile-name">{data.profile.display_name || `@${data.profile.username}`}</span>
           </Link>
-        ) : (
-          <button
-            type="button"
-            className="market-store-link market-signin-link"
-            onClick={() => window.dispatchEvent(new CustomEvent('vivreplay:open-auth', { detail: 'sign-in' }))}
-            aria-label={locale === 'ID' ? 'Masuk ke akun' : 'Sign in to account'}
-          >
-            <UserRound size={16} />
-            <span>{locale === 'ID' ? 'Masuk' : 'Sign in'}</span>
-          </button>
         )}
-        <button className="market-store-locale" type="button" onClick={toggleLocale} aria-label={locale==='ID'?'Ganti bahasa':'Switch language'}>
+        <button className="market-store-locale locale-toggle" type="button" onClick={toggleLocale} aria-label={locale==='ID'?'Ganti bahasa':'Switch language'}>
           {locale}
         </button>
-        <button className="market-store-theme" type="button" onClick={toggleTheme} aria-label={locale==='ID'?`Gunakan mode ${theme==='light'?'gelap':'terang'}`:`Use ${theme==='light'?'dark':'light'} mode`}>
+        <button className="market-store-theme theme-toggle" type="button" onClick={toggleTheme} aria-label={locale==='ID'?`Gunakan mode ${theme==='light'?'gelap':'terang'}`:`Use ${theme==='light'?'dark':'light'} mode`}>
           {theme==='light'?<Moon size={17}/>:<Sun size={17}/>}
         </button>
-        <button className="market-list-button" onClick={beginListing}>
-          <Plus size={15}/>
+        <button className="market-list-button join-link" type="button" onClick={beginListing} aria-label={data?(locale==='ID'?'Jual kartu':'Sell'):(locale==='ID'?'Masuk':'Sign in')}>
+          {data?<Plus size={15}/>:<ArrowRight size={15}/>}
           <span className="market-list-button-text">
-            {data?(locale==='ID'?'Jual kartu':'Sell'):(locale==='ID'?'Masuk untuk menjual':'Sign in to sell')}
+            {data?(locale==='ID'?'Jual kartu':'Sell'):(locale==='ID'?'Masuk':'Sign in')}
           </span>
-          <span className="market-list-button-short">{locale==='ID'?'Jual':'Sell'}</span>
+          <span className="market-list-button-short">{data?(locale==='ID'?'Jual':'Sell'):(locale==='ID'?'Masuk':'Sign in')}</span>
         </button>
+        </div>
       </nav>
 
       <div className="market-feed-shell">
