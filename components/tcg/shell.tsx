@@ -16,6 +16,7 @@ import {AuthDialog} from './auth-dialog';
 import {NewCardsAnnouncement} from './new-cards-announcement';
 import {FeedbackForm} from './feedback-form';
 import {FeedbackLaunchButton,type FeedbackRequest} from './feedback-launch';
+import {AnalyticsConsent} from './analytics-consent';
 
 type Locale='EN'|'ID';
 type NavItem={href:string;label:string;labelId:string;icon:typeof Home};
@@ -35,7 +36,7 @@ const rail=[
   {title:'Learn the board',titleId:'Pelajari papan',body:'Use the guided table to understand each play zone.',bodyId:'Gunakan meja panduan untuk memahami setiap area.',action:'Open arena',actionId:'Buka arena',href:'/play'},
 ] as const;
 
-function CookieNotice({language}:{language:Locale}) { const [open,setOpen]=useState(false); useEffect(()=>{const restore=()=>setOpen(true);setOpen(!window.localStorage.getItem('vivreplay-cookies'));window.addEventListener('vivreplay:cookie-preferences',restore);return()=>window.removeEventListener('vivreplay:cookie-preferences',restore)},[]); const dismiss=(choice:string)=>{window.localStorage.setItem('vivreplay-cookies',choice);setOpen(false)}; if(!open)return null; const copy=language==='ID'?{title:'Pilihan cookie',body:'Kami memakai penyimpanan lokal untuk preferensi tampilan dan bahasa. Banner ini tidak mengirim data analitik.',accept:'Terima',reject:'Tolak',settings:'Pengaturan'}:{title:'Cookie choices',body:'We use local storage for display and language preferences. This banner does not send analytics data.',accept:'Accept',reject:'Reject',settings:'Settings'}; return <aside className="cookie-notice" aria-label={copy.title}><Cookie size={17}/><div><strong>{copy.title}</strong><p>{copy.body}</p><div><button onClick={()=>dismiss('essential')}>{copy.reject}</button><button className="cookie-accept" onClick={()=>dismiss('all')}>{copy.accept}</button><button onClick={()=>dismiss('settings')}>{copy.settings}</button></div></div><button className="cookie-close" aria-label="Close cookie choices" onClick={()=>dismiss('dismissed')}><X size={14}/></button></aside>; }
+function CookieNotice({language}:{language:Locale}) { const [open,setOpen]=useState(false); useEffect(()=>{const restore=()=>setOpen(true);setOpen(!window.localStorage.getItem('vivreplay-cookies'));window.addEventListener('vivreplay:cookie-preferences',restore);return()=>window.removeEventListener('vivreplay:cookie-preferences',restore)},[]); const dismiss=(choice:string)=>{window.localStorage.setItem('vivreplay-cookies',choice);window.dispatchEvent(new CustomEvent('vivreplay:consent-change',{detail:choice}));window.dispatchEvent(new Event('vivreplay:track-attribution'));setOpen(false)}; if(!open)return null; const copy=language==='ID'?{title:'Pilihan privasi',body:'Preferensi bahasa dan tampilan disimpan secara esensial. Terima pengukuran analitik dan kampanye opsional; tolak untuk menonaktifkannya.',accept:'Terima analitik',reject:'Tolak analitik'}:{title:'Privacy choices',body:'Language and display preferences use essential storage. Accept optional usage and UTM campaign measurement, or reject it.',accept:'Accept analytics',reject:'Reject analytics'}; return <aside className="cookie-notice" aria-label={copy.title}><Cookie size={17}/><div><strong>{copy.title}</strong><p>{copy.body}</p><div><button type="button" onClick={()=>dismiss('essential')}>{copy.reject}</button><button type="button" className="cookie-accept" onClick={()=>dismiss('all')}>{copy.accept}</button></div></div><button type="button" className="cookie-close" aria-label="Reject analytics and close cookie choices" onClick={()=>dismiss('essential')}><X size={14}/></button></aside>; }
 
 function MiniRail({language}:{language:Locale}) {
   const [index,setIndex]=useState(0); const [expanded,setExpanded]=useState(false); const [closing,setClosing]=useState(false); const [dismissed,setDismissed]=useState(false); const item=rail[index];
@@ -97,6 +98,44 @@ export function Shell({children}:{children:React.ReactNode}) {
     window.addEventListener('vivreplay:open-feedback',open);
     return()=>window.removeEventListener('vivreplay:open-feedback',open);
   },[]);
+
+  useEffect(()=>{
+    const record=()=>{
+      if(window.localStorage.getItem('vivreplay-cookies')!=='all')return;
+    const params=new URLSearchParams(window.location.search);
+    const attribution:Record<string,string>={};
+    params.forEach((value,key)=>{if(key.startsWith('utm_')||['gclid','dclid','fbclid','msclkid','ttclid','twclid','li_fat_id'].includes(key))attribution[key]=value.slice(0,300)});
+    try{
+      const visitorKey='vivreplay-attribution-visitor';
+      const visitorId=window.sessionStorage.getItem(visitorKey)??crypto.randomUUID();
+      window.sessionStorage.setItem(visitorKey,visitorId);
+      const firstVisitKey='vivreplay-attribution-recorded';
+      if(window.sessionStorage.getItem(firstVisitKey))return;
+      window.sessionStorage.setItem(firstVisitKey,'1');
+      void fetch('/api/attribution',{method:'POST',headers:{'Content-Type':'application/json'},keepalive:true,body:JSON.stringify({visitorId,landingPath:window.location.pathname,referrer:document.referrer,params:attribution})}).catch(()=>{});
+    }catch{}
+    };
+    record();
+    window.addEventListener('vivreplay:track-attribution',record);
+    return()=>window.removeEventListener('vivreplay:track-attribution',record);
+  },[path]);
+
+  useEffect(()=>{
+    if(!data)return;
+    const convert=()=>{
+      if(window.localStorage.getItem('vivreplay-cookies')!=='all')return;
+      const visitorId=window.sessionStorage.getItem('vivreplay-attribution-visitor');
+      if(!visitorId)return;
+      const key=`vivreplay-attribution-converted:${visitorId}`;
+      if(window.sessionStorage.getItem(key))return;
+      void fetch('/api/attribution/conversion',{method:'POST',headers:{'Content-Type':'application/json'},keepalive:true,body:JSON.stringify({visitorId})})
+        .then(async response=>{if(response.ok){const result=await response.json() as {converted?:boolean};if(result.converted)window.sessionStorage.setItem(key,'1')}})
+        .catch(()=>{});
+    };
+    convert();
+    window.addEventListener('vivreplay:consent-change',convert);
+    return()=>window.removeEventListener('vivreplay:consent-change',convert);
+  },[data]);
 
   useEffect(()=>{const update=()=>setScrolled(window.scrollY>72);update();window.addEventListener('scroll',update,{passive:true});return()=>window.removeEventListener('scroll',update)},[]);
 
@@ -171,6 +210,7 @@ export function Shell({children}:{children:React.ReactNode}) {
       </DialogContent>
     </Dialog>
     <CookieNotice language={language}/>
+    <AnalyticsConsent/>
     <NewCardsAnnouncement/>
     <MiniRail language={language}/>
     <nav className="mobile-nav" aria-label="Mobile navigation">

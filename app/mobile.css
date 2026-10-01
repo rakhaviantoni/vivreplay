@@ -3,6 +3,24 @@
 :root { --mobile-gutter: clamp(14px, 4vw, 20px); }
 
 @media (max-width: 760px) {
+  .live-builder .builder-filters { padding: 12px !important; }
+  .live-builder .builder-filter-primary { gap: 8px !important; }
+  .live-builder .builder-filter-primary .builder-search { height: 44px !important; min-height: 44px !important; }
+  .live-builder .builder-filter-primary .type-tabs { display: flex !important; gap: 4px !important; width: 100% !important; min-height: 44px !important; overflow-x: auto !important; overscroll-behavior-inline: contain; }
+  .live-builder .builder-filter-primary .type-tabs button { flex: 1 0 auto !important; min-width: 58px !important; height: 40px !important; min-height: 40px !important; padding-inline: 10px !important; font-size: 12px !important; }
+  .live-builder .builder-filter-primary .compatibility { justify-self: stretch !important; height: 42px !important; min-height: 42px !important; }
+  .live-builder .builder-advanced-filters { margin-top: 9px !important; }
+  .live-builder .builder-advanced-filters summary { height: 42px !important; font-size: 12px !important; }
+  .live-builder .builder-filter-row { gap: 9px !important; padding: 10px !important; }
+  .live-builder .builder-filter-row label { gap: 5px !important; font-size: 10px !important; }
+  .live-builder .builder-filter-row select { height: 40px !important; padding-inline: 9px !important; font-size: 12px !important; }
+  .live-builder .catalog-colour-filter { display: flex !important; flex-wrap: nowrap !important; gap: 6px !important; max-width: 100% !important; overflow-x: auto !important; overscroll-behavior-inline: contain; padding: 4px 1px 8px !important; scrollbar-width: thin; }
+  .live-builder .catalog-colour-filter::before { content: "Colour"; position: sticky; left: 0; flex: 0 0 auto; align-self: center; padding: 3px 5px 3px 0; background: #fffaf0; font-size: 9px !important; }
+  .live-builder .catalog-colour-filter button { flex: 0 0 auto !important; gap: 6px !important; height: 38px !important; min-height: 38px !important; padding-inline: 10px !important; font-size: 11px !important; }
+  .live-builder .catalog-colour-filter i { width: 10px !important; height: 10px !important; }
+  .live-builder .builder-toolbar { flex-wrap: wrap; gap: 8px !important; padding: 10px !important; }
+  .live-builder .builder-toolbar .builder-filters { flex: 1 1 100%; min-width: 0; }
+  .live-builder .live-builder-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 10px !important; padding: 10px !important; }
   html, body { max-width: 100%; overflow-x: clip; }
   body { padding-bottom: env(safe-area-inset-bottom); }
   :where(button, a, input, select, summary) { -webkit-tap-highlight-color: transparent; }
@@ -438,6 +456,11 @@
   .feedback-form :is(input, select, textarea) { box-sizing: border-box !important; min-width: 0 !important; max-width: 100% !important; }
   .feedback-context { grid-template-columns: minmax(0, 1fr) !important; }
   .feedback-dialog > [data-slot='dialog-close'] { top: 10px !important; right: 10px !important; }
+}
+
+@media (max-width: 390px) {
+  .live-builder .live-builder-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px !important; }
+  .live-builder .builder-filter-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important; }
 }
 
 @media (max-width: 420px) {

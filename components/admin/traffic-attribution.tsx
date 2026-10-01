@@ -1,0 +1,27 @@
+'use client';
+
+import {useEffect,useState} from 'react';
+import {ArrowClockwiseIcon as RefreshCw,ChartLineUpIcon as Chart} from '@phosphor-icons/react';
+
+type Campaign={source:string;medium:string;campaign:string;visits:number;visitors:number;new_users:number};
+type Visit={id:string;landing_path:string;referrer_origin:string|null;country_code:string|null;utm_source:string|null;utm_medium:string|null;utm_campaign:string|null;utm_term:string|null;utm_content:string|null;parameters:string;converted_at:string|null;created_at:string};
+type Data={summary:{visits:number;visitors:number;new_users:number};sources:Campaign[];countries:Array<{country:string;visits:number;visitors:number;new_users:number}>;pages:Array<{path:string;visits:number}>;recent:Visit[]};
+const n=new Intl.NumberFormat('en-US');
+
+export function TrafficAttribution(){
+  const [data,setData]=useState<Data>();const [error,setError]=useState('');const [loading,setLoading]=useState(true);
+  const load=()=>{setLoading(true);setError('');void fetch('/api/admin/attribution',{cache:'no-store'}).then(async response=>{const body=await response.json() as Data&{error?:string};if(!response.ok)throw new Error(body.error??'Unable to load attribution.');setData(body)}).catch(reason=>setError(reason instanceof Error?reason.message:'Unable to load attribution.')).finally(()=>setLoading(false));};
+  useEffect(load,[]);
+  return <section className="admin-attribution">
+    <header><div><Chart size={18}/><span><b>Acquisition and campaign attribution</b><small>Consented landing sessions and new account conversions · country is inferred at the edge · raw visits are retained for 180 days</small></span></div><button className="admin-refresh" type="button" onClick={load} disabled={loading}><RefreshCw size={14}/>Refresh</button></header>
+    {error&&<p role="alert" className="admin-feedback-error">{error}</p>}
+    <div className="admin-attribution-stats"><article><span>Landing sessions · 90 days</span><strong>{n.format(data?.summary.visits??0)}</strong></article><article><span>Unique browser tabs</span><strong>{n.format(data?.summary.visitors??0)}</strong></article><article><span>New accounts attributed</span><strong>{n.format(data?.summary.new_users??0)}</strong></article><article><span>Session to account</span><strong>{data?.summary.visitors?`${((data.summary.new_users/data.summary.visitors)*100).toFixed(1)}%`:'0%'}</strong></article></div>
+    {loading&&!data?<p className="admin-attribution-empty">Loading attribution…</p>:<>
+      <h2>Channels, sources, and campaigns</h2><div className="admin-attribution-table-wrap"><table><thead><tr><th>Source</th><th>Medium</th><th>Campaign</th><th>Landing sessions</th><th>Unique tabs</th></tr></thead><tbody>{data?.sources.map((row,index)=><tr key={`${row.source}-${row.medium}-${row.campaign}-${index}`}><td>{row.source}</td><td>{row.medium}</td><td>{row.campaign}</td><td>{n.format(row.visits)}</td><td>{n.format(row.visitors)}</td></tr>)}{!data?.sources.length&&<tr><td colSpan={5}>No consented sessions have been recorded yet.</td></tr>}</tbody></table></div>
+      <h2>New users by source</h2><div className="admin-attribution-table-wrap"><table><thead><tr><th>Source</th><th>Medium</th><th>Campaign</th><th>Sessions</th><th>New accounts</th><th>Conversion</th></tr></thead><tbody>{data?.sources.map((row,index)=><tr key={`${row.source}-${row.medium}-${row.campaign}-${index}`}><td>{row.source}</td><td>{row.medium}</td><td>{row.campaign}</td><td>{n.format(row.visits)}</td><td>{n.format(row.new_users)}</td><td>{row.visitors?`${((row.new_users/row.visitors)*100).toFixed(1)}%`:'0%'}</td></tr>)}{!data?.sources.length&&<tr><td colSpan={6}>No session sources have been recorded yet.</td></tr>}</tbody></table></div>
+      <h2>New users by country</h2><div className="admin-attribution-table-wrap"><table><thead><tr><th>Country code</th><th>Visits</th><th>Browser sessions</th><th>New accounts</th></tr></thead><tbody>{data?.countries.map(row=><tr key={row.country}><td>{row.country}</td><td>{n.format(row.visits)}</td><td>{n.format(row.visitors)}</td><td>{n.format(row.new_users)}</td></tr>)}</tbody></table></div>
+      <h2>Landing pages</h2><div className="admin-attribution-table-wrap"><table><thead><tr><th>Landing page</th><th>Visits</th></tr></thead><tbody>{data?.pages.map(row=><tr key={row.path}><td>{row.path}</td><td>{n.format(row.visits)}</td></tr>)}</tbody></table></div>
+      <h2>Recent visits</h2><div className="admin-attribution-table-wrap"><table><thead><tr><th>Date</th><th>Source / medium</th><th>Campaign</th><th>Country</th><th>New account</th><th>Landing page</th><th>Referrer site</th><th>Other tags</th></tr></thead><tbody>{data?.recent.map(row=>{let extras='';try{const params=JSON.parse(row.parameters) as Record<string,string>;extras=Object.entries(params).filter(([key])=>!['utm_source','utm_medium','utm_campaign','utm_term','utm_content'].includes(key)).map(([key,value])=>`${key}=${value}`).join(' · ')}catch{}return <tr key={row.id}><td>{new Date(`${row.created_at.replace(' ','T')}Z`).toLocaleString()}</td><td>{row.utm_source??'—'} / {row.utm_medium??'—'}</td><td>{row.utm_campaign??'—'}</td><td>{row.country_code??'—'}</td><td>{row.converted_at?'Yes':'—'}</td><td>{row.landing_path}</td><td>{row.referrer_origin??'—'}</td><td>{extras||'—'}</td></tr>})}{!data?.recent.length&&<tr><td colSpan={8}>No visits recorded yet.</td></tr>}</tbody></table></div>
+    </>}
+  </section>;
+}

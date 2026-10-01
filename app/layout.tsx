@@ -22,12 +22,18 @@ export const metadata:Metadata={
   twitter:{card:'summary_large_image',title:siteName,description,images:['/brand/vivreplay-og.png']},
 };
 export default function RootLayout({children}:{children:React.ReactNode}){
+  const structuredData={
+    '@context':'https://schema.org',
+    '@graph':[
+      {'@type':'Organization','@id':'https://vivreplay.com/#organization','name':'VivrePlay','url':'https://vivreplay.com/','logo':{'@type':'ImageObject','url':'https://vivreplay.com/brand/vivreplay-icon-192.png'},'description':'An independent fan-made companion for the One Piece Card Game, with a card archive, deck tools, collection management, marketplace listings, and table practice.'},
+      {'@type':'WebSite','@id':'https://vivreplay.com/#website','url':'https://vivreplay.com/','name':'VivrePlay','publisher':{'@id':'https://vivreplay.com/#organization'},'inLanguage':['en','id']},
+    ],
+  };
   return (
     <html lang="en">
       <body>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(structuredData)}}/>
         <Script id="error-guard" strategy="beforeInteractive">{`window.addEventListener('error',function(e){if(e&&e.message&&e.message.indexOf("reading 'startTime'")!==-1){e.preventDefault();e.stopImmediatePropagation()}});`}</Script>
-        <Script src="https://www.googletagmanager.com/gtag/js?id=G-2Z50572QD3" strategy="afterInteractive"/>
-        <Script id="google-analytics" strategy="afterInteractive">{`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','G-2Z50572QD3');`}</Script>
         <Shell>{children}</Shell>
       </body>
     </html>
