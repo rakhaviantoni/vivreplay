@@ -8,6 +8,19 @@ export function cardImageUrl(card:Card){
   if(!card.imageUrl)return undefined;
   if(!card.imageUrl.startsWith('http'))return card.imageUrl;
   if(card.assetPath)return `/${card.assetPath.replace(/^one-piece\/([^/]+)\//,(_,setCode)=>`${setCode.replaceAll('-','')}/`)}`;
+  // Catalog rows and older seed cards can lack setCode/printingCode. Keep
+  // known source images on our image route in that case too; it resolves the
+  // image from our storage bucket and never sends the browser to the source.
+  try {
+    const source=new URL(card.imageUrl);
+    if(source.hostname==='cards.oplaytcg.com'){
+      const [,folder,language,...pathParts]=source.pathname.split('/');
+      const imageName=pathParts.at(-1);
+      if(folder&&language&&imageName){
+        return `/${encodeURIComponent(card.setCode??folder)}/${encodeURIComponent((card.language??language).toLowerCase())}/${encodeURIComponent(card.printingCode??imageName.replace(/\.webp$/i,''))}.webp`;
+      }
+    }
+  } catch { /* Invalid source URLs fall through to the existing fallback. */ }
   // Every public card image goes through the set route, which reads the private
   // Supabase tcg-card-images bucket. Avoid a printing-id API URL in page markup.
   if(card.setCode)return `/${encodeURIComponent(card.setCode.replaceAll('-',''))}/${encodeURIComponent((card.language??'EN').toLowerCase())}/${encodeURIComponent(card.printingCode??card.code)}.webp`;

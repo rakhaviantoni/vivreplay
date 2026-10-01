@@ -31,8 +31,14 @@ const localBindingConfig = {
           database_name: "site-creator-d1",
           database_id: SITE_CREATOR_PLACEHOLDER_DATABASE_ID,
         },
-      ]
+    ]
     : [],
+  r2_buckets: [
+    {
+      binding: "CARD_IMAGES",
+      bucket_name: "tcg-card-images",
+    },
+  ],
 };
 
 export default defineConfig(async ({ command, mode }) => {

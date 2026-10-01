@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import {useEffect,useMemo,useRef,useState} from 'react';
-import {InfoIcon as Info, MinusIcon as Minus, PlusIcon as Plus, TruckIcon as Truck, XIcon as X, MapPinIcon as MapPin} from '@phosphor-icons/react';
+import {useRouter} from 'next/navigation';
+import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
+import {ArrowLeftIcon, InfoIcon as Info, MinusIcon as Minus, PlusIcon as Plus, TruckIcon as Truck, XIcon as X} from '@phosphor-icons/react';
 import type {Card} from '@/packages/card-data/catalog';
 import {formatMoney,Listing} from '@/packages/domain';
 import {CardArt} from './card-art';
@@ -14,22 +15,18 @@ import {toast} from 'sonner';
 import {getDaysUntilExpiration, isListingExpired} from '@/lib/market/policy';
 
 type CourierRate={courier_name:string;courier_service_name:string;price:number;duration?:string;max_km?:number};
-const COURIER_LABELS:Record<string,string>={'jne':'JNE','jnt':'J&T Express','sicepat':'SiCepat','anteraja':'Anteraja','tiki':'TIKI','grab_instant':'Grab Instant','gojek_instant':'Gojek Instant'};
-const INSTANT_COURIERS=new Set(['grab_instant','gojek_instant']);
+const COURIER_LABELS:Record<string,string>={'jne':'JNE Express','jnt':'J&T Express','sicepat':'SiCepat Ekspres','anteraja':'Anteraja','tiki':'TIKI','pos':'Pos Indonesia','lion':'Lion Parcel','ninja':'Ninja Xpress','wahana':'Wahana Express','grab':'GrabExpress','gojek':'GoSend','grab_instant':'Grab Instant','gojek_instant':'Gojek Instant'};
+const INSTANT_COURIERS=new Set(['grab','gojek','grab_instant','gojek_instant']);
 
-const DEFAULT_COURIERS:CourierRate[]=[
-  {courier_name:'jnt',courier_service_name:'J&T EZ',price:0},
-  {courier_name:'grab_instant',courier_service_name:'Grab Instant',price:0,max_km:40},
-  {courier_name:'gojek_instant',courier_service_name:'Gojek Instant',price:0,max_km:40},
-];
-
-export function ShippingOptions({listingId,courierCount=3,variant='fact'}:{listingId:string;courierCount?:number;variant?:'fact'|'compact';}){
+export function ShippingOptions({listingId,courierCount=0,variant='fact'}:{listingId:string;courierCount?:number;variant?:'fact'|'compact';}){
   const [open,setOpen]=useState(false);
   const [rates,setRates]=useState<CourierRate[]>([]);
+  const [startingFee,setStartingFee]=useState<number|null>(null);
   const [loading,setLoading]=useState(false);
   const [fetched,setFetched]=useState(false);
   const [language,setLanguage]=useState<'EN'|'ID'>('EN');
   const dialogRef=useRef<HTMLDivElement>(null);
+  const triggerRef=useRef<HTMLElement>(null);
 
   useEffect(()=>{
     const sync=()=>setLanguage(window.localStorage.getItem('vivreplay-locale')==='ID'?'ID':'EN');
@@ -41,16 +38,34 @@ export function ShippingOptions({listingId,courierCount=3,variant='fact'}:{listi
 
   const t=(en:string,idStr:string)=>language==='ID'?idStr:en;
 
-  const openDialog=async()=>{
-    setOpen(true);
+  const loadRates=useCallback(async(showLoading:boolean)=>{
     if(fetched)return;
-    setLoading(true);
+    if(showLoading)setLoading(true);
     try{
       const res=await fetch('/api/shipping/quotes',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({listingId})});
-      const data=await res.json() as {pricing?:CourierRate[];error?:string};
-      if(res.ok&&Array.isArray(data.pricing)&&data.pricing.length>0)setRates(data.pricing);
-    }catch{/* no-op */}finally{setLoading(false);setFetched(true);}
-  };
+      const data=await res.json() as {pricing?:CourierRate[];couriers?:string[];error?:string};
+      if(res.ok&&Array.isArray(data.pricing)&&data.pricing.length>0){
+        setRates(data.pricing);
+        const prices=data.pricing.map(rate=>rate.price).filter(price=>Number.isFinite(price)&&price>0);
+        setStartingFee(prices.length?Math.min(...prices):null);
+      }
+      else if(res.ok&&Array.isArray(data.couriers))setRates(data.couriers.map(id=>({courier_name:id,courier_service_name:COURIER_LABELS[id]??id,price:0})));
+    }catch{/* rates can be loaded when the buyer opens the panel */}finally{if(showLoading)setLoading(false);setFetched(true);}
+  },[fetched,listingId]);
+  const openDialog=async()=>{setOpen(true);await loadRates(true)};
+
+  useEffect(()=>{
+    const target=triggerRef.current;
+    if(!target||fetched||typeof IntersectionObserver==='undefined')return;
+    const observer=new IntersectionObserver(entries=>{
+      if(entries.some(entry=>entry.isIntersecting)){
+        observer.disconnect();
+        void loadRates(false);
+      }
+    },{rootMargin:'120px'});
+    observer.observe(target);
+    return()=>observer.disconnect();
+  },[loadRates,fetched]);
 
   useEffect(()=>{
     if(!open)return;
@@ -66,8 +81,7 @@ export function ShippingOptions({listingId,courierCount=3,variant='fact'}:{listi
     return()=>document.removeEventListener('keydown',handler);
   },[open]);
 
-  const activeRates=rates.length>0?rates:DEFAULT_COURIERS;
-  const noAddress=!loading&&fetched&&rates.length===0;
+  const activeRates=rates;
 
   const modal=open?(
     <div className="shipping-options-backdrop" role="presentation" onClick={e=>{e.preventDefault();e.stopPropagation();setOpen(false);}}>
@@ -78,7 +92,7 @@ export function ShippingOptions({listingId,courierCount=3,variant='fact'}:{listi
         </header>
         <div className="shipping-options-body">
           {loading&&<p className="shipping-options-loading">{t('Loading shipping options…','Memuat opsi pengiriman…')}</p>}
-          {!loading&&(
+          {!loading&&activeRates.length>0&&(
             <ul className="shipping-options-list">
               {activeRates.map((rate,i)=>(
                 <li key={i} className="shipping-options-item">
@@ -100,12 +114,10 @@ export function ShippingOptions({listingId,courierCount=3,variant='fact'}:{listi
               ))}
             </ul>
           )}
+          {!loading&&activeRates.length===0&&<p className="shipping-options-loading">{courierCount>0?t('Live rates are unavailable right now. Confirm the delivery fee with the seller before arranging payment.','Tarif langsung belum tersedia. Konfirmasikan ongkir dengan penjual sebelum mengatur pembayaran.'):t('The seller has not configured shipping options yet.','Penjual belum mengatur opsi pengiriman.')}</p>}
         </div>
         <footer className="shipping-options-footer">
-          <p>{t('Shipping fee is calculated from your address at checkout.','Ongkir dihitung dari alamatmu saat pembayaran.')}</p>
-          <Link href="/profile" className="button shipping-options-address-btn" onClick={e=>e.stopPropagation()}>
-            {t('Set address to calculate shipping','Atur alamat untuk lihat ongkir')}
-          </Link>
+          <p>{startingFee!=null?t('Rates use your saved delivery address. The final fee is confirmed at checkout.','Tarif menggunakan alamat pengiriman tersimpan. Biaya akhir dikonfirmasi saat checkout.'):t('Confirm the delivery address and final fee with the seller before payment.','Konfirmasikan alamat pengiriman dan ongkir akhir kepada penjual sebelum pembayaran.')}</p>
         </footer>
       </div>
     </div>
@@ -115,6 +127,7 @@ export function ShippingOptions({listingId,courierCount=3,variant='fact'}:{listi
     return(
       <>
         <span
+          ref={node=>{triggerRef.current=node}}
           role="button"
           tabIndex={0}
           className="market-feed-shipping-trigger"
@@ -124,7 +137,7 @@ export function ShippingOptions({listingId,courierCount=3,variant='fact'}:{listi
           aria-expanded={open}
         >
           <Truck size={11}/>
-          <span>{courierCount} {t('shipping options available','pengiriman tersedia')}</span>
+          <span>{startingFee!=null?`${t('Delivery from','Ongkir mulai')} ${formatMoney(startingFee,'IDR')}`:courierCount>0?`${courierCount} ${t('shipping options available','pengiriman tersedia')}`:t('Shipping not configured','Pengiriman belum diatur')}</span>
         </span>
         {modal}
       </>
@@ -135,8 +148,8 @@ export function ShippingOptions({listingId,courierCount=3,variant='fact'}:{listi
     <div className="shipping-options-fact">
       <dt><Truck size={11}/>{t('Shipping','Pengiriman')}</dt>
       <dd>
-        <button type="button" className="shipping-options-trigger" onClick={openDialog} aria-haspopup="dialog" aria-expanded={open}>
-          {courierCount} {t('shipping options available','pengiriman tersedia')}
+        <button type="button" className="shipping-options-trigger" ref={node=>{triggerRef.current=node}} onClick={openDialog} aria-haspopup="dialog" aria-expanded={open}>
+          {startingFee!=null?`${t('Delivery from','Ongkir mulai')} ${formatMoney(startingFee,'IDR')}`:courierCount>0?`${courierCount} ${t('shipping options available','pengiriman tersedia')}`:t('Shipping not configured','Pengiriman belum diatur')}
         </button>
         {modal}
       </dd>
@@ -170,7 +183,8 @@ export function ListingArtRotator({items}:{items:MarketListingCard[]}){
   </div>;
 }
 
-export function MarketListingItems({items,currency,listingType,listingId,listingTitle,listingAmount}:{items:MarketListingCard[];currency:string;listingType:'WTS'|'WTB';listingId:string;listingTitle?:string;listingAmount?:string;}){
+export function MarketListingItems({items,currency,listingType,listingId,listingTitle,readOnly=false}:{items:MarketListingCard[];currency:string;listingType:'WTS'|'WTB';listingId:string;listingTitle?:string;listingAmount?:string;readOnly?:boolean;}){
+  const router=useRouter();
   const [selected,setSelected]=useState<Record<string,number>>({});
   const [customPrices,setCustomPrices]=useState<Record<string,number>>({});
   const [preview,setPreview]=useState<Card>();
@@ -228,15 +242,72 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
     const next=Math.max(0,Math.min(maximum,(current[id]??0)+delta));
     return {...current,[id]:next};
   });
+
+  const setItemExact=(id:string,count:number,maximum:number)=>setSelected(current=>({
+    ...current,
+    [id]:Math.max(0,Math.min(maximum,count)),
+  }));
+
+  const selectAll=()=>setSelected(
+    Object.fromEntries(items.map(item=>[item.id,item.quantity]))
+  );
+
+  const selectPlaysets=()=>setSelected(
+    Object.fromEntries(items.map(item=>[item.id,Math.min(4,item.quantity)]))
+  );
+
+  const clearAll=()=>setSelected({});
+
+  const totalAvailable=useMemo(()=>items.reduce((sum,item)=>sum+item.quantity,0),[items]);
+  const hasPlaysetOpportunities=useMemo(()=>items.some(item=>item.quantity>=4),[items]);
+
   const isBuying=listingType==='WTS';
   const actionLabel=isBuying?t('Make offer','Ajukan penawaran'):t('Offer cards','Tawarkan kartu');
   const continueOffer=async()=>{
     if(!session){window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));return;}
     setSubmitting(true);try{const offerItems=items.flatMap(item=>{const quantity=selected[item.id]??0;if(!quantity)return[];const unitAmount=getUnitPrice(item);return [{printingId:item.id,quantity,unitAmount}];});const response=await fetch(`/api/listings/${encodeURIComponent(listingId)}/offers`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({type:isBuying?'BUY':'SELL',items:offerItems,amount:selectedTotal,currency})});const payload=await response.json() as {error?:string};if(!response.ok)throw new Error(payload.error??t('We could not send your offer.','Gagal mengirimkan penawaran Anda.'));setSubmitted(true);toast.success(isBuying?t('Offer sent to the seller.','Penawaran dikirim ke penjual.'):t('Your cards were offered to the buyer.','Kartu Anda ditawarkan ke pembeli.'));}catch(error){toast.error(error instanceof Error?error.message:t('We could not send your offer.','Gagal mengirimkan penawaran Anda.'))}finally{setSubmitting(false)}
   };
+  const buySelected=()=>{
+    if(!session){window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));return;}
+    const orderItems=items.flatMap(item=>{const quantity=selected[item.id]??0;return quantity?[{printingId:item.id,quantity}]:[];});
+    const query=new URLSearchParams({listing:listingId,items:JSON.stringify(orderItems)});
+    router.push(`/checkout/market?${query.toString()}`);
+  };
 
   return <section className="market-listing-cards" aria-labelledby="listing-cards-heading">
-    <header><h2 id="listing-cards-heading">{t('Cards in this listing','Kartu dalam listing ini')}</h2></header>
+    <header className="market-listing-cards-header">
+      <h2 id="listing-cards-heading">{t('Cards in this listing','Kartu dalam listing ini')}</h2>
+      {!readOnly&&<div className="market-listing-bulk-actions" role="toolbar" aria-label={t('Bulk card selection','Pilihan borongan kartu')}>
+        <button
+          type="button"
+          className={`market-bulk-btn ${selectedCount===totalAvailable?'is-active':''}`}
+          onClick={selectAll}
+          title={t('Select all available cards across this listing','Pilih semua kartu yang tersedia di listing ini')}
+        >
+          {t('Take all','Ambil semua')} <small>({totalAvailable})</small>
+        </button>
+        {hasPlaysetOpportunities && (
+          <button
+            type="button"
+            className="market-bulk-btn"
+            onClick={selectPlaysets}
+            title={t('Select up to 4 copies (playset) for each card','Pilih hingga 4 salinan (playset) per kartu')}
+          >
+            {t('Playset (4×) all','Playset (4×) semua')}
+          </button>
+        )}
+        {selectedCount>0 && (
+          <button
+            type="button"
+            className="market-bulk-btn is-clear"
+            onClick={clearAll}
+            title={t('Clear selected cards','Hapus pilihan kartu')}
+          >
+            {t('Reset','Reset')}
+          </button>
+        )}
+      </div>}
+    </header>
     <div className="market-listing-card-grid">
       {items.map(item=>{
         const amount=selected[item.id]??0;
@@ -264,18 +335,41 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
             ))}
             {item.quantity>1 && <b>×{item.quantity}</b>}
             <button type="button" className="deck-info-action market-listing-info" onClick={()=>setPreview(item.card)} aria-label={`View ${item.card.name} details`}><Info size={13}/></button>
-            <span className="deck-stack-actions market-listing-quantity" aria-label={`Select ${item.card.name}`}>
+            {!readOnly&&<span className="deck-stack-actions market-listing-quantity" aria-label={`Select ${item.card.name}`}>
               <button type="button" onClick={()=>change(item.id,-1,item.quantity)} disabled={!amount} aria-label={`Remove one ${item.card.name}`}><Minus size={13}/></button>
               <button type="button" onClick={()=>change(item.id,1,item.quantity)} disabled={amount===item.quantity} aria-label={`Add one ${item.card.name}`}><Plus size={13}/></button>
-            </span>
+              {item.quantity>1 && (
+                (() => {
+                  const showPlayset = item.quantity >= 4 && amount < 4;
+                  const targetQty = showPlayset ? 4 : (amount === item.quantity ? 0 : item.quantity);
+                  const label = showPlayset ? '4×' : (amount === item.quantity ? '0' : (item.quantity === 4 ? '4×' : t('All','Semua')));
+                  const title = showPlayset
+                    ? t('Take playset of 4', 'Ambil playset 4×')
+                    : (amount === item.quantity
+                      ? t('Deselect card', 'Batalkan pilihan kartu')
+                      : t(`Take all ${item.quantity}`, `Ambil semua ${item.quantity}`));
+                  return (
+                    <button
+                      type="button"
+                      className={`market-card-quick-btn ${amount===item.quantity || (showPlayset && amount===4)?'is-active':''}`}
+                      onClick={()=>setItemExact(item.id, targetQty, item.quantity)}
+                      title={title}
+                      aria-label={`${label} ${item.card.name}`}
+                    >
+                      {label}
+                    </button>
+                  );
+                })()
+              )}
+            </span>}
           </div>
           <div className="market-listing-card-copy">
             <strong>{item.card.name}</strong>
             <small>{item.card.code} · {item.card.rarity} · {item.language}</small>
-            <p><span>{item.condition}</span><em>{amount}/{item.quantity} {t('selected','dipilih')}</em></p>
+            <p><span>{item.condition}</span>{!readOnly&&<em>{amount}/{item.quantity} {t('selected','dipilih')}</em>}</p>
             <b>{formatMoney(item.unitAmount,currency)} {t('each','per kartu')}</b>
 
-            {amount>0 && (
+            {!readOnly&&amount>0 && (
               <div className="market-card-offer">
                 <div className="market-card-offer-label">
                   <span>{t('Offer price / card:','Tawar harga / kartu:')}</span>
@@ -349,7 +443,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
       })}
     </div>
     {preview&&<CardPreviewModal card={preview} language={preview.language==='JP'?'JP':'EN'} cards={items.map(item=>item.card)} onClose={()=>setPreview(undefined)} onNavigate={setPreview}/>}
-    <footer className="market-listing-selection" aria-live="polite">
+    {!readOnly&&<footer className="market-listing-selection" aria-live="polite">
       <div className="market-listing-selection-info">
         <span>{submitted?t('Offer sent - awaiting a response.','Penawaran terkirim - menunggu tanggapan.'):selectedCount?(language==='ID'?`${selectedCount} kartu dipilih`:`${selectedCount} ${selectedCount===1?'card':'cards'} selected`):t('Select cards to calculate a total','Pilih kartu untuk menghitung total')}</span>
         <div className="market-listing-pricing-block">
@@ -371,6 +465,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
         </div>
       </div>
       <div className="market-listing-selection-actions">
+        {isBuying&&<button type="button" className="button market-buy-selected" disabled={!selectedCount} onClick={buySelected}>{t('Buy selected','Beli pilihan')}</button>}
         <button type="button" className="button" disabled={!selectedCount||submitting||submitted} onClick={continueOffer}>{submitted?t('Offer sent','Penawaran terkirim'):submitting?t('Sending...','Mengirim...'):session?(hasPriceAdjustments?t('Submit offer','Kirim penawaran'):actionLabel):(language==='ID'?`Masuk untuk ${isBuying?'menawar':'menawarkan'}`:`Sign in to ${actionLabel.toLowerCase()}`)}</button>
         <ShareButton
           title={listingTitle ?? t('Card listing','Listing kartu')}
@@ -385,7 +480,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
           subtitle={language==='ID'?`${items.reduce((acc, it) => acc + it.quantity, 0)} kartu · ${items.length} item`:`${items.reduce((acc, it) => acc + it.quantity, 0)} ${items.reduce((acc, it) => acc + it.quantity, 0) === 1 ? 'card' : 'cards'} · ${items.length} ${items.length === 1 ? 'item' : 'items'}`}
         />
       </div>
-    </footer>
+    </footer>}
   </section>;
 }
 
@@ -397,6 +492,7 @@ export function MarketListingDetailView({
   cardCount,
   isOwner = false,
   initialExpired = false,
+  renewDurationDays = 7,
 }: {
   listing: Listing;
   stored?: (Listing & { username: string }) | null;
@@ -405,6 +501,7 @@ export function MarketListingDetailView({
   cardCount: number;
   isOwner?: boolean;
   initialExpired?: boolean;
+  renewDurationDays?: number;
 }) {
   const [language, setLanguage] = useState<'EN' | 'ID'>('EN');
   const [expiresAt, setExpiresAt] = useState<string | undefined>(listing.expiresAt);
@@ -437,7 +534,7 @@ export function MarketListingDetailView({
       if (!res.ok) throw new Error(data.error || 'Failed to renew listing');
       setExpiresAt(data.expiresAt);
       setStatus('ACTIVE');
-      toast.success(language === 'ID' ? `Listing diperbarui untuk ${data.durationDays || 30} hari ke depan` : `Listing renewed for ${data.durationDays || 30} days`);
+      toast.success(language === 'ID' ? `Listing diperbarui untuk ${data.durationDays || renewDurationDays} hari ke depan` : `Listing renewed for ${data.durationDays || renewDurationDays} days`);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Could not renew listing');
     } finally {
@@ -466,7 +563,7 @@ export function MarketListingDetailView({
   return (
     <main className="page live-card-detail market-listing-detail">
       <Link className="back-link" href="/market">
-        ← {t('Back to Market', 'Kembali ke Market')}
+        <ArrowLeftIcon aria-hidden="true" size={16}/>{t('Back to Market', 'Kembali ke Market')}
       </Link>
       <article className="live-detail-layout market-listing-layout">
         <aside className="live-detail-art viewer-primary-art market-listing-primary">
@@ -476,9 +573,10 @@ export function MarketListingDetailView({
         <section className="live-detail-copy market-listing-copy">
           <header className="market-listing-heading">
             <div>
-              <p className="eyebrow">
+              <p className="eyebrow market-listing-eyebrow">
                 {primary.language} {t('printing', 'cetakan')}
                 {listing.createdAt && <> · <MarketTimestamp value={listing.createdAt}/></>}
+                {expiresAt && <>{' · '}{isExpired?(status==='CLOSED'?t('Closed','Ditutup'):t('Expired','Kedaluwarsa')):<>{t('Expires in','Berakhir dalam')} {daysLeft ?? renewDurationDays} {t('days','hari')}</>}</>}
               </p>
               <h1>{listing.title}</h1>
             </div>
@@ -494,17 +592,11 @@ export function MarketListingDetailView({
               <dt>{isBuying ? t('Location', 'Lokasi') : t('Ships from', 'Dikirim dari')}</dt>
               <dd>{listing.city}</dd>
             </div>
-            <div>
+            {cardCount>1&&<div>
               <dt>{t('Cards', 'Kartu')}</dt>
-              <dd>{cardCount} {t('total', 'total')}</dd>
-            </div>
-            {expiresAt && (
-              <div>
-                <dt>{isExpired ? t('Status', 'Status') : t('Expires', 'Berakhir')}</dt>
-                <dd>{isExpired ? (status === 'CLOSED' ? t('Closed', 'Ditutup') : t('Expired', 'Kedaluwarsa')) : `${daysLeft ?? 30} ${t('days left', 'hari lagi')}`}</dd>
-              </div>
-            )}
-            {!isBuying && <ShippingOptions listingId={listing.id} courierCount={3}/>}
+              <dd>{cardCount}</dd>
+            </div>}
+            {!isBuying && <ShippingOptions listingId={listing.id} courierCount={listing.shippingOptionCount??0}/>}
           </dl>
 
           {isOwner && (
@@ -526,7 +618,7 @@ export function MarketListingDetailView({
                   disabled={renewing}
                   onClick={handleRenew}
                 >
-                  {renewing ? t('Renewing...', 'Memperbarui...') : isExpired ? t('Renew (+30d)', 'Perbarui (+30h)') : t('Extend (+30d)', 'Perpanjang (+30h)')}
+                  {renewing ? t('Renewing...', 'Memperbarui...') : isExpired ? t(`Renew (+${renewDurationDays}d)`, `Perbarui (+${renewDurationDays} hari)`) : t(`Extend (+${renewDurationDays}d)`, `Perpanjang (+${renewDurationDays} hari)`)}
                 </button>
                 {!isExpired && (
                   <button
@@ -556,8 +648,9 @@ export function MarketListingDetailView({
               <strong>{stored ? <Link href={`/players/${stored.username}`}>{listing.seller}</Link> : listing.seller}</strong>
             </div>
           </section>
+          {!isOwner&&<Link className="market-report-link" href={`${language==='ID'?'/id':''}/feedback?type=market-report&listing=${encodeURIComponent(listing.id)}&from=${encodeURIComponent(`${language==='ID'?'/id':''}/market/${listing.id}`)}`}>{t('Report listing or seller','Laporkan listing atau penjual')}</Link>}
 
-          {!isExpired && (
+          {(!isExpired||isOwner)&&(
             <MarketListingItems
               items={listingCards}
               currency={listing.currency}
@@ -565,6 +658,7 @@ export function MarketListingDetailView({
               listingId={listing.id}
               listingTitle={listing.title}
               listingAmount={formatMoney(listing.amount, listing.currency)}
+              readOnly={isOwner}
             />
           )}
         </section>
@@ -572,4 +666,3 @@ export function MarketListingDetailView({
     </main>
   );
 }
-

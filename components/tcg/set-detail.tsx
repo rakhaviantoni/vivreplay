@@ -2,69 +2,39 @@
 
 import {useEffect,useState} from 'react';
 import Link from 'next/link';
-import {ArrowLeftIcon as ArrowLeft, ArrowSquareOutIcon as ArrowSquareOut, CalendarIcon as Calendar, StackIcon as Layers3} from '@phosphor-icons/react';
 import {createClient} from '@/utils/supabase/client';
-import {CardArt} from './card-art';
-import {displayCardName} from './card-name';
-import type {Card} from '@/packages/card-data/catalog';
+import {Catalog,normalizeSetCode,type CatalogSetInfo} from './catalog';
 import {isPlayableSet} from '@/packages/domain/release-availability';
 
-type SetRow={external_set_id:string;name:string;set_kind:string;release_date:string|null;description:string|null;official_url:string|null;product_image_url:string|null};
-type PrintingRow={id:string;set_code:string;set_name:string;language:string;rarity:string|null;printing_code:string|null;card_image_url:string|null;tcg_card_assets?:Array<{kind:string;object_key:string}>;tcg_card_identities:{code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number;effect_text:string}};
-function toCard(row:PrintingRow):Card{const identity=row.tcg_card_identities;return{id:row.id,code:identity.code,name:displayCardName(identity.name,identity.code),color:identity.color,type:identity.card_type,cost:identity.cost,power:identity.power,rarity:row.rarity??'',art:0,effect:identity.effect_text,imageUrl:row.card_image_url??undefined,imageSource:'external',setCode:row.set_code,language:row.language,printingCode:row.printing_code??undefined,assetPath:row.tcg_card_assets?.find(asset=>asset.kind==='small')?.object_key};}
+type SetRow=CatalogSetInfo&{external_set_id:string};
 
 export function SetDetail({code}:{code:string}){
   const [set,setSet]=useState<SetRow>();
-  const [cards,setCards]=useState<Card[]>([]);
-  const [language,setLanguage]=useState<'EN'|'ID'>('EN');
+  const [locale,setLocale]=useState<'EN'|'ID'>('EN');
+  const normalizedCode=normalizeSetCode(code);
+  const id=locale==='ID';
+
   useEffect(()=>{
-    const syncLocale=()=>setLanguage(window.localStorage.getItem('vivreplay-locale')==='ID'?'ID':'EN');
-    const onLocale=(event:Event)=>setLanguage((event as CustomEvent<'EN'|'ID'>).detail);
+    const syncLocale=()=>setLocale(window.localStorage.getItem('vivreplay-locale')==='ID'?'ID':'EN');
+    const onLocale=(event:Event)=>setLocale((event as CustomEvent<'EN'|'ID'>).detail);
     syncLocale();
     window.addEventListener('vivreplay:locale',onLocale);
     return()=>window.removeEventListener('vivreplay:locale',onLocale);
   },[]);
-  const id=language==='ID';
-  const available=isPlayableSet(code);
+
   useEffect(()=>{
-    if(!available)return;
+    if(!isPlayableSet(normalizedCode))return;
     let live=true;
     const client=createClient();
-    Promise.all([
-      client.from('tcg_sets').select('external_set_id,name,set_kind,release_date,description,official_url,product_image_url').eq('external_set_id',code).maybeSingle(),
-      client.from('tcg_card_printings').select('id,set_code,set_name,language,rarity,printing_code,card_image_url,tcg_card_assets(kind,object_key),tcg_card_identities!inner(code,name,color,card_type,cost,power,effect_text)').eq('set_code',code).eq('language','EN').not('card_image_url','is',null).limit(300)
-    ]).then(([setResult,cardResult])=>{
+    client.from('tcg_sets').select('external_set_id,name,set_kind,release_date,description,official_url,product_image_url').then(({data})=>{
       if(!live)return;
-      setSet((setResult.data??undefined) as SetRow|undefined);
-      const unique=new Map<string,Card>();
-      for(const row of (cardResult.data??[]) as unknown as PrintingRow[]){
-        const card=toCard(row);
-        if(!unique.has(card.code))unique.set(card.code,card);
-      }
-      setCards([...unique.values()]);
+      const match=(data??[]).find(row=>normalizeSetCode(row.external_set_id)===normalizedCode);
+      setSet(match as SetRow|undefined);
     });
     return()=>{live=false};
-  },[available,code]);
-  if(!available)return <main className="set-detail page"><Link href="/sets" className="back-link"><ArrowLeft size={16}/>{id?'Arsip rilis':'Set archive'}</Link><header className="set-detail-hero"><div><p>{id?'Arsip rilis':'Set archive'}</p><h1>{id?`${code} sedang dipersiapkan.`:`${code} is being prepared.`}</h1><p className="set-detail-description">{id?'Rilis ini belum tersedia sampai data kartu dan aturannya selesai diproses.':'This release is unavailable until its card data and rules have been completed.'}</p></div></header></main>;
-  const title=set?.name||cards[0]?.setCode||code;
-  return <main className="set-detail page">
-    <Link href="/sets" className="back-link"><ArrowLeft size={16}/>{id?'Arsip rilis':'Set archive'}</Link>
-    <header className="set-detail-hero">
-      <div>
-        <p>{id?'Informasi set':'Set information'}</p>
-        <h1>{title}</h1>
-        <span>{code}{set?.set_kind&&<> · {set.set_kind}</>}</span>
-        {set?.description&&<p className="set-detail-description">{set.description}</p>}
-        <div className="set-detail-meta">
-          {set?.release_date&&<span><Calendar size={15}/>{new Intl.DateTimeFormat(id?'id-ID':'en',{year:'numeric',month:'long',day:'numeric'}).format(new Date(`${set.release_date}T00:00:00`))}</span>}
-          <span><Layers3 size={15}/>{cards.length} {id?'kartu':'cards'}</span>
-          {set?.official_url&&<a href={set.official_url} target="_blank" rel="noreferrer">{id?'Halaman resmi set':'Official set page'} <ArrowSquareOut size={14}/></a>}
-        </div>
-      </div>
-      {set?.product_image_url&&<img src={set.product_image_url} alt=""/>}
-    </header>
-    <section className="set-detail-cards" aria-label={`${title} ${id?'kartu':'cards'}`}>
-      {!cards.length?<p>{id?'Memuat kartu set...':'Loading set cards...'}</p>:cards.map(card=><Link key={card.id} href={`/cards/${card.code}?lang=${card.language}`}><CardArt card={card}/></Link>)}
-    </section>
-  </main>;
+  },[normalizedCode]);
+
+  if(!isPlayableSet(normalizedCode))return <main className="page catalog-page"><section className="library-intro"><div className="library-intro-copy"><p className="kicker">{id?'ARSIP SET':'SET ARCHIVE'}</p><h1>{id?`${code} sedang dipersiapkan.`:`${code} is being prepared.`}</h1><p>{id?'Rilis ini belum tersedia sampai data kartu dan aturannya selesai diproses.':'This release is unavailable until its card data and rules have been completed.'}</p><Link className="button secondary" href="/sets">{id?'Semua set':'All sets'}</Link></div></section></main>;
+
+  return <Catalog key={normalizedCode} initialSet={normalizedCode} setPage setInfo={set}/>;
 }

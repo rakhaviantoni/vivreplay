@@ -11,19 +11,60 @@ export interface ListingTierPolicy {
 export const LISTING_POLICIES: Record<AccountTier, ListingTierPolicy> = {
   free: {
     tier: 'free',
-    durationDays: 30,
-    maxActiveListings: 25,
+    durationDays: 7,
+    maxActiveListings: 12,
     canAutoRenew: false,
     commissionPercent: 2,
   },
   pro: {
     tier: 'pro',
-    durationDays: 60,
-    maxActiveListings: 1000,
+    durationDays: 14,
+    maxActiveListings: 500,
     canAutoRenew: true,
     commissionPercent: 1,
   },
 };
+
+export function parseMarketPolicies(rawJson: string | null | undefined): Record<AccountTier, ListingTierPolicy> {
+  if (!rawJson) return LISTING_POLICIES;
+  try {
+    const parsed = typeof rawJson === 'string' ? JSON.parse(rawJson) : rawJson;
+    return {
+      free: {
+        tier: 'free',
+        durationDays: Math.max(1, Number(parsed.free?.durationDays) || LISTING_POLICIES.free.durationDays),
+        maxActiveListings: Math.max(1, Number(parsed.free?.maxActiveListings) || LISTING_POLICIES.free.maxActiveListings),
+        canAutoRenew: Boolean(parsed.free?.canAutoRenew),
+        commissionPercent: Math.max(0, Number(parsed.free?.commissionPercent) ?? LISTING_POLICIES.free.commissionPercent),
+      },
+      pro: {
+        tier: 'pro',
+        durationDays: Math.max(1, Number(parsed.pro?.durationDays) || LISTING_POLICIES.pro.durationDays),
+        maxActiveListings: Math.max(1, Number(parsed.pro?.maxActiveListings) || LISTING_POLICIES.pro.maxActiveListings),
+        canAutoRenew: parsed.pro?.canAutoRenew !== false,
+        commissionPercent: Math.max(0, Number(parsed.pro?.commissionPercent) ?? LISTING_POLICIES.pro.commissionPercent),
+      },
+    };
+  } catch {
+    return LISTING_POLICIES;
+  }
+}
+
+export async function fetchMarketPolicies(db: any): Promise<Record<AccountTier, ListingTierPolicy>> {
+  try {
+    const row = await (db.prepare("SELECT value FROM app_settings WHERE key='market_policy'") as any).first() as { value: string } | null;
+    return parseMarketPolicies(row?.value);
+  } catch {
+    return LISTING_POLICIES;
+  }
+}
+
+export async function getDynamicListingPolicy(tier: string | null | undefined, db: any): Promise<ListingTierPolicy> {
+  const policies = await fetchMarketPolicies(db);
+  const normalized = (tier ?? '').trim().toLowerCase();
+  if (normalized === 'pro') return policies.pro;
+  return policies.free;
+}
 
 export function getListingPolicy(tier?: string | null): ListingTierPolicy {
   const normalized = (tier ?? '').trim().toLowerCase();
@@ -33,7 +74,6 @@ export function getListingPolicy(tier?: string | null): ListingTierPolicy {
 
 export function computeListingExpiration(durationDays: number, fromDate = new Date()): string {
   const expires = new Date(fromDate.getTime() + durationDays * 24 * 60 * 60 * 1000);
-  // Returns SQLite compatible UTC datetime string 'YYYY-MM-DD HH:MM:SS'
   return expires.toISOString().replace('T', ' ').substring(0, 19);
 }
 

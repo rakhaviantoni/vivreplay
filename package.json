@@ -12,6 +12,7 @@
     "start": "node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js dev --config dist/server/wrangler.json --local --persist-to .wrangler/state --ip 127.0.0.1 --inspector-port 0",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate",
+    "db:mirror-supabase": "node --env-file=.env.local scripts/mirror-supabase-catalog-to-d1.mjs",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test tests/*.test.ts",
     "effects:verify": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/verify-effect-pipeline.ts",

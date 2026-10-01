@@ -1,7 +1,9 @@
 import { NextRequest } from "next/server";
 import { renderAuthEmail, AuthEmailAction, getAppUrl } from "@/lib/auth-email";
+import {isCurrentUserAdmin} from '@/lib/server/admin-auth';
 
 export async function GET(request: NextRequest) {
+  if(!await isCurrentUserAdmin())return Response.json({error:'Admin access is required.'},{status:403});
   const searchParams = request.nextUrl.searchParams;
   const actionParam = searchParams.get("action") as AuthEmailAction | null;
   const name = searchParams.get("name") || "Luffy";

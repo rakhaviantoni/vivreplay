@@ -2,6 +2,9 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {familyScenarios} from '../scripts/effect-family-scenarios';
 import {compileEffectDocument} from '../packages/domain/effect-rules';
+import {resolveEffectTiming} from '../packages/domain/effect-runtime';
+import {beginEffectExecution} from '../packages/domain/effect-controller';
+import {scenarios} from '../scripts/card-effect-scenarios';
 
 test('search scenarios enforce each printed trait notation, exclusions and deck window',()=>{
  for(const trait of ['[Kid Pirates]','"Kid Pirates"','{Kid Pirates}']){
@@ -13,6 +16,13 @@ test('search scenarios enforce each printed trait notation, exclusions and deck 
   for(const ability of broken.normalized)for(const step of ability.sequence)if(step.type==='RESOLVE'&&step.action.kind==='search')delete step.action.trait;
   assert.throws(()=>cases.find(c=>c.name.endsWith('wrong-trait'))!.run(broken),/Illegal search choice accepted/);
  }
+});
+test('cost-limited search validates the threshold, look window, bottom placement and referenced Trigger timing',()=>{
+ const effect="[Main] Look at 4 cards from the top of your deck; reveal up to 1 card with a cost of 4 or more and add it to your hand. Then, place the rest at the bottom of your deck in any order.\n[Trigger] Activate this card's [Main] effect.";
+ const document=compileEffectDocument({id:'test',code:'TEST',name:'Search Event',color:'Purple',type:'Event',cost:1,power:0,rarity:'C',art:0,effect});
+ const cases=familyScenarios(effect);assert.equal(cases.length,2);for(const scenario of cases)scenario.run(document);
+ const broken=structuredClone(document);for(const window of broken.normalized)for(const step of window.sequence)if(step.type==='RESOLVE'&&step.action.kind==='search')step.action.minCost=6;
+ assert.throws(()=>cases.find(scenario=>scenario.name.startsWith('main:'))!.run(broken),/Boundary-cost card should be eligible/);
 });
 test('family tests do not silently drop conditions or follow-up clauses',()=>{
  assert.equal(familyScenarios('[On Play] If your Leader is [Sanji], draw 1 card.').length,0);
@@ -35,6 +45,57 @@ test('draw/discard scenarios verify new-card choices and reject unpaid mandatory
  const broken=structuredClone(document);
  broken.normalized[0].sequence.reverse();
  assert.throws(()=>cases[0].run(broken),/Wrong hand before discard/);
+});
+test('Counter hand-trash payment completes before the selected Leader or Character battle boost',()=>{
+ const effect='[Counter] You may trash 1 card from your hand: Up to 1 of your Leader or Character cards gains +3000 power during this battle.';
+ const document=compileEffectDocument({id:'test',code:'TEST',name:'Counter',color:'Blue',type:'Event',cost:2,power:0,rarity:'C',art:0,effect});
+ const cases=familyScenarios(effect);assert.equal(cases.length,1);for(const scenario of cases)scenario.run(document);
+ const broken=structuredClone(document);for(const window of broken.normalized)for(const step of window.sequence)if(step.type==='RESOLVE'&&step.action.kind==='power')step.action.amount=2000;
+ assert.throws(()=>cases[0].run(broken),/Wrong power boost applied/);
+});
+test('rested DON grant chooses one recipient before legal rested DON cards',()=>{
+ const effect='[Trigger] Give up to 2 rested DON!! cards to your Leader or 1 of your Characters.';
+ const document=compileEffectDocument({id:'test',code:'TEST',name:'Grant',color:'Purple',type:'Event',cost:1,power:0,rarity:'C',art:0,effect});
+ const cases=familyScenarios(effect);assert.equal(cases.length,1);for(const scenario of cases)scenario.run(document);
+ const broken=structuredClone(document);for(const step of broken.normalized[0].sequence)if(step.type==='RESOLVE'&&step.action.kind==='attach-don')step.action.rested=false;
+ assert.throws(()=>cases[0].run(broken),/Active DON!! was accepted/);
+});
+test('DON!! timing qualifier belongs to the following ability, not the preceding On Play',()=>{
+ const effect='[On Play] Give up to 1 rested DON!! card to your Leader or 1 of your Characters. [DON!!×1] [When Attacking] Draw 1 card.';
+ const document=compileEffectDocument({id:'test',code:'P-139',name:'Nami',color:'Green',type:'Character',cost:3,power:4000,rarity:'P',art:0,effect});
+ const onPlay=document.normalized.find(window=>window.timing==='on-play')!,attacking=document.normalized.find(window=>window.timing==='when-attacking')!;
+ assert.deepEqual(onPlay.sequence.filter(step=>step.type==='RESOLVE').map(step=>step.action.kind),['attach-don']);
+ assert.ok(!onPlay.sequence.some(step=>step.type==='RESOLVE'&&step.action.kind==='attach-don-required'));
+ assert.ok(document.ast.find(window=>window.trigger==='when-attacking')?.actions.some(action=>action.kind==='attach-don-required'&&action.amount===1));
+ assert.ok(!attacking.sequence.some(step=>step.type==='RESOLVE'&&step.action.kind==='attach-don-required'));
+ assert.ok(attacking.sequence.some(step=>step.type==='RESOLVE'&&step.action.kind==='draw'&&step.action.amount===1));
+ const state=(attached=false)=>({turn:'player' as const,cards:[{id:'source',owner:'player' as const,zone:'character' as const,type:'Character' as const,effectSchema:document},{id:'top',owner:'player' as const,zone:'deck' as const,type:'Character' as const},...(attached?[{id:'attached',owner:'player' as const,zone:'cost-area' as const,type:'DON!!' as const,attachedTo:'source'}]:[])],turnEffects:[],restrictions:[],delayed:[]});
+ const onPlayExecution=beginEffectExecution(state(),'player','source','on-play',resolveEffectTiming(document,'on-play').commands);
+ assert.equal(onPlayExecution.requiresSelection,'Select your Leader or Character.');
+ const gatedAttack=beginEffectExecution(state(),'player','source','when-attacking',resolveEffectTiming(document,'when-attacking').commands);
+ assert.ok(gatedAttack.complete&&!gatedAttack.error,'When Attacking draw incorrectly ran without its attached DON!! prerequisite');
+ const paidAttack=beginEffectExecution(state(true),'player','source','when-attacking',resolveEffectTiming(document,'when-attacking').commands);
+ assert.ok(paidAttack.complete&&!paidAttack.error&&paidAttack.execution.state.cards.some(card=>card.zone==='hand'),'Attached DON!! did not unlock the When Attacking draw');
+});
+test('mixed-text Blocker cards get their own combat scenarios without claiming their other effects',()=>{
+ const effect='[Blocker]\n[On Play] Draw 1 card.';
+ const card={id:'test',code:'TEST-BLOCKER',name:'Blocker',color:'Black',type:'Character' as const,cost:3,power:4000,rarity:'C',art:0,effect};
+ const document=compileEffectDocument(card),cases=scenarios({code:card.code,effect_text:effect} as Parameters<typeof scenarios>[0]);
+ const blocker=cases.filter(scenario=>scenario.name.startsWith('keyword Blocker:')&&!scenario.name.endsWith('schema isolation'));
+ const isolation=cases.find(scenario=>scenario.name.endsWith('schema isolation'))!;
+ assert.equal(blocker.length,5);assert.ok(cases.some(scenario=>scenario.name.startsWith('on-play:')));
+ for(const scenario of blocker)scenario.run(document);
+ isolation.run(document);
+ const stale=structuredClone(document);stale.ast=[{rawText:effect,trigger:'on-play',conditions:[],costs:[],actions:[{kind:'blocker'},{kind:'draw',amount:1}]}];
+ for(const scenario of blocker)scenario.run(stale);
+ assert.throws(()=>isolation.run(stale),/isolated from the card’s other ability text/);
+});
+test('deck-mill scenarios take exactly the printed number of top cards in On Play and On K.O. windows',()=>{
+ const effect='[On Play] Trash 3 cards from the top of your deck. [On K.O.] Trash 1 card from the top of your deck.';
+ const document=compileEffectDocument({id:'test',code:'TEST',name:'Test',color:'Black',type:'Character',cost:3,power:4000,rarity:'C',art:0,effect});
+ const cases=familyScenarios(effect);assert.equal(cases.length,2);for(const scenario of cases)scenario.run(document);
+ const broken=structuredClone(document);for(const window of broken.normalized)for(const step of window.sequence)if(step.type==='RESOLVE'&&step.action.kind==='trash')step.action.amount++;
+ assert.throws(()=>cases[0].run(broken),/Effect did not trash exactly the top cards/);
 });
 test('same-line timing windows retain their own complete scenario text',()=>{
  const effect="[Main] K.O. up to 1 of your opponent's Characters with a cost of 1 or less. [Trigger] Draw 2 cards and trash 1 card from your hand.";
@@ -87,9 +148,9 @@ test('effectless-card coverage rejects phantom commands in stored schemas',()=>{
 test('printed Blocker schema supports legal blocking and respects negation',()=>{
  const effect='[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)';
  const document=compileEffectDocument({id:'test',code:'TEST',name:'Test',color:'Green',type:'Character',cost:1,power:1000,rarity:'C',art:0,effect});
- const cases=familyScenarios(effect);assert.equal(cases.length,5);
+ const cases=scenarios({code:'TEST',effect_text:effect} as Parameters<typeof scenarios>[0]);assert.equal(cases.length,6);
  for(const scenario of cases)scenario.run(document);
- const broken=structuredClone(document);broken.ast[0].actions=[];
+ const broken=structuredClone(document);broken.ast[0].actions=[];broken.rawEffectText='';
  assert.throws(()=>cases[0].run(broken),/Active printed Blocker rejected/);
 });
 test('DON schemas contribute power only to their own attached card on their own turn',()=>{

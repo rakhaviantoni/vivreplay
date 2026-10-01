@@ -433,7 +433,7 @@ html[data-theme=dark] .catalog-loading .catalog-skeleton-grid i:before { border-
 .header-search-results>p { display:grid; place-items:center; min-height:104px; margin:0; color:#8b887d; font:600 12px var(--game-font); text-align:center; }
 .header-search-result { display:grid; grid-template-columns:34px minmax(0,1fr) auto; align-items:center; gap:10px; min-height:54px; padding:6px; border-radius:11px; color:#314138; transition:background .16s,transform .16s; }
 .header-search-result:hover { background:#f1e5ce; transform:translateX(3px); }
-.header-search-result .tcg-card { width:34px; height:47px; border-radius:3px; box-shadow:none!important; }
+.header-search-result .tcg-card { box-shadow:none!important; }
 .header-search-result span { display:grid; gap:3px; min-width:0; }.header-search-result b { overflow:hidden; font:800 13px var(--display-font); text-overflow:ellipsis; white-space:nowrap; }.header-search-result small { color:#8d836f; font:700 9px var(--game-font); }.header-search-result>svg { color:#ad7b2b; }
 .header-search-skeleton { height:54px; border-radius:11px; background:linear-gradient(105deg,#e9dfcd 20%,#fffaf0 44%,#e9dfcd 68%); background-size:260% 100%; animation:viewer-skeleton-shimmer 1.15s ease-in-out infinite; }
 .dialog-mark { display:grid; place-items:center; width:46px; height:46px; margin-bottom:2px; border-radius:14px; background:#253d34; color:#e6b94e; }.dialog-action { display:flex; align-items:center; justify-content:center; gap:8px; min-height:46px; border-radius:12px; background:#263f34; color:#fff8e9!important; font:800 12px var(--game-font); }.dialog-action:hover { background:#3d5b4c; }
@@ -451,6 +451,59 @@ html[data-theme=dark] .primary-nav > a { color:#c2d2d1!important; }html[data-the
 
 /* The viewer treats card art as a flat scan, including during the flight transition. */
 .viewer-primary-art .tcg-card,.viewer-flight-card .tcg-card,.viewer-landing-card .tcg-card{box-shadow:none!important;filter:none!important;animation:none!important}
+
+/* Market Policy admin interface */
+.admin-policy-view { display:grid; gap:20px; margin-top:20px; }
+.admin-policy-header { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px; padding:16px 20px; border:1px solid #d9cab0; border-radius:10px; background:#fffaf0; }
+.admin-policy-header h2 { margin:0; color:#25372f; font:800 20px var(--display-font); }
+.admin-policy-header p { margin:3px 0 0; color:#667167; font:600 12px var(--game-font); }
+.admin-policy-presets { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.admin-preset-btn { min-height:32px; padding:0 12px; border:1px solid #d4c3a5; border-radius:7px; background:#fff; color:#49574f; font:700 11px var(--game-font); cursor:pointer; transition:all .15s; }
+.admin-preset-btn:hover { border-color:#9e7939; background:#fbf3e4; color:#22332a; }
+.admin-policy-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:18px; }
+.admin-policy-card { display:flex; flex-direction:column; padding:22px; border:1px solid #d9cab0; border-radius:12px; background:#fffaf0; }
+.admin-policy-card.is-pro { border-color:#baa06f; background:#fffdf7; }
+.admin-tier-badge { display:inline-flex; align-items:center; gap:6px; align-self:flex-start; padding:4px 10px; border-radius:6px; font:800 10px var(--game-font); text-transform:uppercase; letter-spacing:.06em; margin-bottom:12px; }
+.admin-tier-badge.free { background:#e8f2ec; color:#29633e; border:1px solid #b7dcbe; }
+.admin-tier-badge.pro { background:#fbf0d8; color:#956114; border:1px solid #e7ce96; }
+.admin-policy-card h3 { margin:0 0 4px; color:#25372f; font:800 18px var(--display-font); }
+.admin-policy-card p.tier-desc { margin:0 0 18px; color:#6b776e; font:600 12px var(--game-font); }
+.admin-policy-fields { display:grid; gap:16px; }
+.admin-policy-field { display:grid; gap:6px; }
+.admin-policy-field label { display:flex; justify-content:space-between; align-items:baseline; color:#35493f; font:800 12px var(--game-font); }
+.admin-policy-field label span { color:#7e877e; font:600 11px var(--game-font); font-weight:normal; }
+.admin-policy-field input[type=number] { height:40px; padding:0 12px; border:1px solid #d4c3a5; border-radius:8px; background:#fff; color:#25372f; font:700 13px var(--game-font); outline:none; }
+.admin-policy-field input[type=number]:focus { border-color:#44755b; box-shadow:0 0 0 2px #44755b22; }
+.admin-policy-field small { color:#768177; font:600 11px var(--game-font); }
+.admin-policy-toggle { display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid #e2d5c0; border-radius:8px; background:#fff; margin-top:4px; font:700 12px var(--game-font); color:#35493f; cursor:pointer; }
+.admin-policy-toggle input { width:16px; height:16px; accent-color:#36724c; cursor:pointer; }
+.admin-policy-footer { display:flex; justify-content:flex-end; align-items:center; gap:12px; padding:16px 20px; border:1px solid #d9cab0; border-radius:10px; background:#fffaf0; margin-top:6px; }
+.admin-save-btn { display:inline-flex; align-items:center; gap:8px; min-height:42px; padding:0 22px; border:0; border-radius:8px; background:#295a43; color:#fffaf0; font:800 13px var(--game-font); cursor:pointer; transition:background .15s; }
+.admin-save-btn:hover { background:#1e4432; }
+.admin-save-btn:disabled { opacity:.6; cursor:not-allowed; }
+.admin-discard-btn { min-height:42px; padding:0 16px; border:1px solid #d4c3a5; border-radius:8px; background:transparent; color:#55635b; font:700 12px var(--game-font); cursor:pointer; }
+.admin-discard-btn:hover { background:#f5eddf; color:#25372f; }
+
+html[data-theme=dark] .admin-policy-header,
+html[data-theme=dark] .admin-policy-card,
+html[data-theme=dark] .admin-policy-footer { border-color:#2c4d5b; background:#0b1c25; }
+html[data-theme=dark] .admin-policy-card.is-pro { border-color:#534327; background:#0e1e27; }
+html[data-theme=dark] .admin-policy-header h2,
+html[data-theme=dark] .admin-policy-card h3 { color:#eff8f1; }
+html[data-theme=dark] .admin-policy-header p,
+html[data-theme=dark] .admin-policy-card p.tier-desc,
+html[data-theme=dark] .admin-policy-field small { color:#9db5ae; }
+html[data-theme=dark] .admin-policy-field label { color:#dbe8e2; }
+html[data-theme=dark] .admin-policy-field input[type=number],
+html[data-theme=dark] .admin-preset-btn,
+html[data-theme=dark] .admin-policy-toggle { border-color:#345361; background:#0d222c; color:#eff7f1; }
+html[data-theme=dark] .admin-preset-btn:hover { background:#17323f; border-color:#e0b24e; color:#fff; }
+html[data-theme=dark] .admin-tier-badge.free { background:#122a1f; color:#78cca0; border-color:#21583e; }
+html[data-theme=dark] .admin-tier-badge.pro { background:#302511; color:#f0c56d; border-color:#634e23; }
+html[data-theme=dark] .admin-discard-btn { border-color:#345361; color:#9db5ae; }
+html[data-theme=dark] .admin-discard-btn:hover { background:#172f3c; color:#fff; }
+@media(max-width:760px){ .admin-policy-grid { grid-template-columns:1fr; } }
+
 
 
 /* Printing changes use two flat scans, so the new art rises from the prior printing. */

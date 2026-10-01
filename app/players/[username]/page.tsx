@@ -15,6 +15,7 @@ import {ShareButton} from '@/components/tcg/share';
 import {formatMoney} from '@/packages/domain';
 import {cardFor} from '@/packages/card-data/catalog';
 import {CardArt} from '@/components/tcg/card-art';
+import {IntroCardRail} from '@/components/tcg/intro-card-rail';
 
 export const metadata = privateMetadata('Player profile', 'Player profiles are available by direct link only.');
 export const dynamic = 'force-dynamic';
@@ -66,6 +67,7 @@ export default async function Page({params}: {params: Promise<{username: string}
         cp.language AS cardLanguage,
         cp.rarity AS cardRarity,
         cp.set_code AS cardSetCode,
+        cp.variant AS cardVariant,
         ci.id AS cardIdentityId,
         ci.code AS cardCode,
         ci.name AS cardName,
@@ -96,6 +98,7 @@ export default async function Page({params}: {params: Promise<{username: string}
       cardLanguage?: string;
       cardRarity?: string;
       cardSetCode?: string;
+      cardVariant?: string;
       cardIdentityId?: string;
       cardCode?: string;
       cardName?: string;
@@ -141,11 +144,14 @@ export default async function Page({params}: {params: Promise<{username: string}
             @{p.username} · {regionLabel} · Member since {joinedDate}
           </p>
         </div>
-        <div className="library-intro-actions">
-          <ShareButton
-            title={`${p.display_name} (@${p.username}) · Vivreplay`}
-            path={`/players/${username}`}
-          />
+        <div className="player-intro-side">
+          <IntroCardRail/>
+          <div className="library-intro-actions">
+            <ShareButton
+              title={`${p.display_name} (@${p.username}) · Vivreplay`}
+              path={`/players/${username}`}
+            />
+          </div>
         </div>
       </section>
 
@@ -188,7 +194,9 @@ export default async function Page({params}: {params: Promise<{username: string}
               </div>
               <div className="player-listings-grid">
                 {listings.map(item => {
-                  const card = cardFor(item.printingId) ?? ((item.cardCode || item.cardImageUrl) ? {
+                  const filenameCode = item.cardImageUrl ? item.cardImageUrl.split('?')[0].split('#')[0].split('/').pop()?.replace(/\.[^.]+$/, '') : undefined;
+                  const printingCode = filenameCode ?? item.cardCode;
+                  const card = ((item.cardCode || item.cardImageUrl) ? {
                     id: item.cardIdentityId ?? item.printingId,
                     code: item.cardCode ?? '',
                     name: item.cardName ?? item.title,
@@ -203,8 +211,9 @@ export default async function Page({params}: {params: Promise<{username: string}
                     imageSource: 'external' as const,
                     setCode: item.cardSetCode,
                     language: item.cardLanguage,
-                    printingCode: item.cardCode,
-                  } : undefined);
+                    printingCode,
+                    variant: item.cardVariant,
+                  } : undefined) ?? cardFor(item.printingId);
                   return (
                     <article key={item.id} className="player-listing-card">
                       <Link href={`/market/${item.id}`} className="player-listing-card-art">

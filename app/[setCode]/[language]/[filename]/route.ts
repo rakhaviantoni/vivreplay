@@ -1,3 +1,5 @@
+import { env } from 'cloudflare:workers';
+
 const filenamePattern=/^[A-Za-z0-9_-]+\.webp$/;
 const bucket='tcg-card-images';
 
@@ -15,12 +17,34 @@ function candidateObjectKeys(setCode:string,language:string,filename:string,vari
   ]))];
 }
 
-async function catalogAssetKeys(origin:string,key:string,language:string,filename:string){
+function setCodeAliases(setCode:string){
+  const normalized=setCode.toUpperCase().replace(/[^A-Z0-9]/g,'');
+  const aliases=new Set([setCode.toUpperCase(),normalized]);
+  const addPrefix=(prefix:string,pattern:RegExp,separator:string)=>{
+    const match=normalized.match(pattern);
+    if(match)aliases.add(`${prefix}${separator}${match[1]}`);
+  };
+  addPrefix('OP',/^OP(\d{2})$/,'-');
+  addPrefix('ST',/^ST(\d{2})$/,'-');
+  addPrefix('EB',/^EB(\d{2})$/,'-');
+  addPrefix('PRB',/^PRB(\d{2})$/,'-');
+  const combined=normalized.match(/^OP(\d{2})EB(\d{2})$/);
+  if(combined){
+    aliases.add(`OP-${combined[1]}-EB${combined[2]}`);
+    aliases.add(`OP${combined[1]}-EB${combined[2]}`);
+    aliases.add(`OP-${combined[1]}EB${combined[2]}`);
+    aliases.add(`EB-${combined[2]}`);
+  }
+  return [...aliases];
+}
+
+async function catalogAssetKeys(origin:string,key:string,setCode:string,language:string,filename:string){
   const printingCode=filename.replace(/\.webp$/i,'');
   const query=new URLSearchParams({
     select:'tcg_card_assets(object_key,kind)',
     printing_code:`eq.${printingCode}`,
     language:`eq.${language.toUpperCase()}`,
+    set_code:`in.(${setCodeAliases(setCode).map(value=>`"${value}"`).join(',')})`,
   });
   const response=await fetch(`${origin}/rest/v1/tcg_card_printings?${query}`,{headers:{authorization:`Bearer ${key}`,apikey:key}});
   if(!response.ok) return [];
@@ -33,18 +57,33 @@ async function catalogAssetKeys(origin:string,key:string,language:string,filenam
 
 export async function serveCardImage(setCode:string,language:string,filename:string,variant='small'){
   if(!filenamePattern.test(filename)) return new Response('Not found',{status:404});
+  const cacheKey=new Request(`https://vivreplay.com/${encodeURIComponent(setCode)}/${encodeURIComponent(language)}/${encodeURIComponent(filename)}`);
+  const edgeCache=(globalThis.caches as (CacheStorage & {default?:Cache})|undefined)?.default;
+  const cached=await edgeCache?.match(cacheKey);
+  if(cached) return cached;
+
   const origin=process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key=process.env.SUPABASE_SECRET_KEY;
   if(!origin||!key) return new Response('Asset storage is unavailable',{status:503});
 
-  const candidateKeys=[
-    ...candidateObjectKeys(setCode,language,filename,variant),
-    ...await catalogAssetKeys(origin,key,language,filename),
-  ];
+  const catalogKeys=await catalogAssetKeys(origin,key,setCode,language,filename);
+  const r2=env.CARD_IMAGES;
+  if(r2&&catalogKeys.length){
+    const object=await r2.get(catalogKeys[0]);
+    if(object){
+      const response=new Response(object.body,{headers:{'Content-Type':object.httpMetadata?.contentType||'image/webp','Cache-Control':'public, max-age=31536000, immutable','X-Content-Type-Options':'nosniff'}});
+      await edgeCache?.put(cacheKey,response.clone());
+      return response;
+    }
+  }
+
+  const candidateKeys=[...candidateObjectKeys(setCode,language,filename,variant),...catalogKeys];
   for(const objectKey of [...new Set(candidateKeys)]){
     const response=await fetch(`${origin}/storage/v1/object/${bucket}/${objectKey}`,{headers:{accept:'image/webp,image/*;q=0.8',authorization:`Bearer ${key}`,apikey:key},cf:{cacheTtl:31_536_000,cacheEverything:true}});
     if(!response.ok||!response.body) continue;
-    return new Response(response.body,{headers:{'Content-Type':response.headers.get('content-type')||'image/webp','Cache-Control':'public, max-age=31536000, immutable','X-Content-Type-Options':'nosniff'}});
+    const image=new Response(response.body,{headers:{'Content-Type':response.headers.get('content-type')||'image/webp','Cache-Control':'public, max-age=31536000, immutable','X-Content-Type-Options':'nosniff'}});
+    await edgeCache?.put(cacheKey,image.clone());
+    return image;
   }
   return new Response('Not found',{status:404});
 }

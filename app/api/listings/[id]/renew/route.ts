@@ -1,14 +1,15 @@
 import {user,db,errorResponse,guard,HttpError} from '@/lib/server/store';
-import {getListingPolicy,computeListingExpiration} from '@/lib/market/policy';
+import {getDynamicListingPolicy,computeListingExpiration} from '@/lib/market/policy';
 
 export async function POST(req:Request,{params}:{params:Promise<{id:string}>}){
   try{
     guard(req);
     const p=await user();
     const {id}=await params;
-    const policy=getListingPolicy(p.tier);
+    const d=db();
+    const policy=await getDynamicListingPolicy(p.tier,d);
 
-    const listing=await db().prepare(
+    const listing=await d.prepare(
       'SELECT id,seller_id,status,expires_at FROM listings WHERE id=? AND seller_id=?'
     ).bind(id,p.id).first<{id:string;seller_id:string;status:string;expires_at:string|null}>();
 

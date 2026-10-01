@@ -1,4 +1,5 @@
 import {createClient} from '@supabase/supabase-js';
+import {isCurrentUserAdmin} from '@/lib/server/admin-auth';
 
 type Identity={id:string;code:string;name:string};
 type Printing={id:string;identity_id:string;set_code:string;set_name:string;language:string;variant:string;card_image_url:string|null;tcg_card_identities:Identity|Identity[]};
@@ -8,6 +9,7 @@ type SetRow={id:string;external_set_id:string;name:string;set_kind:string};
 async function allRows<T>(supabase:any,table:string,columns:string) { const result:T[]=[]; for(let from=0;;from+=1000){const {data,error}=await supabase.from(table).select(columns).range(from,from+999);if(error)throw error;result.push(...data as T[]);if(data.length<1000)return result;} }
 
 export async function GET() {
+  if(!await isCurrentUserAdmin())return Response.json({error:'Admin access is required.'},{status:403});
   const url=process.env.NEXT_PUBLIC_SUPABASE_URL; const key=process.env.SUPABASE_SECRET_KEY;
   if(!url||!key)return Response.json({error:'Storage administration is unavailable.'},{status:503});
   const supabase=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});

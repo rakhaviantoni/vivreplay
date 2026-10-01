@@ -3,11 +3,14 @@ import { betterAuth } from "better-auth";
 import { nextCookies } from "better-auth/next-js";
 import { sendAuthEmail } from "@/lib/auth-email";
 
+const authEnv = env as Cloudflare.Env;
+const baseURL = authEnv.BETTER_AUTH_URL || "https://vivreplay.com";
+
 export const auth = betterAuth({
-  database: env.DB,
-  secret: process.env.BETTER_AUTH_SECRET,
-  baseURL: process.env.BETTER_AUTH_URL,
-  trustedOrigins: [...new Set([process.env.BETTER_AUTH_URL, 'http://localhost:5173'].filter((value): value is string => Boolean(value)))],
+  database: authEnv.DB,
+  secret: authEnv.BETTER_AUTH_SECRET,
+  baseURL,
+  trustedOrigins: [baseURL],
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,
@@ -31,8 +34,8 @@ export const auth = betterAuth({
   },
   socialProviders: {
     google: {
-      clientId: process.env.GOOGLE_CLIENT_ID as string,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
+      clientId: authEnv.GOOGLE_CLIENT_ID as string,
+      clientSecret: authEnv.GOOGLE_CLIENT_SECRET as string,
       requireEmailVerification: true,
       prompt: "select_account",
     },

@@ -1,7 +1,9 @@
 import { NextRequest } from "next/server";
 import { sendAuthEmail, AuthEmailAction, getAppUrl } from "@/lib/auth-email";
+import {isCurrentUserAdmin} from '@/lib/server/admin-auth';
 
 export async function POST(request: NextRequest) {
+  if(!await isCurrentUserAdmin())return Response.json({error:'Admin access is required.'},{status:403});
   try {
     const body = await request.json() as {
       to?: string;

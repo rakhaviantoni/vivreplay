@@ -1,15 +1,46 @@
-import {createClient} from '@supabase/supabase-js';
+import { database } from '@/lib/server/database';
+import { supabaseAdmin } from '@/lib/server/supabase-storage';
 
-const printingIdPattern=/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
+const printingIdPattern = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
+function parseJson(value: unknown) {
+  if (typeof value !== 'string') return value;
+  try { return JSON.parse(value); } catch { return value; }
+}
 
-export async function GET(request:Request) {
-  const printingId=new URL(request.url).searchParams.get('printingId')?.trim()??'';
-  if(!printingIdPattern.test(printingId)) return Response.json({history:[]},{status:400});
-  const url=process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key=process.env.SUPABASE_SECRET_KEY;
-  if(!url||!key) return Response.json({history:[]},{status:503});
-  const supabase=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
-  const {data,error}=await supabase.from('tcg_price_observations').select('amount,currency,observed_at,source_kind,source_record:tcg_source_records(payload)').eq('printing_id',printingId).eq('source','yuyutei').order('observed_at',{ascending:true}).limit(60);
-  if(error) return Response.json({history:[]},{status:500});
-  return Response.json({history:data??[]},{headers:{'Cache-Control':'public, max-age=60, s-maxage=300'}});
+async function fromD1(printingId: string) {
+  const { results } = await database().prepare(`
+    SELECT p.amount,p.currency,p.observed_at,p.source_kind,s.payload AS source_payload
+    FROM tcg_price_observations p
+    LEFT JOIN tcg_source_records s ON s.id=p.source_record_id
+    WHERE p.printing_id=? AND p.source='yuyutei'
+    ORDER BY p.observed_at ASC LIMIT 60
+  `).bind(printingId).all<Record<string, unknown>>();
+  return results.map(row => ({
+    amount: row.amount, currency: row.currency, observed_at: row.observed_at,
+    source_kind: row.source_kind,
+    source_record: row.source_payload == null ? null : { payload: parseJson(row.source_payload) },
+  }));
+}
+
+async function fromSupabase(printingId: string) {
+  const db = supabaseAdmin();
+  if (!db) throw new Error('Price history is unavailable.');
+  const { data, error } = await db.from('tcg_price_observations')
+    .select('amount,currency,observed_at,source_kind,source_record:tcg_source_records(payload)')
+    .eq('printing_id', printingId).eq('source', 'yuyutei')
+    .order('observed_at', { ascending: true }).limit(60);
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function GET(request: Request) {
+  const printingId = new URL(request.url).searchParams.get('printingId')?.trim() ?? '';
+  if (!printingIdPattern.test(printingId)) return Response.json({ history: [] }, { status: 400 });
+  let history;
+  try { history = await fromD1(printingId); }
+  catch {
+    try { history = await fromSupabase(printingId); }
+    catch { return Response.json({ history: [] }, { status: 503 }); }
+  }
+  return Response.json({ history }, { headers: { 'Cache-Control': 'public, max-age=60, s-maxage=300' } });
 }

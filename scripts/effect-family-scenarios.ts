@@ -1,7 +1,7 @@
 import type {EffectDocument,EffectTrigger} from '../packages/domain/effect-rules';
 import {resolveEffectTiming} from '../packages/domain/effect-runtime';
 import {beginEffectExecution,advanceEffectExecution} from '../packages/domain/effect-controller';
-import {declareBlock,effectiveCardPower,resolveBattle,expireEffectModifiers,type MatchEffectState} from '../packages/domain/match-effect-state';
+import {effectiveCardPower,resolveBattle,expireEffectModifiers,type MatchEffectState} from '../packages/domain/match-effect-state';
 export type Scenario={name:string;run:(document:EffectDocument)=>void};
 const check=(ok:unknown,message:string)=>{if(!ok)throw new Error(message);};
 const board=():MatchEffectState=>({turn:'player',turnEffects:[],restrictions:[],delayed:[],cards:Array.from({length:12},(_,i)=>({id:`d${i}`,owner:'player',zone:'deck',type:'Character',name:`Other ${i}`,traits:['Other']}))});
@@ -23,12 +23,6 @@ export function familyScenarios(text:string,executionTiming?:EffectTrigger):Scen
    check(result.state.cards.find(c=>c.id==='fighter')?.zone==='character','Attacker incorrectly removed');
   }
  }}));
- if(/^\[Blocker\](?:\s*\(After your opponent declares an attack, you may rest this card to make it the new target of the attack\.\))?\s*$/.test(text.trim()))return ['active','rested','wrong-owner','hand','negated'].map(choice=>({name:`blocker: ${choice}`,run(document){
-  const state=board();state.cards.push({id:'blocker',owner:choice==='wrong-owner'?'player':'opponent',zone:choice==='hand'?'hand':'character',type:'Character',rested:choice==='rested',effectNegated:choice==='negated',effectSchema:document});
-  const result=declareBlock(state,'opponent','blocker');
-  if(choice==='active'){check(!result.error,'Active printed Blocker rejected');check(result.state.cards.find(c=>c.id==='blocker')?.rested,'Blocker did not rest');}
-  else {check(result.error,'Illegal Blocker accepted');check(result.state===state,'Rejected block mutated state');}
- }}));
  if(!text.trim()||/^NULL$/i.test(text.trim()))return [{name:'no-effect: no commands in any timing window',run(document){
   for(const timing of ['on-play','when-attacking','activate-main','main','trigger','counter','on-ko','on-block','opponent-attack','end-turn','continuous','unknown'] as EffectTrigger[]){
    const resolution=resolveEffectTiming(document,timing);
@@ -40,6 +34,42 @@ export function familyScenarios(text:string,executionTiming?:EffectTrigger):Scen
   const window=line.trim().match(/^\[(On Play|Main|Counter|Trigger|When Attacking|On K\.O\.|On Block|End of Your Turn)\]\s*(.+)$/);
   if(!window)continue;
   const timing=executionTiming??timingNames[window[1]],body=window[2];
+  const attachToOne=body.match(/^Give up to (\d+) rested DON!! cards? to your Leader or \d+ of your Characters?\.$/i);
+  if(attachToOne){const amount=Number(attachToOne[1]);result.push({name:`${timing}: choose one own Leader or Character, then attach up to ${amount} rested DON!!`,run(document){
+   const state=board();state.cards.push({id:'leader',owner:'player',zone:'leader',type:'Leader'},{id:'character',owner:'player',zone:'character',type:'Character'},{id:'enemy',owner:'opponent',zone:'character',type:'Character'},{id:'hand-card',owner:'player',zone:'hand',type:'Character'},...Array.from({length:amount},(_,i)=>({id:`rested-don-${i}`,owner:'player' as const,zone:'cost-area' as const,type:'DON!!' as const,rested:true})),{id:'active-don',owner:'player',zone:'cost-area',type:'DON!!',rested:false},{id:'enemy-don',owner:'opponent',zone:'cost-area',type:'DON!!',rested:true},{id:'attached-don',owner:'player',zone:'cost-area',type:'DON!!',rested:true,attachedTo:'other'});
+   const commands=resolveEffectTiming(document,timing).commands,begun=beginEffectExecution(state,'player','source',timing,commands);check(begun.requiresSelection,'Must choose the receiving Leader or Character first');
+   const wrong=advanceEffectExecution(begun.execution,{targetId:'enemy'});check(wrong.error&&!wrong.complete,'Opponent Character was accepted as the recipient');
+   const recipient=advanceEffectExecution(begun.execution,{targetId:'character'});check(recipient.requiresSelection&&!recipient.error,'DON selection must follow the recipient choice');
+   const invalid=advanceEffectExecution(recipient.execution,{cardIds:['active-don']});check(invalid.error&&!invalid.complete,'Active DON!! was accepted for a rested-DON grant');
+   const donors=Array.from({length:amount},(_,i)=>`rested-don-${i}`),attached=advanceEffectExecution(recipient.execution,{cardIds:donors});check(attached.complete&&!attached.error,'Legal rested DON!! failed to attach');
+   check(donors.every(id=>attached.execution.state.cards.find(card=>card.id===id)?.attachedTo==='character'),'Selected rested DON!! did not attach to the chosen Character');
+   check(attached.execution.state.cards.find(card=>card.id==='leader')?.zone==='leader'&&!attached.execution.state.cards.find(card=>card.id==='active-don')?.attachedTo&&!attached.execution.state.cards.find(card=>card.id==='enemy-don')?.attachedTo,'An unselected card or DON!! changed');
+   const skipped=advanceEffectExecution(recipient.execution,{cardIds:[]});check(skipped.complete&&!skipped.error,'Could not choose zero rested DON!! cards');
+  }});}
+  const discardBoost=body.match(/^You may trash (\d+) cards? from your hand: Up to 1 of your Leader or Character cards gains \+(\d+) power during this battle\.$/i);
+  if(discardBoost){const discardCount=Number(discardBoost[1]),power=Number(discardBoost[2]);result.push({name:`${timing}: pay ${discardCount} hand card${discardCount===1?'':'s'} before choosing a battle boost`,run(document){
+   const state=board();state.cards.push({id:'leader',owner:'player',zone:'leader',type:'Leader',power:5000},{id:'character',owner:'player',zone:'character',type:'Character',power:4000},{id:'enemy',owner:'opponent',zone:'character',type:'Character',power:3000},...Array.from({length:discardCount},(_,i)=>({id:`hand-${i}`,owner:'player' as const,zone:'hand' as const,type:'Character' as const})));
+   const started=beginEffectExecution(state,'player','source',timing,resolveEffectTiming(document,timing).commands);check(started.requiresSelection,'Must choose the hand-trash payment');
+   const invalid=advanceEffectExecution(started.execution,{cardIds:Array.from({length:discardCount-1},(_,i)=>`hand-${i}`)});check(!invalid.complete&&(invalid.error||invalid.requiresSelection),'Accepted a short hand-trash payment');check(invalid.execution.state.cards.every(card=>card.zone!=='trash'),'Invalid payment partially trashed cards');
+   const paid=advanceEffectExecution(started.execution,{cardIds:Array.from({length:discardCount},(_,i)=>`hand-${i}`)});check(paid.requiresSelection&&!paid.error,'Boost choice did not follow payment');check(paid.execution.state.cards.filter(card=>card.zone==='trash').length===discardCount,'Did not trash the selected payment cards');
+   const chosen=advanceEffectExecution(paid.execution,{targetId:'leader'});check(chosen.complete&&!chosen.error,'Leader boost failed after the cost');check(chosen.execution.state.cards.find(card=>card.id==='leader')?.powerModifier===power,'Wrong power boost applied');check(chosen.execution.state.cards.find(card=>card.id==='character')?.powerModifier===undefined,'Unselected Character received a boost');check(!chosen.execution.state.turnEffects.some(effect=>effect.target==='leader'&&effect.expires==='turn-end'),'Battle boost got the wrong duration');
+  }});}
+  const deckTrash=body.match(/^Trash (\d+) cards? from the top of your deck\.$/i);
+  if(deckTrash){const amount=Number(deckTrash[1]);result.push({name:`${timing}: trash exactly the top ${amount} deck card${amount===1?'':'s'}`,run(document){
+   const state=board(),before=state.cards.filter(card=>card.owner==='player'&&card.zone==='deck').map(card=>card.id),done=beginEffectExecution(state,'player','source',timing,resolveEffectTiming(document,timing).commands);
+   check(done.complete&&!done.error,'Top-deck Trash did not complete');
+   check(done.execution.state.cards.filter(card=>card.owner==='player'&&card.zone==='trash').map(card=>card.id).join(',')===before.slice(0,amount).join(','),'Effect did not trash exactly the top cards in order');
+   check(done.execution.state.cards.filter(card=>card.owner==='player'&&card.zone==='deck').map(card=>card.id).join(',')===before.slice(amount).join(','),'Wrong cards remain in the deck after milling');
+  }});}
+  const costSearch=body.match(/^Look at (\d+) cards from the top of your deck; reveal up to 1 card with a cost of (\d+) or (less|more) and add it to your hand\. Then, place the rest at the bottom of your deck in any order\.$/i);
+  if(costSearch){const amount=Number(costSearch[1]),cost=Number(costSearch[2]),limit=costSearch[3].toLowerCase();result.push({name:`${timing}: search top ${amount} for a card costing ${limit} ${cost}`,run(document){
+   const state=board();state.cards[0].cost=limit==='more'?cost:cost;state.cards[1].cost=limit==='more'?cost-1:cost;state.cards[2].cost=limit==='more'?cost+1:cost+1;
+   const begun=beginEffectExecution(state,'player','source',timing,resolveEffectTiming(document,timing).commands);check(begun.requiresSelection,'Cost-limited search must ask for a selection');
+   const legal=advanceEffectExecution(begun.execution,{cardIds:['d0']});check(legal.complete&&!legal.error,'Boundary-cost card should be eligible');check(legal.execution.state.cards.find(card=>card.id==='d0')?.zone==='hand','Eligible card was not added to hand');check(legal.execution.state.cards.filter(card=>card.zone==='deck')[0]?.id===`d${amount}`,'Unselected looked-at cards were not placed after untouched cards');
+   const invalid=advanceEffectExecution(begun.execution,{cardIds:['d1']});check(invalid.error&&!invalid.complete,'Card below the printed cost threshold was accepted');check(invalid.execution.state.cards.every(card=>card.zone==='deck'),'Rejected search choice changed card zones');
+   const outside=advanceEffectExecution(begun.execution,{cardIds:[`d${amount}`]});check(outside.error&&!outside.complete,'Eligible card outside the looked-at window was accepted');
+   const none=advanceEffectExecution(begun.execution,{cardIds:[]});check(none.complete&&!none.error,'Search could not choose zero cards');
+  }});}
   const triggerPlay=body.match(/^(?:If your Leader is (\[[^\]]+\]|multicolored), )?Play this card\.$/i);
   if(triggerPlay&&timing==='trigger'){
    const requiredLeader=triggerPlay[1];

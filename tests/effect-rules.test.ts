@@ -4,13 +4,15 @@ import {compileEffectDocument,parseEffects} from '../packages/domain/effect-rule
 import type {Card} from '../packages/card-data/catalog';
 import {isPlayableSet} from '../packages/domain/release-availability';
 import {resolveEffectTiming} from '../packages/domain/effect-runtime';
+import {applyEffectAction,type MatchEffectState} from '../packages/domain/match-effect-state';
 
 const card=(effect:string)=>({id:'effect-test',code:'TEST-001',name:'Test',color:'Black',type:'Character',cost:1,power:1000,counter:0,rarity:'C',art:0,effect} as Card);
 
-test('activated sacrifice and power reduction expose distinct board actions',()=>{
- const actions=parseEffects(card('[Activate: Main] You may trash this Character: Give up to 1 of your opponent\'s 0 cost Characters -3000 power during this turn.'))[0].actions;
- assert.ok(actions.some(action=>action.kind==='trash'&&action.scope==='self'));
- assert.ok(actions.some(action=>action.kind==='power'&&action.amount===-3000&&action.target==='opponent-character'));
+test('activated self-trash is a payment and the power reduction is the resolving effect',()=>{
+ const effect=parseEffects(card('[Activate: Main] You may trash this Character: Give up to 1 of your opponent\'s 0 cost Characters -3000 power during this turn.'))[0];
+ assert.ok(effect.costs.some(cost=>cost.kind==='trash'&&cost.scope==='self'));
+ assert.ok(effect.actions.some(action=>action.kind==='power'&&action.amount===-3000&&action.target==='opponent-character'));
+ assert.ok(!effect.actions.some(action=>action.kind==='trash'&&action.scope==='self'));
 });
 
 test('targeted removal preserves its printed restrictions',()=>{
@@ -30,6 +32,24 @@ test('search preserves the printed type and trait restriction',()=>{
  assert.deepEqual(actions.find(action=>action.kind==='search'),{kind:'search',amount:5,choose:1,destination:'deck-bottom',cardType:'Character',trait:'Straw Hat Crew'});
 });
 
+test('power gains preserve a trait restriction across Leader and Character recipients',()=>{
+ const action=parseEffects(card('[On Play] Up to 1 of your [Land of Wano] type Leader or Character cards gains +1000 power during this turn.'))[0].actions.find(action=>action.kind==='power');
+ assert.deepEqual(action,{kind:'power',amount:1000,until:'turn-end',selection:{min:0,max:1},trait:'Land of Wano',target:'own-card'});
+});
+
+test('next-Refresh restrictions preserve all, rested-only, and cost filters',()=>{
+ const document=compileEffectDocument(card("[Main] All of your opponent's rested Characters with a cost of 7 or less will not become active in your opponent's next Refresh Phase."));
+ const action=document.ast[0].actions[0];
+ assert.deepEqual(action,{kind:'prevent-ready',scope:'opponent-character',until:'opponent-next-refresh',maxCost:7,restedOnly:true,selection:{min:0,max:'all'}});
+ const state:MatchEffectState={turn:'player',cards:[{id:'eligible',owner:'opponent',zone:'character',type:'Character',cost:7,rested:true},{id:'active',owner:'opponent',zone:'character',type:'Character',cost:7,rested:false},{id:'over-cost',owner:'opponent',zone:'character',type:'Character',cost:8,rested:true},{id:'own',owner:'player',zone:'character',type:'Character',cost:7,rested:true}],turnEffects:[],restrictions:[],delayed:[]};
+ const resolved=applyEffectAction(state,'player',action,{cardIds:[]});
+ assert.equal(resolved.error,undefined);
+ assert.equal(resolved.state.cards.find(item=>item.id==='eligible')?.cannotReady,true);
+ assert.equal(resolved.state.cards.find(item=>item.id==='active')?.cannotReady,undefined);
+ assert.equal(resolved.state.cards.find(item=>item.id==='over-cost')?.cannotReady,undefined);
+ assert.equal(resolved.state.cards.find(item=>item.id==='own')?.cannotReady,undefined);
+});
+
 import {createMatchSnapshot,rulesetForDate,type Ruleset} from '../packages/domain/match-ruleset';
 test('a match keeps the ruleset in force on its start date',()=>{
  const rulesets:Ruleset[]=[
@@ -42,9 +62,10 @@ test('a match keeps the ruleset in force on its start date',()=>{
 });
 
 test('trigger-card hand costs remain explicit before an On Play draw resolves',()=>{
- const actions=parseEffects(card('[On Play] You may trash 1 card with a [Trigger] from your hand: Draw 3 cards.'))[0].actions;
- assert.ok(actions.some(action=>action.kind==='trash'&&action.scope==='hand'&&action.amount===1&&action.requiresTrigger));
- assert.ok(actions.some(action=>action.kind==='draw'&&action.amount===3));
+ const effect=parseEffects(card('[On Play] You may trash 1 card with a [Trigger] from your hand: Draw 3 cards.'))[0];
+ assert.ok(effect.costs.some(cost=>cost.kind==='trash'&&cost.scope==='hand'&&cost.amount===1&&cost.requiresTrigger));
+ assert.ok(effect.actions.some(action=>action.kind==='draw'&&action.amount===3));
+ assert.ok(!effect.actions.some(action=>action.kind==='trash'&&action.scope==='hand'));
 });
 
 
@@ -52,7 +73,7 @@ test('separate printed triggers become separate executable effect schemas',()=>{
  const effects=parseEffects(card('[On Play] You may trash 1 card with a [Trigger] from your hand: Draw 3 cards.\n[Trigger] Look at 5 cards from the top of your deck; reveal up to 1 {Big Mom Pirates} type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.'));
  assert.equal(effects.length,2);
  assert.equal(effects[0].trigger,'on-play');
- assert.ok(effects[0].actions.some(action=>action.kind==='trash'&&action.requiresTrigger));
+ assert.ok(effects[0].costs.some(cost=>cost.kind==='trash'&&cost.requiresTrigger));
  assert.ok(effects[0].actions.some(action=>action.kind==='draw'&&action.amount===3));
  assert.equal(effects[1].trigger,'trigger');
  assert.ok(effects[1].actions.some(action=>action.kind==='search'&&action.trait==='Big Mom Pirates'));
@@ -101,7 +122,7 @@ test('runtime preserves cost before the ordered effect actions',()=>{
 test('Black Trash play retains color, trait, cost, rest, and self-exclusion restrictions',()=>{
  const effects=parseEffects(card('[On Play] Play up to 1 black {Thriller Bark Pirates} type Character card with a cost of 2 or less other than [Perona] from your trash rested.'))[0].actions;
  const play=effects.find((action):action is Extract<typeof action,{kind:'play'}>=>action.kind==='play');
- assert.deepEqual(play,{kind:'play',source:'trash',amount:1,maxCost:2,rested:true,trait:'Thriller Bark Pirates',color:'black',excludeName:'Perona'});
+ assert.deepEqual(play,{kind:'play',source:'trash',amount:1,maxCost:2,rested:true,cardType:'Character',trait:'Thriller Bark Pirates',color:'black',excludeName:'Perona'});
 });
 
 test('deck plays retain exact cost, color, trait, and shuffle as ordered actions',()=>{
@@ -135,7 +156,7 @@ test('Monkey.D.Luffy attaches rested DON and limits battle protection by Strike 
  const document=compileEffectDocument({...card('[DON!! x2] This Character cannot be K.O.\'d in battle by "Strike" attribute Characters. [Activate:Main] [Once Per Turn] Give this Character up to 2 rested DON!! cards.'),code:'OP01-024'});
  assert.equal(document.resolver.type,'DSL');
  const protection=document.ast.find(effect=>effect.trigger==='unknown')?.actions.find(action=>action.kind==='prevent-ko');
- assert.deepEqual(protection,{kind:'prevent-ko',scope:'own-character',by:'battle',attribute:'Strike',requiresAttachedDon:2});
+ assert.deepEqual(protection,{kind:'prevent-ko',scope:'own-character',by:'battle',attribute:'Strike',byCardType:'Character',requiresAttachedDon:2});
  assert.deepEqual(document.ast.find(effect=>effect.trigger==='activate-main')?.actions.find(action=>action.kind==='attach-don'),{kind:'attach-don',amount:2,source:'cost-area',rested:true,recipient:'self',selection:{min:0,max:2}});
 });
 
@@ -164,6 +185,23 @@ test('mixed-trait and colour searches keep their alternatives separate',()=>{
  const actions=parseEffects(card('[On Play] Look at 5 cards from the top of your deck; reveal up to 1 [Monkey.D.Luffy] or red Event and add it to your hand. Then, place the rest at the bottom of your deck in any order.'))[0].actions;
  const search=actions.find((action):action is Extract<typeof action,{kind:'search'}>=>action.kind==='search');
  assert.deepEqual(search,{kind:'search',amount:5,choose:1,destination:'deck-bottom',cardType:undefined,trait:undefined,alternatives:[{name:'Monkey.D.Luffy'},{color:'red',cardType:'Event'}]});
+});
+
+test('deck search keeps included type alternatives and each printed selection cap',()=>{
+ const included=parseEffects(card('[Main] Look at 4 cards from the top of your deck; reveal up to 1 "Cross Guild" type card or card with a type including "Baroque Works" and add it to your hand. Then, place the rest at the bottom of your deck in any order.'))[0].actions.find(action=>action.kind==='search');
+ assert.ok(included?.kind==='search');
+ assert.deepEqual(included.alternatives,[{trait:'Cross Guild'},{trait:'Baroque Works'}]);
+ const document=compileEffectDocument(card('[Main] Look at 3 cards from the top of your deck; reveal up to 1 [Monkey.D.Luffy] or up to 1 card with a type including "Whitebeard Pirates" and add it to your hand. Then, place the rest at the bottom of your deck in any order.'));
+ const search=document.ast.flatMap(ability=>ability.actions).find(action=>action.kind==='search');
+ assert.ok(search?.kind==='search');assert.equal(search.choose,2);
+ const state:MatchEffectState={turn:'player',turnEffects:[],restrictions:[],delayed:[],cards:[
+  {id:'luffy',owner:'player',zone:'deck',type:'Character',name:'Monkey.D.Luffy'},
+  {id:'luffy-2',owner:'player',zone:'deck',type:'Character',name:'Monkey.D.Luffy'},
+  {id:'whitebeard',owner:'player',zone:'deck',type:'Character',name:'Ace',traits:['Whitebeard Pirates']},
+  {id:'other',owner:'player',zone:'deck',type:'Character',name:'Other'},
+ ]};
+ const valid=applyEffectAction(state,'player',search,{cardIds:['luffy','whitebeard']});assert.equal(valid.error,undefined);assert.deepEqual(valid.state.cards.filter(item=>item.zone==='hand').map(item=>item.id).sort(),['luffy','whitebeard']);
+ const repeated=applyEffectAction(state,'player',search,{cardIds:['luffy','luffy-2']});assert.ok(repeated.error);
 });
 
 test('inline timing markers do not merge Main with Trigger',()=>{

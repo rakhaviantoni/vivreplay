@@ -19,10 +19,15 @@ export function resolveEffectTiming(document:EffectDocument,timing:EffectTrigger
  }
  const commands:EffectCommand[]=[];
  let nextAbilityId=0;
- for(const effect of windows){
+ for(const [windowIndex,effect] of windows.entries()){
   const abilityId=nextAbilityId++,conditions=effect.conditions.map(condition=>condition.text);
+  const ability=document.ast.filter(candidate=>candidate.trigger===timing)[windowIndex];
+  const rawText=ability?.rawText??'',conditionIndex=conditions.length?rawText.toLowerCase().indexOf(conditions[0].toLowerCase()):-1,costIndex=rawText.search(/\b(?:you may\s+)?(?:trash|rest|return|turn|give)\b/i);
+  // Text after a printed cost divider is the effect being paid for. Resolve
+  // the cost first, then evaluate those conditions against the post-cost state.
+  const conditionAfterCost=Boolean(ability?.costs.length&&conditionIndex>=0&&costIndex>=0&&costIndex<conditionIndex);
   for(const step of effect.sequence){
-   if(step.type==='PAY_COST'){commands.push({abilityId,conditions,kind:'pay-cost',value:step.cost});continue;}
+   if(step.type==='PAY_COST'){commands.push({abilityId,conditions:conditionAfterCost?[]:conditions,kind:'pay-cost',value:step.cost});continue;}
    const action=step.action;
    if(action.kind==='activate-main-effect'||action.kind==='activate-referenced-effect'){
     // Older stored schemas emitted both Main aliases for one printed reference.
@@ -56,21 +61,33 @@ export function executeEffectCommands(
  state:MatchEffectState,
  actor:PlayerId,
  commands:EffectCommand[],
- selections:EffectSelection[]=[]
+ selections:EffectSelection[]=[],
+ sourceCardId?:string
 ):RuntimeExecution{
  let current=state;
+ let lastPlayedCardId:string|undefined;
+ let lastTargetCardId:string|undefined;
  const conditionResults=new Map<string,boolean>();
  for(let index=0;index<commands.length;index++){
   const command=commands[index];
-  const checks=(command.conditions??[]).map(text=>{const key=`${command.abilityId??0}:${text}`;if(conditionResults.has(key))return conditionResults.get(key);const result=evaluateEffectCondition(text,current,actor);if(result!==undefined)conditionResults.set(key,result);return result;});
+  if(command.kind==='resolve-action'&&command.value.kind==='grant-keyword'&&((command.value.scope==='previous-played'&&!lastPlayedCardId)||(command.value.scope==='previous-target'&&!lastTargetCardId))){continue;}
+  const checks=(command.conditions??[]).map(text=>{const key=`${command.abilityId??0}:${text}`;if(conditionResults.has(key))return conditionResults.get(key);const result=evaluateEffectCondition(text,current,actor,sourceCardId);if(result!==undefined)conditionResults.set(key,result);return result;});
   if(checks.includes(undefined))return {state:current,nextCommand:index,error:'This effect has an unsupported condition.'};
   if(checks.includes(false))continue;
-  const selection=selections[index]??{};
+  const selfBound=command.kind==='resolve-action'&&command.value.kind==='grant-keyword'&&command.value.scope==='self';
+  const previousTargetId=command.kind==='resolve-action'&&command.value.kind==='grant-keyword'?(command.value.scope==='previous-played'?lastPlayedCardId:command.value.scope==='previous-target'?lastTargetCardId:undefined):undefined;
+  const selection={...(selections[index]??{}),...(sourceCardId?{sourceCardId,...(selfBound?{targetId:sourceCardId}:{})}:{}) ,...(previousTargetId?{targetId:previousTargetId}: {})};
   const result=command.kind==='pay-cost'
    ? payEffectCost(current,actor,command.value as EffectCost,selection)
    : applyEffectAction(current,actor,command.value as EffectAction,selection);
   if(result.error||result.requiresSelection)return {state:result.state,nextCommand:index,requiresSelection:result.requiresSelection,error:result.error};
   current=result.state;
+  if(command.kind==='resolve-action'&&['play','ready'].includes((command.value as EffectAction).kind)){
+   const input=selections[index],id=input?.cardIds?.length===1?input.cardIds[0]:input?.targetId;
+   const valid=id&&current.cards.some(card=>card.id===id&&card.zone==='character'&&card.owner===actor)?id:undefined;
+   if((command.value as EffectAction).kind==='play')lastPlayedCardId=valid;
+   lastTargetCardId=valid;
+  }
  }
  return {state:current};
 }

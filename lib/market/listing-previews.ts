@@ -2,7 +2,8 @@ import {cards,printingFor} from '@/packages/card-data/catalog';
 import type {Listing} from '@/packages/domain';
 
 const printing=(cardIndex:number)=>printingFor(cards[cardIndex].id,'EN').id;
-const ago=(hours:number)=>new Date(Date.now()-(hours*60*60*1000)).toISOString();
+const BASE_DATE=Date.parse('2026-09-29T12:00:00.000Z');
+const ago=(hours:number)=>new Date(BASE_DATE-(hours*60*60*1000)).toISOString();
 
 export const marketListingPreviews:Listing[]=[
   {id:'starter-red-core',printingId:printing(1),title:'Monkey D. Luffy SEC playset',amount:1850000,currency:'IDR',quantity:4,condition:'NM',type:'WTS',city:'Jakarta',seller:'Kaito',createdAt:ago(2),items:[{printingId:printing(1),quantity:4,condition:'NM',unitAmount:462500}]},

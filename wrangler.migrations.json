@@ -26,12 +26,18 @@
     "producers": [],
     "consumers": []
   },
-  "r2_buckets": [],
+  "r2_buckets": [
+    {
+      "binding": "CARD_IMAGES",
+      "bucket_name": "tcg-card-images"
+    }
+  ],
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "site-creator-d1",
-      "database_id": "86245ee8-4a6e-450d-a4ed-dc6d843aa079"
+      "database_id": "86245ee8-4a6e-450d-a4ed-dc6d843aa079",
+      "migrations_dir": "drizzle"
     }
   ],
   "vectorize": [],
@@ -87,6 +93,5 @@
   "mtls_certificates": [],
   "pipelines": [],
   "vpc_services": [],
-  "vpc_networks": [],
-  "migrations_dir": "drizzle"
+  "vpc_networks": []
 }

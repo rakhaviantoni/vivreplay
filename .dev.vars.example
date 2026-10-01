@@ -1,0 +1,2 @@
+# Local Cloudflare Worker secrets. Copy to .dev.vars and set a private value.
+ADMIN_PASSWORD=

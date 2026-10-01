@@ -1,11 +1,11 @@
 import type {EffectDocument} from '../packages/domain/effect-rules';
-import {declareAttack,resolveBattle,type MatchEffectState} from '../packages/domain/match-effect-state';
+import {declareAttack,declareBlock,resolveBattle,type MatchEffectState} from '../packages/domain/match-effect-state';
 export type KeywordScenario={name:string;run:(document:EffectDocument)=>void};
 const check=(condition:unknown,message:string)=>{if(!condition)throw new Error(message);};
 
 // Only a leading printed keyword is unconditional. Later gained keywords need their own condition/activation scenarios.
 export function keywordScenarios(text:string):KeywordScenario[]{
- const match=text.trim().match(/^\[(Rush|Double Attack|Banish)\](?:\s*\([^)]*\))?(?=\s*(?:\[|$))/i);
+ const match=text.trim().match(/^\[(Blocker|Rush|Double Attack|Banish)\](?:\s*\([^)]*\))?(?=\s*(?:\[|$))/i);
  if(!match)return [];
  const keyword=match[1].toLowerCase().replace(' ','-');
  const state=(document:EffectDocument):MatchEffectState=>({turn:'player',turnNumber:2,firstPlayer:'player',playedThisTurn:['source'],turnEffects:[],restrictions:[],delayed:[],cards:[
@@ -14,6 +14,18 @@ export function keywordScenarios(text:string):KeywordScenario[]{
   {id:'character',owner:'opponent',zone:'character',type:'Character',power:5000,rested:true},
   ...Array.from({length:3},(_,i)=>({id:`life${i}`,owner:'opponent' as const,zone:'life' as const,type:'Character' as const,keywords:['trigger']})),
  ]});
+ if(keyword==='blocker')return [...['active','rested','wrong-owner','hand','negated'].map(choice=>({name:`keyword Blocker: ${choice}`,run(document:EffectDocument){
+  const board=state(document);board.cards.push({id:'blocker',owner:choice==='wrong-owner'?'player':'opponent',zone:choice==='hand'?'hand':'character',type:'Character',rested:choice==='rested',effectNegated:choice==='negated',effectSchema:document});
+  const result=declareBlock(board,'opponent','blocker');
+  if(choice==='active'){check(!result.error,'Active printed Blocker rejected');check(result.state.cards.find(card=>card.id==='blocker')?.rested,'Blocker did not rest');}
+  else {check(result.error,`Illegal Blocker accepted (${choice})`);check(result.state===board,'Rejected block mutated state');}
+ }})),{name:'keyword Blocker: schema isolation',run(document:EffectDocument){
+  const keywordAbilities=document.ast.filter(ability=>ability.actions.some(action=>action.kind==='blocker'));
+  check(keywordAbilities.length===1&&/^\[Blocker\](?:\s*\([^)]*\))?\s*$/i.test(keywordAbilities[0].rawText.trim()),'Printed Blocker must be isolated from the card’s other ability text');
+  const timing=keywordAbilities[0].trigger,window=document.normalized.find(effect=>effect.timing===timing);
+  check(Boolean(window?.sequence.some(step=>step.type==='RESOLVE'&&step.action.kind==='blocker')),'Isolated Blocker timing has no runtime action');
+  check(document.normalized.filter(effect=>effect.timing!==timing).every(effect=>effect.sequence.every(step=>step.type!=='RESOLVE'||step.action.kind!=='blocker')),'Blocker leaked into another timing window');
+ }}];
  if(keyword==='rush')return ['new-character','rested','first-turn','negated','wrong-turn','active-target'].map(choice=>({name:`keyword Rush: ${choice}`,run(document){
   const board=state(document);
   if(choice==='rested')board.cards[0].rested=true;

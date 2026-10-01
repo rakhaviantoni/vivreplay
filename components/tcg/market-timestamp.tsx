@@ -29,8 +29,17 @@ function relative(value:string,locale:string){
 
 export function MarketTimestamp({value,prefix=''}:{value?:string;prefix?:string}){
   const [locale,setLocale]=useState('en');
+  const [mounted,setMounted]=useState(false);
   const [,tick]=useState(0);
-  useEffect(()=>{const sync=()=>setLocale(window.localStorage.getItem('vivreplay-locale')==='ID'?'id':'en');sync();window.addEventListener('vivreplay:locale',sync);const timer=window.setInterval(()=>tick(value=>value+1),60_000);return()=>{window.removeEventListener('vivreplay:locale',sync);window.clearInterval(timer)};},[]);
+  useEffect(()=>{
+    setMounted(true);
+    const sync=()=>setLocale(window.localStorage.getItem('vivreplay-locale')==='ID'?'id':'en');
+    sync();
+    window.addEventListener('vivreplay:locale',sync);
+    const timer=window.setInterval(()=>tick(value=>value+1),60_000);
+    return()=>{window.removeEventListener('vivreplay:locale',sync);window.clearInterval(timer)};
+  },[]);
   if(!value)return null;
-  return <time dateTime={value} title={new Intl.DateTimeFormat(locale,{dateStyle:'medium',timeStyle:'short'}).format(new Date(value))}>{prefix}{relative(value,locale)}</time>;
+  const formattedTitle=mounted?new Intl.DateTimeFormat(locale,{dateStyle:'medium',timeStyle:'short'}).format(new Date(value)):undefined;
+  return <time dateTime={value} title={formattedTitle} suppressHydrationWarning>{prefix}{mounted?relative(value,locale):relative(value,'en')}</time>;
 }

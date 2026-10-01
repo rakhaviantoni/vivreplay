@@ -39,6 +39,9 @@
 
   .library-controls,
   .filter-workbench { gap: 10px !important; }
+  .library-controls { grid-template-columns: minmax(0, 1fr) !important; padding: 12px !important; }
+  .filter-workbench { display: grid !important; grid-template-columns: minmax(0, 1fr) !important; min-width: 0; }
+  .filter-primary { display: flex !important; flex-wrap: wrap; min-width: 0; }
   .filter-primary,
   .filter-secondary,
   .select-row { width: 100% !important; min-width: 0; }
@@ -76,6 +79,8 @@
   .viewer-stats { margin-inline: calc(-1 * var(--mobile-gutter)); padding-inline: var(--mobile-gutter); scroll-padding-inline: var(--mobile-gutter); }
   .live-stats > div,
   .viewer-stats > div { min-width: 90px !important; }
+  .viewer-stats { display: flex !important; max-width: calc(100% + (2 * var(--mobile-gutter))); overflow-x: auto; overscroll-behavior-inline: contain; gap: 14px !important; }
+  .viewer-stats > div { flex: 0 0 auto; }
   .printing-switch { align-items: flex-start; flex-direction: column; gap: 8px; }
 
   .deck-builder-hero { padding-block: 30px !important; }
@@ -102,6 +107,15 @@
   .vault-wishlist-grid,
   .vault-sets-overview,
   .vault-portfolio-charts-grid { grid-template-columns: 1fr !important; }
+  .printing-option { width: 78px !important; min-width: 0; }
+  .printing-strip .printing-choice { width: 74px !important; }
+  .printing-vault-stepper { gap: 3px !important; min-width: 0; }
+  .printing-vault-stepper > b { min-width: 16px !important; }
+  .printing-vault-stepper button { width: 28px !important; min-width: 28px !important; min-height: 28px !important; max-width: 28px; height: 28px !important; padding: 0 !important; }
+  .printing-vault-add { width: 100% !important; min-height: 28px !important; height: 28px !important; max-width: none !important; justify-content: center; padding-inline: 6px !important; border-radius: 999px !important; font-size: 9px !important; }
+  .printing-vault-loading { width: 100%; height: 28px; }
+  .printing-vault-add { width: 100% !important; min-height: 28px !important; height: 28px !important; max-width: none !important; justify-content: center; padding-inline: 6px !important; border-radius: 999px !important; font-size: 9px !important; }
+  .printing-vault-loading { width: 100%; height: 28px; }
 
   .market-store-promo { min-height: 30px; padding-inline: var(--mobile-gutter); font-size: 11px; text-align: center; }
   .market-store-nav { position: sticky; top: 0; z-index: 60; display: flex !important; align-items: center !important; gap: 8px !important; padding: 8px var(--mobile-gutter) !important; width: 100% !important; }
@@ -111,7 +125,7 @@
   .market-store-link,
   .market-store-locale { display: none !important; }
   .market-back-link { display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 38px !important; height: 38px !important; min-width: 38px !important; border-radius: 999px !important; border: 1px solid var(--line) !important; background: var(--surface-raised) !important; padding: 0 !important; }
-  .market-store-theme { display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 38px !important; height: 38px !important; min-width: 38px !important; border-radius: 999px !important; padding: 0 !important; }
+  .market-store-theme { display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 36px !important; height: 36px !important; min-width: 36px !important; min-height: 36px !important; border-radius: 50% !important; padding: 0 !important; }
   .market-store-search { display: flex !important; flex: 1 1 auto !important; height: 38px !important; min-width: 0 !important; max-width: none !important; margin: 0 !important; }
   .market-store-search input { font-size: 13px !important; }
 

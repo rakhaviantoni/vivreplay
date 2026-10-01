@@ -3,7 +3,6 @@ import {useEffect, useMemo, useState} from 'react';
 import Link from 'next/link';
 import {useRouter, useSearchParams} from 'next/navigation';
 import {
-  UserIcon as UserRound,
   GlobeIcon as Globe,
   ShieldCheckIcon as ShieldCheck,
   FloppyDiskIcon as Save,
@@ -16,12 +15,22 @@ import {
   ArrowSquareOutIcon as ArrowSquareOut,
   CheckCircleIcon as CheckCircle,
   GearIcon as Gear,
+  MagnifyingGlassIcon as Search,
+  XIcon as XMark,
+  MapPinIcon as MapPin,
 } from '@phosphor-icons/react';
 import {toast} from 'sonner';
 import {api, useAccount, type AccountState} from '@/lib/client';
 import {authClient} from '@/lib/auth-client';
 import {Picker} from './catalog';
 import {AccountStatus} from './status';
+import {MapPicker} from './map-picker';
+import {IntroCardRail} from './intro-card-rail';
+import {
+  searchIndonesianAreas,
+  type AreaSearchResult,
+  INDONESIAN_REGIONS,
+} from '@/lib/indonesia-areas';
 
 type ShippingOrigin = {
   ownerId: string;
@@ -32,9 +41,24 @@ type ShippingOrigin = {
   city: string;
   postalCode: string;
   areaId: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   shippingMethods?: string[];
+  regionNames?:{province?:string;city?:string;district?:string;subdistrict?:string};
   updatedAt: string | null;
 };
+type RegionOption={id:string;name:string;postalCode?:string|null;latitude?:number|null;longitude?:number|null};
+type GeocodeResult={label:string;latitude:number;longitude:number;postalCode:string;district:string;subdistrict:string;city:string;province:string;type:string};
+
+function normalizeRegionName(value:string){
+  return value.toLocaleLowerCase('id').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/^(provinsi|province|kota administrasi|kabupaten administrasi|kabupaten|kota|kab\.?|kec\.?|kecamatan)\s+/,'').replace(/[^a-z0-9]+/g,' ').trim();
+}
+function matchRegion(options:RegionOption[],name:string){
+  const query=normalizeRegionName(name);
+  if(!query)return undefined;
+  return options.find(option=>normalizeRegionName(option.name)===query)
+    ?? options.find(option=>{const candidate=normalizeRegionName(option.name);return candidate.startsWith(query)||query.startsWith(candidate)});
+}
 
 const COMMON_REGIONS = [
   { value: 'ID', label: 'Indonesia (ID)' },
@@ -66,6 +90,151 @@ const COMMON_TIMEZONES = [
   { value: 'UTC', label: 'UTC (Coordinated Universal Time)' },
 ];
 
+export interface BiteshipCourierOption {
+  id: string;
+  name: string;
+  badge: { en: string; id: string };
+  desc: { en: string; id: string };
+  category: 'instant' | 'regular';
+}
+
+export const BITESHIP_COURIERS: BiteshipCourierOption[] = [
+  // Instant / Same Day
+  {
+    id: 'grab',
+    name: 'GrabExpress',
+    badge: { en: 'Instant / Same Day · Up to 40 km', id: 'Instan / Same Day · Maks 40 km' },
+    desc: {
+      en: 'Direct on-demand bike delivery for local orders within 40 km radius.',
+      id: 'Pengiriman instan sepeda motor untuk pesanan lokal radius hingga 40 km.',
+    },
+    category: 'instant',
+  },
+  {
+    id: 'gojek',
+    name: 'GoSend (Gojek)',
+    badge: { en: 'Instant / Same Day · Up to 40 km', id: 'Instan / Same Day · Maks 40 km' },
+    desc: {
+      en: 'Reliable on-demand door-to-door courier service across metropolitan areas.',
+      id: 'Layanan kurir on-demand pintu-ke-pintu terpercaya di area metropolitan.',
+    },
+    category: 'instant',
+  },
+  // Regular / Express / Nationwide
+  {
+    id: 'jnt',
+    name: 'J&T Express',
+    badge: { en: 'Nationwide · Drop-off / Pick-up', id: 'Seluruh Indonesia · Drop-off / Pick-up' },
+    desc: {
+      en: 'Fast nationwide parcel delivery with 365 days pickup and drop point service.',
+      id: 'Pengiriman paket cepat ke seluruh Indonesia tanpa hari libur dengan layanan pick-up & drop point.',
+    },
+    category: 'regular',
+  },
+  {
+    id: 'jne',
+    name: 'JNE Express',
+    badge: { en: 'Nationwide · REG / YES', id: 'Seluruh Indonesia · REG / YES' },
+    desc: {
+      en: 'Most extensive shipping network in Indonesia with dependable tracking.',
+      id: 'Jaringan kurir terluas di Indonesia dengan pelacakan paket akurat.',
+    },
+    category: 'regular',
+  },
+  {
+    id: 'sicepat',
+    name: 'SiCepat Ekspres',
+    badge: { en: 'Nationwide · Best / Reguler', id: 'Seluruh Indonesia · Best / Reguler' },
+    desc: {
+      en: 'High-speed eCommerce logistics with fast transit times.',
+      id: 'Logistik cepat untuk transaksi jual-beli kartu dengan durasi pengiriman singkat.',
+    },
+    category: 'regular',
+  },
+  {
+    id: 'anteraja',
+    name: 'Anteraja',
+    badge: { en: 'Nationwide · Reguler / Next Day', id: 'Seluruh Indonesia · Reguler / Next Day' },
+    desc: {
+      en: 'Modern app-tracked courier service with scheduled doorstep pickup.',
+      id: 'Layanan kurir modern dengan penjemputan paket terjadwal di alamat Anda.',
+    },
+    category: 'regular',
+  },
+  {
+    id: 'tiki',
+    name: 'TIKI',
+    badge: { en: 'Nationwide · ONS / TDS / REG', id: 'Seluruh Indonesia · ONS / TDS / REG' },
+    desc: {
+      en: 'Established courier service with flexible delivery speed options.',
+      id: 'Penyedia jasa pengiriman berpengalaman dengan opsi layanan reguler dan kilat.',
+    },
+    category: 'regular',
+  },
+  {
+    id: 'pos',
+    name: 'Pos Indonesia',
+    badge: { en: 'All 38 Provinces · Pos Reguler', id: 'Seluruh 38 Provinsi · Pos Reguler' },
+    desc: {
+      en: 'Complete coverage reaching all districts and sub-districts throughout Indonesia.',
+      id: 'Jangkauan terlengkap hingga ke kecamatan dan pelosok seluruh Indonesia.',
+    },
+    category: 'regular',
+  },
+  {
+    id: 'lion',
+    name: 'Lion Parcel',
+    badge: { en: 'Air Cargo · REGPACK / ONEPACK', id: 'Kargo Udara · REGPACK / ONEPACK' },
+    desc: {
+      en: 'Air cargo-backed delivery connecting islands and remote regions rapidly.',
+      id: 'Didukung armada kargo udara untuk pengiriman antarpulau yang efisien.',
+    },
+    category: 'regular',
+  },
+  {
+    id: 'ninja',
+    name: 'Ninja Xpress',
+    badge: { en: 'Nationwide · Standard / COD', id: 'Seluruh Indonesia · Standard / COD' },
+    desc: {
+      en: 'Tech-enabled parcel delivery with high fulfillment success rates.',
+      id: 'Pengiriman paket berbasis teknologi dengan tingkat keberhasilan antar tinggi.',
+    },
+    category: 'regular',
+  },
+  {
+    id: 'wahana',
+    name: 'Wahana Express',
+    badge: { en: 'Economical · Express', id: 'Ekonomis · Express' },
+    desc: {
+      en: 'Cost-effective logistics solution for lightweight trading card shipments.',
+      id: 'Solusi logistik hemat biaya untuk pengiriman paket kartu koleksi.',
+    },
+    category: 'regular',
+  },
+];
+
+const POPULAR_COURIER_SELECTION = ['jnt', 'jne', 'sicepat', 'grab', 'gojek'];
+
+function normalizeCourierMethods(rawMethods?: string[]): string[] {
+  if (!rawMethods || rawMethods.length === 0) {
+    return [];
+  }
+  const result: string[] = [];
+  for (const m of rawMethods) {
+    if (m === 'instant') {
+      if (!result.includes('grab')) result.push('grab');
+      if (!result.includes('gojek')) result.push('gojek');
+    } else if (m === 'regular') {
+      if (!result.includes('jnt')) result.push('jnt');
+      if (!result.includes('jne')) result.push('jne');
+      if (!result.includes('sicepat')) result.push('sicepat');
+    } else if (BITESHIP_COURIERS.some(c => c.id === m)) {
+      if (!result.includes(m)) result.push(m);
+    }
+  }
+  return result;
+}
+
 export function Profile(){
   const {data,error,refresh}=useAccount();
   if(error)return <main className="page"><AccountStatus error={error} retry={refresh}/></main>;
@@ -82,6 +251,7 @@ function ProfileSkeleton(){
           <h1>Player profile & settings.</h1>
           <p>Manage your collector identity, display preferences, and shipping address.</p>
         </div>
+        <IntroCardRail/>
       </section>
 
       <div className="profile-layout">
@@ -199,10 +369,33 @@ function ProfileForm({
   const [shippingRecipient, setShippingRecipient] = useState('');
   const [shippingPhone, setShippingPhone] = useState('');
   const [shippingAddress, setShippingAddress] = useState('');
+  const [shippingProvince, setShippingProvince] = useState('');
   const [shippingCity, setShippingCity] = useState('');
+  const [shippingDistrict, setShippingDistrict] = useState('');
+  const [shippingSubdistrict, setShippingSubdistrict] = useState('');
   const [shippingPostalCode, setShippingPostalCode] = useState('');
-  const [shippingMethods, setShippingMethods] = useState<string[]>(['instant', 'regular']);
+  const [shippingAreaId, setShippingAreaId] = useState<string | null>(null);
+  const [shippingLatitude, setShippingLatitude] = useState<number | null>(null);
+  const [shippingLongitude, setShippingLongitude] = useState<number | null>(null);
+  const [shippingMethods, setShippingMethods] = useState<string[]>([]);
   const [savingShipping, setSavingShipping] = useState(false);
+  const [provinces,setProvinces]=useState<RegionOption[]>([]);
+  const [regionsLoading,setRegionsLoading]=useState(true);
+  const [regionsError,setRegionsError]=useState(false);
+  const [cities,setCities]=useState<RegionOption[]>([]);
+  const [districts,setDistricts]=useState<RegionOption[]>([]);
+  const [subdistricts,setSubdistricts]=useState<RegionOption[]>([]);
+  const [geocodeResults,setGeocodeResults]=useState<GeocodeResult[]>([]);
+  const [searchingAddress,setSearchingAddress]=useState(false);
+  const [showAddressDropdown,setShowAddressDropdown]=useState(false);
+  const [activeAddressResult,setActiveAddressResult]=useState(0);
+  const [mapFocusRevision,setMapFocusRevision]=useState(0);
+
+  // Fast area search state
+  const [areaSearchQuery, setAreaSearchQuery] = useState('');
+  const [areaSearchResults, setAreaSearchResults] = useState<AreaSearchResult[]>([]);
+  const [searchingArea, setSearchingArea] = useState(false);
+  const [showAreaDropdown, setShowAreaDropdown] = useState(false);
 
   useEffect(()=>{
     const sync=()=>setLanguage(window.localStorage.getItem('vivreplay-locale')==='ID'?'ID':'EN');
@@ -213,6 +406,119 @@ function ProfileForm({
   },[]);
 
   const t=(en:string,idStr:string)=>language==='ID'?idStr:en;
+
+  const loadProvinces=async()=>{
+    setRegionsLoading(true);setRegionsError(false);
+    try{
+      const response=await fetch('/api/shipping/regions?level=provinces');
+      const data=await response.json() as {items?:RegionOption[]};
+      if(!response.ok||!Array.isArray(data.items)||data.items.length===0)throw new Error('Province data unavailable');
+      setProvinces(data.items);
+    }catch{setProvinces([]);setRegionsError(true)}finally{setRegionsLoading(false)}
+  };
+  useEffect(()=>{void loadProvinces()},[]);
+
+  useEffect(()=>{
+    if(!shippingProvince)return;
+      const selected=matchRegion(provinces,shippingProvince);
+    if(!selected)return;
+    let active=true;fetch(`/api/shipping/regions?level=regencies&parent=${selected.id}`).then(async response=>response.ok?await response.json() as {items?:RegionOption[]}:null).then(data=>{if(active&&Array.isArray(data?.items))setCities(data.items)}).catch(()=>{});return()=>{active=false};
+  },[shippingProvince,provinces]);
+  useEffect(()=>{
+    if(!shippingCity)return;
+    const selected=matchRegion(cities,shippingCity);
+    if(!selected)return;
+    let active=true;fetch(`/api/shipping/regions?level=districts&parent=${selected.id}`).then(async response=>response.ok?await response.json() as {items?:RegionOption[]}:null).then(data=>{if(active&&Array.isArray(data?.items))setDistricts(data.items)}).catch(()=>{});return()=>{active=false};
+  },[shippingCity,cities]);
+  useEffect(()=>{
+    if(!shippingDistrict)return;
+    const selected=matchRegion(districts,shippingDistrict);
+    if(!selected)return;
+    let active=true;fetch(`/api/shipping/regions?level=villages&parent=${selected.id}`).then(async response=>response.ok?await response.json() as {items?:RegionOption[]}:null).then(data=>{if(active&&Array.isArray(data?.items))setSubdistricts(data.items)}).catch(()=>{});return()=>{active=false};
+  },[shippingDistrict,districts]);
+
+  useEffect(()=>{
+    const query=shippingAddress.trim();
+    if(query.length<4||!showAddressDropdown)return;
+    let active=true;
+    const timer=window.setTimeout(async()=>{
+      try{const params=new URLSearchParams({q:query,lang:language.toLowerCase()});if(shippingLatitude!=null)params.set('lat',String(shippingLatitude));if(shippingLongitude!=null)params.set('lon',String(shippingLongitude));const response=await fetch(`/api/shipping/geocode?${params}`);const data=await response.json() as {results?:GeocodeResult[]};if(active){setGeocodeResults(response.ok?(data.results??[]):[]);setActiveAddressResult(0)}}catch{if(active)setGeocodeResults([])}finally{if(active)setSearchingAddress(false)}
+    },500);
+    return()=>{active=false;clearTimeout(timer)};
+  },[shippingAddress,showAddressDropdown,shippingLatitude,shippingLongitude,language]);
+
+  const selectAddress=async(result:GeocodeResult)=>{
+    const typed=shippingAddress.trim();
+    const locality=[result.subdistrict,result.district,result.city,result.province,result.postalCode].filter(Boolean);
+    const additions=locality.filter(part=>!typed.toLowerCase().includes(part.toLowerCase()));
+    setShippingAddress([typed,...additions].join(', ').slice(0,260));
+    if(result.postalCode)setShippingPostalCode(result.postalCode);
+    setCities([]);setDistricts([]);setSubdistricts([]);
+    setShippingAreaId(null);
+    setShippingLatitude(result.latitude);setShippingLongitude(result.longitude);setMapFocusRevision(value=>value+1);
+    setShowAddressDropdown(false);setGeocodeResults([]);
+
+    const loadRegions=async(level:'regencies'|'districts'|'villages',parent:RegionOption)=>{
+      const response=await fetch(`/api/shipping/regions?level=${level}&parent=${encodeURIComponent(parent.id)}`);
+      if(!response.ok)return [] as RegionOption[];
+      const payload=await response.json() as {items?:RegionOption[]};
+      return payload.items??[];
+    };
+    const province=matchRegion(provinces,result.province);
+    try{
+      if(province){
+        setShippingProvince(province.name);
+        const cityOptions=await loadRegions('regencies',province);
+        setCities(cityOptions);
+        const city=matchRegion(cityOptions,result.city);
+        if(city){
+          setShippingCity(city.name);
+          const districtOptions=await loadRegions('districts',city);
+          setDistricts(districtOptions);
+          const district=matchRegion(districtOptions,result.district);
+          if(district){
+            setShippingDistrict(district.name);
+            const villageOptions=await loadRegions('villages',district);
+            setSubdistricts(villageOptions);
+            const village=matchRegion(villageOptions,result.subdistrict);
+            if(village)setShippingSubdistrict(village.name);
+          }
+        }
+      }
+    }catch{
+      // Use the geocoder labels; the administrative selectors can still be adjusted manually.
+      if(result.province)setShippingProvince(result.province);
+      if(result.city)setShippingCity(result.city);
+      if(result.district)setShippingDistrict(result.district);
+      if(result.subdistrict)setShippingSubdistrict(result.subdistrict);
+    }
+    if(!province){
+      if(result.province)setShippingProvince(result.province);
+      if(result.city)setShippingCity(result.city);
+      if(result.district)setShippingDistrict(result.district);
+      if(result.subdistrict)setShippingSubdistrict(result.subdistrict);
+    }
+
+    const areaQuery=result.subdistrict||result.district||result.city;
+    if(areaQuery){
+      try{
+        const response=await fetch(`/api/shipping/areas?query=${encodeURIComponent(areaQuery)}`);
+        const payload=await response.json() as {areas?:AreaSearchResult[]};
+        const areas=payload.areas??[];
+        const target=normalizeRegionName(result.subdistrict||'');
+        const area=areas.find(candidate=>target&&normalizeRegionName(candidate.subdistrict)===target)
+          ??areas.find(candidate=>normalizeRegionName(candidate.district)===normalizeRegionName(result.district)&&normalizeRegionName(candidate.city)===normalizeRegionName(result.city));
+        if(area){
+          setShippingAreaId(area.source==='biteship'?area.id:null);
+          setShippingProvince(area.province||province?.name||result.province);
+          setShippingCity(area.city||result.city);
+          setShippingDistrict(area.district||result.district);
+          setShippingSubdistrict(area.subdistrict||result.subdistrict);
+          setShippingPostalCode(area.postalCode||result.postalCode);
+        }
+      }catch{/* The searchable administrative selectors remain available as a fallback. */}
+    }
+  };
 
   const toggleShippingMethod = (methodId: string) => {
     setShippingMethods(prev => {
@@ -237,15 +543,119 @@ function ProfileForm({
         setShippingRecipient(res.origin.recipientName||'');
         setShippingPhone(res.origin.phone||'');
         setShippingAddress(res.origin.addressLine||'');
-        setShippingCity(res.origin.city||'');
+        const c = res.origin.city||'';
+        setShippingCity(res.origin.regionNames?.city||c);
+        if(res.origin.regionNames?.province)setShippingProvince(res.origin.regionNames.province);
+        if(res.origin.regionNames?.district)setShippingDistrict(res.origin.regionNames.district);
+        if(res.origin.regionNames?.subdistrict)setShippingSubdistrict(res.origin.regionNames.subdistrict);
         setShippingPostalCode(res.origin.postalCode||'');
-        if(Array.isArray(res.origin.shippingMethods)&&res.origin.shippingMethods.length>0){
-          setShippingMethods(res.origin.shippingMethods);
+        if (typeof res.origin.latitude === 'number') setShippingLatitude(res.origin.latitude);
+        if (typeof res.origin.longitude === 'number') setShippingLongitude(res.origin.longitude);
+        if (res.origin.areaId) setShippingAreaId(res.origin.areaId);
+
+        // Infer province and district if city matches known regions
+        if (c&&!res.origin.regionNames?.province) {
+          for (const prov of INDONESIAN_REGIONS) {
+            const foundCity = prov.cities.find(ct => ct.name.toLowerCase() === c.toLowerCase());
+            if (foundCity) {
+              setShippingProvince(prov.name);
+              break;
+            }
+          }
+        }
+        if(Array.isArray(res.origin.shippingMethods)){
+          setShippingMethods(normalizeCourierMethods(res.origin.shippingMethods));
         }
       })
       .catch(()=>{/* no-op */});
     return()=>{active=false};
   },[]);
+
+  // Fast area search effect
+  useEffect(() => {
+    const q = areaSearchQuery.trim();
+    if (q.length < 2) return;
+    let active = true;
+    setSearchingArea(true);
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/shipping/areas?query=${encodeURIComponent(q)}`);
+        if (res.ok) {
+          const data = (await res.json()) as { areas?: AreaSearchResult[] };
+          if (active) setAreaSearchResults(Array.isArray(data.areas) ? data.areas : []);
+        } else if(active) setAreaSearchResults([]);
+      } catch {
+        if(active)setAreaSearchResults(searchIndonesianAreas(q));
+      } finally {
+        if(active)setSearchingArea(false);
+      }
+    }, 200);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [areaSearchQuery]);
+
+  const handleSelectArea = (item: AreaSearchResult) => {
+    setShippingProvince(item.province);
+    setShippingCity(item.city);
+    setShippingDistrict(item.district);
+    setShippingSubdistrict(item.subdistrict);
+    setCities([]);setDistricts([]);setSubdistricts([]);
+    if (item.postalCode) setShippingPostalCode(item.postalCode);
+    setShippingAreaId(item.source==='biteship'?item.id:null);
+    if (item.latitude && item.longitude) {
+      setShippingLatitude(item.latitude);
+      setShippingLongitude(item.longitude);
+    }
+    setShowAreaDropdown(false);
+    setAreaSearchQuery('');
+    toast.success(
+      language === 'ID'
+        ? `Wilayah dipilih: ${item.subdistrict}, ${item.district}, ${item.city}`
+        : `Selected area: ${item.subdistrict}, ${item.district}, ${item.city}`
+    );
+  };
+
+  const handleProvinceChange = (prov: string) => {
+    setShippingProvince(prov);
+    setShippingCity('');
+    setShippingDistrict('');
+    setShippingSubdistrict('');
+    setCities([]);setDistricts([]);setSubdistricts([]);
+    setShippingAreaId(null);
+    const selected=provinces.find(item=>item.name===prov);
+    if(selected?.latitude!=null&&selected.longitude!=null){setShippingLatitude(selected.latitude);setShippingLongitude(selected.longitude);}
+  };
+
+  const handleCityChange = (c: string) => {
+    setShippingCity(c);
+    setShippingDistrict('');
+    setShippingSubdistrict('');
+    setDistricts([]);setSubdistricts([]);
+    setShippingAreaId(null);
+    const selected=cities.find(item=>item.name===c);
+    if(selected?.latitude!=null&&selected.longitude!=null){setShippingLatitude(selected.latitude);setShippingLongitude(selected.longitude);}
+  };
+
+  const handleDistrictChange = (d: string) => {
+    setShippingDistrict(d);
+    setShippingSubdistrict('');
+    setSubdistricts([]);
+    setShippingAreaId(null);
+    const selected=districts.find(item=>item.name===d);
+    if(selected?.postalCode)setShippingPostalCode(selected.postalCode);
+    if(selected?.latitude!=null&&selected.longitude!=null){setShippingLatitude(selected.latitude);setShippingLongitude(selected.longitude);}
+  };
+
+  const handleSubdistrictChange = (s: string) => {
+    setShippingSubdistrict(s);
+    setShippingAreaId(null);
+    const selected=subdistricts.find(item=>item.name===s);
+    if(selected?.postalCode)setShippingPostalCode(selected.postalCode);
+    if(selected?.latitude!=null&&selected.longitude!=null){setShippingLatitude(selected.latitude);setShippingLongitude(selected.longitude);}
+  };
 
   const handleLocaleChange=(newLocale:string)=>{
     setLocale(newLocale);
@@ -313,15 +723,30 @@ function ProfileForm({
 
   const saveShipping = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const activeCourierIds = shippingMethods.filter(id => BITESHIP_COURIERS.some(c => c.id === id));
+    if (activeCourierIds.length === 0) {
+      toast.error(t('Please select at least one courier or shipping method.', 'Pilih minimal satu kurir atau metode pengiriman.'));
+      return;
+    }
     setSavingShipping(true);
     try{
+      const payloadMethods = [...activeCourierIds];
+      const hasInstant = BITESHIP_COURIERS.filter(c => c.category === 'instant').some(c => activeCourierIds.includes(c.id));
+      const hasRegular = BITESHIP_COURIERS.filter(c => c.category === 'regular').some(c => activeCourierIds.includes(c.id));
+      if (hasInstant && !payloadMethods.includes('instant')) payloadMethods.push('instant');
+      if (hasRegular && !payloadMethods.includes('regular')) payloadMethods.push('regular');
+
       const res = await api<{ok: boolean; shippingMethods?: string[]; error?: string}>('/api/shipping/origin', {
         recipientName: shippingRecipient.trim(),
         phone: shippingPhone.trim(),
         addressLine: shippingAddress.trim(),
         city: shippingCity.trim(),
         postalCode: shippingPostalCode.trim(),
-        shippingMethods,
+        areaId: shippingAreaId || null,
+        latitude: shippingLatitude,
+        longitude: shippingLongitude,
+        shippingMethods: payloadMethods,
+        regions:{province:shippingProvince,city:shippingCity,district:shippingDistrict,subdistrict:shippingSubdistrict},
         label: 'Primary origin',
       }, 'POST');
       if (res.ok) {
@@ -332,9 +757,12 @@ function ProfileForm({
           phone: shippingPhone.trim(),
           addressLine: shippingAddress.trim(),
           city: shippingCity.trim(),
+          regionNames:{province:shippingProvince,city:shippingCity,district:shippingDistrict,subdistrict:shippingSubdistrict},
           postalCode: shippingPostalCode.trim(),
-          shippingMethods,
-          areaId: null,
+          shippingMethods: activeCourierIds,
+          areaId: shippingAreaId || null,
+          latitude: shippingLatitude,
+          longitude: shippingLongitude,
           updatedAt: new Date().toISOString(),
         });
         toast.success(t('Shipping settings saved successfully!','Alamat & metode pengiriman berhasil disimpan!'));
@@ -353,6 +781,7 @@ function ProfileForm({
         <h1>{t('Player profile & settings.','Profil pemain & pengaturan.')}</h1>
         <p>{t('Manage your collector identity, display preferences, and shipping address.','Atur identitas kolektor, preferensi tampilan, dan alamat pengiriman Anda.')}</p>
       </div>
+      <IntroCardRail/>
     </section>
 
     <div className="profile-layout">
@@ -407,6 +836,7 @@ function ProfileForm({
         </div>
 
         <div className="profile-card-actions">
+          {String(profile.tier??'free').toLowerCase()!=='pro'&&<Link className="button profile-pro-link" href="/checkout/pro">{t('Explore Pro','Lihat Pro')}</Link>}
           <Link className="button secondary profile-public-btn" href={`/players/${profile.username}`}>
             <ArrowSquareOut size={16}/>
             {t('View public profile','Lihat profil publik')}
@@ -575,30 +1005,141 @@ function ProfileForm({
               </label>
             </div>
 
-            <label>
-              {t('Street address / Landmark','Alamat lengkap / Patokan')}
-              <input
-                name="addressLine"
-                value={shippingAddress}
-                onChange={e => setShippingAddress(e.target.value)}
-                placeholder={t('Jl. Sudirman No. 12, RT 01 / RW 02','Jl. Sudirman No. 12, RT 01 / RW 02')}
-                maxLength={260}
-                required
-              />
-            </label>
+            {/* Fast Administrative Area Search */}
+            <div className="shipping-area-search-container">
+              <label>
+                {t('Administrative Area Lookup (Kelurahan / Kecamatan / Kota)','Pencarian Cepat Wilayah (Kelurahan / Kecamatan / Kota)')}
+              </label>
+              <div className="shipping-area-search-bar">
+                <Search size={16} className="shipping-area-search-icon" />
+                <input
+                  type="text"
+                  className="shipping-area-search-input"
+                  value={areaSearchQuery}
+                  onChange={e => {
+                    const value=e.target.value;
+                    setAreaSearchQuery(value);
+                    setAreaSearchResults([]);
+                    setSearchingArea(value.trim().length>=2);
+                    setShowAreaDropdown(true);
+                  }}
+                  onFocus={() => {
+                    if (areaSearchResults.length > 0) setShowAreaDropdown(true);
+                  }}
+                  placeholder={t(
+                    'Search village, district, or city (e.g. Senayan, Dago, Kebayoran Baru)...',
+                    'Ketik nama kelurahan, kecamatan, atau kota (contoh: Senayan, Dago, Kebayoran Baru)...'
+                  )}
+                  aria-label={t('Search Indonesian area','Cari wilayah Indonesia')}
+                />
+                {areaSearchQuery && (
+                  <button
+                    type="button"
+                    className="shipping-area-search-clear"
+                    onClick={() => {
+                      setAreaSearchQuery('');
+                      setAreaSearchResults([]);
+                      setShowAreaDropdown(false);
+                    }}
+                    aria-label="Clear area search"
+                  >
+                    <XMark size={14} />
+                  </button>
+                )}
+              </div>
+              {showAreaDropdown && areaSearchResults.length > 0 && (
+                <div className="shipping-area-dropdown" role="listbox">
+                  {areaSearchResults.map(item => (
+                    <div
+                      key={item.id}
+                      className="shipping-area-item"
+                      onClick={() => handleSelectArea(item)}
+                      role="option"
+                      aria-selected={shippingSubdistrict === item.subdistrict && shippingDistrict === item.district}
+                    >
+                      <div className="shipping-area-item-title">{item.name}</div>
+                      <div className="shipping-area-item-sub">
+                        {t('Postal Code:','Kode Pos:')} {item.postalCode} | {item.city}, {item.province}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {showAreaDropdown && areaSearchQuery.trim().length >= 2 && searchingArea && <p className="shipping-area-feedback" role="status">{t('Searching Indonesian regions…','Mencari wilayah Indonesia…')}</p>}
+              {showAreaDropdown && areaSearchQuery.trim().length >= 2 && !searchingArea && areaSearchResults.length === 0 && <p className="shipping-area-feedback" role="status">{t('No matching area found. Try a village, district, or city name.','Wilayah tidak ditemukan. Coba nama kelurahan, kecamatan, atau kota.')}</p>}
+            </div>
 
-            <div className="form-row">
+            {/* Cascading Administrative Dropdowns */}
+            <div className="shipping-cascading-grid">
+              <label>
+                {t('Province','Provinsi')}
+                <select
+                  value={shippingProvince}
+                  onChange={e => handleProvinceChange(e.target.value)}
+                >
+                  <option value="">{t('-- Select Province --','-- Pilih Provinsi --')}</option>
+                  {provinces.map(p => (
+                    <option key={p.id} value={p.name}>{p.name}</option>
+                  ))}
+                  {shippingProvince && !provinces.some(p=>normalizeRegionName(p.name)===normalizeRegionName(shippingProvince)) && <option value={shippingProvince}>{shippingProvince}</option>}
+                </select>
+                {regionsError && <button type="button" className="shipping-region-retry" onClick={()=>void loadProvinces()}>{t('Could not load provinces · Retry','Provinsi gagal dimuat · Coba lagi')}</button>}
+                {!regionsError && regionsLoading && <small className="shipping-region-note">{t('Loading provinces…','Memuat provinsi…')}</small>}
+              </label>
+
               <label>
                 {t('City / Regency','Kota / Kabupaten')}
-                <input
-                  name="city"
+                <select
                   value={shippingCity}
-                  onChange={e => setShippingCity(e.target.value)}
-                  placeholder="Jakarta Selatan"
-                  maxLength={80}
+                  onChange={e => handleCityChange(e.target.value)}
                   required
-                />
+                >
+                  <option value="">{t('-- Select City / Regency --','-- Pilih Kota / Kabupaten --')}</option>
+                  {cities.map(c => (
+                    <option key={c.id} value={c.name}>{c.name}</option>
+                  ))}
+                  {shippingCity && !cities.some(c => c.name === shippingCity) && (
+                    <option value={shippingCity}>{shippingCity}</option>
+                  )}
+                </select>
               </label>
+
+              <label>
+                {t('District (Kecamatan)','Kecamatan')}
+                <select
+                  value={shippingDistrict}
+                  onChange={e => handleDistrictChange(e.target.value)}
+                  disabled={!shippingCity}
+                >
+                  <option value="">{t('-- Select District --','-- Pilih Kecamatan --')}</option>
+                  {districts.map(d => (
+                    <option key={d.id} value={d.name}>{d.name}</option>
+                  ))}
+                  {shippingDistrict && !districts.some(d => d.name === shippingDistrict) && (
+                    <option value={shippingDistrict}>{shippingDistrict}</option>
+                  )}
+                </select>
+              </label>
+
+              <label>
+                {t('Sub-district (Kelurahan / Desa)','Kelurahan / Desa')}
+                <select
+                  value={shippingSubdistrict}
+                  onChange={e => handleSubdistrictChange(e.target.value)}
+                  disabled={!shippingDistrict}
+                >
+                  <option value="">{t('-- Select Kelurahan --','-- Pilih Kelurahan --')}</option>
+                  {subdistricts.map(s => (
+                    <option key={s.id} value={s.name}>{s.name}{s.postalCode?` (${s.postalCode})`:''}</option>
+                  ))}
+                  {shippingSubdistrict && !subdistricts.some(s => s.name === shippingSubdistrict) && (
+                    <option value={shippingSubdistrict}>{shippingSubdistrict}</option>
+                  )}
+                </select>
+              </label>
+            </div>
+
+            <div className="form-row">
               <label>
                 {t('Postal code','Kode pos')}
                 <input
@@ -612,69 +1153,152 @@ function ProfileForm({
               </label>
             </div>
 
+            <label className="shipping-address-search">
+              {t('Street address / Landmark / Building','Alamat jalan, gedung, RT/RW, dan patokan lengkap')}
+              <input
+                name="addressLine"
+                value={shippingAddress}
+                onChange={e => {const value=e.target.value;setShippingAddress(value);setShippingAreaId(null);setActiveAddressResult(0);setShowAddressDropdown(true);if(value.trim().length>=4)setSearchingAddress(true);else{setSearchingAddress(false);setGeocodeResults([])}}}
+                onFocus={()=>{setShowAddressDropdown(true);if(shippingAddress.trim().length>=4)setSearchingAddress(true)}}
+                onBlur={()=>window.setTimeout(()=>{setShowAddressDropdown(false);setSearchingAddress(false)},180)}
+                onKeyDown={event=>{
+                  if(!showAddressDropdown||!geocodeResults.length)return;
+                  if(event.key==='ArrowDown'){event.preventDefault();setActiveAddressResult(index=>(index+1)%geocodeResults.length)}
+                  else if(event.key==='ArrowUp'){event.preventDefault();setActiveAddressResult(index=>(index-1+geocodeResults.length)%geocodeResults.length)}
+                  else if(event.key==='Enter'){event.preventDefault();void selectAddress(geocodeResults[activeAddressResult]??geocodeResults[0])}
+                  else if(event.key==='Escape'){setShowAddressDropdown(false);setGeocodeResults([])}
+                }}
+                placeholder={t('Search a building or full address, e.g. Apartemen Mediterania Palace Residences Tower B','Cari gedung atau alamat lengkap, mis. Apartemen Mediterania Palace Residences Tower B')}
+                maxLength={260}
+                autoComplete="street-address"
+                role="combobox"
+                aria-autocomplete="list"
+                aria-expanded={showAddressDropdown&&geocodeResults.length>0}
+                aria-controls="shipping-address-results"
+                aria-activedescendant={geocodeResults.length?`shipping-address-result-${activeAddressResult}`:undefined}
+                required
+              />
+              {showAddressDropdown&&shippingAddress.trim().length>=4&&<div id="shipping-address-results" className="shipping-address-results" role="listbox" aria-label={t('Address search results','Hasil pencarian alamat')}>
+                {searchingAddress&&<div className="shipping-address-result-hint">{t('Searching addresses…','Mencari alamat…')}</div>}
+                {!searchingAddress&&geocodeResults.length===0&&<div className="shipping-address-result-hint">{t('No mapped address found. You can still place the pin manually.','Alamat tidak ditemukan. Anda tetap bisa menentukan pin secara manual.')}</div>}
+                {geocodeResults.map((result,index)=><button id={`shipping-address-result-${index}`} type="button" key={`${result.latitude}:${result.longitude}:${index}`} className="shipping-address-result" role="option" aria-selected={activeAddressResult===index} onMouseDown={event=>event.preventDefault()} onMouseEnter={()=>setActiveAddressResult(index)} onClick={()=>void selectAddress(result)}><MapPin size={16}/><span>{result.label}</span></button>)}
+              </div>}
+            </label>
+
+            {/* Interactive Point on Map Picker */}
+            <MapPicker
+              latitude={shippingLatitude}
+              longitude={shippingLongitude}
+              onChange={coords => {
+                setShippingLatitude(coords.lat);
+                setShippingLongitude(coords.lng);
+              }}
+              language={language}
+              focusRevision={mapFocusRevision}
+              cityHint={shippingCity ? `${shippingSubdistrict ? shippingSubdistrict + ', ' : ''}${shippingDistrict ? shippingDistrict + ', ' : ''}${shippingCity}` : undefined}
+            />
+
             <div className="shipping-methods-container">
               <div className="shipping-methods-header">
-                <strong>{t('Active Shipping Methods','Metode Pengiriman Aktif')}</strong>
+                <strong>{t('Active Shipping Methods & Couriers','Metode & Pilihan Kurir Aktif')}</strong>
                 <p>
                   {t(
-                    'Select which fulfillment methods you accept for orders on Market. At least one method must be enabled.',
-                    'Pilih metode pengiriman yang Anda terima untuk pesanan di Market. Minimal satu metode harus aktif.'
+                    'Select which couriers and fulfillment services you provide for buyers on Market. Couriers are integrated via Biteship.',
+                    'Pilih kurir dan layanan pengiriman yang Anda sediakan untuk pembeli di Market. Kurir terintegrasi otomatis melalui Biteship.'
                   )}
                 </p>
               </div>
 
-              <div className="shipping-methods-list">
-                {/* Instant Couriers */}
-                <div
-                  className={`shipping-method-item ${shippingMethods.includes('instant') ? 'is-active' : ''}`}
-                  onClick={() => toggleShippingMethod('instant')}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggleShippingMethod('instant'); } }}
-                  aria-pressed={shippingMethods.includes('instant')}
+              {/* Quick Presets Row */}
+              <div className="shipping-presets-row" role="group" aria-label={t('Courier presets','Preset pilihan kurir')}>
+                <button
+                  type="button"
+                  className="shipping-preset-btn"
+                  onClick={() => setShippingMethods(BITESHIP_COURIERS.map(c => c.id))}
                 >
-                  <div className="shipping-method-main">
-                    <div className="shipping-method-title-row">
-                      <strong>{t('Instant Couriers (Grab / Gojek)','Kurir Instan (Grab / Gojek)')}</strong>
-                      <span className="shipping-method-badge">{t('Local · Up to 40 km','Lokal · Maks 40 km')}</span>
-                    </div>
-                    <p>
-                      {t(
-                        'Direct on-demand delivery for buyers within 40 km from your origin location.',
-                        'Pengiriman langsung untuk pembeli dalam radius hingga 40 km dari lokasi asal Anda.'
-                      )}
-                    </p>
-                  </div>
-                  <div className={`shipping-method-toggle ${shippingMethods.includes('instant') ? 'is-on' : ''}`} aria-hidden="true">
-                    <span className="shipping-toggle-thumb"/>
-                  </div>
-                </div>
+                  {t('Select all (11)','Pilih semua (11)')}
+                </button>
+                <button
+                  type="button"
+                  className="shipping-preset-btn"
+                  onClick={() => setShippingMethods(POPULAR_COURIER_SELECTION)}
+                >
+                  {t('Popular (5)','Populer (5)')}
+                </button>
+                <button
+                  type="button"
+                  className="shipping-preset-btn"
+                  onClick={() => setShippingMethods(BITESHIP_COURIERS.filter(c => c.category === 'regular').map(c => c.id))}
+                >
+                  {t('Regular / Express only (9)','Hanya Reguler / Express (9)')}
+                </button>
+                <button
+                  type="button"
+                  className="shipping-preset-btn"
+                  onClick={() => setShippingMethods(BITESHIP_COURIERS.filter(c => c.category === 'instant').map(c => c.id))}
+                >
+                  {t('Instant only (2)','Hanya Instan (2)')}
+                </button>
+              </div>
 
-                {/* Regular Couriers */}
-                <div
-                  className={`shipping-method-item ${shippingMethods.includes('regular') ? 'is-active' : ''}`}
-                  onClick={() => toggleShippingMethod('regular')}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggleShippingMethod('regular'); } }}
-                  aria-pressed={shippingMethods.includes('regular')}
-                >
-                  <div className="shipping-method-main">
-                    <div className="shipping-method-title-row">
-                      <strong>{t('J&T Express & Regular Couriers','J&T Express & Kurir Reguler')}</strong>
-                      <span className="shipping-method-badge">{t('Nationwide','Seluruh Indonesia')}</span>
-                    </div>
-                    <p>
-                      {t(
-                        'Standard tracked parcel delivery with nationwide coverage across Indonesia.',
-                        'Pengiriman paket standar terlacak dengan jangkauan ke seluruh Indonesia.'
-                      )}
-                    </p>
-                  </div>
-                  <div className={`shipping-method-toggle ${shippingMethods.includes('regular') ? 'is-on' : ''}`} aria-hidden="true">
-                    <span className="shipping-toggle-thumb"/>
-                  </div>
+              <div className="shipping-methods-list">
+                <div className="shipping-section-title">
+                  {t('Instant & Same Day Couriers','Kurir Instan & Same Day')}
                 </div>
+                {BITESHIP_COURIERS.filter(c => c.category === 'instant').map(courier => {
+                  const active = shippingMethods.includes(courier.id);
+                  return (
+                    <div
+                      key={courier.id}
+                      className={`shipping-method-item ${active ? 'is-active' : ''}`}
+                      onClick={() => toggleShippingMethod(courier.id)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggleShippingMethod(courier.id); } }}
+                      aria-pressed={active}
+                    >
+                      <div className="shipping-method-main">
+                        <div className="shipping-method-title-row">
+                          <strong>{courier.name}</strong>
+                          <span className="shipping-method-badge">{language === 'ID' ? courier.badge.id : courier.badge.en}</span>
+                        </div>
+                        <p>{language === 'ID' ? courier.desc.id : courier.desc.en}</p>
+                      </div>
+                      <div className={`shipping-method-toggle ${active ? 'is-on' : ''}`} aria-hidden="true">
+                        <span className="shipping-toggle-thumb"/>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                <div className="shipping-section-title">
+                  {t('Regular, Express & Cargo Couriers','Kurir Reguler, Express & Kargo')}
+                </div>
+                {BITESHIP_COURIERS.filter(c => c.category === 'regular').map(courier => {
+                  const active = shippingMethods.includes(courier.id);
+                  return (
+                    <div
+                      key={courier.id}
+                      className={`shipping-method-item ${active ? 'is-active' : ''}`}
+                      onClick={() => toggleShippingMethod(courier.id)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggleShippingMethod(courier.id); } }}
+                      aria-pressed={active}
+                    >
+                      <div className="shipping-method-main">
+                        <div className="shipping-method-title-row">
+                          <strong>{courier.name}</strong>
+                          <span className="shipping-method-badge">{language === 'ID' ? courier.badge.id : courier.badge.en}</span>
+                        </div>
+                        <p>{language === 'ID' ? courier.desc.id : courier.desc.en}</p>
+                      </div>
+                      <div className={`shipping-method-toggle ${active ? 'is-on' : ''}`} aria-hidden="true">
+                        <span className="shipping-toggle-thumb"/>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
@@ -688,4 +1312,3 @@ function ProfileForm({
     </div>
   </main>;
 }
-

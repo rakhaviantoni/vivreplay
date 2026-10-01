@@ -1,12 +1,12 @@
 # Cloudflare and Supabase setup
 
-Supabase is the canonical card catalog and private `tcg-card-images` bucket. Cloudflare runs the web application, protects import routes, and keeps the existing D1-backed collection flows until those user-owned records are migrated deliberately.
+Supabase remains the canonical card catalog and fallback. Cloudflare R2's private `tcg-card-images` bucket now holds the canonical catalog card images; Cloudflare runs the web application and keeps the existing D1-backed collection flows until those user-owned records are migrated deliberately.
 
 1. Run `supabase/migrations/0001_catalog_import.sql`, `supabase/migrations/0002_optcg_card_fields.sql`, `supabase/migrations/0003_webp_variants.sql`, and `supabase/migrations/0004_normalized_card_catalog.sql` in the Supabase SQL editor, in that order.
 2. Create a Supabase secret key in Project Settings, API Keys. Set it only as `SUPABASE_SECRET_KEY` in the trusted importer environment.
 3. Run `npx tsx scripts/import-optcg-to-supabase.ts` once with the URL and secret key available. The script downloads images with six concurrent workers and writes WebP `thumb` (180px), `small` (420px), and `large` (960px) variants to the private Supabase bucket.
 4. Run `node --env-file=.env.local --import tsx scripts/import-oplay-jp-images.ts` to derive and verify JP `small` image URLs for every saved EN printing. Only images returning HTTP 200 create JP printing and asset-source records.
-4. In Cloudflare Sites, preserve the `DB` D1 binding. Do not bind R2: this account does not have R2 enabled, and site images plus slab photos live in the private Supabase `tcg-card-images` bucket. Add `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SECRET_KEY` as encrypted Worker secrets. Do not add the secret key to client code or a public binding. Upload site images with `npm run assets:upload` (`/art/*` is excluded).
+4. In Cloudflare Sites, preserve the `DB` D1 binding and bind `CARD_IMAGES` to the private `tcg-card-images` R2 bucket. The catalog image route reads R2 first and falls back to Supabase while the source objects are retained. Add `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SECRET_KEY` as encrypted Worker secrets; never expose the secret key to client code or a public binding. Site artwork and private slab photos still use Supabase Storage until their routes are migrated separately.
 
 ## Deck Coach
 
