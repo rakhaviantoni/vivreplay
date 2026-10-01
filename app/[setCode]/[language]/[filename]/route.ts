@@ -60,25 +60,28 @@ export async function serveCardImage(setCode:string,language:string,filename:str
   const cacheKey=new Request(`https://vivreplay.com/${encodeURIComponent(setCode)}/${encodeURIComponent(language)}/${encodeURIComponent(filename)}`);
   const edgeCache=(globalThis.caches as (CacheStorage & {default?:Cache})|undefined)?.default;
   const cached=await edgeCache?.match(cacheKey);
-  if(cached) return cached;
+  // Cache API responses have immutable headers in Workers. Return a fresh
+  // Response so framework adapters can safely add their own headers.
+  if(cached) return new Response(cached.body,{status:cached.status,statusText:cached.statusText,headers:new Headers(cached.headers)});
 
   const origin=process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key=process.env.SUPABASE_SECRET_KEY;
   if(!origin||!key) return new Response('Asset storage is unavailable',{status:503});
 
   const catalogKeys=await catalogAssetKeys(origin,key,setCode,language,filename);
+  const candidateKeys=[...new Set([...catalogKeys,...candidateObjectKeys(setCode,language,filename,variant)])];
   const r2=env.CARD_IMAGES;
-  if(r2&&catalogKeys.length){
-    const object=await r2.get(catalogKeys[0]);
-    if(object){
+  if(r2){
+    for(const objectKey of candidateKeys){
+      const object=await r2.get(objectKey);
+      if(!object) continue;
       const response=new Response(object.body,{headers:{'Content-Type':object.httpMetadata?.contentType||'image/webp','Cache-Control':'public, max-age=31536000, immutable','X-Content-Type-Options':'nosniff'}});
       await edgeCache?.put(cacheKey,response.clone());
       return response;
     }
   }
 
-  const candidateKeys=[...candidateObjectKeys(setCode,language,filename,variant),...catalogKeys];
-  for(const objectKey of [...new Set(candidateKeys)]){
+  for(const objectKey of candidateKeys){
     const response=await fetch(`${origin}/storage/v1/object/${bucket}/${objectKey}`,{headers:{accept:'image/webp,image/*;q=0.8',authorization:`Bearer ${key}`,apikey:key},cf:{cacheTtl:31_536_000,cacheEverything:true}});
     if(!response.ok||!response.body) continue;
     const image=new Response(response.body,{headers:{'Content-Type':response.headers.get('content-type')||'image/webp','Cache-Control':'public, max-age=31536000, immutable','X-Content-Type-Options':'nosniff'}});
