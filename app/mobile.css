@@ -448,3 +448,27 @@
   .site-shell .footer-legal,
   .footer-legal { display: flex !important; flex-wrap: wrap !important; gap: 8px 16px !important; }
 }
+
+/* Market styles are appended to vivreplay.css after this shared stylesheet. Keep
+   their phone-width control sizing here so the search and account actions fit. */
+@media (max-width: 760px) {
+  .market-store-nav { gap: 7px !important; padding: 8px 12px !important; }
+  .market-store-locale,
+  .market-store-theme { width: 40px !important; min-width: 40px !important; height: 40px !important; min-height: 40px !important; }
+  .market-store-nav .market-list-button .market-list-button-text { display: none !important; }
+  .market-store-nav .market-list-button .market-list-button-short { display: inline !important; }
+}
+@media (max-width: 440px) {
+  .market-store-nav { gap: 5px !important; padding: 6px 10px !important; }
+  .market-store-search { height: 40px !important; padding-inline: 9px !important; }
+  .market-store-search input { font-size: 12px !important; }
+}
+@media (max-width: 420px) {
+  .market-store-nav .market-list-button { width: 36px !important; min-width: 36px !important; height: 36px !important; min-height: 36px !important; padding: 0 !important; font-size: 0 !important; }
+  .market-store-nav .market-list-button svg { flex: 0 0 auto; width: 16px; }
+  .market-store-locale,
+  .market-store-theme { width: 36px !important; min-width: 36px !important; height: 36px !important; min-height: 36px !important; }
+  .market-back-link { flex-basis: 36px !important; width: 36px !important; min-width: 36px !important; height: 36px !important; }
+  .market-store-search { height: 38px !important; }
+  .market-store-search svg { flex: 0 0 auto; width: 16px; }
+}
