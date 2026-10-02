@@ -63,6 +63,58 @@ function matchRegion(options:RegionOption[],name:string){
   if(!query)return undefined;
   return options.find(option=>normalizeRegionName(option.name)===query);
 }
+async function loadShippingRegions(level:'provinces'|'regencies'|'districts'|'villages',parent?:string):Promise<RegionOption[]>{
+  const params=new URLSearchParams({level});
+  if(parent)params.set('parent',parent);
+  try{
+    const response=await fetch(`/api/shipping/regions?${params}`);
+    const payload=await response.json() as {items?:RegionOption[]};
+    if(response.ok&&Array.isArray(payload.items)&&payload.items.length)return payload.items;
+  }catch{/* Fall back to the public region feed from the browser. */}
+  const url=new URL(`https://www.emsifa.com/api-wilayah-indonesia/v2/${level}.json`);
+  if(parent)url.pathname=`/api-wilayah-indonesia/v2/${level}/${encodeURIComponent(parent)}.json`;
+  const response=await fetch(url,{headers:{accept:'application/json'}});
+  if(!response.ok)throw new Error('Shipping regions are unavailable.');
+  const payload=await response.json() as {data?:Array<{id?:string|number;name:string;postal_code?:string|number|null;lat?:number|null;lng?:number|null}>;items?:RegionOption[]};
+  const rows=Array.isArray(payload.data)?payload.data:payload.items;
+  if(!Array.isArray(rows))return [];
+  return rows.map(row=>('id'in row&&row.id!==undefined?{id:String(row.id),name:row.name,postalCode:'postal_code'in row&&row.postal_code?String(row.postal_code):null,latitude:'lat'in row?row.lat??null:null,longitude:'lng'in row?row.lng??null:null}:row as RegionOption));
+}
+
+async function searchShippingAddresses(query:string,language:'EN'|'ID',latitude:number|null,longitude:number|null):Promise<GeocodeResult[]>{
+  const params=new URLSearchParams({q:query,lang:language.toLowerCase()});
+  if(latitude!=null)params.set('lat',String(latitude));
+  if(longitude!=null)params.set('lon',String(longitude));
+  try{
+    const response=await fetch(`/api/shipping/geocode?${params}`);
+    const payload=await response.json() as {results?:GeocodeResult[]};
+    if(response.ok&&Array.isArray(payload.results))return payload.results;
+  }catch{/* Use the public browser geocoder when Worker egress is unavailable. */}
+  type Feature={properties?:{name?:string;street?:string;housenumber?:string;postcode?:string;district?:string;city_district?:string;county?:string;suburb?:string;neighbourhood?:string;locality?:string;city?:string;state?:string;country?:string;countrycode?:string;osm_value?:string;type?:string};geometry?:{coordinates?:[number,number]}};
+  const photonSearch=async(searchQuery:string)=>{
+    const url=new URL('https://photon.komoot.io/api/');
+    url.searchParams.set('q',searchQuery);url.searchParams.set('countrycode','ID');url.searchParams.set('lang',language.toLowerCase());url.searchParams.set('limit','8');
+    if(latitude!=null)url.searchParams.set('lat',String(latitude));
+    if(longitude!=null)url.searchParams.set('lon',String(longitude));
+    const response=await fetch(url,{headers:{accept:'application/geo+json'}});
+    if(!response.ok)throw new Error('Address search unavailable.');
+    return (await response.json() as {features?:Feature[]}).features??[];
+  };
+  let features=await photonSearch(query);
+  if(!features.length){
+    const relaxed=query.replace(/\b(?:tower|block|blok|unit|lantai|floor|suite|room)\s*[a-z0-9-]+(?:\s+[a-z0-9-]+)?/i,'').replace(/^(?:apartemen|apartment)\s+/i,'').replace(/[\s,]+/g,' ').trim();
+    if(relaxed&&relaxed.toLocaleLowerCase()!==query.toLocaleLowerCase())features=await photonSearch(relaxed);
+  }
+  return features.flatMap(feature=>{
+    const p=feature.properties,coords=feature.geometry?.coordinates;
+    if(!p||!coords||(p.countrycode&&p.countrycode.toLowerCase()!=='id')||(p.country&&!/indonesia/i.test(p.country)))return [];
+    const district=p.district??p.city_district??p.county??'',subdistrict=p.suburb??p.neighbourhood??p.locality??'';
+    const locality=[subdistrict,district,p.city,p.state].filter((value,index,list):value is string=>Boolean(value)&&list.indexOf(value)===index);
+    const street=[p.housenumber,p.street].filter(Boolean).join(' ');
+    const label=[p.name,street,...locality,p.postcode,p.country].filter((value,index,list):value is string=>Boolean(value)&&list.indexOf(value)===index).join(', ');
+    return [{label,latitude:coords[1],longitude:coords[0],postalCode:p.postcode??'',district,subdistrict,city:p.city??'',province:p.state??'',type:p.osm_value??p.type??''}];
+  });
+}
 
 const COMMON_REGIONS = [
   { value: 'ID', label: 'Indonesia (ID)' },
@@ -429,19 +481,19 @@ function ProfileForm({
     if(!shippingProvince)return;
       const selected=matchRegion(provinces,shippingProvince);
     if(!selected)return;
-    let active=true;fetch(`/api/shipping/regions?level=regencies&parent=${selected.id}`).then(async response=>response.ok?await response.json() as {items?:RegionOption[]}:null).then(data=>{if(active&&Array.isArray(data?.items))setCities(data.items)}).catch(()=>{});return()=>{active=false};
+    let active=true;void loadShippingRegions('regencies',selected.id).then(items=>{if(active)setCities(items)}).catch(()=>{});return()=>{active=false};
   },[shippingProvince,provinces]);
   useEffect(()=>{
     if(!shippingCity)return;
     const selected=matchRegion(cities,shippingCity);
     if(!selected)return;
-    let active=true;fetch(`/api/shipping/regions?level=districts&parent=${selected.id}`).then(async response=>response.ok?await response.json() as {items?:RegionOption[]}:null).then(data=>{if(active&&Array.isArray(data?.items))setDistricts(data.items)}).catch(()=>{});return()=>{active=false};
+    let active=true;void loadShippingRegions('districts',selected.id).then(items=>{if(active)setDistricts(items)}).catch(()=>{});return()=>{active=false};
   },[shippingCity,cities]);
   useEffect(()=>{
     if(!shippingDistrict)return;
     const selected=matchRegion(districts,shippingDistrict);
     if(!selected)return;
-    let active=true;fetch(`/api/shipping/regions?level=villages&parent=${selected.id}`).then(async response=>response.ok?await response.json() as {items?:RegionOption[]}:null).then(data=>{if(active&&Array.isArray(data?.items))setSubdistricts(data.items)}).catch(()=>{});return()=>{active=false};
+    let active=true;void loadShippingRegions('villages',selected.id).then(items=>{if(active)setSubdistricts(items)}).catch(()=>{});return()=>{active=false};
   },[shippingDistrict,districts]);
 
   useEffect(()=>{
@@ -449,7 +501,7 @@ function ProfileForm({
     if(query.length<4||!showAddressDropdown)return;
     let active=true;
     const timer=window.setTimeout(async()=>{
-      try{const params=new URLSearchParams({q:query,lang:language.toLowerCase()});if(shippingLatitude!=null)params.set('lat',String(shippingLatitude));if(shippingLongitude!=null)params.set('lon',String(shippingLongitude));const response=await fetch(`/api/shipping/geocode?${params}`);const data=await response.json() as {results?:GeocodeResult[]};if(active){setGeocodeResults(response.ok?(data.results??[]):[]);setActiveAddressResult(0)}}catch{if(active)setGeocodeResults([])}finally{if(active)setSearchingAddress(false)}
+      try{const results=await searchShippingAddresses(query,language,shippingLatitude,shippingLongitude);if(active){setGeocodeResults(results);setActiveAddressResult(0)}}catch{if(active)setGeocodeResults([])}finally{if(active)setSearchingAddress(false)}
     },500);
     return()=>{active=false;clearTimeout(timer)};
   },[shippingAddress,showAddressDropdown,shippingLatitude,shippingLongitude,language]);
@@ -466,29 +518,23 @@ function ProfileForm({
     setShippingLatitude(result.latitude);setShippingLongitude(result.longitude);setMapFocusRevision(value=>value+1);
     setShowAddressDropdown(false);setGeocodeResults([]);
 
-    const loadRegions=async(level:'regencies'|'districts'|'villages',parent:RegionOption)=>{
-      const response=await fetch(`/api/shipping/regions?level=${level}&parent=${encodeURIComponent(parent.id)}`);
-      if(!response.ok)return [] as RegionOption[];
-      const payload=await response.json() as {items?:RegionOption[]};
-      return payload.items??[];
-    };
     const province=matchRegion(provinces,result.province);
     try{
       if(province){
         setShippingProvince(province.name);
-        const cityOptions=await loadRegions('regencies',province);
+        const cityOptions=await loadShippingRegions('regencies',province.id);
         if(revision!==addressSelectionRevision.current)return;
         setCities(cityOptions);
         const city=matchRegion(cityOptions,result.city);
         if(city){
           setShippingCity(city.name);
-          const districtOptions=await loadRegions('districts',city);
+          const districtOptions=await loadShippingRegions('districts',city.id);
           if(revision!==addressSelectionRevision.current)return;
           setDistricts(districtOptions);
           const district=matchRegion(districtOptions,result.district);
           if(district){
             setShippingDistrict(district.name);
-            const villageOptions=await loadRegions('villages',district);
+            const villageOptions=await loadShippingRegions('villages',district.id);
             if(revision!==addressSelectionRevision.current)return;
             setSubdistricts(villageOptions);
             const village=matchRegion(villageOptions,result.subdistrict);
