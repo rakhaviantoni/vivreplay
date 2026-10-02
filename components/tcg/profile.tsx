@@ -108,7 +108,7 @@ async function searchShippingAddresses(query:string,language:'EN'|'ID',latitude:
   return features.flatMap(feature=>{
     const p=feature.properties,coords=feature.geometry?.coordinates;
     if(!p||!coords||(p.countrycode&&p.countrycode.toLowerCase()!=='id')||(p.country&&!/indonesia/i.test(p.country)))return [];
-    const district=p.district??p.city_district??p.county??'',subdistrict=p.suburb??p.neighbourhood??p.locality??'';
+    const district=p.district??p.city_district??p.county??'',subdistrict=p.suburb??p.neighbourhood??'';
     const locality=[subdistrict,district,p.city,p.state].filter((value,index,list):value is string=>Boolean(value)&&list.indexOf(value)===index);
     const street=[p.housenumber,p.street].filter(Boolean).join(' ');
     const label=[p.name,street,...locality,p.postcode,p.country].filter((value,index,list):value is string=>Boolean(value)&&list.indexOf(value)===index).join(', ');
@@ -557,7 +557,7 @@ function ProfileForm({
       if(result.subdistrict)setShippingSubdistrict(result.subdistrict);
     }
 
-    const areaQuery=[result.subdistrict,result.district,result.city,result.province].filter(Boolean).join(', ');
+    const areaQuery=[result.subdistrict,result.district,result.city].filter(Boolean).join(', ');
     if(areaQuery){
       try{
         const response=await fetch(`/api/shipping/areas?query=${encodeURIComponent(areaQuery)}`);
@@ -565,11 +565,19 @@ function ProfileForm({
         const payload=await response.json() as {areas?:AreaSearchResult[]};
         const areas=payload.areas??[];
         const matches=(candidate:string, expected:string)=>!expected||normalizeRegionName(candidate)===normalizeRegionName(expected);
+        const recognizedProvince=matchRegion(provinces,result.province);
+        const isGenericJakarta=result.city.trim().toLocaleLowerCase('id')==='jakarta';
         const area=areas.find(candidate=>candidate.source==='biteship'
-          && matches(candidate.province,result.province)
-          && matches(candidate.city,result.city)
           && matches(candidate.district,result.district)
-          && matches(candidate.subdistrict,result.subdistrict));
+          && matches(candidate.subdistrict,result.subdistrict)
+          && (!recognizedProvince||matches(candidate.province,recognizedProvince.name))
+          && (!result.city||isGenericJakarta||matches(candidate.city,result.city))
+          && (!result.postalCode||matches(candidate.postalCode,result.postalCode)))
+          ??areas.find(candidate=>candidate.source==='biteship'
+            && matches(candidate.district,result.district)
+            && matches(candidate.subdistrict,result.subdistrict)
+            && (!recognizedProvince||matches(candidate.province,recognizedProvince.name))
+            && (!result.city||isGenericJakarta||matches(candidate.city,result.city)));
         if(area){
           setShippingAreaId(area.id);
           setShippingProvince(area.province||province?.name||result.province);

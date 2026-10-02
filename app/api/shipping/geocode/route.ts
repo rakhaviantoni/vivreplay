@@ -21,7 +21,7 @@ export async function GET(request:Request){
       if(!p||!coords||!Number.isFinite(coords[0])||!Number.isFinite(coords[1]))return [];
       if((p.countrycode&&p.countrycode.toLowerCase()!=='id')||(p.country&&!/indonesia/i.test(p.country)))return [];
       const district=p.district??p.city_district??p.county??'';
-      const subdistrict=p.suburb??p.neighbourhood??p.locality??'';
+      const subdistrict=p.suburb??p.neighbourhood??'';
       const locality=[subdistrict,district,p.city,p.state].filter((value,index,list):value is string=>Boolean(value)&&list.indexOf(value)===index);
       const street=[p.housenumber,p.street].filter(Boolean).join(' ');
       const label=[p.name,street, ...locality,p.postcode,p.country].filter((value,index,list):value is string=>Boolean(value)&&list.indexOf(value)===index).join(', ');
