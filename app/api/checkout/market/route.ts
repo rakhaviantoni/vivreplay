@@ -1,7 +1,7 @@
 import {z} from 'zod';
 import {db,errorResponse,guard,user,HttpError} from '@/lib/server/store';
 import {getCurrentUser} from '@/lib/server/auth';
-import {hasIpaymuPaymentConfig} from '@/lib/server/ipaymu';
+import {createAzekhaIntent,hasAzekhaPaymentConfig} from '@/lib/server/azekha-payments';
 import {verifyTurnstile} from '@/lib/server/turnstile';
 import {biteshipDestination,isBiteshipAreaId} from '@/lib/shipping/biteship-area';
 
@@ -10,7 +10,7 @@ type BundleEntry={instanceId?:string;printingId:string;quantity:number;condition
 type Rate={courier_name:string;courier_service_name:string;price:number};
 
 export async function GET(){
-  const available=process.env.VIVREPLAY_MARKET_CHECKOUT_ENABLED==='true'&&process.env.VIVREPLAY_MARKET_SELLER_OPERATIONS_READY==='true'&&hasIpaymuPaymentConfig()&&Boolean(process.env.BITESHIP_API_KEY?.trim());
+  const available=process.env.VIVREPLAY_MARKET_CHECKOUT_ENABLED==='true'&&process.env.VIVREPLAY_MARKET_SELLER_OPERATIONS_READY==='true'&&hasAzekhaPaymentConfig()&&Boolean(process.env.BITESHIP_API_KEY?.trim());
   return Response.json({available});
 }
 
@@ -19,7 +19,7 @@ export async function POST(request:Request){
     guard(request);
     const rejected=await verifyTurnstile(request);if(rejected)return rejected;
     if(process.env.VIVREPLAY_MARKET_CHECKOUT_ENABLED!=='true'||process.env.VIVREPLAY_MARKET_SELLER_OPERATIONS_READY!=='true')throw new HttpError(503,'Market checkout is not available yet.');
-    if(!hasIpaymuPaymentConfig())throw new HttpError(503,'Online payment is temporarily unavailable.');
+    if(!hasAzekhaPaymentConfig())throw new HttpError(503,'Online payment is temporarily unavailable.');
     const profile=await user();
     const account=await getCurrentUser();
     if(!account?.email)throw new HttpError(401,'Sign in with an email address to continue.');
@@ -90,6 +90,19 @@ export async function POST(request:Request){
     const expiresAt=new Date(Date.now()+24*60*60*1000).toISOString().replace('T',' ').slice(0,19);
     const shipping={recipientName:address.recipientName,addressLine:address.addressLine,city:address.city,postalCode:address.postalCode,phone:address.phone,courierName:rate.courier_name,courierServiceName:rate.courier_service_name};
     await database.prepare(`INSERT INTO checkout_orders (id,kind,buyer_id,seller_id,listing_id,items,details,subtotal,shipping_fee,amount,currency,status,expires_at) VALUES (?,'MARKET',?,?,?,?,?,?,?,?,?,'PENDING_PAYMENT',?)`).bind(id,profile.id,listing.sellerId,listing.id,JSON.stringify(orderItems),JSON.stringify(shipping),subtotal,rate.price,amount,'IDR',expiresAt).run();
-    return Response.json({id,checkoutUrl:`/checkout/order/${id}`,subtotal,shippingFee:rate.price,total:amount},{status:201});
+    const siteOrigin=new URL(request.url).origin;
+    let intent;
+    try{
+      intent=await createAzekhaIntent({orderId:`vivreplay-market-${id}`,amount,customer:{name:address.recipientName||profile.display_name,email:account.email,mobile:address.phone},successUrl:`${siteOrigin}/checkout/order/${id}`,cancelUrl:`${siteOrigin}/market/${encodeURIComponent(listing.id)}`});
+    }catch(error){
+      await database.prepare("UPDATE checkout_orders SET status='FAILED',updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT'").bind(id).run();
+      throw error;
+    }
+    if(intent.order_id!==`vivreplay-market-${id}`||intent.amount!==amount||intent.currency!=='IDR'){
+      await database.prepare("UPDATE checkout_orders SET status='FAILED',updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT'").bind(id).run();
+      throw new HttpError(502,'The payment service returned mismatched checkout details.');
+    }
+    await database.prepare("UPDATE checkout_orders SET payment_id=?,amount=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT'").bind(intent.payment_id,intent.amount,id).run();
+    return Response.json({id,checkoutUrl:`/checkout/order/${id}`,subtotal,shippingFee:rate.price,total:intent.amount},{status:201});
   }catch(error){return errorResponse(error)}
 }
