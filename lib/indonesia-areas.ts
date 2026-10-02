@@ -786,7 +786,7 @@ export function searchIndonesianAreas(query: string): AreaSearchResult[] {
         for (const sub of dist.subdistricts) {
           const combined = `${sub.name}, ${dist.name}, ${city.name}, ${prov.name}, ${sub.postalCode}`.toLowerCase();
           if (combined.includes(q) || sub.name.toLowerCase().includes(q) || dist.name.toLowerCase().includes(q) || city.name.toLowerCase().includes(q) || sub.postalCode.includes(q)) {
-            const id = `ID-${prov.name.slice(0, 3).toUpperCase()}-${dist.name.replace(/\s+/g, '')}-${sub.postalCode}`;
+            const id = `ID-${prov.name.slice(0, 3).toUpperCase()}-${dist.name.replace(/\s+/g, '')}-${sub.name.replace(/\s+/g, '')}-${sub.postalCode}`;
             results.push({
               id,
               name: `${sub.name}, ${dist.name}, ${city.name}, ${prov.name}`,
