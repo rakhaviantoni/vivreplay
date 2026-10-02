@@ -180,6 +180,21 @@ export const INDONESIAN_REGIONS: IndonesianProvince[] = [
               { name: 'Gondangdia', postalCode: '10350', latitude: -6.1878, longitude: 106.8334 },
             ],
           },
+          {
+            name: 'Kemayoran',
+            latitude: -6.1602,
+            longitude: 106.8504,
+            subdistricts: [
+              { name: 'Gunung Sahari Selatan', postalCode: '10610' },
+              { name: 'Kemayoran', postalCode: '10620' },
+              { name: 'Kebon Kosong', postalCode: '10630' },
+              { name: 'Cempaka Baru', postalCode: '10640' },
+              { name: 'Harapan Mulya', postalCode: '10640' },
+              { name: 'Sumur Batu', postalCode: '10640' },
+              { name: 'Serdang', postalCode: '10650' },
+              { name: 'Utan Panjang', postalCode: '10650' },
+            ],
+          },
         ],
       },
       {

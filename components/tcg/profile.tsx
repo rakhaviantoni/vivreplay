@@ -30,6 +30,9 @@ import {isBiteshipAreaId} from '@/lib/shipping/biteship-area';
 import {IntroCardRail} from './intro-card-rail';
 import {
   searchIndonesianAreas,
+  getCities,
+  getDistricts,
+  getSubdistricts,
   type AreaSearchResult,
   INDONESIAN_REGIONS,
 } from '@/lib/indonesia-areas';
@@ -63,7 +66,22 @@ function matchRegion(options:RegionOption[],name:string){
   if(!query)return undefined;
   return options.find(option=>normalizeRegionName(option.name)===query);
 }
-async function loadShippingRegions(level:'provinces'|'regencies'|'districts'|'villages',parent?:string):Promise<RegionOption[]>{
+type RegionContext={province?:string;city?:string;district?:string};
+function getLocalShippingRegions(level:'provinces'|'regencies'|'districts'|'villages',context:RegionContext={}):RegionOption[]{
+  if(level==='provinces')return INDONESIAN_REGIONS.map(province=>({id:`local:province:${encodeURIComponent(province.name)}`,name:province.name,latitude:province.latitude,longitude:province.longitude}));
+  const province=INDONESIAN_REGIONS.find(item=>normalizeRegionName(item.name)===normalizeRegionName(context.province??''));
+  if(level==='regencies'&&province)return getCities(province.name).map(city=>({id:`local:city:${encodeURIComponent(province.name)}:${encodeURIComponent(city.name)}`,name:city.name,latitude:city.latitude,longitude:city.longitude}));
+  const city=province?getCities(province.name).find(item=>normalizeRegionName(item.name)===normalizeRegionName(context.city??'')):undefined;
+  if(level==='districts'&&province&&city)return getDistricts(province.name,city.name).map(district=>({id:`local:district:${encodeURIComponent(province.name)}:${encodeURIComponent(city.name)}:${encodeURIComponent(district.name)}`,name:district.name,latitude:district.latitude,longitude:district.longitude}));
+  const district=province&&city?getDistricts(province.name,city.name).find(item=>normalizeRegionName(item.name)===normalizeRegionName(context.district??'')):undefined;
+  if(level==='villages'&&province&&city&&district)return getSubdistricts(province.name,city.name,district.name).map(village=>({id:`local:village:${encodeURIComponent(province.name)}:${encodeURIComponent(city.name)}:${encodeURIComponent(district.name)}:${encodeURIComponent(village.name)}`,name:village.name,postalCode:village.postalCode,latitude:village.latitude,longitude:village.longitude}));
+  return [];
+}
+async function loadShippingRegions(level:'provinces'|'regencies'|'districts'|'villages',parent?:string,context:RegionContext={}):Promise<RegionOption[]>{
+  if(parent?.startsWith('local:')){
+    const local=getLocalShippingRegions(level,context);
+    if(local.length)return local;
+  }
   const params=new URLSearchParams({level});
   if(parent)params.set('parent',parent);
   try{
@@ -71,14 +89,18 @@ async function loadShippingRegions(level:'provinces'|'regencies'|'districts'|'vi
     const payload=await response.json() as {items?:RegionOption[]};
     if(response.ok&&Array.isArray(payload.items)&&payload.items.length)return payload.items;
   }catch{/* Fall back to the public region feed from the browser. */}
-  const url=new URL(`https://www.emsifa.com/api-wilayah-indonesia/v2/${level}.json`);
-  if(parent)url.pathname=`/api-wilayah-indonesia/v2/${level}/${encodeURIComponent(parent)}.json`;
-  const response=await fetch(url,{headers:{accept:'application/json'}});
-  if(!response.ok)throw new Error('Shipping regions are unavailable.');
-  const payload=await response.json() as {data?:Array<{id?:string|number;name:string;postal_code?:string|number|null;lat?:number|null;lng?:number|null}>;items?:RegionOption[]};
-  const rows=Array.isArray(payload.data)?payload.data:payload.items;
-  if(!Array.isArray(rows))return [];
-  return rows.map(row=>('id'in row&&row.id!==undefined?{id:String(row.id),name:row.name,postalCode:'postal_code'in row&&row.postal_code?String(row.postal_code):null,latitude:'lat'in row?row.lat??null:null,longitude:'lng'in row?row.lng??null:null}:row as RegionOption));
+  try{
+    const url=new URL(`https://www.emsifa.com/api-wilayah-indonesia/v2/${level}.json`);
+    if(parent)url.pathname=`/api-wilayah-indonesia/v2/${level}/${encodeURIComponent(parent)}.json`;
+    const response=await fetch(url,{headers:{accept:'application/json'}});
+    if(!response.ok)throw new Error('Public regions feed unavailable.');
+    const payload=await response.json() as {data?:Array<{id?:string|number;name:string;postal_code?:string|number|null;lat?:number|null;lng?:number|null}>;items?:RegionOption[]};
+    const rows=Array.isArray(payload.data)?payload.data:payload.items;
+    if(Array.isArray(rows)&&rows.length)return rows.map(row=>('id'in row&&row.id!==undefined?{id:String(row.id),name:row.name,postalCode:'postal_code'in row&&row.postal_code?String(row.postal_code):null,latitude:'lat'in row?row.lat??null:null,longitude:'lng'in row?row.lng??null:null}:row as RegionOption));
+  }catch{/* Continue with the bundled Indonesian area index. */}
+  const local=getLocalShippingRegions(level,context);
+  if(local.length)return local;
+  throw new Error('Shipping regions are unavailable.');
 }
 
 async function searchShippingAddresses(query:string,language:'EN'|'ID',latitude:number|null,longitude:number|null):Promise<GeocodeResult[]>{
@@ -88,7 +110,7 @@ async function searchShippingAddresses(query:string,language:'EN'|'ID',latitude:
   try{
     const response=await fetch(`/api/shipping/geocode?${params}`);
     const payload=await response.json() as {results?:GeocodeResult[]};
-    if(response.ok&&Array.isArray(payload.results))return payload.results;
+    if(response.ok&&Array.isArray(payload.results)&&payload.results.length)return payload.results;
   }catch{/* Use the public browser geocoder when Worker egress is unavailable. */}
   type Feature={properties?:{name?:string;street?:string;housenumber?:string;postcode?:string;district?:string;city_district?:string;county?:string;suburb?:string;neighbourhood?:string;locality?:string;city?:string;state?:string;country?:string;countrycode?:string;osm_value?:string;type?:string};geometry?:{coordinates?:[number,number]}};
   const photonSearch=async(searchQuery:string)=>{
@@ -475,10 +497,9 @@ function ProfileForm({
   const loadProvinces=async()=>{
     setRegionsLoading(true);setRegionsError(false);
     try{
-      const response=await fetch('/api/shipping/regions?level=provinces');
-      const data=await response.json() as {items?:RegionOption[]};
-      if(!response.ok||!Array.isArray(data.items)||data.items.length===0)throw new Error('Province data unavailable');
-      setProvinces(data.items);
+      const items=await loadShippingRegions('provinces');
+      if(items.length===0)throw new Error('Province data unavailable');
+      setProvinces(items);
     }catch{setProvinces([]);setRegionsError(true)}finally{setRegionsLoading(false)}
   };
   useEffect(()=>{void loadProvinces()},[]);
@@ -488,7 +509,7 @@ function ProfileForm({
     const selected=matchRegion(provinces,shippingProvince);
     if(!selected)return;
     let active=true;setCitiesLoading(true);setCitiesError(false);
-    void loadShippingRegions('regencies',selected.id).then(items=>{if(active){setCities(items);setCitiesError(items.length===0)}}).catch(()=>{if(active){setCities([]);setCitiesError(true)}}).finally(()=>{if(active)setCitiesLoading(false)});
+    void loadShippingRegions('regencies',selected.id,{province:selected.name}).then(items=>{if(active){setCities(items);setCitiesError(items.length===0)}}).catch(()=>{if(active){setCities([]);setCitiesError(true)}}).finally(()=>{if(active)setCitiesLoading(false)});
     return()=>{active=false};
   },[shippingProvince,provinces]);
   useEffect(()=>{
@@ -496,17 +517,17 @@ function ProfileForm({
     const selected=matchRegion(cities,shippingCity);
     if(!selected)return;
     let active=true;setDistrictsLoading(true);setDistrictsError(false);
-    void loadShippingRegions('districts',selected.id).then(items=>{if(active){setDistricts(items);setDistrictsError(items.length===0)}}).catch(()=>{if(active){setDistricts([]);setDistrictsError(true)}}).finally(()=>{if(active)setDistrictsLoading(false)});
+    void loadShippingRegions('districts',selected.id,{province:shippingProvince,city:selected.name}).then(items=>{if(active){setDistricts(items);setDistrictsError(items.length===0)}}).catch(()=>{if(active){setDistricts([]);setDistrictsError(true)}}).finally(()=>{if(active)setDistrictsLoading(false)});
     return()=>{active=false};
-  },[shippingCity,cities]);
+  },[shippingProvince,shippingCity,cities]);
   useEffect(()=>{
     if(!shippingDistrict)return;
     const selected=matchRegion(districts,shippingDistrict);
     if(!selected)return;
     let active=true;setSubdistrictsLoading(true);setSubdistrictsError(false);
-    void loadShippingRegions('villages',selected.id).then(items=>{if(active){setSubdistricts(items);setSubdistrictsError(items.length===0)}}).catch(()=>{if(active){setSubdistricts([]);setSubdistrictsError(true)}}).finally(()=>{if(active)setSubdistrictsLoading(false)});
+    void loadShippingRegions('villages',selected.id,{province:shippingProvince,city:shippingCity,district:selected.name}).then(items=>{if(active){setSubdistricts(items);setSubdistrictsError(items.length===0)}}).catch(()=>{if(active){setSubdistricts([]);setSubdistrictsError(true)}}).finally(()=>{if(active)setSubdistrictsLoading(false)});
     return()=>{active=false};
-  },[shippingDistrict,districts]);
+  },[shippingProvince,shippingCity,shippingDistrict,districts]);
 
   useEffect(()=>{
     const query=shippingAddress.trim();
@@ -535,19 +556,19 @@ function ProfileForm({
     try{
       if(province){
         setShippingProvince(province.name);
-        const cityOptions=await loadShippingRegions('regencies',province.id);
+        const cityOptions=await loadShippingRegions('regencies',province.id,{province:province.name});
         if(revision!==addressSelectionRevision.current)return;
         setCities(cityOptions);
         const city=matchRegion(cityOptions,result.city);
         if(city){
           setShippingCity(city.name);
-          const districtOptions=await loadShippingRegions('districts',city.id);
+          const districtOptions=await loadShippingRegions('districts',city.id,{province:province.name,city:city.name});
           if(revision!==addressSelectionRevision.current)return;
           setDistricts(districtOptions);
           const district=matchRegion(districtOptions,result.district);
           if(district){
             setShippingDistrict(district.name);
-            const villageOptions=await loadShippingRegions('villages',district.id);
+            const villageOptions=await loadShippingRegions('villages',district.id,{province:province.name,city:city.name,district:district.name});
             if(revision!==addressSelectionRevision.current)return;
             setSubdistricts(villageOptions);
             const village=matchRegion(villageOptions,result.subdistrict);
@@ -662,13 +683,24 @@ function ProfileForm({
     setSearchingArea(true);
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/shipping/areas?query=${encodeURIComponent(q)}`);
-        if (res.ok) {
-          const data = (await res.json()) as { areas?: AreaSearchResult[] };
-          if (active) setAreaSearchResults(Array.isArray(data.areas) ? data.areas : []);
-        } else if(active) setAreaSearchResults([]);
+        let areas:AreaSearchResult[]=[];
+        try{
+          const res=await fetch(`/api/shipping/areas?query=${encodeURIComponent(q)}`);
+          if(res.ok){const data=await res.json() as {areas?:AreaSearchResult[]};if(Array.isArray(data.areas))areas=data.areas;}
+        }catch{/* Use browser and bundled sources below when Worker egress is unavailable. */}
+        const local=searchIndonesianAreas(q).map(area=>({...area,source:'local' as const}));
+        areas=[...areas,...local];
+        if(!areas.length){
+          const geocoded=await searchShippingAddresses(q,language,null,null).catch(()=>[]);
+          areas=geocoded.filter(item=>item.province||item.city||item.district).map((item,index)=>({
+            id:`geocode:${item.latitude}:${item.longitude}:${index}`,name:item.label,province:item.province,city:item.city,district:item.district,subdistrict:item.subdistrict,postalCode:item.postalCode,latitude:item.latitude,longitude:item.longitude,source:'local' as const,
+          }));
+        }
+        const seen=new Set<string>();
+        const unique=areas.filter(area=>{const key=[area.subdistrict,area.district,area.city,area.province,area.postalCode].join('|').toLocaleLowerCase('id');if(seen.has(key))return false;seen.add(key);return true}).slice(0,10);
+        if(active)setAreaSearchResults(unique);
       } catch {
-        if(active)setAreaSearchResults(searchIndonesianAreas(q));
+        if(active)setAreaSearchResults(searchIndonesianAreas(q).map(area=>({...area,source:'local' as const})));
       } finally {
         if(active)setSearchingArea(false);
       }
@@ -678,7 +710,7 @@ function ProfileForm({
       active = false;
       clearTimeout(timer);
     };
-  }, [areaSearchQuery]);
+  }, [areaSearchQuery,language]);
 
   const handleSelectArea = (item: AreaSearchResult) => {
     setShippingProvince(item.province);
