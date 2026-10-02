@@ -22,6 +22,12 @@ export type CollectionItem={
   verificationSource?:string|null;
   favorite?:boolean;
   listedQuantity?:number;
+  activeListingId?:string|null;
+  language?:string;
+  variant?:string;
+  printingCode?:string;
+  setCode?:string;
+  rarity?:string;
   card?:Card;
 };
 export type DeckEntry={cardId:string;quantity:number};
@@ -32,9 +38,10 @@ export type ListingItem={
   /** Condition and price belong to an individual card line in a multi-card listing. */
   condition?:string;
   unitAmount?:number;
+  card?:Card;
 };
 export type Listing={id:string;printingId:string;title:string;amount:number;currency:string;quantity:number;condition:string;type:string;seller:string;city:string;createdAt?:string;expiresAt?:string;card?:Card;language?:string;items?:ListingItem[];shippingOptionCount?:number};
-const catalogCardInput=z.object({code:z.string().trim().min(2).max(40),name:z.string().trim().min(1).max(140),color:z.string().trim().max(80),type:z.enum(['Leader','Character','Event']),cost:z.number().int().min(0).max(99),power:z.number().int().min(0).max(999999),rarity:z.string().trim().max(40),effect:z.string().max(4000),setCode:z.string().trim().max(40).optional(),language:z.enum(['EN','JP']).optional(),variant:z.string().trim().min(1).max(80).optional(),printingCode:z.string().trim().min(1).max(80).optional(),imageUrl:z.string().url().max(2048).optional()});
+const catalogCardInput=z.object({code:z.string().trim().min(2).max(40),name:z.string().trim().min(1).max(140),color:z.string().trim().max(80),type:z.enum(['Leader','Character','Event']),cost:z.number().int().min(0).max(99),power:z.number().int().min(0).max(999999),rarity:z.string().trim().max(40),effect:z.string().max(4000),setCode:z.string().trim().max(40).optional(),language:z.enum(['EN','JP']).optional(),variant:z.string().trim().min(1).max(80).optional(),printingCode:z.string().trim().min(1).max(80).optional(),imageUrl:z.string().max(2048).refine(value=>/^https?:\/\//i.test(value)||(value.startsWith('/')&&!value.startsWith('//'))).optional()});
 export const collectionInput=z.object({
   id:z.string().uuid().optional(),
   printingId:z.string().uuid(),
@@ -83,6 +90,7 @@ export const GRADING_PROVIDERS=[
   {id:'CGC',name:'CGC Cards',shortName:'CGC',hasSubgrades:true,website:'https://www.cgccards.com/certlookup/'},
   {id:'TAG',name:'TAG Grading',shortName:'TAG',hasSubgrades:true,website:'https://taggrading.com/verify'},
   {id:'ESG',name:'ESG Grading',shortName:'ESG',hasSubgrades:true,website:'https://esggrading.com/lookup'},
+  {id:'EGS',name:'Emporium Grading Service (EGS)',shortName:'EGS',hasSubgrades:true,website:'https://emporiumgrading.com/'},
   {id:'ARS',name:'ARS',shortName:'ARS',hasSubgrades:false,website:'https://ars-grading.com'},
   {id:'SGC',name:'SGC',shortName:'SGC',hasSubgrades:false,website:'https://gosgc.com/cert-code-lookup'},
 ] as const;
