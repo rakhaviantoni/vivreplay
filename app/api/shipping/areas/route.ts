@@ -55,54 +55,47 @@ export async function GET(request: Request) {
       return Response.json({ areas: [] });
     }
 
-    const key = process.env.BITESHIP_API_KEY;
-
-    if (key) {
-      try {
-        const res = await fetch(
-          `https://api.biteship.com/v1/maps/areas?countries=ID&input=${encodeURIComponent(query)}&type=single`,
-          {
-            headers: {
-              authorization: key,
-              'content-type': 'application/json',
-            },
-          }
-        );
-
-        if (res.ok) {
-          const data = (await res.json()) as { areas?: BiteshipAreaItem[] };
-          if (Array.isArray(data.areas) && data.areas.length > 0) {
-            const mapped: AreaSearchResult[] = data.areas.map(item => ({
-              id: item.id,
-              name: item.name,
-              province: item.administrative_division_level_1_name || '',
-              city: item.administrative_division_level_2_name || '',
-              district: item.administrative_division_level_3_name || '',
-              subdistrict: item.administrative_division_level_4_name || '',
-              postalCode: String(item.postal_code || ''),
-              latitude: Number(item.latitude) || -6.2088,
-              longitude: Number(item.longitude) || 106.8456,
-              source: 'biteship',
-            }));
-            return Response.json({ areas: mapped });
-          }
-        }
-      } catch {
-        // Fall back to local dataset
-      }
-    }
-
     const [photonResults, localResults] = await Promise.all([
       searchPhotonAreas(query).catch(() => []),
       Promise.resolve(searchIndonesianAreas(query).map(area=>({...area,source:'local' as const}))),
     ]);
     const seen = new Set<string>();
-    const areas = [...photonResults, ...localResults].filter(area => {
+    const areas = [...localResults, ...photonResults].filter(area => {
       const key = [area.subdistrict, area.district, area.city, area.province].join('|').toLocaleLowerCase('id');
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
     }).slice(0, 10);
+    if (areas.some(area => area.postalCode)) {
+      return Response.json({ areas }, { headers: { 'Cache-Control': 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400' } });
+    }
+
+    // Paid provider lookup is a last resort; cache identical misses to conserve Maps quota.
+    const key = process.env.BITESHIP_API_KEY;
+    if (key) {
+      try {
+        const res = await fetch(
+          `https://api.biteship.com/v1/maps/areas?countries=ID&input=${encodeURIComponent(query)}&type=single`,
+          { headers: { authorization: key, 'content-type': 'application/json' }, next: { revalidate: 86400 } }
+        );
+        if (res.ok) {
+          const data = (await res.json()) as { areas?: BiteshipAreaItem[] };
+          const mapped: AreaSearchResult[] = (data.areas ?? []).map(item => ({
+            id: item.id,
+            name: item.name,
+            province: item.administrative_division_level_1_name || '',
+            city: item.administrative_division_level_2_name || '',
+            district: item.administrative_division_level_3_name || '',
+            subdistrict: item.administrative_division_level_4_name || '',
+            postalCode: String(item.postal_code || ''),
+            latitude: typeof item.latitude === 'number' && Number.isFinite(item.latitude) ? item.latitude : undefined,
+            longitude: typeof item.longitude === 'number' && Number.isFinite(item.longitude) ? item.longitude : undefined,
+            source: 'biteship',
+          }));
+          if (mapped.length) return Response.json({ areas: mapped }, { headers: { 'Cache-Control': 'public, max-age=300, s-maxage=86400, stale-while-revalidate=604800' } });
+        }
+      } catch { /* Keep address entry available when the provider is down. */ }
+    }
     return Response.json({ areas }, { headers: { 'Cache-Control': 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400' } });
   } catch (error) {
     return Response.json({ error: (error as Error).message, areas: [] }, { status: 500 });

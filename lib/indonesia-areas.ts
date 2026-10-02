@@ -35,8 +35,8 @@ export interface AreaSearchResult {
   district: string;
   subdistrict: string;
   postalCode: string;
-  latitude: number;
-  longitude: number;
+  latitude?: number;
+  longitude?: number;
   source?: 'biteship'|'local';
 }
 

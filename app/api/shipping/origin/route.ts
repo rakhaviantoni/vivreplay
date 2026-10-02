@@ -1,4 +1,6 @@
 import {db,errorResponse,guard,user} from '@/lib/server/store';
+import {verifyTurnstile} from '@/lib/server/turnstile';
+import {isBiteshipAreaId} from '@/lib/shipping/biteship-area';
 
 export async function GET(request:Request){
   try{
@@ -37,6 +39,7 @@ export async function GET(request:Request){
     return Response.json({
       origin: {
         ...origin,
+        areaId:isBiteshipAreaId(origin.areaId)?origin.areaId:null,
         label: displayLabel,
         shippingMethods,
         regionNames,
@@ -47,27 +50,26 @@ export async function GET(request:Request){
 
 export async function POST(request:Request){
   try{
+    const rejected=await verifyTurnstile(request);if(rejected)return rejected;
     guard(request);const profile=await user();const input=await request.json() as Record<string,unknown>;
     const rawLabel=typeof input.label==='string'&&input.label.trim()?input.label.trim().slice(0,60):'Primary origin';
     const address=typeof input.addressLine==='string'?input.addressLine.trim().slice(0,260):'';
     const city=typeof input.city==='string'?input.city.trim().slice(0,80):'';
     const postalCode=typeof input.postalCode==='string'?input.postalCode.trim().slice(0,12):'';
-    if(!address||!city||!postalCode)return Response.json({error:'Address, city, and postal code are required.'},{status:400});
+    const areaId=typeof input.areaId==='string'&&isBiteshipAreaId(input.areaId)?input.areaId.trim():null;
+    if(!address||!city)return Response.json({error:'Street address and city are required.'},{status:400});
+    if(!/^\d{5}$/.test(postalCode)&&!areaId)return Response.json({error:'Choose a delivery area with a valid postal code.'},{status:400});
 
     const allowed = ['instant','regular','jnt','jne','sicepat','anteraja','tiki','pos','lion','ninja','wahana','grab','gojek'];
     const rawMethods = Array.isArray(input.shippingMethods) ? input.shippingMethods : [];
     const shippingMethods = rawMethods.filter((m: unknown): m is string => typeof m === 'string' && allowed.includes(m));
-    if(shippingMethods.length === 0){
-      return Response.json({error:'Please select at least one shipping method.'},{status:400});
-    }
-
     const label = JSON.stringify({
       label: rawLabel,
       methods: shippingMethods,
       regionNames: input.regions&&typeof input.regions==='object'?input.regions:undefined,
     });
 
-    await db().prepare(`INSERT INTO seller_shipping_origins (owner_id,label,recipient_name,phone,address_line,city,postal_code,area_id,latitude,longitude,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(owner_id) DO UPDATE SET label=excluded.label,recipient_name=excluded.recipient_name,phone=excluded.phone,address_line=excluded.address_line,city=excluded.city,postal_code=excluded.postal_code,area_id=excluded.area_id,latitude=excluded.latitude,longitude=excluded.longitude,updated_at=CURRENT_TIMESTAMP`).bind(profile.id,label,typeof input.recipientName==='string'?input.recipientName.trim().slice(0,100):null,typeof input.phone==='string'?input.phone.trim().slice(0,30):null,address,city,postalCode,typeof input.areaId==='string'?input.areaId.trim().slice(0,80):null,typeof input.latitude==='number'?input.latitude:null,typeof input.longitude==='number'?input.longitude:null).run();
+    await db().prepare(`INSERT INTO seller_shipping_origins (owner_id,label,recipient_name,phone,address_line,city,postal_code,area_id,latitude,longitude,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(owner_id) DO UPDATE SET label=excluded.label,recipient_name=excluded.recipient_name,phone=excluded.phone,address_line=excluded.address_line,city=excluded.city,postal_code=excluded.postal_code,area_id=excluded.area_id,latitude=excluded.latitude,longitude=excluded.longitude,updated_at=CURRENT_TIMESTAMP`).bind(profile.id,label,typeof input.recipientName==='string'?input.recipientName.trim().slice(0,100):null,typeof input.phone==='string'?input.phone.trim().slice(0,30):null,address,city,postalCode,areaId,typeof input.latitude==='number'?input.latitude:null,typeof input.longitude==='number'?input.longitude:null).run();
     return Response.json({ok:true, shippingMethods});
   }catch(error){return errorResponse(error)}
 }

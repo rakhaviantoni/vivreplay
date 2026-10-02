@@ -1,22 +1,25 @@
 import {z} from 'zod';
 import {db,errorResponse,guard,user,HttpError} from '@/lib/server/store';
 import {getCurrentUser} from '@/lib/server/auth';
-import {createAzekhaIntent,hasAzekhaPaymentConfig} from '@/lib/server/azekha-payments';
+import {hasIpaymuPaymentConfig} from '@/lib/server/ipaymu';
+import {verifyTurnstile} from '@/lib/server/turnstile';
+import {biteshipDestination,isBiteshipAreaId} from '@/lib/shipping/biteship-area';
 
 const schema=z.object({listingId:z.string().min(1),items:z.array(z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(99)})).min(1).max(30),courierName:z.string().min(1),courierServiceName:z.string().min(1)});
 type BundleEntry={instanceId?:string;printingId:string;quantity:number;condition?:string;unitAmount:number};
 type Rate={courier_name:string;courier_service_name:string;price:number};
 
 export async function GET(){
-  const available=process.env.VIVREPLAY_MARKET_CHECKOUT_ENABLED==='true'&&process.env.VIVREPLAY_MARKET_SELLER_OPERATIONS_READY==='true'&&hasAzekhaPaymentConfig()&&Boolean(process.env.BITESHIP_API_KEY?.trim());
+  const available=process.env.VIVREPLAY_MARKET_CHECKOUT_ENABLED==='true'&&process.env.VIVREPLAY_MARKET_SELLER_OPERATIONS_READY==='true'&&hasIpaymuPaymentConfig()&&Boolean(process.env.BITESHIP_API_KEY?.trim());
   return Response.json({available});
 }
 
 export async function POST(request:Request){
   try{
     guard(request);
-    if(process.env.VIVREPLAY_MARKET_CHECKOUT_ENABLED!=='true'||process.env.VIVREPLAY_MARKET_SELLER_OPERATIONS_READY!=='true')throw new HttpError(503,'Marketplace checkout is not available yet.');
-    if(!hasAzekhaPaymentConfig())throw new HttpError(503,'VivrePlay checkout is not configured yet.');
+    const rejected=await verifyTurnstile(request);if(rejected)return rejected;
+    if(process.env.VIVREPLAY_MARKET_CHECKOUT_ENABLED!=='true'||process.env.VIVREPLAY_MARKET_SELLER_OPERATIONS_READY!=='true')throw new HttpError(503,'Market checkout is not available yet.');
+    if(!hasIpaymuPaymentConfig())throw new HttpError(503,'Online payment is temporarily unavailable.');
     const profile=await user();
     const account=await getCurrentUser();
     if(!account?.email)throw new HttpError(401,'Sign in with an email address to continue.');
@@ -29,7 +32,7 @@ export async function POST(request:Request){
     if(listing.currency!=='IDR')throw new HttpError(400,'Checkout currently supports IDR listings only.');
 
     const address=await database.prepare('SELECT recipient_name AS recipientName,phone,address_line AS addressLine,city,postal_code AS postalCode,area_id AS areaId FROM seller_shipping_origins WHERE owner_id=?').bind(profile.id).first<{recipientName:string|null;phone:string|null;addressLine:string;city:string;postalCode:string;areaId:string|null}>();
-    if(!address?.addressLine||!address.city||!address.postalCode||!address.phone)throw new HttpError(400,'Save a delivery address, postal code, and mobile number in your profile before checkout.');
+    if(!address?.addressLine||!address.city||!address.phone||(!/^\d{5}$/.test(address.postalCode)&&!isBiteshipAreaId(address.areaId)))throw new HttpError(400,'Save a delivery address, valid postal code or delivery area, and mobile number in your profile before checkout.');
     const seller=await database.prepare('SELECT area_id AS areaId,postal_code AS postalCode,label FROM seller_shipping_origins WHERE owner_id=?').bind(listing.sellerId).first<{areaId:string|null;postalCode:string;label:string|null}>();
     if(!seller)throw new HttpError(400,'The seller has not set a shipping address.');
     let sellerMethods:string[]=[];
@@ -42,7 +45,10 @@ export async function POST(request:Request){
     let bundle:BundleEntry[];
     try{
       const parsed=listing.items?JSON.parse(listing.items) as BundleEntry[]:[];
-      bundle=parsed.length?parsed:[{instanceId:undefined,printingId:listing.printingId,quantity:listing.quantity,unitAmount:Math.round(listing.amount/listing.quantity)}];
+      const valid=parsed.filter(item=>typeof item.printingId==='string'&&item.printingId&&Number.isInteger(item.quantity)&&item.quantity>0);
+      const totalQuantity=valid.reduce((sum,item)=>sum+item.quantity,0)||listing.quantity;
+      const fallbackUnitAmount=Math.max(1,Math.floor(listing.amount/Math.max(1,totalQuantity)));
+      bundle=valid.length?valid.map(item=>({...item,unitAmount:Number.isSafeInteger(item.unitAmount)&&item.unitAmount>0?item.unitAmount:fallbackUnitAmount})): [{instanceId:undefined,printingId:listing.printingId,quantity:listing.quantity,unitAmount:Math.max(1,Math.round(listing.amount/listing.quantity))}];
     }catch{bundle=[{printingId:listing.printingId,quantity:listing.quantity,unitAmount:Math.round(listing.amount/listing.quantity)}]}
     const wanted=new Map<string,number>();
     for(const item of input.items)wanted.set(item.printingId,(wanted.get(item.printingId)??0)+item.quantity);
@@ -62,14 +68,18 @@ export async function POST(request:Request){
         const held=reserved?.quantity??0;
         const available=Math.max(0,entry.quantity-held);
         const take=Math.min(available,remaining);
-        if(take>0){orderItems.push({...entry,quantity:take});subtotal+=take*entry.unitAmount;remaining-=take;}
+        if(take>0){const unitAmount=Number.isSafeInteger(entry.unitAmount)&&entry.unitAmount>0?entry.unitAmount:Math.max(1,Math.round(listing.amount/listing.quantity));orderItems.push({...entry,quantity:take,unitAmount});subtotal+=take*unitAmount;remaining-=take;}
       }
       if(remaining>0)throw new HttpError(409,'Some selected cards are currently reserved by another checkout.');
     }
 
     const apiKey=process.env.BITESHIP_API_KEY;
     if(!apiKey)throw new HttpError(503,'Live shipping quotes are not configured yet.');
-    const quoteResponse=await fetch('https://api.biteship.com/v1/rates/couriers',{method:'POST',headers:{authorization:apiKey,'content-type':'application/json'},body:JSON.stringify({origin_area_id:seller.areaId||undefined,origin_postal_code:seller.areaId?undefined:Number(seller.postalCode),destination_area_id:address.areaId||undefined,destination_postal_code:address.areaId?undefined:Number(address.postalCode),couriers:couriers.join(','),items:[{name:listing.title,value:subtotal,length:18,width:13,height:2,weight:Math.max(100,orderItems.reduce((sum,item)=>sum+item.quantity,0)*100),quantity:orderItems.reduce((sum,item)=>sum+item.quantity,0)}]})});
+    const pickup=biteshipDestination(seller.postalCode,seller.areaId);
+    const dropoff=biteshipDestination(address.postalCode,isBiteshipAreaId(address.areaId)?address.areaId:null);
+    if(!pickup.areaId&&!pickup.postalCode)throw new HttpError(400,'The seller needs a valid 5-digit pickup postal code.');
+    if(!dropoff.areaId&&!dropoff.postalCode)throw new HttpError(400,'Save a valid 5-digit delivery postal code in your profile.');
+    const quoteResponse=await fetch('https://api.biteship.com/v1/rates/couriers',{method:'POST',headers:{authorization:apiKey,'content-type':'application/json'},body:JSON.stringify({origin_area_id:pickup.areaId,origin_postal_code:pickup.postalCode,destination_area_id:dropoff.areaId,destination_postal_code:dropoff.postalCode,couriers:couriers.join(','),items:[{name:listing.title,value:subtotal,length:18,width:13,height:2,weight:Math.max(100,orderItems.reduce((sum,item)=>sum+item.quantity,0)*100),quantity:orderItems.reduce((sum,item)=>sum+item.quantity,0)}]})});
     const quoteBody=await quoteResponse.json().catch(()=>null) as {pricing?:Rate[];message?:string;error?:{message?:string}}|null;
     if(!quoteResponse.ok)throw new HttpError(quoteResponse.status,quoteBody?.error?.message??quoteBody?.message??'Shipping rates could not be loaded.');
     const rate=(quoteBody?.pricing??[]).find(item=>item.courier_name===input.courierName&&item.courier_service_name===input.courierServiceName);
@@ -77,18 +87,9 @@ export async function POST(request:Request){
 
     const id=crypto.randomUUID();
     const amount=subtotal+rate.price;
-    const origin=new URL(request.url).origin;
     const expiresAt=new Date(Date.now()+24*60*60*1000).toISOString().replace('T',' ').slice(0,19);
     const shipping={recipientName:address.recipientName,addressLine:address.addressLine,city:address.city,postalCode:address.postalCode,phone:address.phone,courierName:rate.courier_name,courierServiceName:rate.courier_service_name};
     await database.prepare(`INSERT INTO checkout_orders (id,kind,buyer_id,seller_id,listing_id,items,details,subtotal,shipping_fee,amount,currency,status,expires_at) VALUES (?,'MARKET',?,?,?,?,?,?,?,?,?,'PENDING_PAYMENT',?)`).bind(id,profile.id,listing.sellerId,listing.id,JSON.stringify(orderItems),JSON.stringify(shipping),subtotal,rate.price,amount,'IDR',expiresAt).run();
-    let intent;
-    try{intent=await createAzekhaIntent({orderId:`vivreplay-market-${id}`,amount,customer:{name:address.recipientName||profile.display_name,email:account.email,mobile:address.phone},successUrl:`${origin}/checkout/order/${id}`,cancelUrl:`${origin}/market/${encodeURIComponent(listing.id)}`});}
-    catch(error){await database.prepare("UPDATE checkout_orders SET status='FAILED',updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT'").bind(id).run();throw error;}
-    if(intent.order_id!==`vivreplay-market-${id}`||intent.amount!==amount||intent.currency!=='IDR'){
-      await database.prepare("UPDATE checkout_orders SET status='FAILED',updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT'").bind(id).run();
-      throw new HttpError(502,'The payment service returned mismatched checkout details.');
-    }
-    await database.prepare("UPDATE checkout_orders SET payment_id=?,amount=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT'").bind(intent.payment_id,intent.amount,id).run();
-    return Response.json({id,checkoutUrl:`/checkout/order/${id}`,subtotal,shippingFee:rate.price,total:intent.amount},{status:201});
+    return Response.json({id,checkoutUrl:`/checkout/order/${id}`,subtotal,shippingFee:rate.price,total:amount},{status:201});
   }catch(error){return errorResponse(error)}
 }

@@ -1,5 +1,5 @@
 'use client';
-import {useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import Link from 'next/link';
 import {useRouter, useSearchParams} from 'next/navigation';
 import {
@@ -25,6 +25,8 @@ import {authClient} from '@/lib/auth-client';
 import {Picker} from './catalog';
 import {AccountStatus} from './status';
 import {MapPicker} from './map-picker';
+import {TurnstileField,turnstileEnabled,turnstileHeaders} from './turnstile-field';
+import {isBiteshipAreaId} from '@/lib/shipping/biteship-area';
 import {IntroCardRail} from './intro-card-rail';
 import {
   searchIndonesianAreas,
@@ -56,8 +58,7 @@ function normalizeRegionName(value:string){
 function matchRegion(options:RegionOption[],name:string){
   const query=normalizeRegionName(name);
   if(!query)return undefined;
-  return options.find(option=>normalizeRegionName(option.name)===query)
-    ?? options.find(option=>{const candidate=normalizeRegionName(option.name);return candidate.startsWith(query)||query.startsWith(candidate)});
+  return options.find(option=>normalizeRegionName(option.name)===query);
 }
 
 const COMMON_REGIONS = [
@@ -379,6 +380,8 @@ function ProfileForm({
   const [shippingLongitude, setShippingLongitude] = useState<number | null>(null);
   const [shippingMethods, setShippingMethods] = useState<string[]>([]);
   const [savingShipping, setSavingShipping] = useState(false);
+  const [turnstileToken,setTurnstileToken]=useState('');
+  const [turnstileResetKey,setTurnstileResetKey]=useState(0);
   const [provinces,setProvinces]=useState<RegionOption[]>([]);
   const [regionsLoading,setRegionsLoading]=useState(true);
   const [regionsError,setRegionsError]=useState(false);
@@ -390,6 +393,7 @@ function ProfileForm({
   const [showAddressDropdown,setShowAddressDropdown]=useState(false);
   const [activeAddressResult,setActiveAddressResult]=useState(0);
   const [mapFocusRevision,setMapFocusRevision]=useState(0);
+  const addressSelectionRevision=useRef(0);
 
   // Fast area search state
   const [areaSearchQuery, setAreaSearchQuery] = useState('');
@@ -448,11 +452,12 @@ function ProfileForm({
   },[shippingAddress,showAddressDropdown,shippingLatitude,shippingLongitude,language]);
 
   const selectAddress=async(result:GeocodeResult)=>{
+    const revision=++addressSelectionRevision.current;
     const typed=shippingAddress.trim();
     const locality=[result.subdistrict,result.district,result.city,result.province,result.postalCode].filter(Boolean);
     const additions=locality.filter(part=>!typed.toLowerCase().includes(part.toLowerCase()));
     setShippingAddress([typed,...additions].join(', ').slice(0,260));
-    if(result.postalCode)setShippingPostalCode(result.postalCode);
+    setShippingPostalCode(result.postalCode||'');
     setCities([]);setDistricts([]);setSubdistricts([]);
     setShippingAreaId(null);
     setShippingLatitude(result.latitude);setShippingLongitude(result.longitude);setMapFocusRevision(value=>value+1);
@@ -469,16 +474,19 @@ function ProfileForm({
       if(province){
         setShippingProvince(province.name);
         const cityOptions=await loadRegions('regencies',province);
+        if(revision!==addressSelectionRevision.current)return;
         setCities(cityOptions);
         const city=matchRegion(cityOptions,result.city);
         if(city){
           setShippingCity(city.name);
           const districtOptions=await loadRegions('districts',city);
+          if(revision!==addressSelectionRevision.current)return;
           setDistricts(districtOptions);
           const district=matchRegion(districtOptions,result.district);
           if(district){
             setShippingDistrict(district.name);
             const villageOptions=await loadRegions('villages',district);
+            if(revision!==addressSelectionRevision.current)return;
             setSubdistricts(villageOptions);
             const village=matchRegion(villageOptions,result.subdistrict);
             if(village)setShippingSubdistrict(village.name);
@@ -486,6 +494,7 @@ function ProfileForm({
         }
       }
     }catch{
+      if(revision!==addressSelectionRevision.current)return;
       // Use the geocoder labels; the administrative selectors can still be adjusted manually.
       if(result.province)setShippingProvince(result.province);
       if(result.city)setShippingCity(result.city);
@@ -499,17 +508,21 @@ function ProfileForm({
       if(result.subdistrict)setShippingSubdistrict(result.subdistrict);
     }
 
-    const areaQuery=result.subdistrict||result.district||result.city;
+    const areaQuery=[result.subdistrict,result.district,result.city,result.province].filter(Boolean).join(', ');
     if(areaQuery){
       try{
         const response=await fetch(`/api/shipping/areas?query=${encodeURIComponent(areaQuery)}`);
+        if(revision!==addressSelectionRevision.current)return;
         const payload=await response.json() as {areas?:AreaSearchResult[]};
         const areas=payload.areas??[];
-        const target=normalizeRegionName(result.subdistrict||'');
-        const area=areas.find(candidate=>target&&normalizeRegionName(candidate.subdistrict)===target)
-          ??areas.find(candidate=>normalizeRegionName(candidate.district)===normalizeRegionName(result.district)&&normalizeRegionName(candidate.city)===normalizeRegionName(result.city));
+        const matches=(candidate:string, expected:string)=>!expected||normalizeRegionName(candidate)===normalizeRegionName(expected);
+        const area=areas.find(candidate=>candidate.source==='biteship'
+          && matches(candidate.province,result.province)
+          && matches(candidate.city,result.city)
+          && matches(candidate.district,result.district)
+          && matches(candidate.subdistrict,result.subdistrict));
         if(area){
-          setShippingAreaId(area.source==='biteship'?area.id:null);
+          setShippingAreaId(area.id);
           setShippingProvince(area.province||province?.name||result.province);
           setShippingCity(area.city||result.city);
           setShippingDistrict(area.district||result.district);
@@ -574,7 +587,7 @@ function ProfileForm({
   // Fast area search effect
   useEffect(() => {
     const q = areaSearchQuery.trim();
-    if (q.length < 2) return;
+    if (q.length < 3) return;
     let active = true;
     setSearchingArea(true);
     const timer = setTimeout(async () => {
@@ -589,7 +602,7 @@ function ProfileForm({
       } finally {
         if(active)setSearchingArea(false);
       }
-    }, 200);
+    }, 400);
 
     return () => {
       active = false;
@@ -603,12 +616,10 @@ function ProfileForm({
     setShippingDistrict(item.district);
     setShippingSubdistrict(item.subdistrict);
     setCities([]);setDistricts([]);setSubdistricts([]);
-    if (item.postalCode) setShippingPostalCode(item.postalCode);
+    setShippingPostalCode(item.postalCode || '');
     setShippingAreaId(item.source==='biteship'?item.id:null);
-    if (item.latitude && item.longitude) {
-      setShippingLatitude(item.latitude);
-      setShippingLongitude(item.longitude);
-    }
+    setShippingLatitude(typeof item.latitude==='number'&&Number.isFinite(item.latitude)?item.latitude:null);
+    setShippingLongitude(typeof item.longitude==='number'&&Number.isFinite(item.longitude)?item.longitude:null);
     setShowAreaDropdown(false);
     setAreaSearchQuery('');
     toast.success(
@@ -625,8 +636,10 @@ function ProfileForm({
     setShippingSubdistrict('');
     setCities([]);setDistricts([]);setSubdistricts([]);
     setShippingAreaId(null);
+    setShippingPostalCode('');
     const selected=provinces.find(item=>item.name===prov);
-    if(selected?.latitude!=null&&selected.longitude!=null){setShippingLatitude(selected.latitude);setShippingLongitude(selected.longitude);}
+    setShippingLatitude(selected?.latitude??null);
+    setShippingLongitude(selected?.longitude??null);
   };
 
   const handleCityChange = (c: string) => {
@@ -635,8 +648,10 @@ function ProfileForm({
     setShippingSubdistrict('');
     setDistricts([]);setSubdistricts([]);
     setShippingAreaId(null);
+    setShippingPostalCode('');
     const selected=cities.find(item=>item.name===c);
-    if(selected?.latitude!=null&&selected.longitude!=null){setShippingLatitude(selected.latitude);setShippingLongitude(selected.longitude);}
+    setShippingLatitude(selected?.latitude??null);
+    setShippingLongitude(selected?.longitude??null);
   };
 
   const handleDistrictChange = (d: string) => {
@@ -644,17 +659,21 @@ function ProfileForm({
     setShippingSubdistrict('');
     setSubdistricts([]);
     setShippingAreaId(null);
+    setShippingPostalCode('');
     const selected=districts.find(item=>item.name===d);
     if(selected?.postalCode)setShippingPostalCode(selected.postalCode);
-    if(selected?.latitude!=null&&selected.longitude!=null){setShippingLatitude(selected.latitude);setShippingLongitude(selected.longitude);}
+    setShippingLatitude(selected?.latitude??null);
+    setShippingLongitude(selected?.longitude??null);
   };
 
   const handleSubdistrictChange = (s: string) => {
     setShippingSubdistrict(s);
     setShippingAreaId(null);
+    setShippingPostalCode('');
     const selected=subdistricts.find(item=>item.name===s);
     if(selected?.postalCode)setShippingPostalCode(selected.postalCode);
-    if(selected?.latitude!=null&&selected.longitude!=null){setShippingLatitude(selected.latitude);setShippingLongitude(selected.longitude);}
+    setShippingLatitude(selected?.latitude??null);
+    setShippingLongitude(selected?.longitude??null);
   };
 
   const handleLocaleChange=(newLocale:string)=>{
@@ -723,11 +742,14 @@ function ProfileForm({
 
   const saveShipping = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const activeCourierIds = shippingMethods.filter(id => BITESHIP_COURIERS.some(c => c.id === id));
-    if (activeCourierIds.length === 0) {
-      toast.error(t('Please select at least one courier or shipping method.', 'Pilih minimal satu kurir atau metode pengiriman.'));
+    if(turnstileEnabled&&!turnstileToken){toast.error(t('Complete the security check first.','Selesaikan pemeriksaan keamanan terlebih dahulu.'));return;}
+    const hasValidPostalCode=/^\d{5}$/.test(shippingPostalCode.trim());
+    const hasValidAreaId=isBiteshipAreaId(shippingAreaId);
+    if (!hasValidPostalCode&&!hasValidAreaId) {
+      toast.error(t('Choose a delivery area with a valid postal code.', 'Pilih wilayah pengiriman dengan kode pos yang valid.'));
       return;
     }
+    const activeCourierIds = shippingMethods.filter(id => BITESHIP_COURIERS.some(c => c.id === id));
     setSavingShipping(true);
     try{
       const payloadMethods = [...activeCourierIds];
@@ -748,7 +770,7 @@ function ProfileForm({
         shippingMethods: payloadMethods,
         regions:{province:shippingProvince,city:shippingCity,district:shippingDistrict,subdistrict:shippingSubdistrict},
         label: 'Primary origin',
-      }, 'POST');
+      }, 'POST',turnstileHeaders(turnstileToken));
       if (res.ok) {
         setShippingOrigin({
           ownerId: profile.id,
@@ -770,6 +792,7 @@ function ProfileForm({
     }catch(err){
       toast.error((err as Error).message);
     }finally{
+      setTurnstileToken('');setTurnstileResetKey(value=>value+1);
       setSavingShipping(false);
     }
   };
@@ -915,7 +938,7 @@ function ProfileForm({
 
             <div className="profile-section-header" style={{marginTop: '12px'}}>
               <h2>{t('Regional & Currency Preferences','Preferensi Regional & Mata Uang')}</h2>
-              <p>{t('Choose your preferred marketplace currency and website interface language.','Pilih mata uang transaksi pasar dan bahasa antarmuka situs.')}</p>
+              <p>{t('Choose your preferred Market currency and website interface language.','Pilih mata uang transaksi Market dan bahasa antarmuka situs.')}</p>
             </div>
 
             <div className="form-row">
@@ -975,7 +998,7 @@ function ProfileForm({
                 <strong>{t('Delivery & Shipping Address','Alamat Pengiriman')}</strong>
                 <p>
                   {t(
-                    'Saved address for calculating shipping rates at checkout and fulfilling marketplace orders.',
+                    'Saved address for calculating shipping rates at checkout and fulfilling Market orders.',
                     'Alamat tersimpan untuk menghitung ongkos kirim saat transaksi dan pengiriman kartu di Market.'
                   )}
                 </p>
@@ -1020,7 +1043,7 @@ function ProfileForm({
                     const value=e.target.value;
                     setAreaSearchQuery(value);
                     setAreaSearchResults([]);
-                    setSearchingArea(value.trim().length>=2);
+                    setSearchingArea(value.trim().length>=3);
                     setShowAreaDropdown(true);
                   }}
                   onFocus={() => {
@@ -1065,8 +1088,8 @@ function ProfileForm({
                   ))}
                 </div>
               )}
-              {showAreaDropdown && areaSearchQuery.trim().length >= 2 && searchingArea && <p className="shipping-area-feedback" role="status">{t('Searching Indonesian regions…','Mencari wilayah Indonesia…')}</p>}
-              {showAreaDropdown && areaSearchQuery.trim().length >= 2 && !searchingArea && areaSearchResults.length === 0 && <p className="shipping-area-feedback" role="status">{t('No matching area found. Try a village, district, or city name.','Wilayah tidak ditemukan. Coba nama kelurahan, kecamatan, atau kota.')}</p>}
+              {showAreaDropdown && areaSearchQuery.trim().length >= 3 && searchingArea && <p className="shipping-area-feedback" role="status">{t('Searching Indonesian regions…','Mencari wilayah Indonesia…')}</p>}
+              {showAreaDropdown && areaSearchQuery.trim().length >= 3 && !searchingArea && areaSearchResults.length === 0 && <p className="shipping-area-feedback" role="status">{t('No matching area found. Try a village, district, or city name.','Wilayah tidak ditemukan. Coba nama kelurahan, kecamatan, atau kota.')}</p>}
             </div>
 
             {/* Cascading Administrative Dropdowns */}
@@ -1145,11 +1168,13 @@ function ProfileForm({
                 <input
                   name="postalCode"
                   value={shippingPostalCode}
-                  onChange={e => setShippingPostalCode(e.target.value)}
+                  onChange={e => setShippingPostalCode(e.target.value.replace(/\D/g, '').slice(0, 5))}
                   placeholder="12190"
-                  maxLength={12}
-                  required
+                  inputMode="numeric"
+                  maxLength={5}
+                  required={!isBiteshipAreaId(shippingAreaId)}
                 />
+                {isBiteshipAreaId(shippingAreaId)&&!/^\d{5}$/.test(shippingPostalCode.trim())&&<small>{t('A verified delivery area is selected; postal code is optional.','Wilayah pengiriman terverifikasi; kode pos boleh dikosongkan.')}</small>}
               </label>
             </div>
 
@@ -1192,6 +1217,7 @@ function ProfileForm({
               onChange={coords => {
                 setShippingLatitude(coords.lat);
                 setShippingLongitude(coords.lng);
+                setShippingAreaId(null);
               }}
               language={language}
               focusRevision={mapFocusRevision}
@@ -1302,6 +1328,7 @@ function ProfileForm({
               </div>
             </div>
 
+            <TurnstileField onToken={setTurnstileToken} resetKey={turnstileResetKey}/>
             <button className="button" disabled={savingShipping} type="submit">
               <Save size={16}/>
               {savingShipping ? t('Saving...','Menyimpan...') : t('Save delivery settings','Simpan pengaturan pengiriman')}

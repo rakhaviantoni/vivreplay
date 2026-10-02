@@ -1,4 +1,5 @@
 import {db,errorResponse,HttpError,optionalUser} from '@/lib/server/store';
+import {biteshipDestination,isBiteshipAreaId} from '@/lib/shipping/biteship-area';
 
 type QuoteRequest={listingId?:unknown;destinationPostalCode?:unknown;destinationAreaId?:unknown;items?:unknown};
 export async function POST(request:Request){
@@ -13,7 +14,7 @@ export async function POST(request:Request){
       if(buyer){
         const address=await db().prepare('SELECT postal_code AS postalCode,area_id AS areaId FROM seller_shipping_origins WHERE owner_id=?').bind(buyer.id).first<{postalCode:string|null;areaId:string|null}>();
         destinationPostalCode=address?.postalCode??'';
-        destinationAreaId=address?.areaId??'';
+        destinationAreaId=isBiteshipAreaId(address?.areaId)?address.areaId:'';
       }
     }
     const row=await db().prepare(`SELECT l.title,l.amount,l.quantity,l.items AS itemsJson,l.printing_id AS printingId,o.area_id AS originAreaId,o.postal_code AS originPostalCode,o.label AS originLabel FROM listings l JOIN seller_shipping_origins o ON o.owner_id=l.seller_id WHERE l.id=? AND l.status='ACTIVE'`).bind(listingId).first<{title:string;amount:number;quantity:number;itemsJson:string|null;printingId:string;originAreaId:string|null;originPostalCode:string;originLabel:string|null}>();
@@ -22,7 +23,10 @@ export async function POST(request:Request){
     let listedItems:{printingId:string;quantity:number;unitAmount:number}[];
     try{
       const parsed=row.itemsJson?JSON.parse(row.itemsJson) as {printingId?:string;quantity?:number;unitAmount?:number}[]:[];
-      listedItems=parsed.length?parsed.map(item=>({printingId:String(item.printingId||''),quantity:Number(item.quantity)||0,unitAmount:Number(item.unitAmount)||0})).filter(item=>item.printingId&&item.quantity>0):[{printingId:row.printingId,quantity:row.quantity,unitAmount:Math.round(row.amount/row.quantity)}];
+      const valid=parsed.map(item=>({printingId:String(item.printingId||''),quantity:Number(item.quantity)||0,unitAmount:Number(item.unitAmount)||0})).filter(item=>item.printingId&&item.quantity>0);
+      const totalQuantity=valid.reduce((sum,item)=>sum+item.quantity,0)||row.quantity;
+      const fallbackUnitAmount=Math.max(1,Math.floor(row.amount/Math.max(1,totalQuantity)));
+      listedItems=valid.length?valid.map(item=>({...item,unitAmount:item.unitAmount>0?item.unitAmount:fallbackUnitAmount})):[{printingId:row.printingId,quantity:row.quantity,unitAmount:Math.max(1,Math.round(row.amount/row.quantity))}];
     }catch{listedItems=[{printingId:row.printingId,quantity:row.quantity,unitAmount:Math.round(row.amount/row.quantity)}]}
     const requested=Array.isArray(body.items)?body.items as {printingId?:unknown;quantity?:unknown}[]:[];
     let selectedItems=listedItems;
@@ -75,7 +79,11 @@ export async function POST(request:Request){
       throw new HttpError(503,'Live shipping rates are temporarily unavailable.');
     }
 
-    const payload={origin_area_id:row.originAreaId||undefined,origin_postal_code:row.originAreaId?undefined:Number(row.originPostalCode),destination_area_id:destinationAreaId||undefined,destination_postal_code:destinationAreaId?undefined:Number(destinationPostalCode),couriers:finalCouriers.join(','),items:[{name:row.title,value:declaredValue,length:18,width:13,height:2,weight:Math.max(100,totalQuantity*100),quantity:totalQuantity}]};
+    const origin=biteshipDestination(row.originPostalCode,row.originAreaId);
+    const destination=biteshipDestination(destinationPostalCode,destinationAreaId);
+    if(!origin.areaId&&!origin.postalCode)throw new HttpError(400,'The seller needs a valid 5-digit pickup postal code.');
+    if(!destination.areaId&&!destination.postalCode)throw new HttpError(400,'Choose a delivery area with a valid 5-digit postal code.');
+    const payload={origin_area_id:origin.areaId,origin_postal_code:origin.postalCode,destination_area_id:destination.areaId,destination_postal_code:destination.postalCode,couriers:finalCouriers.join(','),items:[{name:row.title,value:declaredValue,length:18,width:13,height:2,weight:Math.max(100,totalQuantity*100),quantity:totalQuantity}]};
     const response=await fetch('https://api.biteship.com/v1/rates/couriers',{method:'POST',headers:{authorization:key,'content-type':'application/json'},body:JSON.stringify(payload)});
     const data=await response.json().catch(()=>null) as {pricing?:unknown;error?:{message?:string};message?:string}|null;
     if(!response.ok)throw new HttpError(response.status,data?.error?.message??data?.message??'Shipping quotes could not be loaded.');
