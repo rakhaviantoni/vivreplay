@@ -441,8 +441,14 @@ function ProfileForm({
   const [regionsLoading,setRegionsLoading]=useState(true);
   const [regionsError,setRegionsError]=useState(false);
   const [cities,setCities]=useState<RegionOption[]>([]);
+  const [citiesLoading,setCitiesLoading]=useState(false);
+  const [citiesError,setCitiesError]=useState(false);
   const [districts,setDistricts]=useState<RegionOption[]>([]);
+  const [districtsLoading,setDistrictsLoading]=useState(false);
+  const [districtsError,setDistrictsError]=useState(false);
   const [subdistricts,setSubdistricts]=useState<RegionOption[]>([]);
+  const [subdistrictsLoading,setSubdistrictsLoading]=useState(false);
+  const [subdistrictsError,setSubdistrictsError]=useState(false);
   const [geocodeResults,setGeocodeResults]=useState<GeocodeResult[]>([]);
   const [searchingAddress,setSearchingAddress]=useState(false);
   const [showAddressDropdown,setShowAddressDropdown]=useState(false);
@@ -479,21 +485,27 @@ function ProfileForm({
 
   useEffect(()=>{
     if(!shippingProvince)return;
-      const selected=matchRegion(provinces,shippingProvince);
+    const selected=matchRegion(provinces,shippingProvince);
     if(!selected)return;
-    let active=true;void loadShippingRegions('regencies',selected.id).then(items=>{if(active)setCities(items)}).catch(()=>{});return()=>{active=false};
+    let active=true;setCitiesLoading(true);setCitiesError(false);
+    void loadShippingRegions('regencies',selected.id).then(items=>{if(active){setCities(items);setCitiesError(items.length===0)}}).catch(()=>{if(active){setCities([]);setCitiesError(true)}}).finally(()=>{if(active)setCitiesLoading(false)});
+    return()=>{active=false};
   },[shippingProvince,provinces]);
   useEffect(()=>{
     if(!shippingCity)return;
     const selected=matchRegion(cities,shippingCity);
     if(!selected)return;
-    let active=true;void loadShippingRegions('districts',selected.id).then(items=>{if(active)setDistricts(items)}).catch(()=>{});return()=>{active=false};
+    let active=true;setDistrictsLoading(true);setDistrictsError(false);
+    void loadShippingRegions('districts',selected.id).then(items=>{if(active){setDistricts(items);setDistrictsError(items.length===0)}}).catch(()=>{if(active){setDistricts([]);setDistrictsError(true)}}).finally(()=>{if(active)setDistrictsLoading(false)});
+    return()=>{active=false};
   },[shippingCity,cities]);
   useEffect(()=>{
     if(!shippingDistrict)return;
     const selected=matchRegion(districts,shippingDistrict);
     if(!selected)return;
-    let active=true;void loadShippingRegions('villages',selected.id).then(items=>{if(active)setSubdistricts(items)}).catch(()=>{});return()=>{active=false};
+    let active=true;setSubdistrictsLoading(true);setSubdistrictsError(false);
+    void loadShippingRegions('villages',selected.id).then(items=>{if(active){setSubdistricts(items);setSubdistrictsError(items.length===0)}}).catch(()=>{if(active){setSubdistricts([]);setSubdistrictsError(true)}}).finally(()=>{if(active)setSubdistrictsLoading(false)});
+    return()=>{active=false};
   },[shippingDistrict,districts]);
 
   useEffect(()=>{
@@ -514,6 +526,7 @@ function ProfileForm({
     setShippingAddress([typed,...additions].join(', ').slice(0,260));
     setShippingPostalCode(result.postalCode||'');
     setCities([]);setDistricts([]);setSubdistricts([]);
+    setCitiesError(false);setDistrictsError(false);setSubdistrictsError(false);
     setShippingAreaId(null);
     setShippingLatitude(result.latitude);setShippingLongitude(result.longitude);setMapFocusRevision(value=>value+1);
     setShowAddressDropdown(false);setGeocodeResults([]);
@@ -673,6 +686,7 @@ function ProfileForm({
     setShippingDistrict(item.district);
     setShippingSubdistrict(item.subdistrict);
     setCities([]);setDistricts([]);setSubdistricts([]);
+    setCitiesError(false);setDistrictsError(false);setSubdistrictsError(false);
     setShippingPostalCode(item.postalCode || '');
     setShippingAreaId(item.source==='biteship'?item.id:null);
     setShippingLatitude(typeof item.latitude==='number'&&Number.isFinite(item.latitude)?item.latitude:null);
@@ -692,6 +706,7 @@ function ProfileForm({
     setShippingDistrict('');
     setShippingSubdistrict('');
     setCities([]);setDistricts([]);setSubdistricts([]);
+    setCitiesError(false);setDistrictsError(false);setSubdistrictsError(false);
     setShippingAreaId(null);
     setShippingPostalCode('');
     const selected=provinces.find(item=>item.name===prov);
@@ -704,6 +719,7 @@ function ProfileForm({
     setShippingDistrict('');
     setShippingSubdistrict('');
     setDistricts([]);setSubdistricts([]);
+    setDistrictsError(false);setSubdistrictsError(false);
     setShippingAreaId(null);
     setShippingPostalCode('');
     const selected=cities.find(item=>item.name===c);
@@ -725,6 +741,7 @@ function ProfileForm({
 
   const handleSubdistrictChange = (s: string) => {
     setShippingSubdistrict(s);
+    setSubdistrictsError(false);
     setShippingAreaId(null);
     setShippingPostalCode('');
     const selected=subdistricts.find(item=>item.name===s);
@@ -1174,6 +1191,8 @@ function ProfileForm({
                     <option value={shippingCity}>{shippingCity}</option>
                   )}
                 </select>
+                {citiesLoading&&<small className="shipping-region-note">{t('Loading cities…','Memuat kota…')}</small>}
+                {citiesError&&<small className="shipping-region-note">{t('Could not load cities. Try the area search above.','Kota gagal dimuat. Coba pencarian wilayah di atas.')}</small>}
               </label>
 
               <label>
@@ -1187,10 +1206,12 @@ function ProfileForm({
                   {districts.map(d => (
                     <option key={d.id} value={d.name}>{d.name}</option>
                   ))}
-                  {shippingDistrict && !districts.some(d => d.name === shippingDistrict) && (
-                    <option value={shippingDistrict}>{shippingDistrict}</option>
-                  )}
+                {shippingDistrict && !districts.some(d => d.name === shippingDistrict) && (
+                  <option value={shippingDistrict}>{shippingDistrict}</option>
+                )}
                 </select>
+                {districtsLoading&&<small className="shipping-region-note">{t('Loading districts…','Memuat kecamatan…')}</small>}
+                {districtsError&&<small className="shipping-region-note">{t('Could not load districts. Try the area search above.','Kecamatan gagal dimuat. Coba pencarian wilayah di atas.')}</small>}
               </label>
 
               <label>
@@ -1204,10 +1225,12 @@ function ProfileForm({
                   {subdistricts.map(s => (
                     <option key={s.id} value={s.name}>{s.name}{s.postalCode?` (${s.postalCode})`:''}</option>
                   ))}
-                  {shippingSubdistrict && !subdistricts.some(s => s.name === shippingSubdistrict) && (
-                    <option value={shippingSubdistrict}>{shippingSubdistrict}</option>
-                  )}
+                {shippingSubdistrict && !subdistricts.some(s => s.name === shippingSubdistrict) && (
+                  <option value={shippingSubdistrict}>{shippingSubdistrict}</option>
+                )}
                 </select>
+                {subdistrictsLoading&&<small className="shipping-region-note">{t('Loading sub-districts…','Memuat kelurahan/desa…')}</small>}
+                {subdistrictsError&&<small className="shipping-region-note">{t('Could not load sub-districts. Try the area search above.','Kelurahan/desa gagal dimuat. Coba pencarian wilayah di atas.')}</small>}
               </label>
             </div>
 
