@@ -34,6 +34,10 @@ export async function GET(request:Request){
   const path=level==='provinces'?'/provinces.json':level==='regencies'&&validId(parent)?`/regencies/${parent}.json`:level==='districts'&&validId(parent)?`/districts/${parent}.json`:level==='villages'&&validId(parent)?`/villages/${parent}.json`:null;
   const legacyPath=level==='provinces'?'/provinces.json':level==='regencies'&&/^\d+$/.test(parent)?`/regencies/${parent}.json`:level==='districts'&&/^\d+$/.test(parent)?`/districts/${parent}.json`:level==='villages'&&/^\d+$/.test(parent)?`/villages/${parent}.json`:null;
   if(!path)return Response.json({error:'Choose a valid administrative region.',items:[]},{status:400});
+  if(level==='provinces'){
+    const items=LOCAL_PROVINCES.map(([id,name])=>({id,name,postalCode:null,latitude:null,longitude:null}));
+    return Response.json({items},{headers:{'Cache-Control':'public, max-age=86400, s-maxage=604800'}});
+  }
 
   try{
     let rows:RegionRow[];
@@ -46,11 +50,6 @@ export async function GET(request:Request){
     const items=rows.map(row=>({id:String(row.id),name:row.name,postalCode:row.postal_code?String(row.postal_code):null,latitude:row.latitude??null,longitude:row.longitude??null}));
     return Response.json({items},{headers:{'Cache-Control':'public, max-age=86400, s-maxage=604800, stale-while-revalidate=2592000'}});
   }catch{
-    // Keep province/city choices available even when both upstreams are down.
-    if(level==='provinces'){
-      const items=LOCAL_PROVINCES.map(([id,name])=>({id,name,postalCode:null,latitude:null,longitude:null}));
-      return Response.json({items},{headers:{'Cache-Control':'public, max-age=86400, s-maxage=604800'}});
-    }
     return Response.json({error:'Administrative regions are temporarily unavailable.',items:[]},{status:503,headers:{'Cache-Control':'public, max-age=300'}});
   }
 }
