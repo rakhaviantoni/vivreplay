@@ -53,7 +53,10 @@ type RegionOption={id:string;name:string;postalCode?:string|null;latitude?:numbe
 type GeocodeResult={label:string;latitude:number;longitude:number;postalCode:string;district:string;subdistrict:string;city:string;province:string;type:string};
 
 function normalizeRegionName(value:string){
-  return value.toLocaleLowerCase('id').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/^(provinsi|province|kota administrasi|kabupaten administrasi|kabupaten|kota|kab\.?|kec\.?|kecamatan)\s+/,'').replace(/[^a-z0-9]+/g,' ').trim();
+  const normalized=value.toLocaleLowerCase('id').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/^(provinsi|province|kota administrasi|kabupaten administrasi|kabupaten|kota|kab\.?|kec\.?|kecamatan)\s+/,'').replace(/[^a-z0-9]+/g,' ').trim();
+  if(normalized==='dki jakarta'||normalized==='daerah khusus ibukota jakarta')return 'jakarta';
+  if(normalized==='di yogyakarta'||normalized==='daerah istimewa yogyakarta')return 'yogyakarta';
+  return normalized;
 }
 function matchRegion(options:RegionOption[],name:string){
   const query=normalizeRegionName(name);
@@ -1185,7 +1188,7 @@ function ProfileForm({
                   else if(event.key==='Enter'){event.preventDefault();void selectAddress(geocodeResults[activeAddressResult]??geocodeResults[0])}
                   else if(event.key==='Escape'){setShowAddressDropdown(false);setGeocodeResults([])}
                 }}
-                placeholder={t('Search a building or full address, e.g. Apartemen Mediterania Palace Residences Tower B','Cari gedung atau alamat lengkap, mis. Apartemen Mediterania Palace Residences Tower B')}
+                placeholder={t('Street, building, or landmark','Jalan, gedung, atau patokan')}
                 maxLength={260}
                 autoComplete="street-address"
                 role="combobox"
@@ -1197,7 +1200,7 @@ function ProfileForm({
               />
               {showAddressDropdown&&shippingAddress.trim().length>=4&&<div id="shipping-address-results" className="shipping-address-results" role="listbox" aria-label={t('Address search results','Hasil pencarian alamat')}>
                 {searchingAddress&&<div className="shipping-address-result-hint">{t('Searching addresses…','Mencari alamat…')}</div>}
-                {!searchingAddress&&geocodeResults.length===0&&<div className="shipping-address-result-hint">{t('No mapped address found. You can still place the pin manually.','Alamat tidak ditemukan. Anda tetap bisa menentukan pin secara manual.')}</div>}
+                {!searchingAddress&&geocodeResults.length===0&&<div className="shipping-address-result-hint">{t('Not listed? Keep your address and place the pin on the map.','Alamat tidak muncul? Simpan teks alamat dan letakkan pin di peta.')}</div>}
                 {geocodeResults.map((result,index)=><button id={`shipping-address-result-${index}`} type="button" key={`${result.latitude}:${result.longitude}:${index}`} className="shipping-address-result" role="option" aria-selected={activeAddressResult===index} onMouseDown={event=>event.preventDefault()} onMouseEnter={()=>setActiveAddressResult(index)} onClick={()=>void selectAddress(result)}><MapPin size={16}/><span>{result.label}</span></button>)}
               </div>}
             </label>
