@@ -965,21 +965,13 @@ function ProfileForm({
               </label>
             </div>
 
-            <p className="notice">
-              {t(
-                'Language preference is saved across your browser and profile. Original seller prices remain visible; FX conversion awaits a verified rate source.',
-                'Preferensi bahasa disimpan di peramban dan profil Anda. Harga asli penjual tetap ditampilkan; konversi valuta akan segera hadir.'
-              )}
-            </p>
-
             <div className="privacy-note">
               <ShieldCheck size={20}/>
               <div>
-                <strong>{t('Your collection, your choice.','Koleksi Anda, kendali Anda.')}</strong>
                 <p>
                   {t(
-                    'Set each collectible’s visibility in Vault. Your purchase costs and portfolio value are never published automatically.',
-                    'Atur privasi tiap koleksi di Vault. Biaya pembelian dan nilai portofolio Anda tidak pernah dipublikasikan otomatis.'
+                    'Vault details and purchase costs stay private unless you choose to share them.',
+                    'Detail Vault dan biaya pembelian tetap privat kecuali Anda memilih untuk membagikannya.'
                   )}
                 </p>
               </div>
