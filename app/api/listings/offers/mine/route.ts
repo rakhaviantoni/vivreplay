@@ -1,4 +1,4 @@
-import {db,user} from '@/lib/server/store';
+import {db,errorResponse,HttpError,user} from '@/lib/server/store';
 
 type OfferRow={id:string;threadId:string;parentOfferId:string|null;listingId:string;actorId:string;listingSellerId:string;type:string;items:string;amount:number;currency:string;status:string;createdAt:string;listingTitle:string;listingType:string;actorName:string|null;sellerName:string|null;counterparty:string|null};
 type OfferItem={printingId:string;quantity:number;unitAmount?:number;card?:{name:string;code:string;language:string;variant:string;imageUrl:string|null}};
@@ -17,6 +17,7 @@ export async function GET(){
     }
     return Response.json({offers:parsed.map(({offer,items})=>({id:offer.id,threadId:offer.threadId,parentOfferId:offer.parentOfferId,listingId:offer.listingId,listingTitle:offer.listingTitle,listingType:offer.listingType,direction:offer.actorId===profile.id?'sent':'received',counterparty:offer.counterparty,type:offer.type,status:offer.status,items:items.map(item=>({...item,card:cards.get(item.printingId)})),amount:offer.amount,currency:offer.currency,createdAt:offer.createdAt}))},{headers:{'Cache-Control':'private, no-store'}});
   }catch(error){
+    if(error instanceof HttpError)return errorResponse(error);
     if(error instanceof Error)console.error('market_offers_load_failed',error.message);
     return Response.json({error:'Your offers could not be loaded. Please try again.'},{status:500,headers:{'Cache-Control':'private, no-store'}});
   }
