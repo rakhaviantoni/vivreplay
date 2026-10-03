@@ -17,6 +17,9 @@ import {
   MagnifyingGlassIcon as Search,
   SquaresFourIcon as Grid,
   UserIcon as UserRound,
+  CaretDownIcon as CaretDown,
+  ClipboardTextIcon as ClipboardText,
+  ShoppingBagIcon as OrdersIcon,
   StorefrontIcon as Store,
   SunIcon as Sun,
   TrashIcon as Trash,
@@ -38,6 +41,10 @@ import {VivreMark} from './brand-assets';
 import {MarketTimestamp} from './market-timestamp';
 import {ShippingOptions} from './market-listing-items';
 import {Dialog,DialogContent,DialogDescription,DialogTitle} from '@/components/ui/dialog';
+import {DropdownMenu,DropdownMenuContent,DropdownMenuItem,DropdownMenuLabel,DropdownMenuSeparator,DropdownMenuTrigger} from '@/components/ui/dropdown-menu';
+import {ListingsTab} from './vault/tabs/listings-tab';
+import {OrdersTab} from './vault/tabs/orders-tab';
+import '@/app/market-account.css';
 import {isPlayableSet} from '@/packages/domain/release-availability';
 
 type MarketBenchmark={amount:number;currency:string;url:string|null;observedAt:string;confidence:string;normalizedAmount:number|null;normalizedCurrency:string|null};
@@ -392,6 +399,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
   const [saveError,setSaveError]=useState('');
   const [theme,setTheme]=useState<'light'|'dark'>('light');
   const [locale,setLocale]=useState<'EN'|'ID'>('EN');
+  const [accountPanel,setAccountPanel]=useState<'market'|'orders'|null>(null);
 
   // Bundle & Card Listing Draft State
   const [bundleCards,setBundleCards]=useState<ListingBundleCard[]>([]);
@@ -839,12 +847,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
           {locale==='ID'?'Vault saya':'Vault'}
         </Link>
         {data && (
-          <Link href="/profile" className="market-store-profile" aria-label={locale === 'ID' ? 'Buka profil saya' : 'Open my profile'}>
-            <div className="market-profile-avatar">
-              {data.profile.display_name?.charAt(0).toUpperCase() || data.profile.username?.charAt(0).toUpperCase() || <ArrowRight size={15}/>}
-            </div>
-            <span className="market-profile-name">{data.profile.display_name || `@${data.profile.username}`}</span>
-          </Link>
+          <DropdownMenu><DropdownMenuTrigger asChild><button type="button" className="market-account-trigger" aria-label={locale==='ID'?'Buka menu akun':'Open account menu'}><span className="market-account-avatar">{data.profile.display_name?.slice(0,1).toUpperCase()||data.profile.username?.slice(0,1).toUpperCase()||'V'}</span><span className="market-account-trigger-name">{data.profile.display_name||`@${data.profile.username}`}</span><CaretDown size={14}/></button></DropdownMenuTrigger><DropdownMenuContent align="end" className="market-account-menu"><DropdownMenuLabel>{data.profile.display_name||`@${data.profile.username}`}</DropdownMenuLabel><DropdownMenuSeparator/><DropdownMenuItem onSelect={()=>setAccountPanel('market')}><ClipboardText size={16}/>{locale==='ID'?'Listing & penawaran':'Listings & offers'}</DropdownMenuItem><DropdownMenuItem onSelect={()=>setAccountPanel('orders')}><OrdersIcon size={16}/>{locale==='ID'?'Pesanan':'Orders'}</DropdownMenuItem><DropdownMenuItem asChild><Link href="/profile"><UserRound size={16}/>{locale==='ID'?'Profil':'Profile'}</Link></DropdownMenuItem></DropdownMenuContent></DropdownMenu>
         )}
         <button className="market-store-locale locale-toggle" type="button" onClick={toggleLocale} aria-label={locale==='ID'?'Ganti bahasa':'Switch language'}>
           {locale}
@@ -1551,6 +1554,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
           onSaved={afterVaultSave}
         />
       )}
+      {data&&<Dialog open={Boolean(accountPanel)} onOpenChange={open=>{if(!open)setAccountPanel(null)}}><DialogContent className="market-account-dialog"><DialogTitle>{accountPanel==='orders'?(locale==='ID'?'Pesanan Market':'Market orders'):(locale==='ID'?'Listing & penawaran':'Listings & offers')}</DialogTitle><div className="market-account-dialog-tabs" role="tablist"><button type="button" role="tab" aria-selected={accountPanel==='market'} className={accountPanel==='market'?'is-active':''} onClick={()=>setAccountPanel('market')}>{locale==='ID'?'Listing & penawaran':'Listings & offers'}</button><button type="button" role="tab" aria-selected={accountPanel==='orders'} className={accountPanel==='orders'?'is-active':''} onClick={()=>setAccountPanel('orders')}>{locale==='ID'?'Pesanan':'Orders'}</button></div><div className="market-account-dialog-body">{accountPanel==='orders'?<OrdersTab language={locale}/>:<ListingsTab language={locale}/>}</div></DialogContent></Dialog>}
     </main>
   );
 }
