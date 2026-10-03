@@ -14,3 +14,19 @@
 html[data-theme='dark'] .market-account-trigger{background:#0c1d27;border-color:#29444f;color:#eff8f2}html[data-theme='dark'] .market-account-menu,html[data-theme='dark'] .market-account-dialog,html[data-theme='dark'] .market-offer-conversation{background:#0b1d27!important;border-color:#29444f!important;color:#eff8f2!important}
 @media(max-width:760px){.market-account-trigger{width:38px;justify-content:center;padding:3px}.market-account-trigger-name,.market-account-trigger>svg:last-child{display:none}.market-account-dialog{width:calc(100vw - 16px)!important;max-height:calc(100dvh - 16px)!important;padding:14px!important}.market-account-dialog-tabs button{flex:1;padding-inline:8px}.market-account-dialog-body .vault-listing-row,.market-account-dialog-body .vault-offer-row{grid-template-columns:minmax(0,1fr)!important}.vault-listings-load-error{align-items:flex-start;flex-direction:column}}
 @media(max-width:620px){.market-offer-conversation{width:calc(100vw - 14px)!important;max-height:calc(100dvh - 14px)!important;padding:16px!important}.market-offer-response-actions button{flex:1}.market-offer-compose-actions .is-send{margin-left:0}.market-offer-message{max-width:94%}.vault-offer-row{grid-template-columns:68px minmax(0,1fr);gap:9px}.vault-offer-row>.vault-listing-price,.vault-offer-row>.vault-offer-open{grid-column:2;justify-self:start}.vault-offer-row>.vault-listing-price{grid-row:2}.vault-listing-main p{overflow-wrap:anywhere}}
+
+/* Market account popover: keep the portal surface independent of generic menu theme styles. */
+.market-account-menu[data-slot='dropdown-menu-content']{z-index:1200!important;display:grid;gap:3px;min-width:248px!important;padding:7px!important;border:1px solid var(--line)!important;border-radius:12px!important;background:var(--surface-raised)!important;color:var(--ink)!important;box-shadow:0 16px 40px rgb(20 27 24 / .18)!important;font-family:var(--game-font)}
+.market-account-menu [data-slot='dropdown-menu-label']{display:grid;gap:3px;padding:9px 10px 10px;color:var(--ink)}
+.market-account-menu-name{overflow:hidden;font-size:13px;font-weight:780;text-overflow:ellipsis;white-space:nowrap}
+.market-account-menu-handle{overflow:hidden;color:var(--muted);font-size:11px;font-weight:550;text-overflow:ellipsis;white-space:nowrap}
+.market-account-menu [data-slot='dropdown-menu-separator']{height:1px;margin:2px 3px 5px;background:var(--line)}
+.market-account-menu [data-slot='dropdown-menu-item']{display:flex;min-height:40px;align-items:center;gap:10px;padding:0 10px;border-radius:7px;color:var(--ink);font:650 12px var(--game-font);text-decoration:none;cursor:pointer;transition:background-color .16s ease,color .16s ease}
+.market-account-menu [data-slot='dropdown-menu-item'] svg{width:16px;height:16px;color:var(--muted)}
+.market-account-menu [data-slot='dropdown-menu-item']:focus,.market-account-menu [data-slot='dropdown-menu-item'][data-highlighted]{outline:none;background:color-mix(in srgb,var(--accent) 12%,var(--surface-raised));color:var(--ink)}
+.market-account-menu [data-slot='dropdown-menu-item']:focus svg,.market-account-menu [data-slot='dropdown-menu-item'][data-highlighted] svg{color:var(--accent)}
+html[data-theme='dark'] .market-account-menu[data-slot='dropdown-menu-content']{border-color:#29444f!important;background:#0b1d27!important;color:#eff8f2!important;box-shadow:0 18px 46px rgb(0 0 0 / .4)!important}
+html[data-theme='dark'] .market-account-menu [data-slot='dropdown-menu-label'],html[data-theme='dark'] .market-account-menu [data-slot='dropdown-menu-item']{color:#eff8f2}
+html[data-theme='dark'] .market-account-menu-handle,html[data-theme='dark'] .market-account-menu [data-slot='dropdown-menu-item'] svg{color:#99adb4}
+html[data-theme='dark'] .market-account-menu [data-slot='dropdown-menu-separator']{background:#29444f}
+@media(prefers-reduced-motion:reduce){.market-account-menu [data-slot='dropdown-menu-item']{transition:none}}

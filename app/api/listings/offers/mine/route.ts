@@ -1,4 +1,4 @@
-import {db,errorResponse,user} from '@/lib/server/store';
+import {db,user} from '@/lib/server/store';
 
 type OfferRow={id:string;threadId:string;parentOfferId:string|null;listingId:string;actorId:string;listingSellerId:string;type:string;items:string;amount:number;currency:string;status:string;createdAt:string;listingTitle:string;listingType:string;actorName:string|null;sellerName:string|null;counterparty:string|null};
 type OfferItem={printingId:string;quantity:number;unitAmount?:number;card?:{name:string;code:string;language:string;variant:string;imageUrl:string|null}};
@@ -12,9 +12,12 @@ export async function GET(){
     const cards=new Map<string,NonNullable<OfferItem['card']>>();
     for(let offset=0;offset<ids.length;offset+=80){
       const chunk=ids.slice(offset,offset+80);if(!chunk.length)continue;
-      const rows=(await db().prepare(`SELECT p.id AS printingId,p.printing_code AS printingCode,p.language,p.variant,p.card_image_url AS imageUrl,i.code,i.name FROM card_printings p LEFT JOIN card_identities i ON i.id=p.identity_id WHERE p.id IN (${chunk.map(()=>'?').join(',')})`).bind(...chunk).all<{printingId:string;printingCode:string|null;language:string;variant:string|null;imageUrl:string|null;code:string|null;name:string|null}>()).results;
+      const rows=(await db().prepare(`SELECT p.id AS printingId,p.printing_code AS printingCode,p.language,p.variant,p.image_url AS imageUrl,i.code,i.name FROM card_printings p LEFT JOIN card_identities i ON i.id=p.identity_id WHERE p.id IN (${chunk.map(()=>'?').join(',')})`).bind(...chunk).all<{printingId:string;printingCode:string|null;language:string;variant:string|null;imageUrl:string|null;code:string|null;name:string|null}>()).results;
       for(const row of rows)cards.set(row.printingId,{name:row.name??row.code??row.printingCode??row.printingId,code:row.code??row.printingCode??row.printingId,language:row.language,variant:row.variant??'Standard',imageUrl:row.imageUrl});
     }
     return Response.json({offers:parsed.map(({offer,items})=>({id:offer.id,threadId:offer.threadId,parentOfferId:offer.parentOfferId,listingId:offer.listingId,listingTitle:offer.listingTitle,listingType:offer.listingType,direction:offer.actorId===profile.id?'sent':'received',counterparty:offer.counterparty,type:offer.type,status:offer.status,items:items.map(item=>({...item,card:cards.get(item.printingId)})),amount:offer.amount,currency:offer.currency,createdAt:offer.createdAt}))},{headers:{'Cache-Control':'private, no-store'}});
-  }catch(error){return errorResponse(error)}
+  }catch(error){
+    if(error instanceof Error)console.error('market_offers_load_failed',error.message);
+    return Response.json({error:'Your offers could not be loaded. Please try again.'},{status:500,headers:{'Cache-Control':'private, no-store'}});
+  }
 }
