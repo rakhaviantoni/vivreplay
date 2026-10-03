@@ -17,6 +17,12 @@ const localBindingConfig = {
   name: "vivreplay",
   main: "vinext/server/fetch-handler",
   compatibility_flags: ["nodejs_compat"],
+  workers_dev: true,
+  preview_urls: true,
+  routes: [
+    { pattern: "vivreplay.com", custom_domain: true },
+    { pattern: "www.vivreplay.com", custom_domain: true },
+  ],
   vars: {
     BETTER_AUTH_URL: "https://vivreplay.com",
     NEXT_PUBLIC_SUPABASE_URL: "https://shqwaqxpxsyjafxdcibj.supabase.co",
