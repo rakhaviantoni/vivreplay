@@ -187,12 +187,19 @@ export function ListingArtRotator({items}:{items:MarketListingCard[]}){
 
 export function MarketListingItems({items,currency,listingType,listingId,listingTitle,readOnly=false}:{items:MarketListingCard[];currency:string;listingType:'WTS'|'WTB';listingId:string;listingTitle?:string;listingAmount?:string;readOnly?:boolean;}){
   const router=useRouter();
-  const [selected,setSelected]=useState<Record<string,number>>({});
+  const singleCopyListing=items.length===1&&items[0].quantity===1;
+  const [selected,setSelected]=useState<Record<string,number>>(()=>singleCopyListing?{[items[0].id]:1}:{});
   const [customPrices,setCustomPrices]=useState<Record<string,number>>({});
   const [preview,setPreview]=useState<Card>();
   const {data:session}=authClient.useSession();
   const [submitting,setSubmitting]=useState(false); const [submitted,setSubmitted]=useState(false);
   const [language,setLanguage]=useState<'EN'|'ID'>('EN');
+
+  useEffect(()=>{
+    if(!singleCopyListing)return;
+    const onlyItem=items[0];
+    setSelected(current=>current[onlyItem.id]===1?current:{[onlyItem.id]:1});
+  },[singleCopyListing,items[0]?.id]);
 
   useEffect(()=>{
     const sync=()=>setLanguage(window.localStorage.getItem('vivreplay-locale')==='ID'?'ID':'EN');
@@ -279,7 +286,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
   return <section className="market-listing-cards" aria-labelledby="listing-cards-heading">
     <header className="market-listing-cards-header">
       <h2 id="listing-cards-heading">{t('Cards in this listing','Kartu dalam listing ini')}</h2>
-      {!readOnly&&<div className="market-listing-bulk-actions" role="toolbar" aria-label={t('Bulk card selection','Pilihan borongan kartu')}>
+      {!readOnly&&!singleCopyListing&&<div className="market-listing-bulk-actions" role="toolbar" aria-label={t('Bulk card selection','Pilihan borongan kartu')}>
         <button
           type="button"
           className={`market-bulk-btn ${selectedCount===totalAvailable?'is-active':''}`}
@@ -337,7 +344,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
             ))}
             {item.quantity>1 && <b>×{item.quantity}</b>}
             <button type="button" className="deck-info-action market-listing-info" onClick={()=>setPreview(item.card)} aria-label={`View ${item.card.name} details`}><Info size={13}/></button>
-            {!readOnly&&<span className="deck-stack-actions market-listing-quantity" aria-label={`Select ${item.card.name}`}>
+            {!readOnly&&!singleCopyListing&&<span className="deck-stack-actions market-listing-quantity" aria-label={`Select ${item.card.name}`}>
               <button type="button" onClick={()=>change(item.id,-1,item.quantity)} disabled={!amount} aria-label={`Remove one ${item.card.name}`}><Minus size={13}/></button>
               <button type="button" onClick={()=>change(item.id,1,item.quantity)} disabled={amount===item.quantity} aria-label={`Add one ${item.card.name}`}><Plus size={13}/></button>
               {item.quantity>1 && (
@@ -368,7 +375,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
           <div className="market-listing-card-copy">
             <strong>{item.card.name}</strong>
             <small>{item.card.code} · {item.card.rarity} · {item.language}</small>
-            <p><span>{item.condition}</span>{!readOnly&&<em>{amount}/{item.quantity} {t('selected','dipilih')}</em>}</p>
+            <p><span>{item.condition}</span>{!readOnly&&!singleCopyListing&&<em>{amount}/{item.quantity} {t('selected','dipilih')}</em>}</p>
             <b>{formatMoney(item.unitAmount,currency)} {t('each','per kartu')}</b>
 
             {!readOnly&&amount>0 && (
@@ -467,7 +474,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
         </div>
       </div>
       <div className="market-listing-selection-actions">
-        {isBuying&&<button type="button" className="button market-buy-selected" disabled={!selectedCount} onClick={buySelected}>{t('Buy selected','Beli pilihan')}</button>}
+        {isBuying&&<button type="button" className="button market-buy-selected" disabled={!selectedCount} onClick={buySelected}>{singleCopyListing?t('Buy now','Beli sekarang'):t('Buy selected','Beli pilihan')}</button>}
         <button type="button" className="button" disabled={!selectedCount||submitting||submitted} onClick={continueOffer}>{submitted?t('Offer sent','Penawaran terkirim'):submitting?t('Sending...','Mengirim...'):session?(hasPriceAdjustments?t('Submit offer','Kirim penawaran'):actionLabel):(language==='ID'?`Masuk untuk ${isBuying?'menawar':'menawarkan'}`:`Sign in to ${actionLabel.toLowerCase()}`)}</button>
         <ShareButton
           title={listingTitle ?? t('Card listing','Listing kartu')}
