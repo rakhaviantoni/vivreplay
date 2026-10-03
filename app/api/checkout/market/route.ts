@@ -31,8 +31,10 @@ export async function POST(request:Request){
     if(listing.sellerId===profile.id)throw new HttpError(403,'You cannot purchase from your own listing.');
     if(listing.currency!=='IDR')throw new HttpError(400,'Checkout currently supports IDR listings only.');
 
-    const address=await database.prepare('SELECT recipient_name AS recipientName,phone,address_line AS addressLine,city,postal_code AS postalCode,area_id AS areaId FROM seller_shipping_origins WHERE owner_id=?').bind(profile.id).first<{recipientName:string|null;phone:string|null;addressLine:string;city:string;postalCode:string;areaId:string|null}>();
+    const address=await database.prepare('SELECT recipient_name AS recipientName,phone,address_line AS addressLine,city,postal_code AS postalCode,area_id AS areaId,label FROM seller_shipping_origins WHERE owner_id=?').bind(profile.id).first<{recipientName:string|null;phone:string|null;addressLine:string;city:string;postalCode:string;areaId:string|null;label:string|null}>();
     if(!address?.addressLine||!address.city||!address.phone||(!/^\d{5}$/.test(address.postalCode)&&!isBiteshipAreaId(address.areaId)))throw new HttpError(400,'Save a delivery address, valid postal code or delivery area, and mobile number in your profile before checkout.');
+    let addressDetail='';
+    try{const metadata=JSON.parse(address.label??'{}') as {addressDetail?:unknown};if(typeof metadata.addressDetail==='string')addressDetail=metadata.addressDetail.trim().slice(0,180)}catch{}
     const seller=await database.prepare('SELECT area_id AS areaId,postal_code AS postalCode,label FROM seller_shipping_origins WHERE owner_id=?').bind(listing.sellerId).first<{areaId:string|null;postalCode:string;label:string|null}>();
     if(!seller)throw new HttpError(400,'The seller has not set a shipping address.');
     let sellerMethods:string[]=[];
@@ -88,7 +90,7 @@ export async function POST(request:Request){
     const id=crypto.randomUUID();
     const amount=subtotal+rate.price;
     const expiresAt=new Date(Date.now()+24*60*60*1000).toISOString().replace('T',' ').slice(0,19);
-    const shipping={recipientName:address.recipientName,addressLine:address.addressLine,city:address.city,postalCode:address.postalCode,phone:address.phone,courierName:rate.courier_name,courierServiceName:rate.courier_service_name};
+    const shipping={recipientName:address.recipientName,addressLine:[address.addressLine,addressDetail].filter(Boolean).join(', '),city:address.city,postalCode:address.postalCode,phone:address.phone,courierName:rate.courier_name,courierServiceName:rate.courier_service_name};
     await database.prepare(`INSERT INTO checkout_orders (id,kind,buyer_id,seller_id,listing_id,items,details,subtotal,shipping_fee,amount,currency,status,expires_at) VALUES (?,'MARKET',?,?,?,?,?,?,?,?,?,'PENDING_PAYMENT',?)`).bind(id,profile.id,listing.sellerId,listing.id,JSON.stringify(orderItems),JSON.stringify(shipping),subtotal,rate.price,amount,'IDR',expiresAt).run();
     const siteOrigin=new URL(request.url).origin;
     let intent;

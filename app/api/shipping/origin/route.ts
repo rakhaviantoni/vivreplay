@@ -22,6 +22,7 @@ export async function GET(request:Request){
 
     let shippingMethods: string[] = [];
     let regionNames: {province?:string;city?:string;district?:string;subdistrict?:string} | undefined;
+    let addressDetail = '';
     let displayLabel = origin.label || 'Primary origin';
     if(origin.label && origin.label.startsWith('{')){
       try{
@@ -30,6 +31,7 @@ export async function GET(request:Request){
           shippingMethods = parsed.methods.filter((m: unknown): m is string => typeof m === 'string');
         }
         if(parsed.regionNames&&typeof parsed.regionNames==='object')regionNames=parsed.regionNames;
+        if(typeof parsed.addressDetail==='string')addressDetail=parsed.addressDetail;
         if(typeof parsed.label === 'string' && parsed.label.trim()){
           displayLabel = parsed.label.trim();
         }
@@ -39,6 +41,7 @@ export async function GET(request:Request){
     return Response.json({
       origin: {
         ...origin,
+        addressDetail,
         areaId:isBiteshipAreaId(origin.areaId)?origin.areaId:null,
         label: displayLabel,
         shippingMethods,
@@ -54,6 +57,7 @@ export async function POST(request:Request){
     guard(request);const profile=await user();const input=await request.json() as Record<string,unknown>;
     const rawLabel=typeof input.label==='string'&&input.label.trim()?input.label.trim().slice(0,60):'Primary origin';
     const address=typeof input.addressLine==='string'?input.addressLine.trim().slice(0,260):'';
+    const addressDetail=typeof input.addressDetail==='string'?input.addressDetail.trim().slice(0,180):'';
     const city=typeof input.city==='string'?input.city.trim().slice(0,80):'';
     const postalCode=typeof input.postalCode==='string'?input.postalCode.trim().slice(0,12):'';
     const areaId=typeof input.areaId==='string'&&isBiteshipAreaId(input.areaId)?input.areaId.trim():null;
@@ -67,6 +71,7 @@ export async function POST(request:Request){
       label: rawLabel,
       methods: shippingMethods,
       regionNames: input.regions&&typeof input.regions==='object'?input.regions:undefined,
+      addressDetail: addressDetail || undefined,
     });
 
     await db().prepare(`INSERT INTO seller_shipping_origins (owner_id,label,recipient_name,phone,address_line,city,postal_code,area_id,latitude,longitude,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(owner_id) DO UPDATE SET label=excluded.label,recipient_name=excluded.recipient_name,phone=excluded.phone,address_line=excluded.address_line,city=excluded.city,postal_code=excluded.postal_code,area_id=excluded.area_id,latitude=excluded.latitude,longitude=excluded.longitude,updated_at=CURRENT_TIMESTAMP`).bind(profile.id,label,typeof input.recipientName==='string'?input.recipientName.trim().slice(0,100):null,typeof input.phone==='string'?input.phone.trim().slice(0,30):null,address,city,postalCode,areaId,typeof input.latitude==='number'?input.latitude:null,typeof input.longitude==='number'?input.longitude:null).run();

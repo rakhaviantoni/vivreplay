@@ -43,6 +43,7 @@ type ShippingOrigin = {
   recipientName: string | null;
   phone: string | null;
   addressLine: string;
+  addressDetail: string;
   city: string;
   postalCode: string;
   areaId: string | null;
@@ -447,6 +448,7 @@ function ProfileForm({
   const [shippingRecipient, setShippingRecipient] = useState('');
   const [shippingPhone, setShippingPhone] = useState('');
   const [shippingAddress, setShippingAddress] = useState('');
+  const [shippingAddressDetail, setShippingAddressDetail] = useState('');
   const [shippingProvince, setShippingProvince] = useState('');
   const [shippingCity, setShippingCity] = useState('');
   const [shippingDistrict, setShippingDistrict] = useState('');
@@ -647,6 +649,7 @@ function ProfileForm({
         setShippingRecipient(res.origin.recipientName||'');
         setShippingPhone(res.origin.phone||'');
         setShippingAddress(res.origin.addressLine||'');
+        setShippingAddressDetail(res.origin.addressDetail||'');
         const c = res.origin.city||'';
         setShippingCity(res.origin.regionNames?.city||c);
         if(res.origin.regionNames?.province)setShippingProvince(res.origin.regionNames.province);
@@ -868,6 +871,7 @@ function ProfileForm({
         recipientName: shippingRecipient.trim(),
         phone: shippingPhone.trim(),
         addressLine: shippingAddress.trim(),
+        addressDetail: shippingAddressDetail.trim(),
         city: shippingCity.trim(),
         postalCode: shippingPostalCode.trim(),
         areaId: shippingAreaId || null,
@@ -884,6 +888,7 @@ function ProfileForm({
           recipientName: shippingRecipient.trim(),
           phone: shippingPhone.trim(),
           addressLine: shippingAddress.trim(),
+          addressDetail: shippingAddressDetail.trim(),
           city: shippingCity.trim(),
           regionNames:{province:shippingProvince,city:shippingCity,district:shippingDistrict,subdistrict:shippingSubdistrict},
           postalCode: shippingPostalCode.trim(),
@@ -1312,6 +1317,21 @@ function ProfileForm({
                 {!searchingAddress&&geocodeResults.length===0&&<div className="shipping-address-result-hint">{t('Not listed? Keep your address and place the pin on the map.','Alamat tidak muncul? Simpan teks alamat dan letakkan pin di peta.')}</div>}
                 {geocodeResults.map((result,index)=><button id={`shipping-address-result-${index}`} type="button" key={`${result.latitude}:${result.longitude}:${index}`} className="shipping-address-result" role="option" aria-selected={activeAddressResult===index} onMouseDown={event=>event.preventDefault()} onMouseEnter={()=>setActiveAddressResult(index)} onClick={()=>void selectAddress(result)}><MapPin size={16}/><span>{result.label}</span></button>)}
               </div>}
+            </label>
+
+            <label className="shipping-address-detail">
+              {t('Address details (optional)','Detail alamat (opsional)')}
+              <textarea
+                name="addressDetail"
+                value={shippingAddressDetail}
+                onChange={event=>setShippingAddressDetail(event.target.value)}
+                placeholder={t('Tower B, Unit 15CA / No. 37, RT 09/RW 06','Tower B, Unit 15CA / No. 37, RT 09/RW 06')}
+                autoComplete="address-line2"
+                maxLength={180}
+                rows={2}
+                aria-describedby="shipping-address-detail-hint"
+              />
+              <small id="shipping-address-detail-hint">{t('Add a tower, unit, house number, RT/RW, or directions for the courier.','Tambahkan tower, nomor unit, nomor rumah, RT/RW, atau petunjuk untuk kurir.')}</small>
             </label>
 
             {/* Interactive Point on Map Picker */}

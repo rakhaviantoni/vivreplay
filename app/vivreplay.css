@@ -2494,6 +2494,8 @@ html[data-theme='dark'] .profile-card-actions .profile-signout-btn:hover{backgro
 .shipping-cascading-grid select:focus{border-color:var(--accent)}
 .shipping-cascading-grid select:disabled{opacity:.5;cursor:not-allowed}
 .shipping-address-search{position:relative;z-index:4}
+.shipping-address-detail textarea{height:auto!important;min-height:68px!important;padding:10px 13px!important;line-height:1.45;resize:vertical}
+.shipping-address-detail small{color:var(--muted);font-size:11.5px;font-weight:500;line-height:1.45}
 .shipping-address-results{position:absolute;left:0;right:0;top:calc(100% + 5px);z-index:70;max-height:280px;overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface-raised);box-shadow:0 14px 36px rgba(30,24,13,.18)}
 .shipping-address-result{display:flex;width:100%;align-items:flex-start;gap:10px;padding:12px 14px;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--ink);font:inherit;text-align:left;cursor:pointer}
 .shipping-address-result:last-child{border-bottom:0}
