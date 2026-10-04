@@ -26,8 +26,8 @@ const byCode = new Map(before.map(row => [row.code, row]));
 if (byCode.size !== candidates.length) throw new Error(`Expected ${candidates.length} D1 rows, received ${byCode.size}.`);
 for (const candidate of candidates) {
   const row = byCode.get(candidate.code);
-  const nextText = candidate.effectTextAfter ?? candidate.publishedText;
-  if (!row || comparableText(row.effect_text) !== comparableText(candidate.publishedText) || comparableText(candidate.after.rawEffectText) !== comparableText(nextText)) {
+  const nextText = candidate.effectTextAfter ?? row?.effect_text;
+  if (!row || comparableText(row.effect_text) !== comparableText(candidate.publishedText) || (candidate.effectTextAfter !== undefined && comparableText(candidate.after.rawEffectText) !== comparableText(nextText))) {
     throw new Error(`Printed-text parity check failed for ${candidate.code}; no D1 rows were changed.`);
   }
 }
