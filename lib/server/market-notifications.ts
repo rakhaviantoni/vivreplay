@@ -4,43 +4,100 @@ import {env} from 'cloudflare:workers';
 import type {MarketEmailEvent} from '@/lib/market/email-template-types';
 
 type Event=MarketEmailEvent;
+export type NotificationDetails={participant?:string;amount?:number;currency?:string;itemCount?:number;message?:string;photoCount?:number;orderCode?:string};
 
 const copy:Record<Event,{en:{subject:string;line:string;cta:string};id:{subject:string;line:string;cta:string}}>= {
-  'new-offer':{en:{subject:'You received a Market offer · VivrePlay',line:'A collector sent an offer on your listing.',cta:'Review offer'},id:{subject:'Ada penawaran Market baru · VivrePlay',line:'Kolektor mengirim penawaran untuk listing Anda.',cta:'Lihat penawaran'}},
-  counteroffer:{en:{subject:'You received a counteroffer · VivrePlay',line:'There is a new counteroffer in your Market conversation.',cta:'Review conversation'},id:{subject:'Anda menerima penawaran balik · VivrePlay',line:'Ada penawaran balik baru di percakapan Market Anda.',cta:'Lihat percakapan'}},
-  accepted:{en:{subject:'Your offer was accepted · VivrePlay',line:'Your Market offer was accepted. Continue to checkout to secure the cards.',cta:'Continue to checkout'},id:{subject:'Penawaran Anda diterima · VivrePlay',line:'Penawaran Market Anda diterima. Lanjutkan ke checkout untuk mengamankan kartu.',cta:'Lanjut ke checkout'}},
-  declined:{en:{subject:'Your offer was declined · VivrePlay',line:'Your Market offer was declined. You can review the conversation for details.',cta:'View conversation'},id:{subject:'Penawaran Anda ditolak · VivrePlay',line:'Penawaran Market Anda ditolak. Buka percakapan untuk melihat detailnya.',cta:'Lihat percakapan'}},
-  message:{en:{subject:'New Market conversation message · VivrePlay',line:'You have a new message about a Market listing.',cta:'Open conversation'},id:{subject:'Pesan percakapan Market baru · VivrePlay',line:'Ada pesan baru tentang listing Market.',cta:'Buka percakapan'}},
-  'photo-request':{en:{subject:'Card photos requested · VivrePlay',line:'A buyer requested card photos in your Market conversation.',cta:'Open conversation'},id:{subject:'Foto kartu diminta · VivrePlay',line:'Pembeli meminta foto kartu melalui percakapan Market.',cta:'Buka percakapan'}},
-  'photo-shared':{en:{subject:'Card photos are ready · VivrePlay',line:'The card supplier shared photos in your Market conversation.',cta:'View photos'},id:{subject:'Foto kartu tersedia · VivrePlay',line:'Penjual membagikan foto kartu di percakapan Market.',cta:'Lihat foto'}},
-  'order-paid':{en:{subject:'Market payment confirmed · VivrePlay',line:'Your Market payment was confirmed. You can follow the order in Market.',cta:'View order'},id:{subject:'Pembayaran Market dikonfirmasi · VivrePlay',line:'Pembayaran Market Anda sudah dikonfirmasi. Pantau pesanan di Market.',cta:'Lihat pesanan'}},
-  'order-seller-paid':{en:{subject:'Market order paid · VivrePlay',line:'A Market order has been paid. Review the order and arrange delivery.',cta:'View order'},id:{subject:'Pesanan Market dibayar · VivrePlay',line:'Pesanan Market telah dibayar. Periksa pesanan dan siapkan pengiriman.',cta:'Lihat pesanan'}},
-  'order-received':{en:{subject:'Market delivery confirmed · VivrePlay',line:'The buyer confirmed delivery. The cards are now in their Vault.',cta:'View orders'},id:{subject:'Pengiriman Market dikonfirmasi · VivrePlay',line:'Pembeli mengonfirmasi penerimaan. Kartu sudah masuk ke Vault mereka.',cta:'Lihat pesanan'}},
+  'new-offer':{en:{subject:'You received a Market offer · VivrePlay',line:'A collector sent an offer on your listing.',cta:'Review offer'},id:{subject:'Ada penawaran Market baru · VivrePlay',line:'Ada penawaran baru untuk kartu Anda.',cta:'Lihat penawaran'}},
+  counteroffer:{en:{subject:'You received a counteroffer · VivrePlay',line:'A new price was proposed in your Market conversation.',cta:'Review conversation'},id:{subject:'Anda menerima penawaran balik · VivrePlay',line:'Ada harga baru yang diajukan dalam percakapan Market Anda.',cta:'Lihat percakapan'}},
+  accepted:{en:{subject:'Your offer was accepted · VivrePlay',line:'The seller accepted your offer. Review the agreed cards and continue to checkout.',cta:'Continue to checkout'},id:{subject:'Penawaran Anda diterima · VivrePlay',line:'Penjual menerima penawaran Anda. Periksa kartu yang disepakati dan lanjutkan ke checkout.',cta:'Lanjut ke checkout'}},
+  declined:{en:{subject:'Your offer was declined · VivrePlay',line:'The other collector declined your offer. Open the conversation to review the listing and offer history.',cta:'View conversation'},id:{subject:'Penawaran Anda ditolak · VivrePlay',line:'Kolektor lain menolak penawaran Anda. Buka percakapan untuk melihat listing dan riwayat penawaran.',cta:'Lihat percakapan'}},
+  message:{en:{subject:'New Market conversation message · VivrePlay',line:'A collector sent you a message about this listing.',cta:'Open conversation'},id:{subject:'Pesan baru di percakapan Market · VivrePlay',line:'Kolektor mengirim pesan tentang listing ini.',cta:'Buka percakapan'}},
+  'photo-request':{en:{subject:'Card photos requested · VivrePlay',line:'The buyer asked to see photos of the cards in this listing.',cta:'Open conversation'},id:{subject:'Foto kartu diminta · VivrePlay',line:'Pembeli meminta foto kartu untuk listing ini.',cta:'Buka percakapan'}},
+  'photo-shared':{en:{subject:'Card photos are ready · VivrePlay',line:'The seller shared card photos for this listing.',cta:'View photos'},id:{subject:'Foto kartu tersedia · VivrePlay',line:'Penjual mengirim foto kartu untuk listing ini.',cta:'Lihat foto'}},
+  'order-paid':{en:{subject:'Market payment confirmed · VivrePlay',line:'Your payment went through. Track the shipment and confirm delivery from your Market orders.',cta:'View order'},id:{subject:'Pembayaran Market berhasil · VivrePlay',line:'Pembayaran Anda berhasil. Pantau pengiriman dan konfirmasi penerimaan melalui pesanan Market.',cta:'Lihat pesanan'}},
+  'order-seller-paid':{en:{subject:'Market order paid · VivrePlay',line:'The buyer paid for this order. Review the cards and shipping details, then arrange delivery.',cta:'View order'},id:{subject:'Pesanan Market telah dibayar · VivrePlay',line:'Pembeli sudah membayar pesanan ini. Periksa kartu dan alamat pengiriman, lalu siapkan pengiriman.',cta:'Lihat pesanan'}},
+  'order-received':{en:{subject:'Market delivery confirmed · VivrePlay',line:'The buyer confirmed delivery. The sold cards are now recorded in their Vault.',cta:'View orders'},id:{subject:'Pengiriman Market diterima · VivrePlay',line:'Pembeli mengonfirmasi penerimaan. Kartu yang terjual kini tercatat di Vault mereka.',cta:'Lihat pesanan'}},
 };
 
 function escapeHtml(value:string){return value.replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]??char))}
 
-export function renderMarketEmail(event:Event,listingTitle='Edward.Newgate (001)',threadId='sample-market-thread',locale='en',recipient='navigator@example.com',theme?:'light'|'dark'):RenderedEmail{
+function formatAmount(amount:number,currency:string,locale:string){try{return new Intl.NumberFormat(locale==='id'?'id-ID':'en-US',{style:'currency',currency:currency.toUpperCase(),maximumFractionDigits:currency.toUpperCase()==='JPY'?0:2}).format(amount)}catch{return `${currency.toUpperCase()} ${amount.toLocaleString()}`}}
+function eventDetail(event:Event,details:NotificationDetails|undefined,id:boolean,locale:string){
+  if(event.startsWith('order-')&&details?.orderCode){const parts=[id?`Pesanan #${details.orderCode}`:`Order #${details.orderCode}`];if(details.amount!==undefined&&details.currency)parts.push(formatAmount(details.amount,details.currency,locale));if(details.itemCount)parts.push(id?`${details.itemCount} kartu`:`${details.itemCount} card${details.itemCount===1?'':'s'}`);if(details.participant){const role=event==='order-paid'?(id?'Penjual':'Seller'):(id?'Pembeli':'Buyer');parts.push(`${role}: ${details.participant}`)}return parts.join(' · ')}
+  if(event==='new-offer'||event==='counteroffer'||event==='accepted'||event==='declined'){const parts=[];if(details?.participant)parts.push(id?`Dari ${details.participant}`:`From ${details.participant}`);if(details?.amount!==undefined&&details.currency)parts.push(formatAmount(details.amount,details.currency,locale));if(details?.itemCount)parts.push(id?`${details.itemCount} kartu`:`${details.itemCount} card${details.itemCount===1?'':'s'}`);return parts.join(' · ')||undefined}
+  if(event==='message'&&details?.message)return `${details.participant?`${details.participant}: `:''}${details.message}`;
+  if(event==='photo-shared'&&details?.photoCount)return id?`${details.photoCount} foto · ${details.participant||'Penjual'} · ${details.itemCount??1} kartu`:`${details.photoCount} photo${details.photoCount===1?'':'s'} · ${details.participant||'Seller'} · ${details.itemCount??1} card${details.itemCount===1?'':'s'}`;
+  if(event==='photo-request'&&details?.participant)return id?`Diminta oleh ${details.participant}`:`Requested by ${details.participant}`;
+  return undefined;
+}
+
+export function renderMarketEmail(event:Event,listingTitle='Edward.Newgate (001)',threadId='sample-market-thread',locale='en',recipient='navigator@example.com',theme?:'light'|'dark',details?:NotificationDetails):RenderedEmail{
   const id=locale.toLowerCase().startsWith('id');const message=copy[event][id?'id':'en'];
   const base=getAppUrl().replace(/\/$/,'');const isOrder=event.startsWith('order-');
   const url=`${base}/market?activity=${isOrder?'orders':'offers'}${isOrder?'':`&conversation=${encodeURIComponent(threadId)}`}`;
   const title=escapeHtml(listingTitle);const safeUrl=escapeHtml(url);const safeRecipient=escapeHtml(recipient);
   const footer=id?'Pembaruan ini terkait aktivitas akun Market VivrePlay Anda.':'This update is about activity on your VivrePlay Market account.';
-  const html=`<!doctype html><html lang="${id?'id':'en'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><meta name="supported-color-schemes" content="light dark"><title>${escapeHtml(message.subject)}</title><style>:root{color-scheme:light dark;supported-color-schemes:light dark}${theme==='dark'?'.email-bg{background:#10171d!important;color:#e8e7e1!important}.email-card{background:#182129!important;border-color:#303b43!important;color:#e8e7e1!important}.email-muted{color:#a0aaa9!important}.email-link{color:#e6bd70!important}.email-button{background:#d69b36!important;color:#171b1e!important}':theme==='light'?'': '@media(prefers-color-scheme:dark){.email-bg{background:#10171d!important;color:#e8e7e1!important}.email-card{background:#182129!important;border-color:#303b43!important;color:#e8e7e1!important}.email-muted{color:#a0aaa9!important}.email-link{color:#e6bd70!important}.email-button{background:#d69b36!important;color:#171b1e!important}}'}</style></head><body class="email-bg" style="margin:0;padding:24px;background:#f4ecdc;color:#28251f;font:16px/1.5 Arial,sans-serif"><main class="email-card" style="max-width:560px;margin:auto;padding:28px;background:#fffaf0;border:1px solid #dfd1b8;border-radius:8px"><p style="margin:0 0 22px;color:#855514;font-size:12px;font-weight:bold;letter-spacing:.08em">VIVREPLAY MARKET</p><p>${message.line}</p><p style="font-weight:700">${title}</p><p><a class="email-button" style="display:inline-block;padding:12px 18px;background:#b77a19;color:#fffaf0;text-decoration:none;border-radius:6px" href="${safeUrl}">${message.cta}</a></p><p class="email-muted" style="margin:24px 0 0;color:#716a5e;font-size:12px">${footer}</p><p class="email-muted" style="margin:8px 0 0;color:#716a5e;font-size:11px">${id?'Dikirim ke':'Sent to'} ${safeRecipient} · <a class="email-link" href="mailto:${DEFAULT_SUPPORT_EMAIL}" style="color:#855514">${DEFAULT_SUPPORT_EMAIL}</a></p></main></body></html>`;
-  const text=`${message.line}\n\n${listingTitle}\n${message.cta}: ${url}\n\n${footer}\n${id?'Dikirim ke':'Sent to'} ${recipient}\n${DEFAULT_SUPPORT_EMAIL}`;
+  const detail=eventDetail(event,details,id,locale);
+  const safeDetail=detail?escapeHtml(detail):'';
+  const html=`<!doctype html><html lang="${id?'id':'en'}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><meta name="supported-color-schemes" content="light dark"><title>${escapeHtml(message.subject)}</title><style>:root{color-scheme:light dark;supported-color-schemes:light dark}${theme==='dark'?'.email-bg{background:#10171d!important;color:#e8e7e1!important}.email-card{background:#182129!important;border-color:#303b43!important;color:#e8e7e1!important}.email-muted{color:#a0aaa9!important}.email-link{color:#e6bd70!important}.email-button{background:#d69b36!important;color:#171b1e!important}':theme==='light'?'': '@media(prefers-color-scheme:dark){.email-bg{background:#10171d!important;color:#e8e7e1!important}.email-card{background:#182129!important;border-color:#303b43!important;color:#e8e7e1!important}.email-muted{color:#a0aaa9!important}.email-link{color:#e6bd70!important}.email-button{background:#d69b36!important;color:#171b1e!important}}'}</style></head><body class="email-bg" style="margin:0;padding:24px;background:#f4ecdc;color:#28251f;font:16px/1.5 Arial,sans-serif"><main class="email-card" style="max-width:560px;margin:auto;padding:28px;background:#fffaf0;border:1px solid #dfd1b8;border-radius:8px"><p style="margin:0 0 22px;color:#855514;font-size:12px;font-weight:bold;letter-spacing:.08em">VIVREPLAY MARKET</p><p>${message.line}</p><p style="font-weight:700">${title}</p>${safeDetail?`<p class="email-detail" style="margin:0 0 20px;padding:12px 14px;border:1px solid #dfd1b8;border-radius:6px;background:#f8f1e5;font-size:14px;font-weight:700">${safeDetail}</p>`:''}<p><a class="email-button" style="display:inline-block;padding:12px 18px;background:#b77a19;color:#fffaf0;text-decoration:none;border-radius:6px" href="${safeUrl}">${message.cta}</a></p><p class="email-muted" style="margin:24px 0 0;color:#716a5e;font-size:12px">${footer}</p><p class="email-muted" style="margin:8px 0 0;color:#716a5e;font-size:11px">${id?'Dikirim ke':'Sent to'} ${safeRecipient} · <a class="email-link" href="mailto:${DEFAULT_SUPPORT_EMAIL}" style="color:#855514">${DEFAULT_SUPPORT_EMAIL}</a></p></main></body></html>`;
+  const text=`${message.line}\n\n${listingTitle}${detail?`\n${detail}`:''}\n${message.cta}: ${url}\n\n${footer}\n${id?'Dikirim ke':'Sent to'} ${recipient}\n${DEFAULT_SUPPORT_EMAIL}`;
   return{subject:message.subject,html,text,from:DEFAULT_EMAIL_FROM,replyTo:`VivrePlay Support <${DEFAULT_SUPPORT_EMAIL}>`};
 }
 
-async function sendRenderedMarketEmail(to:string,event:Event,listingTitle:string,threadId:string,locale:string,theme?:'light'|'dark'){
+async function sendRenderedMarketEmail(to:string,event:Event,listingTitle:string,threadId:string,locale:string,theme?:'light'|'dark',details?:NotificationDetails){
   const apiKey=process.env.RESEND_API_KEY;if(!apiKey)throw new Error('Email delivery is not configured. RESEND_API_KEY is missing.');
-  const rendered=renderMarketEmail(event,listingTitle,threadId,locale,to,theme);
+  const rendered=renderMarketEmail(event,listingTitle,threadId,locale,to,theme,details);
   const response=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:`Bearer ${apiKey}`,'Content-Type':'application/json'},body:JSON.stringify({from:rendered.from,to:[to],reply_to:rendered.replyTo,subject:rendered.subject,text:rendered.text,html:rendered.html,tags:[{name:'category',value:`market-${event}`}]})});
   if(!response.ok)throw new Error(`Email delivery failed (${response.status}).`);
   return response.json().catch(()=>({}));
 }
 
 export async function sendMarketTestEmail(to:string,event:Event,name='Navigator',locale='en',theme?:'light'|'dark'){
-  return sendRenderedMarketEmail(to,event,name||'Edward.Newgate (001)','sample-market-thread',locale,theme);
+  return sendRenderedMarketEmail(to,event,name||'Edward.Newgate (001)','sample-market-thread',locale,theme,sampleNotificationDetails(event,locale));
+}
+
+export function sampleNotificationDetails(event:Event,locale='en'):NotificationDetails{
+  const id=locale.toLowerCase().startsWith('id');
+  if(event.startsWith('order-'))return{orderCode:'VP-24A91F',amount:285000,currency:'IDR',itemCount:2,participant:id?'Raka':'Raka Viantoni'};
+  if(event==='new-offer'||event==='counteroffer'||event==='accepted'||event==='declined')return{participant:id?'Dimas':'Dimas Pratama',amount:250000,currency:'IDR',itemCount:2};
+  if(event==='message')return{participant:id?'Dimas':'Dimas Pratama',message:id?'Bisa kirim foto bagian belakang kartunya?':'Could you send a photo of the back of the card?'};
+  if(event==='photo-request')return{participant:id?'Dimas':'Dimas Pratama'};
+  if(event==='photo-shared')return{participant:id?'Dimas':'Dimas Pratama',photoCount:3,itemCount:2};
+  return{};
+}
+
+function itemCount(value:string|null|undefined){
+  try{const items=JSON.parse(value||'[]') as Array<{quantity?:number}>;return items.reduce((sum,item)=>sum+(Number.isFinite(item.quantity)?Number(item.quantity):0),0)}catch{return undefined}
+}
+
+async function notificationDetails(event:Event,reference:string):Promise<NotificationDetails|undefined>{
+  if(event.startsWith('order-')){
+    const row=await db().prepare(`SELECT o.id,o.amount,o.currency,o.items,COALESCE(b.display_name,'Buyer') AS buyer,COALESCE(s.display_name,'Seller') AS seller
+      FROM checkout_orders o LEFT JOIN profiles b ON b.id=o.buyer_id LEFT JOIN profiles s ON s.id=o.seller_id WHERE o.id=?`).bind(reference).first<{id:string;amount:number;currency:string;items:string;buyer:string;seller:string}>();
+    if(!row)return undefined;
+    return{orderCode:row.id.slice(0,8).toUpperCase(),amount:row.amount,currency:row.currency,itemCount:itemCount(row.items),participant:event==='order-paid'?row.seller:row.buyer};
+  }
+  if(event==='new-offer'||event==='counteroffer'||event==='accepted'||event==='declined'){
+    if(event==='accepted'||event==='declined'){
+      const kind=event==='accepted'?'OFFER_ACCEPTED':'OFFER_DECLINED';
+      const response=await db().prepare(`SELECT o.amount,o.currency,o.items,p.display_name AS participant FROM listing_offer_messages m
+        JOIN listing_offers o ON o.id=m.offer_id LEFT JOIN profiles p ON p.id=m.actor_id
+        WHERE m.thread_id=? AND m.kind=? ORDER BY m.created_at DESC,m.rowid DESC LIMIT 1`).bind(reference,kind).first<{amount:number;currency:string;items:string;participant:string|null}>();
+      if(response)return{amount:response.amount,currency:response.currency,itemCount:itemCount(response.items),participant:response.participant??undefined};
+    }
+    const row=await db().prepare(`SELECT o.amount,o.currency,o.items,p.display_name AS participant FROM listing_offers o LEFT JOIN profiles p ON p.id=o.actor_id
+      WHERE o.id=? OR COALESCE(o.thread_id,o.id)=? ORDER BY o.created_at DESC,o.rowid DESC LIMIT 1`).bind(reference,reference).first<{amount:number;currency:string;items:string;participant:string|null}>();
+    if(!row)return undefined;
+    return{amount:row.amount,currency:row.currency,itemCount:itemCount(row.items),participant:row.participant??undefined};
+  }
+  if(event==='message'||event==='photo-request'||event==='photo-shared'){
+    const row=await db().prepare(`SELECT m.kind,m.body,p.display_name AS participant,(SELECT COUNT(*) FROM listing_offer_attachments a WHERE a.message_id=m.id) AS photoCount
+      FROM listing_offer_messages m LEFT JOIN profiles p ON p.id=m.actor_id WHERE m.thread_id=? ORDER BY m.created_at DESC,m.rowid DESC LIMIT 1`).bind(reference).first<{kind:string;body:string|null;participant:string|null;photoCount:number}>();
+    if(!row)return undefined;
+    const message=row.body?.trim().replace(/\s+/g,' ').slice(0,220);
+    return{participant:row.participant??undefined,message:message||undefined,photoCount:row.photoCount||undefined};
+  }
+  return undefined;
 }
 
 const encoder=new TextEncoder();
@@ -69,7 +126,7 @@ async function encryptedPayload(subscription:{p256dh:string;auth:string},payload
   const recordSize=new Uint8Array([0,0,16,0]);
   return join(salt,recordSize,new Uint8Array([serverPublic.length]),serverPublic,ciphertext);
 }
-async function deliverPush(profileId:string,event:Event,listingTitle:string,threadId:string,locale:string){
+async function deliverPush(profileId:string,event:Event,listingTitle:string,threadId:string,locale:string,details?:NotificationDetails){
     const vapidPublic=env.VAPID_PUBLIC_KEY;const privateJwk=env.VAPID_PRIVATE_JWK;
   if(!vapidPublic||!privateJwk)return;
   try{
@@ -77,7 +134,8 @@ async function deliverPush(profileId:string,event:Event,listingTitle:string,thre
     if(!subscriptions.length)return;
     const id=locale?.toLowerCase().startsWith('id')?'id':'en';const message=copy[event][id];
     const isOrder=event.startsWith('order-');
-    const payload=JSON.stringify({title:message.subject.replace(' · VivrePlay',''),body:`${message.line} ${listingTitle}`,url:`/market?activity=${isOrder?'orders':'offers'}${isOrder?'':`&conversation=${encodeURIComponent(threadId)}`}`,tag:`market-${event}-${threadId}`});
+    const extra=eventDetail(event,details,id==='id',id);
+    const payload=JSON.stringify({title:message.subject.replace(' · VivrePlay',''),body:[message.line,listingTitle,extra].filter(Boolean).join(' · ').slice(0,240),url:`/market?activity=${isOrder?'orders':'offers'}${isOrder?'':`&conversation=${encodeURIComponent(threadId)}`}`,tag:`market-${event}-${threadId}`});
     const vapid=JSON.parse(privateJwk) as JsonWebKey;const signingKey=await crypto.subtle.importKey('jwk',vapid,{name:'ECDSA',namedCurve:'P-256'},false,['sign']);
     const authorization=async(endpoint:string)=>{
       const audience=new URL(endpoint).origin;const header=b64url(encoder.encode(JSON.stringify({typ:'JWT',alg:'ES256'})));
@@ -100,7 +158,9 @@ export async function sendMarketEmail(profileId:string,event:Event,listingTitle:
   try{
     const recipient=await db().prepare(`SELECT u.email,p.locale FROM profiles p JOIN user u ON u.id=p.auth_subject WHERE p.id=?`).bind(profileId).first<{email:string;locale:string}>();
     if(!recipient)return;
-    await deliverPush(profileId,event,listingTitle,threadId,recipient.locale??'en');
-    if(recipient.email)await sendRenderedMarketEmail(recipient.email,event,listingTitle,threadId,recipient.locale??'en');
+    let details:NotificationDetails|undefined;
+    try{details=await notificationDetails(event,threadId)}catch(error){console.error('market_notification_details_failed',error instanceof Error?error.message:'unknown error')}
+    await deliverPush(profileId,event,listingTitle,threadId,recipient.locale??'en',details);
+    if(recipient.email)await sendRenderedMarketEmail(recipient.email,event,listingTitle,threadId,recipient.locale??'en',undefined,details);
   }catch(error){console.error('market_email_delivery_failed',error instanceof Error?error.message:'unknown error')}
 }
