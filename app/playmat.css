@@ -8587,6 +8587,85 @@ html[data-theme='dark'] .arena-lobby,html[data-theme='dark'] .arena-tutorial-ind
 .play-fullscreen .board-side.opponent-side .don-cost>button:not(:disabled):hover,
 .play-fullscreen .board-side.opponent-side .don-cost>button:not(:disabled):focus-visible,
 .play-fullscreen .board-side.opponent-side .don-cost>button.is-don-selected {z-index:1!important;transform:translateY(4px)!important;filter:none!important}
+
+/* Keep the match log in the right-side reading lane, centered to the table. */
+.play-fullscreen .game-log {
+  top:50%!important;
+  right:18px!important;
+  transform:translateY(-50%)!important;
+}
+
+/* Show the opponent's hand size in the same compact count chip as ours. */
+.play-fullscreen .opponent-hand {position:fixed!important}
+.play-fullscreen .opponent-hand-count {
+  position:absolute!important;
+  top:calc(100% + 7px)!important;
+  right:0!important;
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-width:28px!important;
+  min-height:26px!important;
+  padding:2px 8px!important;
+  border:1px solid rgb(255 255 255 / .22)!important;
+  border-radius:9px!important;
+  background:rgb(49 44 37 / .9)!important;
+  box-shadow:0 2px 5px rgb(42 30 16 / .2)!important;
+  color:#fff!important;
+  font:800 12px var(--game-font)!important;
+  line-height:1!important;
+}
+
+/* The Life count belongs at the lower outside corner of its sideways card. */
+@media(min-width:821px) {
+  .play-fullscreen .board-side.player-side .life-stack>.life-back:last-child>.play-back-count {
+    top:3px!important;
+    right:3px!important;
+    bottom:auto!important;
+    left:auto!important;
+    transform:rotate(-90deg)!important;
+  }
+  .play-fullscreen .board-side.opponent-side .life-stack>.life-back:last-child>.play-back-count {
+    top:auto!important;
+    right:auto!important;
+    bottom:3px!important;
+    left:3px!important;
+    transform:rotate(90deg)!important;
+  }
+}
+
+/* A Stage card settles at the same size as its destination, without a fade pop. */
+.play-fullscreen .played-card-flight {
+  width:var(--flight-width,76px)!important;
+  height:var(--flight-height,106px)!important;
+  animation-duration:560ms!important;
+  animation-timing-function:cubic-bezier(.18,.78,.2,1)!important;
+}
+.play-fullscreen .played-card-flight .tcg-card,
+.play-fullscreen .played-card-flight .tcg-card img {
+  width:100%!important;
+  height:100%!important;
+}
+@keyframes play-card-flight {
+  0% {opacity:1;transform:translate3d(0,0,0) scale(var(--flight-from-scale,.94));filter:drop-shadow(0 8px 8px rgb(0 0 0 / .35))}
+  82% {opacity:1}
+  100% {opacity:0;transform:translate3d(var(--travel-x),var(--travel-y),0) scale(1);filter:drop-shadow(0 3px 3px rgb(0 0 0 / .25))}
+}
+
+@media(max-width:820px) {
+  .play-fullscreen .game-log {
+    top:50%!important;
+    right:10px!important;
+    transform:translateY(-50%)!important;
+    max-height:min(46dvh,360px)!important;
+  }
+  .play-fullscreen .game-log ol {max-height:min(38dvh,300px)!important}
+  .play-fullscreen .opponent-hand-count {top:calc(100% + 4px)!important}
+}
+
+@media(prefers-reduced-motion:reduce) {
+  .play-fullscreen .played-card-flight {animation-duration:1ms!important}
+}
 .play-fullscreen .board-side .don-cost>button:not(:disabled):hover .tcg-card,
 .play-fullscreen .board-side .don-cost>button:not(:disabled):focus-visible .tcg-card,
 .play-fullscreen .board-side .don-cost>button.is-don-selected .tcg-card {box-shadow:0 4px 8px rgb(51 37 20 / .24)!important}

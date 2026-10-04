@@ -386,6 +386,12 @@ test('search parses a top-deck remainder and preserves the specified ordering',(
  const bottom=applyEffectAction(state,'player',choice,{cardIds:['pick'],deckOrder:['second','third'],position:'bottom'});assert.equal(bottom.error,undefined);assert.deepEqual(bottom.state.cards.filter(item=>item.zone==='deck').map(item=>item.id),['fourth','second','third']);
 });
 
+test('OP16-118 keeps bottom-deck ordering despite the source-text typo',()=>{
+ const abilities=parseEffects(card('[On Play]/[On K.O.] Look at 5 cards from the top of your deck; reveal up to 1 [Monkey.D.Luffy] or up to 1 card with a type including "Whitebeard Pirates" and add it to your hand. Then, place the rest a the bottom of your deck in any order.'));
+ assert.deepEqual(abilities.map(ability=>ability.trigger),['on-play','on-ko']);
+ for(const ability of abilities){const search=ability.actions.find(action=>action.kind==='search');assert.ok(search?.kind==='search');assert.equal(search.remainderPosition,'bottom');assert.equal(search.remainderOrder,true);assert.equal(search.choose,2);}
+});
+
 test('inline timing markers do not merge Main with Trigger',()=>{
  const effects=parseEffects(card('[Main] Draw 1 card.[Trigger] Draw 2 cards.'));
  assert.deepEqual(effects.map(effect=>effect.trigger),['main','trigger']);
