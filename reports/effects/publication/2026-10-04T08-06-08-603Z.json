@@ -1,0 +1,204 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-10-04T08:06:08.602Z",
+  "candidates": [
+    {
+      "code": "OP07-017",
+      "printedText": "[Main] K.O. up to 1 of your opponent's Characters with 3000 power or less and up to 1 of your opponent's Stages with a cost of 1 or less. [Trigger] Activate this card's [Main] effect.",
+      "publishedText": "[Main] K.O. up to 1 of your opponent's Characters with 3000 power or less and up to 1 of your opponent's Stages with a cost of 1 or less. [Trigger] Activate this card's [Main] effect.",
+      "timings": [
+        "main",
+        "trigger"
+      ],
+      "scenarioNames": [
+        "schema-op07-017 main/trigger: choose a qualifying Character and Stage independently"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 1,
+                "maxPower": 3000,
+                "restedOnly": false
+              },
+              {
+                "kind": "ko",
+                "maxCost": 1,
+                "maxPower": 3000,
+                "restedOnly": false
+              },
+              {
+                "kind": "activate-main-effect"
+              },
+              {
+                "kind": "activate-referenced-effect",
+                "trigger": "main"
+              }
+            ],
+            "rawText": "[Main] K.O. up to 1 of your opponent's Characters with 3000 power or less and up to 1 of your opponent's Stages with a cost of 1 or less. [Trigger] Activate this card's [Main] effect.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 1,
+                  "maxPower": 3000,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 1,
+                  "maxPower": 3000,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "activate-main-effect"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "activate-referenced-effect",
+                  "trigger": "main"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] K.O. up to 1 of your opponent's Characters with 3000 power or less and up to 1 of your opponent's Stages with a cost of 1 or less. [Trigger] Activate this card's [Main] effect.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Main] K.O. up to 1 of your opponent's Characters with 3000 power or less and up to 1 of your opponent's Stages with a cost of 1 or less.",
+            "trigger": "main",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "scope": "opponent-character",
+                "maxPower": 3000,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              },
+              {
+                "kind": "ko",
+                "scope": "opponent-stage",
+                "maxCost": 1,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          },
+          {
+            "rawText": "[Trigger] Activate this card's [Main] effect.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "activate-main-effect"
+              },
+              {
+                "kind": "activate-referenced-effect",
+                "trigger": "main"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "scope": "opponent-character",
+                  "maxPower": 3000,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "scope": "opponent-stage",
+                  "maxCost": 1,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "activate-main-effect"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "activate-referenced-effect",
+                  "trigger": "main"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] K.O. up to 1 of your opponent's Characters with 3000 power or less and up to 1 of your opponent's Stages with a cost of 1 or less. [Trigger] Activate this card's [Main] effect.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "81a875085c76ca284fd8c0be06d733c6c5f9e4843ae43bac2d9d6328a079d3a6",
+      "afterHash": "fcf3461fe56409e1c6742f3db23f8a6a07b805fe79eb7a86852f6456f060f17f"
+    }
+  ]
+}

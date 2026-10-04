@@ -1,0 +1,1248 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-10-04T09:19:50.362Z",
+  "candidates": [
+    {
+      "code": "EB01-004",
+      "printedText": "[When Attacking] You may give your 1 active Leader -5000 power during this turn: Give up to 1 of your opponent's Characters -3000 power during this turn.",
+      "publishedText": "[When Attacking] You may give your 1 active Leader -5000 power during this turn: Give up to 1 of your opponent's Characters -3000 power during this turn.",
+      "timings": [
+        "when-attacking"
+      ],
+      "scenarioNames": [
+        "engine-action when-attacking power: exercise action 1 independently (gate and sequence not covered)",
+        "engine-action when-attacking power: exercise action 2 independently (gate and sequence not covered)",
+        "When Attacking gameplay power: verify the complete window and apply its printed target"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "rawText": "[When Attacking] You may give your 1 active Leader -5000 power during this turn: Give up to 1 of your opponent's Characters -3000 power during this turn.",
+            "trigger": "when-attacking",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": -5000,
+                "until": "turn-end",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                },
+                "target": "opponent-character"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "when-attacking",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": -5000,
+                  "until": "turn-end",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "target": "opponent-character"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[When Attacking] You may give your 1 active Leader -5000 power during this turn: Give up to 1 of your opponent's Characters -3000 power during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[When Attacking] You may give your 1 active Leader -5000 power during this turn: Give up to 1 of your opponent's Characters -3000 power during this turn.",
+            "trigger": "when-attacking",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": -5000,
+                "until": "turn-end",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                },
+                "target": "opponent-character"
+              },
+              {
+                "kind": "power",
+                "amount": -3000,
+                "until": "turn-end",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                },
+                "target": "opponent-character"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "when-attacking",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": -5000,
+                  "until": "turn-end",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "target": "opponent-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": -3000,
+                  "until": "turn-end",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "target": "opponent-character"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[When Attacking] You may give your 1 active Leader -5000 power during this turn: Give up to 1 of your opponent's Characters -3000 power during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "b2609f4df2fb3acf43e363c91ce2597abe236e27a0e040f76d16cc70ba3781e1",
+      "afterHash": "10f3f9c8a4503d58a5d68eab263865f5112a66f670f71b01d724428e244c944a",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 2
+    },
+    {
+      "code": "EB02-007",
+      "printedText": "[Main] Up to a total of 3 of your Leader and Character cards gain +1000 power during this turn. Then, K.O. up to 1 of your opponent's Characters with 3000 power or less.\n[Trigger] K.O. up to 1 of your opponent's Characters with 4000 power or less.",
+      "publishedText": "[Main] Up to a total of 3 of your Leader and Character cards gain +1000 power during this turn. Then, K.O. up to 1 of your opponent's Characters with 3000 power or less.\n[Trigger] K.O. up to 1 of your opponent's Characters with 4000 power or less.",
+      "timings": [
+        "main"
+      ],
+      "scenarioNames": [
+        "trigger: KO power <= 4000 / at-limit",
+        "trigger: KO power <= 4000 / over-limit",
+        "trigger: KO power <= 4000 / own-card",
+        "trigger: KO power <= 4000 / leader",
+        "trigger: KO power <= 4000 / skip",
+        "schema-ko trigger: up to 1, power cap 4000",
+        "engine-action main power: exercise action 1 independently (gate and sequence not covered)",
+        "engine-action main ko: exercise action 2 independently (gate and sequence not covered)",
+        "Main gameplay power: verify the complete window and apply its printed target"
+      ],
+      "scenarioCount": 9,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 1000,
+                "target": "opponent-character"
+              },
+              {
+                "kind": "ko",
+                "maxPower": 3000,
+                "restedOnly": false
+              },
+              {
+                "kind": "ko",
+                "maxPower": 3000,
+                "restedOnly": false
+              }
+            ],
+            "rawText": "[Main] Up to a total of 3 of your Leader and Character cards gain +1000 power during this turn. Then, K.O. up to 1 of your opponent's Characters with 3000 power or less.",
+            "trigger": "main",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxPower": 4000,
+                "selection": {
+                  "max": 1,
+                  "min": 0
+                },
+                "restedOnly": false
+              }
+            ],
+            "rawText": "[Trigger] K.O. up to 1 of your opponent's Characters with 4000 power or less.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 1000,
+                  "target": "opponent-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxPower": 3000,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxPower": 3000,
+                  "restedOnly": false
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxPower": 4000,
+                  "selection": {
+                    "max": 1,
+                    "min": 0
+                  },
+                  "restedOnly": false
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Up to a total of 3 of your Leader and Character cards gain +1000 power during this turn. Then, K.O. up to 1 of your opponent's Characters with 3000 power or less.\n[Trigger] K.O. up to 1 of your opponent's Characters with 4000 power or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 1000,
+                "until": "turn-end",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                },
+                "target": "own-leader"
+              },
+              {
+                "kind": "ko",
+                "maxPower": 3000,
+                "restedOnly": false,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ],
+            "rawText": "[Main] Up to a total of 3 of your Leader and Character cards gain +1000 power during this turn. Then, K.O. up to 1 of your opponent's Characters with 3000 power or less.",
+            "trigger": "main",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxPower": 4000,
+                "selection": {
+                  "max": 1,
+                  "min": 0
+                },
+                "restedOnly": false
+              }
+            ],
+            "rawText": "[Trigger] K.O. up to 1 of your opponent's Characters with 4000 power or less.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 1000,
+                  "until": "turn-end",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "target": "own-leader"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxPower": 3000,
+                  "restedOnly": false,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxPower": 4000,
+                  "selection": {
+                    "max": 1,
+                    "min": 0
+                  },
+                  "restedOnly": false
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Up to a total of 3 of your Leader and Character cards gain +1000 power during this turn. Then, K.O. up to 1 of your opponent's Characters with 3000 power or less.\n[Trigger] K.O. up to 1 of your opponent's Characters with 4000 power or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "9ae460ebcf808ed2cc22dd1c55b81dd1306b84e52a6030edd950df3cd1be3d90",
+      "afterHash": "69949612c3082b8aa5c0f3096d3cd430d2b9b823cf42d0dde5f15ef80d926ad5",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 2
+    },
+    {
+      "code": "OP01-013",
+      "printedText": "[Activate:Main] [Once Per Turn] You may add 1 card from your Life area to your hand: This Character gains +2000 power during this turn. Then, give this Character up to 2 rested DON!! cards.",
+      "publishedText": "[Activate:Main] [Once Per Turn] You may add 1 card from your Life area to your hand: This Character gains +2000 power during this turn. Then, give this Character up to 2 rested DON!! cards.",
+      "timings": [
+        "activate-main"
+      ],
+      "scenarioNames": [
+        "engine-action activate-main power: exercise action 1 independently (gate and sequence not covered)",
+        "engine-action activate-main life: exercise action 2 independently (gate and sequence not covered)",
+        "engine-action activate-main attach-don: exercise action 3 independently (gate and sequence not covered)",
+        "Activate: Main gameplay power: verify the complete window and apply its printed target"
+      ],
+      "scenarioCount": 4,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 2000,
+                "target": "own-character"
+              },
+              {
+                "kind": "life",
+                "amount": 1,
+                "operation": "add-to-hand"
+              }
+            ],
+            "rawText": "[Activate:Main] [Once Per Turn] You may add 1 card from your Life area to your hand: This Character gains +2000 power during this turn. Then, give this Character up to 2 rested DON!! cards.",
+            "trigger": "activate-main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 2000,
+                  "target": "own-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life",
+                  "amount": 1,
+                  "operation": "add-to-hand"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Activate:Main] [Once Per Turn] You may add 1 card from your Life area to your hand: This Character gains +2000 power during this turn. Then, give this Character up to 2 rested DON!! cards.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 2000,
+                "until": "turn-end",
+                "target": "own-character"
+              },
+              {
+                "kind": "life",
+                "operation": "add-to-hand",
+                "amount": 1
+              },
+              {
+                "kind": "attach-don",
+                "amount": 2,
+                "source": "cost-area",
+                "rested": true,
+                "recipient": "self",
+                "selection": {
+                  "min": 0,
+                  "max": 2
+                }
+              }
+            ],
+            "rawText": "[Activate:Main] [Once Per Turn] You may add 1 card from your Life area to your hand: This Character gains +2000 power during this turn. Then, give this Character up to 2 rested DON!! cards.",
+            "trigger": "activate-main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 2000,
+                  "until": "turn-end",
+                  "target": "own-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life",
+                  "operation": "add-to-hand",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 2,
+                  "source": "cost-area",
+                  "rested": true,
+                  "recipient": "self",
+                  "selection": {
+                    "min": 0,
+                    "max": 2
+                  }
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Activate:Main] [Once Per Turn] You may add 1 card from your Life area to your hand: This Character gains +2000 power during this turn. Then, give this Character up to 2 rested DON!! cards.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "77bd87effb4fee8ce5b657e6a8f0d790ca93d8eb268e3b562506ffd37f8604e1",
+      "afterHash": "a5572c11170bae3c4eee0f5b3c4ada4d75abaf1b1cba0762a1f85084bc4cf7c4",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 3
+    },
+    {
+      "code": "OP11-002",
+      "printedText": "[On Play] Give up to 1 of your opponent's Characters 1000 power during this turn. Then, K.O. up to 1 of your opponent's Characters with 0 power or less.",
+      "publishedText": "[On Play] Give up to 1 of your opponent's Characters 1000 power during this turn. Then, K.O. up to 1 of your opponent's Characters with 0 power or less.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "engine-action on-play power: exercise action 1 independently (gate and sequence not covered)",
+        "engine-action on-play ko: exercise action 2 independently (gate and sequence not covered)",
+        "On Play gameplay power: verify the complete window and apply its printed target"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 1000,
+                "target": "opponent-character"
+              },
+              {
+                "kind": "ko",
+                "restedOnly": false
+              },
+              {
+                "kind": "ko",
+                "restedOnly": false
+              }
+            ],
+            "rawText": "[On Play] Give up to 1 of your opponent's Characters 1000 power during this turn. Then, K.O. up to 1 of your opponent's Characters with 0 power or less.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 1000,
+                  "target": "opponent-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "restedOnly": false
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Give up to 1 of your opponent's Characters 1000 power during this turn. Then, K.O. up to 1 of your opponent's Characters with 0 power or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 1000,
+                "until": "turn-end",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                },
+                "target": "opponent-character"
+              },
+              {
+                "kind": "ko",
+                "maxPower": 0,
+                "restedOnly": false,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ],
+            "rawText": "[On Play] Give up to 1 of your opponent's Characters 1000 power during this turn. Then, K.O. up to 1 of your opponent's Characters with 0 power or less.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 1000,
+                  "until": "turn-end",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "target": "opponent-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxPower": 0,
+                  "restedOnly": false,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Give up to 1 of your opponent's Characters 1000 power during this turn. Then, K.O. up to 1 of your opponent's Characters with 0 power or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "88b9b766c83c1aead6806af8f7e6ab810a3e38bc14e94a354814a97fd88d6724",
+      "afterHash": "d65de5dfb873df74338c5ee165b445f5fe93e0fa5b3255bc3cc0a9402b138d47",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 2
+    },
+    {
+      "code": "OP11-018",
+      "printedText": "[Main] Give up to 1 of your opponent's Characters 4000 power during this turn. Then, K.O. up to 1 of your opponent's Characters with 6000 power or less.\n[Trigger] K.O. up to 1 of your opponent's Characters with 6000 power or less.",
+      "publishedText": "[Main] Give up to 1 of your opponent's Characters 4000 power during this turn. Then, K.O. up to 1 of your opponent's Characters with 6000 power or less.\n[Trigger] K.O. up to 1 of your opponent's Characters with 6000 power or less.",
+      "timings": [
+        "main"
+      ],
+      "scenarioNames": [
+        "trigger: KO power <= 6000 / at-limit",
+        "trigger: KO power <= 6000 / over-limit",
+        "trigger: KO power <= 6000 / own-card",
+        "trigger: KO power <= 6000 / leader",
+        "trigger: KO power <= 6000 / skip",
+        "schema-ko trigger: up to 1, power cap 6000",
+        "engine-action main power: exercise action 1 independently (gate and sequence not covered)",
+        "engine-action main ko: exercise action 2 independently (gate and sequence not covered)",
+        "Main gameplay power: verify the complete window and apply its printed target"
+      ],
+      "scenarioCount": 9,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 4000,
+                "target": "opponent-character"
+              },
+              {
+                "kind": "ko",
+                "maxPower": 6000,
+                "restedOnly": false
+              },
+              {
+                "kind": "ko",
+                "maxPower": 6000,
+                "restedOnly": false
+              }
+            ],
+            "rawText": "[Main] Give up to 1 of your opponent's Characters 4000 power during this turn. Then, K.O. up to 1 of your opponent's Characters with 6000 power or less.",
+            "trigger": "main",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxPower": 6000,
+                "selection": {
+                  "max": 1,
+                  "min": 0
+                },
+                "restedOnly": false
+              }
+            ],
+            "rawText": "[Trigger] K.O. up to 1 of your opponent's Characters with 6000 power or less.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 4000,
+                  "target": "opponent-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxPower": 6000,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxPower": 6000,
+                  "restedOnly": false
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxPower": 6000,
+                  "selection": {
+                    "max": 1,
+                    "min": 0
+                  },
+                  "restedOnly": false
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Give up to 1 of your opponent's Characters 4000 power during this turn. Then, K.O. up to 1 of your opponent's Characters with 6000 power or less.\n[Trigger] K.O. up to 1 of your opponent's Characters with 6000 power or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 4000,
+                "until": "turn-end",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                },
+                "target": "opponent-character"
+              },
+              {
+                "kind": "ko",
+                "maxPower": 6000,
+                "restedOnly": false,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ],
+            "rawText": "[Main] Give up to 1 of your opponent's Characters 4000 power during this turn. Then, K.O. up to 1 of your opponent's Characters with 6000 power or less.",
+            "trigger": "main",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxPower": 6000,
+                "selection": {
+                  "max": 1,
+                  "min": 0
+                },
+                "restedOnly": false
+              }
+            ],
+            "rawText": "[Trigger] K.O. up to 1 of your opponent's Characters with 6000 power or less.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 4000,
+                  "until": "turn-end",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "target": "opponent-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxPower": 6000,
+                  "restedOnly": false,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxPower": 6000,
+                  "selection": {
+                    "max": 1,
+                    "min": 0
+                  },
+                  "restedOnly": false
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Give up to 1 of your opponent's Characters 4000 power during this turn. Then, K.O. up to 1 of your opponent's Characters with 6000 power or less.\n[Trigger] K.O. up to 1 of your opponent's Characters with 6000 power or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "704169213f7a10e8a670770c88bb2a7696782247469bf39956fe63a5cd0a479d",
+      "afterHash": "46bb9718fd707eeb8b6499c5227cd4efb122acadafb2d630b02fdd4fc43c65d1",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 2
+    },
+    {
+      "code": "OP14-075",
+      "printedText": "[On K.O.] Add up to 1 DON!! card from your DON!! deck and rest it. Then, give up to 1 of your opponent's Characters 2000 power during this turn.",
+      "publishedText": "[On K.O.] Add up to 1 DON!! card from your DON!! deck and rest it. Then, give up to 1 of your opponent's Characters 2000 power during this turn.",
+      "timings": [
+        "on-ko"
+      ],
+      "scenarioNames": [
+        "engine-action on-ko power: exercise action 1 independently (gate and sequence not covered)",
+        "engine-action on-ko add-don: exercise action 2 independently (gate and sequence not covered)",
+        "On K.O. gameplay power: verify the complete window and apply its printed target"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 2000,
+                "target": "opponent-character"
+              },
+              {
+                "kind": "add-don",
+                "amount": 1,
+                "rested": true
+              },
+              {
+                "kind": "on-ko"
+              }
+            ],
+            "rawText": "[On K.O.] Add up to 1 DON!! card from your DON!! deck and rest it. Then, give up to 1 of your opponent's Characters 2000 power during this turn.",
+            "trigger": "on-ko",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-ko",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 2000,
+                  "target": "opponent-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "add-don",
+                  "amount": 1,
+                  "rested": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "on-ko"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On K.O.] Add up to 1 DON!! card from your DON!! deck and rest it. Then, give up to 1 of your opponent's Characters 2000 power during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 2000,
+                "until": "turn-end",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                },
+                "target": "opponent-character"
+              },
+              {
+                "kind": "add-don",
+                "amount": 1,
+                "rested": true,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ],
+            "rawText": "[On K.O.] Add up to 1 DON!! card from your DON!! deck and rest it. Then, give up to 1 of your opponent's Characters 2000 power during this turn.",
+            "trigger": "on-ko",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-ko",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 2000,
+                  "until": "turn-end",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "target": "opponent-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "add-don",
+                  "amount": 1,
+                  "rested": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On K.O.] Add up to 1 DON!! card from your DON!! deck and rest it. Then, give up to 1 of your opponent's Characters 2000 power during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "1fa2134a1e39b84b20ca5293db4ae59bfbf98919560cdcc078e3b4026ec6ce49",
+      "afterHash": "bef6e3fc7f861adb2d0535a7d6e83f6fe5871dc801e30a9426eda531ad849681",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 2
+    },
+    {
+      "code": "ST10-015",
+      "printedText": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle, and K.O. up to 1 of your opponent's Characters with 2000 power or less.",
+      "publishedText": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle, and K.O. up to 1 of your opponent's Characters with 2000 power or less.",
+      "timings": [
+        "counter"
+      ],
+      "scenarioNames": [
+        "engine-action counter power: exercise action 1 independently (gate and sequence not covered)",
+        "engine-action counter ko: exercise action 2 independently (gate and sequence not covered)",
+        "Counter gameplay power: verify the complete window and apply its printed target"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "battle",
+                "amount": 2000,
+                "target": "opponent-character"
+              },
+              {
+                "kind": "ko",
+                "maxPower": 2000,
+                "restedOnly": false
+              },
+              {
+                "kind": "ko",
+                "maxPower": 2000,
+                "restedOnly": false
+              }
+            ],
+            "rawText": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle, and K.O. up to 1 of your opponent's Characters with 2000 power or less.",
+            "trigger": "counter",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "counter",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "battle",
+                  "amount": 2000,
+                  "target": "opponent-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxPower": 2000,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxPower": 2000,
+                  "restedOnly": false
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle, and K.O. up to 1 of your opponent's Characters with 2000 power or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 2000,
+                "until": "battle",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                },
+                "target": "own-card"
+              },
+              {
+                "kind": "ko",
+                "maxPower": 2000,
+                "restedOnly": false,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ],
+            "rawText": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle, and K.O. up to 1 of your opponent's Characters with 2000 power or less.",
+            "trigger": "counter",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "counter",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 2000,
+                  "until": "battle",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "target": "own-card"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxPower": 2000,
+                  "restedOnly": false,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Counter] Up to 1 of your Leader or Character cards gains +2000 power during this battle, and K.O. up to 1 of your opponent's Characters with 2000 power or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "ab09a54daecb4462a59b62a31a879aa33920f0a782e38c151440a8b3302aa48b",
+      "afterHash": "3fd3515c4089d9a107ea1268b00335a6a2e3f4b1507307b7fc167dc541e4eaaf",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 2
+    }
+  ]
+}

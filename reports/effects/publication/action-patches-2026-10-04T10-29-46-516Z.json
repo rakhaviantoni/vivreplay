@@ -1,0 +1,1083 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-10-04T10:29:46.515Z",
+  "candidates": [
+    {
+      "code": "OP06-039",
+      "printedText": "[Main] Choose one:\n• Rest up to 1 of your opponent's Characters with a cost of 6 or less.\n• K.O. up to 1 of your opponent's rested Characters with a cost of 6 or less.\n[Trigger] Activate this card's [Main] effect.",
+      "publishedText": "[Main] Choose one:\n• Rest up to 1 of your opponent's Characters with a cost of 6 or less.\n• K.O. up to 1 of your opponent's rested Characters with a cost of 6 or less.\n[Trigger] Activate this card's [Main] effect.",
+      "timings": [
+        "main"
+      ],
+      "scenarioNames": [
+        "engine-action main rest: exercise action 1 independently (gate and sequence not covered)",
+        "engine-action main ko: exercise action 2 independently (gate and sequence not covered)",
+        "Main gameplay K.O.: verify the complete window and enforce its target limits",
+        "Main gameplay rest: verify the complete window and legal rest target"
+      ],
+      "scenarioCount": 4,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 6,
+                "restedOnly": true,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              },
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 6,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ],
+            "rawText": "[Main] Choose one:\n• Rest up to 1 of your opponent's Characters with a cost of 6 or less.\n• K.O. up to 1 of your opponent's rested Characters with a cost of 6 or less.",
+            "trigger": "main",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "activate-main-effect"
+              },
+              {
+                "kind": "activate-referenced-effect",
+                "trigger": "main"
+              }
+            ],
+            "rawText": "[Trigger] Activate this card's [Main] effect.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 6,
+                  "restedOnly": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 6,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "activate-main-effect"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "activate-referenced-effect",
+                  "trigger": "main"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Choose one:\n• Rest up to 1 of your opponent's Characters with a cost of 6 or less.\n• K.O. up to 1 of your opponent's rested Characters with a cost of 6 or less.\n[Trigger] Activate this card's [Main] effect.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 6,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              },
+              {
+                "kind": "ko",
+                "maxCost": 6,
+                "restedOnly": true,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ],
+            "rawText": "[Main] Choose one:\n• Rest up to 1 of your opponent's Characters with a cost of 6 or less.\n• K.O. up to 1 of your opponent's rested Characters with a cost of 6 or less.",
+            "trigger": "main",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "activate-main-effect"
+              },
+              {
+                "kind": "activate-referenced-effect",
+                "trigger": "main"
+              }
+            ],
+            "rawText": "[Trigger] Activate this card's [Main] effect.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 6,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 6,
+                  "restedOnly": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "activate-main-effect"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "activate-referenced-effect",
+                  "trigger": "main"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Choose one:\n• Rest up to 1 of your opponent's Characters with a cost of 6 or less.\n• K.O. up to 1 of your opponent's rested Characters with a cost of 6 or less.\n[Trigger] Activate this card's [Main] effect.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "eb27e880af13792394da9ddaac91411d25f6b2e0fe8fed8bb1d945d4b2e17fa3",
+      "afterHash": "53c9c512f61192f0afa79a77d2733b4a2e4b8537e590d74dc0a452b9197fc9a6",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 2
+    },
+    {
+      "code": "OP10-024",
+      "printedText": "[On Play] If you have 2 or more rested Characters, rest up to 1 of your opponent's Characters with a cost of 5 or less. Then, K.O. up to 1 of your opponent's rested Characters with a cost of 3 or less.",
+      "publishedText": "[On Play] If you have 2 or more rested Characters, rest up to 1 of your opponent's Characters with a cost of 5 or less. Then, K.O. up to 1 of your opponent's rested Characters with a cost of 3 or less.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "engine-action on-play rest: exercise action 1 independently (gate and sequence not covered)",
+        "engine-action on-play ko: exercise action 2 independently (gate and sequence not covered)",
+        "On Play gameplay K.O.: verify the complete window and enforce its target limits"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 5,
+                "restedOnly": true,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              },
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 5,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ],
+            "rawText": "[On Play] If you have 2 or more rested Characters, rest up to 1 of your opponent's Characters with a cost of 5 or less. Then, K.O. up to 1 of your opponent's rested Characters with a cost of 3 or less.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 2 or more rested Characters"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 5,
+                  "restedOnly": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 5,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 2 or more rested Characters"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] If you have 2 or more rested Characters, rest up to 1 of your opponent's Characters with a cost of 5 or less. Then, K.O. up to 1 of your opponent's rested Characters with a cost of 3 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 5,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              },
+              {
+                "kind": "ko",
+                "maxCost": 5,
+                "restedOnly": true,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ],
+            "rawText": "[On Play] If you have 2 or more rested Characters, rest up to 1 of your opponent's Characters with a cost of 5 or less. Then, K.O. up to 1 of your opponent's rested Characters with a cost of 3 or less.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 2 or more rested Characters"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 5,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 5,
+                  "restedOnly": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 2 or more rested Characters"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] If you have 2 or more rested Characters, rest up to 1 of your opponent's Characters with a cost of 5 or less. Then, K.O. up to 1 of your opponent's rested Characters with a cost of 3 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "72f0226d97fc396dbf23b736b81fe4bb649da7e57e2fbe0286e924e76295befc",
+      "afterHash": "48b2cf9dd5a101240900c62b05c3897d555147a8b69f688fe3cdd025770b90db",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 2
+    },
+    {
+      "code": "OP10-041",
+      "printedText": "[Main] Rest up to 1 of your opponent's Characters with a cost of 6 or less. Then, K.O. up to 1 of your opponent's rested Characters with a cost of 5 or less.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+      "publishedText": "[Main] Rest up to 1 of your opponent's Characters with a cost of 6 or less. Then, K.O. up to 1 of your opponent's rested Characters with a cost of 5 or less.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+      "timings": [
+        "main"
+      ],
+      "scenarioNames": [
+        "trigger: rest cost <= 4 / at-limit",
+        "trigger: rest cost <= 4 / over-limit",
+        "trigger: rest cost <= 4 / own-card",
+        "trigger: rest cost <= 4 / leader",
+        "trigger: rest cost <= 4 / skip",
+        "schema-rest-target trigger: opponent-character cost <= 4 up to 1",
+        "engine-action main rest: exercise action 1 independently (gate and sequence not covered)",
+        "engine-action main ko: exercise action 2 independently (gate and sequence not covered)",
+        "schema-atomic-action trigger: isolated rest",
+        "Main gameplay K.O.: verify the complete window and enforce its target limits",
+        "Main gameplay rest: verify the complete window and legal rest target",
+        "Trigger gameplay rest: verify the complete window and legal rest target"
+      ],
+      "scenarioCount": 12,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 6,
+                "restedOnly": true,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              },
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 6,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ],
+            "rawText": "[Main] Rest up to 1 of your opponent's Characters with a cost of 6 or less. Then, K.O. up to 1 of your opponent's rested Characters with a cost of 5 or less.",
+            "trigger": "main",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 4,
+                "selection": {
+                  "max": 1,
+                  "min": 0
+                }
+              }
+            ],
+            "rawText": "[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 6,
+                  "restedOnly": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 6,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 4,
+                  "selection": {
+                    "max": 1,
+                    "min": 0
+                  }
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Rest up to 1 of your opponent's Characters with a cost of 6 or less. Then, K.O. up to 1 of your opponent's rested Characters with a cost of 5 or less.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 6,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              },
+              {
+                "kind": "ko",
+                "maxCost": 6,
+                "restedOnly": true,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ],
+            "rawText": "[Main] Rest up to 1 of your opponent's Characters with a cost of 6 or less. Then, K.O. up to 1 of your opponent's rested Characters with a cost of 5 or less.",
+            "trigger": "main",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 4,
+                "selection": {
+                  "max": 1,
+                  "min": 0
+                }
+              }
+            ],
+            "rawText": "[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 6,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 6,
+                  "restedOnly": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 4,
+                  "selection": {
+                    "max": 1,
+                    "min": 0
+                  }
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Rest up to 1 of your opponent's Characters with a cost of 6 or less. Then, K.O. up to 1 of your opponent's rested Characters with a cost of 5 or less.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "99233262feeab5b8b68702d01561b99a610cd279ea19bef629a7c7b51896d3f1",
+      "afterHash": "634fbcc8b8993a204b6b44d872bb82448750862bd5fb608d0713242968019d61",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 2
+    },
+    {
+      "code": "OP12-029",
+      "printedText": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 2 or less. Then, K.O. up to 1 of your opponent's rested Characters with a base cost of 1 or less.",
+      "publishedText": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 2 or less. Then, K.O. up to 1 of your opponent's rested Characters with a base cost of 1 or less.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "engine-action on-play rest: exercise action 1 independently (gate and sequence not covered)",
+        "engine-action on-play ko: exercise action 2 independently (gate and sequence not covered)",
+        "On Play gameplay K.O.: verify the complete window and enforce its target limits",
+        "On Play gameplay rest: verify the complete window and legal rest target"
+      ],
+      "scenarioCount": 4,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxBaseCost": 1,
+                "restedOnly": true,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              },
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 2,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ],
+            "rawText": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 2 or less. Then, K.O. up to 1 of your opponent's rested Characters with a base cost of 1 or less.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxBaseCost": 1,
+                  "restedOnly": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 2,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 2 or less. Then, K.O. up to 1 of your opponent's rested Characters with a base cost of 1 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 2,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              },
+              {
+                "kind": "ko",
+                "maxBaseCost": 1,
+                "restedOnly": true,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ],
+            "rawText": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 2 or less. Then, K.O. up to 1 of your opponent's rested Characters with a base cost of 1 or less.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 2,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxBaseCost": 1,
+                  "restedOnly": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 2 or less. Then, K.O. up to 1 of your opponent's rested Characters with a base cost of 1 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "37d3e3ed3a1ede237330a2a0f4c083ed6051839741ef9b0dca2a97a29242a0a5",
+      "afterHash": "6b1ef5ab57fb883a0634348ba4c31ebc9d4c8e7fe1f11ed9a669ce7ed6dee757",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 2
+    },
+    {
+      "code": "OP17-036",
+      "printedText": "[Main] You may rest 6 of your DON!! cards: Rest up to 1 of your opponent's Characters. Then, K.O. up to 2 of your opponent's rested Characters with a cost of 6 or less.\n\n[Counter] Up to 1 of your [Shanks] gains +4000 power during this battle.",
+      "publishedText": "[Main] You may rest 6 of your DON!! cards: Rest up to 1 of your opponent's Characters. Then, K.O. up to 2 of your opponent's rested Characters with a cost of 6 or less.\n\n[Counter] Up to 1 of your [Shanks] gains +4000 power during this battle.",
+      "timings": [
+        "main"
+      ],
+      "scenarioNames": [
+        "schema-power counter: exact target, 4000 for this battle",
+        "schema-rest-don-cost main: select 6 active DON!! (optional)",
+        "engine-action main rest: exercise action 1 independently (gate and sequence not covered)",
+        "engine-action main ko: exercise action 2 independently (gate and sequence not covered)",
+        "schema-atomic-action counter: isolated power",
+        "Counter gameplay power: verify the complete window and apply its printed target",
+        "Main gameplay K.O.: verify the complete window and enforce its target limits"
+      ],
+      "scenarioCount": 7,
+      "before": {
+        "ast": [
+          {
+            "rawText": "[Counter] Up to 1 of your [Shanks] gains +4000 power during this battle.",
+            "trigger": "counter",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 4000,
+                "until": "battle",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                },
+                "name": "Shanks",
+                "target": "own-card"
+              }
+            ]
+          },
+          {
+            "rawText": "[Main] You may rest 6 of your DON!! cards: Rest up to 1 of your opponent's Characters. Then, K.O. up to 2 of your opponent's rested Characters with a cost of 6 or less.",
+            "trigger": "main",
+            "conditions": [],
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "don",
+                "amount": 6,
+                "optional": true
+              }
+            ],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 6,
+                "restedOnly": true,
+                "selection": {
+                  "min": 0,
+                  "max": 2
+                }
+              },
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 6,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "counter",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 4000,
+                  "until": "battle",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "name": "Shanks",
+                  "target": "own-card"
+                }
+              }
+            ]
+          },
+          {
+            "timing": "main",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "PAY_COST",
+                "cost": {
+                  "kind": "rest",
+                  "scope": "don",
+                  "amount": 6,
+                  "optional": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 6,
+                  "restedOnly": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 2
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 6,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] You may rest 6 of your DON!! cards: Rest up to 1 of your opponent's Characters. Then, K.O. up to 2 of your opponent's rested Characters with a cost of 6 or less.\n\n[Counter] Up to 1 of your [Shanks] gains +4000 power during this battle.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Counter] Up to 1 of your [Shanks] gains +4000 power during this battle.",
+            "trigger": "counter",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 4000,
+                "until": "battle",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                },
+                "name": "Shanks",
+                "target": "own-card"
+              }
+            ]
+          },
+          {
+            "rawText": "[Main] You may rest 6 of your DON!! cards: Rest up to 1 of your opponent's Characters. Then, K.O. up to 2 of your opponent's rested Characters with a cost of 6 or less.",
+            "trigger": "main",
+            "conditions": [],
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "don",
+                "amount": 6,
+                "optional": true
+              }
+            ],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              },
+              {
+                "kind": "ko",
+                "maxCost": 6,
+                "restedOnly": true,
+                "selection": {
+                  "min": 0,
+                  "max": 2
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "counter",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 4000,
+                  "until": "battle",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "name": "Shanks",
+                  "target": "own-card"
+                }
+              }
+            ]
+          },
+          {
+            "timing": "main",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "PAY_COST",
+                "cost": {
+                  "kind": "rest",
+                  "scope": "don",
+                  "amount": 6,
+                  "optional": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 6,
+                  "restedOnly": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 2
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] You may rest 6 of your DON!! cards: Rest up to 1 of your opponent's Characters. Then, K.O. up to 2 of your opponent's rested Characters with a cost of 6 or less.\n\n[Counter] Up to 1 of your [Shanks] gains +4000 power during this battle.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "0197cfa617b4f2850a0c80386d2b86312f48dc6b5bf11ea0c571690cbc00afb2",
+      "afterHash": "6b9218c94f70529d1a685957050a3429cf0445af7435d8ced468777d5e978f6c",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 2
+    }
+  ]
+}

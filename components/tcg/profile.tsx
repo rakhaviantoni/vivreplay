@@ -28,6 +28,7 @@ import {MapPicker} from './map-picker';
 import {TurnstileField,turnstileEnabled,turnstileHeaders} from './turnstile-field';
 import {isBiteshipAreaId} from '@/lib/shipping/biteship-area';
 import {IntroCardRail} from './intro-card-rail';
+import {PushNotificationSettings} from './push-notification-settings';
 import {
   searchIndonesianAreas,
   getCities,
@@ -1004,6 +1005,7 @@ function ProfileForm({
         </div>
 
         {activeTab === 'general' ? (
+          <>
           <form className="form-stack profile-tab-content" onSubmit={saveGeneral}>
             <div className="profile-section-header">
               <h2>{t('Personal details','Data pribadi')}</h2>
@@ -1088,6 +1090,8 @@ function ProfileForm({
               {busy ? t('Saving...','Menyimpan...') : t('Save preferences','Simpan preferensi')}
             </button>
           </form>
+          <PushNotificationSettings language={language}/>
+          </>
         ) : (
           <form className="form-stack profile-tab-content" onSubmit={saveShipping}>
             <div className="shipping-banner">

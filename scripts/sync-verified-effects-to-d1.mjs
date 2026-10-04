@@ -27,7 +27,7 @@ if (byCode.size !== candidates.length) throw new Error(`Expected ${candidates.le
 for (const candidate of candidates) {
   const row = byCode.get(candidate.code);
   const nextText = candidate.effectTextAfter ?? row?.effect_text;
-  if (!row || comparableText(row.effect_text) !== comparableText(candidate.publishedText) || (candidate.effectTextAfter !== undefined && comparableText(candidate.after.rawEffectText) !== comparableText(nextText))) {
+  if (!row || comparableText(row.effect_text) !== comparableText(candidate.publishedText) || canonical(JSON.parse(row.effect_schema)) !== canonical(candidate.before) || (candidate.effectTextAfter !== undefined && comparableText(candidate.after.rawEffectText) !== comparableText(nextText))) {
     throw new Error(`Printed-text parity check failed for ${candidate.code}; no D1 rows were changed.`);
   }
 }
@@ -36,7 +36,7 @@ const sql = candidates.map(candidate => {
   const row = byCode.get(candidate.code);
   const schema = JSON.stringify(candidate.after);
   const nextText = candidate.effectTextAfter ?? candidate.publishedText;
-  return `UPDATE tcg_card_rule_revisions SET effect_text=${quote(nextText)},effect_schema=${quote(schema)} WHERE ruleset_id=${quote(rulesetId)} AND identity_id=${quote(row.identity_id)} AND effect_text=${quote(row.effect_text)};`;
+  return `UPDATE tcg_card_rule_revisions SET effect_text=${quote(nextText)},effect_schema=${quote(schema)} WHERE ruleset_id=${quote(rulesetId)} AND identity_id=${quote(row.identity_id)} AND effect_text=${quote(row.effect_text)} AND effect_schema=${quote(row.effect_schema)};`;
 }).join('\n');
 const sqlPath = join(tmpdir(), `vivreplay-verified-effects-${Date.now()}.sql`);
 writeFileSync(sqlPath, sql, { mode: 0o600 });

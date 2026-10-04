@@ -36,6 +36,7 @@ const localBindingConfig = {
           binding: d1,
           database_name: "site-creator-d1",
           database_id: SITE_CREATOR_PLACEHOLDER_DATABASE_ID,
+          migrations_dir: "drizzle",
         },
     ]
     : [],
@@ -61,6 +62,12 @@ export default defineConfig(async ({ command, mode }) => {
         localBindingConfig.vars[key] = localEnv[key];
         break;
       }
+    }
+
+    // Server-only local credential: Vite's Node env is separate from the
+    // Cloudflare Worker env, so pass the shipping key into the dev binding.
+    if (localEnv.BITESHIP_API_KEY?.trim()) {
+      localBindingConfig.vars.BITESHIP_API_KEY = localEnv.BITESHIP_API_KEY.trim();
     }
   }
 

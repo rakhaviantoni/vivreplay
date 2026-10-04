@@ -14,13 +14,14 @@ import {isBiteshipAreaId} from '@/lib/shipping/biteship-area';
 
 type Origin={addressLine:string;city:string;postalCode:string;areaId:string|null;recipientName:string|null;phone:string|null;regionNames?:{province?:string;district?:string;subdistrict?:string}};
 type Rate={courier_name:string;courier_service_name:string;price:number;duration?:string};
-type CheckoutLine={printingId:string;quantity:number};
+type CheckoutLine={printingId:string;quantity:number;unitAmount?:number};
 
 export function MarketCheckout(){
   const params=useSearchParams();
   const router=useRouter();
   const {data:account}=useAccount();
   const listingId=params.get('listing')??'';
+  const offerId=params.get('offer')??'';
   const rawItems=params.get('items')??'';
   const items=useMemo<CheckoutLine[]>(()=>{try{const parsed=JSON.parse(rawItems) as CheckoutLine[];return Array.isArray(parsed)?parsed:[]}catch{return []}},[rawItems]);
   const [listing,setListing]=useState<Listing>();
@@ -62,7 +63,7 @@ export function MarketCheckout(){
       const card=(listing?.printingId===selected.printingId?listing.card:item?.card??cardFor(selected.printingId)) as Card|undefined;
       const bundleQuantity=cardItems.reduce((total,entry)=>total+entry.quantity,0)||listing?.quantity||1;
       const fallbackUnitAmount=listing?Math.max(1,Math.floor(listing.amount/bundleQuantity)):0;
-      return {printingId:selected.printingId,quantity:selected.quantity,card,unitAmount:item?.unitAmount&&item.unitAmount>0?item.unitAmount:fallbackUnitAmount,condition:item?.condition??listing?.condition??'NM'};
+      return {printingId:selected.printingId,quantity:selected.quantity,card,unitAmount:selected.unitAmount&&selected.unitAmount>0?selected.unitAmount:item?.unitAmount&&item.unitAmount>0?item.unitAmount:fallbackUnitAmount,condition:item?.condition??listing?.condition??'NM'};
     });
   },[items,listing]);
   const subtotal=selectedCards.reduce((sum,item)=>sum+item.unitAmount*item.quantity,0);
@@ -86,7 +87,7 @@ export function MarketCheckout(){
     if(turnstileEnabled&&!turnstileToken){setError(t('Complete the security check first.','Selesaikan pemeriksaan keamanan terlebih dahulu.'));return}
     setSubmitting(true);setError('');
     try{
-      const response=await fetch('/api/checkout/market',{method:'POST',headers:{'content-type':'application/json',...turnstileHeaders(turnstileToken)},body:JSON.stringify({listingId,items,courierName:currentRate.courier_name,courierServiceName:currentRate.courier_service_name})});
+      const response=await fetch('/api/checkout/market',{method:'POST',headers:{'content-type':'application/json',...turnstileHeaders(turnstileToken)},body:JSON.stringify({listingId,offerId:offerId||undefined,items,courierName:currentRate.courier_name,courierServiceName:currentRate.courier_service_name})});
       const result=await response.json() as {checkoutUrl?:string;error?:string};
       if(!response.ok||!result.checkoutUrl)throw new Error(result.error??t('Checkout could not be started.','Checkout tidak dapat dimulai.'));
       router.push(result.checkoutUrl);

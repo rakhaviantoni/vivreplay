@@ -8,11 +8,13 @@ import {recoveryScenarios} from './effect-recovery-scenarios';
 import {donScenarios} from './effect-don-scenarios';
 import {keywordScenarios} from './effect-keyword-scenarios';
 import {evaluateEffectCondition} from '../packages/domain/effect-conditions';
+import {matchesCardName} from '../packages/domain/search-eligibility';
 export type Identity={id:string;code:string;name:string;color:string;card_type:'Character'|'Leader'|'Event'|'Stage';cost:number;power:number;effect_text:string};
 const canonical=(value:unknown)=>JSON.stringify(value,(_key,item)=>item&&typeof item==='object'&&!Array.isArray(item)?Object.fromEntries(Object.entries(item).sort(([a],[b])=>a.localeCompare(b))):item);
+const comparableAbility=(value:EffectDocument['ast'][number])=>{const {rawText:_rawText,...semantic}=value;return semantic;};
 const clean=(text:string|null)=>text?.replace(/^NULL$/i,'').trim()??'';
 const base=():MatchEffectState=>({turn:'player',cards:Array.from({length:8},(_,i)=>({id:`deck-${i}`,owner:'player',zone:'deck',type:'Character'})),turnEffects:[],restrictions:[],delayed:[]});
-type Scenario={name:string;run:(doc:EffectDocument)=>void};
+export type Scenario={name:string;run:(doc:EffectDocument)=>void};
 const assert=(condition:unknown,message:string)=>{if(!condition)throw new Error(message);};
 const attachedDonRestScenarios=(row:Identity):Scenario[]=>{
  const local=compileEffectDocument({id:row.id,code:row.code,name:row.name,color:row.color,type:row.card_type==='Stage'?'Character':row.card_type,cost:row.cost,power:row.power,counter:0,rarity:'',art:0,effect:row.effect_text});
@@ -65,11 +67,13 @@ const conditionalDonBlockerScenarios=(row:Identity):Scenario[]=>{
 };
 const conditionalDonRushScenarios=(row:Identity):Scenario[]=>{
  const requirement=row.effect_text.match(/\[DON!!\s*[x×]\s*(\d+)\][\s\S]*?gains\s+\[Rush\]/i);if(!requirement||/\bIf\b/i.test(row.effect_text))return [];const amount=Number(requirement[1]);
+ const playTurnLeaderRestriction=row.effect_text.includes('cannot attack a Leader on the turn in which it is played');
  return [{name:`schema-keyword-don-gate unknown: ${row.code} Rush requires attached DON!!`,run(doc){
   const source:MatchCard={id:'rush-source',owner:'player',zone:'character',type:'Character',power:5000,effectSchema:doc};
-  const makeState=(attached:number):MatchEffectState=>({turn:'player',phase:'main',turnNumber:2,playedThisTurn:['rush-source'],cards:[source,{id:'opponent-leader',owner:'opponent',zone:'leader',type:'Leader',power:5000},...Array.from({length:attached},(_,index)=>({id:`rush-don-${index}`,owner:'player' as const,zone:'cost-area' as const,type:'DON!!' as const,attachedTo:'rush-source'}))],turnEffects:[],restrictions:[],delayed:[]});
-  const short=makeState(Math.max(0,amount-1));assert(!hasCardKeyword(source,'rush',short),'Rush was granted without its printed attached-DON threshold');assert(Boolean(declareAttack(short,'player','rush-source','opponent-leader').error),'A newly played Character attacked without enough attached DON!!');
-  const enough=makeState(amount);assert(hasCardKeyword(source,'rush',enough),'Rush did not turn on after the printed DON!! was attached');assert(!declareAttack(enough,'player','rush-source','opponent-leader').error,'Rush could not enable a newly played Character to attack');
+  const targetId=playTurnLeaderRestriction?'opponent-character':'opponent-leader';
+  const makeState=(attached:number):MatchEffectState=>({turn:'player',phase:'main',turnNumber:2,playedThisTurn:['rush-source'],cards:[source,{id:'opponent-leader',owner:'opponent',zone:'leader',type:'Leader',power:5000},{id:'opponent-character',owner:'opponent',zone:'character',type:'Character',power:5000,rested:true},...Array.from({length:attached},(_,index)=>({id:`rush-don-${index}`,owner:'player' as const,zone:'cost-area' as const,type:'DON!!' as const,attachedTo:'rush-source'}))],turnEffects:[],restrictions:[],delayed:[]});
+  const short=makeState(Math.max(0,amount-1));assert(!hasCardKeyword(source,'rush',short),'Rush was granted without its printed attached-DON threshold');assert(Boolean(declareAttack(short,'player','rush-source',targetId).error),'A newly played Character attacked without enough attached DON!!');
+  const enough=makeState(amount);assert(hasCardKeyword(source,'rush',enough),'Rush did not turn on after the printed DON!! was attached');assert(!declareAttack(enough,'player','rush-source',targetId).error,'Rush could not enable a newly played Character to attack its legal target');
   if(row.code==='OP03-004'){
    const legacy=structuredClone(doc),ability=legacy.ast.find(item=>item.actions.some(action=>action.kind==='attach-don-required'&&action.amount===amount));assert(Boolean(ability),'OP03-004 gated Rush ability is missing');ability!.actions=ability!.actions.filter(action=>action.kind!=='grant-keyword');ability!.actions.push({kind:'rush'});const old=makeState(0);old.cards[0].effectSchema=legacy;assert(!hasCardKeyword(old.cards[0],'rush',old),'Legacy bare Rush action bypassed its DON!! condition');const paid=makeState(amount);paid.cards[0].effectSchema=legacy;assert(hasCardKeyword(paid.cards[0],'rush',paid),'Legacy bare Rush action stayed disabled after paying its DON!! condition');
   }
@@ -109,26 +113,31 @@ const boundedKeywordGrantScenarios=(row:Identity):Scenario[]=>{
 };
 const standaloneActionScenarios=(row:Identity):Scenario[]=>{
  const local=compileEffectDocument({id:row.id,code:row.code,name:row.name,color:row.color,type:row.card_type==='Stage'?'Character':row.card_type,cost:row.cost,power:row.power,counter:0,rarity:'',art:0,effect:row.effect_text});
- const supported=new Set(['power','ko','rest','ready','return-to-hand','return-source-to-hand','bottom-deck','cost','draw','add-don','grant-keyword','attack-restriction','prevent-ready','prevent-rest']);
+ const supported=new Set(['power','ko','rest','ready','return-to-hand','return-source-to-hand','bottom-deck','cost','draw','add-don','grant-keyword','attack-restriction','prevent-ready','prevent-rest','play','attach-don','trash','move-to-life','life','trash-life','return-don','reorder-deck','return-trash-to-deck-bottom','recover','search']);
  return local.ast.flatMap((expectedAbility,abilityIndex)=>{
-  if(expectedAbility.conditions.length||expectedAbility.costs.length||expectedAbility.actions.length!==1)return [];
-  const expectedAction=expectedAbility.actions[0];if(!supported.has(expectedAction.kind))return [];
+  if(!expectedAbility.actions.length)return [];
   const timingIndex=local.ast.filter(candidate=>candidate.trigger===expectedAbility.trigger).indexOf(expectedAbility);
-  const scenarios:Scenario[]=[{name:`engine-action ${expectedAbility.trigger} ${expectedAction.kind}: resolve isolated parsed instruction`,run(doc){
+  return expectedAbility.actions.flatMap((expectedAction,actionIndex)=>{
+  if(!supported.has(expectedAction.kind))return [];
+  if(expectedAction.kind==='play'&&expectedAction.cardType==='Event')return [];
+  if(expectedAction.kind==='life'&&expectedAction.operation==='add-to-life')return [];
+  if(expectedAction.kind==='trash'&&expectedAction.amountFromPreviousHandTrash)return [];
+  const isolated=expectedAbility.conditions.length===0&&expectedAbility.costs.length===0&&expectedAbility.actions.length===1;
+  const scenarios:Scenario[]=[{name:`engine-action ${expectedAbility.trigger} ${expectedAction.kind}: ${isolated?'resolve isolated parsed instruction':`exercise action ${actionIndex+1} independently (gate and sequence not covered)`}`,run(doc){
    const ability=doc.ast.filter(candidate=>candidate.trigger===expectedAbility.trigger)[timingIndex];
    if(!ability)throw new Error(`Ability ${abilityIndex+1} was missing from the published schema`);
-   assert(ability.actions.length===1&&ability.conditions.length===0&&ability.costs.length===0,`Ability ${abilityIndex+1} was no longer isolated in the published schema`);
-   const action=ability.actions[0];assert(canonical(action)===canonical(expectedAction),'Published action differs from the locally parsed action');
-   const state=base(),targetId=expectedAction.kind==='return-source-to-hand'?'effect-source':'effect-target',selection:{targetId?:string;cardIds?:string[];sourceCardId?:string}={};
+   if(isolated)assert(ability.actions.length===1&&ability.conditions.length===0&&ability.costs.length===0,`Ability ${abilityIndex+1} was no longer isolated in the published schema`);
+   const action=isolated?ability.actions[0]:ability.actions.find(candidate=>canonical(candidate)===canonical(expectedAction));if(!action||canonical(action)!==canonical(expectedAction))throw new Error('Published ability is missing or differs from the locally parsed action');
+  const state=base(),targetId=expectedAction.kind==='return-source-to-hand'?'effect-source':'effect-target',selection:{targetId?:string;cardIds?:string[];sourceCardId?:string;position?:'top'|'bottom';choice?:string;deckOrder?:string[]}={};
    const add=(card:MatchCard)=>state.cards.push(card);
    if(expectedAction.kind==='return-source-to-hand'){add({id:targetId,owner:'player',zone:expectedAbility.trigger==='on-ko'?'trash':'life',type:row.card_type==='Leader'?'Leader':row.card_type});selection.sourceCardId=targetId;}
    const targetOwner=('target'in action&&String(action.target).startsWith('opponent'))||('scope'in action&&['opponent-character','opponent-leader','opponent-card','opponent-don','opponent-hand'].includes(String(action.scope)))?'opponent':'player';
    let target:MatchCard|undefined;
    if(action.kind==='power'||action.kind==='cost'){
-    const zone=action.kind==='power'&&action.target.endsWith('leader')?'leader':'character';target={id:targetId,owner:targetOwner,zone,type:zone==='leader'?'Leader':'Character',power:5000,cost:3,...(action.kind==='power'&&action.trait?{traits:[action.trait]}:{}),...(action.kind==='power'&&action.name?{name:action.name}:{})};add(target);selection.targetId=targetId;
+    const zone=action.kind==='power'&&action.target.endsWith('leader')?'leader':'character',cost=action.kind==='power'?action.exactCost??action.minCost??Math.min(action.maxCost??3,3):3;target={id:targetId,owner:targetOwner,zone,type:zone==='leader'?'Leader':'Character',power:5000,cost,color:action.kind==='power'?action.color??'red':undefined,...(action.kind==='power'&&action.trait?{traits:[action.trait]}:{}),...(action.kind==='power'&&action.name?{name:action.name}:{})};add(target);selection.targetId=targetId;
     if(action.selection)selection.cardIds=[targetId];
    }else if(action.kind==='ko'){
-    target={id:targetId,owner:'opponent',zone:'character',type:'Character',cost:action.exactBaseCost??action.maxBaseCost??action.exactCost??action.maxCost??0,power:action.maxPower??1000,rested:Boolean(action.restedOnly),...(action.requiresTrigger?{effectText:'[Trigger] Draw 1 card.'}:{})};add(target);selection.targetId=targetId;
+    const zone=action.scope==='opponent-stage'?'stage':'character';target={id:targetId,owner:'opponent',zone,type:zone==='stage'?'Stage':'Character',cost:action.exactBaseCost??action.maxBaseCost??action.exactCost??action.maxCost??0,power:action.maxPower??1000,rested:Boolean(action.restedOnly),...(action.requiresTrigger?{effectText:'[Trigger] Draw 1 card.'}:{})};add(target);selection.targetId=targetId;
     if(action.minAttachedDon)for(let i=0;i<action.minAttachedDon;i++)add({id:`attached-don-${i}`,owner:target.owner,zone:'cost-area',type:'DON!!',attachedTo:targetId});
     if(action.selection)selection.cardIds=[targetId];
    }else if(action.kind==='rest'){
@@ -141,11 +150,55 @@ const standaloneActionScenarios=(row:Identity):Scenario[]=>{
    }else if(action.kind==='return-to-hand'||action.kind==='bottom-deck'){
     const zone=action.scope==='trash'?'trash':action.scope==='opponent-hand'?'hand':'character',owner=action.scope==='own-character'||action.scope==='trash'?'player':action.scope==='any-character'||action.scope==='any-card'?'player':'opponent',power=action.kind==='bottom-deck'?(action.maxPower??5000):action.kind==='return-to-hand'?(action.maxBasePower??action.maxPower??5000):5000;target={id:targetId,owner,zone,type:'Character',cost:action.maxCost??0,power,rested:false};add(target);selection.targetId=targetId;
     if(action.selection)selection.cardIds=[targetId];
+   }else if(action.kind==='search'){
+    if(action.choose<1)throw new Error('Search action has no executable inspected-card slot');
+    const deck=state.cards.filter(card=>card.owner==='player'&&card.zone==='deck'),inspected=action.amount>0?deck.slice(0,action.amount):deck;
+    const rule=action.alternatives?.[0]??action;
+    const eligible=action.amount>0?inspected[0]:inspected.at(-1);if(!eligible)throw new Error('Search action has no deck cards to inspect');
+    Object.assign(eligible,{type:rule.cardType??action.cardType??'Character',name:rule.name??action.name??(action.excludeName?`Other than ${action.excludeName}`:'Eligible'),traits:rule.trait||action.trait?[rule.trait??action.trait!]:[],color:rule.color??action.color??'Red',cost:rule.exactCost??rule.minCost??rule.maxCost??action.exactCost??action.minCost??action.maxCost??1,power:rule.exactPower??rule.minPower??rule.maxPower??action.exactPower??action.minPower??action.maxPower??1000,keywords:action.triggerOnly?['trigger']:[]});
+    selection.cardIds=[eligible.id];
+    if(action.remainderOrder)selection.deckOrder=inspected.slice(1).map(card=>card.id).reverse();
+    if(action.remainderPosition==='choice')selection.position='top';
    }else if(action.kind==='draw'){
     // The base state contains eight ordered deck cards.
    }else if(action.kind==='add-don'){
     const count=Math.min(action.amount,2);for(let i=0;i<count;i++)add({id:`don-deck-${i}`,owner:'player',zone:'don-deck',type:'DON!!'});
     if(action.selection)selection.cardIds=Array.from({length:count},(_,i)=>`don-deck-${i}`);
+   }else if(action.kind==='play'){
+    const alternative=action.alternatives?.[0],type:string=action.cardType??alternative?.cardType??'Character',count=1;
+    if(type!=='Character'&&type!=='Stage')throw new Error('Play action does not name a playable card type');
+    const playable:MatchCard={id:'effect-played-card',owner:'player',zone:action.source as MatchCard['zone'],type:type as MatchCard['type'],name:alternative?.name??action.name??'Eligible',traits:alternative?.trait||action.trait?[alternative?.trait??action.trait!]:[],color:alternative?.color??action.color??'Red',attributes:alternative?.attribute||action.attribute?[alternative?.attribute??action.attribute!]:[],cost:action.exactCost??action.minCost??action.maxCost??0,power:action.exactPower??action.minPower??action.maxPower??4000,effectText:action.noBaseEffect?'':'[On Play] Draw 1 card.'};
+    if(action.topOnly)state.cards.unshift(playable);else add(playable);
+    selection.cardIds=Array.from({length:count},(_,index)=>`effect-played-card`);
+   }else if(action.kind==='attach-don'){
+    target={id:targetId,owner:'player',zone:'character',type:'Character'};add(target);selection.targetId=targetId;
+    add({id:'effect-attach-don',owner:'player',zone:'cost-area',type:'DON!!',rested:Boolean(action.rested),...(action.source==='attached'?{attachedTo:'another-card'}:{})});
+    selection.cardIds=['effect-attach-don'];
+   }else if(action.kind==='trash'){
+    const owner=action.scope==='opponent-hand'?'opponent':'player',zone=action.scope==='hand'||action.scope==='opponent-hand'?'hand':action.scope==='deck'?'deck':'character',count=action.all?1:Math.max(1,Math.min(action.amount,2));
+    const cards=Array.from({length:count},(_,index)=>({id:`effect-trash-${index}`,owner,zone,type:action.cardType??'Character' as MatchCard['type'],color:action.color??'Red',traits:action.trait?[action.trait]:[],cost:action.maxCost??0} as MatchCard));
+    if(action.scope==='self'){target={id:targetId,owner:'player',zone:'character',type:'Character'};add(target);selection.targetId=targetId;}
+    else if(action.scope==='deck')state.cards.unshift(...cards);
+    else state.cards.push(...cards);
+    if(!action.all&&action.scope!=='deck'&&action.scope!=='self')selection.cardIds=cards.map(card=>card.id);
+   }else if(action.kind==='move-to-life'){
+    const owner:'player'|'opponent'=action.source==='deck-top'||action.scope==='own'?'player':'opponent',zone:MatchCard['zone']=(action.source==='deck-top'?'deck':action.source??'hand') as MatchCard['zone'],count=1;
+    const cards=Array.from({length:count},(_,index)=>({id:`effect-life-${index}`,owner,zone,type:'Character' as const}));
+    if(zone==='deck')state.cards.unshift(...cards);else state.cards.push(...cards);
+    selection.cardIds=cards.map(card=>card.id);if(action.position==='choice')selection.position='top';
+   }else if(action.kind==='life'&&action.operation!=='add-to-life'){
+    const owner:'player'|'opponent'=action.operation==='opponent-top-to-owner-hand'?'opponent':'player',count=Math.max(1,Math.min(action.amount,2));
+    const cards=Array.from({length:count},(_,index)=>({id:`effect-life-action-${index}`,owner,zone:'life' as const,type:'Character' as const}));state.cards.push(...cards);
+    if(action.operation==='opponent-top-to-owner-hand')selection.cardIds=cards.map(card=>card.id);
+   }else if(action.kind==='trash-life'){
+    const owners=action.scope==='both'?['player','opponent']:[action.scope==='own'?'player':'opponent'];
+    const lifeCount=Math.max(1,Math.min(action.amount,2))+(action.leaveAt??0);for(const owner of owners)for(let index=0;index<lifeCount;index++)add({id:`effect-trash-life-${owner}-${index}`,owner:owner as 'player'|'opponent',zone:'life',type:'Character'});selection.choice=String(Math.min(action.amount,lifeCount*owners.length));
+   }else if(action.kind==='return-don'){
+    const owner=action.owner==='opponent'?'opponent':'player';for(let index=0;index<action.amount;index++)add({id:`effect-return-don-${index}`,owner,zone:'cost-area',type:'DON!!'});selection.cardIds=Array.from({length:action.amount},(_,index)=>`effect-return-don-${index}`);
+   }else if(action.kind==='reorder-deck'){
+    const count=Math.max(1,Math.min(action.amount,8)),cards=state.cards.filter(card=>card.owner==='player'&&card.zone==='deck').slice(0,count);selection.cardIds=cards.map(card=>card.id).reverse();if(action.position==='choice')selection.position='top';
+   }else if(action.kind==='return-trash-to-deck-bottom'||action.kind==='recover'){
+    const count=action.kind==='recover'?Math.max(1,Math.min(action.amount,2)):action.amount,cards=Array.from({length:count},(_,index)=>({id:`effect-trash-source-${index}`,owner:'player' as const,zone:'trash' as const,type:action.kind==='recover'?(action.cardType??'Character') as MatchCard['type']:'Character' as const,name:action.kind==='recover'?action.name??'Eligible':'Eligible',traits:action.kind==='recover'&&action.trait?[action.trait]:[],color:action.kind==='recover'?action.color??'Red':'Red',cost:action.kind==='recover'?action.exactCost??action.minCost??action.maxCost??0:0}));state.cards.push(...cards);selection.cardIds=cards.map(card=>card.id);
    }else if(action.kind==='grant-keyword'){
     const zone=action.scope==='own-leader'?'leader':'character';target={id:targetId,owner:'player',zone,type:zone==='leader'?'Leader':'Character',traits:action.trait?[action.trait]:[],name:action.name,cost:action.maxCost??0,color:action.color??'red',effectText:action.withoutOnPlay?'':''};add(target);selection.targetId=targetId;if(action.scope==='self')selection.sourceCardId=targetId;
    }else if(action.kind==='attack-restriction'||action.kind==='prevent-ready'||action.kind==='prevent-rest'){
@@ -172,9 +225,20 @@ const standaloneActionScenarios=(row:Identity):Scenario[]=>{
     case 'attack-restriction':assert(changed?.cannotAttack===true,'Opponent target did not receive the attack restriction');break;
     case 'prevent-ready':assert(changed?.cannotReady===true,'Opponent target did not receive the ready restriction');break;
     case 'prevent-rest':assert(changed?.rested===true,'Opponent target did not become rested');break;
+    case 'play':assert(result.state.cards.find(card=>card.id==='effect-played-card')?.zone===(String(action.cardType)==='Stage'?'stage':'character'),'Effect-played card did not enter its printed play area');break;
+    case 'search':{const chosen=result.state.cards.find(card=>card.id===selection.cardIds?.[0]);assert(chosen?.zone==='hand','Eligible inspected card was not added to hand');const deck=state.cards.filter(card=>card.owner==='player'&&card.zone==='deck'),inspected=action.amount>0?deck.slice(0,action.amount):deck,remainder=inspected.filter(card=>card.id!==chosen?.id),expectedZone=action.destination==='trash'?'trash':'deck';assert(remainder.every(card=>result.state.cards.find(candidate=>candidate.id===card.id)?.zone===expectedZone),'Unselected inspected cards were not sent to their printed destination');if(action.remainderOrder){const actualOrder=result.state.cards.filter(card=>card.owner==='player'&&card.zone===expectedZone&&remainder.some(item=>item.id===card.id)).map(card=>card.id),expectedOrder=selection.deckOrder??[];assert(canonical(actualOrder)===canonical(expectedOrder),'The specified remainder ordering was not preserved');}break;}
+    case 'attach-don':assert(result.state.cards.find(card=>card.id==='effect-attach-don')?.attachedTo===targetId,'Selected DON!! was not attached to the chosen Leader or Character');break;
+    case 'trash':assert(result.state.cards.some(card=>(action.scope==='self'?card.id===targetId:card.id.startsWith('effect-trash-'))&&card.zone==='trash'),'Trash action did not move a card to Trash');break;
+    case 'move-to-life':assert(result.state.cards.filter(card=>card.id.startsWith('effect-life-')&&card.zone==='life').length===1,'Selected card did not move to Life');break;
+    case 'life':if(action.operation!=='add-to-life')assert(result.state.cards.filter(card=>card.id.startsWith('effect-life-action-')&&card.zone===(action.operation==='trash'?'trash':'hand')).length===Math.min(action.amount,2),'Life action moved the wrong card(s)');break;
+    case 'trash-life':assert(result.state.cards.filter(card=>card.id.startsWith('effect-trash-life-')&&card.zone==='trash').length===Math.min(action.amount,2)*(action.scope==='both'?2:1),'Life trash did not move the expected cards');break;
+    case 'return-don':assert(result.state.cards.filter(card=>card.id.startsWith('effect-return-don-')&&card.zone==='don-deck').length===action.amount,'DON!! return did not move the requested cards');break;
+    case 'reorder-deck':assert(result.state.cards.filter(card=>card.owner==='player'&&card.zone==='deck').length>=Math.min(action.amount,3),'Deck reorder lost inspected cards');break;
+    case 'return-trash-to-deck-bottom':assert(result.state.cards.filter(card=>card.id.startsWith('effect-trash-source-')&&card.zone==='deck').length===action.amount,'Trash cards were not returned to deck');break;
+    case 'recover':assert(result.state.cards.filter(card=>card.id.startsWith('effect-trash-source-')&&card.zone==='hand').length===Math.min(action.amount,2),'Eligible Trash card(s) did not enter hand');break;
    }
   }}];
-  if(expectedAction.kind==='ko')scenarios.push({name:`engine-action ${expectedAbility.trigger} ko: reject targets outside printed restrictions`,run(doc){
+  if(isolated&&expectedAction.kind==='ko')scenarios.push({name:`engine-action ${expectedAbility.trigger} ko: reject targets outside printed restrictions`,run(doc){
    const ability=doc.ast.filter(candidate=>candidate.trigger===expectedAbility.trigger)[timingIndex];assert(Boolean(ability)&&ability!.actions.length===1&&ability!.actions[0].kind==='ko'&&canonical(ability!.actions[0])===canonical(expectedAction),'Published K.O. action differs from the source parse');
    const action=ability!.actions[0];if(action.kind!=='ko')throw new Error('Expected a parsed K.O. action');
    const probes:Array<{label:string;owner?:'player'|'opponent';zone?:'character'|'leader';cost?:number;power?:number;rested?:boolean;name?:string;traits?:string[];keywords?:string[];attached?:number;lifeOwner?:'player'|'opponent';lifeCount?:number}> = [];
@@ -230,6 +294,7 @@ const standaloneActionScenarios=(row:Identity):Scenario[]=>{
    }});
   }
   return scenarios;
+  });
  });
 };
 const continuousPowerScenarios=(row:Identity):Scenario[]=>{
@@ -495,6 +560,13 @@ const referencedMainScenarios=(row:Identity):Scenario[]=>{
   const commands=resolveEffectTiming(doc,'main');assert(commands.status==='ready','Main K.O. sequence is not executable');const started=beginEffectExecution(state,'player','event','main',commands.commands);assert(started.requiresSelection,'Main must offer its optional cost or K.O. target choice');const paid=ids.length?advanceEffectExecution(started.execution,{cardIds:ids}):started;assert(!paid.error&&paid.requiresSelection,'Main must resolve its optional Trash cost before asking for the K.O. target');const resolved=advanceEffectExecution(paid.execution,{cardIds:['eligible'],targetId:'eligible'});assert(resolved.complete&&!resolved.error&&resolved.execution.state.cards.find(card=>card.id==='eligible')?.zone==='trash','Main did not K.O. its eligible target');assert(resolved.execution.state.cards.find(card=>card.id==='ineligible')?.zone==='character','Main K.O.d an ineligible Character');assert(ids.every(id=>resolved.execution.state.cards.find(card=>card.id===id)?.zone==='deck'),'Main did not pay its Trash-to-bottom-deck cost');
   const declined=ids.length?advanceEffectExecution(started.execution,{choice:'decline'}):advanceEffectExecution(started.execution,{cardIds:[]});assert(declined.complete&&!declined.error&&declined.execution.state.cards.find(card=>card.id==='eligible')?.zone==='character'&&ids.every(id=>declined.execution.state.cards.find(card=>card.id===id)?.zone==='trash'),'Skipping the optional Main cost or K.O. still resolved the effect or moved cost cards');
  }};
+ const counter=local.ast.find(ability=>ability.trigger==='counter');
+ const counterScenario:Scenario|undefined=counter&&canonical(counter.costs)===canonical(main.costs)&&canonical(counter.actions)===canonical(main.actions)?{name:`schema-ko counter: complete dual Main/Counter K.O. sequence with ${trashAmount} Trash cost`,run(doc){
+  const ability=doc.ast.find(item=>item.trigger==='counter');assert(ability&&canonical(ability.costs)===canonical(main.costs)&&canonical(ability.actions)===canonical(main.actions),'Counter must preserve the same printed cost and K.O. restriction as Main');
+  const ids=Array.from({length:trashAmount},(_,index)=>`counter-trash-${index}`),state:MatchEffectState={...base(),cards:[{id:'event',owner:'player',zone:'hand',type:'Event',effectSchema:doc},...ids.map(id=>({id,owner:'player' as const,zone:'trash' as const,type:'Character' as const})),{id:'eligible',owner:'opponent',zone:'character',type:'Character',cost:2,power:3000},{id:'ineligible',owner:'opponent',zone:'character',type:'Character',cost:3,power:3000}]};
+  const commands=resolveEffectTiming(doc,'counter');assert(commands.status==='ready','Counter K.O. sequence is not executable');const started=beginEffectExecution(state,'player','event','counter',commands.commands);assert(started.requiresSelection,'Counter must offer its optional cost or K.O. choice');const paid=ids.length?advanceEffectExecution(started.execution,{cardIds:ids}):started;assert(!paid.error&&paid.requiresSelection,'Counter must resolve its Trash cost before asking for a K.O. target');const resolved=advanceEffectExecution(paid.execution,{cardIds:['eligible'],targetId:'eligible'});assert(resolved.complete&&!resolved.error&&resolved.execution.state.cards.find(card=>card.id==='eligible')?.zone==='trash','Counter did not K.O. its eligible target');assert(resolved.execution.state.cards.find(card=>card.id==='ineligible')?.zone==='character','Counter K.O.d an ineligible Character');assert(ids.every(id=>resolved.execution.state.cards.find(card=>card.id===id)?.zone==='deck'),'Counter did not pay its Trash-to-bottom-deck cost');
+  const declined=advanceEffectExecution(started.execution,{choice:'decline'});assert(declined.complete&&!declined.error&&declined.execution.state.cards.find(card=>card.id==='eligible')?.zone==='character'&&ids.every(id=>declined.execution.state.cards.find(card=>card.id===id)?.zone==='trash'),'Declining the optional Counter cost must not resolve its K.O. or move its cost cards.');
+ }}:undefined;
  const triggerScenario:Scenario={name:`schema-reference trigger: resolve the referenced Main K.O. up to ${maximum}`,run(doc){
   const trigger=doc.ast.find(ability=>ability.trigger==='trigger'&&/Activate this card's \[Main\] effect\./i.test(ability.rawText));
   assert(trigger&&trigger.actions.some(candidate=>candidate.kind==='activate-referenced-effect'&&candidate.trigger==='main'),'Trigger does not reference the Main effect');
@@ -508,7 +580,7 @@ const referencedMainScenarios=(row:Identity):Scenario[]=>{
   const paid=trashIds.length?advanceEffectExecution(started.execution,{cardIds:trashIds}):started;assert(!paid.error&&paid.requiresSelection,'Trigger did not resolve the complete referenced Main cost before its K.O.');
   const ids=Array.from({length:maximum},(_,index)=>`eligible-${index}`),resolved=advanceEffectExecution(paid.execution,{cardIds:ids,targetId:ids[0]});assert(resolved.complete&&!resolved.error,'Trigger-referenced Main effect did not resolve');assert(ids.every(id=>resolved.execution.state.cards.find(card=>card.id===id)?.zone==='trash'),'Trigger failed to apply the Main K.O. to each selected legal target');assert(resolved.execution.state.cards.find(card=>card.id==='ineligible')?.zone==='character','Trigger K.O.d an ineligible Character');assert(trashIds.every(id=>resolved.execution.state.cards.find(card=>card.id===id)?.zone==='deck'),'Trigger did not pay the referenced Main Trash-to-bottom-deck cost');
  }};
- return [mainScenario,triggerScenario];
+ return [mainScenario,...(counterScenario?[counterScenario]:[]),triggerScenario];
 };
 const referencedOnKoScenarios=(row:Identity):Scenario[]=>{
  const local=compileEffectDocument({id:row.id,code:row.code,name:row.name,color:row.color,type:row.card_type==='Stage'?'Character':row.card_type,cost:row.cost,power:row.power,counter:0,rarity:'',art:0,effect:row.effect_text});
@@ -535,7 +607,7 @@ const referencedSimpleWindowScenarios=(row:Identity):Scenario[]=>{
   assert(triggerAbility.length===1&&triggerAbility[0].actions.length===1&&triggerAbility[0].actions[0].kind==='activate-referenced-effect'&&triggerAbility[0].actions[0].trigger===timing,'Trigger must reference the exact printed timing window');
   const direct=resolveEffectTiming(doc,timing),viaTrigger=resolveEffectTiming(doc,'trigger');
   assert(direct.status==='ready'&&viaTrigger.status==='ready'&&canonical(direct.commands.map(command=>command.value))===canonical(viaTrigger.commands.map(command=>command.value)),`Trigger did not resolve the exact ${timing} power action`);
-  const owner=action.target==='opponent-card'?'opponent':'player',zone=action.target.endsWith('leader')?'leader':'character',targetId='reference-target';
+  const owner=action.target.startsWith('opponent-')?'opponent':'player',zone=action.target.endsWith('leader')?'leader':'character',targetId='reference-target';
   const state:MatchEffectState={...base(),cards:[{id:'event-source',owner:'player',zone:'life',type:'Event',effectSchema:doc},{id:targetId,owner,zone,type:zone==='leader'?'Leader':'Character',power:5000,traits:action.trait?[action.trait]:[]}]};
   const before=effectiveCardPower(state,targetId),started=beginEffectExecution(state,'player','event-source','trigger',viaTrigger.commands);assert(started.requiresSelection,'Trigger should pause for the optional power target');
   const result=advanceEffectExecution(started.execution,{targetId,cardIds:[targetId]});assert(result.complete&&!result.error,`Trigger-referenced ${timing} effect did not finish`);assert(effectiveCardPower(result.execution.state,targetId)===before+action.amount,'Trigger-referenced power amount or recipient was incorrect');
@@ -889,7 +961,7 @@ const selfTrashConditionalDrawScenarios=(row:Identity):Scenario[]=>row.code==='E
  assert(ability.actions.length===1&&ability.actions[0].kind==='draw'&&ability.actions[0].amount===2,'The ability must draw exactly two cards');
  const normalized=doc.normalized.filter(effect=>effect.timing==='activate-main');assert(normalized.length===1&&normalized[0].conditions.length===1&&normalized[0].sequence.length===2&&normalized[0].sequence[0].type==='PAY_COST'&&normalized[0].sequence[0].cost.kind==='trash'&&normalized[0].sequence[1].type==='RESOLVE'&&normalized[0].sequence[1].action.kind==='draw','Self-trash must resolve before its conditional draw');
  const resolution=resolveEffectTiming(doc,'activate-main');assert(resolution.status==='ready'&&resolution.commands.length===2,'Activate: Main did not produce the expected cost and draw commands');
- for(const handCount of [4,5]){const state:MatchEffectState={...base(),cards:[{id:'source',owner:'player',zone:'character',type:'Character',name:row.name},...Array.from({length:handCount},(_,i)=>({id:`hand-${i}`,owner:'player' as const,zone:'hand' as const,type:'Character' as const})),...Array.from({length:2},(_,i)=>({id:`deck-${i}`,owner:'player' as const,zone:'deck' as const,type:'Character' as const}))]};const result=beginEffectExecution(state,'player','source','activate-main',resolution.commands);assert(result.complete&&!result.error,'Paid activation did not complete');assert(result.execution.state.cards.find(card=>card.id==='source')?.zone==='trash','Paid activation did not trash this Character');const drawn=result.execution.state.cards.filter(card=>card.owner==='player'&&card.zone==='hand'&&card.id.startsWith('deck-')).length;assert(drawn===(handCount<=4?2:0),`Wrong draw result at hand size ${handCount}`);}
+ for(const handCount of [4,5]){const state:MatchEffectState={...base(),cards:[{id:'source',owner:'player',zone:'character',type:'Character',name:row.name},...Array.from({length:handCount},(_,i)=>({id:`hand-${i}`,owner:'player' as const,zone:'hand' as const,type:'Character' as const})),...Array.from({length:2},(_,i)=>({id:`deck-${i}`,owner:'player' as const,zone:'deck' as const,type:'Character' as const}))]};const offered=beginEffectExecution(state,'player','source','activate-main',resolution.commands);assert(offered.requiresSelection,'Optional self-trash must ask before paying');const result=advanceEffectExecution(offered.execution,{choice:'accept'});assert(result.complete&&!result.error,'Accepted activation did not complete');assert(result.execution.state.cards.find(card=>card.id==='source')?.zone==='trash','Paid activation did not trash this Character');const drawn=result.execution.state.cards.filter(card=>card.owner==='player'&&card.zone==='hand'&&card.id.startsWith('deck-')).length;assert(drawn===(handCount<=4?2:0),`Wrong draw result at hand size ${handCount}`);}
  }},{name:'schema-self-trash-conditional-draw on-play: trash exactly one hand card',run(doc){
   const abilities=doc.ast.filter(ability=>ability.trigger==='on-play');assert(abilities.length===1&&abilities[0].conditions.length===0&&abilities[0].costs.length===0&&abilities[0].actions.length===1,'On Play must be a separate unconditional ability');const action=abilities[0].actions[0];assert(action.kind==='trash'&&action.scope==='hand'&&action.amount===1,'On Play must trash exactly one card from hand');
   const normalized=doc.normalized.filter(effect=>effect.timing==='on-play');assert(normalized.length===1&&normalized[0].conditions.length===0&&normalized[0].sequence.length===1&&normalized[0].sequence[0].type==='RESOLVE'&&normalized[0].sequence[0].action.kind==='trash','On Play schema must resolve only the printed hand trash');
@@ -1023,7 +1095,7 @@ function baseScenarios(row:Identity):Scenario[]{
  }}];
  if(row.code==='OP02-015')return [{name:'schema-power activate-main: pay optional self-rest before red cost-1 target',run(doc){
   const ability=doc.ast.filter(candidate=>candidate.trigger==='activate-main');assert(ability.length===1&&ability[0].conditions.length===0&&ability[0].costs.length===1&&ability[0].costs[0].kind==='rest'&&ability[0].costs[0].scope==='self'&&ability[0].costs[0].optional,'Makino must offer the optional self-rest payment');const action=ability[0].actions[0];if(action.kind!=='power')throw new Error('Expected Makino power action');assert(action.amount===3000&&action.until==='turn-end'&&action.target==='own-character'&&action.color==='red'&&action.exactCost===1&&action.selection?.min===0&&action.selection.max===1,'Makino must grant +3000 this turn to up to one of your red cost-1 Characters');const sequence=doc.normalized.filter(effect=>effect.timing==='activate-main');assert(sequence.length===1&&sequence[0].sequence.length===2&&sequence[0].sequence[0].type==='PAY_COST'&&sequence[0].sequence[0].cost.kind==='rest'&&sequence[0].sequence[1].type==='RESOLVE'&&sequence[0].sequence[1].action.kind==='power'&&sequence[0].sequence[1].action.color==='red'&&sequence[0].sequence[1].action.exactCost===1,'The optional rest must resolve before the filtered power target choice');
-  const state=base();state.cards.push({id:'source',owner:'player',zone:'character',type:'Character',rested:false,effectSchema:doc},{id:'red-cost-1',owner:'player',zone:'character',type:'Character',color:'Red',cost:1},{id:'blue-cost-1',owner:'player',zone:'character',type:'Character',color:'Blue',cost:1},{id:'red-cost-2',owner:'player',zone:'character',type:'Character',color:'Red',cost:2});const commands=resolveEffectTiming(doc,'activate-main').commands,start=beginEffectExecution(state,'player','source','activate-main',commands);assert(start.requiresSelection&&start.execution.state.cards.find(card=>card.id==='source')?.rested,'Activating Makino must pay the self-rest cost before asking for the recipient');const resolved=advanceEffectExecution(start.execution,{targetId:'red-cost-1'});assert(resolved.complete&&!resolved.error&&resolved.execution.state.cards.find(card=>card.id==='red-cost-1')?.powerModifier===3000,'A red cost-1 Character should receive the bonus after payment');for(const id of ['blue-cost-1','red-cost-2']){const rejected=applyEffectAction(start.execution.state,'player',action,{targetId:id});assert(Boolean(rejected.error)&&!rejected.state.cards.find(card=>card.id===id)?.powerModifier,`Makino accepted illegal recipient ${id}`);}const skipped=advanceEffectExecution(start.execution,{cardIds:[]});assert(skipped.complete&&!skipped.error&&!skipped.execution.state.cards.find(card=>card.id==='red-cost-1')?.powerModifier,'The up-to-one recipient choice must be skippable');
+  const state=base();state.cards.push({id:'source',owner:'player',zone:'character',type:'Character',rested:false,effectSchema:doc},{id:'red-cost-1',owner:'player',zone:'character',type:'Character',color:'Red',cost:1},{id:'blue-cost-1',owner:'player',zone:'character',type:'Character',color:'Blue',cost:1},{id:'red-cost-2',owner:'player',zone:'character',type:'Character',color:'Red',cost:2});const commands=resolveEffectTiming(doc,'activate-main').commands,offered=beginEffectExecution(state,'player','source','activate-main',commands);assert(offered.requiresSelection&&!offered.execution.state.cards.find(card=>card.id==='source')?.rested,'Makino must ask before paying the optional self-rest');const start=advanceEffectExecution(offered.execution,{choice:'accept'});assert(start.requiresSelection&&start.execution.state.cards.find(card=>card.id==='source')?.rested,'Accepting activation must rest Makino before asking for the recipient');const resolved=advanceEffectExecution(start.execution,{targetId:'red-cost-1'});assert(resolved.complete&&!resolved.error&&resolved.execution.state.cards.find(card=>card.id==='red-cost-1')?.powerModifier===3000,'A red cost-1 Character should receive the bonus after payment');for(const id of ['blue-cost-1','red-cost-2']){const rejected=applyEffectAction(start.execution.state,'player',action,{targetId:id});assert(Boolean(rejected.error)&&!rejected.state.cards.find(card=>card.id===id)?.powerModifier,`Makino accepted illegal recipient ${id}`);}const skipped=advanceEffectExecution(start.execution,{cardIds:[]});assert(skipped.complete&&!skipped.error&&!skipped.execution.state.cards.find(card=>card.id==='red-cost-1')?.powerModifier,'The up-to-one recipient choice must be skippable');
  }}];
  if(row.code==='OP07-009')return [{name:'schema-atomic-action on-play: red cost-1 Double Attack recipient',run(doc){
   const abilities=doc.ast.filter(candidate=>candidate.trigger==='on-play');assert(abilities.length===1&&abilities[0].conditions.length===0&&abilities[0].costs.length===0&&abilities[0].actions.length===1,'Dogura & Magura must have one isolated On Play keyword grant');const action=abilities[0].actions[0];if(action.kind!=='grant-keyword')throw new Error('Expected Double Attack grant');assert(action.keyword==='double-attack'&&action.until==='turn-end'&&action.scope==='own-character'&&action.color==='red'&&action.exactCost===1&&action.selection?.min===0&&action.selection.max===1,'Double Attack must go to up to one of your red cost-1 Characters for this turn');const state=base();state.cards.push({id:'red-cost-1',owner:'player',zone:'character',type:'Character',color:'Red',cost:1},{id:'blue-cost-1',owner:'player',zone:'character',type:'Character',color:'Blue',cost:1},{id:'red-cost-2',owner:'player',zone:'character',type:'Character',color:'Red',cost:2},{id:'enemy-red-cost-1',owner:'opponent',zone:'character',type:'Character',color:'Red',cost:1});const applied=applyEffectAction(state,'player',action,{targetId:'red-cost-1'});assert(!applied.error&&!applied.requiresSelection&&applied.state.cards.find(card=>card.id==='red-cost-1')?.temporaryKeywords?.includes('double-attack'),'Eligible Character did not receive Double Attack');for(const id of ['blue-cost-1','red-cost-2','enemy-red-cost-1']){const rejected=applyEffectAction(state,'player',action,{targetId:id});assert(Boolean(rejected.error)&&!rejected.state.cards.find(card=>card.id===id)?.temporaryKeywords?.includes('double-attack'),`Double Attack accepted illegal recipient ${id}`);}const skip=applyEffectAction(state,'player',action,{cardIds:[]});assert(!skip.error&&!skip.requiresSelection&&state.cards.every(card=>!card.temporaryKeywords?.includes('double-attack')),'The up-to-one grant must be skippable');const expired=expireEffectModifiers(applied.state,'turn-end');assert(!expired.cards.find(card=>card.id==='red-cost-1')?.temporaryKeywords?.includes('double-attack'),'The granted keyword must expire at turn end');
@@ -1035,7 +1107,7 @@ function baseScenarios(row:Identity):Scenario[]{
  if(row.code==='P-013')return [{name:'schema-p013 activate-main: bottom-deck self before opponent power reduction',run(doc){
   const ability=doc.ast.filter(candidate=>candidate.trigger==='activate-main');assert(ability.length===1&&ability[0].costs.length===1&&ability[0].costs[0].kind==='bottom-deck-self'&&ability[0].costs[0].optional,'Activate: Main must optionally place this Character at the bottom of its owner’s deck');const action=ability[0].actions[0];assert(action?.kind==='power'&&action.amount===-3000&&action.target==='opponent-character'&&action.until==='turn-end'&&action.selection?.min===0&&action.selection.max===1,'Then reduce up to one opposing Character by 3000 this turn');
   const resolution=resolveEffectTiming(doc,'activate-main');assert(resolution.status==='ready'&&resolution.commands.length===2&&resolution.commands[0].kind==='pay-cost'&&resolution.commands[0].value.kind==='bottom-deck-self'&&resolution.commands[1].kind==='resolve-action'&&resolution.commands[1].value.kind==='power','Self bottom-deck payment must happen before target choice');
-  const makeState=()=>({...base(),cards:[{id:'source',owner:'player' as const,zone:'character' as const,type:'Character' as const,effectSchema:doc},{id:'enemy',owner:'opponent' as const,zone:'character' as const,type:'Character' as const,power:5000}]});const started=beginEffectExecution(makeState(),'player','source','activate-main',resolution.commands);assert(started.requiresSelection&&started.execution.state.cards.find(card=>card.id==='source')?.zone==='deck','Paying the cost should move the source to deck before asking for a target');const result=advanceEffectExecution(started.execution,{targetId:'enemy'});assert(result.complete&&!result.error&&result.execution.state.cards.find(card=>card.id==='enemy')?.powerModifier===-3000,'A legal opponent target must get -3000 power');
+  const makeState=()=>({...base(),cards:[{id:'source',owner:'player' as const,zone:'character' as const,type:'Character' as const,effectSchema:doc},{id:'enemy',owner:'opponent' as const,zone:'character' as const,type:'Character' as const,power:5000}]});const offered=beginEffectExecution(makeState(),'player','source','activate-main',resolution.commands);assert(offered.requiresSelection&&offered.execution.state.cards.find(card=>card.id==='source')?.zone==='character','The optional cost must be offered before moving its source');const started=advanceEffectExecution(offered.execution,{choice:'accept'});assert(started.requiresSelection&&started.execution.state.cards.find(card=>card.id==='source')?.zone==='deck','Paying the cost should move the source to deck before asking for a target');const result=advanceEffectExecution(started.execution,{targetId:'enemy'});assert(result.complete&&!result.error&&result.execution.state.cards.find(card=>card.id==='enemy')?.powerModifier===-3000,'A legal opponent target must get -3000 power');
  }}];
  const costScenarios=simpleCostActionScenarios(row);if(costScenarios.length)return costScenarios;
  const simpleDonCases=simpleAddDonScenarios(row);if(simpleDonCases.length)return simpleDonCases;
@@ -1083,11 +1155,11 @@ function baseScenarios(row:Identity):Scenario[]{
   const action=ability!.actions.length===1?ability!.actions[0]:undefined;assert(action?.kind==='ko'&&action.maxCost===2&&action.selection?.min===0&&action.selection.max==='all','K.O. must hit all opposing Characters with cost 2 or less');
   const sequence=doc.normalized.find(effect=>effect.timing==='activate-main')?.sequence??[];assert(sequence.length===3&&sequence[0].type==='PAY_COST'&&sequence[0].cost.kind==='rest'&&sequence[0].cost.scope==='self'&&sequence[1].type==='PAY_COST'&&sequence[1].cost.kind==='rest'&&sequence[1].cost.scope==='own-card'&&sequence[2].type==='RESOLVE'&&sequence[2].action.kind==='ko','Both rest costs must resolve before the mass K.O.');
   const state=base();state.cards.push({id:'ark',owner:'player',zone:'stage',type:'Stage',rested:false,effectSchema:doc},{id:'enel',owner:'player',zone:'leader',type:'Leader',name:'Enel',traits:['Enel'],rested:false},{id:'ally',owner:'player',zone:'character',type:'Character',traits:['Navy'],rested:false},{id:'enemy-2',owner:'opponent',zone:'character',type:'Character',cost:2},{id:'enemy-3',owner:'opponent',zone:'character',type:'Character',cost:3});
-  const started=beginEffectExecution(state,'player','ark','activate-main',resolveEffectTiming(doc,'activate-main').commands);assert(!started.error&&started.requiresSelection&&started.execution.state.cards.find(card=>card.id==='ark')?.rested,'Activation must rest the source before asking which Enel to rest');
+  const offered=beginEffectExecution(state,'player','ark','activate-main',resolveEffectTiming(doc,'activate-main').commands);assert(!offered.error&&offered.requiresSelection&&!offered.execution.state.cards.find(card=>card.id==='ark')?.rested,'Optional costs must be offered before changing the board');const started=advanceEffectExecution(offered.execution,{choice:'accept'});assert(!started.error&&started.requiresSelection&&started.execution.state.cards.find(card=>card.id==='ark')?.rested,'Accepting activation must rest the source before asking which Enel to rest');
   const wrong=advanceEffectExecution(started.execution,{cardIds:['ally']});assert(Boolean(wrong.error)&&wrong.execution.state.cards.find(card=>card.id==='ally')?.rested===false,'A non-Enel card must not pay the second cost');
   const paid=advanceEffectExecution(started.execution,{cardIds:['enel']});assert(paid.complete&&!paid.error&&paid.execution.state.cards.find(card=>card.id==='enel')?.rested,'Choosing an active Enel must pay the cost and finish the effect');
   assert(paid.execution.state.cards.find(card=>card.id==='enemy-2')?.zone==='trash'&&paid.execution.state.cards.find(card=>card.id==='enemy-3')?.zone==='character','K.O. every opposing Character up to cost 2 and preserve cost 3');
-  const unavailable=base();unavailable.cards.push({id:'ark',owner:'player',zone:'stage',type:'Stage',rested:false,effectSchema:doc},{id:'non-enel',owner:'player',zone:'character',type:'Character',traits:['Navy'],rested:false},{id:'enemy-2',owner:'opponent',zone:'character',type:'Character',cost:2});const blocked=beginEffectExecution(unavailable,'player','ark','activate-main',resolveEffectTiming(doc,'activate-main').commands);assert(!blocked.error&&blocked.requiresSelection&&blocked.execution.state.cards.find(card=>card.id==='enemy-2')?.zone==='character','The K.O. must not resolve before the Enel payment is selected');const rejected=advanceEffectExecution(blocked.execution,{cardIds:['non-enel']});assert(Boolean(rejected.error)&&rejected.execution.state.cards.find(card=>card.id==='enemy-2')?.zone==='character','Without a legal Enel payment, the K.O. must remain unresolved');
+  const unavailable=base();unavailable.cards.push({id:'ark',owner:'player',zone:'stage',type:'Stage',rested:false,effectSchema:doc},{id:'non-enel',owner:'player',zone:'character',type:'Character',traits:['Navy'],rested:false},{id:'enemy-2',owner:'opponent',zone:'character',type:'Character',cost:2});const blocked=beginEffectExecution(unavailable,'player','ark','activate-main',resolveEffectTiming(doc,'activate-main').commands),accepted=advanceEffectExecution(blocked.execution,{choice:'accept'});assert(!accepted.error&&accepted.requiresSelection&&accepted.execution.state.cards.find(card=>card.id==='enemy-2')?.zone==='character','The K.O. must not resolve before the Enel payment is selected');const rejected=advanceEffectExecution(accepted.execution,{cardIds:['non-enel']});assert(Boolean(rejected.error)&&rejected.execution.state.cards.find(card=>card.id==='enemy-2')?.zone==='character','Without a legal Enel payment, the K.O. must remain unresolved');
  }}]:[];
  if(row.code==='OP04-088')return [{name:'schema-rest-cost activate-main: optional Leader rest before cost reduction',run(doc){
   const ability=doc.ast.find(candidate=>candidate.trigger==='activate-main');assert(Boolean(ability),'Activate: Main ability is missing');
@@ -1605,8 +1677,8 @@ function baseScenarios(row:Identity):Scenario[]{
  if(row.code==='OP10-099')return [...turnLifeCostScenarios(row),{name:'End of Your Turn: ready only a cost 3–8 Supernovas Character and grant it Blocker through opponent turn',run(doc){
   const ability=doc.ast.find(item=>item.trigger==='end-turn');if(!ability)throw new Error('End of Your Turn ability is missing');const ready=ability.actions[0],grant=ability.actions[1];assert(ready?.kind==='ready'&&ready.scope==='own-character'&&ready.amount===1&&ready.selection?.min===0&&ready.selection.max===1&&ready.trait==='Supernovas'&&ready.minCost===3&&ready.maxCost===8,'Ready target must be an optional cost 3–8 Supernovas Character');assert(grant?.kind==='grant-keyword'&&grant.keyword==='blocker'&&grant.scope==='previous-target'&&grant.until==='opponent-next-turn','Blocker must apply to only the selected Character until the end of opponent turn');
   const makeState=()=>{const state=base();state.cards=[{id:'source',owner:'player',zone:'character',type:'Character',effectSchema:doc},{id:'eligible',owner:'player',zone:'character',type:'Character',cost:5,traits:['Supernovas'],rested:true},{id:'low',owner:'player',zone:'character',type:'Character',cost:2,traits:['Supernovas'],rested:true},{id:'high',owner:'player',zone:'character',type:'Character',cost:9,traits:['Supernovas'],rested:true},{id:'wrong-trait',owner:'player',zone:'character',type:'Character',cost:5,traits:['Navy'],rested:true},{id:'life',owner:'player',zone:'life',type:'Character',faceUp:false},...Array.from({length:2},(_,index)=>({id:`deck-${index}`,owner:'player' as const,zone:'deck' as const,type:'Character' as const})),{id:'opp-life',owner:'opponent',zone:'life',type:'Character'},...Array.from({length:2},(_,index)=>({id:`opp-deck-${index}`,owner:'opponent' as const,zone:'deck' as const,type:'Character' as const})),{id:'opp-don-deck',owner:'opponent',zone:'don-deck',type:'DON!!' as const}];return state;};
-  const commands=resolveEffectTiming(doc,'end-turn').commands;assert(commands[0]?.kind==='pay-cost'&&commands[0].value.kind==='turn-life','Life reveal cost must precede target choice');const start=beginEffectExecution(makeState(),'player','source','end-turn',commands);assert(start.requiresSelection,'Eligible target should be offered');assert(start.execution.state.cards.find(card=>card.id==='life')?.faceUp,'Life cost did not turn the top Life card face-up before target selection');const invalid=advanceEffectExecution(start.execution,{cardIds:['low']});assert(invalid.error&&!invalid.complete,'Cost-2 Supernova was accepted');const resolved=advanceEffectExecution(start.execution,{cardIds:['eligible']});assert(resolved.complete&&!resolved.error,'Legal Supernova target failed');assert(!resolved.execution.state.cards.find(card=>card.id==='eligible')?.rested&&resolved.execution.state.cards.find(card=>card.id==='eligible')?.temporaryKeywords?.includes('blocker'),'Selected Character did not ready and gain Blocker');assert(['low','high','wrong-trait'].every(id=>!resolved.execution.state.cards.find(card=>card.id===id)?.temporaryKeywords?.includes('blocker')),'Blocker leaked to an unselected or ineligible Character');
-  const declined=beginEffectExecution(makeState(),'player','source','end-turn',commands);const skip=advanceEffectExecution(declined.execution,{cardIds:[]});assert(skip.complete&&!skip.error&&skip.execution.state.cards.every(card=>!card.temporaryKeywords?.includes('blocker')),'Declining the optional target still granted Blocker');
+  const commands=resolveEffectTiming(doc,'end-turn').commands;assert(commands[0]?.kind==='pay-cost'&&commands[0].value.kind==='turn-life','Life reveal cost must precede target choice');const offered=beginEffectExecution(makeState(),'player','source','end-turn',commands);assert(offered.requiresSelection&&!offered.execution.state.cards.find(card=>card.id==='life')?.faceUp,'Optional Life cost should be offered before it is paid');const start=advanceEffectExecution(offered.execution,{choice:'accept'});assert(start.requiresSelection,'Eligible target should be offered after payment');assert(start.execution.state.cards.find(card=>card.id==='life')?.faceUp,'Life cost did not turn the top Life card face-up before target selection');const invalid=advanceEffectExecution(start.execution,{cardIds:['low']});assert(invalid.error&&!invalid.complete,'Cost-2 Supernova was accepted');const resolved=advanceEffectExecution(start.execution,{cardIds:['eligible']});assert(resolved.complete&&!resolved.error,'Legal Supernova target failed');assert(!resolved.execution.state.cards.find(card=>card.id==='eligible')?.rested&&resolved.execution.state.cards.find(card=>card.id==='eligible')?.temporaryKeywords?.includes('blocker'),'Selected Character did not ready and gain Blocker');assert(['low','high','wrong-trait'].every(id=>!resolved.execution.state.cards.find(card=>card.id===id)?.temporaryKeywords?.includes('blocker')),'Blocker leaked to an unselected or ineligible Character');
+  const declined=beginEffectExecution(makeState(),'player','source','end-turn',commands),skip=advanceEffectExecution(declined.execution,{choice:'decline'});assert(skip.complete&&!skip.error&&skip.execution.state.cards.find(card=>card.id==='life')?.faceUp===false&&skip.execution.state.cards.every(card=>!card.temporaryKeywords?.includes('blocker')),'Declining the optional cost must leave Life unchanged and skip the effect');
   const opponentTurn=beginTurn(resolved.execution.state,'opponent',2).state;assert(opponentTurn.cards.find(card=>card.id==='eligible')?.temporaryKeywords?.includes('blocker'),'Blocker expired before the opponent finished their turn');const playerTurn=beginTurn(opponentTurn,'player',3).state;assert(!playerTurn.cards.find(card=>card.id==='eligible')?.temporaryKeywords?.includes('blocker'),'Blocker did not expire when the player turn resumed');
  }}];
  if(row.code==='OP16-079')return [{name:'Character played from Trash: only a Land of Wano Character gets Rush',run(doc){
@@ -1665,8 +1737,338 @@ function baseScenarios(row:Identity):Scenario[]{
  }}] as Scenario[]:[]),...standaloneActionScenarios(row)];
 }
 
+const powerWindowScenarios=(row:Identity):Scenario[]=>{
+ const local=compileEffectDocument({id:row.id,code:row.code,name:row.name,color:row.color,type:row.card_type==='Stage'?'Character':row.card_type,cost:row.cost,power:row.power,counter:0,rarity:'',art:0,effect:row.effect_text});
+ const label:Record<EffectTrigger,string>={'on-play':'On Play','when-attacking':'When Attacking','activate-main':'Activate: Main',main:'Main',counter:'Counter',trigger:'Trigger','on-ko':'On K.O.','on-block':'On Block','opponent-attack':"On Your Opponent's Attack",'end-turn':'End of Your Turn',continuous:'continuous',unknown:'unknown','character-played-from-trash':'Character played from Trash'};
+ return local.ast.flatMap((expected,index)=>{
+  const actions=expected.actions.filter((action):action is Extract<EffectAction,{kind:'power'}>=>action.kind==='power');
+  if(!actions.length||expected.actions.some(action=>action.kind==='power'&&(action.bonus||action.continuous)))return [];
+  const timingIndex=local.ast.filter(ability=>ability.trigger===expected.trigger).indexOf(expected);
+  const checks:Scenario[]=[{name:`${label[expected.trigger]} gameplay power: verify the complete window and apply its printed target`,run(doc){
+   const ability=doc.ast.filter(candidate=>candidate.trigger===expected.trigger)[timingIndex];
+   assert(Boolean(ability)&&canonical(comparableAbility(ability!))===canonical(comparableAbility(expected)),'Published effect window differs from the complete locally parsed power sequence');
+   const expectedWindow=local.normalized.filter(effect=>effect.timing===expected.trigger)[timingIndex],actualWindow=doc.normalized.filter(effect=>effect.timing===expected.trigger)[timingIndex];
+   assert(Boolean(actualWindow)&&canonical(actualWindow)===canonical(expectedWindow),'Published normalized power sequence differs from the printed timing window');
+   for(const [powerIndex,action] of actions.entries()){
+    const targetId=`power-target-${powerIndex}`,opposing=action.target.startsWith('opponent'),zone=action.target.endsWith('leader')?'leader':'character';
+    const cost=action.exactCost??Math.max(action.minCost??0,Math.min(action.maxCost??3,3));
+    const target:MatchCard={id:targetId,owner:opposing?'opponent':'player',zone,type:zone==='leader'?'Leader':'Character',name:action.name??'Eligible',color:action.color??'Red',traits:action.trait?[action.trait]:[],cost,power:5000,effectText:'',attributes:[]};
+    const state:MatchEffectState={...base(),cards:[target]};
+    const selection={targetId,...(action.selection?{cardIds:[targetId]}:{})};
+    const applied=applyEffectAction(state,'player',action,selection);
+    assert(!applied.error&&!applied.requiresSelection,'A legal printed power recipient was rejected');
+    assert(applied.state.cards.find(card=>card.id===targetId)?.powerModifier===action.amount,'Power did not change by the printed amount');
+    const rejects=(changes:Partial<MatchCard>)=>{const result=applyEffectAction({...state,cards:[{...target,...changes}]},'player',action,{...selection,targetId}),after=result.state.cards.find(card=>card.id===targetId);return Boolean(result.error)||(action.selection?.max==='all'&&after?.powerModifier===target.powerModifier);};
+    if(action.trait)assert(rejects({traits:['Ineligible']}),'Power accepted a Character outside the printed trait');
+    if(action.name)assert(rejects({name:'Ineligible'}),'Power accepted a card outside the printed name');
+    if(action.color)assert(rejects({color:'Ineligible'}),'Power accepted a card outside the printed color');
+    if(action.exactCost!==undefined)assert(rejects({cost:action.exactCost+1}),'Power accepted a card outside the exact printed cost');
+    if(action.maxCost!==undefined)assert(rejects({cost:action.maxCost+1}),'Power accepted a card above the printed cost');
+    if(action.minCost!==undefined)assert(rejects({cost:action.minCost-1}),'Power accepted a card below the printed cost');
+   }
+  }}];
+  if(actions.length>1&&expected.actions.length===actions.length&&expected.conditions.length===0&&expected.costs.length===0)checks.push({name:`${label[expected.trigger]} gameplay power sequence: resolve every printed target in order`,run(doc){
+   const ability=doc.ast.filter(candidate=>candidate.trigger===expected.trigger)[timingIndex],window=doc.normalized.filter(effect=>effect.timing===expected.trigger)[timingIndex];
+   assert(Boolean(ability)&&canonical(comparableAbility(ability!))===canonical(comparableAbility(expected))&&Boolean(window)&&canonical(window)===canonical(local.normalized.filter(effect=>effect.timing===expected.trigger)[timingIndex]),'Published power sequence differs from the full locally parsed window');
+   const sourceId=`power-sequence-source-${index}`,targets=actions.map((action,powerIndex)=>{const id=`power-sequence-target-${powerIndex}`,zone=action.target.endsWith('leader')?'leader':'character',owner=action.target.startsWith('opponent')?'opponent':'player',cost=action.exactCost??Math.max(action.minCost??0,Math.min(action.maxCost??3,3));return {id,owner,zone,type:zone==='leader'?'Leader':'Character',name:action.name??'Eligible',color:action.color??'Red',traits:action.trait?[action.trait]:[],cost,power:5000,effectSchema:undefined} as MatchCard;});
+   const sourceZone=row.card_type==='Event'?'hand':row.card_type==='Stage'?'stage':row.card_type==='Leader'?'leader':'character',source:MatchCard={id:sourceId,owner:'player',zone:sourceZone,type:row.card_type,effectSchema:doc};
+   const state:MatchEffectState={...base(),cards:[source,...targets]},commands=resolveEffectTiming(doc,expected.trigger).commands;
+   assert(commands.length===actions.length&&commands.every(command=>command.kind==='resolve-action'&&command.value.kind==='power'),'Every printed power change must be an independent execution command');
+   let execution=beginEffectExecution(state,'player',sourceId,expected.trigger,commands);assert(!execution.error,'The complete power timing window did not start');
+   for(const [powerIndex,action] of actions.entries()){
+    assert(execution.requiresSelection,`Power choice ${powerIndex+1} did not request its printed recipient`);
+    const targetId=targets[powerIndex].id,result=advanceEffectExecution(execution.execution,{targetId,...(action.selection?{cardIds:[targetId]}:{})});
+    assert(!result.error,`Power choice ${powerIndex+1} failed to resolve`);
+    assert(result.execution.state.cards.find(card=>card.id===targetId)?.powerModifier===action.amount,`Power choice ${powerIndex+1} changed the wrong card or amount`);
+    if(powerIndex<actions.length-1)assert(result.requiresSelection,`Power choice ${powerIndex+1} skipped the next printed choice`);else assert(result.complete,'The ordered power window did not complete after its final choice');
+    execution={...result,execution:result.execution};
+   }
+  }});
+  return checks;
+ });
+};
+
+const koWindowScenarios=(row:Identity):Scenario[]=>{
+ const local=compileEffectDocument({id:row.id,code:row.code,name:row.name,color:row.color,type:row.card_type==='Stage'?'Character':row.card_type,cost:row.cost,power:row.power,counter:0,rarity:'',art:0,effect:row.effect_text});
+ const label:Record<EffectTrigger,string>={'on-play':'On Play','when-attacking':'When Attacking','activate-main':'Activate: Main',main:'Main',counter:'Counter',trigger:'Trigger','on-ko':'On K.O.','on-block':'On Block','opponent-attack':"On Your Opponent's Attack",'end-turn':'End of Your Turn',continuous:'continuous',unknown:'unknown','character-played-from-trash':'Character played from Trash'};
+ return local.ast.flatMap(expected=>{
+  const actions=expected.actions.filter((action):action is Extract<EffectAction,{kind:'ko'}>=>action.kind==='ko');
+  if(!actions.length||expected.actions.some(action=>action.kind==='ko'&&action.conditionalMaxCost))return [];
+  const timingIndex=local.ast.filter(ability=>ability.trigger===expected.trigger).indexOf(expected);
+  return [{name:`${label[expected.trigger]} gameplay K.O.: verify the complete window and enforce its target limits`,run(doc){
+   const ability=doc.ast.filter(candidate=>candidate.trigger===expected.trigger)[timingIndex];
+   assert(Boolean(ability)&&canonical(comparableAbility(ability!))===canonical(comparableAbility(expected)),'Published effect window differs from the complete locally parsed K.O. sequence');
+   const expectedWindow=local.normalized.filter(effect=>effect.timing===expected.trigger)[timingIndex],actualWindow=doc.normalized.filter(effect=>effect.timing===expected.trigger)[timingIndex];
+   assert(Boolean(actualWindow)&&canonical(actualWindow)===canonical(expectedWindow),'Published normalized K.O. sequence differs from the printed timing window');
+   for(const [koIndex,action] of actions.entries()){
+    const targetId=`ko-target-${koIndex}`,stage=action.scope==='opponent-stage';
+    const cost=action.exactBaseCost??action.maxBaseCost??action.exactCost??action.maxCost??0;
+    const power=action.maxBasePower??action.maxPower??5000;
+    const target:MatchCard={id:targetId,owner:'opponent',zone:stage?'stage':'character',type:stage?'Stage':'Character',name:action.name??'Eligible',cost,power,rested:Boolean(action.restedOnly),traits:action.trait?[action.trait]:[],effectText:action.requiresTrigger?'[Trigger] Draw 1 card.':''};
+    const attached=Array.from({length:action.minAttachedDon??0},(_,index)=>({id:`ko-don-${index}`,owner:'opponent' as const,zone:'cost-area' as const,type:'DON!!' as const,attachedTo:targetId}));
+    const state:MatchEffectState={...base(),cards:[target,...attached,...Array.from({length:3},(_,index)=>({id:`life-${index}`,owner:'player' as const,zone:'life' as const,type:'Character' as const})),...Array.from({length:3},(_,index)=>({id:`opponent-life-${index}`,owner:'opponent' as const,zone:'life' as const,type:'Character' as const}))]};
+    const selection={targetId,...(action.selection?{cardIds:[targetId]}:{})};
+    const result=applyEffectAction(state,'player',action,selection);
+    assert(!result.error&&!result.requiresSelection&&result.state.cards.find(card=>card.id===targetId)?.zone==='trash','A legal printed K.O. target did not move to Trash');
+    const rejects=(changes:Partial<MatchCard>)=>{const result=applyEffectAction({...state,cards:[{...target,...changes},...attached,...state.cards.slice(1+attached.length)]},'player',action,{...selection,targetId}),after=result.state.cards.find(card=>card.id===targetId);return Boolean(result.error)||(action.selection?.max==='all'&&after?.zone!=='trash');};
+    if(!stage&&action.maxCost!==undefined)assert(rejects({cost:action.maxCost+1}),'K.O. accepted a Character above its cost limit');
+    if(!stage&&action.exactCost!==undefined)assert(rejects({cost:action.exactCost+1}),'K.O. accepted a Character outside its exact cost');
+    if(!stage&&action.maxBaseCost!==undefined)assert(rejects({cost:action.maxBaseCost+1}),'K.O. accepted a Character above its base-cost limit');
+    if(!stage&&action.exactBaseCost!==undefined)assert(rejects({cost:action.exactBaseCost+1}),'K.O. accepted a Character outside its exact base cost');
+    if(!stage&&action.maxPower!==undefined)assert(rejects({power:action.maxPower+1}),'K.O. accepted a Character above its power limit');
+    if(!stage&&action.maxBasePower!==undefined)assert(rejects({power:action.maxBasePower+1}),'K.O. accepted a Character above its base-power limit');
+    if(!stage&&action.trait)assert(rejects({traits:['Ineligible']}),'K.O. accepted a Character outside its printed trait');
+    if(!stage&&action.name)assert(rejects({name:'Ineligible'}),'K.O. accepted a Character outside its printed name');
+    if(!stage&&action.restedOnly)assert(rejects({rested:false}),'K.O. accepted an active Character when only rested targets are legal');
+    if(!stage&&action.requiresTrigger)assert(rejects({effectText:''}),'K.O. accepted a Character without a Trigger effect');
+    if(!stage&&action.minAttachedDon)assert(Boolean(applyEffectAction({...state,cards:state.cards.filter(card=>!card.attachedTo)},'player',action,{...selection,targetId}).error),'K.O. accepted a Character below the attached-DON threshold');
+   }
+  }} as Scenario];
+ });
+};
+
+const restWindowScenarios=(row:Identity):Scenario[]=>{
+ const local=compileEffectDocument({id:row.id,code:row.code,name:row.name,color:row.color,type:row.card_type==='Stage'?'Character':row.card_type,cost:row.cost,power:row.power,counter:0,rarity:'',art:0,effect:row.effect_text});
+ const label:Record<EffectTrigger,string>={'on-play':'On Play','when-attacking':'When Attacking','activate-main':'Activate: Main',main:'Main',counter:'Counter',trigger:'Trigger','on-ko':'On K.O.','on-block':'On Block','opponent-attack':"On Your Opponent's Attack",'end-turn':'End of Your Turn',continuous:'continuous',unknown:'unknown','character-played-from-trash':'Character played from Trash'};
+ return local.ast.flatMap(expected=>{
+  const actions=expected.actions.filter((action):action is Extract<EffectAction,{kind:'rest'}>=>action.kind==='rest');
+  if(!actions.length||expected.costs.length||expected.conditions.length)return [];
+  const timingIndex=local.ast.filter(ability=>ability.trigger===expected.trigger).indexOf(expected);
+  return [{name:`${label[expected.trigger]} gameplay rest: verify the complete window and legal rest target`,run(doc){
+   const ability=doc.ast.filter(candidate=>candidate.trigger===expected.trigger)[timingIndex];
+   assert(Boolean(ability)&&canonical(comparableAbility(ability!))===canonical(comparableAbility(expected)),'Published effect window differs from the complete locally parsed rest sequence');
+   const expectedWindow=local.normalized.filter(effect=>effect.timing===expected.trigger)[timingIndex],actualWindow=doc.normalized.filter(effect=>effect.timing===expected.trigger)[timingIndex];
+   assert(Boolean(actualWindow)&&canonical(actualWindow)===canonical(expectedWindow),'Published normalized rest sequence differs from the printed timing window');
+   for(const [restIndex,action] of actions.entries()){
+    const targetId=`rest-target-${restIndex}`,opposing=action.scope.startsWith('opponent'),zone=action.scope.endsWith('leader')?'leader':action.scope==='opponent-don'?'cost-area':action.scope==='opponent-card'?'character':'character';
+    const target:MatchCard={id:targetId,owner:opposing?'opponent':'player',zone,type:zone==='leader'?'Leader':zone==='cost-area'?'DON!!':'Character',name:'Eligible',cost:action.exactCost??action.maxCost??0};
+    const attached=Array.from({length:action.minAttachedDon??0},(_,index)=>({id:`rest-don-${index}`,owner:target.owner,zone:'cost-area' as const,type:'DON!!' as const,attachedTo:targetId}));
+    const state:MatchEffectState={...base(),cards:[target,...attached]};
+    const selection={targetId,...(action.selection?{cardIds:[targetId]}:{})};
+    const result=applyEffectAction(state,'player',action,selection);
+    assert(!result.error&&!result.requiresSelection&&result.state.cards.find(card=>card.id===targetId)?.rested,'The legal printed rest target did not become rested');
+    const rejects=(changes:Partial<MatchCard>,cards=state.cards)=>{const result=applyEffectAction({...state,cards:[{...target,...changes},...cards.slice(1)]},'player',action,{...selection,targetId}),after=result.state.cards.find(card=>card.id===targetId);return Boolean(result.error)||(action.selection?.max==='all'&&after?.rested!==true);};
+    if(action.maxCost!==undefined)assert(rejects({cost:action.maxCost+1}),'Rest accepted a card above the printed cost limit');
+    if(action.exactCost!==undefined)assert(rejects({cost:action.exactCost+1}),'Rest accepted a card outside the printed exact cost');
+    if(action.minAttachedDon!==undefined)assert(rejects({},state.cards.filter(card=>!card.attachedTo)),'Rest accepted a Character below the attached-DON threshold');
+    if(action.scope==='opponent-character'||action.scope==='opponent-leader'||action.scope==='opponent-don'||action.scope==='opponent-card')assert(rejects({owner:'player'}),'Rest accepted a card owned by the wrong player');
+   }
+  }} as Scenario];
+ });
+};
+
+const readyWindowScenarios=(row:Identity):Scenario[]=>{
+ const local=compileEffectDocument({id:row.id,code:row.code,name:row.name,color:row.color,type:row.card_type==='Stage'?'Character':row.card_type,cost:row.cost,power:row.power,counter:0,rarity:'',art:0,effect:row.effect_text});
+ const label:Record<EffectTrigger,string>={'on-play':'On Play','when-attacking':'When Attacking','activate-main':'Activate: Main',main:'Main',counter:'Counter',trigger:'Trigger','on-ko':'On K.O.','on-block':'On Block','opponent-attack':"On Your Opponent's Attack",'end-turn':'End of Your Turn',continuous:'continuous',unknown:'unknown','character-played-from-trash':'Character played from Trash'};
+ return local.ast.flatMap(expected=>{
+  const actions=expected.actions.filter((action):action is Extract<EffectAction,{kind:'ready'}>=>action.kind==='ready');
+  if(!actions.length||expected.costs.length||expected.conditions.length)return [];
+  const timingIndex=local.ast.filter(ability=>ability.trigger===expected.trigger).indexOf(expected);
+  return [{name:`${label[expected.trigger]} gameplay ready: verify the complete window and eligible cards`,run(doc){
+   const ability=doc.ast.filter(candidate=>candidate.trigger===expected.trigger)[timingIndex];
+   assert(Boolean(ability)&&canonical(comparableAbility(ability!))===canonical(comparableAbility(expected)),'Published effect window differs from the complete locally parsed ready sequence');
+   const expectedWindow=local.normalized.filter(effect=>effect.timing===expected.trigger)[timingIndex],actualWindow=doc.normalized.filter(effect=>effect.timing===expected.trigger)[timingIndex];
+   assert(Boolean(actualWindow)&&canonical(actualWindow)===canonical(expectedWindow),'Published normalized ready sequence differs from the printed timing window');
+   for(const [readyIndex,action] of actions.entries()){
+    const targetId=`ready-target-${readyIndex}`,don=action.scope==='own-don',target:MatchCard={id:targetId,owner:'player',zone:don?'cost-area':'character',type:don?'DON!!':'Character',rested:true,cost:action.minCost??action.maxCost??0,traits:action.trait?[action.trait]:action.traits??[],attributes:action.attribute?[action.attribute]:[],name:action.name??'Eligible',color:action.color??'Red'};
+    const state:MatchEffectState={...base(),cards:[target]};
+    const selection={targetId,...(action.selection?{cardIds:[targetId]}:{})};
+    const result=applyEffectAction(state,'player',action,selection);
+    assert(!result.error&&!result.requiresSelection&&result.state.cards.find(card=>card.id===targetId)?.rested===false,'A legal printed target did not become active');
+    const rejects=(changes:Partial<MatchCard>)=>{const result=applyEffectAction({...state,cards:[{...target,...changes}]},'player',action,{...selection,targetId}),after=result.state.cards.find(card=>card.id===targetId);return Boolean(result.error)||(action.selection?.max==='all'&&after?.rested===true);};
+    if(action.trait)assert(rejects({traits:['Ineligible']}),'Ready accepted a card outside the printed trait');
+    if(action.attribute)assert(rejects({attributes:['Ineligible']}),'Ready accepted a card outside the printed attribute');
+    if(action.name)assert(rejects({name:'Ineligible'}),'Ready accepted a card outside the printed name');
+    if(action.color)assert(rejects({color:'Ineligible'}),'Ready accepted a card outside the printed color');
+    if(action.maxCost!==undefined)assert(rejects({cost:action.maxCost+1}),'Ready accepted a card above the printed cost limit');
+    if(action.minCost!==undefined)assert(rejects({cost:action.minCost-1}),'Ready accepted a card below the printed cost limit');
+    if(action.scope==='own-character'||action.scope==='own-don')assert(rejects({owner:'opponent'}),'Ready accepted a card owned by the opponent');
+   }
+  }} as Scenario];
+ });
+};
+
+const attackProhibitionScenarios=(row:Identity):Scenario[]=>{
+ const local=compileEffectDocument({id:row.id,code:row.code,name:row.name,color:row.color,type:row.card_type==='Stage'?'Character':row.card_type,cost:row.cost,power:row.power,counter:0,rarity:'',art:0,effect:row.effect_text});
+ return local.ast.flatMap((expected,index)=>{
+  const prohibitions=expected.actions.filter((action):action is Extract<EffectAction,{kind:'attack-prohibition'}>=>action.kind==='attack-prohibition'&&Boolean(action.condition||action.target||action.during));
+  if(!prohibitions.length)return [];
+  const timingIndex=local.ast.filter(ability=>ability.trigger===expected.trigger).indexOf(expected);
+  return [{name:`${expected.trigger} gameplay attack prohibition: validate the full printed window and legal attacks`,run(doc){
+   const ability=doc.ast.filter(candidate=>candidate.trigger===expected.trigger)[timingIndex];
+   assert(Boolean(ability)&&canonical(ability)===canonical(expected),'Published attack-prohibition window differs from the printed rules');
+   const expectedWindow=local.normalized.filter(effect=>effect.timing===expected.trigger)[timingIndex],actualWindow=doc.normalized.filter(effect=>effect.timing===expected.trigger)[timingIndex];
+   assert(Boolean(actualWindow)&&canonical(actualWindow)===canonical(expectedWindow),'Published normalized attack-prohibition sequence differs from the printed timing window');
+   for(const [prohibitionIndex,action] of prohibitions.entries()){
+    const attackerId=`prohibited-attacker-${index}-${prohibitionIndex}`,leaderId='opponent-leader',characterId='opponent-character';
+    const baseCards:MatchCard[]=[{id:attackerId,owner:'player',zone:action.scope==='own-leader'?'leader':'character',type:action.scope==='own-leader'?'Leader':'Character',rested:false,power:row.power,effectSchema:doc,temporaryKeywords:action.during==='play-turn'?['rush']:[]},{id:leaderId,owner:'opponent',zone:'leader',type:'Leader',rested:false,power:5000},{id:characterId,owner:'opponent',zone:'character',type:'Character',rested:true,power:5000}];
+    const makeState=(highPower=false):MatchEffectState=>{
+     const threshold=action.condition?.match(/(\d+) or more Characters? with a base power of (\d+) or more/i),needed=threshold?Number(threshold[1]):1,power=threshold?Number(threshold[2]):Number(action.condition?.match(/(\d+) base power or more/i)?.[1]??12000);
+     const qualifying=highPower?Array.from({length:needed},(_,position)=>({id:`qualifying-character-${position}`,owner:action.condition?.startsWith('your opponent')?'opponent' as const:'player' as const,zone:'character' as const,type:'Character' as const,power})):[];
+     const attachedDon=action.during==='play-turn'?[{id:`attack-don-${attackerId}`,owner:'player' as const,zone:'cost-area' as const,type:'DON!!' as const,attachedTo:attackerId}]:[];
+     return {...base(),cards:[...baseCards,...qualifying,...attachedDon],playedThisTurn:action.during==='play-turn'?[attackerId]:[]};
+    };
+    const prohibited=makeState(false),blocked=declareAttack(prohibited,'player',attackerId,leaderId);
+    if(action.condition||action.target||action.during)assert(Boolean(blocked.error),'A printed attack restriction allowed an attack that should be prohibited');
+    if(action.condition){const permitted=declareAttack(makeState(true),'player',attackerId,leaderId);assert(!permitted.error,'A qualifying printed condition did not permit the attack');}
+    else if(action.target==='leader'){
+     const permitted=declareAttack(makeState(false),'player',attackerId,characterId);assert(!permitted.error,'Leader-only attack restriction incorrectly prohibited an attack against a Character');
+    }
+   }
+  }} as Scenario];
+ });
+};
+
+const preventKoScenarios=(row:Identity):Scenario[]=>{
+ const local=compileEffectDocument({id:row.id,code:row.code,name:row.name,color:row.color,type:row.card_type==='Stage'?'Character':row.card_type,cost:row.cost,power:row.power,counter:0,rarity:'',art:0,effect:row.effect_text});
+ return local.ast.flatMap((expected,index)=>{
+  const protections=expected.actions.filter((action):action is Extract<EffectAction,{kind:'prevent-ko'}>=>action.kind==='prevent-ko');
+  if(!protections.length||expected.conditions.length||expected.costs.length)return [];
+  const timingIndex=local.ast.filter(ability=>ability.trigger===expected.trigger).indexOf(expected);
+  return [{name:`${expected.trigger} gameplay prevent-K.O.: preserve printed protection scope and condition`,run(doc){
+   const ability=doc.ast.filter(candidate=>candidate.trigger===expected.trigger)[timingIndex],expectedWindow=local.normalized.filter(effect=>effect.timing===expected.trigger)[timingIndex],actualWindow=doc.normalized.filter(effect=>effect.timing===expected.trigger)[timingIndex];
+   assert(Boolean(ability)&&canonical(comparableAbility(ability!))===canonical(comparableAbility(expected)),'Published K.O.-protection timing window differs from the printed schema');
+   assert(Boolean(actualWindow)&&canonical(actualWindow)===canonical(expectedWindow),'Published K.O.-protection sequence differs from the printed timing window');
+   for(const [protectionIndex,action] of protections.entries()){
+    const protectAll=action.protects==='characters',protectOwn=action.protects==='own-characters',selfProtection=!protectAll&&!protectOwn;
+    const protectorId=`protector-${index}-${protectionIndex}`,targetId=selfProtection?protectorId:`protected-${index}-${protectionIndex}`;
+    const target:MatchCard={id:targetId,owner:'player',zone:'character',type:'Character',name:'Eligible',cost:action.protectedExactCost??action.protectedMaxCost??3,power:5000,traits:action.protectedTrait?[action.protectedTrait]:[],rested:action.protectedMustBeActive?false:true,effectSchema:selfProtection?doc:undefined};
+    const protector:MatchCard={id:protectorId,owner:'player',zone:'character',type:'Character',effectSchema:doc,rested:false};
+    const attached=Array.from({length:action.requiresAttachedDon??0},(_,don)=>({id:`protect-don-${don}`,owner:'player' as const,zone:'cost-area' as const,type:'DON!!' as const,attachedTo:targetId}));
+    const source:MatchCard={id:`ko-source-${index}-${protectionIndex}`,owner:'opponent',zone:action.byCardType==='Leader'?'leader':'character',type:action.byCardType==='Leader'?'Leader':'Character',power:action.sourceMaxPower??7000,attributes:action.attribute?[action.attribute]:[]};
+    const state:MatchEffectState={...base(),cards:[...(selfProtection?[target]:[protector,target]),source,...attached]};
+    if(action.by==='battle'||action.by==='any'){
+     const battle=resolveBattle(state,source.id,target.id,7000,5000);
+     assert(!battle.error&&battle.state.cards.find(card=>card.id===targetId)?.zone==='character'&&!battle.defeatedCharacterId,'The printed battle-protection effect did not preserve the matching Character');
+     if(action.requiresAttachedDon){const missing={...state,cards:state.cards.filter(card=>!card.attachedTo)},unprotected=resolveBattle(missing,source.id,target.id,7000,5000);assert(unprotected.state.cards.find(card=>card.id===targetId)?.zone==='trash','Battle protection activated without its attached-DON requirement');}
+    }
+    if(action.by==='effect'||action.by==='any'){
+     const ko:EffectAction={kind:'ko',scope:'opponent-character'},removed=applyEffectAction(state,'opponent',ko,{targetId,sourceCardId:source.id});
+     assert(Boolean(removed.error)&&removed.state.cards.find(card=>card.id===targetId)?.zone==='character','The printed effect-protection effect did not prevent the matching K.O.');
+     if(action.requiresAttachedDon){const missing={...state,cards:state.cards.filter(card=>!card.attachedTo)},unprotected=applyEffectAction(missing,'opponent',ko,{targetId,sourceCardId:source.id});assert(!unprotected.error&&unprotected.state.cards.find(card=>card.id===targetId)?.zone==='trash','Effect protection activated without its attached-DON requirement');}
+    }
+   }
+  }} as Scenario];
+ });
+};
+
+const stageRestLifePowerScenarios=(row:Identity):Scenario[]=>{
+ const local=compileEffectDocument({id:row.id,code:row.code,name:row.name,color:row.color,type:row.card_type==='Stage'?'Character':row.card_type,cost:row.cost,power:row.power,counter:0,rarity:'',art:0,effect:row.effect_text});
+ return local.ast.flatMap(expected=>{
+  if(expected.costs.length!==2||!expected.costs.some(cost=>cost.kind==='rest'&&cost.scope==='self')||!expected.costs.some(cost=>cost.kind==='turn-life'&&cost.scope==='own'&&cost.faceUp)||expected.actions.length!==1||expected.actions[0].kind!=='power')return [];
+  const timingIndex=local.ast.filter(ability=>ability.trigger===expected.trigger).indexOf(expected);
+  return [{name:`schema-stage-rest-life-power ${expected.trigger}: pay both costs before the printed power choice`,run(doc){
+   const ability=doc.ast.filter(candidate=>candidate.trigger===expected.trigger)[timingIndex],expectedWindow=local.normalized.filter(effect=>effect.timing===expected.trigger)[timingIndex],actualWindow=doc.normalized.filter(effect=>effect.timing===expected.trigger)[timingIndex];
+   assert(Boolean(ability)&&canonical(comparableAbility(ability!))===canonical(comparableAbility(expected)),'Published stage-rest/Life timing window differs from its printed costs and action');
+   assert(Boolean(actualWindow)&&canonical(actualWindow)===canonical(expectedWindow),'Published stage-rest/Life normalized sequence must pay both costs before resolving the effect');
+   const action=expected.actions[0] as Extract<EffectAction,{kind:'power'}>,target:MatchCard={id:'eligible-character',owner:'player',zone:'character',type:'Character',name:action.name??'Eligible',color:action.color??row.color,traits:action.trait?[action.trait]:[],cost:action.exactCost??action.maxCost??0,power:5000};
+   const state:MatchEffectState={...base(),cards:[{id:'source-stage',owner:'player',zone:'stage',type:'Stage',rested:false,effectSchema:doc},{id:'top-life',owner:'player',zone:'life',type:'Character',faceUp:false},target]};
+   const started=beginEffectExecution(state,'player','source-stage',expected.trigger,resolveEffectTiming(doc,expected.trigger).commands);
+   assert(!started.error&&started.requiresSelection&&started.execution.state.cards.find(card=>card.id==='source-stage')?.rested===false&&started.execution.state.cards.find(card=>card.id==='top-life')?.faceUp===false,'The optional payment should be offered before changing the board');
+   const paid=advanceEffectExecution(started.execution,{choice:'accept'});assert(!paid.error&&paid.requiresSelection,'Accepting the optional cost should pay both costs before requesting the power target');
+   assert(paid.execution.state.cards.find(card=>card.id==='source-stage')?.rested===true&&paid.execution.state.cards.find(card=>card.id==='top-life')?.faceUp===true,'The Stage and Life card were not paid before the effect');
+   const resolved=advanceEffectExecution(paid.execution,{targetId:target.id,cardIds:[target.id]});
+   assert(resolved.complete&&!resolved.error&&resolved.execution.state.cards.find(card=>card.id===target.id)?.powerModifier===action.amount,'The printed power effect did not resolve after both costs');
+   const declined=beginEffectExecution(state,'player','source-stage',expected.trigger,resolveEffectTiming(doc,expected.trigger).commands),skipped=advanceEffectExecution(declined.execution,{choice:'decline'});
+   assert(skipped.complete&&!skipped.error&&skipped.execution.state.cards.find(card=>card.id==='source-stage')?.rested===false&&skipped.execution.state.cards.find(card=>card.id==='top-life')?.faceUp===false&&skipped.execution.state.cards.find(card=>card.id===target.id)?.powerModifier===undefined,'Declining the optional cost must skip both payments and the effect');
+  }} as Scenario];
+ });
+};
+
+const orderedRestKoScenarios=(row:Identity):Scenario[]=>row.code==='OP04-038'?[{name:'schema-op04-038 Main/Counter: rest a target before K.O. of a rested Character',run(doc){
+ const timings=['main','counter'] as const;
+ for(const timing of timings){
+  const ability=doc.ast.filter(item=>item.trigger===timing),window=doc.normalized.filter(item=>item.timing===timing);
+  assert(ability.length===1&&ability[0].actions.length===2&&ability[0].actions[0].kind==='rest'&&ability[0].actions[1].kind==='ko','Rest must resolve before the rested-Character K.O.');
+  const [rest,ko]=ability[0].actions;
+  assert(rest.kind==='rest'&&rest.scope==='opponent-card'&&rest.selection?.max===1&&rest.maxCost===undefined,'Rest must target up to one opposing Leader or Character without inheriting the later K.O. cost limit');
+  assert(ko.kind==='ko'&&(ko.scope===undefined||ko.scope==='opponent-character')&&ko.maxCost===6&&ko.restedOnly&&ko.selection?.max===1,'Then K.O. up to one rested opposing Character with cost 6 or less');
+  assert(window.length===1&&window[0].sequence.length===2&&window[0].sequence[0].type==='RESOLVE'&&window[0].sequence[0].action.kind==='rest'&&window[0].sequence[1].type==='RESOLVE'&&window[0].sequence[1].action.kind==='ko','The normalized steps must preserve the printed rest-then-K.O. order');
+  const state:MatchEffectState={...base(),cards:[{id:'event',owner:'player',zone:'hand',type:'Event',effectSchema:doc},{id:'victim',owner:'opponent',zone:'character',type:'Character',cost:6,rested:false},{id:'over-cost',owner:'opponent',zone:'character',type:'Character',cost:7,rested:false},{id:'enemy-leader',owner:'opponent',zone:'leader',type:'Leader',rested:false}]};
+  const started=beginEffectExecution(state,'player','event',timing,resolveEffectTiming(doc,timing).commands);assert(started.requiresSelection,'First choose a target to rest');
+  const rested=advanceEffectExecution(started.execution,{targetId:'victim'});assert(rested.requiresSelection&&!rested.error&&rested.execution.state.cards.find(card=>card.id==='victim')?.rested===true,'Rest the selected Character before opening the K.O. choice');
+  const removed=advanceEffectExecution(rested.execution,{targetId:'victim'});assert(removed.complete&&!removed.error&&removed.execution.state.cards.find(card=>card.id==='victim')?.zone==='trash','The now-rested eligible Character should be K.O.d');
+  const tooCostlyRest=applyEffectAction(state,'player',rest,{targetId:'over-cost'});assert(!tooCostlyRest.error&&tooCostlyRest.state.cards.find(card=>card.id==='over-cost')?.rested===true,'The rest step must not inherit the K.O. step cost cap');
+ }
+}}]:[];
+const orderedDualPowerScenarios=(row:Identity):Scenario[]=>row.code==='OP08-019'?[{name:'schema-op08-019 Main/Counter: apply the printed opposing and own power changes in order',run(doc){
+ for(const timing of ['main','counter'] as const){
+  const ability=doc.ast.filter(item=>item.trigger===timing),window=doc.normalized.filter(item=>item.timing===timing);
+  assert(ability.length===1&&ability[0].conditions.length===0&&ability[0].costs.length===0&&ability[0].actions.length===2,'Each window must contain both independent power choices');
+  const [reduce,boost]=ability[0].actions;
+  assert(reduce.kind==='power'&&reduce.target==='opponent-character'&&reduce.amount===3000&&reduce.until==='turn-end'&&reduce.selection?.max===1,'First choice must give up to one opposing Character the printed 3000 power');
+  assert(boost.kind==='power'&&boost.target==='own-character'&&boost.amount===3000&&boost.until==='turn-end'&&boost.selection?.max===1,'Second choice must give up to one of your Characters +3000 power');
+  assert(window.length===1&&window[0].sequence.length===2&&window[0].sequence.every(step=>step.type==='RESOLVE')&&window[0].sequence[0].action.kind==='power'&&window[0].sequence[1].action.kind==='power','Power choices must resolve in printed order');
+  const state:MatchEffectState={...base(),cards:[{id:'event',owner:'player',zone:'hand',type:'Event',effectSchema:doc},{id:'enemy',owner:'opponent',zone:'character',type:'Character',power:5000},{id:'ally',owner:'player',zone:'character',type:'Character',power:5000}]};
+  const started=beginEffectExecution(state,'player','event',timing,resolveEffectTiming(doc,timing).commands);assert(started.requiresSelection,'First power choice must open a selection');
+  const reduced=advanceEffectExecution(started.execution,{targetId:'enemy'});assert(reduced.requiresSelection&&!reduced.error&&reduced.execution.state.cards.find(card=>card.id==='enemy')?.powerModifier===3000,'First choice should apply the printed 3000 power change to the opposing Character');
+  const boosted=advanceEffectExecution(reduced.execution,{targetId:'ally'});assert(boosted.complete&&!boosted.error&&boosted.execution.state.cards.find(card=>card.id==='ally')?.powerModifier===3000,'Second choice should boost your Character by 3000');
+ }
+}}]:[];
+
 export function scenarios(row:Identity):Scenario[]{
- const cardSpecific:Scenario[]=row.code==='ST01-012'?[{name:'schema-st01-012 when-attacking: two attached DON!! disables opposing Blocker for this battle',run(doc){
+ const nameAlias=row.effect_text.match(/also treat this card's name as\s+\[([^\]]+)\]\s+according to the rules\.?/i)?.[1];
+ const aliasScenarios:Scenario[]=nameAlias?[{name:'schema-name-alias: alias is recognized by name-restricted effects',run(doc){
+  assert(doc.resolver.type==='DSL','A rules-name clause must not create an unresolved custom effect handler');
+  const aliasCard={name:row.name,effectText:row.effect_text};
+  assert(matchesCardName(aliasCard,nameAlias),'A card with this rules-name alias did not match its alternate printed name');
+  assert(!matchesCardName({...aliasCard,effectText:''},nameAlias),'A card without the rules-name clause matched the alias');
+ }}]:[];
+ const cardSpecific:Scenario[]=row.code==='OP07-017'?[{name:'schema-op07-017 main/trigger: choose a qualifying Character and Stage independently',run(doc){
+  const main=doc.ast.filter(ability=>ability.trigger==='main'),trigger=doc.ast.filter(ability=>ability.trigger==='trigger');
+  assert(main.length===1&&main[0].conditions.length===0&&main[0].costs.length===0&&main[0].actions.length===2,'Main must contain separate optional K.O. choices for a Character and a Stage');
+  const [character,stage]=main[0].actions;
+  assert(character.kind==='ko'&&character.scope==='opponent-character'&&character.maxPower===3000&&character.selection?.min===0&&character.selection.max===1,'First choice must K.O. up to one opposing Character at 3000 power or less');
+  assert(stage.kind==='ko'&&stage.scope==='opponent-stage'&&stage.maxCost===1&&stage.selection?.min===0&&stage.selection.max===1,'Second choice must K.O. up to one opposing Stage at cost 1 or less');
+  assert(trigger.length===1&&trigger[0].actions.some(action=>action.kind==='activate-referenced-effect'&&action.trigger==='main'),'Trigger must reuse the complete Main sequence');
+  const state:MatchEffectState={...base(),cards:[{id:'event',owner:'player',zone:'hand',type:'Event',effectSchema:doc},{id:'character',owner:'opponent',zone:'character',type:'Character',cost:4,power:3000},{id:'stage',owner:'opponent',zone:'stage',type:'Stage',cost:1},{id:'high-power',owner:'opponent',zone:'character',type:'Character',cost:1,power:4000},{id:'high-cost-stage',owner:'opponent',zone:'stage',type:'Stage',cost:2}]};
+  for(const timing of ['main','trigger'] as const){const commands=resolveEffectTiming(doc,timing).commands;assert(commands.length===2,'Both K.O. choices must resolve in printed order');const started=beginEffectExecution(state,'player','event',timing,commands);assert(started.requiresSelection,'First K.O. choice should open a selection');const characterChosen=advanceEffectExecution(started.execution,{targetId:'character'});assert(characterChosen.requiresSelection&&!characterChosen.error,'Character choice should complete and ask independently for a Stage');const stageChosen=advanceEffectExecution(characterChosen.execution,{targetId:'stage'});assert(stageChosen.complete&&!stageChosen.error&&stageChosen.execution.state.cards.find(card=>card.id==='character')?.zone==='trash'&&stageChosen.execution.state.cards.find(card=>card.id==='stage')?.zone==='trash',`${timing} must K.O. both selected eligible cards`);const badCharacter=beginEffectExecution(state,'player','event',timing,commands),rejectedCharacter=advanceEffectExecution(badCharacter.execution,{targetId:'high-power'});assert(Boolean(rejectedCharacter.error),'K.O. accepted a Character above 3000 power');const badStage=beginEffectExecution(state,'player','event',timing,commands),first=advanceEffectExecution(badStage.execution,{targetId:'character'}),rejectedStage=advanceEffectExecution(first.execution,{targetId:'high-cost-stage'});assert(Boolean(rejectedStage.error),'K.O. accepted a Stage above cost 1');}
+ }}]:row.code==='ST12-016'?[{name:'schema-st12-016 main/counter/trigger: rest one eligible opposing Leader or Character',run(doc){
+  const main=doc.ast.filter(ability=>ability.trigger==='main'),counter=doc.ast.filter(ability=>ability.trigger==='counter'),trigger=doc.ast.filter(ability=>ability.trigger==='trigger');
+  const actionOf=(ability:typeof main[number]|undefined)=>ability?.actions.length===1?ability.actions[0]:undefined;
+  const mainAction=actionOf(main[0]),counterAction=actionOf(counter[0]);
+  assert(main.length===1&&main[0].conditions.length===0&&main[0].costs.length===0&&mainAction?.kind==='rest'&&mainAction.scope==='opponent-card'&&mainAction.maxCost===4&&mainAction.selection?.min===0&&mainAction.selection.max===1,'Main must rest up to one opposing Leader or Character with cost 4 or less');
+  assert(counter.length===1&&counter[0].conditions.length===0&&counter[0].costs.length===0&&counterAction?.kind==='rest'&&canonical(counterAction)===canonical(mainAction),'Counter must independently resolve the same optional rest effect');
+  assert(trigger.length===1&&trigger[0].conditions.length===0&&trigger[0].costs.length===0&&trigger[0].actions.filter(action=>action.kind==='activate-main-effect').length===1&&trigger[0].actions.filter(action=>action.kind==='activate-referenced-effect'&&action.trigger==='main').length===1&&trigger[0].actions.length===2,'Trigger must contain one legacy alias and one explicit Main reference');
+  const contract=(commands:ReturnType<typeof resolveEffectTiming>['commands'])=>commands.map(({kind,value,conditions,requiredAttachedDon})=>({kind,value,conditions,requiredAttachedDon}));
+  const mainResolution=resolveEffectTiming(doc,'main'),counterResolution=resolveEffectTiming(doc,'counter'),triggerResolution=resolveEffectTiming(doc,'trigger');
+  assert(mainResolution.status==='ready'&&counterResolution.status==='ready'&&triggerResolution.status==='ready'&&mainResolution.commands.length===1&&counterResolution.commands.length===1&&canonical(contract(mainResolution.commands))===canonical(contract(counterResolution.commands))&&canonical(contract(mainResolution.commands))===canonical(contract(triggerResolution.commands)),'Main, Counter, and Trigger must resolve one identical rest command');
+  const targets=[{id:'enemy-leader',owner:'opponent' as const,zone:'leader' as const,type:'Leader' as const,cost:4,rested:false},{id:'enemy-character',owner:'opponent' as const,zone:'character' as const,type:'Character' as const,cost:3,rested:false},{id:'too-costly',owner:'opponent' as const,zone:'character' as const,type:'Character' as const,cost:5,rested:false},{id:'own-character',owner:'player' as const,zone:'character' as const,type:'Character' as const,cost:4,rested:false}];
+  for(const timing of ['main','counter','trigger'] as const){
+   const state:MatchEffectState={...base(),cards:[{id:'event',owner:'player',zone:'hand',type:'Event',effectSchema:doc},...targets.map(card=>({...card}))]};
+   const started=beginEffectExecution(state,'player','event',timing,resolveEffectTiming(doc,timing).commands);assert(started.requiresSelection,`${timing} must open an optional target selection`);
+   const leaderResult=advanceEffectExecution(started.execution,{targetId:'enemy-leader'});assert(leaderResult.complete&&!leaderResult.error&&leaderResult.execution.state.cards.find(card=>card.id==='enemy-leader')?.rested===true,`${timing} must accept an opposing Leader within the cost limit`);
+   const characterStart=beginEffectExecution(state,'player','event',timing,resolveEffectTiming(doc,timing).commands),characterResult=advanceEffectExecution(characterStart.execution,{targetId:'enemy-character'});assert(characterResult.complete&&!characterResult.error&&characterResult.execution.state.cards.find(card=>card.id==='enemy-character')?.rested===true,`${timing} must accept an opposing Character within the cost limit`);
+   const invalidStart=beginEffectExecution(state,'player','event',timing,resolveEffectTiming(doc,timing).commands),invalidResult=advanceEffectExecution(invalidStart.execution,{targetId:'too-costly'});assert(Boolean(invalidResult.error),'Rest must reject an opposing Character over cost 4');
+   const ownStart=beginEffectExecution(state,'player','event',timing,resolveEffectTiming(doc,timing).commands),ownResult=advanceEffectExecution(ownStart.execution,{targetId:'own-character'});assert(Boolean(ownResult.error),'Rest must reject your own Character');
+  }
+ }}]:row.code==='OP07-016'?[{name:'schema-op07-016 main and trigger: independently boost Revolutionary Army and weaken one opposing Character',run(doc){
+  const main=doc.ast.filter(ability=>ability.trigger==='main'),trigger=doc.ast.filter(ability=>ability.trigger==='trigger');
+  assert(main.length===1&&main[0].actions.length===2,'Main must contain both independent power choices');
+  const [allyBoost,enemyReduction]=main[0].actions;
+  assert(allyBoost.kind==='power'&&allyBoost.amount===2000&&allyBoost.target==='own-character'&&allyBoost.trait==='Revolutionary Army'&&allyBoost.selection?.max===1,'First effect must boost up to one own Revolutionary Army Character by 2000');
+  assert(enemyReduction.kind==='power'&&enemyReduction.amount===-1000&&enemyReduction.target==='opponent-character'&&enemyReduction.selection?.max===1,'Second effect must give up to one opposing Character -1000 power');
+  assert(trigger.length===1&&trigger[0].actions.some(action=>action.kind==='activate-referenced-effect'&&action.trigger==='main'),'Trigger must activate the complete Main effect');
+  const commands=resolveEffectTiming(doc,'main').commands,state:MatchEffectState={...base(),cards:[{id:'event',owner:'player',zone:'trash',type:'Event',effectSchema:doc},{id:'revo',owner:'player',zone:'character',type:'Character',traits:['Revolutionary Army'],power:5000},{id:'other',owner:'player',zone:'character',type:'Character',traits:['Other'],power:5000},{id:'enemy',owner:'opponent',zone:'character',type:'Character',power:5000}]};
+  const start=beginEffectExecution(state,'player','event','main',commands);assert(start.requiresSelection,'Main must pause for the first optional target');
+  const boosted=advanceEffectExecution(start.execution,{targetId:'revo'});assert(boosted.requiresSelection&&!boosted.error,'Main must ask separately for the opponent target after the boost');
+  const reduced=advanceEffectExecution(boosted.execution,{targetId:'enemy'});assert(reduced.complete&&!reduced.error,'Main effect sequence did not complete');
+  assert(reduced.execution.state.cards.find(card=>card.id==='revo')?.powerModifier===2000,'Revolutionary Army Character did not receive +2000');assert(reduced.execution.state.cards.find(card=>card.id==='enemy')?.powerModifier===-1000,'Opponent Character did not receive -1000');
+  const illegal=beginEffectExecution(state,'player','event','main',commands);const rejected=advanceEffectExecution(illegal.execution,{targetId:'other'});assert(Boolean(rejected.error),'Boost accepted a Character without Revolutionary Army');
+  const triggerCommands=resolveEffectTiming(doc,'trigger').commands;assert(triggerCommands.length===commands.length&&triggerCommands.every(command=>command.kind==='resolve-action'),'Trigger did not reuse both Main choices');
+ }}]:row.code==='OP16-055'?[{name:'schema-op16-055 when-attacking: one attached DON!! copies opposing Leader base power until turn end',run(doc){
+  const onPlay=doc.ast.filter(ability=>ability.trigger==='on-play'),attacking=doc.ast.filter(ability=>ability.trigger==='when-attacking');
+  assert(onPlay.length===1&&onPlay[0].actions.length===1&&onPlay[0].actions[0].kind==='draw'&&onPlay[0].actions[0].amount===1,'On Play must only draw one card');
+  assert(attacking.length===1&&attacking[0].actions.some(action=>action.kind==='attach-don-required'&&action.amount===1)&&attacking[0].actions.some(action=>action.kind==='copy-base-power'&&action.from==='opponent-leader'),'When Attacking must require one attached DON!! and copy the opposing Leader power');
+  const source={id:'bentham',owner:'player' as const,zone:'character' as const,type:'Character' as const,power:5000,effectSchema:doc},leader={id:'enemy-leader',owner:'opponent' as const,zone:'leader' as const,type:'Leader' as const,power:6000};
+  const commands=resolveEffectTiming(doc,'when-attacking').commands;
+  const gated=beginEffectExecution({...base(),cards:[source,leader]},'player','bentham','when-attacking',commands);assert(gated.complete&&!gated.error&&gated.execution.state.cards.find(card=>card.id==='bentham')?.power===5000,'Ability resolved without the required attached DON!!');
+  const paid=beginEffectExecution({...base(),cards:[source,leader,{id:'don',owner:'player',zone:'cost-area',type:'DON!!',attachedTo:'bentham'}]},'player','bentham','when-attacking',commands);
+  assert(paid.complete&&!paid.error&&paid.execution.state.cards.find(card=>card.id==='bentham')?.power===6000,'Attached DON!! ability did not copy the opponent Leader power');
+  const expired=expireEffectModifiers(paid.execution.state,'turn-end');assert(expired.cards.find(card=>card.id==='bentham')?.power===5000,'Copied power did not return to Bentham’s printed base power at turn end');
+  const missingLeader=beginEffectExecution({...base(),cards:[source,{id:'don',owner:'player',zone:'cost-area',type:'DON!!',attachedTo:'bentham'}]},'player','bentham','when-attacking',commands);
+  assert(Boolean(missingLeader.error),'Copy effect silently resolved without an opponent Leader in play');
+ }}]:row.code==='ST01-012'?[{name:'schema-st01-012 when-attacking: two attached DON!! disables opposing Blocker for this battle',run(doc){
   const timing=resolveEffectTiming(doc,'when-attacking'),commands=timing.commands.filter(command=>command.kind==='resolve-action'&&command.value.kind==='prevent-keyword-activation');
   assert(commands.length===1&&commands[0].requiredAttachedDon===2,'Blocker lock must be gated by two attached DON!!');
   const action=commands[0].value;if(action.kind!=='prevent-keyword-activation')throw new Error('Blocker lock command has the wrong action');assert(action.keyword==='blocker'&&action.maxPower===undefined,'Lock must prohibit every opposing Blocker for this battle');
@@ -1674,5 +2076,5 @@ export function scenarios(row:Identity):Scenario[]{
   const locked=applyEffectAction(board,'player',action);assert(!locked.error,'Printed Blocker lock failed to resolve');
   assert(Boolean(declareBlock(locked.state,'opponent','enemy-blocker').error),'Opponent activated Blocker during the attack');
  }}]:[];
- return [...baseScenarios(row),...conditionalDonBlockerScenarios(row),...conditionalDonRushScenarios(row),...leadingRushIsolationScenarios(row),...returnDonCostScenarios(row),...cardSpecific];
+ return [...aliasScenarios,...baseScenarios(row),...conditionalDonBlockerScenarios(row),...conditionalDonRushScenarios(row),...leadingRushIsolationScenarios(row),...returnDonCostScenarios(row),...powerWindowScenarios(row),...koWindowScenarios(row),...restWindowScenarios(row),...readyWindowScenarios(row),...attackProhibitionScenarios(row),...preventKoScenarios(row),...stageRestLifePowerScenarios(row),...orderedRestKoScenarios(row),...orderedDualPowerScenarios(row),...cardSpecific];
 }

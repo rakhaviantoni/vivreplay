@@ -53,9 +53,9 @@ export function VaultHeader({
         <div className="vault-title-group">
           <p className="vault-eyebrow">
             <ShieldCheck size={14} weight="bold" />
-            {t('Archive & Portfolio · VivrePlay Vault','Arsip & Portofolio · VivrePlay Vault')}
+            {t('Archive & Portfolio · VivrePlay Vault','Arsip & Portofolio · Koleksi VivrePlay')}
           </p>
-          <h1>{t('Your Vault','Vault Anda')}</h1>
+          <h1>{t('Your Vault','Koleksi Anda')}</h1>
           <p className="vault-subtitle">
             <span>{language === 'ID' ? `Arsip digital @${username}` : `@${username}'s digital archive`}</span>
             <span>·</span>
@@ -82,13 +82,13 @@ export function VaultHeader({
             onClick={onOpenFullAdd}
           >
             <Plus size={15} weight="bold" />
-            {t('Add to Vault','Simpan ke Vault')}
+            {t('Add to Vault','Simpan ke koleksi')}
           </button>
           <button 
             type="button" 
             className="vault-btn vault-btn-secondary" 
             onClick={onOpenPrivacyModal}
-            title={t('Configure Vault and portfolio privacy','Atur privasi Vault dan portofolio')}
+            title={t('Configure Vault and portfolio privacy','Atur privasi koleksi dan portofolio')}
           >
             <Lock size={14} />
             {t('Privacy','Privasi')}

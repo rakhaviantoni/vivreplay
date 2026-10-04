@@ -1,0 +1,580 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-10-04T07:06:26.159Z",
+  "candidates": [
+    {
+      "code": "EB04-001",
+      "printedText": "[Opponent's Turn] If you have 1 or less Life cards, this Leader gains +2000 power.\n[Activate: Main] [Once Per Turn] Give up to 1 of your opponent's Characters −1000 power during this turn. Then, if you have 2 or more Life cards, you may add 1 card from the top of your Life cards to your hand.",
+      "publishedText": "[Opponent's Turn] If you have 1 or less Life cards, this Leader gains +2000 power. [Activate: Main] [Once Per Turn] Give up to 1 of your opponent's Characters -1000 power during this turn. Then, if you have 2 or more Life cards, you may add 1 card from the top of your Life cards to your hand.",
+      "timings": [
+        "continuous"
+      ],
+      "scenarioNames": [
+        "engine-aura continuous: condition and recipient power"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 2000,
+                "target": "opponent-character"
+              },
+              {
+                "kind": "life",
+                "amount": 1,
+                "operation": "add-to-hand"
+              }
+            ],
+            "rawText": "[Opponent's Turn] If you have 1 or less Life cards, this Leader gains +2000 power. [Activate: Main] [Once Per Turn] Give up to 1 of your opponent's Characters -1000 power during this turn. Then, if you have 2 or more Life cards, you may add 1 card from the top of your Life cards to your hand.",
+            "trigger": "activate-main",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 1 or less Life cards"
+              },
+              {
+                "kind": "text",
+                "text": "you have 2 or more Life cards"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 2000,
+                  "target": "opponent-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life",
+                  "amount": 1,
+                  "operation": "add-to-hand"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 1 or less Life cards"
+              },
+              {
+                "kind": "text",
+                "text": "you have 2 or more Life cards"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Opponent's Turn] If you have 1 or less Life cards, this Leader gains +2000 power. [Activate: Main] [Once Per Turn] Give up to 1 of your opponent's Characters -1000 power during this turn. Then, if you have 2 or more Life cards, you may add 1 card from the top of your Life cards to your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 2000,
+                "target": "opponent-character"
+              },
+              {
+                "kind": "life",
+                "amount": 1,
+                "operation": "add-to-hand"
+              }
+            ],
+            "rawText": "[Opponent's Turn] If you have 1 or less Life cards, this Leader gains +2000 power. [Activate: Main] [Once Per Turn] Give up to 1 of your opponent's Characters -1000 power during this turn. Then, if you have 2 or more Life cards, you may add 1 card from the top of your Life cards to your hand.",
+            "trigger": "activate-main",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 1 or less Life cards"
+              },
+              {
+                "kind": "text",
+                "text": "you have 2 or more Life cards"
+              }
+            ]
+          },
+          {
+            "rawText": "[Opponent's Turn] If you have 1 or less Life cards, this Leader gains +2000 power.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 1 or less Life cards"
+              },
+              {
+                "kind": "text",
+                "text": "it is your opponent's turn"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 2000,
+                "until": "turn-end",
+                "target": "own-leader"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 2000,
+                  "target": "opponent-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life",
+                  "amount": 1,
+                  "operation": "add-to-hand"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 1 or less Life cards"
+              },
+              {
+                "kind": "text",
+                "text": "you have 2 or more Life cards"
+              }
+            ]
+          },
+          {
+            "timing": "continuous",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 1 or less Life cards"
+              },
+              {
+                "kind": "text",
+                "text": "it is your opponent's turn"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 2000,
+                  "until": "turn-end",
+                  "target": "own-leader"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Opponent's Turn] If you have 1 or less Life cards, this Leader gains +2000 power. [Activate: Main] [Once Per Turn] Give up to 1 of your opponent's Characters -1000 power during this turn. Then, if you have 2 or more Life cards, you may add 1 card from the top of your Life cards to your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "073779934a39c05689207f19d10e5d9d6b2f2bd32bccf2db17aff14402f854cf",
+      "afterHash": "d77a0bc0760f19ab08b5831fb2b23cad17097fb49861e24ea5c6b4d7abf28ed8"
+    },
+    {
+      "code": "EB04-010",
+      "printedText": "[Opponent's Turn] All of your Characters with a base cost of 1 gain +5000 power.\n[On Play] Set the power of up to 1 of your opponent's Characters to 0 during this turn.",
+      "publishedText": "[Opponent's Turn] All of your Characters with a base cost of 1 gain +5000 power.[On Play] Set the power of up to 1 of your opponent's Characters to 0 during this turn.",
+      "timings": [
+        "continuous"
+      ],
+      "scenarioNames": [
+        "engine-aura continuous: condition and recipient power"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "set-power",
+                "until": "turn-end",
+                "amount": 0,
+                "target": "opponent-character"
+              },
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 5000,
+                "target": "opponent-character"
+              }
+            ],
+            "rawText": "[Opponent's Turn] All of your Characters with a base cost of 1 gain +5000 power.[On Play] Set the power of up to 1 of your opponent's Characters to 0 during this turn.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "set-power",
+                  "until": "turn-end",
+                  "amount": 0,
+                  "target": "opponent-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 5000,
+                  "target": "opponent-character"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Opponent's Turn] All of your Characters with a base cost of 1 gain +5000 power.[On Play] Set the power of up to 1 of your opponent's Characters to 0 during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "set-power",
+                "until": "turn-end",
+                "amount": 0,
+                "target": "opponent-character"
+              },
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 5000,
+                "target": "opponent-character"
+              }
+            ],
+            "rawText": "[Opponent's Turn] All of your Characters with a base cost of 1 gain +5000 power.[On Play] Set the power of up to 1 of your opponent's Characters to 0 during this turn.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "rawText": "[Opponent's Turn] All of your Characters with a base cost of 1 gain +5000 power.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "it is your opponent's turn"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 5000,
+                "until": "turn-end",
+                "target": "own-character",
+                "continuous": true
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "set-power",
+                  "until": "turn-end",
+                  "amount": 0,
+                  "target": "opponent-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 5000,
+                  "target": "opponent-character"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "continuous",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "it is your opponent's turn"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 5000,
+                  "until": "turn-end",
+                  "target": "own-character",
+                  "continuous": true
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Opponent's Turn] All of your Characters with a base cost of 1 gain +5000 power.[On Play] Set the power of up to 1 of your opponent's Characters to 0 during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "7e9735bb11b7936f63fe42348d2904a17d9497fbec383c977f2c644bfc7bb355",
+      "afterHash": "afa5dae3d634d0e8c111f1e6eda0f9e26a252f6158382251ba584a3acf957266"
+    },
+    {
+      "code": "OP02-024",
+      "printedText": "[Your Turn] If you have 1 or less Life cards, your [Edward.Newgate] and all your Characters with a type including \"Whitebeard Pirates\" gain +2000 power.",
+      "publishedText": "[Your Turn] If you have 1 or less Life cards, your [Edward.Newgate] and all your Characters with a type including \"Whitebeard Pirates\" gain +2000 power. [Trigger] Play this card.",
+      "timings": [
+        "continuous"
+      ],
+      "scenarioNames": [
+        "engine-aura continuous: condition and recipient power"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 2000,
+                "target": "own-character"
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[Your Turn] If you have 1 or less Life cards, your [Edward.Newgate] and all your Characters with a type including \"Whitebeard Pirates\" gain +2000 power. [Trigger] Play this card.",
+            "trigger": "trigger",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 1 or less Life cards"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 2000,
+                  "target": "own-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 1 or less Life cards"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Your Turn] If you have 1 or less Life cards, your [Edward.Newgate] and all your Characters with a type including \"Whitebeard Pirates\" gain +2000 power. [Trigger] Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 2000,
+                "target": "own-character"
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[Your Turn] If you have 1 or less Life cards, your [Edward.Newgate] and all your Characters with a type including \"Whitebeard Pirates\" gain +2000 power. [Trigger] Play this card.",
+            "trigger": "trigger",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 1 or less Life cards"
+              }
+            ]
+          },
+          {
+            "rawText": "[Your Turn] If you have 1 or less Life cards, your [Edward.Newgate] and all your Characters with a type including \"Whitebeard Pirates\" gain +2000 power.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 1 or less Life cards"
+              },
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 2000,
+                "until": "turn-end",
+                "target": "own-character",
+                "continuous": true
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 2000,
+                  "target": "own-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 1 or less Life cards"
+              }
+            ]
+          },
+          {
+            "timing": "continuous",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 1 or less Life cards"
+              },
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 2000,
+                  "until": "turn-end",
+                  "target": "own-character",
+                  "continuous": true
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Your Turn] If you have 1 or less Life cards, your [Edward.Newgate] and all your Characters with a type including \"Whitebeard Pirates\" gain +2000 power. [Trigger] Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "61fe0cd1fc48cbd01e503e18432d8cb6f634df219cd507fab0fbc5f02c76ab4e",
+      "afterHash": "16b9194e336752c239ef7324bf9a284d034289e65ef4ad7ac4b3cf8ef3fdc07f"
+    }
+  ]
+}

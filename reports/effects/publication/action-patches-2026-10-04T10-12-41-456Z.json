@@ -1,0 +1,775 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-10-04T10:12:41.455Z",
+  "candidates": [
+    {
+      "code": "OP01-024",
+      "printedText": "[DON!! x2] This Character cannot be K.O.'d in battle by \"Strike\" attribute Characters. [Activate:Main] [Once Per Turn] Give this Character up to 2 rested DON!! cards.",
+      "publishedText": "[DON!! x2] This Character cannot be K.O.'d in battle by \"Strike\" attribute Characters. [Activate:Main] [Once Per Turn] Give this Character up to 2 rested DON!! cards.",
+      "timings": [
+        "gameplay"
+      ],
+      "scenarioNames": [
+        "unknown: DON!! ×2 protects only against battle K.O. by Strike Characters",
+        "activate-main: attach zero to two rested cost-area DON!! to this Character",
+        "unknown gameplay prevent-K.O.: preserve printed protection scope and condition"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don-required",
+                "amount": 2
+              },
+              {
+                "by": "battle",
+                "kind": "prevent-ko",
+                "scope": "own-character",
+                "attribute": "Strike",
+                "requiresAttachedDon": 2
+              }
+            ],
+            "rawText": "[DON!! x2] This Character cannot be K.O.'d in battle by \"Strike\" attribute Characters.",
+            "trigger": "unknown",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don",
+                "amount": 2,
+                "rested": true,
+                "source": "cost-area",
+                "recipient": "self",
+                "selection": {
+                  "max": 2,
+                  "min": 0
+                }
+              }
+            ],
+            "rawText": "[Activate:Main] [Once Per Turn] Give this Character up to 2 rested DON!! cards.",
+            "trigger": "activate-main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 2
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "by": "battle",
+                  "kind": "prevent-ko",
+                  "scope": "own-character",
+                  "attribute": "Strike",
+                  "requiresAttachedDon": 2
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "activate-main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 2,
+                  "rested": true,
+                  "source": "cost-area",
+                  "recipient": "self",
+                  "selection": {
+                    "max": 2,
+                    "min": 0
+                  }
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x2] This Character cannot be K.O.'d in battle by \"Strike\" attribute Characters. [Activate:Main] [Once Per Turn] Give this Character up to 2 rested DON!! cards.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don-required",
+                "amount": 2
+              },
+              {
+                "kind": "prevent-ko",
+                "scope": "own-character",
+                "by": "battle",
+                "attribute": "Strike",
+                "byCardType": "Character",
+                "requiresAttachedDon": 2
+              }
+            ],
+            "rawText": "[DON!! x2] This Character cannot be K.O.'d in battle by \"Strike\" attribute Characters.",
+            "trigger": "unknown",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don",
+                "amount": 2,
+                "rested": true,
+                "source": "cost-area",
+                "recipient": "self",
+                "selection": {
+                  "max": 2,
+                  "min": 0
+                }
+              }
+            ],
+            "rawText": "[Activate:Main] [Once Per Turn] Give this Character up to 2 rested DON!! cards.",
+            "trigger": "activate-main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "prevent-ko",
+                  "scope": "own-character",
+                  "by": "battle",
+                  "attribute": "Strike",
+                  "byCardType": "Character",
+                  "requiresAttachedDon": 2
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "activate-main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 2,
+                  "rested": true,
+                  "source": "cost-area",
+                  "recipient": "self",
+                  "selection": {
+                    "max": 2,
+                    "min": 0
+                  }
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x2] This Character cannot be K.O.'d in battle by \"Strike\" attribute Characters. [Activate:Main] [Once Per Turn] Give this Character up to 2 rested DON!! cards.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "5127d2250f3a4cb570320652947d9a61f09c4bbe0691df0b708872dff3c4cfe2",
+      "afterHash": "3c794d3ba4725af0387367478f760b5912dbe96055a597c3a4568919458931f0",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "OP03-079",
+      "printedText": "[DON!! x1] This Character cannot be K.O.'d in battle.",
+      "publishedText": "[DON!! x1] This Character cannot be K.O.'d in battle.",
+      "timings": [
+        "gameplay"
+      ],
+      "scenarioNames": [
+        "unknown gameplay prevent-K.O.: preserve printed protection scope and condition"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              },
+              {
+                "by": "battle",
+                "kind": "prevent-ko",
+                "scope": "own-character"
+              }
+            ],
+            "rawText": "[DON!! x1] This Character cannot be K.O.'d in battle.",
+            "trigger": "unknown",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "by": "battle",
+                  "kind": "prevent-ko",
+                  "scope": "own-character"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] This Character cannot be K.O.'d in battle.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              },
+              {
+                "kind": "prevent-ko",
+                "scope": "own-character",
+                "by": "battle",
+                "requiresAttachedDon": 1
+              }
+            ],
+            "rawText": "[DON!! x1] This Character cannot be K.O.'d in battle.",
+            "trigger": "unknown",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "prevent-ko",
+                  "scope": "own-character",
+                  "by": "battle",
+                  "requiresAttachedDon": 1
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] This Character cannot be K.O.'d in battle.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "21891781fc618ec8351157930b7a2cc6f536b3a8539315fe9a811d94f4ea4f1e",
+      "afterHash": "e981c44c91113268ea999c9dac75c66daee90752918638edf954c904ae91d974",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "OP10-070",
+      "printedText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[On Play] All of your Characters with 1000 base power or less cannot be K.O.'d by your opponent's effects until the end of your opponent's next turn.",
+      "publishedText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[On Play] All of your Characters with 1000 base power or less cannot be K.O.'d by your opponent's effects until the end of your opponent's next turn.",
+      "timings": [
+        "gameplay"
+      ],
+      "scenarioNames": [
+        "keyword Blocker: active",
+        "keyword Blocker: rested",
+        "keyword Blocker: wrong-owner",
+        "keyword Blocker: hand",
+        "keyword Blocker: negated",
+        "keyword Blocker: schema isolation",
+        "on-play gameplay prevent-K.O.: preserve printed protection scope and condition"
+      ],
+      "scenarioCount": 7,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "by": "effect",
+                "kind": "prevent-ko",
+                "scope": "own-character"
+              }
+            ],
+            "rawText": "[On Play] All of your Characters with 1000 base power or less cannot be K.O.'d by your opponent's effects until the end of your opponent's next turn.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "blocker"
+              }
+            ],
+            "rawText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+            "trigger": "unknown",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "by": "effect",
+                  "kind": "prevent-ko",
+                  "scope": "own-character"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "unknown",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[On Play] All of your Characters with 1000 base power or less cannot be K.O.'d by your opponent's effects until the end of your opponent's next turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "prevent-ko",
+                "scope": "own-character",
+                "by": "effect",
+                "protects": "own-characters"
+              }
+            ],
+            "rawText": "[On Play] All of your Characters with 1000 base power or less cannot be K.O.'d by your opponent's effects until the end of your opponent's next turn.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "blocker"
+              }
+            ],
+            "rawText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+            "trigger": "unknown",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "prevent-ko",
+                  "scope": "own-character",
+                  "by": "effect",
+                  "protects": "own-characters"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "unknown",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[On Play] All of your Characters with 1000 base power or less cannot be K.O.'d by your opponent's effects until the end of your opponent's next turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "d1bfbf92bf19769553b026ba7dce7fa2cc7fa0a0628ded61cec3b961bc62e61e",
+      "afterHash": "92e6b4e758bac71a118250dee1dc2cd5a2f6189ac6a1de5b47d74ae76abcfd2a",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "OP11-005",
+      "printedText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[DON!! x1] This Character cannot be K.O.'d by effects of Characters without the (Special) attribute.",
+      "publishedText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[DON!! x1] This Character cannot be K.O.'d by effects of Characters without the (Special) attribute.",
+      "timings": [
+        "gameplay"
+      ],
+      "scenarioNames": [
+        "unknown: DON!!-gated effect K.O. protection checks source Character attribute",
+        "keyword Blocker: active",
+        "keyword Blocker: rested",
+        "keyword Blocker: wrong-owner",
+        "keyword Blocker: hand",
+        "keyword Blocker: negated",
+        "keyword Blocker: schema isolation",
+        "unknown gameplay prevent-K.O.: preserve printed protection scope and condition"
+      ],
+      "scenarioCount": 8,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "blocker"
+              }
+            ],
+            "rawText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+            "trigger": "unknown",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              },
+              {
+                "by": "effect",
+                "kind": "prevent-ko",
+                "scope": "own-character",
+                "excludeAttribute": "Special",
+                "requiresAttachedDon": 1
+              }
+            ],
+            "rawText": "[DON!! x1] This Character cannot be K.O.'d by effects of Characters without the (Special) attribute.",
+            "trigger": "unknown",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "unknown",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "by": "effect",
+                  "kind": "prevent-ko",
+                  "scope": "own-character",
+                  "excludeAttribute": "Special",
+                  "requiresAttachedDon": 1
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[DON!! x1] This Character cannot be K.O.'d by effects of Characters without the (Special) attribute.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "blocker"
+              }
+            ],
+            "rawText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+            "trigger": "unknown",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              },
+              {
+                "kind": "prevent-ko",
+                "scope": "own-character",
+                "by": "effect",
+                "excludeAttribute": "Special",
+                "byCardType": "Character",
+                "requiresAttachedDon": 1
+              }
+            ],
+            "rawText": "[DON!! x1] This Character cannot be K.O.'d by effects of Characters without the (Special) attribute.",
+            "trigger": "unknown",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "unknown",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "prevent-ko",
+                  "scope": "own-character",
+                  "by": "effect",
+                  "excludeAttribute": "Special",
+                  "byCardType": "Character",
+                  "requiresAttachedDon": 1
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[DON!! x1] This Character cannot be K.O.'d by effects of Characters without the (Special) attribute.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "fdf998342532a362293590ccbcf18dc72fbd3c037df78333a81741e31c1748ce",
+      "afterHash": "7684783a69366fa91bc3a6fbb61526207b71f0e9f5c4574fd53241926670be89",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "P-054",
+      "printedText": "[DON!! x1] This Character cannot be K.O.'d in battle by \"Strike\" attribute cards.",
+      "publishedText": "[DON!! x1] This Character cannot be K.O.'d in battle by \"Strike\" attribute cards.",
+      "timings": [
+        "gameplay"
+      ],
+      "scenarioNames": [
+        "unknown gameplay prevent-K.O.: preserve printed protection scope and condition"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              },
+              {
+                "by": "battle",
+                "kind": "prevent-ko",
+                "scope": "own-character"
+              }
+            ],
+            "rawText": "[DON!! x1] This Character cannot be K.O.'d in battle by \"Strike\" attribute cards.",
+            "trigger": "unknown",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "by": "battle",
+                  "kind": "prevent-ko",
+                  "scope": "own-character"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] This Character cannot be K.O.'d in battle by \"Strike\" attribute cards.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              },
+              {
+                "kind": "prevent-ko",
+                "scope": "own-character",
+                "by": "battle",
+                "attribute": "Strike",
+                "requiresAttachedDon": 1
+              }
+            ],
+            "rawText": "[DON!! x1] This Character cannot be K.O.'d in battle by \"Strike\" attribute cards.",
+            "trigger": "unknown",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "prevent-ko",
+                  "scope": "own-character",
+                  "by": "battle",
+                  "attribute": "Strike",
+                  "requiresAttachedDon": 1
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] This Character cannot be K.O.'d in battle by \"Strike\" attribute cards.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "7bfd731f4fc8ce02a997400ba1a8820aeb5e3749f0e467690f03a50cfb685209",
+      "afterHash": "afdec69e74bb97f22f2ece40e6caefb3577c148256089b64f55627560b9e885a",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    }
+  ]
+}

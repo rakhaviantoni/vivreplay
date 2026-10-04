@@ -1,0 +1,2584 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-10-04T09:23:31.258Z",
+  "candidates": [
+    {
+      "code": "EB01-051",
+      "printedText": "[Main] You may trash 2 cards from the top of your deck: K.O. up to 1 of your opponent's Characters with a cost of 5 or less.",
+      "publishedText": "[Main] You may trash 2 cards from the top of your deck: K.O. up to 1 of your opponent's Characters with a cost of 5 or less.",
+      "timings": [
+        "main"
+      ],
+      "scenarioNames": [
+        "engine-action main ko: exercise action 1 independently (gate and sequence not covered)",
+        "engine-action main trash: exercise action 2 independently (gate and sequence not covered)",
+        "Main gameplay K.O.: verify the complete window and enforce its target limits"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 5,
+                "restedOnly": false
+              },
+              {
+                "kind": "ko",
+                "maxCost": 5,
+                "restedOnly": false
+              },
+              {
+                "kind": "trash",
+                "scope": "deck",
+                "amount": 2
+              }
+            ],
+            "rawText": "[Main] You may trash 2 cards from the top of your deck: K.O. up to 1 of your opponent's Characters with a cost of 5 or less.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 5,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 5,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "deck",
+                  "amount": 2
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] You may trash 2 cards from the top of your deck: K.O. up to 1 of your opponent's Characters with a cost of 5 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 5,
+                "restedOnly": false,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              },
+              {
+                "kind": "trash",
+                "scope": "deck",
+                "amount": 2
+              }
+            ],
+            "rawText": "[Main] You may trash 2 cards from the top of your deck: K.O. up to 1 of your opponent's Characters with a cost of 5 or less.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 5,
+                  "restedOnly": false,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "deck",
+                  "amount": 2
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] You may trash 2 cards from the top of your deck: K.O. up to 1 of your opponent's Characters with a cost of 5 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "acd86ce4b762e8fe3e1d8d3716bb885d8f4e40450d0a4e35f4b6003f9a5c4e7d",
+      "afterHash": "63f471f0e4e45895fbe53505f519bddf1f059e5078655a3d764790e3d2d7c22b",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 2
+    },
+    {
+      "code": "OP06-033",
+      "printedText": "[On Play] You may trash 1 \"Fish-Man\" type card from your hand or 1 [The Ark Noah] from your hand or field: K.O. up to 1 of your opponent's rested Characters.",
+      "publishedText": "[On Play] You may trash 1 \"Fish-Man\" type card from your hand or 1 [The Ark Noah] from your hand or field: K.O. up to 1 of your opponent's rested Characters.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "engine-action on-play ko: exercise action 1 independently (gate and sequence not covered)",
+        "engine-action on-play trash: exercise action 2 independently (gate and sequence not covered)",
+        "On Play gameplay K.O.: verify the complete window and enforce its target limits"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "restedOnly": true
+              },
+              {
+                "kind": "ko",
+                "restedOnly": true
+              },
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "requiresTrigger": false
+              }
+            ],
+            "rawText": "[On Play] You may trash 1 \"Fish-Man\" type card from your hand or 1 [The Ark Noah] from your hand or field: K.O. up to 1 of your opponent's rested Characters.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "restedOnly": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "restedOnly": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "requiresTrigger": false
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] You may trash 1 \"Fish-Man\" type card from your hand or 1 [The Ark Noah] from your hand or field: K.O. up to 1 of your opponent's rested Characters.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "restedOnly": true,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              },
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "requiresTrigger": false,
+                "trait": "Fish-Man"
+              }
+            ],
+            "rawText": "[On Play] You may trash 1 \"Fish-Man\" type card from your hand or 1 [The Ark Noah] from your hand or field: K.O. up to 1 of your opponent's rested Characters.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "restedOnly": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "requiresTrigger": false,
+                  "trait": "Fish-Man"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] You may trash 1 \"Fish-Man\" type card from your hand or 1 [The Ark Noah] from your hand or field: K.O. up to 1 of your opponent's rested Characters.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "618e7d62d24f4b07083cf14c64f96a43ec70d08593c7f777af013e668c286580",
+      "afterHash": "0c2dff8cc48fcc4d2c05c7b65301a91dc9d3a6b6fb68fd236517164e8e4d6b56",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 2
+    },
+    {
+      "code": "OP06-039",
+      "printedText": "[Main] Choose one:\n• Rest up to 1 of your opponent's Characters with a cost of 6 or less.\n• K.O. up to 1 of your opponent's rested Characters with a cost of 6 or less.\n[Trigger] Activate this card's [Main] effect.",
+      "publishedText": "[Main] Choose one:\n• Rest up to 1 of your opponent's Characters with a cost of 6 or less.\n• K.O. up to 1 of your opponent's rested Characters with a cost of 6 or less.\n[Trigger] Activate this card's [Main] effect.",
+      "timings": [
+        "main"
+      ],
+      "scenarioNames": [
+        "engine-action main ko: exercise action 1 independently (gate and sequence not covered)",
+        "engine-action main rest: exercise action 2 independently (gate and sequence not covered)",
+        "Main gameplay K.O.: verify the complete window and enforce its target limits"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 6,
+                "restedOnly": true
+              },
+              {
+                "kind": "ko",
+                "maxCost": 6,
+                "restedOnly": true
+              },
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 6
+              }
+            ],
+            "rawText": "[Main] Choose one:\n• Rest up to 1 of your opponent's Characters with a cost of 6 or less.\n• K.O. up to 1 of your opponent's rested Characters with a cost of 6 or less.",
+            "trigger": "main",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "activate-main-effect"
+              },
+              {
+                "kind": "activate-referenced-effect",
+                "trigger": "main"
+              }
+            ],
+            "rawText": "[Trigger] Activate this card's [Main] effect.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 6,
+                  "restedOnly": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 6,
+                  "restedOnly": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 6
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "activate-main-effect"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "activate-referenced-effect",
+                  "trigger": "main"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Choose one:\n• Rest up to 1 of your opponent's Characters with a cost of 6 or less.\n• K.O. up to 1 of your opponent's rested Characters with a cost of 6 or less.\n[Trigger] Activate this card's [Main] effect.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 6,
+                "restedOnly": true,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              },
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 6,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ],
+            "rawText": "[Main] Choose one:\n• Rest up to 1 of your opponent's Characters with a cost of 6 or less.\n• K.O. up to 1 of your opponent's rested Characters with a cost of 6 or less.",
+            "trigger": "main",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "activate-main-effect"
+              },
+              {
+                "kind": "activate-referenced-effect",
+                "trigger": "main"
+              }
+            ],
+            "rawText": "[Trigger] Activate this card's [Main] effect.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 6,
+                  "restedOnly": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 6,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "activate-main-effect"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "activate-referenced-effect",
+                  "trigger": "main"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Choose one:\n• Rest up to 1 of your opponent's Characters with a cost of 6 or less.\n• K.O. up to 1 of your opponent's rested Characters with a cost of 6 or less.\n[Trigger] Activate this card's [Main] effect.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "06b92ac5a6c788a53db7bb09b5124d5562b0aa7f36a15348449c23eefe0a037c",
+      "afterHash": "eb27e880af13792394da9ddaac91411d25f6b2e0fe8fed8bb1d945d4b2e17fa3",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 2
+    },
+    {
+      "code": "OP10-041",
+      "printedText": "[Main] Rest up to 1 of your opponent's Characters with a cost of 6 or less. Then, K.O. up to 1 of your opponent's rested Characters with a cost of 5 or less.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+      "publishedText": "[Main] Rest up to 1 of your opponent's Characters with a cost of 6 or less. Then, K.O. up to 1 of your opponent's rested Characters with a cost of 5 or less.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+      "timings": [
+        "main"
+      ],
+      "scenarioNames": [
+        "trigger: rest cost <= 4 / at-limit",
+        "trigger: rest cost <= 4 / over-limit",
+        "trigger: rest cost <= 4 / own-card",
+        "trigger: rest cost <= 4 / leader",
+        "trigger: rest cost <= 4 / skip",
+        "schema-rest-target trigger: opponent-character cost <= 4 up to 1",
+        "engine-action main ko: exercise action 1 independently (gate and sequence not covered)",
+        "engine-action main rest: exercise action 2 independently (gate and sequence not covered)",
+        "schema-atomic-action trigger: isolated rest",
+        "Main gameplay K.O.: verify the complete window and enforce its target limits"
+      ],
+      "scenarioCount": 10,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 6,
+                "restedOnly": true
+              },
+              {
+                "kind": "ko",
+                "maxCost": 6,
+                "restedOnly": true
+              },
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 6
+              }
+            ],
+            "rawText": "[Main] Rest up to 1 of your opponent's Characters with a cost of 6 or less. Then, K.O. up to 1 of your opponent's rested Characters with a cost of 5 or less.",
+            "trigger": "main",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 4,
+                "selection": {
+                  "max": 1,
+                  "min": 0
+                }
+              }
+            ],
+            "rawText": "[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 6,
+                  "restedOnly": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 6,
+                  "restedOnly": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 6
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 4,
+                  "selection": {
+                    "max": 1,
+                    "min": 0
+                  }
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Rest up to 1 of your opponent's Characters with a cost of 6 or less. Then, K.O. up to 1 of your opponent's rested Characters with a cost of 5 or less.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 6,
+                "restedOnly": true,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              },
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 6,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ],
+            "rawText": "[Main] Rest up to 1 of your opponent's Characters with a cost of 6 or less. Then, K.O. up to 1 of your opponent's rested Characters with a cost of 5 or less.",
+            "trigger": "main",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 4,
+                "selection": {
+                  "max": 1,
+                  "min": 0
+                }
+              }
+            ],
+            "rawText": "[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 6,
+                  "restedOnly": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 6,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 4,
+                  "selection": {
+                    "max": 1,
+                    "min": 0
+                  }
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Rest up to 1 of your opponent's Characters with a cost of 6 or less. Then, K.O. up to 1 of your opponent's rested Characters with a cost of 5 or less.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "00beb542488dd26ee06e5bdcd76545951c6aa620d9fd61b04ce88396c909e958",
+      "afterHash": "99233262feeab5b8b68702d01561b99a610cd279ea19bef629a7c7b51896d3f1",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 2
+    },
+    {
+      "code": "OP10-081",
+      "printedText": "[On Play] You may rest 1 of your \"Dressrosa\" type Leader or Stage cards: K.O. up to 1 of your opponent's Characters with a cost of 2 or less. Then, trash 2 cards from the top of your deck.",
+      "publishedText": "[On Play] You may rest 1 of your \"Dressrosa\" type Leader or Stage cards: K.O. up to 1 of your opponent's Characters with a cost of 2 or less. Then, trash 2 cards from the top of your deck.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "engine-action on-play ko: exercise action 1 independently (gate and sequence not covered)",
+        "engine-action on-play trash: exercise action 2 independently (gate and sequence not covered)",
+        "On Play gameplay K.O.: verify the complete window and enforce its target limits"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 2,
+                "restedOnly": false
+              },
+              {
+                "kind": "ko",
+                "maxCost": 2,
+                "restedOnly": false
+              },
+              {
+                "kind": "trash",
+                "scope": "deck",
+                "amount": 2
+              }
+            ],
+            "rawText": "[On Play] You may rest 1 of your \"Dressrosa\" type Leader or Stage cards: K.O. up to 1 of your opponent's Characters with a cost of 2 or less. Then, trash 2 cards from the top of your deck.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 2,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 2,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "deck",
+                  "amount": 2
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] You may rest 1 of your \"Dressrosa\" type Leader or Stage cards: K.O. up to 1 of your opponent's Characters with a cost of 2 or less. Then, trash 2 cards from the top of your deck.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 2,
+                "restedOnly": false,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              },
+              {
+                "kind": "trash",
+                "scope": "deck",
+                "amount": 2
+              }
+            ],
+            "rawText": "[On Play] You may rest 1 of your \"Dressrosa\" type Leader or Stage cards: K.O. up to 1 of your opponent's Characters with a cost of 2 or less. Then, trash 2 cards from the top of your deck.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 2,
+                  "restedOnly": false,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "deck",
+                  "amount": 2
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] You may rest 1 of your \"Dressrosa\" type Leader or Stage cards: K.O. up to 1 of your opponent's Characters with a cost of 2 or less. Then, trash 2 cards from the top of your deck.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "29976e29cd0c35601c2d6838653cb8bb6ffb3cd3ce16433b4186454c44fa446a",
+      "afterHash": "960d01da1dbad9f8904d3b84f4b30205e90b872d7921bfd6f3b856fbdd54edd3",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 2
+    },
+    {
+      "code": "OP10-091",
+      "printedText": "[Activate: Main] You may rest this Character and 1 of your \"Dressrosa\" type Leader or Stage cards: K.O. up to 1 of your opponent's Characters with a cost of 1 or less. Then, trash 2 cards from the top of your deck.",
+      "publishedText": "[Activate: Main] You may rest this Character and 1 of your \"Dressrosa\" type Leader or Stage cards: K.O. up to 1 of your opponent's Characters with a cost of 1 or less. Then, trash 2 cards from the top of your deck.",
+      "timings": [
+        "activate-main"
+      ],
+      "scenarioNames": [
+        "engine-action activate-main ko: exercise action 1 independently (gate and sequence not covered)",
+        "engine-action activate-main rest: exercise action 2 independently (gate and sequence not covered)",
+        "engine-action activate-main trash: exercise action 3 independently (gate and sequence not covered)",
+        "Activate: Main gameplay K.O.: verify the complete window and enforce its target limits"
+      ],
+      "scenarioCount": 4,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 1,
+                "restedOnly": false
+              },
+              {
+                "kind": "ko",
+                "maxCost": 1,
+                "restedOnly": false
+              },
+              {
+                "kind": "rest",
+                "scope": "self"
+              },
+              {
+                "kind": "trash",
+                "scope": "deck",
+                "amount": 2
+              }
+            ],
+            "rawText": "[Activate: Main] You may rest this Character and 1 of your \"Dressrosa\" type Leader or Stage cards: K.O. up to 1 of your opponent's Characters with a cost of 1 or less. Then, trash 2 cards from the top of your deck.",
+            "trigger": "activate-main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 1,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 1,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "self"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "deck",
+                  "amount": 2
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Activate: Main] You may rest this Character and 1 of your \"Dressrosa\" type Leader or Stage cards: K.O. up to 1 of your opponent's Characters with a cost of 1 or less. Then, trash 2 cards from the top of your deck.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 1,
+                "restedOnly": false,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              },
+              {
+                "kind": "rest",
+                "scope": "self"
+              },
+              {
+                "kind": "trash",
+                "scope": "deck",
+                "amount": 2
+              }
+            ],
+            "rawText": "[Activate: Main] You may rest this Character and 1 of your \"Dressrosa\" type Leader or Stage cards: K.O. up to 1 of your opponent's Characters with a cost of 1 or less. Then, trash 2 cards from the top of your deck.",
+            "trigger": "activate-main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 1,
+                  "restedOnly": false,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "self"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "deck",
+                  "amount": 2
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Activate: Main] You may rest this Character and 1 of your \"Dressrosa\" type Leader or Stage cards: K.O. up to 1 of your opponent's Characters with a cost of 1 or less. Then, trash 2 cards from the top of your deck.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "c8f518a8cdf01b75eb11dac13554be4b8ba092296520f476fb0240e96faf62bf",
+      "afterHash": "02a14df7838e0ceb41a1ad49176dca07466a5498dfed0390f4b8cc377a6fdbae",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 3
+    },
+    {
+      "code": "OP10-095",
+      "printedText": "[On Play] You may rest 1 of your \"Dressrosa\" type Leader or Stage cards: K.O. up to 1 of your opponent's Characters with a cost of 4 or less. Then, trash 2 cards from the top of your deck.",
+      "publishedText": "[On Play] You may rest 1 of your \"Dressrosa\" type Leader or Stage cards: K.O. up to 1 of your opponent's Characters with a cost of 4 or less. Then, trash 2 cards from the top of your deck.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "engine-action on-play ko: exercise action 1 independently (gate and sequence not covered)",
+        "engine-action on-play trash: exercise action 2 independently (gate and sequence not covered)",
+        "On Play gameplay K.O.: verify the complete window and enforce its target limits"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 4,
+                "restedOnly": false
+              },
+              {
+                "kind": "ko",
+                "maxCost": 4,
+                "restedOnly": false
+              },
+              {
+                "kind": "trash",
+                "scope": "deck",
+                "amount": 2
+              }
+            ],
+            "rawText": "[On Play] You may rest 1 of your \"Dressrosa\" type Leader or Stage cards: K.O. up to 1 of your opponent's Characters with a cost of 4 or less. Then, trash 2 cards from the top of your deck.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 4,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 4,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "deck",
+                  "amount": 2
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] You may rest 1 of your \"Dressrosa\" type Leader or Stage cards: K.O. up to 1 of your opponent's Characters with a cost of 4 or less. Then, trash 2 cards from the top of your deck.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 4,
+                "restedOnly": false,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              },
+              {
+                "kind": "trash",
+                "scope": "deck",
+                "amount": 2
+              }
+            ],
+            "rawText": "[On Play] You may rest 1 of your \"Dressrosa\" type Leader or Stage cards: K.O. up to 1 of your opponent's Characters with a cost of 4 or less. Then, trash 2 cards from the top of your deck.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 4,
+                  "restedOnly": false,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "deck",
+                  "amount": 2
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] You may rest 1 of your \"Dressrosa\" type Leader or Stage cards: K.O. up to 1 of your opponent's Characters with a cost of 4 or less. Then, trash 2 cards from the top of your deck.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "aad640c0e62a3c62eb5d3e459f8243f8f04bf71aaf850961a771a1346e7e0da5",
+      "afterHash": "729b0a689061348b5b58e558343c2b53cd506ba6e81aa8925828e408a5ed00e0",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 2
+    },
+    {
+      "code": "OP11-098",
+      "printedText": "[Main] You may trash 3 cards from the top of your deck: K.O. up to 1 of your opponent's Characters with a cost of 2 or less.\n[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+      "publishedText": "[Main] You may trash 3 cards from the top of your deck: K.O. up to 1 of your opponent's Characters with a cost of 2 or less.\n[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+      "timings": [
+        "main"
+      ],
+      "scenarioNames": [
+        "trigger: power +1000 turn-end / leader",
+        "trigger: power +1000 turn-end / character",
+        "trigger: power +1000 turn-end / opponent",
+        "trigger: power +1000 turn-end / hand",
+        "trigger: power +1000 turn-end / skip",
+        "schema-power trigger: printed amount and duration",
+        "schema-power trigger: printed target Leader or Character cards, 1000 for this turn",
+        "engine-action main ko: exercise action 1 independently (gate and sequence not covered)",
+        "engine-action main trash: exercise action 2 independently (gate and sequence not covered)",
+        "schema-atomic-action trigger: isolated power",
+        "Trigger gameplay power: verify the complete window and apply its printed target",
+        "Main gameplay K.O.: verify the complete window and enforce its target limits"
+      ],
+      "scenarioCount": 12,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 2,
+                "restedOnly": false
+              },
+              {
+                "kind": "ko",
+                "maxCost": 2,
+                "restedOnly": false
+              },
+              {
+                "kind": "trash",
+                "scope": "deck",
+                "amount": 3
+              }
+            ],
+            "rawText": "[Main] You may trash 3 cards from the top of your deck: K.O. up to 1 of your opponent's Characters with a cost of 2 or less.",
+            "trigger": "main",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 1000,
+                "target": "own-card",
+                "selection": {
+                  "max": 1,
+                  "min": 0
+                }
+              }
+            ],
+            "rawText": "[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 2,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 2,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "deck",
+                  "amount": 3
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 1000,
+                  "target": "own-card",
+                  "selection": {
+                    "max": 1,
+                    "min": 0
+                  }
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] You may trash 3 cards from the top of your deck: K.O. up to 1 of your opponent's Characters with a cost of 2 or less.\n[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 2,
+                "restedOnly": false,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              },
+              {
+                "kind": "trash",
+                "scope": "deck",
+                "amount": 3
+              }
+            ],
+            "rawText": "[Main] You may trash 3 cards from the top of your deck: K.O. up to 1 of your opponent's Characters with a cost of 2 or less.",
+            "trigger": "main",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 1000,
+                "target": "own-card",
+                "selection": {
+                  "max": 1,
+                  "min": 0
+                }
+              }
+            ],
+            "rawText": "[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 2,
+                  "restedOnly": false,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "deck",
+                  "amount": 3
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 1000,
+                  "target": "own-card",
+                  "selection": {
+                    "max": 1,
+                    "min": 0
+                  }
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] You may trash 3 cards from the top of your deck: K.O. up to 1 of your opponent's Characters with a cost of 2 or less.\n[Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "3b3ecece29f39ad222b0bef5d75bd22d9c63a3f88a6976c00cbc6350b0220a5f",
+      "afterHash": "e0cdbd97a37df9f5e82b609167267d27ec70978052635f127328893ecca21294",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 2
+    },
+    {
+      "code": "OP11-106",
+      "printedText": "[On Play] You may add 1 card from the top or bottom of your Life cards to your hand: K.O. up to 1 of your opponent's Characters with a cost of 5 or less.",
+      "publishedText": "[On Play] You may add 1 card from the top or bottom of your Life cards to your hand: K.O. up to 1 of your opponent's Characters with a cost of 5 or less.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "engine-action on-play ko: exercise action 1 independently (gate and sequence not covered)",
+        "engine-action on-play life: exercise action 2 independently (gate and sequence not covered)",
+        "On Play gameplay K.O.: verify the complete window and enforce its target limits"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 5,
+                "restedOnly": false
+              },
+              {
+                "kind": "ko",
+                "maxCost": 5,
+                "restedOnly": false
+              },
+              {
+                "kind": "life",
+                "amount": 1,
+                "operation": "add-to-hand"
+              }
+            ],
+            "rawText": "[On Play] You may add 1 card from the top or bottom of your Life cards to your hand: K.O. up to 1 of your opponent's Characters with a cost of 5 or less.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 5,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 5,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life",
+                  "amount": 1,
+                  "operation": "add-to-hand"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] You may add 1 card from the top or bottom of your Life cards to your hand: K.O. up to 1 of your opponent's Characters with a cost of 5 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 5,
+                "restedOnly": false,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              },
+              {
+                "kind": "life",
+                "operation": "add-to-hand",
+                "amount": 1
+              }
+            ],
+            "rawText": "[On Play] You may add 1 card from the top or bottom of your Life cards to your hand: K.O. up to 1 of your opponent's Characters with a cost of 5 or less.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 5,
+                  "restedOnly": false,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life",
+                  "operation": "add-to-hand",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] You may add 1 card from the top or bottom of your Life cards to your hand: K.O. up to 1 of your opponent's Characters with a cost of 5 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "207f118d0542a16a847c9ec5f507ffaed7f73a970a37350161140256de63f672",
+      "afterHash": "70d05977c8e4e5a75d5450e8a09bd67ad9aa72001a1bf908a990460713540c6a",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 2
+    },
+    {
+      "code": "OP12-029",
+      "printedText": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 2 or less. Then, K.O. up to 1 of your opponent's rested Characters with a base cost of 1 or less.",
+      "publishedText": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 2 or less. Then, K.O. up to 1 of your opponent's rested Characters with a base cost of 1 or less.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "engine-action on-play ko: exercise action 1 independently (gate and sequence not covered)",
+        "engine-action on-play rest: exercise action 2 independently (gate and sequence not covered)",
+        "On Play gameplay K.O.: verify the complete window and enforce its target limits"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 2,
+                "restedOnly": true
+              },
+              {
+                "kind": "ko",
+                "maxCost": 2,
+                "restedOnly": true
+              },
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 2
+              }
+            ],
+            "rawText": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 2 or less. Then, K.O. up to 1 of your opponent's rested Characters with a base cost of 1 or less.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 2,
+                  "restedOnly": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 2,
+                  "restedOnly": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 2
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 2 or less. Then, K.O. up to 1 of your opponent's rested Characters with a base cost of 1 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxBaseCost": 1,
+                "restedOnly": true,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              },
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 2,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ],
+            "rawText": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 2 or less. Then, K.O. up to 1 of your opponent's rested Characters with a base cost of 1 or less.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxBaseCost": 1,
+                  "restedOnly": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 2,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 2 or less. Then, K.O. up to 1 of your opponent's rested Characters with a base cost of 1 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "25998e30132874133f4606a723a3c73a06fceeba7309f1d23fe3625a71c6115a",
+      "afterHash": "37d3e3ed3a1ede237330a2a0f4c083ed6051839741ef9b0dca2a97a29242a0a5",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 2
+    },
+    {
+      "code": "OP12-075",
+      "printedText": "[On Play] K.O. up to 1 of your opponent's Characters with a cost of 3 or less. Then, your opponent may add 1 DON!! card from their DON!! deck and set it as active.\n[Trigger] DON!! 1: Play this card.",
+      "publishedText": "[On Play] K.O. up to 1 of your opponent's Characters with a cost of 3 or less. Then, your opponent may add 1 DON!! card from their DON!! deck and set it as active.\n[Trigger] DON!! 1: Play this card.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "schema-rest-don-cost trigger: select 1 active DON!!",
+        "engine-action on-play ko: exercise action 1 independently (gate and sequence not covered)",
+        "engine-action on-play add-don: exercise action 2 independently (gate and sequence not covered)",
+        "On Play gameplay K.O.: verify the complete window and enforce its target limits"
+      ],
+      "scenarioCount": 4,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 3,
+                "restedOnly": false
+              },
+              {
+                "kind": "ko",
+                "maxCost": 3,
+                "restedOnly": false
+              },
+              {
+                "kind": "add-don",
+                "amount": 1,
+                "rested": true
+              }
+            ],
+            "rawText": "[On Play] K.O. up to 1 of your opponent's Characters with a cost of 3 or less. Then, your opponent may add 1 DON!! card from their DON!! deck and set it as active.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "rawText": "[Trigger] DON!! 1: Play this card.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "don",
+                "amount": 1,
+                "optional": false
+              }
+            ],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 3,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 3,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "add-don",
+                  "amount": 1,
+                  "rested": true
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "PAY_COST",
+                "cost": {
+                  "kind": "rest",
+                  "scope": "don",
+                  "amount": 1,
+                  "optional": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] K.O. up to 1 of your opponent's Characters with a cost of 3 or less. Then, your opponent may add 1 DON!! card from their DON!! deck and set it as active.\n[Trigger] DON!! 1: Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 3,
+                "restedOnly": false,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              },
+              {
+                "kind": "add-don",
+                "amount": 1,
+                "rested": false
+              }
+            ],
+            "rawText": "[On Play] K.O. up to 1 of your opponent's Characters with a cost of 3 or less. Then, your opponent may add 1 DON!! card from their DON!! deck and set it as active.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "rawText": "[Trigger] DON!! 1: Play this card.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "don",
+                "amount": 1,
+                "optional": false
+              }
+            ],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 3,
+                  "restedOnly": false,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "add-don",
+                  "amount": 1,
+                  "rested": false
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "PAY_COST",
+                "cost": {
+                  "kind": "rest",
+                  "scope": "don",
+                  "amount": 1,
+                  "optional": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] K.O. up to 1 of your opponent's Characters with a cost of 3 or less. Then, your opponent may add 1 DON!! card from their DON!! deck and set it as active.\n[Trigger] DON!! 1: Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "19d8919be995dd8b6a14fb255bd36ba452a1b17d1dcb55316414088583907a0d",
+      "afterHash": "1c2fb2bb85ea1782a9c80688fab34e96a5b2cce89ac84328c19f55783b20aa53",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 2
+    },
+    {
+      "code": "OP14-064",
+      "printedText": "[On K.O.] Add up to 1 DON!! card from your DON!! deck and rest it. Then, K.O. up to 1 of your opponent's Characters with a base power of 0.",
+      "publishedText": "[On K.O.] Add up to 1 DON!! card from your DON!! deck and rest it. Then, K.O. up to 1 of your opponent's Characters with a base power of 0.",
+      "timings": [
+        "on-ko"
+      ],
+      "scenarioNames": [
+        "engine-action on-ko ko: exercise action 1 independently (gate and sequence not covered)",
+        "engine-action on-ko add-don: exercise action 2 independently (gate and sequence not covered)",
+        "On K.O. gameplay K.O.: verify the complete window and enforce its target limits"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "restedOnly": false
+              },
+              {
+                "kind": "ko",
+                "restedOnly": false
+              },
+              {
+                "kind": "add-don",
+                "amount": 1,
+                "rested": true
+              },
+              {
+                "kind": "on-ko"
+              }
+            ],
+            "rawText": "[On K.O.] Add up to 1 DON!! card from your DON!! deck and rest it. Then, K.O. up to 1 of your opponent's Characters with a base power of 0.",
+            "trigger": "on-ko",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-ko",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "add-don",
+                  "amount": 1,
+                  "rested": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "on-ko"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On K.O.] Add up to 1 DON!! card from your DON!! deck and rest it. Then, K.O. up to 1 of your opponent's Characters with a base power of 0.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "restedOnly": false,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              },
+              {
+                "kind": "add-don",
+                "amount": 1,
+                "rested": true,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ],
+            "rawText": "[On K.O.] Add up to 1 DON!! card from your DON!! deck and rest it. Then, K.O. up to 1 of your opponent's Characters with a base power of 0.",
+            "trigger": "on-ko",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-ko",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "restedOnly": false,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "add-don",
+                  "amount": 1,
+                  "rested": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On K.O.] Add up to 1 DON!! card from your DON!! deck and rest it. Then, K.O. up to 1 of your opponent's Characters with a base power of 0.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "365417dc7e5803b7c6ae6a7905bfa09b38f3c0b0510fddf52d3a3289556afbdb",
+      "afterHash": "b53e9edf343e65ef91433790eda7110bb4d9a256022542090f6432eb56f83573",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 2
+    },
+    {
+      "code": "OP15-100",
+      "printedText": "[On Play] You may trash this Character and add 1 card from the top of your Life cards to your hand: K.O. up to 1 of your opponent's Characters with a cost of 6 or less.",
+      "publishedText": "[On Play] You may trash this Character and add 1 card from the top of your Life cards to your hand: K.O. up to 1 of your opponent's Characters with a cost of 6 or less.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "engine-action on-play ko: exercise action 1 independently (gate and sequence not covered)",
+        "engine-action on-play trash: exercise action 2 independently (gate and sequence not covered)",
+        "engine-action on-play life: exercise action 3 independently (gate and sequence not covered)",
+        "On Play gameplay K.O.: verify the complete window and enforce its target limits"
+      ],
+      "scenarioCount": 4,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 6,
+                "restedOnly": false
+              },
+              {
+                "kind": "ko",
+                "maxCost": 6,
+                "restedOnly": false
+              },
+              {
+                "kind": "trash",
+                "scope": "self",
+                "amount": 1
+              },
+              {
+                "kind": "life",
+                "amount": 1,
+                "operation": "add-to-hand"
+              }
+            ],
+            "rawText": "[On Play] You may trash this Character and add 1 card from the top of your Life cards to your hand: K.O. up to 1 of your opponent's Characters with a cost of 6 or less.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 6,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 6,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "self",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life",
+                  "amount": 1,
+                  "operation": "add-to-hand"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] You may trash this Character and add 1 card from the top of your Life cards to your hand: K.O. up to 1 of your opponent's Characters with a cost of 6 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 6,
+                "restedOnly": false,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              },
+              {
+                "kind": "trash",
+                "scope": "self",
+                "amount": 1
+              },
+              {
+                "kind": "life",
+                "operation": "add-to-hand",
+                "amount": 1
+              }
+            ],
+            "rawText": "[On Play] You may trash this Character and add 1 card from the top of your Life cards to your hand: K.O. up to 1 of your opponent's Characters with a cost of 6 or less.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 6,
+                  "restedOnly": false,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "self",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life",
+                  "operation": "add-to-hand",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] You may trash this Character and add 1 card from the top of your Life cards to your hand: K.O. up to 1 of your opponent's Characters with a cost of 6 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "1cc56e6a99705035efea4a9e5d6286f5ceac563ef19d26baccf884549deb1b9d",
+      "afterHash": "019d15b4b7c187bc8af3903ecb021d43251044d75037f9b3f0adde00132adc29",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 3
+    },
+    {
+      "code": "OP15-115",
+      "printedText": "[Main] K.O. up to 1 of your opponent's Characters with a cost of 4 or less. Then, add 1 card from the top of your Life cards to your hand.",
+      "publishedText": "[Main] K.O. up to 1 of your opponent's Characters with a cost of 4 or less. Then, add 1 card from the top of your Life cards to your hand.",
+      "timings": [
+        "main"
+      ],
+      "scenarioNames": [
+        "engine-action main ko: exercise action 1 independently (gate and sequence not covered)",
+        "engine-action main life: exercise action 2 independently (gate and sequence not covered)",
+        "Main gameplay K.O.: verify the complete window and enforce its target limits"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 4,
+                "restedOnly": false
+              },
+              {
+                "kind": "ko",
+                "maxCost": 4,
+                "restedOnly": false
+              },
+              {
+                "kind": "life",
+                "amount": 1,
+                "operation": "add-to-hand"
+              }
+            ],
+            "rawText": "[Main] K.O. up to 1 of your opponent's Characters with a cost of 4 or less. Then, add 1 card from the top of your Life cards to your hand.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 4,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 4,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life",
+                  "amount": 1,
+                  "operation": "add-to-hand"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] K.O. up to 1 of your opponent's Characters with a cost of 4 or less. Then, add 1 card from the top of your Life cards to your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 4,
+                "restedOnly": false,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              },
+              {
+                "kind": "life",
+                "operation": "add-to-hand",
+                "amount": 1
+              }
+            ],
+            "rawText": "[Main] K.O. up to 1 of your opponent's Characters with a cost of 4 or less. Then, add 1 card from the top of your Life cards to your hand.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 4,
+                  "restedOnly": false,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life",
+                  "operation": "add-to-hand",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] K.O. up to 1 of your opponent's Characters with a cost of 4 or less. Then, add 1 card from the top of your Life cards to your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "8108acb103d35bee87672b63894a18d06e1a7ad3edf7f2506c1c46d12d43df03",
+      "afterHash": "7a2a54a0f32ac5e81245d61496710037517a28d9c1aabb352c199462981e0936",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 2
+    },
+    {
+      "code": "OP16-010",
+      "printedText": "[On Play] You may reveal 1 Character card with 8000 power from your hand: K.O. up to 1 of your opponent's Characters with 2000 base power or less.",
+      "publishedText": "[On Play] You may reveal 1 Character card with 8000 power from your hand: K.O. up to 1 of your opponent's Characters with 2000 base power or less.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "engine-action on-play ko: resolve isolated parsed instruction",
+        "On Play gameplay K.O.: verify the complete window and enforce its target limits"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "restedOnly": false
+              },
+              {
+                "kind": "ko",
+                "restedOnly": false
+              }
+            ],
+            "rawText": "[On Play] You may reveal 1 Character card with 8000 power from your hand: K.O. up to 1 of your opponent's Characters with 2000 base power or less.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "restedOnly": false
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] You may reveal 1 Character card with 8000 power from your hand: K.O. up to 1 of your opponent's Characters with 2000 base power or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxBasePower": 2000,
+                "restedOnly": false,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ],
+            "rawText": "[On Play] You may reveal 1 Character card with 8000 power from your hand: K.O. up to 1 of your opponent's Characters with 2000 base power or less.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxBasePower": 2000,
+                  "restedOnly": false,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] You may reveal 1 Character card with 8000 power from your hand: K.O. up to 1 of your opponent's Characters with 2000 base power or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "2358735f20a76afdbea3df47b2c96613d1017c87762f9218ff51e4a93d76d064",
+      "afterHash": "0ed49ae3753ea6ddc3c402da7723eb6fe2baa5c7802abdc7a9795b671d14f9f8",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    }
+  ]
+}

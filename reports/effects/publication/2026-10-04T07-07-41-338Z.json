@@ -1,0 +1,2261 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-10-04T07:07:41.333Z",
+  "candidates": [
+    {
+      "code": "EB01-014",
+      "printedText": "[DON!! x1] [Your Turn] This Character gains +1000 power for every 3 of your rested DON!! cards.",
+      "publishedText": "[DON!! x1] [Your Turn] This Character gains +1000 power for every 3 of your rested DON!! cards.",
+      "timings": [
+        "continuous"
+      ],
+      "scenarioNames": [
+        "engine-aura continuous: condition and recipient power"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 1000,
+                "target": "own-character"
+              },
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              }
+            ],
+            "rawText": "[DON!! x1] [Your Turn] This Character gains +1000 power for every 3 of your rested DON!! cards.",
+            "trigger": "continuous",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 1000,
+                  "target": "own-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] [Your Turn] This Character gains +1000 power for every 3 of your rested DON!! cards.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Your Turn] [DON!!x1] This Character gains +1000 power for every 3 of your rested DON!! cards.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 1000,
+                "until": "turn-end",
+                "target": "own-character",
+                "continuous": true
+              },
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 1000,
+                  "until": "turn-end",
+                  "target": "own-character",
+                  "continuous": true
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] [Your Turn] This Character gains +1000 power for every 3 of your rested DON!! cards.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "b1f5c9ae8b273790350fcc83747d580371d9f56160ed38d220fa5345ea0b5695",
+      "afterHash": "a0ec0ccac5bad0d342e1cb55603c1ba3cedfc6c24b7a2357d6ff398c3add99a2"
+    },
+    {
+      "code": "EB01-058",
+      "printedText": "[DON!! x1] [Your Turn] If you have 2 or less Life cards, this Character gains +2000 power.",
+      "publishedText": "[DON!! x1] [Your Turn] If you have 2 or less Life cards, this Character gains +2000 power.",
+      "timings": [
+        "continuous"
+      ],
+      "scenarioNames": [
+        "engine-aura continuous: condition and recipient power"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 2000,
+                "target": "own-character"
+              },
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              }
+            ],
+            "rawText": "[DON!! x1] [Your Turn] If you have 2 or less Life cards, this Character gains +2000 power.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 2 or less Life cards"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 2000,
+                  "target": "own-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 2 or less Life cards"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] [Your Turn] If you have 2 or less Life cards, this Character gains +2000 power.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Your Turn] [DON!!x1] If you have 2 or less Life cards, this Character gains +2000 power.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 2 or less Life cards"
+              },
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 2000,
+                "until": "turn-end",
+                "target": "own-character",
+                "continuous": true
+              },
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 2 or less Life cards"
+              },
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 2000,
+                  "until": "turn-end",
+                  "target": "own-character",
+                  "continuous": true
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] [Your Turn] If you have 2 or less Life cards, this Character gains +2000 power.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "d2295443758fd5a64da030614dc91d908aa2cfb71efe6f7407eb375b2461c621",
+      "afterHash": "c572cea315e4ede906846e83548d6432a9de0bd75a1d4d4b238b8346cd44da1a"
+    },
+    {
+      "code": "EB04-001",
+      "printedText": "[Opponent's Turn] If you have 1 or less Life cards, this Leader gains +2000 power.\n[Activate: Main] [Once Per Turn] Give up to 1 of your opponent's Characters −1000 power during this turn. Then, if you have 2 or more Life cards, you may add 1 card from the top of your Life cards to your hand.",
+      "publishedText": "[Opponent's Turn] If you have 1 or less Life cards, this Leader gains +2000 power. [Activate: Main] [Once Per Turn] Give up to 1 of your opponent's Characters -1000 power during this turn. Then, if you have 2 or more Life cards, you may add 1 card from the top of your Life cards to your hand.",
+      "timings": [
+        "continuous"
+      ],
+      "scenarioNames": [
+        "engine-aura continuous: condition and recipient power"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 2000,
+                "target": "opponent-character"
+              },
+              {
+                "kind": "life",
+                "amount": 1,
+                "operation": "add-to-hand"
+              }
+            ],
+            "rawText": "[Opponent's Turn] If you have 1 or less Life cards, this Leader gains +2000 power. [Activate: Main] [Once Per Turn] Give up to 1 of your opponent's Characters -1000 power during this turn. Then, if you have 2 or more Life cards, you may add 1 card from the top of your Life cards to your hand.",
+            "trigger": "activate-main",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 1 or less Life cards"
+              },
+              {
+                "kind": "text",
+                "text": "you have 2 or more Life cards"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 2000,
+                  "target": "opponent-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life",
+                  "amount": 1,
+                  "operation": "add-to-hand"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 1 or less Life cards"
+              },
+              {
+                "kind": "text",
+                "text": "you have 2 or more Life cards"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Opponent's Turn] If you have 1 or less Life cards, this Leader gains +2000 power. [Activate: Main] [Once Per Turn] Give up to 1 of your opponent's Characters -1000 power during this turn. Then, if you have 2 or more Life cards, you may add 1 card from the top of your Life cards to your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 2000,
+                "target": "opponent-character"
+              },
+              {
+                "kind": "life",
+                "amount": 1,
+                "operation": "add-to-hand"
+              }
+            ],
+            "rawText": "[Opponent's Turn] If you have 1 or less Life cards, this Leader gains +2000 power. [Activate: Main] [Once Per Turn] Give up to 1 of your opponent's Characters -1000 power during this turn. Then, if you have 2 or more Life cards, you may add 1 card from the top of your Life cards to your hand.",
+            "trigger": "activate-main",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 1 or less Life cards"
+              },
+              {
+                "kind": "text",
+                "text": "you have 2 or more Life cards"
+              }
+            ]
+          },
+          {
+            "rawText": "[Opponent's Turn] If you have 1 or less Life cards, this Leader gains +2000 power.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 1 or less Life cards"
+              },
+              {
+                "kind": "text",
+                "text": "it is your opponent's turn"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 2000,
+                "until": "turn-end",
+                "target": "own-leader"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 2000,
+                  "target": "opponent-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life",
+                  "amount": 1,
+                  "operation": "add-to-hand"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 1 or less Life cards"
+              },
+              {
+                "kind": "text",
+                "text": "you have 2 or more Life cards"
+              }
+            ]
+          },
+          {
+            "timing": "continuous",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 1 or less Life cards"
+              },
+              {
+                "kind": "text",
+                "text": "it is your opponent's turn"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 2000,
+                  "until": "turn-end",
+                  "target": "own-leader"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Opponent's Turn] If you have 1 or less Life cards, this Leader gains +2000 power. [Activate: Main] [Once Per Turn] Give up to 1 of your opponent's Characters -1000 power during this turn. Then, if you have 2 or more Life cards, you may add 1 card from the top of your Life cards to your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "073779934a39c05689207f19d10e5d9d6b2f2bd32bccf2db17aff14402f854cf",
+      "afterHash": "d77a0bc0760f19ab08b5831fb2b23cad17097fb49861e24ea5c6b4d7abf28ed8"
+    },
+    {
+      "code": "EB04-010",
+      "printedText": "[Opponent's Turn] All of your Characters with a base cost of 1 gain +5000 power.\n[On Play] Set the power of up to 1 of your opponent's Characters to 0 during this turn.",
+      "publishedText": "[Opponent's Turn] All of your Characters with a base cost of 1 gain +5000 power.[On Play] Set the power of up to 1 of your opponent's Characters to 0 during this turn.",
+      "timings": [
+        "continuous"
+      ],
+      "scenarioNames": [
+        "engine-aura continuous: condition and recipient power"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "set-power",
+                "until": "turn-end",
+                "amount": 0,
+                "target": "opponent-character"
+              },
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 5000,
+                "target": "opponent-character"
+              }
+            ],
+            "rawText": "[Opponent's Turn] All of your Characters with a base cost of 1 gain +5000 power.[On Play] Set the power of up to 1 of your opponent's Characters to 0 during this turn.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "set-power",
+                  "until": "turn-end",
+                  "amount": 0,
+                  "target": "opponent-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 5000,
+                  "target": "opponent-character"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Opponent's Turn] All of your Characters with a base cost of 1 gain +5000 power.[On Play] Set the power of up to 1 of your opponent's Characters to 0 during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "set-power",
+                "until": "turn-end",
+                "amount": 0,
+                "target": "opponent-character"
+              },
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 5000,
+                "target": "opponent-character"
+              }
+            ],
+            "rawText": "[Opponent's Turn] All of your Characters with a base cost of 1 gain +5000 power.[On Play] Set the power of up to 1 of your opponent's Characters to 0 during this turn.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "rawText": "[Opponent's Turn] All of your Characters with a base cost of 1 gain +5000 power.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "it is your opponent's turn"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 5000,
+                "until": "turn-end",
+                "target": "own-character",
+                "continuous": true
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "set-power",
+                  "until": "turn-end",
+                  "amount": 0,
+                  "target": "opponent-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 5000,
+                  "target": "opponent-character"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "continuous",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "it is your opponent's turn"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 5000,
+                  "until": "turn-end",
+                  "target": "own-character",
+                  "continuous": true
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Opponent's Turn] All of your Characters with a base cost of 1 gain +5000 power.[On Play] Set the power of up to 1 of your opponent's Characters to 0 during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "7e9735bb11b7936f63fe42348d2904a17d9497fbec383c977f2c644bfc7bb355",
+      "afterHash": "afa5dae3d634d0e8c111f1e6eda0f9e26a252f6158382251ba584a3acf957266"
+    },
+    {
+      "code": "OP01-001",
+      "printedText": "[DON!! x1] [Your Turn] All of your Characters gain +1000 power.",
+      "publishedText": "[DON!! x1] [Your Turn] All of your Characters gain +1000 power.",
+      "timings": [
+        "continuous"
+      ],
+      "scenarioNames": [
+        "engine-aura continuous: condition and recipient power"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 1000,
+                "target": "own-character"
+              },
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              }
+            ],
+            "rawText": "[DON!! x1] [Your Turn] All of your Characters gain +1000 power.",
+            "trigger": "continuous",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 1000,
+                  "target": "own-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] [Your Turn] All of your Characters gain +1000 power.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Your Turn] [DON!!x1] All of your Characters gain +1000 power.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 1000,
+                "until": "turn-end",
+                "target": "own-character",
+                "continuous": true
+              },
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 1000,
+                  "until": "turn-end",
+                  "target": "own-character",
+                  "continuous": true
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] [Your Turn] All of your Characters gain +1000 power.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "ff5cd3495c5e33a796dd63b91480d7e8d70067201277a03b13be9c243364be48",
+      "afterHash": "6ef21198530437272971f0814f994e5d12888b6a03170c5d0eb54f241b94b248"
+    },
+    {
+      "code": "OP01-072",
+      "printedText": "[DON!! x1] [Your Turn] This Character gains +1000 power for every card in your hand.",
+      "publishedText": "[DON!! x1] [Your Turn] This Character gains +1000 power for every card in your hand.",
+      "timings": [
+        "continuous"
+      ],
+      "scenarioNames": [
+        "engine-aura continuous: condition and recipient power"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 1000,
+                "target": "own-character"
+              },
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              }
+            ],
+            "rawText": "[DON!! x1] [Your Turn] This Character gains +1000 power for every card in your hand.",
+            "trigger": "continuous",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 1000,
+                  "target": "own-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] [Your Turn] This Character gains +1000 power for every card in your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Your Turn] [DON!!x1] This Character gains +1000 power for every card in your hand.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 1000,
+                "until": "turn-end",
+                "target": "own-character",
+                "continuous": true
+              },
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 1000,
+                  "until": "turn-end",
+                  "target": "own-character",
+                  "continuous": true
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] [Your Turn] This Character gains +1000 power for every card in your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "4c97d4f90048bb0e72cc2eb2bda9f80e7641bf168aa2c9bf7b995acbe6f2a63e",
+      "afterHash": "d230f3feb70d57edd34e437bfed5c39d3d3716841ed4ae9ec5303766afc36930"
+    },
+    {
+      "code": "OP01-109",
+      "printedText": "[DON!! x1] [Your Turn] If you have 8 or more DON!! cards on your field, this Character gains +1000 power.",
+      "publishedText": "[DON!! x1] [Your Turn] If you have 8 or more DON!! cards on your field, this Character gains +1000 power.",
+      "timings": [
+        "continuous"
+      ],
+      "scenarioNames": [
+        "engine-aura continuous: condition and recipient power"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 1000,
+                "target": "own-character"
+              },
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              }
+            ],
+            "rawText": "[DON!! x1] [Your Turn] If you have 8 or more DON!! cards on your field, this Character gains +1000 power.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 8 or more DON!! cards on your field"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 1000,
+                  "target": "own-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 8 or more DON!! cards on your field"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] [Your Turn] If you have 8 or more DON!! cards on your field, this Character gains +1000 power.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Your Turn] [DON!!x1] If you have 8 or more DON!! cards on your field, this Character gains +1000 power.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 8 or more DON!! cards on your field"
+              },
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 1000,
+                "until": "turn-end",
+                "target": "own-character",
+                "continuous": true
+              },
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 8 or more DON!! cards on your field"
+              },
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 1000,
+                  "until": "turn-end",
+                  "target": "own-character",
+                  "continuous": true
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] [Your Turn] If you have 8 or more DON!! cards on your field, this Character gains +1000 power.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "f9caaaddc1883e370e723bb8ec359ee5a7fa3df1f0df8e45fed208e79dc6dad1",
+      "afterHash": "32597b726edac61044d979bbd4f3a746c9f51868aedcdb7bf0d68dc6e75471ed"
+    },
+    {
+      "code": "OP02-019",
+      "printedText": "[DON!! x1] [Your Turn] All of your Characters with a type including \"Whitebeard Pirates\" gain +1000 power.",
+      "publishedText": "[DON!! x1] [Your Turn] All of your Characters with a type including \"Whitebeard Pirates\" gain +1000 power.",
+      "timings": [
+        "continuous"
+      ],
+      "scenarioNames": [
+        "engine-aura continuous: condition and recipient power"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 1000,
+                "target": "own-character"
+              },
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              }
+            ],
+            "rawText": "[DON!! x1] [Your Turn] All of your Characters with a type including \"Whitebeard Pirates\" gain +1000 power.",
+            "trigger": "continuous",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 1000,
+                  "target": "own-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] [Your Turn] All of your Characters with a type including \"Whitebeard Pirates\" gain +1000 power.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Your Turn] [DON!!x1] All of your Characters with a type including \"Whitebeard Pirates\" gain +1000 power.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 1000,
+                "until": "turn-end",
+                "target": "own-character",
+                "continuous": true
+              },
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 1000,
+                  "until": "turn-end",
+                  "target": "own-character",
+                  "continuous": true
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] [Your Turn] All of your Characters with a type including \"Whitebeard Pirates\" gain +1000 power.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "24b9a94153195e624c361eb96e6bb28186fe714aa165252582d89962dc0be57d",
+      "afterHash": "7f5f127adee97f701be594f7099988ea1c861e7630d1b7a2402d0591c22b8fa2"
+    },
+    {
+      "code": "OP02-024",
+      "printedText": "[Your Turn] If you have 1 or less Life cards, your [Edward.Newgate] and all your Characters with a type including \"Whitebeard Pirates\" gain +2000 power.",
+      "publishedText": "[Your Turn] If you have 1 or less Life cards, your [Edward.Newgate] and all your Characters with a type including \"Whitebeard Pirates\" gain +2000 power. [Trigger] Play this card.",
+      "timings": [
+        "continuous"
+      ],
+      "scenarioNames": [
+        "engine-aura continuous: condition and recipient power"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 2000,
+                "target": "own-character"
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[Your Turn] If you have 1 or less Life cards, your [Edward.Newgate] and all your Characters with a type including \"Whitebeard Pirates\" gain +2000 power. [Trigger] Play this card.",
+            "trigger": "trigger",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 1 or less Life cards"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 2000,
+                  "target": "own-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 1 or less Life cards"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Your Turn] If you have 1 or less Life cards, your [Edward.Newgate] and all your Characters with a type including \"Whitebeard Pirates\" gain +2000 power. [Trigger] Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 2000,
+                "target": "own-character"
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[Your Turn] If you have 1 or less Life cards, your [Edward.Newgate] and all your Characters with a type including \"Whitebeard Pirates\" gain +2000 power. [Trigger] Play this card.",
+            "trigger": "trigger",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 1 or less Life cards"
+              }
+            ]
+          },
+          {
+            "rawText": "[Your Turn] If you have 1 or less Life cards, your [Edward.Newgate] and all your Characters with a type including \"Whitebeard Pirates\" gain +2000 power.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 1 or less Life cards"
+              },
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 2000,
+                "until": "turn-end",
+                "target": "own-character",
+                "continuous": true
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 2000,
+                  "target": "own-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 1 or less Life cards"
+              }
+            ]
+          },
+          {
+            "timing": "continuous",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 1 or less Life cards"
+              },
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 2000,
+                  "until": "turn-end",
+                  "target": "own-character",
+                  "continuous": true
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Your Turn] If you have 1 or less Life cards, your [Edward.Newgate] and all your Characters with a type including \"Whitebeard Pirates\" gain +2000 power. [Trigger] Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "61fe0cd1fc48cbd01e503e18432d8cb6f634df219cd507fab0fbc5f02c76ab4e",
+      "afterHash": "16b9194e336752c239ef7324bf9a284d034289e65ef4ad7ac4b3cf8ef3fdc07f"
+    },
+    {
+      "code": "OP06-085",
+      "printedText": "[DON!! x2][Your Turn] This Character gains +1000 power for every 5 cards in your trash.",
+      "publishedText": "[DON!! x2][Your Turn] This Character gains +1000 power for every 5 cards in your trash.",
+      "timings": [
+        "continuous"
+      ],
+      "scenarioNames": [
+        "engine-aura continuous: condition and recipient power"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 1000,
+                "target": "own-character"
+              },
+              {
+                "kind": "attach-don-required",
+                "amount": 2
+              }
+            ],
+            "rawText": "[DON!! x2][Your Turn] This Character gains +1000 power for every 5 cards in your trash.",
+            "trigger": "continuous",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 1000,
+                  "target": "own-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 2
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x2][Your Turn] This Character gains +1000 power for every 5 cards in your trash.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Your Turn] [DON!!x2] This Character gains +1000 power for every 5 cards in your trash.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 1000,
+                "until": "turn-end",
+                "target": "own-character",
+                "continuous": true
+              },
+              {
+                "kind": "attach-don-required",
+                "amount": 2
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 1000,
+                  "until": "turn-end",
+                  "target": "own-character",
+                  "continuous": true
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x2][Your Turn] This Character gains +1000 power for every 5 cards in your trash.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "d1bc9a8f89e6b49ca20dc6151306c85af6ac4c3e1740700b596a82aae55882d8",
+      "afterHash": "3299bd5edbe2183de7712ed1f906019c1f4b50399129867e6982c2434a5a6ae8"
+    },
+    {
+      "code": "OP16-054",
+      "printedText": "[DON!! X1] [Your Turn] If you have 5 or more cards in your hand, this Character gains +3000 power.\n\n[On Play] Draw 1 card.",
+      "publishedText": "[DON!! X1] [Your Turn] If you have 5 or more cards in your hand, this Character gains +3000 power.\n\n[On Play] Draw 1 card.",
+      "timings": [
+        "continuous"
+      ],
+      "scenarioNames": [
+        "engine-aura continuous: condition and recipient power"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 1
+              }
+            ],
+            "rawText": "[On Play] Draw 1 card.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! X1] [Your Turn] If you have 5 or more cards in your hand, this Character gains +3000 power.\n\n[On Play] Draw 1 card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 1
+              }
+            ],
+            "rawText": "[On Play] Draw 1 card.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "rawText": "[Your Turn] [DON!!X1] If you have 5 or more cards in your hand, this Character gains +3000 power.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 5 or more cards in your hand"
+              },
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 3000,
+                "until": "turn-end",
+                "target": "own-character",
+                "continuous": true
+              },
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "continuous",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 5 or more cards in your hand"
+              },
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 3000,
+                  "until": "turn-end",
+                  "target": "own-character",
+                  "continuous": true
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! X1] [Your Turn] If you have 5 or more cards in your hand, this Character gains +3000 power.\n\n[On Play] Draw 1 card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "88781d4afa73d1ae4b59e85c55ee41b6923b0d29e2863ea216f7a4c2ae0f3552",
+      "afterHash": "12dce050825393615ae6ce5629b1d496ce41da1501da49747ac7ddf2bad0b7f8"
+    },
+    {
+      "code": "P-006",
+      "printedText": "[DON!! x2] [Your Turn] This Character gains +2000 power.",
+      "publishedText": "[DON!! x2] [Your Turn] This Character gains +2000 power.",
+      "timings": [
+        "continuous"
+      ],
+      "scenarioNames": [
+        "engine-aura continuous: condition and recipient power"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 2000,
+                "target": "own-character"
+              },
+              {
+                "kind": "attach-don-required",
+                "amount": 2
+              }
+            ],
+            "rawText": "[DON!! x2] [Your Turn] This Character gains +2000 power.",
+            "trigger": "continuous",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 2000,
+                  "target": "own-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 2
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x2] [Your Turn] This Character gains +2000 power.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Your Turn] [DON!!x2] This Character gains +2000 power.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 2000,
+                "until": "turn-end",
+                "target": "own-character",
+                "continuous": true
+              },
+              {
+                "kind": "attach-don-required",
+                "amount": 2
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 2000,
+                  "until": "turn-end",
+                  "target": "own-character",
+                  "continuous": true
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x2] [Your Turn] This Character gains +2000 power.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "277baf0e952812fdcc009b31f8fa9443b5bf530f39c3b628dbf2930020c24604",
+      "afterHash": "5c2c04da7077ef95b40e74c206e8722a801f871e83b1a8ca02d1c35710054232"
+    },
+    {
+      "code": "P-034",
+      "printedText": "[DON!! x1] [Your Turn] If you have 2 or less Life cards, this Character gains +2000 power.",
+      "publishedText": "[DON!! x1] [Your Turn] If you have 2 or less Life cards, this Character gains +2000 power.",
+      "timings": [
+        "continuous"
+      ],
+      "scenarioNames": [
+        "engine-aura continuous: condition and recipient power"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 2000,
+                "target": "own-character"
+              },
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              }
+            ],
+            "rawText": "[DON!! x1] [Your Turn] If you have 2 or less Life cards, this Character gains +2000 power.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 2 or less Life cards"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 2000,
+                  "target": "own-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 2 or less Life cards"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] [Your Turn] If you have 2 or less Life cards, this Character gains +2000 power.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Your Turn] [DON!!x1] If you have 2 or less Life cards, this Character gains +2000 power.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 2 or less Life cards"
+              },
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 2000,
+                "until": "turn-end",
+                "target": "own-character",
+                "continuous": true
+              },
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 2 or less Life cards"
+              },
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 2000,
+                  "until": "turn-end",
+                  "target": "own-character",
+                  "continuous": true
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] [Your Turn] If you have 2 or less Life cards, this Character gains +2000 power.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "d2295443758fd5a64da030614dc91d908aa2cfb71efe6f7407eb375b2461c621",
+      "afterHash": "c572cea315e4ede906846e83548d6432a9de0bd75a1d4d4b238b8346cd44da1a"
+    },
+    {
+      "code": "P-050",
+      "printedText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)[DON!! x1] [Your Turn] If you have 3 or less cards in your hand, this Character gains +4000 power.",
+      "publishedText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)[DON!! x1] [Your Turn] If you have 3 or less cards in your hand, this Character gains +4000 power.",
+      "timings": [
+        "continuous"
+      ],
+      "scenarioNames": [
+        "engine-aura continuous: condition and recipient power"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 4000,
+                "target": "opponent-character"
+              },
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              }
+            ],
+            "rawText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)[DON!! x1] [Your Turn] If you have 3 or less cards in your hand, this Character gains +4000 power.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 3 or less cards in your hand"
+              }
+            ]
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "blocker"
+              }
+            ],
+            "rawText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+            "trigger": "unknown",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 4000,
+                  "target": "opponent-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 3 or less cards in your hand"
+              }
+            ]
+          },
+          {
+            "timing": "unknown",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)[DON!! x1] [Your Turn] If you have 3 or less cards in your hand, this Character gains +4000 power.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "blocker"
+              }
+            ],
+            "rawText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+            "trigger": "unknown",
+            "conditions": []
+          },
+          {
+            "rawText": "[Your Turn] [DON!!x1] If you have 3 or less cards in your hand, this Character gains +4000 power.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 3 or less cards in your hand"
+              },
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 4000,
+                "until": "turn-end",
+                "target": "own-character",
+                "continuous": true
+              },
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "continuous",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 3 or less cards in your hand"
+              },
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 4000,
+                  "until": "turn-end",
+                  "target": "own-character",
+                  "continuous": true
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)[DON!! x1] [Your Turn] If you have 3 or less cards in your hand, this Character gains +4000 power.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "cc248e8090f1b63a96b332d692e26c137ef874a390b452359eaf428e51b87ef1",
+      "afterHash": "732c8976bb7126a3fb5028d1336c5e1119ef53f6dceffd205f3e8de6a6853e22"
+    },
+    {
+      "code": "ST02-014",
+      "printedText": "[DON!! x1] [Your Turn] If this Character is rested, your \"Supernovas\" or \"Navy\" type Leaders and Characters gain +1000 power.",
+      "publishedText": "[DON!! x1] [Your Turn] If this Character is rested, your \"Supernovas\" or \"Navy\" type Leaders and Characters gain +1000 power.",
+      "timings": [
+        "continuous"
+      ],
+      "scenarioNames": [
+        "engine-aura continuous: condition and recipient power"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 1000,
+                "target": "own-leader"
+              },
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              }
+            ],
+            "rawText": "[DON!! x1] [Your Turn] If this Character is rested, your \"Supernovas\" or \"Navy\" type Leaders and Characters gain +1000 power.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character is rested"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 1000,
+                  "target": "own-leader"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character is rested"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] [Your Turn] If this Character is rested, your \"Supernovas\" or \"Navy\" type Leaders and Characters gain +1000 power.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Your Turn] [DON!!x1] If this Character is rested, your \"Supernovas\" or \"Navy\" type Leaders and Characters gain +1000 power.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character is rested"
+              },
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 1000,
+                "until": "turn-end",
+                "target": "own-leader",
+                "continuous": true
+              },
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character is rested"
+              },
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 1000,
+                  "until": "turn-end",
+                  "target": "own-leader",
+                  "continuous": true
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] [Your Turn] If this Character is rested, your \"Supernovas\" or \"Navy\" type Leaders and Characters gain +1000 power.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "966294a5261081f9cc6fd154adaf814346c2d19e439b7c4110429f058604e4c3",
+      "afterHash": "4299b4e773cbfeea453f940859129d817cc4f9fe4088fefa0b6b1d4154368f35"
+    }
+  ]
+}

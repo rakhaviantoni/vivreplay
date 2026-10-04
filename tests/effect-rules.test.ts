@@ -45,6 +45,13 @@ test('opponent Rest distinguishes exact cost from cost-or-less and enforces both
  assert.deepEqual(bounded,{kind:'rest',scope:'opponent-character',maxCost:1,selection:{min:0,max:1}});
 });
 
+test('resting a Stage and turning Life face-up are both paid costs before its effect',()=>{
+ const document=compileEffectDocument(card('[Activate: Main] You may rest this Stage and turn 1 card from the top of your Life cards face-up: Up to 1 of your Characters gains +1000 power until the end of your opponent\'s next turn.'));
+ const ability=document.ast.find(effect=>effect.trigger==='activate-main');assert.ok(ability);
+ assert.deepEqual(ability?.costs.map(cost=>cost.kind),['rest','turn-life']);assert.equal(ability?.actions.some(action=>action.kind==='rest'&&action.scope==='self'),false);
+ const sequence=document.normalized.find(effect=>effect.timing==='activate-main')?.sequence??[];assert.deepEqual(sequence.map(step=>step.type),['PAY_COST','PAY_COST','RESOLVE']);
+});
+
 test('opponent Rest resolves its cost cap from the current Life count',()=>{
  const action=parseEffects(card("[On Play] Rest up to 1 of your opponent's Characters with a cost equal to or less than the number of your opponent's Life cards."))[0].actions.find(effect=>effect.kind==='rest');
  assert.deepEqual(action,{kind:'rest',scope:'opponent-character',maxCostFromLife:'opponent',selection:{min:0,max:1}});
@@ -528,4 +535,11 @@ test('a turn-long global Blocker lock applies to every opposing Blocker',()=>{
  const result=executeEffectCommands(state,'player',commands,[],'source');
  assert.deepEqual(result.state.turnEffects.map(item=>item.target),['blocker-a','blocker-b']);
  assert.ok(result.state.turnEffects.every(item=>item.expires==='turn-end'));
+});
+
+test('rules-name clauses remain continuous rules and do not force a custom resolver',()=>{
+ const document=compileEffectDocument(card("Also treat this card's name as [Tony Tony.Chopper] according to the rules.\n[On Play] Play up to 1 {Animal} type Character card with a cost of 3 or less from your hand."));
+ assert.equal(document.resolver.type,'DSL');
+ assert.deepEqual(document.ast.map(ability=>ability.trigger),['on-play']);
+ assert.equal(document.ast[0].actions[0]?.kind,'play');
 });

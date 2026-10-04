@@ -2,7 +2,7 @@
 
 import {useCallback,useEffect,useState} from 'react';
 import Link from 'next/link';
-import {PauseIcon as Pause,PlayIcon as Play,ArrowClockwiseIcon as Renew,ArrowSquareOutIcon as Open,XIcon as Close,ArrowCounterClockwiseIcon as Refresh} from '@phosphor-icons/react';
+import {PauseIcon as Pause,PlayIcon as Play,ArrowClockwiseIcon as Renew,ArrowSquareOutIcon as Open,XIcon as Close,ArrowCounterClockwiseIcon as Refresh,MagnifyingGlassIcon as Search} from '@phosphor-icons/react';
 import {MarketActivityEmpty,MarketActivityLoading,MarketCardStack,type MarketActivityCard} from '@/components/tcg/vault/tabs/market-activity-state';
 
 type SellerListing={id:string;title:string;amount:number;currency:string;quantity:number;type:string;status:string;city:string;createdAt:string;expiresAt:string|null;cards:MarketActivityCard[]};
@@ -16,20 +16,21 @@ export function ListingsTab({language}:{language:'EN'|'ID'}){
   const [now,setNow]=useState(0);
   const [loadError,setLoadError]=useState('');
   const [busyId,setBusyId]=useState('');
-  const refresh=useCallback(async()=>{
-    setLoading(true);setLoadError('');
+  const refresh=useCallback(async(silent=false)=>{
+    if(!silent){setLoading(true);setLoadError('')}
     try{
       const response=await fetch('/api/listings/mine',{cache:'no-store'});
       const data=await response.json() as {listings?:SellerListing[];error?:string};
       if(!response.ok)throw new Error(data.error||'Your listings could not be loaded.');
       setListings(data.listings??[]);
       setNow(Date.now());
-    }catch(error){setLoadError(error instanceof Error?error.message:'Your listings could not be loaded.');}
-    finally{setLoading(false)}
+    }catch(error){if(!silent)setLoadError(error instanceof Error?error.message:'Your listings could not be loaded.');}
+    finally{if(!silent)setLoading(false)}
   },[]);
   // Initial loading is represented by the initial state; manual refreshes toggle it later.
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(()=>{void refresh()},[refresh]);
+  useEffect(()=>{const timer=window.setInterval(()=>void refresh(true),10_000);return()=>window.clearInterval(timer)},[refresh]);
 
   const act=async(listing:SellerListing,action:'pause'|'resume'|'close'|'renew')=>{
     setBusyId(listing.id);
@@ -47,7 +48,7 @@ export function ListingsTab({language}:{language:'EN'|'ID'}){
   return <section className="market-activity-panel" aria-label={id?'Listing Anda':'Your listings'}>
     <div className="market-activity-toolbar"><p>{id?'Kelola ketersediaan dan masa aktif listing Anda.':'Manage listing availability and renewals.'}</p><button type="button" className="market-activity-refresh" onClick={()=>void refresh()}><Refresh size={15}/>{id?'Muat ulang':'Refresh'}</button></div>
     {loadError&&<div className="market-activity-error" role="alert"><span>{loadError}</span><button type="button" onClick={()=>void refresh()}>{id?'Coba lagi':'Try again'}</button></div>}
-    {!listings.length?<MarketActivityEmpty title={id?'Belum ada listing':'No listings yet'} description={id?'Listing yang Anda buat dari Vault akan muncul di sini.':'Listings you publish from your Vault will appear here.'} action={<Link className="market-activity-empty-action" href="/vault">{id?'Buka Vault':'Open Vault'}<Open size={14}/></Link>}/>:<div className="market-activity-list">{listings.map(listing=>{
+    {!listings.length?<MarketActivityEmpty title={id?'Belum ada listing':'No listings yet'} description={id?'Cari kartu dan pilih salinan dari koleksi untuk membuat listing.':'Search for a card, then choose a Vault copy to create a listing.'} action={<div className="market-activity-empty-actions"><Link className="market-activity-empty-action" href="/market?sell=open">{id?'Cari kartu untuk dijual':'Search cards to list'}<Search size={14}/></Link><Link className="market-activity-secondary-action" href="/vault">{id?'Buka koleksi':'Open Vault'}<Open size={14}/></Link></div>}/>:<div className="market-activity-list">{listings.map(listing=>{
       const expired=listing.status==='ACTIVE'&&listing.expiresAt&&now>0&&new Date(`${listing.expiresAt.replace(' ','T')}Z`).getTime()<=now;
       const status=expired?'EXPIRED':listing.status;
       const statusLabel=status==='ACTIVE'?(id?'Aktif':'Active'):status==='PAUSED'?(id?'Dijeda':'Paused'):status==='SOLD'?(id?'Terjual':'Sold'):status==='CLOSED'?(id?'Ditutup':'Closed'):(id?'Kedaluwarsa':'Expired');

@@ -1,0 +1,316 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-10-04T10:23:47.882Z",
+  "candidates": [
+    {
+      "code": "OP04-038",
+      "printedText": "[Main] / [Counter] Rest up to 1 of your opponent's Leader or Character cards. Then, K.O. up to 1 of your opponent's rested Characters with a cost of 6 or less. [Trigger] Set up to 5 of your DON!! cards as active.",
+      "publishedText": "[Main] / [Counter] Rest up to 1 of your opponent's Leader or Character cards. Then, K.O. up to 1 of your opponent's rested Characters with a cost of 6 or less. [Trigger] Set up to 5 of your DON!! cards as active.",
+      "timings": [
+        "main",
+        "counter",
+        "trigger"
+      ],
+      "scenarioNames": [
+        "trigger: ready up to 5 DON / maximum",
+        "trigger: ready up to 5 DON / skip",
+        "trigger: ready up to 5 DON / attached",
+        "trigger: ready up to 5 DON / enemy",
+        "trigger: ready up to 5 DON / character",
+        "trigger: ready up to 5 DON / too-many",
+        "trigger: ready up to 5 DON / unknown",
+        "schema-ready-target trigger: DON!! max 5",
+        "schema-ready-don trigger: choose up to 5 rested DON!!",
+        "engine-action main rest: exercise action 1 independently (gate and sequence not covered)",
+        "engine-action main ko: exercise action 2 independently (gate and sequence not covered)",
+        "engine-action counter rest: exercise action 1 independently (gate and sequence not covered)",
+        "engine-action counter ko: exercise action 2 independently (gate and sequence not covered)",
+        "engine-action trigger ready: resolve isolated parsed instruction",
+        "Main gameplay K.O.: verify the complete window and enforce its target limits",
+        "Counter gameplay K.O.: verify the complete window and enforce its target limits",
+        "Main gameplay rest: verify the complete window and legal rest target",
+        "Counter gameplay rest: verify the complete window and legal rest target",
+        "Trigger gameplay ready: verify the complete window and eligible cards",
+        "schema-op04-038 Main/Counter: rest a target before K.O. of a rested Character"
+      ],
+      "scenarioCount": 20,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 6,
+                "restedOnly": true
+              },
+              {
+                "kind": "ko",
+                "maxCost": 6,
+                "restedOnly": true
+              },
+              {
+                "kind": "rest",
+                "scope": "opponent-card",
+                "maxCost": 6
+              },
+              {
+                "kind": "ready",
+                "scope": "self",
+                "amount": 5
+              }
+            ],
+            "rawText": "[Main] / [Counter] Rest up to 1 of your opponent's Leader or Character cards. Then, K.O. up to 1 of your opponent's rested Characters with a cost of 6 or less. [Trigger] Set up to 5 of your DON!! cards as active.",
+            "trigger": "main",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-don",
+                "amount": 5,
+                "selection": {
+                  "max": 5,
+                  "min": 0
+                }
+              }
+            ],
+            "rawText": "[Trigger] Set up to 5 of your DON!! cards as active.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 6,
+                  "restedOnly": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 6,
+                  "restedOnly": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-card",
+                  "maxCost": 6
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "self",
+                  "amount": 5
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-don",
+                  "amount": 5,
+                  "selection": {
+                    "max": 5,
+                    "min": 0
+                  }
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] / [Counter] Rest up to 1 of your opponent's Leader or Character cards. Then, K.O. up to 1 of your opponent's rested Characters with a cost of 6 or less. [Trigger] Set up to 5 of your DON!! cards as active.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "rawEffectText": "[Main] / [Counter] Rest up to 1 of your opponent's Leader or Character cards. Then, K.O. up to 1 of your opponent's rested Characters with a cost of 6 or less. [Trigger] Set up to 5 of your DON!! cards as active.",
+        "parserVersion": "0.6.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[Main] Rest up to 1 of your opponent's Leader or Character cards. Then, K.O. up to 1 of your opponent's rested Characters with a cost of 6 or less.",
+            "trigger": "main",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-card",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              },
+              {
+                "kind": "ko",
+                "maxCost": 6,
+                "restedOnly": true,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          },
+          {
+            "rawText": "[Counter] Rest up to 1 of your opponent's Leader or Character cards. Then, K.O. up to 1 of your opponent's rested Characters with a cost of 6 or less.",
+            "trigger": "counter",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-card",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              },
+              {
+                "kind": "ko",
+                "maxCost": 6,
+                "restedOnly": true,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          },
+          {
+            "rawText": "[Trigger] Set up to 5 of your DON!! cards as active.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-don",
+                "amount": 5,
+                "selection": {
+                  "min": 0,
+                  "max": 5
+                }
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-card",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 6,
+                  "restedOnly": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "timing": "counter",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-card",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 6,
+                  "restedOnly": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-don",
+                  "amount": 5,
+                  "selection": {
+                    "min": 0,
+                    "max": 5
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "bc010ff66265cc89280a895d7f9241286bb7c293da53dd526d5dc5fd4e7a2994",
+      "afterHash": "30e9b10fd969f15b6e8621e227ac7f88afbeecf7e8bc60a452278e25b0d85d82"
+    }
+  ]
+}

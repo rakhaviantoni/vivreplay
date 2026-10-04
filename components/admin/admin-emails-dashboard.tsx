@@ -21,9 +21,14 @@ import {
   ArrowLeftIcon as ArrowLeft,
 } from '@phosphor-icons/react';
 import type { AuthEmailAction, RenderedEmail } from '@/lib/auth-email';
+import {marketEmailEvents,marketEmailLabels,type MarketEmailEvent} from '@/lib/market/email-template-types';
+
+type AdminEmailAction=AuthEmailAction|`market:${MarketEmailEvent}`;
+const authEmailActions:AuthEmailAction[]=['verify','reset','password-changed','welcome'];
+const adminEmailActions:AdminEmailAction[]=[...authEmailActions,...marketEmailEvents.map(event=>`market:${event}` as const)];
 
 type EmailData = RenderedEmail & {
-  action: AuthEmailAction;
+  action: AdminEmailAction;
   to: string;
   name: string;
   url: string;
@@ -31,7 +36,9 @@ type EmailData = RenderedEmail & {
 
 export function AdminEmailsDashboard() {
   const [emails, setEmails] = useState<EmailData[]>([]);
-  const [selectedAction, setSelectedAction] = useState<AuthEmailAction>('verify');
+  const [selectedAction, setSelectedAction] = useState<AdminEmailAction>('verify');
+  const [previewLanguage,setPreviewLanguage]=useState<'en'|'id'>('en');
+  const [previewTheme,setPreviewTheme]=useState<'light'|'dark'>('light');
   const [viewport, setViewport] = useState<'desktop' | 'mobile'>('desktop');
   const [viewMode, setViewMode] = useState<'preview' | 'code' | 'text'>('preview');
   const [loading, setLoading] = useState(true);
@@ -43,7 +50,7 @@ export function AdminEmailsDashboard() {
   const [sendResult, setSendResult] = useState<{ success: boolean; message: string } | null>(null);
 
   useEffect(() => {
-    fetch('/api/admin/emails/preview')
+    fetch(`/api/admin/emails/preview?locale=${previewLanguage}&theme=${previewTheme}`)
       .then((res) => res.json() as Promise<{ emails: EmailData[] }>)
       .then((data) => {
         if (data?.emails) {
@@ -52,7 +59,7 @@ export function AdminEmailsDashboard() {
       })
       .catch((err) => console.error('Failed to load email previews:', err))
       .finally(() => setLoading(false));
-  }, []);
+  }, [previewLanguage,previewTheme]);
 
   const currentEmail = emails.find((e) => e.action === selectedAction) || emails[0];
 
@@ -77,6 +84,8 @@ export function AdminEmailsDashboard() {
           to: testEmail,
           action: selectedAction,
           name: 'Navigator',
+          locale:previewLanguage,
+          theme:previewTheme,
         }),
       });
 
@@ -99,7 +108,8 @@ export function AdminEmailsDashboard() {
     }
   };
 
-  const getActionIcon = (action: AuthEmailAction) => {
+  const getActionIcon = (action: AdminEmailAction) => {
+    if(action.startsWith('market:'))return <EnvelopeSimple size={16}/>;
     switch (action) {
       case 'verify':
         return <ShieldCheck size={16} />;
@@ -109,10 +119,12 @@ export function AdminEmailsDashboard() {
         return <LockKeyOpen size={16} />;
       case 'welcome':
         return <Sparkle size={16} />;
+      default:return <EnvelopeSimple size={16}/>;
     }
   };
 
-  const getActionLabel = (action: AuthEmailAction) => {
+  const getActionLabel = (action: AdminEmailAction) => {
+    if(action.startsWith('market:'))return `Market · ${marketEmailLabels[action.slice('market:'.length) as MarketEmailEvent]}`;
     switch (action) {
       case 'verify':
         return 'Verify Email';
@@ -122,6 +134,7 @@ export function AdminEmailsDashboard() {
         return 'Password Changed';
       case 'welcome':
         return 'Welcome';
+      default:return action;
     }
   };
 
@@ -189,7 +202,7 @@ export function AdminEmailsDashboard() {
             Email Views &amp; Delivery
           </h1>
           <p style={{ margin: 0, color: '#9cb1c0', fontSize: 14, fontFamily: "'Manrope', sans-serif" }}>
-            Production email templates styled with maritime oceanic palette, brass accents, and bulletproof client support.
+            Preview account and Market emails, compare desktop and mobile layouts, and send test messages.
           </p>
         </div>
 
@@ -232,7 +245,7 @@ export function AdminEmailsDashboard() {
       >
         {/* Email Template Switcher */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          {(['verify', 'reset', 'password-changed', 'welcome'] as AuthEmailAction[]).map((action) => (
+          {adminEmailActions.map((action) => (
             <button
               key={action}
               type="button"
@@ -260,6 +273,12 @@ export function AdminEmailsDashboard() {
 
         {/* Viewport and Code Mode Controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{display:'inline-flex',gap:3,padding:3,border:'1px solid #1c3044',borderRadius:8,background:'#08121d'}} aria-label="Market email language">
+            {(['en','id'] as const).map(locale=><button key={locale} type="button" onClick={()=>setPreviewLanguage(locale)} style={{padding:'6px 10px',border:0,borderRadius:6,background:previewLanguage===locale?'#1c3349':'transparent',color:previewLanguage===locale?'#f5da92':'#8fa7b7',fontSize:11,fontWeight:700,cursor:'pointer'}}>{locale.toUpperCase()}</button>)}
+          </div>
+          <div style={{display:'inline-flex',gap:3,padding:3,border:'1px solid #1c3044',borderRadius:8,background:'#08121d'}} aria-label="Email appearance">
+            {(['light','dark'] as const).map(theme=><button key={theme} type="button" onClick={()=>setPreviewTheme(theme)} aria-pressed={previewTheme===theme} style={{padding:'6px 10px',border:0,borderRadius:6,background:previewTheme===theme?'#1c3349':'transparent',color:previewTheme===theme?'#f5da92':'#8fa7b7',fontSize:11,fontWeight:700,cursor:'pointer'}}>{theme==='light'?'Light':'Dark'}</button>)}
+          </div>
           {/* Mode toggle */}
           <div
             style={{
@@ -586,7 +605,7 @@ export function AdminEmailsDashboard() {
                     fontSize: 11,
                   }}
                 >
-                  auth-{selectedAction}
+                  {selectedAction.startsWith('market:')?selectedAction.replace(':','-'):`auth-${selectedAction}`}
                 </span>
               </div>
               <div>

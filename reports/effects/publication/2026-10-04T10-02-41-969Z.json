@@ -1,0 +1,162 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-10-04T10:02:41.968Z",
+  "candidates": [
+    {
+      "code": "EB02-060",
+      "printedText": "[Activate: Main] You may rest this Stage and turn 1 card from the top of your Life cards face-up: Up to 1 of your \"Straw Hat Crew\" type Characters gains +1000 power until the end of your opponent's next turn.",
+      "publishedText": "[Activate: Main] You may rest this Stage and turn 1 card from the top of your Life cards face-up: Up to 1 of your \"Straw Hat Crew\" type Characters gains +1000 power until the end of your opponent's next turn.",
+      "timings": [
+        "activate-main"
+      ],
+      "scenarioNames": [
+        "schema-stage-rest-life-power activate-main: pay both costs before the printed power choice"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 1000,
+                "target": "opponent-character"
+              },
+              {
+                "kind": "rest",
+                "scope": "self"
+              }
+            ],
+            "rawText": "[Activate: Main] You may rest this Stage and turn 1 card from the top of your Life cards face-up: Up to 1 of your \"Straw Hat Crew\" type Characters gains +1000 power until the end of your opponent's next turn.",
+            "trigger": "activate-main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 1000,
+                  "target": "opponent-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "self"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Activate: Main] You may rest this Stage and turn 1 card from the top of your Life cards face-up: Up to 1 of your \"Straw Hat Crew\" type Characters gains +1000 power until the end of your opponent's next turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[Activate: Main] You may rest this Stage and turn 1 card from the top of your Life cards face-up: Up to 1 of your \"Straw Hat Crew\" type Characters gains +1000 power until the end of your opponent's next turn.",
+        "parserVersion": "0.6.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[Activate: Main] You may rest this Stage and turn 1 card from the top of your Life cards face-up: Up to 1 of your \"Straw Hat Crew\" type Characters gains +1000 power until the end of your opponent's next turn.",
+            "trigger": "activate-main",
+            "conditions": [],
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "self",
+                "amount": 1,
+                "optional": true
+              },
+              {
+                "kind": "turn-life",
+                "scope": "own",
+                "amount": 1,
+                "position": "top",
+                "faceUp": true,
+                "optional": true
+              }
+            ],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 1000,
+                "until": "opponent-next-turn",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                },
+                "trait": "Straw Hat Crew",
+                "target": "own-character"
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "PAY_COST",
+                "cost": {
+                  "kind": "rest",
+                  "scope": "self",
+                  "amount": 1,
+                  "optional": true
+                }
+              },
+              {
+                "type": "PAY_COST",
+                "cost": {
+                  "kind": "turn-life",
+                  "scope": "own",
+                  "amount": 1,
+                  "position": "top",
+                  "faceUp": true,
+                  "optional": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 1000,
+                  "until": "opponent-next-turn",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "trait": "Straw Hat Crew",
+                  "target": "own-character"
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "c0401d2b049ff3bd2227ec07a815b2c0e14546bc2b08d5cb99348942789da721",
+      "afterHash": "4be8b70068537c6cbd1acda62320166436dd6e6401141aeda9eec0af1961ff2f"
+    }
+  ]
+}

@@ -34,8 +34,12 @@ export function evaluateEffectCondition(text:string,state:MatchEffectState,actor
  if(exactDon)return own.filter(card=>card.type==='DON!!'&&(card.zone==='cost-area'||Boolean(card.attachedTo))).length===Number(exactDon[1]);
  const characterThreshold=text.match(/^(you have|your opponent has) (\d+) or (less|more) Characters?$/i);
  if(characterThreshold){const pool=characterThreshold[1].toLowerCase()==='you have'?own:enemy,count=pool.filter(card=>card.zone==='character').length;return characterThreshold[3].toLowerCase()==='less'?count<=Number(characterThreshold[2]):count>=Number(characterThreshold[2]);}
+ const poweredCharacterThreshold=text.match(/^(you have|your opponent has) (\d+) or more Characters? with a base power of (\d+) or more$/i);
+ if(poweredCharacterThreshold){const pool=poweredCharacterThreshold[1].toLowerCase()==='you have'?own:enemy;return pool.filter(card=>card.zone==='character'&&(card.power??0)>=Number(poweredCharacterThreshold[3])).length>=Number(poweredCharacterThreshold[2]);}
  const boardPower=text.match(/^your opponent has a Leader or Character with a base power of (\d+) or more$/i);
  if(boardPower)return enemy.some(card=>(card.zone==='leader'||card.zone==='character')&&(card.power??0)>=Number(boardPower[1]));
+ const anyCharacterPower=text.match(/^there is a Character with (\d+) base power or more$/i);
+ if(anyCharacterPower)return state.cards.some(card=>card.zone==='character'&&(card.power??0)>=Number(anyCharacterPower[1]));
  if(/^all (?:of )?your DON!! cards are rested$/i.test(text)){const dons=own.filter(card=>card.type==='DON!!'&&(card.zone==='cost-area'||Boolean(card.attachedTo)));return dons.length>0&&dons.every(card=>card.rested);}
  if(/^the number of DON!! cards on your field is equal to or less than the number on your opponent's field$/i.test(text)){
   const field=(cards:typeof own)=>cards.filter(card=>card.type==='DON!!'&&(card.zone==='cost-area'||Boolean(card.attachedTo))).length;

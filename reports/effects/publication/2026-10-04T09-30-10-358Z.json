@@ -1,0 +1,782 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-10-04T09:30:10.357Z",
+  "candidates": [
+    {
+      "code": "EB03-044",
+      "printedText": "If your Leader is multicolored, this Character gains [Blocker]. [On Play] Look at 5 cards from the top of your deck; reveal up to 1 [Onigashima Island] and add it to your hand. Then, place the rest at the bottom of your deck in any order and play up to 1 [Onigashima Island] from your hand.",
+      "publishedText": "If your Leader is multicolored, this Character gains [Blocker]. [On Play] Look at 5 cards from the top of your deck; reveal up to 1 [Onigashima Island] and add it to your hand. Then, place the rest at the bottom of your deck in any order and play up to 1 [Onigashima Island] from your hand.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "schema-search on-play: top 5, up to 1, deck-bottom",
+        "schema-play on-play: hand up to 1"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "name": "Onigashima Island",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom"
+              },
+              {
+                "kind": "play",
+                "name": "Onigashima Island",
+                "amount": 1,
+                "rested": false,
+                "source": "hand"
+              },
+              {
+                "kind": "blocker"
+              },
+              {
+                "kind": "grant-keyword",
+                "until": "turn-end",
+                "keyword": "blocker"
+              }
+            ],
+            "rawText": "If your Leader is multicolored, this Character gains [Blocker]. [On Play] Look at 5 cards from the top of your deck; reveal up to 1 [Onigashima Island] and add it to your hand. Then, place the rest at the bottom of your deck in any order and play up to 1 [Onigashima Island] from your hand.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is multicolored"
+              }
+            ]
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "grant-keyword",
+                "scope": "self",
+                "until": "turn-end",
+                "keyword": "blocker",
+                "continuous": true
+              }
+            ],
+            "rawText": "If your Leader is multicolored, this Character gains [Blocker].",
+            "trigger": "unknown",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is multicolored"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "name": "Onigashima Island",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "name": "Onigashima Island",
+                  "amount": 1,
+                  "rested": false,
+                  "source": "hand"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "grant-keyword",
+                  "until": "turn-end",
+                  "keyword": "blocker"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is multicolored"
+              }
+            ]
+          },
+          {
+            "timing": "unknown",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "grant-keyword",
+                  "scope": "self",
+                  "until": "turn-end",
+                  "keyword": "blocker",
+                  "continuous": true
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is multicolored"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "If your Leader is multicolored, this Character gains [Blocker]. [On Play] Look at 5 cards from the top of your deck; reveal up to 1 [Onigashima Island] and add it to your hand. Then, place the rest at the bottom of your deck in any order and play up to 1 [Onigashima Island] from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "grant-keyword",
+                "scope": "self",
+                "until": "turn-end",
+                "keyword": "blocker",
+                "continuous": true
+              }
+            ],
+            "rawText": "If your Leader is multicolored, this Character gains [Blocker].",
+            "trigger": "unknown",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is multicolored"
+              }
+            ]
+          },
+          {
+            "rawText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 [Onigashima Island] and add it to your hand. Then, place the rest at the bottom of your deck in any order and play up to 1 [Onigashima Island] from your hand.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true,
+                "name": "Onigashima Island"
+              },
+              {
+                "kind": "play",
+                "source": "hand",
+                "amount": 1,
+                "name": "Onigashima Island",
+                "rested": false
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "grant-keyword",
+                  "scope": "self",
+                  "until": "turn-end",
+                  "keyword": "blocker",
+                  "continuous": true
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is multicolored"
+              }
+            ]
+          },
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true,
+                  "name": "Onigashima Island"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "hand",
+                  "amount": 1,
+                  "name": "Onigashima Island",
+                  "rested": false
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "If your Leader is multicolored, this Character gains [Blocker]. [On Play] Look at 5 cards from the top of your deck; reveal up to 1 [Onigashima Island] and add it to your hand. Then, place the rest at the bottom of your deck in any order and play up to 1 [Onigashima Island] from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "f3d72097d2bf779c37f9e6a391bf7ef54818858fd1b2b8def933398d980f8717",
+      "afterHash": "79dd97c0527e51bff0d01863be4457be0b915a1923d85f5333ac84567ba27ef3"
+    },
+    {
+      "code": "OP02-092",
+      "printedText": "[Activate: Main] You may trash 1 card from your hand and rest this Stage: Look at 3 cards from the top of your deck; reveal up to 1 {Impel Down} type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+      "publishedText": "[Activate: Main] You may trash 1 card from your hand and rest this Stage: Look at 3 cards from the top of your deck; reveal up to 1 {Impel Down} type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+      "timings": [
+        "activate-main"
+      ],
+      "scenarioNames": [
+        "schema-search activate-main: top 3, up to 1, deck-bottom"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "self",
+                "amount": 1,
+                "optional": true
+              }
+            ],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "self"
+              },
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "requiresTrigger": false
+              },
+              {
+                "kind": "search",
+                "trait": "Impel Down",
+                "amount": 3,
+                "choose": 1,
+                "destination": "deck-bottom"
+              }
+            ],
+            "rawText": "[Activate:Main] You may trash 1 card from your hand and rest this Stage: Look at 3 cards from the top of your deck; reveal up to 1 [Impel Down] type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "activate-main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "rest",
+                  "scope": "self",
+                  "amount": 1,
+                  "optional": true
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "self"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "requiresTrigger": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "trait": "Impel Down",
+                  "amount": 3,
+                  "choose": 1,
+                  "destination": "deck-bottom"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Activate:Main] You may trash 1 card from your hand and rest this Stage: Look at 3 cards from the top of your deck; reveal up to 1 [Impel Down] type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Activate: Main] You may trash 1 card from your hand and rest this Stage: Look at 3 cards from the top of your deck; reveal up to 1 {Impel Down} type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "activate-main",
+            "conditions": [],
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "self",
+                "amount": 1,
+                "optional": true
+              }
+            ],
+            "actions": [
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "requiresTrigger": false
+              },
+              {
+                "kind": "search",
+                "amount": 3,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true,
+                "trait": "Impel Down"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "PAY_COST",
+                "cost": {
+                  "kind": "rest",
+                  "scope": "self",
+                  "amount": 1,
+                  "optional": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "requiresTrigger": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 3,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true,
+                  "trait": "Impel Down"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Activate:Main] You may trash 1 card from your hand and rest this Stage: Look at 3 cards from the top of your deck; reveal up to 1 [Impel Down] type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "e1259e78e7368b7701736b15d9d697a5df86478a61677ae91bb986561c496e7e",
+      "afterHash": "ce9948b4ef88154036627ebc9aeeec3d171cd15cfe0273832fe7c8d69d66070a"
+    },
+    {
+      "code": "OP05-018",
+      "printedText": "[Counter] Up to 1 of your Leader or Character cards gains +3000 power during this battle. Then, play up to 1 [Revolutionary Army] type Character card with 5000 power or less from your hand. [Trigger] Play up to 1 [Revolutionary Army] type Character card with 5000 power or less from your hand.",
+      "publishedText": "[Counter] Up to 1 of your Leader or Character cards gains +3000 power during this battle. Then, play up to 1 [Revolutionary Army] type Character card with 5000 power or less from your hand. [Trigger] Play up to 1 [Revolutionary Army] type Character card with 5000 power or less from your hand.",
+      "timings": [
+        "trigger"
+      ],
+      "scenarioNames": [
+        "engine-action trigger play: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 3000,
+                "until": "battle",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                },
+                "target": "own-card"
+              },
+              {
+                "kind": "play",
+                "source": "hand",
+                "amount": 1,
+                "cardType": "Character",
+                "trait": "Revolutionary Army",
+                "maxPower": 5000,
+                "rested": false
+              }
+            ],
+            "rawText": "[Counter] Up to 1 of your Leader or Character cards gains +3000 power during this battle. Then, play up to 1 [Revolutionary Army] type Character card with 5000 power or less from your hand. [Trigger] Play up to 1 [Revolutionary Army] type Character card with 5000 power or less from your hand.",
+            "trigger": "counter",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "counter",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 3000,
+                  "until": "battle",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "target": "own-card"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "hand",
+                  "amount": 1,
+                  "cardType": "Character",
+                  "trait": "Revolutionary Army",
+                  "maxPower": 5000,
+                  "rested": false
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Counter] Up to 1 of your Leader or Character cards gains +3000 power during this battle. Then, play up to 1 [Revolutionary Army] type Character card with 5000 power or less from your hand. [Trigger] Play up to 1 [Revolutionary Army] type Character card with 5000 power or less from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 3000,
+                "until": "battle",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                },
+                "target": "own-card"
+              }
+            ],
+            "rawText": "[Counter] Up to 1 of your Leader or Character cards gains +3000 power during this battle. Then, play up to 1 [Revolutionary Army] type Character card with 5000 power or less from your hand. [Trigger] Play up to 1 [Revolutionary Army] type Character card with 5000 power or less from your hand.",
+            "trigger": "counter",
+            "conditions": []
+          },
+          {
+            "rawText": "[Trigger] Play up to 1 [Revolutionary Army] type Character card with 5000 power or less from your hand.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "hand",
+                "amount": 1,
+                "cardType": "Character",
+                "trait": "Revolutionary Army",
+                "maxPower": 5000,
+                "rested": false
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "counter",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 3000,
+                  "until": "battle",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "target": "own-card"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "hand",
+                  "amount": 1,
+                  "cardType": "Character",
+                  "trait": "Revolutionary Army",
+                  "maxPower": 5000,
+                  "rested": false
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Counter] Up to 1 of your Leader or Character cards gains +3000 power during this battle. Then, play up to 1 [Revolutionary Army] type Character card with 5000 power or less from your hand. [Trigger] Play up to 1 [Revolutionary Army] type Character card with 5000 power or less from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "0e815871b4bf9cd07fb963285060db43b6ba56f3b711137ed51ff37ea056e78c",
+      "afterHash": "051bc2b292072dcc4baae14fb993fdeda47c4abc173900632c17d0955faa72e9"
+    },
+    {
+      "code": "ST03-010",
+      "printedText": "[On Play] Look at 3 cards from the top of your deck and return them to the top or bottom of the deck in any order. [Trigger] Play this card.",
+      "publishedText": "[On Play] Look at 3 cards from the top of your deck and return them to the top or bottom of the deck in any order. [Trigger] Play this card.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "engine-action on-play search: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 3,
+                "choose": 1,
+                "destination": "hand"
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[On Play] Look at 3 cards from the top of your deck and return them to the top or bottom of the deck in any order. [Trigger] Play this card.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[Trigger] Play this card.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 3,
+                  "choose": 1,
+                  "destination": "hand"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Look at 3 cards from the top of your deck and return them to the top or bottom of the deck in any order. [Trigger] Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[Trigger] Play this card.",
+            "trigger": "trigger",
+            "conditions": []
+          },
+          {
+            "rawText": "[On Play] Look at 3 cards from the top of your deck and return them to the top or bottom of the deck in any order.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 3,
+                "choose": 1,
+                "destination": "hand"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 3,
+                  "choose": 1,
+                  "destination": "hand"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Look at 3 cards from the top of your deck and return them to the top or bottom of the deck in any order. [Trigger] Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "38d08836f488825941c0a6f061ca2a12fa61c329e934baaf8537630ca74eb2f4",
+      "afterHash": "a9a0aff661756be99ea335e8f299c92176f2a874aeb59ce8783649fa9798cf1b"
+    }
+  ]
+}

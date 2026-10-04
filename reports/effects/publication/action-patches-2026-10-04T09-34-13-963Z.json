@@ -1,0 +1,466 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-10-04T09:34:13.962Z",
+  "candidates": [
+    {
+      "code": "EB01-011",
+      "printedText": "[Activate:Main] You may rest this card and place 1 of your Characters with 1000 base power at the bottom of your deck: Draw 1 card.",
+      "publishedText": "[Activate:Main] You may rest this card and place 1 of your Characters with 1000 base power at the bottom of your deck: Draw 1 card.",
+      "timings": [
+        "activate-main"
+      ],
+      "scenarioNames": [
+        "engine-action activate-main draw: exercise action 1 independently (gate and sequence not covered)",
+        "engine-action activate-main rest: exercise action 2 independently (gate and sequence not covered)",
+        "Activate: Main gameplay rest: verify the complete window and legal rest target"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 1
+              }
+            ],
+            "rawText": "[Activate:Main] You may rest this card and place 1 of your Characters with 1000 base power at the bottom of your deck: Draw 1 card.",
+            "trigger": "activate-main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Activate:Main] You may rest this card and place 1 of your Characters with 1000 base power at the bottom of your deck: Draw 1 card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 1
+              },
+              {
+                "kind": "rest",
+                "scope": "self"
+              }
+            ],
+            "rawText": "[Activate:Main] You may rest this card and place 1 of your Characters with 1000 base power at the bottom of your deck: Draw 1 card.",
+            "trigger": "activate-main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "self"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Activate:Main] You may rest this card and place 1 of your Characters with 1000 base power at the bottom of your deck: Draw 1 card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "9e3c52a80951940613c5bdd42e47158e49721f585aee5a8217b5b4f0695ad43b",
+      "afterHash": "397807e1046fb2c44a1b7e1160f19a0abbdee8367984af5ce95db11869e6f0dc",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 2
+    },
+    {
+      "code": "OP12-013",
+      "printedText": "[Activate: Main] You may rest this Character and reveal 2 Events from your hand: Give up to 2 rested DON!! cards to your Leader or 1 of your Characters.",
+      "publishedText": "[Activate: Main] You may rest this Character and reveal 2 Events from your hand: Give up to 2 rested DON!! cards to your Leader or 1 of your Characters.",
+      "timings": [
+        "activate-main"
+      ],
+      "scenarioNames": [
+        "engine-action activate-main rest: exercise action 1 independently (gate and sequence not covered)",
+        "engine-action activate-main attach-don: exercise action 2 independently (gate and sequence not covered)",
+        "Activate: Main gameplay rest: verify the complete window and legal rest target"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "self"
+              },
+              {
+                "kind": "attach-don",
+                "amount": 2,
+                "source": "cost-area"
+              },
+              {
+                "kind": "attach-don",
+                "amount": 2,
+                "source": "cost-area"
+              }
+            ],
+            "rawText": "[Activate: Main] You may rest this Character and reveal 2 Events from your hand: Give up to 2 rested DON!! cards to your Leader or 1 of your Characters.",
+            "trigger": "activate-main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "self"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 2,
+                  "source": "cost-area"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 2,
+                  "source": "cost-area"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Activate: Main] You may rest this Character and reveal 2 Events from your hand: Give up to 2 rested DON!! cards to your Leader or 1 of your Characters.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "self"
+              },
+              {
+                "kind": "attach-don",
+                "amount": 2,
+                "source": "cost-area",
+                "rested": true
+              }
+            ],
+            "rawText": "[Activate: Main] You may rest this Character and reveal 2 Events from your hand: Give up to 2 rested DON!! cards to your Leader or 1 of your Characters.",
+            "trigger": "activate-main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "self"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 2,
+                  "source": "cost-area",
+                  "rested": true
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Activate: Main] You may rest this Character and reveal 2 Events from your hand: Give up to 2 rested DON!! cards to your Leader or 1 of your Characters.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "9cd28d741cca0dc1a9925e38c52fcb52ebec8ed9781747ab67f7b436e1680109",
+      "afterHash": "74a9a0a86a6ae9a24fb52e96c304c9e3b12477949992fe77dcaddf56737cc674",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 2
+    },
+    {
+      "code": "OP13-099",
+      "printedText": "[Your Turn] If you have 19 or more cards in your trash, your Leader gains +1000 power.\n[Activate: Main] You may rest this card and 3 of your DON!! cards: Play up to 1 black \"Five Elders\" type Character card with a cost equal to or less than the number of DON!! cards on your field from your hand.",
+      "publishedText": "[Your Turn] If you have 19 or more cards in your trash, your Leader gains +1000 power.\n[Activate: Main] You may rest this card and 3 of your DON!! cards: Play up to 1 black \"Five Elders\" type Character card with a cost equal to or less than the number of DON!! cards on your field from your hand.",
+      "timings": [
+        "activate-main"
+      ],
+      "scenarioNames": [
+        "engine-aura continuous: condition and recipient power",
+        "engine-action activate-main rest: exercise action 1 independently (gate and sequence not covered)",
+        "engine-action activate-main play: exercise action 2 independently (gate and sequence not covered)",
+        "Activate: Main gameplay rest: verify the complete window and legal rest target"
+      ],
+      "scenarioCount": 4,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "rested": false,
+                "source": "hand"
+              }
+            ],
+            "rawText": "[Activate: Main] You may rest this card and 3 of your DON!! cards: Play up to 1 black \"Five Elders\" type Character card with a cost equal to or less than the number of DON!! cards on your field from your hand.",
+            "trigger": "activate-main",
+            "conditions": []
+          },
+          {
+            "rawText": "[Your Turn] If you have 19 or more cards in your trash, your Leader gains +1000 power.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 19 or more cards in your trash"
+              },
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 1000,
+                "until": "turn-end",
+                "target": "own-leader",
+                "continuous": true
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "rested": false,
+                  "source": "hand"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "continuous",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 19 or more cards in your trash"
+              },
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 1000,
+                  "until": "turn-end",
+                  "target": "own-leader",
+                  "continuous": true
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Your Turn] If you have 19 or more cards in your trash, your Leader gains +1000 power.\n[Activate: Main] You may rest this card and 3 of your DON!! cards: Play up to 1 black \"Five Elders\" type Character card with a cost equal to or less than the number of DON!! cards on your field from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "self"
+              },
+              {
+                "kind": "play",
+                "source": "hand",
+                "amount": 1,
+                "costAtMostDonField": true,
+                "cardType": "Character"
+              }
+            ],
+            "rawText": "[Activate: Main] You may rest this card and 3 of your DON!! cards: Play up to 1 black \"Five Elders\" type Character card with a cost equal to or less than the number of DON!! cards on your field from your hand.",
+            "trigger": "activate-main",
+            "conditions": []
+          },
+          {
+            "rawText": "[Your Turn] If you have 19 or more cards in your trash, your Leader gains +1000 power.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 19 or more cards in your trash"
+              },
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 1000,
+                "until": "turn-end",
+                "target": "own-leader",
+                "continuous": true
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "self"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "hand",
+                  "amount": 1,
+                  "costAtMostDonField": true,
+                  "cardType": "Character"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "continuous",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 19 or more cards in your trash"
+              },
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 1000,
+                  "until": "turn-end",
+                  "target": "own-leader",
+                  "continuous": true
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Your Turn] If you have 19 or more cards in your trash, your Leader gains +1000 power.\n[Activate: Main] You may rest this card and 3 of your DON!! cards: Play up to 1 black \"Five Elders\" type Character card with a cost equal to or less than the number of DON!! cards on your field from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "3c33b01ac6d7da9bf7f03c3e98cb3da1930f5108bfedf46b11cfaa6bd4058565",
+      "afterHash": "02593d55888a494c8b63477adff9c2cdca91427ad9c2c80b358fb96d58f559cb",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 2
+    }
+  ]
+}

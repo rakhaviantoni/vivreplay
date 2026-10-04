@@ -39,13 +39,14 @@ test('an optional paid effect can be declined without applying its later command
  assert.equal(declined.execution.state.cards.filter(card=>card.zone==='hand').length,1);
 });
 
-test('source-bound self costs and actions resolve without a redundant target selection',()=>{
+test('source-bound optional costs ask for approval without a redundant target selection',()=>{
  const document=compileEffectDocument({id:'test',code:'TEST-004',name:'Test',color:'Green',type:'Character',cost:1,power:1000,counter:0,rarity:'C',art:0,effect:'[Activate: Main] You may rest this Character: Draw 1 card.'});
  const state:MatchEffectState={turn:'player',turnEffects:[],restrictions:[],delayed:[],cards:[
   {id:'source',owner:'player',zone:'character',type:'Character'},
   {id:'deck',owner:'player',zone:'deck',type:'Character'},
  ]};
- const resolved=beginEffectExecution(state,'player','source','activate-main',resolveCardEffect(document,'activate-main').commands);
+ const offered=beginEffectExecution(state,'player','source','activate-main',resolveCardEffect(document,'activate-main').commands);assert.ok(offered.requiresSelection);assert.equal(Boolean(offered.execution.state.cards.find(card=>card.id==='source')?.rested),false);
+ const resolved=advanceEffectExecution(offered.execution,{choice:'accept'});
  assert.equal(resolved.complete,true);
  assert.equal(resolved.execution.state.cards.find(card=>card.id==='source')?.rested,true);
  assert.equal(resolved.execution.state.cards.find(card=>card.id==='deck')?.zone,'hand');
@@ -207,7 +208,7 @@ test('self-trash costs bind the source, reject replay, and precede the reward',(
  assert.equal(done.execution.state.cards[0].zone,'trash');
  assert.equal(done.execution.state.cards[1].zone,'character');
  assert.equal(done.execution.state.cards[2].zone,'hand');
- assert.ok(beginEffectExecution(done.execution.state,'player','source','activate-main',commands).error);
+ const replay=beginEffectExecution(done.execution.state,'player','source','activate-main',commands);assert.ok(replay.requiresSelection);assert.ok(advanceEffectExecution(replay.execution,{choice:'accept'}).error);
 });
 
 test('declining one optional ability does not cancel an independent ability at the same timing',()=>{

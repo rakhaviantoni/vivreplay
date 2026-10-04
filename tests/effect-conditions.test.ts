@@ -53,3 +53,18 @@ test('source rested and active conditions read the live source card state',()=>{
  assert.equal(evaluateEffectCondition('this Character is rested',active,'player','source'),false);
  assert.equal(evaluateEffectCondition('this Character is active',active,'player','source'),true);
 });
+
+test('powered-character count conditions check the printed owner, threshold and exact minimum',()=>{
+ const board:MatchEffectState={...state,cards:[...state.cards,
+  {id:'enemy-1',owner:'opponent',zone:'character',type:'Character',power:5000},
+  {id:'enemy-2',owner:'opponent',zone:'character',type:'Character',power:6000},
+  {id:'enemy-low',owner:'opponent',zone:'character',type:'Character',power:4000},
+  {id:'own-high',owner:'player',zone:'character',type:'Character',power:12000},
+ ]};
+ const condition='your opponent has 2 or more Characters with a base power of 5000 or more';
+ assert.equal(evaluateEffectCondition(condition,board,'player'),true);
+ const oneEligible={...board,cards:board.cards.filter(card=>card.id!=='enemy-2')};
+ assert.equal(evaluateEffectCondition(condition,oneEligible,'player'),false);
+ assert.equal(evaluateEffectCondition('there is a Character with 12000 base power or more',board,'player'),true);
+ assert.equal(evaluateEffectCondition('your opponent has 1 or more Characters with a base power of 12000 or more',board,'player'),false);
+});

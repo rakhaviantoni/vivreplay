@@ -1,4 +1,5 @@
 import {db,errorResponse,user,HttpError} from '@/lib/server/store';
+import {sendMarketEmail} from '@/lib/server/market-notifications';
 
 type OrderRow={id:string;kind:string;buyerId:string;sellerId:string|null;listingId:string|null;items:string;details:string;subtotal:number;shippingFee:number;amount:number;currency:string;paymentId:string|null;status:string;expiresAt:string|null;title:string|null};
 
@@ -26,7 +27,7 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     const profile=await user();
     const {id}=await params;
     const database=db();
-    const order=await database.prepare("SELECT id,kind,buyer_id AS buyerId,items,currency,status FROM checkout_orders WHERE id=?").bind(id).first<{id:string;kind:string;buyerId:string;items:string;currency:string;status:string}>();
+    const order=await database.prepare("SELECT o.id,o.kind,o.buyer_id AS buyerId,o.seller_id AS sellerId,o.items,o.currency,o.status,l.title FROM checkout_orders o LEFT JOIN listings l ON l.id=o.listing_id WHERE o.id=?").bind(id).first<{id:string;kind:string;buyerId:string;sellerId:string|null;items:string;currency:string;status:string;title:string|null}>();
     if(!order||order.buyerId!==profile.id)throw new HttpError(404,'Order was not found.');
     if(order.kind!=='MARKET')throw new HttpError(400,'Only delivered Market orders can be added to your Vault.');
     if(order.status==='RECEIVED')return Response.json({ok:true,status:'RECEIVED'});
@@ -57,6 +58,7 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     }
     statements.push(database.prepare("UPDATE checkout_orders SET status='RECEIVED',fulfilled_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=? AND buyer_id=? AND status='PAID'").bind(id,profile.id));
     await database.batch(statements);
+    if(order.sellerId)await sendMarketEmail(order.sellerId,'order-received',order.title||'Market order',order.id);
     const updated=await database.prepare('SELECT status FROM checkout_orders WHERE id=?').bind(id).first<{status:string}>();
     return Response.json({ok:true,status:updated?.status??'RECEIVED'});
   }catch(error){return errorResponse(error)}

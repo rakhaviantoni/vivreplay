@@ -5,6 +5,8 @@ export type AuthEmail = {
   to: string;
   name?: string | null;
   url?: string;
+  /** Preview mode for template review. Delivery follows the recipient's mail-client preference. */
+  theme?: "light" | "dark";
 };
 
 export type RenderedEmail = {
@@ -106,6 +108,7 @@ export function renderAuthEmail(email: AuthEmail): RenderedEmail {
   const target = productionEmailUrl(email.url, fallback);
   const safeTarget = escapeHtml(target);
   const safeTo = escapeHtml(email.to);
+  const previewTheme = email.theme === "dark" ? "dark" : "light";
   const configuredFrom = process.env.VIVREPLAY_EMAIL_FROM?.trim();
   const configuredDomain = configuredFrom?.match(/@([^\s>]+)/)?.[1]?.toLowerCase();
   const from = configuredDomain === 'vivreplay.com' ? configuredFrom! : DEFAULT_EMAIL_FROM;
@@ -121,6 +124,7 @@ export function renderAuthEmail(email: AuthEmail): RenderedEmail {
   <title>${escapeHtml(content.subject)}</title>
   <style>
     :root{color-scheme:light dark;supported-color-schemes:light dark}
+    ${previewTheme === "dark" ? "body,.email-bg{background:#10171d!important;color:#e8e7e1!important}.email-card{background:#182129!important;color:#e8e7e1!important}.email-brand,.email-title{color:#f3f0e8!important}.email-copy{color:#c5c7c2!important}.email-muted{color:#a0aaa9!important}.email-link{color:#e6bd70!important}.email-footer{background:#141c23!important}.email-button{background:#d69b36!important;color:#171b1e!important}.email-rule{border-color:#303b43!important}" : ""}
     body,.email-bg{background:#f1eee6!important;color:#292b27!important}
     .email-card{background:#fffdf8!important;color:#292b27!important}
     .email-brand,.email-title{color:#272c28!important}
@@ -129,7 +133,8 @@ export function renderAuthEmail(email: AuthEmail): RenderedEmail {
     .email-link{color:#815510!important}
     .email-footer{background:#f7f4ec!important}
     .email-button{background:#b8791d!important;color:#fffdf7!important}
-    @media(prefers-color-scheme:dark){
+    ${email.theme ? "" : "@media(prefers-color-scheme:dark){"}
+      ${email.theme ? "" : `
       body,.email-bg{background:#10171d!important;color:#e8e7e1!important}
       .email-card{background:#182129!important;color:#e8e7e1!important}
       .email-brand,.email-title{color:#f3f0e8!important}
@@ -139,7 +144,7 @@ export function renderAuthEmail(email: AuthEmail): RenderedEmail {
       .email-footer{background:#141c23!important}
       .email-button{background:#d69b36!important;color:#171b1e!important}
       .email-rule{border-color:#303b43!important}
-    }
+    }`}
     @media(max-width:600px){.email-wrapper{padding:18px 12px!important}.email-content{padding:32px 24px!important}.email-title{font-size:27px!important}.email-footer{padding:18px 24px!important}.email-button{display:block!important;text-align:center!important}}
   </style>
 </head>

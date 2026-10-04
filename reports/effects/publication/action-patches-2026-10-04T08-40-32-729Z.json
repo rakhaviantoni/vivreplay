@@ -1,0 +1,743 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-10-04T08:40:32.729Z",
+  "candidates": [
+    {
+      "code": "OP09-107",
+      "printedText": "[On Play] If your opponent has 3 or more Life cards, trash up to 1 card from the top of your opponent's Life cards.\n[Trigger] Play up to 1 yellow Character card with a cost of 3 or less from your hand.",
+      "publishedText": "[On Play] If your opponent has 3 or more Life cards, trash up to 1 card from the top of your opponent's Life cards.\n[Trigger] Play up to 1 yellow Character card with a cost of 3 or less from your hand.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "engine-action on-play trash-life: exercise action 1 independently (gate and sequence not covered)",
+        "schema-atomic-action trigger: isolated play"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "trash-life",
+                "scope": "opponent",
+                "amount": 1
+              }
+            ],
+            "rawText": "[On Play] If your opponent has 3 or more Life cards, trash up to 1 card from the top of your opponent's Life cards.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your opponent has 3 or more Life cards"
+              }
+            ]
+          },
+          {
+            "rawText": "[Trigger] Play up to 1 yellow Character card with a cost of 3 or less from your hand.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "hand",
+                "amount": 1,
+                "cardType": "Character",
+                "color": "yellow",
+                "maxCost": 3,
+                "rested": false
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash-life",
+                  "scope": "opponent",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your opponent has 3 or more Life cards"
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "hand",
+                  "amount": 1,
+                  "cardType": "Character",
+                  "color": "yellow",
+                  "maxCost": 3,
+                  "rested": false
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] If your opponent has 3 or more Life cards, trash up to 1 card from the top of your opponent's Life cards.\n[Trigger] Play up to 1 yellow Character card with a cost of 3 or less from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "trash-life",
+                "scope": "opponent",
+                "amount": 1,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ],
+            "rawText": "[On Play] If your opponent has 3 or more Life cards, trash up to 1 card from the top of your opponent's Life cards.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your opponent has 3 or more Life cards"
+              }
+            ]
+          },
+          {
+            "rawText": "[Trigger] Play up to 1 yellow Character card with a cost of 3 or less from your hand.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "hand",
+                "amount": 1,
+                "cardType": "Character",
+                "color": "yellow",
+                "maxCost": 3,
+                "rested": false
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash-life",
+                  "scope": "opponent",
+                  "amount": 1,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your opponent has 3 or more Life cards"
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "hand",
+                  "amount": 1,
+                  "cardType": "Character",
+                  "color": "yellow",
+                  "maxCost": 3,
+                  "rested": false
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] If your opponent has 3 or more Life cards, trash up to 1 card from the top of your opponent's Life cards.\n[Trigger] Play up to 1 yellow Character card with a cost of 3 or less from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "a490b0a6915ebaf1350c64bfe87d5d5962b4fc0a9e42333486f1ae6dd165873a",
+      "afterHash": "f262dfba5852010860ef4e0b547244ff3ac045a83b02e602377d9f80b8d80a45",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "OP14-065",
+      "printedText": "[On K.O.] Your opponent returns 1 DON!! card from their field to their DON!! deck.",
+      "publishedText": "[On K.O.] Your opponent returns 1 DON!! card from their field to their DON!! deck.",
+      "timings": [
+        "on-ko"
+      ],
+      "scenarioNames": [
+        "engine-action on-ko return-don: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "on-ko"
+              }
+            ],
+            "rawText": "[On K.O.] Your opponent returns 1 DON!! card from their field to their DON!! deck.",
+            "trigger": "on-ko",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-ko",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "on-ko"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On K.O.] Your opponent returns 1 DON!! card from their field to their DON!! deck.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "return-don",
+                "amount": 1,
+                "owner": "opponent"
+              }
+            ],
+            "rawText": "[On K.O.] Your opponent returns 1 DON!! card from their field to their DON!! deck.",
+            "trigger": "on-ko",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-ko",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "return-don",
+                  "amount": 1,
+                  "owner": "opponent"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On K.O.] Your opponent returns 1 DON!! card from their field to their DON!! deck.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "893fb0c1f649b4352b6da74130a0a8ab2ea043d6f51a32ea214b031a67322941",
+      "afterHash": "6cf34c609073279dfaa240217f8ae67959a65b85619638d5d736301150c75f51",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "OP15-066",
+      "printedText": "[On Play] DON!! 1: Draw 1 card.\n[When Attacking] If you have 6 or less DON!! cards on your field, look at 2 cards from the top of your deck and place them at the top or bottom of your deck in any order.",
+      "publishedText": "[On Play] DON!! 1: Draw 1 card.\n[When Attacking] If you have 6 or less DON!! cards on your field, look at 2 cards from the top of your deck and place them at the top or bottom of your deck in any order.",
+      "timings": [
+        "when-attacking"
+      ],
+      "scenarioNames": [
+        "schema-draw on-play: printed counts 1",
+        "schema-rest-don-cost on-play: select 1 active DON!!",
+        "engine-action when-attacking reorder-deck: exercise action 1 independently (gate and sequence not covered)"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 2,
+                "choose": 1,
+                "destination": "deck-bottom"
+              }
+            ],
+            "rawText": "[When Attacking] If you have 6 or less DON!! cards on your field, look at 2 cards from the top of your deck and place them at the top or bottom of your deck in any order.",
+            "trigger": "when-attacking",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 6 or less DON!! cards on your field"
+              }
+            ]
+          },
+          {
+            "rawText": "[On Play] DON!! 1: Draw 1 card.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "don",
+                "amount": 1,
+                "optional": false
+              }
+            ],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 1
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "when-attacking",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 2,
+                  "choose": 1,
+                  "destination": "deck-bottom"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 6 or less DON!! cards on your field"
+              }
+            ]
+          },
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "PAY_COST",
+                "cost": {
+                  "kind": "rest",
+                  "scope": "don",
+                  "amount": 1,
+                  "optional": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 1
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] DON!! 1: Draw 1 card.\n[When Attacking] If you have 6 or less DON!! cards on your field, look at 2 cards from the top of your deck and place them at the top or bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "reorder-deck",
+                "amount": 2,
+                "position": "choice"
+              }
+            ],
+            "rawText": "[When Attacking] If you have 6 or less DON!! cards on your field, look at 2 cards from the top of your deck and place them at the top or bottom of your deck in any order.",
+            "trigger": "when-attacking",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 6 or less DON!! cards on your field"
+              }
+            ]
+          },
+          {
+            "rawText": "[On Play] DON!! 1: Draw 1 card.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "don",
+                "amount": 1,
+                "optional": false
+              }
+            ],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 1
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "when-attacking",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "reorder-deck",
+                  "amount": 2,
+                  "position": "choice"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 6 or less DON!! cards on your field"
+              }
+            ]
+          },
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "PAY_COST",
+                "cost": {
+                  "kind": "rest",
+                  "scope": "don",
+                  "amount": 1,
+                  "optional": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 1
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] DON!! 1: Draw 1 card.\n[When Attacking] If you have 6 or less DON!! cards on your field, look at 2 cards from the top of your deck and place them at the top or bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "861e4afe2539184bc4321cf2aa5295a1fa2378e43a67b07bcf646f60f81bd0a1",
+      "afterHash": "222cfd2a0386c4de74082a0ef6432316efc3444f83f297007acf179d2055a165",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "ST03-004",
+      "printedText": "[On Play] Add up to 1 [The Seven Warlords of the Sea] or [Thriller Bark Pirates] type Character with a cost of 4 or less other than [Gecko Moria] from your trash to your hand.",
+      "publishedText": "[On Play] Add up to 1 [The Seven Warlords of the Sea] or [Thriller Bark Pirates] type Character with a cost of 4 or less other than [Gecko Moria] from your trash to your hand.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "engine-action on-play recover: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "recover",
+                "trait": "Thriller Bark Pirates",
+                "amount": 1,
+                "source": "trash",
+                "maxCost": 4,
+                "destination": "hand"
+              }
+            ],
+            "rawText": "[On Play] Add up to 1 [The Seven Warlords of the Sea] or [Thriller Bark Pirates] type Character with a cost of 4 or less other than [Gecko Moria] from your trash to your hand.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "recover",
+                  "trait": "Thriller Bark Pirates",
+                  "amount": 1,
+                  "source": "trash",
+                  "maxCost": 4,
+                  "destination": "hand"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Add up to 1 [The Seven Warlords of the Sea] or [Thriller Bark Pirates] type Character with a cost of 4 or less other than [Gecko Moria] from your trash to your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "recover",
+                "source": "trash",
+                "destination": "hand",
+                "amount": 1,
+                "maxCost": 4,
+                "trait": "[The Seven Warlords of the Sea] or [Thriller Bark Pirates] type Character other than [Gecko Moria]",
+                "excludeName": "Gecko Moria"
+              }
+            ],
+            "rawText": "[On Play] Add up to 1 [The Seven Warlords of the Sea] or [Thriller Bark Pirates] type Character with a cost of 4 or less other than [Gecko Moria] from your trash to your hand.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "recover",
+                  "source": "trash",
+                  "destination": "hand",
+                  "amount": 1,
+                  "maxCost": 4,
+                  "trait": "[The Seven Warlords of the Sea] or [Thriller Bark Pirates] type Character other than [Gecko Moria]",
+                  "excludeName": "Gecko Moria"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Add up to 1 [The Seven Warlords of the Sea] or [Thriller Bark Pirates] type Character with a cost of 4 or less other than [Gecko Moria] from your trash to your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "194455b52cd8bf396edd792add1de50a9395d4e1de08d63fe1c56301e929cc94",
+      "afterHash": "8b50f53007ba918c8cf6f4251ebfc84de2f45b6e219fee9d01e1dae6d9a1b57e",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "ST13-009",
+      "printedText": "[On Play] You may turn 1 of your face-up Life cards face-down: If your opponent has 7 or more cards in their hand, trash up to 1 card from the top of your opponent's Life cards.",
+      "publishedText": "[On Play] You may turn 1 of your face-up Life cards face-down: If your opponent has 7 or more cards in their hand, trash up to 1 card from the top of your opponent's Life cards.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "engine-action on-play trash-life: exercise action 1 independently (gate and sequence not covered)"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "trash-life",
+                "scope": "opponent",
+                "amount": 1
+              }
+            ],
+            "rawText": "[On Play] You may turn 1 of your face-up Life cards face-down: If your opponent has 7 or more cards in their hand, trash up to 1 card from the top of your opponent's Life cards.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your opponent has 7 or more cards in their hand"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash-life",
+                  "scope": "opponent",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your opponent has 7 or more cards in their hand"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] You may turn 1 of your face-up Life cards face-down: If your opponent has 7 or more cards in their hand, trash up to 1 card from the top of your opponent's Life cards.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "trash-life",
+                "scope": "opponent",
+                "amount": 1,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ],
+            "rawText": "[On Play] You may turn 1 of your face-up Life cards face-down: If your opponent has 7 or more cards in their hand, trash up to 1 card from the top of your opponent's Life cards.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your opponent has 7 or more cards in their hand"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash-life",
+                  "scope": "opponent",
+                  "amount": 1,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your opponent has 7 or more cards in their hand"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] You may turn 1 of your face-up Life cards face-down: If your opponent has 7 or more cards in their hand, trash up to 1 card from the top of your opponent's Life cards.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "e6a63c94c589b8121a9974293ef5f2d4a56fa42230d3bb0643dacf004e7cd668",
+      "afterHash": "beb31c15b4cfd8d7dd039013ceabe47f4432975bf9d2ee0a53778c737d23714d",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    }
+  ]
+}

@@ -1,0 +1,5311 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-10-04T08:55:13.471Z",
+  "candidates": [
+    {
+      "code": "EB01-009",
+      "printedText": "[Counter] Look at 5 cards from the top of your deck and play up to 1 [Animal] type Character card with a cost of 3 or less. Then, place the rest at the bottom of your deck in any order.",
+      "publishedText": "[Counter] Look at 5 cards from the top of your deck and play up to 1 [Animal] type Character card with a cost of 3 or less. Then, place the rest at the bottom of your deck in any order.",
+      "timings": [
+        "counter"
+      ],
+      "scenarioNames": [
+        "engine-action counter search: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom"
+              }
+            ],
+            "rawText": "[Counter] Look at 5 cards from the top of your deck and play up to 1 [Animal] type Character card with a cost of 3 or less. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "counter",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "counter",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Counter] Look at 5 cards from the top of your deck and play up to 1 [Animal] type Character card with a cost of 3 or less. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true
+              }
+            ],
+            "rawText": "[Counter] Look at 5 cards from the top of your deck and play up to 1 [Animal] type Character card with a cost of 3 or less. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "counter",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "counter",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Counter] Look at 5 cards from the top of your deck and play up to 1 [Animal] type Character card with a cost of 3 or less. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "1283ace4ca36e35ea1e7f9fc16a143d4ffbe36e899027102d0cf72212a1729a8",
+      "afterHash": "59d448acaf02e8286faf3efd9ee5b2549018237610aba80a69082dbbf989b340",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "EB02-025",
+      "printedText": "[Activate: Main] You may rest 1 of your DON!! cards and this Character: If your Leader is [Donquixote Rosinante], look at 5 cards from the top of your deck; play up to 1 Character card with a cost of 2 or less rested. Then, place the rest at the bottom of your deck in any order.",
+      "publishedText": "[Activate: Main] You may rest 1 of your DON!! cards and this Character: If your Leader is [Donquixote Rosinante], look at 5 cards from the top of your deck; play up to 1 Character card with a cost of 2 or less rested. Then, place the rest at the bottom of your deck in any order.",
+      "timings": [
+        "activate-main"
+      ],
+      "scenarioNames": [
+        "schema-rest-don-cost activate-main: select 1 active DON!! (optional)",
+        "engine-action activate-main search: exercise action 1 independently (gate and sequence not covered)"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "don",
+                "amount": 1,
+                "optional": true
+              }
+            ],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "cardType": "Character",
+                "destination": "deck-bottom"
+              }
+            ],
+            "rawText": "[Activate: Main] You may rest 1 of your DON!! cards and this Character: If your Leader is [Donquixote Rosinante], look at 5 cards from the top of your deck; play up to 1 Character card with a cost of 2 or less rested. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "activate-main",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Donquixote Rosinante]"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "rest",
+                  "scope": "don",
+                  "amount": 1,
+                  "optional": true
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "cardType": "Character",
+                  "destination": "deck-bottom"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Donquixote Rosinante]"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Activate: Main] You may rest 1 of your DON!! cards and this Character: If your Leader is [Donquixote Rosinante], look at 5 cards from the top of your deck; play up to 1 Character card with a cost of 2 or less rested. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "don",
+                "amount": 1,
+                "optional": true
+              }
+            ],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true
+              }
+            ],
+            "rawText": "[Activate: Main] You may rest 1 of your DON!! cards and this Character: If your Leader is [Donquixote Rosinante], look at 5 cards from the top of your deck; play up to 1 Character card with a cost of 2 or less rested. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "activate-main",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Donquixote Rosinante]"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "rest",
+                  "scope": "don",
+                  "amount": 1,
+                  "optional": true
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Donquixote Rosinante]"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Activate: Main] You may rest 1 of your DON!! cards and this Character: If your Leader is [Donquixote Rosinante], look at 5 cards from the top of your deck; play up to 1 Character card with a cost of 2 or less rested. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "f32d39fe274917fc0146de709411cae49e85fc1c6e3ea7500c085197e0ba86a8",
+      "afterHash": "099b1b174c7bf31891e4e156ae89c65515363298cb90aaaf586869523d7e692a",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "EB03-010",
+      "printedText": "[Blocker] [On Play] Look at 5 cards from the top of your deck; reveal up to 1 Character card with 1000 power or less or up to 1 Event card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+      "publishedText": "[Blocker] [On Play] Look at 5 cards from the top of your deck; reveal up to 1 Character card with 1000 power or less or up to 1 Event card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "keyword Blocker: active",
+        "keyword Blocker: rested",
+        "keyword Blocker: wrong-owner",
+        "keyword Blocker: hand",
+        "keyword Blocker: negated",
+        "keyword Blocker: schema isolation",
+        "schema-search on-play: top 5, up to 2, deck-bottom",
+        "engine-action on-play search: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 8,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 2,
+                "cardType": "Character",
+                "maxPower": 1000,
+                "destination": "deck-bottom"
+              }
+            ],
+            "rawText": "[Blocker] [On Play] Look at 5 cards from the top of your deck; reveal up to 1 Character card with 1000 power or less or up to 1 Event card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "blocker"
+              }
+            ],
+            "rawText": "[Blocker]",
+            "trigger": "unknown",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 2,
+                  "cardType": "Character",
+                  "maxPower": 1000,
+                  "destination": "deck-bottom"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "unknown",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Blocker] [On Play] Look at 5 cards from the top of your deck; reveal up to 1 Character card with 1000 power or less or up to 1 Event card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 2,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true,
+                "cardType": "Character",
+                "maxPower": 1000
+              }
+            ],
+            "rawText": "[Blocker] [On Play] Look at 5 cards from the top of your deck; reveal up to 1 Character card with 1000 power or less or up to 1 Event card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "blocker"
+              }
+            ],
+            "rawText": "[Blocker]",
+            "trigger": "unknown",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 2,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true,
+                  "cardType": "Character",
+                  "maxPower": 1000
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "unknown",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Blocker] [On Play] Look at 5 cards from the top of your deck; reveal up to 1 Character card with 1000 power or less or up to 1 Event card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "138ef2a97bcbdc287f49ec8da37cdab7161e69aabc13596c284c7642ba66a1ba",
+      "afterHash": "9e86073e6802bed1b1a6fef2cd4d9a2f58b5f4424d88931d77c6eb33bbd75dd7",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "EB03-048",
+      "printedText": "[Blocker] [On Play] Look at 5 cards from the top of your deck; reveal up to 1 {Dressrosa} type Stage card and add it to your hand. Then, place the rest at the bottom of your deck in any order and play up to 1 {Dressrosa} type Stage card with a cost of 1 from your hand.",
+      "publishedText": "[Blocker] [On Play] Look at 5 cards from the top of your deck; reveal up to 1 {Dressrosa} type Stage card and add it to your hand. Then, place the rest at the bottom of your deck in any order and play up to 1 {Dressrosa} type Stage card with a cost of 1 from your hand.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "keyword Blocker: active",
+        "keyword Blocker: rested",
+        "keyword Blocker: wrong-owner",
+        "keyword Blocker: hand",
+        "keyword Blocker: negated",
+        "keyword Blocker: schema isolation",
+        "schema-search on-play: top 5, up to 1, deck-bottom",
+        "schema-play on-play: hand up to 1",
+        "engine-action on-play search: exercise action 1 independently (gate and sequence not covered)"
+      ],
+      "scenarioCount": 9,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "trait": "Dressrosa",
+                "amount": 5,
+                "choose": 1,
+                "cardType": "Stage",
+                "destination": "deck-bottom"
+              },
+              {
+                "kind": "play",
+                "trait": "Dressrosa",
+                "amount": 1,
+                "rested": false,
+                "source": "hand",
+                "cardType": "Stage",
+                "exactCost": 1
+              }
+            ],
+            "rawText": "[Blocker] [On Play] Look at 5 cards from the top of your deck; reveal up to 1 {Dressrosa} type Stage card and add it to your hand. Then, place the rest at the bottom of your deck in any order and play up to 1 {Dressrosa} type Stage card with a cost of 1 from your hand.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "blocker"
+              }
+            ],
+            "rawText": "[Blocker]",
+            "trigger": "unknown",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "trait": "Dressrosa",
+                  "amount": 5,
+                  "choose": 1,
+                  "cardType": "Stage",
+                  "destination": "deck-bottom"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "trait": "Dressrosa",
+                  "amount": 1,
+                  "rested": false,
+                  "source": "hand",
+                  "cardType": "Stage",
+                  "exactCost": 1
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "unknown",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Blocker] [On Play] Look at 5 cards from the top of your deck; reveal up to 1 {Dressrosa} type Stage card and add it to your hand. Then, place the rest at the bottom of your deck in any order and play up to 1 {Dressrosa} type Stage card with a cost of 1 from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true,
+                "cardType": "Stage",
+                "trait": "Dressrosa"
+              },
+              {
+                "kind": "play",
+                "trait": "Dressrosa",
+                "amount": 1,
+                "rested": false,
+                "source": "hand",
+                "cardType": "Stage",
+                "exactCost": 1
+              }
+            ],
+            "rawText": "[Blocker] [On Play] Look at 5 cards from the top of your deck; reveal up to 1 {Dressrosa} type Stage card and add it to your hand. Then, place the rest at the bottom of your deck in any order and play up to 1 {Dressrosa} type Stage card with a cost of 1 from your hand.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "blocker"
+              }
+            ],
+            "rawText": "[Blocker]",
+            "trigger": "unknown",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true,
+                  "cardType": "Stage",
+                  "trait": "Dressrosa"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "trait": "Dressrosa",
+                  "amount": 1,
+                  "rested": false,
+                  "source": "hand",
+                  "cardType": "Stage",
+                  "exactCost": 1
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "unknown",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Blocker] [On Play] Look at 5 cards from the top of your deck; reveal up to 1 {Dressrosa} type Stage card and add it to your hand. Then, place the rest at the bottom of your deck in any order and play up to 1 {Dressrosa} type Stage card with a cost of 1 from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "a10df0da540f2618cddfe9b4adb8503efc8e4ced50dcc6a026f22d4cba8bfeac",
+      "afterHash": "33cc6f816938362eec82f9400085eca11e065669585cc227c50c6078a2fc7f07",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "OP01-116",
+      "printedText": "[Main] Look at 5 cards from the top of your deck; play up to 1 \"SMILE\" type Character card with a cost of 3 or less. Then, place the rest at the bottom of your deck in any order.  This card has been officially errata'd.",
+      "publishedText": "[Main] Look at 5 cards from the top of your deck; play up to 1 \"SMILE\" type Character card with a cost of 3 or less. Then, place the rest at the bottom of your deck in any order.  This card has been officially errata'd.",
+      "timings": [
+        "main"
+      ],
+      "scenarioNames": [
+        "engine-action main search: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom"
+              }
+            ],
+            "rawText": "[Main] Look at 5 cards from the top of your deck; play up to 1 \"SMILE\" type Character card with a cost of 3 or less. Then, place the rest at the bottom of your deck in any order.  This card has been officially errata'd.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Look at 5 cards from the top of your deck; play up to 1 \"SMILE\" type Character card with a cost of 3 or less. Then, place the rest at the bottom of your deck in any order.  This card has been officially errata'd.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true
+              }
+            ],
+            "rawText": "[Main] Look at 5 cards from the top of your deck; play up to 1 \"SMILE\" type Character card with a cost of 3 or less. Then, place the rest at the bottom of your deck in any order.  This card has been officially errata'd.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Look at 5 cards from the top of your deck; play up to 1 \"SMILE\" type Character card with a cost of 3 or less. Then, place the rest at the bottom of your deck in any order.  This card has been officially errata'd.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "098a37f77e711cfb5f860462347c9ea822f96806df010eedf9e4defe3ea5a0b0",
+      "afterHash": "3a58d54d40d9296adb480f47bd6aed3fbb842937fac28d44af22e02412147cd7",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "OP02-005",
+      "printedText": "[On Play] Look at up to 5 cards from the top of your deck; reveal up to 1 red Character with a cost of 1 and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+      "publishedText": "[On Play] Look at up to 5 cards from the top of your deck; reveal up to 1 red Character with a cost of 1 and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "schema-search on-play: top 5, up to 1, deck-bottom",
+        "engine-action on-play search: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "color": "red",
+                "amount": 5,
+                "choose": 1,
+                "exactCost": 1,
+                "destination": "deck-bottom"
+              }
+            ],
+            "rawText": "[On Play] Look at up to 5 cards from the top of your deck; reveal up to 1 red Character with a cost of 1 and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "color": "red",
+                  "amount": 5,
+                  "choose": 1,
+                  "exactCost": 1,
+                  "destination": "deck-bottom"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Look at up to 5 cards from the top of your deck; reveal up to 1 red Character with a cost of 1 and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true,
+                "color": "red",
+                "exactCost": 1
+              }
+            ],
+            "rawText": "[On Play] Look at up to 5 cards from the top of your deck; reveal up to 1 red Character with a cost of 1 and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true,
+                  "color": "red",
+                  "exactCost": 1
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Look at up to 5 cards from the top of your deck; reveal up to 1 red Character with a cost of 1 and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "5cb1067dfe14341622db171580fb4030420cf84d03b79a2a9c416925985a6eae",
+      "afterHash": "60e29b7e3c9bb1d46ae9703a6add498905cf2a4621c81f9d57d37d7ecff545e1",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "OP03-083",
+      "printedText": "[On Play] Look at 5 cards from the top of your deck and trash up to 2 cards. Then, place the rest at the bottom of your deck in any order.",
+      "publishedText": "[On Play] Look at 5 cards from the top of your deck and trash up to 2 cards. Then, place the rest at the bottom of your deck in any order.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "engine-action on-play search: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom"
+              }
+            ],
+            "rawText": "[On Play] Look at 5 cards from the top of your deck and trash up to 2 cards. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Look at 5 cards from the top of your deck and trash up to 2 cards. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true
+              }
+            ],
+            "rawText": "[On Play] Look at 5 cards from the top of your deck and trash up to 2 cards. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Look at 5 cards from the top of your deck and trash up to 2 cards. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "685b5b1075bb9a1e5bbef60ff7d74c9f2d191625c538b9fd1fbed9078c47c16a",
+      "afterHash": "f747bc9f12ed0c46e9849e702ac98400b4fd1093d0f21716e4ea620c1bebb91c",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "OP04-084",
+      "printedText": "[On Play] Look at 3 cards from the top of your deck and play up to 1 Character card with a type including \"CP\" other than [Stussy] and a cost of 2 or less. Then, trash the rest.",
+      "publishedText": "[On Play] Look at 3 cards from the top of your deck and play up to 1 Character card with a type including \"CP\" other than [Stussy] and a cost of 2 or less. Then, trash the rest.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "engine-action on-play search: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 3,
+                "choose": 1,
+                "cardType": "Character",
+                "destination": "trash"
+              }
+            ],
+            "rawText": "[On Play] Look at 3 cards from the top of your deck and play up to 1 Character card with a type including \"CP\" other than [Stussy] and a cost of 2 or less. Then, trash the rest.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 3,
+                  "choose": 1,
+                  "cardType": "Character",
+                  "destination": "trash"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Look at 3 cards from the top of your deck and play up to 1 Character card with a type including \"CP\" other than [Stussy] and a cost of 2 or less. Then, trash the rest.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 3,
+                "choose": 1,
+                "destination": "trash",
+                "excludeName": "Stussy"
+              }
+            ],
+            "rawText": "[On Play] Look at 3 cards from the top of your deck and play up to 1 Character card with a type including \"CP\" other than [Stussy] and a cost of 2 or less. Then, trash the rest.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 3,
+                  "choose": 1,
+                  "destination": "trash",
+                  "excludeName": "Stussy"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Look at 3 cards from the top of your deck and play up to 1 Character card with a type including \"CP\" other than [Stussy] and a cost of 2 or less. Then, trash the rest.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "86ed5dc136fec2266532ba16b3f7cf163b42c8399bccb356bc0a3246294dc460",
+      "afterHash": "5e312d392124013a4363f9c1a90646981d94b2875c60904f729d5100472a2ac5",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "OP05-043",
+      "printedText": "[On Play] If your Leader is multicolored, look at 3 cards from the top of your deck and add up to 1 card to your hand. Then, place the rest at the top or bottom of the deck in any order.",
+      "publishedText": "[On Play] If your Leader is multicolored, look at 3 cards from the top of your deck and add up to 1 card to your hand. Then, place the rest at the top or bottom of the deck in any order.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "schema-search on-play: top 3, up to 1, hand",
+        "engine-action on-play search: exercise action 1 independently (gate and sequence not covered)"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 3,
+                "choose": 1,
+                "destination": "hand"
+              }
+            ],
+            "rawText": "[On Play] If your Leader is multicolored, look at 3 cards from the top of your deck and add up to 1 card to your hand. Then, place the rest at the top or bottom of the deck in any order.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is multicolored"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 3,
+                  "choose": 1,
+                  "destination": "hand"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is multicolored"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] If your Leader is multicolored, look at 3 cards from the top of your deck and add up to 1 card to your hand. Then, place the rest at the top or bottom of the deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 3,
+                "choose": 1,
+                "destination": "hand",
+                "remainderPosition": "choice",
+                "remainderOrder": true
+              }
+            ],
+            "rawText": "[On Play] If your Leader is multicolored, look at 3 cards from the top of your deck and add up to 1 card to your hand. Then, place the rest at the top or bottom of the deck in any order.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is multicolored"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 3,
+                  "choose": 1,
+                  "destination": "hand",
+                  "remainderPosition": "choice",
+                  "remainderOrder": true
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is multicolored"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] If your Leader is multicolored, look at 3 cards from the top of your deck and add up to 1 card to your hand. Then, place the rest at the top or bottom of the deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "0b43244c5762567accf5b8d03179eace9b628912c5ff4e66aa001532c8d9d9ea",
+      "afterHash": "d1c28e563b5750ee50067db03323fbf8ec1a5c08371b46936e46a6850129b9e0",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "OP06-003",
+      "printedText": "[On Play] Look at 3 cards from the top of your deck and play up to 1 [Revolutionary Army] type Character card with 5000 power or less. Then, place the rest at the bottom of your deck in any order.",
+      "publishedText": "[On Play] Look at 3 cards from the top of your deck and play up to 1 [Revolutionary Army] type Character card with 5000 power or less. Then, place the rest at the bottom of your deck in any order.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "engine-action on-play search: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 3,
+                "choose": 1,
+                "destination": "deck-bottom"
+              }
+            ],
+            "rawText": "[On Play] Look at 3 cards from the top of your deck and play up to 1 [Revolutionary Army] type Character card with 5000 power or less. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 3,
+                  "choose": 1,
+                  "destination": "deck-bottom"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Look at 3 cards from the top of your deck and play up to 1 [Revolutionary Army] type Character card with 5000 power or less. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 3,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true
+              }
+            ],
+            "rawText": "[On Play] Look at 3 cards from the top of your deck and play up to 1 [Revolutionary Army] type Character card with 5000 power or less. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 3,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Look at 3 cards from the top of your deck and play up to 1 [Revolutionary Army] type Character card with 5000 power or less. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "597b4a4228e40fae93919af533a467e37a7447470ab25bfa21ccc01e2a0cabbf",
+      "afterHash": "afd4e17685cd0fdc83547c5092b27b22dc536167edd4e4b88716ae0c7829ef58",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "OP06-078",
+      "printedText": "[Main] Look at 5 cards from the top of your deck; reveal up to 1 card with a type including \"GERMA\" other than [GERMA 66] and add it to your hand. Then, place the rest at the bottom of your deck in any order.\n[Trigger] Draw 1 card.",
+      "publishedText": "[Main] Look at 5 cards from the top of your deck; reveal up to 1 card with a type including \"GERMA\" other than [GERMA 66] and add it to your hand. Then, place the rest at the bottom of your deck in any order.\n[Trigger] Draw 1 card.",
+      "timings": [
+        "main"
+      ],
+      "scenarioNames": [
+        "trigger: draw 1, deck has 12",
+        "trigger: draw 1, deck has 0",
+        "schema-search main: top 5, up to 1, deck-bottom",
+        "schema-draw trigger: printed counts 1",
+        "engine-action main search: resolve isolated parsed instruction",
+        "schema-atomic-action trigger: isolated draw"
+      ],
+      "scenarioCount": 6,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 1
+              }
+            ],
+            "rawText": "[Trigger] Draw 1 card.",
+            "trigger": "trigger",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "trait": "GERMA",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "excludeName": "GERMA 66"
+              }
+            ],
+            "rawText": "[Main] Look at 5 cards from the top of your deck; reveal up to 1 card with a type including \"GERMA\" other than [GERMA 66] and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "trait": "GERMA",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "excludeName": "GERMA 66"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Look at 5 cards from the top of your deck; reveal up to 1 card with a type including \"GERMA\" other than [GERMA 66] and add it to your hand. Then, place the rest at the bottom of your deck in any order.\n[Trigger] Draw 1 card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 1
+              }
+            ],
+            "rawText": "[Trigger] Draw 1 card.",
+            "trigger": "trigger",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true,
+                "trait": "GERMA",
+                "excludeName": "GERMA 66"
+              }
+            ],
+            "rawText": "[Main] Look at 5 cards from the top of your deck; reveal up to 1 card with a type including \"GERMA\" other than [GERMA 66] and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true,
+                  "trait": "GERMA",
+                  "excludeName": "GERMA 66"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Look at 5 cards from the top of your deck; reveal up to 1 card with a type including \"GERMA\" other than [GERMA 66] and add it to your hand. Then, place the rest at the bottom of your deck in any order.\n[Trigger] Draw 1 card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "474310214967ec85746a925258a521993660dd796bf889c280eb2d466431e4ec",
+      "afterHash": "da59da965721eca30886cb413a3a99f0153e207e11da2d2790a2fd3d71fbb568",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "OP08-007",
+      "printedText": "[Your Turn] [On Play]/[When Attacking] Look at 5 cards from the top of your deck and play up to 1 [Animal] type Character card with 4000 power or less rested. Then, place the rest at the bottom of your deck in any order.",
+      "publishedText": "[Your Turn] [On Play]/[When Attacking] Look at 5 cards from the top of your deck and play up to 1 [Animal] type Character card with 4000 power or less rested. Then, place the rest at the bottom of your deck in any order.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "engine-action on-play search: exercise action 1 independently (gate and sequence not covered)"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom"
+              }
+            ],
+            "rawText": "[Your Turn] [On Play]/[When Attacking] Look at 5 cards from the top of your deck and play up to 1 [Animal] type Character card with 4000 power or less rested. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Your Turn] [On Play]/[When Attacking] Look at 5 cards from the top of your deck and play up to 1 [Animal] type Character card with 4000 power or less rested. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true
+              }
+            ],
+            "rawText": "[Your Turn] [On Play]/[When Attacking] Look at 5 cards from the top of your deck and play up to 1 [Animal] type Character card with 4000 power or less rested. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Your Turn] [On Play]/[When Attacking] Look at 5 cards from the top of your deck and play up to 1 [Animal] type Character card with 4000 power or less rested. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "753645579e6578aec3edce7d7b4e74396e66596764b4c3e53c8b8ed9f86f8131",
+      "afterHash": "d665155b7f2eb5fa437ec3cc5ef645594c23e3ab4162e8fc69021ca4c69609c2",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "OP08-100",
+      "printedText": "[On Play] Look at 7 cards from the top of your deck and play up to 1 [Upper Yard]. Then, place the rest at the bottom of your deck in any order.",
+      "publishedText": "[On Play] Look at 7 cards from the top of your deck and play up to 1 [Upper Yard]. Then, place the rest at the bottom of your deck in any order.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "engine-action on-play search: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 7,
+                "choose": 1,
+                "destination": "deck-bottom"
+              }
+            ],
+            "rawText": "[On Play] Look at 7 cards from the top of your deck and play up to 1 [Upper Yard]. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 7,
+                  "choose": 1,
+                  "destination": "deck-bottom"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Look at 7 cards from the top of your deck and play up to 1 [Upper Yard]. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 7,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true
+              }
+            ],
+            "rawText": "[On Play] Look at 7 cards from the top of your deck and play up to 1 [Upper Yard]. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 7,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Look at 7 cards from the top of your deck and play up to 1 [Upper Yard]. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "e9c539e78aeff69eadebc9b2a54287eead27c6676b7bc3ef28955cf6104fe19b",
+      "afterHash": "1d5ce7a118c7612d918c4aa11e6e78cae017e0d75a9d508dab32d40f7097500c",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "OP09-117",
+      "printedText": "[Main] Look at 5 cards from the top of your deck; reveal up to 2 cards with a [Trigger] other than [Dereshi!] and add them to your hand. Then, place the rest at the bottom of your deck in any order.\n[Trigger] Draw 1 card.",
+      "publishedText": "[Main] Look at 5 cards from the top of your deck; reveal up to 2 cards with a [Trigger] other than [Dereshi!] and add them to your hand. Then, place the rest at the bottom of your deck in any order.\n[Trigger] Draw 1 card.",
+      "timings": [
+        "main"
+      ],
+      "scenarioNames": [
+        "trigger: draw 1, deck has 12",
+        "trigger: draw 1, deck has 0",
+        "schema-search main: top 5, up to 2, deck-bottom",
+        "schema-draw trigger: printed counts 1",
+        "engine-action main search: resolve isolated parsed instruction",
+        "schema-atomic-action trigger: isolated draw"
+      ],
+      "scenarioCount": 6,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 1
+              }
+            ],
+            "rawText": "[Trigger] Draw 1 card.",
+            "trigger": "trigger",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 2,
+                "destination": "deck-bottom",
+                "excludeName": "Dereshi!",
+                "triggerOnly": true
+              }
+            ],
+            "rawText": "[Main] Look at 5 cards from the top of your deck; reveal up to 2 cards with a [Trigger] other than [Dereshi!] and add them to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 2,
+                  "destination": "deck-bottom",
+                  "excludeName": "Dereshi!",
+                  "triggerOnly": true
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Look at 5 cards from the top of your deck; reveal up to 2 cards with a [Trigger] other than [Dereshi!] and add them to your hand. Then, place the rest at the bottom of your deck in any order.\n[Trigger] Draw 1 card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 1
+              }
+            ],
+            "rawText": "[Trigger] Draw 1 card.",
+            "trigger": "trigger",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 2,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true,
+                "triggerOnly": true,
+                "excludeName": "Dereshi!"
+              }
+            ],
+            "rawText": "[Main] Look at 5 cards from the top of your deck; reveal up to 2 cards with a [Trigger] other than [Dereshi!] and add them to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 2,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true,
+                  "triggerOnly": true,
+                  "excludeName": "Dereshi!"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Look at 5 cards from the top of your deck; reveal up to 2 cards with a [Trigger] other than [Dereshi!] and add them to your hand. Then, place the rest at the bottom of your deck in any order.\n[Trigger] Draw 1 card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "8ce5754da41dc8b083bdad9404e93edda53d85baff65d1bc0a312f20bbeda9a4",
+      "afterHash": "333d62443efd16ee9d26ab5e290df325ece9ef9acae62aa49780abd7a7456021",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "OP10-039",
+      "printedText": "[Main] If your Leader has the \"ODYSSEY\" type, look at 5 cards from the top of your deck; reveal up to 2 \"ODYSSEY\" type Character cards and add them to your hand. Then, place the rest at the bottom of your deck in any order.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 5 or less.",
+      "publishedText": "[Main] If your Leader has the \"ODYSSEY\" type, look at 5 cards from the top of your deck; reveal up to 2 \"ODYSSEY\" type Character cards and add them to your hand. Then, place the rest at the bottom of your deck in any order.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 5 or less.",
+      "timings": [
+        "main"
+      ],
+      "scenarioNames": [
+        "trigger: rest cost <= 5 / at-limit",
+        "trigger: rest cost <= 5 / over-limit",
+        "trigger: rest cost <= 5 / own-card",
+        "trigger: rest cost <= 5 / leader",
+        "trigger: rest cost <= 5 / skip",
+        "schema-rest-target trigger: opponent-character cost <= 5 up to 1",
+        "schema-search main: top 5, up to 2, deck-bottom",
+        "engine-action main search: exercise action 1 independently (gate and sequence not covered)",
+        "schema-atomic-action trigger: isolated rest"
+      ],
+      "scenarioCount": 9,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 5,
+                "selection": {
+                  "max": 1,
+                  "min": 0
+                }
+              }
+            ],
+            "rawText": "[Trigger] Rest up to 1 of your opponent's Characters with a cost of 5 or less.",
+            "trigger": "trigger",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "trait": "ODYSSEY",
+                "amount": 5,
+                "choose": 2,
+                "cardType": "Character",
+                "destination": "deck-bottom"
+              }
+            ],
+            "rawText": "[Main] If your Leader has the \"ODYSSEY\" type, look at 5 cards from the top of your deck; reveal up to 2 \"ODYSSEY\" type Character cards and add them to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "main",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the \"ODYSSEY\" type"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 5,
+                  "selection": {
+                    "max": 1,
+                    "min": 0
+                  }
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "trait": "ODYSSEY",
+                  "amount": 5,
+                  "choose": 2,
+                  "cardType": "Character",
+                  "destination": "deck-bottom"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the \"ODYSSEY\" type"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] If your Leader has the \"ODYSSEY\" type, look at 5 cards from the top of your deck; reveal up to 2 \"ODYSSEY\" type Character cards and add them to your hand. Then, place the rest at the bottom of your deck in any order.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 5 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 5,
+                "selection": {
+                  "max": 1,
+                  "min": 0
+                }
+              }
+            ],
+            "rawText": "[Trigger] Rest up to 1 of your opponent's Characters with a cost of 5 or less.",
+            "trigger": "trigger",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 2,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true,
+                "cardType": "Character",
+                "trait": "ODYSSEY"
+              }
+            ],
+            "rawText": "[Main] If your Leader has the \"ODYSSEY\" type, look at 5 cards from the top of your deck; reveal up to 2 \"ODYSSEY\" type Character cards and add them to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "main",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the \"ODYSSEY\" type"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 5,
+                  "selection": {
+                    "max": 1,
+                    "min": 0
+                  }
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 2,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true,
+                  "cardType": "Character",
+                  "trait": "ODYSSEY"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the \"ODYSSEY\" type"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] If your Leader has the \"ODYSSEY\" type, look at 5 cards from the top of your deck; reveal up to 2 \"ODYSSEY\" type Character cards and add them to your hand. Then, place the rest at the bottom of your deck in any order.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 5 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "73fd7a39284326b950d10876c87d120b915c920920b226fbff7420a990c15441",
+      "afterHash": "688fdf3f2f0b55d20834f34bedad106924075794cad0a7da4a2c8e6709b97c5f",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "OP10-078",
+      "printedText": "[Main]/[Counter] Look at 3 cards from the top of your deck; reveal up to 1 \"Donquixote Pirates\" type card other than [I Do Not Forgive Those Who Laugh at My Family!!!] and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+      "publishedText": "[Main]/[Counter] Look at 3 cards from the top of your deck; reveal up to 1 \"Donquixote Pirates\" type card other than [I Do Not Forgive Those Who Laugh at My Family!!!] and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+      "timings": [
+        "main"
+      ],
+      "scenarioNames": [
+        "engine-action main search: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 3,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true
+              }
+            ],
+            "rawText": "[Main]/[Counter] Look at 3 cards from the top of your deck; reveal up to 1 \"Donquixote Pirates\" type card other than [I Do Not Forgive Those Who Laugh at My Family!!!] and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 3,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main]/[Counter] Look at 3 cards from the top of your deck; reveal up to 1 \"Donquixote Pirates\" type card other than [I Do Not Forgive Those Who Laugh at My Family!!!] and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 3,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true,
+                "trait": "Donquixote Pirates",
+                "excludeName": "I Do Not Forgive Those Who Laugh at My Family!!!"
+              }
+            ],
+            "rawText": "[Main]/[Counter] Look at 3 cards from the top of your deck; reveal up to 1 \"Donquixote Pirates\" type card other than [I Do Not Forgive Those Who Laugh at My Family!!!] and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 3,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true,
+                  "trait": "Donquixote Pirates",
+                  "excludeName": "I Do Not Forgive Those Who Laugh at My Family!!!"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main]/[Counter] Look at 3 cards from the top of your deck; reveal up to 1 \"Donquixote Pirates\" type card other than [I Do Not Forgive Those Who Laugh at My Family!!!] and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "8e330ceef5ad3d878e76ae49888e913c3899a69defef3c7bc23182fcbca0fd52",
+      "afterHash": "ed92c7d77a00463f72c2f4ce9ada5ffdfaf8997ea940e55f096d58b5d9d8beb2",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "OP11-037",
+      "printedText": "[Main] Look at 4 cards from the top of your deck; reveal up to 1 \"Neptunian\" or \"Fish-Man Island\" type Character card and add it to your hand. Then, place the rest at the bottom of your deck in any order.\n[Trigger] Draw 1 card.",
+      "publishedText": "[Main] Look at 4 cards from the top of your deck; reveal up to 1 \"Neptunian\" or \"Fish-Man Island\" type Character card and add it to your hand. Then, place the rest at the bottom of your deck in any order.\n[Trigger] Draw 1 card.",
+      "timings": [
+        "main"
+      ],
+      "scenarioNames": [
+        "trigger: draw 1, deck has 12",
+        "trigger: draw 1, deck has 0",
+        "schema-search main: top 4, up to 1, deck-bottom",
+        "schema-draw trigger: printed counts 1",
+        "engine-action main search: resolve isolated parsed instruction",
+        "schema-atomic-action trigger: isolated draw"
+      ],
+      "scenarioCount": 6,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 1
+              }
+            ],
+            "rawText": "[Trigger] Draw 1 card.",
+            "trigger": "trigger",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 4,
+                "choose": 1,
+                "cardType": "Character",
+                "destination": "deck-bottom",
+                "alternatives": [
+                  {
+                    "trait": "Neptunian",
+                    "cardType": "Character"
+                  },
+                  {
+                    "trait": "Fish-Man Island",
+                    "cardType": "Character"
+                  }
+                ]
+              }
+            ],
+            "rawText": "[Main] Look at 4 cards from the top of your deck; reveal up to 1 \"Neptunian\" or \"Fish-Man Island\" type Character card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 4,
+                  "choose": 1,
+                  "cardType": "Character",
+                  "destination": "deck-bottom",
+                  "alternatives": [
+                    {
+                      "trait": "Neptunian",
+                      "cardType": "Character"
+                    },
+                    {
+                      "trait": "Fish-Man Island",
+                      "cardType": "Character"
+                    }
+                  ]
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Look at 4 cards from the top of your deck; reveal up to 1 \"Neptunian\" or \"Fish-Man Island\" type Character card and add it to your hand. Then, place the rest at the bottom of your deck in any order.\n[Trigger] Draw 1 card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 1
+              }
+            ],
+            "rawText": "[Trigger] Draw 1 card.",
+            "trigger": "trigger",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 4,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true,
+                "cardType": "Character",
+                "alternatives": [
+                  {
+                    "trait": "Neptunian",
+                    "cardType": "Character"
+                  },
+                  {
+                    "trait": "Fish-Man Island",
+                    "cardType": "Character"
+                  }
+                ]
+              }
+            ],
+            "rawText": "[Main] Look at 4 cards from the top of your deck; reveal up to 1 \"Neptunian\" or \"Fish-Man Island\" type Character card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 4,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true,
+                  "cardType": "Character",
+                  "alternatives": [
+                    {
+                      "trait": "Neptunian",
+                      "cardType": "Character"
+                    },
+                    {
+                      "trait": "Fish-Man Island",
+                      "cardType": "Character"
+                    }
+                  ]
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Look at 4 cards from the top of your deck; reveal up to 1 \"Neptunian\" or \"Fish-Man Island\" type Character card and add it to your hand. Then, place the rest at the bottom of your deck in any order.\n[Trigger] Draw 1 card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "79742219a31c3ae293a8630a87be6f4f3b7935d77880eff458f66963691c446d",
+      "afterHash": "262d8027584202cb35952e8ba96c1508c2f64a7b07720bafee3e52438e5799ea",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "OP12-079",
+      "printedText": "[Main] If your Leader is [Sanji], look at 3 cards from the top of your deck and add up to 1 card to your hand. Then, place the rest at the bottom of your deck in any order.",
+      "publishedText": "[Main] If your Leader is [Sanji], look at 3 cards from the top of your deck and add up to 1 card to your hand. Then, place the rest at the bottom of your deck in any order.",
+      "timings": [
+        "main"
+      ],
+      "scenarioNames": [
+        "schema-search main: top 3, up to 1, deck-bottom",
+        "engine-action main search: exercise action 1 independently (gate and sequence not covered)"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 3,
+                "choose": 1,
+                "destination": "deck-bottom"
+              }
+            ],
+            "rawText": "[Main] If your Leader is [Sanji], look at 3 cards from the top of your deck and add up to 1 card to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "main",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Sanji]"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 3,
+                  "choose": 1,
+                  "destination": "deck-bottom"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Sanji]"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] If your Leader is [Sanji], look at 3 cards from the top of your deck and add up to 1 card to your hand. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 3,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true
+              }
+            ],
+            "rawText": "[Main] If your Leader is [Sanji], look at 3 cards from the top of your deck and add up to 1 card to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "main",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Sanji]"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 3,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Sanji]"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] If your Leader is [Sanji], look at 3 cards from the top of your deck and add up to 1 card to your hand. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "b27470060bc398a310e73303a9c13ae28eb8a045d5e7b67eb8132b2771f782f1",
+      "afterHash": "78d6650ca9dbb32ef89eaf6af2200a50d888f7bf00cac9c8529325bcee786c39",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "OP13-083",
+      "printedText": "If you have 7 or more cards in your trash, this Character cannot be removed from the field by your opponent's effects.\n[On Play] Look at 5 cards from the top of your deck; reveal up to 1 \"Five Elders\" type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+      "publishedText": "If you have 7 or more cards in your trash, this Character cannot be removed from the field by your opponent's effects.\n[On Play] Look at 5 cards from the top of your deck; reveal up to 1 \"Five Elders\" type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "on-play: Five Elders search / eligible",
+        "on-play: Five Elders search / wrong-trait",
+        "on-play: Five Elders search / outside-window",
+        "on-play: Five Elders search / skip",
+        "schema-search on-play: top 5, up to 1, deck-bottom",
+        "engine-action on-play search: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 6,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "trait": "Five Elders",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom"
+              }
+            ],
+            "rawText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 \"Five Elders\" type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "trait": "Five Elders",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "If you have 7 or more cards in your trash, this Character cannot be removed from the field by your opponent's effects.\n[On Play] Look at 5 cards from the top of your deck; reveal up to 1 \"Five Elders\" type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true,
+                "trait": "Five Elders"
+              }
+            ],
+            "rawText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 \"Five Elders\" type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true,
+                  "trait": "Five Elders"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "If you have 7 or more cards in your trash, this Character cannot be removed from the field by your opponent's effects.\n[On Play] Look at 5 cards from the top of your deck; reveal up to 1 \"Five Elders\" type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "3980addc19a9b27b6de3cabb46520bc80be6ca297a2a7155f1c9aaf61ec69e43",
+      "afterHash": "f4c7e6127ef879a1ebe16a0bc0db73d93567e91df3c9f4a448c97add1d4bea37",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "OP13-084",
+      "printedText": "If you have 7 or more cards in your trash, this Character cannot be removed from the field by your opponent's effects.\n[On Play] Look at 5 cards from the top of your deck; reveal up to 1 \"Five Elders\" type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+      "publishedText": "If you have 7 or more cards in your trash, this Character cannot be removed from the field by your opponent's effects.\n[On Play] Look at 5 cards from the top of your deck; reveal up to 1 \"Five Elders\" type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "on-play: Five Elders search / eligible",
+        "on-play: Five Elders search / wrong-trait",
+        "on-play: Five Elders search / outside-window",
+        "on-play: Five Elders search / skip",
+        "schema-search on-play: top 5, up to 1, deck-bottom",
+        "engine-action on-play search: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 6,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "trait": "Five Elders",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom"
+              }
+            ],
+            "rawText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 \"Five Elders\" type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "trait": "Five Elders",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "If you have 7 or more cards in your trash, this Character cannot be removed from the field by your opponent's effects.\n[On Play] Look at 5 cards from the top of your deck; reveal up to 1 \"Five Elders\" type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true,
+                "trait": "Five Elders"
+              }
+            ],
+            "rawText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 \"Five Elders\" type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true,
+                  "trait": "Five Elders"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "If you have 7 or more cards in your trash, this Character cannot be removed from the field by your opponent's effects.\n[On Play] Look at 5 cards from the top of your deck; reveal up to 1 \"Five Elders\" type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "3980addc19a9b27b6de3cabb46520bc80be6ca297a2a7155f1c9aaf61ec69e43",
+      "afterHash": "f4c7e6127ef879a1ebe16a0bc0db73d93567e91df3c9f4a448c97add1d4bea37",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "OP14-113",
+      "printedText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 {Amazon Lily} or {Kuja Pirates} type card and add it to your hand. Then, place the rest at the bottom of your deck in any order and trash 1 card from your hand.\n[Trigger] If your Leader has the {Kuja Pirates} type, play this card.",
+      "publishedText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 {Amazon Lily} or {Kuja Pirates} type card and add it to your hand. Then, place the rest at the bottom of your deck in any order and trash 1 card from your hand.\n[Trigger] If your Leader has the {Kuja Pirates} type, play this card.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "schema-search on-play: top 5, up to 1, deck-bottom",
+        "engine-action on-play search: exercise action 1 independently (gate and sequence not covered)"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[Trigger] If your Leader has the {Kuja Pirates} type, play this card.",
+            "trigger": "trigger",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the {Kuja Pirates} type"
+              }
+            ]
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "alternatives": [
+                  {
+                    "trait": "Amazon Lily"
+                  },
+                  {
+                    "trait": "Kuja Pirates"
+                  }
+                ]
+              },
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "requiresTrigger": false
+              }
+            ],
+            "rawText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 {Amazon Lily} or {Kuja Pirates} type card and add it to your hand. Then, place the rest at the bottom of your deck in any order and trash 1 card from your hand.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the {Kuja Pirates} type"
+              }
+            ]
+          },
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "alternatives": [
+                    {
+                      "trait": "Amazon Lily"
+                    },
+                    {
+                      "trait": "Kuja Pirates"
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "requiresTrigger": false
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 {Amazon Lily} or {Kuja Pirates} type card and add it to your hand. Then, place the rest at the bottom of your deck in any order and trash 1 card from your hand.\n[Trigger] If your Leader has the {Kuja Pirates} type, play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[Trigger] If your Leader has the {Kuja Pirates} type, play this card.",
+            "trigger": "trigger",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the {Kuja Pirates} type"
+              }
+            ]
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true,
+                "alternatives": [
+                  {
+                    "trait": "Amazon Lily"
+                  },
+                  {
+                    "trait": "Kuja Pirates"
+                  }
+                ]
+              },
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "requiresTrigger": false
+              }
+            ],
+            "rawText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 {Amazon Lily} or {Kuja Pirates} type card and add it to your hand. Then, place the rest at the bottom of your deck in any order and trash 1 card from your hand.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the {Kuja Pirates} type"
+              }
+            ]
+          },
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true,
+                  "alternatives": [
+                    {
+                      "trait": "Amazon Lily"
+                    },
+                    {
+                      "trait": "Kuja Pirates"
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "requiresTrigger": false
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 {Amazon Lily} or {Kuja Pirates} type card and add it to your hand. Then, place the rest at the bottom of your deck in any order and trash 1 card from your hand.\n[Trigger] If your Leader has the {Kuja Pirates} type, play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "3652f832c02b71eb90169b2842b9738bc6b6f43a1f9ada846c678e15cc4f14d4",
+      "afterHash": "5cb2a2821412536e17d1b764014ee8cd5c6f56180e6c4508eeacb4b8651ddd35",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "OP15-053",
+      "printedText": "[DON!! x1] This Character gains [Blocker].\n[On Play] Look at 3 cards from the top of your deck; reveal up to 1 {Dressrosa} type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+      "publishedText": "[DON!! x1] This Character gains [Blocker].\n[On Play] Look at 3 cards from the top of your deck; reveal up to 1 {Dressrosa} type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "on-play: Dressrosa search / eligible",
+        "on-play: Dressrosa search / wrong-trait",
+        "on-play: Dressrosa search / outside-window",
+        "on-play: Dressrosa search / skip",
+        "schema-search on-play: top 3, up to 1, deck-bottom",
+        "engine-action on-play search: resolve isolated parsed instruction",
+        "schema-blocker don-gate: attached DON enables blocking and preserves other timings"
+      ],
+      "scenarioCount": 7,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "trait": "Dressrosa",
+                "amount": 3,
+                "choose": 1,
+                "destination": "deck-bottom"
+              }
+            ],
+            "rawText": "[On Play] Look at 3 cards from the top of your deck; reveal up to 1 {Dressrosa} type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              },
+              {
+                "kind": "grant-keyword",
+                "scope": "self",
+                "until": "turn-end",
+                "keyword": "blocker"
+              }
+            ],
+            "rawText": "[DON!! x1] This Character gains [Blocker].",
+            "trigger": "unknown",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "trait": "Dressrosa",
+                  "amount": 3,
+                  "choose": 1,
+                  "destination": "deck-bottom"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "unknown",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "grant-keyword",
+                  "scope": "self",
+                  "until": "turn-end",
+                  "keyword": "blocker"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] This Character gains [Blocker].\n[On Play] Look at 3 cards from the top of your deck; reveal up to 1 {Dressrosa} type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 3,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true,
+                "trait": "Dressrosa"
+              }
+            ],
+            "rawText": "[On Play] Look at 3 cards from the top of your deck; reveal up to 1 {Dressrosa} type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              },
+              {
+                "kind": "grant-keyword",
+                "scope": "self",
+                "until": "turn-end",
+                "keyword": "blocker"
+              }
+            ],
+            "rawText": "[DON!! x1] This Character gains [Blocker].",
+            "trigger": "unknown",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 3,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true,
+                  "trait": "Dressrosa"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "unknown",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "grant-keyword",
+                  "scope": "self",
+                  "until": "turn-end",
+                  "keyword": "blocker"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] This Character gains [Blocker].\n[On Play] Look at 3 cards from the top of your deck; reveal up to 1 {Dressrosa} type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "811a86d724997694166d12a574657b48b135eac93133057438af08dcc6734a9f",
+      "afterHash": "52305dd11c8f69ef90b16518857afd746033e430d81c9a4a50a66f3192040000",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "OP15-118",
+      "printedText": "If you have 6 or less DON!! cards on your field, this Character cannot be removed from the field by your opponent's effects and gains +2000 power.\n[On Play] DON!! 1: Look at 5 cards from the top of your deck and add up to 1 card to your hand. Then, place the rest at the bottom of your deck in any order, and trash 1 card from your hand.",
+      "publishedText": "If you have 6 or less DON!! cards on your field, this Character cannot be removed from the field by your opponent's effects and gains +2000 power.\n[On Play] DON!! 1: Look at 5 cards from the top of your deck and add up to 1 card to your hand. Then, place the rest at the bottom of your deck in any order, and trash 1 card from your hand.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "schema-search on-play: top 5, up to 1, deck-bottom",
+        "schema-rest-don-cost on-play: select 1 active DON!!",
+        "engine-action on-play search: exercise action 1 independently (gate and sequence not covered)"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "rawText": "[On Play] DON!! 1: Look at 5 cards from the top of your deck and add up to 1 card to your hand. Then, place the rest at the bottom of your deck in any order, and trash 1 card from your hand.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "don",
+                "amount": 1,
+                "optional": false
+              }
+            ],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom"
+              },
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "requiresTrigger": false
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "PAY_COST",
+                "cost": {
+                  "kind": "rest",
+                  "scope": "don",
+                  "amount": 1,
+                  "optional": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "requiresTrigger": false
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "If you have 6 or less DON!! cards on your field, this Character cannot be removed from the field by your opponent's effects and gains +2000 power.\n[On Play] DON!! 1: Look at 5 cards from the top of your deck and add up to 1 card to your hand. Then, place the rest at the bottom of your deck in any order, and trash 1 card from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On Play] DON!! 1: Look at 5 cards from the top of your deck and add up to 1 card to your hand. Then, place the rest at the bottom of your deck in any order, and trash 1 card from your hand.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "don",
+                "amount": 1,
+                "optional": false
+              }
+            ],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true
+              },
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "requiresTrigger": false
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "PAY_COST",
+                "cost": {
+                  "kind": "rest",
+                  "scope": "don",
+                  "amount": 1,
+                  "optional": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "requiresTrigger": false
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "If you have 6 or less DON!! cards on your field, this Character cannot be removed from the field by your opponent's effects and gains +2000 power.\n[On Play] DON!! 1: Look at 5 cards from the top of your deck and add up to 1 card to your hand. Then, place the rest at the bottom of your deck in any order, and trash 1 card from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "9f7051bd701db251ef5a259f55642d989ba68de0e0327432e7f602fdf5241604",
+      "afterHash": "a4abce83898bbc9049e5d8c4b3a94ca93449f4ab75d941f76a5eda6041d5b926",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "OP16-021",
+      "printedText": "[On Play] If your Leader has the {Whitebeard Pirates} type, look at 3 cards from the top of your deck and add up to 1 card to your hand. Then, place the rest at the bottom of your deck in any order.\n\n[Activate:Main] You may trash this Stage: Give up to 1 rested DON!! card to your Leader or 1 of your Characters.",
+      "publishedText": "[On Play] If your Leader has the {Whitebeard Pirates} type, look at 3 cards from the top of your deck and add up to 1 card to your hand. Then, place the rest at the bottom of your deck in any order.\n\n[Activate:Main] You may trash this Stage: Give up to 1 rested DON!! card to your Leader or 1 of your Characters.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "schema-search on-play: top 3, up to 1, deck-bottom",
+        "engine-action on-play search: exercise action 1 independently (gate and sequence not covered)"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 3,
+                "choose": 1,
+                "destination": "deck-bottom"
+              }
+            ],
+            "rawText": "[On Play] If your Leader has the {Whitebeard Pirates} type, look at 3 cards from the top of your deck and add up to 1 card to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the {Whitebeard Pirates} type"
+              }
+            ]
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "trash",
+                "scope": "self",
+                "amount": 1
+              },
+              {
+                "kind": "attach-don",
+                "amount": 1,
+                "source": "cost-area"
+              },
+              {
+                "kind": "attach-don",
+                "amount": 1,
+                "source": "cost-area"
+              }
+            ],
+            "rawText": "[Activate:Main] You may trash this Stage: Give up to 1 rested DON!! card to your Leader or 1 of your Characters.",
+            "trigger": "activate-main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 3,
+                  "choose": 1,
+                  "destination": "deck-bottom"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the {Whitebeard Pirates} type"
+              }
+            ]
+          },
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "self",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 1,
+                  "source": "cost-area"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 1,
+                  "source": "cost-area"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] If your Leader has the {Whitebeard Pirates} type, look at 3 cards from the top of your deck and add up to 1 card to your hand. Then, place the rest at the bottom of your deck in any order.\n\n[Activate:Main] You may trash this Stage: Give up to 1 rested DON!! card to your Leader or 1 of your Characters.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 3,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true
+              }
+            ],
+            "rawText": "[On Play] If your Leader has the {Whitebeard Pirates} type, look at 3 cards from the top of your deck and add up to 1 card to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the {Whitebeard Pirates} type"
+              }
+            ]
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "trash",
+                "scope": "self",
+                "amount": 1
+              },
+              {
+                "kind": "attach-don",
+                "amount": 1,
+                "source": "cost-area"
+              },
+              {
+                "kind": "attach-don",
+                "amount": 1,
+                "source": "cost-area"
+              }
+            ],
+            "rawText": "[Activate:Main] You may trash this Stage: Give up to 1 rested DON!! card to your Leader or 1 of your Characters.",
+            "trigger": "activate-main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 3,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the {Whitebeard Pirates} type"
+              }
+            ]
+          },
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "self",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 1,
+                  "source": "cost-area"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 1,
+                  "source": "cost-area"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] If your Leader has the {Whitebeard Pirates} type, look at 3 cards from the top of your deck and add up to 1 card to your hand. Then, place the rest at the bottom of your deck in any order.\n\n[Activate:Main] You may trash this Stage: Give up to 1 rested DON!! card to your Leader or 1 of your Characters.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "f6c630d1f52424cf2b0725f8e47992e412b70b22b796a8dc0dd19db667bd9813",
+      "afterHash": "0b8e94061b737ab9c9bd87e50c22b8a0864106c193922b902d42a54d8d97a526",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "OP16-034",
+      "printedText": "[DON!! x1] [Your Turn] This Character gains +1000 power for each of your Characters with a different card name.\n\n[On Play] Look at 3 cards from the top of your deck; reveal up to 1 {Impel Down} type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+      "publishedText": "[DON!! x1] [Your Turn] This Character gains +1000 power for each of your Characters with a different card name.\n\n[On Play] Look at 3 cards from the top of your deck; reveal up to 1 {Impel Down} type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "on-play: Impel Down search / eligible",
+        "on-play: Impel Down search / wrong-trait",
+        "on-play: Impel Down search / outside-window",
+        "on-play: Impel Down search / skip",
+        "engine-aura continuous: condition and recipient power",
+        "schema-search on-play: top 3, up to 1, deck-bottom",
+        "engine-action on-play search: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 7,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "trait": "Impel Down",
+                "amount": 3,
+                "choose": 1,
+                "destination": "deck-bottom"
+              }
+            ],
+            "rawText": "[On Play] Look at 3 cards from the top of your deck; reveal up to 1 {Impel Down} type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "rawText": "[Your Turn] [DON!!x1] This Character gains +1000 power for each of your Characters with a different card name.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 1000,
+                "until": "turn-end",
+                "target": "own-character",
+                "continuous": true
+              },
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "trait": "Impel Down",
+                  "amount": 3,
+                  "choose": 1,
+                  "destination": "deck-bottom"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "continuous",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 1000,
+                  "until": "turn-end",
+                  "target": "own-character",
+                  "continuous": true
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] [Your Turn] This Character gains +1000 power for each of your Characters with a different card name.\n\n[On Play] Look at 3 cards from the top of your deck; reveal up to 1 {Impel Down} type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 3,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true,
+                "trait": "Impel Down"
+              }
+            ],
+            "rawText": "[On Play] Look at 3 cards from the top of your deck; reveal up to 1 {Impel Down} type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "rawText": "[Your Turn] [DON!!x1] This Character gains +1000 power for each of your Characters with a different card name.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 1000,
+                "until": "turn-end",
+                "target": "own-character",
+                "continuous": true
+              },
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 3,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true,
+                  "trait": "Impel Down"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "continuous",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 1000,
+                  "until": "turn-end",
+                  "target": "own-character",
+                  "continuous": true
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] [Your Turn] This Character gains +1000 power for each of your Characters with a different card name.\n\n[On Play] Look at 3 cards from the top of your deck; reveal up to 1 {Impel Down} type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "d3ce02f7f34803f5c8fdf229ea94498525c846fa74a66fe58499fecc4b3e5837",
+      "afterHash": "bf840d67b0c14bdf7a6d5a00037464d20b7ca2c1e05284a35ff7e2df7eb66334",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "OP16-059",
+      "printedText": "[Main] You may rest 7 of your DON!! cards: Look at 5 cards from the top of your deck; play up to 2 {Impel Down} type Character cards with 6000 power or less. Then, place the rest at the bottom of your deck in any order.\n[Counter] Your Leader gains +3000 power during this battle.",
+      "publishedText": "[Main] You may rest 7 of your DON!! cards: Look at 5 cards from the top of your deck; play up to 2 {Impel Down} type Character cards with 6000 power or less. Then, place the rest at the bottom of your deck in any order.\n[Counter] Your Leader gains +3000 power during this battle.",
+      "timings": [
+        "main"
+      ],
+      "scenarioNames": [
+        "schema-power counter: printed amount and duration",
+        "schema-rest-don-cost main: select 7 active DON!! (optional)",
+        "engine-action main search: exercise action 1 independently (gate and sequence not covered)",
+        "schema-atomic-action counter: isolated power"
+      ],
+      "scenarioCount": 4,
+      "before": {
+        "ast": [
+          {
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "don",
+                "amount": 7,
+                "optional": true
+              }
+            ],
+            "actions": [
+              {
+                "kind": "search",
+                "trait": "Impel Down",
+                "amount": 5,
+                "choose": 1,
+                "cardType": "Character",
+                "destination": "deck-bottom"
+              }
+            ],
+            "rawText": "[Main] You may rest 7 of your DON!! cards: Look at 5 cards from the top of your deck; play up to 2 {Impel Down} type Character cards with 6000 power or less. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "main",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "battle",
+                "amount": 3000,
+                "target": "own-leader"
+              }
+            ],
+            "rawText": "[Counter] Your Leader gains +3000 power during this battle.",
+            "trigger": "counter",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "rest",
+                  "scope": "don",
+                  "amount": 7,
+                  "optional": true
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "trait": "Impel Down",
+                  "amount": 5,
+                  "choose": 1,
+                  "cardType": "Character",
+                  "destination": "deck-bottom"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "counter",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "battle",
+                  "amount": 3000,
+                  "target": "own-leader"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] You may rest 7 of your DON!! cards: Look at 5 cards from the top of your deck; play up to 2 {Impel Down} type Character cards with 6000 power or less. Then, place the rest at the bottom of your deck in any order.\n[Counter] Your Leader gains +3000 power during this battle.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "don",
+                "amount": 7,
+                "optional": true
+              }
+            ],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true
+              }
+            ],
+            "rawText": "[Main] You may rest 7 of your DON!! cards: Look at 5 cards from the top of your deck; play up to 2 {Impel Down} type Character cards with 6000 power or less. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "main",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "battle",
+                "amount": 3000,
+                "target": "own-leader"
+              }
+            ],
+            "rawText": "[Counter] Your Leader gains +3000 power during this battle.",
+            "trigger": "counter",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "rest",
+                  "scope": "don",
+                  "amount": 7,
+                  "optional": true
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "counter",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "battle",
+                  "amount": 3000,
+                  "target": "own-leader"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] You may rest 7 of your DON!! cards: Look at 5 cards from the top of your deck; play up to 2 {Impel Down} type Character cards with 6000 power or less. Then, place the rest at the bottom of your deck in any order.\n[Counter] Your Leader gains +3000 power during this battle.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "817c3bd446646223d5c3b2dbcf290931f64f374582dd29d029203f4b074b0ae4",
+      "afterHash": "9c0275e92c752c0650c7c99c0ebbdac00aaf0d0f6d2c71ce37d1e9bf9ed7b4fa",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "OP16-067",
+      "printedText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 {Navy} type card, add it to your hand and place the rest at the bottom of your deck in any order. Then, trash 1 card from your hand.",
+      "publishedText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 {Navy} type card, add it to your hand and place the rest at the bottom of your deck in any order. Then, trash 1 card from your hand.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "schema-search on-play: top 5, up to 1, deck-bottom",
+        "engine-action on-play search: exercise action 1 independently (gate and sequence not covered)",
+        "engine-action on-play trash: exercise action 2 independently (gate and sequence not covered)"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "requiresTrigger": false
+              },
+              {
+                "kind": "search",
+                "trait": "Navy",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom"
+              }
+            ],
+            "rawText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 {Navy} type card, add it to your hand and place the rest at the bottom of your deck in any order. Then, trash 1 card from your hand.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "requiresTrigger": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "trait": "Navy",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 {Navy} type card, add it to your hand and place the rest at the bottom of your deck in any order. Then, trash 1 card from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true,
+                "trait": "Navy"
+              },
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "requiresTrigger": false
+              }
+            ],
+            "rawText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 {Navy} type card, add it to your hand and place the rest at the bottom of your deck in any order. Then, trash 1 card from your hand.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true,
+                  "trait": "Navy"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "requiresTrigger": false
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 {Navy} type card, add it to your hand and place the rest at the bottom of your deck in any order. Then, trash 1 card from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "b0b96c99d6cb71a448de225a049ddd9715026e1d733db8b1ee69754c925fd0ef",
+      "afterHash": "09a739046144a4fbd8bbc7b4819833c665856b601337737adf3e8a50ec91d197",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 2
+    },
+    {
+      "code": "OP16-077",
+      "printedText": "[Main] Look at 5 cards from the top of your deck; reveal up to 2 {Navy} type cards, add them to your hand and place the rest at the bottom of your deck in any order. Then, trash 1 card from your hand.",
+      "publishedText": "[Main] Look at 5 cards from the top of your deck; reveal up to 2 {Navy} type cards, add them to your hand and place the rest at the bottom of your deck in any order. Then, trash 1 card from your hand.",
+      "timings": [
+        "main"
+      ],
+      "scenarioNames": [
+        "schema-search main: top 5, up to 2, deck-bottom",
+        "engine-action main search: exercise action 1 independently (gate and sequence not covered)"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "trait": "Navy",
+                "amount": 5,
+                "choose": 2,
+                "destination": "deck-bottom"
+              },
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "requiresTrigger": false
+              }
+            ],
+            "rawText": "[Main] Look at 5 cards from the top of your deck; reveal up to 2 {Navy} type cards, add them to your hand and place the rest at the bottom of your deck in any order. Then, trash 1 card from your hand.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "trait": "Navy",
+                  "amount": 5,
+                  "choose": 2,
+                  "destination": "deck-bottom"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "requiresTrigger": false
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Look at 5 cards from the top of your deck; reveal up to 2 {Navy} type cards, add them to your hand and place the rest at the bottom of your deck in any order. Then, trash 1 card from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 2,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true,
+                "trait": "Navy"
+              },
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "requiresTrigger": false
+              }
+            ],
+            "rawText": "[Main] Look at 5 cards from the top of your deck; reveal up to 2 {Navy} type cards, add them to your hand and place the rest at the bottom of your deck in any order. Then, trash 1 card from your hand.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 2,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true,
+                  "trait": "Navy"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "requiresTrigger": false
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Look at 5 cards from the top of your deck; reveal up to 2 {Navy} type cards, add them to your hand and place the rest at the bottom of your deck in any order. Then, trash 1 card from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "0cc711dace15cb7b1f58010c17f8506242c6712ccbd5599caa96b4ee18a6d46f",
+      "afterHash": "4bcc04bfced75ded4cb07d4035472d6a1a47af8826e8ccb905426b9e71d2bbd9",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "OP16-119",
+      "printedText": "[On Play] Look at 3 cards from the top of your deck; add up to 1 card to the top of your Life cards. Then, place the rest at the bottom of your deck in any order.\n[Trigger] Negate the effect of up to 1 of your opponent's Characters during this turn. Then, K.O. up to 1 of your opponent's Characters with a cost of 5 or less.",
+      "publishedText": "[On Play] Look at 3 cards from the top of your deck; add up to 1 card to the top of your Life cards. Then, place the rest at the bottom of your deck in any order.\n[Trigger] Negate the effect of up to 1 of your opponent's Characters during this turn. Then, K.O. up to 1 of your opponent's Characters with a cost of 5 or less.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "engine-action on-play search: exercise action 2 independently (gate and sequence not covered)"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "life",
+                "amount": 1,
+                "operation": "add-to-life"
+              },
+              {
+                "kind": "search",
+                "amount": 3,
+                "choose": 1,
+                "destination": "deck-bottom"
+              },
+              {
+                "kind": "move-to-life",
+                "scope": "own",
+                "amount": 1,
+                "faceUp": false,
+                "position": "top"
+              }
+            ],
+            "rawText": "[On Play] Look at 3 cards from the top of your deck; add up to 1 card to the top of your Life cards. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 5,
+                "restedOnly": false
+              },
+              {
+                "kind": "ko",
+                "maxCost": 5,
+                "restedOnly": false
+              },
+              {
+                "kind": "negate-effect",
+                "scope": "opponent-character",
+                "until": "turn-end",
+                "amount": 1
+              }
+            ],
+            "rawText": "[Trigger] Negate the effect of up to 1 of your opponent's Characters during this turn. Then, K.O. up to 1 of your opponent's Characters with a cost of 5 or less.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life",
+                  "amount": 1,
+                  "operation": "add-to-life"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 3,
+                  "choose": 1,
+                  "destination": "deck-bottom"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "move-to-life",
+                  "scope": "own",
+                  "amount": 1,
+                  "faceUp": false,
+                  "position": "top"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 5,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 5,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "negate-effect",
+                  "scope": "opponent-character",
+                  "until": "turn-end",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Look at 3 cards from the top of your deck; add up to 1 card to the top of your Life cards. Then, place the rest at the bottom of your deck in any order.\n[Trigger] Negate the effect of up to 1 of your opponent's Characters during this turn. Then, K.O. up to 1 of your opponent's Characters with a cost of 5 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "life",
+                "amount": 1,
+                "operation": "add-to-life"
+              },
+              {
+                "kind": "search",
+                "amount": 3,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true
+              },
+              {
+                "kind": "move-to-life",
+                "scope": "own",
+                "amount": 1,
+                "faceUp": false,
+                "position": "top"
+              }
+            ],
+            "rawText": "[On Play] Look at 3 cards from the top of your deck; add up to 1 card to the top of your Life cards. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 5,
+                "restedOnly": false
+              },
+              {
+                "kind": "ko",
+                "maxCost": 5,
+                "restedOnly": false
+              },
+              {
+                "kind": "negate-effect",
+                "scope": "opponent-character",
+                "until": "turn-end",
+                "amount": 1
+              }
+            ],
+            "rawText": "[Trigger] Negate the effect of up to 1 of your opponent's Characters during this turn. Then, K.O. up to 1 of your opponent's Characters with a cost of 5 or less.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life",
+                  "amount": 1,
+                  "operation": "add-to-life"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 3,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "move-to-life",
+                  "scope": "own",
+                  "amount": 1,
+                  "faceUp": false,
+                  "position": "top"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 5,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 5,
+                  "restedOnly": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "negate-effect",
+                  "scope": "opponent-character",
+                  "until": "turn-end",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Look at 3 cards from the top of your deck; add up to 1 card to the top of your Life cards. Then, place the rest at the bottom of your deck in any order.\n[Trigger] Negate the effect of up to 1 of your opponent's Characters during this turn. Then, K.O. up to 1 of your opponent's Characters with a cost of 5 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "6d9e06fb29a1b373ed545545341ec44d6dc9dd041edb778976e42b72bbeb761c",
+      "afterHash": "0d92cb3dbdc220139791a347c194d799c31154109c7cc738e0fd907cf34ce28a",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "OP17-019",
+      "printedText": "[Main] Look at 5 cards from the top of your deck; reveal up to 1 card with a type including \"Whitebeard Pirates\" and add it to your hand. Then, place the rest at the bottom of your deck in any order.\n\n[Trigger] Your Leader gains +1000 power during this turn.",
+      "publishedText": "[Main] Look at 5 cards from the top of your deck; reveal up to 1 card with a type including \"Whitebeard Pirates\" and add it to your hand. Then, place the rest at the bottom of your deck in any order.\n\n[Trigger] Your Leader gains +1000 power during this turn.",
+      "timings": [
+        "main"
+      ],
+      "scenarioNames": [
+        "schema-power trigger: printed amount and duration",
+        "schema-search main: top 5, up to 1, deck-bottom",
+        "engine-action main search: resolve isolated parsed instruction",
+        "schema-atomic-action trigger: isolated power"
+      ],
+      "scenarioCount": 4,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 1000,
+                "target": "own-leader"
+              }
+            ],
+            "rawText": "[Trigger] Your Leader gains +1000 power during this turn.",
+            "trigger": "trigger",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "trait": "Whitebeard Pirates",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom"
+              }
+            ],
+            "rawText": "[Main] Look at 5 cards from the top of your deck; reveal up to 1 card with a type including \"Whitebeard Pirates\" and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 1000,
+                  "target": "own-leader"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "trait": "Whitebeard Pirates",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Look at 5 cards from the top of your deck; reveal up to 1 card with a type including \"Whitebeard Pirates\" and add it to your hand. Then, place the rest at the bottom of your deck in any order.\n\n[Trigger] Your Leader gains +1000 power during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 1000,
+                "target": "own-leader"
+              }
+            ],
+            "rawText": "[Trigger] Your Leader gains +1000 power during this turn.",
+            "trigger": "trigger",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true,
+                "trait": "Whitebeard Pirates"
+              }
+            ],
+            "rawText": "[Main] Look at 5 cards from the top of your deck; reveal up to 1 card with a type including \"Whitebeard Pirates\" and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 1000,
+                  "target": "own-leader"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true,
+                  "trait": "Whitebeard Pirates"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Look at 5 cards from the top of your deck; reveal up to 1 card with a type including \"Whitebeard Pirates\" and add it to your hand. Then, place the rest at the bottom of your deck in any order.\n\n[Trigger] Your Leader gains +1000 power during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "e210a4a3c472b4408332dfe0f53d3233250c6153413e2f51cb429b043a68f952",
+      "afterHash": "25282971f1c0de2af660234789709d19b1f6217451d07bfa118de3242f4e7ea0",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "OP17-033",
+      "printedText": "[On Play] Look at 3 cards from the top of your deck; reveal up to 1 card with a type including \"Red-Haired Pirates\" and add it to your hand. Then, place the rest at the bottom of your deck in any order.\n[On Your Opponent's Attack] You may trash this Character: Rest up to 1 of your opponent's Leader or Characters.",
+      "publishedText": "[On Play] Look at 3 cards from the top of your deck; reveal up to 1 card with a type including \"Red-Haired Pirates\" and add it to your hand. Then, place the rest at the bottom of your deck in any order.\n[On Your Opponent's Attack] You may trash this Character: Rest up to 1 of your opponent's Leader or Characters.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "schema-search on-play: top 3, up to 1, deck-bottom",
+        "engine-action on-play search: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-card"
+              },
+              {
+                "kind": "trash",
+                "scope": "self",
+                "amount": 1
+              }
+            ],
+            "rawText": "[On Your Opponent's Attack] You may trash this Character: Rest up to 1 of your opponent's Leader or Characters.",
+            "trigger": "opponent-attack",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "trait": "Red-Haired Pirates",
+                "amount": 3,
+                "choose": 1,
+                "destination": "deck-bottom"
+              }
+            ],
+            "rawText": "[On Play] Look at 3 cards from the top of your deck; reveal up to 1 card with a type including \"Red-Haired Pirates\" and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "opponent-attack",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-card"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "self",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "trait": "Red-Haired Pirates",
+                  "amount": 3,
+                  "choose": 1,
+                  "destination": "deck-bottom"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Look at 3 cards from the top of your deck; reveal up to 1 card with a type including \"Red-Haired Pirates\" and add it to your hand. Then, place the rest at the bottom of your deck in any order.\n[On Your Opponent's Attack] You may trash this Character: Rest up to 1 of your opponent's Leader or Characters.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-card"
+              },
+              {
+                "kind": "trash",
+                "scope": "self",
+                "amount": 1
+              }
+            ],
+            "rawText": "[On Your Opponent's Attack] You may trash this Character: Rest up to 1 of your opponent's Leader or Characters.",
+            "trigger": "opponent-attack",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 3,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true,
+                "trait": "Red-Haired Pirates"
+              }
+            ],
+            "rawText": "[On Play] Look at 3 cards from the top of your deck; reveal up to 1 card with a type including \"Red-Haired Pirates\" and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "opponent-attack",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-card"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "self",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 3,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true,
+                  "trait": "Red-Haired Pirates"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Look at 3 cards from the top of your deck; reveal up to 1 card with a type including \"Red-Haired Pirates\" and add it to your hand. Then, place the rest at the bottom of your deck in any order.\n[On Your Opponent's Attack] You may trash this Character: Rest up to 1 of your opponent's Leader or Characters.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "f2fac5506543e3546f0e98fa599d3ea16576795be6047cd3f22755a8b44339e1",
+      "afterHash": "05aff963e943f27980e57008b3ca171a7556b99692a18e4d81d2e158a5b42f9a",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "OP17-037",
+      "printedText": "[Main] Look at 5 cards from the top of your deck; reveal up to 1 card with a type including \"Red-Haired Pirates\" and add it to your hand. Then, place the rest at the bottom of your deck in any order.\n[Counter] You may rest 1 of your cards: Up to 1 of your Leader or Characters gains +3000 power during this battle.",
+      "publishedText": "[Main] Look at 5 cards from the top of your deck; reveal up to 1 card with a type including \"Red-Haired Pirates\" and add it to your hand. Then, place the rest at the bottom of your deck in any order.\n[Counter] You may rest 1 of your cards: Up to 1 of your Leader or Characters gains +3000 power during this battle.",
+      "timings": [
+        "main"
+      ],
+      "scenarioNames": [
+        "schema-search main: top 5, up to 1, deck-bottom",
+        "engine-action main search: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "battle",
+                "amount": 3000,
+                "target": "own-leader"
+              }
+            ],
+            "rawText": "[Counter] You may rest 1 of your cards: Up to 1 of your Leader or Characters gains +3000 power during this battle.",
+            "trigger": "counter",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "trait": "Red-Haired Pirates",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom"
+              }
+            ],
+            "rawText": "[Main] Look at 5 cards from the top of your deck; reveal up to 1 card with a type including \"Red-Haired Pirates\" and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "counter",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "battle",
+                  "amount": 3000,
+                  "target": "own-leader"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "trait": "Red-Haired Pirates",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Look at 5 cards from the top of your deck; reveal up to 1 card with a type including \"Red-Haired Pirates\" and add it to your hand. Then, place the rest at the bottom of your deck in any order.\n[Counter] You may rest 1 of your cards: Up to 1 of your Leader or Characters gains +3000 power during this battle.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "battle",
+                "amount": 3000,
+                "target": "own-leader"
+              }
+            ],
+            "rawText": "[Counter] You may rest 1 of your cards: Up to 1 of your Leader or Characters gains +3000 power during this battle.",
+            "trigger": "counter",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true,
+                "trait": "Red-Haired Pirates"
+              }
+            ],
+            "rawText": "[Main] Look at 5 cards from the top of your deck; reveal up to 1 card with a type including \"Red-Haired Pirates\" and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "counter",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "battle",
+                  "amount": 3000,
+                  "target": "own-leader"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true,
+                  "trait": "Red-Haired Pirates"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Look at 5 cards from the top of your deck; reveal up to 1 card with a type including \"Red-Haired Pirates\" and add it to your hand. Then, place the rest at the bottom of your deck in any order.\n[Counter] You may rest 1 of your cards: Up to 1 of your Leader or Characters gains +3000 power during this battle.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "51d08a2f76da693ebedb8b4dfe5d777a2e2057d11270c00d2ba6cc90fd24ddd1",
+      "afterHash": "1df2492ca6f4c30f3744f60170fbbb30b67512427517dd714b35ab0870351296",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    },
+    {
+      "code": "ST28-005",
+      "printedText": "[DON!! x2] [Your Turn] This Character gains +3000 power.\n[On Play] Look at 5 cards from the top of your deck; reveal up to 1 \"Land of Wano\" type card with a cost of 2 or more and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+      "publishedText": "[DON!! x2] [Your Turn] This Character gains +3000 power.\n[On Play] Look at 5 cards from the top of your deck; reveal up to 1 \"Land of Wano\" type card with a cost of 2 or more and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "engine-aura continuous: condition and recipient power",
+        "schema-search on-play: top 5, up to 1, deck-bottom",
+        "engine-action on-play search: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "trait": "Land of Wano",
+                "amount": 5,
+                "choose": 1,
+                "minCost": 2,
+                "destination": "deck-bottom"
+              }
+            ],
+            "rawText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 \"Land of Wano\" type card with a cost of 2 or more and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "rawText": "[Your Turn] [DON!!x2] This Character gains +3000 power.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 3000,
+                "until": "turn-end",
+                "target": "own-character",
+                "continuous": true
+              },
+              {
+                "kind": "attach-don-required",
+                "amount": 2
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "trait": "Land of Wano",
+                  "amount": 5,
+                  "choose": 1,
+                  "minCost": 2,
+                  "destination": "deck-bottom"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "continuous",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 3000,
+                  "until": "turn-end",
+                  "target": "own-character",
+                  "continuous": true
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x2] [Your Turn] This Character gains +3000 power.\n[On Play] Look at 5 cards from the top of your deck; reveal up to 1 \"Land of Wano\" type card with a cost of 2 or more and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true,
+                "trait": "Land of Wano",
+                "minCost": 2
+              }
+            ],
+            "rawText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 \"Land of Wano\" type card with a cost of 2 or more and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "rawText": "[Your Turn] [DON!!x2] This Character gains +3000 power.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 3000,
+                "until": "turn-end",
+                "target": "own-character",
+                "continuous": true
+              },
+              {
+                "kind": "attach-don-required",
+                "amount": 2
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true,
+                  "trait": "Land of Wano",
+                  "minCost": 2
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "continuous",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 3000,
+                  "until": "turn-end",
+                  "target": "own-character",
+                  "continuous": true
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x2] [Your Turn] This Character gains +3000 power.\n[On Play] Look at 5 cards from the top of your deck; reveal up to 1 \"Land of Wano\" type card with a cost of 2 or more and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "8c7392f41f801aac124d62db768372329aa1e40db5f7ca8d0c149037be31c367",
+      "afterHash": "264442a8f418d038c23698b420776320bb6eda46488320b029bf8568dd058a75",
+      "patchKind": "ACTION_ONLY_PRESERVING_ALL_OTHER_WINDOW_STEPS",
+      "patchedActionCount": 1
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+-- Published deck compositions recovered from the OnePieceDB event deck pages.
+-- Card codes and quantities match each page's Main Deck breakdown.
+-- OnePieceDB labels the event region US even though "Mexico Regionals" is its title.
+UPDATE `tournament_events` SET `region`='US' WHERE `id`='sangsang-mexico-2026';
+
+INSERT INTO `tournament_deck_cards` (`finish_id`,`card_code`,`quantity`) VALUES
+('sang-2026-09','OP12-071',3),('sang-2026-09','OP15-061',4),('sang-2026-09','OP15-066',3),('sang-2026-09','OP15-067',4),('sang-2026-09','OP15-071',3),('sang-2026-09','OP09-072',1),('sang-2026-09','ST10-010',3),('sang-2026-09','OP10-067',2),('sang-2026-09','OP15-118',3),('sang-2026-09','OP07-064',1),('sang-2026-09','OP13-076',1),('sang-2026-09','OP15-075',4),('sang-2026-09','OP15-076',4),('sang-2026-09','OP15-077',3),('sang-2026-09','OP15-078',4),('sang-2026-09','OP15-074',3),('sang-2026-09','OP05-077',2),('sang-2026-09','OP09-077',2),
+('sang-2026-10','OP08-051',3),('sang-2026-10','OP17-050',3),('sang-2026-10','OP17-045',4),('sang-2026-10','OP17-054',4),('sang-2026-10','OP17-044',3),('sang-2026-10','OP17-041',3),('sang-2026-10','OP17-046',4),('sang-2026-10','OP17-049',4),('sang-2026-10','OP17-040',4),('sang-2026-10','OP17-048',4),('sang-2026-10','OP17-118',4),('sang-2026-10','OP17-056',4),('sang-2026-10','OP17-055',4),('sang-2026-10','EB02-030',2),
+('sang-2026-11','ST32-001',4),('sang-2026-11','OP12-034',4),('sang-2026-11','OP07-022',4),('sang-2026-11','OP06-033',3),('sang-2026-11','OP12-023',4),('sang-2026-11','ST32-002',4),('sang-2026-11','OP14-033',3),('sang-2026-11','OP17-031',3),('sang-2026-11','ST32-003',1),('sang-2026-11','OP13-031',4),('sang-2026-11','OP17-022',3),('sang-2026-11','ST24-004',1),('sang-2026-11','OP12-037',1),('sang-2026-11','OP06-038',3),('sang-2026-11','OP01-055',3),('sang-2026-11','OP08-036',3),('sang-2026-11','OP14-039',2),
+('sang-2026-15','EB04-032',4),('sang-2026-15','OP08-074',3),('sang-2026-15','OP17-073',4),('sang-2026-15','OP17-074',4),('sang-2026-15','EB04-031',4),('sang-2026-15','EB04-030',1),('sang-2026-15','OP17-061',4),('sang-2026-15','OP17-065',2),('sang-2026-15','ST34-004',3),('sang-2026-15','OP17-062',4),('sang-2026-15','OP17-063',2),('sang-2026-15','OP13-076',2),('sang-2026-15','OP15-078',4),('sang-2026-15','OP17-077',2),('sang-2026-15','OP07-077',3),('sang-2026-15','OP07-076',4);
+
+UPDATE `tournament_finishes` SET `list_status`='VERIFIED',`list_verified_at`=CURRENT_TIMESTAMP WHERE `id` IN ('sang-2026-09','sang-2026-10','sang-2026-11','sang-2026-15');

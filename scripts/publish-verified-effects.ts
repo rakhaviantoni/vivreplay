@@ -3,16 +3,21 @@ import {createHash} from 'node:crypto';
 import {createClient} from '@supabase/supabase-js';
 import type {EffectAction,EffectDocument,EffectTrigger} from '../packages/domain/effect-rules';
 import {compileEffectDocument} from '../packages/domain/effect-rules';
-import {scenarios,type Identity} from './card-effect-scenarios';
+import {scenarios,type Identity,type Scenario} from './card-effect-scenarios';
 const canonical=(value:unknown):string=>JSON.stringify(value,(_key,item)=>item&&typeof item==='object'&&!Array.isArray(item)?Object.fromEntries(Object.entries(item).sort(([a],[b])=>a.localeCompare(b))):item);
 const hash=(value:unknown)=>createHash('sha256').update(canonical(value)).digest('hex');
 const mainActionIsRest=(action:EffectAction|undefined):action is Extract<EffectAction,{kind:'rest'}>=>action?.kind==='rest';
-const normalizedWindowText=(value:string)=>value.replace(/\s+/g,' ').replace(/[−–—]/g,'-').replace(/Activate:\s*Main/gi,'Activate: Main').replace(/\[(On Play|When Attacking|Activate\s*:\s*Main|Main|Counter|Trigger|On K\.O\.|On Block|On Your Opponent's Attack|End of Your Turn)\]\s*/gi,'[$1]').replace(/\[(DON!!\s*[x×]\s*\d+)\]\s*(\[(?:On Play|When Attacking|Activate\s*:\s*Main|Main|Counter|Trigger|On K\.O\.|On Block|On Your Opponent's Attack|End of Your Turn)\])/gi,'$2 [$1] ').replace(/\[DON!!\s*[x×]\s*(\d+)\]\s*\[(Opponent's Turn)\]/gi,'[$2] [DON!!x$1]').replace(/DON!!\s*[x×]/gi,'DON!!x').replace(/\{([^{}]+)\}/g,'[$1]').replace(/gains\s+\[?(Rush|Blocker|Double Attack|Banish)\]?/gi,'gains [$1]').replace(/\s*\(/g,' (').replace(/\s+([.,:;])/g,'$1').replace(/\]\s*\[/g,'] [');
-const containsSourceWindow=(source:string,window:string)=>{const normalizedSource=normalizedWindowText(source),normalizedWindow=normalizedWindowText(window),expandedSource=normalizedSource.replace(/\[([^\]]+)\]\s*\/\s*\[([^\]]+)\]/gi,'[$1] [$2]'),sharedOnPlay=normalizedSource.replace(/\[(On Play|On K\.O\.)\]\s*\/\s*\[(On Play|On K\.O\.)\]\s*/gi,'[$1] '),sharedOnKo=normalizedSource.replace(/\[(On Play|On K\.O\.)\]\s*\/\s*\[(On Play|On K\.O\.)\]\s*/gi,'[$2] ');return normalizedSource.includes(normalizedWindow)||expandedSource.includes(normalizedWindow)||sharedOnPlay.includes(normalizedWindow)||sharedOnKo.includes(normalizedWindow);};
+const normalizedWindowText=(value:string)=>value.replace(/\s+/g,' ').replace(/[−–—]/g,'-').replace(/Activate:\s*Main/gi,'Activate: Main').replace(/\[(On Play|When Attacking|Activate\s*:\s*Main|Main|Counter|Trigger|On K\.O\.|On Block|On Your Opponent's Attack|End of Your Turn)\]\s*/gi,'[$1] ').replace(/\[(DON!!\s*[x×]\s*\d+)\]\s*(\[(?:On Play|When Attacking|Activate\s*:\s*Main|Main|Counter|Trigger|On K\.O\.|On Block|On Your Opponent's Attack|End of Your Turn|Your Turn|Opponent's Turn)\])/gi,'$2 [$1] ').replace(/\[DON!!\s*[x×]\s*(\d+)\]\s*\[(Opponent's Turn|Your Turn)\]/gi,'[$2] [DON!!x$1]').replace(/DON!!\s*[x×]/gi,'DON!!x').replace(/\{([^{}]+)\}/g,'[$1]').replace(/gains\s+\[?(Rush|Blocker|Double Attack|Banish)\]?/gi,'gains [$1]').replace(/\s*\(/g,' (').replace(/\s+([.,:;])/g,'$1').replace(/\]\s*\[/g,'] [').replace(/\s+/g,' ');
+const containsSourceWindow=(source:string,window:string)=>{const normalizedSource=normalizedWindowText(source),normalizedWindow=normalizedWindowText(window),expandedSource=normalizedSource.replace(/\[([^\]]+)\]\s*\/\s*\[([^\]]+)\]/gi,'[$1] [$2]'),sharedOnPlay=normalizedSource.replace(/\[(On Play|On K\.O\.)\]\s*\/\s*\[(On Play|On K\.O\.)\]\s*/gi,'[$1] '),sharedOnKo=normalizedSource.replace(/\[(On Play|On K\.O\.)\]\s*\/\s*\[(On Play|On K\.O\.)\]\s*/gi,'[$2] '),sharedMain=normalizedSource.replace(/\[(Main|Counter)\]\s*\/\s*\[(Main|Counter)\]\s*/gi,'[$1] '),sharedCounter=normalizedSource.replace(/\[(Main|Counter)\]\s*\/\s*\[(Main|Counter)\]\s*/gi,'[$2] ');return normalizedSource.includes(normalizedWindow)||expandedSource.includes(normalizedWindow)||sharedOnPlay.includes(normalizedWindow)||sharedOnKo.includes(normalizedWindow)||sharedMain.includes(normalizedWindow)||sharedCounter.includes(normalizedWindow);};
 type Row={code:string;name:string;printedText:string;publishedText:string|null;localSchema:EffectDocument;databaseSchema:EffectDocument|null;textMatches:boolean};
 const windowPresentInBothSources=(card:Row,window:string)=>Boolean(card.publishedText&&containsSourceWindow(card.printedText,window)&&containsSourceWindow(card.publishedText,window));
 function scenarioWindow(name:string,schema:EffectDocument):EffectTrigger|undefined{
+ if(/^schema-op07-017 main\/trigger:/i.test(name))return 'main';
+ if(/^schema-st12-016 main\/counter\/trigger:/i.test(name))return 'main';
+ if(/^engine-aura continuous:/i.test(name))return 'continuous';
  if(/^schema-st01-012 when-attacking:/i.test(name))return 'when-attacking';
+ if(/^schema-op16-055 when-attacking:/i.test(name))return 'when-attacking';
+ if(/^schema-op07-016 main and trigger:/i.test(name))return 'main';
  if(/^keyword (?:Rush|Blocker|Double Attack|Banish):/i.test(name))return 'unknown';
  if(name.startsWith('schema-continuous-power:'))return 'continuous';
  if(name.startsWith('End of Your Turn: ready only a cost 3–8 Supernovas Character'))return 'end-turn';
@@ -138,7 +143,110 @@ const blocked:Record<string,number>={};
 const block=(reason:string)=>{blocked[reason]=(blocked[reason]??0)+1;};
 for(const card of snapshot.cards){
  const cases=scenarios({code:card.code,effect_text:card.printedText} as Identity);
+ if(card.databaseScenarios.some(s=>s.status==='FAIL')&&card.textMatches&&card.databaseSchema&&card.localSchema.resolver.type==='DSL'&&card.databaseSchema.resolver.type==='DSL'){
+  const after=structuredClone(card.databaseSchema),changed:EffectTrigger[]=[],checks:Scenario[]=[];
+  for(const timing of [...new Set(card.localSchema.ast.map(ability=>ability.trigger))]){
+   const localAst=card.localSchema.ast.filter(ability=>ability.trigger===timing),localNorm=card.localSchema.normalized.filter(effect=>effect.timing===timing),publishedAst=after.ast.filter(ability=>ability.trigger===timing),publishedNorm=after.normalized.filter(effect=>effect.timing===timing);
+   if(localAst.length!==1||localNorm.length!==1||publishedAst.length!==1||publishedNorm.length!==1)continue;
+   const ability=localAst[0],action=ability.actions[0],orderedPower=ability.actions.length>1&&ability.actions.every(item=>item.kind==='power')&&cases.some(s=>s.name.includes('gameplay power sequence: resolve every printed target in order')&&scenarioWindow(s.name,card.localSchema)===timing);
+   if(ability.conditions.length||ability.costs.length||!ability.actions.length||(!orderedPower&&ability.actions.length!==1)||!windowPresentInBothSources(card,ability.rawText.trim()))continue;
+   const executions=ability.actions.map((item,index)=>cases.find(s=>s.name.startsWith(`engine-action ${timing} ${item.kind}: ${ability.actions.length===1?'resolve isolated parsed instruction':`exercise action ${index+1} independently`}`))).filter((item):item is Scenario=>Boolean(item));
+   if(executions.length!==ability.actions.length)continue;
+   if(ability.actions.length>1&&!orderedPower)continue;
+   if(canonical(ability)===canonical(publishedAst[0])&&canonical(localNorm[0])===canonical(publishedNorm[0]))continue;
+   try{for(const execution of executions)execution.run(card.localSchema);}catch{continue;}
+   const trial=structuredClone(after),astIndex=trial.ast.findIndex(item=>item.trigger===timing),normIndex=trial.normalized.findIndex(item=>item.timing===timing);
+   trial.ast[astIndex]=structuredClone(ability);trial.normalized[normIndex]=structuredClone(localNorm[0]);
+   const related=cases.filter(s=>s.name.startsWith(`engine-action ${timing} `)||scenarioWindow(s.name,card.localSchema)===timing);
+   try{for(const scenario of related)scenario.run(trial);}catch{continue;}
+   after.ast=trial.ast;after.normalized=trial.normalized;
+   changed.push(timing);checks.push(...related);
+  }
+  if(changed.length){candidates.push({code:card.code,printedText:card.printedText,publishedText:card.publishedText,timings:changed,scenarioNames:[...new Set(checks.map(s=>s.name))],scenarioCount:new Set(checks.map(s=>s.name)).size,before:card.databaseSchema,after,beforeHash:hash(card.databaseSchema),afterHash:hash(after)});continue;}
+ }
+ const attackRestrictionCases=cases.filter(s=>s.name.includes('gameplay attack prohibition:'));
+ const attackRestrictionText=/This Character cannot attack (?:a Leader on the turn in which it is played|unless )/i.test(card.printedText);
+ if(card.databaseScenarios.some(s=>s.status==='FAIL')&&card.textMatches&&card.databaseSchema?.resolver.type==='CUSTOM'&&card.localSchema.resolver.type==='DSL'&&attackRestrictionText&&attackRestrictionCases.length>0){
+  const prohibitions=card.localSchema.ast.flatMap(ability=>ability.actions.filter(action=>action.kind==='attack-prohibition'&&(action.condition||action.target||action.during)));
+  const sourcesMatch=prohibitions.length>0&&prohibitions.every(action=>card.localSchema.ast.some(ability=>ability.actions.includes(action)&&windowPresentInBothSources(card,ability.rawText.trim())));
+  if(!sourcesMatch){block('attack-restriction-window-not-proven-in-both-sources');continue;}
+  try{for(const scenario of attackRestrictionCases)scenario.run(card.localSchema);}catch{block('attack-restriction-local-scenario-failed');continue;}
+  const after=structuredClone(card.localSchema);
+  try{for(const scenario of attackRestrictionCases)scenario.run(after);}catch{block('attack-restriction-published-scenario-failed');continue;}
+  candidates.push({code:card.code,printedText:card.printedText,publishedText:card.publishedText,timings:card.localSchema.ast.filter(ability=>ability.actions.some(action=>action.kind==='attack-prohibition')).map(ability=>ability.trigger),scenarioNames:attackRestrictionCases.map(s=>s.name),scenarioCount:attackRestrictionCases.length,before:card.databaseSchema,after,beforeHash:hash(card.databaseSchema),afterHash:hash(after)});continue;
+ }
+ const stageRestLifeCases=cases.filter(s=>s.name.startsWith('schema-stage-rest-life-power '));
+ if(card.databaseScenarios.some(s=>s.status==='FAIL')&&card.textMatches&&card.databaseSchema&&card.localSchema.resolver.type==='DSL'&&stageRestLifeCases.length===1){
+  const localWindows=card.localSchema.ast.filter(ability=>ability.costs.some(cost=>cost.kind==='rest'&&cost.scope==='self')&&ability.costs.some(cost=>cost.kind==='turn-life'&&cost.faceUp)&&ability.actions.length===1&&ability.actions[0].kind==='power');
+  const localEffects=localWindows.flatMap(ability=>card.localSchema.normalized.filter(effect=>effect.timing===ability.trigger));
+  const exact=card.localSchema.ast.length===1&&localWindows.length===1&&localEffects.length===1&&localWindows[0].costs.length===2&&localWindows[0].conditions.length===0&&localWindows[0].costs.every(cost=>cost.optional)&&localWindows[0].costs.some(cost=>cost.kind==='turn-life'&&cost.scope==='own'&&cost.amount===1&&cost.position==='top'&&cost.faceUp)&&localEffects[0].sequence.length===3&&localEffects[0].sequence[0].type==='PAY_COST'&&localEffects[0].sequence[1].type==='PAY_COST'&&localEffects[0].sequence[2].type==='RESOLVE'&&windowPresentInBothSources(card,localWindows[0].rawText.trim());
+  if(!exact){block('stage-rest-life-window-not-isolated');continue;}
+  try{for(const scenario of stageRestLifeCases)scenario.run(card.localSchema);}catch{block('stage-rest-life-local-sequence-failed');continue;}
+  const after=structuredClone(card.localSchema);
+  try{for(const scenario of stageRestLifeCases)scenario.run(after);}catch{block('stage-rest-life-published-sequence-failed');continue;}
+  candidates.push({code:card.code,printedText:card.printedText,publishedText:card.publishedText,timings:[localWindows[0].trigger],scenarioNames:stageRestLifeCases.map(s=>s.name),scenarioCount:stageRestLifeCases.length,before:card.databaseSchema,after,beforeHash:hash(card.databaseSchema),afterHash:hash(after)});continue;
+ }
+ if(card.code==='OP04-038'&&card.databaseScenarios.some(s=>s.status==='FAIL')&&card.textMatches&&card.databaseSchema&&card.localSchema.resolver.type==='DSL'){
+  const windows=new Map<EffectTrigger,EffectDocument['ast']>();
+  for(const timing of ['main','counter','trigger'] as const)windows.set(timing,card.localSchema.ast.filter(ability=>ability.trigger===timing));
+  const main=windows.get('main')??[],counter=windows.get('counter')??[],trigger=windows.get('trigger')??[];
+  const ordered=cases.filter(s=>s.name==='schema-op04-038 Main/Counter: rest a target before K.O. of a rested Character');
+  const safe=card.localSchema.ast.length===3&&main.length===1&&counter.length===1&&trigger.length===1&&[main[0],counter[0]].every(ability=>ability.conditions.length===0&&ability.costs.length===0&&ability.actions.length===2&&ability.actions[0].kind==='rest'&&ability.actions[1].kind==='ko'&&windowPresentInBothSources(card,ability.rawText.trim()))&&trigger[0].actions.length===1&&trigger[0].actions[0].kind==='ready'&&windowPresentInBothSources(card,trigger[0].rawText.trim())&&ordered.length===1;
+  if(!safe){block('op04-038-rest-ko-trigger-windows-not-isolated');continue;}
+  try{for(const scenario of cases)scenario.run(card.localSchema);}catch{block('op04-038-local-scenario-failed');continue;}
+  const after=structuredClone(card.localSchema);
+  try{for(const scenario of cases)scenario.run(after);}catch{block('op04-038-published-scenario-failed');continue;}
+  candidates.push({code:card.code,printedText:card.printedText,publishedText:card.publishedText,timings:['main','counter','trigger'],scenarioNames:cases.map(s=>s.name),scenarioCount:cases.length,before:card.databaseSchema,after,beforeHash:hash(card.databaseSchema),afterHash:hash(after)});continue;
+ }
+ if(card.code==='OP08-019'&&card.databaseScenarios.some(s=>s.status==='FAIL')&&card.textMatches&&card.databaseSchema&&card.localSchema.resolver.type==='DSL'){
+  const main=card.localSchema.ast.filter(ability=>ability.trigger==='main'),counter=card.localSchema.ast.filter(ability=>ability.trigger==='counter'),trigger=card.localSchema.ast.filter(ability=>ability.trigger==='trigger');
+  const ordered=cases.filter(s=>s.name==='schema-op08-019 Main/Counter: apply the printed opposing and own power changes in order');
+  const safe=card.localSchema.ast.length===3&&main.length===1&&counter.length===1&&trigger.length===1&&[main[0],counter[0]].every(ability=>ability.conditions.length===0&&ability.costs.length===0&&ability.actions.length===2&&ability.actions[0].kind==='power'&&ability.actions[1].kind==='power'&&windowPresentInBothSources(card,ability.rawText.trim()))&&trigger[0].actions.length===1&&trigger[0].actions[0].kind==='ko'&&windowPresentInBothSources(card,trigger[0].rawText.trim())&&ordered.length===1;
+  if(!safe){block('op08-019-dual-power-windows-not-isolated');continue;}
+  try{for(const scenario of cases)scenario.run(card.localSchema);}catch{block('op08-019-local-scenario-failed');continue;}
+  const after=structuredClone(card.localSchema);
+  try{for(const scenario of cases)scenario.run(after);}catch{block('op08-019-published-scenario-failed');continue;}
+  candidates.push({code:card.code,printedText:card.printedText,publishedText:card.publishedText,timings:['main','counter','trigger'],scenarioNames:cases.map(s=>s.name),scenarioCount:cases.length,before:card.databaseSchema,after,beforeHash:hash(card.databaseSchema),afterHash:hash(after)});continue;
+ }
+ const standalonePowerCases=cases.filter(s=>/ gameplay power: verify the complete window and apply its printed target$/.test(s.name));
+ if(card.databaseScenarios.some(s=>s.status==='FAIL')&&card.textMatches&&card.databaseSchema&&card.localSchema.resolver.type==='DSL'&&standalonePowerCases.length===1){
+  const ability=card.localSchema.ast[0],window=card.localSchema.normalized[0],markerCount=(card.printedText.match(/\[(?:On Play|When Attacking|Activate\s*:\s*Main|Main|Counter|Trigger|On K\.O\.|On Block|On Your Opponent's Attack|End of Your Turn)\]/gi)??[]).length;
+  const body=card.printedText.replace(/^\s*\[(?:On Play|When Attacking|Activate\s*:\s*Main|Main|Counter|Trigger|On K\.O\.|On Block|On Your Opponent's Attack|End of Your Turn)\]\s*/i,'');
+  const onlyOnePowerClause=(body.match(/(?:gains?|give)\s+[+\-−]?\s*\d+\s+power/gi)??[]).length===1;
+  const noOtherOperation=/\b(?:then|trash|K\.O\.|draw|return|rest|play|add|attach|reveal|search|look at|turn .*Life|cannot|prevent|choose|replace|becomes?)\b/i.test(body);
+  const exact=card.localSchema.ast.length===1&&card.localSchema.normalized.length===1&&ability?.conditions.length===0&&ability?.costs.length===0&&ability?.actions.length===1&&ability.actions[0].kind==='power'&&!ability.actions[0].bonus&&!ability.actions[0].continuous&&window?.sequence.length===1&&window.sequence[0].type==='RESOLVE'&&window.sequence[0].action.kind==='power'&&markerCount===1&&onlyOnePowerClause&&!noOtherOperation&&windowPresentInBothSources(card,ability.rawText.trim());
+  if(!exact){block('standalone-power-window-not-complete');continue;}
+  const checks=cases.filter(s=>!s.name.startsWith('engine-action '));
+  try{for(const scenario of checks)scenario.run(card.localSchema);}catch{block('standalone-power-local-gameplay-failed');continue;}
+  const after=structuredClone(card.localSchema);
+  try{for(const scenario of checks)scenario.run(after);}catch{block('standalone-power-published-gameplay-failed');continue;}
+  candidates.push({code:card.code,printedText:card.printedText,publishedText:card.publishedText,timings:[ability.trigger],scenarioNames:checks.map(s=>s.name),scenarioCount:checks.length,before:card.databaseSchema,after,beforeHash:hash(card.databaseSchema),afterHash:hash(after)});continue;
+ }
  if(card.code==='OP17-053'&&card.databaseScenarios.some(s=>s.status==='FAIL')){block('op17-053-opponent-controlled-hidden-choice-unimplemented');continue;}
+ if(card.code==='OP07-017'&&card.databaseScenarios.some(s=>s.status==='FAIL')){
+  const freshLocal=compileEffectDocument({id:'',code:card.code,name:card.name,color:'Red',type:'Event',cost:3,power:0,counter:0,rarity:'',art:0,effect:card.printedText});
+  const localMain=freshLocal.ast.filter(ast=>ast.trigger==='main'),localTrigger=freshLocal.ast.filter(ast=>ast.trigger==='trigger'),localMainEffect=freshLocal.normalized.filter(effect=>effect.timing==='main'),localTriggerEffect=freshLocal.normalized.filter(effect=>effect.timing==='trigger');
+  const [character,stage]=localMain[0]?.actions??[];const checks=cases.filter(s=>s.name==='schema-op07-017 main/trigger: choose a qualifying Character and Stage independently');
+  const safe=card.textMatches&&localMain.length===1&&localTrigger.length===1&&localMainEffect.length===1&&localTriggerEffect.length===1&&localMain[0].conditions.length===0&&localMain[0].costs.length===0&&localMain[0].actions.length===2&&character?.kind==='ko'&&character.scope==='opponent-character'&&character.maxPower===3000&&character.selection?.min===0&&character.selection.max===1&&stage?.kind==='ko'&&stage.scope==='opponent-stage'&&stage.maxCost===1&&stage.selection?.min===0&&stage.selection.max===1&&localTrigger[0].actions.some(action=>action.kind==='activate-referenced-effect'&&action.trigger==='main')&&windowPresentInBothSources(card,localMain[0].rawText.trim())&&windowPresentInBothSources(card,localTrigger[0].rawText.trim())&&checks.length===1;
+  if(!safe){block('op07-017-character-stage-sequence-not-isolated');continue;}
+  try{for(const scenario of checks)scenario.run(freshLocal);}catch{block('op07-017-local-character-stage-scenario-failed');continue;}
+  const after=structuredClone(card.databaseSchema!);const repaired=new Set<EffectTrigger>(['main','trigger']);after.ast=[...after.ast.filter(ast=>!repaired.has(ast.trigger)),...localMain,...localTrigger];after.normalized=[...after.normalized.filter(effect=>!repaired.has(effect.timing)),...localMainEffect,...localTriggerEffect];
+  try{for(const scenario of checks)scenario.run(after);}catch{block('op07-017-published-character-stage-scenario-failed');continue;}
+  candidates.push({code:card.code,printedText:card.printedText,publishedText:card.publishedText,timings:['main','trigger'],scenarioNames:checks.map(s=>s.name),scenarioCount:checks.length,before:card.databaseSchema,after,beforeHash:hash(card.databaseSchema),afterHash:hash(after)});continue;
+ }
+ if(card.code==='ST12-016'&&card.databaseScenarios.some(s=>s.status==='FAIL')){
+  const freshLocal=compileEffectDocument({id:'',code:card.code,name:card.name,color:'Red',type:'Event',cost:2,power:0,counter:0,rarity:'',art:0,effect:card.printedText});
+  const localMain=freshLocal.ast.filter(ast=>ast.trigger==='main'),localCounter=freshLocal.ast.filter(ast=>ast.trigger==='counter'),localTrigger=freshLocal.ast.filter(ast=>ast.trigger==='trigger');
+  const localMainEffect=freshLocal.normalized.filter(effect=>effect.timing==='main'),localTriggerEffect=freshLocal.normalized.filter(effect=>effect.timing==='trigger');
+  const mainAction=localMain[0]?.actions[0],counterAction=localCounter[0]?.actions[0];
+  const checks=cases.filter(s=>s.name.startsWith('schema-st12-016 main/counter/trigger:')||s.name==='schema-rest-target main: opponent-card cost <= 4 up to 1');
+  const safe=card.textMatches&&localMain.length===1&&localCounter.length===1&&localTrigger.length===1&&localMainEffect.length===1&&localTriggerEffect.length===1&&mainAction?.kind==='rest'&&mainAction.scope==='opponent-card'&&mainAction.maxCost===4&&mainAction.selection?.min===0&&mainAction.selection.max===1&&counterAction?.kind==='rest'&&canonical(mainAction)===canonical(counterAction)&&localTrigger[0].actions.length===2&&localTrigger[0].actions.filter(action=>action.kind==='activate-main-effect').length===1&&localTrigger[0].actions.filter(action=>action.kind==='activate-referenced-effect'&&action.trigger==='main').length===1&&localMainEffect[0].sequence.length===1&&localTriggerEffect[0].sequence.length===2&&windowPresentInBothSources(card,localMain[0].rawText.trim())&&windowPresentInBothSources(card,localCounter[0].rawText.trim())&&windowPresentInBothSources(card,localTrigger[0].rawText.trim())&&checks.length===2;
+  if(!safe){block('st12-016-rest-windows-not-isolated');continue;}
+  try{for(const scenario of checks)scenario.run(freshLocal);}catch{block('st12-016-local-rest-scenarios-failed');continue;}
+  const after=structuredClone(card.databaseSchema!);const repaired=new Set<EffectTrigger>(['main','trigger']);after.ast=[...after.ast.filter(ast=>!repaired.has(ast.trigger)),...localMain,...localTrigger];after.normalized=[...after.normalized.filter(effect=>!repaired.has(effect.timing)),...localMainEffect,...localTriggerEffect];
+  try{for(const scenario of checks)scenario.run(after);}catch{block('st12-016-published-rest-scenarios-failed');continue;}
+  candidates.push({code:card.code,printedText:card.printedText,publishedText:card.publishedText,timings:['main','trigger'],scenarioNames:checks.map(s=>s.name),scenarioCount:checks.length,before:card.databaseSchema,after,beforeHash:hash(card.databaseSchema),afterHash:hash(after)});continue;
+ }
  if(card.code==='P-113'&&card.databaseScenarios.some(s=>s.status==='FAIL')){
   const freshLocal=compileEffectDocument({id:'',code:'P-113',name:'Jewelry Bonney',color:'Green',type:'Character',cost:3,power:4000,counter:0,rarity:'',art:0,effect:card.printedText});
   const localContinuous=freshLocal.ast.filter(ast=>ast.trigger==='continuous'),localNormalized=freshLocal.normalized.filter(effect=>effect.timing==='continuous');
@@ -151,6 +259,30 @@ for(const card of snapshot.cards){
   const after=structuredClone(card.databaseSchema!);after.ast=[...after.ast.filter(ast=>ast.trigger!=='continuous'&&ast.trigger!=='trigger'),...localContinuous,...localTrigger];after.normalized=[...after.normalized.filter(effect=>effect.timing!=='continuous'&&effect.timing!=='trigger'),...localNormalized,...localTriggerNormalized];
   try{for(const scenario of checks)scenario.run(after);}catch{block('p113-published-don-blocker-power-scenario-failed');continue;}
   candidates.push({code:card.code,printedText:card.printedText,publishedText:card.publishedText,timings:['continuous','trigger'],scenarioNames:checks.map(s=>s.name),scenarioCount:checks.length,before:card.databaseSchema,after,beforeHash:hash(card.databaseSchema),afterHash:hash(after)});continue;
+ }
+ if(card.code==='OP16-055'&&card.databaseScenarios.some(s=>s.status==='FAIL')){
+  const localOnPlay=card.localSchema.ast.filter(ast=>ast.trigger==='on-play'),localAttack=card.localSchema.ast.filter(ast=>ast.trigger==='when-attacking');
+  const localOnPlayEffect=card.localSchema.normalized.filter(effect=>effect.timing==='on-play'),localAttackEffect=card.localSchema.normalized.filter(effect=>effect.timing==='when-attacking');
+  const checks=cases.filter(s=>s.name==='schema-op16-055 when-attacking: one attached DON!! copies opposing Leader base power until turn end');
+  const attack=localAttack[0],copy=attack?.actions.find(action=>action.kind==='copy-base-power');
+  const safe=card.textMatches&&localOnPlay.length===1&&localOnPlayEffect.length===1&&localOnPlay[0].conditions.length===0&&localOnPlay[0].costs.length===0&&localOnPlay[0].actions.length===1&&localOnPlay[0].actions[0].kind==='draw'&&localOnPlay[0].actions[0].amount===1&&localAttack.length===1&&localAttackEffect.length===1&&attack.conditions.length===0&&attack.costs.length===0&&attack.actions.length===2&&attack.actions.some(action=>action.kind==='attach-don-required'&&action.amount===1)&&copy?.kind==='copy-base-power'&&copy.from==='opponent-leader'&&localAttackEffect[0].sequence.length===1&&localAttackEffect[0].sequence[0].type==='RESOLVE'&&localAttackEffect[0].sequence[0].action.kind==='copy-base-power'&&windowPresentInBothSources(card,localOnPlay[0].rawText.trim())&&windowPresentInBothSources(card,attack.rawText.trim())&&checks.length===1;
+  if(!safe){block('op16-055-timings-or-copy-power-not-isolated');continue;}
+  try{for(const scenario of checks)scenario.run(card.localSchema);}catch{block('op16-055-local-copy-power-scenario-failed');continue;}
+  const after=structuredClone(card.databaseSchema!);const repaired=new Set<EffectTrigger>(['on-play','when-attacking']);after.ast=[...after.ast.filter(ast=>!repaired.has(ast.trigger)),...localOnPlay,...localAttack];after.normalized=[...after.normalized.filter(effect=>!repaired.has(effect.timing)),...localOnPlayEffect,...localAttackEffect];
+  try{for(const scenario of checks)scenario.run(after);}catch{block('op16-055-published-copy-power-scenario-failed');continue;}
+  candidates.push({code:card.code,printedText:card.printedText,publishedText:card.publishedText,timings:['on-play','when-attacking'],scenarioNames:checks.map(s=>s.name),scenarioCount:checks.length,before:card.databaseSchema,after,beforeHash:hash(card.databaseSchema),afterHash:hash(after)});continue;
+ }
+ if(card.code==='OP07-016'&&card.databaseScenarios.some(s=>s.status==='FAIL')){
+  const localMain=card.localSchema.ast.filter(ast=>ast.trigger==='main'),localTrigger=card.localSchema.ast.filter(ast=>ast.trigger==='trigger');
+  const localMainEffect=card.localSchema.normalized.filter(effect=>effect.timing==='main'),localTriggerEffect=card.localSchema.normalized.filter(effect=>effect.timing==='trigger');
+  const checks=cases.filter(s=>s.name==='schema-op07-016 main and trigger: independently boost Revolutionary Army and weaken one opposing Character');
+  const [boost,reduce]=localMain[0]?.actions??[];
+  const safe=card.textMatches&&localMain.length===1&&localMainEffect.length===1&&localMain[0].conditions.length===0&&localMain[0].costs.length===0&&localMain[0].actions.length===2&&boost?.kind==='power'&&boost.amount===2000&&boost.target==='own-character'&&boost.trait==='Revolutionary Army'&&boost.selection?.max===1&&reduce?.kind==='power'&&reduce.amount===-1000&&reduce.target==='opponent-character'&&reduce.selection?.max===1&&windowPresentInBothSources(card,localMain[0].rawText.trim())&&localTrigger.length===1&&localTriggerEffect.length===1&&localTrigger[0].actions.some(action=>action.kind==='activate-referenced-effect'&&action.trigger==='main')&&windowPresentInBothSources(card,localTrigger[0].rawText.trim())&&checks.length===1;
+  if(!safe){block('op07-016-main-trigger-or-target-not-isolated');continue;}
+  try{for(const scenario of checks)scenario.run(card.localSchema);}catch{block('op07-016-local-power-sequence-failed');continue;}
+  const after=structuredClone(card.databaseSchema!);const repaired=new Set<EffectTrigger>(['main','trigger']);after.ast=[...after.ast.filter(ast=>!repaired.has(ast.trigger)),...localMain,...localTrigger];after.normalized=[...after.normalized.filter(effect=>!repaired.has(effect.timing)),...localMainEffect,...localTriggerEffect];
+  try{for(const scenario of checks)scenario.run(after);}catch{block('op07-016-published-power-sequence-failed');continue;}
+  candidates.push({code:card.code,printedText:card.printedText,publishedText:card.publishedText,timings:['main','trigger'],scenarioNames:checks.map(s=>s.name),scenarioCount:checks.length,before:card.databaseSchema,after,beforeHash:hash(card.databaseSchema),afterHash:hash(after)});continue;
  }
  if(card.code==='OP03-041'&&card.databaseScenarios.some(s=>s.status==='FAIL')){
   const localUnknown=card.localSchema.ast.filter(ast=>ast.trigger==='unknown'),localNormalized=card.localSchema.normalized.filter(effect=>effect.timing==='unknown'),rush=localUnknown.filter(ast=>ast.actions.length===1&&ast.actions[0].kind==='rush'),attack=localUnknown.filter(ast=>ast.actions.some(action=>action.kind==='trash'&&action.scope==='deck'&&action.amount===7));
@@ -234,7 +366,9 @@ for(const card of snapshot.cards){
  const referenceCases=cases.filter(s=>s.name.startsWith('schema-reference trigger:'));
  const onKoReferenceCases=cases.filter(s=>s.name.startsWith('schema-reference trigger: resolve the referenced On K.O.'));
  const mainKoCases=cases.filter(s=>s.name.startsWith('schema-ko main:'));
+ const counterKoCases=cases.filter(s=>s.name.startsWith('schema-ko counter:'));
  const localMainAst=card.localSchema.ast.filter(ast=>ast.trigger==='main'),localMainEffect=card.localSchema.normalized.filter(effect=>effect.timing==='main');
+ const localCounterAst=card.localSchema.ast.filter(ast=>ast.trigger==='counter'),localCounterEffect=card.localSchema.normalized.filter(effect=>effect.timing==='counter');
  const localTriggerAst=card.localSchema.ast.filter(ast=>ast.trigger==='trigger'),localTriggerEffect=card.localSchema.normalized.filter(effect=>effect.timing==='trigger');
  if(card.code==='OP09-013'&&timings.has('on-play')&&cases.some(s=>s.name.startsWith('schema-op09-013 paired timing:'))){
   const paired=cases.filter(s=>s.name.startsWith('schema-op09-013 paired timing:')),localOnPlayAst=card.localSchema.ast.filter(ast=>ast.trigger==='on-play'),localOnPlay=card.localSchema.normalized.filter(effect=>effect.timing==='on-play'),localAttackAst=card.localSchema.ast.filter(ast=>ast.trigger==='when-attacking'),localAttack=card.localSchema.normalized.filter(effect=>effect.timing==='when-attacking');
@@ -270,14 +404,14 @@ for(const card of snapshot.cards){
   candidates.push({code:card.code,printedText:card.printedText,publishedText:card.publishedText,timings:[reference!,'trigger'],scenarioNames:verificationCases.map(s=>s.name),scenarioCount:verificationCases.length,before:card.databaseSchema,after,beforeHash:hash(card.databaseSchema),afterHash:hash(after)});
   continue;
  }
- const repairReferencedMain=timings.has('main')&&timings.has('trigger')&&referenceCases.length>0&&localMainAst.length===1&&localMainEffect.length===1&&localTriggerAst.length===1&&localTriggerEffect.length===1&&/Activate this card's \[Main\] effect\./i.test(localTriggerAst[0].rawText)&&windowPresentInBothSources(card,localMainAst[0].rawText.trim())&&windowPresentInBothSources(card,localTriggerAst[0].rawText.trim());
+ const repairReferencedMain=timings.has('main')&&timings.has('trigger')&&referenceCases.length>0&&localMainAst.length===1&&localMainEffect.length===1&&localTriggerAst.length===1&&localTriggerEffect.length===1&&/Activate this card's \[Main\] effect\./i.test(localTriggerAst[0].rawText)&&windowPresentInBothSources(card,localMainAst[0].rawText.trim())&&windowPresentInBothSources(card,localTriggerAst[0].rawText.trim())&&(!counterKoCases.length||(localCounterAst.length===1&&localCounterEffect.length===1&&windowPresentInBothSources(card,localCounterAst[0].rawText.trim())));
  if(repairReferencedMain){
-  try{for(const scenario of [...mainKoCases,...referenceCases])scenario.run(card.localSchema);}catch{block('referenced-main-local-scenario-failed');}
+  try{for(const scenario of [...mainKoCases,...counterKoCases,...referenceCases])scenario.run(card.localSchema);}catch{block('referenced-main-local-scenario-failed');}
   if(!blocked['referenced-main-local-scenario-failed']){
-   const repaired=new Set<EffectTrigger>(['main','trigger']);
-   after.ast=[...after.ast.filter(ast=>!repaired.has(ast.trigger)),...localMainAst,...localTriggerAst];
-   after.normalized=[...after.normalized.filter(effect=>!repaired.has(effect.timing)),...localMainEffect,...localTriggerEffect];
-   changed.push('main','trigger');preserveImplementationStatus=true;
+   const repaired=new Set<EffectTrigger>(['main','trigger',...(counterKoCases.length?['counter' as const]:[])]);
+   after.ast=[...after.ast.filter(ast=>!repaired.has(ast.trigger)),...localMainAst,...(counterKoCases.length?localCounterAst:[]),...localTriggerAst];
+   after.normalized=[...after.normalized.filter(effect=>!repaired.has(effect.timing)),...localMainEffect,...(counterKoCases.length?localCounterEffect:[]),...localTriggerEffect];
+   changed.push('main',...(counterKoCases?['counter' as const]:[]),'trigger');preserveImplementationStatus=true;
   }
  }
  if(repairOp02CrossTiming){
@@ -303,7 +437,7 @@ for(const card of snapshot.cards){
  }
  for(const timing of timings){
   if(repairOp04Trebol&&(timing==='on-play'||timing==='opponent-attack'))continue;
-  if(repairReferencedMain&&(timing==='main'||timing==='trigger'))continue;
+  if(repairReferencedMain&&(timing==='main'||timing==='trigger'||(counterKoCases.length>0&&timing==='counter')))continue;
   if(repairOp02CrossTiming&&(timing==='on-play'||timing==='when-attacking'))continue;
  const local=card.localSchema.normalized.filter(e=>e.timing===timing);
  const localAst=card.localSchema.ast.filter(e=>e.trigger===timing);
@@ -315,6 +449,21 @@ for(const card of snapshot.cards){
   continue;
  }
   const timingCases=cases.filter(s=>scenarioWindow(s.name,card.localSchema)===timing);
+  if(timing==='continuous'&&timingCases.some(s=>s.name.startsWith('engine-aura continuous:'))){
+   const auraCases=timingCases.filter(s=>s.name.startsWith('engine-aura continuous:'));
+   const windows=card.localSchema.ast.filter(ast=>ast.trigger==='continuous'),effects=card.localSchema.normalized.filter(effect=>effect.timing==='continuous');
+   const isolated=windows.length>0&&windows.length===auraCases.length&&effects.length===windows.length&&windows.every(window=>window.costs.length===0&&window.actions.length>0&&window.actions.every(action=>action.kind==='power'||action.kind==='attach-don-required')&&windowPresentInBothSources(card,window.rawText.trim()));
+   if(!isolated){
+    if(!windows.length||windows.length!==auraCases.length||effects.length!==windows.length)block('continuous-aura-count-mismatch');
+    else if(windows.some(window=>window.costs.length||!window.actions.length||window.actions.some(action=>action.kind!=='power'&&action.kind!=='attach-don-required')))block('continuous-aura-has-unsupported-cost-or-action');
+    else block('continuous-aura-source-text-mismatch');
+    continue;
+   }
+   try{for(const scenario of auraCases)scenario.run(card.localSchema);}catch{block('continuous-aura-local-scenario-failed');continue;}
+   const repaired=structuredClone(after);repaired.ast=[...repaired.ast.filter(ast=>ast.trigger!=='continuous'),...windows];repaired.normalized=[...repaired.normalized.filter(effect=>effect.timing!=='continuous'),...effects];
+   try{for(const scenario of auraCases)scenario.run(repaired);}catch{block('continuous-aura-published-scenario-failed');continue;}
+   after=repaired;changed.push('continuous');preserveImplementationStatus=true;continue;
+  }
   const timingSourceText=localAst[0]?.rawText??'';
   const parsedCostRepresented=Boolean(localAst[0]?.costs.length||localAst[0]?.actions.some(action=>action.kind==='attach-don-required'));
   const drawThenTrashCases=timingCases.filter(s=>s.name.startsWith(`${timing}: draw `)&&s.name.includes(' then discard '));

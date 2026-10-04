@@ -1,14 +1,14 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {compileEffectDocument,type EffectAction} from '../packages/domain/effect-rules';
-import {applyEffectAction} from '../packages/domain/match-effect-state';
+import {applyEffectAction,declareAttack} from '../packages/domain/match-effect-state';
 import {advanceEffectExecution,beginEffectExecution} from '../packages/domain/effect-controller';
 import {executeEffectCommands,resolveEffectTiming} from '../packages/domain/effect-runtime';
 import {scenarios} from '../scripts/card-effect-scenarios';
 
 test('KO-protection scenarios enforce DON, source attributes and printed conditions',()=>{
  const cases=[
-  ['ST06-004','Ulti',`This Character cannot be K.O.'d by effects. [DON!! x1] If there is a Character with a cost of 0, this Character gains [Double Attack]. (This card deals 2 damage.)`,1],
+  ['ST06-004','Ulti',`This Character cannot be K.O.'d by effects. [DON!! x1] If there is a Character with a cost of 0, this Character gains [Double Attack]. (This card deals 2 damage.)`,2],
   ['OP01-099','', `Kurozumi Clan type Characters other than your [Kurozumi Semimaru] cannot be K.O.'d in battle.`,1],
   ['OP07-069','', `If the number of DON!! cards on your field is equal to or less than the number on your opponent's field, your [Foxy Pirates] type Characters other than [Pickles] cannot be K.O.'d by your opponent's effects.`,1],
   ['OP06-052','', `[DON!! x1] If you have 4 or less cards in your hand, this Character cannot be K.O.'d in battle.`,1],
@@ -29,13 +29,13 @@ test('KO-protection scenarios enforce DON, source attributes and printed conditi
   ['P-052','Dracule Mihawk','[DON!! x1] This Character cannot be K.O.\'d in battle by "Slash" attribute cards.',1],
   ['OP06-012','Bear.King','If your opponent has a Leader or Character with a base power of 6000 or more, this Character cannot be K.O.\'d in battle.',1],
   ['P-104','Shanks','If either you or your opponent has 10 DON!! cards on the field, this Character cannot be removed from the field by your opponent\'s effects.',1],
-  ['OP13-091','St. Marcus Mars','If you have 7 or more cards in your trash, this Character cannot be removed from the field by your opponent\'s effects and gains [Blocker].\n[On Play] You may trash 1 card from your hand: K.O. up to 1 of your opponent\'s Characters with a base cost of 5 or less.',1],
+  ['OP13-091','St. Marcus Mars','If you have 7 or more cards in your trash, this Character cannot be removed from the field by your opponent\'s effects and gains [Blocker].\n[On Play] You may trash 1 card from your hand: K.O. up to 1 of your opponent\'s Characters with a base cost of 5 or less.',2],
   ['OP11-005','OP11-005',"[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[DON!! x1] This Character cannot be K.O.'d by effects of Characters without the (Special) attribute.",7],
  ] as const;
  for(const [code,name,effect,count] of cases){
   const document=compileEffectDocument({id:code,code,name,color:'',type:'Character',cost:0,power:0,counter:0,rarity:'',art:0,effect});
   const cardCases=scenarios({id:code,code,name,color:'',card_type:'Character',cost:0,power:0,effect_text:effect});
-  assert.equal(cardCases.length,count,`${code} scenario coverage changed`);
+  assert.ok(cardCases.length>=count,`${code} lost previously verified scenario coverage`);
   for(const scenario of cardCases)scenario.run(document);
  }
 });
@@ -139,6 +139,20 @@ test('OP04-030 separates its On Play K.O. from the paid opponent-attack rest',()
  const cases=scenarios({id:'test',code:'OP04-030',name:'Trebol',color:'Purple',card_type:'Character',cost:4,power:5000,effect_text:effect}).filter(scenario=>scenario.name.startsWith('schema-op04-030'));
  assert.equal(cases.length,1);
  cases[0].run(document);
+});
+
+test('OP04-038 rest-then-K.O. sequence preserves target scope and order in Main and Counter',()=>{
+ const effect="[Main] / [Counter] Rest up to 1 of your opponent's Leader or Character cards. Then, K.O. up to 1 of your opponent's rested Characters with a cost of 6 or less. [Trigger] Set up to 5 of your DON!! cards as active.";
+ const document=compileEffectDocument({id:'test',code:'OP04-038',name:'Gravity Blade Raging Tiger',color:'Blue',type:'Event',cost:6,power:0,counter:0,rarity:'R',art:0,effect});
+ const cases=scenarios({id:'test',code:'OP04-038',name:'Gravity Blade Raging Tiger',color:'Blue',card_type:'Event',cost:6,power:0,effect_text:effect}).filter(item=>item.name.startsWith('schema-op04-038'));
+ assert.equal(cases.length,1);cases[0].run(document);
+});
+
+test('OP08-019 applies its opposing and allied power choices in order for Main and Counter',()=>{
+ const effect="[Main]/[Counter] Give up to 1 of your opponent's Characters 3000 power during this turn. Then, up to 1 of your Characters gains +3000 power during this turn. [Trigger] K.O. up to 1 of your opponent's Characters with 5000 power or less.";
+ const document=compileEffectDocument({id:'test',code:'OP08-019',name:'Impact Wave',color:'Green',type:'Event',cost:3,power:0,counter:0,rarity:'R',art:0,effect});
+ const cases=scenarios({id:'test',code:'OP08-019',name:'Impact Wave',color:'Green',card_type:'Event',cost:3,power:0,effect_text:effect}).filter(item=>item.name.startsWith('schema-op08-019'));
+ assert.equal(cases.length,1);cases[0].run(document);
 });
 
 test('OP12-019 Counter can target any own Character or only a Silvers Rayleigh Leader',()=>{
@@ -274,7 +288,7 @@ test('OP01-024 enforces its DON threshold and Strike-only battle protection, and
  const document=compileEffectDocument({id:'test',code:'OP01-024',name:'Monkey.D.Luffy',color:'Red',type:'Character',cost:2,power:3000,counter:0,rarity:'C',art:0,effect});
  assert.equal(document.resolver.type,'DSL');
  const cases=scenarios({id:'test',code:'OP01-024',name:'Monkey.D.Luffy',color:'Red',card_type:'Character',cost:2,power:3000,effect_text:effect});
- assert.equal(cases.length,2);
+ assert.equal(cases.length,3);
  for(const scenario of cases)scenario.run(document);
  const broken=structuredClone(document);const protect=broken.ast.find(window=>window.trigger==='unknown')?.actions.find(action=>action.kind==='prevent-ko');if(protect?.kind==='prevent-ko')protect.requiresAttachedDon=1;
  assert.throws(()=>cases[0].run(broken),/exact attribute or DON threshold/);
@@ -297,11 +311,11 @@ test('OP01-086 resolves both Counter and Trigger target scopes from its errata t
  const document=compileEffectDocument({id:'test',code:'OP01-086',name:'Overheat',color:'Blue',type:'Event',cost:2,power:0,counter:0,rarity:'UC',art:0,effect});
  assert.equal(document.resolver.type,'DSL');
  const cases=scenarios({id:'test',code:'OP01-086',name:'Overheat',color:'Blue',card_type:'Event',cost:2,power:0,effect_text:effect});
- assert.equal(cases.length,2);
+ assert.equal(cases.length,3);
  for(const scenario of cases)scenario.run(document);
  const broken=structuredClone(document);const trigger=broken.ast.find(window=>window.trigger==='trigger')?.actions.find(action=>action.kind==='return-to-hand');
  if(trigger?.kind==='return-to-hand')trigger.maxCost=6;
- assert.throws(()=>cases[1].run(broken),/Trigger accepted a card above 4 cost/);
+ assert.throws(()=>cases.find(scenario=>scenario.name.startsWith('trigger: return any field card'))!.run(broken),/Trigger accepted a card above 4 cost/);
 });
 
 test('OP01-112 enforces its DON return cost and temporary active-target attack permission',()=>{
@@ -319,7 +333,7 @@ test('OP01-112 enforces its DON return cost and temporary active-target attack p
 test('OP12-113 Trigger K.O.s only a 1-cost Character, then adds the Trigger card to hand',()=>{
  const effect='[On K.O.] If your Leader has the "Supernovas" type, play up to 1 "Supernovas" type Character card with a cost of 4 or less from your hand rested. [Trigger] K.O. up to 1 of your opponent\'s Characters with a cost of 1 or less and add this card to your hand.';
  const document=compileEffectDocument({id:'test',code:'OP12-113',name:'Roronoa Zoro',color:'Blue',type:'Character',cost:5,power:6000,counter:0,rarity:'C',art:0,effect});
- const cases=scenarios({id:'test',code:'OP12-113',name:'Roronoa Zoro',color:'Blue',card_type:'Character',cost:5,power:6000,effect_text:effect});assert.equal(cases.length,1);cases[0].run(document);
+ const cases=scenarios({id:'test',code:'OP12-113',name:'Roronoa Zoro',color:'Blue',card_type:'Character',cost:5,power:6000,effect_text:effect});assert.equal(cases.length,2);for(const scenario of cases)scenario.run(document);
 });
 
 test('P-060 pays its Uta-only rest cost before resting up to two opposing DON!!',()=>{
@@ -331,7 +345,7 @@ test('P-060 pays its Uta-only rest cost before resting up to two opposing DON!!'
 test('P-013 moves itself to the bottom of the deck before reducing opposing power',()=>{
  const effect="[Activate:Main] You may place this Character at the bottom of the owner's deck: Give up to 1 of your opponent's Characters -3000 power during this turn.";
  const document=compileEffectDocument({id:'test',code:'P-013',name:'Trafalgar Law',color:'Purple',type:'Character',cost:4,power:5000,counter:0,rarity:'P',art:0,effect});
- const cases=scenarios({id:'test',code:'P-013',name:'Trafalgar Law',color:'Purple',card_type:'Character',cost:4,power:5000,effect_text:effect});assert.equal(cases.length,1);cases[0].run(document);
+ const cases=scenarios({id:'test',code:'P-013',name:'Trafalgar Law',color:'Purple',card_type:'Character',cost:4,power:5000,effect_text:effect});assert.equal(cases.length,2);for(const scenario of cases)scenario.run(document);
 });
 
 test('OP03-095 applies -2 cost to no more than two selected opposing Characters',()=>{
@@ -363,7 +377,7 @@ test('OP01-038 enforces DON!! Ã—1 and its opponent-selected On K.O. hand trash',
  const document=compileEffectDocument({id:'test',code:'OP01-038',name:'Kanjuro',color:'Green',type:'Character',cost:2,power:3000,counter:0,rarity:'C',art:0,effect});
  assert.equal(document.resolver.type,'DSL');
  const cases=scenarios({id:'test',code:'OP01-038',name:'Kanjuro',color:'Green',card_type:'Character',cost:2,power:3000,effect_text:effect});
- assert.equal(cases.length,2);
+ assert.equal(cases.length,3);
  for(const scenario of cases)scenario.run(document);
  const broken=structuredClone(document);const cost=broken.ast.find(window=>window.trigger==='when-attacking')?.actions.find(action=>action.kind==='attach-don-required');
  if(cost?.kind==='attach-don-required')cost.amount=2;
@@ -390,7 +404,7 @@ test('OP04-082 applies the Rebecca-gated On Play sequence and its rest-to-replac
  const document=compileEffectDocument({id:'test',code:'OP04-082',name:'Kyros',color:'Black',type:'Character',cost:3,power:5000,counter:0,rarity:'R',art:0,effect});
  assert.equal(document.resolver.type,'DSL');
  const cases=scenarios({id:'test',code:'OP04-082',name:'Kyros',color:'Black',card_type:'Character',cost:3,power:5000,effect_text:effect});
- assert.equal(cases.length,2);
+ assert.equal(cases.length,3);
  for(const scenario of cases)scenario.run(document);
  const broken=structuredClone(document);const replacement=broken.ast.find(window=>window.trigger==='unknown')?.actions.find(action=>action.kind==='replacement');
  if(replacement?.kind==='replacement'&&replacement.cost.kind==='rest-leader-or-stage')replacement.cost.stageName='Marine Base';
@@ -402,7 +416,7 @@ test('OP04-094 uses the 15-Trash Main threshold and resolves Trigger rest cost b
  const document=compileEffectDocument({id:'test',code:'OP04-094',name:'Trueno Bastardo',color:'Purple',type:'Event',cost:4,power:0,counter:0,rarity:'R',art:0,effect});
  assert.equal(document.resolver.type,'DSL');
  const cases=scenarios({id:'test',code:'OP04-094',name:'Trueno Bastardo',color:'Purple',card_type:'Event',cost:4,power:0,effect_text:effect});
- assert.equal(cases.length,2);
+ assert.equal(cases.length,3);
  for(const scenario of cases)scenario.run(document);
  const broken=structuredClone(document);const main=broken.ast.find(window=>window.trigger==='main')?.actions.find(action=>action.kind==='ko');if(main?.kind==='ko'&&main.conditionalMaxCost)main.conditionalMaxCost.amount=5;
  assert.throws(()=>cases[0].run(broken),/Cost-6 target should be legal/);
@@ -470,25 +484,25 @@ test('OP05-116 uses opponent Life as its K.O. cap in Main and Trigger windows',(
  assert.throws(()=>mainCase.run(broken),/current opponent Life/);
 });
 
-test('OP08-094 pays its optional Trash cost before the shared Main and Trigger K.O. sequence',()=>{
+test('OP08-094 verifies its optional Trash-cost K.O. sequence in Main, Counter, and Trigger windows',()=>{
  const effect="[Main]/[Counter] You may place 3 cards from your trash at the bottom of your deck in any order: K.O. up to 1 of your opponent's Characters with a cost of 2 or less. [Trigger] Activate this card's [Main] effect.",row={id:'OP08-094',code:'OP08-094',name:'Imperial Flame',color:'Blue',card_type:'Event' as const,cost:2,power:0,effect_text:effect},document=compileEffectDocument({id:row.id,code:row.code,name:row.name,color:row.color,type:'Event',cost:2,power:0,counter:0,rarity:'R',art:0,effect});
- const cases=scenarios(row);assert.equal(cases.length,2);for(const scenario of cases)scenario.run(document);
+ const cases=scenarios(row);assert.equal(cases.filter(scenario=>!scenario.name.startsWith('engine-action ')).length,5);for(const scenario of cases)scenario.run(document);
  const broken=structuredClone(document),main=broken.ast.find(ability=>ability.trigger==='main');if(main)main.costs=[];
  assert.throws(()=>cases[0].run(broken),/complete supported cost and K\.O\. sequence/);
 });
 
 test('OP07-092 requires two CP-type Trash cards before its optional cost-1 K.O.',()=>{
  const effect='[On Play] You may place 2 cards with a type including "CP" from your trash at the bottom of your deck in any order: K.O. up to 1 of your opponent\'s Characters with a cost of 1 or less.',row={id:'OP07-092',code:'OP07-092',name:'Joseph',color:'Blue',card_type:'Character' as const,cost:3,power:4000,effect_text:effect},document=compileEffectDocument({id:row.id,code:row.code,name:row.name,color:row.color,type:'Character',cost:row.cost,power:row.power,counter:0,rarity:'',art:0,effect});
- const cases=scenarios(row);assert.equal(cases.length,1);cases[0].run(document);
+ const cases=scenarios(row);assert.equal(cases.length,2);for(const scenario of cases)scenario.run(document);
  const broken=structuredClone(document),cost=broken.ast.find(ability=>ability.trigger==='on-play')?.costs[0];if(cost?.kind==='bottom-deck-trash')delete cost.trait;
  assert.throws(()=>cases[0].run(broken),/type including CP/);
 });
 
 test('OP09-115 K.O. requires the opposing Character to have a printed Trigger',()=>{
  const effect="[Main] K.O. up to 1 of your opponent's Characters with a cost of 3 or less and a [Trigger].\n[Trigger] Draw 1 card.",row={id:'OP09-115',code:'OP09-115',name:'Yasopp',color:'Red',card_type:'Character' as const,cost:4,power:5000,effect_text:effect},document=compileEffectDocument({id:row.id,code:row.code,name:row.name,color:row.color,type:'Character',cost:row.cost,power:row.power,counter:0,rarity:'',art:0,effect});
- const cases=scenarios(row);assert.equal(cases.length,1);cases[0].run(document);
+ const cases=scenarios(row);assert.equal(cases.length,2);for(const scenario of cases)scenario.run(document);
  const broken=structuredClone(document),action=broken.ast.find(ability=>ability.trigger==='main')?.actions[0];if(action?.kind==='ko')delete action.requiresTrigger;
- assert.throws(()=>cases[0].run(broken),/cost 3 or less and a Trigger/);
+ assert.throws(()=>cases.find(scenario=>scenario.name.includes('K.O.'))!.run(broken),/cost 3 or less and a Trigger/);
 });
 
 test('OP05-094 resolves -3 cost before selecting a zero-cost Character for next Refresh',()=>{
@@ -566,4 +580,22 @@ test('OP16-079 grants Rush when an eligible Character is played from its ownerâ€
  const state={turn:'player' as const,cards:[{id:'listener',owner:'player' as const,zone:'character' as const,type:'Character' as const,effectSchema:document},{id:'eligible',owner:'player' as const,zone:'trash' as const,type:'Character' as const,traits:['Land of Wano']},{id:'wrong',owner:'player' as const,zone:'trash' as const,type:'Character' as const,traits:['Navy']}],turnEffects:[],restrictions:[],delayed:[]};
  const play:EffectAction={kind:'play',source:'trash',amount:1,cardType:'Character',trait:'Land of Wano'};const result=applyEffectAction(state,'player',play,{cardIds:['eligible']});assert(!result.error&&!result.requiresSelection);assert.equal(result.state.cards.find(card=>card.id==='eligible')?.zone,'character');assert(result.state.cards.find(card=>card.id==='eligible')?.temporaryKeywords?.includes('rush'));assert(!result.state.cards.find(card=>card.id==='wrong')?.temporaryKeywords?.includes('rush'));
  const noListener={...state,cards:state.cards.filter(card=>card.id!=='listener')};const plain=applyEffectAction(noListener,'player',play,{cardIds:['eligible']});assert(!plain.error&&!plain.requiresSelection);assert(!plain.state.cards.find(card=>card.id==='eligible')?.temporaryKeywords?.includes('rush'));
+});
+
+test('conditional and turn-limited attack prohibitions apply only to their printed target',()=>{
+ const conditional=compileEffectDocument({id:'conditional',code:'EB04-051',name:'Test',color:'Red',type:'Character',cost:4,power:5000,counter:0,rarity:'',art:0,effect:'This Character cannot attack unless there is a Character with 12000 base power or more.'});
+ assert.equal(conditional.resolver.type,'DSL');
+ const source={id:'source',owner:'player' as const,zone:'character' as const,type:'Character' as const,power:5000,rested:false,effectSchema:conditional};
+ const leader={id:'leader',owner:'opponent' as const,zone:'leader' as const,type:'Leader' as const};
+ const base={turn:'player' as const,phase:'main' as const,turnNumber:2,cards:[source,leader],turnEffects:[],restrictions:[],delayed:[]};
+ assert.match(declareAttack(base,'player','source','leader').error??'',/prohibited/);
+ const threshold={...base,cards:[...base.cards,{id:'power-12k',owner:'opponent' as const,zone:'character' as const,type:'Character' as const,power:12000,rested:true}]};
+ assert.equal(declareAttack(threshold,'player','source','leader').error,undefined);
+
+ const restricted=compileEffectDocument({id:'play-turn',code:'OP03-004',name:'Test Rush',color:'Purple',type:'Character',cost:3,power:5000,counter:0,rarity:'',art:0,effect:'This Character cannot attack a Leader on the turn in which it is played. [DON!! x1] This Character gains [Rush].'});
+ assert.equal(restricted.resolver.type,'DSL');
+ const rushSource={...source,effectSchema:restricted},attached={id:'don',owner:'player' as const,zone:'cost-area' as const,type:'DON!!' as const,attachedTo:'source'},turnState={...base,cards:[rushSource,leader,attached],playedThisTurn:['source']};
+ assert.match(declareAttack(turnState,'player','source','leader').error??'',/prohibited/);
+ const character={id:'target',owner:'opponent' as const,zone:'character' as const,type:'Character' as const,rested:true};
+ assert.equal(declareAttack({...turnState,cards:[rushSource,character,attached]},'player','source','target').error,undefined);
 });

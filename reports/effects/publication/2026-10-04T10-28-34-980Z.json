@@ -1,0 +1,3129 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-10-04T10:28:34.980Z",
+  "candidates": [
+    {
+      "code": "EB01-002",
+      "printedText": "[On Play] Give up to 1 rested DON!! card to your Leader or 1 of your Characters.[On Your Opponent's Attack] [Once Per Turn] You may trash 1 card from your hand: If your Leader has the [Land of Wano] or [Whitebeard Pirates] type, give up to 1 of your opponent's Leader or Character cards -2000 power during this turn.",
+      "publishedText": "[On Play] Give up to 1 rested DON!! card to your Leader or 1 of your Characters.[On Your Opponent's Attack] [Once Per Turn] You may trash 1 card from your hand: If your Leader has the [Land of Wano] or [Whitebeard Pirates] type, give up to 1 of your opponent's Leader or Character cards -2000 power during this turn.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "engine-action on-play attach-don: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "optional": true,
+                "requiresTrigger": false
+              }
+            ],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": -2000,
+                "target": "opponent-character"
+              },
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": -2000,
+                "target": "opponent-character"
+              },
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "requiresTrigger": false
+              },
+              {
+                "kind": "attach-don",
+                "amount": 1,
+                "source": "cost-area"
+              },
+              {
+                "kind": "attach-don",
+                "amount": 1,
+                "source": "cost-area"
+              }
+            ],
+            "rawText": "[On Play] Give up to 1 rested DON!! card to your Leader or 1 of your Characters.[On Your Opponent's Attack] [Once Per Turn] You may trash 1 card from your hand: If your Leader has the [Land of Wano] or [Whitebeard Pirates] type, give up to 1 of your opponent's Leader or Character cards -2000 power during this turn.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the [Land of Wano] or [Whitebeard Pirates] type"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "optional": true,
+                  "requiresTrigger": false
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": -2000,
+                  "target": "opponent-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": -2000,
+                  "target": "opponent-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "requiresTrigger": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 1,
+                  "source": "cost-area"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 1,
+                  "source": "cost-area"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the [Land of Wano] or [Whitebeard Pirates] type"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Give up to 1 rested DON!! card to your Leader or 1 of your Characters.[On Your Opponent's Attack] [Once Per Turn] You may trash 1 card from your hand: If your Leader has the [Land of Wano] or [Whitebeard Pirates] type, give up to 1 of your opponent's Leader or Character cards -2000 power during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On Play] Give up to 1 rested DON!! card to your Leader or 1 of your Characters.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don",
+                "amount": 1,
+                "source": "cost-area",
+                "rested": true
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 1,
+                  "source": "cost-area",
+                  "rested": true
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Give up to 1 rested DON!! card to your Leader or 1 of your Characters.[On Your Opponent's Attack] [Once Per Turn] You may trash 1 card from your hand: If your Leader has the [Land of Wano] or [Whitebeard Pirates] type, give up to 1 of your opponent's Leader or Character cards -2000 power during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "a26beddda2f27fdbec581d418bb1f8200ba1c3b00a7a2ee6ff25190c49ad119d",
+      "afterHash": "98692c77e77c0b78ca85696b8abed9edc9bba26556d815f09970b6a22e4ee384"
+    },
+    {
+      "code": "EB03-054",
+      "printedText": "[On Play] You may trash 1 card from the top of your Life cards: Add up to 1 card from the top of your deck to the top of your Life cards. [Trigger] You may trash 1 card from your hand: Play this card.",
+      "publishedText": "[On Play] You may trash 1 card from the top of your Life cards: Add up to 1 card from the top of your deck to the top of your Life cards. [Trigger] You may trash 1 card from your hand: Play this card.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "engine-action on-play move-to-life: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "optional": true,
+                "requiresTrigger": false
+              }
+            ],
+            "actions": [
+              {
+                "kind": "life",
+                "amount": 1,
+                "operation": "add-to-life"
+              },
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "requiresTrigger": false
+              },
+              {
+                "kind": "move-to-life",
+                "scope": "own",
+                "amount": 1,
+                "faceUp": false,
+                "position": "top"
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[On Play] You may trash 1 card from the top of your Life cards: Add up to 1 card from the top of your deck to the top of your Life cards. [Trigger] You may trash 1 card from your hand: Play this card.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "costs": [
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "optional": true,
+                "requiresTrigger": false
+              }
+            ],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[Trigger] You may trash 1 card from your hand: Play this card.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "optional": true,
+                  "requiresTrigger": false
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life",
+                  "amount": 1,
+                  "operation": "add-to-life"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "requiresTrigger": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "move-to-life",
+                  "scope": "own",
+                  "amount": 1,
+                  "faceUp": false,
+                  "position": "top"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "optional": true,
+                  "requiresTrigger": false
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] You may trash 1 card from the top of your Life cards: Add up to 1 card from the top of your deck to the top of your Life cards. [Trigger] You may trash 1 card from your hand: Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On Play] You may trash 1 card from the top of your Life cards: Add up to 1 card from the top of your deck to the top of your Life cards.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "move-to-life",
+                "scope": "own",
+                "amount": 1,
+                "position": "top",
+                "source": "deck-top",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          },
+          {
+            "costs": [
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "optional": true,
+                "requiresTrigger": false
+              }
+            ],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[Trigger] You may trash 1 card from your hand: Play this card.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "move-to-life",
+                  "scope": "own",
+                  "amount": 1,
+                  "position": "top",
+                  "source": "deck-top",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "optional": true,
+                  "requiresTrigger": false
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] You may trash 1 card from the top of your Life cards: Add up to 1 card from the top of your deck to the top of your Life cards. [Trigger] You may trash 1 card from your hand: Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "4b583e6f98478443be122f92886a15792ffd32dd2b7bb26dd5ffac199d50ff2a",
+      "afterHash": "f81a437dd55361e9ed827436ce827340ff15db68d729a8392472ec7793154b3e"
+    },
+    {
+      "code": "OP03-109",
+      "printedText": "[On Play] You may trash 1 card from the top or bottom of your Life cards: Add up to 1 card from the top of your deck to the top of your Life cards.",
+      "publishedText": "[On Play] You may trash 1 card from the top or bottom of your Life cards: Add up to 1 card from the top of your deck to the top of your Life cards.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "engine-action on-play move-to-life: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "life",
+                "amount": 1,
+                "operation": "add-to-life"
+              },
+              {
+                "kind": "move-to-life",
+                "scope": "own",
+                "amount": 1,
+                "faceUp": false,
+                "position": "top"
+              }
+            ],
+            "rawText": "[On Play] You may trash 1 card from the top or bottom of your Life cards: Add up to 1 card from the top of your deck to the top of your Life cards.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life",
+                  "amount": 1,
+                  "operation": "add-to-life"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "move-to-life",
+                  "scope": "own",
+                  "amount": 1,
+                  "faceUp": false,
+                  "position": "top"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] You may trash 1 card from the top or bottom of your Life cards: Add up to 1 card from the top of your deck to the top of your Life cards.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On Play] You may trash 1 card from the top or bottom of your Life cards: Add up to 1 card from the top of your deck to the top of your Life cards.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "move-to-life",
+                "scope": "own",
+                "amount": 1,
+                "position": "top",
+                "source": "deck-top",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "move-to-life",
+                  "scope": "own",
+                  "amount": 1,
+                  "position": "top",
+                  "source": "deck-top",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] You may trash 1 card from the top or bottom of your Life cards: Add up to 1 card from the top of your deck to the top of your Life cards.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "fa3d8190bc28e76837b9dbba01cd58f4da32ffbbfd2e48ea898b04a29672ff4e",
+      "afterHash": "db09727f0f08056ba8716cd3daeada225e6f7a2f9399d1e0c4b49424301cf3d5"
+    },
+    {
+      "code": "OP04-066",
+      "printedText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 card with a type including \"Baroque Works\" and add it to your hand. Then, place the rest at the bottom of your deck in any order. [Trigger] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Play this card.",
+      "publishedText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 card with a type including \"Baroque Works\" and add it to your hand. Then, place the rest at the bottom of your deck in any order. [Trigger] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Play this card.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "schema-search on-play: top 5, up to 1, deck-bottom",
+        "engine-action on-play search: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "return-don",
+                "amount": 1
+              },
+              {
+                "kind": "search",
+                "trait": "Baroque Works",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom"
+              },
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 card with a type including \"Baroque Works\" and add it to your hand. Then, place the rest at the bottom of your deck in any order. [Trigger] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Play this card.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "costs": [
+              {
+                "kind": "return-don",
+                "amount": 1,
+                "optional": false
+              }
+            ],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[Trigger] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Play this card.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "return-don",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "trait": "Baroque Works",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "return-don",
+                  "amount": 1,
+                  "optional": false
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 card with a type including \"Baroque Works\" and add it to your hand. Then, place the rest at the bottom of your deck in any order. [Trigger] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 card with a type including \"Baroque Works\" and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true,
+                "trait": "Baroque Works"
+              }
+            ]
+          },
+          {
+            "costs": [
+              {
+                "kind": "return-don",
+                "amount": 1,
+                "optional": false
+              }
+            ],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[Trigger] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Play this card.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true,
+                  "trait": "Baroque Works"
+                }
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "return-don",
+                  "amount": 1,
+                  "optional": false
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 card with a type including \"Baroque Works\" and add it to your hand. Then, place the rest at the bottom of your deck in any order. [Trigger] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "054ee1917e1d3fe5b038898f0a9c332b0e72f0df9f7d985cdcb9256091710ece",
+      "afterHash": "44ce0e5e950307f23f48e2efc63ec005adf514aab285345e57fd974d67afff76"
+    },
+    {
+      "code": "OP04-117",
+      "printedText": "[Main] Add up to 1 of your opponent's Characters with a cost of 3 or less to the top or bottom of your opponent's Life cards face-up. [Trigger] You may add 1 card from the top or bottom of your Life cards to your hand: Add up to 1 card from your hand to the top of your Life cards.",
+      "publishedText": "[Main] Add up to 1 of your opponent's Characters with a cost of 3 or less to the top or bottom of your opponent's Life cards face-up. [Trigger] You may add 1 card from the top or bottom of your Life cards to your hand: Add up to 1 card from your hand to the top of your Life cards.",
+      "timings": [
+        "main"
+      ],
+      "scenarioNames": [
+        "engine-action main move-to-life: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "life",
+                "amount": 1,
+                "operation": "add-to-life"
+              },
+              {
+                "kind": "life",
+                "amount": 1,
+                "operation": "add-to-hand"
+              },
+              {
+                "kind": "move-to-life",
+                "scope": "opponent",
+                "amount": 1,
+                "faceUp": true,
+                "position": "choice"
+              }
+            ],
+            "rawText": "[Main] Add up to 1 of your opponent's Characters with a cost of 3 or less to the top or bottom of your opponent's Life cards face-up. [Trigger] You may add 1 card from the top or bottom of your Life cards to your hand: Add up to 1 card from your hand to the top of your Life cards.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life",
+                  "amount": 1,
+                  "operation": "add-to-life"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life",
+                  "amount": 1,
+                  "operation": "add-to-hand"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "move-to-life",
+                  "scope": "opponent",
+                  "amount": 1,
+                  "faceUp": true,
+                  "position": "choice"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Add up to 1 of your opponent's Characters with a cost of 3 or less to the top or bottom of your opponent's Life cards face-up. [Trigger] You may add 1 card from the top or bottom of your Life cards to your hand: Add up to 1 card from your hand to the top of your Life cards.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Main] Add up to 1 of your opponent's Characters with a cost of 3 or less to the top or bottom of your opponent's Life cards face-up.",
+            "trigger": "main",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "move-to-life",
+                "scope": "opponent",
+                "amount": 1,
+                "position": "choice",
+                "faceUp": true
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "move-to-life",
+                  "scope": "opponent",
+                  "amount": 1,
+                  "position": "choice",
+                  "faceUp": true
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Add up to 1 of your opponent's Characters with a cost of 3 or less to the top or bottom of your opponent's Life cards face-up. [Trigger] You may add 1 card from the top or bottom of your Life cards to your hand: Add up to 1 card from your hand to the top of your Life cards.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "ec3c429a72657b8be85134f4ed47c9443f7de048dc7645c528925f8f503d0377",
+      "afterHash": "e15edace3065e4f4e8cc96ad28cf701f5f5adb3b9aba87fe911baca272717df6"
+    },
+    {
+      "code": "OP07-021",
+      "printedText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.) [End of Your Turn] Set up to 1 of your DON!! cards as active.",
+      "publishedText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.) [End of Your Turn] Set up to 1 of your DON!! cards as active.",
+      "timings": [
+        "end-turn"
+      ],
+      "scenarioNames": [
+        "schema-ready-target end-turn: DON!! max 1",
+        "schema-ready-don end-turn: choose up to 1 rested DON!!",
+        "engine-action end-turn ready: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-don",
+                "amount": 1,
+                "selection": {
+                  "max": 1,
+                  "min": 0
+                }
+              }
+            ],
+            "rawText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.) [End of Your Turn] Set up to 1 of your DON!! cards as active.",
+            "trigger": "end-turn",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "blocker"
+              }
+            ],
+            "rawText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+            "trigger": "unknown",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "end-turn",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-don",
+                  "amount": 1,
+                  "selection": {
+                    "max": 1,
+                    "min": 0
+                  }
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "unknown",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.) [End of Your Turn] Set up to 1 of your DON!! cards as active.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[End of Your Turn] Set up to 1 of your DON!! cards as active.",
+            "trigger": "end-turn",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-don",
+                "amount": 1,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "blocker"
+              }
+            ],
+            "rawText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+            "trigger": "unknown",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "end-turn",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-don",
+                  "amount": 1,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "timing": "unknown",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.) [End of Your Turn] Set up to 1 of your DON!! cards as active.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "fd6f257f85867d6bf682642065f0d1776d41bd9dab0722d3623cafdd20f9c270",
+      "afterHash": "637dd2008f8ecbaa733367a306d32592bc62f34a1ea20b5efc0623977067c095"
+    },
+    {
+      "code": "OP08-056",
+      "printedText": "[Your Turn] [Once Per Turn] When your Character with a type including \"Whitebeard Piratess\" is removed from the field by an effect, draw 1 card. Then, place 1 card from your hand at the top or bottom of your deck. [Trigger] Play this card.",
+      "publishedText": "[Your Turn] [Once Per Turn] When your Character with a type including \"Whitebeard Piratess\" is removed from the field by an effect, draw 1 card. Then, place 1 card from your hand at the top or bottom of your deck. [Trigger] Play this card.",
+      "timings": [
+        "trigger"
+      ],
+      "scenarioNames": [
+        "trigger: play this card / condition-met",
+        "trigger: play this card / wrong-zone",
+        "trigger: play this card / wrong-type",
+        "engine-action trigger play: resolve isolated parsed instruction",
+        "schema-atomic-action trigger: isolated play"
+      ],
+      "scenarioCount": 5,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ],
+            "rawText": "[Your Turn] [Once Per Turn] When your Character with a type including \"Whitebeard Piratess\" is removed from the field by an effect, draw 1 card. Then, place 1 card from your hand at the top or bottom of your deck. [Trigger] Play this card.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Your Turn] [Once Per Turn] When your Character with a type including \"Whitebeard Piratess\" is removed from the field by an effect, draw 1 card. Then, place 1 card from your hand at the top or bottom of your deck. [Trigger] Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Trigger] Play this card.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "life"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "life"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Your Turn] [Once Per Turn] When your Character with a type including \"Whitebeard Piratess\" is removed from the field by an effect, draw 1 card. Then, place 1 card from your hand at the top or bottom of your deck. [Trigger] Play this card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "0e39c7bc4173f9eca9b3cac680072790f3728c452a2750763745447e4dba19bd",
+      "afterHash": "47c56ecd263b2ce7592eef9faff6ec473c23cd5ab0f074c9c2f37f9acba3c3c9"
+    },
+    {
+      "code": "OP08-117",
+      "printedText": "[Main] You may trash 1 card from the top of your Life cards: K.O. up to 1 of your opponent's Characters with a cost of 7 or less. [Trigger] You may add 1 card from the top of your Life cards to your hand: Add up to 1 card from your hand to the top of your Life cards.",
+      "publishedText": "[Main] You may trash 1 card from the top of your Life cards: K.O. up to 1 of your opponent's Characters with a cost of 7 or less. [Trigger] You may add 1 card from the top of your Life cards to your hand: Add up to 1 card from your hand to the top of your Life cards.",
+      "timings": [
+        "main"
+      ],
+      "scenarioNames": [
+        "engine-action main ko: resolve isolated parsed instruction",
+        "engine-action main ko: reject targets outside printed restrictions"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 7,
+                "restedOnly": false,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ],
+            "rawText": "[Main] You may trash 1 card from the top of your Life cards: K.O. up to 1 of your opponent's Characters with a cost of 7 or less. [Trigger] You may add 1 card from the top of your Life cards to your hand: Add up to 1 card from your hand to the top of your Life cards.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 7,
+                  "restedOnly": false,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] You may trash 1 card from the top of your Life cards: K.O. up to 1 of your opponent's Characters with a cost of 7 or less. [Trigger] You may add 1 card from the top of your Life cards to your hand: Add up to 1 card from your hand to the top of your Life cards.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Main] You may trash 1 card from the top of your Life cards: K.O. up to 1 of your opponent's Characters with a cost of 7 or less.",
+            "trigger": "main",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 7,
+                "restedOnly": false,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 7,
+                  "restedOnly": false,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] You may trash 1 card from the top of your Life cards: K.O. up to 1 of your opponent's Characters with a cost of 7 or less. [Trigger] You may add 1 card from the top of your Life cards to your hand: Add up to 1 card from your hand to the top of your Life cards.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "2665c936a7ddd8539376ba4932c1ae98bef878f3f8e987dc0e7d63c39e9f0d17",
+      "afterHash": "f9b5a3801cc21cc7b57d71e66e5289d1c540c5e2b28da1c901f3905a1dc12957"
+    },
+    {
+      "code": "OP09-070",
+      "printedText": "[On Play] You may return 1 or more DON!! cards from your field to your DON!! deck: Give up to 2 rested DON!! cards to your Leader or 1 of your Characters.",
+      "publishedText": "[On Play] You may return 1 or more DON!! cards from your field to your DON!! deck: Give up to 2 rested DON!! cards to your Leader or 1 of your Characters.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "engine-action on-play attach-don: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don",
+                "amount": 2,
+                "source": "cost-area"
+              },
+              {
+                "kind": "attach-don",
+                "amount": 2,
+                "source": "cost-area"
+              }
+            ],
+            "rawText": "[On Play] You may return 1 or more DON!! cards from your field to your DON!! deck: Give up to 2 rested DON!! cards to your Leader or 1 of your Characters.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 2,
+                  "source": "cost-area"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 2,
+                  "source": "cost-area"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] You may return 1 or more DON!! cards from your field to your DON!! deck: Give up to 2 rested DON!! cards to your Leader or 1 of your Characters.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On Play] You may return 1 or more DON!! cards from your field to your DON!! deck: Give up to 2 rested DON!! cards to your Leader or 1 of your Characters.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don",
+                "amount": 2,
+                "source": "cost-area",
+                "rested": true
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 2,
+                  "source": "cost-area",
+                  "rested": true
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] You may return 1 or more DON!! cards from your field to your DON!! deck: Give up to 2 rested DON!! cards to your Leader or 1 of your Characters.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "0c0dde380f7761d3216759e07c86d2457d05b3502d833d58c1b707adec66ac31",
+      "afterHash": "37d73a32b0b17ec98f35ecfd65cb986b6763bda85da8138c5e8e838b6b60f95c"
+    },
+    {
+      "code": "OP10-078",
+      "printedText": "[Main]/[Counter] Look at 3 cards from the top of your deck; reveal up to 1 \"Donquixote Pirates\" type card other than [I Do Not Forgive Those Who Laugh at My Family!!!] and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+      "publishedText": "[Main]/[Counter] Look at 3 cards from the top of your deck; reveal up to 1 \"Donquixote Pirates\" type card other than [I Do Not Forgive Those Who Laugh at My Family!!!] and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+      "timings": [
+        "main"
+      ],
+      "scenarioNames": [
+        "engine-action main search: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 3,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true,
+                "trait": "Donquixote Pirates",
+                "excludeName": "I Do Not Forgive Those Who Laugh at My Family!!!"
+              }
+            ],
+            "rawText": "[Main]/[Counter] Look at 3 cards from the top of your deck; reveal up to 1 \"Donquixote Pirates\" type card other than [I Do Not Forgive Those Who Laugh at My Family!!!] and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 3,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true,
+                  "trait": "Donquixote Pirates",
+                  "excludeName": "I Do Not Forgive Those Who Laugh at My Family!!!"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main]/[Counter] Look at 3 cards from the top of your deck; reveal up to 1 \"Donquixote Pirates\" type card other than [I Do Not Forgive Those Who Laugh at My Family!!!] and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Main] Look at 3 cards from the top of your deck; reveal up to 1 \"Donquixote Pirates\" type card other than [I Do Not Forgive Those Who Laugh at My Family!!!] and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "main",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 3,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true,
+                "trait": "Donquixote Pirates",
+                "excludeName": "I Do Not Forgive Those Who Laugh at My Family!!!"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 3,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true,
+                  "trait": "Donquixote Pirates",
+                  "excludeName": "I Do Not Forgive Those Who Laugh at My Family!!!"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main]/[Counter] Look at 3 cards from the top of your deck; reveal up to 1 \"Donquixote Pirates\" type card other than [I Do Not Forgive Those Who Laugh at My Family!!!] and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "ed92c7d77a00463f72c2f4ce9ada5ffdfaf8997ea940e55f096d58b5d9d8beb2",
+      "afterHash": "204f45defd94080c5ce77c303f038897a54c6f46a1c6b7769d7d57351bde631f"
+    },
+    {
+      "code": "OP11-004",
+      "printedText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 \"Navy\" type card other than \"Kujyaku\" and add it to your hand. Then, place the rest at the bottom of your deck in any order.[Activate: Main] You may trash this Character: Up to 1 of your Characters gains +1000 power during this turn.",
+      "publishedText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 \"Navy\" type card other than \"Kujyaku\" and add it to your hand. Then, place the rest at the bottom of your deck in any order.[Activate: Main] You may trash this Character: Up to 1 of your Characters gains +1000 power during this turn.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "schema-search on-play: top 5, up to 1, deck-bottom",
+        "engine-action on-play search: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 1000,
+                "target": "own-character"
+              },
+              {
+                "kind": "trash",
+                "scope": "self",
+                "amount": 1
+              },
+              {
+                "kind": "search",
+                "trait": "Navy",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom"
+              }
+            ],
+            "rawText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 \"Navy\" type card other than \"Kujyaku\" and add it to your hand. Then, place the rest at the bottom of your deck in any order.[Activate: Main] You may trash this Character: Up to 1 of your Characters gains +1000 power during this turn.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 1000,
+                  "target": "own-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "self",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "trait": "Navy",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 \"Navy\" type card other than \"Kujyaku\" and add it to your hand. Then, place the rest at the bottom of your deck in any order.[Activate: Main] You may trash this Character: Up to 1 of your Characters gains +1000 power during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 \"Navy\" type card other than \"Kujyaku\" and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true,
+                "trait": "Navy"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true,
+                  "trait": "Navy"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 \"Navy\" type card other than \"Kujyaku\" and add it to your hand. Then, place the rest at the bottom of your deck in any order.[Activate: Main] You may trash this Character: Up to 1 of your Characters gains +1000 power during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "53910d802e782cf3e2ed54b54e8c6d57814266479213bebde1a27f1080a4f018",
+      "afterHash": "faaecc7cd1159089515e293639bd9d05c70b5e12b869bafcde1ad37da2978240"
+    },
+    {
+      "code": "OP12-003",
+      "printedText": "[On K.O.] You may reveal 2 Events from your hand: Play up to 1 red Character card with 3000 power or less from your hand.",
+      "publishedText": "[On K.O.] You may reveal 2 Events from your hand: Play up to 1 red Character card with 3000 power or less from your hand.",
+      "timings": [
+        "on-ko"
+      ],
+      "scenarioNames": [
+        "engine-action on-ko play: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "rested": false,
+                "source": "hand"
+              },
+              {
+                "kind": "on-ko"
+              }
+            ],
+            "rawText": "[On K.O.] You may reveal 2 Events from your hand: Play up to 1 red Character card with 3000 power or less from your hand.",
+            "trigger": "on-ko",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-ko",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "rested": false,
+                  "source": "hand"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "on-ko"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On K.O.] You may reveal 2 Events from your hand: Play up to 1 red Character card with 3000 power or less from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On K.O.] You may reveal 2 Events from your hand: Play up to 1 red Character card with 3000 power or less from your hand.",
+            "trigger": "on-ko",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "hand",
+                "amount": 1,
+                "cardType": "Character",
+                "color": "red",
+                "maxPower": 3000,
+                "rested": false
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-ko",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "hand",
+                  "amount": 1,
+                  "cardType": "Character",
+                  "color": "red",
+                  "maxPower": 3000,
+                  "rested": false
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On K.O.] You may reveal 2 Events from your hand: Play up to 1 red Character card with 3000 power or less from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "3838d74d4ef0d06e5b2e020c92dce68fab7dda473d68b339b6f1f3207eb53c7a",
+      "afterHash": "e8cfa9fb73504bf337bdb5d2916a9f8aa7e6002ffe0a4b4370d448e69c2fa8dd"
+    },
+    {
+      "code": "OP13-081",
+      "printedText": "If your Leader has the \"Revolutionary Army\" type, this Character gains +3 cost.\n[Activate: Main] [Once Per Turn] You may place 1 card from your trash at the bottom of your deck: Give up to 1 rested DON!! card to your Leader or 1 of your Characters.",
+      "publishedText": "If your Leader has the \"Revolutionary Army\" type, this Character gains +3 cost.\n[Activate: Main] [Once Per Turn] You may place 1 card from your trash at the bottom of your deck: Give up to 1 rested DON!! card to your Leader or 1 of your Characters.",
+      "timings": [
+        "activate-main"
+      ],
+      "scenarioNames": [
+        "engine-action activate-main attach-don: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don",
+                "amount": 1,
+                "source": "cost-area"
+              },
+              {
+                "kind": "attach-don",
+                "amount": 1,
+                "source": "cost-area"
+              }
+            ],
+            "rawText": "[Activate: Main] [Once Per Turn] You may place 1 card from your trash at the bottom of your deck: Give up to 1 rested DON!! card to your Leader or 1 of your Characters.",
+            "trigger": "activate-main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 1,
+                  "source": "cost-area"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 1,
+                  "source": "cost-area"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "If your Leader has the \"Revolutionary Army\" type, this Character gains +3 cost.\n[Activate: Main] [Once Per Turn] You may place 1 card from your trash at the bottom of your deck: Give up to 1 rested DON!! card to your Leader or 1 of your Characters.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Activate: Main] [Once Per Turn] You may place 1 card from your trash at the bottom of your deck: Give up to 1 rested DON!! card to your Leader or 1 of your Characters.",
+            "trigger": "activate-main",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don",
+                "amount": 1,
+                "source": "cost-area",
+                "rested": true
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 1,
+                  "source": "cost-area",
+                  "rested": true
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "If your Leader has the \"Revolutionary Army\" type, this Character gains +3 cost.\n[Activate: Main] [Once Per Turn] You may place 1 card from your trash at the bottom of your deck: Give up to 1 rested DON!! card to your Leader or 1 of your Characters.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "b39398c6fbabcd4fb50116436434cc855fd1258363a1a9217abef1673ab56d34",
+      "afterHash": "0edc2987ae17d54cce0c3c630bcc7a6ce9176ec92f76a82b40ea9bbd1eaa0c78"
+    },
+    {
+      "code": "OP14-010",
+      "printedText": "[On K.O.] Look at 5 cards from the top of your deck; play up to 1 {Supernovas} type Character card with 2000 power or less other than [Basil Hawkins]. Then, place the rest at the bottom of your deck in any order.",
+      "publishedText": "[On K.O.] Look at 5 cards from the top of your deck; play up to 1 {Supernovas} type Character card with 2000 power or less other than [Basil Hawkins]. Then, place the rest at the bottom of your deck in any order.",
+      "timings": [
+        "on-ko"
+      ],
+      "scenarioNames": [
+        "engine-action on-ko search: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "trait": "Supernovas",
+                "amount": 5,
+                "choose": 1,
+                "cardType": "Character",
+                "destination": "deck-bottom"
+              },
+              {
+                "kind": "on-ko"
+              }
+            ],
+            "rawText": "[On K.O.] Look at 5 cards from the top of your deck; play up to 1 {Supernovas} type Character card with 2000 power or less other than [Basil Hawkins]. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-ko",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-ko",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "trait": "Supernovas",
+                  "amount": 5,
+                  "choose": 1,
+                  "cardType": "Character",
+                  "destination": "deck-bottom"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "on-ko"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On K.O.] Look at 5 cards from the top of your deck; play up to 1 {Supernovas} type Character card with 2000 power or less other than [Basil Hawkins]. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On K.O.] Look at 5 cards from the top of your deck; play up to 1 {Supernovas} type Character card with 2000 power or less other than [Basil Hawkins]. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-ko",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true,
+                "excludeName": "Basil Hawkins"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-ko",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true,
+                  "excludeName": "Basil Hawkins"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On K.O.] Look at 5 cards from the top of your deck; play up to 1 {Supernovas} type Character card with 2000 power or less other than [Basil Hawkins]. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "6c001edb938420f9a463cde21603b86ee1e4682a33ae2acfb54e104b583dad87",
+      "afterHash": "3b5569b713527edf27a21d7915a7678c243b5b6ec3aaa1195a404f25bf83e01d"
+    },
+    {
+      "code": "OP15-083",
+      "printedText": "[On Play] Trash 3 cards from the top of your deck. [Activate: Main] You may trash this Character: If you have 15 or more cards in your trash, give up to 1 rested DON!! card to 1 of your Leader or Character cards.",
+      "publishedText": "[On Play] Trash 3 cards from the top of your deck. [Activate: Main] You may trash this Character: If you have 15 or more cards in your trash, give up to 1 rested DON!! card to 1 of your Leader or Character cards.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "engine-action on-play trash: resolve isolated parsed instruction",
+        "schema-atomic-action on-play: isolated trash"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "trash",
+                "scope": "deck",
+                "amount": 3
+              },
+              {
+                "kind": "trash",
+                "scope": "self",
+                "amount": 1
+              },
+              {
+                "kind": "attach-don",
+                "amount": 1,
+                "source": "cost-area"
+              }
+            ],
+            "rawText": "[On Play] Trash 3 cards from the top of your deck. [Activate: Main] You may trash this Character: If you have 15 or more cards in your trash, give up to 1 rested DON!! card to 1 of your Leader or Character cards.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 15 or more cards in your trash"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "deck",
+                  "amount": 3
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "self",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 1,
+                  "source": "cost-area"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 15 or more cards in your trash"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Trash 3 cards from the top of your deck. [Activate: Main] You may trash this Character: If you have 15 or more cards in your trash, give up to 1 rested DON!! card to 1 of your Leader or Character cards.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On Play] Trash 3 cards from the top of your deck.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "trash",
+                "scope": "deck",
+                "amount": 3
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "deck",
+                  "amount": 3
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Trash 3 cards from the top of your deck. [Activate: Main] You may trash this Character: If you have 15 or more cards in your trash, give up to 1 rested DON!! card to 1 of your Leader or Character cards.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "188e44fe672e354a57702ef475df51dfbffc15dab4c83737f2cc80450ddf7cce",
+      "afterHash": "64e1cc48fb558ca4073d0b0edfe2c30a5906c163eb27b22cca6ec32b545a07a2"
+    },
+    {
+      "code": "OP17-053",
+      "printedText": "[On K.O.] Your opponent places 2 cards from their hand at the bottom of their deck in any order.\n\n[Activate: Main] [Once Per Turn] You may trash 1 card from your hand: This Character gains +3000 power during this turn",
+      "publishedText": "[On K.O.] Your opponent places 2 cards from their hand at the bottom of their deck in any order.\n\n[Activate: Main] [Once Per Turn] You may trash 1 card from your hand: This Character gains +3000 power during this turn",
+      "timings": [
+        "on-ko"
+      ],
+      "scenarioNames": [
+        "engine-action on-ko bottom-deck: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "bottom-deck",
+                "scope": "opponent-hand"
+              },
+              {
+                "kind": "on-ko"
+              }
+            ],
+            "rawText": "[On K.O.] Your opponent places 2 cards from their hand at the bottom of their deck in any order.",
+            "trigger": "on-ko",
+            "conditions": []
+          },
+          {
+            "costs": [
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "optional": true,
+                "requiresTrigger": false
+              }
+            ],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 3000,
+                "until": "turn-end",
+                "target": "own-character"
+              }
+            ],
+            "rawText": "[Activate: Main] [Once Per Turn] You may trash 1 card from your hand: This Character gains +3000 power during this turn",
+            "trigger": "activate-main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-ko",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "bottom-deck",
+                  "scope": "opponent-hand"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "on-ko"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "optional": true,
+                  "requiresTrigger": false
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 3000,
+                  "until": "turn-end",
+                  "target": "own-character"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On K.O.] Your opponent places 2 cards from their hand at the bottom of their deck in any order.\n\n[Activate: Main] [Once Per Turn] You may trash 1 card from your hand: This Character gains +3000 power during this turn",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On K.O.] Your opponent places 2 cards from their hand at the bottom of their deck in any order.",
+            "trigger": "on-ko",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "bottom-deck",
+                "scope": "opponent-hand"
+              }
+            ]
+          },
+          {
+            "costs": [
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "optional": true,
+                "requiresTrigger": false
+              }
+            ],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 3000,
+                "until": "turn-end",
+                "target": "own-character"
+              }
+            ],
+            "rawText": "[Activate: Main] [Once Per Turn] You may trash 1 card from your hand: This Character gains +3000 power during this turn",
+            "trigger": "activate-main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-ko",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "bottom-deck",
+                  "scope": "opponent-hand"
+                }
+              }
+            ]
+          },
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "optional": true,
+                  "requiresTrigger": false
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 3000,
+                  "until": "turn-end",
+                  "target": "own-character"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On K.O.] Your opponent places 2 cards from their hand at the bottom of their deck in any order.\n\n[Activate: Main] [Once Per Turn] You may trash 1 card from your hand: This Character gains +3000 power during this turn",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "ecdc823cadcf956a73f3c4f3b7155341be35f6bc78a0392154778ce208ba7147",
+      "afterHash": "bb3d40ce5c5584d1204fd58c204fb0463f52bb3cc039af12969ddda916c75dcf"
+    },
+    {
+      "code": "PRB02-002",
+      "printedText": "[Once Per Turn] If this Character would be removed from the field by your opponent's effect, you may give this Character -2000 power during this turn instead.[When Attacking] Give up to 1 of your opponent's Characters -2000 power during this turn.",
+      "publishedText": "[Once Per Turn] If this Character would be removed from the field by your opponent's effect, you may give this Character -2000 power during this turn instead.[When Attacking] Give up to 1 of your opponent's Characters -2000 power during this turn.",
+      "timings": [
+        "when-attacking"
+      ],
+      "scenarioNames": [
+        "schema-opponent-power when-attacking: up to 1, -2000",
+        "engine-action when-attacking power: resolve isolated parsed instruction",
+        "schema-atomic-action when-attacking: isolated power"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": -2000,
+                "target": "own-character"
+              },
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": -2000,
+                "target": "opponent-character"
+              }
+            ],
+            "rawText": "[Once Per Turn] If this Character would be removed from the field by your opponent's effect, you may give this Character -2000 power during this turn instead.[When Attacking] Give up to 1 of your opponent's Characters -2000 power during this turn.",
+            "trigger": "when-attacking",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character would be removed from the field by your opponent's effect"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "when-attacking",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": -2000,
+                  "target": "own-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": -2000,
+                  "target": "opponent-character"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character would be removed from the field by your opponent's effect"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Once Per Turn] If this Character would be removed from the field by your opponent's effect, you may give this Character -2000 power during this turn instead.[When Attacking] Give up to 1 of your opponent's Characters -2000 power during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[When Attacking] Give up to 1 of your opponent's Characters -2000 power during this turn.",
+            "trigger": "when-attacking",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": -2000,
+                "until": "turn-end",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                },
+                "target": "opponent-character"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "when-attacking",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": -2000,
+                  "until": "turn-end",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "target": "opponent-character"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Once Per Turn] If this Character would be removed from the field by your opponent's effect, you may give this Character -2000 power during this turn instead.[When Attacking] Give up to 1 of your opponent's Characters -2000 power during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "3b7ab6999461725f6041f74817e61c64033f68d97965e0b38d25f2140b34b12f",
+      "afterHash": "2bc480bf7fa2e7475d4019a6abf7fc4c2388d2dcc3d640f98f96c8645245aaca"
+    },
+    {
+      "code": "PRB02-004",
+      "printedText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)[On Your Opponent's Attack] [Once Per Turn] Set up to 1 of your DON!! cards as active.",
+      "publishedText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)[On Your Opponent's Attack] [Once Per Turn] Set up to 1 of your DON!! cards as active.",
+      "timings": [
+        "opponent-attack"
+      ],
+      "scenarioNames": [
+        "schema-ready-don opponent-attack: choose up to 1 rested DON!!",
+        "engine-action opponent-attack ready: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-don",
+                "amount": 1,
+                "selection": {
+                  "max": 1,
+                  "min": 0
+                }
+              }
+            ],
+            "rawText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)[On Your Opponent's Attack] [Once Per Turn] Set up to 1 of your DON!! cards as active.",
+            "trigger": "opponent-attack",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "blocker"
+              }
+            ],
+            "rawText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+            "trigger": "unknown",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "opponent-attack",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-don",
+                  "amount": 1,
+                  "selection": {
+                    "max": 1,
+                    "min": 0
+                  }
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "unknown",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)[On Your Opponent's Attack] [Once Per Turn] Set up to 1 of your DON!! cards as active.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On Your Opponent's Attack] [Once Per Turn] Set up to 1 of your DON!! cards as active.",
+            "trigger": "opponent-attack",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-don",
+                "amount": 1,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "blocker"
+              }
+            ],
+            "rawText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+            "trigger": "unknown",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "opponent-attack",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-don",
+                  "amount": 1,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "timing": "unknown",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)[On Your Opponent's Attack] [Once Per Turn] Set up to 1 of your DON!! cards as active.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "0cc04cc3b5e0b01e9ab929206d21807cb2eb92f1afca464536434a6f71604e1d",
+      "afterHash": "63e9761650815afabb142788e7442e0457348f5228a7edb2054aaffae7fea876"
+    },
+    {
+      "code": "ST07-015",
+      "printedText": "[Main] Your opponent chooses one: • Trash 1 card from the top of your opponent's Life cards. • Add 1 card from the top of your deck to the top of your Life cards. [Trigger] Activate this card's [Main] effect.",
+      "publishedText": "[Main] Your opponent chooses one: • Trash 1 card from the top of your opponent's Life cards. • Add 1 card from the top of your deck to the top of your Life cards. [Trigger] Activate this card's [Main] effect.",
+      "timings": [
+        "main"
+      ],
+      "scenarioNames": [
+        "engine-action main trash-life: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "life",
+                "amount": 1,
+                "operation": "add-to-life"
+              },
+              {
+                "kind": "trash-life",
+                "scope": "opponent",
+                "amount": 1
+              },
+              {
+                "kind": "activate-main-effect"
+              },
+              {
+                "kind": "activate-referenced-effect",
+                "trigger": "main"
+              }
+            ],
+            "rawText": "[Main] Your opponent chooses one: • Trash 1 card from the top of your opponent's Life cards. • Add 1 card from the top of your deck to the top of your Life cards. [Trigger] Activate this card's [Main] effect.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life",
+                  "amount": 1,
+                  "operation": "add-to-life"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash-life",
+                  "scope": "opponent",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "activate-main-effect"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "activate-referenced-effect",
+                  "trigger": "main"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Your opponent chooses one: • Trash 1 card from the top of your opponent's Life cards. • Add 1 card from the top of your deck to the top of your Life cards. [Trigger] Activate this card's [Main] effect.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Main] Your opponent chooses one: • Trash 1 card from the top of your opponent's Life cards. • Add 1 card from the top of your deck to the top of your Life cards.",
+            "trigger": "main",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "trash-life",
+                "scope": "opponent",
+                "amount": 1
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash-life",
+                  "scope": "opponent",
+                  "amount": 1
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Your opponent chooses one: • Trash 1 card from the top of your opponent's Life cards. • Add 1 card from the top of your deck to the top of your Life cards. [Trigger] Activate this card's [Main] effect.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "0d60d1e03337a11e372d7b65e8af26b08bc5c43fdb285a087cad4ff890f363ae",
+      "afterHash": "023f690f67bb5a7800b65162f08913c357a57476b3020e282401b45a38f47f25"
+    },
+    {
+      "code": "ST19-004",
+      "printedText": "[DON!! x1] [Opponent's Turn] This Character gains +4 cost.\n\n[Activate: Main] [Once Per Turn] You may place 1 card from your trash at the bottom of your deck: Give up to 1 rested DON!! card to your Leader or 1 of your Characters.",
+      "publishedText": "[DON!! x1] [Opponent's Turn] This Character gains +4 cost.\n\n[Activate: Main] [Once Per Turn] You may place 1 card from your trash at the bottom of your deck: Give up to 1 rested DON!! card to your Leader or 1 of your Characters.",
+      "timings": [
+        "activate-main"
+      ],
+      "scenarioNames": [
+        "engine-action activate-main attach-don: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don",
+                "amount": 1,
+                "source": "cost-area"
+              },
+              {
+                "kind": "attach-don",
+                "amount": 1,
+                "source": "cost-area"
+              }
+            ],
+            "rawText": "[Activate: Main] [Once Per Turn] You may place 1 card from your trash at the bottom of your deck: Give up to 1 rested DON!! card to your Leader or 1 of your Characters.",
+            "trigger": "activate-main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 1,
+                  "source": "cost-area"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 1,
+                  "source": "cost-area"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] [Opponent's Turn] This Character gains +4 cost.\n\n[Activate: Main] [Once Per Turn] You may place 1 card from your trash at the bottom of your deck: Give up to 1 rested DON!! card to your Leader or 1 of your Characters.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Activate: Main] [Once Per Turn] You may place 1 card from your trash at the bottom of your deck: Give up to 1 rested DON!! card to your Leader or 1 of your Characters.",
+            "trigger": "activate-main",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don",
+                "amount": 1,
+                "source": "cost-area",
+                "rested": true
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 1,
+                  "source": "cost-area",
+                  "rested": true
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] [Opponent's Turn] This Character gains +4 cost.\n\n[Activate: Main] [Once Per Turn] You may place 1 card from your trash at the bottom of your deck: Give up to 1 rested DON!! card to your Leader or 1 of your Characters.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "2d915f46543d236e99b7883c5445fad0bba680f783ba221d3a472866d2ae3986",
+      "afterHash": "037a26a065071933b2b4073c0aa012297add7292ca8d6a3bb58523de25689f1e"
+    },
+    {
+      "code": "ST22-002",
+      "printedText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 card with a type including \"Whitebeard Pirates\" other than [Izo] and add it to your hand. Then, place the rest at the bottom of your deck in any order.[On Your Opponent's Attack] You may trash this Character: Draw 1 card and place 1 card from your hand at the bottom of your deck.",
+      "publishedText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 card with a type including \"Whitebeard Pirates\" other than [Izo] and add it to your hand. Then, place the rest at the bottom of your deck in any order.[On Your Opponent's Attack] You may trash this Character: Draw 1 card and place 1 card from your hand at the bottom of your deck.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "schema-search on-play: top 5, up to 1, deck-bottom",
+        "engine-action on-play search: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 1
+              },
+              {
+                "kind": "trash",
+                "scope": "self",
+                "amount": 1
+              },
+              {
+                "kind": "search",
+                "trait": "Whitebeard Pirates",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "excludeName": "Izo"
+              }
+            ],
+            "rawText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 card with a type including \"Whitebeard Pirates\" other than [Izo] and add it to your hand. Then, place the rest at the bottom of your deck in any order.[On Your Opponent's Attack] You may trash this Character: Draw 1 card and place 1 card from your hand at the bottom of your deck.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "self",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "trait": "Whitebeard Pirates",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "excludeName": "Izo"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 card with a type including \"Whitebeard Pirates\" other than [Izo] and add it to your hand. Then, place the rest at the bottom of your deck in any order.[On Your Opponent's Attack] You may trash this Character: Draw 1 card and place 1 card from your hand at the bottom of your deck.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 card with a type including \"Whitebeard Pirates\" other than [Izo] and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true,
+                "trait": "Whitebeard Pirates",
+                "excludeName": "Izo"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true,
+                  "trait": "Whitebeard Pirates",
+                  "excludeName": "Izo"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 card with a type including \"Whitebeard Pirates\" other than [Izo] and add it to your hand. Then, place the rest at the bottom of your deck in any order.[On Your Opponent's Attack] You may trash this Character: Draw 1 card and place 1 card from your hand at the bottom of your deck.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "33a03edaf7e37945463b6491e17efca0458cbacbb587d6a90cf5aa6f5ca6c4d8",
+      "afterHash": "79468aa2301dfa970e55a56b761b3cc28897c3b5a1669c9ce82ad841c7d717d7"
+    },
+    {
+      "code": "ST34-001",
+      "printedText": "[Your Turn] [Once Per Turn] When a DON!! card on your field is returned to your DON!! deck, if your Leader has the {Big Mom Pirates} type, add up to 2 DON!! cards from your DON!! deck and rest them.[On K.O.] Play up to 1 Character card with 8000 power or less from your hand.",
+      "publishedText": "[Your Turn] [Once Per Turn] When a DON!! card on your field is returned to your DON!! deck, if your Leader has the {Big Mom Pirates} type, add up to 2 DON!! cards from your DON!! deck and rest them.[On K.O.] Play up to 1 Character card with 8000 power or less from your hand.",
+      "timings": [
+        "on-ko"
+      ],
+      "scenarioNames": [
+        "engine-action on-ko play: resolve isolated parsed instruction",
+        "schema-atomic-action on-ko: isolated play"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "add-don",
+                "amount": 2,
+                "rested": false
+              },
+              {
+                "kind": "play",
+                "rested": false,
+                "source": "hand"
+              },
+              {
+                "kind": "on-ko"
+              }
+            ],
+            "rawText": "[Your Turn] [Once Per Turn] When a DON!! card on your field is returned to your DON!! deck, if your Leader has the {Big Mom Pirates} type, add up to 2 DON!! cards from your DON!! deck and rest them.[On K.O.] Play up to 1 Character card with 8000 power or less from your hand.",
+            "trigger": "on-ko",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the {Big Mom Pirates} type"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-ko",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "add-don",
+                  "amount": 2,
+                  "rested": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "rested": false,
+                  "source": "hand"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "on-ko"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the {Big Mom Pirates} type"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Your Turn] [Once Per Turn] When a DON!! card on your field is returned to your DON!! deck, if your Leader has the {Big Mom Pirates} type, add up to 2 DON!! cards from your DON!! deck and rest them.[On K.O.] Play up to 1 Character card with 8000 power or less from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On K.O.] Play up to 1 Character card with 8000 power or less from your hand.",
+            "trigger": "on-ko",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "hand",
+                "amount": 1,
+                "cardType": "Character",
+                "maxPower": 8000,
+                "rested": false
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-ko",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "hand",
+                  "amount": 1,
+                  "cardType": "Character",
+                  "maxPower": 8000,
+                  "rested": false
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Your Turn] [Once Per Turn] When a DON!! card on your field is returned to your DON!! deck, if your Leader has the {Big Mom Pirates} type, add up to 2 DON!! cards from your DON!! deck and rest them.[On K.O.] Play up to 1 Character card with 8000 power or less from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "f8d253745ccde81811af6fdea0b04055d776bcb66c933152561081ad3e1c8898",
+      "afterHash": "c53784fded2edca660f881a92f88d3b30f962dcb23bc16cbb61a3077a7d88787"
+    }
+  ]
+}

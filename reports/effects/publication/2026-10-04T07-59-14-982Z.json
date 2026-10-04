@@ -1,0 +1,150 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-10-04T07:59:14.981Z",
+  "candidates": [
+    {
+      "code": "OP13-020",
+      "printedText": "[Main] Give up to 1 of your opponent's Characters 5000 power during this turn.\n[Trigger] Activate this card's [Main] effect.",
+      "publishedText": "[Main] Give up to 1 of your opponent's Characters 5000 power during this turn.\n[Trigger] Activate this card's [Main] effect.",
+      "timings": [
+        "main",
+        "trigger"
+      ],
+      "scenarioNames": [
+        "schema-reference trigger: resolve referenced main power",
+        "engine-action main power: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "rawText": "[Main] Give up to 1 of your opponent's Characters 5000 power during this turn.",
+            "trigger": "main",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 5000,
+                "until": "turn-end",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                },
+                "target": "opponent-character"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 5000,
+                  "until": "turn-end",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "target": "opponent-character"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Give up to 1 of your opponent's Characters 5000 power during this turn.\n[Trigger] Activate this card's [Main] effect.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Main] Give up to 1 of your opponent's Characters 5000 power during this turn.",
+            "trigger": "main",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 5000,
+                "until": "turn-end",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                },
+                "target": "opponent-character"
+              }
+            ]
+          },
+          {
+            "rawText": "[Trigger] Activate this card's [Main] effect.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "activate-referenced-effect",
+                "trigger": "main"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 5000,
+                  "until": "turn-end",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "target": "opponent-character"
+                }
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "activate-referenced-effect",
+                  "trigger": "main"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Give up to 1 of your opponent's Characters 5000 power during this turn.\n[Trigger] Activate this card's [Main] effect.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "9c7020b8d74013a20ffa8438cf2ef8f60b5c26bb343ebf3973a7b258b2c8e90f",
+      "afterHash": "23425bb10a1aab441f0811d0a3dd17fc435d30af351bd47b910adb2fec95ae01"
+    }
+  ]
+}

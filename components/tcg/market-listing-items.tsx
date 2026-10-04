@@ -16,6 +16,7 @@ import {toast} from 'sonner';
 import {getDaysUntilExpiration, isListingExpired} from '@/lib/market/policy';
 import {FeedbackLaunchButton} from './feedback-launch';
 import {AddEditItemModal} from './vault/modals/add-edit-item-modal';
+import {PushNotificationPrompt} from './push-notification-settings';
 
 type CourierRate={courier_name:string;courier_service_name:string;price:number;duration?:string;max_km?:number};
 const COURIER_LABELS:Record<string,string>={'jne':'JNE Express','jnt':'J&T Express','sicepat':'SiCepat Ekspres','anteraja':'Anteraja','tiki':'TIKI','pos':'Pos Indonesia','lion':'Lion Parcel','ninja':'Ninja Xpress','wahana':'Wahana Express','grab':'GrabExpress','gojek':'GoSend','grab_instant':'Grab Instant','gojek_instant':'Gojek Instant'};
@@ -280,7 +281,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
   const continueOffer=async()=>{
     if(!session){window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));return;}
     if(turnstileEnabled&&!turnstileToken){setVerificationOpen(true);return;}
-    setSubmitting(true);try{const offerItems=items.flatMap(item=>{const quantity=selected[item.id]??0;if(!quantity)return[];const unitAmount=getUnitPrice(item);return [{printingId:item.id,quantity,unitAmount}];});const response=await fetch(`/api/listings/${encodeURIComponent(listingId)}/offers`,{method:'POST',headers:{'content-type':'application/json',...turnstileHeaders(turnstileToken)},body:JSON.stringify({type:isBuying?'BUY':'SELL',items:offerItems,amount:selectedTotal,currency})});const payload=await response.json() as {error?:string};if(!response.ok)throw new Error(payload.error??t('We could not send your offer.','Gagal mengirimkan penawaran Anda.'));setSubmitted(true);setVerificationOpen(false);toast.success(isBuying?t('Offer sent to the seller.','Penawaran dikirim ke penjual.'):t('Your cards were offered to the buyer.','Kartu Anda ditawarkan ke pembeli.'));}catch(error){toast.error(error instanceof Error?error.message:t('We could not send your offer.','Gagal mengirimkan penawaran Anda.'))}finally{setTurnstileToken('');setTurnstileResetKey(value=>value+1);setSubmitting(false)}
+    setSubmitting(true);try{const offerItems=items.flatMap(item=>{const quantity=selected[item.id]??0;if(!quantity)return[];const unitAmount=getUnitPrice(item);return [{printingId:item.id,quantity,unitAmount}];});const response=await fetch(`/api/listings/${encodeURIComponent(listingId)}/offers`,{method:'POST',headers:{'content-type':'application/json',...turnstileHeaders(turnstileToken)},body:JSON.stringify({type:isBuying?'BUY':'SELL',items:offerItems,amount:selectedTotal,currency})});const payload=await response.json() as {error?:string};if(!response.ok)throw new Error(payload.error??t('We could not send your offer.','Gagal mengirimkan penawaran Anda.'));setSubmitted(true);setVerificationOpen(false);toast.success(isBuying?t('Offer sent to the seller.','Penawaran dikirim ke penjual.'):t('Your cards were offered to the buyer.','Kartu Anda ditawarkan ke pembeli.'));}catch(error){const message=error instanceof Error?error.message:'';const localized=language==='ID'&&message.includes('listing is no longer active')?'Listing ini sudah tidak aktif.':language==='ID'&&message.includes('listing has expired')?'Listing ini sudah kedaluwarsa.':language==='ID'&&message.includes('Offer total must match')?'Total penawaran harus sesuai dengan harga tiap kartu.':message||t('We could not send your offer.','Gagal mengirimkan penawaran Anda.');toast.error(localized)}finally{setTurnstileToken('');setTurnstileResetKey(value=>value+1);setSubmitting(false)}
   };
   const buySelected=()=>{
     if(!session){window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));return;}
@@ -463,6 +464,8 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
     {!readOnly&&<footer className="market-listing-selection" aria-live="polite">
       <div className="market-listing-selection-info">
         <span>{submitted?t('Offer sent - awaiting a response.','Penawaran terkirim - menunggu tanggapan.'):selectedCount?(language==='ID'?`${selectedCount} kartu dipilih`:`${selectedCount} ${selectedCount===1?'card':'cards'} selected`):t('Select cards to calculate a total','Pilih kartu untuk menghitung total')}</span>
+        {submitted&&<PushNotificationPrompt language={language} message="offer"/>}
+        {!submitted&&selectedCount>0&&<small>{t('Offers expire after 24 hours or when the listing ends.','Penawaran berakhir setelah 24 jam atau saat listing berakhir.')}</small>}
         <div className="market-listing-pricing-block">
           {hasPriceAdjustments && originalTotal>0 && (
             <span className="market-listing-asking-total">

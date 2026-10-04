@@ -1,0 +1,101 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-10-04T09:47:01.067Z",
+  "candidates": [
+    {
+      "code": "EB04-005",
+      "printedText": "This Character cannot attack unless your opponent has 2 or more Characters with a base power of 5000 or more.",
+      "publishedText": "This Character cannot attack unless your opponent has 2 or more Characters with a base power of 5000 or more.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioNames": [
+        "unknown gameplay attack prohibition: validate the full printed window and legal attacks"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "custom-resolver",
+                "handler": "EB04_005_UNKNOWN"
+              }
+            ],
+            "rawText": "This Character cannot attack unless your opponent has 2 or more Characters with a base power of 5000 or more.",
+            "trigger": "unknown",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "EB04_005_UNKNOWN"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "custom-resolver",
+                  "handler": "EB04_005_UNKNOWN"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "This Character cannot attack unless your opponent has 2 or more Characters with a base power of 5000 or more.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "This Character cannot attack unless your opponent has 2 or more Characters with a base power of 5000 or more.",
+        "parserVersion": "0.6.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "This Character cannot attack unless your opponent has 2 or more Characters with a base power of 5000 or more.",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attack-prohibition",
+                "scope": "own-character",
+                "condition": "your opponent has 2 or more Characters with a base power of 5000 or more"
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attack-prohibition",
+                  "scope": "own-character",
+                  "condition": "your opponent has 2 or more Characters with a base power of 5000 or more"
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "4629a981a5367f3c34f55a8fc8be23aeaa350bd7a2894987cdcb17b5bea7f9f3",
+      "afterHash": "0a23faba9e95ddb739cee6e575db497ddc470e0128ce094a8853d3d6efd90d91"
+    }
+  ]
+}

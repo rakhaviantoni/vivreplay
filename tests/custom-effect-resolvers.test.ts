@@ -39,6 +39,16 @@ test('implemented custom handlers resolve through the shared runtime contract',(
  assert.equal(document.implementationStatus,'IMPLEMENTED');
 });
 
+test('custom handler audits use the handler timing when another window appears first',()=>{
+ const document=compileEffectDocument(card('OP11-031','[On Play] If your Leader has the "Fish-Man" or "Merfolk" type, rest up to 1 of your opponent\'s Characters with a cost of 5 or less.\n[Activate: Main] [Once Per Turn] Up to 1 of your "Fish-Man" or "Merfolk" type Characters can attack Characters on the turn in which it is played.'));
+ assert.equal(document.resolver.type,'CUSTOM');
+ const handler=document.resolver.type==='CUSTOM'?document.resolver.handler:undefined;
+ const timing=handler?customEffectDefinitions().find(item=>item.handler===handler)?.timing:undefined;
+ assert.equal(timing,'activate-main');
+ const resolution=resolveEffectTiming(document,timing!);
+ assert.equal(resolution.status,'ready');assert.ok(resolution.instructions?.length);
+});
+
 test('unknown custom handlers remain blocked from execution',()=>{
  const plan=resolveCustomEffect('NOT_A_HANDLER');
  assert.equal(plan.status,'custom');

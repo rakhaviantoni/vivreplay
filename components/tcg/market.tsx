@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
-import {useEffect,useMemo,useState,type CSSProperties} from 'react';
+import {useEffect,useMemo,useRef,useState,type CSSProperties} from 'react';
 import Link from 'next/link';
 import {useSearchParams} from 'next/navigation';
 import {
@@ -231,7 +231,7 @@ function VaultCardPicker({items,onSelect,locale='EN'}:{items:CollectionItem[];on
             </div>
             <div className="market-vault-card-info">
               <strong>{card.name}</strong>
-              <small>{card.code} · {item.condition} · {item.quantity} {locale==='ID'?'di Vault':'in Vault'}</small>
+              <small>{card.code} · {item.condition} · {item.quantity} {locale==='ID'?'di koleksi':'in Vault'}</small>
             </div>
           </button>
         );
@@ -366,7 +366,7 @@ function MarketCardLookup({
                     {locale === 'ID' ? 'Jual' : 'Sell'}
                   </button>
                   <button type="button" onClick={() => onAddToVault(card)}>
-                    {locale === 'ID' ? 'Simpan ke Vault' : 'Add to Vault'}
+                    {locale === 'ID' ? 'Tambahkan ke koleksi' : 'Add to Vault'}
                   </button>
                 </div>
               </article>
@@ -398,13 +398,16 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
   const [listingView,setListingView]=useState<'list'|'grid'>('list');
   const [feedScope,setFeedScope]=useState<'listings'|'cards'>('listings');
   const [open,setOpen]=useState(false);
+  const directSellSearchHandled=useRef(false);
   const [busy,setBusy]=useState(false);
   const [saveError,setSaveError]=useState('');
   const [turnstileToken,setTurnstileToken]=useState('');
   const [turnstileResetKey,setTurnstileResetKey]=useState(0);
   const [theme,setTheme]=useState<'light'|'dark'>('light');
   const [locale,setLocale]=useState<'EN'|'ID'>('EN');
-  const [accountPanel,setAccountPanel]=useState<'listings'|'offers'|'orders'|null>(null);
+  const [accountPanel,setAccountPanel]=useState<'listings'|'offers'|'orders'|null>(()=>{const activity=searchParams.get('activity');return activity==='offers'||activity==='orders'||activity==='listings'?activity:null});
+  const [activityCounts,setActivityCounts]=useState({listings:0,offers:0,orders:0});
+  const profileId=String(data?.profile?.id??'');
 
   // Bundle & Card Listing Draft State
   const [bundleCards,setBundleCards]=useState<ListingBundleCard[]>([]);
@@ -484,6 +487,20 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
   useEffect(()=>{void refresh()},[]);
 
   useEffect(()=>{
+    if(!profileId)return;
+    let active=true;
+    const update=async()=>{try{const response=await fetch('/api/market/activity',{cache:'no-store'});if(!response.ok)return;const result=await response.json() as {counts?:{listings?:number;offers?:number;orders?:number}};if(active)setActivityCounts({listings:result.counts?.listings??0,offers:result.counts?.offers??0,orders:result.counts?.orders??0})}catch{}}
+    void update();const timer=window.setInterval(()=>void update(),15_000);
+    return()=>{active=false;window.clearInterval(timer)};
+  },[profileId]);
+
+  useEffect(()=>{
+    if(!accountPanel)return;
+    setActivityCounts(current=>({...current,[accountPanel]:0}));
+    void fetch('/api/market/activity',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({section:accountPanel})}).catch(()=>undefined);
+  },[accountPanel]);
+
+  useEffect(()=>{
     const card=searchParams.get('card');
     if(!card)return;
     setQuery(cardFor(card)?.name??card);
@@ -546,6 +563,10 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
     const sell=searchParams.get('sell');
     if(!sell)return;
     if(accountLoading)return;
+    if(sell==='open'){
+      if(!directSellSearchHandled.current){directSellSearchHandled.current=true;beginListing();}
+      return;
+    }
     const legacy=cardFor(sell);
     if(legacy){
       sellCard(legacy);
@@ -659,7 +680,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
     return false;
   };
 
-  const beginListing=()=>{
+  function beginListing(){
     if(!signInToContinue())return;
     setBundleCards([]);
     setConfiguringCard(null);
@@ -674,9 +695,9 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
     const savedCity=window.localStorage.getItem('vivreplay-seller-city')||'Jakarta';
     setListingCity(savedCity);
     setOpen(true);
-  };
+  }
 
-  const sellCard=(card:Card)=>{
+  function sellCard(card:Card){
     if(!signInToContinue())return;
     setBundleCards([]);
     setCardSearch(card.name);
@@ -688,7 +709,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
     setListingCity(savedCity);
     loadCardForConfig(card);
     setOpen(true);
-  };
+  }
 
   const addToVault=(card:Card)=>{
     if(accountLoading){toast.message(locale==='ID'?'Memeriksa akun Anda...':'Checking your account...');return;}
@@ -854,10 +875,10 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
         </label>
         <div className="masthead-actions market-store-actions">
         <Link href="/vault" className="market-store-link">
-          {locale==='ID'?'Vault saya':'Vault'}
+          {locale==='ID'?'Koleksi saya':'Vault'}
         </Link>
         {data && (
-          <DropdownMenu><DropdownMenuTrigger asChild><button type="button" className="market-account-trigger" aria-label={locale==='ID'?'Buka menu akun':'Open account menu'}><span className="market-account-avatar">{data.profile.display_name?.slice(0,1).toUpperCase()||data.profile.username?.slice(0,1).toUpperCase()||'V'}</span><span className="market-account-trigger-name">{data.profile.display_name||`@${data.profile.username}`}</span><CaretDown size={14}/></button></DropdownMenuTrigger><DropdownMenuContent align="end" sideOffset={10} className="market-account-menu"><DropdownMenuLabel>{data.profile.display_name||`@${data.profile.username}`}</DropdownMenuLabel><DropdownMenuSeparator/><DropdownMenuItem onSelect={()=>setAccountPanel('listings')}><ClipboardText size={16}/>{locale==='ID'?'Listing saya':'My listings'}</DropdownMenuItem><DropdownMenuItem onSelect={()=>setAccountPanel('offers')}><OrdersIcon size={16}/>{locale==='ID'?'Penawaran':'Offers'}</DropdownMenuItem><DropdownMenuItem onSelect={()=>setAccountPanel('orders')}><OrdersIcon size={16}/>{locale==='ID'?'Pesanan':'Orders'}</DropdownMenuItem><DropdownMenuItem asChild><Link href="/profile"><UserRound size={16}/>{locale==='ID'?'Profil':'Profile'}</Link></DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+          <DropdownMenu><DropdownMenuTrigger asChild><button type="button" className="market-account-trigger" aria-label={locale==='ID'?'Buka menu akun':'Open account menu'}><span className="market-account-avatar">{data.profile.display_name?.slice(0,1).toUpperCase()||data.profile.username?.slice(0,1).toUpperCase()||'V'}</span>{activityCounts.listings+activityCounts.offers+activityCounts.orders>0&&<span className="market-account-unread-badge">{Math.min(99,activityCounts.listings+activityCounts.offers+activityCounts.orders)}</span>}<span className="market-account-trigger-name">{data.profile.display_name||`@${data.profile.username}`}</span><CaretDown size={14}/></button></DropdownMenuTrigger><DropdownMenuContent align="end" sideOffset={10} className="market-account-menu"><DropdownMenuLabel>{data.profile.display_name||`@${data.profile.username}`}</DropdownMenuLabel><DropdownMenuSeparator/><DropdownMenuItem onSelect={()=>setAccountPanel('listings')}><ClipboardText size={16}/>{locale==='ID'?'Listing saya':'My listings'}{activityCounts.listings>0&&<span className="market-activity-badge">{activityCounts.listings>99?'99+':activityCounts.listings}</span>}</DropdownMenuItem><DropdownMenuItem onSelect={()=>setAccountPanel('offers')}><OrdersIcon size={16}/>{locale==='ID'?'Penawaran':'Offers'}{activityCounts.offers>0&&<span className="market-activity-badge">{activityCounts.offers>99?'99+':activityCounts.offers}</span>}</DropdownMenuItem><DropdownMenuItem onSelect={()=>setAccountPanel('orders')}><OrdersIcon size={16}/>{locale==='ID'?'Pesanan':'Orders'}{activityCounts.orders>0&&<span className="market-activity-badge">{activityCounts.orders>99?'99+':activityCounts.orders}</span>}</DropdownMenuItem><DropdownMenuItem asChild><Link href="/profile"><UserRound size={16}/>{locale==='ID'?'Profil':'Profile'}</Link></DropdownMenuItem></DropdownMenuContent></DropdownMenu>
         )}
         <button className="market-store-locale locale-toggle" type="button" onClick={toggleLocale} aria-label={locale==='ID'?'Ganti bahasa':'Switch language'}>
           {locale}
@@ -970,7 +991,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
                   <Picker
                     label={locale === 'ID' ? 'Bahasa listing' : 'Listing language'}
                     value={lang}
-                    onChange={v => setLang(v as any)}
+                    onChange={v => setLang(v as typeof lang)}
                     options={[
                       { value: 'all', label: locale === 'ID' ? 'Semua bahasa' : 'All languages' },
                       { value: 'EN', label: 'EN' },
@@ -983,7 +1004,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
                   <Picker
                     label={locale === 'ID' ? 'Urutan listing' : 'Sort listings'}
                     value={sort}
-                    onChange={v => setSort(v as any)}
+                    onChange={v => setSort(v as typeof sort)}
                     options={[
                       { value: 'newest', label: locale === 'ID' ? 'Terbaru' : 'Newest' },
                       { value: 'price_asc', label: locale === 'ID' ? 'Harga: terendah' : 'Price: low to high' },
@@ -1099,7 +1120,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
                 ? (locale==='ID'?'Pilih versi cetak, jumlah, dan harga per kartu.':'Select printing, quantity, and unit price.')
                 : bundleCards.length>0
                   ? (locale==='ID'?'Atur rincian listing dan harga total paket.':'Review bundle cards and set overall price.')
-                  : (locale==='ID'?'Cari kartu dari katalog atau pilih dari Vault Anda.':'Search card from catalog or select from your Vault.')
+                  : (locale==='ID'?'Cari kartu dari katalog atau pilih dari koleksi Anda.':'Search card from catalog or select from your Vault.')
               }
             </DialogDescription>
           </div>
@@ -1247,22 +1268,12 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
 
                   {/* Vault Copy Selector or Condition Picker */}
                   {ownedCopiesForConfig.length>0?(
-                    <label>
-                      {locale==='ID'?'Pilih salinan dari Vault':'Choose a Vault copy'}
-                      <Picker
-                        label={locale==='ID'?'Salinan Vault':'Vault copy'}
-                        value={itemInstance}
-                        onChange={v=>{
-                          setItemInstance(v);
-                          const chosen=ownedCopiesForConfig.find(c=>c.id===v);
-                          if(chosen?.condition)setItemCondition(chosen.condition);
-                        }}
-                        options={ownedCopiesForConfig.map(item=>({
-                          value:item.id,
-                          label:`${item.condition} · ${item.quantity} ${locale==='ID'?'salinan di Vault':(item.quantity===1?'copy in Vault':'copies in Vault')}`,
-                        }))}
-                      />
-                    </label>
+                    <fieldset className="market-owned-copy-picker">
+                      <legend>{locale==='ID'?'Pilih salinan dari koleksi':'Choose a copy from your Vault'}</legend>
+                      <div role="radiogroup" aria-label={locale==='ID'?'Salinan koleksi':'Vault copies'}>
+                        {ownedCopiesForConfig.map(item=><button key={item.id} type="button" role="radio" aria-checked={itemInstance===item.id} className={itemInstance===item.id?'is-selected':''} onClick={()=>{setItemInstance(item.id);setItemCondition(item.condition||'NM')}}><span className="market-copy-condition">{item.condition||'NM'}</span><span>{item.quantity} {locale==='ID'?'salinan':'copies'}</span><small>{locale==='ID'?'Di koleksi':'In Vault'}</small></button>)}
+                      </div>
+                    </fieldset>
                   ):(
                     <div className="form-row">
                       <fieldset className="market-condition-field">
@@ -1373,7 +1384,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
                               <span className="listing-variant-tag">{item.condition}</span>
                               {!item.instanceId&&(
                                 <span className="listing-variant-tag" style={{background:'color-mix(in srgb, #e5484d 15%, transparent)',color:'#e5484d'}}>
-                                  {locale==='ID'?'Belum di Vault':'Not in Vault'}
+                                  {locale==='ID'?'Belum ada di koleksi':'Not in Vault'}
                                 </span>
                               )}
                             </div>
@@ -1493,7 +1504,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
                   {busy
                     ?(locale==='ID'?'Mempublikasikan...':'Publishing...')
                     :bundleCards.some(it=>!it.instanceId)
-                      ?(locale==='ID'?'Simpan ke Vault & Publikasikan':'Save to Vault & Publish')
+                      ?(locale==='ID'?'Simpan ke koleksi & publikasikan':'Save to Vault & Publish')
                       :(locale==='ID'?`Publikasikan listing (${totalBundleQuantity} kartu · Rp ${Number(listingPrice||0).toLocaleString('id-ID')})`:`Publish listing (${totalBundleQuantity} cards · Rp ${Number(listingPrice||0).toLocaleString('id-ID')})`)
                   }
                 </button>
@@ -1534,7 +1545,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
                       aria-selected={searchSource==='vault'}
                     >
                       <WalletCards size={14}/>
-                      <span>{locale==='ID'?`Dari Vault Saya (${data!.collection.length})`:`From My Vault (${data!.collection.length})`}</span>
+                      <span>{locale==='ID'?`Dari koleksi saya (${data!.collection.length})`:`From My Vault (${data!.collection.length})`}</span>
                     </button>
                   </div>
                 )}
@@ -1559,7 +1570,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
         </DialogContent>
       </Dialog>
 
-      {data&&<Dialog open={Boolean(accountPanel)} onOpenChange={open=>{if(!open)setAccountPanel(null)}}><DialogContent className="market-account-dialog"><div className="market-account-dialog-heading"><DialogTitle>{accountPanel==='orders'?(locale==='ID'?'Pesanan Market':'Market orders'):accountPanel==='offers'?(locale==='ID'?'Penawaran':'Offers'):(locale==='ID'?'Listing saya':'My listings')}</DialogTitle></div><div className="market-account-dialog-tabs" role="tablist" aria-label={locale==='ID'?'Aktivitas Market':'Market activity'}><button type="button" role="tab" aria-selected={accountPanel==='listings'} className={accountPanel==='listings'?'is-active':''} onClick={()=>setAccountPanel('listings')}>{locale==='ID'?'Listing':'Listings'}</button><button type="button" role="tab" aria-selected={accountPanel==='offers'} className={accountPanel==='offers'?'is-active':''} onClick={()=>setAccountPanel('offers')}>{locale==='ID'?'Penawaran':'Offers'}</button><button type="button" role="tab" aria-selected={accountPanel==='orders'} className={accountPanel==='orders'?'is-active':''} onClick={()=>setAccountPanel('orders')}>{locale==='ID'?'Pesanan':'Orders'}</button></div><div className="market-account-dialog-body">{accountPanel==='orders'?<OrdersTab language={locale}/>:accountPanel==='offers'?<OffersTab language={locale}/>:<ListingsTab language={locale}/>}</div></DialogContent></Dialog>}
+      {data&&<Dialog open={Boolean(accountPanel)} onOpenChange={open=>{if(!open)setAccountPanel(null)}}><DialogContent className="market-account-dialog"><div className="market-account-dialog-heading"><DialogTitle>{accountPanel==='orders'?(locale==='ID'?'Pesanan Market':'Market orders'):accountPanel==='offers'?(locale==='ID'?'Penawaran':'Offers'):(locale==='ID'?'Listing saya':'My listings')}</DialogTitle></div><div className="market-account-dialog-tabs" role="tablist" aria-label={locale==='ID'?'Aktivitas Market':'Market activity'}><button type="button" role="tab" aria-selected={accountPanel==='listings'} className={accountPanel==='listings'?'is-active':''} onClick={()=>setAccountPanel('listings')}>{locale==='ID'?'Listing':'Listings'}{activityCounts.listings>0&&<span className="market-activity-badge">{activityCounts.listings>99?'99+':activityCounts.listings}</span>}</button><button type="button" role="tab" aria-selected={accountPanel==='offers'} className={accountPanel==='offers'?'is-active':''} onClick={()=>setAccountPanel('offers')}>{locale==='ID'?'Penawaran':'Offers'}{activityCounts.offers>0&&<span className="market-activity-badge">{activityCounts.offers>99?'99+':activityCounts.offers}</span>}</button><button type="button" role="tab" aria-selected={accountPanel==='orders'} className={accountPanel==='orders'?'is-active':''} onClick={()=>setAccountPanel('orders')}>{locale==='ID'?'Pesanan':'Orders'}{activityCounts.orders>0&&<span className="market-activity-badge">{activityCounts.orders>99?'99+':activityCounts.orders}</span>}</button></div><div className="market-account-dialog-body">{accountPanel==='orders'?<OrdersTab language={locale}/>:accountPanel==='offers'?<OffersTab language={locale} initialConversationId={searchParams.get('conversation')}/>:<ListingsTab language={locale}/>}</div></DialogContent></Dialog>}
 
       <AddEditItemModal
         key={`${marketVaultCard?.id??'market-card'}-${marketVaultOpen?'open':'closed'}`}
@@ -1578,7 +1589,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
           printingId={collectionCardTarget.printing.id}
           catalogCard={collectionCardTarget.card}
           name={`${collectionCardTarget.card.name} · ${collectionCardTarget.card.language||'EN'}`}
-          submitLabel={locale==='ID'?'Simpan ke Vault & Lanjut':'Save to Vault & Continue'}
+          submitLabel={locale==='ID'?'Simpan ke koleksi & lanjut':'Save to Vault & Continue'}
           open={collectionOpen}
           onClose={()=>{
             setCollectionOpen(false);

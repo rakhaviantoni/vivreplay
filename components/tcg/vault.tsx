@@ -367,7 +367,7 @@ export function Vault() {
     if (!data) {
       deleteLocalVaultItem(itemId);
       toast.success(
-        language === 'ID' ? 'Kartu dihapus dari Vault lokal' : 'Card removed from local Vault'
+        language === 'ID' ? 'Kartu dihapus dari koleksi lokal' : 'Card removed from local Vault'
       );
       setSelectedRawItem(null);
       setSelectedSlabItem(null);
@@ -375,12 +375,12 @@ export function Vault() {
     }
     try {
       await api('/api/collection', { id: itemId }, 'DELETE');
-      toast.success('Card removed from Vault');
+      toast.success(language==='ID'?'Kartu dihapus dari koleksi.':'Card removed from Vault.');
       await refresh();
       setSelectedRawItem(null);
       setSelectedSlabItem(null);
     } catch {
-      toast.success('Card removed from Vault');
+      toast.success(language==='ID'?'Kartu dihapus dari koleksi.':'Card removed from Vault.');
       setSelectedRawItem(null);
       setSelectedSlabItem(null);
     }
@@ -448,8 +448,8 @@ export function Vault() {
 
   const username = data?.profile?.username || (language === 'ID' ? 'kolektor-tamu' : 'guest-collector');
 
-  if (loading) return <main className="page vault-page vault-loading-page" aria-busy="true" aria-live="polite"><VivreMark size={42} label="VivrePlay"/><h1>{t('Opening your Vault…','Membuka Vault…')}</h1><p>{t('Loading your saved cards and collection details.','Memuat kartu tersimpan dan detail koleksi Anda.')}</p><div className="vault-loading-grid" aria-hidden="true">{Array.from({length:6},(_,index)=><i key={index}/>)}</div></main>;
-  if (!data && error && !/sign in to save/i.test(error)) return <main className="page vault-loading-page vault-error-page" role="alert"><VivreMark size={42} label="VivrePlay"/><h1>{t('Your Vault could not load','Vault Anda tidak dapat dimuat')}</h1><p>{error}</p><button type="button" className="vault-btn vault-btn-primary" onClick={()=>void refresh()}>{t('Try again','Coba lagi')}</button></main>;
+  if (loading) return <main className="page vault-page vault-loading-page" aria-busy="true" aria-live="polite"><VivreMark size={42} label="VivrePlay"/><h1>{t('Opening your Vault…','Membuka koleksi…')}</h1><p>{t('Loading your saved cards and collection details.','Memuat kartu tersimpan dan detail koleksi Anda.')}</p><div className="vault-loading-grid" aria-hidden="true">{Array.from({length:6},(_,index)=><i key={index}/>)}</div></main>;
+  if (!data && error && !/sign in to save/i.test(error)) return <main className="page vault-loading-page vault-error-page" role="alert"><VivreMark size={42} label="VivrePlay"/><h1>{t('Your Vault could not load','Koleksi Anda tidak dapat dimuat')}</h1><p>{error}</p><button type="button" className="vault-btn vault-btn-primary" onClick={()=>void refresh()}>{t('Try again','Coba lagi')}</button></main>;
 
   return (
     <main className="page vault-page">
@@ -552,7 +552,7 @@ export function Vault() {
       />
 
       {/* Vault Navigation Tabs */}
-      <nav className="vault-nav-tabs" aria-label={t('Vault tabs','Tab Vault')}>
+      <nav className="vault-nav-tabs" aria-label={t('Vault tabs','Tab koleksi')}>
         <button
           type="button"
           className={`vault-tab-btn ${activeTab === 'collection' ? 'is-active' : ''}`}
@@ -624,7 +624,7 @@ export function Vault() {
       {/* Tab 1: Collection */}
       {activeTab === 'collection' && (
         <section style={{ marginTop: '16px' }}>
-          {data?.profile && <div className="vault-bulk-listing-launch-row"><p>{t('Combine selected Vault cards into one Market listing.','Gabungkan beberapa kartu Vault menjadi satu listing Market.')}</p><button type="button" className="vault-btn vault-btn-secondary" onClick={()=>setBulkListingOpen(true)}><Storefront size={16}/>{t('Create bundle listing','Buat listing bundle')}</button></div>}
+          {data?.profile && <div className="vault-bulk-listing-launch-row"><p>{t('Combine selected Vault cards into one Market listing.','Gabungkan beberapa kartu koleksi menjadi satu listing Market.')}</p><button type="button" className="vault-btn vault-btn-secondary" onClick={()=>setBulkListingOpen(true)}><Storefront size={16}/>{t('Create bundle listing','Buat listing bundle')}</button></div>}
           <VaultFilters
             filters={filters}
             onChangeFilters={setFilters}
@@ -641,7 +641,7 @@ export function Vault() {
                   <Search size={24} />
                 </div>
               </div>
-              <h2>{enrichedItems.length===0?t('Your Vault is empty','Vault Anda masih kosong'):t('No Cards Match That Search','Tidak Ada Kartu yang Cocok')}</h2>
+              <h2>{enrichedItems.length===0?t('Your Vault is empty','Koleksi Anda masih kosong'):t('No Cards Match That Search','Tidak Ada Kartu yang Cocok')}</h2>
               <p>{enrichedItems.length===0?t('Search the catalog to add a real card printing to your collection.','Cari katalog untuk menambahkan cetakan kartu ke koleksi Anda.'):t('Try clearing your active filters or search terms to inspect your catalog.','Coba hapus filter aktif atau kata kunci pencarian Anda.')}</p>
               {enrichedItems.length===0?<button type="button" className="vault-btn vault-btn-primary" onClick={()=>setQuickAddOpen(true)}>{t('Find a card to add','Cari kartu untuk ditambahkan')}</button>:<button
                 type="button"

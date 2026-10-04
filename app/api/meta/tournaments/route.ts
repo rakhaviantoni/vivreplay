@@ -1,0 +1,39 @@
+import {database} from '@/lib/server/database';
+
+type EventRow={id:string;name:string;eventDate:string;playerCount:number|null;publishedDecklistCount:number;sourceName:string;sourceUrl:string};
+type FinishRow={id:string;place:number;playerName:string;leaderCode:string|null;archetype:string|null;deckSourceUrl:string;listStatus:string;cards:number;cardCount:number};
+type MatchSummaryRow={id:string;round:string;bestOf:number;leaderOneCode:string;archetypeOne:string;playerOneName:string|null;leaderTwoCode:string;archetypeTwo:string;playerTwoName:string|null;scoreOne:number;scoreTwo:number;winnerLeaderCode:string;winnerSide:number;seriesComplete:number;scoreComplete:number;summary:string;sourceName:string;sourceUrl:string;evidenceStatus:string};
+type MatchStat={leaderOneCode:string;archetypeOne:string;leaderTwoCode:string;archetypeTwo:string;matches:number;leaderOneWins:number;leaderTwoWins:number;games:number;leaderOneGameWins:number;leaderTwoGameWins:number;sources:Set<string>};
+
+export async function GET(){
+  try{
+    const events=(await database().prepare('SELECT id,name,event_date AS eventDate,player_count AS playerCount,published_decklist_count AS publishedDecklistCount,source_name AS sourceName,source_url AS sourceUrl FROM tournament_events ORDER BY event_date DESC LIMIT 10').all<EventRow>()).results;
+    const results=[];
+    for(const event of events){
+      const finishes=(await database().prepare(`SELECT f.id,f.place,f.player_name AS playerName,f.leader_code AS leaderCode,f.archetype,f.deck_source_url AS deckSourceUrl,f.list_status AS listStatus,COALESCE(SUM(c.quantity),0) AS cards,COUNT(c.card_code) AS cardCount FROM tournament_finishes f LEFT JOIN tournament_deck_cards c ON c.finish_id=f.id WHERE f.event_id=? GROUP BY f.id ORDER BY f.place ASC`).bind(event.id).all<FinishRow>()).results;
+      const matchSummaries=(await database().prepare(`SELECT id,round,best_of AS bestOf,leader_one_code AS leaderOneCode,archetype_one AS archetypeOne,player_one_name AS playerOneName,leader_two_code AS leaderTwoCode,archetype_two AS archetypeTwo,player_two_name AS playerTwoName,score_one AS scoreOne,score_two AS scoreTwo,winner_leader_code AS winnerLeaderCode,winner_side AS winnerSide,series_complete AS seriesComplete,score_complete AS scoreComplete,summary,source_name AS sourceName,source_url AS sourceUrl,evidence_status AS evidenceStatus FROM tournament_match_summaries WHERE event_id=? ORDER BY round`).bind(event.id).all<MatchSummaryRow>()).results;
+      const leaders:Record<string,{leaderCode:string;archetype:string;finishes:number}>={};
+      for(const finish of finishes){if(!finish.leaderCode)continue;const row=leaders[finish.leaderCode]??={leaderCode:finish.leaderCode,archetype:finish.archetype??finish.leaderCode,finishes:0};row.finishes+=1;}
+      results.push({...event,finishes,matchSummaries,leaders:Object.values(leaders).sort((a,b)=>b.finishes-a.finishes)});
+    }
+    const matchRecords=(await database().prepare("SELECT (SELECT COUNT(*) FROM tournament_matches WHERE verification_status='VERIFIED')+(SELECT COUNT(*) FROM tournament_match_summaries WHERE evidence_status='VERIFIED' AND series_complete=1) AS count").first<{count:number}>())?.count??0;
+    const matchSummaries=(await database().prepare("SELECT COUNT(*) AS count FROM tournament_match_summaries WHERE evidence_status='VERIFIED'").first<{count:number}>())?.count??0;
+    const stats=new Map<string,MatchStat>();
+    const addStat=(input:{leaderOneCode:string;archetypeOne:string;leaderTwoCode:string;archetypeTwo:string;scoreOne:number;scoreTwo:number;winnerLeaderCode:string;winnerSide:number;source:string})=>{
+      const swap=input.leaderOneCode>input.leaderTwoCode||(input.leaderOneCode===input.leaderTwoCode&&input.archetypeOne>input.archetypeTwo);
+      const leaderOneCode=swap?input.leaderTwoCode:input.leaderOneCode,leaderTwoCode=swap?input.leaderOneCode:input.leaderTwoCode;
+      const archetypeOne=swap?input.archetypeTwo:input.archetypeOne,archetypeTwo=swap?input.archetypeOne:input.archetypeTwo;
+      const scoreOne=swap?input.scoreTwo:input.scoreOne,scoreTwo=swap?input.scoreOne:input.scoreTwo;
+      const winnerSide=swap?(input.winnerSide===1?2:1):input.winnerSide;
+      const key=`${leaderOneCode}\u0000${archetypeOne}\u0000${leaderTwoCode}\u0000${archetypeTwo}`;
+      const stat=stats.get(key)??{leaderOneCode,archetypeOne,leaderTwoCode,archetypeTwo,matches:0,leaderOneWins:0,leaderTwoWins:0,games:0,leaderOneGameWins:0,leaderTwoGameWins:0,sources:new Set<string>()};
+      if(input.winnerSide>0){stat.matches+=1;stat.leaderOneWins+=winnerSide===1?1:0;stat.leaderTwoWins+=winnerSide===2?1:0;}stat.games+=scoreOne+scoreTwo;stat.leaderOneGameWins+=scoreOne;stat.leaderTwoGameWins+=scoreTwo;stat.sources.add(input.source);stats.set(key,stat);
+    };
+    const summaries=(await database().prepare(`SELECT leader_one_code AS leaderOneCode,archetype_one AS archetypeOne,leader_two_code AS leaderTwoCode,archetype_two AS archetypeTwo,score_one AS scoreOne,score_two AS scoreTwo,winner_leader_code AS winnerLeaderCode,winner_side AS winnerSide,source_url AS source FROM tournament_match_summaries WHERE evidence_status='VERIFIED'`).all<{leaderOneCode:string;archetypeOne:string;leaderTwoCode:string;archetypeTwo:string;scoreOne:number;scoreTwo:number;winnerLeaderCode:string;winnerSide:number;source:string}>()).results;
+    for(const row of summaries)addStat(row);
+    const directMatches=(await database().prepare(`SELECT f.leader_code AS leaderOneCode,COALESCE(f.archetype,f.leader_code) AS archetypeOne,o.leader_code AS leaderTwoCode,COALESCE(o.archetype,o.leader_code) AS archetypeTwo,CASE WHEN m.winner_finish_id=f.id THEN f.leader_code ELSE o.leader_code END AS winnerLeaderCode,m.source_url AS source FROM tournament_matches m JOIN tournament_finishes f ON f.id=m.player_finish_id JOIN tournament_finishes o ON o.id=m.opponent_finish_id WHERE m.verification_status='VERIFIED' AND f.leader_code IS NOT NULL AND o.leader_code IS NOT NULL AND f.leader_code!=o.leader_code`).all<{leaderOneCode:string;archetypeOne:string;leaderTwoCode:string;archetypeTwo:string;winnerLeaderCode:string;source:string}>()).results;
+    for(const row of directMatches)addStat({...row,scoreOne:row.winnerLeaderCode===row.leaderOneCode?1:0,scoreTwo:row.winnerLeaderCode===row.leaderTwoCode?1:0,winnerSide:row.winnerLeaderCode===row.leaderOneCode?1:2});
+    const matchupStats=[...stats.values()].map(stat=>({...stat,sources:[...stat.sources],leaderOneWinRate:stat.matches?stat.leaderOneWins/stat.matches:0,leaderTwoWinRate:stat.matches?stat.leaderTwoWins/stat.matches:0,leaderOneGameWinRate:stat.games?stat.leaderOneGameWins/stat.games:0,leaderTwoGameWinRate:stat.games?stat.leaderTwoGameWins/stat.games:0})).sort((a,b)=>b.matches-a.matches||a.leaderOneCode.localeCompare(b.leaderOneCode));
+    return Response.json({events:results,matchRecords,matchSummaries,matchupStats},{headers:{'Cache-Control':'public, max-age=300, s-maxage=300'}});
+  }catch{return Response.json({error:'Tournament records are not available yet. Apply the tournament data migration.'},{status:503,headers:{'Cache-Control':'no-store'}});}
+}

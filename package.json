@@ -16,7 +16,10 @@
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test tests/*.test.ts",
     "effects:verify": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/verify-effect-pipeline.ts",
+    "effects:verify:d1": "EFFECT_AUDIT_SOURCE=d1 node_modules/tsx/dist/cli.mjs scripts/verify-effect-pipeline.ts",
+    "effects:verify:snapshot": "node --import tsx scripts/verify-effect-snapshot.ts",
     "effects:runtime": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/verify-effect-runtime.ts",
+    "effects:runtime:d1": "EFFECT_AUDIT_SOURCE=d1 node_modules/tsx/dist/cli.mjs scripts/verify-effect-runtime.ts",
     "assets:upload": "node --env-file=.env.local --import tsx scripts/upload-site-assets.ts",
     "play:coverage": "node --env-file=.env.local --import tsx scripts/audit-play-runtime.ts"
   },

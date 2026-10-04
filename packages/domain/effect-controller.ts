@@ -52,11 +52,16 @@ export function advanceEffectExecution(execution:EffectExecution,selection:Effec
    usedSelection=true;
    continue;
   }
+  const cost=command.kind==='pay-cost'?command.value as EffectCost:undefined;
+  const deterministicOptionalCost=cost?.kind==='turn-life'||cost?.kind==='bottom-deck-self'||cost?.kind==='rest'&&cost.scope==='self'||cost?.kind==='trash'&&cost.scope==='self';
+  if(!usedSelection&&deterministicOptionalCost&&cost?.optional&&!selection.choice&&!selection.cardIds?.length&&!selection.targetId&&!selection.position&&!selection.deckOrder?.length&&!selection.replacementIds?.length){
+   return {execution:{...execution,state,conditionResults,commandIndex:index,pendingSelection:{...execution.pendingSelection,...selection}},complete:false,requiresSelection:'Pay this optional cost, or decline the effect.'};
+  }
   const input=usedSelection?{}:{...execution.pendingSelection,...selection};
   const value=command.value as EffectAction|EffectCost;
   if(command.kind==='resolve-action'&&value.kind==='grant-keyword'&&((value.scope==='previous-played'&&!execution.lastPlayedCardId)||(value.scope==='previous-target'&&!execution.lastTargetCardId))){index++;continue;}
   const sourceBound=(command.kind==='pay-cost'&&((value.kind==='rest'||value.kind==='trash')&&value.scope==='self'||value.kind==='bottom-deck-self'))
-  ||(command.kind==='resolve-action'&&(value.kind==='return-source-to-hand'||(value.kind==='rest'&&value.scope==='self')||(value.kind==='trash'&&value.scope==='self')||(value.kind==='ready'&&value.scope==='self')||(value.kind==='attach-don'&&value.recipient==='self')||(value.kind==='attack-permission'&&value.scope==='own-character')||(value.kind==='skip-next-refresh'&&value.scope==='self')||(value.kind==='grant-keyword'&&value.scope==='self')));
+  ||(command.kind==='resolve-action'&&(value.kind==='return-source-to-hand'||(value.kind==='copy-base-power'&&value.target==='own-character')||(value.kind==='rest'&&value.scope==='self')||(value.kind==='trash'&&value.scope==='self')||(value.kind==='ready'&&value.scope==='self')||(value.kind==='attach-don'&&value.recipient==='self')||(value.kind==='attack-permission'&&value.scope==='own-character')||(value.kind==='skip-next-refresh'&&value.scope==='self')||(value.kind==='grant-keyword'&&value.scope==='self')));
   const previousTargetId=command.kind==='resolve-action'&&value.kind==='grant-keyword'?(value.scope==='previous-played'?execution.lastPlayedCardId:value.scope==='previous-target'?execution.lastTargetCardId:undefined):undefined;
   const previousTargetBound=Boolean(previousTargetId);
   const resolvedInput=sourceBound?{...input,targetId:execution.sourceId,sourceCardId:execution.sourceId}:previousTargetBound?{...input,targetId:previousTargetId,sourceCardId:execution.sourceId}:{...input,sourceCardId:execution.sourceId};

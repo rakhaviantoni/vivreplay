@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {applyEffectAction,beginTurn,declareAttack,declareBlock,payEffectCost,playCard,playCounters,resolveBattle,type MatchEffectState} from '../packages/domain/match-effect-state';
+import {applyEffectAction,beginTurn,declareAttack,declareBlock,expireEffectModifiers,payEffectCost,playCard,playCounters,resolveBattle,type MatchEffectState} from '../packages/domain/match-effect-state';
 import {executeEffectCommands,resolveCardEffect} from '../packages/domain/effect-runtime';
 import {compileEffectDocument} from '../packages/domain/effect-rules';
 import type {Card} from '../packages/card-data/catalog';
@@ -78,6 +78,13 @@ test('search enforces printed trait and self-exclusion restrictions',()=>{
  assert.equal(legal.state.cards.find(card=>card.id==='film')?.zone,'hand');
  const rejected=applyEffectAction(searchState,'player',{kind:'search',amount:3,choose:1,destination:'hand',trait:'FILM',excludeName:'Buena Festa'},{cardIds:['self-copy']});
  assert.match(rejected.error??'',/printed search restriction/);
+});
+
+test('a full-deck search with amount zero can select a qualifying card below the top cards',()=>{
+ const match=state();match.cards.push({id:'late-film',owner:'player',zone:'deck',type:'Character',name:'Film Character',traits:['FILM']});
+ const result=applyEffectAction(match,'player',{kind:'search',amount:0,choose:1,destination:'hand',trait:'FILM'},{cardIds:['late-film']});
+ assert.equal(result.error,undefined);assert.equal(result.state.cards.find(card=>card.id==='late-film')?.zone,'hand');
+ assert.deepEqual(result.state.cards.filter(card=>card.owner==='player'&&card.zone==='deck').map(card=>card.id),['deck-1','deck-2']);
 });
 
 test('life and trash movements mutate card zones through the shared resolver',()=>{
@@ -320,6 +327,10 @@ test('copy-base-power and swap-power mutate both selected cards instead of only 
  ]};
  const copied=applyEffectAction(match,'player',{kind:'copy-base-power',target:'own-character',from:'opponent-character',until:'turn-end'},{targetId:'ally',cardIds:['enemy']}).state;
  assert.equal(copied.cards.find(card=>card.id==='ally')?.power,7000);
+ assert.equal(expireEffectModifiers(copied,'turn-end').cards.find(card=>card.id==='ally')?.power,3000);
+ const leaderCopy=applyEffectAction({...match,cards:[...match.cards,{id:'enemy-leader',owner:'opponent',zone:'leader',type:'Leader',power:8000}]},'player',{kind:'copy-base-power',target:'own-character',from:'opponent-leader',until:'turn-end'},{targetId:'ally'});
+ assert.equal(leaderCopy.state.cards.find(card=>card.id==='ally')?.power,8000);
+ assert.equal(expireEffectModifiers(leaderCopy.state,'turn-end').cards.find(card=>card.id==='ally')?.power,3000);
  const swapped=applyEffectAction(copied,'player',{kind:'swap-power',until:'turn-end'},{targetId:'ally',cardIds:['enemy-two']}).state;
  assert.equal(swapped.cards.find(card=>card.id==='ally')?.power,5000);
  assert.equal(swapped.cards.find(card=>card.id==='enemy-two')?.power,7000);

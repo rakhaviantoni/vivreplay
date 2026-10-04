@@ -10,5 +10,7 @@ declare namespace Cloudflare {
     ARENA_TICKET_SECRET?: string;
     SUPABASE_SECRET_KEY?: string;
     TURNSTILE_SECRET_KEY?: string;
+    VAPID_PUBLIC_KEY?: string;
+    VAPID_PRIVATE_JWK?: string;
   }
 }

@@ -1,0 +1,195 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-10-04T07:41:46.634Z",
+  "candidates": [
+    {
+      "code": "OP07-016",
+      "printedText": "[Main] Up to 1 of your [Revolutionary Army] type Characters gains +2000 power during this turn. Then, give up to 1 of your opponent's Characters -1000 power during this turn. [Trigger] Activate this card's [Main] effect.",
+      "publishedText": "[Main] Up to 1 of your [Revolutionary Army] type Characters gains +2000 power during this turn. Then, give up to 1 of your opponent's Characters -1000 power during this turn. [Trigger] Activate this card's [Main] effect.",
+      "timings": [
+        "main",
+        "trigger"
+      ],
+      "scenarioNames": [
+        "schema-op07-016 main and trigger: independently boost Revolutionary Army and weaken one opposing Character"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 2000,
+                "target": "opponent-character"
+              },
+              {
+                "kind": "activate-main-effect"
+              },
+              {
+                "kind": "activate-referenced-effect",
+                "trigger": "main"
+              }
+            ],
+            "rawText": "[Main] Up to 1 of your [Revolutionary Army] type Characters gains +2000 power during this turn. Then, give up to 1 of your opponent's Characters -1000 power during this turn. [Trigger] Activate this card's [Main] effect.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 2000,
+                  "target": "opponent-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "activate-main-effect"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "activate-referenced-effect",
+                  "trigger": "main"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Up to 1 of your [Revolutionary Army] type Characters gains +2000 power during this turn. Then, give up to 1 of your opponent's Characters -1000 power during this turn. [Trigger] Activate this card's [Main] effect.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Main] Up to 1 of your [Revolutionary Army] type Characters gains +2000 power during this turn. Then, give up to 1 of your opponent's Characters -1000 power during this turn.",
+            "trigger": "main",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 2000,
+                "until": "turn-end",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                },
+                "trait": "Revolutionary Army",
+                "target": "own-character"
+              },
+              {
+                "kind": "power",
+                "amount": -1000,
+                "until": "turn-end",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                },
+                "target": "opponent-character"
+              }
+            ]
+          },
+          {
+            "rawText": "[Trigger] Activate this card's [Main] effect.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "activate-main-effect"
+              },
+              {
+                "kind": "activate-referenced-effect",
+                "trigger": "main"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 2000,
+                  "until": "turn-end",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "trait": "Revolutionary Army",
+                  "target": "own-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": -1000,
+                  "until": "turn-end",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "target": "opponent-character"
+                }
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "activate-main-effect"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "activate-referenced-effect",
+                  "trigger": "main"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Up to 1 of your [Revolutionary Army] type Characters gains +2000 power during this turn. Then, give up to 1 of your opponent's Characters -1000 power during this turn. [Trigger] Activate this card's [Main] effect.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "8f2070cfaf508a21bf8ab158fe55b7169fc4c0ee80783817d8d2d0a1d6babc11",
+      "afterHash": "06e6f10795c59d0372ab23e3b472fb17c6c70d1acf923efdc0ee9f1242357bcb"
+    }
+  ]
+}

@@ -5,9 +5,10 @@ import {createAzekhaIntent,hasAzekhaPaymentConfig} from '@/lib/server/azekha-pay
 import {verifyTurnstile} from '@/lib/server/turnstile';
 import {biteshipDestination,isBiteshipAreaId} from '@/lib/shipping/biteship-area';
 
-const schema=z.object({listingId:z.string().min(1),items:z.array(z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(99)})).min(1).max(30),courierName:z.string().min(1),courierServiceName:z.string().min(1)});
+const schema=z.object({listingId:z.string().min(1),offerId:z.string().min(1).optional(),items:z.array(z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(99)})).min(1).max(60),courierName:z.string().min(1),courierServiceName:z.string().min(1)});
 type BundleEntry={instanceId?:string;printingId:string;quantity:number;condition?:string;unitAmount:number};
 type Rate={courier_name:string;courier_service_name:string;price:number};
+type AcceptedOffer={id:string;actorId:string;listingId:string;status:string;amount:number;items:string};
 
 export async function GET(){
   const available=process.env.VIVREPLAY_MARKET_CHECKOUT_ENABLED==='true'&&process.env.VIVREPLAY_MARKET_SELLER_OPERATIONS_READY==='true'&&hasAzekhaPaymentConfig()&&Boolean(process.env.BITESHIP_API_KEY?.trim());
@@ -30,6 +31,17 @@ export async function POST(request:Request){
     if(listing.type!=='WTS')throw new HttpError(400,'Only cards listed for sale can be checked out.');
     if(listing.sellerId===profile.id)throw new HttpError(403,'You cannot purchase from your own listing.');
     if(listing.currency!=='IDR')throw new HttpError(400,'Checkout currently supports IDR listings only.');
+    let acceptedOffer:AcceptedOffer|null=null;
+    if(input.offerId){
+      acceptedOffer=await database.prepare('SELECT id,actor_id AS actorId,listing_id AS listingId,status,amount,items FROM listing_offers WHERE id=?').bind(input.offerId).first<AcceptedOffer>();
+      if(!acceptedOffer||acceptedOffer.status!=='ACCEPTED'||acceptedOffer.actorId!==profile.id||acceptedOffer.listingId!==listing.id||listing.type!=='WTS')throw new HttpError(409,'This accepted offer is no longer available for checkout.');
+      const previousOrder=await database.prepare("SELECT id,status,expires_at AS expiresAt FROM checkout_orders WHERE offer_id=? ORDER BY created_at DESC LIMIT 1").bind(acceptedOffer.id).first<{id:string;status:string;expiresAt:string|null}>();
+      if(previousOrder){
+        const pendingPayment=previousOrder.status==='PENDING_PAYMENT'&&(!previousOrder.expiresAt||previousOrder.expiresAt>new Date().toISOString().replace('T',' ').slice(0,19));
+        const completed=['PROCESSING','PAID','RECEIVED','FULFILLED'].includes(previousOrder.status);
+        if(pendingPayment||completed)throw new HttpError(409,'Checkout has already started or completed for this accepted offer.');
+      }
+    }
 
     const address=await database.prepare('SELECT recipient_name AS recipientName,phone,address_line AS addressLine,city,postal_code AS postalCode,area_id AS areaId FROM seller_shipping_origins WHERE owner_id=?').bind(profile.id).first<{recipientName:string|null;phone:string|null;addressLine:string;city:string;postalCode:string;areaId:string|null}>();
     if(!address?.addressLine||!address.city||!address.phone||(!/^\d{5}$/.test(address.postalCode)&&!isBiteshipAreaId(address.areaId)))throw new HttpError(400,'Save a delivery address, valid postal code or delivery area, and mobile number in your profile before checkout.');
@@ -52,6 +64,12 @@ export async function POST(request:Request){
     }catch{bundle=[{printingId:listing.printingId,quantity:listing.quantity,unitAmount:Math.round(listing.amount/listing.quantity)}]}
     const wanted=new Map<string,number>();
     for(const item of input.items)wanted.set(item.printingId,(wanted.get(item.printingId)??0)+item.quantity);
+    let acceptedLines:BundleEntry[]=[];
+    if(acceptedOffer){
+      try{const parsed=JSON.parse(acceptedOffer.items) as BundleEntry[];acceptedLines=parsed.filter(item=>typeof item.printingId==='string'&&Number.isInteger(item.quantity)&&item.quantity>0&&Number.isSafeInteger(item.unitAmount)&&item.unitAmount>0)}catch{}
+      const requested=[...wanted].sort(([a],[b])=>a.localeCompare(b));const offered=[...acceptedLines.reduce((map,item)=>map.set(item.printingId,(map.get(item.printingId)??0)+item.quantity),new Map<string,number>())].sort(([a],[b])=>a.localeCompare(b));
+      if(JSON.stringify(requested)!==JSON.stringify(offered)||acceptedLines.reduce((sum,item)=>sum+item.quantity*item.unitAmount,0)!==acceptedOffer.amount)throw new HttpError(400,'Checkout cards and prices must match the accepted offer.');
+    }
     const orderItems:BundleEntry[]=[];
     let subtotal=0;
     for(const [printingId,quantity] of wanted){
@@ -72,6 +90,14 @@ export async function POST(request:Request){
       }
       if(remaining>0)throw new HttpError(409,'Some selected cards are currently reserved by another checkout.');
     }
+    if(acceptedOffer){
+      const priceQueues=new Map<string,Array<{quantity:number;unitAmount:number}>>();
+      for(const line of acceptedLines){const queue=priceQueues.get(line.printingId)??[];queue.push({quantity:line.quantity,unitAmount:line.unitAmount});priceQueues.set(line.printingId,queue)}
+      const priced:BundleEntry[]=[];
+      for(const entry of orderItems){let remaining=entry.quantity;const queue=priceQueues.get(entry.printingId)??[];while(remaining>0){const price=queue[0];if(!price)throw new HttpError(400,'Accepted offer prices no longer match the selected cards.');const take=Math.min(remaining,price.quantity);priced.push({...entry,quantity:take,unitAmount:price.unitAmount});remaining-=take;price.quantity-=take;if(!price.quantity)queue.shift()}}
+      orderItems.splice(0,orderItems.length,...priced);subtotal=orderItems.reduce((sum,item)=>sum+item.quantity*item.unitAmount,0);
+      if(subtotal!==acceptedOffer.amount)throw new HttpError(400,'The accepted offer total does not match its card prices.');
+    }
 
     const apiKey=process.env.BITESHIP_API_KEY;
     if(!apiKey)throw new HttpError(503,'Live shipping quotes are not configured yet.');
@@ -89,7 +115,7 @@ export async function POST(request:Request){
     const amount=subtotal+rate.price;
     const expiresAt=new Date(Date.now()+24*60*60*1000).toISOString().replace('T',' ').slice(0,19);
     const shipping={recipientName:address.recipientName,addressLine:address.addressLine,city:address.city,postalCode:address.postalCode,phone:address.phone,courierName:rate.courier_name,courierServiceName:rate.courier_service_name};
-    await database.prepare(`INSERT INTO checkout_orders (id,kind,buyer_id,seller_id,listing_id,items,details,subtotal,shipping_fee,amount,currency,status,expires_at) VALUES (?,'MARKET',?,?,?,?,?,?,?,?,?,'PENDING_PAYMENT',?)`).bind(id,profile.id,listing.sellerId,listing.id,JSON.stringify(orderItems),JSON.stringify(shipping),subtotal,rate.price,amount,'IDR',expiresAt).run();
+    await database.prepare(`INSERT INTO checkout_orders (id,kind,buyer_id,seller_id,listing_id,offer_id,items,details,subtotal,shipping_fee,amount,currency,status,expires_at) VALUES (?,'MARKET',?,?,?,?,?,?,?,?,?,?,'PENDING_PAYMENT',?)`).bind(id,profile.id,listing.sellerId,listing.id,acceptedOffer?.id??null,JSON.stringify(orderItems),JSON.stringify(shipping),subtotal,rate.price,amount,'IDR',expiresAt).run();
     const siteOrigin=new URL(request.url).origin;
     let intent;
     try{
