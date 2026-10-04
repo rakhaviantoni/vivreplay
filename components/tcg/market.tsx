@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 
-import {useEffect,useMemo,useState,type CSSProperties} from 'react';
+import {useEffect,useMemo,useRef,useState,type CSSProperties} from 'react';
 import Link from 'next/link';
 import {useSearchParams} from 'next/navigation';
 import {
@@ -398,6 +398,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
   const [listingView,setListingView]=useState<'list'|'grid'>('list');
   const [feedScope,setFeedScope]=useState<'listings'|'cards'>('listings');
   const [open,setOpen]=useState(false);
+  const directSellSearchHandled=useRef(false);
   const [busy,setBusy]=useState(false);
   const [saveError,setSaveError]=useState('');
   const [turnstileToken,setTurnstileToken]=useState('');
@@ -546,6 +547,10 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
     const sell=searchParams.get('sell');
     if(!sell)return;
     if(accountLoading)return;
+    if(sell==='open'){
+      if(!directSellSearchHandled.current){directSellSearchHandled.current=true;beginListing();}
+      return;
+    }
     const legacy=cardFor(sell);
     if(legacy){
       sellCard(legacy);
