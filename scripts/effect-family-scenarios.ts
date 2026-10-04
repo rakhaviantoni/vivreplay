@@ -65,10 +65,10 @@ export function familyScenarios(text:string,executionTiming?:EffectTrigger):Scen
   if(costSearch){const amount=Number(costSearch[1]),cost=Number(costSearch[2]),limit=costSearch[3].toLowerCase();result.push({name:`${timing}: search top ${amount} for a card costing ${limit} ${cost}`,run(document){
    const state=board();state.cards[0].cost=limit==='more'?cost:cost;state.cards[1].cost=limit==='more'?cost-1:cost;state.cards[2].cost=limit==='more'?cost+1:cost+1;
    const begun=beginEffectExecution(state,'player','source',timing,resolveEffectTiming(document,timing).commands);check(begun.requiresSelection,'Cost-limited search must ask for a selection');
-   const legal=advanceEffectExecution(begun.execution,{cardIds:['d0']});check(legal.complete&&!legal.error,'Boundary-cost card should be eligible');check(legal.execution.state.cards.find(card=>card.id==='d0')?.zone==='hand','Eligible card was not added to hand');check(legal.execution.state.cards.filter(card=>card.zone==='deck')[0]?.id===`d${amount}`,'Unselected looked-at cards were not placed after untouched cards');
+   const legal=advanceEffectExecution(begun.execution,{cardIds:['d0'],deckOrder:Array.from({length:amount-1},(_,i)=>`d${i+1}`)});check(legal.complete&&!legal.error,'Boundary-cost card should be eligible');check(legal.execution.state.cards.find(card=>card.id==='d0')?.zone==='hand','Eligible card was not added to hand');check(legal.execution.state.cards.filter(card=>card.zone==='deck')[0]?.id===`d${amount}`,'Unselected looked-at cards were not placed after untouched cards');
    const invalid=advanceEffectExecution(begun.execution,{cardIds:['d1']});check(invalid.error&&!invalid.complete,'Card below the printed cost threshold was accepted');check(invalid.execution.state.cards.every(card=>card.zone==='deck'),'Rejected search choice changed card zones');
    const outside=advanceEffectExecution(begun.execution,{cardIds:[`d${amount}`]});check(outside.error&&!outside.complete,'Eligible card outside the looked-at window was accepted');
-   const none=advanceEffectExecution(begun.execution,{cardIds:[]});check(none.complete&&!none.error,'Search could not choose zero cards');
+   const none=advanceEffectExecution(begun.execution,{cardIds:[],deckOrder:Array.from({length:amount},(_,i)=>`d${i}`)});check(none.complete&&!none.error,'Search could not choose zero cards');
   }});}
   const triggerPlay=body.match(/^(?:If your Leader is (\[[^\]]+\]|multicolored), )?Play this card\.$/i);
   if(triggerPlay&&timing==='trigger'){
@@ -277,7 +277,8 @@ export function familyScenarios(text:string,executionTiming?:EffectTrigger):Scen
     const started=beginEffectExecution(state,'player','source',timing,resolveEffectTiming(doc,timing).commands);
     check(started.requiresSelection,'Search must request a selection');
     const chosen=choice==='skip'?[]:[choice==='eligible'?'d0':choice==='outside-window'?`d${count}`:choice==='excluded-name'?'d1':'d2'];
-    const done=advanceEffectExecution(started.execution,{cardIds:chosen});
+    const remaining=Array.from({length:count},(_,i)=>`d${i}`).filter(id=>!chosen.includes(id));
+    const done=advanceEffectExecution(started.execution,{cardIds:chosen,deckOrder:remaining});
     if(['wrong-trait','outside-window','excluded-name'].includes(choice)){
      check(done.error,'Illegal search choice accepted');
      check(done.execution.state.cards.every(c=>c.zone==='deck'),'Illegal choice mutated card zones');return;

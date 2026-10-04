@@ -174,7 +174,7 @@ test('search, DON, and zone movement effects become reusable actions',()=>{
 
 test('search preserves the printed type and trait restriction',()=>{
  const actions=parseEffects(card('[On Play] Look at 5 cards from the top of your deck; reveal up to 1 {Straw Hat Crew} type Character card and add it to your hand. Place the rest at the bottom of your deck in any order.'))[0].actions;
- assert.deepEqual(actions.find(action=>action.kind==='search'),{kind:'search',amount:5,choose:1,destination:'deck-bottom',cardType:'Character',trait:'Straw Hat Crew'});
+ assert.deepEqual(actions.find(action=>action.kind==='search'),{kind:'search',amount:5,choose:1,destination:'deck-bottom',remainderPosition:'bottom',remainderOrder:true,cardType:'Character',trait:'Straw Hat Crew'});
 });
 
 test('power gains preserve a trait restriction across Leader and Character recipients',()=>{
@@ -254,7 +254,7 @@ test('life placement, DON payments, and effect negation preserve their targets',
 
 test('persistent effect documents preserve the four parser layers and custom escape hatch',()=>{
  const document=compileEffectDocument(card('[On Play] You may trash 1 card with a [Trigger] from your hand: Draw 3 cards.'));
- assert.equal(document.parserVersion,'0.5.0');
+ assert.equal(document.parserVersion,'0.6.0');
  assert.equal(document.resolver.type,'DSL');
  assert.equal(document.implementationStatus,'PARSED');
  assert.equal(document.ast[0].rawText,document.rawEffectText);
@@ -349,7 +349,7 @@ test('a dual-timing Event keeps Main search and Counter battle power separate',(
 test('mixed-trait and colour searches keep their alternatives separate',()=>{
  const actions=parseEffects(card('[On Play] Look at 5 cards from the top of your deck; reveal up to 1 [Monkey.D.Luffy] or red Event and add it to your hand. Then, place the rest at the bottom of your deck in any order.'))[0].actions;
  const search=actions.find((action):action is Extract<typeof action,{kind:'search'}>=>action.kind==='search');
- assert.deepEqual(search,{kind:'search',amount:5,choose:1,destination:'deck-bottom',cardType:undefined,trait:undefined,alternatives:[{name:'Monkey.D.Luffy'},{color:'red',cardType:'Event'}]});
+ assert.deepEqual(search,{kind:'search',amount:5,choose:1,destination:'deck-bottom',remainderPosition:'bottom',remainderOrder:true,cardType:undefined,trait:undefined,alternatives:[{name:'Monkey.D.Luffy'},{color:'red',cardType:'Event'}]});
 });
 
 test('deck search keeps included type alternatives and each printed selection cap',()=>{
@@ -365,7 +365,7 @@ test('deck search keeps included type alternatives and each printed selection ca
   {id:'whitebeard',owner:'player',zone:'deck',type:'Character',name:'Ace',traits:['Whitebeard Pirates']},
   {id:'other',owner:'player',zone:'deck',type:'Character',name:'Other'},
  ]};
- const valid=applyEffectAction(state,'player',search,{cardIds:['luffy','whitebeard']});assert.equal(valid.error,undefined);assert.deepEqual(valid.state.cards.filter(item=>item.zone==='hand').map(item=>item.id).sort(),['luffy','whitebeard']);
+ const valid=applyEffectAction(state,'player',search,{cardIds:['luffy','whitebeard'],deckOrder:['luffy-2']});assert.equal(valid.error,undefined);assert.deepEqual(valid.state.cards.filter(item=>item.zone==='hand').map(item=>item.id).sort(),['luffy','whitebeard']);
  const repeated=applyEffectAction(state,'player',search,{cardIds:['luffy','luffy-2']});assert.ok(repeated.error);
 });
 
@@ -381,6 +381,9 @@ test('search parses a top-deck remainder and preserves the specified ordering',(
  const result=applyEffectAction(state,'player',search,{cardIds:['pick'],deckOrder:['third','second']});
  assert.equal(result.error,undefined);assert.deepEqual(result.state.cards.filter(item=>item.zone==='deck').map(item=>item.id),['third','second','fourth']);
  const incomplete=applyEffectAction(state,'player',search,{cardIds:['pick'],deckOrder:['second']});assert.equal(incomplete.error,'Order each remaining inspected card exactly once.');
+ const choice=parseEffects(card('[On Play] Look at 3 cards from the top of your deck; reveal up to 1 {East Blue} type card and add it to your hand. Then, place the rest at the top or bottom of your deck in any order.'))[0].actions.find(action=>action.kind==='search');
+ assert.ok(choice?.kind==='search');assert.equal(choice.remainderPosition,'choice');
+ const bottom=applyEffectAction(state,'player',choice,{cardIds:['pick'],deckOrder:['second','third'],position:'bottom'});assert.equal(bottom.error,undefined);assert.deepEqual(bottom.state.cards.filter(item=>item.zone==='deck').map(item=>item.id),['fourth','second','third']);
 });
 
 test('inline timing markers do not merge Main with Trigger',()=>{

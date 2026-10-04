@@ -83,7 +83,7 @@ export type ParsedEffectAst={rawText:string;trigger:EffectTrigger;conditions:Eff
 export type NormalizedEffect={timing:EffectTrigger;optional:boolean;conditions:EffectCondition[];sequence:Array<{type:'PAY_COST';cost:EffectCost}|{type:'RESOLVE';action:EffectAction}>};
 export type EffectResolver={type:'DSL'}|{type:'CUSTOM';handler:string};
 export type EffectDocument={rawEffectText:string;parserVersion:string;parseConfidence:number;implementationStatus:EffectImplementationStatus;ast:ParsedEffectAst[];normalized:NormalizedEffect[];resolver:EffectResolver};
-export const EFFECT_PARSER_VERSION='0.5.0';
+export const EFFECT_PARSER_VERSION='0.6.0';
 const numberAfter=(text:string,pattern:RegExp)=>Number(text.match(pattern)?.[1]??0);
 const costLimit=(text:string)=>{const match=text.match(/cost of\s+(\d+)\s+or less/i);return match?Number(match[1]):undefined;};
 const powerLimit=(text:string)=>{const match=text.match(/(\d+)\s+(?!base\s)power or less/i);return match?Number(match[1]):undefined;};
