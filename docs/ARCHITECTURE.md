@@ -18,11 +18,11 @@ Card discovery → EN/JP printing → authenticated raw/slab Vault → versioned
 
 ## Runtime and target-stack boundary
 
-This working private deployment uses Sites dispatch authentication, D1 SQL, and Supabase Storage. Local development identity is provided by the starter and is excluded from production. Deploy only through Sites: the identity headers are trusted at the Sites dispatch boundary, not arbitrary public request headers.
+The production Cloudflare Worker uses Better Auth session cookies backed by D1 and Supabase Storage. Protected routes call `auth.api.getSession()` with the incoming request headers; application authorization does not trust forwarded identity headers. The vendored Sites Vite plugin only provides a local development identity in its Vite dev-server middleware, and that code is not part of the production request path. Deploy the built Worker to the existing VivrePlay Cloudflare Worker; do not add middleware that treats public forwarded identity headers as authentication.
 
 The user’s recommended production stack includes Supabase Auth/PostgreSQL, Hono, pnpm/Turborepo and Durable Objects. These are NOT silently represented as installed or provisioned. `lib/server/store.ts` is the current persistence/auth boundary. A production migration must introduce a Supabase JWT verifier, map auth subject to profile, implement PostgreSQL repositories and RLS, migrate IDs preserving relationships, and verify isolation before public launch. The domain packages are storage-independent.
 
-Do not deploy the Worker directly to an unrestricted origin while trusting forwarded identity headers.
+Keep Better Auth session verification as the production identity boundary. If a future deployment reintroduces forwarded identity headers, restrict the Worker to a trusted dispatch path before enabling that authentication mode.
 
 ## Deliberately deferred
 
