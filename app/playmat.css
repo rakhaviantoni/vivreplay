@@ -8638,13 +8638,20 @@ html[data-theme='dark'] .arena-lobby,html[data-theme='dark'] .arena-tutorial-ind
 .play-fullscreen .played-card-flight {
   width:var(--flight-width,76px)!important;
   height:var(--flight-height,106px)!important;
-  animation-duration:560ms!important;
+  animation-duration:520ms!important;
   animation-timing-function:cubic-bezier(.18,.78,.2,1)!important;
 }
 .play-fullscreen .played-card-flight .tcg-card,
 .play-fullscreen .played-card-flight .tcg-card img {
   width:100%!important;
   height:100%!important;
+}
+@media(min-width:821px) {
+  .play-fullscreen .played-card-flight {width:91px!important;height:126px!important}
+  .play-fullscreen .played-card-flight .tcg-card.printing-image.small.is-loaded,
+  .play-fullscreen .played-card-flight .tcg-card.printing-image.small.is-loaded>img {
+    width:91px!important;height:126px!important;min-width:91px!important;min-height:126px!important;max-width:91px!important;max-height:126px!important
+  }
 }
 @keyframes play-card-flight {
   0% {opacity:1;transform:translate3d(0,0,0) scale(var(--flight-from-scale,.94));filter:drop-shadow(0 8px 8px rgb(0 0 0 / .35))}
@@ -8661,10 +8668,67 @@ html[data-theme='dark'] .arena-lobby,html[data-theme='dark'] .arena-tutorial-ind
   }
   .play-fullscreen .game-log ol {max-height:min(38dvh,300px)!important}
   .play-fullscreen .opponent-hand-count {top:calc(100% + 4px)!important}
+  .play-fullscreen .played-card-flight {width:76px!important;height:106px!important}
 }
 
 @media(prefers-reduced-motion:reduce) {
   .play-fullscreen .played-card-flight {animation-duration:1ms!important}
+}
+
+/* The leader reveal resolves into a horizontal roll layout: player, VS, opponent. */
+.play-fullscreen .leader-showdown {
+  grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)!important;
+  grid-template-rows:minmax(0,1fr)!important;
+  align-items:center!important;
+  justify-items:center!important;
+  gap:clamp(12px,3vw,42px)!important;
+  padding:clamp(18px,5vw,72px)!important;
+}
+.play-fullscreen .showdown-leader {
+  width:min(100%,320px)!important;
+  max-width:100%!important;
+  flex-direction:column!important;
+  justify-content:center!important;
+  align-items:center!important;
+  gap:12px!important;
+  min-width:0!important;
+}
+.play-fullscreen .showdown-leader.player {grid-column:1!important;grid-row:1!important}
+.play-fullscreen .showdown-leader.opponent {grid-column:3!important;grid-row:1!important}
+.play-fullscreen .showdown-card {flex:0 0 clamp(110px,13vw,172px)!important;width:clamp(110px,13vw,172px)!important}
+.play-fullscreen .showdown-copy,
+.play-fullscreen .showdown-leader.opponent .showdown-copy {
+  order:0!important;
+  width:min(100%,280px)!important;
+  max-width:100%!important;
+  margin:0!important;
+  padding:10px 12px!important;
+  border-radius:10px!important;
+  text-align:center!important;
+  transform:none!important;
+}
+.play-fullscreen .showdown-dice {display:grid!important;place-items:center!important;margin-top:2px!important}
+.play-fullscreen .showdown-dice .die {animation:dice-roll .62s cubic-bezier(.2,.8,.2,1) 4 both}
+.play-fullscreen .showdown-vs {grid-column:2!important;grid-row:1!important;position:relative!important;left:auto!important;top:auto!important;transform:none!important}
+.play-fullscreen .leader-showdown.is-closing .showdown-leader.player {animation:showdown-player-roll-out .56s cubic-bezier(.55,0,1,.45) both!important}
+.play-fullscreen .leader-showdown.is-closing .showdown-leader.opponent {animation:showdown-opponent-roll-out .56s cubic-bezier(.55,0,1,.45) both!important}
+.play-fullscreen .leader-showdown.is-closing .showdown-vs {animation:showdown-close-vs .34s ease-in both!important}
+@keyframes showdown-player-roll-out {to{opacity:0;transform:translateX(-72px) scale(.94)}}
+@keyframes showdown-opponent-roll-out {to{opacity:0;transform:translateX(72px) scale(.94)}}
+@media(max-width:760px) {
+  .play-fullscreen .leader-showdown {grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)!important;grid-template-rows:minmax(0,1fr)!important;gap:8px!important;padding:12px!important}
+  .play-fullscreen .showdown-leader {gap:8px!important}
+  .play-fullscreen .showdown-card {flex-basis:clamp(74px,23vw,110px)!important;width:clamp(74px,23vw,110px)!important}
+  .play-fullscreen .showdown-copy {width:min(100%,170px)!important;padding:7px!important}
+  .play-fullscreen .showdown-copy strong {font-size:12px!important}
+  .play-fullscreen .showdown-effect {display:none!important}
+  .play-fullscreen .showdown-dice .die {width:42px!important;height:42px!important;border-radius:9px!important}
+  .play-fullscreen .showdown-vs {font-size:17px!important}
+}
+@media(prefers-reduced-motion:reduce) {
+  .play-fullscreen .showdown-dice .die {animation:none!important}
+  .play-fullscreen .leader-showdown.is-closing .showdown-leader,
+  .play-fullscreen .leader-showdown.is-closing .showdown-vs {animation-duration:1ms!important}
 }
 .play-fullscreen .board-side .don-cost>button:not(:disabled):hover .tcg-card,
 .play-fullscreen .board-side .don-cost>button:not(:disabled):focus-visible .tcg-card,

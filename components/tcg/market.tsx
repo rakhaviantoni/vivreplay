@@ -1267,8 +1267,16 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
                     <div className="form-row">
                       <fieldset className="market-condition-field">
                         <legend>{locale==='ID'?'Kondisi kartu':'Card condition'}</legend>
-                        <div className="market-condition-options">
-                          {['NM','LP','MP','HP','DMG'].map(condition=><label key={condition} className={itemCondition===condition?'is-selected':''}><input type="radio" name="market-card-condition" value={condition} checked={itemCondition===condition} onChange={()=>setItemCondition(condition)}/><span>{condition}</span></label>)}
+                        <div className="market-condition-options" role="radiogroup" aria-label={locale==='ID'?'Kondisi kartu':'Card condition'}>
+                          {[
+                            {code:'NM',name:locale==='ID'?'Hampir baru':'Near Mint',hint:locale==='ID'?'Seperti baru':'Like new'},
+                            {code:'LP',name:locale==='ID'?'Sedikit dimainkan':'Lightly Played',hint:locale==='ID'?'Sedikit bekas':'Minor wear'},
+                            {code:'MP',name:locale==='ID'?'Cukup dimainkan':'Moderately Played',hint:locale==='ID'?'Terlihat bekas':'Visible wear'},
+                            {code:'HP',name:locale==='ID'?'Sering dimainkan':'Heavily Played',hint:locale==='ID'?'Banyak bekas':'Heavy wear'},
+                            {code:'DMG',name:locale==='ID'?'Rusak':'Damaged',hint:locale==='ID'?'Lipat atau rusak':'Creases or damage'},
+                          ].map(option=><button key={option.code} type="button" role="radio" aria-checked={itemCondition===option.code} className={`market-condition-option ${itemCondition===option.code?'selected':''}`} onClick={()=>setItemCondition(option.code)}>
+                            <b>{option.code}</b><span>{option.name}</span><small>{option.hint}</small>
+                          </button>)}
                         </div>
                       </fieldset>
                     </div>
