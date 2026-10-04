@@ -1,0 +1,147 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-10-02T08:25:57.452Z",
+  "candidates": [
+    {
+      "code": "ST01-012",
+      "printedText": "[Rush] (This card can attack on the turn in which it is played.) [DON!! x2][When Attacking] Your opponent cannot activate [Blocker] during this battle.",
+      "publishedText": "[Rush] (This card can attack on the turn in which it is played.) [DON!! x2][When Attacking] Your opponent cannot activate [Blocker] during this battle.",
+      "timings": [
+        "unknown",
+        "when-attacking"
+      ],
+      "scenarioNames": [
+        "keyword Rush: new-character",
+        "keyword Rush: rested",
+        "keyword Rush: first-turn",
+        "keyword Rush: negated",
+        "keyword Rush: wrong-turn",
+        "keyword Rush: active-target",
+        "keyword Rush: schema isolation",
+        "schema-st01-012 when-attacking: two attached DON!! disables opposing Blocker for this battle"
+      ],
+      "scenarioCount": 8,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don-required",
+                "amount": 2
+              },
+              {
+                "kind": "rush"
+              }
+            ],
+            "rawText": "[Rush] (This card can attack on the turn in which it is played.) [DON!! x2][When Attacking] Your opponent cannot activate [Blocker] during this battle.",
+            "trigger": "unknown",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 2
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rush"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Rush] (This card can attack on the turn in which it is played.) [DON!! x2][When Attacking] Your opponent cannot activate [Blocker] during this battle.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Rush] (This card can attack on the turn in which it is played.)",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rush"
+              }
+            ]
+          },
+          {
+            "rawText": "[When Attacking] [DON!!x2] Your opponent cannot activate [Blocker] during this battle.",
+            "trigger": "when-attacking",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don-required",
+                "amount": 2
+              },
+              {
+                "kind": "prevent-keyword-activation",
+                "keyword": "blocker",
+                "scope": "opponent-character",
+                "until": "battle"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rush"
+                }
+              }
+            ]
+          },
+          {
+            "timing": "when-attacking",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "prevent-keyword-activation",
+                  "keyword": "blocker",
+                  "scope": "opponent-character",
+                  "until": "battle"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Rush] (This card can attack on the turn in which it is played.) [DON!! x2][When Attacking] Your opponent cannot activate [Blocker] during this battle.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "c3b8bd5254ee723c6dd5356b7e4b3d5f5ef18d569459efa62996d41390248153",
+      "afterHash": "c9ec140baa092eb7ed85a27c81e46750dbb845bf345b2401874e492ebc572115"
+    }
+  ]
+}

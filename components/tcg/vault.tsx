@@ -16,7 +16,8 @@ import {
   DownloadSimpleIcon as Download,
   StackIcon as Layers3,
   FloppyDiskIcon as Save,
-  UploadSimpleIcon as Upload
+  UploadSimpleIcon as Upload,
+  StorefrontIcon as Storefront,
 } from '@phosphor-icons/react';
 
 import { useAccount, api } from '@/lib/client';
@@ -42,6 +43,8 @@ import { SetsTab } from './vault/tabs/sets-tab';
 import { WishlistTab } from './vault/tabs/wishlist-tab';
 import { PortfolioTab } from './vault/tabs/portfolio-tab';
 import { ActivityTab } from './vault/tabs/activity-tab';
+import { ListingsTab } from './vault/tabs/listings-tab';
+import { VivreMark } from './brand-assets';
 
 // Vault Modals
 import { QuickAddModal } from './vault/modals/quick-add-modal';
@@ -51,6 +54,7 @@ import { SlabDetailModal } from './vault/modals/slab-detail-modal';
 import { ShareVaultModal } from './vault/modals/share-vault-modal';
 import { PrivacyModal } from './vault/modals/privacy-modal';
 import { ImportExportModal } from './vault/modals/import-export-modal';
+import { BulkListingModal } from './vault/modals/bulk-listing-modal';
 
 // Utilities & Types
 import type { 
@@ -58,13 +62,14 @@ import type {
   VaultTab, 
   PrivacySettings, 
   VaultFilterState, 
-  EnrichedCollectionItem 
+  EnrichedCollectionItem,
+  VaultMarketPrice,
 } from './vault/types';
 import { 
   enrichCollectionItem, 
   calculateVaultStats, 
-  calculateSetProgressList, 
-  getDefaultCollectorSeed 
+  calculateSetProgressList,
+  groupVaultStacks
 } from './vault/vault-utils';
 
 export function Vault() {
@@ -74,6 +79,8 @@ export function Vault() {
   // Active Tab & View Mode State
   const [activeTab, setActiveTab] = useState<VaultTab>('collection');
   const [viewMode, setViewMode] = useState<VaultViewMode>('binder');
+  const binderOrderStorageKey=`vivreplay-vault-binder-order:${String(data?.profile?.id??'guest')}`;
+  const [binderOrder,setBinderOrder]=useState<string[]>([]);
 
   // Privacy & Masking State
   const [privacy, setPrivacy] = useState<PrivacySettings>({
@@ -85,6 +92,10 @@ export function Vault() {
   const [language, setLanguage] = useState<'EN' | 'ID'>('EN');
 
   const t = (en: string, idStr: string) => language === 'ID' ? idStr : en;
+
+  useEffect(()=>{
+    if(data?.profile&&new URLSearchParams(window.location.search).get('tab')==='listings')setActiveTab('listings');
+  },[data?.profile]);
 
   // Showcase / Favorites Set
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
@@ -115,10 +126,14 @@ export function Vault() {
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [privacyModalOpen, setPrivacyModalOpen] = useState(false);
   const [importExportOpen, setImportExportOpen] = useState(false);
+  const [bulkListingOpen, setBulkListingOpen] = useState(false);
   const [selectedShareSet, setSelectedShareSet] = useState<any>(null);
 
   // Local-first vault state for anonymous visitors and offline capability
   const [localVaultItems, setLocalVaultItems] = useState<CollectionItem[]>([]);
+  const [vaultMarketPrices,setVaultMarketPrices]=useState<Record<string,VaultMarketPrice>>({});
+  const [vaultMarketRate,setVaultMarketRate]=useState(110);
+  const [vaultMarketPricesLoading,setVaultMarketPricesLoading]=useState(false);
   const [hasCustomLocalItems, setHasCustomLocalItems] = useState(false);
   const [syncing, setSyncing] = useState(false);
 
@@ -131,6 +146,17 @@ export function Vault() {
     window.addEventListener('vivreplay:vault-updated', loadLocal);
     return () => window.removeEventListener('vivreplay:vault-updated', loadLocal);
   }, []);
+
+  useEffect(()=>{
+    try{setBinderOrder(JSON.parse(window.localStorage.getItem(binderOrderStorageKey)??'[]') as string[]);}catch{setBinderOrder([]);}
+  },[binderOrderStorageKey]);
+
+  const handleBinderOrderChange=(visibleOrder:string[])=>{
+    const visibleIds=new Set(visibleOrder);
+    const next=[...visibleOrder,...binderOrder.filter(id=>!visibleIds.has(id))];
+    setBinderOrder(next);
+    try{window.localStorage.setItem(binderOrderStorageKey,JSON.stringify(next));}catch{}
+  };
 
   // Load preferences from localStorage on mount
   useEffect(() => {
@@ -203,20 +229,33 @@ export function Vault() {
 
   // Determine collection items: use user collection if populated, or provide local vault collection
   const collectionItems = useMemo(() => {
-    if (data && data.collection && data.collection.length > 0) {
-      return data.collection;
-    }
-    if (data) {
-      return getDefaultCollectorSeed();
-    }
-    // Guest mode: use local vault items if present, else fallback to seed
-    return localVaultItems.length > 0 ? localVaultItems : getDefaultCollectorSeed();
-  }, [data, localVaultItems]);
+    if (loading) return [];
+    return data?.collection ?? localVaultItems;
+  }, [data, localVaultItems, loading]);
+
+  const pricingPrintingIds=useMemo(()=>[...new Set(collectionItems.map(item=>item.printingId))].sort(),[collectionItems]);
+  const pricingRequestKey=pricingPrintingIds.join(',');
+  useEffect(()=>{
+    if(!pricingPrintingIds.length){setVaultMarketPrices({});setVaultMarketPricesLoading(false);return}
+    const controller=new AbortController();
+    setVaultMarketPrices({});setVaultMarketPricesLoading(true);
+    void fetch('/api/market/vault-prices',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({printingIds:pricingPrintingIds}),signal:controller.signal})
+      .then(async response=>{if(!response.ok)throw new Error('Vault prices unavailable');return await response.json() as {prices?:Record<string,VaultMarketPrice>;jpyToIdrRate?:number}})
+      .then(result=>{setVaultMarketPrices(result.prices??{});if(result.jpyToIdrRate&&Number.isFinite(result.jpyToIdrRate))setVaultMarketRate(result.jpyToIdrRate)})
+      .catch(error=>{if(!(error instanceof DOMException&&error.name==='AbortError'))setVaultMarketPrices({})})
+      .finally(()=>{if(!controller.signal.aborted)setVaultMarketPricesLoading(false)});
+    return()=>controller.abort();
+  },[pricingRequestKey]);
 
   // Enrich collection items with card art, estimates, gain/loss, and favorite state
   const enrichedItems: EnrichedCollectionItem[] = useMemo(() => {
-    return collectionItems.map(item => enrichCollectionItem(item, favorites));
-  }, [collectionItems, favorites]);
+    return collectionItems.map(item => enrichCollectionItem(item, favorites,vaultMarketPrices,vaultMarketRate));
+  }, [collectionItems, favorites,vaultMarketPrices,vaultMarketRate]);
+  const orderedShareItems=useMemo(()=>{
+    const grouped=groupVaultStacks(enrichedItems);
+    const rank=new Map(binderOrder.map((id,index)=>[id,index]));
+    return grouped.sort((a,b)=>(rank.get(a.item.id)??Number.MAX_SAFE_INTEGER)-(rank.get(b.item.id)??Number.MAX_SAFE_INTEGER)).map(stack=>stack.item);
+  },[enrichedItems,binderOrder]);
 
   // Calculate vault stats & set progress
   const stats = useMemo(() => calculateVaultStats(enrichedItems), [enrichedItems]);
@@ -241,7 +280,8 @@ export function Vault() {
       // Language
       if (filters.language !== 'all') {
         const printing = printings.find(p => p.id === item.printingId);
-        if (printing && printing.language !== filters.language) return false;
+        const itemLanguage = printing?.language ?? item.language ?? item.card.language;
+        if (itemLanguage && itemLanguage !== filters.language) return false;
       }
       // Type (Raw vs Graded)
       if (filters.typeFilter === 'raw' && item.type !== 'RAW') return false;
@@ -253,7 +293,9 @@ export function Vault() {
       // Rarity
       if (filters.rarity !== 'all' && item.card.rarity !== filters.rarity) return false;
       // Color
-      if (filters.color !== 'all' && item.card.color !== filters.color) return false;
+      if (filters.color !== 'all' && !item.card.color.split(/\s*(?:\/|&|,|·)\s*|\s+/).includes(filters.color)) return false;
+      // Card type
+      if (filters.cardType !== 'all' && item.card.type !== filters.cardType) return false;
       // Favorites / Showcase
       if (filters.favoritesOnly && !item.isFavorite) return false;
 
@@ -268,6 +310,7 @@ export function Vault() {
       return 0;
     });
   }, [enrichedItems, filters]);
+  const filteredStackCount=useMemo(()=>groupVaultStacks(filteredCollectionItems).length,[filteredCollectionItems]);
 
   // Slabs list
   const slabsList = useMemo(() => {
@@ -275,12 +318,7 @@ export function Vault() {
   }, [enrichedItems]);
 
   // Wishlist list
-  const wishlistList = useMemo(() => {
-    return data?.wishlist || [
-      { printingId: '20000000-0000-4000-8000-000000000037', targetCondition: 'NM', targetGrade: 'PSA 10', targetPrice: 30_000_000, priority: 'high' as const },
-      { printingId: '20000000-0000-4000-8000-000000000041', targetCondition: 'NM', targetGrade: 'BGS 9.5', targetPrice: 4_500_000, priority: 'medium' as const },
-    ];
-  }, [data]);
+  const wishlistList = useMemo(() => data?.wishlist ?? [], [data]);
 
   // Actions
   const handleSelectItem = (item: EnrichedCollectionItem) => {
@@ -350,18 +388,15 @@ export function Vault() {
 
   const handleMoveToWishlist = async (item: EnrichedCollectionItem) => {
     if (!data) {
-      toast.success(
-        language === 'ID'
-          ? `${item.card.name} ditandai di wishlist lokal`
-          : `Marked ${item.card.name} on local wishlist`
-      );
+      toast.error(language === 'ID' ? 'Masuk untuk menambahkan kartu ke Wishlist.' : 'Sign in to add cards to your Wishlist.');
       return;
     }
     try {
       await api('/api/wishlist', { printingId: item.printingId, saved: true });
       toast.success(`Added ${item.card.name} to your Wishlist`);
+      await refresh();
     } catch {
-      toast.success(`Saved to Wishlist`);
+      toast.error('Could not add this card to your Wishlist. Please try again.');
     }
   };
 
@@ -387,6 +422,7 @@ export function Vault() {
             acquiredAt: item.acquiredAt,
             notes: item.notes,
             subgrades: item.subgrades,
+            catalogCard: item.card ? {code:item.card.code,name:item.card.name,color:item.card.color,type:item.card.type,cost:item.card.cost,power:item.card.power,rarity:item.rarity??item.card.rarity,effect:item.card.effect,setCode:item.setCode??item.card.setCode,language:item.language??item.card.language,variant:item.variant??item.card.variant,printingCode:item.printingCode??item.card.printingCode,imageUrl:item.card.imageUrl}:undefined,
           }, 'POST');
           syncedCount++;
         } catch {}
@@ -411,6 +447,9 @@ export function Vault() {
   };
 
   const username = data?.profile?.username || (language === 'ID' ? 'kolektor-tamu' : 'guest-collector');
+
+  if (loading) return <main className="page vault-page vault-loading-page" aria-busy="true" aria-live="polite"><VivreMark size={42} label="VivrePlay"/><h1>{t('Opening your Vault…','Membuka Vault…')}</h1><p>{t('Loading your saved cards and collection details.','Memuat kartu tersimpan dan detail koleksi Anda.')}</p><div className="vault-loading-grid" aria-hidden="true">{Array.from({length:6},(_,index)=><i key={index}/>)}</div></main>;
+  if (!data && error && !/sign in to save/i.test(error)) return <main className="page vault-loading-page vault-error-page" role="alert"><VivreMark size={42} label="VivrePlay"/><h1>{t('Your Vault could not load','Vault Anda tidak dapat dimuat')}</h1><p>{error}</p><button type="button" className="vault-btn vault-btn-primary" onClick={()=>void refresh()}>{t('Try again','Coba lagi')}</button></main>;
 
   return (
     <main className="page vault-page">
@@ -502,6 +541,7 @@ export function Vault() {
         username={username}
         privacy={privacy}
         hideValues={hideValues}
+        isPricingLoading={vaultMarketPricesLoading}
         language={language}
         onToggleHideValues={handleToggleHideValues}
         onOpenQuickAdd={() => setQuickAddOpen(true)}
@@ -522,6 +562,15 @@ export function Vault() {
           {t('Collection','Koleksi')}
           <span className="vault-tab-count">{enrichedItems.length}</span>
         </button>
+
+        {data?.profile && <button
+          type="button"
+          className={`vault-tab-btn ${activeTab === 'listings' ? 'is-active' : ''}`}
+          onClick={() => setActiveTab('listings')}
+        >
+          <Storefront size={16} />
+          {t('My listings','Listing saya')}
+        </button>}
 
         <button
           type="button"
@@ -575,12 +624,13 @@ export function Vault() {
       {/* Tab 1: Collection */}
       {activeTab === 'collection' && (
         <section style={{ marginTop: '16px' }}>
+          {data?.profile && <div className="vault-bulk-listing-launch-row"><p>{t('Combine selected Vault cards into one Market listing.','Gabungkan beberapa kartu Vault menjadi satu listing Market.')}</p><button type="button" className="vault-btn vault-btn-secondary" onClick={()=>setBulkListingOpen(true)}><Storefront size={16}/>{t('Create bundle listing','Buat listing bundle')}</button></div>}
           <VaultFilters
             filters={filters}
             onChangeFilters={setFilters}
             viewMode={viewMode}
             onChangeViewMode={handleViewModeChange}
-            totalFilteredCount={filteredCollectionItems.length}
+            totalFilteredCount={filteredStackCount}
             language={language}
           />
 
@@ -591,9 +641,9 @@ export function Vault() {
                   <Search size={24} />
                 </div>
               </div>
-              <h2>{t('No Cards Match That Search','Tidak Ada Kartu yang Cocok')}</h2>
-              <p>{t('Try clearing your active filters or search terms to inspect your catalog.','Coba hapus filter aktif atau kata kunci pencarian Anda.')}</p>
-              <button
+              <h2>{enrichedItems.length===0?t('Your Vault is empty','Vault Anda masih kosong'):t('No Cards Match That Search','Tidak Ada Kartu yang Cocok')}</h2>
+              <p>{enrichedItems.length===0?t('Search the catalog to add a real card printing to your collection.','Cari katalog untuk menambahkan cetakan kartu ke koleksi Anda.'):t('Try clearing your active filters or search terms to inspect your catalog.','Coba hapus filter aktif atau kata kunci pencarian Anda.')}</p>
+              {enrichedItems.length===0?<button type="button" className="vault-btn vault-btn-primary" onClick={()=>setQuickAddOpen(true)}>{t('Find a card to add','Cari kartu untuk ditambahkan')}</button>:<button
                 type="button"
                 className="vault-btn vault-btn-secondary"
                 onClick={() => setFilters(prev => ({
@@ -610,7 +660,7 @@ export function Vault() {
                 }))}
               >
                 {t('Clear Filters','Hapus Filter')}
-              </button>
+              </button>}
             </div>
           ) : viewMode === 'binder' ? (
             <BinderView
@@ -619,6 +669,11 @@ export function Vault() {
               onSelectItem={handleSelectItem}
               onToggleFavorite={handleToggleFavorite}
               onAddNewCard={() => setFullAddOpen(true)}
+              onSaved={refresh}
+              isAnonymous={!data}
+              savedOrder={binderOrder}
+              onOrderChange={handleBinderOrderChange}
+              gridSizeStorageKey={`${binderOrderStorageKey}:grid-size`}
             />
           ) : viewMode === 'grid' ? (
             <GridView
@@ -626,6 +681,8 @@ export function Vault() {
               hideValues={hideValues}
               onSelectItem={handleSelectItem}
               onToggleFavorite={handleToggleFavorite}
+              onSaved={refresh}
+              isAnonymous={!data}
             />
           ) : (
             <ListView
@@ -638,6 +695,8 @@ export function Vault() {
           )}
         </section>
       )}
+
+      {activeTab === 'listings' && data?.profile && <section style={{marginTop:'16px'}}><ListingsTab language={language}/></section>}
 
       {/* Tab 2: Slabs */}
       {activeTab === 'slabs' && (
@@ -699,6 +758,7 @@ export function Vault() {
             stats={stats}
             items={enrichedItems}
             hideValues={hideValues}
+            isPricingLoading={vaultMarketPricesLoading}
           />
         </section>
       )}
@@ -706,7 +766,7 @@ export function Vault() {
       {/* Tab 6: Activity */}
       {activeTab === 'activity' && (
         <section style={{ marginTop: '24px' }}>
-          <ActivityTab items={enrichedItems} />
+          <ActivityTab language={language} />
         </section>
       )}
 
@@ -720,6 +780,7 @@ export function Vault() {
       />
 
       <AddEditItemModal
+        key={`${editingItem?.id ?? 'new'}-${fullAddOpen?'open':'closed'}`}
         open={fullAddOpen}
         onClose={() => { setFullAddOpen(false); setEditingItem(null); }}
         onSaved={refresh}
@@ -752,6 +813,7 @@ export function Vault() {
       <SlabDetailModal
         slab={selectedSlabItem}
         open={Boolean(selectedSlabItem)}
+        canManagePhotos={Boolean(data?.profile)}
         hideValues={hideValues}
         onClose={() => setSelectedSlabItem(null)}
         onEdit={slab => {
@@ -771,7 +833,7 @@ export function Vault() {
         open={shareModalOpen}
         onClose={() => { setShareModalOpen(false); setSelectedShareSet(null); }}
         username={username}
-        items={enrichedItems}
+        items={orderedShareItems}
         hideValues={hideValues}
         selectedSlab={selectedSlabItem}
         selectedSet={selectedShareSet}
@@ -790,6 +852,7 @@ export function Vault() {
         items={enrichedItems}
         onImportComplete={refresh}
       />
+      <BulkListingModal open={bulkListingOpen} onClose={()=>setBulkListingOpen(false)} stacks={groupVaultStacks(enrichedItems)} language={language} onPublished={async()=>{await refresh()}} />
     </main>
   );
 }

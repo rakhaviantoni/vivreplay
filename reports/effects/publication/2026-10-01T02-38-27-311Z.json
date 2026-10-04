@@ -1,0 +1,994 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-10-01T02:38:27.309Z",
+  "candidates": [
+    {
+      "code": "OP16-030",
+      "printedText": "[On Play] Up to 1 of your opponent's rested Characters will not become active in your opponent's next Refresh Phase.\n\n[End of Your Turn] Set all of your green Characters with a cost of 5 or less as active.",
+      "publishedText": "[On Play] Up to 1 of your opponent's rested Characters will not become active in your opponent's next Refresh Phase.\n\n[End of Your Turn] Set all of your green Characters with a cost of 5 or less as active.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "schema-prevent-ready on-play: opponent-character rested up-to 1",
+        "engine-action on-play prevent-ready: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "prevent-ready",
+                "scope": "opponent-character",
+                "until": "opponent-next-refresh"
+              }
+            ],
+            "rawText": "[On Play] Up to 1 of your opponent's rested Characters will not become active in your opponent's next Refresh Phase.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "custom-resolver",
+                "handler": "OP16_030_END_TURN"
+              }
+            ],
+            "rawText": "[End of Your Turn] Set all of your green Characters with a cost of 5 or less as active.",
+            "trigger": "end-turn",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "OP16_030_END_TURN"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "prevent-ready",
+                  "scope": "opponent-character",
+                  "until": "opponent-next-refresh"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "end-turn",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "custom-resolver",
+                  "handler": "OP16_030_END_TURN"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Up to 1 of your opponent's rested Characters will not become active in your opponent's next Refresh Phase.\n\n[End of Your Turn] Set all of your green Characters with a cost of 5 or less as active.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "custom-resolver",
+                "handler": "OP16_030_END_TURN"
+              }
+            ],
+            "rawText": "[End of Your Turn] Set all of your green Characters with a cost of 5 or less as active.",
+            "trigger": "end-turn",
+            "conditions": []
+          },
+          {
+            "rawText": "[On Play] Up to 1 of your opponent's rested Characters will not become active in your opponent's next Refresh Phase.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "prevent-ready",
+                "scope": "opponent-character",
+                "until": "opponent-next-refresh",
+                "restedOnly": true,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "OP16_030_END_TURN"
+        },
+        "normalized": [
+          {
+            "timing": "end-turn",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "custom-resolver",
+                  "handler": "OP16_030_END_TURN"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "prevent-ready",
+                  "scope": "opponent-character",
+                  "until": "opponent-next-refresh",
+                  "restedOnly": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Up to 1 of your opponent's rested Characters will not become active in your opponent's next Refresh Phase.\n\n[End of Your Turn] Set all of your green Characters with a cost of 5 or less as active.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "b49f095e78c35004271f65e17e0969c97a839dd6ddea35638b580f8e4e09d499",
+      "afterHash": "921b58c8173d75ad0a8cec8219da5b4d5eba14b8b0b3b194417a21cdc4d52a7b"
+    },
+    {
+      "code": "ST30-010",
+      "printedText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n\n[On Play] Up to 1 of your opponent's rested Characters will not become active in your opponent's next Refresh Phase.",
+      "publishedText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n\n[On Play] Up to 1 of your opponent's rested Characters will not become active in your opponent's next Refresh Phase.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "schema-prevent-ready on-play: opponent-character rested up-to 1",
+        "engine-action on-play prevent-ready: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "prevent-ready",
+                "scope": "opponent-character",
+                "until": "opponent-next-refresh"
+              }
+            ],
+            "rawText": "[On Play] Up to 1 of your opponent's rested Characters will not become active in your opponent's next Refresh Phase.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "blocker"
+              }
+            ],
+            "rawText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+            "trigger": "unknown",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "prevent-ready",
+                  "scope": "opponent-character",
+                  "until": "opponent-next-refresh"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "unknown",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n\n[On Play] Up to 1 of your opponent's rested Characters will not become active in your opponent's next Refresh Phase.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "blocker"
+              }
+            ],
+            "rawText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+            "trigger": "unknown",
+            "conditions": []
+          },
+          {
+            "rawText": "[On Play] Up to 1 of your opponent's rested Characters will not become active in your opponent's next Refresh Phase.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "prevent-ready",
+                "scope": "opponent-character",
+                "until": "opponent-next-refresh",
+                "restedOnly": true,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "prevent-ready",
+                  "scope": "opponent-character",
+                  "until": "opponent-next-refresh",
+                  "restedOnly": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n\n[On Play] Up to 1 of your opponent's rested Characters will not become active in your opponent's next Refresh Phase.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "2e33e08e1290e2f094db9113a7f5c69481977211254c46ec0da68b351e03a42b",
+      "afterHash": "9d9ed952286beb815ca66da01e9cd939c2eb65758f36e4edda26ae8c2ab3e459"
+    },
+    {
+      "code": "OP11-028",
+      "printedText": "[On Play] Up to 1 of your opponent's rested Characters will not become active in your opponent's next Refresh Phase.\n[Trigger] K.O. up to 1 of your opponent's rested Characters with a cost of 3 or less.",
+      "publishedText": "[On Play] Up to 1 of your opponent's rested Characters will not become active in your opponent's next Refresh Phase.\n[Trigger] K.O. up to 1 of your opponent's rested Characters with a cost of 3 or less.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "schema-prevent-ready on-play: opponent-character rested up-to 1",
+        "engine-action on-play prevent-ready: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "prevent-ready",
+                "scope": "opponent-character",
+                "until": "opponent-next-refresh"
+              }
+            ],
+            "rawText": "[On Play] Up to 1 of your opponent's rested Characters will not become active in your opponent's next Refresh Phase.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 3,
+                "selection": {
+                  "max": 1,
+                  "min": 0
+                },
+                "restedOnly": true
+              }
+            ],
+            "rawText": "[Trigger] K.O. up to 1 of your opponent's rested Characters with a cost of 3 or less.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "prevent-ready",
+                  "scope": "opponent-character",
+                  "until": "opponent-next-refresh"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 3,
+                  "selection": {
+                    "max": 1,
+                    "min": 0
+                  },
+                  "restedOnly": true
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Up to 1 of your opponent's rested Characters will not become active in your opponent's next Refresh Phase.\n[Trigger] K.O. up to 1 of your opponent's rested Characters with a cost of 3 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 3,
+                "selection": {
+                  "max": 1,
+                  "min": 0
+                },
+                "restedOnly": true
+              }
+            ],
+            "rawText": "[Trigger] K.O. up to 1 of your opponent's rested Characters with a cost of 3 or less.",
+            "trigger": "trigger",
+            "conditions": []
+          },
+          {
+            "rawText": "[On Play] Up to 1 of your opponent's rested Characters will not become active in your opponent's next Refresh Phase.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "prevent-ready",
+                "scope": "opponent-character",
+                "until": "opponent-next-refresh",
+                "restedOnly": true,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 3,
+                  "selection": {
+                    "max": 1,
+                    "min": 0
+                  },
+                  "restedOnly": true
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "prevent-ready",
+                  "scope": "opponent-character",
+                  "until": "opponent-next-refresh",
+                  "restedOnly": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Up to 1 of your opponent's rested Characters will not become active in your opponent's next Refresh Phase.\n[Trigger] K.O. up to 1 of your opponent's rested Characters with a cost of 3 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "c5e6e5c4d18b0979b40c4e8df91066ee7c15472a84195dd15c50144052dd1302",
+      "afterHash": "1104d9f204bc74b4d453d98633d59fa45a90ab2407dbfcdbdbff8d17fb42ac8d"
+    },
+    {
+      "code": "OP08-024",
+      "printedText": "[When Attacking] Up to 1 of your opponent's rested Characters with a cost of 4 or less will not become active in your opponent's next Refresh Phase.",
+      "publishedText": "[When Attacking] Up to 1 of your opponent's rested Characters with a cost of 4 or less will not become active in your opponent's next Refresh Phase.",
+      "timings": [
+        "when-attacking"
+      ],
+      "scenarioNames": [
+        "schema-prevent-ready when-attacking: opponent-character rested cost 4 up-to 1",
+        "engine-action when-attacking prevent-ready: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "prevent-ready",
+                "scope": "opponent-character",
+                "until": "opponent-next-refresh"
+              }
+            ],
+            "rawText": "[When Attacking] Up to 1 of your opponent's rested Characters with a cost of 4 or less will not become active in your opponent's next Refresh Phase.",
+            "trigger": "when-attacking",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "when-attacking",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "prevent-ready",
+                  "scope": "opponent-character",
+                  "until": "opponent-next-refresh"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[When Attacking] Up to 1 of your opponent's rested Characters with a cost of 4 or less will not become active in your opponent's next Refresh Phase.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[When Attacking] Up to 1 of your opponent's rested Characters with a cost of 4 or less will not become active in your opponent's next Refresh Phase.",
+            "trigger": "when-attacking",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "prevent-ready",
+                "scope": "opponent-character",
+                "until": "opponent-next-refresh",
+                "maxCost": 4,
+                "restedOnly": true,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "when-attacking",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "prevent-ready",
+                  "scope": "opponent-character",
+                  "until": "opponent-next-refresh",
+                  "maxCost": 4,
+                  "restedOnly": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[When Attacking] Up to 1 of your opponent's rested Characters with a cost of 4 or less will not become active in your opponent's next Refresh Phase.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "1de0a8075911070de34e8de2466f8cdddcfdb239d12da0c47faf5c069cdf4b3b",
+      "afterHash": "db923570e57f42d50a954f90509e32377f9e723527063bcbd41140fd8ad2c47e"
+    },
+    {
+      "code": "OP08-023",
+      "printedText": "[On Play]/[When Attacking] Up to 1 of your opponent's rested Characters with a cost of 7 or less will not become active in your opponent's next Refresh Phase.",
+      "publishedText": "[On Play]/[When Attacking] Up to 1 of your opponent's rested Characters with a cost of 7 or less will not become active in your opponent's next Refresh Phase.",
+      "timings": [
+        "on-play",
+        "when-attacking"
+      ],
+      "scenarioNames": [
+        "schema-prevent-ready on-play: opponent-character rested cost 7 up-to 1",
+        "schema-prevent-ready when-attacking: opponent-character rested cost 7 up-to 1",
+        "engine-action on-play prevent-ready: resolve isolated parsed instruction",
+        "engine-action when-attacking prevent-ready: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 4,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "prevent-ready",
+                "scope": "opponent-character",
+                "until": "opponent-next-refresh"
+              }
+            ],
+            "rawText": "[On Play]/[When Attacking] Up to 1 of your opponent's rested Characters with a cost of 7 or less will not become active in your opponent's next Refresh Phase.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "prevent-ready",
+                  "scope": "opponent-character",
+                  "until": "opponent-next-refresh"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play]/[When Attacking] Up to 1 of your opponent's rested Characters with a cost of 7 or less will not become active in your opponent's next Refresh Phase.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On Play] Up to 1 of your opponent's rested Characters with a cost of 7 or less will not become active in your opponent's next Refresh Phase.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "prevent-ready",
+                "scope": "opponent-character",
+                "until": "opponent-next-refresh",
+                "maxCost": 7,
+                "restedOnly": true,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          },
+          {
+            "rawText": "[When Attacking] Up to 1 of your opponent's rested Characters with a cost of 7 or less will not become active in your opponent's next Refresh Phase.",
+            "trigger": "when-attacking",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "prevent-ready",
+                "scope": "opponent-character",
+                "until": "opponent-next-refresh",
+                "maxCost": 7,
+                "restedOnly": true,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "prevent-ready",
+                  "scope": "opponent-character",
+                  "until": "opponent-next-refresh",
+                  "maxCost": 7,
+                  "restedOnly": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "timing": "when-attacking",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "prevent-ready",
+                  "scope": "opponent-character",
+                  "until": "opponent-next-refresh",
+                  "maxCost": 7,
+                  "restedOnly": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play]/[When Attacking] Up to 1 of your opponent's rested Characters with a cost of 7 or less will not become active in your opponent's next Refresh Phase.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "707369e553de2791cb4c2d88b00a8a4890f73960c806edcefb244b3ee24dcc8c",
+      "afterHash": "92be469f17ac9cad36dd9d91e16914e6abf3ef4c222ed255311a6a7482b33cb1"
+    },
+    {
+      "code": "OP08-026",
+      "printedText": "[DON!! x1] [When Attacking] Up to 1 of your opponent's rested Characters with a cost of 1 or less will not become active in your opponent's next Refresh Phase.",
+      "publishedText": "[DON!! x1] [When Attacking] Up to 1 of your opponent's rested Characters with a cost of 1 or less will not become active in your opponent's next Refresh Phase.",
+      "timings": [
+        "when-attacking"
+      ],
+      "scenarioNames": [
+        "schema-prevent-ready when-attacking: opponent-character rested cost 1 up-to 1"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              },
+              {
+                "kind": "prevent-ready",
+                "scope": "opponent-don",
+                "until": "opponent-next-refresh"
+              }
+            ],
+            "rawText": "[DON!! x1] [When Attacking] Up to 1 of your opponent's rested Characters with a cost of 1 or less will not become active in your opponent's next Refresh Phase.",
+            "trigger": "when-attacking",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "when-attacking",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "prevent-ready",
+                  "scope": "opponent-don",
+                  "until": "opponent-next-refresh"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] [When Attacking] Up to 1 of your opponent's rested Characters with a cost of 1 or less will not become active in your opponent's next Refresh Phase.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[When Attacking] [DON!!x1] Up to 1 of your opponent's rested Characters with a cost of 1 or less will not become active in your opponent's next Refresh Phase.",
+            "trigger": "when-attacking",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              },
+              {
+                "kind": "prevent-ready",
+                "scope": "opponent-character",
+                "until": "opponent-next-refresh",
+                "maxCost": 1,
+                "restedOnly": true,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "when-attacking",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "prevent-ready",
+                  "scope": "opponent-character",
+                  "until": "opponent-next-refresh",
+                  "maxCost": 1,
+                  "restedOnly": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] [When Attacking] Up to 1 of your opponent's rested Characters with a cost of 1 or less will not become active in your opponent's next Refresh Phase.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "ac9610fe9266a1d9f6d080ffe58490ff33868b2837c8c8a0f6836e3580e3fa5f",
+      "afterHash": "cf8423b96cc46741984df41650007e94507237ba288c0ae52448ec7d2574f9e5"
+    },
+    {
+      "code": "OP08-025",
+      "printedText": "[On Play] Up to 1 of your opponent's rested Characters with a cost of 3 or less will not become active in your opponent's next Refresh Phase.",
+      "publishedText": "[On Play] Up to 1 of your opponent's rested Characters with a cost of 3 or less will not become active in your opponent's next Refresh Phase.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "schema-prevent-ready on-play: opponent-character rested cost 3 up-to 1",
+        "engine-action on-play prevent-ready: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "prevent-ready",
+                "scope": "opponent-character",
+                "until": "opponent-next-refresh"
+              }
+            ],
+            "rawText": "[On Play] Up to 1 of your opponent's rested Characters with a cost of 3 or less will not become active in your opponent's next Refresh Phase.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "prevent-ready",
+                  "scope": "opponent-character",
+                  "until": "opponent-next-refresh"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Up to 1 of your opponent's rested Characters with a cost of 3 or less will not become active in your opponent's next Refresh Phase.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On Play] Up to 1 of your opponent's rested Characters with a cost of 3 or less will not become active in your opponent's next Refresh Phase.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "prevent-ready",
+                "scope": "opponent-character",
+                "until": "opponent-next-refresh",
+                "maxCost": 3,
+                "restedOnly": true,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "prevent-ready",
+                  "scope": "opponent-character",
+                  "until": "opponent-next-refresh",
+                  "maxCost": 3,
+                  "restedOnly": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Up to 1 of your opponent's rested Characters with a cost of 3 or less will not become active in your opponent's next Refresh Phase.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "870d20c89a5d650f384c210092675ad9f73eee6d0dc61eeb48283150b58b4cf8",
+      "afterHash": "4f65a0da47695a6e1d616b491867037c3b1e6e789fd3ee0d031cdf7950960b2a"
+    }
+  ]
+}

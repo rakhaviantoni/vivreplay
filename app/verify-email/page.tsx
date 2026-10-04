@@ -5,21 +5,27 @@ import { FormEvent, useState } from "react";
 import { CheckCircleIcon as CheckCircle, WarningCircleIcon as WarningCircle } from "@phosphor-icons/react";
 import { authClient } from "@/lib/auth-client";
 import { VivreMark } from "@/components/tcg/brand-assets";
+import {TurnstileField,turnstileEnabled,turnstileHeaders} from '@/components/tcg/turnstile-field';
 
 export default function VerifyEmailPage() {
   const [error, setError] = useState("");
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [turnstileToken,setTurnstileToken]=useState('');
+  const [turnstileResetKey,setTurnstileResetKey]=useState(0);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
     setError("");
+    if(turnstileEnabled&&!turnstileToken){setError('Complete the security check first.');setBusy(false);return;}
     const email = String(new FormData(event.currentTarget).get("email"));
     const { error: verificationError } = await authClient.sendVerificationEmail({
       email,
       callbackURL: `${window.location.origin}/sign-in?verified=1`,
+      fetchOptions:{headers:turnstileHeaders(turnstileToken)},
     });
+    setTurnstileToken('');setTurnstileResetKey(value=>value+1);
     if (verificationError) {
       setError(verificationError.message ?? "We could not send the verification email. Please try again.");
     } else {
@@ -69,6 +75,8 @@ export default function VerifyEmailPage() {
                   Email
                   <input name="email" type="email" autoComplete="email" placeholder="name@domain.com" required />
                 </label>
+
+                <TurnstileField onToken={setTurnstileToken} resetKey={turnstileResetKey}/>
 
                 <button className="button" disabled={busy}>
                   {busy ? "Sending…" : "Send verification link"}

@@ -6,8 +6,7 @@ export function proxy(request:NextRequest){
   if(pathname!=='/id'&&!pathname.startsWith('/id/'))return NextResponse.next();
 
   const targetPath=pathname.replace(/^\/id(?=\/|$)/,'')||'/';
-  const rewritten=NextResponse.rewrite(new URL(`${targetPath}${search}`,request.url));
-  const response=new NextResponse(rewritten.body,{status:rewritten.status,statusText:rewritten.statusText,headers:new Headers(rewritten.headers)});
+  const response=NextResponse.rewrite(new URL(`${targetPath}${search}`,request.url));
   response.cookies.set('vivreplay-locale','ID',{path:'/',maxAge:60*60*24*365,sameSite:'lax'});
   response.headers.set('x-locale','ID');
   return response;

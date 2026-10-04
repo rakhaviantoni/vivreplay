@@ -1,0 +1,156 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-09-30T06:11:07.748Z",
+  "candidates": [
+    {
+      "code": "OP10-028",
+      "printedText": "[Activate: Main] You may rest 2 of your DON!! cards and trash this Character: Look at 5 cards from the top of your deck; reveal up to 2 \"The Akazaya Nine\" type cards and add them to your hand. Then, place the rest at the bottom of your deck in any order.",
+      "publishedText": "[Activate: Main] You may rest 2 of your DON!! cards and trash this Character: Look at 5 cards from the top of your deck; reveal up to 2 \"The Akazaya Nine\" type cards and add them to your hand. Then, place the rest at the bottom of your deck in any order.",
+      "timings": [
+        "activate-main"
+      ],
+      "scenarioNames": [
+        "schema-search activate-main: top 5, up to 2, deck-bottom",
+        "schema-rest-self-search activate-main: pay costs before five-card search",
+        "schema-rest-don-cost activate-main: select 2 active DON!! (optional)"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "trash",
+                "scope": "self",
+                "amount": 1
+              },
+              {
+                "kind": "search",
+                "trait": "The Akazaya Nine",
+                "amount": 5,
+                "choose": 2,
+                "destination": "deck-bottom"
+              }
+            ],
+            "rawText": "[Activate: Main] You may rest 2 of your DON!! cards and trash this Character: Look at 5 cards from the top of your deck; reveal up to 2 \"The Akazaya Nine\" type cards and add them to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "activate-main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "self",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "trait": "The Akazaya Nine",
+                  "amount": 5,
+                  "choose": 2,
+                  "destination": "deck-bottom"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Activate: Main] You may rest 2 of your DON!! cards and trash this Character: Look at 5 cards from the top of your deck; reveal up to 2 \"The Akazaya Nine\" type cards and add them to your hand. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Activate: Main] You may rest 2 of your DON!! cards and trash this Character: Look at 5 cards from the top of your deck; reveal up to 2 \"The Akazaya Nine\" type cards and add them to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "activate-main",
+            "conditions": [],
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "don",
+                "amount": 2,
+                "optional": true
+              },
+              {
+                "kind": "trash",
+                "scope": "self",
+                "amount": 1,
+                "optional": false
+              }
+            ],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 2,
+                "destination": "deck-bottom",
+                "trait": "The Akazaya Nine"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "PAY_COST",
+                "cost": {
+                  "kind": "rest",
+                  "scope": "don",
+                  "amount": 2,
+                  "optional": true
+                }
+              },
+              {
+                "type": "PAY_COST",
+                "cost": {
+                  "kind": "trash",
+                  "scope": "self",
+                  "amount": 1,
+                  "optional": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 2,
+                  "destination": "deck-bottom",
+                  "trait": "The Akazaya Nine"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Activate: Main] You may rest 2 of your DON!! cards and trash this Character: Look at 5 cards from the top of your deck; reveal up to 2 \"The Akazaya Nine\" type cards and add them to your hand. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "ecd2d66ddf30ab8f0314a161b7b60be90392d017f910d5ae56e369094d04dd12",
+      "afterHash": "78256edc2f29fdeebe2883c3dae0d098931e5e63c07b189fcd88fb6c768095fa"
+    }
+  ]
+}

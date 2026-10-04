@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { CheckCircleIcon as CheckCircle, WarningCircleIcon as WarningCircle } from "@phosphor-icons/react";
 import { authClient } from "@/lib/auth-client";
 import { VivreMark } from "@/components/tcg/brand-assets";
+import {TurnstileField,turnstileEnabled,turnstileHeaders} from '@/components/tcg/turnstile-field';
 
 export default function ResetPasswordPage() {
   const searchParams = useSearchParams();
@@ -13,16 +14,20 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState(searchParams.get("error") ? "This reset link is invalid or has expired." : "");
   const [done, setDone] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [turnstileToken,setTurnstileToken]=useState('');
+  const [turnstileResetKey,setTurnstileResetKey]=useState(0);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!token) return setError("This reset link is invalid or has expired.");
+    if(turnstileEnabled&&!turnstileToken)return setError('Complete the security check first.');
     const form = new FormData(event.currentTarget);
     const password = String(form.get("password"));
     if (password !== String(form.get("confirmPassword"))) return setError("Passwords do not match.");
     setBusy(true);
     setError("");
-    const { error: resetError } = await authClient.resetPassword({ newPassword: password, token });
+    const { error: resetError } = await authClient.resetPassword({ newPassword: password, token,fetchOptions:{headers:turnstileHeaders(turnstileToken)} });
+    setTurnstileToken('');setTurnstileResetKey(value=>value+1);
     if (resetError) {
       setError(resetError.message ?? "We could not reset your password.");
     } else {
@@ -77,6 +82,8 @@ export default function ResetPasswordPage() {
                   Confirm password
                   <input name="confirmPassword" type="password" autoComplete="new-password" minLength={8} placeholder="Re-enter password" required />
                 </label>
+
+                <TurnstileField onToken={setTurnstileToken} resetKey={turnstileResetKey}/>
 
                 <button className="button" disabled={busy || !token}>
                   {busy ? "Updating…" : "Update password"}

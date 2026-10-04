@@ -1,0 +1,478 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-09-29T11:18:14.355Z",
+  "candidates": [
+    {
+      "code": "OP04-119",
+      "printedText": "[Opponent's Turn] If this Character is rested, your active Characters with a base cost of 5 cannot be K.O.'d by effects. [On Play] You may rest this Character: Play up to 1 green Character card with a cost of 5 from your hand.",
+      "publishedText": "[Opponent's Turn] If this Character is rested, your active Characters with a base cost of 5 cannot be K.O.'d by effects. [On Play] You may rest this Character: Play up to 1 green Character card with a cost of 5 from your hand.",
+      "timings": [
+        "continuous",
+        "on-play"
+      ],
+      "scenarioNames": [
+        "continuous: rested Protector on opponent turn protects active five-cost allies"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "self",
+                "amount": 1,
+                "optional": true
+              }
+            ],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "self"
+              },
+              {
+                "kind": "play",
+                "rested": false,
+                "source": "hand"
+              },
+              {
+                "by": "effect",
+                "kind": "prevent-ko",
+                "scope": "own-character"
+              }
+            ],
+            "rawText": "[Opponent's Turn] If this Character is rested, your active Characters with a base cost of 5 cannot be K.O.'d by effects. [On Play] You may rest this Character: Play up to 1 green Character card with a cost of 5 from your hand.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character is rested"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "rest",
+                  "scope": "self",
+                  "amount": 1,
+                  "optional": true
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "self"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "rested": false,
+                  "source": "hand"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "by": "effect",
+                  "kind": "prevent-ko",
+                  "scope": "own-character"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character is rested"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Opponent's Turn] If this Character is rested, your active Characters with a base cost of 5 cannot be K.O.'d by effects. [On Play] You may rest this Character: Play up to 1 green Character card with a cost of 5 from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "self",
+                "amount": 1,
+                "optional": true
+              }
+            ],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "self"
+              },
+              {
+                "kind": "play",
+                "rested": false,
+                "source": "hand"
+              }
+            ],
+            "rawText": "[Opponent's Turn] If this Character is rested, your active Characters with a base cost of 5 cannot be K.O.'d by effects. [On Play] You may rest this Character: Play up to 1 green Character card with a cost of 5 from your hand.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "rawText": "[Opponent's Turn] If this Character is rested, your active Characters with a base cost of 5 cannot be K.O.'d by effects.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character is rested"
+              },
+              {
+                "kind": "text",
+                "text": "it is your opponent's turn"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "prevent-ko",
+                "scope": "own-character",
+                "by": "effect",
+                "protects": "own-characters",
+                "protectedExactCost": 5,
+                "protectedMustBeActive": true
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "rest",
+                  "scope": "self",
+                  "amount": 1,
+                  "optional": true
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "self"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "rested": false,
+                  "source": "hand"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "continuous",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character is rested"
+              },
+              {
+                "kind": "text",
+                "text": "it is your opponent's turn"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "prevent-ko",
+                  "scope": "own-character",
+                  "by": "effect",
+                  "protects": "own-characters",
+                  "protectedExactCost": 5,
+                  "protectedMustBeActive": true
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Opponent's Turn] If this Character is rested, your active Characters with a base cost of 5 cannot be K.O.'d by effects. [On Play] You may rest this Character: Play up to 1 green Character card with a cost of 5 from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "6d276ab126d2c38d3cb654dc2e5ae0405d9d43914dee69be515d50b66fa424c1",
+      "afterHash": "f758f48f9f795364af628a546fa41a0aced77918a3c5795c15029794f6038803"
+    },
+    {
+      "code": "OP07-033",
+      "printedText": "If you have 3 or more Characters, your Characters with a cost of 3 or less other than [Monkey.D.Luffy] cannot be K.O.'d by your opponent's effects.",
+      "publishedText": "If you have 3 or more Characters, your Characters with a cost of 3 or less other than [Monkey.D.Luffy] cannot be K.O.'d by your opponent's effects.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioNames": [
+        "unknown: crew-size and target cost/name limits protect only eligible Characters"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "by": "effect",
+                "kind": "prevent-ko",
+                "scope": "own-character"
+              }
+            ],
+            "rawText": "If you have 3 or more Characters, your Characters with a cost of 3 or less other than [Monkey.D.Luffy] cannot be K.O.'d by your opponent's effects.",
+            "trigger": "unknown",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 3 or more Characters"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "by": "effect",
+                  "kind": "prevent-ko",
+                  "scope": "own-character"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 3 or more Characters"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "If you have 3 or more Characters, your Characters with a cost of 3 or less other than [Monkey.D.Luffy] cannot be K.O.'d by your opponent's effects.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "If you have 3 or more Characters, your Characters with a cost of 3 or less other than [Monkey.D.Luffy] cannot be K.O.'d by your opponent's effects.",
+            "trigger": "unknown",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 3 or more Characters"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "prevent-ko",
+                "scope": "own-character",
+                "by": "effect",
+                "protects": "own-characters",
+                "protectedExcludeName": "Monkey.D.Luffy",
+                "protectedMaxCost": 3
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 3 or more Characters"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "prevent-ko",
+                  "scope": "own-character",
+                  "by": "effect",
+                  "protects": "own-characters",
+                  "protectedExcludeName": "Monkey.D.Luffy",
+                  "protectedMaxCost": 3
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "If you have 3 or more Characters, your Characters with a cost of 3 or less other than [Monkey.D.Luffy] cannot be K.O.'d by your opponent's effects.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "663e5c90b4b7c8c5c12a021447f6fbb1dfee25be1a474849db45297a9c7ea96e",
+      "afterHash": "4e0ac9ae11f5b1534b7dcf6b63cc80ec8189e30bb4e4f72ab180977d44ef59f5"
+    },
+    {
+      "code": "OP08-029",
+      "printedText": "If this Character is active, your {Minks} type Characters with a cost of 3 or less other than [Pekoms] cannot be K.O.'d by effects.",
+      "publishedText": "If this Character is active, your {Minks} type Characters with a cost of 3 or less other than [Pekoms] cannot be K.O.'d by effects.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioNames": [
+        "unknown: active Mink Protector protects only eligible Minks"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "by": "effect",
+                "kind": "prevent-ko",
+                "scope": "own-character"
+              }
+            ],
+            "rawText": "If this Character is active, your {Minks} type Characters with a cost of 3 or less other than [Pekoms] cannot be K.O.'d by effects.",
+            "trigger": "unknown",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character is active"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "by": "effect",
+                  "kind": "prevent-ko",
+                  "scope": "own-character"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character is active"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "If this Character is active, your {Minks} type Characters with a cost of 3 or less other than [Pekoms] cannot be K.O.'d by effects.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "If this Character is active, your {Minks} type Characters with a cost of 3 or less other than [Pekoms] cannot be K.O.'d by effects.",
+            "trigger": "unknown",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character is active"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "prevent-ko",
+                "scope": "own-character",
+                "by": "effect",
+                "protects": "own-characters",
+                "protectedTrait": "Minks",
+                "protectedExcludeName": "Pekoms",
+                "protectedMaxCost": 3
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character is active"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "prevent-ko",
+                  "scope": "own-character",
+                  "by": "effect",
+                  "protects": "own-characters",
+                  "protectedTrait": "Minks",
+                  "protectedExcludeName": "Pekoms",
+                  "protectedMaxCost": 3
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "If this Character is active, your {Minks} type Characters with a cost of 3 or less other than [Pekoms] cannot be K.O.'d by effects.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "cc60af893890c3b94de34b03886a76fea9fc7451df2918da21c1ba1550fb4f54",
+      "afterHash": "2c7d36fde2518165ca42841a89dbe738e2acbc82f80ac6e87d3aefd441fd4add"
+    }
+  ]
+}

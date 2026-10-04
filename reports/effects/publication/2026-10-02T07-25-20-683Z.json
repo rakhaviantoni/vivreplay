@@ -1,0 +1,111 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-10-02T07:25:20.682Z",
+  "candidates": [
+    {
+      "code": "OP17-079",
+      "printedText": "All of your Characters with a cost of 12 or more gain [Blocker].(After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+      "publishedText": "All of your Characters with a cost of 12 or more gain [Blocker].(After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioNames": [
+        "engine-action unknown grant-keyword: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "blocker"
+              },
+              {
+                "kind": "grant-keyword",
+                "until": "turn-end",
+                "keyword": "blocker"
+              }
+            ],
+            "rawText": "All of your Characters with a cost of 12 or more gain [Blocker].(After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+            "trigger": "unknown",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "grant-keyword",
+                  "until": "turn-end",
+                  "keyword": "blocker"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "All of your Characters with a cost of 12 or more gain [Blocker].(After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "All of your Characters with a cost of 12 or more gain [Blocker].(After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "grant-keyword",
+                "keyword": "blocker",
+                "until": "turn-end"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "grant-keyword",
+                  "keyword": "blocker",
+                  "until": "turn-end"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "All of your Characters with a cost of 12 or more gain [Blocker].(After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "8f81aacb5a4a59b796d9046084b9fa6e135c886a695babf35d63d9b7615ae037",
+      "afterHash": "870a74fc14280e64accc0ce52cebf9b45cde33da9bf0714fbf568daa89e3710f"
+    }
+  ]
+}

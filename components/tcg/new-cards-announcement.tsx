@@ -47,7 +47,7 @@ export function NewCardsAnnouncement(){
  },[open]);
  const dismiss=()=>{window.localStorage.setItem(STORAGE_KEY,ANNOUNCEMENT_VERSION);setOpen(false);};
  if(!open)return null;
- return <div className="new-cards-backdrop" role="presentation"><section className="new-cards-dialog" role="dialog" aria-modal="true" aria-labelledby="new-cards-title">
+ return <div className="new-cards-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget)dismiss()}}><section className="new-cards-dialog" role="dialog" aria-modal="true" aria-labelledby="new-cards-title" onMouseDown={event=>event.stopPropagation()}>
    <header><span><SparkleIcon size={17} weight="fill"/> {id?'Kartu baru':'New cards'}</span><button type="button" aria-label={id?'Tutup kartu baru':'Dismiss new cards'} onClick={dismiss}><XIcon size={19}/></button></header>
    <div className="new-cards-body"><p className="eyebrow">{id?'KARTU BARU · TERSEDIA UNTUK DICOBA':'NEW CARDS · READY TO PLAY'}</p><h2 id="new-cards-title">{id?'Kartu terbaru telah tersedia.':'The latest cards are ready to play.'}</h2><p>{id?'Coba promo Dracule Mihawk, lalu jelajahi kartu OP18 dan EB05 yang sudah tersedia di katalog.':'Try the Dracule Mihawk promo, then browse the OP18 and EB05 cards currently available in the catalog.'}</p>
    <Link href="/cards/P-163" className="new-cards-feature" onClick={dismiss} aria-label={id?'Lihat kartu pratinjau Dracule Mihawk':'View preview card Dracule Mihawk'}><CardArt card={mihawk}/><span><small>{id?'P-163 · Leader Hijau':'P-163 · Green Leader'}</small><strong>Dracule Mihawk</strong><em>{id?'Kartu pratinjau · dapat dimainkan di mode kasual':'Preview card · playable in casual modes'}</em></span></Link>

@@ -27,6 +27,7 @@ import {
   XIcon as X,
 } from '@phosphor-icons/react';
 import {toast} from 'sonner';
+import {TurnstileField,turnstileEnabled,turnstileHeaders} from './turnstile-field';
 import {Card,cardFor,cards,printingFor,printings} from '@/packages/card-data/catalog';
 import {createClient} from '@/utils/supabase/client';
 import {displayCardName} from './card-name';
@@ -37,15 +38,17 @@ import {api,useAccount,type AccountState} from '@/lib/client';
 import {CardArt} from './card-art';
 import {Picker} from './catalog';
 import {CollectionForm} from './collection-form';
+import {AddEditItemModal} from './vault/modals/add-edit-item-modal';
 import {VivreMark} from './brand-assets';
 import {MarketTimestamp} from './market-timestamp';
 import {ShippingOptions} from './market-listing-items';
 import {Dialog,DialogContent,DialogDescription,DialogTitle} from '@/components/ui/dialog';
 import {DropdownMenu,DropdownMenuContent,DropdownMenuItem,DropdownMenuLabel,DropdownMenuSeparator,DropdownMenuTrigger} from '@/components/ui/dropdown-menu';
 import {ListingsTab} from './vault/tabs/listings-tab';
+import {OffersTab} from './vault/tabs/offers-tab';
 import {OrdersTab} from './vault/tabs/orders-tab';
-import '@/app/market-account.css';
 import {isPlayableSet} from '@/packages/domain/release-availability';
+import '@/app/market-account.css';
 
 type MarketBenchmark={amount:number;currency:string;url:string|null;observedAt:string;confidence:string;normalizedAmount:number|null;normalizedCurrency:string|null};
 type CardPrintingItem={id:string;language:string;variant:string|null;printing_code:string|null;card_image_url:string|null;rarity?:string|null;set_code?:string};
@@ -397,9 +400,11 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
   const [open,setOpen]=useState(false);
   const [busy,setBusy]=useState(false);
   const [saveError,setSaveError]=useState('');
+  const [turnstileToken,setTurnstileToken]=useState('');
+  const [turnstileResetKey,setTurnstileResetKey]=useState(0);
   const [theme,setTheme]=useState<'light'|'dark'>('light');
   const [locale,setLocale]=useState<'EN'|'ID'>('EN');
-  const [accountPanel,setAccountPanel]=useState<'market'|'orders'|null>(null);
+  const [accountPanel,setAccountPanel]=useState<'listings'|'offers'|'orders'|null>(null);
 
   // Bundle & Card Listing Draft State
   const [bundleCards,setBundleCards]=useState<ListingBundleCard[]>([]);
@@ -430,6 +435,8 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
   // Vault Sync Form
   const [collectionOpen,setCollectionOpen]=useState(false);
   const [collectionCardTarget,setCollectionCardTarget]=useState<ListingBundleCard|null>(null);
+  const [marketVaultCard,setMarketVaultCard]=useState<Card|null>(null);
+  const [marketVaultOpen,setMarketVaultOpen]=useState(false);
 
   useEffect(()=>{
     const next=window.localStorage.getItem('vivreplay-theme')==='dark'?'dark':'light';
@@ -684,10 +691,9 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
   };
 
   const addToVault=(card:Card)=>{
-    if(!signInToContinue())return;
-    loadCardForConfig(card);
-    setCollectionCardTarget(null);
-    setCollectionOpen(true);
+    if(accountLoading){toast.message(locale==='ID'?'Memeriksa akun Anda...':'Checking your account...');return;}
+    setMarketVaultCard(card);
+    setMarketVaultOpen(true);
   };
 
   const toggleTheme=()=>{
@@ -751,6 +757,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
   const handlePublishListing=async(event:React.FormEvent)=>{
     event.preventDefault();
     if(bundleCards.length===0)return;
+    if(turnstileEnabled&&!turnstileToken){setSaveError('Complete the security check first.');return;}
     setBusy(true);
     setSaveError('');
 
@@ -765,7 +772,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
     try{
       const totalQty=bundleCards.reduce((sum,it)=>sum+it.quantity,0);
       const primary=bundleCards[0];
-      await api('/api/listings',{
+      const response=await fetch('/api/listings',{method:'POST',headers:{'content-type':'application/json',...turnstileHeaders(turnstileToken)},body:JSON.stringify({
         instanceId:primary.instanceId,
         title:listingTitle||primary.card.name,
         amount:Number(listingPrice),
@@ -779,7 +786,9 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
           condition:item.condition,
           unitAmount:item.unitAmount,
         })),
-      });
+      })});
+      const result=await response.json() as {error?:string};
+      if(!response.ok)throw new Error(result.error??'Listing could not be published.');
       await refresh();
       setOpen(false);
       setBundleCards([]);
@@ -787,6 +796,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
     }catch(cause){
       setSaveError((cause as Error).message);
     }finally{
+      setTurnstileToken('');setTurnstileResetKey(value=>value+1);
       setBusy(false);
     }
   };
@@ -847,7 +857,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
           {locale==='ID'?'Vault saya':'Vault'}
         </Link>
         {data && (
-          <DropdownMenu><DropdownMenuTrigger asChild><button type="button" className="market-account-trigger" aria-label={locale==='ID'?'Buka menu akun':'Open account menu'}><span className="market-account-avatar">{data.profile.display_name?.slice(0,1).toUpperCase()||data.profile.username?.slice(0,1).toUpperCase()||'V'}</span><span className="market-account-trigger-name">{data.profile.display_name||`@${data.profile.username}`}</span><CaretDown size={14}/></button></DropdownMenuTrigger><DropdownMenuContent align="end" className="market-account-menu"><DropdownMenuLabel>{data.profile.display_name||`@${data.profile.username}`}</DropdownMenuLabel><DropdownMenuSeparator/><DropdownMenuItem onSelect={()=>setAccountPanel('market')}><ClipboardText size={16}/>{locale==='ID'?'Listing & penawaran':'Listings & offers'}</DropdownMenuItem><DropdownMenuItem onSelect={()=>setAccountPanel('orders')}><OrdersIcon size={16}/>{locale==='ID'?'Pesanan':'Orders'}</DropdownMenuItem><DropdownMenuItem asChild><Link href="/profile"><UserRound size={16}/>{locale==='ID'?'Profil':'Profile'}</Link></DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+          <DropdownMenu><DropdownMenuTrigger asChild><button type="button" className="market-account-trigger" aria-label={locale==='ID'?'Buka menu akun':'Open account menu'}><span className="market-account-avatar">{data.profile.display_name?.slice(0,1).toUpperCase()||data.profile.username?.slice(0,1).toUpperCase()||'V'}</span><span className="market-account-trigger-name">{data.profile.display_name||`@${data.profile.username}`}</span><CaretDown size={14}/></button></DropdownMenuTrigger><DropdownMenuContent align="end" sideOffset={10} className="market-account-menu"><DropdownMenuLabel>{data.profile.display_name||`@${data.profile.username}`}</DropdownMenuLabel><DropdownMenuSeparator/><DropdownMenuItem onSelect={()=>setAccountPanel('listings')}><ClipboardText size={16}/>{locale==='ID'?'Listing saya':'My listings'}</DropdownMenuItem><DropdownMenuItem onSelect={()=>setAccountPanel('offers')}><OrdersIcon size={16}/>{locale==='ID'?'Penawaran':'Offers'}</DropdownMenuItem><DropdownMenuItem onSelect={()=>setAccountPanel('orders')}><OrdersIcon size={16}/>{locale==='ID'?'Pesanan':'Orders'}</DropdownMenuItem><DropdownMenuItem asChild><Link href="/profile"><UserRound size={16}/>{locale==='ID'?'Profil':'Profile'}</Link></DropdownMenuItem></DropdownMenuContent></DropdownMenu>
         )}
         <button className="market-store-locale locale-toggle" type="button" onClick={toggleLocale} aria-label={locale==='ID'?'Ganti bahasa':'Switch language'}>
           {locale}
@@ -895,13 +905,13 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
               </button>
             </nav>
 
-            <div className="market-feed-tabs-meta">
+            {/* <div className="market-feed-tabs-meta">
               <span className="market-feed-tabs-caption">
                 {feedScope === 'listings'
                   ? (locale === 'ID' ? 'Penawaran langsung dari para kolektor' : 'Direct offers and buy requests from collectors')
                   : (locale === 'ID' ? 'Database kartu resmi untuk jual, beli, atau simpan ke Vault' : 'Official card database to browse, sell, or collect')}
               </span>
-            </div>
+            </div> */}
 
             <div className="market-view-toggle" aria-label={locale === 'ID' ? 'Tampilan listing' : 'Listing view'}>
               <button
@@ -1007,7 +1017,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
           />
         ) : (
           <>
-            <section className={`market-feed-list is-${listingView}`} aria-label={locale==='ID'?'Daftar listing Market aktif':'Live marketplace listings'}>
+            <section className={`market-feed-list is-${listingView}`} aria-label={locale==='ID'?'Daftar listing Market aktif':'Live Market listings'}>
               {displayListings.map(listing=>{
                 const items=listing.items?.length?listing.items:[{printingId:listing.printingId,quantity:listing.quantity}];
                 const printing=printings.find(item=>item.id===items[0].printingId);
@@ -1255,15 +1265,12 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
                     </label>
                   ):(
                     <div className="form-row">
-                      <label>
-                        {locale==='ID'?'Kondisi kartu':'Card condition'}
-                        <Picker
-                          label={locale==='ID'?'Kondisi kartu':'Card condition'}
-                          value={itemCondition}
-                          onChange={setItemCondition}
-                          options={['NM','LP','MP','HP','DMG']}
-                        />
-                      </label>
+                      <fieldset className="market-condition-field">
+                        <legend>{locale==='ID'?'Kondisi kartu':'Card condition'}</legend>
+                        <div className="market-condition-options">
+                          {['NM','LP','MP','HP','DMG'].map(condition=><label key={condition} className={itemCondition===condition?'is-selected':''}><input type="radio" name="market-card-condition" value={condition} checked={itemCondition===condition} onChange={()=>setItemCondition(condition)}/><span>{condition}</span></label>)}
+                        </div>
+                      </fieldset>
                     </div>
                   )}
 
@@ -1302,12 +1309,16 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
                       <input
                         type="number"
                         min="1"
-                        step="1"
+                        step="1000"
+                        inputMode="numeric"
+                        autoComplete="off"
+                        aria-describedby="market-unit-price-help"
                         value={itemPrice}
                         onChange={e=>setItemPrice(e.target.value)}
-                        placeholder="Contoh: 75000"
+                        placeholder={locale==='ID'?'Contoh: 75000':'e.g. 75000'}
                         required
                       />
+                      <small id="market-unit-price-help">{locale==='ID'?'Harga saran bisa diubah langsung sebelum ditambahkan.':'You can edit the suggested price before adding this card.'}</small>
                     </label>
                   </div>
 
@@ -1468,6 +1479,8 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
 
                 {saveError&&<p role="alert" className="error-text">{saveError}</p>}
 
+                <TurnstileField onToken={setTurnstileToken} resetKey={turnstileResetKey}/>
+
                 <button className="market-list-button" disabled={busy||bundleCards.length===0}>
                   {busy
                     ?(locale==='ID'?'Mempublikasikan...':'Publishing...')
@@ -1538,6 +1551,18 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
         </DialogContent>
       </Dialog>
 
+      {data&&<Dialog open={Boolean(accountPanel)} onOpenChange={open=>{if(!open)setAccountPanel(null)}}><DialogContent className="market-account-dialog"><div className="market-account-dialog-heading"><DialogTitle>{accountPanel==='orders'?(locale==='ID'?'Pesanan Market':'Market orders'):accountPanel==='offers'?(locale==='ID'?'Penawaran':'Offers'):(locale==='ID'?'Listing saya':'My listings')}</DialogTitle></div><div className="market-account-dialog-tabs" role="tablist" aria-label={locale==='ID'?'Aktivitas Market':'Market activity'}><button type="button" role="tab" aria-selected={accountPanel==='listings'} className={accountPanel==='listings'?'is-active':''} onClick={()=>setAccountPanel('listings')}>{locale==='ID'?'Listing':'Listings'}</button><button type="button" role="tab" aria-selected={accountPanel==='offers'} className={accountPanel==='offers'?'is-active':''} onClick={()=>setAccountPanel('offers')}>{locale==='ID'?'Penawaran':'Offers'}</button><button type="button" role="tab" aria-selected={accountPanel==='orders'} className={accountPanel==='orders'?'is-active':''} onClick={()=>setAccountPanel('orders')}>{locale==='ID'?'Pesanan':'Orders'}</button></div><div className="market-account-dialog-body">{accountPanel==='orders'?<OrdersTab language={locale}/>:accountPanel==='offers'?<OffersTab language={locale}/>:<ListingsTab language={locale}/>}</div></DialogContent></Dialog>}
+
+      <AddEditItemModal
+        key={`${marketVaultCard?.id??'market-card'}-${marketVaultOpen?'open':'closed'}`}
+        open={marketVaultOpen}
+        onClose={()=>{setMarketVaultOpen(false);setMarketVaultCard(null);}}
+        onSaved={async()=>{if(data)await refreshAccount();}}
+        initialCard={marketVaultCard??undefined}
+        isAnonymous={!data}
+        language={locale}
+      />
+
       {/* Collection Form modal for syncing unowned draft card with Vault */}
       {collectionCardTarget&&(
         <CollectionForm
@@ -1554,7 +1579,6 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
           onSaved={afterVaultSave}
         />
       )}
-      {data&&<Dialog open={Boolean(accountPanel)} onOpenChange={open=>{if(!open)setAccountPanel(null)}}><DialogContent className="market-account-dialog"><DialogTitle>{accountPanel==='orders'?(locale==='ID'?'Pesanan Market':'Market orders'):(locale==='ID'?'Listing & penawaran':'Listings & offers')}</DialogTitle><div className="market-account-dialog-tabs" role="tablist"><button type="button" role="tab" aria-selected={accountPanel==='market'} className={accountPanel==='market'?'is-active':''} onClick={()=>setAccountPanel('market')}>{locale==='ID'?'Listing & penawaran':'Listings & offers'}</button><button type="button" role="tab" aria-selected={accountPanel==='orders'} className={accountPanel==='orders'?'is-active':''} onClick={()=>setAccountPanel('orders')}>{locale==='ID'?'Pesanan':'Orders'}</button></div><div className="market-account-dialog-body">{accountPanel==='orders'?<OrdersTab language={locale}/>:<ListingsTab language={locale}/>}</div></DialogContent></Dialog>}
     </main>
   );
 }

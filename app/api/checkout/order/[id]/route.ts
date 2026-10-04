@@ -1,5 +1,4 @@
 import {db,errorResponse,user,HttpError} from '@/lib/server/store';
-import {getAzekhaIntent} from '@/lib/server/azekha-payments';
 
 type OrderRow={id:string;kind:string;buyerId:string;sellerId:string|null;listingId:string|null;items:string;details:string;subtotal:number;shippingFee:number;amount:number;currency:string;paymentId:string|null;status:string;expiresAt:string|null;title:string|null};
 
@@ -15,45 +14,50 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
       await database.prepare("UPDATE checkout_orders SET status='EXPIRED',updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT'").bind(id).run();
       order.status='EXPIRED';
     }
-    if(order.status==='PENDING_PAYMENT'&&order.paymentId){
-      const payment=await getAzekhaIntent(order.paymentId);
-      if(payment.status==='completed')await fulfillOrder(database,order);
-      else if(payment.status==='expired'||payment.status==='failed')await database.prepare("UPDATE checkout_orders SET status=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT'").bind(payment.status.toUpperCase(),id).run();
-      const refreshed=await database.prepare('SELECT status,expires_at AS expiresAt FROM checkout_orders WHERE id=?').bind(id).first<{status:string;expiresAt:string|null}>();
-      order.status=refreshed?.status??order.status;
-      order.expiresAt=refreshed?.expiresAt??order.expiresAt;
-    }
-
     let items:unknown[]=[];let details:Record<string,unknown>={};
     try{items=JSON.parse(order.items) as unknown[]}catch{}
-    try{details=JSON.parse(order.details) as Record<string,unknown>}catch{}
-    return Response.json({id:order.id,kind:order.kind,status:order.status,title:order.title??'VivrePlay Pro',items,details,subtotal:order.subtotal,shippingFee:order.shippingFee,amount:order.amount,currency:order.currency,expiresAt:order.expiresAt});
+    try{const parsed=JSON.parse(order.details) as unknown;if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))details=parsed as Record<string,unknown>}catch{}
+    return Response.json({id:order.id,kind:order.kind,status:order.status,title:order.title??'VivrePlay Market Pro',items,details,checkoutUrl:typeof details.ipaymuCheckoutUrl==='string'?details.ipaymuCheckoutUrl:null,subtotal:order.subtotal,shippingFee:order.shippingFee,amount:order.amount,currency:order.currency,expiresAt:order.expiresAt});
   }catch(error){return errorResponse(error)}
 }
 
-async function fulfillOrder(database:ReturnType<typeof db>,order:OrderRow){
-  if(order.kind==='PRO'){
-    let durationDays=0;
-    try{durationDays=Number((JSON.parse(order.details) as {durationDays?:number}).durationDays)||0}catch{}
-    if(durationDays<1)throw new HttpError(500,'The Pro plan duration is missing from this checkout.');
-    await database.batch([
-      database.prepare("UPDATE checkout_orders SET status='PROCESSING',updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT'").bind(order.id),
-      database.prepare(`UPDATE profiles SET tier='pro',pro_expires_at=datetime(max(COALESCE(pro_expires_at,CURRENT_TIMESTAMP),CURRENT_TIMESTAMP), '+' || ? || ' days') WHERE id=(SELECT buyer_id FROM checkout_orders WHERE id=? AND status='PROCESSING')`).bind(durationDays,order.id),
-      database.prepare("UPDATE checkout_orders SET status='PAID',fulfilled_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PROCESSING'").bind(order.id),
-    ]);
-    return;
-  }
-
-  let selected:Array<{instanceId?:string;printingId:string;quantity:number}>;
-  try{selected=JSON.parse(order.items) as typeof selected}catch{throw new HttpError(500,'The selected cards could not be loaded.');}
-  const statements=[
-    database.prepare("UPDATE checkout_orders SET status='PROCESSING',updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT'").bind(order.id),
-    database.prepare(`UPDATE listings SET quantity=MAX(1,quantity-(SELECT COALESCE(SUM(CAST(json_extract(sold.value,'$.quantity') AS INTEGER)),0) FROM checkout_orders o,json_each(o.items) sold WHERE o.id=?)),amount=MAX(0,amount-?),status=CASE WHEN quantity-(SELECT COALESCE(SUM(CAST(json_extract(sold.value,'$.quantity') AS INTEGER)),0) FROM checkout_orders o,json_each(o.items) sold WHERE o.id=?)<=0 THEN 'SOLD' ELSE status END,items=CASE WHEN items IS NULL THEN NULL ELSE (SELECT COALESCE(json_group_array(json_set(entry.value,'$.quantity',CAST(json_extract(entry.value,'$.quantity') AS INTEGER)-COALESCE((SELECT SUM(CAST(json_extract(sold.value,'$.quantity') AS INTEGER)) FROM checkout_orders o,json_each(o.items) sold WHERE o.id=? AND ((json_extract(sold.value,'$.instanceId') IS NOT NULL AND json_extract(sold.value,'$.instanceId')=json_extract(entry.value,'$.instanceId')) OR (json_extract(sold.value,'$.instanceId') IS NULL AND json_extract(sold.value,'$.printingId')=json_extract(entry.value,'$.printingId')))),0))), '[]') FROM json_each(listings.items) entry WHERE CAST(json_extract(entry.value,'$.quantity') AS INTEGER)>COALESCE((SELECT SUM(CAST(json_extract(sold.value,'$.quantity') AS INTEGER)) FROM checkout_orders o,json_each(o.items) sold WHERE o.id=? AND ((json_extract(sold.value,'$.instanceId') IS NOT NULL AND json_extract(sold.value,'$.instanceId')=json_extract(entry.value,'$.instanceId')) OR (json_extract(sold.value,'$.instanceId') IS NULL AND json_extract(sold.value,'$.printingId')=json_extract(entry.value,'$.printingId')))),0)) END WHERE id=? AND EXISTS(SELECT 1 FROM checkout_orders WHERE id=? AND status='PROCESSING')`).bind(order.id,order.subtotal,order.id,order.id,order.id,order.listingId,order.id),
-  ];
-  for(const item of selected){
-    if(!item.instanceId)continue;
-    statements.push(database.prepare(`UPDATE collectible_instances SET deleted_at=CASE WHEN quantity-?<=0 THEN CURRENT_TIMESTAMP ELSE deleted_at END,quantity=MAX(1,quantity-?) WHERE id=? AND owner_id=? AND quantity>=? AND EXISTS(SELECT 1 FROM checkout_orders WHERE id=? AND status='PROCESSING')`).bind(item.quantity,item.quantity,item.instanceId,order.sellerId,item.quantity,order.id));
-  }
-  statements.push(database.prepare("UPDATE checkout_orders SET status='PAID',fulfilled_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PROCESSING'").bind(order.id));
-  await database.batch(statements);
+export async function POST(request:Request,{params}:{params:Promise<{id:string}>}){
+  try{
+    const profile=await user();
+    const {id}=await params;
+    const database=db();
+    const order=await database.prepare("SELECT id,kind,buyer_id AS buyerId,items,currency,status FROM checkout_orders WHERE id=?").bind(id).first<{id:string;kind:string;buyerId:string;items:string;currency:string;status:string}>();
+    if(!order||order.buyerId!==profile.id)throw new HttpError(404,'Order was not found.');
+    if(order.kind!=='MARKET')throw new HttpError(400,'Only delivered Market orders can be added to your Vault.');
+    if(order.status==='RECEIVED')return Response.json({ok:true,status:'RECEIVED'});
+    if(order.status!=='PAID')throw new HttpError(409,'This order is not ready for delivery confirmation.');
+    let items:Array<{printingId:string;quantity:number;unitAmount?:number;condition?:string}>;
+    try{items=JSON.parse(order.items) as typeof items}catch{throw new HttpError(500,'The order cards could not be loaded.');}
+    if(!items.length)throw new HttpError(400,'This order has no cards to add.');
+    const purchases=new Map<string,{printingId:string;condition:string;quantity:number;amount:number}>();
+    for(const item of items){
+      if(!item.printingId||!Number.isInteger(item.quantity)||item.quantity<1)throw new HttpError(500,'The order contains invalid card details.');
+      const condition=item.condition||'NM';
+      const key=`${item.printingId}:${condition}`;
+      const purchase=purchases.get(key)??{printingId:item.printingId,condition,quantity:0,amount:0};
+      purchase.quantity+=item.quantity;
+      purchase.amount+=Math.max(0,Math.round(item.unitAmount??0))*item.quantity;
+      purchases.set(key,purchase);
+    }
+    const statements=[];
+    for(const purchase of purchases.values()){
+      const existing=await database.prepare(`SELECT id,quantity,acquisition_amount AS acquisitionAmount FROM collectible_instances c WHERE owner_id=? AND printing_id=? AND type='RAW' AND condition=? AND currency=? AND deleted_at IS NULL AND visibility='private' AND NOT EXISTS(SELECT 1 FROM listings l WHERE l.instance_id=c.id AND l.status='ACTIVE') LIMIT 1`)
+        .bind(order.buyerId,purchase.printingId,purchase.condition,order.currency).first<{id:string;quantity:number;acquisitionAmount:number}>();
+      if(existing){
+        statements.push(database.prepare('UPDATE collectible_instances SET quantity=?,acquisition_amount=? WHERE id=? AND owner_id=?').bind(existing.quantity+purchase.quantity,existing.acquisitionAmount+purchase.amount,existing.id,order.buyerId));
+      }else{
+        statements.push(database.prepare("INSERT INTO collectible_instances (id,owner_id,printing_id,type,quantity,condition,visibility,acquisition_amount,currency,acquired_at,notes) VALUES (?,?,?,'RAW',?,?,'private',?,?,CURRENT_TIMESTAMP,NULL)")
+          .bind(crypto.randomUUID(),order.buyerId,purchase.printingId,purchase.quantity,purchase.condition,purchase.amount,order.currency));
+      }
+    }
+    statements.push(database.prepare("UPDATE checkout_orders SET status='RECEIVED',fulfilled_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=? AND buyer_id=? AND status='PAID'").bind(id,profile.id));
+    await database.batch(statements);
+    const updated=await database.prepare('SELECT status FROM checkout_orders WHERE id=?').bind(id).first<{status:string}>();
+    return Response.json({ok:true,status:updated?.status??'RECEIVED'});
+  }catch(error){return errorResponse(error)}
 }

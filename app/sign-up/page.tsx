@@ -6,6 +6,7 @@ import { FormEvent, useState } from "react";
 import { CheckCircleIcon as CheckCircle, WarningCircleIcon as WarningCircle } from "@phosphor-icons/react";
 import { authClient } from "@/lib/auth-client";
 import { VivreMark } from "@/components/tcg/brand-assets";
+import {TurnstileField,turnstileEnabled,turnstileHeaders} from '@/components/tcg/turnstile-field';
 
 function safeReturnTo(value: string | null) {
   return value?.startsWith("/") && !value.startsWith("//") ? value : "/profile";
@@ -17,6 +18,8 @@ export default function SignUpPage() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
+  const [turnstileToken,setTurnstileToken]=useState('');
+  const [turnstileResetKey,setTurnstileResetKey]=useState(0);
   const returnTo = safeReturnTo(searchParams.get("return_to"));
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -24,13 +27,16 @@ export default function SignUpPage() {
     setBusy(true);
     setError("");
     setNotice("");
+    if(turnstileEnabled&&!turnstileToken){setError('Complete the security check first.');setBusy(false);return;}
     const form = new FormData(event.currentTarget);
     const { error: signUpError } = await authClient.signUp.email({
       name: String(form.get("name")),
       email: String(form.get("email")),
       password: String(form.get("password")),
       callbackURL: `${window.location.origin}/sign-in?verified=1&return_to=${encodeURIComponent(returnTo)}`,
+      fetchOptions:{headers:turnstileHeaders(turnstileToken)},
     });
+    setTurnstileToken('');setTurnstileResetKey(value=>value+1);
     if (signUpError) {
       setError(signUpError.message ?? "We could not create your account. Please try again.");
       setBusy(false);
@@ -43,10 +49,13 @@ export default function SignUpPage() {
   async function signUpWithGoogle() {
     setBusy(true);
     setError("");
+    if(turnstileEnabled&&!turnstileToken){setError('Complete the security check first.');setBusy(false);return;}
     const { error: googleError } = await authClient.signIn.social({
       provider: "google",
       callbackURL: `${window.location.origin}${returnTo}`,
+      fetchOptions:{headers:turnstileHeaders(turnstileToken)},
     });
+    setTurnstileToken('');setTurnstileResetKey(value=>value+1);
     if (googleError) {
       setError(googleError.message ?? "We could not continue with Google.");
       setBusy(false);
@@ -88,6 +97,8 @@ export default function SignUpPage() {
                   <span>{error}</span>
                 </div>
               )}
+
+              <TurnstileField onToken={setTurnstileToken} resetKey={turnstileResetKey}/>
 
               <button className="auth-google" type="button" disabled={busy} onClick={signUpWithGoogle}>
                 <img src="/brand/google-g.svg" alt="" width="18" height="18" />

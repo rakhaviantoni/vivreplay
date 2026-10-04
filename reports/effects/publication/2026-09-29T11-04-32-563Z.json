@@ -1,0 +1,599 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-09-29T11:04:32.562Z",
+  "candidates": [
+    {
+      "code": "OP06-052",
+      "printedText": "[DON!! x1] If you have 4 or less cards in your hand, this Character cannot be K.O.'d in battle.",
+      "publishedText": "[DON!! x1] If you have 4 or less cards in your hand, this Character cannot be K.O.'d in battle.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioNames": [
+        "unknown: DON!! and hand-size conditions gate battle protection"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              },
+              {
+                "by": "battle",
+                "kind": "prevent-ko",
+                "scope": "own-character"
+              }
+            ],
+            "rawText": "[DON!! x1] If you have 4 or less cards in your hand, this Character cannot be K.O.'d in battle.",
+            "trigger": "unknown",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 4 or less cards in your hand"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "by": "battle",
+                  "kind": "prevent-ko",
+                  "scope": "own-character"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 4 or less cards in your hand"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] If you have 4 or less cards in your hand, this Character cannot be K.O.'d in battle.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[DON!! x1] If you have 4 or less cards in your hand, this Character cannot be K.O.'d in battle.",
+            "trigger": "unknown",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 4 or less cards in your hand"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              },
+              {
+                "kind": "prevent-ko",
+                "scope": "own-character",
+                "by": "battle",
+                "requiresAttachedDon": 1
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 4 or less cards in your hand"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "prevent-ko",
+                  "scope": "own-character",
+                  "by": "battle",
+                  "requiresAttachedDon": 1
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] If you have 4 or less cards in your hand, this Character cannot be K.O.'d in battle.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "8bcb7c241e6e1f037ddf87377ec6d3e2900d7f736b237118c1cae76363197fe7",
+      "afterHash": "3eb17281b8f5ffb29326b26345f49f46dd9a029af2fc8d6f9d4d1ab2b53aea88"
+    },
+    {
+      "code": "ST09-004",
+      "printedText": "[DON!! x1] If you have 2 or less Life cards, this Character cannot be K.O.'d in battle.",
+      "publishedText": "[DON!! x1] If you have 2 or less Life cards, this Character cannot be K.O.'d in battle.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioNames": [
+        "unknown: attached DON!! and two-Life threshold gate battle protection"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              },
+              {
+                "by": "battle",
+                "kind": "prevent-ko",
+                "scope": "own-character"
+              }
+            ],
+            "rawText": "[DON!! x1] If you have 2 or less Life cards, this Character cannot be K.O.'d in battle.",
+            "trigger": "unknown",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 2 or less Life cards"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "by": "battle",
+                  "kind": "prevent-ko",
+                  "scope": "own-character"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 2 or less Life cards"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] If you have 2 or less Life cards, this Character cannot be K.O.'d in battle.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[DON!! x1] If you have 2 or less Life cards, this Character cannot be K.O.'d in battle.",
+            "trigger": "unknown",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 2 or less Life cards"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              },
+              {
+                "kind": "prevent-ko",
+                "scope": "own-character",
+                "by": "battle",
+                "requiresAttachedDon": 1
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 2 or less Life cards"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "prevent-ko",
+                  "scope": "own-character",
+                  "by": "battle",
+                  "requiresAttachedDon": 1
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] If you have 2 or less Life cards, this Character cannot be K.O.'d in battle.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "978a6469f78ef40054d614d9f23aab4335c27c834b5072fc17c85909793cf8ac",
+      "afterHash": "3b55bcae59d3ac1ca4e87a1be13e049e8e049ea65ff3e6266f5c588e1412fe7d"
+    },
+    {
+      "code": "OP10-104",
+      "printedText": "[DON!! x1] If your Leader has the \"Supernovas\" type and your opponent has 3 or more Life cards, this Character cannot be K.O.'d in battle.",
+      "publishedText": "[DON!! x1] If your Leader has the \"Supernovas\" type and your opponent has 3 or more Life cards, this Character cannot be K.O.'d in battle.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioNames": [
+        "unknown: Supernovas Leader and opponent-Life conditions gate protection"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              },
+              {
+                "by": "battle",
+                "kind": "prevent-ko",
+                "scope": "own-character"
+              }
+            ],
+            "rawText": "[DON!! x1] If your Leader has the \"Supernovas\" type and your opponent has 3 or more Life cards, this Character cannot be K.O.'d in battle.",
+            "trigger": "unknown",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the \"Supernovas\" type and your opponent has 3 or more Life cards"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "by": "battle",
+                  "kind": "prevent-ko",
+                  "scope": "own-character"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the \"Supernovas\" type and your opponent has 3 or more Life cards"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] If your Leader has the \"Supernovas\" type and your opponent has 3 or more Life cards, this Character cannot be K.O.'d in battle.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[DON!! x1] If your Leader has the \"Supernovas\" type and your opponent has 3 or more Life cards, this Character cannot be K.O.'d in battle.",
+            "trigger": "unknown",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the \"Supernovas\" type and your opponent has 3 or more Life cards"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              },
+              {
+                "kind": "prevent-ko",
+                "scope": "own-character",
+                "by": "battle",
+                "requiresAttachedDon": 1
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the \"Supernovas\" type and your opponent has 3 or more Life cards"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "prevent-ko",
+                  "scope": "own-character",
+                  "by": "battle",
+                  "requiresAttachedDon": 1
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] If your Leader has the \"Supernovas\" type and your opponent has 3 or more Life cards, this Character cannot be K.O.'d in battle.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "4d4cc0fae7ca2358998392e11f11a2521ad46b809a9d678bcec8fbd735f5ecf6",
+      "afterHash": "8459ef7a6d8256dcff5704d207cd79c33f5aec52e6ef40738ed0318a3c0f4e0d"
+    },
+    {
+      "code": "OP13-080",
+      "printedText": "If you have 7 or more cards in your trash, this Character cannot be removed from the field by your opponent's effects and gains [Rush].\n[When Attacking] If you have 10 or more cards in your trash, give up to 1 of your opponent's Characters 2000 power during this turn.",
+      "publishedText": "If you have 7 or more cards in your trash, this Character cannot be removed from the field by your opponent's effects and gains [Rush].\n[When Attacking] If you have 10 or more cards in your trash, give up to 1 of your opponent's Characters 2000 power during this turn.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioNames": [
+        "unknown: seven opponent Trash cards gate effect protection"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 2000,
+                "target": "opponent-character"
+              }
+            ],
+            "rawText": "[When Attacking] If you have 10 or more cards in your trash, give up to 1 of your opponent's Characters 2000 power during this turn.",
+            "trigger": "when-attacking",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 10 or more cards in your trash"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "when-attacking",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 2000,
+                  "target": "opponent-character"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 10 or more cards in your trash"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "If you have 7 or more cards in your trash, this Character cannot be removed from the field by your opponent's effects and gains [Rush].\n[When Attacking] If you have 10 or more cards in your trash, give up to 1 of your opponent's Characters 2000 power during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 2000,
+                "target": "opponent-character"
+              }
+            ],
+            "rawText": "[When Attacking] If you have 10 or more cards in your trash, give up to 1 of your opponent's Characters 2000 power during this turn.",
+            "trigger": "when-attacking",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 10 or more cards in your trash"
+              }
+            ]
+          },
+          {
+            "rawText": "If you have 7 or more cards in your trash, this Character cannot be removed from the field by your opponent's effects and gains [Rush].",
+            "trigger": "unknown",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 7 or more cards in your trash"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "prevent-ko",
+                "scope": "own-character",
+                "by": "effect"
+              },
+              {
+                "kind": "grant-keyword",
+                "keyword": "rush",
+                "until": "turn-end",
+                "continuous": true
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "when-attacking",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 2000,
+                  "target": "opponent-character"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 10 or more cards in your trash"
+              }
+            ]
+          },
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 7 or more cards in your trash"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "prevent-ko",
+                  "scope": "own-character",
+                  "by": "effect"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "grant-keyword",
+                  "keyword": "rush",
+                  "until": "turn-end",
+                  "continuous": true
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "If you have 7 or more cards in your trash, this Character cannot be removed from the field by your opponent's effects and gains [Rush].\n[When Attacking] If you have 10 or more cards in your trash, give up to 1 of your opponent's Characters 2000 power during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "6814879712ec8dcfbacf525c5f90149498e13adcb4b38f5d75a786f7769381c0",
+      "afterHash": "39d4e18ab31fd480836daec2fe066b59640750280b37fa060a076cd2660b8f9e"
+    }
+  ]
+}

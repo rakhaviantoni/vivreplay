@@ -1,0 +1,196 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-09-29T11:57:24.748Z",
+  "candidates": [
+    {
+      "code": "ST06-004",
+      "printedText": "This Character cannot be K.O.'d by effects. [DON!! x1] If there is a Character with a cost of 0, this Character gains [Double Attack]. (This card deals 2 damage.)",
+      "publishedText": "This Character cannot be K.O.'d by effects. [DON!! x1] If there is a Character with a cost of 0, this Character gains [Double Attack]. (This card deals 2 damage.)",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioNames": [
+        "continuous: separate effect immunity and DON!!-plus-zero-cost Double Attack"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              },
+              {
+                "kind": "double-attack"
+              },
+              {
+                "by": "effect",
+                "kind": "prevent-ko",
+                "scope": "own-character"
+              },
+              {
+                "kind": "grant-keyword",
+                "until": "turn-end",
+                "keyword": "double-attack"
+              }
+            ],
+            "rawText": "This Character cannot be K.O.'d by effects. [DON!! x1] If there is a Character with a cost of 0, this Character gains [Double Attack]. (This card deals 2 damage.)",
+            "trigger": "unknown",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "there is a Character with a cost of 0"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "double-attack"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "by": "effect",
+                  "kind": "prevent-ko",
+                  "scope": "own-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "grant-keyword",
+                  "until": "turn-end",
+                  "keyword": "double-attack"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "there is a Character with a cost of 0"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "This Character cannot be K.O.'d by effects. [DON!! x1] If there is a Character with a cost of 0, this Character gains [Double Attack]. (This card deals 2 damage.)",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "This Character cannot be K.O.'d by effects.",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "prevent-ko",
+                "scope": "own-character",
+                "by": "effect"
+              }
+            ]
+          },
+          {
+            "rawText": "[DON!! x1] If there is a Character with a cost of 0, this Character gains [Double Attack]. (This card deals 2 damage.)",
+            "trigger": "unknown",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "there is a Character with a cost of 0"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              },
+              {
+                "kind": "grant-keyword",
+                "keyword": "double-attack",
+                "until": "turn-end",
+                "continuous": true
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "prevent-ko",
+                  "scope": "own-character",
+                  "by": "effect"
+                }
+              }
+            ]
+          },
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "there is a Character with a cost of 0"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "grant-keyword",
+                  "keyword": "double-attack",
+                  "until": "turn-end",
+                  "continuous": true
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "This Character cannot be K.O.'d by effects. [DON!! x1] If there is a Character with a cost of 0, this Character gains [Double Attack]. (This card deals 2 damage.)",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "4bf97279747ec45ea78ec25bc7304a887933a4ef69e1015f8873876bd54e0813",
+      "afterHash": "18d2d29d0ce7f2cdecee1e45e98ad617c14e1faaebeb5ddfba9caef3b7bb0cb4"
+    }
+  ]
+}

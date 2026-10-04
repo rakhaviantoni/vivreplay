@@ -1,4 +1,5 @@
 import {createClient} from '@supabase/supabase-js';
+import {mkdirSync,writeFileSync} from 'node:fs';
 import {compileEffectDocument} from '../packages/domain/effect-rules';
 import {resolveEffectTiming} from '../packages/domain/effect-runtime';
 
@@ -23,19 +24,22 @@ function expectedCommands(document:ReturnType<typeof compileEffectDocument>,timi
   return total+count;
  },0);
 }
-let executed=0,customImplemented=0,customTested=0;
+let executed=0,customImplemented=0,customTested=0;const issues:string[]=[];
 for(const row of supported){
  const document=compileEffectDocument({id:row.id,code:row.code,name:row.name,color:row.color,type:row.card_type as never,cost:row.cost,power:row.power,counter:0,rarity:'',art:0,effect:row.effect_text});
- if(document.resolver.type==='CUSTOM'){const resolution=resolveEffectTiming(document,document.ast[0]?.trigger??'unknown');if(!['IMPLEMENTED','TESTED'].includes(document.implementationStatus))throw new Error(`${row.code}: custom handler is not implemented`);
-  if(resolution.status!=='ready'||!resolution.instructions?.length)throw new Error(`${row.code}: custom handler did not resolve`);
-  if(document.implementationStatus==='TESTED')customTested++;else customImplemented++;continue;}
+ if(document.resolver.type==='CUSTOM'){const resolution=resolveEffectTiming(document,document.ast[0]?.trigger??'unknown');if(document.implementationStatus==='TESTED')customTested++;else if(document.implementationStatus==='IMPLEMENTED')customImplemented++;else issues.push(`${row.code}: custom handler ${document.resolver.handler} is ${document.implementationStatus}`);
+  if(['IMPLEMENTED','TESTED'].includes(document.implementationStatus)&&(resolution.status!=='ready'||!resolution.instructions?.length))issues.push(`${row.code}: custom handler ${document.resolver.handler} did not resolve to instructions`);
+  continue;}
  for(const effect of document.normalized){
   const resolution=resolveEffectTiming(document,effect.timing);
-  if(resolution.status!=='ready')throw new Error(`${row.code}: DSL document returned custom resolution`);
+  if(resolution.status!=='ready'){issues.push(`${row.code}: DSL document returned custom resolution at ${effect.timing}`);continue;}
   const expected=expectedCommands(document,effect.timing);
   const actual=resolution.commands.length;
-  if(actual<expected)throw new Error(`${row.code}: lost commands at ${effect.timing}`);
+  if(actual<expected)issues.push(`${row.code}: lost commands at ${effect.timing} (expected ${expected}, got ${actual})`);
   executed++;
  }
 }
-console.log(JSON.stringify({cards:supported.length,excludedUnsupportedReleaseCards:rows.length-supported.length,dslTimingWindows:executed,customTested,customImplemented,verified:true},null,2));
+const report={cards:supported.length,excludedUnsupportedReleaseCards:rows.length-supported.length,dslTimingWindows:executed,customTested,customImplemented,issueCount:issues.length,issues,verified:issues.length===0};
+mkdirSync('reports/effects',{recursive:true});writeFileSync('reports/effects/runtime-audit.json',JSON.stringify(report,null,2));
+console.log(JSON.stringify({...report,issues:issues.slice(0,20),issuesInReport:'reports/effects/runtime-audit.json'},null,2));
+if(issues.length)process.exitCode=1;

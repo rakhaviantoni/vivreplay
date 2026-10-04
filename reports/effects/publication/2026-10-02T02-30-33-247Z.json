@@ -1,0 +1,128 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-10-02T02:30:33.246Z",
+  "candidates": [
+    {
+      "code": "OP07-009",
+      "printedText": "[On Play] Up to 1 of your red Characters with a cost of 1 gains [Double Attack] during this turn. (This card deals 2 damage.)",
+      "publishedText": "[On Play] Up to 1 of your red Characters with a cost of 1 gains [Double Attack] during this turn. (This card deals 2 damage.)",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "schema-atomic-action on-play: red cost-1 Double Attack recipient"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "grant-keyword",
+                "color": "red",
+                "scope": "own-character",
+                "until": "turn-end",
+                "keyword": "double-attack",
+                "selection": {
+                  "max": 1,
+                  "min": 0
+                }
+              }
+            ],
+            "rawText": "[On Play] Up to 1 of your red Characters with a cost of 1 gains [Double Attack] during this turn. (This card deals 2 damage.)",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "grant-keyword",
+                  "color": "red",
+                  "scope": "own-character",
+                  "until": "turn-end",
+                  "keyword": "double-attack",
+                  "selection": {
+                    "max": 1,
+                    "min": 0
+                  }
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Up to 1 of your red Characters with a cost of 1 gains [Double Attack] during this turn. (This card deals 2 damage.)",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On Play] Up to 1 of your red Characters with a cost of 1 gains [Double Attack] during this turn. (This card deals 2 damage.)",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "grant-keyword",
+                "keyword": "double-attack",
+                "until": "turn-end",
+                "scope": "own-character",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                },
+                "exactCost": 1,
+                "color": "red"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "grant-keyword",
+                  "keyword": "double-attack",
+                  "until": "turn-end",
+                  "scope": "own-character",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "exactCost": 1,
+                  "color": "red"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Up to 1 of your red Characters with a cost of 1 gains [Double Attack] during this turn. (This card deals 2 damage.)",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "eb6e5fd4cc7070473c1b89e0d9e42e25a70c5eb8275e5035155f344f81173472",
+      "afterHash": "45cfe08904cf3b07d14aad3538734197a212ae7dfe1eeb9b94c8e1668dd0504f"
+    }
+  ]
+}

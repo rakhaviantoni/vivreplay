@@ -1,5 +1,6 @@
 import {z} from 'zod';
 import {db,errorResponse,guard} from '@/lib/server/store';
+import {verifyTurnstile} from '@/lib/server/turnstile';
 
 const schema=z.object({
   category:z.enum(['bug','missing-card','missing-printing','card-data','rules','market-report','feedback']),
@@ -16,6 +17,7 @@ const schema=z.object({
 export async function POST(request:Request){
   try{
     guard(request);
+    const rejected=await verifyTurnstile(request);if(rejected)return rejected;
     const input=schema.parse(await request.json());
     if(input.website)return Response.json({ok:true});
     await db().prepare(`INSERT INTO feedback_reports(id,category,summary,details,card_code,printing_id,listing_id,page_path,contact_email) VALUES(?,?,?,?,?,?,?,?,?)`).bind(crypto.randomUUID(),input.category,input.summary,input.details,input.cardCode||null,input.printingId||null,input.listingId||null,input.pagePath,input.email||null).run();

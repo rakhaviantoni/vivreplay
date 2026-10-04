@@ -1,12 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   ChartLineUpIcon as TrendingUp, 
-  SparkleIcon as Sparkles, 
-  InfoIcon as Info,
-  CheckCircleIcon as CheckCircle,
-  CurrencyCircleDollarIcon as Dollar
+  InfoIcon as Info
 } from '@phosphor-icons/react';
 import { formatCompactMoney, formatMoney } from '@/packages/domain';
 import type { VaultStats, EnrichedCollectionItem } from '../types';
@@ -15,14 +12,15 @@ interface PortfolioTabProps {
   stats: VaultStats;
   items: EnrichedCollectionItem[];
   hideValues: boolean;
+  isPricingLoading?: boolean;
 }
 
 export function PortfolioTab({
   stats,
   items,
   hideValues,
+  isPricingLoading = false,
 }: PortfolioTabProps) {
-  const [historyRange, setHistoryRange] = useState<'7D' | '30D' | '90D' | '1Y' | 'ALL'>('30D');
 
   // Breakdown calculations
   // 1. By Set
@@ -39,7 +37,7 @@ export function PortfolioTab({
   // 3. By Language
   const valueByLang: Record<string, number> = { JP: 0, EN: 0 };
   items.forEach(item => {
-    const lang = item.printingId.endsWith('2') || item.card.code === 'OP05-119' ? 'JP' : 'EN';
+    const lang = item.language ?? item.card.language ?? 'EN';
     valueByLang[lang] = (valueByLang[lang] || 0) + item.estimatedValue;
   });
 
@@ -74,8 +72,7 @@ export function PortfolioTab({
 
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <span className="vault-confidence-badge" style={{ padding: '4px 10px', fontSize: '11px' }}>
-              <Sparkles size={13} weight="fill" />
-              {stats.valuationConfidence.toUpperCase()} CONFIDENCE
+              YUYUTEI · {stats.marketPricedCount} PRINTINGS
             </span>
           </div>
         </div>
@@ -94,22 +91,22 @@ export function PortfolioTab({
               Estimated Portfolio Value
             </span>
             <div style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '32px', fontWeight: 600, color: 'var(--vault-ink)', margin: '4px 0' }}>
-              {hideValues ? 'Rp ••••••••' : formatCompactMoney(stats.estimatedValue, 'IDR')}
+              {hideValues ? 'Rp ••••••••' : isPricingLoading ? 'Loading…' : stats.marketPricedCount ? formatCompactMoney(stats.estimatedValue, 'IDR') : '—'}
             </div>
             <span style={{ fontSize: '11.5px', color: 'var(--vault-ink-secondary)' }}>
-              {hideValues ? 'Hidden' : `Exact: ${formatMoney(stats.estimatedValue, 'IDR')}`}
+              {hideValues ? 'Hidden' : isPricingLoading ? 'Checking saved Yuyutei prices…' : stats.marketPricedCount ? `Priced copies only: ${formatMoney(stats.estimatedValue, 'IDR')}` : 'No exact printing prices available'}
             </span>
           </div>
 
           <div>
             <span style={{ fontSize: '11px', color: 'var(--vault-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>
-              Acquisition Cost Basis
+              Acquisition Cost of Priced Copies
             </span>
             <div style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '32px', fontWeight: 600, color: 'var(--vault-ink)', margin: '4px 0' }}>
-              {hideValues ? 'Rp ••••••••' : formatCompactMoney(stats.totalAcquisitionCost, 'IDR')}
+              {hideValues ? 'Rp ••••••••' : formatCompactMoney(stats.valuedAcquisitionCost, 'IDR')}
             </div>
             <span style={{ fontSize: '11.5px', color: 'var(--vault-ink-secondary)' }}>
-              Actual historical purchase prices
+              {hideValues ? 'Hidden' : 'Cards with an exact current Yuyutei price'}
             </span>
           </div>
 
@@ -121,13 +118,13 @@ export function PortfolioTab({
               fontFamily: 'var(--display-font, var(--font-sans))',
               fontSize: '32px',
               fontWeight: 600,
-              color: stats.unrealizedChangeAmount >= 0 ? '#2e8b57' : '#c0392b',
+              color: stats.unrealizedChangePercent === null ? 'var(--vault-ink-muted)' : stats.unrealizedChangeAmount >= 0 ? '#2e8b57' : '#c0392b',
               margin: '4px 0',
               display: 'flex',
               alignItems: 'center',
               gap: '6px'
             }}>
-              {hideValues ? 'Rp ••••••••' : (
+              {hideValues ? 'Rp ••••••••' : stats.unrealizedChangePercent === null ? '—' : (
                 <>
                   <TrendingUp size={24} />
                   {stats.unrealizedChangeAmount >= 0 ? '+' : ''}
@@ -135,8 +132,8 @@ export function PortfolioTab({
                 </>
               )}
             </div>
-            <span style={{ fontSize: '11.5px', color: stats.unrealizedChangeAmount >= 0 ? '#2e8b57' : '#c0392b', fontWeight: 600 }}>
-              {hideValues ? 'Hidden' : `+${stats.unrealizedChangePercent.toFixed(1)}% unrealized gain`}
+            <span style={{ fontSize: '11.5px', color: stats.unrealizedChangePercent === null ? 'var(--vault-ink-muted)' : stats.unrealizedChangeAmount >= 0 ? '#2e8b57' : '#c0392b', fontWeight: 600 }}>
+              {hideValues ? 'Hidden' : stats.unrealizedChangePercent === null ? 'Add acquisition costs for comparison' : `${stats.unrealizedChangePercent >= 0 ? '+' : ''}${stats.unrealizedChangePercent.toFixed(1)}% vs cost of priced copies`}
             </span>
           </div>
         </div>
@@ -156,7 +153,7 @@ export function PortfolioTab({
         }}>
           <Info size={18} color="var(--vault-gold)" style={{ flexShrink: 0 }} />
           <div>
-            <strong>Transparent Valuation:</strong> Based on {stats.observationCount} recent completed sales and verified market observations (trimmed median). No false precision displayed. Last refreshed {stats.lastUpdated}.
+            <strong>Data source:</strong> Latest scraped Yuyutei listing prices for exact Japanese printings. {stats.observationCount} stored observations across {stats.marketPricedCount} printings; English and graded cards are excluded. {stats.lastUpdated ? `Latest observation: ${new Date(stats.lastUpdated).toLocaleString()}.` : 'No current observations are available.'}
           </div>
         </div>
       </div>
@@ -275,37 +272,15 @@ export function PortfolioTab({
       <div className="vault-chart-card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
           <div>
-            <h3 style={{ margin: 0 }}>
-              Price Observations & Historical Trajectory
-            </h3>
+            <h3 style={{ margin: 0 }}>30-Day Yuyutei Price Movement</h3>
             <span style={{ fontSize: '11px', color: 'var(--vault-ink-secondary)' }}>
-              Completed sales carry full valuation weight · Active asks shown as secondary reference
+              Scraped Yuyutei listing observations · This view shows current totals and the 30-day comparison where history exists
             </span>
           </div>
 
-          <div style={{ display: 'flex', gap: '4px' }}>
-            {(['7D', '30D', '90D', '1Y', 'ALL'] as const).map(range => (
-              <button
-                key={range}
-                type="button"
-                className={`vault-btn vault-btn-secondary ${historyRange === range ? 'is-active' : ''}`}
-                style={{
-                  height: '28px',
-                  padding: '0 8px',
-                  fontSize: '11px',
-                  borderColor: historyRange === range ? 'var(--vault-gold)' : undefined,
-                  background: historyRange === range ? 'var(--vault-gold-soft)' : undefined,
-                  color: historyRange === range ? 'var(--vault-gold-deep)' : undefined,
-                }}
-                onClick={() => setHistoryRange(range)}
-              >
-                {range}
-              </button>
-            ))}
-          </div>
         </div>
 
-        {/* Lightweight SVG Visualizer for Portfolio Trend */}
+        {/* Do not draw synthetic history: only report the change supported by stored observations. */}
         <div style={{
           height: '180px',
           width: '100%',
@@ -318,50 +293,11 @@ export function PortfolioTab({
           position: 'relative',
           overflow: 'hidden',
         }}>
-          <svg viewBox="0 0 800 160" style={{ width: '100%', height: '100%', padding: '10px 20px' }} preserveAspectRatio="none">
-            <defs>
-              <linearGradient id="vaultPortfolioGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="var(--vault-gold)" stopOpacity="0.3" />
-                <stop offset="100%" stopColor="var(--vault-gold)" stopOpacity="0.0" />
-              </linearGradient>
-            </defs>
-            {/* Grid Lines */}
-            <line x1="0" y1="40" x2="800" y2="40" stroke="var(--vault-border)" strokeDasharray="3 3" />
-            <line x1="0" y1="80" x2="800" y2="80" stroke="var(--vault-border)" strokeDasharray="3 3" />
-            <line x1="0" y1="120" x2="800" y2="120" stroke="var(--vault-border)" strokeDasharray="3 3" />
-
-            {/* Filled Area */}
-            <path
-              d="M 20 120 Q 200 110, 350 75 T 550 55 T 780 30 L 780 150 L 20 150 Z"
-              fill="url(#vaultPortfolioGrad)"
-            />
-            {/* Main Trend Line */}
-            <path
-              d="M 20 120 Q 200 110, 350 75 T 550 55 T 780 30"
-              fill="none"
-              stroke="var(--vault-gold)"
-              strokeWidth="3"
-            />
-            {/* Observation dots for completed sales */}
-            <circle cx="20" cy="120" r="4" fill="var(--vault-gold)" />
-            <circle cx="200" cy="100" r="4" fill="var(--vault-gold)" />
-            <circle cx="350" cy="75" r="4" fill="var(--vault-gold)" />
-            <circle cx="550" cy="55" r="4" fill="var(--vault-gold)" />
-            <circle cx="780" cy="30" r="5" fill="var(--vault-gold)" stroke="#fff" strokeWidth="2" />
-          </svg>
-          <div style={{
-            position: 'absolute',
-            bottom: '8px',
-            right: '16px',
-            fontSize: '10px',
-            fontWeight: 700,
-            color: 'var(--vault-gold-deep)',
-            background: 'var(--vault-panel)',
-            padding: '2px 8px',
-            borderRadius: '4px',
-            border: '1px solid var(--vault-border)',
-          }}>
-            {hideValues ? '••••••••' : `Latest: ${formatCompactMoney(stats.estimatedValue, 'IDR')}`} (+{stats.change30DayPercent}%)
+          <div style={{ textAlign: 'center', padding: 20, color: 'var(--vault-ink-secondary)' }}>
+            <strong style={{ display: 'block', color: stats.change30DayPercent === null ? 'var(--vault-ink-muted)' : 'var(--vault-ink)', fontSize: 24 }}>
+              {hideValues ? '••••••' : stats.change30DayPercent === null ? '—' : `${stats.change30DayPercent >= 0 ? '+' : ''}${stats.change30DayPercent.toFixed(1)}%`}
+            </strong>
+            <span>From saved Yuyutei listing observations · {stats.change30DayPercent === null ? 'not enough observations near 30 days ago' : `${stats.change30DayCount} printings with comparable history`}</span>
           </div>
         </div>
       </div>

@@ -1,24 +1,59 @@
-import {z} from 'zod';
 import {db,errorResponse,user,HttpError} from '@/lib/server/store';
-import {createAzekhaInstrument} from '@/lib/server/azekha-payments';
+import {getCurrentUser} from '@/lib/server/auth';
+import {createIpaymuRedirect} from '@/lib/server/ipaymu';
+import {verifyTurnstile} from '@/lib/server/turnstile';
 
-const schema=z.object({method:z.enum(['qris','va','ewallet']),channel:z.string().min(2).max(24)});
-const channels:Record<string,Set<string>>={qris:new Set(['mpm']),va:new Set(['bca','bni','bri','mandiri','cimb','permata','bsi','danamon','bmi','bag','btn']),ewallet:new Set(['dana','shopeepay'])};
+type Order={id:string;kind:string;buyerId:string;sellerId:string|null;listingId:string|null;items:string;details:string;amount:number;shippingFee:number;title:string|null;paymentId:string|null;status:string;expiresAt:string|null};
+type OrderItem={printingId:string;quantity:number;unitAmount:number};
 
 export async function POST(request:Request,{params}:{params:Promise<{id:string}>}){
   try{
+    const rejected=await verifyTurnstile(request);if(rejected)return rejected;
     const profile=await user();
+    const account=await getCurrentUser();
+    if(!account?.email)throw new HttpError(401,'Sign in with an email address to continue.');
     const {id}=await params;
-    const order=await db().prepare('SELECT buyer_id AS buyerId,payment_id AS paymentId,status,expires_at AS expiresAt FROM checkout_orders WHERE id=?').bind(id).first<{buyerId:string;paymentId:string|null;status:string;expiresAt:string|null}>();
+    const database=db();
+    const order=await database.prepare(`SELECT o.id,o.kind,o.buyer_id AS buyerId,o.seller_id AS sellerId,o.listing_id AS listingId,o.items,o.details,o.amount,o.shipping_fee AS shippingFee,o.payment_id AS paymentId,o.status,o.expires_at AS expiresAt,l.title FROM checkout_orders o LEFT JOIN listings l ON l.id=o.listing_id WHERE o.id=?`).bind(id).first<Order>();
     if(!order||order.buyerId!==profile.id)throw new HttpError(404,'Checkout was not found.');
-    if(order.status!=='PENDING_PAYMENT'||!order.paymentId)throw new HttpError(409,'This checkout is no longer payable.');
+    if(order.status!=='PENDING_PAYMENT')throw new HttpError(409,'This checkout is no longer payable.');
     if(order.expiresAt&&new Date(`${order.expiresAt.replace(' ','T')}Z`).getTime()<=Date.now()){
-      await db().prepare("UPDATE checkout_orders SET status='EXPIRED',updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT'").bind(id).run();
+      await database.prepare("UPDATE checkout_orders SET status='EXPIRED',updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT'").bind(id).run();
       throw new HttpError(409,'This checkout has expired. Start a new checkout to continue.');
     }
-    const selection=schema.parse(await request.json());
-    if(!channels[selection.method].has(selection.channel))throw new HttpError(400,'Choose a supported payment channel.');
-    const instrument=await createAzekhaInstrument(order.paymentId,selection.method,selection.channel);
-    return Response.json({instrument});
+    let details:Record<string,unknown>={};
+    try{details=JSON.parse(order.details) as Record<string,unknown>}catch{}
+    const existingUrl=typeof details.ipaymuCheckoutUrl==='string'?details.ipaymuCheckoutUrl:null;
+    if(order.paymentId&&existingUrl)return Response.json({checkoutUrl:existingUrl,reused:true});
+
+    const baseUrl=process.env.VIVREPLAY_PUBLIC_URL?.trim().replace(/\/$/,'')||'https://vivreplay.com';
+    const callbackOrigin=new URL(request.url).origin;
+    const origin=process.env.IPAYMU_MODE==='sandbox'?callbackOrigin:baseUrl;
+    let products:OrderItem[]=[];
+    if(order.kind==='MARKET'){
+      try{products=JSON.parse(order.items) as OrderItem[]}catch{throw new HttpError(500,'The selected cards could not be loaded.');}
+      if(!products.length||products.some(item=>!item.printingId||!Number.isInteger(item.quantity)||item.quantity<1||!Number.isSafeInteger(item.unitAmount)||item.unitAmount<0))throw new HttpError(500,'The selected cards could not be loaded.');
+    }
+    const productLines=order.kind==='PRO'
+      ?[{name:'VivrePlay Market Pro',quantity:1,unitPrice:order.amount,description:`Market Pro membership · ${Number(details.durationDays)||0} days`}]
+      :[
+        ...products.map(item=>({name:item.printingId,quantity:item.quantity,unitPrice:item.unitAmount,description:`One Piece Card Game card · ${item.printingId}`})),
+        ...(order.shippingFee>0?[{name:'Delivery',quantity:1,unitPrice:order.shippingFee,description:'Courier delivery for this Market order'}]:[]),
+      ];
+    const total=productLines.reduce((sum,item)=>sum+item.quantity*item.unitPrice,0);
+    if(total!==order.amount)throw new HttpError(409,'The order total changed. Please start checkout again.');
+    const name=typeof details.customerName==='string'?details.customerName:typeof details.recipientName==='string'?details.recipientName:profile.display_name||'VivrePlay customer';
+    const phone=typeof details.customerPhone==='string'?details.customerPhone:typeof details.phone==='string'?details.phone:'';
+    const payment=await createIpaymuRedirect({orderId:order.id,products:productLines,buyer:{name,email:account.email,phone},returnUrl:`${origin}/checkout/order/${encodeURIComponent(order.id)}`,cancelUrl:`${origin}/checkout/order/${encodeURIComponent(order.id)}?payment=cancelled`,notifyUrl:`${origin}/api/checkout/ipaymu/callback`});
+    details.ipaymuCheckoutUrl=payment.url;
+    details.ipaymuMode=process.env.IPAYMU_MODE==='sandbox'?'sandbox':'production';
+    const updated=await database.prepare("UPDATE checkout_orders SET payment_id=?,details=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id IS NULL").bind(payment.sessionId,JSON.stringify(details),id).run();
+    if(!updated.meta.changes){
+      const latest=await database.prepare('SELECT payment_id AS paymentId,details FROM checkout_orders WHERE id=?').bind(id).first<{paymentId:string|null;details:string}>();
+      let latestDetails:Record<string,unknown>={};try{latestDetails=JSON.parse(latest?.details??'{}') as Record<string,unknown>}catch{}
+      if(latest?.paymentId&&typeof latestDetails.ipaymuCheckoutUrl==='string')return Response.json({checkoutUrl:latestDetails.ipaymuCheckoutUrl,reused:true});
+      throw new HttpError(409,'This checkout has already been updated. Refresh the page.');
+    }
+    return Response.json({checkoutUrl:payment.url,reused:false});
   }catch(error){return errorResponse(error)}
 }

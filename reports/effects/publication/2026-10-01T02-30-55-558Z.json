@@ -1,0 +1,191 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-10-01T02:30:55.557Z",
+  "candidates": [
+    {
+      "code": "OP17-031",
+      "printedText": "[On Play] Draw 1 card and rest up to 1 of your opponent's Characters with a cost of 8 or less.\n[End of Your Turn] Set up to 1 of your Characters with a type including \"Red-Haired Pirates\" as active.",
+      "publishedText": "[On Play] Draw 1 card and rest up to 1 of your opponent's Characters with a cost of 8 or less.\n[End of Your Turn] Set up to 1 of your Characters with a type including \"Red-Haired Pirates\" as active.",
+      "timings": [
+        "end-turn"
+      ],
+      "scenarioNames": [
+        "schema-ready-target end-turn: Red-Haired Pirates max 1",
+        "engine-action end-turn ready: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 1
+              },
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 8
+              }
+            ],
+            "rawText": "[On Play] Draw 1 card and rest up to 1 of your opponent's Characters with a cost of 8 or less.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-character",
+                "amount": 1
+              }
+            ],
+            "rawText": "[End of Your Turn] Set up to 1 of your Characters with a type including \"Red-Haired Pirates\" as active.",
+            "trigger": "end-turn",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 8
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "end-turn",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-character",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Draw 1 card and rest up to 1 of your opponent's Characters with a cost of 8 or less.\n[End of Your Turn] Set up to 1 of your Characters with a type including \"Red-Haired Pirates\" as active.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 1
+              },
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 8
+              }
+            ],
+            "rawText": "[On Play] Draw 1 card and rest up to 1 of your opponent's Characters with a cost of 8 or less.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "rawText": "[End of Your Turn] Set up to 1 of your Characters with a type including \"Red-Haired Pirates\" as active.",
+            "trigger": "end-turn",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-character",
+                "amount": 1,
+                "trait": "Red-Haired Pirates",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 8
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "end-turn",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-character",
+                  "amount": 1,
+                  "trait": "Red-Haired Pirates",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Draw 1 card and rest up to 1 of your opponent's Characters with a cost of 8 or less.\n[End of Your Turn] Set up to 1 of your Characters with a type including \"Red-Haired Pirates\" as active.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "ad5421e4d0e730415ef847dd3e91fc27acf7129b003901053de1347662d61426",
+      "afterHash": "a8945d4535a0deb0bb749b9337a7e53ae221f7fa9ba8debc933c4891d5199688"
+    }
+  ]
+}

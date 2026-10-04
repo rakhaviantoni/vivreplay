@@ -3,7 +3,7 @@ import type {EffectAction,EffectCost,EffectDocument,EffectTrigger} from './effec
 import {resolveCustomEffect,type CustomInstruction} from './custom-effect-resolvers';
 import {applyEffectAction,payEffectCost,type EffectSelection,type MatchEffectState,type PlayerId} from './match-effect-state';
 
-export type EffectCommand={abilityId?:number;conditions?:string[];kind:'pay-cost'|'resolve-action';value:EffectCost|EffectAction};
+export type EffectCommand={abilityId?:number;conditions?:string[];requiredAttachedDon?:number;kind:'pay-cost'|'resolve-action';value:EffectCost|EffectAction};
 export type RuntimeResolution={status:'ready'|'custom';commands:EffectCommand[];instructions?:CustomInstruction[];handler?:string};
 export type CardEffectResolution=RuntimeResolution&{actions:EffectAction[];costs:EffectCost[]};
 
@@ -22,12 +22,13 @@ export function resolveEffectTiming(document:EffectDocument,timing:EffectTrigger
  for(const [windowIndex,effect] of windows.entries()){
   const abilityId=nextAbilityId++,conditions=effect.conditions.map(condition=>condition.text);
   const ability=document.ast.filter(candidate=>candidate.trigger===timing)[windowIndex];
+  const requiredAttachedDon=ability?.actions.reduce((maximum,action)=>action.kind==='attach-don-required'?Math.max(maximum,action.amount):maximum,0)??0;
   const rawText=ability?.rawText??'',conditionIndex=conditions.length?rawText.toLowerCase().indexOf(conditions[0].toLowerCase()):-1,costIndex=rawText.search(/\b(?:you may\s+)?(?:trash|rest|return|turn|give)\b/i);
   // Text after a printed cost divider is the effect being paid for. Resolve
   // the cost first, then evaluate those conditions against the post-cost state.
   const conditionAfterCost=Boolean(ability?.costs.length&&conditionIndex>=0&&costIndex>=0&&costIndex<conditionIndex);
   for(const step of effect.sequence){
-   if(step.type==='PAY_COST'){commands.push({abilityId,conditions:conditionAfterCost?[]:conditions,kind:'pay-cost',value:step.cost});continue;}
+   if(step.type==='PAY_COST'){commands.push({abilityId,conditions:conditionAfterCost?[]:conditions,requiredAttachedDon,kind:'pay-cost',value:step.cost});continue;}
    const action=step.action;
    if(action.kind==='activate-main-effect'||action.kind==='activate-referenced-effect'){
     // Older stored schemas emitted both Main aliases for one printed reference.
@@ -42,7 +43,7 @@ export function resolveEffectTiming(document:EffectDocument,timing:EffectTrigger
      if(!ids.has(nestedId))ids.set(nestedId,nextAbilityId++);
      commands.push({...command,abilityId:ids.get(nestedId),conditions:[...conditions,...command.conditions??[]]});
     }
-   }else commands.push({abilityId,conditions,kind:'resolve-action',value:action});
+   }else commands.push({abilityId,conditions,requiredAttachedDon,kind:'resolve-action',value:action});
   }
  }
  return {status:'ready',commands};
@@ -67,9 +68,12 @@ export function executeEffectCommands(
  let current=state;
  let lastPlayedCardId:string|undefined;
  let lastTargetCardId:string|undefined;
+ const attachedDon=sourceCardId?state.cards.filter(card=>card.owner===actor&&card.type==='DON!!'&&card.attachedTo===sourceCardId).length:0;
+ const disabledAbilityIds=new Set(commands.filter(command=>(command.requiredAttachedDon??0)>attachedDon).map(command=>command.abilityId).filter((id):id is number=>id!==undefined));
  const conditionResults=new Map<string,boolean>();
  for(let index=0;index<commands.length;index++){
   const command=commands[index];
+  if(command.abilityId!==undefined&&disabledAbilityIds.has(command.abilityId))continue;
   if(command.kind==='resolve-action'&&command.value.kind==='grant-keyword'&&((command.value.scope==='previous-played'&&!lastPlayedCardId)||(command.value.scope==='previous-target'&&!lastTargetCardId))){continue;}
   const checks=(command.conditions??[]).map(text=>{const key=`${command.abilityId??0}:${text}`;if(conditionResults.has(key))return conditionResults.get(key);const result=evaluateEffectCondition(text,current,actor,sourceCardId);if(result!==undefined)conditionResults.set(key,result);return result;});
   if(checks.includes(undefined))return {state:current,nextCommand:index,error:'This effect has an unsupported condition.'};

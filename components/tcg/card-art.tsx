@@ -17,7 +17,10 @@ export function cardImageUrl(card:Card){
       const [,folder,language,...pathParts]=source.pathname.split('/');
       const imageName=pathParts.at(-1);
       if(folder&&language&&imageName){
-        return `/${encodeURIComponent(card.setCode??folder)}/${encodeURIComponent((card.language??language).toLowerCase())}/${encodeURIComponent(card.printingCode??imageName.replace(/\.webp$/i,''))}.webp`;
+        // The source filename can carry the exact alt-art suffix (for example
+        // OP09-119_p3). printingCode is often only the shared card number, so
+        // rebuilding the filename from it silently selects the standard art.
+        return `/${encodeURIComponent(folder)}/${encodeURIComponent(language.toLowerCase())}/${encodeURIComponent(imageName)}`;
       }
     }
   } catch { /* Invalid source URLs fall through to the existing fallback. */ }

@@ -296,9 +296,18 @@ async function generateListingCompositeBlob({
   ctx.lineTo(canvasWidth - paddingX, canvasHeight - 48);
   ctx.stroke();
 
-  ctx.font = '500 12px "Manrope", sans-serif';
+  const footerY = canvasHeight - 24;
+  if (compassImg) ctx.drawImage(compassImg, paddingX, footerY - 13, 18, 18);
+  ctx.font = '500 11px "Manrope", sans-serif';
+  ctx.fillStyle = '#8997a9';
+  ctx.fillText('Powered by', paddingX + 25, footerY);
+  const poweredWidth = ctx.measureText('Powered by').width;
+  ctx.font = '800 13px "Plus Jakarta Sans", sans-serif';
+  ctx.fillStyle = '#f0ebe1';
+  ctx.fillText('VivrePlay', paddingX + 31 + poweredWidth, footerY);
+  ctx.font = '500 10px "Manrope", sans-serif';
   ctx.fillStyle = '#657487';
-  ctx.fillText('vivreplay.com · One Piece Card Game', paddingX, canvasHeight - 24);
+  ctx.fillText('vivreplay.com', paddingX + 31 + poweredWidth + ctx.measureText('VivrePlay').width + 10, footerY);
 
   ctx.textAlign = 'right';
   ctx.fillStyle = '#8997a9';

@@ -1,0 +1,121 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-10-01T06:36:26.350Z",
+  "candidates": [
+    {
+      "code": "ST32-004",
+      "printedText": "If your Leader has the attribute, this Character gains [Rush: Character].(This card can attack Characters on the turn in which it is played.)[On Play] Rest up to 2 of your opponent's Characters with a cost of 2 or less.",
+      "publishedText": "If your Leader has the attribute, this Character gains [Rush: Character].(This card can attack Characters on the turn in which it is played.)[On Play] Rest up to 2 of your opponent's Characters with a cost of 2 or less.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "schema-rest-target on-play: opponent-character cost 2 up to 2",
+        "engine-action on-play rest: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 2
+              }
+            ],
+            "rawText": "If your Leader has the attribute, this Character gains [Rush: Character].(This card can attack Characters on the turn in which it is played.)[On Play] Rest up to 2 of your opponent's Characters with a cost of 2 or less.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the attribute, this Character gains [Rush"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 2
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the attribute, this Character gains [Rush"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "If your Leader has the attribute, this Character gains [Rush: Character].(This card can attack Characters on the turn in which it is played.)[On Play] Rest up to 2 of your opponent's Characters with a cost of 2 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On Play] Rest up to 2 of your opponent's Characters with a cost of 2 or less.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 2,
+                "selection": {
+                  "min": 0,
+                  "max": 2
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 2,
+                  "selection": {
+                    "min": 0,
+                    "max": 2
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "If your Leader has the attribute, this Character gains [Rush: Character].(This card can attack Characters on the turn in which it is played.)[On Play] Rest up to 2 of your opponent's Characters with a cost of 2 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "f16870b2149f6810b7bb796110e4af61fbc8e8239aa6dc54634ef59f52b28b79",
+      "afterHash": "861d6bfb32ea99865c9a39205ad247f7f572d087584c5eaee1e0db596d8cc6e5"
+    }
+  ]
+}

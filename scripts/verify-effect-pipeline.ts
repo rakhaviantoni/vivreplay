@@ -7,7 +7,7 @@ import {beginEffectExecution,advanceEffectExecution} from '../packages/domain/ef
 import type {MatchEffectState} from '../packages/domain/match-effect-state';
 import {familyScenarios} from './effect-family-scenarios';
 
-type Identity={id:string;code:string;name:string;color:string;card_type:'Character'|'Leader'|'Event'|'Stage';cost:number;power:number;effect_text:string};
+type Identity={id:string;code:string;name:string;color:string;card_type:'Character'|'Leader'|'Event'|'Stage';cost:number;power:number;effect_text:string;};
 type Revision={identity_id:string;effect_text:string;effect_schema:EffectDocument};
 const url=process.env.NEXT_PUBLIC_SUPABASE_URL,key=process.env.SUPABASE_SECRET_KEY;
 if(!url||!key)throw new Error('Supabase environment is required.');

@@ -1,0 +1,118 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-10-02T02:20:00.443Z",
+  "candidates": [
+    {
+      "code": "OP02-016",
+      "printedText": "[On Play] Up to 1 of your red Characters with a cost of 1 gains +3000 power during this turn.",
+      "publishedText": "[On Play] Up to 1 of your red Characters with a cost of 1 gains +3000 power during this turn.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "schema-power on-play: red cost-1 Character filter and optional target"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 3000,
+                "target": "own-character"
+              }
+            ],
+            "rawText": "[On Play] Up to 1 of your red Characters with a cost of 1 gains +3000 power during this turn.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 3000,
+                  "target": "own-character"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Up to 1 of your red Characters with a cost of 1 gains +3000 power during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On Play] Up to 1 of your red Characters with a cost of 1 gains +3000 power during this turn.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 3000,
+                "until": "turn-end",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                },
+                "color": "red",
+                "exactCost": 1,
+                "target": "own-character"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 3000,
+                  "until": "turn-end",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "color": "red",
+                  "exactCost": 1,
+                  "target": "own-character"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Up to 1 of your red Characters with a cost of 1 gains +3000 power during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "94947d17730a9046b01dc7e0194006a7bcfbd383c77cd204c13dc0b1c7c19b4c",
+      "afterHash": "f704ad37ace84b7bc3272bfd5bc85852d3ddd10a14adbd0e01bfd0f4cc49f427"
+    }
+  ]
+}

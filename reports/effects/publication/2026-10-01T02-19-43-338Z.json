@@ -1,0 +1,332 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-10-01T02:19:43.333Z",
+  "candidates": [
+    {
+      "code": "OP08-039",
+      "printedText": "[Activate:Main] You may rest this Stage: If your Leader has the [Minks] type, set up to 1 of your DON!! cards as active. [End of Your Turn] Set up to 1 of your [Minks] type Characters as active.",
+      "publishedText": "[Activate:Main] You may rest this Stage: If your Leader has the [Minks] type, set up to 1 of your DON!! cards as active. [End of Your Turn] Set up to 1 of your [Minks] type Characters as active.",
+      "timings": [
+        "end-turn"
+      ],
+      "scenarioNames": [
+        "schema-ready-target end-turn: Minks max 1",
+        "engine-action end-turn ready: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "self",
+                "amount": 1,
+                "optional": true
+              }
+            ],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "self"
+              },
+              {
+                "kind": "ready",
+                "scope": "self",
+                "amount": 1
+              }
+            ],
+            "rawText": "[Activate:Main] You may rest this Stage: If your Leader has the [Minks] type, set up to 1 of your DON!! cards as active. [End of Your Turn] Set up to 1 of your [Minks] type Characters as active.",
+            "trigger": "activate-main",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the [Minks] type"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "rest",
+                  "scope": "self",
+                  "amount": 1,
+                  "optional": true
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "self"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "self",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the [Minks] type"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Activate:Main] You may rest this Stage: If your Leader has the [Minks] type, set up to 1 of your DON!! cards as active. [End of Your Turn] Set up to 1 of your [Minks] type Characters as active.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "self",
+                "amount": 1,
+                "optional": true
+              }
+            ],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "self"
+              },
+              {
+                "kind": "ready",
+                "scope": "self",
+                "amount": 1
+              }
+            ],
+            "rawText": "[Activate:Main] You may rest this Stage: If your Leader has the [Minks] type, set up to 1 of your DON!! cards as active. [End of Your Turn] Set up to 1 of your [Minks] type Characters as active.",
+            "trigger": "activate-main",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the [Minks] type"
+              }
+            ]
+          },
+          {
+            "rawText": "[End of Your Turn] Set up to 1 of your [Minks] type Characters as active.",
+            "trigger": "end-turn",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-character",
+                "amount": 1,
+                "trait": "Minks",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "rest",
+                  "scope": "self",
+                  "amount": 1,
+                  "optional": true
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "self"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "self",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the [Minks] type"
+              }
+            ]
+          },
+          {
+            "timing": "end-turn",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-character",
+                  "amount": 1,
+                  "trait": "Minks",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Activate:Main] You may rest this Stage: If your Leader has the [Minks] type, set up to 1 of your DON!! cards as active. [End of Your Turn] Set up to 1 of your [Minks] type Characters as active.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "4f17cc9d77e571ca19f9e9aea9913137360c7df3ca63876db2b2fd8e31b6182f",
+      "afterHash": "79c0f53ccb9513565922c76f06ca0818fdbe33cbc889fbf4c1b81f75cf74b687"
+    },
+    {
+      "code": "OP10-037",
+      "printedText": "[Once Per Turn] If this Character would be removed from the field by your opponent's effect, you may rest 1 of your \"ODYSSEY\" type Characters instead.[End of Your Turn] Set up to 1 of your \"ODYSSEY\" type Characters as active.",
+      "publishedText": "[Once Per Turn] If this Character would be removed from the field by your opponent's effect, you may rest 1 of your \"ODYSSEY\" type Characters instead.[End of Your Turn] Set up to 1 of your \"ODYSSEY\" type Characters as active.",
+      "timings": [
+        "end-turn"
+      ],
+      "scenarioNames": [
+        "schema-ready-target end-turn: ODYSSEY max 1",
+        "engine-action end-turn ready: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-character",
+                "amount": 1
+              }
+            ],
+            "rawText": "[Once Per Turn] If this Character would be removed from the field by your opponent's effect, you may rest 1 of your \"ODYSSEY\" type Characters instead.[End of Your Turn] Set up to 1 of your \"ODYSSEY\" type Characters as active.",
+            "trigger": "end-turn",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character would be removed from the field by your opponent's effect"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "end-turn",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-character",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character would be removed from the field by your opponent's effect"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Once Per Turn] If this Character would be removed from the field by your opponent's effect, you may rest 1 of your \"ODYSSEY\" type Characters instead.[End of Your Turn] Set up to 1 of your \"ODYSSEY\" type Characters as active.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[End of Your Turn] Set up to 1 of your \"ODYSSEY\" type Characters as active.",
+            "trigger": "end-turn",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-character",
+                "amount": 1,
+                "trait": "ODYSSEY",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "end-turn",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-character",
+                  "amount": 1,
+                  "trait": "ODYSSEY",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Once Per Turn] If this Character would be removed from the field by your opponent's effect, you may rest 1 of your \"ODYSSEY\" type Characters instead.[End of Your Turn] Set up to 1 of your \"ODYSSEY\" type Characters as active.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "a8cadb0286cb163ef4b38086677a4b248c349e1f79544d717b5a42c04ddd0a43",
+      "afterHash": "6d0cb4d1106efba3d9d3279fe3d704b8d8f6d28d5728d280d3754b35d5d2efd9"
+    }
+  ]
+}

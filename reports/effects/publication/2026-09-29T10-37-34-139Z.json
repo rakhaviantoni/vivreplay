@@ -1,0 +1,472 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-09-29T10:37:34.138Z",
+  "candidates": [
+    {
+      "code": "P-007",
+      "printedText": "[DON!! x1] This Character cannot be K.O.'d in battle by \"Strike\" attribute Leaders or Characters.",
+      "publishedText": "[DON!! x1] This Character cannot be K.O.'d in battle by \"Strike\" attribute Leaders or Characters.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioNames": [
+        "unknown: Strike Leaders or Characters are blocked only with DON!! x1"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              },
+              {
+                "by": "battle",
+                "kind": "prevent-ko",
+                "scope": "own-character"
+              }
+            ],
+            "rawText": "[DON!! x1] This Character cannot be K.O.'d in battle by \"Strike\" attribute Leaders or Characters.",
+            "trigger": "unknown",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "by": "battle",
+                  "kind": "prevent-ko",
+                  "scope": "own-character"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] This Character cannot be K.O.'d in battle by \"Strike\" attribute Leaders or Characters.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[DON!! x1] This Character cannot be K.O.'d in battle by \"Strike\" attribute Leaders or Characters.",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              },
+              {
+                "kind": "prevent-ko",
+                "scope": "own-character",
+                "by": "battle",
+                "attribute": "Strike",
+                "byCardType": "Leader or Character",
+                "requiresAttachedDon": 1
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "prevent-ko",
+                  "scope": "own-character",
+                  "by": "battle",
+                  "attribute": "Strike",
+                  "byCardType": "Leader or Character",
+                  "requiresAttachedDon": 1
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] This Character cannot be K.O.'d in battle by \"Strike\" attribute Leaders or Characters.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "522f4dbbfc4116887e902bad2a144c90f948c6cd163c9f8a3398b120a1521ba9",
+      "afterHash": "0f8aac623ccccd8fc76ba7f7d967defee3c724eb1f793699996d3fe41435d123"
+    },
+    {
+      "code": "OP09-025",
+      "printedText": "If your Leader has the \"ODYSSEY\" type, this Character cannot be K.O.'d in battle by Leaders.",
+      "publishedText": "If your Leader has the \"ODYSSEY\" type, this Character cannot be K.O.'d in battle by Leaders.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioNames": [
+        "unknown: Odyssey Leader condition protects only from Leader battle K.O."
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "by": "battle",
+                "kind": "prevent-ko",
+                "scope": "own-character"
+              }
+            ],
+            "rawText": "If your Leader has the \"ODYSSEY\" type, this Character cannot be K.O.'d in battle by Leaders.",
+            "trigger": "unknown",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the \"ODYSSEY\" type"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "by": "battle",
+                  "kind": "prevent-ko",
+                  "scope": "own-character"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the \"ODYSSEY\" type"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "If your Leader has the \"ODYSSEY\" type, this Character cannot be K.O.'d in battle by Leaders.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "If your Leader has the \"ODYSSEY\" type, this Character cannot be K.O.'d in battle by Leaders.",
+            "trigger": "unknown",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the \"ODYSSEY\" type"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "prevent-ko",
+                "scope": "own-character",
+                "by": "battle",
+                "byCardType": "Leader"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the \"ODYSSEY\" type"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "prevent-ko",
+                  "scope": "own-character",
+                  "by": "battle",
+                  "byCardType": "Leader"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "If your Leader has the \"ODYSSEY\" type, this Character cannot be K.O.'d in battle by Leaders.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "22af6d5a44def2acf6afec63bb6c2257e07f171f525c25d6f666ad5dc6aa38c4",
+      "afterHash": "6d99bbb18f8882e445483bb5d3a72a7ea656193847e85d763191dc9b8f54f056"
+    },
+    {
+      "code": "OP14-003",
+      "printedText": "This Character cannot be K.O.'d by effects of your opponent's Characters with 5000 base power or less.",
+      "publishedText": "This Character cannot be K.O.'d by effects of your opponent's Characters with 5000 base power or less.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioNames": [
+        "unknown: effect protection is limited to Characters at 5000 base power or less"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "by": "effect",
+                "kind": "prevent-ko",
+                "scope": "own-character"
+              }
+            ],
+            "rawText": "This Character cannot be K.O.'d by effects of your opponent's Characters with 5000 base power or less.",
+            "trigger": "unknown",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "by": "effect",
+                  "kind": "prevent-ko",
+                  "scope": "own-character"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "This Character cannot be K.O.'d by effects of your opponent's Characters with 5000 base power or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "This Character cannot be K.O.'d by effects of your opponent's Characters with 5000 base power or less.",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "prevent-ko",
+                "scope": "own-character",
+                "by": "effect",
+                "byCardType": "Character",
+                "sourceMaxPower": 5000
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "prevent-ko",
+                  "scope": "own-character",
+                  "by": "effect",
+                  "byCardType": "Character",
+                  "sourceMaxPower": 5000
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "This Character cannot be K.O.'d by effects of your opponent's Characters with 5000 base power or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "88eef0a6d5e5b64a64c656f9bb841cab6b3663f915cac1ffddb130d8a20c789f",
+      "afterHash": "9544b0580c6960dab0531d7a8bdbaffa28d5607f086b8c4b6f7ef9f8e7e74e63"
+    },
+    {
+      "code": "P-025",
+      "printedText": "[DON!! x1] This Character cannot be K.O.'d in battle by Characters without the \"Special\" attribute.",
+      "publishedText": "[DON!! x1] This Character cannot be K.O.'d in battle by Characters without the \"Special\" attribute.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioNames": [
+        "unknown: DON!!-gated battle protection excludes Special Characters"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              },
+              {
+                "by": "battle",
+                "kind": "prevent-ko",
+                "scope": "own-character"
+              }
+            ],
+            "rawText": "[DON!! x1] This Character cannot be K.O.'d in battle by Characters without the \"Special\" attribute.",
+            "trigger": "unknown",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "by": "battle",
+                  "kind": "prevent-ko",
+                  "scope": "own-character"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] This Character cannot be K.O.'d in battle by Characters without the \"Special\" attribute.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[DON!! x1] This Character cannot be K.O.'d in battle by Characters without the \"Special\" attribute.",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              },
+              {
+                "kind": "prevent-ko",
+                "scope": "own-character",
+                "by": "battle",
+                "byCardType": "Character",
+                "excludeAttribute": "Special",
+                "requiresAttachedDon": 1
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "prevent-ko",
+                  "scope": "own-character",
+                  "by": "battle",
+                  "byCardType": "Character",
+                  "excludeAttribute": "Special",
+                  "requiresAttachedDon": 1
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] This Character cannot be K.O.'d in battle by Characters without the \"Special\" attribute.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "fa95e69e2640a7e0cb1c7cc85e9926b21cdd3b62ff2a1ffbf18b2f63960064ed",
+      "afterHash": "ecc1a9f40138ebb1bc027444a4b47baf32fbffbdcc3c8a8806b089b26d88f828"
+    }
+  ]
+}

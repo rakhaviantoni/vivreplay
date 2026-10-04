@@ -2,6 +2,7 @@
 
 import {ArrowSquareOutIcon as ArrowSquareOut} from '@phosphor-icons/react';
 import {useEffect, useMemo, useState} from 'react';
+import {priceChartingFallback,PRICECHARTING_USD_TO_IDR_RATE} from '@/lib/market/pricecharting';
 
 type Observation = {amount:number; currency:string; observed_at:string; source_kind:string; source_record?:{payload?:{card_url?:unknown}}|null};
 
@@ -22,7 +23,7 @@ function PriceLine({history,language}:{history:Observation[];language:'EN'|'ID'}
   return <figure className="card-price-line" aria-label={language==='ID'?'Riwayat harga Yuyutei':'Yuyutei price history'}><figcaption><span>{language==='ID'?'Riwayat harga':'Price history'}</span><small><time dateTime={history[0].observed_at}>{formatDate(history[0].observed_at,language)}</time> - <time dateTime={history.at(-1)!.observed_at}>{formatDate(history.at(-1)!.observed_at,language)}</time></small></figcaption><svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label={language==='ID'?'Tren harga menurut pantauan Yuyutei':'Price trend across Yuyutei price checks'}><polyline points={points}/></svg></figure>;
 }
 
-export function CardMarketPanel({printingId}:{printingId?:string}) {
+export function CardMarketPanel({printingId,onMarketPrice,printing}:{printingId?:string;onMarketPrice?:(amountIdr:number|null)=>void;printing?:{language?:string;setCode?:string;printingCode?:string;variant?:string}}) {
   const [history,setHistory]=useState<Observation[]>();
   const [language,setLanguage]=useState<'EN'|'ID'>('EN');
   useEffect(()=>{
@@ -32,9 +33,14 @@ export function CardMarketPanel({printingId}:{printingId?:string}) {
     window.addEventListener('vivreplay:locale',onLocale);
     return()=>window.removeEventListener('vivreplay:locale',onLocale);
   },[]);
-  useEffect(()=>{if(!printingId){setHistory([]);return}let active=true;setHistory(undefined);void fetch(`/api/market/yuyutei?printingId=${encodeURIComponent(printingId)}`).then(async response=>response.ok?await response.json() as {history?:Observation[]}:{history:[]}).then(result=>{if(active)setHistory(result.history??[])},()=>{if(active)setHistory([])});return()=>{active=false};},[printingId]);
+  useEffect(()=>{if(!printingId){setHistory([]);onMarketPrice?.(null);return}let active=true;setHistory(undefined);void fetch(`/api/market/yuyutei?printingId=${encodeURIComponent(printingId)}`).then(async response=>response.ok?await response.json() as {history?:Observation[];jpyToIdrRate?:number}:{history:[]}).then(result=>{if(active){const observations=result.history??[];setHistory(observations);const latest=observations.at(-1);const rate=result.jpyToIdrRate&&Number.isFinite(result.jpyToIdrRate)?result.jpyToIdrRate:110;const normalized=latest?(latest.currency.toUpperCase()==='JPY'?Math.round(latest.amount*rate):latest.currency.toUpperCase()==='IDR'?latest.amount:null):null;onMarketPrice?.(normalized)}},()=>{if(active){setHistory([]);onMarketPrice?.(null)}});return()=>{active=false};},[printingId,onMarketPrice]);
+  const fallback=printing?priceChartingFallback(printing):undefined;
+  useEffect(()=>{if(history!==undefined&&!history.at(-1)&&fallback)onMarketPrice?.(Math.round(fallback.amount*PRICECHARTING_USD_TO_IDR_RATE));},[history,fallback?.amount,onMarketPrice]);
   if(!history) return <section className="card-market-panel is-loading" aria-label={language==='ID'?'Memuat harga pasar':'Loading market price'}><p>{language==='ID'?'Memuat tolok ukur pasar...':'Loading market benchmark...'}</p></section>;
   const benchmark=history.at(-1);
-  if(!benchmark) return <section className="card-market-panel" aria-label={language==='ID'?'Harga pasar':'Market price'}><header><span>{language==='ID'?'Harga pasar':'Market price'}</span><small>Yuyutei</small></header><p>{language==='ID'?'Belum ada riwayat harga untuk cetakan ini.':'No price is recorded for this exact printing.'}</p></section>;
+  if(!benchmark){
+    if(fallback)return <section className="card-market-panel" aria-label="PriceCharting ungraded market reference"><header><span>{language==='ID'?'Referensi harga':'Market price reference'}</span><small>PriceCharting · ungraded</small></header><div className="card-market-price"><strong>{money(fallback.amount,fallback.currency)}</strong><span>{language==='ID'?'Panduan kartu tanpa grading':'Ungraded card guide price'}</span></div><a className="card-market-source" href={fallback.url} target="_blank" rel="noopener noreferrer">{language==='ID'?'Lihat PriceCharting':'View PriceCharting'}<ArrowSquareOut size={14}/></a></section>;
+    return <section className="card-market-panel" aria-label={language==='ID'?'Harga pasar':'Market price'}><header><span>{language==='ID'?'Harga pasar':'Market price'}</span><small>Yuyutei</small></header><p>{language==='ID'?'Belum ada riwayat harga untuk cetakan ini.':'No price is recorded for this exact printing.'}</p></section>;
+  }
   const listingUrl=yuyuteiUrl(benchmark); return <section className="card-market-panel" aria-label={language==='ID'?'Harga pasar Yuyutei':'Yuyutei market price'}><header><span>{language==='ID'?'Harga pasar':'Market price'}</span><small>Yuyutei</small></header><div className="card-market-price"><strong>{money(benchmark.amount,benchmark.currency)}</strong><time dateTime={benchmark.observed_at}>{language==='ID'?'Tercatat ':'Observed '}{formatDate(benchmark.observed_at,language)}</time></div><PriceLine history={history} language={language}/>{listingUrl&&<a className="card-market-source" href={listingUrl} target="_blank" rel="noopener noreferrer">{language==='ID'?'Lihat kartu di Yuyutei':'View card on Yuyutei'}<ArrowSquareOut size={14}/></a>}</section>;
 }

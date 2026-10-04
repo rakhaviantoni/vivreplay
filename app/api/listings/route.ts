@@ -1,6 +1,7 @@
 import {z} from 'zod';
 import {user,db,errorResponse,guard,market,HttpError} from '@/lib/server/store';
 import {getDynamicListingPolicy,computeListingExpiration} from '@/lib/market/policy';
+import {verifyTurnstile} from '@/lib/server/turnstile';
 
 const itemSchema=z.object({instanceId:z.string().uuid().optional(),printingId:z.string(),quantity:z.number().int().positive().max(999),condition:z.string().optional(),unitAmount:z.number().int().nonnegative().optional()});
 const schema=z.object({instanceId:z.string().uuid(),amount:z.number().int().positive().max(100000000000),quantity:z.number().int().positive().max(999),city:z.string().trim().min(2).max(60),title:z.string().trim().min(3).max(100),type:z.enum(['WTS','WTB']).default('WTS'),items:z.array(itemSchema).max(30).optional()});
@@ -13,6 +14,7 @@ export async function GET(){
 export async function POST(request:Request){
   try{
     guard(request);
+    const rejected=await verifyTurnstile(request);if(rejected)return rejected;
     const profile=await user();
     if(profile.region!=='ID')throw new HttpError(403,'Seller listings currently require an Indonesian profile. Global collection and deck access remain available.');
     const database=db();
@@ -39,7 +41,9 @@ export async function POST(request:Request){
       for(const [instanceId,item] of byInstance){
         const owned=await database.prepare('SELECT printing_id,quantity FROM collectible_instances WHERE id=? AND owner_id=? AND deleted_at IS NULL').bind(instanceId,profile.id).first<{printing_id:string;quantity:number}>();
         if(!owned||owned.printing_id!==item.printingId||item.quantity>owned.quantity)throw new HttpError(400,'One or more items in the bundle exceeds your available Vault quantity.');
-        const alreadyListed=await database.prepare("SELECT COALESCE(SUM(quantity),0) AS total FROM listings WHERE instance_id=? AND status='ACTIVE' AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)").bind(instanceId).first<{total:number}>();
+        const alreadyListed=await database.prepare(`SELECT
+          COALESCE((SELECT SUM(CASE WHEN items IS NULL THEN quantity ELSE 0 END) FROM listings WHERE instance_id=? AND status='ACTIVE' AND (expires_at IS NULL OR expires_at>CURRENT_TIMESTAMP)),0)
+          + COALESCE((SELECT SUM(CAST(json_extract(entry.value,'$.quantity') AS INTEGER)) FROM listings l,json_each(l.items) entry WHERE json_extract(entry.value,'$.instanceId')=? AND l.status='ACTIVE' AND (l.expires_at IS NULL OR l.expires_at>CURRENT_TIMESTAMP)),0) AS total`).bind(instanceId,instanceId).first<{total:number}>();
         if((alreadyListed?.total??0)+item.quantity>owned.quantity)throw new HttpError(409,'One or more items in the bundle is already listed.');
       }
     }else if(value.quantity>primary.quantity){
@@ -53,8 +57,11 @@ export async function POST(request:Request){
     const result=await database.prepare(`
       INSERT INTO listings (id,seller_id,printing_id,instance_id,title,amount,currency,quantity,condition,type,city,expires_at,items)
       SELECT ?,?,?,?,?,?,'IDR',?,?,?,?,?,?
-      WHERE ? <= ? - COALESCE((SELECT SUM(quantity) FROM listings WHERE instance_id=? AND status='ACTIVE' AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)),0)
-    `).bind(id,profile.id,primary.printing_id,value.instanceId,value.title,value.amount,value.quantity,primary.condition,value.type,value.city,expiresAt,itemsJson,primaryQuantity,primary.quantity,value.instanceId).run();
+      WHERE ? <= ? - (
+        COALESCE((SELECT SUM(CASE WHEN items IS NULL THEN quantity ELSE 0 END) FROM listings WHERE instance_id=? AND status='ACTIVE' AND (expires_at IS NULL OR expires_at>CURRENT_TIMESTAMP)),0)
+        + COALESCE((SELECT SUM(CAST(json_extract(entry.value,'$.quantity') AS INTEGER)) FROM listings l,json_each(l.items) entry WHERE json_extract(entry.value,'$.instanceId')=? AND l.status='ACTIVE' AND (l.expires_at IS NULL OR l.expires_at>CURRENT_TIMESTAMP)),0)
+      )
+    `).bind(id,profile.id,primary.printing_id,value.instanceId,value.title,value.amount,value.quantity,primary.condition,value.type,value.city,expiresAt,itemsJson,primaryQuantity,primary.quantity,value.instanceId,value.instanceId).run();
     if(!result.meta.changes)throw new HttpError(409,'That quantity is already listed.');
     return Response.json({id,expiresAt,durationDays:policy.durationDays},{status:201});
   }catch(error){

@@ -3,11 +3,7 @@
 import React from 'react';
 import { 
   XIcon as X, 
-  LockKeyIcon as Lock, 
-  EyeIcon as Eye, 
-  EyeSlashIcon as EyeOff, 
-  ShieldCheckIcon as ShieldCheck,
-  CheckCircleIcon as CheckCircle
+  LockKeyIcon as Lock
 } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import type { PrivacySettings } from '../types';
@@ -98,11 +94,13 @@ export function PrivacyModal({
             </div>
             <button
               type="button"
-              className={`vault-btn ${privacy.collection === 'public' ? 'vault-btn-primary' : 'vault-btn-secondary'}`}
-              style={{ height: '32px', fontSize: '11px', padding: '0 12px' }}
+              role="switch"
+              aria-checked={privacy.collection === 'public'}
+              aria-label="Collection Showcase visibility"
+              className={`privacy-toggle ${privacy.collection === 'public' ? 'is-on' : ''}`}
               onClick={() => handleToggle('collection')}
             >
-              {privacy.collection === 'public' ? 'Public' : 'Private'}
+              <span>{privacy.collection === 'public' ? 'Public' : 'Private'}</span><i aria-hidden="true"/>
             </button>
           </div>
 
@@ -126,11 +124,13 @@ export function PrivacyModal({
             </div>
             <button
               type="button"
-              className={`vault-btn ${privacy.portfolioValue === 'public' ? 'vault-btn-primary' : 'vault-btn-secondary'}`}
-              style={{ height: '32px', fontSize: '11px', padding: '0 12px' }}
+              role="switch"
+              aria-checked={privacy.portfolioValue === 'public'}
+              aria-label="Portfolio Financial Value visibility"
+              className={`privacy-toggle ${privacy.portfolioValue === 'public' ? 'is-on' : ''}`}
               onClick={() => handleToggle('portfolioValue')}
             >
-              {privacy.portfolioValue === 'public' ? 'Public' : 'Private'}
+              <span>{privacy.portfolioValue === 'public' ? 'Public' : 'Private'}</span><i aria-hidden="true"/>
             </button>
           </div>
 
@@ -154,11 +154,13 @@ export function PrivacyModal({
             </div>
             <button
               type="button"
-              className={`vault-btn ${privacy.slabs === 'public' ? 'vault-btn-primary' : 'vault-btn-secondary'}`}
-              style={{ height: '32px', fontSize: '11px', padding: '0 12px' }}
+              role="switch"
+              aria-checked={privacy.slabs === 'public'}
+              aria-label="Graded Slabs Gallery visibility"
+              className={`privacy-toggle ${privacy.slabs === 'public' ? 'is-on' : ''}`}
               onClick={() => handleToggle('slabs')}
             >
-              {privacy.slabs === 'public' ? 'Public' : 'Private'}
+              <span>{privacy.slabs === 'public' ? 'Public' : 'Private'}</span><i aria-hidden="true"/>
             </button>
           </div>
         </div>

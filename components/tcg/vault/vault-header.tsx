@@ -11,7 +11,6 @@ import {
   ShareNetworkIcon as Share2, 
   ArrowDownIcon as Download, 
   ChartLineUpIcon as TrendingUp,
-  SparkleIcon as Sparkles
 } from '@phosphor-icons/react';
 import { formatMoney, formatCompactMoney } from '@/packages/domain';
 import type { VaultStats, PrivacySettings } from './types';
@@ -21,6 +20,7 @@ interface VaultHeaderProps {
   username: string;
   privacy: PrivacySettings;
   hideValues: boolean;
+  isPricingLoading?: boolean;
   language?: 'EN' | 'ID';
   onToggleHideValues: () => void;
   onOpenQuickAdd: () => void;
@@ -35,6 +35,7 @@ export function VaultHeader({
   username,
   privacy,
   hideValues,
+  isPricingLoading = false,
   language = 'EN',
   onToggleHideValues,
   onOpenQuickAdd,
@@ -156,20 +157,21 @@ export function VaultHeader({
               <span style={{ letterSpacing: '0.15em', color: 'var(--vault-ink-muted)' }}>Rp ••••••••</span>
             ) : (
               <>
-                <span>{formatCompactMoney(stats.estimatedValue, 'IDR')}</span>
-                <span className="vault-confidence-badge" title={language === 'ID' ? `Berdasarkan pantauan pasar (${stats.observationCount} data)` : `Based on verified sales (${stats.observationCount} observations)`}>
-                  <Sparkles size={10} weight="fill" />
-                  {stats.valuationConfidence}
-                </span>
+                <span>{isPricingLoading ? '…' : stats.marketPricedCount ? formatCompactMoney(stats.estimatedValue, 'IDR') : '—'}</span>
+                {stats.marketPricedCount > 0 && <span className="vault-confidence-badge" title={language === 'ID' ? 'Data listing Yuyutei untuk cetakan Jepang yang cocok' : 'Yuyutei listing data for exact Japanese printings'}>
+                  {stats.marketPricedCount} {t('printings priced','cetakan berharga')}
+                </span>}
               </>
             )}
           </div>
           <span className="vault-metric-sub">
             {hideValues ? (
               t('Value masked for privacy','Nilai disamarkan untuk privasi')
+            ) : isPricingLoading ? (
+              t('Checking saved Yuyutei prices…','Memeriksa harga Yuyutei tersimpan…')
             ) : (
               <>
-                <span>{t('Full:','Total:')} {formatMoney(stats.estimatedValue, 'IDR')}</span>
+                <span>{isPricingLoading ? t('Checking saved Yuyutei prices…','Memeriksa harga Yuyutei tersimpan…') : stats.marketPricedCount ? `${t('Priced copies only:','Hanya kartu dengan harga:')} ${formatMoney(stats.estimatedValue, 'IDR')}` : t('No exact printing prices available','Harga cetakan persis belum tersedia')}</span>
               </>
             )}
           </span>
@@ -177,31 +179,31 @@ export function VaultHeader({
 
         {/* Acquisition Cost & Unrealized Difference */}
         <div className="vault-metric-item">
-          <span className="vault-metric-label">{t('Acquisition Cost','Biaya Akuisisi')}</span>
+          <span className="vault-metric-label">{t('Acquisition Cost · All Copies','Biaya Akuisisi · Semua Kartu')}</span>
           <div className="vault-metric-value">
             {hideValues ? 'Rp ••••••••' : formatCompactMoney(stats.totalAcquisitionCost, 'IDR')}
           </div>
-          <span className={`vault-metric-sub ${stats.unrealizedChangeAmount >= 0 ? 'positive' : 'negative'}`}>
+          <span className={`vault-metric-sub ${stats.unrealizedChangePercent === null ? '' : stats.unrealizedChangeAmount >= 0 ? 'positive' : 'negative'}`}>
             {hideValues ? (
               t('Hidden','Tersembunyi')
             ) : (
-              <>
-                <TrendingUp size={12} />
-                {stats.unrealizedChangeAmount >= 0 ? '+' : ''}
-                {formatCompactMoney(stats.unrealizedChangeAmount, 'IDR')} ({stats.unrealizedChangePercent >= 0 ? '+' : ''}{stats.unrealizedChangePercent.toFixed(1)}%)
-              </>
+                stats.unrealizedChangePercent === null
+                ? t('Add costs to compare priced copies','Tambahkan biaya untuk membandingkan kartu berharga')
+                : <><TrendingUp size={12} />{t('Priced copies:','Kartu berharga:')} {stats.unrealizedChangeAmount >= 0 ? '+' : ''}{formatCompactMoney(stats.unrealizedChangeAmount, 'IDR')} ({stats.unrealizedChangePercent >= 0 ? '+' : ''}{stats.unrealizedChangePercent.toFixed(1)}%)</>
             )}
           </span>
         </div>
 
-        {/* 30-Day Market Change */}
+        {/* 30-day change based on actual Yuyutei observations */}
         <div className="vault-metric-item">
-          <span className="vault-metric-label">{t('30-Day Index','Indeks 30 Hari')}</span>
-          <div className="vault-metric-value" style={{ color: stats.change30DayPercent >= 0 ? '#2e8b57' : '#c0392b' }}>
-            +{stats.change30DayPercent}%
+          <span className="vault-metric-label">{t('30-Day Yuyutei change','Perubahan Yuyutei 30 Hari')}</span>
+          <div className="vault-metric-value" style={{ color: stats.change30DayPercent === null ? 'var(--vault-ink-muted)' : stats.change30DayPercent >= 0 ? '#2e8b57' : '#c0392b' }}>
+            {stats.change30DayPercent === null ? '—' : `${stats.change30DayPercent >= 0 ? '+' : ''}${stats.change30DayPercent.toFixed(1)}%`}
           </div>
           <span className="vault-metric-sub">
-            {t('OPTCG benchmark index','Indeks tolok ukur OPTCG')}
+            {stats.change30DayPercent === null
+              ? t('Insufficient matched history','Riwayat pembanding belum cukup')
+              : t(`From ${stats.change30DayCount} priced printings`, `Dari ${stats.change30DayCount} cetakan berharga`)}
           </span>
         </div>
       </div>

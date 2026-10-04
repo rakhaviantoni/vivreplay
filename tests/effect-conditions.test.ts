@@ -25,3 +25,31 @@ test('Sora draws after adding DON even though the addition changes the original 
  assert.equal(result.state.cards.find(card=>card.id==='reserve')?.rested,true);
  assert.equal(result.state.cards.find(card=>card.id==='draw')?.zone,'hand');
 });
+
+test('continuous aura conditions check exact DON, opposing cost, and paired Trash names',()=>{
+ const board:MatchEffectState={...state,cards:[...state.cards,
+  {id:'don-2',owner:'player',zone:'cost-area',type:'DON!!'},
+  {id:'enemy-zero',owner:'opponent',zone:'character',type:'Character',cost:0},
+  {id:'kuromarimo',owner:'player',zone:'trash',name:'Kuromarimo'},
+  {id:'chess',owner:'player',zone:'trash',name:'Chess'},
+ ]};
+ assert.equal(evaluateEffectCondition('you have 2 DON!! cards on your field',board,'player'),true);
+ assert.equal(evaluateEffectCondition('your opponent has a Character with a cost of 0',board,'player'),true);
+ assert.equal(evaluateEffectCondition('you have [Kuromarimo] and [Chess] in your trash',board,'player'),true);
+ const extraDon={...board,cards:[...board.cards,{id:'don-3',owner:'player' as const,zone:'cost-area' as const,type:'DON!!' as const}]};
+ assert.equal(evaluateEffectCondition('you have 2 DON!! cards on your field',extraDon,'player'),false);
+ const exactDon={...board,cards:board.cards.filter(card=>card.id!=='don-2')};
+ assert.equal(evaluateEffectCondition('you have 1 DON!! cards on your field',exactDon,'player'),true);
+ assert.equal(evaluateEffectCondition('your opponent has a Character with a cost of 1',board,'player'),false);
+ const missingChess={...board,cards:board.cards.filter(card=>card.id!=='chess')};
+ assert.equal(evaluateEffectCondition('you have [Kuromarimo] and [Chess] in your trash',missingChess,'player'),false);
+});
+
+test('source rested and active conditions read the live source card state',()=>{
+ const sourceState:MatchEffectState={...state,cards:[...state.cards,{id:'source',owner:'player',zone:'character',rested:true}]};
+ assert.equal(evaluateEffectCondition('this Character is rested',sourceState,'player','source'),true);
+ assert.equal(evaluateEffectCondition('this Character is active',sourceState,'player','source'),false);
+ const active={...sourceState,cards:sourceState.cards.map(card=>card.id==='source'?{...card,rested:false}:card)};
+ assert.equal(evaluateEffectCondition('this Character is rested',active,'player','source'),false);
+ assert.equal(evaluateEffectCondition('this Character is active',active,'player','source'),true);
+});

@@ -1,10 +1,11 @@
 import {z} from 'zod';
 import {db,errorResponse,guard,HttpError,user} from '@/lib/server/store';
+import {verifyTurnstile} from '@/lib/server/turnstile';
 
 const schema=z.object({type:z.enum(['BUY','SELL']),items:z.array(z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(99),unitAmount:z.number().int().positive().optional()})).min(1).max(30),amount:z.number().int().positive(),currency:z.string().length(3)});
 
 export async function POST(request:Request,{params}:{params:Promise<{id:string}>}){try{
-  guard(request);const actor=await user();const {id}=await params;const value=schema.parse(await request.json());
+  guard(request);const rejected=await verifyTurnstile(request);if(rejected)return rejected;const actor=await user();const {id}=await params;const value=schema.parse(await request.json());
   const listing=await db().prepare('SELECT seller_id,printing_id,quantity,currency,type,status,items FROM listings WHERE id=?').bind(id).first<{seller_id:string;printing_id:string;quantity:number;currency:string;type:string;status:string;items:string|null}>();
   if(!listing||listing.status!=='ACTIVE')throw new HttpError(404,'This listing is no longer active.');
   if(listing.seller_id===actor.id)throw new HttpError(403,'You cannot make an offer on your own listing.');

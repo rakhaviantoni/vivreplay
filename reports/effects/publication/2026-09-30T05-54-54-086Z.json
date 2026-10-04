@@ -1,0 +1,100 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-09-30T05:54:54.085Z",
+  "candidates": [
+    {
+      "code": "P-163",
+      "printedText": "[Activate: Main] [Once Per Turn] You may rest 1 of your cards: If there is a Character with a cost of 5 or more, give up to 3 rested DON!! cards to this Leader.",
+      "publishedText": null,
+      "timings": [
+        "activate-main"
+      ],
+      "scenarioNames": [
+        "schema-mihawk-rested-don activate-main: pay a field rest, gate by 5-cost Character"
+      ],
+      "scenarioCount": 1,
+      "before": null,
+      "after": {
+        "rawEffectText": "[Activate: Main] [Once Per Turn] You may rest 1 of your cards: If there is a Character with a cost of 5 or more, give up to 3 rested DON!! cards to this Leader.",
+        "parserVersion": "0.4.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[Activate: Main] [Once Per Turn] You may rest 1 of your cards: If there is a Character with a cost of 5 or more, give up to 3 rested DON!! cards to this Leader.",
+            "trigger": "activate-main",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "there is a Character with a cost of 5 or more"
+              }
+            ],
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "own-card",
+                "amount": 1,
+                "optional": true
+              }
+            ],
+            "actions": [
+              {
+                "kind": "attach-don",
+                "amount": 3,
+                "source": "cost-area",
+                "rested": true,
+                "recipient": "self",
+                "selection": {
+                  "min": 0,
+                  "max": 3
+                }
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "there is a Character with a cost of 5 or more"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "PAY_COST",
+                "cost": {
+                  "kind": "rest",
+                  "scope": "own-card",
+                  "amount": 1,
+                  "optional": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 3,
+                  "source": "cost-area",
+                  "rested": true,
+                  "recipient": "self",
+                  "selection": {
+                    "min": 0,
+                    "max": 3
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+      "afterHash": "5dbff28fa813aa240de6c88ca56bf99ede8c198d6329db2b6232d23dfb110d32"
+    }
+  ]
+}

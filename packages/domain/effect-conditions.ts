@@ -5,6 +5,10 @@ export function evaluateEffectCondition(text:string,state:MatchEffectState,actor
  const leader=own.find(card=>card.zone==='leader');
  if(/^it is your opponent's turn$/i.test(text))return state.turn!==actor;
  if(/^it is your turn$/i.test(text))return state.turn===actor;
+ if(/^this Character is rested$/i.test(text))return Boolean(state.cards.find(card=>card.id===sourceCardId)?.rested);
+ if(/^this Character is active$/i.test(text))return Boolean(sourceCardId&&state.cards.find(card=>card.id===sourceCardId)&&!state.cards.find(card=>card.id===sourceCardId)?.rested);
+ const namedTrashCards=text.match(/^you have \[([^\]]+)\] and \[([^\]]+)\] in your trash$/i);
+ if(namedTrashCards)return [namedTrashCards[1],namedTrashCards[2]].every(name=>own.some(card=>card.zone==='trash'&&card.name?.toLowerCase()===name.toLowerCase()));
  const parts=text.split(/\s+and\s+/i);
  if(parts.length>1){const results=parts.map(part=>evaluateEffectCondition(part,state,actor,sourceCardId));return results.includes(false)?false:results.includes(undefined)?undefined:true;}
  const name=text.match(/^your Leader is \[([^\]]+)\]$/i);
@@ -17,6 +21,8 @@ export function evaluateEffectCondition(text:string,state:MatchEffectState,actor
  if(noOtherNamedCharacter)return !own.some(card=>card.zone==='character'&&card.id!==sourceCardId&&card.name?.toLowerCase()===noOtherNamedCharacter[1].toLowerCase());
  const fieldCharacterCost=text.match(/^there is a Character with a cost of (\d+)(?: or (less|more))?$/i);
  if(fieldCharacterCost){const limit=Number(fieldCharacterCost[1]),comparison=fieldCharacterCost[2]?.toLowerCase();return state.cards.some(card=>card.zone==='character'&&(comparison==='less'?(card.cost??Infinity)<=limit:comparison==='more'?(card.cost??-Infinity)>=limit:(card.cost??Infinity)===limit));}
+ const opponentCharacterCost=text.match(/^your opponent has a Character with a cost of (\d+)(?: or (less|more))?$/i);
+ if(opponentCharacterCost){const limit=Number(opponentCharacterCost[1]),comparison=opponentCharacterCost[2]?.toLowerCase();return enemy.some(card=>card.zone==='character'&&(comparison==='less'?(card.cost??Infinity)<=limit:comparison==='more'?(card.cost??-Infinity)>=limit:(card.cost??Infinity)===limit));}
  const trait=text.match(/^your Leader (?:has the [\[{"]([^\]}" ]+(?: [^\]}" ]+)*)[\]}" ] type|type includes "([^"]+)")$/i);
  if(trait)return Boolean(leader?.traits?.some(value=>value.toLowerCase()===(trait[1]??trait[2]).toLowerCase()));
  const apostropheTrait=text.match(/^your Leader's type includes ["']([^"']+)["']$/i);
@@ -24,6 +30,8 @@ export function evaluateEffectCondition(text:string,state:MatchEffectState,actor
  if(/^your Leader is multicolored$/i.test(text))return (leader?.color?.split(/[\s/]+/).filter(Boolean).length??0)>1;
  const eitherDon=text.match(/^either you or your opponent has (\d+) DON!! cards on the field$/i);
  if(eitherDon){const count=(cards:typeof own)=>cards.filter(card=>card.type==='DON!!'&&(card.zone==='cost-area'||Boolean(card.attachedTo))).length;return count(own)>=Number(eitherDon[1])||count(enemy)>=Number(eitherDon[1]);}
+ const exactDon=text.match(/^you have (\d+) DON!! cards on your field$/i);
+ if(exactDon)return own.filter(card=>card.type==='DON!!'&&(card.zone==='cost-area'||Boolean(card.attachedTo))).length===Number(exactDon[1]);
  const characterThreshold=text.match(/^(you have|your opponent has) (\d+) or (less|more) Characters?$/i);
  if(characterThreshold){const pool=characterThreshold[1].toLowerCase()==='you have'?own:enemy,count=pool.filter(card=>card.zone==='character').length;return characterThreshold[3].toLowerCase()==='less'?count<=Number(characterThreshold[2]):count>=Number(characterThreshold[2]);}
  const boardPower=text.match(/^your opponent has a Leader or Character with a base power of (\d+) or more$/i);

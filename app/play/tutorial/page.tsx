@@ -12,8 +12,7 @@ export default async function Page({
   const params = searchParams ? await searchParams : {};
   if (params.step !== undefined || params.play === '1' || params.play === 'true') {
     const stepNum = params.step ? parseInt(params.step, 10) : 0;
-    return <PlayTutorial initialStep={isNaN(stepNum) ? 0 : Math.max(0, Math.min(9, stepNum))} />;
+    return <PlayTutorial initialStep={isNaN(stepNum) ? 0 : Math.max(0, Math.min(11, stepNum))} />;
   }
   return <ArenaTutorialIndex />;
 }
-

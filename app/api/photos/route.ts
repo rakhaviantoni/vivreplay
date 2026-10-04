@@ -1,6 +1,17 @@
 import {user, db, HttpError, errorResponse} from '@/lib/server/store';
 import {supabaseAdmin, TCG_STORAGE_BUCKET} from '@/lib/server/supabase-storage';
 
+export async function GET(req:Request){
+  try{
+    const p=await user();
+    const instanceId=new URL(req.url).searchParams.get('instanceId')?.trim()??'';
+    const owned=await db().prepare("SELECT id FROM collectible_instances WHERE id=? AND owner_id=? AND type='GRADED' AND deleted_at IS NULL").bind(instanceId,p.id).first();
+    if(!owned)throw new HttpError(404,'Slab not found.');
+    const photos=(await db().prepare('SELECT id,role FROM collectible_photos WHERE instance_id=? ORDER BY rowid DESC').bind(instanceId).all<{id:string;role:string}>()).results;
+    return Response.json({photos},{headers:{'Cache-Control':'private, no-store'}});
+  }catch(error){return errorResponse(error);}
+}
+
 export async function POST(req: Request) {
   try {
     const origin = req.headers.get('origin');

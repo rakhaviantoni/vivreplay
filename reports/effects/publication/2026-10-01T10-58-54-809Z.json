@@ -1,0 +1,111 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-10-01T10:58:54.808Z",
+  "candidates": [
+    {
+      "code": "OP01-070",
+      "printedText": "[On Play] Place up to 1 Character with a cost of 7 or less at the bottom of the owner's deck.  This card has been officially errata'd.",
+      "publishedText": "[On Play] Place up to 1 Character with a cost of 7 or less at the bottom of the owner's deck.  This card has been officially errata'd.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "schema-bottom-deck on-play: any-character cost <= 7 up to 1",
+        "engine-action on-play bottom-deck: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "bottom-deck",
+                "scope": "opponent-character",
+                "maxCost": 7
+              }
+            ],
+            "rawText": "[On Play] Place up to 1 Character with a cost of 7 or less at the bottom of the owner's deck.  This card has been officially errata'd.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "bottom-deck",
+                  "scope": "opponent-character",
+                  "maxCost": 7
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Place up to 1 Character with a cost of 7 or less at the bottom of the owner's deck.  This card has been officially errata'd.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On Play] Place up to 1 Character with a cost of 7 or less at the bottom of the owner's deck.  This card has been officially errata'd.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "bottom-deck",
+                "scope": "any-character",
+                "maxCost": 7,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "bottom-deck",
+                  "scope": "any-character",
+                  "maxCost": 7,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Place up to 1 Character with a cost of 7 or less at the bottom of the owner's deck.  This card has been officially errata'd.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "412ec5852a18e4269449e3b30a5c3c01e13d3e1c152689bbb033ea078f3c1ede",
+      "afterHash": "120e695dbc9ce508d7b7a2c972736efba3ab3c2e8a1e36743ce0891c98cfb1ef"
+    }
+  ]
+}

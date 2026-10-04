@@ -1,0 +1,113 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-10-02T04:29:49.089Z",
+  "candidates": [
+    {
+      "code": "OP03-038",
+      "printedText": "[Main] Rest up to 2 of your opponent's Characters with a cost of 2 or less.",
+      "publishedText": "[Main] Rest up to 2 of your opponent's Characters with a cost of 2 or less. [Trigger] Rest up to 1 of your opponent's Characters with a cost of 5 or less.",
+      "timings": [
+        "main"
+      ],
+      "scenarioNames": [
+        "schema-rest-target main: opponent-character cost <= 2 up to 2",
+        "engine-action main rest: resolve isolated parsed instruction",
+        "schema-atomic-action main: isolated rest"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 2
+              }
+            ],
+            "rawText": "[Main] Rest up to 2 of your opponent's Characters with a cost of 2 or less. [Trigger] Rest up to 1 of your opponent's Characters with a cost of 5 or less.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 2
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Rest up to 2 of your opponent's Characters with a cost of 2 or less. [Trigger] Rest up to 1 of your opponent's Characters with a cost of 5 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Main] Rest up to 2 of your opponent's Characters with a cost of 2 or less.",
+            "trigger": "main",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-character",
+                "maxCost": 2,
+                "selection": {
+                  "min": 0,
+                  "max": 2
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-character",
+                  "maxCost": 2,
+                  "selection": {
+                    "min": 0,
+                    "max": 2
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] Rest up to 2 of your opponent's Characters with a cost of 2 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "6210d55f34ecba462d1a52bd47f642f918799dadf40aa1564657de6c99c1fecf",
+      "afterHash": "ac3c164aaecf74b81c7e47fe3e0f58ef09eb7984c162ea43a46bf34c4dfc5d86",
+      "effectTextAfter": "[Main] Rest up to 2 of your opponent's Characters with a cost of 2 or less."
+    }
+  ]
+}

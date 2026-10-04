@@ -16,6 +16,7 @@
     "BETTER_AUTH_URL": "https://vivreplay.com",
     "NEXT_PUBLIC_SUPABASE_URL": "https://shqwaqxpxsyjafxdcibj.supabase.co",
     "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_yg4vygJx5VP-ecakkYF8WA_WTwBloIZ",
+    "NEXT_PUBLIC_TURNSTILE_SITE_KEY": "0x4AAAAAAFLjvjAWmkfLwlgD",
     "SUPABASE_JWKS_URL": "https://shqwaqxpxsyjafxdcibj.supabase.co/auth/v1/.well-known/jwks.json"
   },
   "durable_objects": {
@@ -26,18 +27,18 @@
     "producers": [],
     "consumers": []
   },
-  "r2_buckets": [
-    {
-      "binding": "CARD_IMAGES",
-      "bucket_name": "tcg-card-images"
-    }
-  ],
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "site-creator-d1",
       "database_id": "86245ee8-4a6e-450d-a4ed-dc6d843aa079",
       "migrations_dir": "drizzle"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "CARD_IMAGES",
+      "bucket_name": "tcg-card-images"
     }
   ],
   "vectorize": [],

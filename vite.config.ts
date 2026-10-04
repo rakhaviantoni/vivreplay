@@ -39,21 +39,16 @@ const localBindingConfig = {
         },
     ]
     : [],
-  r2_buckets: [
-    {
-      binding: "CARD_IMAGES",
-      bucket_name: "tcg-card-images",
-    },
-  ],
+  r2_buckets: [{ binding: "CARD_IMAGES", bucket_name: "tcg-card-images" }],
 };
 
 export default defineConfig(async ({ command, mode }) => {
+  const localEnv = loadEnv(mode, process.cwd(), "");
   if (command === "serve") {
     localBindingConfig.vars.BETTER_AUTH_URL = "http://localhost:5173";
 
     // Cloudflare's local worker only receives explicit bindings. Keep the AI
     // gateway credential local to Miniflare, sourced from ignored .env files.
-    const localEnv = loadEnv(mode, process.cwd(), "");
     for (const key of [
       "AZEKHA_AI_GATEWAY_TOKEN",
       "AZEKHA_AI_GATEWAY_API_KEY",
@@ -92,6 +87,11 @@ export default defineConfig(async ({ command, mode }) => {
       "process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": JSON.stringify(
         process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
         localBindingConfig.vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+      ),
+      "process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY": JSON.stringify(
+        process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ||
+        localEnv.NEXT_PUBLIC_TURNSTILE_SITE_KEY ||
+        ""
       ),
     },
     server: {

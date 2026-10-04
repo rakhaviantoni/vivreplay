@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { 
   XIcon as X, 
   StorefrontIcon as Store, 
@@ -10,10 +11,12 @@ import {
   ShareNetworkIcon as Share2, 
   TrashIcon as Trash,
   StarIcon as Star,
-  TrendUpIcon as TrendingUp
+  TrendUpIcon as TrendingUp,
+  StackIcon as Deck
 } from '@phosphor-icons/react';
 import { CardArt } from '../card-art';
 import { printings } from '@/packages/card-data/catalog';
+import { PRICECHARTING_USD_TO_IDR_RATE } from '@/lib/market/pricecharting';
 import { formatCompactMoney, formatMoney } from '@/packages/domain';
 import type { EnrichedCollectionItem } from '../types';
 
@@ -47,10 +50,16 @@ export function RawDetailModal({
   if (!open || !item) return null;
 
   const printing = printings.find(p => p.id === item.printingId);
-  const lang = printing?.language || 'EN';
+  const lang = item.language || item.card.language || printing?.language || 'EN';
+  const variant = item.variant || item.card.variant || printing?.variant || 'Standard';
+  const listedQuantity = Math.min(item.quantity, item.listedQuantity ?? 0);
+  const availableQuantity = Math.max(0, item.quantity - listedQuantity);
+  const activeListingHref = item.activeListingId ? `/market/${encodeURIComponent(item.activeListingId)}` : null;
+  const notes = item.notes?.trim();
+  const showNotes = notes && notes.toLowerCase() !== 'market listing copy';
 
   return (
-    <div style={{
+    <div role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }} style={{
       position: 'fixed',
       inset: 0,
       zIndex: 150,
@@ -61,21 +70,24 @@ export function RawDetailModal({
       justifyContent: 'center',
       padding: '20px',
     }}>
-      <div style={{
+      <div className="vault-detail-modal" role="dialog" aria-modal="true" aria-label={`${item.card.name} card details`} style={{
         width: '100%',
-        maxWidth: '720px',
+        maxWidth: '760px',
         borderRadius: '18px',
         background: 'var(--vault-panel)',
         border: '1px solid var(--vault-border)',
         boxShadow: '0 28px 70px rgba(0, 0, 0, 0.3)',
-        padding: '28px',
-        display: 'grid',
-        gridTemplateColumns: 'minmax(240px, 280px) 1fr',
-        gap: '28px',
+        position: 'relative',
+        maxHeight: 'calc(100dvh - 40px)',
+        overflow: 'hidden',
       }}>
+        <button type="button" className="vault-modal-close" onClick={onClose} aria-label="Close card details">
+          <X size={20} />
+        </button>
+        <div className="vault-detail-scroll">
         {/* Left: Card Artwork */}
         <div>
-          <div style={{
+          <div className="vault-detail-art" style={{
             position: 'relative',
             borderRadius: '12px',
             overflow: 'hidden',
@@ -100,27 +112,28 @@ export function RawDetailModal({
         {/* Right: Card Details & Actions */}
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <span style={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '0.12em', color: 'var(--vault-gold)', textTransform: 'uppercase' }}>
-                {item.card.code} · {item.card.rarity} · {item.visibility.toUpperCase()}
+                {item.card.code} · {item.card.rarity} · {(item.visibility==='marketplace-only'?'private':item.visibility).toUpperCase()}
               </span>
               <h2 style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '24px', fontWeight: 600, margin: '2px 0 0', color: 'var(--vault-ink)' }}>
                 {item.card.name}
               </h2>
+              <span style={{ fontSize: '11px', color: 'var(--vault-ink-muted)' }}>
+                {item.printingCode || item.card.printingCode || item.card.code} · {item.setCode || printing?.set || item.card.setCode || 'Set not listed'}
+              </span>
+              {listedQuantity > 0 && (
+                <span style={{ alignSelf: 'flex-start', marginTop: '3px', padding: '4px 8px', borderRadius: '5px', background: 'var(--vault-slot-bg)', border: '1px solid var(--vault-border)', color: 'var(--vault-ink-secondary)', fontSize: '10px', fontWeight: 700 }}>
+                  {listedQuantity} of {item.quantity} {listedQuantity === 1 ? 'copy' : 'copies'} listed · {availableQuantity} available
+                </span>
+              )}
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--vault-ink-muted)' }}
-            >
-              <X size={20} />
-            </button>
           </div>
 
           {/* Attributes Grid */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
+            gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
             gap: '12px',
             margin: '18px 0',
             padding: '14px',
@@ -133,7 +146,7 @@ export function RawDetailModal({
               <span style={{ color: 'var(--vault-ink-muted)', display: 'block', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                 Printing & Lang
               </span>
-              <strong>{lang} · {printing?.variant || 'Standard'}</strong>
+              <strong>{lang} · {variant}</strong>
             </div>
 
             <div>
@@ -155,13 +168,20 @@ export function RawDetailModal({
                 Est. Market Value
               </span>
               <strong style={{ color: 'var(--vault-gold)' }}>
-                {hideValues ? '••••••••' : formatMoney(item.estimatedValue, 'IDR')}
+                {hideValues ? '••••••••' : item.hasMarketEstimate ? formatMoney(item.estimatedValue, 'IDR') : 'Not available'}
               </strong>
+              {!hideValues && item.marketPriceSource === 'pricecharting' && (
+                <small style={{ display: 'block', marginTop: 4, color: 'var(--vault-ink-muted)' }}>
+                  PriceCharting ungraded · USD converted at Rp {PRICECHARTING_USD_TO_IDR_RATE.toLocaleString('id-ID')}/USD
+                  {item.marketPriceUrl && <a href={item.marketPriceUrl} target="_blank" rel="noopener noreferrer"> View source</a>}
+                </small>
+              )}
+              {!hideValues && item.marketPriceSource === 'yuyutei' && <small style={{ display: 'block', marginTop: 4, color: 'var(--vault-ink-muted)' }}>Yuyutei · exact printing</small>}
             </div>
           </div>
 
           {/* Gain / Loss Pill */}
-          {!hideValues && item.acquisitionAmount > 0 && (
+          {!hideValues && item.acquisitionAmount > 0 && item.hasMarketEstimate && (
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -179,14 +199,21 @@ export function RawDetailModal({
           )}
 
           {/* Collector Notes */}
-          {item.notes && (
+          {showNotes && (
             <div style={{ marginBottom: '18px', fontSize: '12px', color: 'var(--vault-ink-secondary)', fontStyle: 'italic', background: 'var(--vault-panel)', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--vault-border-light)' }}>
               &ldquo;{item.notes}&rdquo;
             </div>
           )}
 
           {/* Action Buttons */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginTop: 'auto' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '8px', marginTop: 'auto' }}>
+            <Link
+              href={`/decks/builder?card=${encodeURIComponent(item.printingId)}`}
+              className="vault-btn vault-btn-secondary"
+            >
+              <Deck size={15} />
+              Build with this card
+            </Link>
             <button
               type="button"
               className="vault-btn vault-btn-primary"
@@ -195,21 +222,28 @@ export function RawDetailModal({
               <Plus size={15} />
               Add Copy (+1)
             </button>
-            <button
-              type="button"
-              className="vault-btn vault-btn-secondary"
-              onClick={() => onSell(item)}
-            >
-              <Store size={15} />
-              List for Sale
-            </button>
+            {listedQuantity > 0 ? (
+              <Link href={activeListingHref ?? '/market'} className="vault-btn vault-btn-secondary">
+                <Store size={15} />
+                {activeListingHref ? 'View Active Listing' : 'Manage Listings'}
+              </Link>
+            ) : (
+              <button
+                type="button"
+                className="vault-btn vault-btn-secondary"
+                onClick={() => onSell(item)}
+              >
+                <Store size={15} />
+                List for Sale
+              </button>
+            )}
             <button
               type="button"
               className="vault-btn vault-btn-secondary"
               onClick={() => onMoveToWishlist(item)}
             >
               <Heart size={15} />
-              Wishlist Copy
+              Add to Wishlist
             </button>
             <button
               type="button"
@@ -240,6 +274,7 @@ export function RawDetailModal({
               Share Card
             </button>
           </div>
+        </div>
         </div>
       </div>
     </div>

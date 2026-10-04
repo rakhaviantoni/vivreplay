@@ -1,0 +1,437 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-09-30T07:50:48.311Z",
+  "candidates": [
+    {
+      "code": "OP12-058",
+      "printedText": "[Main] If your Leader's type includes \"Whitebeard Pirates\", reveal 1 card from the top of your deck. If that card is a Character card with a type including \"Whitebeard Pirates\" and a cost of 9 or less, you may play that card. If you do, that Character gains [Rush] during this turn.\n[Trigger] Draw 1 card.",
+      "publishedText": "[Main] If your Leader's type includes \"Whitebeard Pirates\", reveal 1 card from the top of your deck. If that card is a Character card with a type including \"Whitebeard Pirates\" and a cost of 9 or less, you may play that card. If you do, that Character gains [Rush] during this turn.\n[Trigger] Draw 1 card.",
+      "timings": [
+        "main"
+      ],
+      "scenarioNames": [
+        "Main: optional top-deck play grants Rush only to the played Whitebeard Character"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "reveal",
+                "amount": 1,
+                "source": "deck"
+              },
+              {
+                "kind": "rush"
+              },
+              {
+                "kind": "grant-keyword",
+                "until": "turn-end",
+                "keyword": "rush"
+              }
+            ],
+            "rawText": "[Main] If your Leader's type includes \"Whitebeard Pirates\", reveal 1 card from the top of your deck. If that card is a Character card with a type including \"Whitebeard Pirates\" and a cost of 9 or less, you may play that card. If you do, that Character gains [Rush] during this turn.",
+            "trigger": "main",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader's type includes \"Whitebeard Pirates\""
+              },
+              {
+                "kind": "text",
+                "text": "that card is a Character card with a type including \"Whitebeard Pirates\" and a cost of 9 or less"
+              },
+              {
+                "kind": "text",
+                "text": "you do"
+              }
+            ]
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 1
+              }
+            ],
+            "rawText": "[Trigger] Draw 1 card.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "reveal",
+                  "amount": 1,
+                  "source": "deck"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rush"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "grant-keyword",
+                  "until": "turn-end",
+                  "keyword": "rush"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader's type includes \"Whitebeard Pirates\""
+              },
+              {
+                "kind": "text",
+                "text": "that card is a Character card with a type including \"Whitebeard Pirates\" and a cost of 9 or less"
+              },
+              {
+                "kind": "text",
+                "text": "you do"
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] If your Leader's type includes \"Whitebeard Pirates\", reveal 1 card from the top of your deck. If that card is a Character card with a type including \"Whitebeard Pirates\" and a cost of 9 or less, you may play that card. If you do, that Character gains [Rush] during this turn.\n[Trigger] Draw 1 card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 1
+              }
+            ],
+            "rawText": "[Trigger] Draw 1 card.",
+            "trigger": "trigger",
+            "conditions": []
+          },
+          {
+            "rawText": "[Main] If your Leader's type includes \"Whitebeard Pirates\", reveal 1 card from the top of your deck. If that card is a Character card with a type including \"Whitebeard Pirates\" and a cost of 9 or less, you may play that card. If you do, that Character gains [Rush] during this turn.",
+            "trigger": "main",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader's type includes \"Whitebeard Pirates\""
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "reveal",
+                "source": "deck",
+                "amount": 1
+              },
+              {
+                "kind": "play",
+                "source": "deck",
+                "amount": 1,
+                "topOnly": true,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                },
+                "cardType": "Character",
+                "trait": "Whitebeard Pirates",
+                "maxCost": 9
+              },
+              {
+                "kind": "grant-keyword",
+                "keyword": "rush",
+                "until": "turn-end",
+                "scope": "previous-played"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "main",
+            "optional": true,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader's type includes \"Whitebeard Pirates\""
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "reveal",
+                  "source": "deck",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "deck",
+                  "amount": 1,
+                  "topOnly": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "cardType": "Character",
+                  "trait": "Whitebeard Pirates",
+                  "maxCost": 9
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "grant-keyword",
+                  "keyword": "rush",
+                  "until": "turn-end",
+                  "scope": "previous-played"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] If your Leader's type includes \"Whitebeard Pirates\", reveal 1 card from the top of your deck. If that card is a Character card with a type including \"Whitebeard Pirates\" and a cost of 9 or less, you may play that card. If you do, that Character gains [Rush] during this turn.\n[Trigger] Draw 1 card.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "92b0df14a530d3e309d7fb631715b77144cd45b29470243395b6c47b393e83df",
+      "afterHash": "b165a983b7a2322df1bf8ea122a57c83d8bcaa84dee67009ddd21d09e15912e0"
+    },
+    {
+      "code": "OP10-099",
+      "printedText": "[End of Your Turn] You may turn 1 card from the top of your Life cards face-up: Set up to 1 of your \"Supernovas\" type Characters with a cost of 3 to 8 as active. That Character gains [Blocker] until the end of your opponent's next turn.",
+      "publishedText": "[End of Your Turn] You may turn 1 card from the top of your Life cards face-up: Set up to 1 of your \"Supernovas\" type Characters with a cost of 3 to 8 as active. That Character gains [Blocker] until the end of your opponent's next turn.",
+      "timings": [
+        "end-turn"
+      ],
+      "scenarioNames": [
+        "engine-action end-turn grant-keyword-target: validate recipient restrictions",
+        "schema-turn-life-cost end-turn: reveal top 1 Life card before effect"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [
+              {
+                "kind": "turn-life",
+                "scope": "own",
+                "amount": 1,
+                "faceUp": true,
+                "optional": true,
+                "position": "top"
+              }
+            ],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-character",
+                "amount": 1,
+                "selection": {
+                  "max": 1,
+                  "min": 0
+                }
+              },
+              {
+                "kind": "grant-keyword",
+                "until": "turn-end",
+                "keyword": "blocker"
+              }
+            ],
+            "rawText": "[End of Your Turn] You may turn 1 card from the top of your Life cards face-up: Set up to 1 of your \"Supernovas\" type Characters with a cost of 3 to 8 as active. That Character gains [Blocker] until the end of your opponent's next turn.",
+            "trigger": "end-turn",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "end-turn",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "turn-life",
+                  "scope": "own",
+                  "amount": 1,
+                  "faceUp": true,
+                  "optional": true,
+                  "position": "top"
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-character",
+                  "amount": 1,
+                  "selection": {
+                    "max": 1,
+                    "min": 0
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "grant-keyword",
+                  "until": "turn-end",
+                  "keyword": "blocker"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[End of Your Turn] You may turn 1 card from the top of your Life cards face-up: Set up to 1 of your \"Supernovas\" type Characters with a cost of 3 to 8 as active. That Character gains [Blocker] until the end of your opponent's next turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[End of Your Turn] You may turn 1 card from the top of your Life cards face-up: Set up to 1 of your \"Supernovas\" type Characters with a cost of 3 to 8 as active. That Character gains [Blocker] until the end of your opponent's next turn.",
+            "trigger": "end-turn",
+            "conditions": [],
+            "costs": [
+              {
+                "kind": "turn-life",
+                "scope": "own",
+                "amount": 1,
+                "position": "top",
+                "faceUp": true,
+                "optional": true
+              }
+            ],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-character",
+                "amount": 1,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              },
+              {
+                "kind": "grant-keyword",
+                "keyword": "blocker",
+                "until": "turn-end",
+                "scope": "previous-target"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "end-turn",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "PAY_COST",
+                "cost": {
+                  "kind": "turn-life",
+                  "scope": "own",
+                  "amount": 1,
+                  "position": "top",
+                  "faceUp": true,
+                  "optional": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-character",
+                  "amount": 1,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "grant-keyword",
+                  "keyword": "blocker",
+                  "until": "turn-end",
+                  "scope": "previous-target"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[End of Your Turn] You may turn 1 card from the top of your Life cards face-up: Set up to 1 of your \"Supernovas\" type Characters with a cost of 3 to 8 as active. That Character gains [Blocker] until the end of your opponent's next turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "06348d84e6bfc431ff68b827590e8d1b168da0912a14809f3110c3e34dec3cfc",
+      "afterHash": "3fcb7510a7ea112ab65e72df823cebe26bcf19b787462b1cf0b23997e330255d"
+    }
+  ]
+}

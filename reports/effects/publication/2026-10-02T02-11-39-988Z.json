@@ -1,0 +1,169 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-10-02T02:11:39.988Z",
+  "candidates": [
+    {
+      "code": "OP07-024",
+      "printedText": "[On Your Opponent's Attack] You may rest this Character: Up to 1 of your [Fish-Man] type Characters with a cost of 5 or less gains [Blocker] during this turn. (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+      "publishedText": "[On Your Opponent's Attack] You may rest this Character: Up to 1 of your [Fish-Man] type Characters with a cost of 5 or less gains [Blocker] during this turn. (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+      "timings": [
+        "opponent-attack"
+      ],
+      "scenarioNames": [
+        "engine-action opponent-attack grant-keyword-target: validate recipient restrictions",
+        "schema-keyword-sequence opponent-attack: pay self-rest before Fish-Man Blocker grant"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "self",
+                "amount": 1,
+                "optional": true
+              }
+            ],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "self"
+              },
+              {
+                "kind": "blocker"
+              },
+              {
+                "kind": "grant-keyword",
+                "until": "turn-end",
+                "keyword": "blocker"
+              }
+            ],
+            "rawText": "[On Your Opponent's Attack] You may rest this Character: Up to 1 of your [Fish-Man] type Characters with a cost of 5 or less gains [Blocker] during this turn. (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+            "trigger": "opponent-attack",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "opponent-attack",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "rest",
+                  "scope": "self",
+                  "amount": 1,
+                  "optional": true
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "self"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "grant-keyword",
+                  "until": "turn-end",
+                  "keyword": "blocker"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Your Opponent's Attack] You may rest this Character: Up to 1 of your [Fish-Man] type Characters with a cost of 5 or less gains [Blocker] during this turn. (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On Your Opponent's Attack] You may rest this Character: Up to 1 of your [Fish-Man] type Characters with a cost of 5 or less gains [Blocker] during this turn. (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+            "trigger": "opponent-attack",
+            "conditions": [],
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "self",
+                "amount": 1,
+                "optional": true
+              }
+            ],
+            "actions": [
+              {
+                "kind": "grant-keyword",
+                "keyword": "blocker",
+                "until": "turn-end",
+                "scope": "own-character",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                },
+                "trait": "Fish-Man",
+                "maxCost": 5
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "opponent-attack",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "PAY_COST",
+                "cost": {
+                  "kind": "rest",
+                  "scope": "self",
+                  "amount": 1,
+                  "optional": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "grant-keyword",
+                  "keyword": "blocker",
+                  "until": "turn-end",
+                  "scope": "own-character",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  },
+                  "trait": "Fish-Man",
+                  "maxCost": 5
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Your Opponent's Attack] You may rest this Character: Up to 1 of your [Fish-Man] type Characters with a cost of 5 or less gains [Blocker] during this turn. (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "897db34220437bf91fe0253d261e4387a844bbcaa21071dfc03914daa741a7f1",
+      "afterHash": "df2c06524d5580d7ed30c2c566beeb6e9dd1f9a38c5e48d2576a29393aaa035b"
+    }
+  ]
+}

@@ -1,0 +1,193 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-09-30T08:03:53.176Z",
+  "candidates": [
+    {
+      "code": "OP10-099",
+      "printedText": "[End of Your Turn] You may turn 1 card from the top of your Life cards face-up: Set up to 1 of your \"Supernovas\" type Characters with a cost of 3 to 8 as active. That Character gains [Blocker] until the end of your opponent's next turn.",
+      "publishedText": "[End of Your Turn] You may turn 1 card from the top of your Life cards face-up: Set up to 1 of your \"Supernovas\" type Characters with a cost of 3 to 8 as active. That Character gains [Blocker] until the end of your opponent's next turn.",
+      "timings": [
+        "end-turn"
+      ],
+      "scenarioNames": [
+        "schema-turn-life-cost end-turn: reveal top 1 Life card before effect",
+        "End of Your Turn: ready only a cost 3–8 Supernovas Character and grant it Blocker through opponent turn"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [
+              {
+                "kind": "turn-life",
+                "scope": "own",
+                "amount": 1,
+                "faceUp": true,
+                "optional": true,
+                "position": "top"
+              }
+            ],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-character",
+                "amount": 1,
+                "selection": {
+                  "max": 1,
+                  "min": 0
+                }
+              },
+              {
+                "kind": "grant-keyword",
+                "until": "turn-end",
+                "keyword": "blocker"
+              }
+            ],
+            "rawText": "[End of Your Turn] You may turn 1 card from the top of your Life cards face-up: Set up to 1 of your \"Supernovas\" type Characters with a cost of 3 to 8 as active. That Character gains [Blocker] until the end of your opponent's next turn.",
+            "trigger": "end-turn",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "end-turn",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "turn-life",
+                  "scope": "own",
+                  "amount": 1,
+                  "faceUp": true,
+                  "optional": true,
+                  "position": "top"
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-character",
+                  "amount": 1,
+                  "selection": {
+                    "max": 1,
+                    "min": 0
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "grant-keyword",
+                  "until": "turn-end",
+                  "keyword": "blocker"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[End of Your Turn] You may turn 1 card from the top of your Life cards face-up: Set up to 1 of your \"Supernovas\" type Characters with a cost of 3 to 8 as active. That Character gains [Blocker] until the end of your opponent's next turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[End of Your Turn] You may turn 1 card from the top of your Life cards face-up: Set up to 1 of your \"Supernovas\" type Characters with a cost of 3 to 8 as active. That Character gains [Blocker] until the end of your opponent's next turn.",
+            "trigger": "end-turn",
+            "conditions": [],
+            "costs": [
+              {
+                "kind": "turn-life",
+                "scope": "own",
+                "amount": 1,
+                "position": "top",
+                "faceUp": true,
+                "optional": true
+              }
+            ],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-character",
+                "amount": 1,
+                "trait": "Supernovas",
+                "minCost": 3,
+                "maxCost": 8,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              },
+              {
+                "kind": "grant-keyword",
+                "keyword": "blocker",
+                "until": "opponent-next-turn",
+                "scope": "previous-target"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "end-turn",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "PAY_COST",
+                "cost": {
+                  "kind": "turn-life",
+                  "scope": "own",
+                  "amount": 1,
+                  "position": "top",
+                  "faceUp": true,
+                  "optional": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-character",
+                  "amount": 1,
+                  "trait": "Supernovas",
+                  "minCost": 3,
+                  "maxCost": 8,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "grant-keyword",
+                  "keyword": "blocker",
+                  "until": "opponent-next-turn",
+                  "scope": "previous-target"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[End of Your Turn] You may turn 1 card from the top of your Life cards face-up: Set up to 1 of your \"Supernovas\" type Characters with a cost of 3 to 8 as active. That Character gains [Blocker] until the end of your opponent's next turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "06348d84e6bfc431ff68b827590e8d1b168da0912a14809f3110c3e34dec3cfc",
+      "afterHash": "03d21c32ca52afa70850f6e637521bbff4687c5ff8e0f8f358ef07a320d9036d"
+    }
+  ]
+}

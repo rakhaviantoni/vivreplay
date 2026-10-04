@@ -1,0 +1,208 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-10-02T07:40:57.247Z",
+  "candidates": [
+    {
+      "code": "P-113",
+      "printedText": "[DON!!x2] [Opponent's Turn] This Character gains [Blocker] and +2000 power.[Trigger] K.O up to 1 of your opponent's Characters with a cost of 3 or less.",
+      "publishedText": "[DON!!x2] [Opponent's Turn] This Character gains [Blocker] and +2000 power.[Trigger] K.O up to 1 of your opponent's Characters with a cost of 3 or less.",
+      "timings": [
+        "continuous",
+        "trigger"
+      ],
+      "scenarioNames": [
+        "engine-action continuous grant-keyword-target: validate recipient restrictions",
+        "schema-blocker don-gate: attached DON enables blocking and preserves other timings"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 2000,
+                "target": "opponent-character"
+              },
+              {
+                "kind": "attach-don-required",
+                "amount": 2
+              },
+              {
+                "kind": "blocker"
+              },
+              {
+                "kind": "grant-keyword",
+                "until": "turn-end",
+                "keyword": "blocker"
+              }
+            ],
+            "rawText": "[DON!!x2] [Opponent's Turn] This Character gains [Blocker] and +2000 power.[Trigger] K.O up to 1 of your opponent's Characters with a cost of 3 or less.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 2000,
+                  "target": "opponent-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 2
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "grant-keyword",
+                  "until": "turn-end",
+                  "keyword": "blocker"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!!x2] [Opponent's Turn] This Character gains [Blocker] and +2000 power.[Trigger] K.O up to 1 of your opponent's Characters with a cost of 3 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Opponent's Turn] [DON!!x2] This Character gains [Blocker] and +2000 power.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "it is your opponent's turn"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 2000,
+                "until": "turn-end",
+                "target": "own-character"
+              },
+              {
+                "kind": "attach-don-required",
+                "amount": 2
+              },
+              {
+                "kind": "grant-keyword",
+                "keyword": "blocker",
+                "until": "turn-end",
+                "scope": "self",
+                "continuous": true
+              }
+            ]
+          },
+          {
+            "rawText": "[Trigger] K.O up to 1 of your opponent's Characters with a cost of 3 or less.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 3,
+                "restedOnly": false,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "it is your opponent's turn"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 2000,
+                  "until": "turn-end",
+                  "target": "own-character"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "grant-keyword",
+                  "keyword": "blocker",
+                  "until": "turn-end",
+                  "scope": "self",
+                  "continuous": true
+                }
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 3,
+                  "restedOnly": false,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!!x2] [Opponent's Turn] This Character gains [Blocker] and +2000 power.[Trigger] K.O up to 1 of your opponent's Characters with a cost of 3 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "8e829a0c3c099c4ebdd9281a5f8c7ec2a48a4e301aae030ce32601cf7e83ddbb",
+      "afterHash": "44548ba52b01911647ab92d7238a172f7191e8de141abb987df8f5ecda52cb2e"
+    }
+  ]
+}

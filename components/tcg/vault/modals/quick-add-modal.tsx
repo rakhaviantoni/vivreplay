@@ -35,16 +35,21 @@ export function QuickAddModal({
 
   const filteredCards = query.trim().length >= 2
     ? cards.filter(c => `${c.name} ${c.code}`.toLowerCase().includes(query.trim().toLowerCase())).slice(0, 6)
-    : cards.slice(0, 6);
+    : [];
+  const preferredPrinting=(card:Card)=>printings.find(item=>item.cardId===card.id&&item.language==='EN'&&/^(standard|base)$/i.test(item.variant??''))
+    ||printings.find(item=>item.cardId===card.id&&item.language==='EN')
+    ||printings.find(item=>item.cardId===card.id);
 
   const handleQuickAdd = async (card: Card) => {
     setBusy(true);
     try {
-      const p = printings.find(item => item.cardId === card.id) || printings[0];
+      const p = preferredPrinting(card);
+      if (!p) throw new Error(language==='ID'?'Cetakan kartu ini belum tersedia.':'No catalog printing is available for this card yet.');
+      const printingCard={...card,language:p.language,variant:p.variant,setCode:p.set,printingCode:card.printingCode??card.code};
       if (isAnonymous) {
         addLocalVaultItem({
           printingId: p.id,
-          card,
+          card:printingCard,
           type: 'RAW',
           quantity: 1,
           condition: 'NM',
@@ -69,7 +74,7 @@ export function QuickAddModal({
 
       await api('/api/collection', {
         printingId: p.id,
-        catalogCard: card,
+        catalogCard: printingCard,
         type: 'RAW',
         quantity: 1,
         condition: 'NM',
@@ -138,13 +143,14 @@ export function QuickAddModal({
             type="text"
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="Search card name or code (e.g. OP05-119, Zoro)..."
+              placeholder="Search card name or code (e.g. OP05-119, Zoro)..."
+              aria-label="Search card name or code"
           />
         </div>
 
         {/* Results List */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '340px', overflowY: 'auto' }}>
-          {filteredCards.map(card => (
+          {!query.trim().length || query.trim().length<2 ? <p className="vault-quick-add-hint">Search by card name or code. Quick Add uses the catalog’s English default printing and adds one raw NM copy.</p> : filteredCards.length===0 ? <p className="vault-quick-add-hint">No catalog cards matched that search.</p> : filteredCards.map(card => (
             <div
               key={card.id}
               style={{
@@ -167,7 +173,7 @@ export function QuickAddModal({
                     {card.name}
                   </h4>
                   <span style={{ fontSize: '10.5px', color: 'var(--vault-ink-muted)' }}>
-                    {card.code} · {card.rarity} · {card.type}
+                    {card.code} · {card.rarity} · {card.type} · {preferredPrinting(card)?.language??'EN'} {preferredPrinting(card)?.variant??'Standard'}
                   </span>
                 </div>
               </div>

@@ -63,11 +63,11 @@ export function AdminDashboard(){
       <header className="admin-health-heading">
         <div>
           <p className="eyebrow">OPERATIONS & CONTROL</p>
-          <h1>{section === 'catalog' ? 'Catalog health' : section === 'policy' ? 'Marketplace Policy' : section === 'marketplace' ? 'Listings & sellers' : section === 'traffic' ? 'Campaign attribution' : 'Feedback inbox'}</h1>
+          <h1>{section === 'catalog' ? 'Catalog health' : section === 'policy' ? 'Market Policy' : section === 'marketplace' ? 'Listings & sellers' : section === 'traffic' ? 'Campaign attribution' : 'Feedback inbox'}</h1>
           <p>
             {section === 'catalog'
               ? 'Storage coverage and import gaps across the live One Piece catalog.'
-              : section === 'policy' ? 'Dynamic listing lifespans, seller quotas, and retention rules.' : section === 'marketplace' ? 'Recent marketplace listings and the sellers behind them.' : section === 'traffic' ? 'UTM campaigns, landing pages, and referrals to VivrePlay.' : 'Card data reports, product feedback, and bug reports.'}
+              : section === 'policy' ? 'Dynamic listing lifespans, seller quotas, and retention rules.' : section === 'marketplace' ? 'Recent Market listings and the sellers behind them.' : section === 'traffic' ? 'UTM campaigns, landing pages, and referrals to VivrePlay.' : 'Card data reports, product feedback, and bug reports.'}
           </p>
         </div>
 

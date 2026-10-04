@@ -1,4 +1,5 @@
 import {database} from '@/lib/server/database';
+import {verifyTurnstile} from '@/lib/server/turnstile';
 
 type CardSnapshot={code?:unknown;name?:unknown;colour?:unknown;type?:unknown;cost?:unknown;power?:unknown;counter?:unknown;subtypes?:unknown;effect?:unknown;quantity?:unknown};
 type CoachRequest={question?:unknown;locale?:unknown;history?:unknown;context?:{leader?:CardSnapshot|null;deckSize?:unknown;deck?:unknown;candidates?:unknown}};
@@ -63,6 +64,7 @@ async function record(input:{request:Request;question:string;locale:'EN'|'ID';le
 export async function POST(request:Request){
   const started=Date.now();let question='';let locale:'EN'|'ID'='EN';let leaderCode:string|null=null;let deckSize=0;let candidateCount=0;
   try{
+    const rejected=await verifyTurnstile(request);if(rejected)return rejected;
     const payload=await request.json() as CoachRequest;
     question=typeof payload.question==='string'?payload.question.trim().slice(0,900):'';locale=payload.locale==='ID'?'ID':'EN';
     if(!question)return Response.json({error:locale==='ID'?'Tulis pertanyaan untuk Deck Coach.':'Ask the deck coach a question.'},{status:400});

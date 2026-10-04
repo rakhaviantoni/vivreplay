@@ -1,0 +1,180 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-10-01T09:48:07.946Z",
+  "candidates": [
+    {
+      "code": "OP10-096",
+      "printedText": "[Main] K.O. up to 1 of your opponent's \"The Seven Warlords of the Sea\" type Characters with a cost of 8 or less.\n[Trigger] K.O. up to 1 of your opponent's \"The Seven Warlords of the Sea\" type Characters with a cost of 4 or less.",
+      "publishedText": "[Main] K.O. up to 1 of your opponent's \"The Seven Warlords of the Sea\" type Characters with a cost of 8 or less.\n[Trigger] K.O. up to 1 of your opponent's \"The Seven Warlords of the Sea\" type Characters with a cost of 4 or less.",
+      "timings": [
+        "main",
+        "trigger"
+      ],
+      "scenarioNames": [
+        "schema-op10-096 main: trait and cost-8 K.O. boundary",
+        "schema-op10-096 trigger: trait and cost-4 K.O. boundary"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 8,
+                "restedOnly": false
+              }
+            ],
+            "rawText": "[Main] K.O. up to 1 of your opponent's \"The Seven Warlords of the Sea\" type Characters with a cost of 8 or less.",
+            "trigger": "main",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 4,
+                "restedOnly": false
+              }
+            ],
+            "rawText": "[Trigger] K.O. up to 1 of your opponent's \"The Seven Warlords of the Sea\" type Characters with a cost of 4 or less.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 8,
+                  "restedOnly": false
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 4,
+                  "restedOnly": false
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] K.O. up to 1 of your opponent's \"The Seven Warlords of the Sea\" type Characters with a cost of 8 or less.\n[Trigger] K.O. up to 1 of your opponent's \"The Seven Warlords of the Sea\" type Characters with a cost of 4 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Main] K.O. up to 1 of your opponent's \"The Seven Warlords of the Sea\" type Characters with a cost of 8 or less.",
+            "trigger": "main",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 8,
+                "trait": "The Seven Warlords of the Sea",
+                "restedOnly": false,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          },
+          {
+            "rawText": "[Trigger] K.O. up to 1 of your opponent's \"The Seven Warlords of the Sea\" type Characters with a cost of 4 or less.",
+            "trigger": "trigger",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 4,
+                "trait": "The Seven Warlords of the Sea",
+                "restedOnly": false,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 8,
+                  "trait": "The Seven Warlords of the Sea",
+                  "restedOnly": false,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 4,
+                  "trait": "The Seven Warlords of the Sea",
+                  "restedOnly": false,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] K.O. up to 1 of your opponent's \"The Seven Warlords of the Sea\" type Characters with a cost of 8 or less.\n[Trigger] K.O. up to 1 of your opponent's \"The Seven Warlords of the Sea\" type Characters with a cost of 4 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "1afc072ec4ed2312d170f6315cf4f231bd6ae151b4079bafec36b17ed66cb06c",
+      "afterHash": "cc5abb965f83b80554d7107dcde114dca002f8d2507ce0a3f35dc6a0db8e8f4a"
+    }
+  ]
+}

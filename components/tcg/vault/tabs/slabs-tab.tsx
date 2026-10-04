@@ -4,8 +4,7 @@ import React from 'react';
 import { 
   ShieldCheckIcon as ShieldCheck, 
   CheckCircleIcon as CheckCircle, 
-  PlusIcon as Plus,
-  SparkleIcon as Sparkles
+  PlusIcon as Plus
 } from '@phosphor-icons/react';
 import { CardArt } from '../card-art';
 import { printings } from '@/packages/card-data/catalog';
@@ -79,7 +78,7 @@ export function SlabsTab({
       <div className="vault-slabs-grid">
         {slabs.map(item => {
           const printing = printings.find(p => p.id === item.printingId);
-          const lang = printing?.language || 'EN';
+          const lang = item.language || item.card.language || printing?.language || 'EN';
           const subgrades = item.subgrades;
           const isVerified = item.verificationStatus === 'provider_verified' || item.verificationStatus === 'platform_verified';
 
@@ -141,7 +140,7 @@ export function SlabsTab({
                       Est. Value
                     </span>
                     <strong className="vault-slab-est-value">
-                      {hideValues ? '••••••••' : formatCompactMoney(item.estimatedValue, 'IDR')}
+                      {hideValues ? '••••••••' : item.hasMarketEstimate ? formatCompactMoney(item.estimatedValue, 'IDR') : '—'}
                     </strong>
                   </div>
 

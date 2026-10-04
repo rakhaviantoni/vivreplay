@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {applyEffectAction,beginTurn,declareAttack,declareBlock,payEffectCost,playCard,playCounters,resolveBattle,type MatchEffectState} from '../packages/domain/match-effect-state';
 import {executeEffectCommands,resolveCardEffect} from '../packages/domain/effect-runtime';
 import {compileEffectDocument} from '../packages/domain/effect-rules';
+import type {Card} from '../packages/card-data/catalog';
 
 const state=():MatchEffectState=>({turn:'player',turnEffects:[],restrictions:[],delayed:[],cards:[
  {id:'own-leader',owner:'player',zone:'leader',type:'Leader'},
@@ -20,6 +21,18 @@ test('the effect state applies a selected K.O. only when its printed restriction
  assert.equal(killed.state.cards.find(card=>card.id==='enemy-rested')?.zone,'trash');
  const rejected=applyEffectAction(state(),'player',{kind:'ko',maxCost:4,restedOnly:true},{targetId:'enemy-active'});
  assert.match(rejected.error??'',/cost limit/);
+});
+
+test('an attack can prevent every opposing Blocker for the battle without a power threshold',()=>{
+ const text='[When Attacking] Your opponent cannot activate a [Blocker] during this battle.';
+ const schema=compileEffectDocument({id:'attacker',code:'ST01-012',name:'Monkey.D.Luffy',type:'Character',color:'Red',cost:1,power:5000,rarity:'C',art:0,effect:text});
+ const action=schema.ast.find(ability=>ability.trigger==='when-attacking')?.actions.find(item=>item.kind==='prevent-keyword-activation');
+ assert.deepEqual(action,{kind:'prevent-keyword-activation',keyword:'blocker',scope:'opponent-character',until:'battle'});
+ const board:MatchEffectState={...state(),cards:[...state().cards,{id:'enemy-blocker',owner:'opponent',zone:'character',type:'Character',keywords:['blocker']}]};
+ const locked=applyEffectAction(board,'player',action!);
+ assert.equal(declareBlock(locked.state,'opponent','enemy-blocker').error,'This Blocker cannot activate during this battle.');
+ const afterBattle={...locked.state,turnEffects:locked.state.turnEffects.filter(effect=>effect.expires!=='battle')};
+ assert.equal(declareBlock(afterBattle,'opponent','enemy-blocker').error,undefined);
 });
 
 test('Kaku replaces one eligible opponent-effect K.O. by bottom-decking exactly three own Trash cards',()=>{
@@ -609,4 +622,38 @@ test('shared displayed and battle power combines modifiers and DON without going
  const reduced={...board,cards:board.cards.map(c=>c.id==='fighter'?{...c,powerModifier:-9000}:c)};
  assert.equal(effectiveCardPower(reduced,'fighter'),0);
  assert.equal(effectiveCardPower(board,'missing'),0);
+});
+
+test('selected Blocker restrictions enforce target filters and last through the printed window',()=>{
+ const match:MatchEffectState={turn:'player',turnEffects:[],restrictions:[],delayed:[],cards:[
+  {id:'source',owner:'player',zone:'character',type:'Character'},
+  {id:'small-blocker',owner:'opponent',zone:'character',type:'Character',cost:2,power:3000,keywords:['blocker'],effectText:'[Blocker]'},
+  {id:'large-blocker',owner:'opponent',zone:'character',type:'Character',cost:5,power:5000,keywords:['blocker'],effectText:'[Blocker]'},
+ ]};
+ const card={id:'source',code:'OP09-014',name:'Limejuice',color:'Red',type:'Character',cost:3,power:4000,counter:0,rarity:'C',art:0,effect:'[On Play] Your opponent cannot activate up to 1 [Blocker] Character that has 4,000 power or less during this turn.'} as Card;
+ const action=compileEffectDocument(card).ast[0].actions.find(value=>value.kind==='prevent-keyword-activation');
+ assert.ok(action);
+ const blocked=applyEffectAction(match,'player',action!,{cardIds:['small-blocker']});
+ assert.equal(blocked.error,undefined);
+ assert.match(declareBlock(blocked.state,'opponent','small-blocker').error??'',/cannot activate during this battle/);
+ assert.equal(declareBlock(blocked.state,'opponent','large-blocker').error,undefined);
+ const invalid=applyEffectAction(match,'player',action!,{cardIds:['large-blocker']});
+ assert.match(invalid.error??'',/outside the printed effect target/);
+});
+
+test('base-cost and power-limited Blocker locks select only legal Characters',()=>{
+ const base:MatchEffectState={turn:'player',turnEffects:[],restrictions:[],delayed:[],cards:[
+  {id:'cost-four',owner:'opponent',zone:'character',type:'Character',cost:4,costModifier:3,power:6000,keywords:['blocker']},
+  {id:'cost-five',owner:'opponent',zone:'character',type:'Character',cost:5,costModifier:-2,power:2000,keywords:['blocker']},
+  {id:'power-two',owner:'opponent',zone:'character',type:'Character',cost:2,power:2000,keywords:['blocker']},
+  {id:'power-four',owner:'opponent',zone:'character',type:'Character',cost:2,power:4000,keywords:['blocker']},
+ ]};
+ const baseCostAction=compileEffectDocument({id:'x',code:'OP12-051',name:'Hina',color:'Black',type:'Character',cost:3,power:4000,counter:0,rarity:'R',art:0,effect:"[Activate: Main] Up to 1 of your opponent's Characters with a base cost of 4 or less cannot activate [Blocker] during this turn."}).ast[0].actions[0];
+ const accepted=applyEffectAction(base,'player',baseCostAction,{targetId:'cost-four'});
+ assert.equal(accepted.error,undefined);
+ const rejected=applyEffectAction(base,'player',baseCostAction,{targetId:'cost-five'});
+ assert.ok(rejected.error);
+ const powerAction=compileEffectDocument({id:'x',code:'OP11-013',name:'Test',color:'Blue',type:'Leader',cost:0,power:5000,counter:0,rarity:'L',art:0,effect:"[When Attacking] All of your opponent's Characters with 2000 power or less cannot activate [Blocker] during this turn."}).ast[0].actions[0];
+ const powerLocked=applyEffectAction(base,'player',powerAction);
+ assert.deepEqual(powerLocked.state.turnEffects.map(item=>item.target),['cost-five','power-two']);
 });

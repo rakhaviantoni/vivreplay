@@ -1,5 +1,3 @@
-import { env } from 'cloudflare:workers';
-
 const filenamePattern=/^[A-Za-z0-9_-]+\.webp$/;
 const bucket='tcg-card-images';
 
@@ -70,17 +68,6 @@ export async function serveCardImage(setCode:string,language:string,filename:str
 
   const catalogKeys=await catalogAssetKeys(origin,key,setCode,language,filename);
   const candidateKeys=[...new Set([...catalogKeys,...candidateObjectKeys(setCode,language,filename,variant)])];
-  const r2=env.CARD_IMAGES;
-  if(r2){
-    for(const objectKey of candidateKeys){
-      const object=await r2.get(objectKey);
-      if(!object) continue;
-      const response=new Response(object.body,{headers:{'Content-Type':object.httpMetadata?.contentType||'image/webp','Cache-Control':'public, max-age=31536000, immutable','X-Content-Type-Options':'nosniff'}});
-      await edgeCache?.put(cacheKey,response.clone());
-      return response;
-    }
-  }
-
   for(const objectKey of candidateKeys){
     const response=await fetch(`${origin}/storage/v1/object/${bucket}/${objectKey}`,{headers:{accept:'image/webp,image/*;q=0.8',authorization:`Bearer ${key}`,apikey:key},cf:{cacheTtl:31_536_000,cacheEverything:true}});
     if(!response.ok||!response.body) continue;

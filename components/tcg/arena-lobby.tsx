@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import {ArrowLeftIcon as ArrowLeft, ArrowRightIcon as ArrowRight, CardsIcon as Cards, CheckCircleIcon as CheckCircle, GameControllerIcon as GameController, GraduationCapIcon as GraduationCap, PlayCircleIcon as PlayCircle, SwordIcon as Sword, TrophyIcon as Trophy, UsersThreeIcon as UsersThree} from '@phosphor-icons/react';
+import {ArrowLeftIcon as ArrowLeft, ArrowRightIcon as ArrowRight, CardsIcon as Cards, CheckIcon as Check, CheckCircleIcon as CheckCircle, GameControllerIcon as GameController, GraduationCapIcon as GraduationCap, LockKeyIcon as Lock, PlayCircleIcon as PlayCircle, SwordIcon as Sword, TrophyIcon as Trophy, UsersThreeIcon as UsersThree} from '@phosphor-icons/react';
 import {useEffect,useMemo,useState} from 'react';
 import {createClient} from '@/utils/supabase/client';
 import {CardArt} from './card-art';
@@ -14,6 +14,8 @@ type Format='ranked'|'friendly'|'practice';
 type PrintingRow={id:string;rarity:string|null;set_code:string|null;card_image_url:string|null;tcg_card_assets?:Array<{kind:string;object_key:string}>;tcg_card_identities:{code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number;effect_text:string}};
 const formats:Array<{id:Format;title:string;copy:string;icon:typeof Trophy;available:boolean}>=[{id:'ranked',title:'Ranked',copy:'Constructed ladder. Requires a signed-in account when matchmaking opens.',icon:Trophy,available:false},{id:'friendly',title:'Friendly',copy:'Invite a player or test a finished list without the ladder.',icon:UsersThree,available:false},{id:'practice',title:'Practice table',copy:'Open your deck at the interactive table and rehearse lines.',icon:GameController,available:true}];
 const total=(deck:LocalDeck)=>Object.values(deck.entries).reduce((sum,count)=>sum+count,0);const ready=(deck:LocalDeck)=>Boolean(deck.leaderPrintingId)&&total(deck)===50;
+const tutorialProgressKey='vivreplay:tutorial:completed-lessons:v1';
+function readTutorialProgress(){try{const value=JSON.parse(window.localStorage.getItem(tutorialProgressKey)||'[]');return Array.isArray(value)?value.filter((step):step is number=>Number.isInteger(step)&&step>=0):[]}catch{return[]}}
 function cardFrom(row:PrintingRow):Card{const identity=row.tcg_card_identities;return{id:row.id,code:identity.code,name:displayCardName(identity.name,identity.code),color:identity.color,type:identity.card_type,cost:identity.cost,power:identity.power,rarity:row.rarity??'',art:0,effect:identity.effect_text,imageUrl:row.card_image_url??undefined,imageSource:'external',setCode:row.set_code??undefined,assetPath:row.tcg_card_assets?.find(item=>item.kind==='small')?.object_key};}
 
 export function ArenaLobby(){
@@ -86,34 +88,48 @@ const tutorialLessons = [
   {
     step: 5,
     number: '06',
+    title: 'Events',
+    zone: 'Hand & Trash',
+    copy: 'Play the Event from your hand, resolve its effect, then place it in your Trash.',
+  },
+  {
+    step: 6,
+    number: '07',
     title: 'The Stage',
     zone: 'Stage zone',
     copy: 'Persistent field cards providing continuous advantages for your crew.',
   },
   {
-    step: 6,
-    number: '07',
-    title: 'Life & Triggers',
-    zone: 'Life stack',
-    copy: 'Taking damage into hand, preserving Life cards, and checking Trigger opportunities.',
-  },
-  {
     step: 7,
     number: '08',
+    title: 'Life & Triggers',
+    zone: 'Life stack',
+    copy: 'Taking damage, choosing whether to activate a Life Trigger, and losing at zero Life.',
+  },
+  {
+    step: 8,
+    number: '09',
     title: 'The Trash',
     zone: 'Trash zone',
     copy: 'Graveyard mechanics, reviewing discarded cards, and on-K.O. interactions.',
   },
   {
-    step: 8,
-    number: '09',
+    step: 9,
+    number: '10',
     title: 'Your Hand',
     zone: 'Hand tray',
     copy: 'Hidden information, mulligan decisions, and sorting by type, cost, or counter power.',
   },
   {
-    step: 9,
-    number: '10',
+    step: 10,
+    number: '11',
+    title: 'Colors',
+    zone: 'Leader & deck',
+    copy: 'The six colors and how your Leader determines which colors your deck may contain.',
+  },
+  {
+    step: 11,
+    number: '12',
     title: 'The Whole Table',
     zone: 'Full board',
     copy: 'Synthesize turn flow: Refresh Phase, Draw Phase, DON!! Phase, and Main Phase.',
@@ -122,6 +138,7 @@ const tutorialLessons = [
 
 export function ArenaTutorialIndex() {
   const [language,setLanguage]=useState<'EN'|'ID'>('EN');
+  const [completedSteps,setCompletedSteps]=useState<number[]>([]);
   useEffect(()=>{
     const syncLocale=()=>setLanguage(window.localStorage.getItem('vivreplay-locale')==='ID'?'ID':'EN');
     const onLocale=(event:Event)=>setLanguage((event as CustomEvent<'EN'|'ID'>).detail);
@@ -129,7 +146,9 @@ export function ArenaTutorialIndex() {
     window.addEventListener('vivreplay:locale',onLocale);
     return()=>window.removeEventListener('vivreplay:locale',onLocale);
   },[]);
+  useEffect(()=>{const refresh=()=>setCompletedSteps(readTutorialProgress());const onProgress=()=>refresh();refresh();window.addEventListener('storage',onProgress);window.addEventListener('vivreplay:tutorial-progress',onProgress);return()=>{window.removeEventListener('storage',onProgress);window.removeEventListener('vivreplay:tutorial-progress',onProgress)}},[]);
   const id=language==='ID';
+  let unlockedStep=0;while(completedSteps.includes(unlockedStep))unlockedStep++;
 
   return (
     <main className="page directory-page tutorial-index-page">
@@ -158,26 +177,15 @@ export function ArenaTutorialIndex() {
             <h2>{id?'Pelajari satu per satu area di meja.':'Learn one part of the table at a time.'}</h2>
             <p>{id?'Setiap sesi membuka meja live tepat di langkah yang diajarkan.':'Each lesson opens the live board at the exact step it teaches.'}</p>
           </div>
-          <span className="tutorial-path-status">{id?'10 sesi · Meja interaktif':'10 lessons · Interactive table'}</span>
+          <span className="tutorial-path-status">{id?'12 sesi · Meja interaktif':'12 lessons · Interactive table'}</span>
         </header>
         <div className="tutorial-chapter-grid">
-          {tutorialLessons.map((item) => (
-            <Link
-              href={`/play/tutorial?step=${item.step}`}
-              key={item.title}
-              className="tutorial-chapter"
-            >
-              <b>{item.number}</b>
-              <div className="tutorial-chapter-info">
-                <span>{item.title}</span>
-                <small>{item.zone}</small>
-              </div>
-              <em>
-                <span>{id?'Mainkan':'Play'}</span>
-                <PlayCircle size={16} weight="bold" />
-              </em>
-            </Link>
-          ))}
+          {tutorialLessons.map((item) => {
+            const completed=completedSteps.includes(item.step);
+            const locked=item.step>unlockedStep;
+            const contents=<><b>{completed?<Check size={21}/>:item.number}</b><div className="tutorial-chapter-info"><span>{item.title}</span><small>{item.zone}</small></div><em>{locked?<><span>{id?'Selesaikan sebelumnya':'Complete earlier lesson'}</span><Lock size={16}/></>:completed?<><span>{id?'Ulangi':'Replay'}</span><PlayCircle size={16} weight="bold"/></>:<><span>{id?'Mulai':'Start'}</span><PlayCircle size={16} weight="bold"/></>}</em></>;
+            return locked?<div key={item.title} className="tutorial-chapter locked" aria-disabled="true">{contents}</div>:<Link href={`/play/tutorial?step=${item.step}`} key={item.title} className={`tutorial-chapter ${completed?'completed':''} ${!completed?'active':''}`}>{contents}</Link>;
+          })}
         </div>
       </section>
 

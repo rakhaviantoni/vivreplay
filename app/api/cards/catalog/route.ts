@@ -11,7 +11,7 @@ function parseJson(value: unknown) {
   try { return JSON.parse(value); } catch { return value; }
 }
 
-async function fromD1(language: string) {
+async function fromD1(language: string, identityCode?: string) {
   const db = database();
   const { results } = await db.prepare(`
     SELECT p.id,p.rarity,p.variant,p.set_code,p.set_name,p.printing_code,p.language,
@@ -25,9 +25,9 @@ async function fromD1(language: string) {
     JOIN tcg_card_identities i ON i.id=p.identity_id
     LEFT JOIN tcg_card_localizations l ON l.identity_id=i.id AND l.language=p.language
     LEFT JOIN tcg_card_assets a ON a.printing_id=p.id AND a.kind='small'
-    WHERE p.language=? AND COALESCE(NULLIF(a.object_key,''), NULLIF(p.card_image_url,'')) IS NOT NULL
+    WHERE p.language=? AND (? IS NULL OR UPPER(i.code)=?) AND COALESCE(NULLIF(a.object_key,''), NULLIF(p.card_image_url,'')) IS NOT NULL
     ORDER BY p.set_code,p.id
-  `).bind(language).all<Record<string, unknown>>();
+  `).bind(language, identityCode ?? null, identityCode ?? null).all<Record<string, unknown>>();
   return results.flatMap(row => {
     const identity = {
       id: row.identity_id, code: row.identity_code,
@@ -56,14 +56,16 @@ async function fromD1(language: string) {
   });
 }
 
-async function fromSupabase(language: string) {
+async function fromSupabase(language: string, identityCode?: string) {
   const supabase = supabaseAdmin();
   if (!supabase) throw new Error('Supabase catalog fallback is unavailable.');
   const rows: Record<string, unknown>[] = [];
   for (let from = 0; ; from += 1000) {
-    const { data, error } = await supabase.from('tcg_card_printings')
+    let query = supabase.from('tcg_card_printings')
       .select('id,rarity,variant,set_code,set_name,printing_code,language,attribute,counter_amount,sub_types,source_payload,card_image_url,tcg_card_assets(kind,object_key),tcg_card_identities!inner(id,code,name,color,card_type,cost,power,effect_text)')
-      .eq('language', language).range(from, from + 999);
+      .eq('language', language);
+    if (identityCode) query = query.eq('tcg_card_identities.code', identityCode);
+    const { data, error } = await query.range(from, from + 999);
     if (error) throw error;
     rows.push(...((data ?? []) as unknown as Record<string, unknown>[]));
     if ((data ?? []).length < 1000) break;
@@ -76,11 +78,14 @@ async function fromSupabase(language: string) {
 }
 
 export async function GET(request: Request) {
-  const language = new URL(request.url).searchParams.get('language')?.toUpperCase() === 'JP' ? 'JP' : 'EN';
+  const params = new URL(request.url).searchParams;
+  const language = params.get('language')?.toUpperCase() === 'JP' ? 'JP' : 'EN';
+  const rawCode = params.get('code')?.trim().toUpperCase();
+  const identityCode = rawCode && /^[A-Z0-9-]{1,32}$/.test(rawCode) ? rawCode : undefined;
   let cards: Record<string, unknown>[];
-  try { cards = await fromD1(language); }
+  try { cards = await fromD1(language, identityCode); }
   catch {
-    try { cards = await fromSupabase(language); }
+    try { cards = await fromSupabase(language, identityCode); }
     catch { return Response.json({ error: 'Catalog is temporarily unavailable.' }, { status: 503 }); }
   }
   return Response.json({ cards }, {

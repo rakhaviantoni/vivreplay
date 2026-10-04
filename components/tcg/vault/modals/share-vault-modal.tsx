@@ -5,12 +5,11 @@ import {
   XIcon as X, 
   CopyIcon as Copy, 
   CheckIcon as Check, 
-  ShareNetworkIcon as Share2, 
-  StarIcon as Star,
-  ShieldCheckIcon as ShieldCheck
+  ShareNetworkIcon as Share2
 } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { CardArt } from '../card-art';
+import { VivreMark } from '../../brand-assets';
 import { formatCompactMoney } from '@/packages/domain';
 import type { EnrichedCollectionItem, SetProgress } from '../types';
 
@@ -36,17 +35,18 @@ export function ShareVaultModal({
   const [shareFormat, setShareFormat] = useState<'top9' | 'slab' | 'set'>(
     selectedSlab ? 'slab' : selectedSet ? 'set' : 'top9'
   );
+  const [shareStyle,setShareStyle]=useState<'light'|'dark'>('light');
   const [copied, setCopied] = useState(false);
 
   if (!open) return null;
 
-  // Get Top 9 cards (marked as favorite, or top items)
-  const top9 = items.filter(i => i.isFavorite).slice(0, 9);
-  const displayTop9 = top9.length >= 9 ? top9 : [...top9, ...items.filter(i => !i.isFavorite)].slice(0, 9);
+  // The Vault supplies binder order; preserve it in the share showcase.
+  const displayTop9 = items.slice(0, 9);
 
   const activeSlab = selectedSlab || items.find(i => i.type === 'GRADED') || items[0];
 
-  const shareUrl = typeof window !== 'undefined' ? `${window.location.origin}/players/${username}` : `https://vivreplay.app/players/${username}`;
+  const shareOrigin = typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname) ? window.location.origin : 'https://vivreplay.com';
+  const shareUrl = `${shareOrigin}/players/${username}`;
 
   const handleCopyLink = async () => {
     try {
@@ -128,42 +128,36 @@ export function ShareVaultModal({
           </button>
         </div>
 
+        <div className="vault-share-style-picker" role="group" aria-label="Share card style">
+          <span>Style</span>
+          <button type="button" aria-pressed={shareStyle==='light'} className={shareStyle==='light'?'is-selected':''} onClick={()=>setShareStyle('light')}>Light</button>
+          <button type="button" aria-pressed={shareStyle==='dark'} className={shareStyle==='dark'?'is-selected':''} onClick={()=>setShareStyle('dark')}>Dark</button>
+        </div>
+
         {/* Share Card Canvas Preview */}
-        <div style={{
-          background: 'linear-gradient(135deg, #1f2228, #131519)',
-          borderRadius: '16px',
-          border: '1px solid #383f4d',
-          padding: '20px',
-          color: '#f6f3ed',
-          boxShadow: '0 12px 30px rgba(0, 0, 0, 0.4)',
-          position: 'relative',
-        }}>
+        <div className={`vault-share-preview is-${shareStyle}`}>
           {/* Card Header Branding */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <ShieldCheck size={16} color="var(--vault-gold)" weight="fill" />
-              <strong style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '15px', color: '#fff' }}>
+              <VivreMark size={20} label="VivrePlay" />
+              <strong style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '15px', color: 'var(--share-ink)' }}>
                 VivrePlay
               </strong>
             </div>
-            <span style={{ fontSize: '11px', color: '#a0abb9' }}>@{username}&apos;s Vault</span>
+            <span style={{ fontSize: '11px', color: 'var(--share-muted)' }}>@{username}&apos;s Vault</span>
           </div>
 
           {/* Format 1: My Top 9 Binder Card */}
           {shareFormat === 'top9' && (
             <div>
-              <div style={{
+              <div className="vault-share-card-grid" style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
+                gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
                 gap: '8px',
-                aspectRatio: '1/1',
                 padding: '8px',
-                background: '#0d0f14',
-                borderRadius: '12px',
-                border: '1px solid #29303d',
               }}>
                 {displayTop9.map(item => (
-                  <div key={item.id} style={{ borderRadius: '6px', overflow: 'hidden', position: 'relative' }}>
+                  <div key={item.id} className="vault-share-card-slot">
                     <CardArt card={item.card} small />
                     {item.type === 'GRADED' && (
                       <span style={{
@@ -171,7 +165,7 @@ export function ShareVaultModal({
                         bottom: '2px',
                         left: '2px',
                         background: 'rgba(0,0,0,0.85)',
-                        color: 'var(--vault-gold)',
+                        color: 'var(--share-accent)',
                         fontSize: '7.5px',
                         fontWeight: 800,
                         padding: '1px 3px',
@@ -183,7 +177,7 @@ export function ShareVaultModal({
                   </div>
                 ))}
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px', fontSize: '11px', color: '#a0abb9' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px', fontSize: '11px', color: 'var(--share-muted)' }}>
                 <span>Curated Top 9 Cards</span>
                 <span>{items.length} cards catalogued</span>
               </div>
@@ -193,13 +187,13 @@ export function ShareVaultModal({
           {/* Format 2: Slab Showcase Card */}
           {shareFormat === 'slab' && activeSlab && (
             <div style={{ textAlign: 'center' }}>
-              <div style={{
+              <div className="vault-share-slab-art" style={{
                 maxWidth: '200px',
                 margin: '0 auto',
                 borderRadius: '12px',
                 overflow: 'hidden',
-                background: '#0d0f14',
-                border: '2px solid #2e3542',
+                background: 'var(--share-frame)',
+                border: '2px solid var(--share-border)',
                 padding: '8px',
                 boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
               }}>
@@ -207,12 +201,12 @@ export function ShareVaultModal({
                   display: 'flex',
                   justifyContent: 'space-between',
                   padding: '4px 8px',
-                  background: 'rgba(255,255,255,0.06)',
+                  background: 'var(--share-frame-raised)',
                   borderRadius: '6px',
                   fontSize: '9px',
                   fontWeight: 800,
                   marginBottom: '6px',
-                  color: 'var(--vault-gold)',
+                  color: 'var(--share-accent)',
                 }}>
                   <span>{activeSlab.provider || 'PSA'}</span>
                   <span>{activeSlab.grade || '10'}</span>
@@ -222,9 +216,9 @@ export function ShareVaultModal({
               <h4 style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '16px', margin: '10px 0 2px' }}>
                 {activeSlab.card.name}
               </h4>
-              <p style={{ fontSize: '11px', color: '#a0abb9', margin: 0 }}>
+              <p style={{ fontSize: '11px', color: 'var(--share-muted)', margin: 0 }}>
                 {activeSlab.card.code} · {activeSlab.provider || 'PSA'} {activeSlab.grade || '10'}
-                {!hideValues && ` · Est. ${formatCompactMoney(activeSlab.estimatedValue, 'IDR')}`}
+                {!hideValues && activeSlab.hasMarketEstimate && ` · Est. ${formatCompactMoney(activeSlab.estimatedValue, 'IDR')}`}
               </p>
             </div>
           )}
@@ -235,7 +229,7 @@ export function ShareVaultModal({
               <h4 style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '18px', margin: '0 0 4px' }}>
                 {selectedSet ? selectedSet.name : 'OP-09 Emperors in the New World'}
               </h4>
-              <div style={{ fontSize: '12px', color: '#a0abb9', marginBottom: '14px' }}>
+              <div style={{ fontSize: '12px', color: 'var(--share-muted)', marginBottom: '14px' }}>
                 Set Collection Progress: <b>{selectedSet ? selectedSet.ownedCount : 123} / {selectedSet ? selectedSet.totalCards : 142} Cards ({selectedSet ? selectedSet.percentage : 86.6}%)</b>
               </div>
               <div className="vault-set-progress-track">
@@ -245,8 +239,8 @@ export function ShareVaultModal({
           )}
 
           {/* Watermark */}
-          <div style={{ textAlign: 'right', marginTop: '12px', fontSize: '9.5px', color: '#687384', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-            vivreplay.app/vault
+          <div style={{ textAlign: 'right', marginTop: '12px', fontSize: '9.5px', color: 'var(--share-muted)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+            vivreplay.com/vault
           </div>
         </div>
 

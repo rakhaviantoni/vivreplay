@@ -58,7 +58,7 @@ export function MarketPolicyManager() {
       setProFee(data.policies.pro.commissionPercent);
       setProAutoRenew(data.policies.pro.canAutoRenew);
     } catch (err) {
-      toast.error('Unable to fetch live marketplace policies');
+      toast.error('Unable to fetch live Market policies');
     } finally {
       setLoading(false);
     }
@@ -143,7 +143,7 @@ export function MarketPolicyManager() {
       }
 
       setInitialPolicies(payload as Record<AccountTier, ListingTierPolicy>);
-      toast.success('Marketplace policies updated live in D1 storage!');
+      toast.success('Market policies updated live in D1 storage!');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to save policies');
     } finally {
@@ -166,7 +166,7 @@ export function MarketPolicyManager() {
     <form className="admin-policy-view" onSubmit={handleSave}>
       <header className="admin-policy-header">
         <div>
-          <h2>Marketplace Retention & Limits Policy</h2>
+          <h2>Market Retention & Limits Policy</h2>
           <p>
             Configure listing lifespans and seller quotas. Changes apply to new listings and the next renewal; existing expiration dates stay as stored until the seller renews.
           </p>

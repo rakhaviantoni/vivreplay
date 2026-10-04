@@ -8,6 +8,13 @@ export function keywordScenarios(text:string):KeywordScenario[]{
  const match=text.trim().match(/^\[(Blocker|Rush|Double Attack|Banish)\](?:\s*\([^)]*\))?(?=\s*(?:\[|$))/i);
  if(!match)return [];
  const keyword=match[1].toLowerCase().replace(' ','-');
+ const keywordIsolation:KeywordScenario={name:`keyword ${match[1]}: schema isolation`,run(document){
+  const abilities=document.ast.filter(ability=>ability.actions.some(action=>action.kind===keyword));
+  check(abilities.length===1&&abilities[0].rawText.trim().toLowerCase()===match[0].trim().toLowerCase(),`Printed ${match[1]} must be isolated from other ability text`);
+  const timing=abilities[0].trigger;
+  check(document.normalized.some(effect=>effect.timing===timing&&effect.sequence.some(step=>step.type==='RESOLVE'&&step.action.kind===keyword)),`Isolated ${match[1]} has no runtime action`);
+  check(document.normalized.filter(effect=>effect.timing!==timing).every(effect=>effect.sequence.every(step=>step.type!=='RESOLVE'||step.action.kind!==keyword)),`${match[1]} leaked into an unrelated timing window`);
+ }};
  const state=(document:EffectDocument):MatchEffectState=>({turn:'player',turnNumber:2,firstPlayer:'player',playedThisTurn:['source'],turnEffects:[],restrictions:[],delayed:[],cards:[
   {id:'source',owner:'player',zone:'character',type:'Character',power:6000,effectSchema:document},
   {id:'leader',owner:'opponent',zone:'leader',type:'Leader',power:5000},
@@ -26,7 +33,7 @@ export function keywordScenarios(text:string):KeywordScenario[]{
   check(Boolean(window?.sequence.some(step=>step.type==='RESOLVE'&&step.action.kind==='blocker')),'Isolated Blocker timing has no runtime action');
   check(document.normalized.filter(effect=>effect.timing!==timing).every(effect=>effect.sequence.every(step=>step.type!=='RESOLVE'||step.action.kind!=='blocker')),'Blocker leaked into another timing window');
  }}];
- if(keyword==='rush')return ['new-character','rested','first-turn','negated','wrong-turn','active-target'].map(choice=>({name:`keyword Rush: ${choice}`,run(document){
+ if(keyword==='rush')return ['new-character','rested','first-turn','negated','wrong-turn','active-target'].map(choice=>({name:`keyword Rush: ${choice}`,run(document:EffectDocument){
   const board=state(document);
   if(choice==='rested')board.cards[0].rested=true;
   if(choice==='negated')board.cards[0].effectNegated=true;
@@ -36,8 +43,8 @@ export function keywordScenarios(text:string):KeywordScenario[]{
   const result=declareAttack(board,'player','source',choice==='active-target'?'character':'leader');
   if(choice==='new-character'){check(!result.error,'Printed Rush did not allow a newly played Character to attack');check(result.state.cards[0].rested,'Rush attacker did not rest');}
   else {check(result.error,`Rush bypassed ${choice} attack restriction`);check(result.state===board,'Rejected attack changed state');}
- }}));
- return ['damage','negated','losing-battle','character-battle','empty-life','one-life'].map(choice=>({name:`keyword ${match[1]}: ${choice}`,run(document){
+ }})).concat(keywordIsolation);
+ return ['damage','negated','losing-battle','character-battle','empty-life','one-life'].map(choice=>({name:`keyword ${match[1]}: ${choice}`,run(document:EffectDocument){
   const board=state(document);
   if(choice==='negated')board.cards[0].effectNegated=true;
   if(choice==='losing-battle')board.cards[0].power=4000;
@@ -56,5 +63,5 @@ export function keywordScenarios(text:string):KeywordScenario[]{
   check(result.triggerAvailable===(destination==='hand'),'Banish/normal damage produced wrong Trigger availability');
   // Official keyword Q&A: Double Attack against one Life does not win: https://en.onepiece-cardgame.com/pdf/qa_rules.pdf
   check(!result.gameOver,'An attack against remaining Life incorrectly ended the game');
- }}));
+ }})).concat(keywordIsolation);
 }

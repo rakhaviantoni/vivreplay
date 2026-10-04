@@ -1,0 +1,370 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-09-30T04:52:58.683Z",
+  "candidates": [
+    {
+      "code": "EB03-057",
+      "printedText": "[On Play] Give up to 3 rested DON!! cards to your {Land of Wano} type Leader.\n[On K.O.] Trash up to 1 card from the top of your opponent's Life cards.",
+      "publishedText": "[On Play] Give up to 3 rested DON!! cards to your {Land of Wano} type Leader.\n[On K.O.] Trash up to 1 card from the top of your opponent's Life cards.",
+      "timings": [
+        "on-ko"
+      ],
+      "scenarioNames": [
+        "schema-trash-life on-ko: optionally trash up to 1 top opponent Life"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don",
+                "amount": 3,
+                "source": "cost-area"
+              }
+            ],
+            "rawText": "[On Play] Give up to 3 rested DON!! cards to your {Land of Wano} type Leader.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "trash-life",
+                "scope": "opponent",
+                "amount": 1
+              },
+              {
+                "kind": "on-ko"
+              }
+            ],
+            "rawText": "[On K.O.] Trash up to 1 card from the top of your opponent's Life cards.",
+            "trigger": "on-ko",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 3,
+                  "source": "cost-area"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "on-ko",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash-life",
+                  "scope": "opponent",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "on-ko"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Give up to 3 rested DON!! cards to your {Land of Wano} type Leader.\n[On K.O.] Trash up to 1 card from the top of your opponent's Life cards.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don",
+                "amount": 3,
+                "source": "cost-area"
+              }
+            ],
+            "rawText": "[On Play] Give up to 3 rested DON!! cards to your {Land of Wano} type Leader.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "trash-life",
+                "scope": "opponent",
+                "amount": 1,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ],
+            "rawText": "[On K.O.] Trash up to 1 card from the top of your opponent's Life cards.",
+            "trigger": "on-ko",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 3,
+                  "source": "cost-area"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "on-ko",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash-life",
+                  "scope": "opponent",
+                  "amount": 1,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Give up to 3 rested DON!! cards to your {Land of Wano} type Leader.\n[On K.O.] Trash up to 1 card from the top of your opponent's Life cards.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "69900c0be58ff32a6dfb7473b69983aed5d2090a4f2740b804082140102d5e2b",
+      "afterHash": "b7671fff650deb556626c87164200bf56548d85d5db1c931a4c4b61317fcdd87"
+    },
+    {
+      "code": "OP10-109",
+      "printedText": "[On K.O.] Trash up to 1 card from the top of your opponent's Life cards.\n[Trigger] Draw 2 cards and trash 1 card from your hand.",
+      "publishedText": "[On K.O.] Trash up to 1 card from the top of your opponent's Life cards.\n[Trigger] Draw 2 cards and trash 1 card from your hand.",
+      "timings": [
+        "on-ko"
+      ],
+      "scenarioNames": [
+        "schema-trash-life on-ko: optionally trash up to 1 top opponent Life"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "trash-life",
+                "scope": "opponent",
+                "amount": 1
+              },
+              {
+                "kind": "on-ko"
+              }
+            ],
+            "rawText": "[On K.O.] Trash up to 1 card from the top of your opponent's Life cards.",
+            "trigger": "on-ko",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 2
+              },
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "requiresTrigger": false
+              }
+            ],
+            "rawText": "[Trigger] Draw 2 cards and trash 1 card from your hand.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-ko",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash-life",
+                  "scope": "opponent",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "on-ko"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 2
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "requiresTrigger": false
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On K.O.] Trash up to 1 card from the top of your opponent's Life cards.\n[Trigger] Draw 2 cards and trash 1 card from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "trash-life",
+                "scope": "opponent",
+                "amount": 1,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ],
+            "rawText": "[On K.O.] Trash up to 1 card from the top of your opponent's Life cards.",
+            "trigger": "on-ko",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "draw",
+                "amount": 2
+              },
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "requiresTrigger": false
+              }
+            ],
+            "rawText": "[Trigger] Draw 2 cards and trash 1 card from your hand.",
+            "trigger": "trigger",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-ko",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash-life",
+                  "scope": "opponent",
+                  "amount": 1,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "trigger",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "draw",
+                  "amount": 2
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "requiresTrigger": false
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On K.O.] Trash up to 1 card from the top of your opponent's Life cards.\n[Trigger] Draw 2 cards and trash 1 card from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "4c0a851b205dd3e90027faf2eb79995dc70f9abaa118618ba21e6889b8a1fd60",
+      "afterHash": "e045e2e7b6a97b41da58392eb2328e73fcf40bbeedc54c84b595b5f0b79aafca"
+    }
+  ]
+}

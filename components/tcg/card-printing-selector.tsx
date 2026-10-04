@@ -53,15 +53,14 @@ export function CardPrintingSelector<T extends CardPrinting>({printings,language
     if(!session&&signedIn!==true){window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));return;}
     const rows=collection.filter(item=>item.printingId===printing.id&&item.type==='RAW');
     const removable=rows.reduce((sum,item)=>sum+Math.max(0,item.quantity-(item.listedQuantity??0)),0);
+    const imageUrl=printing.card_image_url??card.imageUrl;
+    const catalogCard={code:card.code,name:card.name,color:card.color,type:card.type,cost:card.cost,power:card.power,rarity:printing.rarity??card.rarity,effect:card.effect,setCode:printing.set_code??card.setCode,language:printing.language==='JP'?'JP':'EN',variant:printing.variant??'Standard',printingCode:printing.printing_code??card.printingCode??card.code,...(imageUrl&&/^https?:\/\//i.test(imageUrl)?{imageUrl}:{})};
     setBusyPrinting(printing.id);
     try{
       if(delta>0){
         const row=rows.find(item=>item.condition==='NM'&&item.quantity>(item.listedQuantity??0));
-        if(row)await api('/api/collection',{id:row.id,quantity:row.quantity+1},'PATCH');
-        else {
-          const imageUrl=printing.card_image_url??card.imageUrl;
-          await api('/api/collection',{printingId:printing.id,catalogCard:{code:card.code,name:card.name,color:card.color,type:card.type,cost:card.cost,power:card.power,rarity:printing.rarity??card.rarity,effect:card.effect,setCode:printing.set_code??card.setCode,language:printing.language==='JP'?'JP':'EN',variant:printing.variant??'Standard',printingCode:printing.printing_code??card.printingCode??card.code,...(imageUrl&&/^https?:\/\//i.test(imageUrl)?{imageUrl}:{})},type:'RAW',quantity:1,condition:'NM',provider:null,grade:null,certification:null,visibility:'private',acquisitionAmount:0,currency:'IDR'});
-        }
+        if(row)await api('/api/collection',{id:row.id,quantity:row.quantity+1,printingId:printing.id,catalogCard},'PATCH');
+        else await api('/api/collection',{printingId:printing.id,catalogCard,type:'RAW',quantity:1,condition:'NM',provider:null,grade:null,certification:null,visibility:'private',acquisitionAmount:0,currency:'IDR'});
       }else if(removable>0){
         const row=[...rows].reverse().find(item=>item.quantity>(item.listedQuantity??0));
         if(!row)return;
@@ -69,13 +68,18 @@ export function CardPrintingSelector<T extends CardPrinting>({printings,language
         else await api('/api/collection',{id:row.id},'DELETE');
       }else return;
       const result=await api<{collection:CollectionItem[]}>('/api/state');setCollection(result.collection??[]);setSignedIn(true);
+      const quantity=Math.max(1,Math.abs(delta));
+      const message=delta>0
+        ? (locale==='ID'?`Menambahkan ${quantity} salinan ${card.name} ke Vault`:`Added ${quantity} ${quantity===1?'copy':'copies'} of ${card.name} to your Vault`)
+        : (locale==='ID'?`Menghapus ${quantity} salinan ${card.name} dari Vault`:`Removed ${quantity} ${quantity===1?'copy':'copies'} of ${card.name} from your Vault`);
+      toast.success(message,{action:{label:locale==='ID'?'Lihat Vault':'View Vault',onClick:()=>window.location.assign(locale==='ID'?'/id/vault':'/vault')}});
     }catch(error){
       if(error instanceof Error&&/sign in|401/i.test(error.message)){setSignedIn(false);window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));}
       else toast.error(error instanceof Error?error.message:(locale==='ID'?'Tidak dapat memperbarui Vault.':'Could not update your Vault.'));
     }finally{setBusyPrinting(null)}
   };
   const id=locale==='ID';
-  const languages=[...new Set(printings.map(item=>item.language))];
+  const languages=[...new Set(printings.map(item=>item.language))].sort((a,b)=>a.localeCompare(b));
   const visible=uniquePrintings(orderPrintings(printings.filter(item=>item.language===language&&item.card_image_url)));
-  return <section className="viewer-printings"><div className="printing-title"><h3>{id?'Versi Cetak':'Printings'}</h3><div>{languages.map(item=><button type="button" key={item} className={language===item?'active':''} onClick={()=>onLanguageChange(item)}>{item}</button>)}</div></div><div className="printing-strip">{visible.map(item=>{const label=printingLabel(item.variant);return <div className="printing-option" key={item.id}><button type="button" className={`printing-choice ${item.id===selectedId?'selected':''}`} onClick={()=>onSelect(item.id)}>{renderCard(item)}<span>{id&&label==='Standard'?'Standar':label}</span></button>{vaultCard&&<PrintingVaultControl printing={item} card={vaultCard} collection={collection} signedIn={session?true:signedIn} busy={busyPrinting===item.id} locale={locale} onChange={changePrinting}/>}</div>})}</div></section>;
+  return <section className="viewer-printings"><div className="printing-title"><h3>{id?'Versi Cetak':'Printings'}</h3><div aria-label={id?'Bahasa':'Language'}>{languages.map(item=><button type="button" key={item} aria-pressed={language===item} className={language===item?'active':''} onClick={()=>onLanguageChange(item)}>{item==='JP'?'日本語 · JP':item==='ID'?'Indonesia · ID':'English · EN'}</button>)}</div></div><div className="printing-strip">{visible.map(item=>{const label=printingLabel(item.variant);return <div className="printing-option" key={item.id}><button type="button" className={`printing-choice ${item.id===selectedId?'selected':''}`} aria-pressed={item.id===selectedId} onClick={()=>onSelect(item.id)}>{renderCard(item)}<span>{id&&label==='Standard'?'Standar':label}</span></button>{vaultCard&&<PrintingVaultControl printing={item} card={vaultCard} collection={collection} signedIn={session?true:signedIn} busy={busyPrinting===item.id} locale={locale} onChange={changePrinting}/>}</div>})}</div></section>;
 }

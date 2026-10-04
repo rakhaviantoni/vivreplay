@@ -7,12 +7,12 @@ import {
   BookOpenIcon as BookOpen,
   ListDashesIcon as ListIcon,
   XIcon as X,
-  FunnelIcon as Filter,
   StarIcon as Star,
 } from '@phosphor-icons/react';
-import { SETS_CATALOG } from '@/packages/card-data/catalog';
+import { SETS_CATALOG, colors, cards } from '@/packages/card-data/catalog';
 import { GRADING_PROVIDERS } from '@/packages/domain';
 import type { VaultFilterState, VaultViewMode } from './types';
+import { MultiFilter, Picker } from '../catalog';
 
 interface VaultFiltersProps {
   filters: VaultFilterState;
@@ -37,12 +37,12 @@ export function VaultFilters({
     filters.setCode !== 'all' ||
     filters.language !== 'all' ||
     filters.rarity !== 'all' ||
+    filters.cardType !== 'all' ||
     filters.color !== 'all' ||
     filters.typeFilter !== 'all' ||
     filters.gradingProvider !== 'all' ||
     filters.grade !== 'all' ||
-    filters.favoritesOnly ||
-    filters.ownership !== 'all'
+    filters.favoritesOnly
   );
 
   const resetFilters = () => {
@@ -52,12 +52,12 @@ export function VaultFilters({
       setCode: 'all',
       language: 'all',
       rarity: 'all',
+      cardType: 'all',
       color: 'all',
       typeFilter: 'all',
       gradingProvider: 'all',
       grade: 'all',
       favoritesOnly: false,
-      ownership: 'all',
     }));
   };
 
@@ -83,80 +83,30 @@ export function VaultFilters({
           </button>
         )}
       </div>
+      <span className="vault-filter-count" aria-live="polite">{totalFilteredCount} {t('slots','slot')}</span>
 
       {/* Filter Dropdowns */}
       <div className="vault-toolbar-filters">
         {/* Set Filter */}
-        <select
-          className="vault-select-compact"
-          value={filters.setCode}
-          onChange={e => onChangeFilters(prev => ({ ...prev, setCode: e.target.value }))}
-          aria-label={t('Filter by set','Filter berdasarkan set')}
-        >
-          <option value="all">{t('All Sets','Semua Set')}</option>
-          {SETS_CATALOG.map(s => (
-            <option key={s.code} value={s.code}>
-              {s.code} · {s.name}
-            </option>
-          ))}
-        </select>
+        <MultiFilter label="Set" values={SETS_CATALOG.map(set=>({value:set.code,label:`${set.code} · ${set.name}`}))} selected={filters.setCode==='all'?[]:[filters.setCode]} onToggle={value=>onChangeFilters(prev=>({...prev,setCode:prev.setCode===value?'all':value}))} searchPlaceholder={t('Find a set','Cari set')} />
 
         {/* Language Filter */}
-        <select
-          className="vault-select-compact"
-          value={filters.language}
-          onChange={e => onChangeFilters(prev => ({ ...prev, language: e.target.value }))}
-          aria-label={t('Filter by language','Filter berdasarkan bahasa')}
-        >
-          <option value="all">{t('All Langs','Semua Bahasa')}</option>
-          <option value="JP">Japanese (JP)</option>
-          <option value="EN">English (EN)</option>
-        </select>
+        <Picker value={filters.language} onChange={value => onChangeFilters(prev => ({ ...prev, language: value }))} label={t('Filter by language','Filter berdasarkan bahasa')} options={[{value:'all',label:t('All Languages','Semua Bahasa')},{value:'JP',label:'Japanese (JP)'},{value:'EN',label:'English (EN)'}]} />
 
         {/* Type Filter: Raw vs Slabs */}
-        <select
-          className="vault-select-compact"
-          value={filters.typeFilter}
-          onChange={e => onChangeFilters(prev => ({ ...prev, typeFilter: e.target.value as any }))}
-          aria-label={t('Filter by raw or slab','Filter kartu reguler atau slab')}
-        >
-          <option value="all">{t('Raw & Slabs','Reguler & Slab')}</option>
-          <option value="raw">{t('Raw Only','Hanya Reguler')}</option>
-          <option value="graded">{t('Slabs Only','Hanya Slab')}</option>
-        </select>
+        <Picker value={filters.typeFilter} onChange={value => onChangeFilters(prev => ({ ...prev, typeFilter: value as VaultFilterState['typeFilter'] }))} label={t('Filter by raw or slab','Filter kartu reguler atau slab')} options={[{value:'all',label:t('Raw & Slabs','Reguler & Slab')},{value:'raw',label:t('Raw Only','Hanya Reguler')},{value:'graded',label:t('Slabs Only','Hanya Slab')}]} />
 
         {/* Grading Provider (if slabs or all) */}
         {filters.typeFilter !== 'raw' && (
-          <select
-            className="vault-select-compact"
-            value={filters.gradingProvider}
-            onChange={e => onChangeFilters(prev => ({ ...prev, gradingProvider: e.target.value }))}
-            aria-label={t('Filter by grading provider','Filter berdasarkan grading')}
-          >
-            <option value="all">{t('All Graders','Semua Grader')}</option>
-            {GRADING_PROVIDERS.map(p => (
-              <option key={p.id} value={p.id}>
-                {p.shortName}
-              </option>
-            ))}
-          </select>
+          <Picker value={filters.gradingProvider} onChange={value => onChangeFilters(prev => ({ ...prev, gradingProvider: value }))} label={t('Filter by grading provider','Filter berdasarkan grading')} options={[{value:'all',label:t('All Graders','Semua Grader')},...GRADING_PROVIDERS.map(provider=>({value:provider.id,label:provider.shortName}))]} />
         )}
 
         {/* Rarity Filter */}
-        <select
-          className="vault-select-compact"
-          value={filters.rarity}
-          onChange={e => onChangeFilters(prev => ({ ...prev, rarity: e.target.value }))}
-          aria-label={t('Filter by rarity','Filter berdasarkan kelangkaan')}
-        >
-          <option value="all">{t('All Rarities','Semua Kelangkaan')}</option>
-          <option value="SEC">SEC (Secret Rare)</option>
-          <option value="L">L (Leader)</option>
-          <option value="SR">SR (Super Rare)</option>
-          <option value="R">R (Rare)</option>
-          <option value="UC">UC (Uncommon)</option>
-          <option value="C">C (Common)</option>
-        </select>
+        <Picker value={filters.rarity} onChange={value => onChangeFilters(prev => ({ ...prev, rarity: value }))} label={t('Filter by rarity','Filter berdasarkan kelangkaan')} options={[{value:'all',label:t('All Rarities','Semua Kelangkaan')},...[...new Set(cards.map(card=>card.rarity).filter(Boolean))].sort().map(rarity=>({value:rarity,label:rarity}))]} />
+
+        <Picker value={filters.color} onChange={value => onChangeFilters(prev => ({ ...prev, color: value }))} label={t('Filter by color','Filter berdasarkan warna')} options={[{value:'all',label:t('All Colors','Semua Warna')},...Object.keys(colors).map(color=>({value:color,label:color}))]} />
+        <Picker value={filters.cardType} onChange={value => onChangeFilters(prev => ({ ...prev, cardType: value }))} label={t('Filter by card type','Filter berdasarkan jenis kartu')} options={[{value:'all',label:t('All Card Types','Semua Jenis Kartu')},...[...new Set(cards.map(card=>card.type))].sort().map(type=>({value:type,label:type}))]} />
+        {filters.typeFilter === 'graded' && <Picker value={filters.grade} onChange={value => onChangeFilters(prev => ({ ...prev, grade: value }))} label={t('Filter by grade','Filter berdasarkan grade')} options={[{value:'all',label:t('All Grades','Semua Grade')},...['10','9.5','9','8.5','8','7','6','5'].map(grade=>({value:grade,label:grade}))]} />}
 
         {/* Showcase / Favorites Toggle */}
         <button
@@ -177,19 +127,9 @@ export function VaultFilters({
         </button>
 
         {/* Sort Dropdown */}
-        <select
-          className="vault-select-compact"
-          value={filters.sort}
-          onChange={e => onChangeFilters(prev => ({ ...prev, sort: e.target.value as any }))}
-          aria-label={t('Sort collection','Urutkan koleksi')}
-        >
-          <option value="recently_added">{t('Recently Added','Baru Ditambahkan')}</option>
-          <option value="set_order">{t('Set Order','Urutan Set')}</option>
-          <option value="value_high">{t('Value: High to Low','Nilai: Tertinggi ke Terendah')}</option>
-          <option value="value_low">{t('Value: Low to High','Nilai: Terendah ke Tertinggi')}</option>
-          <option value="name">{t('Name (A-Z)','Nama (A-Z)')}</option>
-          <option value="grade">{t('Grade (10 - 1)','Grade (10 - 1)')}</option>
-        </select>
+        <Picker value={filters.sort} onChange={value => onChangeFilters(prev => ({ ...prev, sort: value as VaultFilterState['sort'] }))} label={t('Sort collection','Urutkan koleksi')} options={[
+          {value:'recently_added',label:t('Recently Added','Baru Ditambahkan')},{value:'set_order',label:t('Set Order','Urutan Set')},{value:'value_high',label:t('Market price: High to Low','Harga pasar: Tertinggi')},{value:'value_low',label:t('Market price: Low to High','Harga pasar: Terendah')},{value:'name',label:t('Name (A-Z)','Nama (A-Z)')},{value:'grade',label:t('Grade (10 - 1)','Grade (10 - 1)')}
+        ]} />
 
         {/* Reset Filter Button if active */}
         {hasActiveFilters && (

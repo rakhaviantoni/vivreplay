@@ -1,12 +1,12 @@
 # Cloudflare and Supabase setup
 
-Supabase remains the canonical card catalog and fallback. Cloudflare R2's private `tcg-card-images` bucket now holds the canonical catalog card images; Cloudflare runs the web application and keeps the existing D1-backed collection flows until those user-owned records are migrated deliberately.
+Supabase is the canonical card catalog and private card-image store. Cloudflare runs the web application, proxies catalog images from Supabase Storage with edge caching, and keeps the existing D1-backed collection flows until those user-owned records are migrated deliberately.
 
 1. Run `supabase/migrations/0001_catalog_import.sql`, `supabase/migrations/0002_optcg_card_fields.sql`, `supabase/migrations/0003_webp_variants.sql`, and `supabase/migrations/0004_normalized_card_catalog.sql` in the Supabase SQL editor, in that order.
 2. Create a Supabase secret key in Project Settings, API Keys. Set it only as `SUPABASE_SECRET_KEY` in the trusted importer environment.
 3. Run `npx tsx scripts/import-optcg-to-supabase.ts` once with the URL and secret key available. The script downloads images with six concurrent workers and writes WebP `thumb` (180px), `small` (420px), and `large` (960px) variants to the private Supabase bucket.
 4. Run `node --env-file=.env.local --import tsx scripts/import-oplay-jp-images.ts` to derive and verify JP `small` image URLs for every saved EN printing. Only images returning HTTP 200 create JP printing and asset-source records.
-4. In Cloudflare Sites, preserve the `DB` D1 binding and bind `CARD_IMAGES` to the private `tcg-card-images` R2 bucket. The catalog image route reads R2 first and falls back to Supabase while the source objects are retained. Add `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SECRET_KEY` as encrypted Worker secrets; never expose the secret key to client code or a public binding. Site artwork and private slab photos still use Supabase Storage until their routes are migrated separately.
+5. In Cloudflare, preserve the `DB` D1 binding and set `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SECRET_KEY` as encrypted Worker secrets; never expose the secret key to client code or a public binding. The card-image route proxies the private Supabase objects and caches successful responses at the edge.
 
 ## Deck Coach
 
@@ -15,7 +15,7 @@ Set `AZEKHA_AI_GATEWAY_URL`, `AZEKHA_AI_GATEWAY_TOKEN`, and optionally `AZEKHA_A
 Apply `drizzle/0002_ai_coach_requests.sql` to D1 before enabling the feature. It creates the private coach audit trail used in Admin, including the signed-in account when present, source IP, user agent, locale, model, question, deck context summary, result status, and response timing.
 
 Set `ADMIN_EMAILS` to a comma-separated list of administrator email addresses. It gates the Deck Coach audit endpoint in Admin.
-5. Add a Cloudflare Cron Trigger or Workflow that invokes the protected importer route. Use a daily schedule at first and retain raw-import and failure metrics.
+6. Add a Cloudflare Cron Trigger or Workflow that invokes the protected importer route. Use a daily schedule at first and retain raw-import and failure metrics.
 
 The browser uses only `NEXT_PUBLIC_SUPABASE_URL` and the publishable key. The secret key bypasses Supabase RLS and is required only by the trusted importer. Catalog tables have public read policies; their write paths stay server-only. Stored image assets remain private and are not enabled for display until review approves their provenance.
 

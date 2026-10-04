@@ -11,9 +11,11 @@ import {CardPreviewModal} from './card-preview-modal';
 import {ShareButton} from './share';
 import {MarketTimestamp} from './market-timestamp';
 import {authClient} from '@/lib/auth-client';
+import {TurnstileField,turnstileEnabled,turnstileHeaders} from './turnstile-field';
 import {toast} from 'sonner';
 import {getDaysUntilExpiration, isListingExpired} from '@/lib/market/policy';
 import {FeedbackLaunchButton} from './feedback-launch';
+import {AddEditItemModal} from './vault/modals/add-edit-item-modal';
 
 type CourierRate={courier_name:string;courier_service_name:string;price:number;duration?:string;max_km?:number};
 const COURIER_LABELS:Record<string,string>={'jne':'JNE Express','jnt':'J&T Express','sicepat':'SiCepat Ekspres','anteraja':'Anteraja','tiki':'TIKI','pos':'Pos Indonesia','lion':'Lion Parcel','ninja':'Ninja Xpress','wahana':'Wahana Express','grab':'GrabExpress','gojek':'GoSend','grab_instant':'Grab Instant','gojek_instant':'Gojek Instant'};
@@ -191,8 +193,11 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
   const [selected,setSelected]=useState<Record<string,number>>(()=>singleCopyListing?{[items[0].id]:1}:{});
   const [customPrices,setCustomPrices]=useState<Record<string,number>>({});
   const [preview,setPreview]=useState<Card>();
+  const [vaultTarget,setVaultTarget]=useState<MarketListingCard|null>(null);
   const {data:session}=authClient.useSession();
   const [submitting,setSubmitting]=useState(false); const [submitted,setSubmitted]=useState(false);
+  const [turnstileToken,setTurnstileToken]=useState('');const [turnstileResetKey,setTurnstileResetKey]=useState(0);
+  const [verificationOpen,setVerificationOpen]=useState(false);
   const [language,setLanguage]=useState<'EN'|'ID'>('EN');
 
   useEffect(()=>{
@@ -274,7 +279,8 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
   const actionLabel=isBuying?t('Make offer','Ajukan penawaran'):t('Offer cards','Tawarkan kartu');
   const continueOffer=async()=>{
     if(!session){window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));return;}
-    setSubmitting(true);try{const offerItems=items.flatMap(item=>{const quantity=selected[item.id]??0;if(!quantity)return[];const unitAmount=getUnitPrice(item);return [{printingId:item.id,quantity,unitAmount}];});const response=await fetch(`/api/listings/${encodeURIComponent(listingId)}/offers`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({type:isBuying?'BUY':'SELL',items:offerItems,amount:selectedTotal,currency})});const payload=await response.json() as {error?:string};if(!response.ok)throw new Error(payload.error??t('We could not send your offer.','Gagal mengirimkan penawaran Anda.'));setSubmitted(true);toast.success(isBuying?t('Offer sent to the seller.','Penawaran dikirim ke penjual.'):t('Your cards were offered to the buyer.','Kartu Anda ditawarkan ke pembeli.'));}catch(error){toast.error(error instanceof Error?error.message:t('We could not send your offer.','Gagal mengirimkan penawaran Anda.'))}finally{setSubmitting(false)}
+    if(turnstileEnabled&&!turnstileToken){setVerificationOpen(true);return;}
+    setSubmitting(true);try{const offerItems=items.flatMap(item=>{const quantity=selected[item.id]??0;if(!quantity)return[];const unitAmount=getUnitPrice(item);return [{printingId:item.id,quantity,unitAmount}];});const response=await fetch(`/api/listings/${encodeURIComponent(listingId)}/offers`,{method:'POST',headers:{'content-type':'application/json',...turnstileHeaders(turnstileToken)},body:JSON.stringify({type:isBuying?'BUY':'SELL',items:offerItems,amount:selectedTotal,currency})});const payload=await response.json() as {error?:string};if(!response.ok)throw new Error(payload.error??t('We could not send your offer.','Gagal mengirimkan penawaran Anda.'));setSubmitted(true);setVerificationOpen(false);toast.success(isBuying?t('Offer sent to the seller.','Penawaran dikirim ke penjual.'):t('Your cards were offered to the buyer.','Kartu Anda ditawarkan ke pembeli.'));}catch(error){toast.error(error instanceof Error?error.message:t('We could not send your offer.','Gagal mengirimkan penawaran Anda.'))}finally{setTurnstileToken('');setTurnstileResetKey(value=>value+1);setSubmitting(false)}
   };
   const buySelected=()=>{
     if(!session){window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));return;}
@@ -377,6 +383,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
             <small>{item.card.code} · {item.card.rarity} · {item.language}</small>
             <p><span>{item.condition}</span>{!readOnly&&!singleCopyListing&&<em>{amount}/{item.quantity} {t('selected','dipilih')}</em>}</p>
             <b>{formatMoney(item.unitAmount,currency)} {t('each','per kartu')}</b>
+            {listingType==='WTS'&&<button type="button" className="market-listing-add-vault" onClick={()=>setVaultTarget(item)}><Plus size={13}/>{t('Add owned copy to Vault','Simpan salinan milik Anda ke Vault')}</button>}
 
             {!readOnly&&amount>0 && (
               <div className="market-card-offer">
@@ -452,6 +459,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
       })}
     </div>
     {preview&&<CardPreviewModal card={preview} language={preview.language==='JP'?'JP':'EN'} cards={items.map(item=>item.card)} onClose={()=>setPreview(undefined)} onNavigate={setPreview}/>}
+    <AddEditItemModal key={`${vaultTarget?.id??'market-listing-card'}-${Boolean(vaultTarget)}`} open={Boolean(vaultTarget)} onClose={()=>setVaultTarget(null)} onSaved={()=>router.refresh()} initialCard={vaultTarget?.card} initialPrintingId={vaultTarget?.id} isAnonymous={!session?.user} language={language}/>
     {!readOnly&&<footer className="market-listing-selection" aria-live="polite">
       <div className="market-listing-selection-info">
         <span>{submitted?t('Offer sent - awaiting a response.','Penawaran terkirim - menunggu tanggapan.'):selectedCount?(language==='ID'?`${selectedCount} kartu dipilih`:`${selectedCount} ${selectedCount===1?'card':'cards'} selected`):t('Select cards to calculate a total','Pilih kartu untuk menghitung total')}</span>
@@ -490,6 +498,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
         />
       </div>
     </footer>}
+    {verificationOpen&&<div className="market-offer-verification-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget){setVerificationOpen(false);setTurnstileToken('');setTurnstileResetKey(value=>value+1)}}}><section className="market-offer-verification" role="dialog" aria-modal="true" aria-labelledby="market-offer-verification-title"><h2 id="market-offer-verification-title">{t('Security check','Pemeriksaan keamanan')}</h2><p>{t('Complete this check to send your selected card offer.','Selesaikan pemeriksaan untuk mengirim penawaran kartu.')}</p><TurnstileField onToken={setTurnstileToken} resetKey={turnstileResetKey}/><div><button type="button" className="button secondary" onClick={()=>{setVerificationOpen(false);setTurnstileToken('');setTurnstileResetKey(value=>value+1)}}>{t('Cancel','Batal')}</button><button type="button" className="button" disabled={!turnstileToken||submitting} onClick={()=>void continueOffer()}>{submitting?t('Sending…','Mengirim…'):t('Send offer','Kirim penawaran')}</button></div></section></div>}
   </section>;
 }
 

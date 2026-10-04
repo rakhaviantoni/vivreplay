@@ -3,7 +3,11 @@ import type { CollectionItem } from '@/packages/domain';
 
 export type VaultViewMode = 'binder' | 'grid' | 'list';
 
-export type VaultTab = 'collection' | 'slabs' | 'sets' | 'wishlist' | 'portfolio' | 'activity';
+export type VaultTab = 'collection' | 'listings' | 'slabs' | 'sets' | 'wishlist' | 'portfolio' | 'activity';
+
+export type VaultPrinting = {id:string;language:string;variant:string;printing_code?:string;card_image_url?:string|null;rarity?:string;set_code?:string};
+export type VaultCard = Card & {availablePrintings?:VaultPrinting[]};
+export type VaultMarketPrice={amount:number;currency:string;observedAt:string;observationCount:number;previousAmount:number|null;previousCurrency:string|null;previousObservedAt:string|null;source?:'yuyutei'|'pricecharting';sourceUrl?:string};
 
 export type PrivacySettings = {
   collection: 'public' | 'private';
@@ -35,21 +39,40 @@ export type VaultStats = {
   totalAcquisitionCost: number;
   estimatedValue: number;
   unrealizedChangeAmount: number;
-  unrealizedChangePercent: number;
-  change30DayPercent: number;
-  valuationConfidence: 'high' | 'medium' | 'low';
+  unrealizedChangePercent: number | null;
+  change30DayPercent: number | null;
+  change30DayCount:number;
+  marketPricedCount:number;
+  valuedAcquisitionCost:number;
   observationCount: number;
-  lastUpdated: string;
+  lastUpdated: string | null;
 };
 
 export type EnrichedCollectionItem = CollectionItem & {
-  card: Card;
+  card: VaultCard;
   estimatedValue: number;
   gainLossAmount: number;
   gainLossPercent: number;
-  confidence: 'high' | 'medium' | 'low';
+  hasMarketEstimate:boolean;
+  marketPricePerCard:number|null;
+  marketPriceCurrency:string|null;
+  marketPriceSource:'yuyutei'|'pricecharting'|null;
+  marketPriceUrl:string|null;
+  marketObservedAt:string|null;
+  marketObservationsCount:number;
+  marketPreviousValue:number|null;
   observationsCount: number;
   isFavorite?: boolean;
+};
+
+export type VaultStackGroup = {
+  item: EnrichedCollectionItem;
+  items: EnrichedCollectionItem[];
+  quantity: number;
+  estimatedValue: number;
+  languageLabel: string;
+  conditionLabel: string;
+  printingLabel: string;
 };
 
 export type SetProgress = {

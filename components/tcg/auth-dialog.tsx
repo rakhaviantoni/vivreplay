@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import { authClient } from '@/lib/auth-client';
 import { VivreMark } from './brand-assets';
+import {TurnstileField,turnstileEnabled,turnstileHeaders} from './turnstile-field';
 
 type Mode = 'sign-in' | 'sign-up';
 
@@ -29,6 +30,8 @@ export function AuthDialog({ language }: { language: 'EN' | 'ID' }) {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [turnstileToken,setTurnstileToken]=useState('');
+  const [turnstileResetKey,setTurnstileResetKey]=useState(0);
 
   const isId = language === 'ID';
   const returnTo = path.startsWith('/') && !path.startsWith('//') ? path : '/profile';
@@ -87,6 +90,7 @@ export function AuthDialog({ language }: { language: 'EN' | 'ID' }) {
     setMode(next);
     setError('');
     setNotice('');
+    setTurnstileToken('');setTurnstileResetKey(value=>value+1);
     setShowPassword(false);
   };
 
@@ -94,8 +98,9 @@ export function AuthDialog({ language }: { language: 'EN' | 'ID' }) {
     setOpen(next);
     if (!next) {
       setError('');
-      setNotice('');
-      setShowPassword(false);
+    setNotice('');
+    setTurnstileToken('');setTurnstileResetKey(value=>value+1);
+    setShowPassword(false);
     }
   };
 
@@ -105,6 +110,7 @@ export function AuthDialog({ language }: { language: 'EN' | 'ID' }) {
       setMode(requested === 'sign-in' ? 'sign-in' : 'sign-up');
       setError('');
       setNotice('');
+      setTurnstileToken('');setTurnstileResetKey(value=>value+1);
       setShowPassword(false);
       setOpen(true);
     };
@@ -117,6 +123,7 @@ export function AuthDialog({ language }: { language: 'EN' | 'ID' }) {
     setBusy(true);
     setError('');
     setNotice('');
+    if(turnstileEnabled&&!turnstileToken){setError('Complete the security check first.');setBusy(false);return;}
 
     const form = new FormData(event.currentTarget);
     const email = String(form.get('email') ?? '').trim();
@@ -127,7 +134,9 @@ export function AuthDialog({ language }: { language: 'EN' | 'ID' }) {
         email,
         password,
         callbackURL: returnTo,
+        fetchOptions:{headers:turnstileHeaders(turnstileToken)},
       });
+      setTurnstileToken('');setTurnstileResetKey(value=>value+1);
 
       if (authError) {
         setError(authError.message ?? copy.errorSignIn);
@@ -147,7 +156,9 @@ export function AuthDialog({ language }: { language: 'EN' | 'ID' }) {
       email,
       password,
       callbackURL: `${window.location.origin}/sign-in?verified=1&return_to=${encodeURIComponent(returnTo)}`,
+      fetchOptions:{headers:turnstileHeaders(turnstileToken)},
     });
+    setTurnstileToken('');setTurnstileResetKey(value=>value+1);
 
     if (authError) {
       setError(authError.message ?? copy.errorSignUp);
@@ -160,10 +171,13 @@ export function AuthDialog({ language }: { language: 'EN' | 'ID' }) {
   async function google() {
     setBusy(true);
     setError('');
+    if(turnstileEnabled&&!turnstileToken){setError('Complete the security check first.');setBusy(false);return;}
     const { error: authError } = await authClient.signIn.social({
       provider: 'google',
       callbackURL: `${window.location.origin}${returnTo}`,
+      fetchOptions:{headers:turnstileHeaders(turnstileToken)},
     });
+    setTurnstileToken('');setTurnstileResetKey(value=>value+1);
 
     if (authError) {
       setError(authError.message ?? copy.errorGoogle);
@@ -199,6 +213,7 @@ export function AuthDialog({ language }: { language: 'EN' | 'ID' }) {
         </DialogHeader>
 
         <div className="auth-dialog-body">
+          <TurnstileField onToken={setTurnstileToken} resetKey={turnstileResetKey}/>
           {notice ? (
             <div className="auth-success" role="status">
               <p>{notice}</p>
