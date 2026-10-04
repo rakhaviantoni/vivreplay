@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { renderAuthEmail, AuthEmailAction, getAppUrl } from "@/lib/auth-email";
 import {isCurrentUserAdmin} from '@/lib/server/admin-auth';
 import {marketEmailEvents,type MarketEmailEvent} from '@/lib/market/email-template-types';
-import {renderMarketEmail} from '@/lib/server/market-notifications';
+import {renderMarketEmail,sampleNotificationDetails} from '@/lib/server/market-notifications';
 
 export async function GET(request: NextRequest) {
   if(!await isCurrentUserAdmin())return Response.json({error:'Admin access is required.'},{status:403});
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     if(action.startsWith('market:')){
       const event=action.slice('market:'.length) as MarketEmailEvent;
       if(!marketEmailEvents.includes(event))return null;
-      return{action,...renderMarketEmail(event,listingTitle,'sample-market-thread',locale,to,theme),to,name:listingTitle};
+      return{action,...renderMarketEmail(event,listingTitle,'sample-market-thread',locale,to,theme,sampleNotificationDetails(event,locale)),to,name:listingTitle};
     }
     if(!actions.includes(action as AuthEmailAction))return null;
     const authAction=action as AuthEmailAction;
