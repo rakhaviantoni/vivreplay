@@ -149,7 +149,7 @@ export function AdminDashboard(){
                 <div>
                   <div><p>Storage coverage</p><strong>{coverage}%</strong></div>
                   <i><b style={{width:`${coverage}%`}}/></i>
-                  <small>{number.format(data.summary.storedSmall)} locally served small assets of {number.format(data.summary.printings)} printings</small>
+                  <small>{number.format(data.summary.storedSmall)} printings with an available image of {number.format(data.summary.printings)}</small>
                 </div>
               </section>
 
