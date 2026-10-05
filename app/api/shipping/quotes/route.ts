@@ -90,7 +90,12 @@ export async function POST(request:Request){
       const from=validCoordinates(row.originLatitude,row.originLongitude);const to=validCoordinates(destinationLatitude,destinationLongitude);
       if(from&&to)requests.push(biteshipRequest('/rates/couriers',{method:'POST',body:JSON.stringify({origin_latitude:from.latitude,origin_longitude:from.longitude,destination_latitude:to.latitude,destination_longitude:to.longitude,couriers:instantCouriers.join(','),items:packageItems})}));
     }
-    const responses=await Promise.all(requests);
-    return Response.json({pricing:responses.flatMap(response=>response.pricing??[])});
+    const responses=await Promise.allSettled(requests);
+    const available=responses.flatMap(result=>result.status==='fulfilled'?result.value.pricing??[]:[]);
+    if(!available.length){
+      const failure=responses.find((result):result is PromiseRejectedResult=>result.status==='rejected');
+      if(failure)throw failure.reason;
+    }
+    return Response.json({pricing:available,couriers:finalCouriers});
   }catch(error){return errorResponse(error)}
 }

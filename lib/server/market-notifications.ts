@@ -6,7 +6,7 @@ import {marketCardThumbnails} from '@/lib/server/market-card-thumbnails';
 
 type Event=MarketEmailEvent;
 type NotificationItem={name:string;code:string;language:string;variant:string;rarity?:string;condition?:string;quantity:number;unitAmount?:number};
-export type NotificationDetails={participant?:string;amount?:number;currency?:string;itemCount?:number;message?:string;photoCount?:number;orderCode?:string;items?:NotificationItem[];subtotal?:number;shippingFee?:number;courier?:string;trackingNumber?:string;city?:string;postalCode?:string;shippingDeadline?:string};
+export type NotificationDetails={participant?:string;amount?:number;currency?:string;itemCount?:number;message?:string;photoCount?:number;orderCode?:string;items?:NotificationItem[];subtotal?:number;shippingFee?:number;courier?:string;trackingNumber?:string;trackingStatus?:string;city?:string;postalCode?:string;shippingDeadline?:string};
 
 const copy:Record<Event,{en:{subject:string;line:string;cta:string};id:{subject:string;line:string;cta:string}}>= {
   'new-offer':{en:{subject:'New offer for your listing',line:'A collector made an offer on your listing',cta:'Review offer'},id:{subject:'Penawaran baru untuk listing Anda',line:'Kolektor mengajukan penawaran untuk listing Anda',cta:'Lihat penawaran'}},
@@ -19,8 +19,11 @@ const copy:Record<Event,{en:{subject:string;line:string;cta:string};id:{subject:
   'order-paid':{en:{subject:'Your Market order is paid',line:'Your payment is confirmed, and the seller will prepare your cards for shipping.',cta:'View order'},id:{subject:'Pesanan Market Anda sudah dibayar',line:'Pembayaran Anda sudah diterima, penjual akan menyiapkan kartu untuk dikirim.',cta:'Lihat pesanan'}},
   'order-seller-paid':{en:{subject:'Order paid, arrange shipping',line:'The buyer paid for your order',cta:'Prepare shipment'},id:{subject:'Pesanan dibayar, atur pengiriman',line:'Pembeli sudah membayar pesanan Anda',cta:'Siapkan pengiriman'}},
   'order-shipped':{en:{subject:'Your Market order is on its way',line:'The seller shipped your order',cta:'Track shipment'},id:{subject:'Pesanan Market Anda sedang dikirim',line:'Penjual telah mengirim pesanan Anda',cta:'Lacak pengiriman'}},
+  'order-tracking':{en:{subject:'Shipment update',line:'The carrier updated your shipment',cta:'Track shipment'},id:{subject:'Pembaruan pengiriman',line:'Kurir memperbarui status paket Anda',cta:'Lacak pengiriman'}},
   'order-received':{en:{subject:'The buyer received their order',line:'The buyer confirmed delivery',cta:'View order'},id:{subject:'Pembeli sudah menerima pesanan',line:'Pembeli mengonfirmasi pengiriman',cta:'Lihat pesanan'}},
 };
+
+const trackingStatusCopy:Record<string,{en:string;id:string}>={picking_up:{en:'The courier is on the way to collect your parcel',id:'Kurir sedang menuju lokasi penjual'},picked:{en:'Picked up by the courier',id:'Paket sudah dijemput kurir'},in_transit:{en:'In transit to you',id:'Paket sedang dalam perjalanan'},dropping_off:{en:'Out for delivery',id:'Paket sedang diantar'},delivered:{en:'Delivered',id:'Paket sudah diantar'},on_hold:{en:'Shipment is on hold',id:'Pengiriman tertahan'},rejected:{en:'Shipment was rejected',id:'Pengiriman ditolak'},cancelled:{en:'Shipment was cancelled',id:'Pengiriman dibatalkan'},return_in_transit:{en:'Returning to the seller',id:'Paket sedang dikembalikan ke penjual'},returned:{en:'Returned to the seller',id:'Paket sudah dikembalikan ke penjual'},disposed:{en:'Shipment was disposed of by the courier',id:'Paket dimusnahkan oleh kurir'},courier_not_found:{en:'No courier was assigned',id:'Kurir belum ditemukan'}};
 
 function escapeHtml(value:string){return value.replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]??char))}
 
@@ -100,6 +103,12 @@ function personalizedCopy(event:Event,details:NotificationDetails|undefined,titl
       subject=id?`Pesanan ${details?.orderCode??title} sedang dikirim`:`Order ${details?.orderCode??title} is on its way`;
       line=id?`Paket dikirim${details?.courier?` dengan ${details.courier}`:''}${details?.trackingNumber?`, nomor resi ${details.trackingNumber}`:''}.`:`Your parcel was shipped${details?.courier?` with ${details.courier}`:''}${details?.trackingNumber?`, tracking number ${details.trackingNumber}`:''}.`;
       cta=id?'Lacak pengiriman':'Track shipment';break;
+    case 'order-tracking':{
+      const status=trackingStatusCopy[details?.trackingStatus??''];
+      subject=id?`Pembaruan pengiriman ${details?.orderCode??title}`:`Shipment update for ${details?.orderCode??title}`;
+      line=id?`${status?.id??'Status paket diperbarui'}${details?.courier?` oleh ${details.courier}`:''}${details?.trackingNumber?`, nomor resi ${details.trackingNumber}`:''}.`:`${status?.en??'Your parcel status changed'}${details?.courier?` with ${details.courier}`:''}${details?.trackingNumber?`, tracking number ${details.trackingNumber}`:''}.`;
+      cta=id?'Lacak pengiriman':'Track shipment';break;
+    }
     case 'order-received':
       subject=id?`${details?.orderCode??title} sudah diterima`:`${details?.orderCode??title} was delivered`;
       line=surface==='push'?(id?`${name||'Pembeli'} mengonfirmasi ${cards?`penerimaan ${cards} dari ${title}`:`penerimaan pesanan ${title}`}, kartu sudah masuk ke koleksinya`:`${name||'The buyer'} confirmed delivery${cards?` of ${cards}`:''} from ${title}, and the cards are now in their collection`):(id?'Pembeli sudah mengonfirmasi penerimaan pesanan, kartu kini tercatat di koleksinya.':'The buyer confirmed delivery, and the cards are now saved in their collection.');
@@ -115,13 +124,14 @@ export function renderMarketEmail(event:Event,listingTitle='Edward.Newgate (001)
   const title=escapeHtml(listingTitle);const safeUrl=escapeHtml(url);const safeRecipient=escapeHtml(recipient);
   const detail=eventDetail(event,details);
   const safeDetail=detail?escapeHtml(detail):'';
-  const eventHeading=event==='order-seller-paid'?(id?'Pesanan dibayar':'Order paid'):event==='order-shipped'?(id?'Pesanan dikirim':'Order shipped'):event==='order-paid'?(id?'Pembayaran diterima':'Payment received'):event==='order-received'?(id?'Pesanan diterima':'Delivery confirmed'):event==='new-offer'?(id?'Penawaran baru':'New offer'):event==='counteroffer'?(id?'Penawaran balik':'Counteroffer'):event==='accepted'?(id?'Penawaran diterima':'Offer accepted'):event==='declined'?(id?'Penawaran ditolak':'Offer declined'):event==='message'?(id?'Pesan baru':'New message'):event==='photo-request'?(id?'Permintaan foto':'Photo request'):(id?'Foto kartu dibagikan':'Card photos shared');
+  const eventHeading=event==='order-seller-paid'?(id?'Pesanan dibayar':'Order paid'):event==='order-shipped'?(id?'Pesanan dikirim':'Order shipped'):event==='order-tracking'?(id?'Status pengiriman':'Shipment status'):event==='order-paid'?(id?'Pembayaran diterima':'Payment received'):event==='order-received'?(id?'Pesanan diterima':'Delivery confirmed'):event==='new-offer'?(id?'Penawaran baru':'New offer'):event==='counteroffer'?(id?'Penawaran balik':'Counteroffer'):event==='accepted'?(id?'Penawaran diterima':'Offer accepted'):event==='declined'?(id?'Penawaran ditolak':'Offer declined'):event==='message'?(id?'Pesan baru':'New message'):event==='photo-request'?(id?'Permintaan foto':'Photo request'):(id?'Foto kartu dibagikan':'Card photos shared');
   const summaryRows:Array<[string,string]>=[];
   if(event.startsWith('order-')&&details?.orderCode){
     summaryRows.push([id?'Pesanan':'Order',details.orderCode]);
     if(details.participant)summaryRows.push([event==='order-paid'?(id?'Penjual':'Seller'):(id?'Pembeli':'Buyer'),details.participant]);
     if(details.subtotal!==undefined&&details.currency)summaryRows.push([id?'Subtotal':'Subtotal',formatAmount(details.subtotal,details.currency,locale)]);
     if(details.courier)summaryRows.push([id?'Kurir':'Courier',details.courier]);
+    if(event==='order-tracking'&&details.trackingStatus)summaryRows.push([id?'Status':'Status',trackingStatusCopy[details.trackingStatus]?.[id?'id':'en']??details.trackingStatus]);
     if(event==='order-paid'&&details.trackingNumber)summaryRows.push([id?'Nomor resi':'Tracking number',details.trackingNumber]);
     if(details.shippingFee!==undefined&&details.currency)summaryRows.push([id?'Ongkir':'Shipping',formatAmount(details.shippingFee,details.currency,locale)]);
     if(details.amount!==undefined&&details.currency)summaryRows.push([id?'Total dibayar':'Total paid',formatAmount(details.amount,details.currency,locale)]);
@@ -168,7 +178,7 @@ export async function sendMarketTestEmail(to:string,event:Event,name='Navigator'
 export function sampleNotificationDetails(event:Event,locale='en'):NotificationDetails{
   const id=locale.toLowerCase().startsWith('id');
   const items:NotificationItem[]=[{name:'Monkey.D.Luffy',code:'OP05-119',language:'JP',variant:'Alt art, p1',rarity:'SEC',condition:'NM',quantity:1,unitAmount:175000},{name:'Monkey.D.Luffy',code:'OP05-119',language:'EN',variant:'Standard',rarity:'SEC',condition:'NM',quantity:1,unitAmount:75000}];
-  if(event.startsWith('order-'))return{orderCode:'VPM-KREH2VS2VQ',amount:285000,currency:'IDR',subtotal:250000,shippingFee:35000,courier:'J&T EZ',city:'Jakarta Pusat',postalCode:'10110',shippingDeadline:event==='order-seller-paid'?shippingDeadlineFromPayment(new Date().toISOString(),locale):undefined,itemCount:2,items,participant:id?'Raka':'Raka Viantoni'};
+  if(event.startsWith('order-'))return{orderCode:'VPM-KREH2VS2VQ',amount:285000,currency:'IDR',subtotal:250000,shippingFee:35000,courier:'J&T EZ',trackingNumber:event==='order-tracking'?'JP1234567890':undefined,trackingStatus:event==='order-tracking'?'dropping_off':undefined,city:'Jakarta Pusat',postalCode:'10110',shippingDeadline:event==='order-seller-paid'?shippingDeadlineFromPayment(new Date().toISOString(),locale):undefined,itemCount:2,items,participant:id?'Raka':'Raka Viantoni'};
   if(event==='new-offer'||event==='counteroffer'||event==='accepted'||event==='declined')return{participant:id?'Dimas':'Dimas Pratama',amount:250000,currency:'IDR',itemCount:2,items};
   if(event==='message')return{participant:id?'Dimas':'Dimas Pratama',message:id?'Bisa kirim foto bagian belakang kartunya?':'Could you send a photo of the back of the card?',itemCount:2,items};
   if(event==='photo-request')return{participant:id?'Dimas':'Dimas Pratama',itemCount:2,items};
@@ -193,8 +203,8 @@ async function notificationDetails(event:Event,reference:string,locale='en'):Pro
     const row=await db().prepare(`SELECT o.id,o.amount,o.currency,o.items,o.details,o.subtotal,o.shipping_fee AS shippingFee,o.fulfilled_at AS paidAt,o.updated_at AS updatedAt,COALESCE(b.display_name,'Buyer') AS buyer,COALESCE(s.display_name,'Seller') AS seller
       FROM checkout_orders o LEFT JOIN profiles b ON b.id=o.buyer_id LEFT JOIN profiles s ON s.id=o.seller_id WHERE o.id=?`).bind(reference).first<{id:string;amount:number;currency:string;items:string;details:string|null;subtotal:number;shippingFee:number;paidAt:string|null;updatedAt:string;buyer:string;seller:string}>();
     if(!row)return undefined;
-    let shipping:{courierName?:string;courierServiceName?:string;trackingNumber?:string;tracking_number?:string;waybillId?:string;waybill_id?:string;city?:string;postalCode?:string}|undefined;try{shipping=JSON.parse(row.details||'{}') as typeof shipping}catch{}
-    return{orderCode:`VPM-${row.id.slice(0,8).toUpperCase()}`,amount:row.amount,currency:row.currency,subtotal:row.subtotal,shippingFee:row.shippingFee,itemCount:itemCount(row.items),items:await notificationItems(row.items),participant:event==='order-paid'?row.seller:row.buyer,courier:[shipping?.courierName,shipping?.courierServiceName].filter(Boolean).join(' '),trackingNumber:shipping?.trackingNumber??shipping?.tracking_number??shipping?.waybillId??shipping?.waybill_id,city:shipping?.city,postalCode:shipping?.postalCode,shippingDeadline:event==='order-seller-paid'?shippingDeadlineFromPayment(row.paidAt??row.updatedAt,locale):undefined};
+    let shipping:{courierName?:string;courierServiceName?:string;trackingNumber?:string;tracking_number?:string;waybillId?:string;waybill_id?:string;trackingStatus?:string;city?:string;postalCode?:string}|undefined;try{shipping=JSON.parse(row.details||'{}') as typeof shipping}catch{}
+    return{orderCode:`VPM-${row.id.slice(0,8).toUpperCase()}`,amount:row.amount,currency:row.currency,subtotal:row.subtotal,shippingFee:row.shippingFee,itemCount:itemCount(row.items),items:await notificationItems(row.items),participant:event==='order-paid'?row.seller:row.buyer,courier:[shipping?.courierName,shipping?.courierServiceName].filter(Boolean).join(' '),trackingNumber:shipping?.trackingNumber??shipping?.tracking_number??shipping?.waybillId??shipping?.waybill_id,trackingStatus:shipping?.trackingStatus as string|undefined,city:shipping?.city,postalCode:shipping?.postalCode,shippingDeadline:event==='order-seller-paid'?shippingDeadlineFromPayment(row.paidAt??row.updatedAt,locale):undefined};
   }
   if(event==='new-offer'||event==='counteroffer'||event==='accepted'||event==='declined'){
     if(event==='accepted'||event==='declined'){

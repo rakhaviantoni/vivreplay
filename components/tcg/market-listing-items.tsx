@@ -27,7 +27,8 @@ export function ShippingOptions({listingId,courierCount=0,variant='fact'}:{listi
   const [rates,setRates]=useState<CourierRate[]>([]);
   const [startingFee,setStartingFee]=useState<number|null>(null);
   const [loading,setLoading]=useState(false);
-  const [fetched,setFetched]=useState(false);
+  const [quoteState,setQuoteState]=useState<'idle'|'ready'|'needs-address'|'unavailable'|'error'>('idle');
+  const autoAttempted=useRef(false);
   const [language,setLanguage]=useState<'EN'|'ID'>('EN');
   const dialogRef=useRef<HTMLDivElement>(null);
   const triggerRef=useRef<HTMLElement>(null);
@@ -42,26 +43,32 @@ export function ShippingOptions({listingId,courierCount=0,variant='fact'}:{listi
 
   const t=(en:string,idStr:string)=>language==='ID'?idStr:en;
 
-  const loadRates=useCallback(async(showLoading:boolean)=>{
-    if(fetched)return;
-    if(courierCount===0)return;
+  const loadRates=useCallback(async(showLoading:boolean,force=false)=>{
+    if(loading||quoteState==='ready'||(!force&&autoAttempted.current))return;
+    if(courierCount===0){setQuoteState('unavailable');return;}
+    autoAttempted.current=true;
     if(showLoading)setLoading(true);
     try{
       const res=await fetch('/api/shipping/quotes',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({listingId})});
-      const data=await res.json() as {pricing?:CourierRate[];couriers?:string[];error?:string};
-      if(res.ok&&Array.isArray(data.pricing)&&data.pricing.length>0){
-        setRates(data.pricing);
-        const prices=data.pricing.map(rate=>rate.price).filter(price=>Number.isFinite(price)&&price>0);
+      const data=await res.json() as {pricing?:CourierRate[];couriers?:string[];destinationRequired?:boolean;error?:string};
+      if(!res.ok)throw new Error(data.error||t('Live rates could not be loaded.','Tarif pengiriman belum dapat dimuat.'));
+      if(data.destinationRequired){setRates([]);setStartingFee(null);setQuoteState('needs-address');return;}
+      if(Array.isArray(data.pricing)&&data.pricing.length>0){
+        const priced=data.pricing.filter(rate=>Number.isFinite(rate.price)&&rate.price>0);
+        setRates(priced);
+        const prices=priced.map(rate=>rate.price);
         setStartingFee(prices.length?Math.min(...prices):null);
+        setQuoteState(prices.length?'ready':'unavailable');
       }
-      else if(res.ok&&Array.isArray(data.couriers))setRates(data.couriers.map(id=>({courier_name:id,courier_service_name:COURIER_LABELS[id]??id,price:0})));
-    }catch{/* rates can be loaded when the buyer opens the panel */}finally{if(showLoading)setLoading(false);setFetched(true);}
-  },[courierCount,fetched,listingId]);
-  const openDialog=async()=>{setOpen(true);await loadRates(true)};
+      else{setRates([]);setStartingFee(null);setQuoteState('unavailable');}
+    }catch(error){setQuoteState('error');if(showLoading)toast.error(error instanceof Error?error.message:t('Live rates could not be loaded.','Tarif pengiriman belum dapat dimuat.'));}
+    finally{if(showLoading)setLoading(false);}
+  },[courierCount,listingId,loading,quoteState,language]);
+  const openDialog=async()=>{setOpen(true);await loadRates(true,true)};
 
   useEffect(()=>{
     const target=triggerRef.current;
-    if(!target||fetched||typeof IntersectionObserver==='undefined')return;
+    if(!target||quoteState==='ready'||autoAttempted.current||typeof IntersectionObserver==='undefined')return;
     const observer=new IntersectionObserver(entries=>{
       if(entries.some(entry=>entry.isIntersecting)){
         observer.disconnect();
@@ -70,7 +77,7 @@ export function ShippingOptions({listingId,courierCount=0,variant='fact'}:{listi
     },{rootMargin:'120px'});
     observer.observe(target);
     return()=>observer.disconnect();
-  },[loadRates,fetched]);
+  },[loadRates,quoteState]);
 
   useEffect(()=>{
     if(!open)return;
@@ -89,8 +96,8 @@ export function ShippingOptions({listingId,courierCount=0,variant='fact'}:{listi
   const activeRates=rates;
 
   const modal=open?(
-    <div className="shipping-options-backdrop" role="presentation" onClick={e=>{e.preventDefault();e.stopPropagation();setOpen(false);}}>
-      <div className="shipping-options-dialog" ref={dialogRef} role="dialog" aria-modal="true" aria-label={t('Shipping Options','Opsi Pengiriman')} onClick={e=>{e.preventDefault();e.stopPropagation();}}>
+    <div className="shipping-options-backdrop" role="presentation" onClick={e=>{e.stopPropagation();if(e.target===e.currentTarget)setOpen(false);}}>
+      <div className="shipping-options-dialog" ref={dialogRef} role="dialog" aria-modal="true" aria-label={t('Shipping Options','Opsi Pengiriman')} onClick={e=>e.stopPropagation()}>
         <header className="shipping-options-header">
           <strong>{t('Shipping Options','Opsi Pengiriman')}</strong>
           <button type="button" className="shipping-options-close" onClick={e=>{e.preventDefault();e.stopPropagation();setOpen(false);}} aria-label={t('Close','Tutup')}><X size={15}/></button>
@@ -119,7 +126,11 @@ export function ShippingOptions({listingId,courierCount=0,variant='fact'}:{listi
               ))}
             </ul>
           )}
-          {!loading&&activeRates.length===0&&<p className="shipping-options-loading">{courierCount>0?t('Live rates are unavailable right now. Confirm the delivery fee with the seller before arranging payment.','Tarif langsung belum tersedia. Konfirmasikan ongkir dengan penjual sebelum mengatur pembayaran.'):t('The seller has not configured shipping options yet.','Penjual belum mengatur opsi pengiriman.')}</p>}
+          {!loading&&activeRates.length===0&&<div className="shipping-options-empty">
+            <p>{quoteState==='needs-address'?t('Add a delivery address to see rates for this listing.', 'Tambahkan alamat pengiriman untuk melihat ongkir listing ini.'):quoteState==='error'?t('Rates could not load. Try again.', 'Ongkir gagal dimuat. Coba lagi.'):courierCount>0?t('No live rates are available for this address right now.', 'Belum ada tarif langsung untuk alamat ini.'):t('The seller has not configured shipping options yet.','Penjual belum mengatur opsi pengiriman.')}</p>
+            {quoteState==='needs-address'&&<a className="shipping-options-address-btn" href="/profile?tab=shipping" onClick={e=>e.stopPropagation()}>{t('Set delivery address','Atur alamat pengiriman')}</a>}
+            {(quoteState==='error'||quoteState==='unavailable')&&courierCount>0&&<button type="button" className="shipping-options-retry" onClick={()=>void loadRates(true,true)}>{t('Retry','Coba lagi')}</button>}
+          </div>}
         </div>
         <footer className="shipping-options-footer">
           <p>{startingFee!=null?t('Rates use your saved delivery address. The final fee is confirmed at checkout.','Tarif menggunakan alamat pengiriman tersimpan. Biaya akhir dikonfirmasi saat checkout.'):t('Confirm the delivery address and final fee with the seller before payment.','Konfirmasikan alamat pengiriman dan ongkir akhir kepada penjual sebelum pembayaran.')}</p>
@@ -142,7 +153,7 @@ export function ShippingOptions({listingId,courierCount=0,variant='fact'}:{listi
           aria-expanded={open}
         >
           <Truck size={11}/>
-          <span>{startingFee!=null?`${t('Delivery from','Ongkir mulai')} ${formatMoney(startingFee,'IDR')}`:courierCount>0?`${courierCount} ${t('shipping options available','pengiriman tersedia')}`:t('Shipping not configured','Pengiriman belum diatur')}</span>
+          <span>{startingFee!=null?`${t('Delivery from','Ongkir mulai')} ${formatMoney(startingFee,'IDR')}`:courierCount>0?t('See delivery fees','Lihat ongkir'):t('Shipping not configured','Pengiriman belum diatur')}</span>
         </span>
         {modal}
       </>
@@ -154,7 +165,7 @@ export function ShippingOptions({listingId,courierCount=0,variant='fact'}:{listi
       <dt><Truck size={11}/>{t('Shipping','Pengiriman')}</dt>
       <dd>
         <button type="button" className="shipping-options-trigger" ref={node=>{triggerRef.current=node}} onClick={openDialog} aria-haspopup="dialog" aria-expanded={open}>
-          {startingFee!=null?`${t('Delivery from','Ongkir mulai')} ${formatMoney(startingFee,'IDR')}`:courierCount>0?`${courierCount} ${t('shipping options available','pengiriman tersedia')}`:t('Shipping not configured','Pengiriman belum diatur')}
+          {startingFee!=null?`${t('Delivery from','Ongkir mulai')} ${formatMoney(startingFee,'IDR')}`:courierCount>0?t('See delivery fees','Lihat ongkir'):t('Shipping not configured','Pengiriman belum diatur')}
         </button>
         {modal}
       </dd>

@@ -2026,6 +2026,13 @@ html[data-theme='dark'] .market-listing-card .market-listing-quantity button.mar
 .market-listing-heading .eyebrow{margin:0 0 2px!important;font-size:10px!important;color:var(--muted)}
 .market-listing-status{min-width:auto!important;padding:3px 8px!important;font-size:9px!important;font-weight:800!important;border-radius:4px!important;margin-top:2px!important}
 .market-listing-facts{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;max-width:680px!important;margin:14px 0 0!important;padding:0!important;border-block:1px solid var(--line)!important}
+.shipping-options-backdrop{cursor:default!important}
+.shipping-options-dialog{cursor:auto!important;max-height:min(82dvh,720px);overflow:auto;overscroll-behavior:contain}
+.shipping-options-empty{display:grid;justify-items:start;gap:10px;padding:14px 18px;color:var(--muted)}
+.shipping-options-empty p{margin:0;font-size:12px;line-height:1.5}
+.shipping-options-retry,.shipping-options-address-btn{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 13px;border:1px solid var(--line);border-radius:6px;background:var(--surface-raised);color:var(--ink);font-family:inherit;font-size:12px;font-weight:700;text-decoration:none;cursor:pointer}
+.shipping-options-retry:hover,.shipping-options-address-btn:hover{border-color:var(--accent);color:var(--accent)}
+html[data-theme='dark'] .shipping-options-retry,html[data-theme='dark'] .shipping-options-address-btn{border-color:#354753;background:#12212a;color:#edf3f5}
 .market-listing-facts:has(> :nth-child(3):last-child){grid-template-columns:repeat(3,minmax(0,1fr))!important}
 .market-listing-facts>div{min-width:0;padding:10px 14px 10px 0!important}
 .market-listing-facts>div+div{padding-left:14px!important;border-left:1px solid var(--line)!important}
