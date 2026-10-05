@@ -74,7 +74,7 @@ export function matchGames(match:MetaMatch):MatchGame[]{
     const sentences=section.text.split(/(?<=[.!?;])\s+/);
     for(const sentence of sentences){
       const side=sideMentioned(sentence,match);
-      const winningAction=/\b(?:wins?|won)\s+(?:(?:on|the|a|game|match|series|set|title|decider|it)\b)|\b(?:takes?|took|claims?|claimed)\s+(?:the\s+)?(?:game|match|series|set|title|decider)\b|\b(?:closes?|closed)\s+(?:out\s+)?(?:the\s+)?(?:game|match|series|set|title|decider)\b|\b(?:advances?|advanced)\s+to\b/i.exec(sentence);
+      const winningAction=/\b(?:wins?|won)\s+(?:(?:the|this)\s+)?(?:game|match|series|set|title|decider|round|battle)\b|\b(?:wins?|won)\s+(?:on|through|by|after|in)\b|\b(?:takes?|took|claims?|claimed)\s+(?:the\s+)?(?:game|match|series|set|title|decider)\b|\b(?:closes?|closed)\s+(?:out\s+)?(?:the\s+)?(?:game|match|series|set|title|decider)\b|\b(?:advances?|advanced)\s+to\b/i.exec(sentence);
       if(winningAction){
         winnerSide=sideClosestTo(sentence,winningAction.index,match)??side;
         if(winnerSide)break;
@@ -98,14 +98,15 @@ export function matchGames(match:MetaMatch):MatchGame[]{
     return {number:section.number,text:section.text,winnerSide,firstSide};
   });
 
-  // The final game in a complete series is necessarily won by the series winner.
-  if(games.length&&(match.seriesComplete||match.scoreComplete)&&match.winnerSide>0&&games.length===match.scoreOne+match.scoreTwo){
-    games[games.length-1].winnerSide=match.winnerSide as 1|2;
+  // Use the series score to fill a game result only when the remaining wins
+  // force the outcome of the summarized games; omitted later games stay omitted.
+  if(games.length&&(match.seriesComplete||match.scoreComplete)&&match.winnerSide>0){
     const remaining={1:match.scoreOne,2:match.scoreTwo};
     for(const game of games)if(game.winnerSide)remaining[game.winnerSide]--;
     const unknown=games.filter(game=>!game.winnerSide);
-    if(unknown.length&&(remaining[1]===unknown.length||remaining[2]===unknown.length)){
-      const side=(remaining[1]===unknown.length?1:2) as 1|2;
+    const unlisted=Math.max(0,match.scoreOne+match.scoreTwo-games.length);
+    if(unknown.length&&(remaining[1]>unlisted&&remaining[2]===0||remaining[2]>unlisted&&remaining[1]===0)){
+      const side=(remaining[1]>unlisted?1:2) as 1|2;
       for(const game of unknown)game.winnerSide=side;
     }
   }

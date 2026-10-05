@@ -216,7 +216,7 @@ html[data-theme='dark'] .meta-stats-page {
 .meta-matrix td { padding: 0; text-align: center; }
 .meta-matrix-cell { display: grid; place-content: center; gap: 3px; width: 100%; min-width: 83px; min-height: 74px; padding: 7px 5px; border: 1px solid transparent; border-radius: 4px; background: color-mix(in srgb, var(--meta-positive) var(--matrix-strength, 0%), var(--meta-surface)); color: var(--meta-ink) !important; transition: border-color .12s ease, box-shadow .12s ease, background-color .12s ease; }
 .meta-matrix-cell.is-negative { background: color-mix(in srgb, var(--meta-negative) var(--matrix-strength, 0%), var(--meta-surface)); }
-.meta-matrix-cell.is-small-sample { background: var(--meta-panel); color: var(--meta-muted) !important; }
+.meta-matrix-cell.is-small-sample { color: var(--meta-muted) !important; }
 .meta-matrix-cell:hover, .meta-matrix-cell:focus-visible, .meta-matrix-cell.is-selected { position: relative; z-index: 1; border-color: var(--meta-accent); box-shadow: 0 0 0 2px color-mix(in srgb, var(--meta-accent) 22%, transparent); }
 .meta-matrix-cell b { font-size: 20px; line-height: 1.1; }
 .meta-matrix-cell.is-small-sample b { color: var(--meta-muted); }
