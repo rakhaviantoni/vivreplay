@@ -142,14 +142,15 @@ html[data-theme='dark'] .meta-stats-page {
 .meta-mirror-row > button:last-child { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex: 1; min-width: 0; min-height: 44px; padding: 0; border: 0; background: transparent; color: inherit; text-align: left; }
 .meta-mirror-row > button:last-child span { color: var(--meta-muted); }
 .meta-rival-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 12px; }
-.meta-rival { min-width: 0; border: 0; padding: 0; border-radius: 5px; background: transparent; color: var(--meta-ink); text-align: left; }
-.meta-rival-art { position: relative; }
-.meta-rival-art > .meta-card-trigger { overflow: hidden; border-radius: 5px; }
+.meta-rival { position: relative; z-index: 0; min-width: 0; border: 0; padding: 0; border-radius: 5px; background: transparent; color: var(--meta-ink); text-align: left; }
+.meta-rival:focus-within, .meta-rival:hover { z-index: 2; }
+.meta-rival-art { position: relative; isolation: isolate; }
+.meta-rival-art > .meta-card-trigger { border-radius: 5px; }
 .meta-rival-select { display: grid; width: 100%; min-height: 86px; padding: 8px 0 0; border: 0; background: transparent; color: var(--meta-ink); text-align: left; }
 .meta-rival-select b { font-size: 12px; line-height: 1.4; }
 .meta-rival-select small { margin-top: 2px; color: var(--meta-muted); font-size: 10px; }
 .meta-rival-select > span { align-self: end; display: block; margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--meta-line); color: var(--meta-muted); font-size: 10px; }
-.meta-rival-rate { position: absolute; inset: auto 0 0; display: flex; align-items: baseline; justify-content: space-between; padding: 8px 9px; background: #19291eef; color: #fff !important; font-size: 22px; font-weight: 800; border-radius: 0 0 5px 5px; font-variant-numeric: tabular-nums; }
+.meta-rival-rate { position: absolute; z-index: 1; inset: auto 0 0; display: flex; align-items: baseline; justify-content: space-between; padding: 8px 9px; background: #19291eef; color: #fff !important; font-size: 22px; font-weight: 800; border-radius: 0 0 5px 5px; font-variant-numeric: tabular-nums; }
 .meta-rival-rate.is-negative { background: #60302bef; }
 .meta-rival-rate.is-even { background: #4b463bef; }
 .meta-rival-rate small { color: #fff; font-size: 11px; font-weight: 500; }
