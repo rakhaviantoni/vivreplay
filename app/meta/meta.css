@@ -173,6 +173,19 @@ html[data-theme='dark'] .meta-stats-page {
 .meta-deck-results button > span:nth-child(2), .meta-event-finish-open { min-width: 0; flex: 1; }
 .meta-deck-results small, .meta-event-finish small { display: block; color: var(--meta-muted); font-size: 10px; line-height: 1.5; margin-top: 3px; }
 .meta-deck-results button > span:last-child, .meta-event-finish-open > span:last-child { flex: 0 0 auto; color: var(--meta-accent); font-size: 11px; }
+.meta-deck-result { min-width: 0; padding: 8px 10px 12px; border-bottom: 1px solid var(--meta-line); border-radius: 5px; transition: background-color .16s ease, box-shadow .16s ease; }
+.meta-deck-result:hover, .meta-deck-result:focus-within { background: var(--meta-panel); box-shadow: inset 2px 0 var(--meta-accent); }
+.meta-deck-result-open { display: flex; width: 100%; min-height: 42px; gap: 12px; align-items: center; padding: 3px 0 8px; border: 0; background: transparent; color: var(--meta-ink); text-align: left; font-size: 12px; }
+.meta-deck-result-open > strong { width: 32px; flex: 0 0 auto; color: var(--meta-accent); }
+.meta-deck-result-open > span:nth-child(2) { min-width: 0; flex: 1; }
+.meta-deck-result-open small { display: block; margin-top: 3px; color: var(--meta-muted); font-size: 10px; line-height: 1.5; }
+.meta-deck-result-open > span:last-child { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 6px; color: var(--meta-accent); font-size: 11px; }
+.meta-deck-result-cards { display: flex; min-width: 0; gap: 6px; overflow-x: auto; overflow-y: visible; padding: 3px 4px 10px; scrollbar-width: thin; overscroll-behavior-x: contain; }
+.meta-deck-result-card { position: relative; display: block; flex: 0 0 42px; width: 42px; }
+.meta-deck-result-card .meta-card-trigger { width: 42px; height: 58px; overflow: visible; }
+.meta-deck-result-card .meta-portrait { width: 42px; height: 58px; }
+.meta-deck-result-card .tcg-card { border-radius: 1.5px; box-shadow: none !important; }
+.meta-deck-result-card > b { position: absolute; right: -4px; bottom: -5px; z-index: 2; display: grid; min-width: 19px; height: 19px; place-items: center; padding: 0 4px; border: 1px solid var(--meta-line); border-radius: 10px; background: var(--meta-surface); color: var(--meta-ink); font-size: 10px; line-height: 1; font-variant-numeric: tabular-nums; }
 .meta-event-finish .meta-card-trigger { width: 30px; flex: 0 0 30px; }
 .meta-event-finish-open { display: flex; align-items: center; justify-content: space-between; gap: 12px; align-self: stretch; padding: 4px 0; border: 0; background: transparent; color: inherit; text-align: left; }
 .meta-events-list > section { margin-bottom: 34px; }
@@ -265,7 +278,9 @@ html[data-theme='dark'] .meta-stats-page {
 .meta-card-trigger .stacked-printing { overflow: visible; }
 .meta-card-trigger .deck-stack-art { position: relative; z-index: 2; display: block; width: 100%; height: 100%; }
 .meta-card-trigger .meta-portrait { width: 100%; height: 100%; }
-.meta-card-trigger .tcg-card { width: 100%; height: 100%; }
+.meta-card-trigger .tcg-card { width: 100%; height: 100%; border-radius: 5px; }
+.meta-leader-link .meta-card-trigger .tcg-card,
+.meta-mirror-row .meta-card-trigger .tcg-card { width: 100%; height: 100%; border-radius: 1.5px; }
 .meta-card-trigger .printing-count { right: -8px; bottom: -7px; min-width: 26px; min-height: 22px; padding: 3px 6px; border-radius: 11px; font-size: 10px; }
 .meta-leader-profile > .meta-card-trigger { grid-row: 1 / 4; width: 100%; }
 .meta-leader-profile > .meta-card-trigger .printing-stack { width: 100%; }
@@ -370,6 +385,58 @@ body:has(.meta-stats-page) > .card-viewer-backdrop .viewer-nav { z-index: 702 !i
 
 /* Keep the shared count stack within its own decklist tile while fanning upward. */
 .meta-deck-card-grid .meta-card-trigger.has-printing-stack { margin-top: -16px; padding: 16px 5px 8px; }
+
+/* Leader performance uses only figures present in tournament recaps and lists. */
+.meta-leader-identity { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 12px; align-items: center; }
+.meta-leader-profile { display: block; }
+.meta-leader-identity > .meta-card-trigger { width: 112px; }
+.meta-leader-identity h2 { margin: 0 0 5px; font-size: 19px; line-height: 1.2; }
+.meta-leader-identity p { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--meta-muted); font-size: 11px; }
+.meta-leader-profile dl { grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 14px; }
+.meta-leader-profile dl > div { min-width: 0; min-height: 58px; padding: 8px 9px; border: 1px solid var(--meta-line); border-radius: 6px; background: var(--meta-surface); }
+.meta-leader-profile dl > div.is-primary { background: var(--meta-panel); }
+.meta-leader-profile dt { font-size: 10px; line-height: 1.3; }
+.meta-leader-profile dd { margin-top: 5px; font-size: 17px; }
+.meta-leader-profile dd small { display: block; margin: 2px 0 0; font-size: 9px; line-height: 1.35; }
+.meta-profile-note { margin: 10px 0 0; color: var(--meta-muted); font-size: 9px; line-height: 1.5; }
+.meta-leader-profile .meta-portrait .tcg-card { border-radius: 3.5px; }
+
+/* The matchup cards separate overall results from recorded turn-order results. */
+.meta-rival-select .meta-rival-turns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 7px; padding-top: 7px; border-top: 1px solid var(--meta-line); }
+.meta-rival-turns > span { display: grid; gap: 4px; min-width: 0; padding: 0; margin: 0; border: 0; font-size: 9px; }
+.meta-rival-turns > span > small { overflow: hidden; color: var(--meta-muted); font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.meta-rival-turns i { display: block; height: 3px; overflow: hidden; border-radius: 2px; background: var(--meta-line); }
+.meta-rival-turns i b { display: block; height: 100%; background: var(--meta-accent); }
+.meta-mirror-row { min-height: 86px; gap: 12px; padding: 10px 12px; }
+.meta-mirror-summary { display: grid; flex: 1; min-width: 0; gap: 6px; }
+.meta-mirror-summary > b { font-size: 12px; }
+.meta-mirror-summary > small { color: var(--meta-muted); font-size: 9px; }
+.meta-mirror-orders { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; max-width: 360px; }
+.meta-mirror-orders > span { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; color: var(--meta-muted); font-size: 9px; }
+.meta-mirror-orders strong { grid-column: 2; grid-row: 1 / 3; align-self: center; color: var(--meta-ink); font-size: 14px; font-variant-numeric: tabular-nums; }
+.meta-mirror-orders small { grid-column: 1; font-size: 8px; }
+.meta-mirror-open { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 7px 9px; border: 1px solid var(--meta-line); border-radius: 5px; background: var(--meta-panel); color: var(--meta-ink); font-size: 10px; white-space: nowrap; }
+.meta-mirror-row > .meta-mirror-open { flex: 0 0 auto; min-height: 36px; padding: 7px 9px; background: var(--meta-panel); text-align: center; }
+.meta-mirror-open:hover { border-color: var(--meta-accent); }
+
+/* Each copy bar is the number of lists running that exact quantity. */
+.meta-copy-pattern { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: end; gap: 5px; height: 36px; margin-top: 8px; border-bottom: 1px solid var(--meta-line); }
+.meta-copy-pattern > span { display: grid; grid-template-rows: 1fr auto; align-items: end; min-width: 0; height: 100%; text-align: center; }
+.meta-copy-pattern i { display: block; width: 100%; min-height: 2px; border-radius: 2px 2px 0 0; background: #d8c7a5; }
+.meta-copy-pattern > span:nth-child(4) i { background: var(--meta-accent); }
+.meta-copy-pattern small { color: var(--meta-muted); font-size: 8px; line-height: 1.2; }
+
+@media (min-width: 850px) {
+  .meta-leader-layout { grid-template-columns: minmax(220px, 270px) minmax(0, 1fr); }
+  .meta-leader-profile { display: block; position: sticky; top: 90px; align-self: start; }
+}
+@media (max-width: 390px) {
+  .meta-leader-identity { grid-template-columns: 96px minmax(0, 1fr); gap: 10px; }
+  .meta-leader-identity > .meta-card-trigger { width: 96px; }
+  .meta-leader-identity h2 { font-size: 18px; }
+  .meta-mirror-row { flex-wrap: wrap; }
+  .meta-mirror-open { margin-left: auto; }
+}
 .meta-deck-card-grid .meta-card-trigger.has-printing-stack .printing-stack { width: 100%; margin: 0; }
 .meta-deck-card-grid .meta-card-trigger.has-printing-stack:hover .stacked-printing:nth-child(1), .meta-deck-card-grid .meta-card-trigger.has-printing-stack:focus-visible .stacked-printing:nth-child(1) { transform: translate(-2px,-5px) rotate(-1.4deg); }
 .meta-deck-card-grid .meta-card-trigger.has-printing-stack:hover .stacked-printing:nth-child(2), .meta-deck-card-grid .meta-card-trigger.has-printing-stack:focus-visible .stacked-printing:nth-child(2) { transform: translate(-1px,-9px) rotate(-.5deg); }

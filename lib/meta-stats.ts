@@ -32,19 +32,20 @@ function sideMentioned(text:string,match:MetaMatch):1|2|null{
 }
 
 function sideClosestTo(text:string,position:number,match:MetaMatch):1|2|null{
-  const candidates:Array<{side:1|2;distance:number}>=[];
+  const candidates:Array<{side:1|2;distance:number;player:boolean}>=[];
   for(const side of [1,2] as const){
+    const player=side===1?match.playerOneName:match.playerTwoName;
     for(const alias of sideAliases(match,side)){
       const pattern=alias.split(/[^a-z0-9']+/i).filter(Boolean).map(part=>part.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('[^a-z0-9]+');
       for(const found of text.matchAll(new RegExp(`\\b${pattern}\\b`,'gi'))){
         const start=found.index??0;
         const end=start+found[0].length;
-        candidates.push({side,distance:position<start?start-position:position>end?position-end:0});
+        candidates.push({side,distance:position<start?start-position:position>end?position-end:0,player:Boolean(player&&alias===player)});
       }
     }
   }
-  candidates.sort((a,b)=>a.distance-b.distance);
-  return candidates[0]&&candidates[1]?.distance!==candidates[0].distance?candidates[0].side:null;
+  candidates.sort((a,b)=>a.distance-b.distance||Number(b.player)-Number(a.player));
+  return candidates[0]&&candidates[1]&&(candidates[1].distance!==candidates[0].distance||candidates[1].player!==candidates[0].player)?candidates[0].side:null;
 }
 
 function sideInLosingClause(text:string,match:MetaMatch):1|2|null{
@@ -74,9 +75,14 @@ export function matchGames(match:MetaMatch):MatchGame[]{
     const sentences=section.text.split(/(?<=[.!?;])\s+/);
     for(const sentence of sentences){
       const side=sideMentioned(sentence,match);
-      const winningAction=/\b(?:wins?|won)\s+(?:(?:the|this)\s+)?(?:(?:deciding|final|first|second|last|opening)\s+)?(?:game|match|series|set|title|decider|round|battle)\b|\b(?:wins?|won)\s+(?:on|through|by|after|in|with|via|using)\b|\b(?:wins?|won)[.!?]?$|\b(?:takes?|took|claims?|claimed)\s+(?:the\s+)?(?:(?:deciding|final|first|second|last|opening)\s+)?(?:game|match|series|set|title|decider)\b|\b(?:closes?|closed)\s+(?:(?:out|with|on)\s+)?(?:(?:the|a)\s+)?(?:(?:deciding|final|last)\s+)?(?:game|match|series|set|title|decider)\b|\b(?:closes?|closed)\s+(?:with|by)\s+.{0,60}\b(?:attacks?|lethal|the win)\b|\b(?:advances?|advanced)\s+to\b|\bwinning\s+(?:the\s+)?(?:game|match|series|semifinal|final|title|decider)\b/i.exec(sentence);
+      const losingAction=/\b(?:can't|cannot|couldn't|could not|isn't able to|is unable to)\s+(?:counter|stop|defend|cover|survive|answer|match|block)\b/i.test(sentence);
+      const losingSide=sideInLosingClause(sentence,match);
+      if(losingSide&&losingAction){winnerSide=losingSide===1?2:1;break;}
+      if(side&&losingAction){winnerSide=side===1?2:1;break;}
+      const winningAction=/\b(?:wins?|won)\s+(?:(?:the|this)\s+)?(?:(?:deciding|final|first|second|last|opening)\s+)?(?:game|match|series|set|title|decider|round|battle)\b|\b(?:wins?|won)\s+(?:on|through|by|after|in|with|via|using)\b|\b(?:wins?|won)[.!?]?$|\b(?:takes?|took|claims?|claimed)\s+(?:the\s+)?(?:(?:deciding|final|first|second|last|opening)\s+)?(?:game|match|series|set|title|decider)\b|\b(?:closes?|closed)\s+(?:(?:out|with|on)\s+)?(?:(?:the|a)\s+)?(?:(?:deciding|final|last)\s+)?(?:game|match|series|set|title|decider)\b|\b(?:closes?|closed)\s+(?:with|by)\s+.{0,60}\b(?:attacks?|lethal|the win)\b|\b(?:advances?|advanced)\s+to\b|\bwinning\s+(?:the\s+)?(?:game|match|series|semifinal|final|title|decider)\b|\bto win\b/i.exec(sentence);
       if(winningAction){
-        winnerSide=sideClosestTo(sentence,winningAction.index,match)??side;
+        const actionPosition=/\bto win\b/i.test(sentence)?0:winningAction.index;
+        winnerSide=sideClosestTo(sentence,actionPosition,match)??side;
         if(winnerSide)break;
       }
       const concedeAction=/\b(?:concedes?|conceded|surrenders?|surrendered)\b/i.exec(sentence);
@@ -84,10 +90,6 @@ export function matchGames(match:MetaMatch):MatchGame[]{
         const concedingSide=sideClosestTo(sentence,concedeAction.index,match)??side;
         if(concedingSide){winnerSide=concedingSide===1?2:1;break;}
       }
-      const losingAction=/\b(?:can't|cannot|couldn't|could not|isn't able to|is unable to)\s+(?:counter|stop|defend|cover|survive|answer|match|block)\b/i.test(sentence);
-      const losingSide=sideInLosingClause(sentence,match);
-      if(losingSide&&losingAction){winnerSide=losingSide===1?2:1;break;}
-      if(side&&losingAction){winnerSide=side===1?2:1;break;}
       if(!side)continue;
       if(/\b(?:game|match|series|decider)\b.{0,40}\b(?:goes|went) to\b/i.test(sentence)){winnerSide=side;break;}
     }
@@ -101,6 +103,14 @@ export function matchGames(match:MetaMatch):MatchGame[]{
   // Use the series score to fill a game result only when the remaining wins
   // force the outcome of the summarized games; omitted later games stay omitted.
   if(games.length&&(match.seriesComplete||match.scoreComplete)&&match.winnerSide>0){
+    // A completed sweep fixes every game in a fully summarized series. This
+    // also corrects false positives from recap text that mentions the losing
+    // leader close to phrases such as “closes” or “cannot cover”.
+    const recordedGames=match.scoreOne+match.scoreTwo;
+    if(match.scoreComplete&&games.length===recordedGames&&(match.scoreOne===0||match.scoreTwo===0)){
+      const sweptBy=(match.scoreOne>0?1:2) as 1|2;
+      for(const game of games)game.winnerSide=sweptBy;
+    }
     const remaining={1:match.scoreOne,2:match.scoreTwo};
     for(const game of games)if(game.winnerSide)remaining[game.winnerSide]--;
     const unknown=games.filter(game=>!game.winnerSide);
@@ -188,6 +198,49 @@ export function confidenceInterval(wins:number,games:number){
   const center=(p+z2/(2*games))/denominator;
   const margin=z*Math.sqrt(p*(1-p)/games+z2/(4*games*games))/denominator;
   return {low:Math.max(0,center-margin),high:Math.min(1,center+margin),margin};
+}
+
+export function leaderDetailStats(records:MetaMatch[],code:string,finishes:MetaFinish[],deckCards:MetaFeed['deckCards']){
+  const leaderRecords=records.filter(match=>match.leaderOneCode===code||match.leaderTwoCode===code);
+  let firstGames=0,firstWins=0,secondGames=0,secondWins=0;
+  for(const match of leaderRecords){
+    const side=(match.leaderOneCode===code?1:2) as 1|2;
+    for(const game of matchGames(match)){
+      if(!game.winnerSide||!game.firstSide)continue;
+      if(game.firstSide===side){firstGames++;if(game.winnerSide===side)firstWins++;}
+      else{secondGames++;if(game.winnerSide===side)secondWins++;}
+    }
+  }
+
+  // Standardize each observed rival matchup to the opponents' share of seats
+  // in this sample. Unobserved matchups are omitted from the weighting.
+  const opponentSeats=new Map<string,number>();
+  for(const match of records){
+    const games=match.scoreOne+match.scoreTwo;
+    opponentSeats.set(match.leaderOneCode,(opponentSeats.get(match.leaderOneCode)??0)+games);
+    opponentSeats.set(match.leaderTwoCode,(opponentSeats.get(match.leaderTwoCode)??0)+games);
+  }
+  const opponents=[...new Set(leaderRecords.map(match=>match.leaderOneCode===code?match.leaderTwoCode:match.leaderOneCode))];
+  const observed=opponents.filter(opponent=>opponent!==code&&matchup(records,code,opponent).games>0);
+  const weightTotal=observed.reduce((sum,opponent)=>sum+(opponentSeats.get(opponent)??0),0);
+  const adjustedRate=weightTotal?observed.reduce((sum,opponent)=>{
+    const pair=matchup(records,code,opponent);
+    return sum+(pair.rate??0)*(opponentSeats.get(opponent)??0);
+  },0)/weightTotal:null;
+
+  const leaderFinishes=finishes.filter(finish=>finish.leaderCode===code&&finish.cards===50);
+  const deckRows=leaderFinishes.map(finish=>({finish,cards:deckCards.filter(row=>row.finishId===finish.id)}))
+    .filter(row=>row.cards.reduce((sum,card)=>sum+card.quantity,0)===50);
+  const signatures=new Map<string,number>();
+  for(const {cards} of deckRows){
+    const normalized=new Map<string,number>();
+    for(const card of cards)normalized.set(card.code,(normalized.get(card.code)??0)+card.quantity);
+    const signature=[...normalized].map(([cardCode,quantity])=>`${cardCode}:${quantity}`).sort().join('|');
+    signatures.set(signature,(signatures.get(signature)??0)+1);
+  }
+  const listCount=deckRows.length;
+  const effectiveLists=listCount?1/[...signatures.values()].reduce((sum,count)=>sum+(count/listCount)**2,0):0;
+  return {firstGames,firstWins,secondGames,secondWins,adjustedRate,listCount,effectiveLists};
 }
 
 export function rateText(rate:number|null){return rate===null?'–':`${Math.round(rate*100)}%`;}
