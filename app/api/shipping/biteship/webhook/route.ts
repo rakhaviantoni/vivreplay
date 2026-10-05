@@ -3,7 +3,22 @@ import {sendMarketEmail} from '@/lib/server/market-notifications';
 
 const notificationStatuses=new Set(['picking_up','picked','in_transit','dropping_off','delivered','on_hold','rejected','cancelled','return_in_transit','returned','disposed','courier_not_found']);
 
+export async function GET(){
+  return Response.json({ok:true});
+}
+
 export async function POST(request:Request){
+  let rawBody='';
+  let body:{event?:string;order_id?:string;courier_tracking_id?:string;courier_waybill_id?:string;courier_company?:string;courier_type?:string;courier_link?:string;status?:string;price?:number;order_price?:number};
+  try{
+    rawBody=await request.text();
+    if(!rawBody.trim())return Response.json({ok:true});
+    body=JSON.parse(rawBody);
+    if(!body||typeof body!=='object'||Array.isArray(body))return Response.json({error:'Webhook payload must be a JSON object.'},{status:400});
+    // Biteship may send an empty JSON object while checking a new endpoint.
+    if(!body.event)return Response.json({ok:true});
+  }catch{return Response.json({error:'Webhook payload must be valid JSON.'},{status:400})}
+
   const secret=process.env.BITESHIP_WEBHOOK_SECRET?.trim();
   if(!secret)return Response.json({error:'Webhook authentication is not configured.'},{status:503});
   const supplied=request.headers.get('x-vivreplay-webhook-secret')?.trim()??'';
@@ -11,7 +26,6 @@ export async function POST(request:Request){
   const left=new Uint8Array(providedHash);const right=new Uint8Array(expectedHash);let mismatch=0;for(let index=0;index<left.length;index++)mismatch|=left[index]^right[index];
   if(mismatch!==0)return Response.json({error:'Unauthorized.'},{status:401});
   try{
-    const body=await request.json() as {event?:string;order_id?:string;courier_tracking_id?:string;courier_waybill_id?:string;courier_company?:string;courier_type?:string;courier_link?:string;status?:string;price?:number;order_price?:number};
     if(!['order.status','order.price','order.waybill_id'].includes(body.event??''))return Response.json({ok:true,ignored:true});
     const trackingId=body.courier_tracking_id;const waybill=body.courier_waybill_id;
     const order=await db().prepare('SELECT id,buyer_id AS buyerId,details FROM checkout_orders WHERE biteship_order_id=? OR biteship_tracking_id=? OR shipping_waybill_id=? LIMIT 1').bind(body.order_id??'',trackingId??'',waybill??'').first<{id:string;buyerId:string;details:string|null}>();
