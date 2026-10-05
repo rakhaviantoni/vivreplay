@@ -155,12 +155,16 @@ html[data-theme='dark'] .meta-stats-page {
 .meta-rival-rate.is-even { background: #4b463bef; }
 .meta-rival-rate small { color: #fff; font-size: 11px; font-weight: 500; }
 .meta-rival-select:hover b, .meta-rival-select:focus-visible b { color: var(--meta-accent); }
-.meta-card-usage-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px 10px; margin-top: 12px; }
+.meta-card-usage-group { margin-top: 16px; padding-top: 13px; border-top: 1px solid var(--meta-line); }
+.meta-card-usage-group > header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.meta-card-usage-group h3 { display: flex; align-items: baseline; gap: 8px; margin: 0; font-size: 12px; font-weight: 750; }
+.meta-card-usage-group h3 small, .meta-card-usage-group > header > span { color: var(--meta-muted); font-size: 10px; font-weight: 450; }
+.meta-card-usage-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(82px, 1fr)); gap: 18px 10px; margin-top: 11px; }
 .meta-card-usage { position: relative; display: block; min-width: 0; padding: 0; border: 0; background: transparent; color: var(--meta-ink); }
 .meta-card-usage .meta-card-trigger { width: 100%; }
 .meta-card-usage > b { position: absolute; top: 5px; left: 5px; padding: 3px 5px; border-radius: 3px; background: #17231deb; color: white; font-size: 11px; }
 .meta-card-usage > span:not(.meta-portrait) { display: block; margin: 6px 0 3px; font-size: 11px; line-height: 1.4; }
-.meta-card-usage > small { color: var(--meta-muted); font-size: 10px; }
+.meta-card-usage > small { display: block; color: var(--meta-muted); font-size: 9px; line-height: 1.45; overflow-wrap: anywhere; }
 .meta-deck-results, .meta-event-finishes, .meta-event-matches { display: grid; border-top: 1px solid var(--meta-line); }
 .meta-deck-results > button, .meta-event-finish, .meta-event-match { display: flex; width: 100%; gap: 12px; align-items: center; min-width: 0; min-height: 68px; padding: 10px; border: 0; border-bottom: 1px solid var(--meta-line); border-radius: 5px; background: transparent; color: var(--meta-ink); text-align: left; font-size: 12px; transition: background-color .16s ease, box-shadow .16s ease; }
 .meta-deck-results > button:hover, .meta-event-finish:hover, .meta-event-match:hover { background: var(--meta-panel); box-shadow: inset 2px 0 var(--meta-accent); }
@@ -269,6 +273,7 @@ html[data-theme='dark'] .meta-stats-page {
 .meta-results-dialog [data-slot='dialog-header'], .meta-deck-dialog [data-slot='dialog-header'] { position: sticky; top: -24px; z-index: 8; padding-top: 8px; padding-bottom: 10px; background: var(--surface-raised, #fffaf0); }
 .meta-card-trigger:focus-visible { z-index: 4; outline-offset: 3px; }
 @media (max-width: 849px) {
+  .meta-workspace { padding-inline: 0; }
   .meta-view-bar { align-items: stretch; }
   .meta-view-tabs { flex: 1 1 100%; }
   .meta-view-tabs button { flex: 1 0 auto; justify-content: center; }
@@ -276,7 +281,6 @@ html[data-theme='dark'] .meta-stats-page {
 }
 @media (min-width: 600px) {
   .meta-rival-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .meta-card-usage-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .meta-deck-card-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 }
 @media (min-width: 850px) {
@@ -296,10 +300,8 @@ html[data-theme='dark'] .meta-stats-page {
 }
 @media (min-width: 1100px) {
   .meta-rival-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-  .meta-card-usage-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); }
 }
 @media (max-width: 390px) {
-  .meta-workspace { padding-inline: 16px; }
   .meta-stats-page > .meta-stats-intro.library-intro { padding-inline: 16px !important; }
   .meta-view-tabs button { padding-inline: 9px; font-size: 11px; }
   .meta-leader-profile { grid-template-columns: 100px minmax(0, 1fr); gap: 8px 14px; }
