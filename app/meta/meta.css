@@ -159,7 +159,7 @@ html[data-theme='dark'] .meta-stats-page {
 .meta-card-usage-group > header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
 .meta-card-usage-group h3 { display: flex; align-items: baseline; gap: 8px; margin: 0; font-size: 12px; font-weight: 750; }
 .meta-card-usage-group h3 small, .meta-card-usage-group > header > span { color: var(--meta-muted); font-size: 10px; font-weight: 450; }
-.meta-card-usage-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(82px, 1fr)); gap: 18px 10px; margin-top: 11px; }
+.meta-card-usage-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 18px 10px; margin-top: 11px; }
 .meta-card-usage { position: relative; display: block; min-width: 0; padding: 0; border: 0; background: transparent; color: var(--meta-ink); }
 .meta-card-usage .meta-card-trigger { width: 100%; }
 .meta-card-usage > b { position: absolute; top: 5px; left: 5px; padding: 3px 5px; border-radius: 3px; background: #17231deb; color: white; font-size: 11px; }
@@ -325,6 +325,7 @@ html[data-theme='dark'] .meta-stats-page {
   .meta-view-tabs button { gap: 4px; padding-inline: 7px; font-size: 10px; }
   .meta-period button { padding-inline: 7px; }
   .meta-rival-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 8px; }
+  .meta-card-usage-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .meta-deck-card-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (prefers-reduced-motion: reduce) { .meta-loading > span { animation: none; } }
