@@ -3,12 +3,14 @@ import {env} from 'cloudflare:workers';
 type TurnstileResult={success?:boolean;hostname?:string;action?:string};
 
 export async function verifyTurnstile(request:Request):Promise<Response|null>{
-  const runtimeEnv=env as Cloudflare.Env;
+  const runtimeEnv=env as Cloudflare.Env&{VIVREPLAY_LOCAL_TURNSTILE_TEST_MODE?:string};
+  const token=request.headers.get('cf-turnstile-response')?.trim()??'';
+  const hostname=new URL(request.url).hostname;
+  if(runtimeEnv.VIVREPLAY_LOCAL_TURNSTILE_TEST_MODE==='true'&&/^(localhost|127\.0\.0\.1)$/.test(hostname)&&token==='XXXX.DUMMY.TOKEN.XXXX')return null;
   const secret=runtimeEnv.TURNSTILE_SECRET_KEY?.trim();
   // Local and preview environments can run without a widget until keys are configured.
   if(!secret)return null;
 
-  const token=request.headers.get('cf-turnstile-response')?.trim()??'';
   if(!token||token.length>2048){
     return Response.json({error:'Complete the security check and try again.'},{status:403});
   }

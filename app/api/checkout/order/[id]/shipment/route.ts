@@ -1,5 +1,4 @@
 import {db,errorResponse,guard,HttpError,user} from '@/lib/server/store';
-import {verifyTurnstile} from '@/lib/server/turnstile';
 import {biteshipRequest} from '@/lib/server/biteship';
 import {sendMarketEmail} from '@/lib/server/market-notifications';
 
@@ -8,7 +7,6 @@ type Result={id?:string;object?:string;draft_order_id?:string;draft_order?:{id?:
 
 export async function POST(request:Request,{params}:{params:Promise<{id:string}>}){
   try{
-    const blocked=await verifyTurnstile(request);if(blocked)return blocked;
     guard(request);const profile=await user();const {id}=await params;const database=db();
     const row=await database.prepare(`SELECT o.id,o.status,o.shipping_status AS shippingStatus,o.biteship_draft_order_id AS draftId,o.items,o.details,o.subtotal,o.seller_id AS sellerId,o.buyer_id AS buyerId,l.title,b.email AS buyerEmail,s.email AS sellerEmail
       FROM checkout_orders o LEFT JOIN listings l ON l.id=o.listing_id LEFT JOIN user b ON b.id=(SELECT auth_subject FROM profiles WHERE id=o.buyer_id) LEFT JOIN user s ON s.id=(SELECT auth_subject FROM profiles WHERE id=o.seller_id) WHERE o.id=? AND o.kind='MARKET'`).bind(id).first<{id:string;status:string;shippingStatus:string|null;draftId:string|null;items:string;details:string|null;subtotal:number;sellerId:string|null;buyerId:string;title:string|null;buyerEmail:string|null;sellerEmail:string|null}>();

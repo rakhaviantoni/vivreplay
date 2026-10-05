@@ -27,7 +27,6 @@ import {
   XIcon as X,
 } from '@phosphor-icons/react';
 import {toast} from 'sonner';
-import {TurnstileField,turnstileEnabled,turnstileHeaders} from './turnstile-field';
 import {Card,cardFor,cards,printingFor,printings} from '@/packages/card-data/catalog';
 import {createClient} from '@/utils/supabase/client';
 import {displayCardName} from './card-name';
@@ -47,7 +46,11 @@ import {DropdownMenu,DropdownMenuContent,DropdownMenuItem,DropdownMenuLabel,Drop
 import {ListingsTab} from './vault/tabs/listings-tab';
 import {OffersTab} from './vault/tabs/offers-tab';
 import {OrdersTab} from './vault/tabs/orders-tab';
+import {MarketPriceMode} from './market-price-mode';
+import {BulkListingModal} from './vault/modals/bulk-listing-modal';
+import {enrichCollectionItem,groupVaultStacks} from './vault/vault-utils';
 import {isPlayableSet} from '@/packages/domain/release-availability';
+import {uniquePrintingIds,matchingPrintingCopies,selectedPrintingCopy} from '@/lib/market/printing-selection';
 import '@/app/market-account.css';
 
 type MarketBenchmark={amount:number;currency:string;url:string|null;observedAt:string;confidence:string;normalizedAmount:number|null;normalizedCurrency:string|null};
@@ -80,6 +83,10 @@ function printingToCard(baseCard:Card,p:CardPrintingItem):Card{
   };
 }
 
+function uniqueCardPrintings(items:CardPrintingItem[]):CardPrintingItem[]{
+  return uniquePrintingIds(items);
+}
+
 function searchedCard(identity:SearchIdentity):MarketCard|undefined {
   const printingsList=(identity.tcg_card_printings??[]).filter(item=>item.card_image_url&&isPlayableSet(item.set_code));
   const sorted=[...printingsList].sort((a,b)=>Number(a.language!=='EN')-Number(b.language!=='EN')+Number((a.variant??'').toLowerCase().includes('parallel'))-Number((b.variant??'').toLowerCase().includes('parallel')));
@@ -88,7 +95,7 @@ function searchedCard(identity:SearchIdentity):MarketCard|undefined {
   const canonical=cards.find(card=>card.code===identity.code);
   const image={imageUrl:printing.card_image_url,imageSource:'external' as const,setCode:printing.set_code,language:printing.language,printingCode:printing.printing_code??identity.code,variant:printing.variant??undefined};
   const baseCard=canonical?{...canonical,...image}:{id:printing.id,code:identity.code,name:displayCardName(identity.name,identity.code),color:identity.color,type:identity.card_type,cost:identity.cost,power:identity.power,rarity:printing.rarity??'',art:0,effect:identity.effect_text,...image};
-  return {...baseCard,availablePrintings:printingsList.map(item=>({id:item.id,language:item.language,variant:item.variant,printing_code:item.printing_code,card_image_url:item.card_image_url,rarity:item.rarity,set_code:item.set_code}))};
+  return {...baseCard,id:printing.id,availablePrintings:printingsList.map(item=>({id:item.id,language:item.language,variant:item.variant,printing_code:item.printing_code,card_image_url:item.card_image_url,rarity:item.rarity,set_code:item.set_code}))};
 }
 
 function CardSearch({value,onChange,onSelect,locale='EN'}:{value:string;onChange:(value:string)=>void;onSelect:(card:MarketCard)=>void;locale?:'EN'|'ID'}) {
@@ -224,7 +231,8 @@ function VaultCardPicker({items,onSelect,locale='EN'}:{items:CollectionItem[];on
             key={item.id}
             type="button"
             className="market-vault-card-item"
-            onClick={()=>onSelect(card as MarketCard,item.id,item.quantity,item.condition||'NM')}
+            disabled={item.quantity<=0}
+            onClick={()=>onSelect({...card,id:item.printingId,language:item.language??card.language,variant:item.variant??card.variant,printingCode:item.printingCode??card.printingCode,setCode:item.setCode??card.setCode},item.id,item.quantity,item.condition||'NM')}
           >
             <div className="market-vault-card-thumb">
               <CardArt card={card}/>
@@ -232,6 +240,7 @@ function VaultCardPicker({items,onSelect,locale='EN'}:{items:CollectionItem[];on
             <div className="market-vault-card-info">
               <strong>{card.name}</strong>
               <small>{card.code} · {item.condition} · {item.quantity} {locale==='ID'?'di koleksi':'in Vault'}</small>
+              {item.quantity<=0&&<small>{locale==='ID'?'Sudah terpakai di listing':'Reserved by a listing'}</small>}
             </div>
           </button>
         );
@@ -398,11 +407,11 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
   const [listingView,setListingView]=useState<'list'|'grid'>('list');
   const [feedScope,setFeedScope]=useState<'listings'|'cards'>('listings');
   const [open,setOpen]=useState(false);
+  const [bulkListingOpen,setBulkListingOpen]=useState(false);
   const directSellSearchHandled=useRef(false);
+  const configLoadVersion=useRef(0);
   const [busy,setBusy]=useState(false);
   const [saveError,setSaveError]=useState('');
-  const [turnstileToken,setTurnstileToken]=useState('');
-  const [turnstileResetKey,setTurnstileResetKey]=useState(0);
   const [theme,setTheme]=useState<'light'|'dark'>('light');
   const [locale,setLocale]=useState<'EN'|'ID'>('EN');
   const [accountPanel,setAccountPanel]=useState<'listings'|'offers'|'orders'|null>(()=>{const activity=searchParams.get('activity');return activity==='offers'||activity==='orders'||activity==='listings'?activity:null});
@@ -414,7 +423,6 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
   const [configuringCard,setConfiguringCard]=useState<MarketCard|null>(null);
   const [cardPrintings,setCardPrintings]=useState<CardPrintingItem[]>([]);
   const [selectedPrintingId,setSelectedPrintingId]=useState<string>('');
-  const [printingLang,setPrintingLang]=useState<'EN'|'JP'>('EN');
   const [searchSource,setSearchSource]=useState<'catalog'|'vault'>('catalog');
   const [cardSearch,setCardSearch]=useState('');
   const [isAddingAnother,setIsAddingAnother]=useState(false);
@@ -428,6 +436,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
   // Overall Listing Inputs
   const [listingTitle,setListingTitle]=useState('');
   const [listingPrice,setListingPrice]=useState('');
+  const [listingNegotiable,setListingNegotiable]=useState(true);
   const [listingCity,setListingCity]=useState('');
 
   // Benchmark State
@@ -508,42 +517,54 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
 
   // Load printings and benchmark whenever a card is opened for configuration
   const loadCardForConfig=async(card:Card,presetInstanceId?:string,presetQty=1,presetCondition='NM')=>{
+    const loadVersion=++configLoadVersion.current;
+    const requestedPrintingId=data?.collection.find(item=>item.id===presetInstanceId)?.printingId??card.id;
     setConfiguringCard(card as MarketCard);
+    setCardPrintings([]);
+    setSelectedPrintingId('');
     setItemQuantity(presetQty);
     setItemCondition(presetCondition);
     setItemInstance(presetInstanceId||'');
     setItemPrice('');
     setBenchmarkMultiplier(100);
 
-    const lang=(card.language as 'EN'|'JP')||'EN';
-    setPrintingLang(lang);
-
     if((card as MarketCard).availablePrintings?.length){
-      const list=(card as MarketCard).availablePrintings!;
-      setCardPrintings(list);
-      const chosen=list.find(p=>p.id===card.id)||list[0];
-      setSelectedPrintingId(chosen.id);
-      return;
+      const list=uniqueCardPrintings((card as MarketCard).availablePrintings!);
+      if(list.length){
+        setCardPrintings(list);
+        const chosen=list.find(p=>p.id===requestedPrintingId)||list.find(p=>p.language===card.language)||list[0];
+        setConfiguringCard({...card,availablePrintings:list});
+        setSelectedPrintingId(chosen.id);
+        return;
+      }
     }
 
     try{
       const client=createClient();
       let {data:lookup}=await client.from('tcg_card_printings').select('identity_id').eq('id',card.id).maybeSingle();
+      if(loadVersion!==configLoadVersion.current)return;
       if(!lookup){
         const {data:byCode}=await client.from('tcg_card_identities').select('id').ilike('code',card.code).maybeSingle();
         if(byCode)lookup={identity_id:byCode.id};
+        if(loadVersion!==configLoadVersion.current)return;
       }
       if(lookup?.identity_id){
         const {data:rows}=await client.from('tcg_card_printings').select('id,language,variant,rarity,set_code,printing_code,card_image_url').eq('identity_id',lookup.identity_id).order('language').order('variant');
+        if(loadVersion!==configLoadVersion.current)return;
         if(rows&&rows.length>0){
-          const list=rows as CardPrintingItem[];
-          setCardPrintings(list);
-          const chosen=list.find(p=>p.id===card.id)||list[0];
-          setSelectedPrintingId(chosen.id);
-          return;
+          const list=uniqueCardPrintings(rows as CardPrintingItem[]);
+          if(list.length){
+            setCardPrintings(list);
+            const chosen=list.find(p=>p.id===requestedPrintingId)||list.find(p=>p.language===card.language)||list[0];
+            setConfiguringCard(prev=>prev?{...prev,availablePrintings:list}:prev);
+            setSelectedPrintingId(chosen.id);
+            return;
+          }
         }
       }
     }catch{}
+
+    if(loadVersion!==configLoadVersion.current)return;
 
     const defaultPrinting:CardPrintingItem={
       id:card.id,
@@ -589,9 +610,11 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
   useEffect(()=>{
     if(!selectedPrintingId){
       setBenchmark(null);
+      setBenchmarkLoading(false);
       return;
     }
     let active=true;
+    setBenchmark(null);
     setBenchmarkLoading(true);
     fetch(`/api/market/benchmark?printingId=${encodeURIComponent(selectedPrintingId)}`)
       .then(async res=>res.ok?(await res.json() as {benchmark?:MarketBenchmark|null}):{benchmark:null})
@@ -617,21 +640,24 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
 
   const ownedCopiesForConfig=useMemo(()=>{
     if(!activeCardObj)return [];
-    return (data?.collection??[]).filter(c=>c.printingId===selectedPrintingId||cardFor(c.printingId)?.id===activeCardObj.id);
-  },[activeCardObj,data?.collection,selectedPrintingId]);
+    return matchingPrintingCopies(data?.collection??[],selectedPrintingId).filter(copy=>copy.type==='RAW').map(copy=>({...copy,quantity:Math.max(0,copy.quantity-(copy.listedQuantity??0)-bundleCards.filter(item=>item.instanceId===copy.id).reduce((sum,item)=>sum+item.quantity,0))})).filter(copy=>copy.quantity>0);
+  },[activeCardObj,data?.collection,selectedPrintingId,bundleCards]);
 
   useEffect(()=>{
-    if(ownedCopiesForConfig.length>0&&!ownedCopiesForConfig.some(c=>c.id===itemInstance)){
-      setItemInstance(ownedCopiesForConfig[0].id);
-      if(ownedCopiesForConfig[0].condition)setItemCondition(ownedCopiesForConfig[0].condition);
-    }
+    const copy=ownedCopiesForConfig.find(c=>c.id===itemInstance)??ownedCopiesForConfig[0];
+    setItemInstance(copy?.id??'');
+    if(copy){setItemCondition(copy.condition||'NM');setItemQuantity(quantity=>Math.min(quantity,copy.quantity));}
   },[ownedCopiesForConfig,itemInstance]);
 
   const printingLanguages=useMemo(()=>[...new Set(cardPrintings.map(item=>item.language))],[cardPrintings]);
+  const printingLang=cardPrintings.find(item=>item.id===selectedPrintingId)?.language??configuringCard?.language??'EN';
 
   const handleSelectPrinting=(printingId:string)=>{
     const chosen=cardPrintings.find(p=>p.id===printingId);
     if(!chosen||!configuringCard)return;
+    setItemInstance('');
+    setItemQuantity(1);
+    setItemCondition('NM');
     setSelectedPrintingId(chosen.id);
     setConfiguringCard(prev=>prev?printingToCard(prev,chosen):prev);
   };
@@ -681,6 +707,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
   };
 
   function beginListing(){
+    configLoadVersion.current++;
     if(!signInToContinue())return;
     setBundleCards([]);
     setConfiguringCard(null);
@@ -688,6 +715,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
     setCardPrintings([]);
     setSaveError('');
     setListingPrice('');
+    setListingNegotiable(true);
     setListingTitle('');
     setIsAddingAnother(false);
     setSearchSource('catalog');
@@ -696,6 +724,12 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
     setListingCity(savedCity);
     setOpen(true);
   }
+
+  useEffect(()=>{
+    const openSellListing=()=>{setAccountPanel(null);beginListing()};
+    window.addEventListener('vivreplay:open-sell-listing',openSellListing);
+    return()=>window.removeEventListener('vivreplay:open-sell-listing',openSellListing);
+  },[data,accountLoading,locale]);
 
   function sellCard(card:Card){
     if(!signInToContinue())return;
@@ -745,18 +779,21 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
       set_code:activeCardObj.setCode,
     };
 
-    const owned=(data?.collection??[]).filter(c=>c.printingId===selectedPrintingId||cardFor(c.printingId)?.id===activeCardObj.id);
-    const matchedInstance=itemInstance||owned[0]?.id;
+    const matchedCopy=selectedPrintingCopy(ownedCopiesForConfig,selectedPrintingId,itemInstance);
+    if(!matchedCopy&&(data?.collection??[]).some(copy=>copy.printingId===selectedPrintingId)){
+      toast.error(locale==='ID'?'Salinan kartu ini sudah terpakai di listing atau paket ini.':'These copies are already reserved by a listing or this bundle.');return;
+    }
+    const matchedInstance=matchedCopy?.id;
 
     const newItem:ListingBundleCard={
       id:crypto.randomUUID(),
       card:activeCardObj,
       printing:chosenPrinting,
       instanceId:matchedInstance,
-      quantity:itemQuantity,
-      condition:itemCondition,
+      quantity:matchedCopy?Math.min(itemQuantity,matchedCopy.quantity):itemQuantity,
+      condition:matchedCopy?.condition??itemCondition,
       unitAmount:Number(itemPrice)||0,
-      availableQuantity:owned.find(c=>c.id===matchedInstance)?.quantity||4,
+      availableQuantity:matchedCopy?.quantity||4,
     };
 
     setBundleCards(prev=>{
@@ -778,7 +815,6 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
   const handlePublishListing=async(event:React.FormEvent)=>{
     event.preventDefault();
     if(bundleCards.length===0)return;
-    if(turnstileEnabled&&!turnstileToken){setSaveError('Complete the security check first.');return;}
     setBusy(true);
     setSaveError('');
 
@@ -793,13 +829,14 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
     try{
       const totalQty=bundleCards.reduce((sum,it)=>sum+it.quantity,0);
       const primary=bundleCards[0];
-      const response=await fetch('/api/listings',{method:'POST',headers:{'content-type':'application/json',...turnstileHeaders(turnstileToken)},body:JSON.stringify({
+      const response=await fetch('/api/listings',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({
         instanceId:primary.instanceId,
         title:listingTitle||primary.card.name,
         amount:Number(listingPrice),
         quantity:totalQty,
         city:listingCity||'Jakarta',
         type:'WTS',
+        negotiable:listingNegotiable,
         items:bundleCards.map(item=>({
           instanceId:item.instanceId,
           printingId:item.printing.id,
@@ -811,13 +848,13 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
       const result=await response.json() as {error?:string};
       if(!response.ok)throw new Error(result.error??'Listing could not be published.');
       await refresh();
+      await refreshAccount();
       setOpen(false);
       setBundleCards([]);
       toast.success(locale==='ID'?'Listing berhasil dipublikasikan':'Listing published');
     }catch(cause){
       setSaveError((cause as Error).message);
     }finally{
-      setTurnstileToken('');setTurnstileResetKey(value=>value+1);
       setBusy(false);
     }
   };
@@ -828,7 +865,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
     try{
       const fresh=await api<AccountState>('/api/state');
       if(collectionCardTarget&&fresh?.collection){
-        const match=fresh.collection.find(it=>it.printingId===collectionCardTarget.printing.id||cardFor(it.printingId)?.id===collectionCardTarget.card.id);
+        const match=fresh.collection.find(it=>it.printingId===collectionCardTarget.printing.id);
         if(match){
           setBundleCards(prev=>prev.map(c=>c.id===collectionCardTarget.id?{...c,instanceId:match.id}:c));
         }
@@ -878,7 +915,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
           {locale==='ID'?'Koleksi saya':'Vault'}
         </Link>
         {data && (
-          <DropdownMenu><DropdownMenuTrigger asChild><button type="button" className="market-account-trigger" aria-label={locale==='ID'?'Buka menu akun':'Open account menu'}><span className="market-account-avatar">{data.profile.display_name?.slice(0,1).toUpperCase()||data.profile.username?.slice(0,1).toUpperCase()||'V'}</span>{activityCounts.listings+activityCounts.offers+activityCounts.orders>0&&<span className="market-account-unread-badge">{Math.min(99,activityCounts.listings+activityCounts.offers+activityCounts.orders)}</span>}<span className="market-account-trigger-name">{data.profile.display_name||`@${data.profile.username}`}</span><CaretDown size={14}/></button></DropdownMenuTrigger><DropdownMenuContent align="end" sideOffset={10} className="market-account-menu"><DropdownMenuLabel>{data.profile.display_name||`@${data.profile.username}`}</DropdownMenuLabel><DropdownMenuSeparator/><DropdownMenuItem onSelect={()=>setAccountPanel('listings')}><ClipboardText size={16}/>{locale==='ID'?'Listing saya':'My listings'}{activityCounts.listings>0&&<span className="market-activity-badge">{activityCounts.listings>99?'99+':activityCounts.listings}</span>}</DropdownMenuItem><DropdownMenuItem onSelect={()=>setAccountPanel('offers')}><OrdersIcon size={16}/>{locale==='ID'?'Penawaran':'Offers'}{activityCounts.offers>0&&<span className="market-activity-badge">{activityCounts.offers>99?'99+':activityCounts.offers}</span>}</DropdownMenuItem><DropdownMenuItem onSelect={()=>setAccountPanel('orders')}><OrdersIcon size={16}/>{locale==='ID'?'Pesanan':'Orders'}{activityCounts.orders>0&&<span className="market-activity-badge">{activityCounts.orders>99?'99+':activityCounts.orders}</span>}</DropdownMenuItem><DropdownMenuItem asChild><Link href="/profile"><UserRound size={16}/>{locale==='ID'?'Profil':'Profile'}</Link></DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+          <DropdownMenu><DropdownMenuTrigger asChild><button type="button" className="market-account-trigger" aria-label={locale==='ID'?'Market saya: listing, penawaran, dan pesanan':'My Market: listings, offers, and orders'}><Store size={16} aria-hidden="true"/>{activityCounts.listings+activityCounts.offers+activityCounts.orders>0&&<span className="market-account-unread-badge">{Math.min(99,activityCounts.listings+activityCounts.offers+activityCounts.orders)}</span>}<span className="market-account-trigger-name">{locale==='ID'?'Market saya':'My Market'}</span><CaretDown size={14} aria-hidden="true"/></button></DropdownMenuTrigger><DropdownMenuContent align="end" sideOffset={10} className="market-account-menu"><DropdownMenuLabel>{data.profile.display_name||`@${data.profile.username}`}</DropdownMenuLabel><DropdownMenuSeparator/><DropdownMenuItem onSelect={()=>setAccountPanel('listings')}><ClipboardText size={16}/>{locale==='ID'?'Listing saya':'My listings'}{activityCounts.listings>0&&<span className="market-activity-badge">{activityCounts.listings>99?'99+':activityCounts.listings}</span>}</DropdownMenuItem><DropdownMenuItem onSelect={()=>setAccountPanel('offers')}><OrdersIcon size={16}/>{locale==='ID'?'Penawaran':'Offers'}{activityCounts.offers>0&&<span className="market-activity-badge">{activityCounts.offers>99?'99+':activityCounts.offers}</span>}</DropdownMenuItem><DropdownMenuItem onSelect={()=>setAccountPanel('orders')}><OrdersIcon size={16}/>{locale==='ID'?'Pesanan':'Orders'}{activityCounts.orders>0&&<span className="market-activity-badge">{activityCounts.orders>99?'99+':activityCounts.orders}</span>}</DropdownMenuItem><DropdownMenuItem asChild><Link href="/profile"><UserRound size={16}/>{locale==='ID'?'Profil':'Profile'}</Link></DropdownMenuItem></DropdownMenuContent></DropdownMenu>
         )}
         <button className="market-store-locale locale-toggle" type="button" onClick={toggleLocale} aria-label={locale==='ID'?'Ganti bahasa':'Switch language'}>
           {locale}
@@ -930,7 +967,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
               <span className="market-feed-tabs-caption">
                 {feedScope === 'listings'
                   ? (locale === 'ID' ? 'Penawaran langsung dari para kolektor' : 'Direct offers and buy requests from collectors')
-                  : (locale === 'ID' ? 'Database kartu resmi untuk jual, beli, atau simpan ke Vault' : 'Official card database to browse, sell, or collect')}
+              : (locale === 'ID' ? 'Database kartu resmi untuk mencari, membeli, atau menyimpan kartu' : 'Official card database to browse, sell, or collect')}
               </span>
             </div> */}
 
@@ -1103,10 +1140,10 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
       </div>
 
       {/* Create Listing Modal Dialog */}
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={next=>{if(!next)configLoadVersion.current++;setOpen(next)}}>
         <DialogContent className="listing-dialog market-sell-dialog">
           <div className="market-sell-heading">
-            <span>{locale==='ID'?'BUAT LISTING':'CREATE LISTING'}</span>
+            <div className="market-sell-heading-actions"><span>{locale==='ID'?'BUAT LISTING':'CREATE LISTING'}</span><button type="button" className="market-sell-manage-listings" onClick={()=>{setOpen(false);setAccountPanel('listings')}}><ClipboardText size={15}/>{locale==='ID'?'Listing saya':'My listings'}</button></div>
             <DialogTitle>
               {configuringCard
                 ? (locale==='ID'?'Konfigurasi kartu.':'Configure card.')
@@ -1137,6 +1174,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
                     type="button"
                     className="listing-change-card-btn"
                     onClick={()=>{
+                      configLoadVersion.current++;
                       setConfiguringCard(null);
                       if(bundleCards.length===0){
                         setCardSearch('');
@@ -1176,9 +1214,8 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
                                 type="button"
                                 className={printingLang===l?'active':''}
                                 onClick={()=>{
-                                  setPrintingLang(l as 'EN'|'JP');
                                   const firstForLang=cardPrintings.find(p=>p.language===l);
-                                  if(firstForLang&&firstForLang.id!==selectedPrintingId){
+                                  if(firstForLang){
                                     handleSelectPrinting(firstForLang.id);
                                   }
                                 }}
@@ -1189,7 +1226,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
                           </div>
                         )}
                       </div>
-                      <div className="listing-printings-strip" role="radiogroup" aria-label={locale==='ID'?'Versi cetak kartu':'Card printings'}>
+                      <div key={printingLang} className="listing-printings-strip" role="radiogroup" aria-label={locale==='ID'?'Versi cetak kartu':'Card printings'}>
                         {cardPrintings.filter(p=>p.language===printingLang).map(p=>{
                           const isSelected=p.id===selectedPrintingId;
                           const label=printingLabel(p.variant);
@@ -1464,6 +1501,8 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
                   />
                 </label>
 
+                <MarketPriceMode value={listingNegotiable} onChange={setListingNegotiable} language={locale}/>
+
                 <div className="form-row">
                   <label>
                     {locale==='ID'?'Total harga listing (IDR)':'Total listing price (IDR)'}
@@ -1498,8 +1537,6 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
 
                 {saveError&&<p role="alert" className="error-text">{saveError}</p>}
 
-                <TurnstileField onToken={setTurnstileToken} resetKey={turnstileResetKey}/>
-
                 <button className="market-list-button" disabled={busy||bundleCards.length===0}>
                   {busy
                     ?(locale==='ID'?'Mempublikasikan...':'Publishing...')
@@ -1525,6 +1562,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
                 )}
 
                 {/* Segmented Source Switcher if user has Vault cards */}
+                {bundleCards.length===0&&(data?.collection?.length??0)>0&&<button type="button" className="market-vault-bundle-start" onClick={()=>{configLoadVersion.current++;setOpen(false);setBulkListingOpen(true)}}><Cards size={16}/>{locale==='ID'?'Pilih beberapa kartu dari koleksi':'Select multiple cards from Vault'}</button>}
                 {(data?.collection?.length??0)>0&&(
                   <div className="market-sell-source-toggle" role="tablist">
                     <button
@@ -1552,7 +1590,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
 
                 {searchSource==='vault'&&(data?.collection?.length??0)>0?(
                   <VaultCardPicker
-                    items={data!.collection}
+                    items={data!.collection.map(copy=>({...copy,quantity:Math.max(0,copy.quantity-(copy.listedQuantity??0)-bundleCards.filter(item=>item.instanceId===copy.id).reduce((sum,item)=>sum+item.quantity,0))})).filter(copy=>copy.type==='RAW')}
                     onSelect={(card,instanceId,qty,cond)=>loadCardForConfig(card,instanceId,qty,cond)}
                     locale={locale}
                   />
@@ -1570,7 +1608,9 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
         </DialogContent>
       </Dialog>
 
-      {data&&<Dialog open={Boolean(accountPanel)} onOpenChange={open=>{if(!open)setAccountPanel(null)}}><DialogContent className="market-account-dialog"><div className="market-account-dialog-heading"><DialogTitle>{accountPanel==='orders'?(locale==='ID'?'Pesanan Market':'Market orders'):accountPanel==='offers'?(locale==='ID'?'Penawaran':'Offers'):(locale==='ID'?'Listing saya':'My listings')}</DialogTitle></div><div className="market-account-dialog-tabs" role="tablist" aria-label={locale==='ID'?'Aktivitas Market':'Market activity'}><button type="button" role="tab" aria-selected={accountPanel==='listings'} className={accountPanel==='listings'?'is-active':''} onClick={()=>setAccountPanel('listings')}>{locale==='ID'?'Listing':'Listings'}{activityCounts.listings>0&&<span className="market-activity-badge">{activityCounts.listings>99?'99+':activityCounts.listings}</span>}</button><button type="button" role="tab" aria-selected={accountPanel==='offers'} className={accountPanel==='offers'?'is-active':''} onClick={()=>setAccountPanel('offers')}>{locale==='ID'?'Penawaran':'Offers'}{activityCounts.offers>0&&<span className="market-activity-badge">{activityCounts.offers>99?'99+':activityCounts.offers}</span>}</button><button type="button" role="tab" aria-selected={accountPanel==='orders'} className={accountPanel==='orders'?'is-active':''} onClick={()=>setAccountPanel('orders')}>{locale==='ID'?'Pesanan':'Orders'}{activityCounts.orders>0&&<span className="market-activity-badge">{activityCounts.orders>99?'99+':activityCounts.orders}</span>}</button></div><div className="market-account-dialog-body">{accountPanel==='orders'?<OrdersTab language={locale}/>:accountPanel==='offers'?<OffersTab language={locale} initialConversationId={searchParams.get('conversation')}/>:<ListingsTab language={locale}/>}</div></DialogContent></Dialog>}
+      <BulkListingModal open={bulkListingOpen} onClose={()=>setBulkListingOpen(false)} language={locale} stacks={groupVaultStacks((data?.collection??[]).map(item=>enrichCollectionItem(item,new Set())))} onPublished={async()=>{await refresh();await refreshAccount()}}/>
+
+      {data&&<Dialog open={Boolean(accountPanel)} onOpenChange={open=>{if(!open)setAccountPanel(null)}}><DialogContent className="market-account-dialog"><div className="market-account-dialog-heading"><DialogTitle>{accountPanel==='orders'?(locale==='ID'?'Pesanan Market':'Market orders'):accountPanel==='offers'?(locale==='ID'?'Penawaran':'Offers'):(locale==='ID'?'Listing saya':'My listings')}</DialogTitle></div><div className="market-account-dialog-tabs" role="tablist" aria-label={locale==='ID'?'Aktivitas Market':'Market activity'}><button type="button" role="tab" aria-selected={accountPanel==='listings'} className={accountPanel==='listings'?'is-active':''} onClick={()=>setAccountPanel('listings')}>{locale==='ID'?'Listing':'Listings'}{activityCounts.listings>0&&<span className="market-activity-badge">{activityCounts.listings>99?'99+':activityCounts.listings}</span>}</button><button type="button" role="tab" aria-selected={accountPanel==='offers'} className={accountPanel==='offers'?'is-active':''} onClick={()=>setAccountPanel('offers')}>{locale==='ID'?'Penawaran':'Offers'}{activityCounts.offers>0&&<span className="market-activity-badge">{activityCounts.offers>99?'99+':activityCounts.offers}</span>}</button><button type="button" role="tab" aria-selected={accountPanel==='orders'} className={accountPanel==='orders'?'is-active':''} onClick={()=>setAccountPanel('orders')}>{locale==='ID'?'Pesanan':'Orders'}{activityCounts.orders>0&&<span className="market-activity-badge">{activityCounts.orders>99?'99+':activityCounts.orders}</span>}</button></div><div className="market-account-dialog-body">{accountPanel==='orders'?<OrdersTab language={locale} initialOrderId={searchParams.get('order')}/>:accountPanel==='offers'?<OffersTab language={locale} initialConversationId={searchParams.get('conversation')}/>:<ListingsTab language={locale} onCreateListing={()=>{setAccountPanel(null);beginListing()}}/>}</div></DialogContent></Dialog>}
 
       <AddEditItemModal
         key={`${marketVaultCard?.id??'market-card'}-${marketVaultOpen?'open':'closed'}`}
@@ -1590,6 +1630,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
           catalogCard={collectionCardTarget.card}
           name={`${collectionCardTarget.card.name} · ${collectionCardTarget.card.language||'EN'}`}
           submitLabel={locale==='ID'?'Simpan ke koleksi & lanjut':'Save to Vault & Continue'}
+          language={locale}
           open={collectionOpen}
           onClose={()=>{
             setCollectionOpen(false);

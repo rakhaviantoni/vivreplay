@@ -9,7 +9,6 @@ import {cardFor,Card} from '@/packages/card-data/catalog';
 import {api,useAccount} from '@/lib/client';
 import {CardArt} from './card-art';
 import {toast} from 'sonner';
-import {TurnstileField,turnstileEnabled,turnstileHeaders} from './turnstile-field';
 import {isBiteshipAreaId} from '@/lib/shipping/biteship-area';
 
 type Origin={addressLine:string;city:string;postalCode:string;areaId:string|null;recipientName:string|null;phone:string|null;regionNames?:{province?:string;district?:string;subdistrict?:string}};
@@ -33,8 +32,6 @@ export function MarketCheckout(){
   const [quoting,setQuoting]=useState(false);
   const [submitting,setSubmitting]=useState(false);
   const [error,setError]=useState('');
-  const [turnstileToken,setTurnstileToken]=useState('');
-  const [turnstileResetKey,setTurnstileResetKey]=useState(0);
   const [locale,setLocale]=useState<'EN'|'ID'>('EN');
   const id=locale==='ID';
   const t=(en:string,idText:string)=>id?idText:en;
@@ -84,14 +81,13 @@ export function MarketCheckout(){
 
   const startCheckout=async()=>{
     if(!currentRate)return;
-    if(turnstileEnabled&&!turnstileToken){setError(t('Complete the security check first.','Selesaikan pemeriksaan keamanan terlebih dahulu.'));return}
     setSubmitting(true);setError('');
     try{
-      const response=await fetch('/api/checkout/market',{method:'POST',headers:{'content-type':'application/json',...turnstileHeaders(turnstileToken)},body:JSON.stringify({listingId,offerId:offerId||undefined,items,courierName:currentRate.courier_name,courierServiceName:currentRate.courier_service_name,courierCode:currentRate.courier_code,courierServiceCode:currentRate.courier_service_code,courierType:currentRate.type})});
+      const response=await fetch('/api/checkout/market',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({listingId,offerId:offerId||undefined,items,courierName:currentRate.courier_name,courierServiceName:currentRate.courier_service_name,courierCode:currentRate.courier_code,courierServiceCode:currentRate.courier_service_code,courierType:currentRate.type})});
       const result=await response.json() as {checkoutUrl?:string;error?:string};
       if(!response.ok||!result.checkoutUrl)throw new Error(result.error??t('Checkout could not be started.','Checkout tidak dapat dimulai.'));
       router.push(result.checkoutUrl);
-    }catch(cause){const message=cause instanceof Error?cause.message:t('Checkout could not be started.','Checkout tidak dapat dimulai.');setError(message);toast.error(message)}finally{setTurnstileToken('');setTurnstileResetKey(value=>value+1);setSubmitting(false)}
+    }catch(cause){const message=cause instanceof Error?cause.message:t('Checkout could not be started.','Checkout tidak dapat dimulai.');setError(message);toast.error(message)}finally{setSubmitting(false)}
   };
 
   if(loading)return <main className="page vivre-checkout-page"><div className="checkout-loading"><i/><span>{t('Loading your checkout…','Memuat checkout…')}</span></div></main>;
@@ -112,7 +108,6 @@ export function MarketCheckout(){
         {rates.length>0&&<div className="checkout-rate-list">{rates.map(rate=>{const key=`${rate.courier_code}:${rate.courier_service_code}`;return <label key={key} className={selectedRate===key?'is-selected':''}><input type="radio" name="shipping-rate" value={key} checked={selectedRate===key} onChange={()=>setSelectedRate(key)}/><span><strong>{courierName(rate.courier_name)} · {rate.courier_service_name}</strong><small>{rate.duration||t('Delivery estimate provided by courier','Estimasi dari kurir')}</small></span><b>{formatMoney(rate.price,listing.currency)}</b></label>})}</div>}
         {error&&<p className="checkout-error" role="alert">{error}</p>}
         {!checkoutAvailable&&<p className="checkout-config-unavailable">{t('Online payment is not enabled for Market orders yet.','Pembayaran online belum diaktifkan untuk pesanan Market.')}</p>}
-        {currentRate&&checkoutAvailable&&<div className="checkout-security-check"><p>{t('Confirm the security check before placing your order.','Selesaikan pemeriksaan keamanan sebelum membuat pesanan.')}</p><TurnstileField onToken={setTurnstileToken} resetKey={turnstileResetKey}/></div>}
         <button type="button" className="button checkout-pay-button" disabled={!currentRate||submitting||!checkoutAvailable} onClick={startCheckout}>{submitting?t('Preparing payment…','Menyiapkan pembayaran…'):t('Continue to payment','Lanjut ke pembayaran')}</button>
       </section>
     </div>

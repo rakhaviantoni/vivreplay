@@ -140,7 +140,7 @@ export function ListView({
                 {/* Estimated Value */}
                 {!hideValues && (
                   <td style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 700, color: 'var(--vault-ink)' }}>
-                    {item.hasMarketEstimate ? formatCompactMoney(item.estimatedValue, 'IDR') : '—'}
+                    {item.hasMarketEstimate ? formatCompactMoney(item.estimatedValue, 'IDR') : '-'}
                   </td>
                 )}
 
@@ -152,7 +152,7 @@ export function ListView({
                     fontWeight: 600,
                     color: item.gainLossAmount >= 0 ? '#2e8b57' : '#c0392b',
                   }}>
-                    {item.hasMarketEstimate && item.acquisitionAmount > 0 ? <>{item.gainLossAmount >= 0 ? '+' : ''}{formatCompactMoney(item.gainLossAmount, 'IDR')}<small style={{ display: 'block', fontSize: '10px', opacity: 0.85 }}>({item.gainLossPercent >= 0 ? '+' : ''}{item.gainLossPercent.toFixed(1)}%)</small></> : '—'}
+                    {item.hasMarketEstimate && item.acquisitionAmount > 0 ? <>{item.gainLossAmount >= 0 ? '+' : ''}{formatCompactMoney(item.gainLossAmount, 'IDR')}<small style={{ display: 'block', fontSize: '10px', opacity: 0.85 }}>({item.gainLossPercent >= 0 ? '+' : ''}{item.gainLossPercent.toFixed(1)}%)</small></> : '-'}
                   </td>
                 )}
 

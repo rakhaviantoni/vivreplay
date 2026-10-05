@@ -15,7 +15,10 @@ export function resolveEffectTiming(document:EffectDocument,timing:EffectTrigger
  if(custom?.type==='RESOLVE'&&custom.action.kind==='custom-resolver'){
   const handler=custom.action.handler;
   const resolved=resolveCustomEffect(handler);
-  return resolved.status==='ready'?{status:'ready',commands:[],instructions:resolved.instructions,handler}:{status:'custom',commands:[],handler};
+  // Instruction plans are descriptive metadata until a board adapter executes
+  // each step. Returning `ready` here allowed callers to treat an empty command
+  // list as a successful effect and silently skip the printed resolution.
+  return resolved.status==='ready'?{status:'custom',commands:[],instructions:resolved.instructions,handler}:{status:'custom',commands:[],handler};
  }
  const commands:EffectCommand[]=[];
  let nextAbilityId=0;
@@ -43,7 +46,7 @@ export function resolveEffectTiming(document:EffectDocument,timing:EffectTrigger
      if(!ids.has(nestedId))ids.set(nestedId,nextAbilityId++);
      commands.push({...command,abilityId:ids.get(nestedId),conditions:[...conditions,...command.conditions??[]]});
     }
-   }else commands.push({abilityId,conditions,requiredAttachedDon,kind:'resolve-action',value:action});
+   }else commands.push({abilityId,conditions:[...conditions,...(action.kind==='bottom-deck'&&action.condition?[action.condition]:[])],requiredAttachedDon,kind:'resolve-action',value:action});
   }
  }
  return {status:'ready',commands};
@@ -78,7 +81,7 @@ export function executeEffectCommands(
   const checks=(command.conditions??[]).map(text=>{const key=`${command.abilityId??0}:${text}`;if(conditionResults.has(key))return conditionResults.get(key);const result=evaluateEffectCondition(text,current,actor,sourceCardId);if(result!==undefined)conditionResults.set(key,result);return result;});
   if(checks.includes(undefined))return {state:current,nextCommand:index,error:'This effect has an unsupported condition.'};
   if(checks.includes(false))continue;
-  const selfBound=command.kind==='resolve-action'&&((command.value.kind==='grant-keyword'&&command.value.scope==='self')||(command.value.kind==='copy-base-power'&&command.value.target==='own-character'));
+  const selfBound=command.kind==='resolve-action'&&(command.value.kind==='negate-source-effect'||(command.value.kind==='grant-keyword'&&command.value.scope==='self')||(command.value.kind==='copy-base-power'&&command.value.target==='own-character'));
   const previousTargetId=command.kind==='resolve-action'&&command.value.kind==='grant-keyword'?(command.value.scope==='previous-played'?lastPlayedCardId:command.value.scope==='previous-target'?lastTargetCardId:undefined):undefined;
   const selection={...(selections[index]??{}),...(sourceCardId?{sourceCardId,...(selfBound?{targetId:sourceCardId}:{})}:{}) ,...(previousTargetId?{targetId:previousTargetId}: {})};
   const result=command.kind==='pay-cost'

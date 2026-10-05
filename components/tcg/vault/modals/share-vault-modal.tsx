@@ -21,6 +21,7 @@ interface ShareVaultModalProps {
   hideValues: boolean;
   selectedSlab?: EnrichedCollectionItem | null;
   selectedSet?: SetProgress | null;
+  language?: 'EN' | 'ID';
 }
 
 export function ShareVaultModal({
@@ -31,12 +32,14 @@ export function ShareVaultModal({
   hideValues,
   selectedSlab,
   selectedSet,
+  language = 'EN',
 }: ShareVaultModalProps) {
   const [shareFormat, setShareFormat] = useState<'top9' | 'slab' | 'set'>(
     selectedSlab ? 'slab' : selectedSet ? 'set' : 'top9'
   );
   const [shareStyle,setShareStyle]=useState<'light'|'dark'>('light');
   const [copied, setCopied] = useState(false);
+  const id=language==='ID';
 
   if (!open) return null;
 
@@ -52,10 +55,10 @@ export function ShareVaultModal({
     try {
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
-      toast.success('Collection showcase link copied to clipboard');
+      toast.success(id?'Tautan koleksi berhasil disalin':'Collection showcase link copied to clipboard');
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error('Copy link failed');
+      toast.error(id?'Tautan gagal disalin':'Copy link failed');
     }
   };
 
@@ -85,10 +88,10 @@ export function ShareVaultModal({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <div>
             <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.12em', color: 'var(--vault-gold)', textTransform: 'uppercase' }}>
-              Collector Pride & Social Share
+              {id?'Bagikan koleksi':'Collector Pride & Social Share'}
             </span>
             <h3 style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '22px', fontWeight: 600, margin: '2px 0 0' }}>
-              Share Your Collection
+              {id?'Bagikan koleksi':'Share Your Collection'}
             </h3>
           </div>
           <button
@@ -108,7 +111,7 @@ export function ShareVaultModal({
             style={{ height: '34px', fontSize: '11.5px', justifyContent: 'center' }}
             onClick={() => setShareFormat('top9')}
           >
-            My Top 9
+            {id?'9 Kartu Pilihan':'My Top 9'}
           </button>
           <button
             type="button"
@@ -116,7 +119,7 @@ export function ShareVaultModal({
             style={{ height: '34px', fontSize: '11.5px', justifyContent: 'center' }}
             onClick={() => setShareFormat('slab')}
           >
-            Slab Showcase
+            {id?'Showcase Slab':'Slab Showcase'}
           </button>
           <button
             type="button"
@@ -124,14 +127,14 @@ export function ShareVaultModal({
             style={{ height: '34px', fontSize: '11.5px', justifyContent: 'center' }}
             onClick={() => setShareFormat('set')}
           >
-            Set Progress
+            {id?'Progres Set':'Set Progress'}
           </button>
         </div>
 
-        <div className="vault-share-style-picker" role="group" aria-label="Share card style">
-          <span>Style</span>
-          <button type="button" aria-pressed={shareStyle==='light'} className={shareStyle==='light'?'is-selected':''} onClick={()=>setShareStyle('light')}>Light</button>
-          <button type="button" aria-pressed={shareStyle==='dark'} className={shareStyle==='dark'?'is-selected':''} onClick={()=>setShareStyle('dark')}>Dark</button>
+        <div className="vault-share-style-picker" role="group" aria-label={id?'Gaya kartu yang dibagikan':'Share card style'}>
+          <span>{id?'Gaya':'Style'}</span>
+          <button type="button" aria-pressed={shareStyle==='light'} className={shareStyle==='light'?'is-selected':''} onClick={()=>setShareStyle('light')}>{id?'Terang':'Light'}</button>
+          <button type="button" aria-pressed={shareStyle==='dark'} className={shareStyle==='dark'?'is-selected':''} onClick={()=>setShareStyle('dark')}>{id?'Gelap':'Dark'}</button>
         </div>
 
         {/* Share Card Canvas Preview */}
@@ -144,7 +147,7 @@ export function ShareVaultModal({
                 VivrePlay
               </strong>
             </div>
-            <span style={{ fontSize: '11px', color: 'var(--share-muted)' }}>@{username}&apos;s Vault</span>
+            <span style={{ fontSize: '11px', color: 'var(--share-muted)' }}>{id?`Koleksi @${username}`:`@${username}'s Vault`}</span>
           </div>
 
           {/* Format 1: My Top 9 Binder Card */}
@@ -178,8 +181,8 @@ export function ShareVaultModal({
                 ))}
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px', fontSize: '11px', color: 'var(--share-muted)' }}>
-                <span>Curated Top 9 Cards</span>
-                <span>{items.length} cards catalogued</span>
+                <span>{id?'9 Kartu Pilihan':'Curated Top 9 Cards'}</span>
+                <span>{id?`${items.length} kartu dalam koleksi`:`${items.length} cards catalogued`}</span>
               </div>
             </div>
           )}
@@ -230,7 +233,7 @@ export function ShareVaultModal({
                 {selectedSet ? selectedSet.name : 'OP-09 Emperors in the New World'}
               </h4>
               <div style={{ fontSize: '12px', color: 'var(--share-muted)', marginBottom: '14px' }}>
-                Set Collection Progress: <b>{selectedSet ? selectedSet.ownedCount : 123} / {selectedSet ? selectedSet.totalCards : 142} Cards ({selectedSet ? selectedSet.percentage : 86.6}%)</b>
+                {id?'Progres koleksi set: ':'Set Collection Progress: '}<b>{selectedSet ? selectedSet.ownedCount : 123} / {selectedSet ? selectedSet.totalCards : 142} {id?'kartu':'Cards'} ({selectedSet ? selectedSet.percentage : 86.6}%)</b>
               </div>
               <div className="vault-set-progress-track">
                 <div className="vault-set-progress-bar" style={{ width: `${selectedSet ? selectedSet.percentage : 86.6}%` }} />
@@ -253,7 +256,7 @@ export function ShareVaultModal({
             onClick={handleCopyLink}
           >
             {copied ? <Check size={16} /> : <Copy size={16} />}
-            {copied ? 'Link Copied!' : 'Copy Share Link'}
+            {copied ? (id?'Tautan disalin':'Link Copied!') : (id?'Salin tautan':'Copy Share Link')}
           </button>
           {typeof navigator !== 'undefined' && !!navigator.share && (
             <button
@@ -262,15 +265,15 @@ export function ShareVaultModal({
               onClick={async () => {
                 try {
                   await navigator.share({
-                    title: `@${username}'s VivrePlay Vault`,
-                    text: `Check out my One Piece card collection on VivrePlay Vault!`,
+                    title: id?`Koleksi VivrePlay milik @${username}`:`@${username}'s VivrePlay Vault`,
+                    text: id?'Lihat koleksi kartu One Piece saya di VivrePlay.':'Check out my One Piece card collection on VivrePlay Vault!',
                     url: shareUrl,
                   });
                 } catch {}
               }}
             >
               <Share2 size={16} />
-              Share
+              {id?'Bagikan':'Share'}
             </button>
           )}
         </div>

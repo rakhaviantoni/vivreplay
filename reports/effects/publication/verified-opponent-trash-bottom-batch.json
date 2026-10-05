@@ -1,0 +1,369 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-10-05T04:36:22.041Z",
+  "candidates": [
+    {
+      "code": "OP05-079",
+      "printedText": "[On Play] Your opponent places 3 cards from their trash at the bottom of their deck in any order.",
+      "publishedText": "[On Play] Your opponent places 3 cards from their trash at the bottom of their deck in any order.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "engine-action on-play bottom-deck: resolve isolated parsed instruction",
+        "OP05-079 on-play orders exactly 3 opponent-Trash cards at deck bottom"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "bottom-deck",
+                "scope": "trash"
+              }
+            ],
+            "rawText": "[On Play] Your opponent places 3 cards from their trash at the bottom of their deck in any order.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "bottom-deck",
+                  "scope": "trash"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Your opponent places 3 cards from their trash at the bottom of their deck in any order.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[On Play] Your opponent places 3 cards from their trash at the bottom of their deck in any order.",
+        "parserVersion": "0.6.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[On Play] Your opponent places 3 cards from their trash at the bottom of their deck in any order.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "bottom-deck",
+                "scope": "opponent-trash",
+                "selection": {
+                  "min": 3,
+                  "max": 3
+                }
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "bottom-deck",
+                  "scope": "opponent-trash",
+                  "selection": {
+                    "min": 3,
+                    "max": 3
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "patchKind": "FULL_DSL_SCHEMA_ALL_CARD_SCENARIOS_PASS"
+    },
+    {
+      "code": "OP11-072",
+      "printedText": "[Activate: Main] [Once Per Turn] DON!! 1, You may rest this Character: Your opponent places 2 cards from their trash at the bottom of their deck in any order. Then, add 1 card from the top of your Life cards to your hand.",
+      "publishedText": "[Activate: Main] [Once Per Turn] DON!! 1, You may rest this Character: Your opponent places 2 cards from their trash at the bottom of their deck in any order. Then, add 1 card from the top of your Life cards to your hand.",
+      "timings": [
+        "activate-main"
+      ],
+      "scenarioNames": [
+        "engine-action activate-main bottom-deck: exercise action 1 independently (gate and sequence not covered)",
+        "engine-action activate-main life: exercise action 2 independently (gate and sequence not covered)",
+        "OP11-072 activate-main orders exactly 2 opponent-Trash cards at deck bottom"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "rawEffectText": "[Activate: Main] [Once Per Turn] DON!! 1, You may rest this Character: Your opponent places 2 cards from their trash at the bottom of their deck in any order. Then, add 1 card from the top of your Life cards to your hand.",
+        "parserVersion": "0.6.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[Activate: Main] [Once Per Turn] DON!! 1, You may rest this Character: Your opponent places 2 cards from their trash at the bottom of their deck in any order. Then, add 1 card from the top of your Life cards to your hand.",
+            "trigger": "activate-main",
+            "conditions": [],
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "self",
+                "amount": 1,
+                "optional": true
+              }
+            ],
+            "actions": [
+              {
+                "kind": "bottom-deck",
+                "scope": "trash"
+              },
+              {
+                "kind": "life",
+                "operation": "add-to-hand",
+                "amount": 1
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "PAY_COST",
+                "cost": {
+                  "kind": "rest",
+                  "scope": "self",
+                  "amount": 1,
+                  "optional": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "bottom-deck",
+                  "scope": "trash"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life",
+                  "operation": "add-to-hand",
+                  "amount": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "after": {
+        "rawEffectText": "[Activate: Main] [Once Per Turn] DON!! 1, You may rest this Character: Your opponent places 2 cards from their trash at the bottom of their deck in any order. Then, add 1 card from the top of your Life cards to your hand.",
+        "parserVersion": "0.6.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[Activate: Main] [Once Per Turn] DON!! 1, You may rest this Character: Your opponent places 2 cards from their trash at the bottom of their deck in any order. Then, add 1 card from the top of your Life cards to your hand.",
+            "trigger": "activate-main",
+            "conditions": [],
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "self",
+                "amount": 1,
+                "optional": true
+              }
+            ],
+            "actions": [
+              {
+                "kind": "bottom-deck",
+                "scope": "opponent-trash",
+                "selection": {
+                  "min": 2,
+                  "max": 2
+                }
+              },
+              {
+                "kind": "life",
+                "operation": "add-to-hand",
+                "amount": 1
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "PAY_COST",
+                "cost": {
+                  "kind": "rest",
+                  "scope": "self",
+                  "amount": 1,
+                  "optional": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "bottom-deck",
+                  "scope": "opponent-trash",
+                  "selection": {
+                    "min": 2,
+                    "max": 2
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life",
+                  "operation": "add-to-hand",
+                  "amount": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "patchKind": "FULL_DSL_SCHEMA_ALL_CARD_SCENARIOS_PASS"
+    },
+    {
+      "code": "OP11-091",
+      "printedText": "[On Play] Your opponent places 3 Events from their trash at the bottom of their deck in any order.",
+      "publishedText": "[On Play] Your opponent places 3 Events from their trash at the bottom of their deck in any order.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "engine-action on-play bottom-deck: resolve isolated parsed instruction",
+        "OP11-091 On Play orders exactly three Events from opponent Trash at deck bottom",
+        "OP11-091 on-play orders exactly 3 opponent-Trash cards at deck bottom"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "custom-resolver",
+                "handler": "OP11_091_ON_PLAY"
+              }
+            ],
+            "rawText": "[On Play] Your opponent places 3 Events from their trash at the bottom of their deck in any order.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "OP11_091_ON_PLAY"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "custom-resolver",
+                  "handler": "OP11_091_ON_PLAY"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Your opponent places 3 Events from their trash at the bottom of their deck in any order.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[On Play] Your opponent places 3 Events from their trash at the bottom of their deck in any order.",
+        "parserVersion": "0.6.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[On Play] Your opponent places 3 Events from their trash at the bottom of their deck in any order.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "bottom-deck",
+                "scope": "opponent-trash",
+                "cardType": "Event",
+                "selection": {
+                  "min": 3,
+                  "max": 3
+                }
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "bottom-deck",
+                  "scope": "opponent-trash",
+                  "cardType": "Event",
+                  "selection": {
+                    "min": 3,
+                    "max": 3
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "patchKind": "FULL_DSL_SCHEMA_ALL_CARD_SCENARIOS_PASS"
+    }
+  ]
+}

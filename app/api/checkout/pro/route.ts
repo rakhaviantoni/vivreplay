@@ -2,7 +2,6 @@ import {db,errorResponse,guard,user,HttpError} from '@/lib/server/store';
 import {getCurrentUser} from '@/lib/server/auth';
 import {hasIpaymuPaymentConfig} from '@/lib/server/ipaymu';
 import {getDynamicListingPolicy} from '@/lib/market/policy';
-import {verifyTurnstile} from '@/lib/server/turnstile';
 
 export async function GET(){
   const amount=Number(process.env.VIVREPLAY_PRO_PRICE_IDR);
@@ -14,7 +13,6 @@ export async function GET(){
 export async function POST(request:Request){
   try{
     guard(request);
-    const rejected=await verifyTurnstile(request);if(rejected)return rejected;
     const profile=await user();
     const account=await getCurrentUser();
     if(!account?.email)throw new HttpError(401,'Sign in with an email address to continue.');

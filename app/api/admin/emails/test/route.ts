@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
       name,
       url,
       theme:body.theme==='dark'?'dark':'light',
+      locale:body.locale==='id'?'id':'en',
     });
 
     return Response.json({

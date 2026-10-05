@@ -1,0 +1,169 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-10-04T16:14:41.712Z",
+  "candidates": [
+    {
+      "code": "OP13-003",
+      "printedText": "If you have any DON!! cards on your field, 1 DON!! card placed during your DON!! Phase is given to your Leader.\nIf you have 9 or less DON!! cards on your field, give this Leader 2000 power.",
+      "publishedText": "If you have any DON!! cards on your field, 1 DON!! card placed during your DON!! Phase is given to your Leader.\nIf you have 9 or less DON!! cards on your field, give this Leader 2000 power.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioNames": [
+        "engine-action unknown power: exercise action 1 independently (gate and sequence not covered)"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "custom-resolver",
+                "handler": "OP13_003_UNKNOWN"
+              }
+            ],
+            "rawText": "If you have any DON!! cards on your field, 1 DON!! card placed during your DON!! Phase is given to your Leader.\nIf you have 9 or less DON!! cards on your field, give this Leader 2000 power.",
+            "trigger": "unknown",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have any DON!! cards on your field"
+              },
+              {
+                "kind": "text",
+                "text": "you have 9 or less DON!! cards on your field"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "OP13_003_UNKNOWN"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "custom-resolver",
+                  "handler": "OP13_003_UNKNOWN"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have any DON!! cards on your field"
+              },
+              {
+                "kind": "text",
+                "text": "you have 9 or less DON!! cards on your field"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "If you have any DON!! cards on your field, 1 DON!! card placed during your DON!! Phase is given to your Leader.\nIf you have 9 or less DON!! cards on your field, give this Leader 2000 power.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "TESTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "If you have any DON!! cards on your field, 1 DON!! card placed during your DON!! Phase is given to your Leader.",
+            "trigger": "unknown",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have any DON!! cards on your field"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "don-phase-attach"
+              }
+            ]
+          },
+          {
+            "rawText": "If you have 9 or less DON!! cards on your field, give this Leader 2000 power.",
+            "trigger": "unknown",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 9 or less DON!! cards on your field"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "amount": 2000,
+                "until": "turn-end",
+                "target": "own-leader",
+                "continuous": true
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "OP13_003_UNKNOWN"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have any DON!! cards on your field"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "don-phase-attach"
+                }
+              }
+            ]
+          },
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 9 or less DON!! cards on your field"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "amount": 2000,
+                  "until": "turn-end",
+                  "target": "own-leader",
+                  "continuous": true
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "If you have any DON!! cards on your field, 1 DON!! card placed during your DON!! Phase is given to your Leader.\nIf you have 9 or less DON!! cards on your field, give this Leader 2000 power.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "TESTED"
+      },
+      "beforeHash": "273d23e3e71355d1afe223e0d0b97292696a214105bc56249107753c05b822c8",
+      "afterHash": "72edb7a5b50d703458ded39cef9fb6b94db40d2e58b6ef38cd8947a2a2548f9f",
+      "patchKind": "INDIVIDUAL_PRINTED_WINDOW_WITH_FAIL_TO_PASS_SCENARIO"
+    }
+  ]
+}

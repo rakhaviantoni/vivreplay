@@ -1,0 +1,305 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-10-05T03:40:25.030Z",
+  "candidates": [
+    {
+      "code": "OP01-063",
+      "printedText": "[DON!! x1] [Activate:Main] You may rest this Character: Choose 1 card from your opponent's hand; your opponent reveals that card. If the revealed card is an Event, place up to 1 card from your opponent's Life area at the bottom of the owner's deck.  This card has been officially errata'd.",
+      "publishedText": "[DON!! x1] [Activate:Main] You may rest this Character: Choose 1 card from your opponent's hand; your opponent reveals that card. If the revealed card is an Event, place up to 1 card from your opponent's Life area at the bottom of the owner's deck.  This card has been officially errata'd.",
+      "timings": [
+        "activate-main"
+      ],
+      "scenarioNames": [
+        "Activate Main hand reveal gameplay: rest this Character, reveal one opponent hand card, then optionally bottom-deck opposing Life only for an Event"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "self",
+                "amount": 1,
+                "optional": true
+              }
+            ],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "self"
+              },
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              },
+              {
+                "kind": "reveal-hand",
+                "scope": "opponent",
+                "amount": 1
+              }
+            ],
+            "rawText": "[DON!! x1] [Activate:Main] You may rest this Character: Choose 1 card from your opponent's hand; your opponent reveals that card. If the revealed card is an Event, place up to 1 card from your opponent's Life area at the bottom of the owner's deck.  This card has been officially errata'd.",
+            "trigger": "activate-main",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "the revealed card is an Event"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "rest",
+                  "scope": "self",
+                  "amount": 1,
+                  "optional": true
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "self"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "reveal-hand",
+                  "scope": "opponent",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "the revealed card is an Event"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] [Activate:Main] You may rest this Character: Choose 1 card from your opponent's hand; your opponent reveals that card. If the revealed card is an Event, place up to 1 card from your opponent's Life area at the bottom of the owner's deck.  This card has been officially errata'd.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[DON!! x1] [Activate:Main] You may rest this Character: Choose 1 card from your opponent's hand; your opponent reveals that card. If the revealed card is an Event, place up to 1 card from your opponent's Life area at the bottom of the owner's deck.  This card has been officially errata'd.",
+        "parserVersion": "0.6.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[Activate:Main] [DON!!x1] You may rest this Character: Choose 1 card from your opponent's hand; your opponent reveals that card. If the revealed card is an Event, place up to 1 card from your opponent's Life area at the bottom of the owner's deck.  This card has been officially errata'd.",
+            "trigger": "activate-main",
+            "conditions": [],
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "self",
+                "amount": 1,
+                "optional": true
+              }
+            ],
+            "actions": [
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              },
+              {
+                "kind": "reveal-hand",
+                "scope": "opponent",
+                "amount": 1,
+                "selection": {
+                  "min": 1,
+                  "max": 1
+                }
+              },
+              {
+                "kind": "bottom-deck",
+                "scope": "opponent-life",
+                "condition": "the revealed card is an Event",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "PAY_COST",
+                "cost": {
+                  "kind": "rest",
+                  "scope": "self",
+                  "amount": 1,
+                  "optional": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "reveal-hand",
+                  "scope": "opponent",
+                  "amount": 1,
+                  "selection": {
+                    "min": 1,
+                    "max": 1
+                  }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "bottom-deck",
+                  "scope": "opponent-life",
+                  "condition": "the revealed card is an Event",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "1e9aaee921bf3a9aaa2fc05498beb706e0a9575e39814a14a63ce64aa7a24288",
+      "afterHash": "33d85f016f00c082cd2a98184ccda5a9fc2edcec8bdf7922e2317dc65c24c5b9",
+      "patchKind": "FULL_DSL_SCHEMA_ALL_CARD_SCENARIOS_PASS"
+    },
+    {
+      "code": "OP01-105",
+      "printedText": "[On Play] Choose 2 cards from your opponent's hand; your opponent reveals those cards.",
+      "publishedText": "[On Play] Choose 2 cards from your opponent's hand; your opponent reveals those cards.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "On Play hand reveal gameplay: choose exactly two opposing hand cards and reveal them without moving them"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "reveal-hand",
+                "scope": "opponent",
+                "amount": 2
+              }
+            ],
+            "rawText": "[On Play] Choose 2 cards from your opponent's hand; your opponent reveals those cards.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "reveal-hand",
+                  "scope": "opponent",
+                  "amount": 2
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Choose 2 cards from your opponent's hand; your opponent reveals those cards.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[On Play] Choose 2 cards from your opponent's hand; your opponent reveals those cards.",
+        "parserVersion": "0.6.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[On Play] Choose 2 cards from your opponent's hand; your opponent reveals those cards.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "reveal-hand",
+                "scope": "opponent",
+                "amount": 2,
+                "selection": {
+                  "min": 2,
+                  "max": 2
+                }
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "reveal-hand",
+                  "scope": "opponent",
+                  "amount": 2,
+                  "selection": {
+                    "min": 2,
+                    "max": 2
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "3edc22af1ecde457090f875a8bf8b382db59fb76767a8dbf0985139df8971237",
+      "afterHash": "b9be91312b7f2f15305bfeaafad2120861ba8e67ed60ba4729c9f09019624119",
+      "patchKind": "FULL_DSL_SCHEMA_ALL_CARD_SCENARIOS_PASS"
+    }
+  ]
+}

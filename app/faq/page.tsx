@@ -8,10 +8,10 @@ export default async function FaqPage(){
   const id=await isIndonesianRequest();
   const questions=id?[
     ['Apakah VivrePlay resmi berafiliasi dengan Bandai?','Tidak. VivrePlay adalah proyek komunitas independen dan tidak berafiliasi dengan atau didukung oleh Bandai.'],
-    ['Apakah saya perlu akun untuk menggunakan VivrePlay?','Anda dapat menjelajahi katalog dan fitur publik tanpa akun. Akun diperlukan untuk menyimpan data secara online, mengelola Vault, menerbitkan listing, dan melakukan checkout.'],
+    ['Apakah saya perlu akun untuk menggunakan VivrePlay?','Anda dapat menjelajahi katalog dan fitur publik tanpa akun. Akun diperlukan untuk menyimpan data secara online, mengelola koleksi, menerbitkan listing, dan melakukan checkout.'],
     ['Bagaimana cara kerja pembelian di Market?','Jika checkout tersedia, pilih kartu dan jumlah, pilih layanan pengiriman, lalu bayar melalui halaman pembayaran aman iPaymu. Pesanan diproses setelah pembayaran dikonfirmasi. Beberapa listing dapat mengharuskan pembeli mengatur transaksi langsung dengan penjual.'],
     ['Apakah harga sudah termasuk ongkir?','Tidak selalu. Untuk checkout Market, ongkir dihitung berdasarkan alamat dan layanan pengiriman yang dipilih, lalu ditampilkan sebelum pembayaran.'],
-    ['Kapan pesanan masuk ke Vault saya?','Setelah penjual mengirim kartu dan Anda mengonfirmasi bahwa pesanan telah diterima, kartu pesanan ditambahkan ke Vault akun Anda. Jangan konfirmasi sebelum barang tiba.'],
+    ['Kapan pesanan masuk ke koleksi saya?','Setelah penjual mengirim kartu dan Anda mengonfirmasi bahwa pesanan telah diterima, kartu pesanan ditambahkan ke koleksi akun Anda. Jangan konfirmasi sebelum barang tiba.'],
     ['Bagaimana jika pesanan bermasalah atau perlu pengembalian dana?','Hubungi penjual untuk masalah barang dan email support@vivreplay.com dengan nomor pesanan serta bukti pembayaran. Lihat Kebijakan Pengembalian Dana untuk proses dan informasi yang perlu disiapkan.'],
     ['Apa itu Market Pro?','Market Pro adalah paket berbayar untuk fitur penjual Market, seperti batas dan durasi listing yang ditampilkan pada halaman paket. Paket tidak mengubah fitur katalog atau permainan. Periode dan harga final ditampilkan sebelum pembayaran.'],
     ['Apakah Market Pro diperpanjang otomatis?','Tidak, kecuali checkout secara jelas menyebutkan perpanjangan otomatis. Status dan tanggal berakhir paket dapat diperiksa pada profil akun.'],

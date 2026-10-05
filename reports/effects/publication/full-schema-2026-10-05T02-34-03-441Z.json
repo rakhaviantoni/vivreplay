@@ -1,0 +1,211 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-10-05T02:34:03.440Z",
+  "candidates": [
+    {
+      "code": "OP17-063",
+      "printedText": "All Character cards in your hand without a Counter have a +1000 Counter.\n[Activate: Main] [Once Per Turn] DON!! -1: If this Character was played on this turn, negate the effect of up to 1 of your opponent's Characters with a cost of 6 or less during this turn, and K.O. it.",
+      "publishedText": "All Character cards in your hand without a Counter have a +1000 Counter.\n[Activate: Main] [Once Per Turn] DON!! -1: If this Character was played on this turn, negate the effect of up to 1 of your opponent's Characters with a cost of 6 or less during this turn, and K.O. it.",
+      "timings": [
+        "unknown",
+        "activate-main"
+      ],
+      "scenarioNames": [
+        "hand-counter aura unknown: apply only to eligible owner's hand cards",
+        "engine-action activate-main negate-effect: exercise action 1 independently (gate and sequence not covered)",
+        "schema-return-don-cost activate-main: return 1 DON!!"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "costs": [
+              {
+                "kind": "return-don",
+                "amount": 1,
+                "optional": false
+              }
+            ],
+            "actions": [
+              {
+                "kind": "return-don",
+                "amount": 1
+              },
+              {
+                "kind": "negate-effect",
+                "scope": "opponent-character",
+                "until": "turn-end",
+                "amount": 1
+              }
+            ],
+            "rawText": "[Activate: Main] [Once Per Turn] DON!! -1: If this Character was played on this turn, negate the effect of up to 1 of your opponent's Characters with a cost of 6 or less during this turn, and K.O. it.",
+            "trigger": "activate-main",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character was played on this turn, negate the effect of up to 1 of your opponent's Characters with a cost of 6 or less during this turn"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": false,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "return-don",
+                  "amount": 1,
+                  "optional": false
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "return-don",
+                  "amount": 1
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "negate-effect",
+                  "scope": "opponent-character",
+                  "until": "turn-end",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character was played on this turn, negate the effect of up to 1 of your opponent's Characters with a cost of 6 or less during this turn"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "All Character cards in your hand without a Counter have a +1000 Counter.\n[Activate: Main] [Once Per Turn] DON!! -1: If this Character was played on this turn, negate the effect of up to 1 of your opponent's Characters with a cost of 6 or less during this turn, and K.O. it.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "All Character cards in your hand without a Counter have a +1000 Counter.\n[Activate: Main] [Once Per Turn] DON!! -1: If this Character was played on this turn, negate the effect of up to 1 of your opponent's Characters with a cost of 6 or less during this turn, and K.O. it.",
+        "parserVersion": "0.6.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "All Character cards in your hand without a Counter have a +1000 Counter.",
+            "trigger": "unknown",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "hand-counter",
+                "cardType": "Character",
+                "amount": 1000,
+                "onlyWithoutCounter": true
+              }
+            ]
+          },
+          {
+            "rawText": "[Activate: Main] [Once Per Turn] DON!! -1: If this Character was played on this turn, negate the effect of up to 1 of your opponent's Characters with a cost of 6 or less during this turn, and K.O. it.",
+            "trigger": "activate-main",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character was played on this turn"
+              }
+            ],
+            "costs": [
+              {
+                "kind": "return-don",
+                "amount": 1,
+                "optional": false
+              }
+            ],
+            "actions": [
+              {
+                "kind": "negate-effect",
+                "scope": "opponent-character",
+                "amount": 1,
+                "until": "turn-end",
+                "maxCost": 6,
+                "andKo": true,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "hand-counter",
+                  "cardType": "Character",
+                  "amount": 1000,
+                  "onlyWithoutCounter": true
+                }
+              }
+            ]
+          },
+          {
+            "timing": "activate-main",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character was played on this turn"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "PAY_COST",
+                "cost": {
+                  "kind": "return-don",
+                  "amount": 1,
+                  "optional": false
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "negate-effect",
+                  "scope": "opponent-character",
+                  "amount": 1,
+                  "until": "turn-end",
+                  "maxCost": 6,
+                  "andKo": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "8d4b0f7f36dc5a85bcd21505d64be329d627f3ccd2cd307421af300bb5bcece7",
+      "afterHash": "91c7870d8ea50f54a40e4b72a3844029f010e37c006a94937eda6ec7802f7455",
+      "patchKind": "FULL_DSL_SCHEMA_ALL_CARD_SCENARIOS_PASS"
+    }
+  ]
+}

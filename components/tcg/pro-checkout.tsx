@@ -7,7 +7,6 @@ import {CheckIcon as Check,SparkleIcon as Sparkle,StorefrontIcon as Store} from 
 import {formatMoney} from '@/packages/domain';
 import {useAccount} from '@/lib/client';
 import {toast} from 'sonner';
-import {TurnstileField,turnstileEnabled,turnstileHeaders} from './turnstile-field';
 
 type Plan={available:boolean;amount:number|null;durationDays:number|null;maxActiveListings:number;commissionPercent:number;canAutoRenew:boolean;currency:'IDR'};
 
@@ -20,8 +19,6 @@ export function ProCheckout(){
   const [phone,setPhone]=useState('');
   const [submitting,setSubmitting]=useState(false);
   const [error,setError]=useState('');
-  const [turnstileToken,setTurnstileToken]=useState('');
-  const [turnstileResetKey,setTurnstileResetKey]=useState(0);
 
   useEffect(()=>{
     fetch('/api/checkout/pro').then(async response=>{
@@ -31,14 +28,13 @@ export function ProCheckout(){
   },[]);
 
   const begin=async()=>{
-    if(turnstileEnabled&&!turnstileToken){setError('Complete the security check first.');return;}
     setError('');setSubmitting(true);
     try{
-      const response=await fetch('/api/checkout/pro',{method:'POST',headers:{'content-type':'application/json',...turnstileHeaders(turnstileToken)},body:JSON.stringify({name:name.trim()||account?.profile.display_name||'',phone})});
+      const response=await fetch('/api/checkout/pro',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name:name.trim()||account?.profile.display_name||'',phone})});
       const result=await response.json() as {checkoutUrl?:string;error?:string};
       if(!response.ok||!result.checkoutUrl)throw new Error(result.error==='VivrePlay Pro checkout is not configured yet.'?'Market Pro is temporarily unavailable.':result.error??'Market Pro is temporarily unavailable.');
       router.push(result.checkoutUrl);
-    }catch(cause){const message=cause instanceof Error?cause.message:'Market Pro is temporarily unavailable.';setError(message);toast.error(message)}finally{setTurnstileToken('');setTurnstileResetKey(value=>value+1);setSubmitting(false)}
+    }catch(cause){const message=cause instanceof Error?cause.message:'Market Pro is temporarily unavailable.';setError(message);toast.error(message)}finally{setSubmitting(false)}
   };
 
   if(accountLoading||planLoading)return <main className="page vivre-checkout-page pro-checkout-page"><div className="checkout-loading"><i/><span>Loading Market Pro…</span></div></main>;
@@ -55,7 +51,7 @@ export function ProCheckout(){
     <header className="pro-checkout-heading"><div className="pro-checkout-mark"><span className="pro-icon"><Store size={20}/></span><span className="pro-badge"><Sparkle size={12}/> PRO</span></div><p className="eyebrow">VIVREPLAY MARKET</p><h1>Market Pro</h1><p>More room to sell, with longer listings and a lower Market commission.</p></header>
     <div className="pro-checkout-grid">
       <section className="pro-benefits-panel"><div className="pro-panel-heading"><div><span className="eyebrow">SELLER BENEFITS</span><h2>Built for your Market listings</h2></div><span className="pro-policy-live"><span/>Current policy</span></div><div className="pro-benefit-grid">{benefits.map(item=><article className="pro-benefit" key={item.title}><span><Check size={14}/></span><div><strong>{item.title}</strong><p>{item.detail}</p></div></article>)}</div><p className="pro-market-scope">Market Pro applies to Market listings, seller limits, and commission. It doesn’t change card library or gameplay features.</p></section>
-      <section className="pro-purchase-panel"><div className="pro-purchase-top"><span>MARKET PRO PLAN</span><Sparkle size={18}/></div>{plan?.available&&plan.amount&&plan.durationDays?<><p className="pro-purchase-price">{formatMoney(plan.amount,'IDR')}<small>/{plan.durationDays} days</small></p><p className="pro-purchase-caption">One plan period. Membership starts after successful payment.</p><div className="pro-purchase-fields"><label>Name<input value={name} placeholder={account.profile.display_name??''} onChange={event=>setName(event.target.value)} autoComplete="name"/></label><label>Mobile number<input value={phone} onChange={event=>setPhone(event.target.value)} autoComplete="tel" inputMode="tel" placeholder="+62…"/></label></div><TurnstileField onToken={setTurnstileToken} resetKey={turnstileResetKey}/><button className="button pro-purchase-button" disabled={submitting||!(name.trim()||account.profile.display_name)||phone.replace(/\D/g,'').length<8} onClick={begin}>{submitting?'Opening secure checkout…':'Continue to payment'}</button></>:<div className="pro-coming-soon"><span className="pro-coming-soon-mark"><Sparkle size={16}/></span><strong>Market Pro is coming soon</strong><p>Membership checkout will appear here when available.</p></div>}{error&&<p className="checkout-error" role="alert">{error}</p>}<Link href="/market">Back to Market</Link></section>
+      <section className="pro-purchase-panel"><div className="pro-purchase-top"><span>MARKET PRO PLAN</span><Sparkle size={18}/></div>{plan?.available&&plan.amount&&plan.durationDays?<><p className="pro-purchase-price">{formatMoney(plan.amount,'IDR')}<small>/{plan.durationDays} days</small></p><p className="pro-purchase-caption">One plan period. Membership starts after successful payment.</p><div className="pro-purchase-fields"><label>Name<input value={name} placeholder={account.profile.display_name??''} onChange={event=>setName(event.target.value)} autoComplete="name"/></label><label>Mobile number<input value={phone} onChange={event=>setPhone(event.target.value)} autoComplete="tel" inputMode="tel" placeholder="+62…"/></label></div><button className="button pro-purchase-button" disabled={submitting||!(name.trim()||account.profile.display_name)||phone.replace(/\D/g,'').length<8} onClick={begin}>{submitting?'Opening secure checkout…':'Continue to payment'}</button></>:<div className="pro-coming-soon"><span className="pro-coming-soon-mark"><Sparkle size={16}/></span><strong>Market Pro is coming soon</strong><p>Membership checkout will appear here when available.</p></div>}{error&&<p className="checkout-error" role="alert">{error}</p>}<Link href="/market">Back to Market</Link></section>
     </div>
   </main>;
 }

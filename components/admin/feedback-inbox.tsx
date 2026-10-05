@@ -78,9 +78,9 @@ export function FeedbackInbox() {
                   <td>{new Date(report.created_at).toLocaleString()}</td>
                   <td>{report.category}</td>
                   <td>{report.summary}</td>
-                  <td>{report.card_code ?? report.listing_id ?? '—'}{report.printing_id && <small style={{ display: 'block', opacity: .65 }}>{report.printing_id}</small>}</td>
+                  <td>{report.card_code ?? report.listing_id ?? '-'}{report.printing_id && <small style={{ display: 'block', opacity: .65 }}>{report.printing_id}</small>}</td>
                   <td>{report.page_path}</td>
-                  <td>{report.contact_email ?? '—'}</td>
+                  <td>{report.contact_email ?? '-'}</td>
                   <td>{report.details}</td>
                 </tr>
               ))}

@@ -140,7 +140,7 @@ export function SlabsTab({
                       Est. Value
                     </span>
                     <strong className="vault-slab-est-value">
-                      {hideValues ? '••••••••' : item.hasMarketEstimate ? formatCompactMoney(item.estimatedValue, 'IDR') : '—'}
+                      {hideValues ? '••••••••' : item.hasMarketEstimate ? formatCompactMoney(item.estimatedValue, 'IDR') : '-'}
                     </strong>
                   </div>
 

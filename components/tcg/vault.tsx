@@ -473,7 +473,7 @@ export function Vault() {
             <Save size={18} color="var(--vault-gold)" weight="fill" />
             <span>
               {language === 'ID'
-                ? 'Mode Vault Lokal: Koleksi Anda disimpan di browser perangkat ini. Masuk untuk backup ke cloud dan bagikan vault Anda.'
+                ? 'Mode koleksi lokal: data Anda disimpan di browser ini. Masuk untuk mencadangkannya ke cloud dan membagikan koleksi.'
                 : 'Local Vault Mode: Your collection is saved on this browser. Sign in to back up to the cloud and share your vault.'}
             </span>
           </div>
@@ -837,6 +837,7 @@ export function Vault() {
         hideValues={hideValues}
         selectedSlab={selectedSlabItem}
         selectedSet={selectedShareSet}
+        language={language}
       />
 
       <PrivacyModal

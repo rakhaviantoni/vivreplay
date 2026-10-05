@@ -1,10 +1,9 @@
 import {z} from 'zod';
 import {user,db,errorResponse,guard,market,HttpError} from '@/lib/server/store';
 import {getDynamicListingPolicy,computeListingExpiration} from '@/lib/market/policy';
-import {verifyTurnstile} from '@/lib/server/turnstile';
 
 const itemSchema=z.object({instanceId:z.string().uuid().optional(),printingId:z.string(),quantity:z.number().int().positive().max(999),condition:z.string().optional(),unitAmount:z.number().int().nonnegative().optional()});
-const schema=z.object({instanceId:z.string().uuid(),amount:z.number().int().positive().max(100000000000),quantity:z.number().int().positive().max(999),city:z.string().trim().min(2).max(60),title:z.string().trim().min(3).max(100),type:z.enum(['WTS','WTB']).default('WTS'),items:z.array(itemSchema).max(30).optional()});
+const schema=z.object({instanceId:z.string().uuid(),amount:z.number().int().positive().max(100000000000),quantity:z.number().int().positive().max(999),city:z.string().trim().min(2).max(60),title:z.string().trim().min(3).max(100),type:z.enum(['WTS','WTB']).default('WTS'),negotiable:z.boolean().default(true),items:z.array(itemSchema).max(30).optional()});
 
 export async function GET(){
   try{return Response.json({listings:await market()})}
@@ -14,7 +13,6 @@ export async function GET(){
 export async function POST(request:Request){
   try{
     guard(request);
-    const rejected=await verifyTurnstile(request);if(rejected)return rejected;
     const profile=await user();
     if(profile.region!=='ID')throw new HttpError(403,'Seller listings currently require an Indonesian profile. Global collection and deck access remain available.');
     const database=db();
@@ -55,13 +53,23 @@ export async function POST(request:Request){
     const expiresAt=computeListingExpiration(policy.durationDays);
     const itemsJson=bundle?JSON.stringify(bundle):null;
     const result=await database.prepare(`
-      INSERT INTO listings (id,seller_id,printing_id,instance_id,title,amount,currency,quantity,condition,type,city,expires_at,items)
-      SELECT ?,?,?,?,?,?,'IDR',?,?,?,?,?,?
+      INSERT INTO listings (id,seller_id,printing_id,instance_id,title,amount,currency,quantity,condition,type,city,expires_at,items,negotiable)
+      SELECT ?,?,?,?,?,?,'IDR',?,?,?,?,?,?,?
       WHERE ? <= ? - (
         COALESCE((SELECT SUM(CASE WHEN items IS NULL THEN quantity ELSE 0 END) FROM listings WHERE instance_id=? AND status='ACTIVE' AND (expires_at IS NULL OR expires_at>CURRENT_TIMESTAMP)),0)
         + COALESCE((SELECT SUM(CAST(json_extract(entry.value,'$.quantity') AS INTEGER)) FROM listings l,json_each(l.items) entry WHERE json_extract(entry.value,'$.instanceId')=? AND l.status='ACTIVE' AND (l.expires_at IS NULL OR l.expires_at>CURRENT_TIMESTAMP)),0)
       )
-    `).bind(id,profile.id,primary.printing_id,value.instanceId,value.title,value.amount,value.quantity,primary.condition,value.type,value.city,expiresAt,itemsJson,primaryQuantity,primary.quantity,value.instanceId,value.instanceId).run();
+      AND NOT EXISTS (
+        SELECT 1 FROM (
+          SELECT json_extract(value,'$.instanceId') AS instanceId,SUM(CAST(json_extract(value,'$.quantity') AS INTEGER)) AS quantity
+          FROM json_each(?) GROUP BY json_extract(value,'$.instanceId')
+        ) requested LEFT JOIN collectible_instances owned ON owned.id=requested.instanceId
+        WHERE owned.id IS NULL OR owned.owner_id!=? OR owned.deleted_at IS NOT NULL OR requested.quantity > owned.quantity - (
+          COALESCE((SELECT SUM(CASE WHEN l.items IS NULL THEN l.quantity ELSE 0 END) FROM listings l WHERE l.instance_id=requested.instanceId AND l.status='ACTIVE' AND (l.expires_at IS NULL OR l.expires_at>CURRENT_TIMESTAMP)),0)
+          + COALESCE((SELECT SUM(CAST(json_extract(entry.value,'$.quantity') AS INTEGER)) FROM listings l,json_each(l.items) entry WHERE json_extract(entry.value,'$.instanceId')=requested.instanceId AND l.status='ACTIVE' AND (l.expires_at IS NULL OR l.expires_at>CURRENT_TIMESTAMP)),0)
+        )
+      )
+    `).bind(id,profile.id,primary.printing_id,value.instanceId,value.title,value.amount,value.quantity,primary.condition,value.type,value.city,expiresAt,itemsJson,value.negotiable?1:0,primaryQuantity,primary.quantity,value.instanceId,value.instanceId,itemsJson,profile.id).run();
     if(!result.meta.changes)throw new HttpError(409,'That quantity is already listed.');
     return Response.json({id,expiresAt,durationDays:policy.durationDays},{status:201});
   }catch(error){

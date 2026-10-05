@@ -1,17 +1,17 @@
 import {z} from 'zod';
 import {db,errorResponse,guard,HttpError,user} from '@/lib/server/store';
-import {verifyTurnstile} from '@/lib/server/turnstile';
 import {computeOfferExpiration} from '@/lib/server/market-offers';
 import {sendMarketEmail} from '@/lib/server/market-notifications';
 
 const schema=z.object({type:z.enum(['BUY','SELL']),items:z.array(z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(99),unitAmount:z.number().int().positive().optional()})).min(1).max(30),amount:z.number().int().positive(),currency:z.string().length(3)});
 
 export async function POST(request:Request,{params}:{params:Promise<{id:string}>}){try{
-  guard(request);const rejected=await verifyTurnstile(request);if(rejected)return rejected;const actor=await user();const {id}=await params;const value=schema.parse(await request.json());
-  const listing=await db().prepare('SELECT seller_id,printing_id,quantity,currency,type,status,items,title,expires_at FROM listings WHERE id=?').bind(id).first<{seller_id:string;printing_id:string;quantity:number;currency:string;type:string;status:string;items:string|null;title:string;expires_at:string|null}>();
+  guard(request);const actor=await user();const {id}=await params;const value=schema.parse(await request.json());
+  const listing=await db().prepare('SELECT seller_id,printing_id,quantity,currency,type,status,items,title,expires_at,negotiable FROM listings WHERE id=?').bind(id).first<{seller_id:string;printing_id:string;quantity:number;currency:string;type:string;status:string;items:string|null;title:string;expires_at:string|null;negotiable:number}>();
   if(!listing||listing.status!=='ACTIVE')throw new HttpError(404,'This listing is no longer active.');
   if(listing.expires_at&&new Date(`${listing.expires_at.replace(' ','T')}Z`).getTime()<=Date.now())throw new HttpError(404,'This listing has expired.');
   if(listing.seller_id===actor.id)throw new HttpError(403,'You cannot make an offer on your own listing.');
+  if(listing.type==='WTS'&&!listing.negotiable)throw new HttpError(409,'The seller set a firm price. This listing does not accept offers.');
   if(value.currency!==listing.currency)throw new HttpError(400,'Offer currency must match the listing.');
   if(value.items.some(item=>!Number.isSafeInteger(item.unitAmount??0)||!item.unitAmount)||value.items.reduce((sum,item)=>sum+item.quantity*(item.unitAmount??0),0)!==value.amount)throw new HttpError(400,'Offer total must match the per-card prices.');
   if(listing.type==='WTS'&&value.type!=='BUY')throw new HttpError(400,'Use a purchase offer for a selling listing.');

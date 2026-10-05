@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     if(!actions.includes(action as AuthEmailAction))return null;
     const authAction=action as AuthEmailAction;
     const url=authAction==='verify'?`${appUrl}/sign-in?verified=1`:authAction==='reset'?`${appUrl}/reset-password?token=sample_secure_token_123`:`${appUrl}/sign-in`;
-    return{action:authAction,...renderAuthEmail({action:authAction,to,name,url,theme}),to,name,url};
+    return{action:authAction,...renderAuthEmail({action:authAction,to,name,url,theme,locale}),to,name,url};
   };
 
   if(actionParam){

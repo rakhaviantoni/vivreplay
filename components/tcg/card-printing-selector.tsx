@@ -28,8 +28,8 @@ function PrintingVaultControl({printing,card,collection,signedIn,busy,locale,onC
   const count=allRows.reduce((sum,item)=>sum+item.quantity,0);
   const removable=rows.reduce((sum,item)=>sum+Math.max(0,item.quantity-(item.listedQuantity??0)),0);
   if(signedIn===null)return <div className="printing-vault-loading" aria-hidden="true"/>;
-  if(signedIn!==true)return <button type="button" className="printing-vault-add" onClick={()=>onChange(printing,card,1)} disabled={busy} aria-label={locale==='ID'?'Tambahkan cetakan mentah ke Vault':'Add raw printing to Vault'}>{busy?<Spinner className="is-spinning" size={12}/>:<SignIn size={12}/>}<span>{locale==='ID'?'Simpan':'Add to Vault'}</span></button>;
-  return <div className="printing-vault-stepper" aria-label={locale==='ID'?`${count} salinan cetakan ini di Vault, termasuk slab`:`${count} copies of this printing in Vault, including slabs`}><button type="button" onClick={()=>onChange(printing,card,-1)} disabled={busy||removable===0} aria-label="Remove one available raw copy"><Minus size={12}/></button><b>{count}</b><button type="button" onClick={()=>onChange(printing,card,1)} disabled={busy} aria-label="Add one raw copy">{busy?<Spinner className="is-spinning" size={12}/>:<Plus size={12}/>}</button></div>;
+  if(signedIn!==true)return <button type="button" className="printing-vault-add" onClick={()=>onChange(printing,card,1)} disabled={busy} aria-label={locale==='ID'?'Tambahkan cetakan mentah ke koleksi':'Add raw printing to Vault'}>{busy?<Spinner className="is-spinning" size={12}/>:<SignIn size={12}/>}<span>{locale==='ID'?'Simpan':'Add to Vault'}</span></button>;
+  return <div className="printing-vault-stepper" aria-label={locale==='ID'?`${count} salinan cetakan ini di koleksi, termasuk slab`:`${count} copies of this printing in Vault, including slabs`}><button type="button" onClick={()=>onChange(printing,card,-1)} disabled={busy||removable===0} aria-label="Remove one available raw copy"><Minus size={12}/></button><b>{count}</b><button type="button" onClick={()=>onChange(printing,card,1)} disabled={busy} aria-label="Add one raw copy">{busy?<Spinner className="is-spinning" size={12}/>:<Plus size={12}/>}</button></div>;
 }
 
 export function CardPrintingSelector<T extends CardPrinting>({printings,language,selectedId,onLanguageChange,onSelect,renderCard,vaultCard}:{printings:T[];language:string;selectedId?:string;onLanguageChange:(language:string)=>void;onSelect:(id:string)=>void;renderCard:(printing:T)=>ReactNode;vaultCard?:Card}) {
@@ -70,12 +70,12 @@ export function CardPrintingSelector<T extends CardPrinting>({printings,language
       const result=await api<{collection:CollectionItem[]}>('/api/state');setCollection(result.collection??[]);setSignedIn(true);
       const quantity=Math.max(1,Math.abs(delta));
       const message=delta>0
-        ? (locale==='ID'?`Menambahkan ${quantity} salinan ${card.name} ke Vault`:`Added ${quantity} ${quantity===1?'copy':'copies'} of ${card.name} to your Vault`)
-        : (locale==='ID'?`Menghapus ${quantity} salinan ${card.name} dari Vault`:`Removed ${quantity} ${quantity===1?'copy':'copies'} of ${card.name} from your Vault`);
-      toast.success(message,{action:{label:locale==='ID'?'Lihat Vault':'View Vault',onClick:()=>window.location.assign(locale==='ID'?'/id/vault':'/vault')}});
+        ? (locale==='ID'?`Menambahkan ${quantity} salinan ${card.name} ke koleksi`:`Added ${quantity} ${quantity===1?'copy':'copies'} of ${card.name} to your Vault`)
+        : (locale==='ID'?`Menghapus ${quantity} salinan ${card.name} dari koleksi`:`Removed ${quantity} ${quantity===1?'copy':'copies'} of ${card.name} from your Vault`);
+      toast.success(message,{action:{label:locale==='ID'?'Lihat koleksi':'View Vault',onClick:()=>window.location.assign(locale==='ID'?'/id/vault':'/vault')}});
     }catch(error){
       if(error instanceof Error&&/sign in|401/i.test(error.message)){setSignedIn(false);window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));}
-      else toast.error(error instanceof Error?error.message:(locale==='ID'?'Tidak dapat memperbarui Vault.':'Could not update your Vault.'));
+      else toast.error(error instanceof Error?error.message:(locale==='ID'?'Tidak dapat memperbarui koleksi.':'Could not update your Vault.'));
     }finally{setBusyPrinting(null)}
   };
   const id=locale==='ID';

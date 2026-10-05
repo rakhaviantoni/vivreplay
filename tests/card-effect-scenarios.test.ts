@@ -109,6 +109,31 @@ test('effect timing markers split after reminder text and slash-separated timing
  for(const scenario of cases)scenario.run(slashDoc);
 });
 
+test('Life-top inspection may select either player and slash timings stay independent',()=>{
+ const effect="[On Play]/[On K.O.] Look at up to 1 card from the top of your or your opponent's Life cards and place it at the top or bottom of the Life cards.";
+ const document=compileEffectDocument({id:'EB02-053',code:'EB02-053',name:'Test Character',color:'Green',type:'Character',cost:4,power:5000,counter:0,rarity:'',art:0,effect});
+ const action=document.ast[0].actions[0];
+ assert.equal(action.kind,'reorder-life');
+ if(action.kind==='reorder-life')assert.equal(action.scope,'either');
+ const cases=scenarios({id:'EB02-053',code:'EB02-053',name:'Test Character',color:'Green',card_type:'Character',cost:4,power:5000,effect_text:effect}).filter(item=>item.name.includes('reorder the exact inspected Life cards'));
+ assert.equal(cases.length,2);
+ for(const scenario of cases)scenario.run(document);
+ const merged=structuredClone(document);merged.ast=merged.ast.slice(0,1);merged.ast[0].actions.push({kind:'on-ko'});
+ assert.throws(()=>cases[1].run(merged),/timing window is missing/);
+});
+
+test('opponent-only Life inspection and ST13-004 preserve their full printed sequence',()=>{
+ const opponentText='[Trigger] Draw 1 card, look at up to 1 card from the top of your opponent\'s Life cards, and place it at the top or bottom of the Life cards.';
+ const opponentDoc=compileEffectDocument({id:'ST07-016',code:'ST07-016',name:'Test Event',color:'Yellow',type:'Event',cost:2,power:0,counter:0,rarity:'',art:0,effect:opponentText});
+ const opponentAction=opponentDoc.ast[0].actions.find(action=>action.kind==='reorder-life');assert.ok(opponentAction);if(opponentAction?.kind==='reorder-life')assert.equal(opponentAction.scope,'opponent');
+ const opponentScenario=scenarios({id:'ST07-016',code:'ST07-016',name:'Test Event',color:'Yellow',card_type:'Event',cost:2,power:0,effect_text:opponentText}).find(item=>item.name.includes('reorder the exact inspected Life cards'));
+ assert.ok(opponentScenario);opponentScenario.run(opponentDoc);
+ const effect='[On Play] Add 1 card from the top of your deck to the top of your Life cards. Then, look at all your Life cards; place 1 card at the top of your deck and place the rest back in your Life area in any order.';
+ const document=compileEffectDocument({id:'ST13-004',code:'ST13-004',name:'Test Character',color:'Yellow',type:'Character',cost:5,power:6000,counter:0,rarity:'',art:0,effect});
+ const lifeScenario=scenarios({id:'ST13-004',code:'ST13-004',name:'Test Character',color:'Yellow',card_type:'Character',cost:5,power:6000,effect_text:effect}).find(item=>item.name.startsWith('ST13-004 On Play:'));
+ assert.ok(lifeScenario);lifeScenario.run(document);
+});
+
 test('OP05-059 Trigger draw requires a multicolored Leader',()=>{
  const effect='[Main] If your Leader is multicolored, draw 1 card. Then, return up to 1 Character with a cost of 5 or less to the owner\'s hand. [Trigger] If your Leader is multicolored, draw 2 cards.';
  const document=compileEffectDocument({id:'test',code:'OP05-059',name:'Test Character',color:'Blue',type:'Character',cost:4,power:5000,counter:0,rarity:'',art:0,effect});

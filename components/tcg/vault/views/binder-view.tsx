@@ -212,7 +212,7 @@ export function BinderView({
                   <span>{item.card.code} · {stack.printingLabel}</span>
                   {!hideValues && (
                     <span className="vault-slot-value">
-                    {stack.item.hasMarketEstimate ? formatCompactMoney(stack.estimatedValue, 'IDR') : '—'}
+                    {stack.item.hasMarketEstimate ? formatCompactMoney(stack.estimatedValue, 'IDR') : '-'}
                     </span>
                   )}
                 </div>

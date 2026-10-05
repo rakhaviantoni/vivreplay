@@ -13,7 +13,6 @@ import {
   EyeIcon as Eye,
   TextTIcon as TextT,
   CopyIcon as Copy,
-  ArrowSquareOutIcon as ArrowSquareOut,
   ShieldCheckIcon as ShieldCheck,
   KeyIcon as Key,
   LockKeyOpenIcon as LockKeyOpen,
@@ -26,6 +25,42 @@ import {marketEmailEvents,marketEmailLabels,type MarketEmailEvent} from '@/lib/m
 type AdminEmailAction=AuthEmailAction|`market:${MarketEmailEvent}`;
 const authEmailActions:AuthEmailAction[]=['verify','reset','password-changed','welcome'];
 const adminEmailActions:AdminEmailAction[]=[...authEmailActions,...marketEmailEvents.map(event=>`market:${event}` as const)];
+const adminEmailThemeStyles=`
+.admin-emails-page{color:var(--mail-admin-ink)!important}
+.admin-emails-page>header{border-color:var(--mail-admin-border)!important}
+.admin-emails-page>header h1{color:var(--mail-admin-ink)!important}
+.admin-emails-page>header p,.admin-emails-page>header a{color:var(--mail-admin-muted)!important}
+.admin-emails-page>header>div:last-child,.admin-emails-page .admin-email-panel{background:var(--mail-admin-panel)!important;border-color:var(--mail-admin-border)!important;color:var(--mail-admin-ink)!important;box-shadow:var(--mail-admin-shadow)!important}
+.admin-emails-page>header>div:last-child div,.admin-emails-page .admin-email-panel h3{color:var(--mail-admin-ink)!important}
+.admin-emails-page .admin-email-sender{background:var(--mail-admin-panel)!important;border-color:var(--mail-admin-border)!important;box-shadow:var(--mail-admin-shadow)!important}
+.admin-emails-page .admin-email-sender div{color:var(--mail-admin-ink)!important}
+.admin-emails-page .admin-email-verified{background:var(--mail-admin-selected)!important;border-color:var(--mail-admin-border)!important;color:var(--mail-admin-accent-ink)!important}
+.admin-emails-page .admin-email-toolbar,.admin-emails-page .admin-email-control-segment,.admin-emails-page .admin-email-mode-segment,.admin-emails-page .admin-email-viewport-segment{background:var(--mail-admin-soft)!important;border-color:var(--mail-admin-border)!important;box-shadow:var(--mail-admin-shadow)!important}
+.admin-emails-page .admin-email-mode-option[aria-pressed=true],.admin-emails-page .admin-email-viewport-option[aria-pressed=true]{background:var(--mail-admin-selected)!important;color:var(--mail-admin-accent-ink)!important}
+.admin-emails-page .admin-email-template-option{color:var(--mail-admin-muted)!important}
+.admin-emails-page .admin-email-template-option[aria-pressed=true]{background:var(--mail-admin-selected)!important;border-color:var(--mail-admin-accent)!important;color:var(--mail-admin-accent-ink)!important}
+.admin-emails-page .admin-email-segment{background:var(--mail-admin-soft)!important;border-color:var(--mail-admin-border)!important}
+.admin-emails-page .admin-email-segment-option,.admin-emails-page .admin-email-mode-option{background:transparent!important;color:var(--mail-admin-muted)!important}
+.admin-emails-page .admin-email-segment-option[aria-pressed=true],.admin-emails-page .admin-email-mode-option[aria-pressed=true]{background:var(--mail-admin-selected)!important;color:var(--mail-admin-accent-ink)!important}
+.admin-emails-page .admin-email-preview-canvas{background:var(--mail-admin-canvas)!important;border-color:var(--mail-admin-border)!important;box-shadow:none!important}
+.admin-emails-page .admin-email-preview-topbar{background:var(--mail-admin-soft)!important;border-color:var(--mail-admin-border)!important;color:var(--mail-admin-muted)!important}
+.admin-emails-page .admin-email-preview-topbar span{color:var(--mail-admin-ink)!important}
+.admin-emails-page .admin-email-preview-stage{background:var(--mail-admin-canvas)!important}
+.admin-emails-page .admin-email-panel h3,.admin-emails-page .admin-email-panel h3+ p,.admin-emails-page .admin-email-panel label,.admin-emails-page .admin-email-panel span{color:var(--mail-admin-ink)!important}
+.admin-emails-page .admin-email-panel label{color:var(--mail-admin-muted)!important}
+.admin-emails-page .admin-email-panel input{background:var(--mail-admin-input)!important;border-color:var(--mail-admin-border)!important;color:var(--mail-admin-ink)!important}
+.admin-emails-page .admin-email-panel input::placeholder{color:var(--mail-admin-muted)!important}
+.admin-emails-page .admin-email-category{background:var(--mail-admin-soft)!important;color:var(--mail-admin-accent-ink)!important}
+.admin-emails-page .admin-email-submit{background:var(--mail-admin-accent)!important;color:var(--mail-admin-accent-ink)!important}
+.admin-emails-page .admin-email-result[data-success=true]{background:var(--mail-admin-success-bg)!important;border-color:var(--mail-admin-success-border)!important;color:var(--mail-admin-success-ink)!important}
+.admin-emails-page .admin-email-result[data-success=false]{background:var(--mail-admin-error-bg)!important;border-color:var(--mail-admin-error-border)!important;color:var(--mail-admin-error-ink)!important}
+.admin-emails-page .admin-email-result span{color:inherit!important}
+.admin-emails-page .admin-email-pre{background:var(--mail-admin-code)!important;border-color:var(--mail-admin-border)!important;color:var(--mail-admin-code-ink)!important}
+html[data-theme=light] .admin-emails-page{--mail-admin-ink:#292b27;--mail-admin-muted:#6f7169;--mail-admin-panel:#fffdf8;--mail-admin-soft:#f4f0e7;--mail-admin-canvas:#e9e5dc;--mail-admin-input:#fff;--mail-admin-code:#f7f4ec;--mail-admin-code-ink:#40443e;--mail-admin-border:#ded8cb;--mail-admin-selected:#f4ead1;--mail-admin-accent:#b28731;--mail-admin-accent-ink:#4f3c14;--mail-admin-success-bg:#e8f2e8;--mail-admin-success-border:#b9d0bb;--mail-admin-success-ink:#31563a;--mail-admin-error-bg:#f7e9e7;--mail-admin-error-border:#e0bfbb;--mail-admin-error-ink:#8c3631;--mail-admin-shadow:0 8px 24px rgba(52,45,30,.06)}
+html[data-theme=dark] .admin-emails-page{--mail-admin-ink:#e7ecee;--mail-admin-muted:#a5b2b8;--mail-admin-panel:#101d2b;--mail-admin-soft:#0a1723;--mail-admin-canvas:#0b1520;--mail-admin-input:#07101a;--mail-admin-code:#060d15;--mail-admin-code-ink:#d5e2e8;--mail-admin-border:#284158;--mail-admin-selected:#2c3440;--mail-admin-accent:#d8a63b;--mail-admin-accent-ink:#1b1b17;--mail-admin-success-bg:#16271c;--mail-admin-success-border:#315b3a;--mail-admin-success-ink:#a8d6ae;--mail-admin-error-bg:#2b1c1b;--mail-admin-error-border:#67403d;--mail-admin-error-ink:#efaaa3;--mail-admin-shadow:0 14px 32px rgba(0,0,0,.16)}
+@media(max-width:980px){.admin-emails-page .admin-emails-layout{grid-template-columns:minmax(0,1fr)!important}}
+@media(max-width:640px){.admin-emails-page{padding:24px 12px 56px!important}.admin-emails-page .admin-email-toolbar{padding:10px!important}.admin-emails-page .admin-emails-header>div:last-child{width:100%;min-width:0!important}.admin-emails-page .admin-email-preview-stage{padding:20px 8px!important;min-height:420px!important}}
+`;
 
 type EmailData = RenderedEmail & {
   action: AdminEmailAction;
@@ -124,7 +159,7 @@ export function AdminEmailsDashboard() {
   };
 
   const getActionLabel = (action: AdminEmailAction) => {
-    if(action.startsWith('market:'))return `Market · ${marketEmailLabels[action.slice('market:'.length) as MarketEmailEvent]}`;
+    if(action.startsWith('market:'))return `Market: ${marketEmailLabels[action.slice('market:'.length) as MarketEmailEvent]}`;
     switch (action) {
       case 'verify':
         return 'Verify Email';
@@ -139,9 +174,11 @@ export function AdminEmailsDashboard() {
   };
 
   return (
-    <main className="page" style={{ maxWidth: 1320, margin: '0 auto', padding: '40px 20px 80px' }}>
+    <main className="page admin-emails-page" style={{ maxWidth: 1320, margin: '0 auto', padding: '40px 20px 80px' }}>
+      <style>{adminEmailThemeStyles}</style>
       {/* Top Header Navigation */}
       <header
+        className="admin-emails-header"
         style={{
           display: 'flex',
           alignItems: 'flex-start',
@@ -161,7 +198,7 @@ export function AdminEmailsDashboard() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,
-                color: '#8fa7b7',
+                color: 'var(--mail-admin-muted)',
                 fontSize: 12,
                 fontWeight: 700,
                 textDecoration: 'none',
@@ -169,15 +206,16 @@ export function AdminEmailsDashboard() {
             >
               <ArrowLeft size={14} /> Back to Catalog Admin
             </Link>
-            <span style={{ color: '#29435b' }}>&middot;</span>
+            <span aria-hidden="true" style={{ color: 'var(--mail-admin-muted)' }}>|</span>
             <span
+              className="admin-email-verified"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 5,
-                background: 'rgba(34, 197, 94, 0.12)',
-                color: '#4ade80',
-                border: '1px solid rgba(34, 197, 94, 0.3)',
+                background: '#f4ead1',
+                color: '#6a511b',
+                border: '1px solid #ded8cb',
                 borderRadius: 9999,
                 padding: '2px 10px',
                 fontSize: 11,
@@ -195,19 +233,20 @@ export function AdminEmailsDashboard() {
               fontFamily: "'Plus Jakarta Sans', sans-serif",
               fontSize: 'clamp(28px, 3.5vw, 42px)',
               fontWeight: 800,
-              color: '#f3f6f8',
+              color: 'var(--mail-admin-ink)',
               letterSpacing: '-0.04em',
             }}
           >
             Email Views &amp; Delivery
           </h1>
-          <p style={{ margin: 0, color: '#9cb1c0', fontSize: 14, fontFamily: "'Manrope', sans-serif" }}>
+          <p style={{ margin: 0, color: 'var(--mail-admin-muted)', fontSize: 14, fontFamily: "'Manrope', sans-serif" }}>
             Preview account and Market emails, compare desktop and mobile layouts, and send test messages.
           </p>
         </div>
 
         {/* Sender Info Badge */}
         <div
+          className="admin-email-sender"
           style={{
             background: '#0e1b2a',
             border: '1px solid #284158',
@@ -216,13 +255,13 @@ export function AdminEmailsDashboard() {
             minWidth: 260,
           }}
         >
-          <div style={{ color: '#d8a63b', fontSize: 10, fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 4 }}>
+          <div style={{ color: 'var(--mail-admin-accent)', fontSize: 10, fontWeight: 800, letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 4 }}>
             SENDER CONFIGURATION
           </div>
-          <div style={{ color: '#f3f6f8', fontSize: 13, fontWeight: 700, fontFamily: 'monospace' }}>
+          <div style={{ color: 'var(--mail-admin-ink)', fontSize: 13, fontWeight: 700, fontFamily: 'monospace' }}>
             VivrePlay &lt;noreply@vivreplay.com&gt;
           </div>
-          <div style={{ color: '#8fa7b7', fontSize: 11, marginTop: 4 }}>
+          <div style={{ color: 'var(--mail-admin-muted)', fontSize: 11, marginTop: 4 }}>
             Reply-To: support@vivreplay.com
           </div>
         </div>
@@ -230,6 +269,7 @@ export function AdminEmailsDashboard() {
 
       {/* Template Tabs & Viewport Controls */}
       <section
+        className="admin-email-toolbar"
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -249,6 +289,8 @@ export function AdminEmailsDashboard() {
             <button
               key={action}
               type="button"
+              className="admin-email-template-option"
+              aria-pressed={selectedAction===action}
               onClick={() => setSelectedAction(action)}
               style={{
                 display: 'inline-flex',
@@ -273,14 +315,15 @@ export function AdminEmailsDashboard() {
 
         {/* Viewport and Code Mode Controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{display:'inline-flex',gap:3,padding:3,border:'1px solid #1c3044',borderRadius:8,background:'#08121d'}} aria-label="Market email language">
-            {(['en','id'] as const).map(locale=><button key={locale} type="button" onClick={()=>setPreviewLanguage(locale)} style={{padding:'6px 10px',border:0,borderRadius:6,background:previewLanguage===locale?'#1c3349':'transparent',color:previewLanguage===locale?'#f5da92':'#8fa7b7',fontSize:11,fontWeight:700,cursor:'pointer'}}>{locale.toUpperCase()}</button>)}
+          <div className="admin-email-segment admin-email-control-segment" style={{display:'inline-flex',gap:3,padding:3,border:'1px solid #1c3044',borderRadius:8,background:'#08121d'}} aria-label="Market email language">
+            {(['en','id'] as const).map(locale=><button key={locale} type="button" className="admin-email-segment-option" aria-pressed={previewLanguage===locale} onClick={()=>setPreviewLanguage(locale)} style={{padding:'6px 10px',border:0,borderRadius:6,background:previewLanguage===locale?'#1c3349':'transparent',color:previewLanguage===locale?'#f5da92':'#8fa7b7',fontSize:11,fontWeight:700,cursor:'pointer'}}>{locale.toUpperCase()}</button>)}
           </div>
-          <div style={{display:'inline-flex',gap:3,padding:3,border:'1px solid #1c3044',borderRadius:8,background:'#08121d'}} aria-label="Email appearance">
-            {(['light','dark'] as const).map(theme=><button key={theme} type="button" onClick={()=>setPreviewTheme(theme)} aria-pressed={previewTheme===theme} style={{padding:'6px 10px',border:0,borderRadius:6,background:previewTheme===theme?'#1c3349':'transparent',color:previewTheme===theme?'#f5da92':'#8fa7b7',fontSize:11,fontWeight:700,cursor:'pointer'}}>{theme==='light'?'Light':'Dark'}</button>)}
+          <div className="admin-email-segment admin-email-control-segment" style={{display:'inline-flex',gap:3,padding:3,border:'1px solid #1c3044',borderRadius:8,background:'#08121d'}} aria-label="Email appearance">
+            {(['light','dark'] as const).map(theme=><button key={theme} type="button" className="admin-email-segment-option" onClick={()=>setPreviewTheme(theme)} aria-pressed={previewTheme===theme} style={{padding:'6px 10px',border:0,borderRadius:6,background:previewTheme===theme?'#1c3349':'transparent',color:previewTheme===theme?'#f5da92':'#8fa7b7',fontSize:11,fontWeight:700,cursor:'pointer'}}>{theme==='light'?'Light':'Dark'}</button>)}
           </div>
           {/* Mode toggle */}
           <div
+            className="admin-email-mode-segment"
             style={{
               display: 'inline-flex',
               background: '#08121d',
@@ -291,6 +334,8 @@ export function AdminEmailsDashboard() {
           >
             <button
               type="button"
+              className="admin-email-mode-option"
+              aria-pressed={viewMode==='preview'}
               onClick={() => setViewMode('preview')}
               style={{
                 display: 'inline-flex',
@@ -310,6 +355,8 @@ export function AdminEmailsDashboard() {
             </button>
             <button
               type="button"
+              className="admin-email-mode-option"
+              aria-pressed={viewMode==='code'}
               onClick={() => setViewMode('code')}
               style={{
                 display: 'inline-flex',
@@ -329,6 +376,8 @@ export function AdminEmailsDashboard() {
             </button>
             <button
               type="button"
+              className="admin-email-mode-option"
+              aria-pressed={viewMode==='text'}
               onClick={() => setViewMode('text')}
               style={{
                 display: 'inline-flex',
@@ -351,6 +400,7 @@ export function AdminEmailsDashboard() {
           {/* Viewport Width (only in preview mode) */}
           {viewMode === 'preview' && (
             <div
+              className="admin-email-viewport-segment"
               style={{
                 display: 'inline-flex',
                 background: '#08121d',
@@ -361,6 +411,8 @@ export function AdminEmailsDashboard() {
             >
               <button
                 type="button"
+                className="admin-email-viewport-option"
+                aria-pressed={viewport==='desktop'}
                 onClick={() => setViewport('desktop')}
                 style={{
                   display: 'inline-flex',
@@ -381,6 +433,8 @@ export function AdminEmailsDashboard() {
               </button>
               <button
                 type="button"
+                className="admin-email-viewport-option"
+                aria-pressed={viewport==='mobile'}
                 onClick={() => setViewport('mobile')}
                 style={{
                   display: 'inline-flex',
@@ -406,6 +460,7 @@ export function AdminEmailsDashboard() {
 
       {/* Main Grid: Preview on Left, Metadata & Live Test on Right */}
       <div
+        className="admin-emails-layout"
         style={{
           display: 'grid',
           gridTemplateColumns: 'minmax(0, 1fr) 340px',
@@ -415,23 +470,25 @@ export function AdminEmailsDashboard() {
       >
         {/* Left: Email Preview Canvas */}
         <div
+          className="admin-email-preview-canvas"
           style={{
-            background: '#040910',
+            background: previewTheme==='dark'?'#10171d':'#e9e5dc',
             border: '1px solid #1c3044',
             borderRadius: 14,
             overflow: 'hidden',
-            boxShadow: 'inset 0 0 40px rgba(0,0,0,0.5)',
+            boxShadow: 'none',
           }}
         >
           {/* Top Bar of Canvas */}
           <div
+            className="admin-email-preview-topbar"
             style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               padding: '10px 16px',
               borderBottom: '1px solid #152536',
-              background: '#09131e',
+              background: previewTheme==='dark'?'#0a1723':'#f4f0e7',
               fontSize: 12,
               color: '#8fa7b7',
             }}
@@ -481,6 +538,7 @@ export function AdminEmailsDashboard() {
 
           {/* Canvas Area */}
           <div
+            className="admin-email-preview-stage"
             style={{
               padding: viewport === 'mobile' ? '32px 16px' : '40px 24px',
               display: 'flex',
@@ -494,15 +552,16 @@ export function AdminEmailsDashboard() {
                 Rendering template…
               </div>
             ) : viewMode === 'preview' ? (
-              <div
-                style={{
+            <div
+              className="admin-email-viewport-segment"
+              style={{
                   width: viewport === 'mobile' ? 380 : 600,
                   maxWidth: '100%',
                   transition: 'width 0.2s ease',
-                  boxShadow: '0 12px 40px rgba(0,0,0,0.6)',
+                  boxShadow: previewTheme==='dark'?'0 12px 32px rgba(0,0,0,.3)':'0 10px 28px rgba(52,45,30,.12)',
                   borderRadius: 16,
                   overflow: 'hidden',
-                  background: '#060d15',
+                  background: previewTheme==='dark'?'#10171d':'#f1eee6',
                 }}
               >
                 <iframe
@@ -513,17 +572,18 @@ export function AdminEmailsDashboard() {
                     height: 680,
                     border: 0,
                     display: 'block',
-                    background: '#060d15',
+                    background: previewTheme==='dark'?'#10171d':'#f1eee6',
                   }}
                 />
               </div>
             ) : viewMode === 'code' ? (
               <pre
+                className="admin-email-pre"
                 style={{
                   width: '100%',
                   margin: 0,
                   padding: 20,
-                  background: '#060d15',
+                  background: previewTheme==='dark'?'#060d15':'#f7f4ec',
                   color: '#9cc2db',
                   fontFamily: 'monospace',
                   fontSize: 12,
@@ -536,14 +596,15 @@ export function AdminEmailsDashboard() {
               </pre>
             ) : (
               <pre
+                className="admin-email-pre"
                 style={{
                   width: '100%',
                   maxWidth: 600,
                   margin: 0,
                   padding: 24,
-                  background: '#0a1724',
+                  background: previewTheme==='dark'?'#0a1724':'#f7f4ec',
                   border: '1px solid #1e3347',
-                  color: '#d5e2e8',
+                  color: previewTheme==='dark'?'#d5e2e8':'#303831',
                   fontFamily: 'monospace',
                   fontSize: 13,
                   lineHeight: 1.6,
@@ -558,9 +619,10 @@ export function AdminEmailsDashboard() {
         </div>
 
         {/* Right Sidebar: Details & Live Test Sender */}
-        <aside style={{ display: 'grid', gap: 20 }}>
+        <aside className="admin-email-sidebar" style={{ display: 'grid', gap: 20 }}>
           {/* Metadata Card */}
           <div
+            className="admin-email-panel"
             style={{
               background: '#0d1b2a',
               border: '1px solid #22384e',
@@ -595,6 +657,7 @@ export function AdminEmailsDashboard() {
               <div>
                 <span style={{ display: 'block', color: '#7b93a4', fontWeight: 700, marginBottom: 2 }}>Action Category:</span>
                 <span
+                  className="admin-email-category"
                   style={{
                     display: 'inline-block',
                     background: '#152638',
@@ -621,6 +684,7 @@ export function AdminEmailsDashboard() {
 
           {/* Live Test Sender Tool */}
           <div
+            className="admin-email-panel"
             style={{
               background: '#0d1b2a',
               border: '1px solid #284158',
@@ -646,14 +710,22 @@ export function AdminEmailsDashboard() {
               Dispatch the currently selected <b>{getActionLabel(selectedAction)}</b> email through your verified Resend domain to any real inbox.
             </p>
 
-            <form onSubmit={handleSendTest} style={{ display: 'grid', gap: 12 }}>
-              <label style={{ display: 'grid', gap: 6, fontSize: 12, color: '#c2d3df', fontWeight: 700 }}>
+            <form onSubmit={handleSendTest} data-lpignore="true" data-form-type="other" style={{ display: 'grid', gap: 12 }}>
+              <label htmlFor="admin-test-email" style={{ display: 'grid', gap: 6, fontSize: 12, color: '#c2d3df', fontWeight: 700 }}>
                 Recipient Email
-                <input
+              </label>
+              <input
+                  id="admin-test-email"
+                  className="admin-email-input"
                   type="email"
+                  name="admin-test-email"
                   value={testEmail}
                   onChange={(e) => setTestEmail(e.target.value)}
                   placeholder="your-name@example.com"
+                  autoComplete="off"
+                  data-lpignore="true"
+                  data-1p-ignore="true"
+                  data-bwignore="true"
                   required
                   style={{
                     padding: '10px 12px',
@@ -666,10 +738,10 @@ export function AdminEmailsDashboard() {
                     outline: 'none',
                   }}
                 />
-              </label>
 
               <button
                 type="submit"
+                className="admin-email-submit"
                 disabled={sending || !testEmail}
                 style={{
                   display: 'inline-flex',
@@ -694,6 +766,8 @@ export function AdminEmailsDashboard() {
 
               {sendResult && (
                 <div
+                  className="admin-email-result"
+                  data-success={sendResult.success}
                   style={{
                     padding: '10px 12px',
                     borderRadius: 8,
@@ -716,6 +790,7 @@ export function AdminEmailsDashboard() {
 
           {/* Helpful Tips Card */}
           <div
+            className="admin-email-panel"
             style={{
               background: '#09131e',
               border: '1px solid #1a2c3f',

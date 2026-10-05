@@ -2,7 +2,6 @@ import {z} from 'zod';
 import {db,errorResponse,guard,user,HttpError} from '@/lib/server/store';
 import {getCurrentUser} from '@/lib/server/auth';
 import {createAzekhaIntent,hasAzekhaPaymentConfig} from '@/lib/server/azekha-payments';
-import {verifyTurnstile} from '@/lib/server/turnstile';
 import {biteshipDestination,isBiteshipAreaId} from '@/lib/shipping/biteship-area';
 import {biteshipRates,biteshipRequest} from '@/lib/server/biteship';
 
@@ -19,7 +18,6 @@ export async function GET(){
 export async function POST(request:Request){
   try{
     guard(request);
-    const rejected=await verifyTurnstile(request);if(rejected)return rejected;
     if(process.env.VIVREPLAY_MARKET_CHECKOUT_ENABLED!=='true'||process.env.VIVREPLAY_MARKET_SELLER_OPERATIONS_READY!=='true')throw new HttpError(503,'Market checkout is not available yet.');
     if(!hasAzekhaPaymentConfig())throw new HttpError(503,'Online payment is temporarily unavailable.');
     const profile=await user();

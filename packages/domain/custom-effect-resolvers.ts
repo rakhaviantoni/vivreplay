@@ -1,4 +1,4 @@
-import type {EffectImplementationStatus,EffectTrigger} from './effect-rules';
+import type {EffectAction,EffectImplementationStatus,EffectTrigger} from './effect-rules';
 
 export type CustomInstruction=
  | {kind:'choose';count:number;from:'own-character'|'opponent-character'|'own-trash'|'opponent-trash'|'hand'|'cost-area';constraint?:string}
@@ -30,7 +30,8 @@ const definitions:CustomEffectDefinition[]=[
   {kind:'play-selected'},
   {kind:'play-selected',rested:true},
  ]),
- tested('OP06_092_ON_PLAY','on-play',[{kind:'choose-one',options:['Trash up to 1 opponent Character with cost 4 or less','Put 3 Event cards from opponent trash on deck bottom']}]),
+ tested('OP06_092_ON_PLAY','on-play',[{kind:'choose-one',options:['Trash up to 1 opponent Character with cost 4 or less','Put 3 cards from opponent trash on deck bottom in any order']}]),
+ tested('EB01_052_ON_PLAY','on-play',[{kind:'choose-one',options:['Reorder all of your opponent’s Life cards','Turn all of your Life cards face-down']}]),
  tested('PRB02_005_ON_PLAY','on-play',[{kind:'delayed',when:'next-main-phase',instruction:'Rest 1 active opponent DON!! if the printed condition held on play'}]),
  tested('OP10_074_CONTINUOUS','continuous',[{kind:'delayed',when:'replacement',instruction:'Instead of this Character being K.O.d by an opponent effect, optionally rest 2 active own DON!!'}]),
  tested('OP14_092_CONTINUOUS','continuous',[{kind:'delayed',when:'replacement',instruction:'Instead of this Character being K.O.d, optionally put 3 own trash cards on deck bottom'}]),
@@ -40,8 +41,6 @@ const definitions:CustomEffectDefinition[]=[
  tested('OP12_040_UNKNOWN','unknown',[{kind:'delayed',when:'replacement',instruction:'When a Navy card effect trashes cards from own hand, draw the exact number trashed'}]),
  tested('OP13_035_END_TURN','end-turn',[{kind:'choose-one',options:['Set this Character active','Set up to 1 own DON!! active']}]),
  tested('OP13_105_ON_PLAY','on-play',[{kind:'apply',instruction:'Reveal all own Life cards and reorder them'}]),
- tested('OP13_003_UNKNOWN','unknown',[{kind:'apply',instruction:'During DON!! phase, attach one placed DON!! to Leader if any DON!! are on field; otherwise apply the printed leader power condition'}]),
- tested('OP15_031_ON_PLAY','on-play',[{kind:'choose',count:1,from:'opponent-character',constraint:'rested'}, {kind:'apply',instruction:'K.O. the selected Character only if its cost equals DON!! attached to it'}]),
  tested('OP17_119_ON_PLAY','on-play',[{kind:'choose',count:0,from:'opponent-character',constraint:'Characters with a combined total cost of 4 or less'}, {kind:'apply',instruction:'K.O. every selected Character'}]),
  tested('OP15_023_ACTIVATE_MAIN','activate-main',[{kind:'choose',count:1,from:'cost-area',constraint:'opponent rested DON!!'}, {kind:'apply',instruction:'Attach it to an opponent Character'}, {kind:'apply',instruction:'Attach up to 1 DON!! from its owner cost area to that owner Leader or Character'}]),
  tested('ST13_002_END_TURN','end-turn',[{kind:'apply',instruction:'Trash all own face-up Life cards'}]),
@@ -49,7 +48,7 @@ const definitions:CustomEffectDefinition[]=[
  tested('P_098_ON_PLAY','on-play',[{kind:'apply',instruction:'If own field has fewer than five Characters with cost 5 or greater, place this Character on deck bottom'}]),
  tested('P_067_UNKNOWN','unknown',[{kind:'apply',instruction:'While this Character is rested, opponent attacks must target this Character'}]),
 
- implemented('OP02_025_ACTIVATE_MAIN','activate-main','If own Character count is 1 or less, reduce the next eligible Land of Wano Character played from hand this turn by 1.'),
+ tested('OP02_025_ACTIVATE_MAIN','activate-main',[{kind:'apply',instruction:'If you control one or fewer Characters, reduce the next eligible Land of Wano Character costing 3 or more played from hand this turn by 1.'}]),
  implemented('OP08_001_ACTIVATE_MAIN','activate-main','Give up to three eligible Animal or Drum Kingdom Characters one rested DON!! each.'),
  implemented('OP09_064_ON_PLAY','on-play','After optional DON!!-1 return cost, set one Kid Pirates Leader active.'),
  implemented('OP09_009_ON_PLAY','on-play','Trash up to one opponent Character with power 6000 or less.'),
@@ -102,7 +101,35 @@ const definitions:CustomEffectDefinition[]=[
 ];
 
 const byHandler=new Map(definitions.map(definition=>[definition.handler,definition]));
+const boardExecutors=new Set(['OP06_092_ON_PLAY','EB01_052_ON_PLAY','OP09_009_ON_PLAY','OP12_039_MAIN','OP13_098_MAIN','OP17_116_MAIN']);
 export function customEffectDefinition(handler:string){return byHandler.get(handler);}
-export function customResolverStatus(handler:string):EffectImplementationStatus{return byHandler.get(handler)?.status??'RAW';}
+export function hasCustomBoardExecutor(handler:string){return boardExecutors.has(handler);}
+export function customEffectBranch(handler:string,index:number):EffectAction[]|undefined{
+ if(handler==='OP06_092_ON_PLAY')return index===0
+  ?[{kind:'trash-character',scope:'opponent',maxCost:4,selection:{min:0,max:1}}]
+  :index===1
+   ?[{kind:'bottom-deck',scope:'opponent-trash',selection:{min:3,max:3}}]
+   :undefined;
+ if(handler==='EB01_052_ON_PLAY')return index===0
+  ?[{kind:'reorder-life',scope:'opponent',amount:'all'}]
+  :index===1
+   ?[{kind:'set-life-face',scope:'own',faceUp:false}]
+   :undefined;
+ if(handler==='OP09_009_ON_PLAY')return index===0
+  ?[{kind:'trash-character',scope:'opponent',maxPower:6000,selection:{min:0,max:1}}]
+  :undefined;
+ if(handler==='OP12_039_MAIN')return index===0
+  ?[{kind:'ready',scope:'own-leader',name:'Roronoa Zoro',selection:{min:1,max:1}}]
+  :undefined;
+ if(handler==='OP13_098_MAIN')return index===0
+  ?[{kind:'ko',scope:'opponent-stage',exactCost:7,selection:{min:0,max:1}}]
+  :undefined;
+ if(handler==='OP17_116_MAIN')return index===0
+  ?[{kind:'ko',scope:'opponent-stage',selection:{min:0,max:1}}]
+  :undefined;
+ return undefined;
+}
+/** Handler fixtures test plans; only listed board adapters count as implemented. */
+export function customResolverStatus(handler:string):EffectImplementationStatus{return hasCustomBoardExecutor(handler)?'IMPLEMENTED':byHandler.has(handler)?'REVIEWED':'RAW';}
 export function resolveCustomEffect(handler:string){const definition=byHandler.get(handler);return (definition?.status==='TESTED'||definition?.status==='IMPLEMENTED')?{status:'ready' as const,instructions:definition.instructions}:{status:'custom' as const,instructions:[] as CustomInstruction[]};}
 export function customEffectDefinitions(){return [...definitions];}

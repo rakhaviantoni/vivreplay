@@ -64,7 +64,7 @@ export function QuickAddModal({
         });
         toast.success(
           language === 'ID'
-            ? `Berhasil menambahkan 1x ${card.name} (Raw NM) ke Vault lokal`
+            ? `Berhasil menambahkan 1x ${card.name} (Raw NM) ke koleksi lokal`
             : `Added 1x ${card.name} (Raw NM) to local Vault`
         );
         await onItemAdded();

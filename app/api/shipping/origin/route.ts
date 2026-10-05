@@ -1,5 +1,4 @@
 import {db,errorResponse,guard,user} from '@/lib/server/store';
-import {verifyTurnstile} from '@/lib/server/turnstile';
 import {isBiteshipAreaId} from '@/lib/shipping/biteship-area';
 import {verifyBiteshipPostal,BiteshipError} from '@/lib/server/biteship';
 
@@ -51,7 +50,6 @@ export async function GET(request:Request){
 
 export async function POST(request:Request){
   try{
-    const rejected=await verifyTurnstile(request);if(rejected)return rejected;
     guard(request);const profile=await user();const input=await request.json() as Record<string,unknown>;
     const rawLabel=typeof input.label==='string'&&input.label.trim()?input.label.trim().slice(0,60):'Primary origin';
     const address=typeof input.addressLine==='string'?input.addressLine.trim().slice(0,260):'';

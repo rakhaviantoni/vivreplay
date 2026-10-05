@@ -4,6 +4,8 @@ import {familyScenarios} from '../scripts/effect-family-scenarios';
 import {compileEffectDocument} from '../packages/domain/effect-rules';
 import {resolveEffectTiming} from '../packages/domain/effect-runtime';
 import {beginEffectExecution} from '../packages/domain/effect-controller';
+import {advanceEffectExecution} from '../packages/domain/effect-controller';
+import {customEffectBranch} from '../packages/domain/custom-effect-resolvers';
 import {scenarios} from '../scripts/card-effect-scenarios';
 
 test('search scenarios enforce each printed trait notation, exclusions and deck window',()=>{
@@ -27,6 +29,57 @@ test('cost-limited search validates the threshold, look window, bottom placement
 test('family tests do not silently drop conditions or follow-up clauses',()=>{
  assert.equal(familyScenarios('[On Play] If your Leader is [Sanji], draw 1 card.').length,0);
  assert.equal(familyScenarios('[On Play] Draw 1 card. Then, trash 1 card from your hand.').length,0);
+});
+test('OP06-092 branches resolve legal opposing trash targets or order exactly three opposing Trash cards',()=>{
+ const state=()=>({turn:'player' as const,cards:[
+  {id:'brook',owner:'player' as const,zone:'character' as const,type:'Character' as const},
+  {id:'legal',owner:'opponent' as const,zone:'character' as const,type:'Character' as const,cost:4},
+  {id:'over-cost',owner:'opponent' as const,zone:'character' as const,type:'Character' as const,cost:5},
+  {id:'opp-a',owner:'opponent' as const,zone:'trash' as const,type:'Event' as const},
+  {id:'opp-b',owner:'opponent' as const,zone:'trash' as const,type:'Character' as const},
+  {id:'opp-c',owner:'opponent' as const,zone:'trash' as const,type:'Stage' as const},
+  {id:'own-trash',owner:'player' as const,zone:'trash' as const,type:'Event' as const},
+  {id:'opp-deck',owner:'opponent' as const,zone:'deck' as const,type:'Event' as const},
+ ],turnEffects:[],restrictions:[],delayed:[]});
+ const trashBranch=customEffectBranch('OP06_092_ON_PLAY',0)!;assert.equal(trashBranch[0].kind,'trash-character');
+ const trashStart=beginEffectExecution(state(),'player','brook','on-play',trashBranch.map((value,abilityId)=>({kind:'resolve-action' as const,value,abilityId})));
+ assert.ok(trashStart.requiresSelection,'The first choice must ask for an optional legal target');
+ const trashed=advanceEffectExecution(trashStart.execution,{cardIds:['legal']});
+ assert.ok(trashed.complete&&!trashed.error,'The selected opposing Character should be trashed');
+ assert.equal(trashed.execution.state.cards.find(card=>card.id==='legal')?.zone,'trash');
+ assert.equal(trashed.execution.state.cards.find(card=>card.id==='over-cost')?.zone,'character');
+ const skipped=advanceEffectExecution(trashStart.execution,{cardIds:[]});assert.ok(skipped.complete&&!skipped.error,'The up-to-one branch should allow choosing none');
+
+ const bottomBranch=customEffectBranch('OP06_092_ON_PLAY',1)!;assert.equal(bottomBranch[0].kind,'bottom-deck');
+ const bottomStart=beginEffectExecution(state(),'player','brook','on-play',bottomBranch.map((value,abilityId)=>({kind:'resolve-action' as const,value,abilityId})));
+ assert.ok(bottomStart.requiresSelection,'The second choice must request the exact ordered cards');
+ const ordered=advanceEffectExecution(bottomStart.execution,{cardIds:['opp-b','opp-a','opp-c']});
+ assert.ok(ordered.complete&&!ordered.error,'The three-card bottom-deck branch should resolve');
+ assert.deepEqual(ordered.execution.state.cards.filter(card=>card.owner==='opponent'&&card.zone==='deck').map(card=>card.id),['opp-deck','opp-b','opp-a','opp-c']);
+ assert.equal(ordered.execution.state.cards.find(card=>card.id==='own-trash')?.zone,'trash','The opponent branch must not move your Trash cards');
+ const short=advanceEffectExecution(bottomStart.execution,{cardIds:['opp-a','opp-b']});assert.ok(short.error,'The exact-three instruction must reject fewer than three cards');
+});
+
+test('EB01-052 choose-one reorders opposing Life or turns every own Life card face-down',()=>{
+ const makeState=()=>({turn:'player' as const,cards:[{id:'eb01-052',owner:'player' as const,zone:'character' as const,type:'Character' as const},...['opp-top','opp-next','opp-bottom'].map(id=>({id,owner:'opponent' as const,zone:'life' as const,type:'Character' as const})),{id:'own-life',owner:'player' as const,zone:'life' as const,type:'Character' as const,faceUp:true}],turnEffects:[],restrictions:[],delayed:[]});
+ const reorder=customEffectBranch('EB01_052_ON_PLAY',0)!;assert.equal(reorder[0].kind,'reorder-life');const reorderStart=beginEffectExecution(makeState(),'player','eb01-052','on-play',reorder.map((value,abilityId)=>({kind:'resolve-action' as const,value,abilityId})));assert(reorderStart.requiresSelection,'The first branch must ask to order opposing Life');const ordered=advanceEffectExecution(reorderStart.execution,{cardIds:['opp-bottom','opp-top','opp-next']});assert(ordered.complete&&!ordered.error,'The opponent Life order was rejected');assert.deepEqual(ordered.execution.state.cards.filter(card=>card.owner==='opponent'&&card.zone==='life').map(card=>card.id),['opp-bottom','opp-top','opp-next']);assert(ordered.execution.state.cards.find(card=>card.id==='own-life')?.faceUp,'Reordering opponent Life changed your own Life');
+ const faceDown=customEffectBranch('EB01_052_ON_PLAY',1)!;assert.equal(faceDown[0].kind,'set-life-face');const turned=beginEffectExecution(makeState(),'player','eb01-052','on-play',faceDown.map((value,abilityId)=>({kind:'resolve-action' as const,value,abilityId})));assert(turned.complete&&!turned.error,'Turning own Life face-down did not resolve');assert.equal(turned.execution.state.cards.find(card=>card.id==='own-life')?.faceUp,false);assert(turned.execution.state.cards.filter(card=>card.owner==='opponent'&&card.zone==='life').every(card=>card.faceUp===undefined),'The branch changed the opponent Life cards');
+});
+test('OP12-039 readies only a matching Roronoa Zoro Leader',()=>{
+ const branch=customEffectBranch('OP12_039_MAIN',0)!;assert.equal(branch[0].kind,'ready');
+ const state=()=>({turn:'player' as const,cards:[{id:'event',owner:'player' as const,zone:'hand' as const,type:'Event' as const},{id:'zoro',owner:'player' as const,zone:'leader' as const,type:'Leader' as const,name:'Roronoa Zoro',rested:true},{id:'other',owner:'player' as const,zone:'leader' as const,type:'Leader' as const,name:'Other Leader',rested:true},{id:'character',owner:'player' as const,zone:'character' as const,type:'Character' as const,name:'Roronoa Zoro',rested:true}],turnEffects:[],restrictions:[],delayed:[]});
+ const start=beginEffectExecution(state(),'player','event','main',branch.map((value,abilityId)=>({kind:'resolve-action' as const,value,abilityId})));assert(start.requiresSelection,'Main must ask the player to choose the matching Leader');
+ const done=advanceEffectExecution(start.execution,{targetId:'zoro'});assert(done.complete&&!done.error,'The Zoro Leader should become active');assert.equal(done.execution.state.cards.find(card=>card.id==='zoro')?.rested,false);assert.equal(done.execution.state.cards.find(card=>card.id==='other')?.rested,true);assert.equal(done.execution.state.cards.find(card=>card.id==='character')?.rested,true);
+ const illegal=advanceEffectExecution(start.execution,{targetId:'other'});assert(illegal.error&&!illegal.complete,'A non-Zoro Leader must not be accepted');assert.equal(illegal.execution.state.cards.find(card=>card.id==='other')?.rested,true);
+});
+test('OP17-116 offers the optional two-DON cost before choosing an opponent Stage',()=>{
+ const document=compileEffectDocument({id:'test',code:'OP17-116',name:'Fulgora',color:'Blue',type:'Event',cost:3,power:0,rarity:'C',art:0,effect:"[Main] You may rest 2 of your DON!! cards: K.O. up to 1 of your opponent's Stages.\n[Counter] Up to 1 of your Leader or Characters gains +4000 power during this battle."});
+ assert.equal(document.resolver.type,'CUSTOM');if(document.resolver.type!=='CUSTOM')return;assert.equal(document.resolver.handler,'OP17_116_MAIN');
+ const branch=customEffectBranch('OP17_116_MAIN',0)!,commands=[...document.ast.find(item=>item.trigger==='main')!.costs.map((value,abilityId)=>({kind:'pay-cost' as const,value,abilityId})),...branch.map((value,abilityId)=>({kind:'resolve-action' as const,value,abilityId}))];
+ const state=()=>({turn:'player' as const,cards:[{id:'event',owner:'player' as const,zone:'hand' as const,type:'Event' as const},{id:'don-1',owner:'player' as const,zone:'cost-area' as const,type:'DON!!' as const,rested:false},{id:'don-2',owner:'player' as const,zone:'cost-area' as const,type:'DON!!' as const,rested:false},{id:'stage',owner:'opponent' as const,zone:'stage' as const,type:'Stage' as const},{id:'character',owner:'opponent' as const,zone:'character' as const,type:'Character' as const}],turnEffects:[],restrictions:[],delayed:[]});
+ const start=beginEffectExecution(state(),'player','event','main',commands);assert(start.requiresSelection,'Optional cost must be offered before the K.O.');const declined=advanceEffectExecution(start.execution,{choice:'decline'});assert(declined.complete&&!declined.error,'Declining the optional cost should end the effect');assert(declined.execution.state.cards.every(card=>card.type!=='DON!!'||!card.rested));assert.equal(declined.execution.state.cards.find(card=>card.id==='stage')?.zone,'stage');
+ const offered=advanceEffectExecution(start.execution,{choice:'accept'});assert(offered.requiresSelection&&!offered.error,'Accepting must request two DON!! cards');const paid=advanceEffectExecution(offered.execution,{cardIds:['don-1','don-2']});assert(paid.requiresSelection&&!paid.error,'K.O. target must be chosen after payment');assert(paid.execution.state.cards.filter(card=>card.type==='DON!!'&&card.rested).length===2);const ko=advanceEffectExecution(paid.execution,{cardIds:['stage']});assert(ko.complete&&!ko.error,'Selected opponent Stage should be K.O.d');assert.equal(ko.execution.state.cards.find(card=>card.id==='stage')?.zone,'trash');assert.equal(ko.execution.state.cards.find(card=>card.id==='character')?.zone,'character');
+ const skipped=advanceEffectExecution(paid.execution,{cardIds:[]});assert(skipped.complete&&!skipped.error,'Up-to-one Stage K.O. may be skipped after paying');assert.equal(skipped.execution.state.cards.find(card=>card.id==='stage')?.zone,'stage');
 });
 test('KO scenarios exercise cost boundaries, ownership, rested state and optional skip',()=>{
  const effect="[Trigger] K.O. up to 1 of your opponent's rested Characters with a cost of 3 or less.";
@@ -148,7 +201,7 @@ test('effectless-card coverage rejects phantom commands in stored schemas',()=>{
 test('printed Blocker schema supports legal blocking and respects negation',()=>{
  const effect='[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)';
  const document=compileEffectDocument({id:'test',code:'TEST',name:'Test',color:'Green',type:'Character',cost:1,power:1000,rarity:'C',art:0,effect});
- const cases=scenarios({code:'TEST',effect_text:effect} as Parameters<typeof scenarios>[0]);assert.equal(cases.length,6);
+ const cases=scenarios({code:'TEST',effect_text:effect} as Parameters<typeof scenarios>[0]);assert.equal(cases.length,7);
  for(const scenario of cases)scenario.run(document);
  const broken=structuredClone(document);broken.ast[0].actions=[];broken.rawEffectText='';
  assert.throws(()=>cases[0].run(broken),/Active printed Blocker rejected/);

@@ -2,84 +2,576 @@
   "source": "d1",
   "cards": 2995,
   "excludedUnsupportedReleaseCards": 60,
-  "dslTimingWindows": 3772,
-  "customTested": 18,
-  "customImplemented": 43,
-  "issueCount": 108,
+  "dslTimingWindows": 3861,
+  "customInstructionPlans": 26,
+  "blockedCustomCount": 21,
+  "blockedCustom": [
+    "EB03-031: EB03_031_ON_PLAY (on-play) has instructions but no board executor",
+    "EB03-059: EB03_059_TRIGGER (trigger) has instructions but no board executor",
+    "OP02-025: OP02_025_ACTIVATE_MAIN (activate-main) has instructions but no board executor",
+    "OP06-086: OP06_086_ON_PLAY (on-play) has instructions but no board executor",
+    "OP08-001: OP08_001_ACTIVATE_MAIN (activate-main) has instructions but no board executor",
+    "OP09-064: OP09_064_ON_PLAY (on-play) has instructions but no board executor",
+    "OP11-031: OP11_031_ACTIVATE_MAIN (activate-main) has instructions but no board executor",
+    "OP12-037: OP12_037_MAIN (main) has instructions but no board executor",
+    "OP14-027: OP14_027_CONTINUOUS (continuous) has instructions but no board executor",
+    "OP14-053: OP14_053_CONTINUOUS (continuous) has instructions but no board executor",
+    "OP14-105: OP14_105_ACTIVATE_MAIN (activate-main) has instructions but no board executor",
+    "OP15-023: OP15_023_ACTIVATE_MAIN (activate-main) has instructions but no board executor",
+    "OP16-030: OP16_030_END_TURN (end-turn) has instructions but no board executor",
+    "OP16-036: OP16_036_WHEN_ATTACKING (when-attacking) has instructions but no board executor",
+    "OP16-039: OP16_039_TRIGGER (trigger) has instructions but no board executor",
+    "OP16-100: OP16_100_MAIN (main) has instructions but no board executor",
+    "OP17-119: OP17_119_ON_PLAY (on-play) has instructions but no board executor",
+    "P-098: P_098_ON_PLAY (on-play) has instructions but no board executor",
+    "PRB02-005: PRB02_005_ON_PLAY (on-play) has instructions but no board executor",
+    "ST13-002: ST13_002_END_TURN (end-turn) has instructions but no board executor",
+    "ST13-005: ST13_005_ON_PLAY (on-play) has instructions but no board executor"
+  ],
+  "unhandledCustomCount": 81,
+  "unhandledCustom": [
+    {
+      "code": "EB01-001",
+      "handler": "EB01_001_UNKNOWN",
+      "timing": "unknown",
+      "text": "All of your \"Land of Wano\" type Character cards without a Counter have a +1000 Counter, according to the rules.[DON!! x1] [When Attacking] If you have a \"Land of Wano\" type Character with a cost of 5 or more, this Leader gains +1000 power until the start of your next turn."
+    },
+    {
+      "code": "EB01-028",
+      "handler": "EB01_028_TRIGGER",
+      "timing": "counter",
+      "text": "[Counter] If your Leader has the [Impel Down] type, up to 1 of your Leader or Character cards gains +2000 power during this battle. Then, your opponent returns 1 of their active Characters to the owner's hand.[Trigger] Return up to 1 Character with a cost of 3 or less to the bottom of the owner's deck."
+    },
+    {
+      "code": "EB01-038",
+      "handler": "EB01_038_COUNTER",
+      "timing": "counter",
+      "text": "[Counter] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): If your Leader's type includes \"Baroque Works\", select 1 of your Characters. Change the attack target to the selected Character.[Trigger] DON!! -1: Draw 2 cards."
+    },
+    {
+      "code": "EB01-039",
+      "handler": "EB01_039_TRIGGER",
+      "timing": "main",
+      "text": "[Main] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): K.O. up to 1 of your opponent's Characters with a cost of 8 or less.[Trigger] Ad up to 1 DON!! card from your DON!! deck and set it as active."
+    },
+    {
+      "code": "EB01-053",
+      "handler": "EB01_053_ON_PLAY",
+      "timing": "on-play",
+      "text": "[On Play] Place up to 1 of your opponent's Characters with a cost of 3 or less at the top or bottom of your opponent's Life cards face-up.[Trigger] Give up to a total of 2 of your opponent's Leader or Character cards -3000 power during this turn."
+    },
+    {
+      "code": "EB01-061",
+      "handler": "EB01_061_WHEN_ATTACKING",
+      "timing": "on-play",
+      "text": "[On Play] Add up to 1 DON!! card from your DON!! deck and set it as active.[When Attacking] Select up to 1 of your opponent's Characters. This Character's base power becomes the same as the selected Character's power during this turn."
+    },
+    {
+      "code": "EB03-055",
+      "handler": "EB03_055_ON_KO",
+      "timing": "on-play",
+      "text": "[On Play] You may trash 1 card from the top of your Life cards: If your Leader has the {Straw Hat Crew} type, add up to 2 cards from the top of your deck to the top of your Life cards.\n[Opponent's Turn] [On K.O.] You may deal 1 damage to your opponent."
+    },
+    {
+      "code": "EB04-007",
+      "handler": "EB04_007_ACTIVATE_MAIN",
+      "timing": "on-play",
+      "text": "[On Play] Your Leader gains +2000 power until the end of your opponent's next End Phase.\n[Activate: Main] [Once Per Turn] If your opponent has a Character with 8000 power or more, this Character gains [Rush: Character] during this turn."
+    },
+    {
+      "code": "EB04-030",
+      "handler": "EB04_030_UNKNOWN",
+      "timing": "unknown",
+      "text": "If this Character would be K.O.'d, you may return 1 DON!! card from your field to your DON!! deck instead.\n[On Play] DON!! −2: If your Leader has the {Animal Kingdom Pirates} type, this Character gains [Rush] during this turn. Then, rest up to 1 of your opponent's Characters with a cost of 7 or less."
+    },
+    {
+      "code": "EB04-031",
+      "handler": "EB04_031_UNKNOWN",
+      "timing": "unknown",
+      "text": "If this Character would be K.O.'d, you may return 1 DON!! card from your field to your DON!! deck instead.\n[Activate: Main] [Once Per Turn] If your Leader has the {Animal Kingdom Pirates} type and you have no other [King] Characters, add up to 1 DON!! card from your DON!! deck and set it as active, and add up to 1 additional DON!! card and rest it."
+    },
+    {
+      "code": "EB04-052",
+      "handler": "EB04_052_WHEN_ATTACKING",
+      "timing": "when-attacking",
+      "text": "[When Attacking] This Character's base power becomes the same as your opponent's Leader during this turn.\n[On K.O.] If you have 2 or less Life cards, play up to 1 yellow Character card with 6000 power or less from your hand."
+    },
+    {
+      "code": "OP02-018",
+      "handler": "OP02_018_ON_KO",
+      "timing": "unknown",
+      "text": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[On K.O.] You may trash 1 card with a type including \"Whitebeard Pirates\" from your hand: If you have 2 or less Life cards, play this Character card from your trash rested."
+    },
+    {
+      "code": "OP02-066",
+      "handler": "OP02_066_MAIN",
+      "timing": "main",
+      "text": "[Main] You may trash 2 cards from your hand: If your Leader has the {Impel Down} type, draw up to 2 cards."
+    },
+    {
+      "code": "OP02-118",
+      "handler": "OP02_118_COUNTER",
+      "timing": "counter",
+      "text": "[Counter] You may trash 1 card from your hand: Select up to 1 of your Characters. The selected Character cannot be K.O.'d during this battle."
+    },
+    {
+      "code": "OP03-013",
+      "handler": "OP03_013_ON_KO",
+      "timing": "on-play",
+      "text": "[Your Turn] [On Play] K.O. up to 1 of your opponent's Characters with 3000 power or less.\n[On K.O.] You may trash 1 Event from your hand: You may play this Character card from your trash rested."
+    },
+    {
+      "code": "OP03-076",
+      "handler": "OP03_076_CONTINUOUS",
+      "timing": "continuous",
+      "text": "[Your Turn] [Once Per Turn] You may trash 2 cards from your hand: When your opponent's Character is K.O.'d, set this Leader as active."
+    },
+    {
+      "code": "OP04-069",
+      "handler": "OP04_069_OPPONENT_ATTACK",
+      "timing": "opponent-attack",
+      "text": "[On Your Opponent's Attack] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): This Character's base power becomes the same as the power of your opponent's attacking Leader or Character during this turn. [Trigger] DON!! -1: Play this card."
+    },
+    {
+      "code": "OP05-022",
+      "handler": "OP05_022_END_TURN",
+      "timing": "unknown",
+      "text": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.) [End of Your Turn] If you have 6 or less cards in your hand, set this Leader as active."
+    },
+    {
+      "code": "OP05-040",
+      "handler": "OP05_040_UNKNOWN",
+      "timing": "unknown",
+      "text": "If your Leader is [Donquixote Doflamingo], all Characters with a cost of 5 or less do not become active in your and your opponent's Refresh Phases. [End of Your Turn] If you have 10 DON!! cards on your field, K.O. all rested Characters with a cost of 5 or less. Then, trash this SAtage."
+    },
+    {
+      "code": "OP05-100",
+      "handler": "OP05_100_CONTINUOUS",
+      "timing": "unknown",
+      "text": "[Rush] [Once Per Turn] If this Character would leave the field, you may trash 1 card from the top of your Life cards instead. If there is a [Monkey.D.Luffy] Character, this effect is negated."
+    },
+    {
+      "code": "OP05-119",
+      "handler": "OP05_119_ON_PLAY",
+      "timing": "on-play",
+      "text": "[On Play] DON!! -10: Place all of your Characters except this Character at the bottom of your deck in any order. Then, take an extra turn after this one. [Activate:Main][Once Per Turn] (1): Add up to 1 DON!! card from your DON!! deck and set it as active."
+    },
+    {
+      "code": "OP06-009",
+      "handler": "OP06_009_WHEN_ATTACKING",
+      "timing": "unknown",
+      "text": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[When Attacking] / [On Block] [Once Per Turn] This Character's base power becomes the same as your opponent's Leader until the start of your next turn."
+    },
+    {
+      "code": "OP06-051",
+      "handler": "OP06_051_ON_PLAY",
+      "timing": "on-play",
+      "text": "[On Play] You may trash 2 cards from your hand: Your opponent returns 1 of their Characters to the owner's hand."
+    },
+    {
+      "code": "OP07-117",
+      "handler": "OP07_117_END_TURN",
+      "timing": "end-turn",
+      "text": "[End of Your Turn] If you have 3 or less Life cards, set up to 1 [Egghead] type Character with a cost of 5 or less as active. [Trigger] Play this card."
+    },
+    {
+      "code": "OP08-038",
+      "handler": "OP08_038_MAIN",
+      "timing": "main",
+      "text": "[Main] You may rest 2 of your Characters: None of your Characters can be K.O.'d by your opponent's effects until the end of your opponent's next turn. [Trigger] Rest up to 1 of your opponent's Characters with a cost of 3 or less."
+    },
+    {
+      "code": "OP09-022",
+      "handler": "OP09_022_UNKNOWN",
+      "timing": "unknown",
+      "text": "Your Character cards are played rested.\n[Activate: Main] [Once Per Turn] You may rest 3 of your DON!! cards: Add up to 1 DON!! card from your DON!! deck and rest it, and play up to 1 \"ODYSSEY\" type Character card with a cost of 5 or less from your hand."
+    },
+    {
+      "code": "OP09-052",
+      "handler": "OP09_052_ON_KO",
+      "timing": "on-ko",
+      "text": "[Opponent's Turn] You may trash 1 card from your hand: When this Character is K.O.'d by your opponent's effect, play this Character card from your trash rested."
+    },
+    {
+      "code": "OP09-058",
+      "handler": "OP09_058_MAIN",
+      "timing": "main",
+      "text": "[Main] Your opponent chooses 1 of their Character with a cost of 6 or less and return to the owner's hand. [Trigger] Return up to 1 Character with a cost of 3 or less to the owner's hand."
+    },
+    {
+      "code": "OP09-081",
+      "handler": "OP09_081_UNKNOWN",
+      "timing": "unknown",
+      "text": "Your [On Play] effects are negated.\n[Activate: Main] You may trash 1 card from your hand: Your opponent's [On Play] effects are negated until the end of your opponent's next turn."
+    },
+    {
+      "code": "OP10-037",
+      "handler": "OP10_037_CONTINUOUS",
+      "timing": "continuous",
+      "text": "[Once Per Turn] If this Character would be removed from the field by your opponent's effect, you may rest 1 of your \"ODYSSEY\" type Characters instead.[End of Your Turn] Set up to 1 of your \"ODYSSEY\" type Characters as active."
+    },
+    {
+      "code": "OP11-023",
+      "handler": "OP11_023_UNKNOWN",
+      "timing": "unknown",
+      "text": "If your Leader has the \"Fish-Man\" type, you have 3 or less Life cards and your opponent has 5 or more rested cards, give this card in your hand 3 cost.\n[Trigger] Rest up to 1 of your opponent's Characters with a cost of 4 or less."
+    },
+    {
+      "code": "OP11-070",
+      "handler": "OP11_070_ACTIVATE_MAIN",
+      "timing": "on-play",
+      "text": "[On Play] Look at 5 cards from the top of your deck; reveal up to 1 \"Big Mom Pirates\" type card with a cost of 2 or more and add it to your hand. Then, place the rest at the bottom of your deck in any order.[Activate: Main] DON!! 1, You may rest this Character: Look at 1 card from the top of your opponent's deck."
+    },
+    {
+      "code": "OP11-101",
+      "handler": "OP11_101_CONTINUOUS",
+      "timing": "unknown",
+      "text": "[Blocker]\n[Once Per Turn] If your \"Supernovas\" type Character other than [Capone\"Gang\"Bege] would be removed from the field by your opponent's effect, you may add it to the top of your Life cards face-down instead."
+    },
+    {
+      "code": "OP11-110",
+      "handler": "OP11_110_UNKNOWN",
+      "timing": "unknown",
+      "text": "If this Character would be K.O.'d, you may rest 1 of your [Fish-Man Island] or your [Shirahoshi] Leader instead.\n[On Play] You may add 1 card from the top or bottom of your Life cards to your hand: K.O. up to 1 of your opponent's Characters with a cost of 1 or less."
+    },
+    {
+      "code": "OP12-001",
+      "handler": "OP12_001_UNKNOWN",
+      "timing": "unknown",
+      "text": "Under the rules of this game, you cannot include cards with a cost of 5 or more in your deck.\n[Activate: Main] [Once Per Turn] You may reveal 2 Events from your hand: Up to 1 of your Characters with 4000 base power or less gains +2000 power during this turn."
+    },
+    {
+      "code": "OP12-016",
+      "handler": "OP12_016_MAIN",
+      "timing": "main",
+      "text": "[Main] You may give 2 active DON!! cards to 1 of your [Silvers Rayleigh]: Your opponent cannot activate [Blocker] when the card given these DON!! cards attacks during this turn.\n[Counter] Up to 1 of your Characters or [Silvers Rayleigh] gains +2000 power during this battle."
+    },
+    {
+      "code": "OP12-061",
+      "handler": "OP12_061_ACTIVATE_MAIN",
+      "timing": "continuous",
+      "text": "[Once Per Turn] If your [Trafalgar Law] would be K.O.'d, you may add 1 card from the top of your Life cards to your hand instead.\n[Activate: Main] [Once Per Turn] DON!! 1: The next time you play [Trafalgar Law] with a cost of 4 or more from your hand during this turn, the cost will be reduced by 2."
+    },
+    {
+      "code": "OP12-102",
+      "handler": "OP12_102_UNKNOWN",
+      "timing": "unknown",
+      "text": "If your Character with a base cost of 6 or less would be removed from the field by your opponent's effect, you may turn 1 card from the top of your Life cards face-up instead.[Opponent's Turn] If you have no other [Shirahoshi] with a base cost of 2, all of your \"Neptunian\" type Characters gain +2000 power."
+    },
+    {
+      "code": "OP13-057",
+      "handler": "OP13_057_MAIN",
+      "timing": "main",
+      "text": "[Main] You may rest 1 of your DON!! cards: If you have 1 or less Life cards, your opponent cannot activate [Blocker] whenever your Leader attacks during this turn.\n[Counter] Your Leader gains +3000 power during this battle."
+    },
+    {
+      "code": "OP13-064",
+      "handler": "OP13_064_UNKNOWN",
+      "timing": "unknown",
+      "text": "Your Leader and all of your Characters that do not have a type including \"Roger Pirates\" have their effects negated.\n[On Play] DON!! 3: Your Leader gains +2000 power until the end of your opponent's next End Phase. Then, give all of your opponent's Characters -2000 power until the end of your opponent's next End Phase."
+    },
+    {
+      "code": "OP13-109",
+      "handler": "OP13_109_UNKNOWN",
+      "timing": "unknown",
+      "text": "If this Character would be removed from the field by your opponent's effect, you may turn 1 card from the top of your Life cards face-up instead.\n[Trigger] Draw 2 cards and trash 1 card from your hand."
+    },
+    {
+      "code": "OP14-009",
+      "handler": "OP14_009_OPPONENT_ATTACK",
+      "timing": "unknown",
+      "text": "[Rush]\n[On Your Opponent's Attack] [Once Per Turn] You may trash 2 cards from your hand: Select your Leader and 1 Character. Swap the base power of the selected cards with each other during this battle."
+    },
+    {
+      "code": "OP14-016",
+      "handler": "OP14_016_CONTINUOUS",
+      "timing": "continuous",
+      "text": "[Opponent's Turn] [Once Per Turn] If your {Supernovas} type Character would be removed from the field by your opponent's effect, you may give your Leader 2000 power during this turn instead.\n[DON!! x1] [When Attacking] Give up to 1 of your opponent's Characters 2000 power during this turn."
+    },
+    {
+      "code": "OP14-054",
+      "handler": "OP14_054_END_TURN",
+      "timing": "on-play",
+      "text": "[On Play] If your Leader has the {Fish-Man} type, draw 3 cards.[End of Your Turn] Trash cards from your hand until you have 5 cards in your hand."
+    },
+    {
+      "code": "OP14-060",
+      "handler": "OP14_060_OPPONENT_ATTACK",
+      "timing": "opponent-attack",
+      "text": "[On Your Opponent's Attack] [Once Per Turn] DON!! -1: Select your Leader or 1 of your {Donquixote Pirates} type Characters. Change the attack target to the selected card."
+    },
+    {
+      "code": "OP14-061",
+      "handler": "OP14_061_CONTINUOUS",
+      "timing": "continuous",
+      "text": "[Once Per Turn] If your {Donquixote Pirates} type Character would be removed from the field by your opponent's effect, you may return 1 DON!! card from your field to your DON!! deck instead.\n[When Attacking] DON!! 1: Give up to 1 of your opponent's Characters 2000 power during this turn."
+    },
+    {
+      "code": "OP14-079",
+      "handler": "OP14_079_UNKNOWN",
+      "timing": "unknown",
+      "text": "All of your opponent's Characters cannot be removed from the field by your effects.\n[Activate: Main] [Once Per Turn] You may K.O. 1 of your Characters with a type including \"Baroque Works\": Give up to 1 of your opponent's Characters -10 cost during this turn. Then, you may trash 2 cards from the top of your deck."
+    },
+    {
+      "code": "OP14-104",
+      "handler": "OP14_104_ON_PLAY",
+      "timing": "on-play",
+      "text": "[On Play] Select up to 1 {Thriller Bark Pirates} type Character with a cost of 4 or less from your trash and play it or add it to the top of your Life cards face-up.\n[Trigger] Play up to 1 Character card with a cost of 4 or less from your trash."
+    },
+    {
+      "code": "OP14-120",
+      "handler": "OP14_120_ON_KO",
+      "timing": "on-play",
+      "text": "[On Play] up to 1 of your opponent's Characters with a cost of 9 or less cannot attack until the end of your opponent's next End Phase. Then, if your opponent has a Character 1ith a cost of 0 or with a cost of 8 or more, draw 1 card.\n[On K.O.] You may trash 1 card from your hand: Play this Character card from your trash."
+    },
+    {
+      "code": "OP15-022",
+      "handler": "OP15_022_UNKNOWN",
+      "timing": "unknown",
+      "text": "Under the rules of this game, you do not lose when your deck has 0 cards. You lose at the end of the turn in which your deck becomes 0 cards. [Activate: Main] [Once Per Turn] Trash 4 cards from the top of your deck. Then, if your deck has 0 cards, set up to 1 of your Characters as active."
+    },
+    {
+      "code": "OP15-026",
+      "handler": "OP15_026_ACTIVATE_MAIN",
+      "timing": "on-play",
+      "text": "[On Play] Look at 3 cards from the top of your deck; reveal up to 1 {East Blue} type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.\n[Activate: Main] You may trash this Character: Give up to 1 of your opponent's rested DON!! cards to 1 of your opponent's Characters."
+    },
+    {
+      "code": "OP15-058",
+      "handler": "OP15_058_UNKNOWN",
+      "timing": "unknown",
+      "text": "Under the rules of this game, your DON!! deck consists of 6 cards.\n[Activate: Main] [Once Per Turn] If it is your second turn or later, add up to 1 DON!! card from your DON!! deck and set it as active, and add up to 4 additional DON!! cards and rest them. Then, give up to 4 rested DON!! cards to 1 of your Characters."
+    },
+    {
+      "code": "OP15-080",
+      "handler": "OP15_080_ON_KO",
+      "timing": "unknown",
+      "text": "If you have [Gecko Moria] with 10000 power or more on your field and there are no other [Oars] cards, this Character gains +7000 power.\n[On K.O.] You may place 3 cards from your trash at the bottom of your deck in any order: Play this Character card from your trash."
+    },
+    {
+      "code": "OP15-102",
+      "handler": "OP15_102_UNKNOWN",
+      "timing": "unknown",
+      "text": "If you have a {Sky Island} type Character with 7000 power or more, give this card in your hand 3 cost.\n[On Play] Rest up to 1 of your opponent's Characters with a cost equal to or less than the number of your opponent's Life cards."
+    },
+    {
+      "code": "OP16-014",
+      "handler": "OP16_014_UNKNOWN",
+      "timing": "unknown",
+      "text": "If one of your Characters would be removed from the field by your opponent's effect, you may K.O. this character instead.\n[On K.O.] You may trash 1 Character card with 8000 power from your hand: Play this Character card from your trash."
+    },
+    {
+      "code": "OP16-043",
+      "handler": "OP16_043_ON_KO",
+      "timing": "unknown",
+      "text": "[Blocker]\n\n[On K.O.] Return up to 1 of tour opponent's Characters with a cost of 5 or less to the owner's hand."
+    },
+    {
+      "code": "OP16-080",
+      "handler": "OP16_080_OPPONENT_ATTACK",
+      "timing": "continuous",
+      "text": "[Opponent's Turn] All of your Characters gain +1 cost. [On your Opponent's Attack] [Once Per Turn] You may trash 1 card with a [Trigger] from your hand: Change the target of that attack to this Leader or to one of your {Blackbeard Pirates} type Character cards."
+    },
+    {
+      "code": "OP16-104",
+      "handler": "OP16_104_WHEN_ATTACKING",
+      "timing": "when-attacking",
+      "text": "[When Attacking] Select up to 1 of your opponent's Characters. This Character's base power becomes the same as the selected Character's power during this turn.\n[Trigger] Draw 1 card and play up to 1 {Blackbeard Pirates} type Character with a cost of 1 from your trash."
+    },
+    {
+      "code": "OP16-118",
+      "handler": "OP16_118_UNKNOWN",
+      "timing": "unknown",
+      "text": "The counter of all of your Character cards with 8000 power in your hand becomes +2000.\n[On Play]/[On K.O.] Look at 5 cards from the top of your deck; reveal up to 1 [Monkey.D.Luffy] or up to 1 card with a type including \"Whitebeard Pirates\" and add it to your hand. Then, place the rest a the bottom of your deck in any order."
+    },
+    {
+      "code": "OP17-015",
+      "handler": "OP17_015_UNKNOWN",
+      "timing": "unknown",
+      "text": "If one of your Characters would be removed from the field by your opponent's effect, you may K.O. this Character instead.\n[On K.O.] You may trash 1 card with a type including \"Whitebeard Pirates\" from your hand: Play this Character card from your trash."
+    },
+    {
+      "code": "OP17-018",
+      "handler": "OP17_018_MAIN",
+      "timing": "main",
+      "text": "[Main] You may rest 2 of your DON!! cards: K.O. up to 1 of your opponent's Stages.  [Counter] If you have 2 or more Characters with 8000 base power or more, up to 1 of your Leader or Characters gains +4000 power during this battle."
+    },
+    {
+      "code": "OP17-044",
+      "handler": "OP17_044_UNKNOWN",
+      "timing": "unknown",
+      "text": "If your Leader's type includes \"Rocks Pirates\" and this Character is rested, your opponent cannot attack any card other than the Character [Captain John].\n\n[Activate: Main] You may rest this Character: Draw 1 card and trash 1 card from your hand."
+    },
+    {
+      "code": "OP17-087",
+      "handler": "OP17_087_ON_PLAY",
+      "timing": "unknown",
+      "text": "If there is a Character with a cost of 12 or more, this Character gains +3000 power. [On Play] If there is a Character with a cost of 12 or more, give up to 1 of your opponent's Characters -3000 poser during this turn."
+    },
+    {
+      "code": "OP17-118",
+      "handler": "OP17_118_UNKNOWN",
+      "timing": "unknown",
+      "text": "If you only have Characters without a Counter, this card in your hand has a +2000 Counter.\n[On Play] Draw 1 card and play up to 2 {Rocks Pirates} type cards with different card names and a total cost of 9 or less from your hand."
+    },
+    {
+      "code": "P-055",
+      "handler": "P_055_ON_PLAY",
+      "timing": "on-play",
+      "text": "[On Play] You may trash 2 cards from your hand: Your opponent places 1 of their Characters at the bottom of the owner's deck."
+    },
+    {
+      "code": "P-084",
+      "handler": "P_084_UNKNOWN",
+      "timing": "unknown",
+      "text": "This Character cannot attack.If your Leader is [Buggy], all Characters with a cost of 3 or 4 cannot attack.[On Play] Play up to 1 \"Cross Guild\" type Character card with a cost of 6 or less from your hand.DISCLAIMER: This card is a reprint of the pre-existing card in the OP09 set. The main difference between this card and the original print is the exclusion of \"NOT FOR SALE\" on the right side, by the copyright information, and the missing gold winner stamp."
+    },
+    {
+      "code": "P-115",
+      "handler": "P_115_ON_PLAY",
+      "timing": "on-play",
+      "text": "[On Play] Give up to 1-rested DON!! card to your Leader or 1 of your Characters.[Trigger] Play up to 1 yellow Character card with 5000 power or less and a [Trigger] from your hand."
+    },
+    {
+      "code": "PRB02-017",
+      "handler": "PRB02_017_CONTINUOUS",
+      "timing": "continuous",
+      "text": "[Once Per Turn] You may trash 1 card with a [Trigger] from your hand: Your opponent's rested Leader or up to 1 of your opponent's Characters other than [Monkey.D.Luffy] cannot attack until the end of your opponent's next End Phase.[Trigger] K.O up to 1 of your opponent's Characters with a cost of 4 or less"
+    },
+    {
+      "code": "ST01-016",
+      "handler": "ST01_016_MAIN",
+      "timing": "main",
+      "text": "[Main] Select up to 1 of your {Straw Hat Crew} type Leader or Character cards. Your opponent cannot activate [Blocker] if that Leader or Character attacks during this turn. [Trigger] K.O. up to 1 of your opponent's [Blocker] Characters with a cost of 3 or less."
+    },
+    {
+      "code": "ST02-001",
+      "handler": "ST02_001_ACTIVATE_MAIN",
+      "timing": "activate-main",
+      "text": "[Activate: Main] [Once Per Turn] (3) (You may rest the specified number of DON!! cards in your cost area.) You may trash 1 card from your hand: Set this Leader as active."
+    },
+    {
+      "code": "ST04-001",
+      "handler": "ST04_001_ACTIVATE_MAIN",
+      "timing": "activate-main",
+      "text": "[Activate: Main] [Once Per Turn] DON!! -7 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Trash up to 1 of your opponent's Life cards."
+    },
+    {
+      "code": "ST06-015",
+      "handler": "ST06_015_TRIGGER",
+      "timing": "main",
+      "text": "[Main] Draw 1 card. Then, give up to 1 of your opponent's Characters -2 cost during this turn. [Trigger] Your opponent chooses 1 card from their hand and trashes it."
+    },
+    {
+      "code": "ST11-005",
+      "handler": "ST11_005_MAIN",
+      "timing": "main",
+      "text": "[Main] Set up to 1 of your [Uta] Leader as active. [Trigger] Up to 1 of your Leader or Character cards gains +1000 power during this turn."
+    },
+    {
+      "code": "ST13-003",
+      "handler": "ST13_003_UNKNOWN",
+      "timing": "unknown",
+      "text": "Your face-up Life cards are placed at the bottom of your deck instead of being added to your hand, according to the rules.\n[DON!! x2][Activate: Main][Once Per Turn]You may trash 1 card from your hand: If you have 0 Life cards, add up to 2 Character cards with a cost of 5 from your hand or trash to the top of your Life cards face-up."
+    },
+    {
+      "code": "ST20-002",
+      "handler": "ST20_002_CONTINUOUS",
+      "timing": "continuous",
+      "text": "[Once Per Turn] If this Character would be K.O.'d by an effect, you may trash 1 card from the top of your Life cards instead.\n\n[Trigger] You may trash 1 card from your hand: Play this card."
+    },
+    {
+      "code": "ST29-008",
+      "handler": "ST29_008_UNKNOWN",
+      "timing": "unknown",
+      "text": "If your {Egghead} type Character would be K.O.'d by your opponent's effect, you may turn 1 card from the top of your Life cards face-up instead.\n[Trigger] If your Leader is [Monkey.D.Luffy], play this card."
+    },
+    {
+      "code": "ST30-008",
+      "handler": "ST30_008_ON_KO",
+      "timing": "unknown",
+      "text": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n\n[On K.O.] You may trash 1 Character card with 6000 power from your hand: Play this Character card from your trash rested."
+    },
+    {
+      "code": "ST30-012",
+      "handler": "ST30_012_WHEN_ATTACKING",
+      "timing": "on-play",
+      "text": "[On Play] You may rest 1 of your DON!! cards: This Character gains [Rush] during this turn. (This card can attack on the turn in which it is played.)\n[When Attacking] Rest up to 1 of your opponent's [Blocker] Characters."
+    },
+    {
+      "code": "ST30-014",
+      "handler": "ST30_014_ACTIVATE_MAIN",
+      "timing": "activate-main",
+      "text": "[Activate: Main] You may rest this Character: Give up to 2 of your Characters with 6000 base power up to 2 rested DON!! cards each."
+    },
+    {
+      "code": "ST32-004",
+      "handler": "ST32_004_UNKNOWN",
+      "timing": "unknown",
+      "text": "If your Leader has the attribute, this Character gains [Rush: Character].(This card can attack Characters on the turn in which it is played.)[On Play] Rest up to 2 of your opponent's Characters with a cost of 2 or less."
+    },
+    {
+      "code": "ST36-005",
+      "handler": "ST36_005_OPPONENT_ATTACK",
+      "timing": "opponent-attack",
+      "text": "[On Your Opponent's Attack] [Once Per Turn] You may turn 1 card from the top or bottom of your Life cards face-down: Change the target of the attack to your [Eustass\"Captain\"Kid] with 5000 base power or more.[Activate: Main] [Once Per Turn] You may turn 1 card from the top or bottom of your Life cards face-up: Give up to 1 rested DON!! card to your Leader."
+    }
+  ],
+  "issueCount": 81,
   "issues": [
     "EB01-001: custom handler EB01_001_UNKNOWN is RAW",
     "EB01-028: custom handler EB01_028_TRIGGER is RAW",
     "EB01-038: custom handler EB01_038_COUNTER is RAW",
     "EB01-039: custom handler EB01_039_TRIGGER is RAW",
-    "EB01-052: custom handler EB01_052_ON_PLAY is RAW",
     "EB01-053: custom handler EB01_053_ON_PLAY is RAW",
     "EB01-061: custom handler EB01_061_WHEN_ATTACKING is RAW",
-    "EB02-009: custom handler EB02_009_ACTIVATE_MAIN is RAW",
     "EB03-055: custom handler EB03_055_ON_KO is RAW",
     "EB04-007: custom handler EB04_007_ACTIVATE_MAIN is RAW",
     "EB04-030: custom handler EB04_030_UNKNOWN is RAW",
     "EB04-031: custom handler EB04_031_UNKNOWN is RAW",
-    "EB04-051: custom handler EB04_051_UNKNOWN is RAW",
     "EB04-052: custom handler EB04_052_WHEN_ATTACKING is RAW",
     "OP02-018: custom handler OP02_018_ON_KO is RAW",
-    "OP02-023: custom handler OP02_023_MAIN is RAW",
     "OP02-066: custom handler OP02_066_MAIN is RAW",
     "OP02-118: custom handler OP02_118_COUNTER is RAW",
-    "OP03-004: custom handler OP03_004_UNKNOWN is RAW",
     "OP03-013: custom handler OP03_013_ON_KO is RAW",
-    "OP03-036: custom handler OP03_036_MAIN is RAW",
     "OP03-076: custom handler OP03_076_CONTINUOUS is RAW",
     "OP04-069: custom handler OP04_069_OPPONENT_ATTACK is RAW",
-    "OP04-098: custom handler OP04_098_ON_PLAY is RAW",
     "OP05-022: custom handler OP05_022_END_TURN is RAW",
     "OP05-040: custom handler OP05_040_UNKNOWN is RAW",
     "OP05-100: custom handler OP05_100_CONTINUOUS is RAW",
     "OP05-119: custom handler OP05_119_ON_PLAY is RAW",
     "OP06-009: custom handler OP06_009_WHEN_ATTACKING is RAW",
     "OP06-051: custom handler OP06_051_ON_PLAY is RAW",
-    "OP06-083: custom handler OP06_083_UNKNOWN is RAW",
-    "OP07-078: custom handler OP07_078_MAIN is RAW",
     "OP07-117: custom handler OP07_117_END_TURN is RAW",
     "OP08-038: custom handler OP08_038_MAIN is RAW",
-    "OP08-082: custom handler OP08_082_ACTIVATE_MAIN is RAW",
-    "OP08-087: custom handler OP08_087_ACTIVATE_MAIN is RAW",
-    "OP08-101: custom handler OP08_101_ACTIVATE_MAIN is RAW",
-    "OP08-112: custom handler OP08_112_ON_PLAY is RAW",
     "OP09-022: custom handler OP09_022_UNKNOWN is RAW",
     "OP09-052: custom handler OP09_052_ON_KO is RAW",
     "OP09-058: custom handler OP09_058_MAIN is RAW",
     "OP09-081: custom handler OP09_081_UNKNOWN is RAW",
-    "OP09-083: custom handler OP09_083_ACTIVATE_MAIN is RAW",
-    "OP09-118: custom handler OP09_118_UNKNOWN is RAW",
     "OP10-037: custom handler OP10_037_CONTINUOUS is RAW",
     "OP11-023: custom handler OP11_023_UNKNOWN is RAW",
-    "OP11-046: custom handler OP11_046_UNKNOWN is RAW",
     "OP11-070: custom handler OP11_070_ACTIVATE_MAIN is RAW",
     "OP11-101: custom handler OP11_101_CONTINUOUS is RAW",
     "OP11-110: custom handler OP11_110_UNKNOWN is RAW",
     "OP12-001: custom handler OP12_001_UNKNOWN is RAW",
     "OP12-016: custom handler OP12_016_MAIN is RAW",
+    "OP12-061: custom handler OP12_061_ACTIVATE_MAIN is RAW",
     "OP12-102: custom handler OP12_102_UNKNOWN is RAW",
-    "OP13-004: custom handler OP13_004_UNKNOWN is RAW",
-    "OP13-033: custom handler OP13_033_ON_KO is RAW",
     "OP13-057: custom handler OP13_057_MAIN is RAW",
     "OP13-064: custom handler OP13_064_UNKNOWN is RAW",
     "OP13-109: custom handler OP13_109_UNKNOWN is RAW",
     "OP14-009: custom handler OP14_009_OPPONENT_ATTACK is RAW",
     "OP14-016: custom handler OP14_016_CONTINUOUS is RAW",
-    "OP14-024: custom handler OP14_024_ON_KO is RAW",
     "OP14-054: custom handler OP14_054_END_TURN is RAW",
     "OP14-060: custom handler OP14_060_OPPONENT_ATTACK is RAW",
     "OP14-061: custom handler OP14_061_CONTINUOUS is RAW",
     "OP14-079: custom handler OP14_079_UNKNOWN is RAW",
-    "OP14-083: custom handler OP14_083_ACTIVATE_MAIN is RAW",
     "OP14-104: custom handler OP14_104_ON_PLAY is RAW",
     "OP14-120: custom handler OP14_120_ON_KO is RAW",
     "OP15-022: custom handler OP15_022_UNKNOWN is RAW",
     "OP15-026: custom handler OP15_026_ACTIVATE_MAIN is RAW",
     "OP15-058: custom handler OP15_058_UNKNOWN is RAW",
     "OP15-080: custom handler OP15_080_ON_KO is RAW",
-    "OP15-093: custom handler OP15_093_ACTIVATE_MAIN is RAW",
     "OP15-102: custom handler OP15_102_UNKNOWN is RAW",
     "OP16-014: custom handler OP16_014_UNKNOWN is RAW",
     "OP16-043: custom handler OP16_043_ON_KO is RAW",
@@ -89,30 +581,23 @@
     "OP17-015: custom handler OP17_015_UNKNOWN is RAW",
     "OP17-018: custom handler OP17_018_MAIN is RAW",
     "OP17-044: custom handler OP17_044_UNKNOWN is RAW",
-    "OP17-063: custom handler OP17_063_UNKNOWN is RAW",
     "OP17-087: custom handler OP17_087_ON_PLAY is RAW",
     "OP17-118: custom handler OP17_118_UNKNOWN is RAW",
     "P-055: custom handler P_055_ON_PLAY is RAW",
     "P-084: custom handler P_084_UNKNOWN is RAW",
-    "P-096: custom handler P_096_ACTIVATE_MAIN is RAW",
     "P-115: custom handler P_115_ON_PLAY is RAW",
     "PRB02-017: custom handler PRB02_017_CONTINUOUS is RAW",
     "ST01-016: custom handler ST01_016_MAIN is RAW",
     "ST02-001: custom handler ST02_001_ACTIVATE_MAIN is RAW",
     "ST04-001: custom handler ST04_001_ACTIVATE_MAIN is RAW",
-    "ST06-006: custom handler ST06_006_ACTIVATE_MAIN is RAW",
     "ST06-015: custom handler ST06_015_TRIGGER is RAW",
     "ST11-005: custom handler ST11_005_MAIN is RAW",
     "ST13-003: custom handler ST13_003_UNKNOWN is RAW",
-    "ST13-004: custom handler ST13_004_ON_PLAY is RAW",
-    "ST13-016: custom handler ST13_016_ON_PLAY is RAW",
     "ST20-002: custom handler ST20_002_CONTINUOUS is RAW",
-    "ST21-003: custom handler ST21_003_ON_PLAY is RAW",
     "ST29-008: custom handler ST29_008_UNKNOWN is RAW",
     "ST30-008: custom handler ST30_008_ON_KO is RAW",
     "ST30-012: custom handler ST30_012_WHEN_ATTACKING is RAW",
     "ST30-014: custom handler ST30_014_ACTIVATE_MAIN is RAW",
-    "ST31-005: custom handler ST31_005_ACTIVATE_MAIN is RAW",
     "ST32-004: custom handler ST32_004_UNKNOWN is RAW",
     "ST36-005: custom handler ST36_005_OPPONENT_ATTACK is RAW"
   ],

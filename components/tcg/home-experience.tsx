@@ -66,7 +66,7 @@ export function HomeExperience(){
     explorePrintingsSub:'Temukan versi rilis EN atau JP secara akurat',
     buildDeck:'Susun deck',
     buildDeckSub:'Rancang daftar kartu dari data live terkini',
-    trackVault:'Kelola Vault Anda',
+    trackVault:'Kelola koleksi Anda',
     trackVaultSub:'Simpan kartu reguler dan slab gradasi bersamaan',
     featuredEyebrow:'BARU SAJA DIKATALOGKAN',
     featuredTitle:'Jelajahi koleksi.',

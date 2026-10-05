@@ -11,7 +11,6 @@ import {CardPreviewModal} from './card-preview-modal';
 import {ShareButton} from './share';
 import {MarketTimestamp} from './market-timestamp';
 import {authClient} from '@/lib/auth-client';
-import {TurnstileField,turnstileEnabled,turnstileHeaders} from './turnstile-field';
 import {toast} from 'sonner';
 import {getDaysUntilExpiration, isListingExpired} from '@/lib/market/policy';
 import {FeedbackLaunchButton} from './feedback-launch';
@@ -193,13 +192,13 @@ export function ListingArtRotator({items}:{items:MarketListingCard[]}){
   const underlays=[1,2].map(offset=>items[(activeIndex+offset)%items.length]).filter((item,index,self)=>items.length>1&&self.findIndex(candidate=>candidate.id===item.id)===index);
   if(!active)return null;
 
-  return <div className="viewer-art-stack market-listing-art-rotator" aria-label={`Featured card: ${active.card.name}`}>
+  return <div className={`viewer-art-stack market-listing-art-rotator ${items.length===1?'is-single':''}`} aria-label={`Featured card: ${active.card.name}`}>
     {underlays.map((item,index)=><div key={item.id} className={`viewer-art-underlay viewer-art-underlay-${index}`} aria-hidden="true"><CardArt card={item.card}/></div>)}
     <div className="viewer-art-current market-listing-art-current" key={active.id}><CardArt card={active.card} priority/></div>
   </div>;
 }
 
-export function MarketListingItems({items,currency,listingType,listingId,listingTitle,readOnly=false}:{items:MarketListingCard[];currency:string;listingType:'WTS'|'WTB';listingId:string;listingTitle?:string;listingAmount?:string;readOnly?:boolean;}){
+export function MarketListingItems({items,currency,listingType,listingId,listingTitle,negotiable=true,readOnly=false}:{items:MarketListingCard[];currency:string;listingType:'WTS'|'WTB';listingId:string;listingTitle?:string;listingAmount?:string;negotiable?:boolean;readOnly?:boolean;}){
   const router=useRouter();
   const singleCopyListing=items.length===1&&items[0].quantity===1;
   const [selected,setSelected]=useState<Record<string,number>>(()=>singleCopyListing?{[items[0].id]:1}:{});
@@ -208,8 +207,6 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
   const [vaultTarget,setVaultTarget]=useState<MarketListingCard|null>(null);
   const {data:session}=authClient.useSession();
   const [submitting,setSubmitting]=useState(false); const [submitted,setSubmitted]=useState(false);
-  const [turnstileToken,setTurnstileToken]=useState('');const [turnstileResetKey,setTurnstileResetKey]=useState(0);
-  const [verificationOpen,setVerificationOpen]=useState(false);
   const [language,setLanguage]=useState<'EN'|'ID'>('EN');
 
   useEffect(()=>{
@@ -288,11 +285,11 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
   const hasPlaysetOpportunities=useMemo(()=>items.some(item=>item.quantity>=4),[items]);
 
   const isBuying=listingType==='WTS';
+  const acceptsOffers=!isBuying||negotiable;
   const actionLabel=isBuying?t('Make offer','Ajukan penawaran'):t('Offer cards','Tawarkan kartu');
   const continueOffer=async()=>{
     if(!session){window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));return;}
-    if(turnstileEnabled&&!turnstileToken){setVerificationOpen(true);return;}
-    setSubmitting(true);try{const offerItems=items.flatMap(item=>{const quantity=selected[item.id]??0;if(!quantity)return[];const unitAmount=getUnitPrice(item);return [{printingId:item.id,quantity,unitAmount}];});const response=await fetch(`/api/listings/${encodeURIComponent(listingId)}/offers`,{method:'POST',headers:{'content-type':'application/json',...turnstileHeaders(turnstileToken)},body:JSON.stringify({type:isBuying?'BUY':'SELL',items:offerItems,amount:selectedTotal,currency})});const payload=await response.json() as {error?:string};if(!response.ok)throw new Error(payload.error??t('We could not send your offer.','Gagal mengirimkan penawaran Anda.'));setSubmitted(true);setVerificationOpen(false);toast.success(isBuying?t('Offer sent to the seller.','Penawaran dikirim ke penjual.'):t('Your cards were offered to the buyer.','Kartu Anda ditawarkan ke pembeli.'));}catch(error){const message=error instanceof Error?error.message:'';const localized=language==='ID'&&message.includes('listing is no longer active')?'Listing ini sudah tidak aktif.':language==='ID'&&message.includes('listing has expired')?'Listing ini sudah kedaluwarsa.':language==='ID'&&message.includes('Offer total must match')?'Total penawaran harus sesuai dengan harga tiap kartu.':message||t('We could not send your offer.','Gagal mengirimkan penawaran Anda.');toast.error(localized)}finally{setTurnstileToken('');setTurnstileResetKey(value=>value+1);setSubmitting(false)}
+    setSubmitting(true);try{const offerItems=items.flatMap(item=>{const quantity=selected[item.id]??0;if(!quantity)return[];const unitAmount=getUnitPrice(item);return [{printingId:item.id,quantity,unitAmount}];});const response=await fetch(`/api/listings/${encodeURIComponent(listingId)}/offers`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({type:isBuying?'BUY':'SELL',items:offerItems,amount:selectedTotal,currency})});const payload=await response.json() as {error?:string};if(!response.ok)throw new Error(payload.error??t('We could not send your offer.','Gagal mengirimkan penawaran Anda.'));setSubmitted(true);toast.success(isBuying?t('Offer sent to the seller.','Penawaran dikirim ke penjual.'):t('Your cards were offered to the buyer.','Kartu Anda ditawarkan ke pembeli.'));}catch(error){const message=error instanceof Error?error.message:'';const localized=language==='ID'&&message.includes('listing is no longer active')?'Listing ini sudah tidak aktif.':language==='ID'&&message.includes('listing has expired')?'Listing ini sudah kedaluwarsa.':language==='ID'&&message.includes('firm price')?'Listing ini menggunakan harga pas dan tidak menerima penawaran.':language==='ID'&&message.includes('Offer total must match')?'Total penawaran harus sesuai dengan harga tiap kartu.':message||t('We could not send your offer.','Gagal mengirimkan penawaran Anda.');toast.error(localized)}
   };
   const buySelected=()=>{
     if(!session){window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));return;}
@@ -395,9 +392,9 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
             <small>{item.card.code} · {item.card.rarity} · {item.language}</small>
             <p><span>{item.condition}</span>{!readOnly&&!singleCopyListing&&<em>{amount}/{item.quantity} {t('selected','dipilih')}</em>}</p>
             <b>{formatMoney(item.unitAmount,currency)} {t('each','per kartu')}</b>
-            {listingType==='WTS'&&<button type="button" className="market-listing-add-vault" onClick={()=>setVaultTarget(item)}><Plus size={13}/>{t('Add owned copy to Vault','Simpan salinan milik Anda ke Vault')}</button>}
+            {listingType==='WTS'&&<button type="button" className="market-listing-add-vault" onClick={()=>setVaultTarget(item)}><Plus size={13}/>{t('Add owned copy to Vault','Simpan salinan milik Anda ke koleksi')}</button>}
 
-            {!readOnly&&amount>0 && (
+            {!readOnly&&acceptsOffers&&amount>0 && (
               <div className="market-card-offer">
                 <div className="market-card-offer-label">
                   <span>{t('Offer price / card:','Tawar harga / kartu:')}</span>
@@ -476,7 +473,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
       <div className="market-listing-selection-info">
         <span>{submitted?t('Offer sent - awaiting a response.','Penawaran terkirim - menunggu tanggapan.'):selectedCount?(language==='ID'?`${selectedCount} kartu dipilih`:`${selectedCount} ${selectedCount===1?'card':'cards'} selected`):t('Select cards to calculate a total','Pilih kartu untuk menghitung total')}</span>
         {submitted&&<PushNotificationPrompt language={language} message="offer"/>}
-        {!submitted&&selectedCount>0&&<small>{t('Offers expire after 24 hours or when the listing ends.','Penawaran berakhir setelah 24 jam atau saat listing berakhir.')}</small>}
+        {!submitted&&selectedCount>0&&acceptsOffers&&<small>{t('Offers expire after 24 hours or when the listing ends.','Penawaran berakhir setelah 24 jam atau saat listing berakhir.')}</small>}
         <div className="market-listing-pricing-block">
           {hasPriceAdjustments && originalTotal>0 && (
             <span className="market-listing-asking-total">
@@ -497,7 +494,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
       </div>
       <div className="market-listing-selection-actions">
         {isBuying&&<button type="button" className="button market-buy-selected" disabled={!selectedCount} onClick={buySelected}>{singleCopyListing?t('Buy now','Beli sekarang'):t('Buy selected','Beli pilihan')}</button>}
-        <button type="button" className="button" disabled={!selectedCount||submitting||submitted} onClick={continueOffer}>{submitted?t('Offer sent','Penawaran terkirim'):submitting?t('Sending...','Mengirim...'):session?(hasPriceAdjustments?t('Submit offer','Kirim penawaran'):actionLabel):(language==='ID'?`Masuk untuk ${isBuying?'menawar':'menawarkan'}`:`Sign in to ${actionLabel.toLowerCase()}`)}</button>
+        {acceptsOffers&&<button type="button" className="button" disabled={!selectedCount||submitting||submitted} onClick={continueOffer}>{submitted?t('Offer sent','Penawaran terkirim'):submitting?t('Sending...','Mengirim...'):session?(hasPriceAdjustments?t('Submit offer','Kirim penawaran'):actionLabel):(language==='ID'?`Masuk untuk ${isBuying?'menawar':'menawarkan'}`:`Sign in to ${actionLabel.toLowerCase()}`)}</button>}
         <ShareButton
           title={listingTitle ?? t('Card listing','Listing kartu')}
           path={`/market/${listingId}`}
@@ -620,6 +617,10 @@ export function MarketListingDetailView({
               <dt>{t('Price', 'Harga')}</dt>
               <dd>{formatMoney(listing.amount, listing.currency)}</dd>
             </div>
+            {listing.type==='WTS'&&<div>
+              <dt>{t('Price terms','Ketentuan harga')}</dt>
+              <dd>{listing.negotiable===false?t('Firm price','Harga pas'):t('Negotiable','Bisa ditawar')}</dd>
+            </div>}
             <div>
               <dt>{isBuying ? t('Location', 'Lokasi') : t('Ships from', 'Dikirim dari')}</dt>
               <dd>{listing.city}</dd>
@@ -690,6 +691,7 @@ export function MarketListingDetailView({
               listingId={listing.id}
               listingTitle={listing.title}
               listingAmount={formatMoney(listing.amount, listing.currency)}
+              negotiable={listing.negotiable!==false}
               readOnly={isOwner}
             />
           )}

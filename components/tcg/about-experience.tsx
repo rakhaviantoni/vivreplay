@@ -63,7 +63,7 @@ export function AboutExperience() {
     {
       value: 'Build',
       label: isId ? 'Deck dan Koleksi' : 'Decks and Collections',
-      sub: isId ? 'Atur deck dan vault kartu' : 'Organize decks and card vault',
+      sub: isId ? 'Atur deck dan koleksi kartu' : 'Organize decks and card vault',
       icon: Coins,
     },
     {
@@ -99,13 +99,13 @@ export function AboutExperience() {
     },
     {
       num: '03',
-      title: isId ? 'Market & Vault Koleksi' : 'Market & Collection Vault',
-      tag: isId ? 'Market dan Vault Kartu' : 'Market and Card Vault',
+      title: isId ? 'Market & Koleksi' : 'Market & Collection Vault',
+      tag: isId ? 'Market dan koleksi kartu' : 'Market and Card Vault',
       desc: isId
         ? 'Kelola kartu dalam koleksi pribadi dan telusuri listing Market yang tersedia.'
         : 'Manage cards in your personal collection and browse available Market listings.',
       link: '/market',
-      linkText: isId ? 'Buka Market & Vault' : 'Browse Market & Vault',
+      linkText: isId ? 'Buka Market & Koleksi' : 'Browse Market & Vault',
       icon: Storefront,
     },
     {
@@ -172,9 +172,9 @@ export function AboutExperience() {
         : 'Market displays available community listings. Prices and availability can change; check each listing for details.',
     },
     {
-      q: isId ? 'Bisakah saya mencatat kartu slab gradasi di Vault?' : 'Can I track graded slabs in my collection?',
+      q: isId ? 'Bisakah saya mencatat kartu slab gradasi di koleksi?' : 'Can I track graded slabs in my collection?',
       a: isId
-        ? 'Vault tersedia setelah masuk ke akun. Pilihan pencatatan yang didukung dapat dilihat langsung di Vault.'
+        ? 'Koleksi tersedia setelah masuk ke akun. Pilihan pencatatan yang didukung dapat dilihat di halaman koleksi.'
         : 'Vault is available after signing in. Check the Vault for currently supported collection details.',
     },
     {
@@ -218,7 +218,7 @@ export function AboutExperience() {
 
           <p className="about-hero-lead">
             {isId
-              ? 'VivrePlay menyediakan katalog kartu, pembuat deck, vault koleksi, listing Market komunitas, dan arena latihan sebagai proyek penggemar independen.'
+              ? 'VivrePlay menyediakan katalog kartu, pembuat deck, koleksi kartu, listing Market komunitas, dan arena latihan sebagai proyek penggemar independen.'
               : 'VivrePlay offers a card catalog, deck builder, collection vault, community Market listings, and practice arena as an independent fan project.'}
           </p>
 
@@ -234,7 +234,7 @@ export function AboutExperience() {
             </Link>
             <Link className="button secondary about-secondary-action" href="/market">
               <Storefront size={17} />
-              <span>{isId ? 'Market & Vault' : 'Market & Vault'}</span>
+              <span>{isId ? 'Market & Koleksi' : 'Market & Vault'}</span>
             </Link>
           </div>
         </div>

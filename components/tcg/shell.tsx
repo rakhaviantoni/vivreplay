@@ -25,14 +25,14 @@ type SearchSet={external_set_id:string;name:string;set_kind:string|null};
 
 const menus:Array<{label:string;labelId:string;items:NavItem[]}>= [
   {label:'Library',labelId:'Katalog',items:[{href:'/cards',label:'Card library',labelId:'Katalog kartu',icon:Layers3},{href:'/cards/index',label:'Card index',labelId:'Indeks kartu',icon:Library},{href:'/archetypes',label:'Archetypes',labelId:'Arketipe',icon:Layers3},{href:'/sets',label:'Set archive',labelId:'Arsip set',icon:Layers3},{href:'/meta',label:'Meta stats',labelId:'Meta permainan',icon:ChartNoAxesCombined}]},
-  {label:'Collection',labelId:'Koleksi',items:[{href:'/vault',label:'Vault',labelId:'Vault',icon:ShieldCheck},{href:'/decks',label:'Decks',labelId:'Deck',icon:Library},{href:'/decks/builder',label:'Deck builder',labelId:'Pembuat deck',icon:Library}]},
+  {label:'Collection',labelId:'Koleksi',items:[{href:'/vault',label:'Vault',labelId:'Koleksi',icon:ShieldCheck},{href:'/decks',label:'Decks',labelId:'Deck',icon:Library},{href:'/decks/builder',label:'Deck builder',labelId:'Pembuat deck',icon:Library}]},
   {label:'Arena',labelId:'Arena',items:[{href:'/play',label:'Arena lobby',labelId:'Lobi arena',icon:Gamepad2},{href:'/play/tutorial',label:'Learn to play',labelId:'Belajar bermain',icon:Gamepad2},{href:'/events',label:'Events',labelId:'Acara',icon:Trophy}]},
 ];
 const market:NavItem={href:'/market',label:'Market',labelId:'Market',icon:Store};
-const mobileNav:NavItem[]=[{href:'/',label:'Home',labelId:'Beranda',icon:Home},{href:'/cards',label:'Cards',labelId:'Kartu',icon:Layers3},{href:'/vault',label:'Vault',labelId:'Vault',icon:ShieldCheck},market,{href:'/play',label:'Arena',labelId:'Arena',icon:Gamepad2}];
+const mobileNav:NavItem[]=[{href:'/',label:'Home',labelId:'Beranda',icon:Home},{href:'/cards',label:'Cards',labelId:'Kartu',icon:Layers3},{href:'/vault',label:'Vault',labelId:'Koleksi',icon:ShieldCheck},market,{href:'/play',label:'Arena',labelId:'Arena',icon:Gamepad2}];
 const rail=[
   {title:'Build a deck',titleId:'Susun deck',body:'Choose a leader, then tune the curve with live cards.',bodyId:'Pilih leader, lalu atur kurva dengan kartu langsung.',action:'Open builder',actionId:'Buka pembuat deck',href:'/decks/builder'},
-  {title:'Curate your vault',titleId:'Atur vault',body:'Keep the exact art and language you own together.',bodyId:'Simpan art dan bahasa cetakan yang Anda miliki.',action:'Open vault',actionId:'Buka vault',href:'/vault'},
+  {title:'Curate your vault',titleId:'Atur koleksi',body:'Keep the exact art and language you own together.',bodyId:'Simpan art dan bahasa cetakan yang Anda miliki.',action:'Open vault',actionId:'Buka koleksi',href:'/vault'},
   {title:'Learn the board',titleId:'Pelajari papan',body:'Use the guided table to understand each play zone.',bodyId:'Gunakan meja panduan untuk memahami setiap area.',action:'Open arena',actionId:'Buka arena',href:'/play'},
 ] as const;
 

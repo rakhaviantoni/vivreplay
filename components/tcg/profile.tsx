@@ -25,7 +25,6 @@ import {authClient} from '@/lib/auth-client';
 import {Picker} from './catalog';
 import {AccountStatus} from './status';
 import {MapPicker} from './map-picker';
-import {TurnstileField,turnstileEnabled,turnstileHeaders} from './turnstile-field';
 import {isBiteshipAreaId} from '@/lib/shipping/biteship-area';
 import {IntroCardRail} from './intro-card-rail';
 import {PushNotificationSettings} from './push-notification-settings';
@@ -458,8 +457,6 @@ function ProfileForm({
   const [shippingLongitude, setShippingLongitude] = useState<number | null>(null);
   const [shippingMethods, setShippingMethods] = useState<string[]>([]);
   const [savingShipping, setSavingShipping] = useState(false);
-  const [turnstileToken,setTurnstileToken]=useState('');
-  const [turnstileResetKey,setTurnstileResetKey]=useState(0);
   const [provinces,setProvinces]=useState<RegionOption[]>([]);
   const [regionsLoading,setRegionsLoading]=useState(true);
   const [regionsError,setRegionsError]=useState(false);
@@ -849,7 +846,6 @@ function ProfileForm({
 
   const saveShipping = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if(turnstileEnabled&&!turnstileToken){toast.error(t('Complete the security check first.','Selesaikan pemeriksaan keamanan terlebih dahulu.'));return;}
     const hasValidPostalCode=/^\d{5}$/.test(shippingPostalCode.trim());
     const hasValidAreaId=isBiteshipAreaId(shippingAreaId);
     if (!hasValidPostalCode&&!hasValidAreaId) {
@@ -877,7 +873,7 @@ function ProfileForm({
         shippingMethods: payloadMethods,
         regions:{province:shippingProvince,city:shippingCity,district:shippingDistrict,subdistrict:shippingSubdistrict},
         label: 'Primary origin',
-      }, 'POST',turnstileHeaders(turnstileToken));
+      }, 'POST');
       if (res.ok) {
         setShippingOrigin({
           ownerId: profile.id,
@@ -899,7 +895,6 @@ function ProfileForm({
     }catch(err){
       toast.error((err as Error).message);
     }finally{
-      setTurnstileToken('');setTurnstileResetKey(value=>value+1);
       setSavingShipping(false);
     }
   };
@@ -1436,7 +1431,6 @@ function ProfileForm({
               </div>
             </div>
 
-            <TurnstileField onToken={setTurnstileToken} resetKey={turnstileResetKey}/>
             <button className="button" disabled={savingShipping} type="submit">
               <Save size={16}/>
               {savingShipping ? t('Saving...','Menyimpan...') : t('Save delivery settings','Simpan pengaturan pengiriman')}

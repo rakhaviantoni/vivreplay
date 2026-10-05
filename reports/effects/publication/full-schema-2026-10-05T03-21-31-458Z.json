@@ -1,0 +1,125 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-10-05T03:21:31.457Z",
+  "candidates": [
+    {
+      "code": "OP08-083",
+      "printedText": "[DON!! x1] [Your Turn] Give all of your opponent's Characters 1 cost.",
+      "publishedText": "[DON!! x1] [Your Turn] Give all of your opponent's Characters 1 cost.",
+      "timings": [
+        "continuous"
+      ],
+      "scenarioNames": [
+        "DON!!-gated continuous cost aura: lower every opposing Character cost only on your turn"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              }
+            ],
+            "rawText": "[DON!! x1] [Your Turn] Give all of your opponent's Characters 1 cost.",
+            "trigger": "continuous",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don-required",
+                  "amount": 1
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[DON!! x1] [Your Turn] Give all of your opponent's Characters 1 cost.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "rawEffectText": "[DON!! x1] [Your Turn] Give all of your opponent's Characters 1 cost.",
+        "parserVersion": "0.6.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
+        "ast": [
+          {
+            "rawText": "[Your Turn] [DON!!x1] Give all of your opponent's Characters 1 cost.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "cost",
+                "amount": -1,
+                "target": "opponent-character",
+                "continuous": true,
+                "selection": {
+                  "min": 0,
+                  "max": "all"
+                }
+              },
+              {
+                "kind": "attach-don-required",
+                "amount": 1
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "it is your turn"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "cost",
+                  "amount": -1,
+                  "target": "opponent-character",
+                  "continuous": true,
+                  "selection": {
+                    "min": 0,
+                    "max": "all"
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        }
+      },
+      "beforeHash": "6be74e8aeb65956d9c3817c9aae991c7f8d55d266c81250bed8b78b673c2b143",
+      "afterHash": "ba61e0d128256c107e2a54a4c5cc6add76f02342e1a01db6d27ded3380020f42",
+      "patchKind": "FULL_DSL_SCHEMA_ALL_CARD_SCENARIOS_PASS"
+    }
+  ]
+}

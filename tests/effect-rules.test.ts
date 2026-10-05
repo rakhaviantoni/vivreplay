@@ -5,7 +5,7 @@ import type {Card} from '../packages/card-data/catalog';
 import {isPlayableSet} from '../packages/domain/release-availability';
 import {executeEffectCommands,resolveEffectTiming} from '../packages/domain/effect-runtime';
 import {beginEffectExecution} from '../packages/domain/effect-controller';
-import {applyEffectAction,expireEffectModifiers,hasCardKeyword,type MatchEffectState} from '../packages/domain/match-effect-state';
+import {applyEffectAction,expireEffectModifiers,hasCardKeyword,payEffectCost,type MatchEffectState} from '../packages/domain/match-effect-state';
 
 const card=(effect:string)=>({id:'effect-test',code:'TEST-001',name:'Test',color:'Black',type:'Character',cost:1,power:1000,counter:0,rarity:'C',art:0,effect} as Card);
 
@@ -52,6 +52,28 @@ test('resting a Stage and turning Life face-up are both paid costs before its ef
  const sequence=document.normalized.find(effect=>effect.timing==='activate-main')?.sequence??[];assert.deepEqual(sequence.map(step=>step.type),['PAY_COST','PAY_COST','RESOLVE']);
 });
 
+test('OP08-082 keeps its DON!! rest mandatory when the Character rest is optional',()=>{
+ const document=compileEffectDocument({...card("[Activate: Main] Rest 1 of your DON!! cards and you may rest this Character: Give up to 1 of your opponent's Characters 2 cost during this turn."),code:'OP08-082'});
+ const ability=document.ast.find(effect=>effect.trigger==='activate-main');assert.ok(ability);
+ assert.deepEqual(ability?.costs,[{kind:'rest',scope:'don',amount:1,optional:false},{kind:'rest',scope:'self',amount:1,optional:true}]);
+ const donCost=ability!.costs.find(cost=>cost.kind==='rest'&&cost.scope==='don')!;
+ const state:MatchEffectState={turn:'player',cards:[{id:'source',owner:'player',zone:'character',type:'Character'},{id:'don',owner:'player',zone:'cost-area',type:'DON!!'}],turnEffects:[],restrictions:[],delayed:[]};
+ assert.match(payEffectCost(state,'player',donCost).requiresSelection??'',/Select 1 active DON!!/);
+ const paid=payEffectCost(state,'player',donCost,{cardIds:['don']});assert.equal(paid.error,undefined);assert.equal(paid.state.cards.find(item=>item.id==='don')?.rested,true);
+ const invalid=payEffectCost(state,'player',donCost,{cardIds:[]});assert.match(invalid.requiresSelection??'',/Select 1 active DON!!/);
+});
+
+test('OP06-119 plays only the revealed top card or bottoms that same card when skipped',()=>{
+ const document=compileEffectDocument({...card('[On Play] Reveal 1 card from the top of your deck and play up to 1 Character with a cost of 9 or less other than [Sanji]. Then, place the rest at the bottom of your deck.'),code:'OP06-119'});
+ const action=document.ast.find(effect=>effect.trigger==='on-play')?.actions[0];assert.equal(action?.kind,'play');if(action?.kind!=='play')return;
+ assert.deepEqual({source:action.source,topOnly:action.topOnly,maxCost:action.maxCost,excludeName:action.excludeName,selection:action.selection,unselectedTopToBottom:action.unselectedTopToBottom},{source:'deck',topOnly:true,maxCost:9,excludeName:'Sanji',selection:{min:0,max:1},unselectedTopToBottom:true});
+ const commands=resolveEffectTiming(document,'on-play').commands;
+ const state:MatchEffectState={turn:'player',cards:[{id:'revealed',owner:'player',zone:'deck',type:'Character',name:'Luffy',cost:4},{id:'next',owner:'player',zone:'deck',type:'Character',name:'Zoro',cost:4}],turnEffects:[],restrictions:[],delayed:[]};
+ const played=executeEffectCommands(state,'player',commands,[{cardIds:['revealed']}]);assert.equal(played.error,undefined);assert.equal(played.state.cards.find(item=>item.id==='revealed')?.zone,'character');assert.equal(played.state.cards.find(item=>item.id==='next')?.zone,'deck');
+ const skipped=executeEffectCommands(state,'player',commands,[{cardIds:[]}]);assert.equal(skipped.error,undefined);assert.deepEqual(skipped.state.cards.filter(item=>item.zone==='deck').map(item=>item.id),['next','revealed']);
+ const excluded={...state,cards:[{...state.cards[0],name:'Sanji'},state.cards[1]]};const rejected=executeEffectCommands(excluded,'player',commands,[{cardIds:['revealed']}]);assert.match(rejected.error??'',/eligible/);
+});
+
 test('opponent Rest resolves its cost cap from the current Life count',()=>{
  const action=parseEffects(card("[On Play] Rest up to 1 of your opponent's Characters with a cost equal to or less than the number of your opponent's Life cards."))[0].actions.find(effect=>effect.kind==='rest');
  assert.deepEqual(action,{kind:'rest',scope:'opponent-character',maxCostFromLife:'opponent',selection:{min:0,max:1}});
@@ -59,6 +81,40 @@ test('opponent Rest resolves its cost cap from the current Life count',()=>{
  const accepted=applyEffectAction(state,'player',action!,{cardIds:['cost-2']});assert.equal(accepted.error,undefined);assert.equal(accepted.state.cards.find(item=>item.id==='cost-2')?.rested,true);
  const rejected=applyEffectAction(state,'player',action!,{cardIds:['cost-3']});assert.ok(rejected.error);assert.equal(rejected.state.cards.find(item=>item.id==='cost-3')?.rested,undefined);
  const fewerLives={...state,cards:state.cards.filter(item=>item.id!=='life-2')};const stale=applyEffectAction(fewerLives,'player',action!,{cardIds:['cost-2']});assert.ok(stale.error);assert.equal(stale.state.cards.find(item=>item.id==='cost-2')?.rested,undefined);
+});
+
+test('OP17-063 hand Counter aura remains a DSL rule beside its Activate: Main ability',()=>{
+ const document=compileEffectDocument(card('All Character cards in your hand without a Counter have a +1000 Counter.\n[Activate: Main] [Once Per Turn] DON!! -1: If this Character was played on this turn, negate the effect of up to 1 of your opponent\'s Characters with a cost of 6 or less during this turn, and K.O. it.'));
+ assert.equal(document.resolver.type,'DSL');
+ const aura=document.ast.find(ability=>ability.rawText.startsWith('All Character'))!;
+ assert.deepEqual(aura.actions,[{kind:'hand-counter',cardType:'Character',amount:1000,onlyWithoutCounter:true}]);
+ const activation=document.ast.find(ability=>ability.trigger==='activate-main')!;
+ assert.deepEqual(activation.conditions,[{kind:'text',text:'this Character was played on this turn'}]);
+ assert.deepEqual(activation.costs,[{kind:'return-don',amount:1,optional:false}]);
+ assert.deepEqual(activation.actions,[{kind:'negate-effect',scope:'opponent-character',amount:1,until:'turn-end',maxCost:6,andKo:true,selection:{min:0,max:1}}]);
+});
+
+test('OP09-118 Rush and opponent-Blocker win condition parse as separate executable rules',()=>{
+ const document=compileEffectDocument(card('[Rush] (This card can attack on the turn in which it is played.)\nWhen your opponent activates [Blocker], if either you or your opponent has 0 Life cards, you win the game.'));
+ assert.equal(document.resolver.type,'DSL');assert.ok(document.ast.some(ability=>ability.actions.some(action=>action.kind==='rush')));
+ const win=document.ast.find(ability=>ability.trigger==='opponent-blocker')!;assert.deepEqual(win.conditions,[{kind:'text',text:'either you or your opponent has 0 Life cards'}]);assert.deepEqual(win.actions,[{kind:'win-game',when:'opponent-blocker',ifEitherPlayerHasNoLife:true}]);
+});
+
+test('OP02-002 is a DON-attached trigger with its printed optional cost target limit',()=>{
+ const document=compileEffectDocument(card('[Your Turn] When this Leader or any of your Characters is given a DON!! card, give up to 1 of your opponent\'s Characters with a cost of 7 or less −1 cost during this turn.'));
+ const ability=document.ast[0];assert.equal(ability.trigger,'don-attached');assert.deepEqual(ability.conditions,[{kind:'text',text:'it is your turn'}]);
+ assert.deepEqual(ability.actions,[{kind:'cost',amount:-1,target:'opponent-character',maxCost:7,selection:{min:0,max:1}}]);
+ const state:MatchEffectState={turn:'player',cards:[{id:'legal',owner:'opponent',zone:'character',type:'Character',cost:7},{id:'too-costly',owner:'opponent',zone:'character',type:'Character',cost:8},{id:'own',owner:'player',zone:'character',type:'Character',cost:2}],turnEffects:[],restrictions:[],delayed:[]};
+ const action=ability.actions[0];if(action.kind!=='cost')throw new Error('Expected cost action');
+ const applied=applyEffectAction(state,'player',action,{cardIds:['legal']});assert.equal(applied.error,undefined);assert.equal(applied.state.cards.find(card=>card.id==='legal')?.costModifier,-1);
+ assert.ok(applyEffectAction(state,'player',action,{cardIds:['too-costly']}).error);assert.ok(applyEffectAction(state,'player',action,{cardIds:['own']}).error);
+});
+
+test('OP06-048 models both opponent Blocker and Event activations as response timing',()=>{
+ const document=compileEffectDocument(card('[Your Turn] When your opponent activates [Blocker] or an Event, if your Leader has the [East Blue] type, you may trash 4 cards from the top of your deck.'));
+ const ability=document.ast[0];assert.equal(ability.trigger,'opponent-blocker');assert.deepEqual(ability.conditions,[{kind:'text',text:'your Leader has the [East Blue] type'},{kind:'text',text:'it is your turn'}]);
+ assert.deepEqual(ability.actions,[{kind:'trash',scope:'deck',amount:4}]);
+ assert.equal(resolveEffectTiming(document,'continuous').commands.length,0);assert.equal(resolveEffectTiming(document,'opponent-blocker').commands.length,1);
 });
 
 test('opponent power effects retain their printed target count and Leader-or-Character scope',()=>{
@@ -261,7 +317,7 @@ test('life placement, DON payments, and effect negation preserve their targets',
 
 test('persistent effect documents preserve the four parser layers and custom escape hatch',()=>{
  const document=compileEffectDocument(card('[On Play] You may trash 1 card with a [Trigger] from your hand: Draw 3 cards.'));
- assert.equal(document.parserVersion,'0.6.0');
+ assert.equal(document.parserVersion,'0.7.0');
  assert.equal(document.resolver.type,'DSL');
  assert.equal(document.implementationStatus,'PARSED');
  assert.equal(document.ast[0].rawText,document.rawEffectText);
@@ -306,6 +362,17 @@ test('deck plays retain exact cost, color, trait, and shuffle as ordered actions
 test('circled DON cost pays the printed amount before the activated effect',()=>{
  const parsed=parseEffects(card('[Activate: Main] ③ (You may rest the specified number of DON!! cards in your cost area.): Set this Character as active.'))[0];
  assert.deepEqual(parsed.costs.find(cost=>cost.kind==='rest'),{kind:'rest',scope:'don',amount:3,optional:false});
+});
+
+test('Arlong play restriction treats [Trigger] as a keyword, not a card name',()=>{
+ const parsed=parseEffects(card('[DON!! x2] [When Attacking] ① (You may rest the specified number of DON!! cards in your cost area.): Play up to 1 Character card with a cost of 4 or less and a [Trigger] from your hand.'))[0];
+ const play=parsed.actions.find(action=>action.kind==='play');
+ assert.equal(play?.kind,'play');
+ if(play?.kind!=='play')throw new Error('Expected a play action');
+ assert.equal(play.cardType,'Character');
+ assert.equal(play.maxCost,4);
+ assert.equal(play.triggerOnly,true);
+ assert.equal(play.name,undefined);
 });
 
 test('Kaku replacement is parsed separately from its On Play mill',()=>{
@@ -463,6 +530,11 @@ test('a Trigger requirement in the middle of an ability is not a new timing wind
 test('hand reset owns its shuffle and draw instead of emitting a second draw',()=>{
  const parsed=parseEffects(card('[Main] You return all cards in your hand to your deck, shuffle your deck, then draw 5 cards.'))[0];
  assert.deepEqual(parsed.actions,[{kind:'hand-reset',scope:'self',draw:5,shuffle:true}]);
+});
+
+test('return-all-and-draw-equal-to-cards-returned is one dynamic shuffled hand reset',()=>{
+ const parsed=parseEffects(card('[On Play] Return all cards in your hand to your deck and shuffle your deck. Then, draw cards equal to the number you returned to your deck.'))[0];
+ assert.deepEqual(parsed.actions,[{kind:'hand-reset',scope:'self',draw:'returned',shuffle:true}]);
 });
 
 test('a separate natural-language once-per-turn ability does not contaminate On Play',()=>{

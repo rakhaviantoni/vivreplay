@@ -40,9 +40,10 @@ export async function GET(request: Request) {
   const jpyToIdrRate=Number.isFinite(configuredRate)&&configuredRate>0?configuredRate:110;
   const printingId = new URL(request.url).searchParams.get('printingId')?.trim() ?? '';
   if (!printingIdPattern.test(printingId)) return Response.json({ history: [] }, { status: 400 });
-  let history;
+  let history:unknown[];
   try { history = await fromD1(printingId); }
-  catch {
+  catch { history = []; }
+  if (!history.length) {
     try { history = await fromSupabase(printingId); }
     catch { return Response.json({ history: [],jpyToIdrRate }, { status: 503 }); }
   }

@@ -108,7 +108,7 @@ export function TrafficAttribution() {
                 const params = JSON.parse(row.parameters) as Record<string, string>;
                 extras = Object.entries(params).filter(([key]) => !['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'].includes(key)).map(([key, value]) => `${key}=${value}`).join(' · ');
               } catch { /* Older visit rows can have empty or malformed optional tags. */ }
-              return <tr key={row.id}><td>{new Date(`${row.created_at.replace(' ', 'T')}Z`).toLocaleString()}</td><td>{row.utm_source ?? '—'} / {row.utm_medium ?? '—'}</td><td>{row.utm_campaign ?? '—'}</td><td>{row.country_code ?? '—'}</td><td>{row.converted_at ? 'Yes' : '—'}</td><td>{row.landing_path}</td><td>{row.referrer_origin ?? '—'}</td><td>{extras || '—'}</td></tr>;
+              return <tr key={row.id}><td>{new Date(`${row.created_at.replace(' ', 'T')}Z`).toLocaleString()}</td><td>{row.utm_source ?? '-'} / {row.utm_medium ?? '-'}</td><td>{row.utm_campaign ?? '-'}</td><td>{row.country_code ?? '-'}</td><td>{row.converted_at ? 'Yes' : '-'}</td><td>{row.landing_path}</td><td>{row.referrer_origin ?? '-'}</td><td>{extras || '-'}</td></tr>;
             })}
           </AttributionTable>
         </>

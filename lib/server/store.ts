@@ -172,6 +172,7 @@ export async function market(){
       l.quantity,
       l.condition,
       l.type,
+      l.negotiable,
       l.city,
       l.created_at AS createdAt,
       l.expires_at AS expiresAt,
@@ -208,6 +209,7 @@ export async function market(){
     quantity:number;
     condition:string;
     type:string;
+    negotiable:number;
     city:string;
     createdAt:string;
     expiresAt?:string;
@@ -288,6 +290,7 @@ export async function market(){
       quantity: r.quantity,
       condition: r.condition,
       type: r.type,
+      negotiable: r.negotiable !== 0,
       city: r.city,
       createdAt: r.createdAt,
       expiresAt: r.expiresAt,

@@ -21,6 +21,9 @@ export async function POST(request:Request,{params}:{params:Promise<{offerId:str
     const origin=request.headers.get('origin');if(origin&&origin!==new URL(request.url).origin)throw new HttpError(403,'Cross-site changes are not allowed.');
     if(Number(request.headers.get('content-length')??0)>21_000_000)throw new HttpError(413,'Photos must total less than 20 MB.');
     const actor=await user();const {offerId}=await params;const context=await offerContext(offerId,actor.id);
+    await db().prepare("UPDATE listing_offers SET status='EXPIRED' WHERE COALESCE(thread_id,id)=? AND status='PENDING' AND (expires_at<=CURRENT_TIMESTAMP OR listing_id IN (SELECT id FROM listings WHERE status!='ACTIVE' OR (expires_at IS NOT NULL AND expires_at<=CURRENT_TIMESTAMP)))").bind(context.threadId).run();
+    const openOffer=await db().prepare("SELECT id FROM listing_offers WHERE COALESCE(thread_id,id)=? AND status='PENDING' AND expires_at>CURRENT_TIMESTAMP ORDER BY created_at DESC,rowid DESC LIMIT 1").bind(context.threadId).first<{id:string}>();
+    if(!openOffer||context.listingStatus!=='ACTIVE'||(context.listingExpiresAt&&new Date(`${context.listingExpiresAt.replace(' ','T')}Z`).getTime()<=Date.now()))throw new HttpError(409,'This offer has expired or is no longer open. Messaging is closed.');
     const type=request.headers.get('content-type')??'';
     let kind='MESSAGE',body='',files:File[]=[];
     if(type.includes('multipart/form-data')){
@@ -35,12 +38,6 @@ export async function POST(request:Request,{params}:{params:Promise<{offerId:str
     }
     if(kind==='MESSAGE'&&!body)throw new HttpError(400,'Write a message before sending.');
     if(body.length>2000)throw new HttpError(400,'Messages must be 2,000 characters or fewer.');
-    if(kind==='PHOTO_REQUEST'||files.length){
-      const expired=context.expiresAt&&new Date(`${context.expiresAt.replace(' ','T')}Z`).getTime()<=Date.now();
-      const listingExpired=context.listingExpiresAt&&new Date(`${context.listingExpiresAt.replace(' ','T')}Z`).getTime()<=Date.now();
-      const pending=await db().prepare("SELECT 1 AS ok FROM listing_offers WHERE COALESCE(thread_id,id)=? AND status='PENDING' AND expires_at>CURRENT_TIMESTAMP LIMIT 1").bind(context.threadId).first();
-      if(context.listingStatus!=='ACTIVE'||expired||listingExpired||!pending)throw new HttpError(409,'Photo requests and sharing are available while the listing offer is open.');
-    }
     if(kind==='PHOTO_REQUEST'){
       if(actor.id!==context.buyerId)throw new HttpError(403,'Only the buyer can request card photos.');
       const alreadyRequested=await db().prepare("SELECT 1 AS ok FROM listing_offer_messages WHERE thread_id=? AND actor_id=? AND kind='PHOTO_REQUEST' LIMIT 1").bind(context.threadId,context.buyerId).first();
@@ -58,7 +55,12 @@ export async function POST(request:Request,{params}:{params:Promise<{offerId:str
     const storage=prepared.length?env.CARD_IMAGES:undefined;
     if(prepared.length&&!storage)throw new HttpError(503,'Photo sharing is temporarily unavailable.');
     messageId=crypto.randomUUID();
-    await db().prepare('INSERT INTO listing_offer_messages (id,thread_id,offer_id,actor_id,kind,body) VALUES (?,?,?,?,?,?)').bind(messageId,context.threadId,offerId,actor.id,kind,body||null).run();
+    const inserted=await db().prepare(`INSERT INTO listing_offer_messages (id,thread_id,offer_id,actor_id,kind,body)
+      SELECT ?,?,?,?,?,?
+      WHERE EXISTS(SELECT 1 FROM listing_offers WHERE COALESCE(thread_id,id)=? AND status='PENDING' AND expires_at>CURRENT_TIMESTAMP)
+      AND EXISTS(SELECT 1 FROM listings WHERE id=? AND status='ACTIVE' AND (expires_at IS NULL OR expires_at>CURRENT_TIMESTAMP))
+    `).bind(messageId,context.threadId,openOffer.id,actor.id,kind,body||null,context.threadId,context.listingId).run();
+    if(!inserted.meta.changes)throw new HttpError(409,'This offer has expired or is no longer open. Messaging is closed.');
     if(storage){
       for(const {bytes,mime} of prepared){
         const id=crypto.randomUUID();const key=`market-offers/${context.threadId}/${id}`;objectKeys.push(key);

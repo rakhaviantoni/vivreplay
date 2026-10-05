@@ -45,6 +45,14 @@ test('continuous aura conditions check exact DON, opposing cost, and paired Tras
  assert.equal(evaluateEffectCondition('you have [Kuromarimo] and [Chess] in your trash',missingChess,'player'),false);
 });
 
+test('owned Character cost conditions use the actor field and current cost',()=>{
+ const board:MatchEffectState={...state,cards:[...state.cards,{id:'own-eight',owner:'player',zone:'character',type:'Character',cost:8},{id:'enemy-nine',owner:'opponent',zone:'character',type:'Character',cost:9}]};
+ assert.equal(evaluateEffectCondition('you have a Character with a cost of 8 or more',board,'player'),true);
+ assert.equal(evaluateEffectCondition('you have a Character with a cost of 9 or more',board,'player'),false);
+ const modified={...board,cards:board.cards.map(card=>card.id==='own-eight'?{...card,costModifier:1}:card)};
+ assert.equal(evaluateEffectCondition('you have a Character with a cost of 9 or more',modified,'player'),true);
+});
+
 test('source rested and active conditions read the live source card state',()=>{
  const sourceState:MatchEffectState={...state,cards:[...state.cards,{id:'source',owner:'player',zone:'character',rested:true}]};
  assert.equal(evaluateEffectCondition('this Character is rested',sourceState,'player','source'),true);
@@ -52,6 +60,17 @@ test('source rested and active conditions read the live source card state',()=>{
  const active={...sourceState,cards:sourceState.cards.map(card=>card.id==='source'?{...card,rested:false}:card)};
  assert.equal(evaluateEffectCondition('this Character is rested',active,'player','source'),false);
  assert.equal(evaluateEffectCondition('this Character is active',active,'player','source'),true);
+});
+
+test('source played-this-turn conditions use the current turn play ledger',()=>{
+ const board:MatchEffectState={...state,playedThisTurn:['source'],cards:[...state.cards,{id:'source',owner:'player',zone:'character',type:'Character'}]};
+ const notPlayed:{-readonly [K in keyof MatchEffectState]:MatchEffectState[K]}={...board,playedThisTurn:[]};
+ assert.equal(evaluateEffectCondition('this Character was played on this turn',board,'player','source'),true);
+ assert.equal(evaluateEffectCondition('this Character was played on this turn',notPlayed,'player','source'),false);
+ assert.equal(evaluateEffectCondition('this Character was played on this turn',board,'player','other'),false);
+ const commands=[{kind:'resolve-action' as const,conditions:['this Character was played on this turn'],value:{kind:'draw' as const,amount:1}}];
+ assert.equal(executeEffectCommands(board,'player',commands,[],'source').state.cards.find(card=>card.id==='draw')?.zone,'hand');
+ assert.equal(executeEffectCommands(notPlayed,'player',commands,[],'source').state.cards.find(card=>card.id==='draw')?.zone,'deck');
 });
 
 test('powered-character count conditions check the printed owner, threshold and exact minimum',()=>{

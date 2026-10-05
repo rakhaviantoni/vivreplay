@@ -47,6 +47,8 @@ export default defineConfig(async ({ command, mode }) => {
   const localEnv = loadEnv(mode, process.cwd(), "");
   if (command === "serve") {
     localBindingConfig.vars.BETTER_AUTH_URL = "http://localhost:5173";
+    localBindingConfig.vars.VIVREPLAY_LOCAL_TURNSTILE_TEST_MODE = "true";
+    localBindingConfig.vars.TURNSTILE_SECRET_KEY = "1x0000000000000000000000000000000AA";
 
     // Cloudflare's local worker only receives explicit bindings. Keep the AI
     // gateway credential local to Miniflare, sourced from ignored .env files.
@@ -96,9 +98,11 @@ export default defineConfig(async ({ command, mode }) => {
         localBindingConfig.vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
       ),
       "process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY": JSON.stringify(
-        process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ||
-        localEnv.NEXT_PUBLIC_TURNSTILE_SITE_KEY ||
-        ""
+        command === "serve"
+          ? "1x00000000000000000000AA"
+          : process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ||
+            localEnv.NEXT_PUBLIC_TURNSTILE_SITE_KEY ||
+            "0x4AAAAAAFLjvjAWmkfLwlgD"
       ),
     },
     server: {

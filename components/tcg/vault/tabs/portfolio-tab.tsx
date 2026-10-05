@@ -91,7 +91,7 @@ export function PortfolioTab({
               Estimated Portfolio Value
             </span>
             <div style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '32px', fontWeight: 600, color: 'var(--vault-ink)', margin: '4px 0' }}>
-              {hideValues ? 'Rp ••••••••' : isPricingLoading ? 'Loading…' : stats.marketPricedCount ? formatCompactMoney(stats.estimatedValue, 'IDR') : '—'}
+              {hideValues ? 'Rp ••••••••' : isPricingLoading ? 'Loading…' : stats.marketPricedCount ? formatCompactMoney(stats.estimatedValue, 'IDR') : '-'}
             </div>
             <span style={{ fontSize: '11.5px', color: 'var(--vault-ink-secondary)' }}>
               {hideValues ? 'Hidden' : isPricingLoading ? 'Checking saved Yuyutei prices…' : stats.marketPricedCount ? `Priced copies only: ${formatMoney(stats.estimatedValue, 'IDR')}` : 'No exact printing prices available'}
@@ -124,7 +124,7 @@ export function PortfolioTab({
               alignItems: 'center',
               gap: '6px'
             }}>
-              {hideValues ? 'Rp ••••••••' : stats.unrealizedChangePercent === null ? '—' : (
+              {hideValues ? 'Rp ••••••••' : stats.unrealizedChangePercent === null ? '-' : (
                 <>
                   <TrendingUp size={24} />
                   {stats.unrealizedChangeAmount >= 0 ? '+' : ''}
@@ -295,7 +295,7 @@ export function PortfolioTab({
         }}>
           <div style={{ textAlign: 'center', padding: 20, color: 'var(--vault-ink-secondary)' }}>
             <strong style={{ display: 'block', color: stats.change30DayPercent === null ? 'var(--vault-ink-muted)' : 'var(--vault-ink)', fontSize: 24 }}>
-              {hideValues ? '••••••' : stats.change30DayPercent === null ? '—' : `${stats.change30DayPercent >= 0 ? '+' : ''}${stats.change30DayPercent.toFixed(1)}%`}
+              {hideValues ? '••••••' : stats.change30DayPercent === null ? '-' : `${stats.change30DayPercent >= 0 ? '+' : ''}${stats.change30DayPercent.toFixed(1)}%`}
             </strong>
             <span>From saved Yuyutei listing observations · {stats.change30DayPercent === null ? 'not enough observations near 30 days ago' : `${stats.change30DayCount} printings with comparable history`}</span>
           </div>

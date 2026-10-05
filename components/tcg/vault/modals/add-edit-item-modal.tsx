@@ -177,8 +177,8 @@ export function AddEditItemModal({
     if(!open||!identityConfirmed||isEditing||catalogLoading||!catalogPrintings.length)return;
     const current=catalogPrintings.find(printing=>printing.id===selectedPrintingId);
     if(current&&current.language===cardLanguage)return;
-    const next=catalogPrintings.find(printing=>printing.language===cardLanguage)??catalogPrintings[0];
-    setSelectedPrintingId(next.id);
+    const next=catalogPrintings.find(printing=>printing.language===cardLanguage);
+    setSelectedPrintingId(next?.id??'');
   },[open,identityConfirmed,isEditing,catalogLoading,catalogPrintings,selectedPrintingId,cardLanguage]);
 
   const currentCard = (isEditing ? editingItem?.card : undefined) || selectedIdentity || cards.find(c => c.code === selectedCardCode) || cards[0];
@@ -195,10 +195,7 @@ export function AddEditItemModal({
     : printings.filter(p => p.cardId === currentCard.id).map(p => ({id:p.id,language:p.language,variant:p.variant,printing_code:currentCard.printingCode??currentCard.code,set_code:p.set}));
   const uniquePrintingOptions=uniquePrintings(sourcePrintingOptions,editingItem?.printingId);
   const targetPrinting = uniquePrintingOptions.find(p => p.id === selectedPrintingId)
-    || (isEditing && editingItem && selectedPrintingId === editingItem.printingId ? {id:editingItem.printingId,language:editingItem.language??editingItem.card.language??cardLanguage,variant:editingItem.variant??currentCard.variant??'Standard',printing_code:editingItem.printingCode??currentCard.printingCode??currentCard.code,set_code:editingItem.setCode??currentCard.setCode} : undefined)
-    || uniquePrintingOptions.find(p => p.language === cardLanguage)
-    || (isEditing && editingItem ? {id:editingItem.printingId,language:cardLanguage,variant:editingItem.variant??currentCard.variant??'Standard',printing_code:editingItem.printingCode??currentCard.printingCode??currentCard.code} : undefined)
-    || uniquePrintingOptions[0];
+    || (isEditing && editingItem && selectedPrintingId === editingItem.printingId && (editingItem.language??editingItem.card.language??cardLanguage)===cardLanguage ? {id:editingItem.printingId,language:editingItem.language??editingItem.card.language??cardLanguage,variant:editingItem.variant??currentCard.variant??'Standard',printing_code:editingItem.printingCode??currentCard.printingCode??currentCard.code,set_code:editingItem.setCode??currentCard.setCode} : undefined);
   const targetLanguage = (targetPrinting?.language ?? cardLanguage) as 'EN'|'JP';
   const hasMarketReference = targetLanguage === 'JP';
   const selectedCardArt:Card = targetPrinting ? {...currentCard,id:targetPrinting.id,language:targetLanguage,variant:targetPrinting.variant??'Standard',setCode:targetPrinting.set_code??currentCard.setCode,printingCode:targetPrinting.printing_code??currentCard.printingCode,imageUrl:targetPrinting.card_image_url??currentCard.imageUrl} : currentCard;
@@ -258,6 +255,7 @@ export function AddEditItemModal({
       toast.error(formIssues[0]);
       return;
     }
+    if(!targetPrinting){toast.error(language==='ID'?'Pilih cetakan kartu yang tersedia.':'Choose an available card printing.');return;}
     setBusy(true);
 
     try {
@@ -306,7 +304,7 @@ export function AddEditItemModal({
           }
           toast.success(matching
             ? language === 'ID' ? `Kartu digabung ke tumpukan ${currentCard.name}` : `Merged into your ${currentCard.name} stack`
-            : language === 'ID' ? `Memperbarui ${currentCard.name} di Vault lokal Anda` : `Updated ${currentCard.name} in your local Vault`);
+            : language === 'ID' ? `Memperbarui ${currentCard.name} di koleksi lokal Anda` : `Updated ${currentCard.name} in your local Vault`);
         } else {
           addLocalVaultItem({
             ...payload,
@@ -412,9 +410,9 @@ export function AddEditItemModal({
           <section className="vault-printing-picker" aria-labelledby="vault-printing-heading">
             <div className="vault-printing-heading-row"><div><label id="vault-printing-heading">Printing &amp; language</label><p>Choose the exact artwork and language you own.</p></div><span>{languagePrintings.length} {languagePrintings.length === 1 ? 'printing' : 'printings'}</span></div>
             {availableLanguages.length > 0 && <div className="vault-language-options" role="group" aria-label="Card language">
-              {availableLanguages.map(lang => <button type="button" key={lang} className={cardLanguage === lang ? 'active' : ''} onClick={() => setCardLanguage(lang)}>{lang === 'JP' ? '日本語 · JP' : 'English · EN'}</button>)}
+              {availableLanguages.map(lang => <button type="button" key={lang} className={cardLanguage === lang ? 'active' : ''} onClick={() => {setCardLanguage(lang);const next=uniquePrintingOptions.find(printing=>printing.language===lang);setSelectedPrintingId(next?.id??'');}}>{lang === 'JP' ? '日本語 · JP' : 'English · EN'}</button>)}
             </div>}
-            {selectedPrinting&&<p className="vault-printing-current-selection">{language==='ID'?'Cetakan terpilih:':'Selected printing:'} <strong>{selectedPrinting.language} · {selectedPrinting.variant||'Standard'}</strong>{selectedPrinting.printing_code&&<span> · {selectedPrinting.printing_code}</span>}{selectedPrinting.language!==cardLanguage&&<small>{language==='ID'?` · Menampilkan ${cardLanguage}; pilihan baru diterapkan setelah cetakan dipilih.`:` · Viewing ${cardLanguage}; selection changes only after you choose a printing.`}</small>}</p>}
+                {selectedPrinting&&selectedPrinting.language===cardLanguage&&<p className="vault-printing-current-selection">{language==='ID'?'Cetakan terpilih:':'Selected printing:'} <strong>{selectedPrinting.language} · {selectedPrinting.variant||'Standard'}</strong>{selectedPrinting.printing_code&&<span> · {selectedPrinting.printing_code}</span>}</p>}
             <div className="vault-printing-options">
               {languagePrintings.map(printing => {
                 const printingCard: Card = {...currentCard,id:printing.id,language:printing.language as 'EN'|'JP',variant:printing.variant??'Standard',setCode:printing.set_code??currentCard.setCode,printingCode:printing.printing_code??currentCard.printingCode,imageUrl:printing.card_image_url??currentCard.imageUrl};
@@ -422,7 +420,7 @@ export function AddEditItemModal({
                 const printNumber=printing.printing_code?.match(/(?:[_-]p)(\d+)$/i)?.[1];
                 const detail=[printing.set_code,currentCard.code,printNumber?`p${printNumber}`:printing.printing_code!==currentCard.code?printing.printing_code:null].filter(Boolean).join(' · ');
                 return <button type="button" key={printing.id} className={`vault-printing-option ${selected ? 'selected' : ''}`} aria-pressed={selected} onClick={() => {setSelectedIdentity(currentCard);setSelectedCardCode(currentCard.code);setIdentityConfirmed(true);setSelectedPrintingId(printing.id);setCardLanguage(printing.language as 'EN'|'JP');}}>
-                  <span className="vault-printing-option-art"><CardArt card={printingCard} small /></span><span className="vault-printing-option-copy"><b>{printing.variant || 'Standard'}</b><small>{detail || 'Standard printing'}</small></span>{selected && <span className="vault-printing-selected-mark">Selected</span>}
+                  <span className="vault-printing-option-art"><CardArt card={printingCard} small /></span><span className="vault-printing-option-copy"><b>{printing.variant || 'Standard'}</b><small>{detail || 'Standard printing'}</small></span>{selected && <span className="vault-printing-selected-mark">{language==='ID'?'Dipilih':'Selected'}</span>}
                 </button>;
               })}
               {!languagePrintings.length && <p className="vault-printing-empty">{catalogLoading ? 'Loading available printings…' : 'No printings are listed for this language.'}</p>}

@@ -32,5 +32,5 @@ export function MarketActivityLoading({label,kind}:{label:string;kind:'listings'
 }
 
 export function MarketActivityEmpty({title,description,action}:{title:string;description:string;action?:ReactNode}){
-  return <div className="market-activity-empty"><span className="market-activity-empty-mark" aria-hidden="true">—</span><strong>{title}</strong><p>{description}</p>{action}</div>;
+  return <div className="market-activity-empty"><span className="market-activity-empty-mark" aria-hidden="true">-</span><strong>{title}</strong><p>{description}</p>{action}</div>;
 }

@@ -157,7 +157,7 @@ export function VaultHeader({
               <span style={{ letterSpacing: '0.15em', color: 'var(--vault-ink-muted)' }}>Rp ••••••••</span>
             ) : (
               <>
-                <span>{isPricingLoading ? '…' : stats.marketPricedCount ? formatCompactMoney(stats.estimatedValue, 'IDR') : '—'}</span>
+                <span>{isPricingLoading ? '…' : stats.marketPricedCount ? formatCompactMoney(stats.estimatedValue, 'IDR') : '-'}</span>
                 {stats.marketPricedCount > 0 && <span className="vault-confidence-badge" title={language === 'ID' ? 'Data listing Yuyutei untuk cetakan Jepang yang cocok' : 'Yuyutei listing data for exact Japanese printings'}>
                   {stats.marketPricedCount} {t('printings priced','cetakan berharga')}
                 </span>}
@@ -198,7 +198,7 @@ export function VaultHeader({
         <div className="vault-metric-item">
           <span className="vault-metric-label">{t('30-Day Yuyutei change','Perubahan Yuyutei 30 Hari')}</span>
           <div className="vault-metric-value" style={{ color: stats.change30DayPercent === null ? 'var(--vault-ink-muted)' : stats.change30DayPercent >= 0 ? '#2e8b57' : '#c0392b' }}>
-            {stats.change30DayPercent === null ? '—' : `${stats.change30DayPercent >= 0 ? '+' : ''}${stats.change30DayPercent.toFixed(1)}%`}
+            {stats.change30DayPercent === null ? '-' : `${stats.change30DayPercent >= 0 ? '+' : ''}${stats.change30DayPercent.toFixed(1)}%`}
           </div>
           <span className="vault-metric-sub">
             {stats.change30DayPercent === null

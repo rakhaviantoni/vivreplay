@@ -1,8 +1,8 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {applyEffectAction,beginTurn,declareAttack,declareBlock,expireEffectModifiers,payEffectCost,playCard,playCounters,resolveBattle,type MatchEffectState} from '../packages/domain/match-effect-state';
+import {applyEffectAction,beginTurn,declareAttack,declareBlock,effectiveCardPower,effectivePlayCost,expireEffectModifiers,payEffectCost,playCard,playCounters,resolveBattle,type MatchEffectState} from '../packages/domain/match-effect-state';
 import {executeEffectCommands,resolveCardEffect} from '../packages/domain/effect-runtime';
-import {compileEffectDocument} from '../packages/domain/effect-rules';
+import {compileEffectDocument,type EffectAction} from '../packages/domain/effect-rules';
 import type {Card} from '../packages/card-data/catalog';
 
 const state=():MatchEffectState=>({turn:'player',turnEffects:[],restrictions:[],delayed:[],cards:[
@@ -21,6 +21,34 @@ test('the effect state applies a selected K.O. only when its printed restriction
  assert.equal(killed.state.cards.find(card=>card.id==='enemy-rested')?.zone,'trash');
  const rejected=applyEffectAction(state(),'player',{kind:'ko',maxCost:4,restedOnly:true},{targetId:'enemy-active'});
  assert.match(rejected.error??'',/cost limit/);
+});
+
+test('OP12-036 blocks effect play and applies Slash-gated self power and battle protection',()=>{
+ const doc=compileEffectDocument({id:'op12-036',code:'OP12-036',name:'Roronoa Zoro',type:'Character',color:'Green',cost:5,power:6000,counter:0,rarity:'',art:0,effect:'This card in your hand cannot be played by effects.\nIf your Leader has the (Slash) attribute, this Character cannot be K.O.’d in battle by (Slash) attribute cards and gains +1000 power.'});
+ const prohibition=doc.ast.flatMap(ability=>ability.actions).find(action=>action.kind==='effect-play-prohibition');assert.ok(prohibition);
+ const play=applyEffectAction({...state(),cards:[{id:'zoro',owner:'player',zone:'hand',type:'Character',effectSchema:doc}]},'player',{kind:'play',source:'hand',cardType:'Character'},{targetId:'zoro'});assert.match(play.error??'',/cannot be played by an effect/);
+ const leader={id:'leader',owner:'player' as const,zone:'leader' as const,type:'Leader' as const,attributes:['Slash']};
+ const zoro={id:'zoro',owner:'player' as const,zone:'character' as const,type:'Character' as const,power:6000,attributes:['Slash'],effectSchema:doc};
+ const slashAttacker={id:'enemy-slash',owner:'opponent' as const,zone:'character' as const,type:'Character' as const,power:7000,attributes:['Slash']};
+ const protectedState:MatchEffectState={turn:'opponent',cards:[leader,zoro,slashAttacker],turnEffects:[],restrictions:[],delayed:[]};
+ assert.equal(effectiveCardPower(protectedState,'zoro'),7000,'Zoro should gain +1000 only while the Leader has Slash');
+ const protectedBattle=resolveBattle(protectedState,'enemy-slash','zoro');assert.equal(protectedBattle.state.cards.find(card=>card.id==='zoro')?.zone,'character','Slash battle must not K.O. Zoro');
+ const unprotectedBattle=resolveBattle({...protectedState,cards:protectedState.cards.map(card=>card.id==='leader'?{...card,attributes:['Wisdom']}:card)},'enemy-slash','zoro');assert.equal(unprotectedBattle.state.cards.find(card=>card.id==='zoro')?.zone,'trash','Non-Slash Leader must not grant protection');
+});
+
+test('OP12-070 scales power per five Events and can pay DON!! to replace opponent-effect removal',()=>{
+ const doc=compileEffectDocument({id:'op12-070',code:'OP12-070',name:'Sanji',type:'Character',color:'Blue',cost:5,power:6000,counter:0,rarity:'',art:0,effect:'This Character gains +1000 power for every 5 Events in your trash.\nIf this Character would be removed from the field by your opponent’s effect, you may return 1 DON!! card from your field to your DON!! deck instead.'});
+ const sanji={id:'sanji',owner:'opponent' as const,zone:'character' as const,type:'Character' as const,power:6000,effectSchema:doc};
+ const make=(events:number):MatchEffectState=>({turn:'player',cards:[sanji,...Array.from({length:events},(_,i)=>({id:`event-${i}`,owner:'opponent' as const,zone:'trash' as const,type:'Event' as const})),{id:'don',owner:'opponent',zone:'cost-area',type:'DON!!'}],turnEffects:[],restrictions:[],delayed:[]});
+ assert.equal(effectiveCardPower(make(4),'sanji'),6000);assert.equal(effectiveCardPower(make(5),'sanji'),7000);assert.equal(effectiveCardPower(make(10),'sanji'),8000);
+ const removal=make(5),action:EffectAction={kind:'ko',scope:'opponent-character'};const offer=applyEffectAction(removal,'player',action,{targetId:'sanji'});assert.match(offer.requiresSelection??'',/may pay its removal replacement/);const paid=applyEffectAction(removal,'player',action,{targetId:'sanji',choice:'accept',cardIds:['don']});assert.equal(paid.state.cards.find(card=>card.id==='sanji')?.zone,'character');assert.equal(paid.state.cards.find(card=>card.id==='don')?.zone,'don-deck');
+});
+
+test('OP17-095 replacement protects any own Character by bottom-decking exactly three Trash cards',()=>{
+ const doc=compileEffectDocument({id:'op17-095',code:'OP17-095',name:'Roronoa Zoro',type:'Character',color:'Red',cost:6,power:7000,counter:0,rarity:'',art:0,effect:'If there is a Character with a cost of 12 or more, this Character gains +3000 power.\nIf one of your Characters would be removed from the field by your opponent’s effect, you may place 3 cards from your trash at the bottom of your deck in any order instead.'});
+ const defender={id:'defender',owner:'player' as const,zone:'character' as const,type:'Character' as const,cost:4,power:5000};const protector={id:'protector',owner:'player' as const,zone:'character' as const,type:'Character' as const,effectSchema:doc};
+ const cards:MatchEffectState['cards']=[defender,protector,...Array.from({length:3},(_,i)=>({id:`trash-${i}`,owner:'player' as const,zone:'trash' as const,type:'Event' as const})),{id:'enemy',owner:'opponent',zone:'character',type:'Character'}];const board:MatchEffectState={turn:'opponent',cards,turnEffects:[],restrictions:[],delayed:[]};
+ const action:EffectAction={kind:'ko',scope:'opponent-character'};const offer=applyEffectAction(board,'opponent',action,{targetId:'defender'});assert.match(offer.requiresSelection??'',/may pay its removal replacement/);const paid=applyEffectAction(board,'opponent',action,{targetId:'defender',choice:'accept',cardIds:['trash-0','trash-1','trash-2']});assert.equal(paid.state.cards.find(card=>card.id==='defender')?.zone,'character');assert.equal(paid.state.cards.filter(card=>card.owner==='player'&&card.zone==='deck').length,3);
 });
 
 test('an attack can prevent every opposing Blocker for the battle without a power threshold',()=>{
@@ -110,6 +138,21 @@ test('hand reset returns the full hand to the deck before drawing the printed am
  const reset=applyEffectAction(resetState,'player',{kind:'hand-reset',scope:'self',draw:2});
  assert.equal(reset.state.cards.filter(card=>card.owner==='player'&&card.zone==='hand').length,2);
  assert.equal(reset.state.cards.filter(card=>card.owner==='player'&&card.zone==='deck').length,1);
+});
+
+test('dynamic hand reset draws exactly the cards returned, shuffling before drawing',()=>{
+ const input:MatchEffectState={...state(),cards:[
+  {id:'hand-a',owner:'player',zone:'hand',type:'Character'},
+  {id:'hand-b',owner:'player',zone:'hand',type:'Character'},
+  {id:'hand-c',owner:'player',zone:'hand',type:'Character'},
+  {id:'deck-a',owner:'player',zone:'deck',type:'Character'},
+  {id:'deck-b',owner:'player',zone:'deck',type:'Character'},
+ ]};
+ const action=compileEffectDocument({id:'reset',code:'OP04-048',name:'Sasaki',type:'Character',color:'Green',cost:4,power:5000,counter:0,rarity:'R',art:0,effect:'[On Play] Return all cards in your hand to your deck and shuffle your deck. Then, draw cards equal to the number you returned to your deck.'}).ast[0].actions[0];
+ assert.equal(action.kind,'hand-reset');if(action.kind!=='hand-reset')throw new Error('Expected a hand reset action');
+ const result=applyEffectAction(input,'player',action);
+ assert.equal(result.state.cards.filter(card=>card.owner==='player'&&card.zone==='hand').length,3);
+ assert.equal(result.state.cards.filter(card=>card.owner==='player'&&card.zone==='deck').length,2);
 });
 
 test('bottom-deck effects can legally select an opponent hand or Trash card',()=>{
@@ -216,6 +259,15 @@ test('turn start returns attached DON!!, readies the field, draws, and adds the 
  assert.equal(later.addedDonIds.length,2);
 });
 
+test('OP13-003 attaches only a DON!! placed after its DON!! Phase condition is already true and powers down at ten DON!!',()=>{
+ const effect='If you have any DON!! cards on your field, 1 DON!! card placed during your DON!! Phase is given to your Leader.\nIf you have 9 or less DON!! cards on your field, give this Leader 2000 power.';
+ const schema=compileEffectDocument({id:'roger',code:'OP13-003',name:'Gol.D.Roger',type:'Leader',color:'Purple/Red',cost:0,power:5000,rarity:'L',art:0,effect});
+ const makeState=(fieldDon:number):MatchEffectState=>({turn:'player',firstPlayer:'opponent',turnNumber:1,turnEffects:[],restrictions:[],delayed:[],cards:[{id:'leader',owner:'player',zone:'leader',type:'Leader',power:5000,effectSchema:schema},...Array.from({length:fieldDon},(_,i)=>({id:`field-${i}`,owner:'player' as const,zone:'cost-area' as const,type:'DON!!' as const})),{id:'placed-1',owner:'player',zone:'don-deck',type:'DON!!'},{id:'placed-2',owner:'player',zone:'don-deck',type:'DON!!'},{id:'deck-top',owner:'player',zone:'deck',type:'Character'}]});
+ const firstTurn=beginTurn({...makeState(0),firstPlayer:'player',turnNumber:0},'player',1);assert.equal(firstTurn.state.cards.find(card=>card.id==='placed-1')?.attachedTo,undefined,'First-turn DON!! must not auto-attach without a DON!! present before the DON!! Phase');
+ const nine=beginTurn(makeState(7),'player',2);assert.equal(nine.state.cards.find(card=>card.id==='placed-1')?.attachedTo,'leader','Exactly one newly placed DON!! must auto-attach to Roger');assert.equal(nine.state.cards.find(card=>card.id==='placed-2')?.attachedTo,undefined,'Only one DON!! from the DON!! Phase may be attached');assert.equal(effectiveCardPower(nine.state,'leader'),8000,'Roger must gain +2000 power as well as the +1000 from his attached DON!! while his field has nine DON!!');
+ const ten=beginTurn(makeState(8),'player',2);assert.equal(ten.state.cards.find(card=>card.id==='placed-1')?.attachedTo,'leader','The DON!! replacement continues at ten total DON!!');assert.equal(effectiveCardPower(ten.state,'leader'),6000,'Roger must lose the conditional 2000 power at ten DON!! but keep the +1000 from attached DON!!');
+});
+
 test('drawing the final deck card loses the game',()=>{
  const result=beginTurn({...state(),firstPlayer:'opponent',turnNumber:2,cards:[{id:'deck',owner:'player',zone:'deck',type:'Character'}]},'player',3);
  assert.equal(result.gameOver,'player');
@@ -253,6 +305,40 @@ test('attack declarations and counter cards enforce core battle legality',()=>{
  const counter=playCounters(valid.state,'opponent',['counter']);
  assert.equal(counter.total,1000);
  assert.equal(counter.state.cards.find(card=>card.id==='counter')?.zone,'trash');
+});
+
+test('OP17-063 grants +1000 Counter only to Character cards in its owner hand without printed Counter',()=>{
+ const schema=compileEffectDocument({id:'op17-063',code:'OP17-063',name:'Boa Hancock',type:'Character',color:'Blue',cost:5,power:5000,counter:0,rarity:'R',art:0,effect:'All Character cards in your hand without a Counter have a +1000 Counter.\n[Activate: Main] [Once Per Turn] DON!! -1: If this Character was played on this turn, negate the effect of up to 1 of your opponent\'s Characters with a cost of 6 or less during this turn, and K.O. it.'});
+ const match:MatchEffectState={...state(),cards:[
+  {id:'source',owner:'player',zone:'character',type:'Character',effectSchema:schema},
+  {id:'eligible',owner:'player',zone:'hand',type:'Character',counter:0},
+  {id:'printed',owner:'player',zone:'hand',type:'Character',counter:2000},
+  {id:'event',owner:'player',zone:'hand',type:'Event',counter:0},
+  {id:'enemy-card',owner:'opponent',zone:'hand',type:'Character',counter:0},
+ ]};
+ const counter=playCounters(match,'player',['eligible']);assert.equal(counter.total,1000);assert.equal(counter.state.cards.find(card=>card.id==='eligible')?.zone,'trash');
+ assert.equal(playCounters(match,'player',['printed']).total,2000,'An existing printed Counter remains usable without receiving an additional +1000');
+ assert.match(playCounters(match,'player',['event']).error??'',/not legal Counter/);
+ assert.match(playCounters(match,'opponent',['enemy-card']).error??'',/not legal Counter/);
+ assert.equal(playCounters({...match,cards:match.cards.map(card=>card.id==='source'?{...card,effectNegated:true}:card)},'player',['eligible']).error!==undefined,true);
+});
+
+test('OP11-046 protects itself from opponent K.O. and rest effects only while all your Characters are GERMA',()=>{
+ const schema=compileEffectDocument({id:'op11-046',code:'OP11-046',name:'GERMA Soldier',type:'Character',color:'Blue',cost:4,power:4000,counter:0,rarity:'R',art:0,effect:'[Blocker]\nIf you only have Characters with a type including "GERMA", this Character cannot be K.O.\'d or rested by your opponent\'s effects.'});
+ const board:MatchEffectState={...state(),cards:[{id:'protected',owner:'player',zone:'character',type:'Character',traits:['GERMA'],effectSchema:schema},{id:'enemy-source',owner:'opponent',zone:'character',type:'Character',effectSchema:compileEffectDocument({id:'x',code:'X',name:'X',type:'Character',color:'Black',cost:1,power:1,counter:0,rarity:'C',art:0,effect:''})}]};
+ const ko=applyEffectAction(board,'opponent',{kind:'ko'},{targetId:'protected',sourceCardId:'enemy-source'});assert.match(ko.error??'',/cannot be K\.O/);
+ const rest=applyEffectAction(board,'opponent',{kind:'rest',scope:'opponent-character'},{targetId:'protected',sourceCardId:'enemy-source'});assert.match(rest.error??'',/cannot be rested/);
+ const brokenCondition={...board,cards:[...board.cards,{id:'non-germa',owner:'player' as const,zone:'character' as const,type:'Character' as const,traits:['Straw Hat Crew']}]};
+ const allowed=applyEffectAction(brokenCondition,'opponent',{kind:'rest',scope:'opponent-character'},{targetId:'protected',sourceCardId:'enemy-source'});assert.equal(allowed.error,undefined);assert.equal(allowed.state.cards.find(card=>card.id==='protected')?.rested,true);
+});
+
+test('OP09-118 wins only when the opponent actually activates Blocker and either player has zero Life',()=>{
+ const schema=compileEffectDocument({id:'op09-118',code:'OP09-118',name:'Silvers Rayleigh',type:'Character',color:'Purple',cost:9,power:10000,counter:0,rarity:'SEC',art:0,effect:'[Rush] (This card can attack on the turn in which it is played.)\nWhen your opponent activates [Blocker], if either you or your opponent has 0 Life cards, you win the game.'});
+ const make=(playerLife:number,opponentLife:number)=>({...state(),cards:[{id:'rayleigh',owner:'player' as const,zone:'character' as const,type:'Character' as const,effectSchema:schema},{id:'blocker',owner:'opponent' as const,zone:'character' as const,type:'Character' as const,keywords:['blocker']},...Array.from({length:playerLife},(_,index)=>({id:`plife-${index}`,owner:'player' as const,zone:'life' as const,type:'Character' as const})),...Array.from({length:opponentLife},(_,index)=>({id:`olife-${index}`,owner:'opponent' as const,zone:'life' as const,type:'Character' as const}))]});
+ assert.equal(declareBlock(make(1,1),'opponent','blocker').gameOver,undefined);
+ assert.equal(declareBlock(make(0,1),'opponent','blocker').gameOver,'player');
+ assert.equal(declareBlock(make(1,0),'opponent','blocker').gameOver,'player');
+ assert.equal(declareBlock(make(0,1),'player','blocker').gameOver,undefined,'Your own Blocker is not an activation by your opponent');
 });
 
 test('Counter Events pay their active DON!! cost and attachments return rested when their card leaves play',()=>{
@@ -572,6 +658,18 @@ test('effect plays reject Events and replace an existing Stage',()=>{
  assert.equal(result.state.cards.find(card=>card.id==='new-stage')?.zone,'stage');
 });
 
+test('play-from-hand selection enforces a printed Trigger keyword restriction',()=>{
+ const initial:MatchEffectState={...state(),cards:[
+  {id:'trigger-character',owner:'player',zone:'hand',type:'Character',cost:4,keywords:['trigger']},
+  {id:'plain-character',owner:'player',zone:'hand',type:'Character',cost:4},
+ ]};
+ const action={kind:'play' as const,source:'hand' as const,amount:1,cardType:'Character' as const,maxCost:4,triggerOnly:true};
+ assert.ok(applyEffectAction(initial,'player',action,{targetId:'plain-character'}).error);
+ const chosen=applyEffectAction(initial,'player',action,{targetId:'trigger-character'});
+ assert.equal(chosen.error,undefined);
+ assert.equal(chosen.state.cards.find(card=>card.id==='trigger-character')?.zone,'character');
+});
+
 test('full-field normal play waits for replacement without paying DON!! early',()=>{
  const initial:MatchEffectState={...state(),cards:[...Array.from({length:5},(_,i)=>({id:`c${i}`,owner:'player' as const,zone:'character' as const,type:'Character' as const})),{id:'new',owner:'player',zone:'hand',type:'Character',cost:1},{id:'don',owner:'player',zone:'cost-area',type:'DON!!'},{id:'attached',owner:'player',zone:'cost-area',type:'DON!!',attachedTo:'c0'}]};
  const pending=playCard(initial,'player','new');
@@ -633,6 +731,57 @@ test('shared displayed and battle power combines modifiers and DON without going
  const reduced={...board,cards:board.cards.map(c=>c.id==='fighter'?{...c,powerModifier:-9000}:c)};
  assert.equal(effectiveCardPower(reduced,'fighter'),0);
  assert.equal(effectiveCardPower(board,'missing'),0);
+});
+
+test('cost reductions filter by type, trait and printed minimum, apply to payment, stack, and expire',()=>{
+ const reductionDoc=compileEffectDocument({id:'reduction',code:'OP05-097',name:'Mary Geoise',type:'Character',color:'Black',cost:2,power:0,counter:0,rarity:'R',art:0,effect:'[Activate: Main] The cost of playing [Navy] type Character cards with a cost of 5 or more from your hand will be reduced by 2.'});
+ const reduction=reductionDoc.ast.flatMap(ability=>ability.actions).find(action=>action.kind==='cost-reduction');assert.ok(reduction);if(!reduction||reduction.kind!=='cost-reduction')throw new Error('Expected parsed cost reduction');
+ const board:MatchEffectState={turn:'player',phase:'main',turnEffects:[],restrictions:[],delayed:[],cards:[
+  {id:'stage',owner:'player',zone:'stage',type:'Stage',effectSchema:reductionDoc},
+  {id:'five-navy',owner:'player',zone:'hand',type:'Character',cost:5,traits:['Navy']},
+  {id:'four-navy',owner:'player',zone:'hand',type:'Character',cost:4,traits:['Navy']},
+  {id:'five-other',owner:'player',zone:'hand',type:'Character',cost:5,traits:['Other']},
+  ...Array.from({length:3},(_,index)=>({id:`reduction-don-${index}`,owner:'player' as const,zone:'cost-area' as const,type:'DON!!' as const})),
+ ]};
+ const applied=applyEffectAction(board,'player',reduction,{sourceCardId:'stage'});assert.equal(applied.error,undefined);
+ assert.equal(effectivePlayCost(applied.state,'player',applied.state.cards.find(card=>card.id==='five-navy')!),3);
+ assert.equal(effectivePlayCost(applied.state,'player',applied.state.cards.find(card=>card.id==='four-navy')!),4);
+ assert.equal(effectivePlayCost(applied.state,'player',applied.state.cards.find(card=>card.id==='five-other')!),5);
+ const played=playCard(applied.state,'player','five-navy');assert.equal(played.error,undefined);assert.equal(played.state.cards.find(card=>card.id==='five-navy')?.zone,'character');assert.equal(played.state.cards.filter(card=>card.type==='DON!!'&&card.rested).length,3);
+ const expired=expireEffectModifiers(applied.state,'turn-end');assert.equal(effectivePlayCost(expired,'player',expired.cards.find(card=>card.id==='five-navy')!),5);
+ const continuous=compileEffectDocument({id:'continuous-reduction',code:'OP05-097',name:'Mary Geoise',type:'Character',color:'Black',cost:2,power:0,counter:0,rarity:'R',art:0,effect:'[DON!! x1] [Your Turn] The cost of playing [Navy] type Character cards with a cost of 5 or more from your hand will be reduced by 1.'});
+ const passiveState:MatchEffectState={turn:'player',turnEffects:[],restrictions:[],delayed:[],cards:[{id:'passive-source',owner:'player',zone:'character',type:'Character',effectSchema:continuous},{id:'candidate',owner:'player',zone:'hand',type:'Character',cost:5,traits:['Navy']}]};
+ assert.equal(effectivePlayCost(passiveState,'player',passiveState.cards.find(card=>card.id==='candidate')!),5);
+ const passiveWithDon={...passiveState,cards:[...passiveState.cards,{id:'passive-don',owner:'player' as const,zone:'cost-area' as const,type:'DON!!' as const,attachedTo:'passive-source'}]};
+ assert.equal(effectivePlayCost(passiveWithDon,'player',passiveWithDon.cards.find(card=>card.id==='candidate')!),4);
+ assert.equal(effectivePlayCost({...passiveWithDon,turn:'opponent'},'player',passiveWithDon.cards.find(card=>card.id==='candidate')!),5);
+});
+
+test('negate-effect accepts only the printed opponent target and suppresses its effects',()=>{
+ const match:MatchEffectState={turn:'player',turnEffects:[],restrictions:[],delayed:[],cards:[{id:'enemy',owner:'opponent',zone:'character',type:'Character',effectText:'[On Play] Draw 1 card.'},{id:'own',owner:'player',zone:'character',type:'Character'}]};
+ const action=compileEffectDocument({id:'black-vortex',code:'OP09-097',name:'Black Vortex',type:'Event',color:'Black',cost:1,power:0,counter:0,rarity:'R',art:0,effect:"[Trigger] Negate the effect of up to 1 of your opponent's Leader or Character cards during this turn."}).ast[0].actions[0];
+ assert.equal(action.kind,'negate-effect');const negated=applyEffectAction(match,'player',action,{targetId:'enemy'});assert.equal(negated.error,undefined);assert.equal(negated.state.cards.find(card=>card.id==='enemy')?.effectNegated,true);
+ assert.equal(expireEffectModifiers(negated.state,'turn-end').cards.find(card=>card.id==='enemy')?.effectNegated,false);
+ assert.match(applyEffectAction(match,'player',action,{targetId:'own'}).error??'',/outside the printed effect target/);
+});
+
+test('negate-then-K.O. applies the cost limit and suppresses the K.O.d Character’s effect',()=>{
+ const document=compileEffectDocument({id:'negate-ko',code:'OP17-063',name:'Jozu',type:'Character',color:'Blue',cost:4,power:5000,counter:0,rarity:'R',art:0,effect:"[Activate: Main] DON!! -1: If this Character was played on this turn, negate the effect of up to 1 of your opponent's Characters with a cost of 6 or less during this turn, and K.O. it."});
+ const action=document.ast.flatMap(ability=>ability.actions).find(value=>value.kind==='negate-effect');assert.ok(action);if(!action||action.kind!=='negate-effect')throw new Error('Expected negate-and-K.O. action');assert.equal(action.maxCost,6);assert.equal(action.andKo,true);
+ const board:MatchEffectState={turn:'player',turnEffects:[],restrictions:[],delayed:[],cards:[{id:'target',owner:'opponent',zone:'character',type:'Character',cost:6,effectText:'[On Play] Draw 1 card.'},{id:'too-costly',owner:'opponent',zone:'character',type:'Character',cost:7}]};
+ const resolved=applyEffectAction(board,'player',action,{targetId:'target'});assert.equal(resolved.error,undefined);assert.equal(resolved.state.cards.find(card=>card.id==='target')?.zone,'trash');assert.equal(resolved.state.cards.find(card=>card.id==='target')?.effectNegated,true);
+ const rejected=applyEffectAction(board,'player',action,{targetId:'too-costly'});assert.ok(rejected.error);assert.equal(rejected.state.cards.find(card=>card.id==='too-costly')?.zone,'character');
+});
+
+test('active-Character attack permission honors the ability’s attached-DON requirement',()=>{
+ const document=compileEffectDocument({id:'active-attack',code:'OP01-021',name:'Franky',type:'Character',color:'Blue',cost:3,power:4000,counter:0,rarity:'R',art:0,effect:"[DON!! x1] This Character can also attack your opponent's active Characters."});
+ const initial:MatchEffectState={turn:'player',phase:'main',turnEffects:[],restrictions:[],delayed:[],cards:[
+  {id:'franky',owner:'player',zone:'character',type:'Character',rested:false,effectSchema:document},
+  {id:'active-target',owner:'opponent',zone:'character',type:'Character',rested:false},
+ ]};
+ assert.match(declareAttack(initial,'player','franky','active-target').error??'',/must be rested/);
+ const attached={...initial,cards:[...initial.cards,{id:'attached-don',owner:'player' as const,zone:'cost-area' as const,type:'DON!!' as const,attachedTo:'franky'}]};
+ assert.equal(declareAttack(attached,'player','franky','active-target').error,undefined);
 });
 
 test('selected Blocker restrictions enforce target filters and last through the printed window',()=>{

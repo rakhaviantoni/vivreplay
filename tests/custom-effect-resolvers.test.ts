@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {compileEffectDocument} from '../packages/domain/effect-rules';
 import {resolveEffectTiming} from '../packages/domain/effect-runtime';
-import {customEffectDefinitions,resolveCustomEffect} from '../packages/domain/custom-effect-resolvers';
+import {customEffectDefinitions,customEffectBranch,hasCustomBoardExecutor,resolveCustomEffect} from '../packages/domain/custom-effect-resolvers';
 import type {Card} from '../packages/card-data/catalog';
 
 const card=(code:string,effect:string)=>({id:code,code,name:'Test',color:'Black',type:'Character',cost:1,power:1000,counter:0,rarity:'C',art:0,effect} as Card);
@@ -22,13 +22,19 @@ test('delayed and replacement custom effects stay explicit contracts',()=>{
  assert.equal(replacement.instructions[0].kind==='delayed'&&replacement.instructions[0].when,'replacement');
 });
 
-test('tested custom handlers resolve through the normal timing API',()=>{
+test('Brook choose-one has an explicit board adapter while preserving its timing plan',()=>{
  const document=compileEffectDocument(card('OP06-092','[On Play] Choose one: • Trash up to 1 of your opponent\'s Characters with a cost of 4 or less. • Your opponent places 3 cards from their trash at bottom of their deck in any order.'));
  assert.equal(document.resolver.type,'CUSTOM');
- assert.equal(document.implementationStatus,'TESTED');
+ assert.equal(document.implementationStatus,'IMPLEMENTED');
+ assert.equal(hasCustomBoardExecutor('OP06_092_ON_PLAY'),true);
  const resolution=resolveEffectTiming(document,'on-play');
- assert.equal(resolution.status,'ready');
+ assert.equal(resolution.status,'custom');
  assert.equal(resolution.instructions?.[0].kind,'choose-one');
+});
+
+test('Charlotte Pudding choose-one exposes both board-executable Life branches',()=>{
+ const document=compileEffectDocument(card('EB01-052','[On Play] Choose one: Look at all of your opponent’s Life cards and place them back in their Life area in any order. Turn all of your Life cards face-down.'));
+ assert.equal(document.implementationStatus,'IMPLEMENTED');assert.equal(hasCustomBoardExecutor('EB01_052_ON_PLAY'),true);assert.equal(customEffectBranch('EB01_052_ON_PLAY',0)?.[0]?.kind,'reorder-life');assert.equal(customEffectBranch('EB01_052_ON_PLAY',1)?.[0]?.kind,'set-life-face');assert.equal(resolveEffectTiming(document,'on-play').instructions?.[0]?.kind,'choose-one');
 });
 
 test('implemented custom handlers resolve through the shared runtime contract',()=>{
@@ -36,7 +42,7 @@ test('implemented custom handlers resolve through the shared runtime contract',(
  assert.equal(plan.status,'ready');
  assert.equal(plan.instructions[0]?.kind,'apply');
  const document=compileEffectDocument(card('OP02-025','[Activate: Main] [Once Per Turn] If you have 1 or less Characters, the next time you play a {Land of Wano} type Character card with a cost of 3 or more from your hand during this turn, the cost will be reduced by 1.'));
- assert.equal(document.implementationStatus,'IMPLEMENTED');
+ assert.equal(document.implementationStatus,'REVIEWED');
 });
 
 test('custom handler audits use the handler timing when another window appears first',()=>{
@@ -46,7 +52,7 @@ test('custom handler audits use the handler timing when another window appears f
  const timing=handler?customEffectDefinitions().find(item=>item.handler===handler)?.timing:undefined;
  assert.equal(timing,'activate-main');
  const resolution=resolveEffectTiming(document,timing!);
- assert.equal(resolution.status,'ready');assert.ok(resolution.instructions?.length);
+ assert.equal(resolution.status,'custom');assert.ok(resolution.instructions?.length);
 });
 
 test('unknown custom handlers remain blocked from execution',()=>{

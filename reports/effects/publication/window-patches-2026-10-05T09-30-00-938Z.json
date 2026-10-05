@@ -1,0 +1,2871 @@
+{
+  "rulesetId": "02e01184-a41a-4a31-94e1-432516881c9f",
+  "createdAt": "2026-10-05T09:30:00.937Z",
+  "candidates": [
+    {
+      "code": "OP02-023",
+      "printedText": "[Main] If you have 3 or less Life cards, you cannot add Life cards to your hand using your own effects during this turn.",
+      "publishedText": "[Main] If you have 3 or less Life cards, you cannot add Life cards to your hand using your own effects during this turn. [Trigger] Up to 1 of your Leader gains +1000 power during this turn.",
+      "timings": [
+        "main"
+      ],
+      "scenarioNames": [
+        "OP02-023 blocks its controller’s prohibited own-effect Life addition"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "power",
+                "until": "turn-end",
+                "amount": 1000,
+                "target": "own-leader"
+              }
+            ],
+            "rawText": "[Main] If you have 3 or less Life cards, you cannot add Life cards to your hand using your own effects during this turn. [Trigger] Up to 1 of your Leader gains +1000 power during this turn.",
+            "trigger": "main",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 3 or less Life cards"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "power",
+                  "until": "turn-end",
+                  "amount": 1000,
+                  "target": "own-leader"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 3 or less Life cards"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] If you have 3 or less Life cards, you cannot add Life cards to your hand using your own effects during this turn. [Trigger] Up to 1 of your Leader gains +1000 power during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Main] If you have 3 or less Life cards, you cannot add Life cards to your hand using your own effects during this turn.",
+            "trigger": "main",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 3 or less Life cards"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "life-add-prohibition",
+                "maxOwnLife": 3
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 3 or less Life cards"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life-add-prohibition",
+                  "maxOwnLife": 3
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] If you have 3 or less Life cards, you cannot add Life cards to your hand using your own effects during this turn. [Trigger] Up to 1 of your Leader gains +1000 power during this turn.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "842c8ea40363ec9ab45c35e19686995992355c9e4b8920c6396548826a3e739e",
+      "afterHash": "4bfafc1e2dbfa3c785fec57cceef58e678a1317b56d9b1142a5d68015d8962fd",
+      "patchKind": "INDIVIDUAL_PRINTED_WINDOW_WITH_ALL_CARD_SCENARIOS_PASS"
+    },
+    {
+      "code": "OP03-036",
+      "printedText": "[Main] You may rest 1 of your {East Blue} type Characters: Set up to 1 of your [Kuro] cards as active.",
+      "publishedText": "[Main] You may rest 1 of your [East Blue] type Characters: Set up to 1 of your [Kuro] cards as active. [Trigger] K.O. up to 1 of your opponent's rested Characters with a cost of 3 or less.",
+      "timings": [
+        "main"
+      ],
+      "scenarioNames": [
+        "engine-action main ready: exercise action 1 independently (gate and sequence not covered)",
+        "OP03-036 Main rests an East Blue Character before optionally readying Kuro"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 3,
+                "restedOnly": true
+              },
+              {
+                "kind": "ko",
+                "maxCost": 3,
+                "restedOnly": true
+              }
+            ],
+            "rawText": "[Main] You may rest 1 of your [East Blue] type Characters: Set up to 1 of your [Kuro] cards as active. [Trigger] K.O. up to 1 of your opponent's rested Characters with a cost of 3 or less.",
+            "trigger": "main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 3,
+                  "restedOnly": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 3,
+                  "restedOnly": true
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] You may rest 1 of your [East Blue] type Characters: Set up to 1 of your [Kuro] cards as active. [Trigger] K.O. up to 1 of your opponent's rested Characters with a cost of 3 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Main] You may rest 1 of your {East Blue} type Characters: Set up to 1 of your [Kuro] cards as active.",
+            "trigger": "main",
+            "conditions": [],
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "own-card",
+                "amount": 1,
+                "trait": "East Blue",
+                "cardType": "Character",
+                "optional": true
+              }
+            ],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "self",
+                "amount": 1,
+                "name": "Kuro",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "PAY_COST",
+                "cost": {
+                  "kind": "rest",
+                  "scope": "own-card",
+                  "amount": 1,
+                  "trait": "East Blue",
+                  "cardType": "Character",
+                  "optional": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "self",
+                  "amount": 1,
+                  "name": "Kuro",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] You may rest 1 of your [East Blue] type Characters: Set up to 1 of your [Kuro] cards as active. [Trigger] K.O. up to 1 of your opponent's rested Characters with a cost of 3 or less.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "ab34d080eef7256e6c59986c9798a8a10a2aa481194f348dbde41400975dc59c",
+      "afterHash": "b30af95c6c8e31bcb0f57e0d8fb46cec8064fd2b3033c1164562af3b0e7499b8",
+      "patchKind": "INDIVIDUAL_PRINTED_WINDOW_WITH_ALL_CARD_SCENARIOS_PASS"
+    },
+    {
+      "code": "OP03-037",
+      "printedText": "[Main] You may rest 1 of your {East Blue} type Characters: K.O. up to 1 of your opponent's rested Characters with a cost of 3 or less.",
+      "publishedText": "[Main] You may rest 1 of your [East Blue] type Characters: K.O. up to 1 of your opponent's rested Characters with a cost of 3 or less. [Trigger] Play up to 1 Character card with a cost of 4 or less and a [Trigger] from your hand.",
+      "timings": [
+        "main"
+      ],
+      "scenarioNames": [
+        "engine-action main ko: exercise action 1 independently (gate and sequence not covered)",
+        "Main gameplay K.O.: verify the complete window and enforce its target limits"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "rawText": "[Main] You may rest 1 of your {East Blue} type Characters: K.O. up to 1 of your opponent's rested Characters with a cost of 3 or less.",
+            "trigger": "main",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 3,
+                "restedOnly": true,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 3,
+                  "restedOnly": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] You may rest 1 of your [East Blue] type Characters: K.O. up to 1 of your opponent's rested Characters with a cost of 3 or less. [Trigger] Play up to 1 Character card with a cost of 4 or less and a [Trigger] from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Main] You may rest 1 of your {East Blue} type Characters: K.O. up to 1 of your opponent's rested Characters with a cost of 3 or less.",
+            "trigger": "main",
+            "conditions": [],
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "own-card",
+                "amount": 1,
+                "trait": "East Blue",
+                "cardType": "Character",
+                "optional": true
+              }
+            ],
+            "actions": [
+              {
+                "kind": "ko",
+                "maxCost": 3,
+                "restedOnly": true,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "DSL"
+        },
+        "normalized": [
+          {
+            "timing": "main",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "PAY_COST",
+                "cost": {
+                  "kind": "rest",
+                  "scope": "own-card",
+                  "amount": 1,
+                  "trait": "East Blue",
+                  "cardType": "Character",
+                  "optional": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ko",
+                  "maxCost": 3,
+                  "restedOnly": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Main] You may rest 1 of your [East Blue] type Characters: K.O. up to 1 of your opponent's rested Characters with a cost of 3 or less. [Trigger] Play up to 1 Character card with a cost of 4 or less and a [Trigger] from your hand.",
+        "parseConfidence": 0.94,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "3443586c79e353eb66b7233623c55114628ce827cc1f28f52a89725f5bd7c645",
+      "afterHash": "1e99cba48ae3eb259358e842a387dd11f3a23721089532fc7c15b6fc9c4c21f7",
+      "patchKind": "INDIVIDUAL_PRINTED_WINDOW_WITH_ALL_CARD_SCENARIOS_PASS"
+    },
+    {
+      "code": "OP05-117",
+      "printedText": "[On Play] Look at the top 5 cards of your deck; reveal up to 1 [Sky Island] type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+      "publishedText": "[On Play] Look at the top 5 cards of your deck; reveal up to 1 [Sky Island] type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "engine-action on-play search: resolve isolated parsed instruction",
+        "OP05-117 searches exactly the top five, adds only a Sky Island card, and orders the rest at deck bottom"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "custom-resolver",
+                "handler": "OP05_117_ON_PLAY"
+              }
+            ],
+            "rawText": "[On Play] Look at the top 5 cards of your deck; reveal up to 1 [Sky Island] type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "OP05_117_ON_PLAY"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "custom-resolver",
+                  "handler": "OP05_117_ON_PLAY"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Look at the top 5 cards of your deck; reveal up to 1 [Sky Island] type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On Play] Look at the top 5 cards of your deck; reveal up to 1 [Sky Island] type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "search",
+                "amount": 5,
+                "choose": 1,
+                "destination": "deck-bottom",
+                "remainderPosition": "bottom",
+                "remainderOrder": true,
+                "trait": "Sky Island"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "OP05_117_ON_PLAY"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "search",
+                  "amount": 5,
+                  "choose": 1,
+                  "destination": "deck-bottom",
+                  "remainderPosition": "bottom",
+                  "remainderOrder": true,
+                  "trait": "Sky Island"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Look at the top 5 cards of your deck; reveal up to 1 [Sky Island] type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "2ed5f0d9960e99d8658c61d01704c0f5629144c65fbbaff18e39b1c02161746d",
+      "afterHash": "9ad093237e292c2027504aa00e70a52c464bcfc542f63f54024524315854b3d6",
+      "patchKind": "INDIVIDUAL_PRINTED_WINDOW_WITH_ALL_CARD_SCENARIOS_PASS"
+    },
+    {
+      "code": "OP10-074",
+      "printedText": "[Once Per Turn] If this Character would be K.O.'d by your opponent's effect, you may rest 2 of your active DON!! cards instead.",
+      "publishedText": "[Once Per Turn] If this Character would be K.O.'d by your opponent's effect, you may rest 2 of your active DON!! cards instead.",
+      "timings": [
+        "continuous"
+      ],
+      "scenarioNames": [
+        "OP10-074 self-only once-per-turn replacement rests two active DON!!"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "custom-resolver",
+                "handler": "OP10_074_CONTINUOUS"
+              }
+            ],
+            "rawText": "[Once Per Turn] If this Character would be K.O.'d by your opponent's effect, you may rest 2 of your active DON!! cards instead.",
+            "trigger": "continuous",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "OP10_074_CONTINUOUS"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "custom-resolver",
+                  "handler": "OP10_074_CONTINUOUS"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Once Per Turn] If this Character would be K.O.'d by your opponent's effect, you may rest 2 of your active DON!! cards instead.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "TESTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Once Per Turn] If this Character would be K.O.'d by your opponent's effect, you may rest 2 of your active DON!! cards instead.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character would be K.O.'d by your opponent's effect"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "replacement",
+                "event": "ko-by-effect",
+                "cost": {
+                  "kind": "rest-don",
+                  "amount": 2
+                },
+                "eligibility": {
+                  "scope": "self"
+                },
+                "oncePerTurn": true
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "OP10_074_CONTINUOUS"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": true,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character would be K.O.'d by your opponent's effect"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "replacement",
+                  "event": "ko-by-effect",
+                  "cost": {
+                    "kind": "rest-don",
+                    "amount": 2
+                  },
+                  "eligibility": {
+                    "scope": "self"
+                  },
+                  "oncePerTurn": true
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Once Per Turn] If this Character would be K.O.'d by your opponent's effect, you may rest 2 of your active DON!! cards instead.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "TESTED"
+      },
+      "beforeHash": "0de0f1495ad78381e4132093e6f63ddbe2049af9482d94149af43e6cea18e644",
+      "afterHash": "c0d0968f5459b247fddb28061b3ba1ec2fdeb49549dd735735364df59967d46e",
+      "patchKind": "INDIVIDUAL_PRINTED_WINDOW_WITH_ALL_CARD_SCENARIOS_PASS"
+    },
+    {
+      "code": "OP13-028",
+      "printedText": "[On Play] Set all of your DON!! cards as active. Then, you cannot play cards from your hand during this turn.",
+      "publishedText": "[On Play] Set all of your DON!! cards as active. Then, you cannot play cards from your hand during this turn.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "OP13-028 activates all DON!! and blocks hand plays for the rest of turn"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "custom-resolver",
+                "handler": "OP13_028_ON_PLAY"
+              }
+            ],
+            "rawText": "[On Play] Set all of your DON!! cards as active. Then, you cannot play cards from your hand during this turn.",
+            "trigger": "on-play",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "OP13_028_ON_PLAY"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "custom-resolver",
+                  "handler": "OP13_028_ON_PLAY"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Set all of your DON!! cards as active. Then, you cannot play cards from your hand during this turn.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On Play] Set all of your DON!! cards as active. Then, you cannot play cards from your hand during this turn.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "hand-play-prohibition"
+              },
+              {
+                "kind": "ready-all-don"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "OP13_028_ON_PLAY"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "hand-play-prohibition"
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready-all-don"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Set all of your DON!! cards as active. Then, you cannot play cards from your hand during this turn.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "6f2c1e407131ceb2e12e4392d7049f0bf7e09f975f9fcf2a35185a8320e63194",
+      "afterHash": "3dc81527c2c07b3a9afb0f806747401e9b0c70c1841b14fd8247e8608c7d4e61",
+      "patchKind": "INDIVIDUAL_PRINTED_WINDOW_WITH_ALL_CARD_SCENARIOS_PASS"
+    },
+    {
+      "code": "OP13-035",
+      "printedText": "[End of Your Turn] Set this Character or up to 1 of your DON!! cards as active.",
+      "publishedText": "[End of Your Turn] Set this Character or up to 1 of your DON!! cards as active.",
+      "timings": [
+        "end-turn"
+      ],
+      "scenarioNames": [
+        "OP13-035 end-turn mode chooses this Character or one rested DON!!"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "custom-resolver",
+                "handler": "OP13_035_END_TURN"
+              }
+            ],
+            "rawText": "[End of Your Turn] Set this Character or up to 1 of your DON!! cards as active.",
+            "trigger": "end-turn",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "OP13_035_END_TURN"
+        },
+        "normalized": [
+          {
+            "timing": "end-turn",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "custom-resolver",
+                  "handler": "OP13_035_END_TURN"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[End of Your Turn] Set this Character or up to 1 of your DON!! cards as active.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "TESTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[End of Your Turn] Set this Character or up to 1 of your DON!! cards as active.",
+            "trigger": "end-turn",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready-choice",
+                "amount": 1
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "OP13_035_END_TURN"
+        },
+        "normalized": [
+          {
+            "timing": "end-turn",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready-choice",
+                  "amount": 1
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[End of Your Turn] Set this Character or up to 1 of your DON!! cards as active.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "TESTED"
+      },
+      "beforeHash": "4151c874166351153f0f4b812dbde1c9bbbb885f7e773d5564a880bdc52dd018",
+      "afterHash": "7658238b0809fb74e5fa9c332f4a4f28b6d73f8d518e92a98ed5a49df2cb239c",
+      "patchKind": "INDIVIDUAL_PRINTED_WINDOW_WITH_ALL_CARD_SCENARIOS_PASS"
+    },
+    {
+      "code": "OP14-092",
+      "printedText": "[Opponent's Turn] [Once Per Turn] If this Character would be K.O.'d, you may place 3 cards from your trash at the bottom of your deck in any order instead.",
+      "publishedText": "[Opponent's Turn] [Once Per Turn] If this Character would be K.O.'d, you may place 3 cards from your trash at the bottom of your deck in any order instead.",
+      "timings": [
+        "continuous"
+      ],
+      "scenarioNames": [
+        "OP14-092 opponent-turn K.O. replacement returns exactly three Trash cards"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "custom-resolver",
+                "handler": "OP14_092_CONTINUOUS"
+              }
+            ],
+            "rawText": "[Opponent's Turn] [Once Per Turn] If this Character would be K.O.'d, you may place 3 cards from your trash at the bottom of your deck in any order instead.",
+            "trigger": "continuous",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "OP14_092_CONTINUOUS"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "custom-resolver",
+                  "handler": "OP14_092_CONTINUOUS"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Opponent's Turn] [Once Per Turn] If this Character would be K.O.'d, you may place 3 cards from your trash at the bottom of your deck in any order instead.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "TESTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Opponent's Turn] [Once Per Turn] If this Character would be K.O.'d, you may place 3 cards from your trash at the bottom of your deck in any order instead.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character would be K.O.'d"
+              },
+              {
+                "kind": "text",
+                "text": "it is your opponent's turn"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "replacement",
+                "event": "ko",
+                "cost": {
+                  "kind": "bottom-deck-trash",
+                  "amount": 3
+                },
+                "eligibility": {
+                  "scope": "self",
+                  "cardType": "Character"
+                },
+                "oncePerTurn": true
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "OP14_092_CONTINUOUS"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": true,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character would be K.O.'d"
+              },
+              {
+                "kind": "text",
+                "text": "it is your opponent's turn"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "replacement",
+                  "event": "ko",
+                  "cost": {
+                    "kind": "bottom-deck-trash",
+                    "amount": 3
+                  },
+                  "eligibility": {
+                    "scope": "self",
+                    "cardType": "Character"
+                  },
+                  "oncePerTurn": true
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Opponent's Turn] [Once Per Turn] If this Character would be K.O.'d, you may place 3 cards from your trash at the bottom of your deck in any order instead.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "TESTED"
+      },
+      "beforeHash": "62d964fb6f50bd832fa4c422a0ba157fbc3e3e87ffedda665e745c0cc135123d",
+      "afterHash": "c9801413b88ef645ccdb49db05a393e90f5c83ef53c074fa777b6a3bcd765e84",
+      "patchKind": "INDIVIDUAL_PRINTED_WINDOW_WITH_ALL_CARD_SCENARIOS_PASS"
+    },
+    {
+      "code": "OP15-028",
+      "printedText": "[On Play] If your Leader has the {East Blue} type, give up to 1 DON!! card from your opponent's cost area to 1 of your opponent's Characters.",
+      "publishedText": "[On Play] If your Leader has the {East Blue} type, give up to 1 DON!! card from your opponent's cost area to 1 of your opponent's Characters.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "engine-action on-play attach-don: exercise action 1 independently (gate and sequence not covered)",
+        "OP15-028 East Blue Leader gives one opponent DON!! to their Character"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "custom-resolver",
+                "handler": "OP15_028_ON_PLAY"
+              }
+            ],
+            "rawText": "[On Play] If your Leader has the {East Blue} type, give up to 1 DON!! card from your opponent's cost area to 1 of your opponent's Characters.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the {East Blue} type"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "OP15_028_ON_PLAY"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "custom-resolver",
+                  "handler": "OP15_028_ON_PLAY"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the {East Blue} type"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] If your Leader has the {East Blue} type, give up to 1 DON!! card from your opponent's cost area to 1 of your opponent's Characters.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On Play] If your Leader has the {East Blue} type, give up to 1 DON!! card from your opponent's cost area to 1 of your opponent's Characters.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the {East Blue} type"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don",
+                "amount": 1,
+                "source": "opponent-cost-area",
+                "owner": "opponent"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "OP15_028_ON_PLAY"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the {East Blue} type"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 1,
+                  "source": "opponent-cost-area",
+                  "owner": "opponent"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] If your Leader has the {East Blue} type, give up to 1 DON!! card from your opponent's cost area to 1 of your opponent's Characters.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "b59b21406183d8ab907ce3a3f3d418a3f1e6e90165ef2d1bf59073767dc926bc",
+      "afterHash": "9d217e20486b58a030d36bbe6ee7e69647497ececbda1eddc76985ea68be63e4",
+      "patchKind": "INDIVIDUAL_PRINTED_WINDOW_WITH_ALL_CARD_SCENARIOS_PASS"
+    },
+    {
+      "code": "OP15-032",
+      "printedText": "[On Play] Rest up to 1 of your opponent's cards.\n[Activate: Main] You may trash this Character: If your Leader has the {Straw Hat Crew} type, set up to 1 of your Characters with a base cost of 8 or less as active.",
+      "publishedText": "[On Play] Rest up to 1 of your opponent's cards.\n[Activate: Main] You may trash this Character: If your Leader has the {Straw Hat Crew} type, set up to 1 of your Characters with a base cost of 8 or less as active.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "engine-action on-play rest: resolve isolated parsed instruction",
+        "schema-atomic-action on-play: isolated rest",
+        "engine-action activate-main ready: exercise action 1 independently (gate and sequence not covered)",
+        "On Play gameplay rest: verify the complete window and legal rest target"
+      ],
+      "scenarioCount": 4,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "custom-resolver",
+                "handler": "OP15_032_ON_PLAY"
+              }
+            ],
+            "rawText": "[On Play] Rest up to 1 of your opponent's cards.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "rawText": "[Activate: Main] You may trash this Character: If your Leader has the {Straw Hat Crew} type, set up to 1 of your Characters with a base cost of 8 or less as active.",
+            "trigger": "activate-main",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the {Straw Hat Crew} type"
+              }
+            ],
+            "costs": [
+              {
+                "kind": "trash",
+                "scope": "self",
+                "amount": 1,
+                "optional": true
+              }
+            ],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-character",
+                "amount": 1,
+                "maxCost": 8,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "OP15_032_ON_PLAY"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "custom-resolver",
+                  "handler": "OP15_032_ON_PLAY"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the {Straw Hat Crew} type"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "PAY_COST",
+                "cost": {
+                  "kind": "trash",
+                  "scope": "self",
+                  "amount": 1,
+                  "optional": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-character",
+                  "amount": 1,
+                  "maxCost": 8,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Rest up to 1 of your opponent's cards.\n[Activate: Main] You may trash this Character: If your Leader has the {Straw Hat Crew} type, set up to 1 of your Characters with a base cost of 8 or less as active.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Activate: Main] You may trash this Character: If your Leader has the {Straw Hat Crew} type, set up to 1 of your Characters with a base cost of 8 or less as active.",
+            "trigger": "activate-main",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the {Straw Hat Crew} type"
+              }
+            ],
+            "costs": [
+              {
+                "kind": "trash",
+                "scope": "self",
+                "amount": 1,
+                "optional": true
+              }
+            ],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-character",
+                "amount": 1,
+                "maxCost": 8,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          },
+          {
+            "rawText": "[On Play] Rest up to 1 of your opponent's cards.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-card",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "OP15_032_ON_PLAY"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader has the {Straw Hat Crew} type"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "PAY_COST",
+                "cost": {
+                  "kind": "trash",
+                  "scope": "self",
+                  "amount": 1,
+                  "optional": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-character",
+                  "amount": 1,
+                  "maxCost": 8,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-card",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Rest up to 1 of your opponent's cards.\n[Activate: Main] You may trash this Character: If your Leader has the {Straw Hat Crew} type, set up to 1 of your Characters with a base cost of 8 or less as active.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "08202a5bc56aff50be1750c25a44acd3dff06d8f48c4c3d1b7af9d1fbcc8ccb9",
+      "afterHash": "a2b795159779f63ca03d11173512f39bfb7a4ebb888f44e0ad282078157a54e2",
+      "patchKind": "INDIVIDUAL_PRINTED_WINDOW_WITH_ALL_CARD_SCENARIOS_PASS"
+    },
+    {
+      "code": "OP15-069",
+      "printedText": "If your Character with 7000 base power or less would be removed from the field by your opponent's effect, you may return 1 DON!! card from your field to your DON!! deck instead.",
+      "publishedText": "If your Character with 7000 base power or less would be removed from the field by your opponent's effect, you may return 1 DON!! card from your field to your DON!! deck instead.",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioNames": [
+        "OP15-069 7000-base-power removal replacement returns one own DON!!"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "custom-resolver",
+                "handler": "OP15_069_UNKNOWN"
+              }
+            ],
+            "rawText": "If your Character with 7000 base power or less would be removed from the field by your opponent's effect, you may return 1 DON!! card from your field to your DON!! deck instead.",
+            "trigger": "unknown",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Character with 7000 base power or less would be removed from the field by your opponent's effect"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "OP15_069_UNKNOWN"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "custom-resolver",
+                  "handler": "OP15_069_UNKNOWN"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Character with 7000 base power or less would be removed from the field by your opponent's effect"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "If your Character with 7000 base power or less would be removed from the field by your opponent's effect, you may return 1 DON!! card from your field to your DON!! deck instead.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "TESTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "If your Character with 7000 base power or less would be removed from the field by your opponent's effect, you may return 1 DON!! card from your field to your DON!! deck instead.",
+            "trigger": "unknown",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Character with 7000 base power or less would be removed from the field by your opponent's effect"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "replacement",
+                "event": "removed-by-effect",
+                "cost": {
+                  "kind": "return-don",
+                  "amount": 1
+                },
+                "eligibility": {
+                  "scope": "own-characters",
+                  "cardType": "Character",
+                  "maxBasePower": 7000
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "OP15_069_UNKNOWN"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": true,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Character with 7000 base power or less would be removed from the field by your opponent's effect"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "replacement",
+                  "event": "removed-by-effect",
+                  "cost": {
+                    "kind": "return-don",
+                    "amount": 1
+                  },
+                  "eligibility": {
+                    "scope": "own-characters",
+                    "cardType": "Character",
+                    "maxBasePower": 7000
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "If your Character with 7000 base power or less would be removed from the field by your opponent's effect, you may return 1 DON!! card from your field to your DON!! deck instead.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "TESTED"
+      },
+      "beforeHash": "38f5f279e4682d23392b06c5a258a7f86a18ce30f319a61fdadd64ad2c9c2139",
+      "afterHash": "09b239606d37e2f0a8c6c1ffcc2760edba6d6bb84a913ca2c5effbb0bd3b481d",
+      "patchKind": "INDIVIDUAL_PRINTED_WINDOW_WITH_ALL_CARD_SCENARIOS_PASS"
+    },
+    {
+      "code": "OP16-018",
+      "printedText": "[Once Per Turn] If your {Red-Haired Pirates} type Character would be K.O.'d, you may trash 1 Character card with 6000 power or more from your hand instead.",
+      "publishedText": "[Once Per Turn] If your {Red-Haired Pirates} type Character would be K.O.'d, you may trash 1 Character card with 6000 power or more from your hand instead.",
+      "timings": [
+        "continuous"
+      ],
+      "scenarioNames": [
+        "OP16-018 Red-Haired K.O. replacement trashes a 6000-power Character from hand"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "rawText": "[Once Per Turn] If your {Red-Haired Pirates} type Character would be K.O.'d, you may trash 1 Character card with 6000 power or more from your hand instead.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your {Red-Haired Pirates} type Character would be K.O.'d"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "trash",
+                "scope": "hand",
+                "amount": 1,
+                "requiresTrigger": false,
+                "cardType": "Character"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "OP16_018_CONTINUOUS"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": true,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your {Red-Haired Pirates} type Character would be K.O.'d"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash",
+                  "scope": "hand",
+                  "amount": 1,
+                  "requiresTrigger": false,
+                  "cardType": "Character"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Once Per Turn] If your {Red-Haired Pirates} type Character would be K.O.'d, you may trash 1 Character card with 6000 power or more from your hand instead.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "TESTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Once Per Turn] If your {Red-Haired Pirates} type Character would be K.O.'d, you may trash 1 Character card with 6000 power or more from your hand instead.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your {Red-Haired Pirates} type Character would be K.O.'d"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "replacement",
+                "event": "ko",
+                "cost": {
+                  "kind": "trash-hand-character",
+                  "amount": 1,
+                  "minPower": 6000
+                },
+                "eligibility": {
+                  "scope": "own-characters",
+                  "trait": "Red-Haired Pirates"
+                },
+                "oncePerTurn": true
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "OP16_018_CONTINUOUS"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": true,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your {Red-Haired Pirates} type Character would be K.O.'d"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "replacement",
+                  "event": "ko",
+                  "cost": {
+                    "kind": "trash-hand-character",
+                    "amount": 1,
+                    "minPower": 6000
+                  },
+                  "eligibility": {
+                    "scope": "own-characters",
+                    "trait": "Red-Haired Pirates"
+                  },
+                  "oncePerTurn": true
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Once Per Turn] If your {Red-Haired Pirates} type Character would be K.O.'d, you may trash 1 Character card with 6000 power or more from your hand instead.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "TESTED"
+      },
+      "beforeHash": "a99452793955520862d69aa29056cf3c20a6772327379a39a4030b800edaa7a5",
+      "afterHash": "5c0384647e8b26c4871fec8429aa68988257194feec15c151f31fe5c959e8a41",
+      "patchKind": "INDIVIDUAL_PRINTED_WINDOW_WITH_ALL_CARD_SCENARIOS_PASS"
+    },
+    {
+      "code": "P-009",
+      "printedText": "[On Play] If your opponent has 6 or more cards in their hand, your opponent adds 1 card from their Life area to their hand.",
+      "publishedText": "[On Play] If your opponent has 6 or more cards in their hand, your opponent adds 1 card from their Life area to their hand.",
+      "timings": [
+        "on-play"
+      ],
+      "scenarioNames": [
+        "engine-action on-play life: exercise action 1 independently (gate and sequence not covered)"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "custom-resolver",
+                "handler": "P_009_ON_PLAY"
+              }
+            ],
+            "rawText": "[On Play] If your opponent has 6 or more cards in their hand, your opponent adds 1 card from their Life area to their hand.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your opponent has 6 or more cards in their hand"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "P_009_ON_PLAY"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "custom-resolver",
+                  "handler": "P_009_ON_PLAY"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your opponent has 6 or more cards in their hand"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] If your opponent has 6 or more cards in their hand, your opponent adds 1 card from their Life area to their hand.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On Play] If your opponent has 6 or more cards in their hand, your opponent adds 1 card from their Life area to their hand.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your opponent has 6 or more cards in their hand"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "life",
+                "operation": "opponent-top-to-owner-hand",
+                "amount": 1
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "P_009_ON_PLAY"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your opponent has 6 or more cards in their hand"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life",
+                  "operation": "opponent-top-to-owner-hand",
+                  "amount": 1
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] If your opponent has 6 or more cards in their hand, your opponent adds 1 card from their Life area to their hand.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "ee732e71a4d31abbbfc9af57aa47e6f69af47ab8fd20b71feaa9dc7f2b1d606e",
+      "afterHash": "c6d097a617a628f6b418d2b7735ea91439b129c73778c8dc7e18c24d9af97a8d",
+      "patchKind": "INDIVIDUAL_PRINTED_WINDOW_WITH_ALL_CARD_SCENARIOS_PASS"
+    },
+    {
+      "code": "P-067",
+      "printedText": "If this Character is rested, your opponent cannot attack any card other than the Character [Eustass\"Captain\"Kid].",
+      "publishedText": "If this Character is rested, your opponent cannot attack any card other than the Character [Eustass\"Captain\"Kid].",
+      "timings": [
+        "unknown"
+      ],
+      "scenarioNames": [
+        "P-067 forces attacks into the rested Kid and unlocks when active"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "custom-resolver",
+                "handler": "P_067_UNKNOWN"
+              }
+            ],
+            "rawText": "If this Character is rested, your opponent cannot attack any card other than the Character [Eustass\"Captain\"Kid].",
+            "trigger": "unknown",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character is rested"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "P_067_UNKNOWN"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "custom-resolver",
+                  "handler": "P_067_UNKNOWN"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character is rested"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "If this Character is rested, your opponent cannot attack any card other than the Character [Eustass\"Captain\"Kid].",
+        "parseConfidence": 0.65,
+        "implementationStatus": "TESTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "If this Character is rested, your opponent cannot attack any card other than the Character [Eustass\"Captain\"Kid].",
+            "trigger": "unknown",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character is rested"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attack-target-lock",
+                "targetName": "Eustass\"Captain\"Kid",
+                "whileSourceRested": true
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "P_067_UNKNOWN"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character is rested"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attack-target-lock",
+                  "targetName": "Eustass\"Captain\"Kid",
+                  "whileSourceRested": true
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "If this Character is rested, your opponent cannot attack any card other than the Character [Eustass\"Captain\"Kid].",
+        "parseConfidence": 0.65,
+        "implementationStatus": "TESTED"
+      },
+      "beforeHash": "a8d3d8796926fa41d332744c4cf692afc9f1649ba10b877fc8955de433dcca79",
+      "afterHash": "2d90299a845c1b07bb8373f7fac8f2216479528236fa139b8749765736a57dad",
+      "patchKind": "INDIVIDUAL_PRINTED_WINDOW_WITH_ALL_CARD_SCENARIOS_PASS"
+    },
+    {
+      "code": "P-091",
+      "printedText": "[On Play] Play-up to 1 \"Neptunian\" or \"Fish-Man Island\" type Character card with a cost of 5 or less from your hand.\n[Activate: Main] You may rest this Character: Up to 1 of your \"Neptunian\" type Characters can attack Characters on the turn in which it is played.",
+      "publishedText": "[On Play] Play-up to 1 \"Neptunian\" or \"Fish-Man Island\" type Character card with a cost of 5 or less from your hand.\n[Activate: Main] You may rest this Character: Up to 1 of your \"Neptunian\" type Characters can attack Characters on the turn in which it is played.",
+      "timings": [
+        "on-play",
+        "activate-main"
+      ],
+      "scenarioNames": [
+        "engine-action on-play play: resolve isolated parsed instruction",
+        "engine-action activate-main attack-permission: exercise action 1 independently (gate and sequence not covered)",
+        "P-091 plays only eligible hand Characters and grants Neptunians play-turn Character attacks"
+      ],
+      "scenarioCount": 3,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "custom-resolver",
+                "handler": "P_091_ON_PLAY"
+              }
+            ],
+            "rawText": "[On Play] Play-up to 1 \"Neptunian\" or \"Fish-Man Island\" type Character card with a cost of 5 or less from your hand.",
+            "trigger": "on-play",
+            "conditions": []
+          },
+          {
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "self",
+                "amount": 1,
+                "optional": true
+              }
+            ],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "self"
+              }
+            ],
+            "rawText": "[Activate: Main] You may rest this Character: Up to 1 of your \"Neptunian\" type Characters can attack Characters on the turn in which it is played.",
+            "trigger": "activate-main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "P_091_ON_PLAY"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "custom-resolver",
+                  "handler": "P_091_ON_PLAY"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "cost": {
+                  "kind": "rest",
+                  "scope": "self",
+                  "amount": 1,
+                  "optional": true
+                },
+                "type": "PAY_COST"
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "self"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Play-up to 1 \"Neptunian\" or \"Fish-Man Island\" type Character card with a cost of 5 or less from your hand.\n[Activate: Main] You may rest this Character: Up to 1 of your \"Neptunian\" type Characters can attack Characters on the turn in which it is played.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On Play] Play-up to 1 \"Neptunian\" or \"Fish-Man Island\" type Character card with a cost of 5 or less from your hand.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "play",
+                "source": "hand",
+                "amount": 1,
+                "cardType": "Character",
+                "maxCost": 5,
+                "alternatives": [
+                  {
+                    "trait": "Neptunian"
+                  },
+                  {
+                    "trait": "Fish-Man Island"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "rawText": "[Activate: Main] You may rest this Character: Up to 1 of your \"Neptunian\" type Characters can attack Characters on the turn in which it is played.",
+            "trigger": "activate-main",
+            "conditions": [],
+            "costs": [
+              {
+                "kind": "rest",
+                "scope": "self",
+                "amount": 1,
+                "optional": true
+              }
+            ],
+            "actions": [
+              {
+                "kind": "attack-permission",
+                "scope": "own-character",
+                "trait": "Neptunian",
+                "characterOnPlay": true,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "P_091_ON_PLAY"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "play",
+                  "source": "hand",
+                  "amount": 1,
+                  "cardType": "Character",
+                  "maxCost": 5,
+                  "alternatives": [
+                    {
+                      "trait": "Neptunian"
+                    },
+                    {
+                      "trait": "Fish-Man Island"
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "PAY_COST",
+                "cost": {
+                  "kind": "rest",
+                  "scope": "self",
+                  "amount": 1,
+                  "optional": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attack-permission",
+                  "scope": "own-character",
+                  "trait": "Neptunian",
+                  "characterOnPlay": true,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] Play-up to 1 \"Neptunian\" or \"Fish-Man Island\" type Character card with a cost of 5 or less from your hand.\n[Activate: Main] You may rest this Character: Up to 1 of your \"Neptunian\" type Characters can attack Characters on the turn in which it is played.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "d25e73ff299d69504e1d0b24c5c17148705edd081d8b4c7d6dc96aa8fdac9fbb",
+      "afterHash": "e987a219553babfca3d67d6681f1f80acacad09735bd7a24b71ebcb37cc47bb7",
+      "patchKind": "INDIVIDUAL_PRINTED_WINDOW_WITH_ALL_CARD_SCENARIOS_PASS"
+    },
+    {
+      "code": "P-111",
+      "printedText": "[Once Per Turn] If your {Straw Hat Crew} type Character would be removed from the field by your opponent's effect, you may rest 1 of your DON!! cards instead.",
+      "publishedText": "[Once Per Turn] If your {Straw Hat Crew} type Character would be removed from the field by your opponent's effect, you may rest 1 of your DON!! cards instead.",
+      "timings": [
+        "continuous"
+      ],
+      "scenarioNames": [
+        "P-111 Straw Hat Crew removal replacement rests one own DON!!"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "custom-resolver",
+                "handler": "P_111_CONTINUOUS"
+              }
+            ],
+            "rawText": "[Once Per Turn] If your {Straw Hat Crew} type Character would be removed from the field by your opponent's effect, you may rest 1 of your DON!! cards instead.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your {Straw Hat Crew} type Character would be removed from the field by your opponent's effect"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "P_111_CONTINUOUS"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "custom-resolver",
+                  "handler": "P_111_CONTINUOUS"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your {Straw Hat Crew} type Character would be removed from the field by your opponent's effect"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Once Per Turn] If your {Straw Hat Crew} type Character would be removed from the field by your opponent's effect, you may rest 1 of your DON!! cards instead.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "TESTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Once Per Turn] If your {Straw Hat Crew} type Character would be removed from the field by your opponent's effect, you may rest 1 of your DON!! cards instead.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your {Straw Hat Crew} type Character would be removed from the field by your opponent's effect"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "replacement",
+                "event": "removed-by-effect",
+                "cost": {
+                  "kind": "rest-don",
+                  "amount": 1
+                },
+                "eligibility": {
+                  "trait": "Straw Hat Crew",
+                  "scope": "own-characters"
+                },
+                "oncePerTurn": true
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "P_111_CONTINUOUS"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": true,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your {Straw Hat Crew} type Character would be removed from the field by your opponent's effect"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "replacement",
+                  "event": "removed-by-effect",
+                  "cost": {
+                    "kind": "rest-don",
+                    "amount": 1
+                  },
+                  "eligibility": {
+                    "trait": "Straw Hat Crew",
+                    "scope": "own-characters"
+                  },
+                  "oncePerTurn": true
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Once Per Turn] If your {Straw Hat Crew} type Character would be removed from the field by your opponent's effect, you may rest 1 of your DON!! cards instead.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "TESTED"
+      },
+      "beforeHash": "bb07db473e78eef975ce70ba461cb1c4734e7ab588e51ae92bfaa6a26d83f200",
+      "afterHash": "8d3ae31f722597d58576ebf7e81d92df58282878f995803e1fc2c79742bcc35e",
+      "patchKind": "INDIVIDUAL_PRINTED_WINDOW_WITH_ALL_CARD_SCENARIOS_PASS"
+    },
+    {
+      "code": "ST01-001",
+      "printedText": "[Activate: Main] [Once Per Turn] Give this Leader or 1 of your Characters up to 1 rested DON!! card.",
+      "publishedText": "[Activate: Main] [Once Per Turn] Give this Leader or 1 of your Characters up to 1 rested DON!! card.",
+      "timings": [
+        "activate-main"
+      ],
+      "scenarioNames": [
+        "engine-action activate-main attach-don: resolve isolated parsed instruction",
+        "ST01-001 attaches only a rested DON!! to your Leader or one Character"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "custom-resolver",
+                "handler": "ST01_001_ACTIVATE_MAIN"
+              }
+            ],
+            "rawText": "[Activate: Main] [Once Per Turn] Give this Leader or 1 of your Characters up to 1 rested DON!! card.",
+            "trigger": "activate-main",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "ST01_001_ACTIVATE_MAIN"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "custom-resolver",
+                  "handler": "ST01_001_ACTIVATE_MAIN"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Activate: Main] [Once Per Turn] Give this Leader or 1 of your Characters up to 1 rested DON!! card.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Activate: Main] [Once Per Turn] Give this Leader or 1 of your Characters up to 1 rested DON!! card.",
+            "trigger": "activate-main",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "attach-don",
+                "amount": 1,
+                "source": "cost-area",
+                "rested": true,
+                "recipient": "target",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "ST01_001_ACTIVATE_MAIN"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "attach-don",
+                  "amount": 1,
+                  "source": "cost-area",
+                  "rested": true,
+                  "recipient": "target",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Activate: Main] [Once Per Turn] Give this Leader or 1 of your Characters up to 1 rested DON!! card.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "efc0e0f4aba5ea4b5b65bf415dd94b8a8f7e87c5bae470e0a46a5584eec39221",
+      "afterHash": "346c1b9d8518369c6c9a48f64c89214acdfac9a4c5c5801d6ef5a63053a287c6",
+      "patchKind": "INDIVIDUAL_PRINTED_WINDOW_WITH_ALL_CARD_SCENARIOS_PASS"
+    },
+    {
+      "code": "ST09-010",
+      "printedText": "[Once Per Turn] If this Character would be K.O.'d, you may trash 1 card from the top or bottom of your Life cards instead.",
+      "publishedText": "[Once Per Turn] If this Character would be K.O.'d, you may trash 1 card from the top or bottom of your Life cards instead.",
+      "timings": [
+        "continuous"
+      ],
+      "scenarioNames": [
+        "ST09-010 K.O. replacement trashes exactly the chosen top or bottom Life card"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "custom-resolver",
+                "handler": "ST09_010_CONTINUOUS"
+              }
+            ],
+            "rawText": "[Once Per Turn] If this Character would be K.O.'d, you may trash 1 card from the top or bottom of your Life cards instead.",
+            "trigger": "continuous",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "ST09_010_CONTINUOUS"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "custom-resolver",
+                  "handler": "ST09_010_CONTINUOUS"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Once Per Turn] If this Character would be K.O.'d, you may trash 1 card from the top or bottom of your Life cards instead.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[Once Per Turn] If this Character would be K.O.'d, you may trash 1 card from the top or bottom of your Life cards instead.",
+            "trigger": "continuous",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character would be K.O.'d"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "replacement",
+                "event": "ko",
+                "cost": {
+                  "kind": "trash-life",
+                  "amount": 1
+                },
+                "eligibility": {
+                  "scope": "self",
+                  "cardType": "Character"
+                },
+                "oncePerTurn": true
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "ST09_010_CONTINUOUS"
+        },
+        "normalized": [
+          {
+            "timing": "continuous",
+            "optional": true,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character would be K.O.'d"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "replacement",
+                  "event": "ko",
+                  "cost": {
+                    "kind": "trash-life",
+                    "amount": 1
+                  },
+                  "eligibility": {
+                    "scope": "self",
+                    "cardType": "Character"
+                  },
+                  "oncePerTurn": true
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Once Per Turn] If this Character would be K.O.'d, you may trash 1 card from the top or bottom of your Life cards instead.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "8ed165caf78ecb446ec623007c632ad26c3dd73f130638dfe2849664130222c2",
+      "afterHash": "9300c3e093a39f159d91a30715baa050794f282661bac023d1dfc01e30998ba5",
+      "patchKind": "INDIVIDUAL_PRINTED_WINDOW_WITH_ALL_CARD_SCENARIOS_PASS"
+    },
+    {
+      "code": "ST15-001",
+      "printedText": "[When Attacking] If your Leader is [Edward.Newgate], you cannot add Life cards to your hand using your own effects during this turn.",
+      "publishedText": "[When Attacking] If your Leader is [Edward.Newgate], you cannot add Life cards to your hand using your own effects during this turn.",
+      "timings": [
+        "when-attacking"
+      ],
+      "scenarioNames": [
+        "ST15-001 blocks its controller’s prohibited own-effect Life addition"
+      ],
+      "scenarioCount": 1,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "custom-resolver",
+                "handler": "ST15_001_WHEN_ATTACKING"
+              }
+            ],
+            "rawText": "[When Attacking] If your Leader is [Edward.Newgate], you cannot add Life cards to your hand using your own effects during this turn.",
+            "trigger": "when-attacking",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "ST15_001_WHEN_ATTACKING"
+        },
+        "normalized": [
+          {
+            "timing": "when-attacking",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "custom-resolver",
+                  "handler": "ST15_001_WHEN_ATTACKING"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[When Attacking] If your Leader is [Edward.Newgate], you cannot add Life cards to your hand using your own effects during this turn.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[When Attacking] If your Leader is [Edward.Newgate], you cannot add Life cards to your hand using your own effects during this turn.",
+            "trigger": "when-attacking",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Edward.Newgate]"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "life-add-prohibition",
+                "leaderName": "Edward.Newgate"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "ST15_001_WHEN_ATTACKING"
+        },
+        "normalized": [
+          {
+            "timing": "when-attacking",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Edward.Newgate]"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "life-add-prohibition",
+                  "leaderName": "Edward.Newgate"
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[When Attacking] If your Leader is [Edward.Newgate], you cannot add Life cards to your hand using your own effects during this turn.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "ce2a6ec7d213daf648511fa4d252a9bcfccb7bbd12ca1351d57dd34b3f6d5de9",
+      "afterHash": "9b25178d8ec67b7dbdc4f67447dddd5371d42e670622d115c25e6dd68b233590",
+      "patchKind": "INDIVIDUAL_PRINTED_WINDOW_WITH_ALL_CARD_SCENARIOS_PASS"
+    },
+    {
+      "code": "ST19-003",
+      "printedText": "[On Play] If your Leader is [Smoker], give up to 1 of your opponent's Characters 4 cost during this turn.\n\n[Activate: Main] [Once Per Turn] If this Character was played on this turn, trash up to 1 of your opponent's Characters with a cost of 0.",
+      "publishedText": "[On Play] If your Leader is [Smoker], give up to 1 of your opponent's Characters 4 cost during this turn.\n\n[Activate: Main] [Once Per Turn] If this Character was played on this turn, trash up to 1 of your opponent's Characters with a cost of 0.",
+      "timings": [
+        "on-play",
+        "activate-main"
+      ],
+      "scenarioNames": [
+        "engine-action on-play cost: exercise action 1 independently (gate and sequence not covered)",
+        "ST19-003 checks the Smoker Leader for its cost increase and trashes only a zero-cost opponent Character after its play-turn gate"
+      ],
+      "scenarioCount": 2,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "custom-resolver",
+                "handler": "ST19_003_ON_PLAY"
+              }
+            ],
+            "rawText": "[On Play] If your Leader is [Smoker], give up to 1 of your opponent's Characters 4 cost during this turn.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Smoker]"
+              }
+            ]
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "custom-resolver",
+                "handler": "ST19_003_ACTIVATE_MAIN"
+              }
+            ],
+            "rawText": "[Activate: Main] [Once Per Turn] If this Character was played on this turn, trash up to 1 of your opponent's Characters with a cost of 0.",
+            "trigger": "activate-main",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character was played on this turn"
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "ST19_003_ON_PLAY"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "custom-resolver",
+                  "handler": "ST19_003_ON_PLAY"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Smoker]"
+              }
+            ]
+          },
+          {
+            "timing": "activate-main",
+            "optional": false,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "custom-resolver",
+                  "handler": "ST19_003_ACTIVATE_MAIN"
+                }
+              }
+            ],
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character was played on this turn"
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] If your Leader is [Smoker], give up to 1 of your opponent's Characters 4 cost during this turn.\n\n[Activate: Main] [Once Per Turn] If this Character was played on this turn, trash up to 1 of your opponent's Characters with a cost of 0.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "after": {
+        "ast": [
+          {
+            "rawText": "[On Play] If your Leader is [Smoker], give up to 1 of your opponent's Characters 4 cost during this turn.",
+            "trigger": "on-play",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Smoker]"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "cost",
+                "amount": 4,
+                "target": "opponent-character",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          },
+          {
+            "rawText": "[Activate: Main] [Once Per Turn] If this Character was played on this turn, trash up to 1 of your opponent's Characters with a cost of 0.",
+            "trigger": "activate-main",
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character was played on this turn"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "trash-character",
+                "scope": "opponent",
+                "exactCost": 0,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "ST19_003_ON_PLAY"
+        },
+        "normalized": [
+          {
+            "timing": "on-play",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "your Leader is [Smoker]"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "cost",
+                  "amount": 4,
+                  "target": "opponent-character",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "timing": "activate-main",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character was played on this turn"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "trash-character",
+                  "scope": "opponent",
+                  "exactCost": 0,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[On Play] If your Leader is [Smoker], give up to 1 of your opponent's Characters 4 cost during this turn.\n\n[Activate: Main] [Once Per Turn] If this Character was played on this turn, trash up to 1 of your opponent's Characters with a cost of 0.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "IMPLEMENTED"
+      },
+      "beforeHash": "722d90c552fd95641ceef1114426d7f73d471d4bf388ea06e76c39daa6a98335",
+      "afterHash": "8874a43686c5df068010c2e55419a98d38aaee3e17a27e0ff8aa57aff7172817",
+      "patchKind": "INDIVIDUAL_PRINTED_WINDOW_WITH_ALL_CARD_SCENARIOS_PASS"
+    },
+    {
+      "code": "ST19-005",
+      "printedText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n\n[Activate: Main] [Once Per Turn] You may place 1 card from your trash at the bottom of your deck: Give up to 1 of your opponent's Characters 1 cost during this turn.",
+      "publishedText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n\n[Activate: Main] [Once Per Turn] You may place 1 card from your trash at the bottom of your deck: Give up to 1 of your opponent's Characters 1 cost during this turn.",
+      "timings": [
+        "activate-main"
+      ],
+      "scenarioNames": [
+        "keyword Blocker: active",
+        "keyword Blocker: rested",
+        "keyword Blocker: wrong-owner",
+        "keyword Blocker: hand",
+        "keyword Blocker: negated",
+        "keyword Blocker: schema isolation",
+        "engine-action unknown blocker: resolve isolated parsed instruction",
+        "engine-action activate-main cost: resolve isolated parsed instruction"
+      ],
+      "scenarioCount": 8,
+      "before": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "custom-resolver",
+                "handler": "ST19_005_ACTIVATE_MAIN"
+              }
+            ],
+            "rawText": "[Activate: Main] [Once Per Turn] You may place 1 card from your trash at the bottom of your deck: Give up to 1 of your opponent's Characters 1 cost during this turn.",
+            "trigger": "activate-main",
+            "conditions": []
+          },
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "blocker"
+              }
+            ],
+            "rawText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+            "trigger": "unknown",
+            "conditions": []
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "ST19_005_ACTIVATE_MAIN"
+        },
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "custom-resolver",
+                  "handler": "ST19_005_ACTIVATE_MAIN"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "unknown",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              }
+            ],
+            "conditions": []
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n\n[Activate: Main] [Once Per Turn] You may place 1 card from your trash at the bottom of your deck: Give up to 1 of your opponent's Characters 1 cost during this turn.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "PARSED"
+      },
+      "after": {
+        "ast": [
+          {
+            "costs": [],
+            "actions": [
+              {
+                "kind": "blocker"
+              }
+            ],
+            "rawText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
+            "trigger": "unknown",
+            "conditions": []
+          },
+          {
+            "rawText": "[Activate: Main] [Once Per Turn] You may place 1 card from your trash at the bottom of your deck: Give up to 1 of your opponent's Characters 1 cost during this turn.",
+            "trigger": "activate-main",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "cost",
+                "amount": 1,
+                "target": "opponent-character",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          }
+        ],
+        "resolver": {
+          "type": "CUSTOM",
+          "handler": "ST19_005_ACTIVATE_MAIN"
+        },
+        "normalized": [
+          {
+            "timing": "unknown",
+            "optional": true,
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "blocker"
+                }
+              }
+            ],
+            "conditions": []
+          },
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "cost",
+                  "amount": 1,
+                  "target": "opponent-character",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
+                }
+              }
+            ]
+          }
+        ],
+        "parserVersion": "0.4.0",
+        "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n\n[Activate: Main] [Once Per Turn] You may place 1 card from your trash at the bottom of your deck: Give up to 1 of your opponent's Characters 1 cost during this turn.",
+        "parseConfidence": 0.65,
+        "implementationStatus": "PARSED"
+      },
+      "beforeHash": "f9394080f39d27059cbcc7ff5adb7a5017ca15339fb731e453458755b2941019",
+      "afterHash": "c6b9c06c48af92f6636be9462bd58afaed46aebb9d12af82156179ac06ca2632",
+      "patchKind": "INDIVIDUAL_PRINTED_WINDOW_WITH_ALL_CARD_SCENARIOS_PASS"
+    }
+  ]
+}

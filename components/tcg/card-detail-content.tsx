@@ -25,16 +25,17 @@ type CardDetailContentProps={
   rarity?:string|null;
   attribute?:string|null;
   cost:number;
-  power:number;
+  power:number|null;
   life?:number|null;
   block:string;
   setCode?:string|null;
   setName?:string|null;
-  effect:ReactNode;
+  effect?:ReactNode;
+  hasEffect?:boolean;
   afterEffect?:ReactNode;
 };
 
-export function CardDetailContent({code,color,title,titleId,heading,type,rarity,attribute,cost,power,life,block,setCode,setName,effect,afterEffect}:CardDetailContentProps) {
+export function CardDetailContent({code,color,title,titleId,heading,type,rarity,attribute,cost,power,life,block,setCode,setName,effect,hasEffect=true,afterEffect}:CardDetailContentProps) {
   const [locale,setLocale]=useState<'EN'|'ID'>('EN');
   useEffect(()=>{
     const syncLocale=()=>setLocale(window.localStorage.getItem('vivreplay-locale')==='ID'?'ID':'EN');
@@ -55,13 +56,13 @@ export function CardDetailContent({code,color,title,titleId,heading,type,rarity,
     <Heading id={titleId} className="card-detail-title">{title}</Heading>
     <p className="viewer-kind">{displayType} <span>·</span> {rarity||(id?'Versi cetak':'Printing')} {attribute&&<><span>·</span>{attribute}</>}</p>
     <dl className="viewer-stats">
-      {type!=='Leader'&&<div><dt>{id?'Biaya':'Cost'}</dt><dd>{cost}</dd></div>}
-      <div><dt>{id?'Kekuatan':'Power'}</dt><dd>{power?power.toLocaleString():'-'}</dd></div>
+      {type!=='Leader'&&<div className="viewer-stat-cost"><dt>{id?'Biaya':'Cost'}</dt><dd>{cost}</dd></div>}
+      {(type==='Character'||type==='Leader')&&<div><dt>{id?'Kekuatan':'Power'}</dt><dd>{power??0}</dd></div>}
       {life!==null&&life!==undefined&&<div><dt>{id?'Nyawa':'Life'}</dt><dd>{life}</dd></div>}
       <div><dt>{id?'Blok':'Block'}</dt><dd><BlockValue value={block}/></dd></div>
       <SetInformation compact setCode={setCode} fallbackName={setName}/>
     </dl>
-    <section className="card-detail-effect viewer-effect"><h3>{id?'Efek':'Effect'}</h3>{effect}</section>
+    {hasEffect&&<section className="card-detail-effect viewer-effect"><h3>{id?'Efek':'Effect'}</h3>{effect}</section>}
     {afterEffect}
   </>;
 }

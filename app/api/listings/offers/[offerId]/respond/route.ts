@@ -29,6 +29,7 @@ export async function POST(request:Request,{params}:{params:Promise<{offerId:str
       await validateListingOfferItems(offer,supplierId,items);
     }
     if(value.action==='counter'){
+      if(offer.listingType==='WTS'&&!offer.negotiable)throw new HttpError(409,'The seller set a firm price. Counteroffers are closed for this listing.');
       currency=value.currency??offer.currency;if(currency!==offer.currency)throw new HttpError(400,'Counteroffers must use the listing currency.');
       const sent=await db().prepare("SELECT COUNT(*) AS total FROM listing_offers WHERE COALESCE(thread_id,id)=? AND actor_id=? AND parent_offer_id IS NOT NULL").bind(offer.threadId,actor.id).first<{total:number}>();
       if((sent?.total??0)>=3)throw new HttpError(409,'You have reached the three-counteroffer limit for this conversation.');

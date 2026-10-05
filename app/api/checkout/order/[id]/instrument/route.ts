@@ -1,14 +1,12 @@
 import {db,errorResponse,user,HttpError} from '@/lib/server/store';
 import {getCurrentUser} from '@/lib/server/auth';
 import {createIpaymuRedirect} from '@/lib/server/ipaymu';
-import {verifyTurnstile} from '@/lib/server/turnstile';
 
 type Order={id:string;kind:string;buyerId:string;sellerId:string|null;listingId:string|null;items:string;details:string;amount:number;shippingFee:number;title:string|null;paymentId:string|null;status:string;expiresAt:string|null};
 type OrderItem={printingId:string;quantity:number;unitAmount:number};
 
 export async function POST(request:Request,{params}:{params:Promise<{id:string}>}){
   try{
-    const rejected=await verifyTurnstile(request);if(rejected)return rejected;
     const profile=await user();
     const account=await getCurrentUser();
     if(!account?.email)throw new HttpError(401,'Sign in with an email address to continue.');

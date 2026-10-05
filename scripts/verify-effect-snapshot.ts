@@ -1,5 +1,6 @@
 import {readFileSync,writeFileSync} from 'node:fs';
 import {scenarios} from './card-effect-scenarios';
+import {compileEffectDocument} from '../packages/domain/effect-rules';
 
 type SnapshotCard={code:string;name:string;printedText:string;publishedText:string|null;published:boolean;textMatches:boolean;schemaMatches:boolean;localSchema:any;databaseSchema:any};
 const path='reports/effects/per-card.json';
@@ -7,12 +8,13 @@ const snapshot=JSON.parse(readFileSync(path,'utf8')) as {generatedAt:string;summ
 const cards=snapshot.cards.map(card=>{
  const row={id:card.code,code:card.code,name:card.name,color:'',card_type:'Character' as const,cost:0,power:0,effect_text:card.printedText};
  const cases=scenarios(row);
+ const localSchema=compileEffectDocument({id:card.code,code:card.code,name:card.name,color:'',type:'Character',cost:0,power:0,rarity:'',art:0,effect:card.printedText});
  const run=(document:SnapshotCard['localSchema']|undefined)=>cases.map(scenario=>{
   try{if(!document)throw new Error('Missing published schema');scenario.run(document);return {name:scenario.name,status:'PASS',error:null};}
   catch(error){return {name:scenario.name,status:'FAIL',error:error instanceof Error?error.message:String(error)};}
  });
  const gameplay=cases.filter(scenario=>!scenario.name.startsWith('engine-action ')),actions=cases.filter(scenario=>scenario.name.startsWith('engine-action '));
- return {...card,localScenarios:run(card.localSchema),databaseScenarios:run(card.databaseSchema),gameplayScenarioCount:gameplay.length,actionExecutionScenarioCount:actions.length,coverage:gameplay.length?'BOUNDED_ENGINE_SCENARIO':actions.length?'ACTION_EXECUTION_ONLY':'NOT_GAMEPLAY_VERIFIED',browserVerified:false};
+ return {...card,localSchema,localScenarios:run(localSchema),databaseScenarios:run(card.databaseSchema),gameplayScenarioCount:gameplay.length,actionExecutionScenarioCount:actions.length,coverage:gameplay.length?'BOUNDED_ENGINE_SCENARIO':actions.length?'ACTION_EXECUTION_ONLY':'NOT_GAMEPLAY_VERIFIED',browserVerified:false};
 });
 const summary={
  ...snapshot.summary,

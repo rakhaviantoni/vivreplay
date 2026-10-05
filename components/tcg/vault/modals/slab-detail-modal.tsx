@@ -327,7 +327,7 @@ export function SlabDetailModal({
                   Acquired Cost
                 </span>
                 <div style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '18px', fontWeight: 600, color: '#fff', marginTop: '2px' }}>
-                  {hideValues ? '••••••••' : slab.acquisitionAmount > 0 ? formatCompactMoney(slab.acquisitionAmount, 'IDR') : '—'}
+                  {hideValues ? '••••••••' : slab.acquisitionAmount > 0 ? formatCompactMoney(slab.acquisitionAmount, 'IDR') : '-'}
                 </div>
                 <small style={{ fontSize: '10px', color: '#8893a2' }}>{slab.acquiredAt ? new Date(slab.acquiredAt).toLocaleDateString() : 'Date not recorded'}</small>
               </div>
@@ -361,7 +361,7 @@ export function SlabDetailModal({
                       <TrendingUp size={16} />
                       {slab.gainLossAmount >= 0 ? '+' : ''}{formatCompactMoney(slab.gainLossAmount, 'IDR')}
                     </>
-                  ) : '—'}
+                  ) : '-'}
                 </div>
                 <small style={{ fontSize: '10px', color: '#4ade80' }}>
                   {hideValues ? 'Hidden' : slab.hasMarketEstimate && slab.acquisitionAmount > 0 ? `${slab.gainLossPercent >= 0 ? '+' : ''}${slab.gainLossPercent.toFixed(1)}%` : 'No comparable market price'}
