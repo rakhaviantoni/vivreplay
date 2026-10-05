@@ -113,6 +113,11 @@ const basePowerLimit=(text:string)=>{const match=text.match(/(\d+)\s+base power 
 function parseEffectText(source:string,cardCode=''):ParsedEffect[]{
  const text=source.replace(/^NULL$/i,'').replace(/−/g,'-').trim();
  if(!text)return [{trigger:'unknown',actions:[],costs:[],conditions:[],optional:false,source:''}];
+ if(card.code==='OP16-039'){
+  const triggerIndex=text.search(/\[Trigger\]/i),mainText=triggerIndex>=0?text.slice(0,triggerIndex).trim():text;
+  const main=mainText.match(/^(\[Main\]\s*[\s\S]*?gains? \[Double Attack\] during this turn)\.\s+Then, if ([^,]+),\s*([\s\S]+)$/i);
+  if(main)return [...parseEffects({...card,effect:`${main[1]}.`}),...parseEffects({...card,effect:`[Main] If ${main[2]}, ${main[3]}`}),...(triggerIndex>=0?parseEffects({...card,effect:text.slice(triggerIndex)}):[])];
+ }
  if(/^Under the rules of this game, you may have any number of this card in your deck\.?$/i.test(text))return [{trigger:'unknown',actions:[],costs:[],conditions:[],optional:false,source:text}];
  if(/This Leader can only be used in designated events according to the rules\./i.test(text)&&/This Leader is treated as a card with all card names, types, and attributes according to the rules\./i.test(text))return [{trigger:'continuous',actions:[],costs:[],conditions:[],optional:false,source:text}];
  const timingText=text.replace(/activate this card's \[(?:Main|Counter|On Play)\] effect/gi,'');
