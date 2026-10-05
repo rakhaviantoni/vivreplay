@@ -4,10 +4,11 @@ import {getCurrentUser} from '@/lib/server/auth';
 import {createAzekhaIntent,hasAzekhaPaymentConfig} from '@/lib/server/azekha-payments';
 import {verifyTurnstile} from '@/lib/server/turnstile';
 import {biteshipDestination,isBiteshipAreaId} from '@/lib/shipping/biteship-area';
+import {biteshipRates,biteshipRequest} from '@/lib/server/biteship';
 
-const schema=z.object({listingId:z.string().min(1),offerId:z.string().min(1).optional(),items:z.array(z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(99)})).min(1).max(60),courierName:z.string().min(1),courierServiceName:z.string().min(1)});
+const schema=z.object({listingId:z.string().min(1),offerId:z.string().min(1).optional(),items:z.array(z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(99)})).min(1).max(60),courierName:z.string().min(1),courierServiceName:z.string().min(1),courierCode:z.string().min(1),courierServiceCode:z.string().min(1),courierType:z.string().min(1)});
 type BundleEntry={instanceId?:string;printingId:string;quantity:number;condition?:string;unitAmount:number};
-type Rate={courier_name:string;courier_service_name:string;price:number};
+type Rate={courier_name:string;courier_service_name:string;courier_code:string;courier_service_code:string;company:string;type:string;price:number};
 type AcceptedOffer={id:string;actorId:string;listingId:string;status:string;amount:number;items:string};
 
 export async function GET(){
@@ -43,9 +44,9 @@ export async function POST(request:Request){
       }
     }
 
-    const address=await database.prepare('SELECT recipient_name AS recipientName,phone,address_line AS addressLine,city,postal_code AS postalCode,area_id AS areaId FROM seller_shipping_origins WHERE owner_id=?').bind(profile.id).first<{recipientName:string|null;phone:string|null;addressLine:string;city:string;postalCode:string;areaId:string|null}>();
+    const address=await database.prepare('SELECT recipient_name AS recipientName,phone,address_line AS addressLine,city,postal_code AS postalCode,area_id AS areaId,latitude,longitude,label FROM seller_shipping_origins WHERE owner_id=?').bind(profile.id).first<{recipientName:string|null;phone:string|null;addressLine:string;city:string;postalCode:string;areaId:string|null;latitude:number|null;longitude:number|null;label:string}>();
     if(!address?.addressLine||!address.city||!address.phone||(!/^\d{5}$/.test(address.postalCode)&&!isBiteshipAreaId(address.areaId)))throw new HttpError(400,'Save a delivery address, valid postal code or delivery area, and mobile number in your profile before checkout.');
-    const seller=await database.prepare('SELECT area_id AS areaId,postal_code AS postalCode,label FROM seller_shipping_origins WHERE owner_id=?').bind(listing.sellerId).first<{areaId:string|null;postalCode:string;label:string|null}>();
+    const seller=await database.prepare('SELECT area_id AS areaId,postal_code AS postalCode,label,recipient_name AS recipientName,phone,address_line AS addressLine,city,latitude,longitude FROM seller_shipping_origins WHERE owner_id=?').bind(listing.sellerId).first<{areaId:string|null;postalCode:string;label:string|null;recipientName:string|null;phone:string|null;addressLine:string;city:string;latitude:number|null;longitude:number|null}>();
     if(!seller)throw new HttpError(400,'The seller has not set a shipping address.');
     let sellerMethods:string[]=[];
     try{const parsed=JSON.parse(seller.label??'{}');if(Array.isArray(parsed.methods))sellerMethods=parsed.methods.filter((item:unknown):item is string=>typeof item==='string')}catch{}
@@ -105,16 +106,23 @@ export async function POST(request:Request){
     const dropoff=biteshipDestination(address.postalCode,isBiteshipAreaId(address.areaId)?address.areaId:null);
     if(!pickup.areaId&&!pickup.postalCode)throw new HttpError(400,'The seller needs a valid 5-digit pickup postal code.');
     if(!dropoff.areaId&&!dropoff.postalCode)throw new HttpError(400,'Save a valid 5-digit delivery postal code in your profile.');
-    const quoteResponse=await fetch('https://api.biteship.com/v1/rates/couriers',{method:'POST',headers:{authorization:apiKey,'content-type':'application/json'},body:JSON.stringify({origin_area_id:pickup.areaId,origin_postal_code:pickup.postalCode,destination_area_id:dropoff.areaId,destination_postal_code:dropoff.postalCode,couriers:couriers.join(','),items:[{name:listing.title,value:subtotal,length:18,width:13,height:2,weight:Math.max(100,orderItems.reduce((sum,item)=>sum+item.quantity,0)*100),quantity:orderItems.reduce((sum,item)=>sum+item.quantity,0)}]})});
-    const quoteBody=await quoteResponse.json().catch(()=>null) as {pricing?:Rate[];message?:string;error?:{message?:string}}|null;
-    if(!quoteResponse.ok)throw new HttpError(quoteResponse.status,quoteBody?.error?.message??quoteBody?.message??'Shipping rates could not be loaded.');
-    const rate=(quoteBody?.pricing??[]).find(item=>item.courier_name===input.courierName&&item.courier_service_name===input.courierServiceName);
+    const quantity=orderItems.reduce((sum,item)=>sum+item.quantity,0);
+    const packageItems=[{name:listing.title,value:subtotal,length:18,width:13,height:2,weight:Math.max(100,quantity*100),quantity}];
+    const quoteJobs:Promise<{pricing?:Rate[]}>[]=[];
+    const regularCodes=couriers.filter(code=>!['grab','gojek'].includes(code));const quick=couriers.filter(code=>['grab','gojek'].includes(code));
+    if(regularCodes.length)quoteJobs.push(biteshipRates({origin_area_id:pickup.areaId,origin_postal_code:pickup.postalCode,destination_area_id:dropoff.areaId,destination_postal_code:dropoff.postalCode,couriers:regularCodes.join(','),items:packageItems}));
+    if(quick.length&&typeof seller.latitude==='number'&&typeof seller.longitude==='number'&&typeof address.latitude==='number'&&typeof address.longitude==='number')quoteJobs.push(biteshipRequest('/rates/couriers',{method:'POST',body:JSON.stringify({origin_latitude:seller.latitude,origin_longitude:seller.longitude,destination_latitude:address.latitude,destination_longitude:address.longitude,couriers:quick.join(','),items:packageItems})}));
+    const rateResponses=await Promise.allSettled(quoteJobs);
+    const rates=rateResponses.flatMap(result=>result.status==='fulfilled'?result.value.pricing??[]:[]);
+    if(!rates.length&&rateResponses.length&&rateResponses.every(result=>result.status==='rejected'))throw rateResponses[0].status==='rejected'?rateResponses[0].reason:new HttpError(502,'Shipping rates could not be loaded.');
+    const rate=rates.find(item=>item.courier_name===input.courierName&&item.courier_service_name===input.courierServiceName&&item.courier_code===input.courierCode&&item.courier_service_code===input.courierServiceCode);
     if(!rate||!Number.isSafeInteger(rate.price)||rate.price<0)throw new HttpError(409,'That delivery service is no longer available. Choose an updated quote.');
 
     const id=crypto.randomUUID();
     const amount=subtotal+rate.price;
     const expiresAt=new Date(Date.now()+24*60*60*1000).toISOString().replace('T',' ').slice(0,19);
-    const shipping={recipientName:address.recipientName,addressLine:address.addressLine,city:address.city,postalCode:address.postalCode,phone:address.phone,courierName:rate.courier_name,courierServiceName:rate.courier_service_name};
+    if(rate.type!==input.courierType)throw new HttpError(409,'That delivery service changed. Choose an updated quote.');
+    const shipping={recipientName:address.recipientName,addressLine:address.addressLine,city:address.city,postalCode:address.postalCode,areaId:dropoff.areaId,latitude:address.latitude,longitude:address.longitude,phone:address.phone,courierName:rate.courier_name,courierServiceName:rate.courier_service_name,courierCode:rate.courier_code,courierServiceCode:rate.courier_service_code,courierCompany:rate.company,courierType:rate.type,sender:{recipientName:seller.recipientName,addressLine:seller.addressLine,city:seller.city,postalCode:seller.postalCode,areaId:pickup.areaId,latitude:seller.latitude,longitude:seller.longitude,phone:seller.phone},shippingLabel:address.label};
     await database.prepare(`INSERT INTO checkout_orders (id,kind,buyer_id,seller_id,listing_id,offer_id,items,details,subtotal,shipping_fee,amount,currency,status,expires_at) VALUES (?,'MARKET',?,?,?,?,?,?,?,?,?,?,'PENDING_PAYMENT',?)`).bind(id,profile.id,listing.sellerId,listing.id,acceptedOffer?.id??null,JSON.stringify(orderItems),JSON.stringify(shipping),subtotal,rate.price,amount,'IDR',expiresAt).run();
     const siteOrigin=new URL(request.url).origin;
     let intent;

@@ -1079,7 +1079,7 @@ function ProfileForm({
                 <p>
                   {t(
                     'Vault details and purchase costs stay private unless you choose to share them.',
-                    'Detail Vault dan biaya pembelian tetap privat kecuali Anda memilih untuk membagikannya.'
+                    'Detail koleksi dan biaya pembelian tetap privat kecuali Anda memilih untuk membagikannya.'
                   )}
                 </p>
               </div>

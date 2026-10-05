@@ -8,7 +8,7 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
     const profile=await user();
     const {id}=await params;
     const database=db();
-    const order=await database.prepare(`SELECT o.id,o.kind,o.buyer_id AS buyerId,o.seller_id AS sellerId,o.listing_id AS listingId,o.items,o.details,o.subtotal,o.shipping_fee AS shippingFee,o.amount,o.currency,o.payment_id AS paymentId,o.status,o.expires_at AS expiresAt,l.title FROM checkout_orders o LEFT JOIN listings l ON l.id=o.listing_id WHERE o.id=?`).bind(id).first<OrderRow>();
+    const order=await database.prepare(`SELECT o.id,o.kind,o.buyer_id AS buyerId,o.seller_id AS sellerId,o.listing_id AS listingId,o.items,o.details,o.subtotal,o.shipping_fee AS shippingFee,o.amount,o.currency,o.payment_id AS paymentId,o.status,o.expires_at AS expiresAt,o.shipping_waybill_id AS waybillId,o.shipping_tracking_url AS trackingUrl,l.title FROM checkout_orders o LEFT JOIN listings l ON l.id=o.listing_id WHERE o.id=?`).bind(id).first<OrderRow&{waybillId:string|null;trackingUrl:string|null}>();
     if(!order||order.buyerId!==profile.id)throw new HttpError(404,'Checkout was not found.');
 
     if(order.status==='PENDING_PAYMENT'&&order.expiresAt&&new Date(`${order.expiresAt.replace(' ','T')}Z`).getTime()<=Date.now()){
@@ -18,7 +18,7 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
     let items:unknown[]=[];let details:Record<string,unknown>={};
     try{items=JSON.parse(order.items) as unknown[]}catch{}
     try{const parsed=JSON.parse(order.details) as unknown;if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))details=parsed as Record<string,unknown>}catch{}
-    return Response.json({id:order.id,kind:order.kind,status:order.status,title:order.title??'VivrePlay Market Pro',items,details,checkoutUrl:typeof details.ipaymuCheckoutUrl==='string'?details.ipaymuCheckoutUrl:null,subtotal:order.subtotal,shippingFee:order.shippingFee,amount:order.amount,currency:order.currency,expiresAt:order.expiresAt});
+    return Response.json({id:order.id,kind:order.kind,status:order.status,title:order.title??'VivrePlay Market Pro',items,details,waybillId:order.waybillId,trackingUrl:order.trackingUrl,checkoutUrl:typeof details.ipaymuCheckoutUrl==='string'?details.ipaymuCheckoutUrl:null,subtotal:order.subtotal,shippingFee:order.shippingFee,amount:order.amount,currency:order.currency,expiresAt:order.expiresAt});
   }catch(error){return errorResponse(error)}
 }
 
@@ -31,7 +31,7 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     if(!order||order.buyerId!==profile.id)throw new HttpError(404,'Order was not found.');
     if(order.kind!=='MARKET')throw new HttpError(400,'Only delivered Market orders can be added to your Vault.');
     if(order.status==='RECEIVED')return Response.json({ok:true,status:'RECEIVED'});
-    if(order.status!=='PAID')throw new HttpError(409,'This order is not ready for delivery confirmation.');
+    if(order.status!=='SHIPPED')throw new HttpError(409,'The seller must arrange shipping before delivery can be confirmed.');
     let items:Array<{printingId:string;quantity:number;unitAmount?:number;condition?:string}>;
     try{items=JSON.parse(order.items) as typeof items}catch{throw new HttpError(500,'The order cards could not be loaded.');}
     if(!items.length)throw new HttpError(400,'This order has no cards to add.');
@@ -56,7 +56,7 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
           .bind(crypto.randomUUID(),order.buyerId,purchase.printingId,purchase.quantity,purchase.condition,purchase.amount,order.currency));
       }
     }
-    statements.push(database.prepare("UPDATE checkout_orders SET status='RECEIVED',fulfilled_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=? AND buyer_id=? AND status='PAID'").bind(id,profile.id));
+    statements.push(database.prepare("UPDATE checkout_orders SET status='RECEIVED',fulfilled_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=? AND buyer_id=? AND status='SHIPPED'").bind(id,profile.id));
     await database.batch(statements);
     if(order.sellerId)await sendMarketEmail(order.sellerId,'order-received',order.title||'Market order',order.id);
     const updated=await database.prepare('SELECT status FROM checkout_orders WHERE id=?').bind(id).first<{status:string}>();

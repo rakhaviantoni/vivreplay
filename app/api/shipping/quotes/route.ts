@@ -1,5 +1,6 @@
 import {db,errorResponse,HttpError,optionalUser} from '@/lib/server/store';
 import {biteshipDestination,isBiteshipAreaId} from '@/lib/shipping/biteship-area';
+import {biteshipRates,biteshipRequest,validCoordinates} from '@/lib/server/biteship';
 
 type QuoteRequest={listingId?:unknown;destinationPostalCode?:unknown;destinationAreaId?:unknown;items?:unknown};
 export async function POST(request:Request){
@@ -8,16 +9,18 @@ export async function POST(request:Request){
     const listingId=typeof body.listingId==='string'?body.listingId:'';
     let destinationPostalCode=typeof body.destinationPostalCode==='string'?body.destinationPostalCode.trim():'';
     let destinationAreaId=typeof body.destinationAreaId==='string'?body.destinationAreaId.trim():'';
+    let destinationLatitude:number|null=null;let destinationLongitude:number|null=null;
     if(!listingId)throw new HttpError(400,'Choose a listing.');
-    if(!destinationPostalCode&&!destinationAreaId){
-      const buyer=await optionalUser();
-      if(buyer){
-        const address=await db().prepare('SELECT postal_code AS postalCode,area_id AS areaId FROM seller_shipping_origins WHERE owner_id=?').bind(buyer.id).first<{postalCode:string|null;areaId:string|null}>();
+    const buyer=await optionalUser();
+    if(buyer){
+      const address=await db().prepare('SELECT postal_code AS postalCode,area_id AS areaId,latitude,longitude FROM seller_shipping_origins WHERE owner_id=?').bind(buyer.id).first<{postalCode:string|null;areaId:string|null;latitude:number|null;longitude:number|null}>();
+      if(!destinationPostalCode&&!destinationAreaId){
         destinationPostalCode=address?.postalCode??'';
         destinationAreaId=isBiteshipAreaId(address?.areaId)?address.areaId:'';
       }
+      destinationLatitude=address?.latitude??null;destinationLongitude=address?.longitude??null;
     }
-    const row=await db().prepare(`SELECT l.title,l.amount,l.quantity,l.items AS itemsJson,l.printing_id AS printingId,o.area_id AS originAreaId,o.postal_code AS originPostalCode,o.label AS originLabel FROM listings l JOIN seller_shipping_origins o ON o.owner_id=l.seller_id WHERE l.id=? AND l.status='ACTIVE'`).bind(listingId).first<{title:string;amount:number;quantity:number;itemsJson:string|null;printingId:string;originAreaId:string|null;originPostalCode:string;originLabel:string|null}>();
+    const row=await db().prepare(`SELECT l.title,l.amount,l.quantity,l.items AS itemsJson,l.printing_id AS printingId,o.area_id AS originAreaId,o.postal_code AS originPostalCode,o.label AS originLabel,o.latitude AS originLatitude,o.longitude AS originLongitude FROM listings l JOIN seller_shipping_origins o ON o.owner_id=l.seller_id WHERE l.id=? AND l.status='ACTIVE'`).bind(listingId).first<{title:string;amount:number;quantity:number;itemsJson:string|null;printingId:string;originAreaId:string|null;originPostalCode:string;originLabel:string|null;originLatitude:number|null;originLongitude:number|null}>();
     if(!row)throw new HttpError(404,'This listing does not have a shipping origin yet.');
 
     let listedItems:{printingId:string;quantity:number;unitAmount:number}[];
@@ -74,19 +77,20 @@ export async function POST(request:Request){
       return Response.json({pricing:[],couriers:finalCouriers,destinationRequired:true});
     }
 
-    const key=process.env.BITESHIP_API_KEY;
-    if(!key){
-      throw new HttpError(503,'Live shipping rates are temporarily unavailable.');
-    }
-
     const origin=biteshipDestination(row.originPostalCode,row.originAreaId);
     const destination=biteshipDestination(destinationPostalCode,destinationAreaId);
     if(!origin.areaId&&!origin.postalCode)throw new HttpError(400,'The seller needs a valid 5-digit pickup postal code.');
     if(!destination.areaId&&!destination.postalCode)throw new HttpError(400,'Choose a delivery area with a valid 5-digit postal code.');
-    const payload={origin_area_id:origin.areaId,origin_postal_code:origin.postalCode,destination_area_id:destination.areaId,destination_postal_code:destination.postalCode,couriers:finalCouriers.join(','),items:[{name:row.title,value:declaredValue,length:18,width:13,height:2,weight:Math.max(100,totalQuantity*100),quantity:totalQuantity}]};
-    const response=await fetch('https://api.biteship.com/v1/rates/couriers',{method:'POST',headers:{authorization:key,'content-type':'application/json'},body:JSON.stringify(payload)});
-    const data=await response.json().catch(()=>null) as {pricing?:unknown;error?:{message?:string};message?:string}|null;
-    if(!response.ok)throw new HttpError(response.status,data?.error?.message??data?.message??'Shipping quotes could not be loaded.');
-    return Response.json({pricing:data?.pricing??[]});
+    const packageItems=[{name:row.title,value:declaredValue,length:18,width:13,height:2,weight:Math.max(100,totalQuantity*100),quantity:totalQuantity}];
+    const regularCouriers=finalCouriers.filter(courier=>!ALL_INSTANT.includes(courier));
+    const instantCouriers=finalCouriers.filter(courier=>ALL_INSTANT.includes(courier));
+    const requests:Promise<{pricing?:unknown[]}>[]=[];
+    if(regularCouriers.length)requests.push(biteshipRates({origin_area_id:origin.areaId,origin_postal_code:origin.postalCode,destination_area_id:destination.areaId,destination_postal_code:destination.postalCode,couriers:regularCouriers.join(','),items:packageItems}));
+    if(instantCouriers.length){
+      const from=validCoordinates(row.originLatitude,row.originLongitude);const to=validCoordinates(destinationLatitude,destinationLongitude);
+      if(from&&to)requests.push(biteshipRequest('/rates/couriers',{method:'POST',body:JSON.stringify({origin_latitude:from.latitude,origin_longitude:from.longitude,destination_latitude:to.latitude,destination_longitude:to.longitude,couriers:instantCouriers.join(','),items:packageItems})}));
+    }
+    const responses=await Promise.all(requests);
+    return Response.json({pricing:responses.flatMap(response=>response.pricing??[])});
   }catch(error){return errorResponse(error)}
 }

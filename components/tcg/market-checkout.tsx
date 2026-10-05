@@ -13,7 +13,7 @@ import {TurnstileField,turnstileEnabled,turnstileHeaders} from './turnstile-fiel
 import {isBiteshipAreaId} from '@/lib/shipping/biteship-area';
 
 type Origin={addressLine:string;city:string;postalCode:string;areaId:string|null;recipientName:string|null;phone:string|null;regionNames?:{province?:string;district?:string;subdistrict?:string}};
-type Rate={courier_name:string;courier_service_name:string;price:number;duration?:string};
+type Rate={courier_name:string;courier_service_name:string;courier_code:string;courier_service_code:string;company:string;type:string;price:number;duration?:string};
 type CheckoutLine={printingId:string;quantity:number;unitAmount?:number};
 
 export function MarketCheckout(){
@@ -67,7 +67,7 @@ export function MarketCheckout(){
     });
   },[items,listing]);
   const subtotal=selectedCards.reduce((sum,item)=>sum+item.unitAmount*item.quantity,0);
-  const currentRate=rates.find(rate=>`${rate.courier_name}:${rate.courier_service_name}`===selectedRate);
+    const currentRate=rates.find(rate=>`${rate.courier_code}:${rate.courier_service_code}`===selectedRate);
   const courierName=(name:string)=>({jne:'JNE Express',jnt:'J&T Express',sicepat:'SiCepat Ekspres',anteraja:'Anteraja',tiki:'TIKI',pos:'Pos Indonesia',lion:'Lion Parcel',ninja:'Ninja Xpress',wahana:'Wahana Express',grab:'GrabExpress',gojek:'GoSend'}[name]??name);
 
   const loadQuotes=async()=>{
@@ -77,7 +77,7 @@ export function MarketCheckout(){
       const response=await fetch('/api/shipping/quotes',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({listingId,items,destinationAreaId:origin.areaId,destinationPostalCode:origin.postalCode})});
       const result=await response.json() as {pricing?:Rate[];error?:string};
       if(!response.ok)throw new Error(result.error??t('Shipping rates could not be loaded.','Ongkir tidak dapat dimuat.'));
-      const options=result.pricing??[];setRates(options);if(options[0])setSelectedRate(`${options[0].courier_name}:${options[0].courier_service_name}`);
+      const options=result.pricing??[];setRates(options);if(options[0])setSelectedRate(`${options[0].courier_code}:${options[0].courier_service_code}`);
       if(!options.length)throw new Error(t('No delivery services are available for this address. Update the address or ask the seller for help.','Tidak ada layanan pengiriman untuk alamat ini. Perbarui alamat atau hubungi penjual.'));
     }catch(cause){setError(cause instanceof Error?cause.message:t('Shipping rates could not be loaded.','Ongkir tidak dapat dimuat.'))}finally{setQuoting(false)}
   };
@@ -87,7 +87,7 @@ export function MarketCheckout(){
     if(turnstileEnabled&&!turnstileToken){setError(t('Complete the security check first.','Selesaikan pemeriksaan keamanan terlebih dahulu.'));return}
     setSubmitting(true);setError('');
     try{
-      const response=await fetch('/api/checkout/market',{method:'POST',headers:{'content-type':'application/json',...turnstileHeaders(turnstileToken)},body:JSON.stringify({listingId,offerId:offerId||undefined,items,courierName:currentRate.courier_name,courierServiceName:currentRate.courier_service_name})});
+      const response=await fetch('/api/checkout/market',{method:'POST',headers:{'content-type':'application/json',...turnstileHeaders(turnstileToken)},body:JSON.stringify({listingId,offerId:offerId||undefined,items,courierName:currentRate.courier_name,courierServiceName:currentRate.courier_service_name,courierCode:currentRate.courier_code,courierServiceCode:currentRate.courier_service_code,courierType:currentRate.type})});
       const result=await response.json() as {checkoutUrl?:string;error?:string};
       if(!response.ok||!result.checkoutUrl)throw new Error(result.error??t('Checkout could not be started.','Checkout tidak dapat dimulai.'));
       router.push(result.checkoutUrl);
@@ -109,7 +109,7 @@ export function MarketCheckout(){
       <section className="checkout-panel checkout-delivery-panel"><div className="checkout-section-title"><MapPin size={18}/><div><h2>{t('Delivery address','Alamat pengiriman')}</h2><p>{t('Shipping is quoted from your saved address.','Ongkir dihitung dari alamat yang tersimpan.')}</p></div></div>
         {origin?<div className="checkout-address-card"><strong>{origin.recipientName||account.profile?.displayName||t('Recipient','Penerima')} · {origin.phone||t('No phone','Tanpa nomor')}</strong><p>{origin.addressLine}<br/>{origin.regionNames?.subdistrict?`${origin.regionNames.subdistrict}, `:''}{origin.regionNames?.district?`${origin.regionNames.district}, `:''}{origin.city} {origin.postalCode}</p><Link href="/profile?tab=shipping">{t('Change address','Ubah alamat')}</Link></div>:<div className="checkout-address-empty"><p>{t('Add an address and delivery contact before checkout.','Tambahkan alamat dan kontak pengiriman sebelum checkout.')}</p><Link className="button secondary" href="/profile?tab=shipping">{t('Set delivery address','Atur alamat pengiriman')}</Link></div>}
         <div className="checkout-quote-row"><div className="checkout-section-title"><Truck size={18}/><div><h2>{t('Delivery service','Layanan pengiriman')}</h2><p>{t('Live options from the seller’s enabled couriers.','Opsi langsung dari kurir aktif penjual.')}</p></div></div><button type="button" className="button secondary" disabled={quoting||!origin} onClick={loadQuotes}>{quoting?t('Checking…','Memeriksa…'):t('Get shipping rates','Hitung ongkir')}</button></div>
-        {rates.length>0&&<div className="checkout-rate-list">{rates.map(rate=>{const key=`${rate.courier_name}:${rate.courier_service_name}`;return <label key={key} className={selectedRate===key?'is-selected':''}><input type="radio" name="shipping-rate" value={key} checked={selectedRate===key} onChange={()=>setSelectedRate(key)}/><span><strong>{courierName(rate.courier_name)} · {rate.courier_service_name}</strong><small>{rate.duration||t('Delivery estimate provided by courier','Estimasi dari kurir')}</small></span><b>{formatMoney(rate.price,listing.currency)}</b></label>})}</div>}
+        {rates.length>0&&<div className="checkout-rate-list">{rates.map(rate=>{const key=`${rate.courier_code}:${rate.courier_service_code}`;return <label key={key} className={selectedRate===key?'is-selected':''}><input type="radio" name="shipping-rate" value={key} checked={selectedRate===key} onChange={()=>setSelectedRate(key)}/><span><strong>{courierName(rate.courier_name)} · {rate.courier_service_name}</strong><small>{rate.duration||t('Delivery estimate provided by courier','Estimasi dari kurir')}</small></span><b>{formatMoney(rate.price,listing.currency)}</b></label>})}</div>}
         {error&&<p className="checkout-error" role="alert">{error}</p>}
         {!checkoutAvailable&&<p className="checkout-config-unavailable">{t('Online payment is not enabled for Market orders yet.','Pembayaran online belum diaktifkan untuk pesanan Market.')}</p>}
         {currentRate&&checkoutAvailable&&<div className="checkout-security-check"><p>{t('Confirm the security check before placing your order.','Selesaikan pemeriksaan keamanan sebelum membuat pesanan.')}</p><TurnstileField onToken={setTurnstileToken} resetKey={turnstileResetKey}/></div>}

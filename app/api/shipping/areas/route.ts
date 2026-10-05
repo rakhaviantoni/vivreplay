@@ -1,4 +1,5 @@
 import { searchIndonesianAreas, AreaSearchResult } from '@/lib/indonesia-areas';
+import {searchBiteshipAreas,BiteshipArea} from '@/lib/server/biteship';
 
 interface BiteshipAreaItem {
   id: string;
@@ -55,48 +56,21 @@ export async function GET(request: Request) {
       return Response.json({ areas: [] });
     }
 
-    const [photonResults, localResults] = await Promise.all([
+    const [photonResults, localResults, biteshipResults] = await Promise.all([
       searchPhotonAreas(query).catch(() => []),
       Promise.resolve(searchIndonesianAreas(query).map(area=>({...area,source:'local' as const}))),
+      searchBiteshipAreas(query).catch(() => [] as BiteshipArea[]),
     ]);
+    const mapped:BiteshipArea[] = biteshipResults;
+    const biteship:AreaSearchResult[]=mapped.map(item=>({id:item.id,name:item.name,province:item.administrative_division_level_1_name||'',city:item.administrative_division_level_2_name||'',district:item.administrative_division_level_3_name||'',subdistrict:item.administrative_division_level_4_name||'',postalCode:String(item.postal_code||''),latitude:item.latitude,longitude:item.longitude,source:'biteship'}));
     const seen = new Set<string>();
-    const areas = [...localResults, ...photonResults].filter(area => {
-      const key = [area.subdistrict, area.district, area.city, area.province].join('|').toLocaleLowerCase('id');
+    const areas = [...biteship,...localResults, ...photonResults].filter(area => {
+      const key = [area.subdistrict, area.district, area.city, area.province,area.postalCode].join('|').toLocaleLowerCase('id');
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
     }).slice(0, 10);
-    if (areas.some(area => area.postalCode)) {
-      return Response.json({ areas }, { headers: { 'Cache-Control': 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400' } });
-    }
-
-    // Paid provider lookup is a last resort; cache identical misses to conserve Maps quota.
-    const key = process.env.BITESHIP_API_KEY;
-    if (key) {
-      try {
-        const res = await fetch(
-          `https://api.biteship.com/v1/maps/areas?countries=ID&input=${encodeURIComponent(query)}&type=single`,
-          { headers: { authorization: key, 'content-type': 'application/json' }, next: { revalidate: 86400 } }
-        );
-        if (res.ok) {
-          const data = (await res.json()) as { areas?: BiteshipAreaItem[] };
-          const mapped: AreaSearchResult[] = (data.areas ?? []).map(item => ({
-            id: item.id,
-            name: item.name,
-            province: item.administrative_division_level_1_name || '',
-            city: item.administrative_division_level_2_name || '',
-            district: item.administrative_division_level_3_name || '',
-            subdistrict: item.administrative_division_level_4_name || '',
-            postalCode: String(item.postal_code || ''),
-            latitude: typeof item.latitude === 'number' && Number.isFinite(item.latitude) ? item.latitude : undefined,
-            longitude: typeof item.longitude === 'number' && Number.isFinite(item.longitude) ? item.longitude : undefined,
-            source: 'biteship',
-          }));
-          if (mapped.length) return Response.json({ areas: mapped }, { headers: { 'Cache-Control': 'public, max-age=300, s-maxage=86400, stale-while-revalidate=604800' } });
-        }
-      } catch { /* Keep address entry available when the provider is down. */ }
-    }
-    return Response.json({ areas }, { headers: { 'Cache-Control': 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400' } });
+    return Response.json({ areas }, { headers: { 'Cache-Control': 'public, max-age=300, s-maxage=86400, stale-while-revalidate=604800' } });
   } catch (error) {
     return Response.json({ error: (error as Error).message, areas: [] }, { status: 500 });
   }
