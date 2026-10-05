@@ -509,7 +509,6 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
         />
       </div>
     </footer>}
-    {verificationOpen&&<div className="market-offer-verification-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget){setVerificationOpen(false);setTurnstileToken('');setTurnstileResetKey(value=>value+1)}}}><section className="market-offer-verification" role="dialog" aria-modal="true" aria-labelledby="market-offer-verification-title"><h2 id="market-offer-verification-title">{t('Security check','Pemeriksaan keamanan')}</h2><p>{t('Complete this check to send your selected card offer.','Selesaikan pemeriksaan untuk mengirim penawaran kartu.')}</p><TurnstileField onToken={setTurnstileToken} resetKey={turnstileResetKey}/><div><button type="button" className="button secondary" onClick={()=>{setVerificationOpen(false);setTurnstileToken('');setTurnstileResetKey(value=>value+1)}}>{t('Cancel','Batal')}</button><button type="button" className="button" disabled={!turnstileToken||submitting} onClick={()=>void continueOffer()}>{submitting?t('Sending…','Mengirim…'):t('Send offer','Kirim penawaran')}</button></div></section></div>}
   </section>;
 }
 
