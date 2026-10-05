@@ -1,4 +1,5 @@
 import {database} from '@/lib/server/database';
+import {loadMetaCards} from '@/lib/server/meta-cards';
 
 type EventRow={id:string;name:string;eventDate:string;playerCount:number|null;publishedDecklistCount:number;sourceName:string;sourceUrl:string};
 type FinishRow={id:string;place:number;playerName:string;leaderCode:string|null;archetype:string|null;deckSourceUrl:string;listStatus:string;cards:number;cardCount:number};
@@ -7,7 +8,7 @@ type MatchStat={leaderOneCode:string;archetypeOne:string;leaderTwoCode:string;ar
 
 export async function GET(){
   try{
-    const events=(await database().prepare('SELECT id,name,event_date AS eventDate,player_count AS playerCount,published_decklist_count AS publishedDecklistCount,source_name AS sourceName,source_url AS sourceUrl FROM tournament_events ORDER BY event_date DESC LIMIT 10').all<EventRow>()).results;
+    const events=(await database().prepare('SELECT id,name,event_date AS eventDate,player_count AS playerCount,published_decklist_count AS publishedDecklistCount,source_name AS sourceName,source_url AS sourceUrl FROM tournament_events ORDER BY event_date DESC').all<EventRow>()).results;
     const results=[];
     for(const event of events){
       const finishes=(await database().prepare(`SELECT f.id,f.place,f.player_name AS playerName,f.leader_code AS leaderCode,f.archetype,f.deck_source_url AS deckSourceUrl,f.list_status AS listStatus,COALESCE(SUM(c.quantity),0) AS cards,COUNT(c.card_code) AS cardCount FROM tournament_finishes f LEFT JOIN tournament_deck_cards c ON c.finish_id=f.id WHERE f.event_id=? GROUP BY f.id ORDER BY f.place ASC`).bind(event.id).all<FinishRow>()).results;
@@ -34,6 +35,13 @@ export async function GET(){
     const directMatches=(await database().prepare(`SELECT f.leader_code AS leaderOneCode,COALESCE(f.archetype,f.leader_code) AS archetypeOne,o.leader_code AS leaderTwoCode,COALESCE(o.archetype,o.leader_code) AS archetypeTwo,CASE WHEN m.winner_finish_id=f.id THEN f.leader_code ELSE o.leader_code END AS winnerLeaderCode,m.source_url AS source FROM tournament_matches m JOIN tournament_finishes f ON f.id=m.player_finish_id JOIN tournament_finishes o ON o.id=m.opponent_finish_id WHERE m.verification_status='VERIFIED' AND f.leader_code IS NOT NULL AND o.leader_code IS NOT NULL AND f.leader_code!=o.leader_code`).all<{leaderOneCode:string;archetypeOne:string;leaderTwoCode:string;archetypeTwo:string;winnerLeaderCode:string;source:string}>()).results;
     for(const row of directMatches)addStat({...row,scoreOne:row.winnerLeaderCode===row.leaderOneCode?1:0,scoreTwo:row.winnerLeaderCode===row.leaderTwoCode?1:0,winnerSide:row.winnerLeaderCode===row.leaderOneCode?1:2});
     const matchupStats=[...stats.values()].map(stat=>({...stat,sources:[...stat.sources],leaderOneWinRate:stat.matches?stat.leaderOneWins/stat.matches:0,leaderTwoWinRate:stat.matches?stat.leaderTwoWins/stat.matches:0,leaderOneGameWinRate:stat.games?stat.leaderOneGameWins/stat.games:0,leaderTwoGameWinRate:stat.games?stat.leaderTwoGameWins/stat.games:0})).sort((a,b)=>b.matches-a.matches||a.leaderOneCode.localeCompare(b.leaderOneCode));
-    return Response.json({events:results,matchRecords,matchSummaries,matchupStats},{headers:{'Cache-Control':'public, max-age=300, s-maxage=300'}});
-  }catch{return Response.json({error:'Tournament records are not available yet. Apply the tournament data migration.'},{status:503,headers:{'Cache-Control':'no-store'}});}
+    const deckCards=(await database().prepare('SELECT finish_id AS finishId,card_code AS code,quantity FROM tournament_deck_cards ORDER BY finish_id,quantity DESC,card_code').all<{finishId:string;code:string;quantity:number}>()).results;
+    const records=results.flatMap(event=>event.matchSummaries.filter(match=>match.evidenceStatus==='VERIFIED').map(match=>({...match,eventId:event.id,eventName:event.name,eventDate:event.eventDate,source:'tournament' as const})));
+    const directRecords=(await database().prepare(`SELECT m.id,m.event_id AS eventId,e.name AS eventName,e.event_date AS eventDate,COALESCE(m.round,'Match') AS round,f.leader_code AS leaderOneCode,COALESCE(f.archetype,f.leader_code) AS archetypeOne,f.player_name AS playerOneName,o.leader_code AS leaderTwoCode,COALESCE(o.archetype,o.leader_code) AS archetypeTwo,o.player_name AS playerTwoName,CASE WHEN m.winner_finish_id=f.id THEN 1 ELSE 0 END AS scoreOne,CASE WHEN m.winner_finish_id=o.id THEN 1 ELSE 0 END AS scoreTwo,CASE WHEN m.winner_finish_id=f.id THEN 1 ELSE 2 END AS winnerSide,m.source_url AS sourceUrl FROM tournament_matches m JOIN tournament_events e ON e.id=m.event_id JOIN tournament_finishes f ON f.id=m.player_finish_id JOIN tournament_finishes o ON o.id=m.opponent_finish_id WHERE m.verification_status='VERIFIED' AND m.winner_finish_id IS NOT NULL AND f.leader_code IS NOT NULL AND o.leader_code IS NOT NULL`).all<Record<string,unknown>>()).results;
+    // A featured series may also have a finish-linked result. Count it once.
+    const pairedRecords=directRecords.filter(row=>!records.some(record=>record.eventId===row.eventId&&record.round===row.round&&[record.leaderOneCode,record.leaderTwoCode].sort().join('|')===[row.leaderOneCode,row.leaderTwoCode].sort().join('|')&&record.playerOneName===row.playerOneName&&record.playerTwoName===row.playerTwoName));
+    const codes=[...new Set([...records.flatMap(row=>[row.leaderOneCode,row.leaderTwoCode]),...directRecords.flatMap(row=>[String(row.leaderOneCode),String(row.leaderTwoCode)]),...results.flatMap(event=>event.finishes.flatMap(finish=>finish.leaderCode?[finish.leaderCode]:[])),...deckCards.map(card=>card.code)])];
+    const cards=await loadMetaCards(codes);
+    return Response.json({events:results,matchRecords,matchSummaries,matchupStats,records:[...records,...pairedRecords.map(row=>({...row,bestOf:1,seriesComplete:1,scoreComplete:1,summary:'',source:'tournament'}))],deckCards,cards,asOf:new Date().toISOString()},{headers:{'Cache-Control':'public, max-age=300, s-maxage=300'}});
+  }catch{return Response.json({error:'Match statistics are temporarily unavailable. Please try again.'},{status:503,headers:{'Cache-Control':'no-store'}});}
 }
