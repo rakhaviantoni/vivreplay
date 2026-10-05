@@ -315,6 +315,6 @@ html[data-theme='dark'] .meta-stats-page {
 .meta-rival-art > .meta-card-trigger { display: block; width: 100%; }
 .meta-card-trigger:not(.has-printing-stack):is(:hover, :focus-visible) .tcg-card { transform: translateY(-3px); filter: brightness(1.045) saturate(1.035); box-shadow: 0 8px 14px #24262d35 !important; }
 /* Portaling keeps a card viewer above any open meta dialog. */
-body:has(.meta-stats-page) > .card-viewer-backdrop { z-index: 500 !important; }
-body:has(.meta-stats-page) > .card-viewer-backdrop .card-viewer { z-index: 501 !important; }
-body:has(.meta-stats-page) > .card-viewer-backdrop .viewer-flight-card { z-index: 502 !important; }
+body:has(.meta-stats-page) > .card-viewer-backdrop { z-index: 700 !important; }
+body:has(.meta-stats-page) > .card-viewer-backdrop .card-viewer { z-index: 701 !important; }
+body:has(.meta-stats-page) > .card-viewer-backdrop .viewer-nav { z-index: 702 !important; }
