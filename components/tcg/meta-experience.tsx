@@ -57,8 +57,10 @@ function MatchBreakdown({match,leaderOneName,leaderTwoName,t}:{match:MetaMatch;l
     return player?`${leader} (${player})`:leader;
   };
   const fallbackWinner=winnerLabel(match.winnerSide);
+  const winnerScore=match.winnerSide===1?match.scoreOne:match.scoreTwo;
+  const loserScore=match.winnerSide===1?match.scoreTwo:match.scoreOne;
   const fallbackText=match.seriesComplete&&fallbackWinner
-    ?`${fallbackWinner} ${match.bestOf===1?t('won the match','memenangkan pertandingan'):t('won the series','memenangkan seri')} ${match.scoreOne}–${match.scoreTwo}.`
+    ?`${fallbackWinner} ${match.bestOf===1||winnerScore<Math.ceil(match.bestOf/2)?t('won the match','memenangkan pertandingan'):t('won the series','memenangkan seri')} ${winnerScore}–${loserScore}.`
     :`${t('Series score','Skor seri')}: ${match.scoreOne}–${match.scoreTwo}.`;
   const renderText=(value:string)=>value.replace(/\*\*(.*?)\*\*/g,'$1').replace(/^[-*]\s+/,'').replace(/^\s*#{1,3}\s*/,'');
   const renderBody=(value:string)=>{
@@ -68,7 +70,7 @@ function MatchBreakdown({match,leaderOneName,leaderTwoName,t}:{match:MetaMatch;l
   };
   return <div className="meta-breakdown">
     <section className="meta-breakdown-overview"><h3>{t('Match overview','Ringkasan pertandingan')}</h3><p>{fallbackText}</p></section>
-    {games.map(game=>{const winner=winnerLabel(game.winnerSide);return <section key={game.number} className="meta-game-summary"><header><h3>{t('Game','Game')} {game.number}</h3><span className={winner?'has-game-winner':''}>{winner?`${t('Winner','Pemenang')}: ${winner}`:t('Winner not stated','Pemenang tidak disebut')}</span></header>{renderBody(game.text)}</section>;})}
+    {games.map(game=>{const winner=winnerLabel(game.winnerSide);const unfinished=/\b(?:unfinished|not completed|incomplete)\b/i.test(game.text);return <section key={game.number} className="meta-game-summary"><header><h3>{t('Game','Game')} {game.number}</h3><span className={winner?'has-game-winner':''}>{winner?`${t('Winner','Pemenang')}: ${winner}`:unfinished?t('Unfinished','Belum selesai'):t('Winner not stated','Pemenang tidak disebut')}</span></header>{renderBody(game.text)}</section>;})}
   </div>;
 }
 
