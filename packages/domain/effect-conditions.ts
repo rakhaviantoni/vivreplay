@@ -48,6 +48,8 @@ export function evaluateEffectCondition(text:string,state:MatchEffectState,actor
  if(poweredCharacterThreshold){const pool=poweredCharacterThreshold[1].toLowerCase()==='you have'?own:enemy;return pool.filter(card=>card.zone==='character'&&(card.power??0)>=Number(poweredCharacterThreshold[3])).length>=Number(poweredCharacterThreshold[2]);}
  const characterCountLimit=text.match(/^you have (\d+) or (less|more) Characters?$/i);
  if(characterCountLimit){const count=own.filter(card=>card.zone==='character').length,limit=Number(characterCountLimit[1]);return characterCountLimit[2].toLowerCase()==='less'?count<=limit:count>=limit;}
+ const notEnoughCostedCharacters=text.match(/^you do not have (\d+) Characters? with a cost of (\d+) or more$/i);
+ if(notEnoughCostedCharacters)return own.filter(card=>card.zone==='character'&&(card.cost??0)>=Number(notEnoughCostedCharacters[2])).length<Number(notEnoughCostedCharacters[1]);
  const boardPower=text.match(/^your opponent has a Leader or Character with a base power of (\d+) or more$/i);
  if(boardPower)return enemy.some(card=>(card.zone==='leader'||card.zone==='character')&&(card.power??0)>=Number(boardPower[1]));
  const anyCharacterPower=text.match(/^there is a Character with (\d+) base power or more$/i);
