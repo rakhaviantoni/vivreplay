@@ -113,11 +113,6 @@ const basePowerLimit=(text:string)=>{const match=text.match(/(\d+)\s+base power 
 function parseEffectText(source:string,cardCode=''):ParsedEffect[]{
  const text=source.replace(/^NULL$/i,'').replace(/−/g,'-').trim();
  if(!text)return [{trigger:'unknown',actions:[],costs:[],conditions:[],optional:false,source:''}];
- if(card.code==='OP16-039'){
-  const triggerIndex=text.search(/\[Trigger\]/i),mainText=triggerIndex>=0?text.slice(0,triggerIndex).trim():text;
-  const main=mainText.match(/^(\[Main\]\s*[\s\S]*?gains? \[Double Attack\] during this turn)\.\s+Then, if ([^,]+),\s*([\s\S]+)$/i);
-  if(main)return [...parseEffects({...card,effect:`${main[1]}.`}),...parseEffects({...card,effect:`[Main] If ${main[2]}, ${main[3]}`}),...(triggerIndex>=0?parseEffects({...card,effect:text.slice(triggerIndex)}):[])];
- }
  if(/^Under the rules of this game, you may have any number of this card in your deck\.?$/i.test(text))return [{trigger:'unknown',actions:[],costs:[],conditions:[],optional:false,source:text}];
  if(/This Leader can only be used in designated events according to the rules\./i.test(text)&&/This Leader is treated as a card with all card names, types, and attributes according to the rules\./i.test(text))return [{trigger:'continuous',actions:[],costs:[],conditions:[],optional:false,source:text}];
  const timingText=text.replace(/activate this card's \[(?:Main|Counter|On Play)\] effect/gi,'');
@@ -424,7 +419,7 @@ function parseEffectText(source:string,cardCode=''):ParsedEffect[]{
   actions.push(action);
  }
  if(/\badd this (?:Character )?card(?: from your trash)? to your hand\b/i.test(text))actions.push({kind:'return-source-to-hand'});
- if(/place this Character at the bottom of the owner's deck/i.test(text))actions.push({kind:'bottom-deck',scope:'self'});
+ if(/place this Character at the bottom of the owner's deck/i.test(text)&&!/(?:You may\s+)?place this Character at the bottom of the owner's deck\s*:/i.test(text))actions.push({kind:'bottom-deck',scope:'self'});
  if(!actions.length&&text.replace(/\[[^\]]+\]|\([^)]*\)|[\s.,:;]+/g,'').length)actions.push({kind:'custom-resolver',handler:'pending'});
  const searchIndex=actions.findIndex(action=>action.kind==='search');
  const handDiscardIndex=actions.findIndex(action=>action.kind==='trash'&&action.scope==='hand');
@@ -485,6 +480,11 @@ export function parseEffects(card:Card):ParsedEffect[]{
  // after the trigger fires.
  const passiveThenHandTrash=text.match(/^(This Character cannot attack\.)\s*\n\s*(When a card is trashed from your hand by an effect,[\s\S]+)$/i);
  if(passiveThenHandTrash)return [...parseEffects({...card,effect:passiveThenHandTrash[1]}),...parseEffects({...card,effect:passiveThenHandTrash[2]})];
+ if(card.code==='OP16-039'){
+  const triggerIndex=text.search(/\[Trigger\]/i),mainText=triggerIndex>=0?text.slice(0,triggerIndex).trim():text;
+  const main=mainText.match(/^(\[Main\]\s*[\s\S]*?gains? \[Double Attack\] during this turn)\.\s+Then, if ([^,]+),\s*([\s\S]+)$/i);
+  if(main)return [...parseEffects({...card,effect:`${main[1]}.`}),...parseEffects({...card,effect:`[Main] If ${main[2]}, ${main[3]}`}),...(triggerIndex>=0?parseEffects({...card,effect:text.slice(triggerIndex)}):[])];
+ }
  const thenConditional=card.code==='OP02-113'?text.match(/^([\s\S]*?\.)\s*Then,\s*if\s+([^,]+),\s*([\s\S]+)$/i):null;
  if(thenConditional){const timing=thenConditional[1].match(/^\s*(\[(?:On Play|When Attacking|Activate\s*:\s*Main|Main|Counter|Trigger|On K\.O\.|On Block)\])/i)?.[1]??'';return [...parseEffects({...card,effect:thenConditional[1].trim()}),...parseEffects({...card,effect:`${timing} If ${thenConditional[2]}, ${thenConditional[3]}`.trim()})];}
  const separateDonClause=text.match(/^(.*?\.\s+)\[DON!!\s*[x×]\s*\d+\]\s*(?=If\b|This Character\b|Your Turn\b|Opponent's Turn\b)([\s\S]+)$/i);

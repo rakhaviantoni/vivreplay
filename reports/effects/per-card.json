@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-05T09:40:49.963Z",
+  "generatedAt": "2026-10-05T09:53:20.088Z",
   "summary": {
     "source": "d1",
     "ruleset": {
@@ -10,16 +10,16 @@
     "cards": 2995,
     "missingPublished": 0,
     "textMismatches": 41,
-    "schemaMismatches": 101,
+    "schemaMismatches": 104,
     "scenarioCards": 2984,
-    "gameplayScenarioCards": 2486,
-    "actionOnlyCards": 498,
+    "gameplayScenarioCards": 2487,
+    "actionOnlyCards": 497,
     "publishedScenarioCards": 2987,
-    "publishedGameplayScenarioCards": 2486,
-    "publishedActionOnlyCards": 501,
+    "publishedGameplayScenarioCards": 2487,
+    "publishedActionOnlyCards": 500,
     "publishedActionScenarios": 4770,
-    "localFailures": 0,
-    "databaseFailures": 0,
+    "localFailures": 3,
+    "databaseFailures": 11,
     "untestedCards": 11,
     "publishedUntestedCards": 8,
     "databaseWrites": 0
@@ -80563,8 +80563,8 @@
       "localSchema": {
         "rawEffectText": "[When Attacking] This Character's base power becomes the same as your opponent's Leader during this turn.\n[On K.O.] If you have 2 or less Life cards, play up to 1 yellow Character card with 6000 power or less from your hand.",
         "parserVersion": "0.7.0",
-        "parseConfidence": 0.65,
-        "implementationStatus": "RAW",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
         "ast": [
           {
             "rawText": "[When Attacking] This Character's base power becomes the same as your opponent's Leader during this turn.",
@@ -80573,8 +80573,10 @@
             "costs": [],
             "actions": [
               {
-                "kind": "custom-resolver",
-                "handler": "EB04_052_WHEN_ATTACKING"
+                "kind": "copy-base-power",
+                "target": "own-character",
+                "from": "opponent-leader",
+                "until": "turn-end"
               }
             ]
           },
@@ -80610,8 +80612,10 @@
               {
                 "type": "RESOLVE",
                 "action": {
-                  "kind": "custom-resolver",
-                  "handler": "EB04_052_WHEN_ATTACKING"
+                  "kind": "copy-base-power",
+                  "target": "own-character",
+                  "from": "opponent-leader",
+                  "until": "turn-end"
                 }
               }
             ]
@@ -80642,8 +80646,7 @@
           }
         ],
         "resolver": {
-          "type": "CUSTOM",
-          "handler": "EB04_052_WHEN_ATTACKING"
+          "type": "DSL"
         }
       },
       "databaseSchema": {
@@ -113963,7 +113966,7 @@
       "publishedText": "[DON!! x1] [When Attacking] You may trash 1 card from your hand: Place up to 1 Character with a cost of 2 or less at the bottom of the owner's deck. Then, at the end of this battle, place this Character at the bottom of the owner's deck.",
       "published": true,
       "textMatches": true,
-      "schemaMatches": true,
+      "schemaMatches": false,
       "localScenarios": [
         {
           "name": "schema-hand-trash-cost when-attacking: choose 1 from hand (optional)",
@@ -113974,6 +113977,11 @@
           "name": "engine-action when-attacking bottom-deck: exercise action 1 independently (gate and sequence not covered)",
           "status": "PASS",
           "error": null
+        },
+        {
+          "name": "engine-action when-attacking bottom-deck: exercise action 3 independently (gate and sequence not covered)",
+          "status": "FAIL",
+          "error": "Parsed bottom-deck action did not resolve: Selected card is outside the printed effect target."
         }
       ],
       "databaseScenarios": [
@@ -113986,10 +113994,15 @@
           "name": "engine-action when-attacking bottom-deck: exercise action 1 independently (gate and sequence not covered)",
           "status": "PASS",
           "error": null
+        },
+        {
+          "name": "engine-action when-attacking bottom-deck: exercise action 3 independently (gate and sequence not covered)",
+          "status": "FAIL",
+          "error": "Published ability is missing or differs from the locally parsed action"
         }
       ],
       "gameplayScenarioCount": 1,
-      "actionExecutionScenarioCount": 1,
+      "actionExecutionScenarioCount": 2,
       "publishedActionExecutionScenarioCount": 1,
       "coverage": "BOUNDED_ENGINE_SCENARIO",
       "databaseCoverage": "BOUNDED_ENGINE_SCENARIO",
@@ -114026,6 +114039,10 @@
               {
                 "kind": "attach-don-required",
                 "amount": 1
+              },
+              {
+                "kind": "bottom-deck",
+                "scope": "self"
               }
             ]
           }
@@ -114056,6 +114073,13 @@
                     "min": 0,
                     "max": 1
                   }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "bottom-deck",
+                  "scope": "self"
                 }
               }
             ]
@@ -272555,12 +272579,17 @@
       "publishedText": "[On Play] Place up to 1 of your opponent's Characters at the bottom of the owner's deck. Then, if you do not have 5 Characters with a cost of 5 or more, place this Character at the bottom of the owner's deck.",
       "published": true,
       "textMatches": true,
-      "schemaMatches": true,
+      "schemaMatches": false,
       "localScenarios": [
         {
           "name": "engine-action on-play bottom-deck: exercise action 1 independently (gate and sequence not covered)",
           "status": "PASS",
           "error": null
+        },
+        {
+          "name": "engine-action on-play bottom-deck: exercise action 2 independently (gate and sequence not covered)",
+          "status": "FAIL",
+          "error": "Parsed bottom-deck action did not resolve: Selected card is outside the printed effect target."
         }
       ],
       "databaseScenarios": [
@@ -272568,10 +272597,15 @@
           "name": "engine-action on-play bottom-deck: exercise action 1 independently (gate and sequence not covered)",
           "status": "PASS",
           "error": null
+        },
+        {
+          "name": "engine-action on-play bottom-deck: exercise action 2 independently (gate and sequence not covered)",
+          "status": "FAIL",
+          "error": "Published ability is missing or differs from the locally parsed action"
         }
       ],
       "gameplayScenarioCount": 0,
-      "actionExecutionScenarioCount": 1,
+      "actionExecutionScenarioCount": 2,
       "publishedActionExecutionScenarioCount": 1,
       "coverage": "ACTION_EXECUTION_ONLY",
       "databaseCoverage": "ACTION_EXECUTION_ONLY",
@@ -272600,6 +272634,10 @@
                   "min": 0,
                   "max": 1
                 }
+              },
+              {
+                "kind": "bottom-deck",
+                "scope": "self"
               }
             ]
           }
@@ -272624,6 +272662,13 @@
                     "min": 0,
                     "max": 1
                   }
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "bottom-deck",
+                  "scope": "self"
                 }
               }
             ]
@@ -436222,6 +436267,11 @@
           "name": "schema-atomic-action on-play: isolated prevent-ready",
           "status": "PASS",
           "error": null
+        },
+        {
+          "name": "OP16-030 End of Turn readies only green Characters costing 5 or less",
+          "status": "PASS",
+          "error": null
         }
       ],
       "databaseScenarios": [
@@ -436239,9 +436289,14 @@
           "name": "schema-atomic-action on-play: isolated prevent-ready",
           "status": "PASS",
           "error": null
+        },
+        {
+          "name": "OP16-030 End of Turn readies only green Characters costing 5 or less",
+          "status": "FAIL",
+          "error": "The printed color and cost limits must be parsed"
         }
       ],
-      "gameplayScenarioCount": 2,
+      "gameplayScenarioCount": 3,
       "actionExecutionScenarioCount": 1,
       "publishedActionExecutionScenarioCount": 2,
       "coverage": "BOUNDED_ENGINE_SCENARIO",
@@ -436250,8 +436305,8 @@
       "localSchema": {
         "rawEffectText": "[On Play] Up to 1 of your opponent's rested Characters will not become active in your opponent's next Refresh Phase.\n\n[End of Your Turn] Set all of your green Characters with a cost of 5 or less as active.",
         "parserVersion": "0.7.0",
-        "parseConfidence": 0.65,
-        "implementationStatus": "REVIEWED",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
         "ast": [
           {
             "rawText": "[On Play] Up to 1 of your opponent's rested Characters will not become active in your opponent's next Refresh Phase.",
@@ -436278,8 +436333,9 @@
             "costs": [],
             "actions": [
               {
-                "kind": "custom-resolver",
-                "handler": "OP16_030_END_TURN"
+                "kind": "ready-all-characters",
+                "color": "green",
+                "maxCost": 5
               }
             ]
           }
@@ -436313,16 +436369,16 @@
               {
                 "type": "RESOLVE",
                 "action": {
-                  "kind": "custom-resolver",
-                  "handler": "OP16_030_END_TURN"
+                  "kind": "ready-all-characters",
+                  "color": "green",
+                  "maxCost": 5
                 }
               }
             ]
           }
         ],
         "resolver": {
-          "type": "CUSTOM",
-          "handler": "OP16_030_END_TURN"
+          "type": "DSL"
         }
       },
       "databaseSchema": {
@@ -437344,7 +437400,7 @@
       "publishedText": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 4 or less.\n\n[When Attacking] This Character's base power becomes the same as your opponent's Leader during this turn.",
       "published": true,
       "textMatches": true,
-      "schemaMatches": true,
+      "schemaMatches": false,
       "localScenarios": [
         {
           "name": "on-play: rest cost <= 4 / at-limit",
@@ -437388,6 +437444,11 @@
         },
         {
           "name": "On Play gameplay rest: verify the complete window and legal rest target",
+          "status": "PASS",
+          "error": null
+        },
+        {
+          "name": "OP16-036 On Play rest and When Attacking base-power copy resolve in their own windows",
           "status": "PASS",
           "error": null
         }
@@ -437437,9 +437498,14 @@
           "name": "On Play gameplay rest: verify the complete window and legal rest target",
           "status": "PASS",
           "error": null
+        },
+        {
+          "name": "OP16-036 On Play rest and When Attacking base-power copy resolve in their own windows",
+          "status": "FAIL",
+          "error": "Both effect windows must parse to executable actions"
         }
       ],
-      "gameplayScenarioCount": 8,
+      "gameplayScenarioCount": 9,
       "actionExecutionScenarioCount": 1,
       "publishedActionExecutionScenarioCount": 2,
       "coverage": "BOUNDED_ENGINE_SCENARIO",
@@ -437448,8 +437514,8 @@
       "localSchema": {
         "rawEffectText": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 4 or less.\n\n[When Attacking] This Character's base power becomes the same as your opponent's Leader during this turn.",
         "parserVersion": "0.7.0",
-        "parseConfidence": 0.65,
-        "implementationStatus": "REVIEWED",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
         "ast": [
           {
             "rawText": "[On Play] Rest up to 1 of your opponent's Characters with a cost of 4 or less.",
@@ -437475,8 +437541,10 @@
             "costs": [],
             "actions": [
               {
-                "kind": "custom-resolver",
-                "handler": "OP16_036_WHEN_ATTACKING"
+                "kind": "copy-base-power",
+                "target": "own-character",
+                "from": "opponent-leader",
+                "until": "turn-end"
               }
             ]
           }
@@ -437509,16 +437577,17 @@
               {
                 "type": "RESOLVE",
                 "action": {
-                  "kind": "custom-resolver",
-                  "handler": "OP16_036_WHEN_ATTACKING"
+                  "kind": "copy-base-power",
+                  "target": "own-character",
+                  "from": "opponent-leader",
+                  "until": "turn-end"
                 }
               }
             ]
           }
         ],
         "resolver": {
-          "type": "CUSTOM",
-          "handler": "OP16_036_WHEN_ATTACKING"
+          "type": "DSL"
         }
       },
       "databaseSchema": {
@@ -438024,21 +438093,56 @@
       "schemaMatches": false,
       "localScenarios": [
         {
+          "name": "engine-action main grant-keyword: resolve isolated parsed instruction",
+          "status": "PASS",
+          "error": null
+        },
+        {
           "name": "engine-action main rest: exercise action 1 independently (gate and sequence not covered)",
           "status": "PASS",
           "error": null
         },
         {
-          "name": "engine-action main grant-keyword: exercise action 2 independently (gate and sequence not covered)",
+          "name": "engine-action trigger rest: resolve isolated parsed instruction",
+          "status": "PASS",
+          "error": null
+        },
+        {
+          "name": "schema-atomic-action trigger: isolated rest",
+          "status": "PASS",
+          "error": null
+        },
+        {
+          "name": "Trigger gameplay rest: verify the complete window and legal rest target",
           "status": "PASS",
           "error": null
         }
       ],
       "databaseScenarios": [
         {
+          "name": "engine-action main grant-keyword: resolve isolated parsed instruction",
+          "status": "FAIL",
+          "error": "Published ability changed or dropped a printed condition"
+        },
+        {
           "name": "engine-action main rest: exercise action 1 independently (gate and sequence not covered)",
-          "status": "PASS",
-          "error": null
+          "status": "FAIL",
+          "error": "Ability 2 was missing from the published schema"
+        },
+        {
+          "name": "engine-action trigger rest: resolve isolated parsed instruction",
+          "status": "FAIL",
+          "error": "Published ability is missing or differs from the locally parsed action"
+        },
+        {
+          "name": "schema-atomic-action trigger: isolated rest",
+          "status": "FAIL",
+          "error": "Published atomic action differs from the printed-text parse"
+        },
+        {
+          "name": "Trigger gameplay rest: verify the complete window and legal rest target",
+          "status": "FAIL",
+          "error": "Published effect window differs from the complete locally parsed rest sequence"
         },
         {
           "name": "engine-action main grant-keyword: exercise action 2 independently (gate and sequence not covered)",
@@ -438046,20 +438150,33 @@
           "error": null
         }
       ],
-      "gameplayScenarioCount": 0,
-      "actionExecutionScenarioCount": 2,
+      "gameplayScenarioCount": 2,
+      "actionExecutionScenarioCount": 3,
       "publishedActionExecutionScenarioCount": 2,
-      "coverage": "ACTION_EXECUTION_ONLY",
-      "databaseCoverage": "ACTION_EXECUTION_ONLY",
+      "coverage": "BOUNDED_ENGINE_SCENARIO",
+      "databaseCoverage": "BOUNDED_ENGINE_SCENARIO",
       "browserVerified": false,
       "localSchema": {
         "rawEffectText": "[Main] Up to 1 of your [Monkey.D.Luffy] cards gains [Double Attack] during this turn. Then, if your Leader has the {Impel Down} type, rest up to 2 of your opponent's Characters with a cost or 3 or less.\n\n[Trigger] Rest your opponent's Leader.",
         "parserVersion": "0.7.0",
-        "parseConfidence": 0.65,
-        "implementationStatus": "REVIEWED",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
         "ast": [
           {
-            "rawText": "[Main] Up to 1 of your [Monkey.D.Luffy] cards gains [Double Attack] during this turn. Then, if your Leader has the {Impel Down} type, rest up to 2 of your opponent's Characters with a cost or 3 or less.",
+            "rawText": "[Main] Up to 1 of your [Monkey.D.Luffy] cards gains [Double Attack] during this turn.",
+            "trigger": "main",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "grant-keyword",
+                "keyword": "double-attack",
+                "until": "turn-end"
+              }
+            ]
+          },
+          {
+            "rawText": "[Main] If your Leader has the {Impel Down} type, rest up to 2 of your opponent's Characters with a cost or 3 or less.",
             "trigger": "main",
             "conditions": [
               {
@@ -438076,11 +438193,6 @@
                   "min": 0,
                   "max": 2
                 }
-              },
-              {
-                "kind": "grant-keyword",
-                "keyword": "double-attack",
-                "until": "turn-end"
               }
             ]
           },
@@ -438091,13 +438203,28 @@
             "costs": [],
             "actions": [
               {
-                "kind": "custom-resolver",
-                "handler": "OP16_039_TRIGGER"
+                "kind": "rest",
+                "scope": "opponent-leader"
               }
             ]
           }
         ],
         "normalized": [
+          {
+            "timing": "main",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "grant-keyword",
+                  "keyword": "double-attack",
+                  "until": "turn-end"
+                }
+              }
+            ]
+          },
           {
             "timing": "main",
             "optional": false,
@@ -438118,14 +438245,6 @@
                     "max": 2
                   }
                 }
-              },
-              {
-                "type": "RESOLVE",
-                "action": {
-                  "kind": "grant-keyword",
-                  "keyword": "double-attack",
-                  "until": "turn-end"
-                }
               }
             ]
           },
@@ -438137,16 +438256,15 @@
               {
                 "type": "RESOLVE",
                 "action": {
-                  "kind": "custom-resolver",
-                  "handler": "OP16_039_TRIGGER"
+                  "kind": "rest",
+                  "scope": "opponent-leader"
                 }
               }
             ]
           }
         ],
         "resolver": {
-          "type": "CUSTOM",
-          "handler": "OP16_039_TRIGGER"
+          "type": "DSL"
         }
       },
       "databaseSchema": {
@@ -500461,6 +500579,16 @@
           "name": "engine-action unknown blocker: resolve isolated parsed instruction",
           "status": "PASS",
           "error": null
+        },
+        {
+          "name": "engine-action on-play bottom-deck: exercise action 1 independently (gate and sequence not covered)",
+          "status": "FAIL",
+          "error": "Parsed bottom-deck action did not resolve: Selected card is outside the printed effect target."
+        },
+        {
+          "name": "P-098 bottoms itself only when fewer than five 5-cost Characters are present",
+          "status": "PASS",
+          "error": null
         }
       ],
       "databaseScenarios": [
@@ -500498,10 +500626,20 @@
           "name": "engine-action unknown blocker: resolve isolated parsed instruction",
           "status": "PASS",
           "error": null
+        },
+        {
+          "name": "engine-action on-play bottom-deck: exercise action 1 independently (gate and sequence not covered)",
+          "status": "FAIL",
+          "error": "Published ability is missing or differs from the locally parsed action"
+        },
+        {
+          "name": "P-098 bottoms itself only when fewer than five 5-cost Characters are present",
+          "status": "FAIL",
+          "error": "P-098 must check the qualifying Character count and move only itself"
         }
       ],
-      "gameplayScenarioCount": 6,
-      "actionExecutionScenarioCount": 1,
+      "gameplayScenarioCount": 7,
+      "actionExecutionScenarioCount": 2,
       "publishedActionExecutionScenarioCount": 1,
       "coverage": "BOUNDED_ENGINE_SCENARIO",
       "databaseCoverage": "BOUNDED_ENGINE_SCENARIO",
@@ -500509,8 +500647,8 @@
       "localSchema": {
         "rawEffectText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[On Play] If you do not have 5 Characters with a cost of 5 or more, place this Character at the bottom of the owner's deck.",
         "parserVersion": "0.7.0",
-        "parseConfidence": 0.65,
-        "implementationStatus": "REVIEWED",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
         "ast": [
           {
             "rawText": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)",
@@ -500535,8 +500673,8 @@
             "costs": [],
             "actions": [
               {
-                "kind": "custom-resolver",
-                "handler": "P_098_ON_PLAY"
+                "kind": "bottom-deck",
+                "scope": "self"
               }
             ]
           }
@@ -500568,16 +500706,15 @@
               {
                 "type": "RESOLVE",
                 "action": {
-                  "kind": "custom-resolver",
-                  "handler": "P_098_ON_PLAY"
+                  "kind": "bottom-deck",
+                  "scope": "self"
                 }
               }
             ]
           }
         ],
         "resolver": {
-          "type": "CUSTOM",
-          "handler": "P_098_ON_PLAY"
+          "type": "DSL"
         }
       },
       "databaseSchema": {
