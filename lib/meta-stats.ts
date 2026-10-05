@@ -31,6 +31,22 @@ function sideMentioned(text:string,match:MetaMatch):1|2|null{
   return one===two?null:one?1:2;
 }
 
+function sideClosestTo(text:string,position:number,match:MetaMatch):1|2|null{
+  const candidates:Array<{side:1|2;distance:number}>=[];
+  for(const side of [1,2] as const){
+    for(const alias of sideAliases(match,side)){
+      const pattern=alias.split(/[^a-z0-9']+/i).filter(Boolean).map(part=>part.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('[^a-z0-9]+');
+      for(const found of text.matchAll(new RegExp(`\\b${pattern}\\b`,'gi'))){
+        const start=found.index??0;
+        const end=start+found[0].length;
+        candidates.push({side,distance:position<start?start-position:position>end?position-end:0});
+      }
+    }
+  }
+  candidates.sort((a,b)=>a.distance-b.distance);
+  return candidates[0]&&candidates[1]?.distance!==candidates[0].distance?candidates[0].side:null;
+}
+
 function sideInLosingClause(text:string,match:MetaMatch):1|2|null{
   for(const side of [1,2] as const){
     for(const alias of sideAliases(match,side)){
@@ -42,12 +58,12 @@ function sideInLosingClause(text:string,match:MetaMatch):1|2|null{
 }
 
 function gameSections(summary:string){
-  const heading=String.raw`(?:#{1,3}\s*)?\*{0,2}Game\s+\d+\b\s*(?::|[—–-]|ends\b)`;
+  const heading=String.raw`(?:#{1,3}[ \t]*)?\*{0,2}Game\s+\d+\b[ \t]*(?::|[—–-]|(?:ends|repeats|is|begins|starts|opens)\b|(?=\r?\n))`;
   const normalized=summary.replace(/\r/g,'').replace(new RegExp(String.raw`\s+(?=${heading})`,'gi'),'\n\n');
   const parts=normalized.split(new RegExp(String.raw`(?=^\s*${heading})`,'gim'));
   return parts.flatMap(part=>{
-    const found=part.match(/^\s*(?:#{1,3}\s*)?\*{0,2}Game\s+(\d+)\b\*{0,2}\s*(?::|[—–-]|ends\b)?\s*([\s\S]*)$/i);
-    return found?[{number:Number(found[1]),text:found[2].trim()}]:[];
+    const found=part.match(/^\s*(?:#{1,3}[ \t]*)?\*{0,2}Game\s+(\d+)\b\*{0,2}[ \t]*(?::|[—–-]|(?:ends|repeats|is|begins|starts|opens)\b)?[ \t]*(?:\r?\n)?([\s\S]*)$/i);
+    return found?[{number:Number(found[1]),text:found[2].trim().replace(/(?:^|\n)[ \t]*#{1,3}[ \t]*$/,'')}]:[];
   });
 }
 
@@ -55,16 +71,25 @@ export function matchGames(match:MetaMatch):MatchGame[]{
   const sections=gameSections(match.summary);
   const games:MatchGame[]=sections.map(section=>{
     let winnerSide:1|2|null=null;
-    const sentences=section.text.split(/(?<=[.!?])\s+/);
+    const sentences=section.text.split(/(?<=[.!?;])\s+/);
     for(const sentence of sentences){
       const side=sideMentioned(sentence,match);
+      const winningAction=/\b(?:wins?|won)\s+(?:(?:on|the|a|game|match|series|set|title|decider|it)\b)|\b(?:takes?|took|claims?|claimed)\s+(?:the\s+)?(?:game|match|series|set|title|decider)\b|\b(?:closes?|closed)\s+(?:out\s+)?(?:the\s+)?(?:game|match|series|set|title|decider)\b|\b(?:advances?|advanced)\s+to\b/i.exec(sentence);
+      if(winningAction){
+        winnerSide=sideClosestTo(sentence,winningAction.index,match)??side;
+        if(winnerSide)break;
+      }
+      const concedeAction=/\b(?:concedes?|conceded|surrenders?|surrendered)\b/i.exec(sentence);
+      if(concedeAction){
+        const concedingSide=sideClosestTo(sentence,concedeAction.index,match)??side;
+        if(concedingSide){winnerSide=concedingSide===1?2:1;break;}
+      }
       const losingAction=/\b(?:can't|cannot|couldn't|could not|isn't able to|is unable to)\s+(?:counter|stop|defend|cover|survive|answer|match|block)\b/i.test(sentence);
       const losingSide=sideInLosingClause(sentence,match);
       if(losingSide&&losingAction){winnerSide=losingSide===1?2:1;break;}
       if(side&&losingAction){winnerSide=side===1?2:1;break;}
       if(!side)continue;
-      if(/\b(?:wins?|won|takes?|took|taking|claims?|claimed|closes?|closed|closing|advances?|advanced|winning)\b.{0,50}\b(?:game|it|match|series|decider|title)\b/i.test(sentence)||/\b(?:game|match|series|decider)\b.{0,40}\b(?:goes|went) to\b/i.test(sentence)){winnerSide=side;break;}
-      if(/\b(?:concedes?|conceded|surrenders?|surrendered)\b/i.test(sentence)){winnerSide=side===1?2:1;break;}
+      if(/\b(?:game|match|series|decider)\b.{0,40}\b(?:goes|went) to\b/i.test(sentence)){winnerSide=side;break;}
     }
     const startSentence=sentences.find(sentence=>/\b(?:go(?:es|ing)? (?:first|second)|went (?:first|second)|chooses? to go (?:first|second)|chooses? (?:first|second)|plays? (?:first|second)|starts? (?:first|second)|on the (?:play|draw))\b/i.test(sentence));
     const startSide=startSentence?sideMentioned(startSentence,match):null;

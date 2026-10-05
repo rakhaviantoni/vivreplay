@@ -221,6 +221,8 @@ html[data-theme='dark'] .meta-stats-page {
 .meta-matrix-cell b { font-size: 20px; line-height: 1.1; }
 .meta-matrix-cell.is-small-sample b { color: var(--meta-muted); }
 .meta-matrix-cell.is-mirror b { font-size: 11px; font-weight: 650; color: var(--meta-muted); }
+.meta-matrix-cell.is-mirror { background: repeating-linear-gradient(135deg, var(--meta-panel) 0 6px, var(--meta-surface) 6px 12px); }
+.meta-matrix-cell.is-mirror.is-small-sample { background: repeating-linear-gradient(135deg, var(--meta-panel) 0 6px, var(--meta-surface) 6px 12px); }
 .meta-matrix-cell span { font-size: 10px; }
 .meta-matrix-cell small { color: var(--meta-muted); font-size: 9px; }
 .meta-matrix-blank { display: grid; min-width: 83px; min-height: 74px; place-items: center; color: var(--meta-muted); background: var(--meta-surface); }
