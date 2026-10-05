@@ -4,9 +4,9 @@ import {sendMarketEmail} from '@/lib/server/market-notifications';
 const notificationStatuses=new Set(['picking_up','picked','in_transit','dropping_off','delivered','on_hold','rejected','cancelled','return_in_transit','returned','disposed','courier_not_found']);
 
 export async function POST(request:Request){
-  const secret=process.env.BITESHIP_WEBHOOK_SECRET?.trim()||process.env.BITESHIP_API_KEY?.trim();
+  const secret=process.env.BITESHIP_WEBHOOK_SECRET?.trim();
   if(!secret)return Response.json({error:'Webhook authentication is not configured.'},{status:503});
-  const supplied=request.headers.get('authorization')?.replace(/^Bearer\s+/i,'').trim()??'';
+  const supplied=request.headers.get('x-vivreplay-webhook-secret')?.trim()??'';
   const [providedHash,expectedHash]=await Promise.all([crypto.subtle.digest('SHA-256',new TextEncoder().encode(supplied)),crypto.subtle.digest('SHA-256',new TextEncoder().encode(secret))]);
   const left=new Uint8Array(providedHash);const right=new Uint8Array(expectedHash);let mismatch=0;for(let index=0;index<left.length;index++)mismatch|=left[index]^right[index];
   if(mismatch!==0)return Response.json({error:'Unauthorized.'},{status:401});
