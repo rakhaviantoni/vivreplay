@@ -302,6 +302,7 @@ html[data-theme='dark'] .meta-stats-page {
   .meta-leader-profile > .meta-card-trigger { width: 100px; }
   .meta-breakdown section { padding: 10px; }
 }
+@media (max-width: 430px) { .meta-view-tabs button svg { display: none; } }
 @media (max-width: 340px) {
   .meta-view-tabs button { gap: 4px; padding-inline: 7px; font-size: 10px; }
   .meta-period button { padding-inline: 7px; }
