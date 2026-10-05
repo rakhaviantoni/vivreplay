@@ -341,12 +341,12 @@ body:has(.meta-stats-page) > .card-viewer-backdrop .viewer-nav { z-index: 702 !i
 .meta-deck-card-grid .meta-card-trigger.has-printing-stack:hover .stacked-printing:nth-child(2), .meta-deck-card-grid .meta-card-trigger.has-printing-stack:focus-visible .stacked-printing:nth-child(2) { transform: translate(-1px,-9px) rotate(-.5deg); }
 .meta-deck-card-grid .meta-card-trigger.has-printing-stack:hover .stacked-printing:nth-child(3), .meta-deck-card-grid .meta-card-trigger.has-printing-stack:focus-visible .stacked-printing:nth-child(3) { transform: translate(1px,-12px) rotate(.5deg); }
 .meta-deck-card-grid .meta-card-trigger.has-printing-stack:hover .stacked-printing:nth-child(4), .meta-deck-card-grid .meta-card-trigger.has-printing-stack:focus-visible .stacked-printing:nth-child(4) { transform: translate(2px,-15px) rotate(1.4deg); }
-body:has(.meta-stats-page) > [data-slot='select-content'] { z-index: 650 !important; border-color: #dfd5c1; background: #fffaf0; color: #302e27; box-shadow: 0 14px 40px #3027192b; }
-body:has(.meta-stats-page) > [data-slot='select-content'] [data-slot='select-item'] { color: #302e27; }
-body:has(.meta-stats-page) > [data-slot='select-content'] [data-slot='select-item'][data-highlighted] { background: #f5efdf; color: #302e27; }
-html[data-theme='dark'] body:has(.meta-stats-page) > [data-slot='select-content'] { border-color: #34505a; background: #11252e; color: #edf1e9; box-shadow: 0 14px 40px #0008; }
-html[data-theme='dark'] body:has(.meta-stats-page) > [data-slot='select-content'] [data-slot='select-item'] { color: #edf1e9; }
-html[data-theme='dark'] body:has(.meta-stats-page) > [data-slot='select-content'] [data-slot='select-item'][data-highlighted] { background: #182e37; color: #edf1e9; }
+body:has(.meta-stats-page) [data-slot='select-content'] { z-index: 650 !important; border-color: #dfd5c1; background: #fffaf0; color: #302e27; box-shadow: 0 14px 40px #3027192b; }
+body:has(.meta-stats-page) [data-slot='select-content'] [data-slot='select-item'] { color: #302e27; }
+body:has(.meta-stats-page) [data-slot='select-content'] [data-slot='select-item'][data-highlighted] { background: #f5efdf; color: #302e27; }
+html[data-theme='dark'] body:has(.meta-stats-page) [data-slot='select-content'] { border-color: #34505a; background: #11252e; color: #edf1e9; box-shadow: 0 14px 40px #0008; }
+html[data-theme='dark'] body:has(.meta-stats-page) [data-slot='select-content'] [data-slot='select-item'] { color: #edf1e9; }
+html[data-theme='dark'] body:has(.meta-stats-page) [data-slot='select-content'] [data-slot='select-item'][data-highlighted] { background: #182e37; color: #edf1e9; }
 html[data-theme='dark'] .meta-leader-options { border-color: #34505a !important; background: #11252e !important; color: #edf1e9 !important; box-shadow: 0 14px 40px #0008 !important; }
 html[data-theme='dark'] .meta-leader-options [data-slot='command'], html[data-theme='dark'] .meta-leader-options [data-slot='command-item'] { background: #11252e; color: #edf1e9; }
 html[data-theme='dark'] .meta-leader-options [data-slot='command-input'] { color: #edf1e9; }
