@@ -68,7 +68,7 @@ html[data-theme='dark'] .meta-stats-page {
 .meta-sample-line { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 5px 16px; padding: 14px 0 5px; color: var(--meta-muted); font-size: 11px; line-height: 1.6; }
 .meta-section-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin: 22px 0 12px; }
 .meta-section-heading h2 { margin: 0; font-size: 15px; font-weight: 750; line-height: 1.4; letter-spacing: -.015em; }
-.meta-section-heading h2 > i { font-weight: 400; var(--meta-muted); font-size: 11px; line-height: 1.6; }
+.meta-section-heading h2 > i { font-weight: 400; color: var(--meta-muted); font-size: 11px; line-height: 1.6; }
 .meta-section-heading p, .meta-section-heading > span, .meta-subtle { margin: 5px 0 0; color: var(--meta-muted); font-size: 11px; line-height: 1.6; }
 .meta-section-heading label { display: flex; align-items: center; gap: 8px; color: var(--meta-muted); font-size: 11px; }
 .meta-section-heading a { display: inline-flex; align-items: center; gap: 6px; color: var(--meta-accent); font-size: 12px; text-decoration: none; }
