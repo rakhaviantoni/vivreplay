@@ -74,7 +74,7 @@ export function matchGames(match:MetaMatch):MatchGame[]{
     const sentences=section.text.split(/(?<=[.!?;])\s+/);
     for(const sentence of sentences){
       const side=sideMentioned(sentence,match);
-      const winningAction=/\b(?:wins?|won)\s+(?:(?:the|this)\s+)?(?:game|match|series|set|title|decider|round|battle)\b|\b(?:wins?|won)\s+(?:on|through|by|after|in)\b|\b(?:takes?|took|claims?|claimed)\s+(?:the\s+)?(?:game|match|series|set|title|decider)\b|\b(?:closes?|closed)\s+(?:out\s+)?(?:the\s+)?(?:game|match|series|set|title|decider)\b|\b(?:advances?|advanced)\s+to\b/i.exec(sentence);
+      const winningAction=/\b(?:wins?|won)\s+(?:(?:the|this)\s+)?(?:(?:deciding|final|first|second|last|opening)\s+)?(?:game|match|series|set|title|decider|round|battle)\b|\b(?:wins?|won)\s+(?:on|through|by|after|in|with|via|using)\b|\b(?:wins?|won)[.!?]?$|\b(?:takes?|took|claims?|claimed)\s+(?:the\s+)?(?:(?:deciding|final|first|second|last|opening)\s+)?(?:game|match|series|set|title|decider)\b|\b(?:closes?|closed)\s+(?:(?:out|with|on)\s+)?(?:(?:the|a)\s+)?(?:(?:deciding|final|last)\s+)?(?:game|match|series|set|title|decider)\b|\b(?:closes?|closed)\s+(?:with|by)\s+.{0,60}\b(?:attacks?|lethal|the win)\b|\b(?:advances?|advanced)\s+to\b|\bwinning\s+(?:the\s+)?(?:game|match|series|semifinal|final|title|decider)\b/i.exec(sentence);
       if(winningAction){
         winnerSide=sideClosestTo(sentence,winningAction.index,match)??side;
         if(winnerSide)break;
