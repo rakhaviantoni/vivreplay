@@ -1,0 +1,7 @@
+-- Complete the published Top 16 Mihawk lists from SangSang Mexico Regionals.
+-- Quantities and card identities are taken from the linked OnePieceDB deck pages.
+INSERT INTO `tournament_deck_cards` (`finish_id`,`card_code`,`quantity`) VALUES
+('sang-2026-13','ST32-001',4),('sang-2026-13','OP12-034',4),('sang-2026-13','ST32-005',2),('sang-2026-13','OP07-022',2),('sang-2026-13','OP06-033',3),('sang-2026-13','OP12-023',4),('sang-2026-13','ST32-002',4),('sang-2026-13','OP14-033',2),('sang-2026-13','OP17-031',4),('sang-2026-13','ST32-003',2),('sang-2026-13','OP13-031',3),('sang-2026-13','OP17-022',3),('sang-2026-13','ST24-004',1),('sang-2026-13','OP14-038',2),('sang-2026-13','OP06-038',4),('sang-2026-13','OP01-055',2),('sang-2026-13','OP08-036',2),('sang-2026-13','OP14-039',2),
+('sang-2026-14','ST32-001',4),('sang-2026-14','OP12-034',4),('sang-2026-14','OP07-022',4),('sang-2026-14','OP06-033',4),('sang-2026-14','OP07-026',2),('sang-2026-14','OP12-023',4),('sang-2026-14','ST32-002',4),('sang-2026-14','OP17-031',4),('sang-2026-14','OP13-031',4),('sang-2026-14','OP17-022',4),('sang-2026-14','OP14-037',1),('sang-2026-14','OP13-040',1),('sang-2026-14','OP06-038',3),('sang-2026-14','OP01-055',3),('sang-2026-14','OP08-036',2),('sang-2026-14','OP14-039',2);
+--> statement-breakpoint
+UPDATE `tournament_finishes` SET `list_status`='VERIFIED',`list_verified_at`=CURRENT_TIMESTAMP WHERE `id` IN ('sang-2026-13','sang-2026-14');
