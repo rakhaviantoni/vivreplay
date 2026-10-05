@@ -133,13 +133,6 @@ function parseEffectText(source:string,cardCode=''):ParsedEffect[]{
  const handCounter=text.match(/^All (?:of )?(Character) cards? in your hand without a Counter have a \+(\d+) Counter\.?$/i);if(handCounter)actions.push({kind:'hand-counter',cardType:'Character',amount:Number(handCounter[2]),onlyWithoutCounter:true});
  const revealedOptionalPlay=/you may play that card/i.test(text)&&/If that card is/i.test(text)&&/If you do/i.test(text);
  for(const match of text.matchAll(/\bIf\s+([^,:]+)(?:[:,])/gi))if(!(/you have \d+ or more cards in your trash/i.test(match[1])&&/instead of a Character/i.test(text))&&!(revealedOptionalPlay&&/^(?:that card is |you do$)/i.test(match[1].trim()))&&!/^the revealed card is an Event$/i.test(match[1].trim())&&!/^the chosen Character has a cost equal to the number of DON!! cards given to it$/i.test(match[1].trim())&&!/^the selected Character attacks during this turn$/i.test(match[1].trim()))conditions.push({kind:'text',text:match[1].trim()});
- // Kin'emon places an activation gate before a delayed "next time" instruction.
- if(/next time you play (?:a )?(?:\{[^}]+\}|\[[^\]]+\]) type Character card/i.test(text)){
- const gate=text.match(/\bIf\s+([^,:]+?)(?=,?\s+the next time you play\b)/i);
-  if(gate){conditions.length=0;conditions.push({kind:'text',text:gate[1].trim()});}
-  const delayedCost=text.match(/next time you play (?:a )?(?:\{([^}]+)\}|\[([^\]]+)\]) type Character card with a cost of (\d+) or more from your hand during this turn, the cost will be reduced by (\d+)/i);
-  if(delayedCost)actions.push({kind:'cost-reduction',trait:delayedCost[1]??delayedCost[2],cardType:'Character',minimumCost:Number(delayedCost[3]),amount:Number(delayedCost[4]),nextOnly:true});
- }
  if(/^\[Opponent's Turn\]/i.test(timingPrefix))conditions.push({kind:'text',text:"it is your opponent's turn"});
  if(/^\[Your Turn\]/i.test(timingPrefix))conditions.push({kind:'text',text:'it is your turn'});
  const drawMatch=text.match(/\bdraw\s+(a|one|\d+)\s+cards?\b/i);const draw=drawMatch?(/^(?:a|one)$/i.test(drawMatch[1])?1:Number(drawMatch[1])):0;if(draw)actions.push({kind:'draw',amount:draw});
@@ -425,7 +418,6 @@ function parseEffectText(source:string,cardCode=''):ParsedEffect[]{
   actions.push(action);
  }
  if(/\badd this (?:Character )?card(?: from your trash)? to your hand\b/i.test(text))actions.push({kind:'return-source-to-hand'});
- if(cardCode==='OP02-025'){const oneShot=actions.find((action):action is Extract<EffectAction,{kind:'cost-reduction'}>=>action.kind==='cost-reduction'&&action.nextOnly===true);if(oneShot){actions.length=0;actions.push({kind:'custom-resolver',handler:'pending',instructions:[oneShot]});}}
  if(!actions.length&&text.replace(/\[[^\]]+\]|\([^)]*\)|[\s.,:;]+/g,'').length)actions.push({kind:'custom-resolver',handler:'pending'});
  const searchIndex=actions.findIndex(action=>action.kind==='search');
  const handDiscardIndex=actions.findIndex(action=>action.kind==='trash'&&action.scope==='hand');
@@ -481,7 +473,11 @@ export function parseEffects(card:Card):ParsedEffect[]{
  if(!text)return [{trigger:'unknown',actions:[],costs:[],conditions:[],optional:false,source:''}];
  const separateConditionalParagraph=text.match(/^([\s\S]*?[.!])\s*\n\s*(?=If\b)([\s\S]+)$/i);
  if(separateConditionalParagraph)return [...parseEffects({...card,effect:separateConditionalParagraph[1].trim()}),...parseEffects({...card,effect:separateConditionalParagraph[2].trim()})];
- if(card.code==='OP02-025')return parseEffectText(text,card.code);
+ // A passive restriction and a hand-trash listener are separate abilities.
+ // Keeping them in one hand-trash window would make the passive apply only
+ // after the trigger fires.
+ const passiveThenHandTrash=text.match(/^(This Character cannot attack\.)\s*\n\s*(When a card is trashed from your hand by an effect,[\s\S]+)$/i);
+ if(passiveThenHandTrash)return [...parseEffects({...card,effect:passiveThenHandTrash[1]}),...parseEffects({...card,effect:passiveThenHandTrash[2]})];
  const thenConditional=card.code==='OP02-113'?text.match(/^([\s\S]*?\.)\s*Then,\s*if\s+([^,]+),\s*([\s\S]+)$/i):null;
  if(thenConditional){const timing=thenConditional[1].match(/^\s*(\[(?:On Play|When Attacking|Activate\s*:\s*Main|Main|Counter|Trigger|On K\.O\.|On Block)\])/i)?.[1]??'';return [...parseEffects({...card,effect:thenConditional[1].trim()}),...parseEffects({...card,effect:`${timing} If ${thenConditional[2]}, ${thenConditional[3]}`.trim()})];}
  const separateDonClause=text.match(/^(.*?\.\s+)\[DON!!\s*[x×]\s*\d+\]\s*(?=If\b|This Character\b|Your Turn\b|Opponent's Turn\b)([\s\S]+)$/i);

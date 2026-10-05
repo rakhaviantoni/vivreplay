@@ -48,7 +48,6 @@ const definitions:CustomEffectDefinition[]=[
  tested('P_098_ON_PLAY','on-play',[{kind:'apply',instruction:'If own field has fewer than five Characters with cost 5 or greater, place this Character on deck bottom'}]),
  tested('P_067_UNKNOWN','unknown',[{kind:'apply',instruction:'While this Character is rested, opponent attacks must target this Character'}]),
 
- tested('OP02_025_ACTIVATE_MAIN','activate-main',[{kind:'apply',instruction:'If you control one or fewer Characters, reduce the next eligible Land of Wano Character costing 3 or more played from hand this turn by 1.'}]),
  implemented('OP08_001_ACTIVATE_MAIN','activate-main','Give up to three eligible Animal or Drum Kingdom Characters one rested DON!! each.'),
  implemented('OP09_064_ON_PLAY','on-play','After optional DON!!-1 return cost, set one Kid Pirates Leader active.'),
  implemented('OP09_009_ON_PLAY','on-play','Trash up to one opponent Character with power 6000 or less.'),

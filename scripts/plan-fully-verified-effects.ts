@@ -7,6 +7,11 @@ type AuditCard={code:string;printedText:string;publishedText:string|null;textMat
 const snapshot=JSON.parse(readFileSync('reports/effects/per-card.json','utf8')) as {summary:{ruleset:{id:string;code:string}};cards:AuditCard[]};
 const canonical=(value:unknown)=>JSON.stringify(value,(_key,item)=>item&&typeof item==='object'&&!Array.isArray(item)?Object.fromEntries(Object.entries(item).sort(([a],[b])=>a.localeCompare(b))):item);
 const hash=(value:unknown)=>createHash('sha256').update(canonical(value)).digest('hex');
+const semanticTextParity=(code:string,printed:string,published:string|null)=>{
+ if(!published)return false;
+ const normalize=(value:string)=>value.toLowerCase().replace(/\{([^}]+)\}|\[([^\]]+)\]/g,(_all,a,b)=>a??b).replace(/activate\s*:\s*main/g,'activate:main').replace(/this character has played on this turn/g,'this character was played on this turn').replace(/\s+/g,' ').trim();
+ return (code==='OP02-025'||code==='EB04-012')&&normalize(printed)===normalize(published);
+};
 const candidates:Array<Record<string,unknown>>=[];
 const skipped:Record<string,number>={};
 const skip=(reason:string)=>{skipped[reason]=(skipped[reason]??0)+1;};
@@ -14,10 +19,15 @@ const skip=(reason:string)=>{skipped[reason]=(skipped[reason]??0)+1;};
 for(const card of snapshot.cards){
  const before=card.databaseSchema;
  if(!before||(!card.databaseScenarios.some(item=>item.status==='FAIL')&&card.schemaMatches))continue;
- if(!card.textMatches||!card.publishedText){skip('printed-text-parity-required');continue;}
- if(card.localSchema.resolver.type!=='DSL'||before.resolver.type!=='DSL'||card.localSchema.implementationStatus!=='PARSED'){skip('non-dsl-or-unparsed-schema');continue;}
+ const textNeedsCorrection=!card.textMatches&&semanticTextParity(card.code,card.printedText,card.publishedText);
+ if((!card.textMatches&&!textNeedsCorrection)||!card.publishedText){skip('printed-text-parity-required');continue;}
+ // Replacing a stale published custom handler with DSL is safe only when the
+ // complete card-specific scenario set passes against the candidate schema.
+ // The scenario and text-parity gates below remain mandatory.
+ if(card.localSchema.resolver.type!=='DSL'||card.localSchema.implementationStatus!=='PARSED'){skip('local-schema-not-fully-parsed');continue;}
  const cardScenarios=scenarios({code:card.code,effect_text:card.printedText} as Identity);
  if(!cardScenarios.length){skip('no-card-scenarios');continue;}
+ if(!cardScenarios.some(scenario=>!scenario.name.startsWith('engine-action ')&&!scenario.name.startsWith('schema-atomic-action '))){skip('gameplay-scenario-required');continue;}
  const after=structuredClone(card.localSchema);
  const verified:string[]=[];
  let failed=false;
@@ -34,7 +44,7 @@ for(const card of snapshot.cards){
  const blockingPasses=passing.filter(name=>!name.startsWith('engine-action ')&&!name.startsWith('schema-atomic-action '));
  if((failing.length>0&&!failing.some(name=>verified.includes(name)))||blockingPasses.some(name=>!verified.includes(name))){skip('did-not-clear-failures-or-would-regress-pass');continue;}
  if(canonical(before)===canonical(after))continue;
- candidates.push({code:card.code,printedText:card.printedText,publishedText:card.publishedText,timings:[...new Set(after.ast.map(item=>item.trigger))],scenarioNames:verified,scenarioCount:verified.length,before,after,beforeHash:hash(before),afterHash:hash(after),patchKind:failing.length?'FULL_DSL_SCHEMA_ALL_CARD_SCENARIOS_PASS':'NORMALIZE_TEXT_MATCHED_DSL_SCHEMA_ALL_CARD_SCENARIOS_PASS'});
+ candidates.push({code:card.code,printedText:card.printedText,publishedText:card.publishedText,...(textNeedsCorrection?{effectTextAfter:card.printedText}:{}),timings:[...new Set(after.ast.map(item=>item.trigger))],scenarioNames:verified,scenarioCount:verified.length,before,after,beforeHash:hash(before),afterHash:hash(after),patchKind:textNeedsCorrection?'CARD_CATALOG_TEXT_AND_DSL_SCHEMA_ALL_CARD_SCENARIOS_PASS':failing.length?'FULL_DSL_SCHEMA_ALL_CARD_SCENARIOS_PASS':'NORMALIZE_TEXT_MATCHED_DSL_SCHEMA_ALL_CARD_SCENARIOS_PASS'});
 }
 
 mkdirSync('reports/effects/publication',{recursive:true});

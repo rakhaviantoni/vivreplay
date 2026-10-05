@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-05T09:33:22.897Z",
+  "generatedAt": "2026-10-05T09:40:49.963Z",
   "summary": {
     "source": "d1",
     "ruleset": {
@@ -9,17 +9,17 @@
     },
     "cards": 2995,
     "missingPublished": 0,
-    "textMismatches": 43,
-    "schemaMismatches": 110,
+    "textMismatches": 41,
+    "schemaMismatches": 101,
     "scenarioCards": 2984,
     "gameplayScenarioCards": 2486,
     "actionOnlyCards": 498,
     "publishedScenarioCards": 2987,
     "publishedGameplayScenarioCards": 2486,
     "publishedActionOnlyCards": 501,
-    "publishedActionScenarios": 4768,
+    "publishedActionScenarios": 4770,
     "localFailures": 0,
-    "databaseFailures": 8,
+    "databaseFailures": 0,
     "untestedCards": 11,
     "publishedUntestedCards": 8,
     "databaseWrites": 0
@@ -70853,10 +70853,10 @@
       "code": "EB04-012",
       "name": "Kikunojo",
       "printedText": "[Activate: Main] [Once Per Turn] If this Character was played on this turn, set your {Land of Wano} type Leader as active.",
-      "publishedText": "[Activate:Main] [Once Per Turn] If this Character has played on this turn, set your {Land of Wano} type Leader as active.",
+      "publishedText": "[Activate: Main] [Once Per Turn] If this Character was played on this turn, set your {Land of Wano} type Leader as active.",
       "published": true,
-      "textMatches": false,
-      "schemaMatches": false,
+      "textMatches": true,
+      "schemaMatches": true,
       "localScenarios": [
         {
           "name": "engine-action activate-main ready: exercise action 1 independently (gate and sequence not covered)",
@@ -70872,18 +70872,18 @@
       "databaseScenarios": [
         {
           "name": "engine-action activate-main ready: exercise action 1 independently (gate and sequence not covered)",
-          "status": "FAIL",
-          "error": "Published ability changed or dropped a printed condition"
+          "status": "PASS",
+          "error": null
         },
         {
           "name": "EB04-012 readies only a Land of Wano Leader and only if this Character was played this turn",
-          "status": "FAIL",
-          "error": "Kikunojo must check its play turn and target a Land of Wano Leader"
+          "status": "PASS",
+          "error": null
         }
       ],
       "gameplayScenarioCount": 1,
       "actionExecutionScenarioCount": 1,
-      "publishedActionExecutionScenarioCount": 0,
+      "publishedActionExecutionScenarioCount": 1,
       "coverage": "BOUNDED_ENGINE_SCENARIO",
       "databaseCoverage": "BOUNDED_ENGINE_SCENARIO",
       "browserVerified": false,
@@ -70939,54 +70939,55 @@
         }
       },
       "databaseSchema": {
+        "rawEffectText": "[Activate: Main] [Once Per Turn] If this Character was played on this turn, set your {Land of Wano} type Leader as active.",
+        "parserVersion": "0.7.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
         "ast": [
           {
-            "costs": [],
-            "actions": [
-              {
-                "kind": "custom-resolver",
-                "handler": "EB04_012_ACTIVATE_MAIN"
-              }
-            ],
-            "rawText": "[Activate:Main] [Once Per Turn] If this Character has played on this turn, set your {Land of Wano} type Leader as active.",
+            "rawText": "[Activate: Main] [Once Per Turn] If this Character was played on this turn, set your {Land of Wano} type Leader as active.",
             "trigger": "activate-main",
             "conditions": [
               {
                 "kind": "text",
-                "text": "this Character has played on this turn"
+                "text": "this Character was played on this turn"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready",
+                "scope": "own-leader",
+                "trait": "Land of Wano"
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "this Character was played on this turn"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready",
+                  "scope": "own-leader",
+                  "trait": "Land of Wano"
+                }
               }
             ]
           }
         ],
         "resolver": {
-          "type": "CUSTOM",
-          "handler": "EB04_012_ACTIVATE_MAIN"
-        },
-        "normalized": [
-          {
-            "timing": "activate-main",
-            "optional": false,
-            "sequence": [
-              {
-                "type": "RESOLVE",
-                "action": {
-                  "kind": "custom-resolver",
-                  "handler": "EB04_012_ACTIVATE_MAIN"
-                }
-              }
-            ],
-            "conditions": [
-              {
-                "kind": "text",
-                "text": "this Character has played on this turn"
-              }
-            ]
-          }
-        ],
-        "parserVersion": "0.4.0",
-        "rawEffectText": "[Activate:Main] [Once Per Turn] If this Character has played on this turn, set your {Land of Wano} type Leader as active.",
-        "parseConfidence": 0.65,
-        "implementationStatus": "IMPLEMENTED"
+          "type": "DSL"
+        }
       }
     },
     {
@@ -107603,11 +107604,16 @@
       "code": "OP02-025",
       "name": "Kin'emon",
       "printedText": "[Activate: Main] [Once Per Turn] If you have 1 or less Characters, the next time you play a {Land of Wano} type Character card with a cost of 3 or more from your hand during this turn, the cost will be reduced by 1.",
-      "publishedText": "[Activate:Main] [Once Per Turn] If you have 1 or less Characters, the next time you play a [Land of Wano] type Character card with a cost of 3 or more from your hand during this turn, the cost will be reduced by 1.",
+      "publishedText": "[Activate: Main] [Once Per Turn] If you have 1 or less Characters, the next time you play a {Land of Wano} type Character card with a cost of 3 or more from your hand during this turn, the cost will be reduced by 1.",
       "published": true,
-      "textMatches": false,
-      "schemaMatches": false,
+      "textMatches": true,
+      "schemaMatches": true,
       "localScenarios": [
+        {
+          "name": "engine-action activate-main cost-reduction: exercise action 1 independently (gate and sequence not covered)",
+          "status": "PASS",
+          "error": null
+        },
         {
           "name": "OP02-025 reduces exactly the next qualifying Land of Wano Character played from hand",
           "status": "PASS",
@@ -107616,22 +107622,27 @@
       ],
       "databaseScenarios": [
         {
+          "name": "engine-action activate-main cost-reduction: exercise action 1 independently (gate and sequence not covered)",
+          "status": "PASS",
+          "error": null
+        },
+        {
           "name": "OP02-025 reduces exactly the next qualifying Land of Wano Character played from hand",
-          "status": "FAIL",
-          "error": "Kin’emon must encode a one-shot reduction for a 3+ cost Land of Wano Character from hand"
+          "status": "PASS",
+          "error": null
         }
       ],
       "gameplayScenarioCount": 1,
-      "actionExecutionScenarioCount": 0,
-      "publishedActionExecutionScenarioCount": 0,
+      "actionExecutionScenarioCount": 1,
+      "publishedActionExecutionScenarioCount": 1,
       "coverage": "BOUNDED_ENGINE_SCENARIO",
       "databaseCoverage": "BOUNDED_ENGINE_SCENARIO",
       "browserVerified": false,
       "localSchema": {
         "rawEffectText": "[Activate: Main] [Once Per Turn] If you have 1 or less Characters, the next time you play a {Land of Wano} type Character card with a cost of 3 or more from your hand during this turn, the cost will be reduced by 1.",
         "parserVersion": "0.7.0",
-        "parseConfidence": 0.65,
-        "implementationStatus": "REVIEWED",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
         "ast": [
           {
             "rawText": "[Activate: Main] [Once Per Turn] If you have 1 or less Characters, the next time you play a {Land of Wano} type Character card with a cost of 3 or more from your hand during this turn, the cost will be reduced by 1.",
@@ -107645,18 +107656,12 @@
             "costs": [],
             "actions": [
               {
-                "kind": "custom-resolver",
-                "handler": "OP02_025_ACTIVATE_MAIN",
-                "instructions": [
-                  {
-                    "kind": "cost-reduction",
-                    "trait": "Land of Wano",
-                    "cardType": "Character",
-                    "minimumCost": 3,
-                    "amount": 1,
-                    "nextOnly": true
-                  }
-                ]
+                "kind": "cost-reduction",
+                "trait": "Land of Wano",
+                "cardType": "Character",
+                "minimumCost": 3,
+                "amount": 1,
+                "nextOnly": true
               }
             ]
           }
@@ -107675,77 +107680,77 @@
               {
                 "type": "RESOLVE",
                 "action": {
-                  "kind": "custom-resolver",
-                  "handler": "OP02_025_ACTIVATE_MAIN",
-                  "instructions": [
-                    {
-                      "kind": "cost-reduction",
-                      "trait": "Land of Wano",
-                      "cardType": "Character",
-                      "minimumCost": 3,
-                      "amount": 1,
-                      "nextOnly": true
-                    }
-                  ]
+                  "kind": "cost-reduction",
+                  "trait": "Land of Wano",
+                  "cardType": "Character",
+                  "minimumCost": 3,
+                  "amount": 1,
+                  "nextOnly": true
                 }
               }
             ]
           }
         ],
         "resolver": {
-          "type": "CUSTOM",
-          "handler": "OP02_025_ACTIVATE_MAIN"
+          "type": "DSL"
         }
       },
       "databaseSchema": {
+        "rawEffectText": "[Activate: Main] [Once Per Turn] If you have 1 or less Characters, the next time you play a {Land of Wano} type Character card with a cost of 3 or more from your hand during this turn, the cost will be reduced by 1.",
+        "parserVersion": "0.7.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
         "ast": [
           {
-            "costs": [],
-            "actions": [
-              {
-                "kind": "custom-resolver",
-                "handler": "OP02_025_ACTIVATE_MAIN"
-              }
-            ],
-            "rawText": "[Activate:Main] [Once Per Turn] If you have 1 or less Characters, the next time you play a [Land of Wano] type Character card with a cost of 3 or more from your hand during this turn, the cost will be reduced by 1.",
+            "rawText": "[Activate: Main] [Once Per Turn] If you have 1 or less Characters, the next time you play a {Land of Wano} type Character card with a cost of 3 or more from your hand during this turn, the cost will be reduced by 1.",
             "trigger": "activate-main",
             "conditions": [
               {
                 "kind": "text",
-                "text": "you have 1 or less Characters, the next time you play a [Land of Wano] type Character card with a cost of 3 or more from your hand during this turn"
+                "text": "you have 1 or less Characters"
+              }
+            ],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "cost-reduction",
+                "trait": "Land of Wano",
+                "cardType": "Character",
+                "minimumCost": 3,
+                "amount": 1,
+                "nextOnly": true
+              }
+            ]
+          }
+        ],
+        "normalized": [
+          {
+            "timing": "activate-main",
+            "optional": false,
+            "conditions": [
+              {
+                "kind": "text",
+                "text": "you have 1 or less Characters"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "cost-reduction",
+                  "trait": "Land of Wano",
+                  "cardType": "Character",
+                  "minimumCost": 3,
+                  "amount": 1,
+                  "nextOnly": true
+                }
               }
             ]
           }
         ],
         "resolver": {
-          "type": "CUSTOM",
-          "handler": "OP02_025_ACTIVATE_MAIN"
-        },
-        "normalized": [
-          {
-            "timing": "activate-main",
-            "optional": false,
-            "sequence": [
-              {
-                "type": "RESOLVE",
-                "action": {
-                  "kind": "custom-resolver",
-                  "handler": "OP02_025_ACTIVATE_MAIN"
-                }
-              }
-            ],
-            "conditions": [
-              {
-                "kind": "text",
-                "text": "you have 1 or less Characters, the next time you play a [Land of Wano] type Character card with a cost of 3 or more from your hand during this turn"
-              }
-            ]
-          }
-        ],
-        "parserVersion": "0.4.0",
-        "rawEffectText": "[Activate:Main] [Once Per Turn] If you have 1 or less Characters, the next time you play a [Land of Wano] type Character card with a cost of 3 or more from your hand during this turn, the cost will be reduced by 1.",
-        "parseConfidence": 0.65,
-        "implementationStatus": "IMPLEMENTED"
+          "type": "DSL"
+        }
       }
     },
     {
@@ -208699,7 +208704,7 @@
       "publishedText": "This Character cannot attack.\n[Activate:Main] You may K.O. 1 of your [Thriller Bark Pirates] type Characters: This Character's effect is negated during this turn.",
       "published": true,
       "textMatches": true,
-      "schemaMatches": false,
+      "schemaMatches": true,
       "localScenarios": [
         {
           "name": "OP06-083 K.O. cost negates Oars restriction through turn end",
@@ -208710,8 +208715,8 @@
       "databaseScenarios": [
         {
           "name": "OP06-083 K.O. cost negates Oars restriction through turn end",
-          "status": "FAIL",
-          "error": "Oars must parse its cannot-attack rule and activation as executable DSL"
+          "status": "PASS",
+          "error": null
         }
       ],
       "gameplayScenarioCount": 1,
@@ -208804,44 +208809,87 @@
         }
       },
       "databaseSchema": {
+        "rawEffectText": "This Character cannot attack.\n[Activate:Main] You may K.O. 1 of your [Thriller Bark Pirates] type Characters: This Character's effect is negated during this turn.",
+        "parserVersion": "0.7.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
         "ast": [
           {
+            "rawText": "This Character cannot attack.",
+            "trigger": "unknown",
+            "conditions": [],
             "costs": [],
             "actions": [
               {
-                "kind": "custom-resolver",
-                "handler": "OP06_083_ACTIVATE_MAIN"
+                "kind": "attack-prohibition",
+                "scope": "own-character"
               }
-            ],
+            ]
+          },
+          {
             "rawText": "[Activate:Main] You may K.O. 1 of your [Thriller Bark Pirates] type Characters: This Character's effect is negated during this turn.",
             "trigger": "activate-main",
-            "conditions": []
+            "conditions": [],
+            "costs": [
+              {
+                "kind": "ko-character",
+                "scope": "own-character",
+                "amount": 1,
+                "trait": "Thriller Bark Pirates",
+                "optional": true
+              }
+            ],
+            "actions": [
+              {
+                "kind": "negate-source-effect",
+                "until": "turn-end"
+              }
+            ]
           }
         ],
-        "resolver": {
-          "type": "CUSTOM",
-          "handler": "OP06_083_ACTIVATE_MAIN"
-        },
         "normalized": [
           {
-            "timing": "activate-main",
-            "optional": true,
+            "timing": "unknown",
+            "optional": false,
+            "conditions": [],
             "sequence": [
               {
                 "type": "RESOLVE",
                 "action": {
-                  "kind": "custom-resolver",
-                  "handler": "OP06_083_ACTIVATE_MAIN"
+                  "kind": "attack-prohibition",
+                  "scope": "own-character"
                 }
               }
-            ],
-            "conditions": []
+            ]
+          },
+          {
+            "timing": "activate-main",
+            "optional": true,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "PAY_COST",
+                "cost": {
+                  "kind": "ko-character",
+                  "scope": "own-character",
+                  "amount": 1,
+                  "trait": "Thriller Bark Pirates",
+                  "optional": true
+                }
+              },
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "negate-source-effect",
+                  "until": "turn-end"
+                }
+              }
+            ]
           }
         ],
-        "parserVersion": "0.4.0",
-        "rawEffectText": "This Character cannot attack.\n[Activate:Main] You may K.O. 1 of your [Thriller Bark Pirates] type Characters: This Character's effect is negated during this turn.",
-        "parseConfidence": 0.65,
-        "implementationStatus": "IMPLEMENTED"
+        "resolver": {
+          "type": "DSL"
+        }
       }
     },
     {
@@ -264047,7 +264095,7 @@
       "publishedText": "[On Play] Trash up to 1 of your opponent's Characters with 6000 power or less.",
       "published": true,
       "textMatches": true,
-      "schemaMatches": false,
+      "schemaMatches": true,
       "localScenarios": [
         {
           "name": "On Play gameplay: trash up to one opposing Character with 6000 power or less",
@@ -264118,44 +264166,53 @@
         }
       },
       "databaseSchema": {
+        "rawEffectText": "[On Play] Trash up to 1 of your opponent's Characters with 6000 power or less.",
+        "parserVersion": "0.7.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
         "ast": [
           {
+            "rawText": "[On Play] Trash up to 1 of your opponent's Characters with 6000 power or less.",
+            "trigger": "on-play",
+            "conditions": [],
             "costs": [],
             "actions": [
               {
-                "kind": "custom-resolver",
-                "handler": "OP09_009_ON_PLAY"
+                "kind": "trash-character",
+                "scope": "opponent",
+                "maxPower": 6000,
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
               }
-            ],
-            "rawText": "[On Play] Trash up to 1 of your opponent's Characters with 6000 power or less.",
-            "trigger": "on-play",
-            "conditions": []
+            ]
           }
         ],
-        "resolver": {
-          "type": "CUSTOM",
-          "handler": "OP09_009_ON_PLAY"
-        },
         "normalized": [
           {
             "timing": "on-play",
             "optional": false,
+            "conditions": [],
             "sequence": [
               {
                 "type": "RESOLVE",
                 "action": {
-                  "kind": "custom-resolver",
-                  "handler": "OP09_009_ON_PLAY"
+                  "kind": "trash-character",
+                  "scope": "opponent",
+                  "maxPower": 6000,
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
                 }
               }
-            ],
-            "conditions": []
+            ]
           }
         ],
-        "parserVersion": "0.4.0",
-        "rawEffectText": "[On Play] Trash up to 1 of your opponent's Characters with 6000 power or less.",
-        "parseConfidence": 0.65,
-        "implementationStatus": "IMPLEMENTED"
+        "resolver": {
+          "type": "DSL"
+        }
       }
     },
     {
@@ -340854,7 +340911,7 @@
       "publishedText": "When a card is trashed from your hand by your \"Navy\" type card's effect, draw cards equal to the number of cards trashed.",
       "published": true,
       "textMatches": true,
-      "schemaMatches": false,
+      "schemaMatches": true,
       "localScenarios": [
         {
           "name": "OP12-040 draws exactly the hand-trash count only when a Navy effect caused it",
@@ -340865,8 +340922,8 @@
       "databaseScenarios": [
         {
           "name": "OP12-040 draws exactly the hand-trash count only when a Navy effect caused it",
-          "status": "FAIL",
-          "error": "Kuzan must listen for hand cards trashed by a Navy effect"
+          "status": "PASS",
+          "error": null
         }
       ],
       "gameplayScenarioCount": 1,
@@ -340915,44 +340972,43 @@
         }
       },
       "databaseSchema": {
+        "rawEffectText": "When a card is trashed from your hand by your \"Navy\" type card's effect, draw cards equal to the number of cards trashed.",
+        "parserVersion": "0.7.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
         "ast": [
           {
+            "rawText": "When a card is trashed from your hand by your \"Navy\" type card's effect, draw cards equal to the number of cards trashed.",
+            "trigger": "hand-trash",
+            "conditions": [],
             "costs": [],
             "actions": [
               {
-                "kind": "custom-resolver",
-                "handler": "OP12_040_UNKNOWN"
+                "kind": "draw-trashed-cards",
+                "sourceTrait": "Navy"
               }
-            ],
-            "rawText": "When a card is trashed from your hand by your \"Navy\" type card's effect, draw cards equal to the number of cards trashed.",
-            "trigger": "unknown",
-            "conditions": []
+            ]
           }
         ],
-        "resolver": {
-          "type": "CUSTOM",
-          "handler": "OP12_040_UNKNOWN"
-        },
         "normalized": [
           {
-            "timing": "unknown",
+            "timing": "hand-trash",
             "optional": false,
+            "conditions": [],
             "sequence": [
               {
                 "type": "RESOLVE",
                 "action": {
-                  "kind": "custom-resolver",
-                  "handler": "OP12_040_UNKNOWN"
+                  "kind": "draw-trashed-cards",
+                  "sourceTrait": "Navy"
                 }
               }
-            ],
-            "conditions": []
+            ]
           }
         ],
-        "parserVersion": "0.4.0",
-        "rawEffectText": "When a card is trashed from your hand by your \"Navy\" type card's effect, draw cards equal to the number of cards trashed.",
-        "parseConfidence": 0.65,
-        "implementationStatus": "TESTED"
+        "resolver": {
+          "type": "DSL"
+        }
       }
     },
     {
@@ -391185,7 +391241,7 @@
       "publishedText": "This Character cannot attack.\nWhen a card is trashed from your hand by an effect, this Character's effect is negated during this turn.",
       "published": true,
       "textMatches": true,
-      "schemaMatches": false,
+      "schemaMatches": true,
       "localScenarios": [
         {
           "name": "OP14-056 negates its cannot-attack effect after hand trash, then restores it at turn end",
@@ -391196,8 +391252,8 @@
       "databaseScenarios": [
         {
           "name": "OP14-056 negates its cannot-attack effect after hand trash, then restores it at turn end",
-          "status": "FAIL",
-          "error": "Wadatsumi must keep its attack restriction and listen for hand trash by an effect"
+          "status": "PASS",
+          "error": null
         }
       ],
       "gameplayScenarioCount": 1,
@@ -391213,15 +391269,23 @@
         "implementationStatus": "PARSED",
         "ast": [
           {
-            "rawText": "This Character cannot attack.\nWhen a card is trashed from your hand by an effect, this Character's effect is negated during this turn.",
-            "trigger": "hand-trash",
+            "rawText": "This Character cannot attack.",
+            "trigger": "unknown",
             "conditions": [],
             "costs": [],
             "actions": [
               {
                 "kind": "attack-prohibition",
                 "scope": "own-character"
-              },
+              }
+            ]
+          },
+          {
+            "rawText": "When a card is trashed from your hand by an effect, this Character's effect is negated during this turn.",
+            "trigger": "hand-trash",
+            "conditions": [],
+            "costs": [],
+            "actions": [
               {
                 "kind": "negate-source-effect",
                 "until": "turn-end"
@@ -391231,7 +391295,7 @@
         ],
         "normalized": [
           {
-            "timing": "hand-trash",
+            "timing": "unknown",
             "optional": false,
             "conditions": [],
             "sequence": [
@@ -391241,7 +391305,14 @@
                   "kind": "attack-prohibition",
                   "scope": "own-character"
                 }
-              },
+              }
+            ]
+          },
+          {
+            "timing": "hand-trash",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
               {
                 "type": "RESOLVE",
                 "action": {
@@ -391257,44 +391328,69 @@
         }
       },
       "databaseSchema": {
+        "rawEffectText": "This Character cannot attack.\nWhen a card is trashed from your hand by an effect, this Character's effect is negated during this turn.",
+        "parserVersion": "0.7.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
         "ast": [
           {
+            "rawText": "This Character cannot attack.",
+            "trigger": "unknown",
+            "conditions": [],
             "costs": [],
             "actions": [
               {
-                "kind": "custom-resolver",
-                "handler": "OP14_056_UNKNOWN"
+                "kind": "attack-prohibition",
+                "scope": "own-character"
               }
-            ],
-            "rawText": "This Character cannot attack.\nWhen a card is trashed from your hand by an effect, this Character's effect is negated during this turn.",
-            "trigger": "unknown",
-            "conditions": []
+            ]
+          },
+          {
+            "rawText": "When a card is trashed from your hand by an effect, this Character's effect is negated during this turn.",
+            "trigger": "hand-trash",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "negate-source-effect",
+                "until": "turn-end"
+              }
+            ]
           }
         ],
-        "resolver": {
-          "type": "CUSTOM",
-          "handler": "OP14_056_UNKNOWN"
-        },
         "normalized": [
           {
             "timing": "unknown",
             "optional": false,
+            "conditions": [],
             "sequence": [
               {
                 "type": "RESOLVE",
                 "action": {
-                  "kind": "custom-resolver",
-                  "handler": "OP14_056_UNKNOWN"
+                  "kind": "attack-prohibition",
+                  "scope": "own-character"
                 }
               }
-            ],
-            "conditions": []
+            ]
+          },
+          {
+            "timing": "hand-trash",
+            "optional": false,
+            "conditions": [],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "negate-source-effect",
+                  "until": "turn-end"
+                }
+              }
+            ]
           }
         ],
-        "parserVersion": "0.4.0",
-        "rawEffectText": "This Character cannot attack.\nWhen a card is trashed from your hand by an effect, this Character's effect is negated during this turn.",
-        "parseConfidence": 0.65,
-        "implementationStatus": "IMPLEMENTED"
+        "resolver": {
+          "type": "DSL"
+        }
       }
     },
     {
@@ -410925,7 +411021,7 @@
       "publishedText": "[On Play] Rest up to 1 of your opponent's cards.\n[Activate: Main] You may trash this Character: If your Leader has the {Straw Hat Crew} type, set up to 1 of your Characters with a base cost of 8 or less as active.",
       "published": true,
       "textMatches": true,
-      "schemaMatches": false,
+      "schemaMatches": true,
       "localScenarios": [
         {
           "name": "engine-action on-play rest: resolve isolated parsed instruction",
@@ -411088,7 +411184,27 @@
         }
       },
       "databaseSchema": {
+        "rawEffectText": "[On Play] Rest up to 1 of your opponent's cards.\n[Activate: Main] You may trash this Character: If your Leader has the {Straw Hat Crew} type, set up to 1 of your Characters with a base cost of 8 or less as active.",
+        "parserVersion": "0.7.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
         "ast": [
+          {
+            "rawText": "[On Play] Rest up to 1 of your opponent's cards.",
+            "trigger": "on-play",
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "rest",
+                "scope": "opponent-card",
+                "selection": {
+                  "min": 0,
+                  "max": 1
+                }
+              }
+            ]
+          },
           {
             "rawText": "[Activate: Main] You may trash this Character: If your Leader has the {Straw Hat Crew} type, set up to 1 of your Characters with a base cost of 8 or less as active.",
             "trigger": "activate-main",
@@ -411118,29 +411234,27 @@
                 }
               }
             ]
-          },
+          }
+        ],
+        "normalized": [
           {
-            "rawText": "[On Play] Rest up to 1 of your opponent's cards.",
-            "trigger": "on-play",
+            "timing": "on-play",
+            "optional": false,
             "conditions": [],
-            "costs": [],
-            "actions": [
+            "sequence": [
               {
-                "kind": "rest",
-                "scope": "opponent-card",
-                "selection": {
-                  "min": 0,
-                  "max": 1
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "rest",
+                  "scope": "opponent-card",
+                  "selection": {
+                    "min": 0,
+                    "max": 1
+                  }
                 }
               }
             ]
-          }
-        ],
-        "resolver": {
-          "type": "CUSTOM",
-          "handler": "OP15_032_ON_PLAY"
-        },
-        "normalized": [
+          },
           {
             "timing": "activate-main",
             "optional": true,
@@ -411174,30 +411288,11 @@
                 }
               }
             ]
-          },
-          {
-            "timing": "on-play",
-            "optional": false,
-            "conditions": [],
-            "sequence": [
-              {
-                "type": "RESOLVE",
-                "action": {
-                  "kind": "rest",
-                  "scope": "opponent-card",
-                  "selection": {
-                    "min": 0,
-                    "max": 1
-                  }
-                }
-              }
-            ]
           }
         ],
-        "parserVersion": "0.4.0",
-        "rawEffectText": "[On Play] Rest up to 1 of your opponent's cards.\n[Activate: Main] You may trash this Character: If your Leader has the {Straw Hat Crew} type, set up to 1 of your Characters with a base cost of 8 or less as active.",
-        "parseConfidence": 0.65,
-        "implementationStatus": "IMPLEMENTED"
+        "resolver": {
+          "type": "DSL"
+        }
       }
     },
     {
@@ -493203,7 +493298,7 @@
       "publishedText": "[Main] If your leader is [Uta], set all of your [FILM] type Characters as active at the end of this turn.\n[Trigger] Set all of your [FILM] type Characters as active.",
       "published": true,
       "textMatches": true,
-      "schemaMatches": false,
+      "schemaMatches": true,
       "localScenarios": [
         {
           "name": "P-058 readies only FILM Characters at Main-end and Trigger timings",
@@ -493214,8 +493309,8 @@
       "databaseScenarios": [
         {
           "name": "P-058 readies only FILM Characters at Main-end and Trigger timings",
-          "status": "FAIL",
-          "error": "Main must schedule FILM readiness for end of turn; Trigger must ready FILM immediately"
+          "status": "PASS",
+          "error": null
         }
       ],
       "gameplayScenarioCount": 1,
@@ -493302,15 +493397,12 @@
         }
       },
       "databaseSchema": {
+        "rawEffectText": "[Main] If your leader is [Uta], set all of your [FILM] type Characters as active at the end of this turn.\n[Trigger] Set all of your [FILM] type Characters as active.",
+        "parserVersion": "0.7.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
         "ast": [
           {
-            "costs": [],
-            "actions": [
-              {
-                "kind": "custom-resolver",
-                "handler": "P_058_MAIN"
-              }
-            ],
             "rawText": "[Main] If your leader is [Uta], set all of your [FILM] type Characters as active at the end of this turn.",
             "trigger": "main",
             "conditions": [
@@ -493318,64 +493410,68 @@
                 "kind": "text",
                 "text": "your leader is [Uta]"
               }
-            ]
-          },
-          {
+            ],
             "costs": [],
             "actions": [
               {
-                "kind": "custom-resolver",
-                "handler": "P_058_TRIGGER"
+                "kind": "ready-all-characters",
+                "trait": "FILM",
+                "delay": "turn-end"
               }
-            ],
+            ]
+          },
+          {
             "rawText": "[Trigger] Set all of your [FILM] type Characters as active.",
             "trigger": "trigger",
-            "conditions": []
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready-all-characters",
+                "trait": "FILM"
+              }
+            ]
           }
         ],
-        "resolver": {
-          "type": "CUSTOM",
-          "handler": "P_058_MAIN"
-        },
         "normalized": [
           {
             "timing": "main",
             "optional": false,
-            "sequence": [
-              {
-                "type": "RESOLVE",
-                "action": {
-                  "kind": "custom-resolver",
-                  "handler": "P_058_MAIN"
-                }
-              }
-            ],
             "conditions": [
               {
                 "kind": "text",
                 "text": "your leader is [Uta]"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready-all-characters",
+                  "trait": "FILM",
+                  "delay": "turn-end"
+                }
               }
             ]
           },
           {
             "timing": "trigger",
             "optional": false,
+            "conditions": [],
             "sequence": [
               {
                 "type": "RESOLVE",
                 "action": {
-                  "kind": "custom-resolver",
-                  "handler": "P_058_TRIGGER"
+                  "kind": "ready-all-characters",
+                  "trait": "FILM"
                 }
               }
-            ],
-            "conditions": []
+            ]
           }
         ],
-        "parserVersion": "0.4.0",
-        "rawEffectText": "[Main] If your leader is [Uta], set all of your [FILM] type Characters as active at the end of this turn.\n[Trigger] Set all of your [FILM] type Characters as active.",
-        "parseConfidence": 0.65,
-        "implementationStatus": "IMPLEMENTED"
+        "resolver": {
+          "type": "DSL"
+        }
       }
     },
     {
@@ -493385,7 +493481,7 @@
       "publishedText": "[Main] If your Leader is [Uta], set all of your \"FILM\" type Characters as active at the end of this turn.\n\n[Trigger] Set all of your \"FILM\" type Characters as active.",
       "published": true,
       "textMatches": true,
-      "schemaMatches": false,
+      "schemaMatches": true,
       "localScenarios": [
         {
           "name": "P-058_P1 readies only FILM Characters at Main-end and Trigger timings",
@@ -493396,8 +493492,8 @@
       "databaseScenarios": [
         {
           "name": "P-058_P1 readies only FILM Characters at Main-end and Trigger timings",
-          "status": "FAIL",
-          "error": "Main must schedule FILM readiness for end of turn; Trigger must ready FILM immediately"
+          "status": "PASS",
+          "error": null
         }
       ],
       "gameplayScenarioCount": 1,
@@ -493484,15 +493580,12 @@
         }
       },
       "databaseSchema": {
+        "rawEffectText": "[Main] If your Leader is [Uta], set all of your \"FILM\" type Characters as active at the end of this turn.\n\n[Trigger] Set all of your \"FILM\" type Characters as active.",
+        "parserVersion": "0.7.0",
+        "parseConfidence": 0.94,
+        "implementationStatus": "PARSED",
         "ast": [
           {
-            "costs": [],
-            "actions": [
-              {
-                "kind": "custom-resolver",
-                "handler": "P_058_P1_MAIN"
-              }
-            ],
             "rawText": "[Main] If your Leader is [Uta], set all of your \"FILM\" type Characters as active at the end of this turn.",
             "trigger": "main",
             "conditions": [
@@ -493500,64 +493593,68 @@
                 "kind": "text",
                 "text": "your Leader is [Uta]"
               }
-            ]
-          },
-          {
+            ],
             "costs": [],
             "actions": [
               {
-                "kind": "custom-resolver",
-                "handler": "P_058_P1_TRIGGER"
+                "kind": "ready-all-characters",
+                "trait": "FILM",
+                "delay": "turn-end"
               }
-            ],
+            ]
+          },
+          {
             "rawText": "[Trigger] Set all of your \"FILM\" type Characters as active.",
             "trigger": "trigger",
-            "conditions": []
+            "conditions": [],
+            "costs": [],
+            "actions": [
+              {
+                "kind": "ready-all-characters",
+                "trait": "FILM"
+              }
+            ]
           }
         ],
-        "resolver": {
-          "type": "CUSTOM",
-          "handler": "P_058_P1_MAIN"
-        },
         "normalized": [
           {
             "timing": "main",
             "optional": false,
-            "sequence": [
-              {
-                "type": "RESOLVE",
-                "action": {
-                  "kind": "custom-resolver",
-                  "handler": "P_058_P1_MAIN"
-                }
-              }
-            ],
             "conditions": [
               {
                 "kind": "text",
                 "text": "your Leader is [Uta]"
+              }
+            ],
+            "sequence": [
+              {
+                "type": "RESOLVE",
+                "action": {
+                  "kind": "ready-all-characters",
+                  "trait": "FILM",
+                  "delay": "turn-end"
+                }
               }
             ]
           },
           {
             "timing": "trigger",
             "optional": false,
+            "conditions": [],
             "sequence": [
               {
                 "type": "RESOLVE",
                 "action": {
-                  "kind": "custom-resolver",
-                  "handler": "P_058_P1_TRIGGER"
+                  "kind": "ready-all-characters",
+                  "trait": "FILM"
                 }
               }
-            ],
-            "conditions": []
+            ]
           }
         ],
-        "parserVersion": "0.4.0",
-        "rawEffectText": "[Main] If your Leader is [Uta], set all of your \"FILM\" type Characters as active at the end of this turn.\n\n[Trigger] Set all of your \"FILM\" type Characters as active.",
-        "parseConfidence": 0.65,
-        "implementationStatus": "IMPLEMENTED"
+        "resolver": {
+          "type": "DSL"
+        }
       }
     },
     {

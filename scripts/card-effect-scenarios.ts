@@ -2375,16 +2375,17 @@ const kinemonNextPlayScenario:Scenario[]=row.code==='OP02-025'?[{
  name:'OP02-025 reduces exactly the next qualifying Land of Wano Character played from hand',
  run(doc){
   const ability=doc.ast.find(item=>item.trigger==='activate-main');
-  const customAction=ability?.actions.find((item):item is Extract<EffectAction,{kind:'custom-resolver'}>=>item.kind==='custom-resolver'),embedded=customAction?.instructions?.find((item):item is Extract<EffectAction,{kind:'cost-reduction'}>=>item.kind==='cost-reduction');
-  assert(embedded?.nextOnly===true&&embedded.trait==='Land of Wano'&&embedded.cardType==='Character'&&embedded.minimumCost===3&&embedded.amount===1,'Kin’emon must encode a one-shot reduction for a 3+ cost Land of Wano Character from hand');
+  const reduction=ability?.actions.find((item):item is Extract<EffectAction,{kind:'cost-reduction'}>=>item.kind==='cost-reduction');
+  assert(doc.resolver.type==='DSL'&&ability?.conditions.some(condition=>condition.text==='you have 1 or less Characters')&&reduction?.nextOnly===true&&reduction.trait==='Land of Wano'&&reduction.cardType==='Character'&&reduction.minimumCost===3&&reduction.amount===1,'Kin’emon must gate the activation at one or fewer Characters and encode a one-shot reduction for a 3+ cost Land of Wano Character from hand');
   const kinemon={id:'kinemon',owner:'player' as const,zone:'character' as const,type:'Character' as const,effectSchema:doc},qualifying={id:'wano',owner:'player' as const,zone:'hand' as const,type:'Character' as const,cost:3,traits:['Land of Wano']},other={id:'other',owner:'player' as const,zone:'hand' as const,type:'Character' as const,cost:5,traits:['Navy']},low={id:'low',owner:'player' as const,zone:'hand' as const,type:'Character' as const,cost:2,traits:['Land of Wano']},dons=Array.from({length:5},(_,index)=>({id:`don-${index}`,owner:'player' as const,zone:'cost-area' as const,type:'DON!!' as const,rested:false}));
   const state:MatchEffectState={...base(),cards:[kinemon,qualifying,other,low,...dons]};
   assert(effectivePlayCost(state,'player',qualifying)===3,'Unactivated Kin’emon must not reduce cost');
-  const activated=applyEffectAction(state,'player',embedded!,{sourceCardId:'kinemon'});assert(!activated.error,'Activate Main failed to establish the reduction');
+  const activated=executeEffectCommands(state,'player',resolveEffectTiming(doc,'activate-main').commands,[],'kinemon');assert(!activated.error&&!activated.requiresSelection,'Activate Main failed to establish the reduction');
   assert(effectivePlayCost(activated.state,'player',qualifying)===2,'Qualifying Wano card should cost 2');
   assert(effectivePlayCost(activated.state,'player',other)===5&&effectivePlayCost(activated.state,'player',low)===2,'Nonqualifying cards must receive no reduction');
   const played=playCard(activated.state,'player','wano');assert(!played.error&&played.state.cards.find(card=>card.id==='wano')?.zone==='character','The qualifying card did not play using the reduced cost');
   assert(effectivePlayCost(played.state,'player',other)===5,'The one-shot discount was not consumed after the qualifying play');
+  const gated=executeEffectCommands({...state,cards:[...state.cards,{id:'extra',owner:'player',zone:'character',type:'Character'}]},'player',resolveEffectTiming(doc,'activate-main').commands,[],'kinemon');assert(!gated.error&&!gated.state.turnEffects.some(item=>item.kind==='cost-reduction'),'Kin’emon must not grant the discount when you have more than one Character');
  }
 }]:[];
 const upperYardSearchScenario:Scenario[]=row.code==='OP05-117'?[{

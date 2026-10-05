@@ -12,17 +12,17 @@ Read-only database snapshot. Schema equality is not gameplay verification. Card-
   },
   "cards": 2995,
   "missingPublished": 0,
-  "textMismatches": 43,
-  "schemaMismatches": 110,
+  "textMismatches": 41,
+  "schemaMismatches": 101,
   "scenarioCards": 2984,
   "gameplayScenarioCards": 2486,
   "actionOnlyCards": 498,
   "publishedScenarioCards": 2987,
   "publishedGameplayScenarioCards": 2486,
   "publishedActionOnlyCards": 501,
-  "publishedActionScenarios": 4768,
+  "publishedActionScenarios": 4770,
   "localFailures": 0,
-  "databaseFailures": 8,
+  "databaseFailures": 0,
   "untestedCards": 11,
   "publishedUntestedCards": 8,
   "databaseWrites": 0
@@ -413,7 +413,7 @@ Read-only database snapshot. Schema equality is not gameplay verification. Card-
 | EB04-009 | true | true | BOUNDED_ENGINE_SCENARIO | PASS, PASS, PASS, PASS, PASS, PASS | PASS, PASS, PASS, PASS, PASS, PASS |
 | EB04-010 | true | true | BOUNDED_ENGINE_SCENARIO | PASS, PASS, PASS, PASS | PASS, PASS, PASS, PASS |
 | EB04-011 | true | false | ACTION_EXECUTION_ONLY | PASS | PASS |
-| EB04-012 | false | false | BOUNDED_ENGINE_SCENARIO | PASS, PASS | FAIL, FAIL |
+| EB04-012 | true | true | BOUNDED_ENGINE_SCENARIO | PASS, PASS | PASS, PASS |
 | EB04-013 | true | true | ACTION_EXECUTION_ONLY | PASS | PASS |
 | EB04-014 | true | true | BOUNDED_ENGINE_SCENARIO | PASS, PASS, PASS, PASS, PASS, PASS, PASS, PASS | PASS, PASS, PASS, PASS, PASS, PASS, PASS, PASS |
 | EB04-015 | true | true | BOUNDED_ENGINE_SCENARIO | PASS, PASS, PASS, PASS, PASS, PASS, PASS, PASS, PASS | PASS, PASS, PASS, PASS, PASS, PASS, PASS, PASS, PASS |
@@ -608,7 +608,7 @@ Read-only database snapshot. Schema equality is not gameplay verification. Card-
 | OP02-022 | true | true | BOUNDED_ENGINE_SCENARIO | PASS, PASS | PASS, PASS |
 | OP02-023 | false | true | BOUNDED_ENGINE_SCENARIO | PASS | PASS |
 | OP02-024 | false | false | BOUNDED_ENGINE_SCENARIO | PASS, PASS | PASS, PASS, PASS, PASS |
-| OP02-025 | false | false | BOUNDED_ENGINE_SCENARIO | PASS | FAIL |
+| OP02-025 | true | true | BOUNDED_ENGINE_SCENARIO | PASS, PASS | PASS, PASS |
 | OP02-026 | true | true | ACTION_EXECUTION_ONLY | PASS | PASS |
 | OP02-027 | true | true | BOUNDED_ENGINE_SCENARIO | PASS | PASS, PASS |
 | OP02-028 | true | true | BOUNDED_ENGINE_SCENARIO | PASS | PASS |
@@ -1148,7 +1148,7 @@ Read-only database snapshot. Schema equality is not gameplay verification. Card-
 | OP06-080 | true | true | BOUNDED_ENGINE_SCENARIO | PASS, PASS, PASS | PASS, PASS, PASS |
 | OP06-081 | true | true | BOUNDED_ENGINE_SCENARIO | PASS, PASS | PASS, PASS |
 | OP06-082 | true | true | BOUNDED_ENGINE_SCENARIO | PASS, PASS, PASS, PASS, PASS | PASS, PASS, PASS, PASS, PASS |
-| OP06-083 | true | false | BOUNDED_ENGINE_SCENARIO | PASS | FAIL |
+| OP06-083 | true | true | BOUNDED_ENGINE_SCENARIO | PASS | PASS |
 | OP06-084 | true | true | BOUNDED_ENGINE_SCENARIO | PASS, PASS, PASS, PASS, PASS, PASS, PASS, PASS, PASS, PASS | PASS, PASS, PASS, PASS, PASS, PASS, PASS, PASS, PASS, PASS |
 | OP06-085 | true | true | BOUNDED_ENGINE_SCENARIO | PASS, PASS | PASS, PASS |
 | OP06-086 | true | true | NOT_GAMEPLAY_VERIFIED | Untested | Untested |
@@ -1431,7 +1431,7 @@ Read-only database snapshot. Schema equality is not gameplay verification. Card-
 | OP09-006 | true | true | BOUNDED_ENGINE_SCENARIO | PASS | PASS |
 | OP09-007 | true | true | BOUNDED_ENGINE_SCENARIO | PASS, PASS, PASS, PASS, PASS, PASS, PASS, PASS, PASS | PASS, PASS, PASS, PASS, PASS, PASS, PASS, PASS, PASS |
 | OP09-008 | true | true | BOUNDED_ENGINE_SCENARIO | PASS, PASS | PASS, PASS |
-| OP09-009 | true | false | BOUNDED_ENGINE_SCENARIO | PASS | PASS |
+| OP09-009 | true | true | BOUNDED_ENGINE_SCENARIO | PASS | PASS |
 | OP09-010 | true | true | BOUNDED_ENGINE_SCENARIO | PASS, PASS, PASS, PASS, PASS, PASS | PASS, PASS, PASS, PASS, PASS, PASS |
 | OP09-011 | true | true | BOUNDED_ENGINE_SCENARIO | PASS, PASS | PASS, PASS |
 | OP09-012 | true | true | ACTION_EXECUTION_ONLY | PASS | PASS |
@@ -1819,7 +1819,7 @@ Read-only database snapshot. Schema equality is not gameplay verification. Card-
 | OP12-037 | true | true | BOUNDED_ENGINE_SCENARIO | PASS, PASS, PASS, PASS, PASS | PASS, PASS, PASS, PASS, PASS |
 | OP12-038 | true | true | BOUNDED_ENGINE_SCENARIO | PASS, PASS, PASS, PASS, PASS, PASS, PASS | PASS, PASS, PASS, PASS, PASS, PASS, PASS |
 | OP12-039 | true | true | BOUNDED_ENGINE_SCENARIO | PASS | PASS, PASS, PASS |
-| OP12-040 | true | false | BOUNDED_ENGINE_SCENARIO | PASS | FAIL |
+| OP12-040 | true | true | BOUNDED_ENGINE_SCENARIO | PASS | PASS |
 | OP12-041 | true | true | BOUNDED_ENGINE_SCENARIO | PASS, PASS, PASS | PASS, PASS, PASS |
 | OP12-042 | true | true | BOUNDED_ENGINE_SCENARIO | PASS, PASS, PASS | PASS, PASS, PASS |
 | OP12-043 | true | true | BOUNDED_ENGINE_SCENARIO | PASS, PASS, PASS | PASS, PASS, PASS |
@@ -2074,7 +2074,7 @@ Read-only database snapshot. Schema equality is not gameplay verification. Card-
 | OP14-053 | true | false | BOUNDED_ENGINE_SCENARIO | PASS, PASS, PASS, PASS, PASS, PASS, PASS, PASS | PASS, PASS, PASS, PASS, PASS, PASS, PASS, PASS |
 | OP14-054 | true | false | BOUNDED_ENGINE_SCENARIO | PASS, PASS | PASS, PASS |
 | OP14-055 | true | true | BOUNDED_ENGINE_SCENARIO | PASS | PASS |
-| OP14-056 | true | false | BOUNDED_ENGINE_SCENARIO | PASS | FAIL |
+| OP14-056 | true | true | BOUNDED_ENGINE_SCENARIO | PASS | PASS |
 | OP14-057 | true | true | BOUNDED_ENGINE_SCENARIO | PASS, PASS, PASS, PASS, PASS, PASS, PASS | PASS, PASS, PASS, PASS, PASS, PASS, PASS |
 | OP14-058 | true | true | BOUNDED_ENGINE_SCENARIO | PASS, PASS, PASS, PASS, PASS, PASS, PASS | PASS, PASS, PASS, PASS, PASS, PASS, PASS |
 | OP14-059 | true | true | BOUNDED_ENGINE_SCENARIO | PASS, PASS, PASS, PASS, PASS | PASS, PASS, PASS, PASS, PASS |
@@ -2170,7 +2170,7 @@ Read-only database snapshot. Schema equality is not gameplay verification. Card-
 | OP15-029 | true | true | ACTION_EXECUTION_ONLY | PASS | PASS |
 | OP15-030 | true | true | BOUNDED_ENGINE_SCENARIO | PASS | PASS |
 | OP15-031 | true | true | BOUNDED_ENGINE_SCENARIO | PASS, PASS, PASS, PASS | PASS, PASS, PASS, PASS |
-| OP15-032 | true | false | BOUNDED_ENGINE_SCENARIO | PASS, PASS, PASS, PASS | PASS, PASS, PASS, PASS |
+| OP15-032 | true | true | BOUNDED_ENGINE_SCENARIO | PASS, PASS, PASS, PASS | PASS, PASS, PASS, PASS |
 | OP15-033 | true | true | BOUNDED_ENGINE_SCENARIO | PASS, PASS, PASS | PASS, PASS, PASS |
 | OP15-034 | true | true | BOUNDED_ENGINE_SCENARIO | PASS, PASS, PASS | PASS, PASS, PASS |
 | OP15-035 | true | true | BOUNDED_ENGINE_SCENARIO | PASS | PASS |
@@ -2556,8 +2556,8 @@ Read-only database snapshot. Schema equality is not gameplay verification. Card-
 | P-056 | true | true | BOUNDED_ENGINE_SCENARIO | PASS, PASS | PASS, PASS |
 | P-057 | true | true | ACTION_EXECUTION_ONLY | PASS | PASS |
 | P-057_P1 | true | true | ACTION_EXECUTION_ONLY | PASS | PASS |
-| P-058 | true | false | BOUNDED_ENGINE_SCENARIO | PASS | FAIL |
-| P-058_P1 | true | false | BOUNDED_ENGINE_SCENARIO | PASS | FAIL |
+| P-058 | true | true | BOUNDED_ENGINE_SCENARIO | PASS | PASS |
+| P-058_P1 | true | true | BOUNDED_ENGINE_SCENARIO | PASS | PASS |
 | P-059 | true | true | BOUNDED_ENGINE_SCENARIO | PASS, PASS, PASS | PASS, PASS, PASS |
 | P-059_P1 | true | true | BOUNDED_ENGINE_SCENARIO | PASS, PASS, PASS | PASS, PASS, PASS |
 | P-060 | true | true | BOUNDED_ENGINE_SCENARIO | PASS | PASS, PASS |

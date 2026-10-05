@@ -37,12 +37,11 @@ test('Charlotte Pudding choose-one exposes both board-executable Life branches',
  assert.equal(document.implementationStatus,'IMPLEMENTED');assert.equal(hasCustomBoardExecutor('EB01_052_ON_PLAY'),true);assert.equal(customEffectBranch('EB01_052_ON_PLAY',0)?.[0]?.kind,'reorder-life');assert.equal(customEffectBranch('EB01_052_ON_PLAY',1)?.[0]?.kind,'set-life-face');assert.equal(resolveEffectTiming(document,'on-play').instructions?.[0]?.kind,'choose-one');
 });
 
-test('implemented custom handlers resolve through the shared runtime contract',()=>{
- const plan=resolveCustomEffect('OP02_025_ACTIVATE_MAIN');
- assert.equal(plan.status,'ready');
- assert.equal(plan.instructions[0]?.kind,'apply');
+test('Kin’emon’s next-play reduction is parsed into the executable DSL',()=>{
  const document=compileEffectDocument(card('OP02-025','[Activate: Main] [Once Per Turn] If you have 1 or less Characters, the next time you play a {Land of Wano} type Character card with a cost of 3 or more from your hand during this turn, the cost will be reduced by 1.'));
- assert.equal(document.implementationStatus,'REVIEWED');
+ assert.equal(document.resolver.type,'DSL');
+ assert.equal(document.implementationStatus,'PARSED');
+ assert.deepEqual(document.ast[0].actions,[{kind:'cost-reduction',trait:'Land of Wano',cardType:'Character',minimumCost:3,amount:1,nextOnly:true}]);
 });
 
 test('custom handler audits use the handler timing when another window appears first',()=>{
