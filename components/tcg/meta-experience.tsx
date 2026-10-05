@@ -37,14 +37,15 @@ function resultClass(rate:number|null){return rate===null?'':rate>.53?'is-positi
 
 function MatchBreakdown({text}:{text:string}){
   const clean=text.replace(/^Partial match record:[\s\S]*?(?=Game\s+1\b)/i,'').replace(/The supplied summary frames[\s\S]*$/i,'').replace(/\bthe supplied recap says\b/gi,'the recap notes').trim();
-  const sections=clean.split(/(?=^\s*\*{0,2}Game\s+[1-5]\b)/gim).filter(part=>part.trim());
+  const sections=clean.split(/(?=^\s*\*{0,2}(?:Game\s+[1-5]\b|Featured game\s*:))/gim).filter(part=>part.trim());
   return <div className="meta-breakdown">{sections.map((section,index)=>{
     const lines=section.trim().split(/\r?\n/).map(line=>line.trim()).filter(Boolean);
     const heading=lines[0]?.replace(/^\*+|\*+$/g,'').replace(/\s*\*+$/,'');
-    const body=lines.slice(/^\*{0,2}Game\s+[1-5]\b/i.test(lines[0]??'')?1:0);
+    const hasHeading=/^\*{0,2}(?:Game\s+[1-5]\b|Featured game\s*:)/i.test(lines[0]??'');
+    const body=lines.slice(hasHeading?1:0);
     const renderText=(line:string)=>line.replace(/\*\*(.*?)\*\*/g,'$1').replace(/^[-*]\s+/,'');
     const bullets=body.some(line=>/^[-*]\s+/.test(line));
-    return <section key={index}>{/^Game\s+[1-5]\b/i.test(heading??'')&&<h3>{heading}</h3>}{bullets?<ul>{body.map((line,lineIndex)=><li key={lineIndex}>{renderText(line)}</li>)}</ul>:body.map((line,lineIndex)=><p key={lineIndex}>{renderText(line)}</p>)}</section>;
+    return <section key={index}>{hasHeading&&<h3>{heading?.replace(/:$/,'')}</h3>}{bullets?<ul>{body.map((line,lineIndex)=><li key={lineIndex}>{renderText(line)}</li>)}</ul>:body.map((line,lineIndex)=><p key={lineIndex}>{renderText(line)}</p>)}</section>;
   })}</div>;
 }
 
