@@ -39,7 +39,7 @@ function MatchBreakdown({match,nameOne,nameTwo,t}:{match:MetaMatch;nameOne:strin
   const clean=match.summary.replace(/^Partial match record:[\s\S]*?(?=Game\s+1\b)/i,'').replace(/The supplied summary frames[\s\S]*$/i,'').replace(/\bthe supplied recap says\b/gi,'the recap notes').trim();
   const games=matchGames({...match,summary:clean});
   const firstGame=games[0];
-  const firstStart=firstGame?clean.search(new RegExp(`(?:^|\\s)(?:#{1,3}\\s*)?\\*{0,2}Game\\s+${firstGame.number}\\b`,'i')):-1;
+  const firstStart=firstGame?clean.search(new RegExp(`(?:^|\\s)(?:#{1,3}\\s*)?\\*{0,2}Game\\s+${firstGame.number}\\b\\s*(?::|[—–-]|ends\\b)`,'i')):-1;
   const overview=firstStart>0?clean.slice(0,firstStart).trim():'';
   const fallbackWinner=match.winnerSide===1?nameOne:match.winnerSide===2?nameTwo:null;
   const fallbackText=match.seriesComplete&&fallbackWinner

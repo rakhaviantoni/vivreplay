@@ -42,11 +42,12 @@ function sideInLosingClause(text:string,match:MetaMatch):1|2|null{
 }
 
 function gameSections(summary:string){
-  const normalized=summary.replace(/\r/g,'').replace(/\s+(?=(?:#{1,3}\s*)?\*{0,2}Game\s+\d+\b)/gi,'\n\n');
-  const parts=normalized.split(/(?=^\s*(?:#{1,3}\s*)?\*{0,2}Game\s+\d+\b)/gim);
+  const heading=String.raw`(?:#{1,3}\s*)?\*{0,2}Game\s+\d+\b\s*(?::|[—–-]|ends\b)`;
+  const normalized=summary.replace(/\r/g,'').replace(new RegExp(String.raw`\s+(?=${heading})`,'gi'),'\n\n');
+  const parts=normalized.split(new RegExp(String.raw`(?=^\s*${heading})`,'gim'));
   return parts.flatMap(part=>{
-    const heading=part.match(/^\s*(?:#{1,3}\s*)?\*{0,2}Game\s+(\d+)\b\*{0,2}\s*(?:[:—–-]\s*)?([\s\S]*)$/i);
-    return heading?[{number:Number(heading[1]),text:heading[2].trim()}]:[];
+    const found=part.match(/^\s*(?:#{1,3}\s*)?\*{0,2}Game\s+(\d+)\b\*{0,2}\s*(?::|[—–-]|ends\b)?\s*([\s\S]*)$/i);
+    return found?[{number:Number(found[1]),text:found[2].trim()}]:[];
   });
 }
 
