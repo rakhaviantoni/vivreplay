@@ -15,10 +15,11 @@ export function SaveListingButton({listingId,language,iconOnly=false}:{listingId
  const label=id?(saved?'Hapus dari simpanan':'Simpan listing'):(saved?'Remove saved listing':'Save listing');
  return <button type="button" className={`button secondary${iconOnly?' is-icon-only':''}`} disabled={busy||!ready} aria-pressed={saved} aria-label={label} title={label} onClick={()=>void toggle()}><Bookmark size={17} weight={saved?'fill':'regular'}/>{!iconOnly&&(id?(saved?'Tersimpan':'Simpan listing'):(saved?'Saved':'Save listing'))}</button>;
 }
-export function WishlistButton({printingId,language}:{printingId:string;language:'EN'|'ID'}){
+export function WishlistButton({printingId,language,iconOnly=false}:{printingId:string;language:'EN'|'ID';iconOnly?:boolean}){
  const {data,refresh,loading}=useAccount();const [busy,setBusy]=useState(false);const id=language==='ID';const saved=Boolean(data?.wishlist.some(w=>w.printingId===printingId));
  const toggle=async()=>{if(!data){window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));return}setBusy(true);try{await api('/api/wishlist',{printingId,saved:!saved});await refresh();toast.success(id?(saved?'Dihapus dari kartu incaran':'Ditambahkan ke kartu incaran'):(saved?'Removed from wishlist':'Added to wishlist'))}catch(error){toast.error(error instanceof Error?error.message:(id?'Wishlist gagal diperbarui':'Could not update wishlist'))}finally{setBusy(false)}};
- return <button type="button" className="button secondary" disabled={busy||loading||!printingId} aria-pressed={saved} onClick={()=>void toggle()}><Heart size={17} weight={saved?'fill':'regular'}/>{id?(saved?'Ada di incaran':'Simpan ke incaran'):(saved?'Wishlisted':'Wishlist')}</button>;
+ const label=id?(saved?'Hapus dari kartu incaran':'Simpan ke kartu incaran'):(saved?'Remove from wishlist':'Add to wishlist');
+ return <button type="button" className={`button secondary${iconOnly?' is-icon-only':''}`} disabled={busy||loading||!printingId} aria-label={label} title={label} aria-pressed={saved} onClick={()=>void toggle()}><Heart size={17} weight={saved?'fill':'regular'}/>{!iconOnly&&(id?(saved?'Ada di incaran':'Simpan ke incaran'):(saved?'Wishlisted':'Wishlist'))}</button>;
 }
 export function SavedListings({language}:{language:'EN'|'ID'}){
  const id=language==='ID';const [rows,setRows]=useState<Saved[]>([]);const [loading,setLoading]=useState(true);const [error,setError]=useState(false);const [busy,setBusy]=useState('');const [now,setNow]=useState(0);

@@ -357,6 +357,10 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
             ))}
             {item.quantity>1 && <b>×{item.quantity}</b>}
             <button type="button" className="deck-info-action market-listing-info" onClick={()=>setPreview(item.card)} aria-label={`View ${item.card.name} details`}><Info size={13}/></button>
+            {!readOnly&&<div className="market-listing-card-utility-actions">
+              {listingType==='WTS'&&<button type="button" className="button secondary is-icon-only market-listing-add-vault" onClick={()=>setVaultTarget(item)} aria-label={t('Add an owned copy to Vault','Simpan salinan milik Anda ke Koleksi')} title={t('Add an owned copy to Vault','Simpan salinan milik Anda ke Koleksi')}><Plus size={17}/></button>}
+              <WishlistButton printingId={item.id} language={language} iconOnly/>
+            </div>}
             {!readOnly&&!singleCopyListing&&<span className="deck-stack-actions market-listing-quantity" aria-label={`Select ${item.card.name}`}>
               <button type="button" onClick={()=>change(item.id,-1,item.quantity)} disabled={!amount} aria-label={`Remove one ${item.card.name}`}><Minus size={13}/></button>
               <button type="button" onClick={()=>change(item.id,1,item.quantity)} disabled={amount===item.quantity} aria-label={`Add one ${item.card.name}`}><Plus size={13}/></button>
@@ -390,8 +394,6 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
             <small className="market-card-meta"><span>{item.card.code}</span><span>{item.card.rarity}</span><span>{item.language}</span></small>
             <p><span>{item.condition}</span>{!readOnly&&!singleCopyListing&&<em>{amount}/{item.quantity} {t('selected','dipilih')}</em>}</p>
             <b>{formatMoney(item.unitAmount,currency)} {t('each','per kartu')}</b>
-            {listingType==='WTS'&&!readOnly&&<button type="button" className="market-listing-add-vault" onClick={()=>setVaultTarget(item)}><Plus size={13}/>{t('Add owned copy to Vault','Simpan salinan milik Anda ke koleksi')}</button>}
-            {!readOnly&&<div className="market-listing-card-actions"><WishlistButton printingId={item.id} language={language}/></div>}
 
             {!readOnly&&acceptsOffers&&amount>0 && (
               <div className="market-card-offer">
@@ -679,7 +681,7 @@ export function MarketListingDetailView({
               <div className="market-listing-seller-name"><strong>{stored ? <Link href={`/players/${stored.username}`}>{listing.seller}</Link> : listing.seller}</strong><MarketReputation listingId={listing.id} language={language} role={isBuying?'buyer':'seller'}/></div>
             </div>
           </section>
-          {!isOwner&&<div className="market-listing-utility-actions"><FeedbackLaunchButton request={{initialCategory:'market-report',listingId:listing.id}} className="market-report-link">{t('Report listing','Laporkan listing')}</FeedbackLaunchButton><SaveListingButton listingId={listing.id} language={language}/></div>}
+          {!isOwner&&<div className="market-listing-utility-actions"><FeedbackLaunchButton request={{initialCategory:'market-report',listingId:listing.id}} className="market-report-link">{t('Report listing','Laporkan listing')}</FeedbackLaunchButton><SaveListingButton listingId={listing.id} language={language} iconOnly/></div>}
 
           {(!isExpired||isOwner)&&(
             <MarketListingItems
