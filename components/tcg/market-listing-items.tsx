@@ -428,8 +428,8 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
           <div className="market-listing-card-copy">
             <strong>{item.card.name}</strong>
             <small className="market-card-meta"><span>{item.card.code}</span><span>{item.card.rarity}</span><span>{item.language}</span></small>
-            <p><span>{item.condition}</span>{!readOnly&&!singleCopyListing&&<em>{amount}/{item.quantity} {t('selected','dipilih')}</em>}</p>
-            <b>{formatMoney(item.unitAmount,currency)} {t('each','per kartu')}</b>
+            <p className="market-listing-card-condition"><span>{item.condition}</span>{!readOnly&&!singleCopyListing&&<em>{amount}/{item.quantity} {t('selected','dipilih')}</em>}</p>
+            <b className="market-listing-card-unit-price" aria-label={`${formatMoney(item.unitAmount,currency)} ${t('per card','per kartu')}`} title={`${formatMoney(item.unitAmount,currency)} ${t('per card','per kartu')}`}>{formatMoney(item.unitAmount,currency)}</b>
 
             {!readOnly&&acceptsOffers&&offerCheckComplete&&!activeOffer&&!submitting&&amount>0 && (
               <div className="market-card-offer">

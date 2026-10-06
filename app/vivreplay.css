@@ -3356,3 +3356,13 @@ html[data-theme='dark'] .market-feed-entry .market-feed-row-actions .button.is-i
 html[data-theme='dark'] .market-feed-skeleton-row>i,html[data-theme='dark'] .market-feed-skeleton-row span b,html[data-theme='dark'] .market-feed-skeleton-row span small,html[data-theme='dark'] .market-feed-skeleton-row>strong{background:linear-gradient(100deg,#10252e 22%,#1d3943 45%,#10252e 68%);background-size:220% 100%}
 @media(max-width:760px){.market-feed-skeleton-row{grid-template-columns:72px minmax(0,1fr) 76px;gap:10px;min-height:86px;padding:10px}.market-feed-skeleton-row>i{width:52px;height:72px}.market-feed-skeleton-row>strong{width:66px;height:16px}.market-feed-skeleton.is-grid{grid-template-columns:1fr;gap:12px}.market-feed-skeleton.is-grid .market-feed-skeleton-row{min-height:155px}}
 @media(prefers-reduced-motion:reduce){.market-feed-skeleton-row>i,.market-feed-skeleton-row span b,.market-feed-skeleton-row span small,.market-feed-skeleton-row>strong{animation:none}}
+
+.market-listing-card-copy{display:grid!important;grid-template-columns:minmax(0,1fr) max-content!important;grid-template-areas:"title title" "meta meta" "condition price";align-items:center;column-gap:8px!important;row-gap:2px!important;padding:6px 0 0!important}
+.market-listing-card-copy>strong{grid-area:title;min-width:0}
+.market-listing-card-copy>.market-card-meta{grid-area:meta;min-width:0;gap:6px!important;font-size:9px!important}
+.market-listing-card-copy>.market-listing-card-condition{grid-area:condition;display:flex!important;align-items:center;min-width:0;margin:0!important;gap:5px!important}
+.market-listing-card-copy>.market-listing-card-condition>span{flex:none;padding:1px 4px!important;font-size:8px!important}
+.market-listing-card-copy>.market-listing-card-condition>em{overflow:hidden;min-width:0;text-overflow:ellipsis;white-space:nowrap}
+.market-listing-card-copy>.market-listing-card-unit-price{position:static!important;grid-area:price;justify-self:end;max-width:100%;margin:0!important;padding:0!important;color:var(--accent)!important;font-size:clamp(9.5px,2.8vw,11px)!important;line-height:1.2!important;text-align:right;white-space:nowrap}
+.market-listing-card-copy>.market-card-offer{grid-column:1/-1}
+@media(max-width:380px){.market-listing-card-copy{column-gap:5px!important}.market-listing-card-copy>.market-card-meta{gap:5px!important}.market-listing-card-copy>.market-listing-card-unit-price{font-size:9.5px!important}}
