@@ -113,6 +113,7 @@ export function ShippingOptions({listingId,courierCount=0,couriers=[]}:{listingI
           <button type="button" className="shipping-options-close" onClick={e=>{e.preventDefault();e.stopPropagation();setOpen(false);}} aria-label={t('Close','Tutup')}><X size={15}/></button>
         </header>
         <div className="shipping-options-body">
+          {(loading||activeRates.length===0)&&couriers.length>0&&<p className="shipping-options-enabled"><ShippingCouriers couriers={couriers} language={language} maxVisible={couriers.length}/></p>}
           {loading&&<p className="shipping-options-loading">{t('Loading shipping options…','Memuat opsi pengiriman…')}</p>}
           {!loading&&activeRates.length>0&&(
             <ul className="shipping-options-list">
@@ -152,7 +153,6 @@ export function ShippingOptions({listingId,courierCount=0,couriers=[]}:{listingI
     <div className="shipping-options-fact">
       <dt><Truck size={11}/>{t('Shipping','Pengiriman')}</dt>
       <dd>
-        {couriers.length>0&&<ShippingCouriers couriers={couriers} language={language} maxVisible={couriers.length}/>}
         <button type="button" className="shipping-options-trigger" onClick={openDialog} aria-haspopup="dialog" aria-expanded={open}>
           {startingFee!=null?`${t('Delivery from','Ongkir mulai')} ${formatMoney(startingFee,'IDR')}`:courierCount>0?t('Check delivery fees','Cek ongkir'):t('Shipping not configured','Pengiriman belum diatur')}
         </button>
