@@ -1,3 +1,4 @@
+import {enabledShippingCouriers} from '@/lib/shipping/couriers';
 import {db,errorResponse,guard,user} from '@/lib/server/store';
 import {isBiteshipAreaId} from '@/lib/shipping/biteship-area';
 
@@ -60,7 +61,7 @@ export async function POST(request:Request){
 
     const allowed = ['instant','regular','jnt','jne','sicepat','anteraja','tiki','pos','lion','ninja','wahana','grab','gojek'];
     const rawMethods = Array.isArray(input.shippingMethods) ? input.shippingMethods : [];
-    const shippingMethods = rawMethods.filter((m: unknown): m is string => typeof m === 'string' && allowed.includes(m));
+    const shippingMethods = enabledShippingCouriers(rawMethods.filter((m: unknown): m is string => typeof m === 'string' && allowed.includes(m)));
     const label = JSON.stringify({
       label: rawLabel,
       methods: shippingMethods,

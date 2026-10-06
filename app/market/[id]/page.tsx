@@ -1,3 +1,4 @@
+import {enabledShippingCouriers} from '@/lib/shipping/couriers';
 import {notFound} from 'next/navigation';
 import {db,optionalUser} from '@/lib/server/store';
 import {cardFor,printings,type Card} from '@/packages/card-data/catalog';
@@ -96,8 +97,7 @@ export default async function Page({params}:{params:Promise<{id:string}>}){
   if(stored){
     let methods:string[]=[];
     try{const parsed=JSON.parse(stored.shippingOriginLabel??'null');if(Array.isArray(parsed?.methods))methods=parsed.methods.filter((value:unknown):value is string=>typeof value==='string')}catch{}
-    const couriers=new Set<string>();const regular=['jnt','jne','sicepat','anteraja','tiki','pos','lion','ninja','wahana'];const instant=['grab','gojek'];
-    for(const method of methods){if(method==='regular')regular.forEach(value=>couriers.add(value));else if(method==='instant')instant.forEach(value=>couriers.add(value));else if([...regular,...instant].includes(method))couriers.add(method)}
+    const couriers=new Set(enabledShippingCouriers(methods));
     listing.shippingOptionCount=couriers.size;
   }
 

@@ -1,9 +1,10 @@
+import {enabledShippingCouriers} from '@/lib/shipping/couriers';
 import {z} from 'zod';
 import {db,errorResponse,guard,user,HttpError} from '@/lib/server/store';
 import {getCurrentUser} from '@/lib/server/auth';
 import {createAzekhaIntent,hasAzekhaPaymentConfig} from '@/lib/server/azekha-payments';
 import {biteshipDestination,isBiteshipAreaId} from '@/lib/shipping/biteship-area';
-import {biteshipRates,biteshipRequest} from '@/lib/server/biteship';
+import {shippingRateOptions} from '@/lib/server/shipping-quote-cache';
 
 const schema=z.object({listingId:z.string().min(1),offerId:z.string().min(1).optional(),items:z.array(z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(99)})).min(1).max(60),courierName:z.string().min(1),courierServiceName:z.string().min(1),courierCode:z.string().min(1),courierServiceCode:z.string().min(1),courierType:z.string().min(1)});
 type BundleEntry={instanceId?:string;printingId:string;quantity:number;condition?:string;unitAmount:number};
@@ -48,9 +49,7 @@ export async function POST(request:Request){
     if(!seller)throw new HttpError(400,'The seller has not set a shipping address.');
     let sellerMethods:string[]=[];
     try{const parsed=JSON.parse(seller.label??'{}');if(Array.isArray(parsed.methods))sellerMethods=parsed.methods.filter((item:unknown):item is string=>typeof item==='string')}catch{}
-    const regular=['jnt','jne','sicepat','anteraja','tiki','pos','lion','ninja','wahana'];
-    const instant=['grab','gojek'];
-    const couriers=[...new Set(sellerMethods.flatMap(method=>method==='regular'?regular:method==='instant'?instant:[...regular,...instant].includes(method)?[method]:[]))];
+    const couriers=enabledShippingCouriers(sellerMethods);
     if(!couriers.length)throw new HttpError(400,'The seller has not enabled a delivery method.');
 
     let bundle:BundleEntry[];
@@ -105,14 +104,8 @@ export async function POST(request:Request){
     if(!pickup.areaId&&!pickup.postalCode)throw new HttpError(400,'The seller needs a valid 5-digit pickup postal code.');
     if(!dropoff.areaId&&!dropoff.postalCode)throw new HttpError(400,'Save a valid 5-digit delivery postal code in your profile.');
     const quantity=orderItems.reduce((sum,item)=>sum+item.quantity,0);
-    const packageItems=[{name:listing.title,value:subtotal,length:18,width:13,height:2,weight:Math.max(100,quantity*100),quantity}];
-    const quoteJobs:Promise<{pricing?:Rate[]}>[]=[];
-    const regularCodes=couriers.filter(code=>!['grab','gojek'].includes(code));const quick=couriers.filter(code=>['grab','gojek'].includes(code));
-    if(regularCodes.length)quoteJobs.push(biteshipRates({origin_area_id:pickup.areaId,origin_postal_code:pickup.postalCode,destination_area_id:dropoff.areaId,destination_postal_code:dropoff.postalCode,couriers:regularCodes.join(','),items:packageItems}));
-    if(quick.length&&typeof seller.latitude==='number'&&typeof seller.longitude==='number'&&typeof address.latitude==='number'&&typeof address.longitude==='number')quoteJobs.push(biteshipRequest('/rates/couriers',{method:'POST',body:JSON.stringify({origin_latitude:seller.latitude,origin_longitude:seller.longitude,destination_latitude:address.latitude,destination_longitude:address.longitude,couriers:quick.join(','),items:packageItems})}));
-    const rateResponses=await Promise.allSettled(quoteJobs);
-    const rates=rateResponses.flatMap(result=>result.status==='fulfilled'?result.value.pricing??[]:[]);
-    if(!rates.length&&rateResponses.length&&rateResponses.every(result=>result.status==='rejected'))throw rateResponses[0].status==='rejected'?rateResponses[0].reason:new HttpError(502,'Shipping rates could not be loaded.');
+    const packageItems=[{name:listing.title,value:subtotal,length:18,width:13,height:2,weight:Math.max(100,quantity*100),quantity:1}];
+    const {pricing:rates}=await shippingRateOptions(profile.id,listing.id,{couriers,origin:pickup,destination:dropoff,originLatitude:seller.latitude,originLongitude:seller.longitude,destinationLatitude:address.latitude,destinationLongitude:address.longitude,items:packageItems});
     const rate=rates.find(item=>item.courier_name===input.courierName&&item.courier_service_name===input.courierServiceName&&item.courier_code===input.courierCode&&item.courier_service_code===input.courierServiceCode);
     if(!rate||!Number.isSafeInteger(rate.price)||rate.price<0)throw new HttpError(409,'That delivery service is no longer available. Choose an updated quote.');
 

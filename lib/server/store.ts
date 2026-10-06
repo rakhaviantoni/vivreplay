@@ -1,3 +1,4 @@
+import {enabledShippingCouriers} from '@/lib/shipping/couriers';
 import {env} from 'cloudflare:workers';
 import {getCurrentUser} from '@/lib/server/auth';
 import type {Card} from '@/packages/card-data/catalog';
@@ -276,10 +277,7 @@ export async function market(){
     const items=validItems.length?validItems.map(item=>({...item,condition:item.condition||r.condition,unitAmount:Number.isSafeInteger(item.unitAmount)&&Number(item.unitAmount)>0?Number(item.unitAmount):fallbackUnitAmount,card:bundleCards.get(item.printingId)})):undefined;
     let methods:string[]=[];
     if(r.shippingOriginLabel){try{const parsed=JSON.parse(r.shippingOriginLabel);if(Array.isArray(parsed.methods))methods=parsed.methods.filter((value:unknown):value is string=>typeof value==='string')}catch{}}
-    const couriers=new Set<string>();
-    const regular=['jnt','jne','sicepat','anteraja','tiki','pos','lion','ninja','wahana'];
-    const instant=['grab','gojek'];
-    for(const method of methods){if(method==='regular')regular.forEach(value=>couriers.add(value));else if(method==='instant')instant.forEach(value=>couriers.add(value));else if([...regular,...instant].includes(method))couriers.add(method)}
+    const couriers=new Set(enabledShippingCouriers(methods));
 
     return {
       id: r.id,

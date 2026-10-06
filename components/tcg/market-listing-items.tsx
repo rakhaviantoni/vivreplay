@@ -17,17 +17,20 @@ import {FeedbackLaunchButton} from './feedback-launch';
 import {AddEditItemModal} from './vault/modals/add-edit-item-modal';
 import {PushNotificationPrompt} from './push-notification-settings';
 
-type CourierRate={courier_name:string;courier_service_name:string;price:number;duration?:string;max_km?:number};
+type CourierRate={courier_code:string;courier_service_code:string;courier_name:string;courier_service_name:string;price:number;duration?:string;max_km?:number};
 const COURIER_LABELS:Record<string,string>={'jne':'JNE Express','jnt':'J&T Express','sicepat':'SiCepat Ekspres','anteraja':'Anteraja','tiki':'TIKI','pos':'Pos Indonesia','lion':'Lion Parcel','ninja':'Ninja Xpress','wahana':'Wahana Express','grab':'GrabExpress','gojek':'GoSend','grab_instant':'Grab Instant','gojek_instant':'Gojek Instant'};
 const INSTANT_COURIERS=new Set(['grab','gojek','grab_instant','gojek_instant']);
 
 export function ShippingOptions({listingId,courierCount=0,variant='fact'}:{listingId:string;courierCount?:number;variant?:'fact'|'compact';}){
+  const {data:session}=authClient.useSession();
   const [open,setOpen]=useState(false);
   const [rates,setRates]=useState<CourierRate[]>([]);
   const [startingFee,setStartingFee]=useState<number|null>(null);
   const [loading,setLoading]=useState(false);
   const [quoteState,setQuoteState]=useState<'idle'|'ready'|'needs-address'|'unavailable'|'error'>('idle');
   const autoAttempted=useRef(false);
+  const inFlight=useRef(false);
+  const quoteRequest=useRef<AbortController|null>(null);
   const [language,setLanguage]=useState<'EN'|'ID'>('EN');
   const dialogRef=useRef<HTMLDivElement>(null);
   const triggerRef=useRef<HTMLElement>(null);
@@ -42,14 +45,28 @@ export function ShippingOptions({listingId,courierCount=0,variant='fact'}:{listi
 
   const t=(en:string,idStr:string)=>language==='ID'?idStr:en;
 
+  useEffect(()=>{
+    const reset=()=>{
+      quoteRequest.current?.abort();quoteRequest.current=null;
+      inFlight.current=false;autoAttempted.current=false;
+      setRates([]);setStartingFee(null);setLoading(false);setQuoteState('idle');
+    };
+    reset();
+    window.addEventListener('vivreplay:shipping-updated',reset);
+    return()=>{window.removeEventListener('vivreplay:shipping-updated',reset);quoteRequest.current?.abort();};
+  },[listingId,session?.user.id]);
+
   const loadRates=useCallback(async(showLoading:boolean,force=false)=>{
-    if(loading||quoteState==='ready'||(!force&&autoAttempted.current))return;
+    if(inFlight.current||(!force&&quoteState==='ready')||(!force&&autoAttempted.current))return;
     if(courierCount===0){setQuoteState('unavailable');return;}
     autoAttempted.current=true;
-    if(showLoading)setLoading(true);
+    inFlight.current=true;
+    setLoading(true);
+    const controller=new AbortController();quoteRequest.current=controller;
     try{
-      const res=await fetch('/api/shipping/quotes',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({listingId})});
+      const res=await fetch('/api/shipping/quotes',{signal:controller.signal,method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({listingId})});
       const data=await res.json() as {pricing?:CourierRate[];couriers?:string[];destinationRequired?:boolean;error?:string};
+      if(controller.signal.aborted)return;
       if(!res.ok)throw new Error(data.error||t('Live rates could not be loaded.','Tarif pengiriman belum dapat dimuat.'));
       if(data.destinationRequired){setRates([]);setStartingFee(null);setQuoteState('needs-address');return;}
       if(Array.isArray(data.pricing)&&data.pricing.length>0){
@@ -60,8 +77,8 @@ export function ShippingOptions({listingId,courierCount=0,variant='fact'}:{listi
         setQuoteState(prices.length?'ready':'unavailable');
       }
       else{setRates([]);setStartingFee(null);setQuoteState('unavailable');}
-    }catch(error){setQuoteState('error');if(showLoading)toast.error(error instanceof Error?error.message:t('Live rates could not be loaded.','Tarif pengiriman belum dapat dimuat.'));}
-    finally{if(showLoading)setLoading(false);}
+    }catch(error){if(controller.signal.aborted)return;setQuoteState('error');if(showLoading)toast.error(error instanceof Error?error.message:t('Live rates could not be loaded.','Tarif pengiriman belum dapat dimuat.'));}
+    finally{if(quoteRequest.current===controller){inFlight.current=false;setLoading(false);quoteRequest.current=null;}}
   },[courierCount,listingId,loading,quoteState,language]);
   const openDialog=async()=>{setOpen(true);await loadRates(true,true)};
 
@@ -105,16 +122,14 @@ export function ShippingOptions({listingId,courierCount=0,variant='fact'}:{listi
           {loading&&<p className="shipping-options-loading">{t('Loading shipping options…','Memuat opsi pengiriman…')}</p>}
           {!loading&&activeRates.length>0&&(
             <ul className="shipping-options-list">
-              {activeRates.map((rate,i)=>(
-                <li key={i} className="shipping-options-item">
+              {activeRates.map(rate=>(
+                <li key={`${rate.courier_code}:${rate.courier_service_code}`} className="shipping-options-item">
                   <span className="shipping-options-courier">
-                    <strong>{rate.courier_service_name||COURIER_LABELS[rate.courier_name]||rate.courier_name}</strong>
-                    {rate.courier_service_name&&COURIER_LABELS[rate.courier_name]&&rate.courier_service_name!==COURIER_LABELS[rate.courier_name]&&(
-                      <small>{COURIER_LABELS[rate.courier_name]}</small>
-                    )}
+                    <strong>{COURIER_LABELS[rate.courier_code]||rate.courier_name}</strong>
+                    <small>{rate.courier_service_name}{rate.duration?` - ${rate.duration}`:''}</small>
                   </span>
                   <div className="shipping-options-meta">
-                    {INSTANT_COURIERS.has(rate.courier_name)&&rate.max_km!=null&&(
+                    {INSTANT_COURIERS.has(rate.courier_code)&&rate.max_km!=null&&(
                       <span className="shipping-options-constraint">{t('max','maks')} {rate.max_km} km</span>
                     )}
                     {rate.price>0&&(

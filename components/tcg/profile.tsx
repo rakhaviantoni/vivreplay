@@ -1,4 +1,5 @@
 'use client';
+import {enabledShippingCouriers} from '@/lib/shipping/couriers';
 import {useEffect, useMemo, useRef, useState} from 'react';
 import Link from 'next/link';
 import {useRouter, useSearchParams} from 'next/navigation';
@@ -293,24 +294,8 @@ export const BITESHIP_COURIERS: BiteshipCourierOption[] = [
 
 const POPULAR_COURIER_SELECTION = ['jnt', 'jne', 'sicepat', 'grab', 'gojek'];
 
-function normalizeCourierMethods(rawMethods?: string[]): string[] {
-  if (!rawMethods || rawMethods.length === 0) {
-    return [];
-  }
-  const result: string[] = [];
-  for (const m of rawMethods) {
-    if (m === 'instant') {
-      if (!result.includes('grab')) result.push('grab');
-      if (!result.includes('gojek')) result.push('gojek');
-    } else if (m === 'regular') {
-      if (!result.includes('jnt')) result.push('jnt');
-      if (!result.includes('jne')) result.push('jne');
-      if (!result.includes('sicepat')) result.push('sicepat');
-    } else if (BITESHIP_COURIERS.some(c => c.id === m)) {
-      if (!result.includes(m)) result.push(m);
-    }
-  }
-  return result;
+function normalizeCourierMethods(rawMethods?:string[]):string[]{
+  return enabledShippingCouriers(rawMethods??[]);
 }
 
 export function Profile(){
@@ -856,10 +841,6 @@ function ProfileForm({
     setSavingShipping(true);
     try{
       const payloadMethods = [...activeCourierIds];
-      const hasInstant = BITESHIP_COURIERS.filter(c => c.category === 'instant').some(c => activeCourierIds.includes(c.id));
-      const hasRegular = BITESHIP_COURIERS.filter(c => c.category === 'regular').some(c => activeCourierIds.includes(c.id));
-      if (hasInstant && !payloadMethods.includes('instant')) payloadMethods.push('instant');
-      if (hasRegular && !payloadMethods.includes('regular')) payloadMethods.push('regular');
 
       const res = await api<{ok: boolean; shippingMethods?: string[]; error?: string}>('/api/shipping/origin', {
         recipientName: shippingRecipient.trim(),
@@ -890,6 +871,7 @@ function ProfileForm({
           longitude: shippingLongitude,
           updatedAt: new Date().toISOString(),
         });
+        window.dispatchEvent(new Event('vivreplay:shipping-updated'));
         toast.success(t('Shipping settings saved successfully!','Alamat & metode pengiriman berhasil disimpan!'));
       }
     }catch(err){
