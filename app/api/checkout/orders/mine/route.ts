@@ -8,7 +8,7 @@ export async function GET(){
   try{
     const profile=await user();
     const orders=(await db().prepare(`SELECT o.id,o.kind,o.status,o.amount,o.currency,o.details,o.shipping_fee AS shippingFee,o.shipping_status AS shippingStatus,o.biteship_tracking_id AS trackingId,o.shipping_waybill_id AS waybillId,o.shipping_tracking_url AS trackingUrl,o.created_at AS createdAt,o.expires_at AS expiresAt,
-      CASE WHEN o.buyer_id=? THEN 'buyer' ELSE 'seller' END AS role,l.title AS listingTitle,l.printing_id AS printingId,l.items
+      CASE WHEN o.buyer_id=? THEN 'buyer' ELSE 'seller' END AS role,l.title AS listingTitle,l.printing_id AS printingId,o.items
       FROM checkout_orders o LEFT JOIN listings l ON l.id=o.listing_id
       WHERE o.buyer_id=? OR o.seller_id=? ORDER BY o.created_at DESC LIMIT 100`)
       .bind(profile.id,profile.id,profile.id).all<OrderRow>()).results;

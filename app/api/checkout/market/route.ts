@@ -44,6 +44,7 @@ export async function POST(request:Request){
     }
 
     const address=await database.prepare('SELECT recipient_name AS recipientName,phone,address_line AS addressLine,city,postal_code AS postalCode,area_id AS areaId,latitude,longitude,label FROM seller_shipping_origins WHERE owner_id=?').bind(profile.id).first<{recipientName:string|null;phone:string|null;addressLine:string;city:string;postalCode:string;areaId:string|null;latitude:number|null;longitude:number|null;label:string}>();
+    if(address)address.phone=address.phone||profile.phone;
     if(address)address.recipientName=address.recipientName?.trim()||profile.display_name;
     if(!address?.addressLine||!address.city||!address.phone||(!/^\d{5}$/.test(address.postalCode)&&!isBiteshipAreaId(address.areaId)))throw new HttpError(400,'Save a delivery address, valid postal code or delivery area, and mobile number in your profile before checkout.');
     const seller=await database.prepare('SELECT area_id AS areaId,postal_code AS postalCode,label,recipient_name AS recipientName,phone,address_line AS addressLine,city,latitude,longitude FROM seller_shipping_origins WHERE owner_id=?').bind(listing.sellerId).first<{areaId:string|null;postalCode:string;label:string|null;recipientName:string|null;phone:string|null;addressLine:string;city:string;latitude:number|null;longitude:number|null}>();

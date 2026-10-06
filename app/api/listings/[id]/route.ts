@@ -1,3 +1,5 @@
+import {after} from 'next/server';
+import {notifyListingWatchers} from '@/lib/server/market-watch-alerts';
 import {user,db,errorResponse,guard,HttpError} from '@/lib/server/store';
 import {getDynamicListingPolicy,computeListingExpiration} from '@/lib/market/policy';
 
@@ -26,7 +28,17 @@ export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}){
     guard(req);
     const p=await user();
     const {id}=await params;
-    const body=await req.json() as {action?:unknown};
+    const body=await req.json() as {action?:unknown;amount?:unknown;prices?:unknown};
+    if(body.action==='price'){
+      const d=db();const listing=await d.prepare("SELECT amount,quantity,items FROM listings WHERE id=? AND seller_id=? AND type='WTS' AND status IN ('ACTIVE','PAUSED')").bind(id,p.id).first<{amount:number;quantity:number;items:string|null}>();if(!listing)throw new HttpError(404,'Listing not found.');
+      let entries:Array<Record<string,unknown>>=[];try{entries=JSON.parse(listing.items||'[]')}catch{};
+      let amount:number;let items:string|null=listing.items;
+      if(Array.isArray(body.prices)&&entries.length){const prices=body.prices;if(prices.length!==entries.length||prices.some(v=>!Number.isSafeInteger(v)||Number(v)<1||Number(v)>100000000000))throw new HttpError(400,'Enter a valid unit price for every card.');amount=entries.reduce((sum,e,i)=>sum+Number(e.quantity)*Number(prices[i]),0);items=JSON.stringify(entries.map((e,i)=>({...e,unitAmount:prices[i]})));}
+      else{if(entries.length>1)throw new HttpError(400,'Set a unit price for every card.');if(!Number.isSafeInteger(body.amount)||Number(body.amount)<1)throw new HttpError(400,'Enter a valid listing price.');amount=Number(body.amount);if(amount%listing.quantity!==0)throw new HttpError(400,'The total must divide evenly across card copies.');if(entries.length)items=JSON.stringify(entries.map(e=>({...e,unitAmount:amount/listing.quantity})));}
+      if(!Number.isSafeInteger(amount)||amount>100000000000)throw new HttpError(400,'The listing price is too large.');
+      const changed=await d.prepare("UPDATE listings SET amount=?,items=? WHERE id=? AND seller_id=? AND amount=? AND type='WTS' AND status IN ('ACTIVE','PAUSED') AND NOT EXISTS(SELECT 1 FROM checkout_orders WHERE listing_id=? AND status IN ('PENDING_PAYMENT','PROCESSING') AND (expires_at IS NULL OR expires_at>CURRENT_TIMESTAMP))").bind(amount,items,id,p.id,listing.amount,id).run();if(!changed.meta.changes)throw new HttpError(409,'The listing changed or an active checkout reserves its price. Refresh and try again.');
+      after(()=>notifyListingWatchers(id,amount<listing.amount));return Response.json({ok:true,amount});
+    }
     if(body.action!=='pause'&&body.action!=='resume')throw new HttpError(400,'Choose pause or resume.');
     const d=db();
     const listing=await d.prepare('SELECT id,status,expires_at,instance_id AS instanceId,quantity,items FROM listings WHERE id=? AND seller_id=?').bind(id,p.id).first<{id:string;status:string;expires_at:string|null;instanceId:string;quantity:number;items:string|null}>();
@@ -52,6 +64,7 @@ export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}){
     const policy=await getDynamicListingPolicy(p.tier,d);
     const expiresAt=listing.expires_at&&new Date(`${listing.expires_at.replace(' ','T')}Z`).getTime()>Date.now()?listing.expires_at:computeListingExpiration(policy.durationDays);
     await d.prepare("UPDATE listings SET status='ACTIVE',expires_at=? WHERE id=? AND seller_id=? AND status IN ('PAUSED','CLOSED')").bind(expiresAt,id,p.id).run();
+    after(()=>notifyListingWatchers(id));
     return Response.json({ok:true,id,status:'ACTIVE',expiresAt});
   }catch(error){return errorResponse(error)}
 }

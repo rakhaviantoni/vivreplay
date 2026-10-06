@@ -45,6 +45,8 @@ export async function POST(request:Request){
     const trackingStatus=body.status?.trim().toLowerCase().replace(/\s+/g,'_');
     const previousStatus=typeof details.trackingStatus==='string'?details.trackingStatus.toLowerCase().replace(/\s+/g,'_'):'';
     const next={...details,trackingStatus:trackingStatus??details.trackingStatus,trackingNumber:waybill??details.trackingNumber,waybillId:waybill??details.waybillId,trackingUrl:body.courier_link??details.trackingUrl,courier:body.courier_company??details.courier,shippingPrice:body.order_price??body.price??details.shippingPrice};
+    if(['picked','in_transit','dropping_off','delivered'].includes(trackingStatus??''))await db().prepare('UPDATE checkout_orders SET dispatched_at=COALESCE(dispatched_at,CURRENT_TIMESTAMP) WHERE id=?').bind(order.id).run();
+    if(trackingStatus==='delivered')await db().prepare('UPDATE checkout_orders SET delivered_at=COALESCE(delivered_at,CURRENT_TIMESTAMP) WHERE id=?').bind(order.id).run();
     await db().prepare('UPDATE checkout_orders SET details=?,shipping_waybill_id=COALESCE(?,shipping_waybill_id),shipping_tracking_url=COALESCE(?,shipping_tracking_url),shipping_updated_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=?').bind(JSON.stringify(next),waybill??null,body.courier_link??null,order.id).run();
     if(body.event==='order.status'&&trackingStatus&&trackingStatus!==previousStatus&&notificationStatuses.has(trackingStatus)){
       await sendMarketEmail(order.buyerId,'order-tracking','Market order',order.id);

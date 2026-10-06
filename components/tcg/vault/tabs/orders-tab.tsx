@@ -1,5 +1,7 @@
 'use client';
 
+import {OrderReview} from '@/components/tcg/market-reputation';
+import Link from 'next/link';
 import {useCallback,useEffect,useState} from 'react';
 import {ArrowCounterClockwiseIcon as Refresh} from '@phosphor-icons/react';
 import {MarketActivityEmpty,MarketActivityLoading,MarketCardStack,type MarketActivityCard} from '@/components/tcg/vault/tabs/market-activity-state';
@@ -32,8 +34,10 @@ export function OrdersTab({language,initialOrderId}:{language:'EN'|'ID';initialO
       <MarketCardStack cards={order.cards??[]}/>
       <div className="market-activity-row-main"><div className="market-activity-row-title"><span className={`market-order-role is-${order.role}`}>{id?(order.role==='buyer'?'Pembelian':'Penjualan'):(order.role==='buyer'?'Purchase':'Sale')}</span><span className={`vault-listing-status is-${status.toLowerCase()}`}>{statusLabels[status]??status}</span></div><h3>{order.listingTitle||(order.kind==='PRO'?'Market Pro':id?'Pesanan Market':'Market order')}</h3><p>{dateLabel(order.createdAt,id)}</p>{status==='PENDING_PAYMENT'&&order.expiresAt&&<small>{id?'Bayar sebelum ':'Payment due '}{dateLabel(order.expiresAt,id)}</small>}</div>
       <strong className="market-activity-price">{money(order.amount,order.currency)}</strong>
+      {order.role==='buyer'&&<Link className="button secondary" href={`/checkout/order/${order.id}`}>{id?'Lihat pesanan':'View order'}</Link>}
       {order.role==='seller'&&order.status==='PAID'&&<div className="market-order-shipping-actions" style={{gridColumn:'1 / -1',display:'flex',flexWrap:'wrap',alignItems:'center',gap:10}}><button type="button" className="button" disabled={shipmentBusy===order.id} onClick={()=>shipmentOrder===order.id?void arrangeShipping(order.id):setShipmentOrder(order.id)}>{shipmentBusy===order.id?(id?'Menyiapkan…':'Preparing…'):shipmentOrder===order.id?(id?'Buat pengiriman':'Create shipment'):(id?'Atur pengiriman':'Arrange shipping')}</button></div>}
       {(order.status==='SHIPPED'||order.trackingId)&&<div className="market-order-shipping-actions" style={{gridColumn:'1 / -1',display:'flex',flexWrap:'wrap',alignItems:'center',gap:10}}>{order.waybillId&&<span>{id?'Resi':'Tracking'}: {order.waybillId}</span>}<button type="button" className="button secondary" onClick={()=>void loadTracking(order.id)}>{id?'Lacak':'Track'}</button>{order.role==='seller'&&<a href={`/api/checkout/order/${encodeURIComponent(order.id)}/label`} target="_blank" rel="noreferrer">{id?'Cetak label':'Print label'}</a>}{order.trackingUrl&&<a href={order.trackingUrl} target="_blank" rel="noreferrer">{id?'Buka kurir':'Courier tracking'}</a>}{order.trackingStatus&&<strong>{order.trackingStatus}</strong>}{tracking[order.id]?.status&&<strong>{tracking[order.id].status}</strong>}{tracking[order.id]?.history?.map((event,index)=><small key={`${event.updated_at}-${index}`}>{event.updated_at?dateLabel(event.updated_at,id):''} {event.status||event.note}</small>)}</div>}
+      {order.kind==='MARKET'&&['RECEIVED','COMPLETED'].includes(order.status)&&<div style={{gridColumn:'1 / -1'}}><OrderReview orderId={order.id} role={order.role} language={language}/></div>}
     </article>})}</div>}
   </section>;
 }

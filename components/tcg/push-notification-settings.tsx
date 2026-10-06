@@ -39,7 +39,7 @@ export function PushNotificationSettings({language}:{language:'EN'|'ID'}){
   return <section className="profile-push-settings"><div><span className="profile-push-icon">{subscribed?<Bell size={18}/>:<BellSlash size={18}/>}</span><div><h2>{text('Market notifications','Notifikasi Market')}</h2><p>{text('Get alerts for offers, messages, and shared card photos.','Terima pemberitahuan penawaran, pesan, dan foto kartu.')}</p></div></div><button type="button" className="button secondary" disabled={busy} onClick={toggle}>{busy?text('Saving…','Menyimpan…'):subscribed?text('Turn off','Matikan'):text('Enable','Aktifkan')}</button></section>;
 }
 
-export function PushNotificationPrompt({language,message}:{language:'EN'|'ID';message?:'offer'|'activity'|'order'}){
+export function PushNotificationPrompt({language,message}:{language:'EN'|'ID';message?:'offer'|'activity'|'order'|'wishlist'}){
   const [visible,setVisible]=useState(false);const [busy,setBusy]=useState(false);
   const text=(en:string,id:string)=>language==='ID'?id:en;
   useEffect(()=>{
@@ -52,7 +52,8 @@ export function PushNotificationPrompt({language,message}:{language:'EN'|'ID';me
     }).catch(()=>{});
     return()=>{active=false;};
   },[]);
-  const copy=message==='offer'?text('Get an alert when this offer gets a reply.','Terima notifikasi saat penawaran ini dibalas.'):
+  const copy=message==='wishlist'?text('Get wishlist and saved-listing alerts on this device.','Terima notifikasi daftar keinginan dan listing tersimpan di perangkat ini.'):
+    message==='offer'?text('Get an alert when this offer gets a reply.','Terima notifikasi saat penawaran ini dibalas.'):
     message==='order'?text('Get Market order and payment updates on this device.','Terima pembaruan pesanan dan pembayaran Market di perangkat ini.'):
     text('Get alerts for new offers and replies.','Terima notifikasi penawaran dan balasan baru.');
   if(!visible)return null;

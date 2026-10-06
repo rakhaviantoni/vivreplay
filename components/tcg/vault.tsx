@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 
 import { 
@@ -74,10 +74,11 @@ import {
 
 export function Vault() {
   const router = useRouter();
+  const searchParams=useSearchParams();
   const { data, error, loading, refresh } = useAccount();
 
   // Active Tab & View Mode State
-  const [activeTab, setActiveTab] = useState<VaultTab>('collection');
+  const [activeTab, setActiveTab] = useState<VaultTab>(searchParams.get('tab')==='wishlist'?'wishlist':'collection');
   const [viewMode, setViewMode] = useState<VaultViewMode>('binder');
   const binderOrderStorageKey=`vivreplay-vault-binder-order:${String(data?.profile?.id??'guest')}`;
   const [binderOrder,setBinderOrder]=useState<string[]>([]);
@@ -731,6 +732,8 @@ export function Vault() {
         <section style={{ marginTop: '24px' }}>
           <WishlistTab
             wishlist={wishlistList}
+            language={language}
+            onUpdated={refresh}
             onFindListings={handleFindListings}
             onAddToVault={printingId => {
               const card = cards.find(c => printings.find(p => p.id === printingId)?.cardId === c.id);
@@ -740,10 +743,10 @@ export function Vault() {
             onRemoveFromWishlist={async (printingId) => {
               try {
                 await api('/api/wishlist', { printingId, saved: false });
-                toast.success('Removed from wishlist');
+                toast.success(t('Removed from wishlist','Dihapus dari daftar keinginan'));
                 await refresh();
               } catch {
-                toast.success('Removed from wishlist');
+                toast.error(t('Could not remove card','Kartu gagal dihapus'));
               }
             }}
             onAddNewWishlistItem={() => router.push('/cards')}

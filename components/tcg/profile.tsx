@@ -629,7 +629,7 @@ function ProfileForm({
         if(!active||!res?.origin)return;
         setShippingOrigin(res.origin);
         setShippingRecipient(res.origin.recipientName||profile.display_name||'');
-        setShippingPhone(res.origin.phone||'');
+        setShippingPhone(res.origin.phone||profile.phone||'');
         setShippingAddress(res.origin.addressLine||'');
         const c = res.origin.city||'';
         setShippingCity(res.origin.regionNames?.city||c);
@@ -813,11 +813,13 @@ function ProfileForm({
       await api('/api/profile',{
         username: String(f.get('username')),
         displayName: String(f.get('displayName')),
+        phone: String(f.get('phone')||''),
         region: region.toUpperCase(),
         timezone,
         currency,
         locale,
       });
+      setShippingPhone(String(f.get('phone')||''));
       await refresh();
       const upper=locale.toUpperCase()==='ID'?'ID':'EN';
       window.localStorage.setItem('vivreplay-locale',upper);
@@ -1025,6 +1027,7 @@ function ProfileForm({
               </label>
             </div>
 
+            <label>{t('Phone number','Nomor telepon')}<input name="phone" type="tel" autoComplete="tel" defaultValue={profile.phone||shippingPhone||''} maxLength={24}/><small>{t('Used for delivery, never shown on your public profile','Digunakan untuk pengiriman, tidak ditampilkan di profil publik')}</small></label>
             <div className="profile-section-header" style={{marginTop: '12px'}}>
               <h2>{t('Regional & Currency Preferences','Preferensi Regional & Mata Uang')}</h2>
               <p>{t('Choose your preferred Market currency and website interface language.','Pilih mata uang transaksi Market dan bahasa antarmuka situs.')}</p>

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import {MarketPaymentPreview} from './market-payment-preview';
 import {useRouter,useSearchParams} from 'next/navigation';
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {ArrowLeftIcon as ArrowLeft,MapPinIcon as MapPin,ShieldCheckIcon as ShieldCheck,TruckIcon as Truck} from '@phosphor-icons/react';
@@ -146,8 +147,8 @@ export function MarketCheckout(){
         {!quoting&&rates.length>0&&<div className="checkout-rate-list">{rates.map(rate=>{const key=`${rate.courier_code}:${rate.courier_service_code}`;return <label key={key} className={selectedRate===key?'is-selected':''}><input type="radio" name="shipping-rate" value={key} checked={selectedRate===key} onChange={()=>setSelectedRate(key)}/><span><strong>{courierName(rate.courier_code)} · {rate.courier_service_name}</strong>{rate.duration&&<small>{rate.duration}</small>}</span><b>{formatMoney(rate.price,listing.currency)}</b></label>})}</div>}
         {quoteError&&<div><p className="checkout-error" role="alert">{quoteError}</p><button type="button" className="button secondary" disabled={quoting||!origin} onClick={()=>void loadQuotes()}>{t('Try again','Coba lagi')}</button></div>}
         {error&&<p className="checkout-error" role="alert">{error}</p>}
-        {!checkoutAvailable&&<p className="checkout-config-unavailable">{t('Online payment is not enabled for Market orders yet.','Pembayaran online belum diaktifkan untuk pesanan Market.')}</p>}
-        <button type="button" className="button checkout-pay-button" disabled={!currentRate||submitting||!checkoutAvailable||!contactComplete||quoting} onClick={startCheckout}>{submitting?t('Preparing payment…','Menyiapkan pembayaran…'):t('Continue to payment','Lanjut ke pembayaran')}</button>
+        {!checkoutAvailable&&<MarketPaymentPreview amount={subtotal+(currentRate?.price??0)} currency={listing.currency} language={locale}/>}
+        <button type="button" className="button checkout-pay-button" disabled={!currentRate||submitting||!checkoutAvailable||!contactComplete||quoting} onClick={startCheckout}>{submitting?t('Preparing payment…','Menyiapkan pembayaran…'):checkoutAvailable?t('Continue to payment','Lanjut ke pembayaran'):t('Payment coming soon','Pembayaran segera tersedia')}</button>
       </section>
     </div>
   </main>

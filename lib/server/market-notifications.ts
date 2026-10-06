@@ -9,6 +9,8 @@ type NotificationItem={name:string;code:string;language:string;variant:string;ra
 export type NotificationDetails={participant?:string;amount?:number;currency?:string;itemCount?:number;message?:string;photoCount?:number;orderCode?:string;items?:NotificationItem[];subtotal?:number;shippingFee?:number;courier?:string;trackingNumber?:string;trackingStatus?:string;city?:string;postalCode?:string;shippingDeadline?:string};
 
 const copy:Record<Event,{en:{subject:string;line:string;cta:string};id:{subject:string;line:string;cta:string}}>= {
+  'wishlist-match':{en:{subject:'A wishlist card is listed',line:'A listing matches your saved printing and preferences',cta:'View listing'},id:{subject:'Kartu yang Anda inginkan tersedia',line:'Ada listing yang cocok dengan cetakan dan preferensi Anda',cta:'Lihat listing'}},
+  'price-drop':{en:{subject:'A saved listing costs less',line:'The price dropped on a listing you saved',cta:'View listing'},id:{subject:'Harga listing tersimpan turun',line:'Harga listing yang Anda simpan kini lebih rendah',cta:'Lihat listing'}},
   'new-offer':{en:{subject:'New offer for your listing',line:'A collector made an offer on your listing',cta:'Review offer'},id:{subject:'Penawaran baru untuk listing Anda',line:'Kolektor mengajukan penawaran untuk listing Anda',cta:'Lihat penawaran'}},
   counteroffer:{en:{subject:'A counteroffer is waiting',line:'A new price is waiting in your conversation',cta:'Review conversation'},id:{subject:'Ada penawaran balik',line:'Harga baru menunggu di percakapan Anda',cta:'Lihat percakapan'}},
   accepted:{en:{subject:'Your offer was accepted',line:'The seller accepted your offer',cta:'Open conversation'},id:{subject:'Penawaran Anda diterima',line:'Penjual menerima penawaran Anda',cta:'Buka percakapan'}},
@@ -57,6 +59,10 @@ function personalizedCopy(event:Event,details:NotificationDetails|undefined,titl
   let line=base.line;
   let cta=base.cta;
   switch(event){
+    case 'wishlist-match':
+    case 'price-drop':
+      subject=id?`${event==='price-drop'?'Harga turun':'Kartu tersedia'}: ${title}${amount?`, ${amount}`:''}`:`${event==='price-drop'?'Price drop':'Wishlist match'}: ${title}${amount?`, ${amount}`:''}`;
+      break;
     case 'new-offer':
       subject=id?`Penawaran untuk ${title}${amount?`, ${amount}`:''}`:`Offer for ${title}${amount?`, ${amount}`:''}`;
       line=surface==='push'?(id?`${name||'Kolektor'} menawarkan${amount?` ${amount}`:''}${cards?` untuk ${cards}`:''} pada listing ${title}`:`${name||'A collector'} offered${amount?` ${amount}`:''}${cards?` for ${cards}`:''} on your ${title} listing`):(id?'Ada penawaran baru untuk listing ini.':'A new offer is waiting on this listing.');
@@ -120,11 +126,12 @@ function personalizedCopy(event:Event,details:NotificationDetails|undefined,titl
 export function renderMarketEmail(event:Event,listingTitle='Edward.Newgate (001)',threadId='sample-market-thread',locale='en',recipient='navigator@example.com',theme?:'light'|'dark',details?:NotificationDetails):RenderedEmail{
   const id=locale.toLowerCase().startsWith('id');const message=personalizedCopy(event,details,listingTitle,id,locale);
   const base=getAppUrl().replace(/\/$/,'');const isOrder=event.startsWith('order-');
-  const url=`${base}/market?activity=${isOrder?'orders':'offers'}${isOrder?`&order=${encodeURIComponent(threadId)}`:`&conversation=${encodeURIComponent(threadId)}`}`;
+  const watch=event==='wishlist-match'||event==='price-drop';
+  const url=watch?`${base}/market/${encodeURIComponent(threadId)}`:`${base}/market?activity=${isOrder?'orders':'offers'}${isOrder?`&order=${encodeURIComponent(threadId)}`:`&conversation=${encodeURIComponent(threadId)}`}`;
   const title=escapeHtml(listingTitle);const safeUrl=escapeHtml(url);const safeRecipient=escapeHtml(recipient);
   const detail=eventDetail(event,details);
   const safeDetail=detail?escapeHtml(detail):'';
-  const eventHeading=event==='order-seller-paid'?(id?'Pesanan dibayar':'Order paid'):event==='order-shipped'?(id?'Pesanan dikirim':'Order shipped'):event==='order-tracking'?(id?'Status pengiriman':'Shipment status'):event==='order-paid'?(id?'Pembayaran diterima':'Payment received'):event==='order-received'?(id?'Pesanan diterima':'Delivery confirmed'):event==='new-offer'?(id?'Penawaran baru':'New offer'):event==='counteroffer'?(id?'Penawaran balik':'Counteroffer'):event==='accepted'?(id?'Penawaran diterima':'Offer accepted'):event==='declined'?(id?'Penawaran ditolak':'Offer declined'):event==='message'?(id?'Pesan baru':'New message'):event==='photo-request'?(id?'Permintaan foto':'Photo request'):(id?'Foto kartu dibagikan':'Card photos shared');
+  const eventHeading=watch?(event==='price-drop'?(id?'Harga turun':'Price drop'):(id?'Kartu tersedia':'Wishlist match')):event==='order-seller-paid'?(id?'Pesanan dibayar':'Order paid'):event==='order-shipped'?(id?'Pesanan dikirim':'Order shipped'):event==='order-tracking'?(id?'Status pengiriman':'Shipment status'):event==='order-paid'?(id?'Pembayaran diterima':'Payment received'):event==='order-received'?(id?'Pesanan diterima':'Delivery confirmed'):event==='new-offer'?(id?'Penawaran baru':'New offer'):event==='counteroffer'?(id?'Penawaran balik':'Counteroffer'):event==='accepted'?(id?'Penawaran diterima':'Offer accepted'):event==='declined'?(id?'Penawaran ditolak':'Offer declined'):event==='message'?(id?'Pesan baru':'New message'):event==='photo-request'?(id?'Permintaan foto':'Photo request'):(id?'Foto kartu dibagikan':'Card photos shared');
   const summaryRows:Array<[string,string]>=[];
   if(event.startsWith('order-')&&details?.orderCode){
     summaryRows.push([id?'Pesanan':'Order',details.orderCode]);
@@ -143,6 +150,7 @@ export function renderMarketEmail(event:Event,listingTitle='Edward.Newgate (001)
   }else if(event==='message'&&details?.participant)summaryRows.push([id?'Pengirim':'From',details.participant]);
   else if(event==='photo-shared'&&details?.photoCount){summaryRows.push([id?'Dibagikan oleh':'Shared by',details.participant|| (id?'Penjual':'Seller')],[id?'Jumlah foto':'Photos',String(details.photoCount)]);}
   else if(event==='photo-request'&&details?.participant)summaryRows.push([id?'Diminta oleh':'Requested by',details.participant]);
+  if(watch&&details?.amount!==undefined&&details.currency)summaryRows.push([id?'Harga listing':'Listing price',formatAmount(details.amount,details.currency,locale)]);
   const summaryHtml=summaryRows.length?`<table role="presentation" class="email-summary" width="100%" cellspacing="0" cellpadding="0" style="margin:18px 0;border:1px solid #dfe3e8;border-radius:8px;background:#f8f9fb;border-collapse:separate;border-spacing:0;overflow:hidden">${summaryRows.map(([label,value])=>`<tr><td style="padding:9px 12px;border-bottom:1px solid #e7e9ed;color:#697386;font-size:13px">${escapeHtml(label)}</td><td style="padding:9px 12px;border-bottom:1px solid #e7e9ed;color:#172033;font-size:13px;font-weight:700;text-align:right">${escapeHtml(value)}</td></tr>`).join('')}</table>`:'';
   const cardCount=details?.items?.reduce((sum,item)=>sum+item.quantity,0)??0;
   const itemsHeading=cardCount===1?(id?'Kartu':'Card'):id?`Kartu (${cardCount})`:`Cards (${cardCount})`;
@@ -199,8 +207,9 @@ async function notificationItems(value:string|null|undefined):Promise<Notificati
 }
 
 async function notificationDetails(event:Event,reference:string,locale='en'):Promise<NotificationDetails|undefined>{
+  if(event==='wishlist-match'||event==='price-drop'){const row=await db().prepare('SELECT amount,currency,items,printing_id AS printingId,quantity FROM listings WHERE id=?').bind(reference).first<{amount:number;currency:string;items:string|null;printingId:string;quantity:number}>();if(row)return{amount:row.amount,currency:row.currency,items:await notificationItems(row.items||JSON.stringify([{printingId:row.printingId,quantity:row.quantity}]))};return undefined;}
   if(event.startsWith('order-')){
-    const row=await db().prepare(`SELECT o.id,o.amount,o.currency,o.items,o.details,o.subtotal,o.shipping_fee AS shippingFee,o.fulfilled_at AS paidAt,o.updated_at AS updatedAt,COALESCE(b.display_name,'Buyer') AS buyer,COALESCE(s.display_name,'Seller') AS seller
+    const row=await db().prepare(`SELECT o.id,o.amount,o.currency,o.items,o.details,o.subtotal,o.shipping_fee AS shippingFee,COALESCE(o.paid_at,o.fulfilled_at) AS paidAt,o.updated_at AS updatedAt,COALESCE(b.display_name,'Buyer') AS buyer,COALESCE(s.display_name,'Seller') AS seller
       FROM checkout_orders o LEFT JOIN profiles b ON b.id=o.buyer_id LEFT JOIN profiles s ON s.id=o.seller_id WHERE o.id=?`).bind(reference).first<{id:string;amount:number;currency:string;items:string;details:string|null;subtotal:number;shippingFee:number;paidAt:string|null;updatedAt:string;buyer:string;seller:string}>();
     if(!row)return undefined;
     let shipping:{courierName?:string;courierServiceName?:string;trackingNumber?:string;tracking_number?:string;waybillId?:string;waybill_id?:string;trackingStatus?:string;city?:string;postalCode?:string}|undefined;try{shipping=JSON.parse(row.details||'{}') as typeof shipping}catch{}
@@ -265,7 +274,8 @@ async function deliverPush(profileId:string,event:Event,listingTitle:string,thre
     const id=locale?.toLowerCase().startsWith('id')?'id':'en';const message=personalizedCopy(event,details,listingTitle,id==='id',id,'push');
     const isOrder=event.startsWith('order-');
     const extra=eventDetail(event,details);
-    const payload=JSON.stringify({title:message.subject,body:[message.line,extra].filter(Boolean).join(' - ').slice(0,240),url:`/market?activity=${isOrder?'orders':'offers'}${isOrder?`&order=${encodeURIComponent(threadId)}`:`&conversation=${encodeURIComponent(threadId)}`}`,tag:`market-${event}-${threadId}`});
+    const watch=event==='wishlist-match'||event==='price-drop';
+    const payload=JSON.stringify({title:message.subject,body:[message.line,extra].filter(Boolean).join(' - ').slice(0,240),url:watch?`/market/${encodeURIComponent(threadId)}`:`/market?activity=${isOrder?'orders':'offers'}${isOrder?`&order=${encodeURIComponent(threadId)}`:`&conversation=${encodeURIComponent(threadId)}`}`,tag:`market-${event}-${threadId}`});
     const vapid=JSON.parse(privateJwk) as JsonWebKey;const signingKey=await crypto.subtle.importKey('jwk',vapid,{name:'ECDSA',namedCurve:'P-256'},false,['sign']);
     const authorization=async(endpoint:string)=>{
       const audience=new URL(endpoint).origin;const header=b64url(encoder.encode(JSON.stringify({typ:'JWT',alg:'ES256'})));

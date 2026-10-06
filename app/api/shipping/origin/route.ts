@@ -39,6 +39,7 @@ export async function GET(request:Request){
     return Response.json({
       origin: {
         ...origin,
+        phone:origin.phone||profile.phone||null,
         areaId:isBiteshipAreaId(origin.areaId)?origin.areaId:null,
         label: displayLabel,
         recipientName:origin.recipientName?.trim()||profile.display_name||null,
@@ -74,6 +75,7 @@ export async function POST(request:Request){
     });
 
     await db().prepare(`INSERT INTO seller_shipping_origins (owner_id,label,recipient_name,phone,address_line,city,postal_code,area_id,latitude,longitude,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(owner_id) DO UPDATE SET label=excluded.label,recipient_name=excluded.recipient_name,phone=excluded.phone,address_line=excluded.address_line,city=excluded.city,postal_code=excluded.postal_code,area_id=excluded.area_id,latitude=excluded.latitude,longitude=excluded.longitude,updated_at=CURRENT_TIMESTAMP`).bind(profile.id,label,recipientName,phone,address,city,postalCode,areaId,typeof input.latitude==='number'?input.latitude:null,typeof input.longitude==='number'?input.longitude:null).run();
+    await db().prepare('UPDATE profiles SET phone=? WHERE id=?').bind(phone,profile.id).run();
     return Response.json({ok:true, shippingMethods});
   }catch(error){return errorResponse(error)}
 }
@@ -87,6 +89,7 @@ export async function PATCH(request:Request){
     if(!/^\+?[\d\s().-]+$/.test(phone)||phone.replace(/\D/g,'').length<8||phone.replace(/\D/g,'').length>16)return Response.json({error:'Enter a valid delivery phone number.'},{status:400});
     const result=await db().prepare('UPDATE seller_shipping_origins SET recipient_name=?,phone=?,updated_at=CURRENT_TIMESTAMP WHERE owner_id=?').bind(recipientName,phone,profile.id).run();
     if(!result.meta.changes)return Response.json({error:'Save a delivery address first.'},{status:400});
+    await db().prepare('UPDATE profiles SET phone=? WHERE id=?').bind(phone,profile.id).run();
     return Response.json({ok:true,recipientName,phone},{headers:{'Cache-Control':'private, no-store'}});
   }catch(error){return errorResponse(error)}
 }

@@ -1,0 +1,18 @@
+ALTER TABLE profiles ADD phone TEXT;
+UPDATE profiles SET phone=(SELECT phone FROM seller_shipping_origins WHERE owner_id=profiles.id) WHERE EXISTS(SELECT 1 FROM seller_shipping_origins WHERE owner_id=profiles.id AND phone IS NOT NULL);
+ALTER TABLE wishlists ADD target_price INTEGER;
+ALTER TABLE wishlists ADD target_condition TEXT;
+ALTER TABLE wishlists ADD alerts INTEGER NOT NULL DEFAULT 0;
+CREATE TABLE market_saved_listings(owner_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,listing_id TEXT NOT NULL REFERENCES listings(id) ON DELETE CASCADE,alerts INTEGER NOT NULL DEFAULT 0,saved_amount INTEGER NOT NULL,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY(owner_id,listing_id));
+CREATE INDEX market_saved_listing_lookup ON market_saved_listings(listing_id,alerts);
+CREATE TABLE market_reviews(order_id TEXT NOT NULL REFERENCES checkout_orders(id),reviewer_id TEXT NOT NULL REFERENCES profiles(id),subject_id TEXT NOT NULL REFERENCES profiles(id),subject_role TEXT NOT NULL CHECK(subject_role IN ('buyer','seller')),rating INTEGER NOT NULL CHECK(rating BETWEEN 1 AND 5),comment TEXT NOT NULL DEFAULT '',created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY(order_id,reviewer_id));
+CREATE INDEX market_reviews_subject ON market_reviews(subject_id,subject_role);
+CREATE TABLE market_watch_notifications(owner_id TEXT NOT NULL,listing_id TEXT NOT NULL,event TEXT NOT NULL,amount INTEGER NOT NULL,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY(owner_id,listing_id,event,amount));
+ALTER TABLE checkout_orders ADD paid_at TEXT;
+ALTER TABLE checkout_orders ADD dispatched_at TEXT;
+ALTER TABLE checkout_orders ADD delivered_at TEXT;
+CREATE TABLE wishlists_next(owner_id TEXT NOT NULL REFERENCES profiles(id),printing_id TEXT NOT NULL,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,target_price INTEGER,target_condition TEXT,alerts INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(owner_id,printing_id));
+INSERT INTO wishlists_next SELECT owner_id,printing_id,created_at,target_price,target_condition,alerts FROM wishlists;
+DROP TABLE wishlists;
+ALTER TABLE wishlists_next RENAME TO wishlists;
+CREATE INDEX wishlist_printing_alerts ON wishlists(printing_id,alerts);

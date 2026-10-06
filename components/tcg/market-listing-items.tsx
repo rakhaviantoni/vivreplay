@@ -1,6 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+import {SaveListingButton} from './market-saved';
+import {MarketReputation} from './market-reputation';
 import {useRouter} from 'next/navigation';
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {ArrowLeftIcon, InfoIcon as Info, MinusIcon as Minus, PlusIcon as Plus, TruckIcon as Truck, XIcon as X} from '@phosphor-icons/react';
@@ -675,6 +677,8 @@ export function MarketListingDetailView({
               <strong>{stored ? <Link href={`/players/${stored.username}`}>{listing.seller}</Link> : listing.seller}</strong>
             </div>
           </section>
+          {!isOwner&&<SaveListingButton listingId={listing.id} language={language}/>}
+          <MarketReputation listingId={listing.id} language={language}/>
           {!isOwner&&<FeedbackLaunchButton request={{initialCategory:'market-report',listingId:listing.id}} className="market-report-link">{t('Report listing or seller','Laporkan listing atau penjual')}</FeedbackLaunchButton>}
 
           {(!isExpired||isOwner)&&(

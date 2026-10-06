@@ -10,7 +10,7 @@ export async function fulfillCheckoutOrder(database:ReturnType<typeof db>,order:
     await database.batch([
       database.prepare("UPDATE checkout_orders SET status='PROCESSING',updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT'").bind(order.id),
       database.prepare(`UPDATE profiles SET tier='pro',pro_expires_at=datetime(max(COALESCE(pro_expires_at,CURRENT_TIMESTAMP),CURRENT_TIMESTAMP), '+' || ? || ' days') WHERE id=(SELECT buyer_id FROM checkout_orders WHERE id=? AND status='PROCESSING')`).bind(durationDays,order.id),
-      database.prepare("UPDATE checkout_orders SET status='PAID',fulfilled_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PROCESSING'").bind(order.id),
+      database.prepare("UPDATE checkout_orders SET status='PAID',paid_at=COALESCE(paid_at,CURRENT_TIMESTAMP),fulfilled_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PROCESSING'").bind(order.id),
     ]);
     return;
   }
@@ -25,6 +25,6 @@ export async function fulfillCheckoutOrder(database:ReturnType<typeof db>,order:
     if(!item.instanceId)continue;
     statements.push(database.prepare(`UPDATE collectible_instances SET deleted_at=CASE WHEN quantity-?<=0 THEN CURRENT_TIMESTAMP ELSE deleted_at END,quantity=MAX(1,quantity-?) WHERE id=? AND owner_id=? AND quantity>=? AND EXISTS(SELECT 1 FROM checkout_orders WHERE id=? AND status='PROCESSING')`).bind(item.quantity,item.quantity,item.instanceId,order.sellerId,item.quantity,order.id));
   }
-  statements.push(database.prepare("UPDATE checkout_orders SET status='PAID',fulfilled_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PROCESSING'").bind(order.id));
+  statements.push(database.prepare("UPDATE checkout_orders SET status='PAID',paid_at=COALESCE(paid_at,CURRENT_TIMESTAMP),fulfilled_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PROCESSING'").bind(order.id));
   await database.batch(statements);
 }

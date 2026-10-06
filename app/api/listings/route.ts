@@ -1,3 +1,5 @@
+import {after} from 'next/server';
+import {notifyListingWatchers} from '@/lib/server/market-watch-alerts';
 import {z} from 'zod';
 import {user,db,errorResponse,guard,market,HttpError} from '@/lib/server/store';
 import {getDynamicListingPolicy,computeListingExpiration} from '@/lib/market/policy';
@@ -71,6 +73,7 @@ export async function POST(request:Request){
       )
     `).bind(id,profile.id,primary.printing_id,value.instanceId,value.title,value.amount,value.quantity,primary.condition,value.type,value.city,expiresAt,itemsJson,value.negotiable?1:0,primaryQuantity,primary.quantity,value.instanceId,value.instanceId,itemsJson,profile.id).run();
     if(!result.meta.changes)throw new HttpError(409,'That quantity is already listed.');
+    after(()=>notifyListingWatchers(id));
     return Response.json({id,expiresAt,durationDays:policy.durationDays},{status:201});
   }catch(error){
     if(error instanceof Error&&/foreign key|constraint/i.test(error.message))return Response.json({error:'This Vault card is no longer available. Refresh your Vault and try again.'},{status:409});
