@@ -470,10 +470,9 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
     </div>
     {preview&&<CardPreviewModal card={preview} language={preview.language==='JP'?'JP':'EN'} cards={items.map(item=>item.card)} marketActions={!readOnly} onClose={()=>setPreview(undefined)} onNavigate={setPreview}/>}
     <AddEditItemModal key={`${vaultTarget?.id??'market-listing-card'}-${Boolean(vaultTarget)}`} open={Boolean(vaultTarget)} onClose={()=>setVaultTarget(null)} onSaved={()=>router.refresh()} initialCard={vaultTarget?.card} initialPrintingId={vaultTarget?.id} isAnonymous={!session?.user} language={language}/>
-    {!readOnly&&<footer className="market-listing-selection" aria-live="polite">
+    {!readOnly&&<footer className={`market-listing-selection${submitted?' has-push-prompt':''}`} aria-live="polite">
       <div className="market-listing-selection-info">
         <span>{submitted?t('Offer sent - awaiting a response.','Penawaran terkirim - menunggu tanggapan.'):selectedCount?(language==='ID'?`${selectedCount} kartu dipilih`:`${selectedCount} ${selectedCount===1?'card':'cards'} selected`):t('Select cards to calculate a total','Pilih kartu untuk menghitung total')}</span>
-        {submitted&&<PushNotificationPrompt language={language} message="offer"/>}
         {!submitted&&selectedCount>0&&acceptsOffers&&<small>{t('Offers expire after 24 hours or when the listing ends.','Penawaran berakhir setelah 24 jam atau saat listing berakhir.')}</small>}
         <div className="market-listing-pricing-block">
           {hasPriceAdjustments && originalTotal>0 && (
@@ -509,6 +508,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
           subtitle={language==='ID'?`${items.reduce((acc, it) => acc + it.quantity, 0)} kartu`:`${items.reduce((acc, it) => acc + it.quantity, 0)} ${items.reduce((acc, it) => acc + it.quantity, 0) === 1 ? 'card' : 'cards'}`}
         />
       </div>
+      {submitted&&<PushNotificationPrompt language={language} message="offer"/>}
     </footer>}
   </section>;
 }

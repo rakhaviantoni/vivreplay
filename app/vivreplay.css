@@ -3315,6 +3315,14 @@ html[data-theme='dark'] .market-feed-entry .market-feed-row-actions .button.is-i
 .market-listing-utility-actions .button.is-icon-only:hover{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--surface-raised));color:var(--accent)}
 @media(max-width:700px){.printing-strip{gap:9px;padding-top:11px}.printing-option{width:84px}.printing-strip .printing-choice{width:80px}.printing-vault-stepper{min-width:80px}.card-market-comparison{grid-template-columns:minmax(0,1fr);gap:10px}.market-listing-heading{align-items:flex-start}.market-listing-heading h1{font-size:clamp(27px,7vw,34px)!important}}
 @media(max-width:420px){.printing-title{align-items:flex-start;flex-direction:column}.printing-title>div{width:100%}.printing-title>div button{flex:1;min-width:0;padding-inline:8px;font-size:10px}.printing-option{width:78px}.printing-strip .printing-choice{width:74px}.printing-vault-stepper{min-width:74px}.card-market-comparison>.card-market-panel,.card-market-comparison>.card-market-sales{padding:14px}.market-listing-utility-actions{justify-content:flex-end}.market-listing-utility-actions .market-report-link{margin-right:auto}}
+
+.market-listing-selection.has-push-prompt{display:grid!important;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"info actions" "prompt prompt";align-items:center;gap:9px 14px}
+.market-listing-selection.has-push-prompt .market-listing-selection-info{grid-area:info}
+.market-listing-selection.has-push-prompt .market-listing-selection-actions{grid-area:actions}
+.market-listing-selection.has-push-prompt>.market-push-prompt{grid-area:prompt;width:100%;min-width:0;margin:0;padding:8px 10px;border-radius:7px;font-size:11px}
+.market-listing-selection.has-push-prompt>.market-push-prompt>span{min-width:0}
+.market-listing-selection.has-push-prompt>.market-push-prompt .market-push-enable{min-height:34px;padding:5px 10px}
+@media(max-width:600px){.market-listing-selection.has-push-prompt{grid-template-columns:minmax(0,1fr);grid-template-areas:"info" "actions" "prompt";gap:8px}.market-listing-selection.has-push-prompt .market-listing-selection-info{grid-area:info;justify-content:space-between}.market-listing-selection.has-push-prompt .market-listing-selection-actions{grid-area:actions}.market-listing-selection.has-push-prompt>.market-push-prompt{grid-area:prompt}}
 .checkout-seller{display:flex;align-items:center;gap:10px}
 .checkout-seller span{color:var(--muted,#716a5e)}
 .checkout-item-copy small{display:flex;flex-wrap:wrap;gap:3px 8px}
