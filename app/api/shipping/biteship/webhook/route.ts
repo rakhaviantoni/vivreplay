@@ -2,9 +2,10 @@ import {db} from '@/lib/server/store';
 import {sendMarketEmail} from '@/lib/server/market-notifications';
 
 const notificationStatuses=new Set(['picking_up','picked','in_transit','dropping_off','delivered','on_hold','rejected','cancelled','return_in_transit','returned','disposed','courier_not_found']);
+const webhookProbeResponse=()=>new Response('ok',{status:200,headers:{'Content-Type':'text/plain; charset=utf-8','Cache-Control':'no-store'}});
 
 export async function GET(){
-  return Response.json({ok:true});
+  return webhookProbeResponse();
 }
 
 export async function POST(request:Request){
@@ -12,11 +13,11 @@ export async function POST(request:Request){
   let body:{event?:string;order_id?:string;courier_tracking_id?:string;courier_waybill_id?:string;courier_company?:string;courier_type?:string;courier_link?:string;status?:string;price?:number;order_price?:number};
   try{
     rawBody=await request.text();
-    if(!rawBody.trim())return Response.json({ok:true});
+    if(!rawBody.trim())return webhookProbeResponse();
     body=JSON.parse(rawBody);
     if(!body||typeof body!=='object'||Array.isArray(body))return Response.json({error:'Webhook payload must be a JSON object.'},{status:400});
     // Biteship may send an empty JSON object while checking a new endpoint.
-    if(!body.event)return Response.json({ok:true});
+    if(!body.event)return webhookProbeResponse();
   }catch{return Response.json({error:'Webhook payload must be valid JSON.'},{status:400})}
 
   const secret=process.env.BITESHIP_WEBHOOK_SECRET?.trim();
