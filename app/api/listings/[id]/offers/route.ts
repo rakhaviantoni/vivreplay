@@ -7,15 +7,18 @@ const schema=z.object({type:z.enum(['BUY','SELL']),items:z.array(z.object({print
 
 export async function GET(_request:Request,{params}:{params:Promise<{id:string}>}){try{
   const actor=await user();const {id}=await params;
-  const row=await db().prepare(`SELECT o.id,o.type,o.items,o.amount,o.currency,o.expires_at AS expiresAt
+  const row=await db().prepare(`SELECT o.id,o.actor_id AS actorId,o.type,o.items,o.amount,o.currency,o.expires_at AS expiresAt
     FROM listing_offers o JOIN listings l ON l.id=o.listing_id
-    WHERE o.listing_id=? AND o.actor_id=? AND o.actor_id!=l.seller_id AND o.status='PENDING'
+    WHERE o.listing_id=? AND o.status='PENDING'
       AND (o.expires_at IS NULL OR o.expires_at>CURRENT_TIMESTAMP)
       AND l.status='ACTIVE' AND (l.expires_at IS NULL OR l.expires_at>CURRENT_TIMESTAMP)
-    ORDER BY o.created_at DESC,o.rowid DESC LIMIT 1`).bind(id,actor.id).first<{id:string;type:string;items:string;amount:number;currency:string;expiresAt:string|null}>();
+      AND EXISTS(SELECT 1 FROM listing_offers participant WHERE participant.listing_id=o.listing_id
+        AND COALESCE(participant.thread_id,participant.id)=COALESCE(o.thread_id,o.id)
+        AND participant.actor_id=? AND participant.actor_id!=l.seller_id)
+    ORDER BY o.created_at DESC,o.rowid DESC LIMIT 1`).bind(id,actor.id).first<{id:string;actorId:string;type:string;items:string;amount:number;currency:string;expiresAt:string|null}>();
   let items:Array<{printingId:string;quantity:number;unitAmount?:number}>=[];
   if(row){try{const parsed=JSON.parse(row.items) as unknown;if(Array.isArray(parsed))items=parsed.filter((item):item is {printingId:string;quantity:number;unitAmount?:number}=>Boolean(item&&typeof item==='object'&&typeof item.printingId==='string'&&Number.isInteger(item.quantity)&&item.quantity>0));}catch{}}
-  return Response.json({offer:row?{id:row.id,type:row.type,items,amount:row.amount,currency:row.currency,expiresAt:row.expiresAt}:null},{headers:{'Cache-Control':'private, no-store'}});
+  return Response.json({offer:row?{id:row.id,actorId:row.actorId,type:row.type,items,amount:row.amount,currency:row.currency,expiresAt:row.expiresAt}:null},{headers:{'Cache-Control':'private, no-store'}});
 }catch(error){return errorResponse(error)}}
 
 export async function POST(request:Request,{params}:{params:Promise<{id:string}>}){try{
@@ -49,7 +52,25 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     if(count>listing.quantity||Array.from(requested).some(([printingId,quantity])=>quantity>(available.get(printingId)??0)))throw new HttpError(400,'Select only the available cards in this bundle.');
   }
   if(listing.type==='WTB')for(const item of value.items){const owned=await db().prepare('SELECT COALESCE(SUM(quantity),0) AS quantity FROM collectible_instances WHERE owner_id=? AND printing_id=? AND deleted_at IS NULL').bind(actor.id,item.printingId).first<{quantity:number}>();if((owned?.quantity??0)<item.quantity)throw new HttpError(400,'Add the offered cards to your Vault before submitting.');}
-  const offerId=crypto.randomUUID();const expiresAt=computeOfferExpiration(listing.expires_at);await db().prepare('INSERT INTO listing_offers (id,listing_id,actor_id,type,items,amount,currency,expires_at) VALUES (?,?,?,?,?,?,?,?)').bind(offerId,id,actor.id,value.type,JSON.stringify(value.items),value.amount,value.currency,expiresAt).run();
+  const offerId=crypto.randomUUID();const expiresAt=computeOfferExpiration(listing.expires_at);
+  const inserted=await db().prepare(`INSERT INTO listing_offers (id,listing_id,actor_id,type,items,amount,currency,expires_at)
+    SELECT ?,?,?,?,?,?,?,? WHERE NOT EXISTS(
+      SELECT 1 FROM listing_offers pending WHERE pending.listing_id=? AND pending.status='PENDING'
+        AND (pending.expires_at IS NULL OR pending.expires_at>CURRENT_TIMESTAMP)
+        AND (pending.actor_id=? OR COALESCE(pending.thread_id,pending.id) IN (
+          SELECT COALESCE(existing.thread_id,existing.id) FROM listing_offers existing
+          WHERE existing.listing_id=? AND existing.actor_id=? AND existing.actor_id!=?
+        ))
+    )`).bind(offerId,id,actor.id,value.type,JSON.stringify(value.items),value.amount,value.currency,expiresAt,id,actor.id,id,actor.id,listing.seller_id).run();
+  if(!inserted.meta.changes){
+    const current=await db().prepare(`SELECT pending.id,pending.actor_id AS actorId FROM listing_offers pending
+      WHERE pending.listing_id=? AND pending.status='PENDING' AND (pending.expires_at IS NULL OR pending.expires_at>CURRENT_TIMESTAMP)
+        AND (pending.actor_id=? OR COALESCE(pending.thread_id,pending.id) IN (
+          SELECT COALESCE(existing.thread_id,existing.id) FROM listing_offers existing
+          WHERE existing.listing_id=? AND existing.actor_id=? AND existing.actor_id!=?
+        )) ORDER BY pending.created_at DESC,pending.rowid DESC LIMIT 1`).bind(id,actor.id,id,actor.id,listing.seller_id).first<{id:string;actorId:string}>();
+    return Response.json({error:'You already have an open offer for this listing. Continue in its conversation.',offerId:current?.id,actorId:current?.actorId},{status:409,headers:{'Cache-Control':'private, no-store'}});
+  }
   await sendMarketEmail(listing.seller_id,'new-offer',listing.title,offerId);
-  return Response.json({id:offerId,status:'PENDING',expiresAt},{status:201});
+  return Response.json({id:offerId,actorId:actor.id,status:'PENDING',expiresAt},{status:201});
 }catch(error){return errorResponse(error)}}

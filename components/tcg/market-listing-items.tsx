@@ -179,6 +179,15 @@ export type MarketListingCard={
   language:string;
 };
 
+type ActiveListingOffer={
+  id:string;
+  actorId:string;
+  items:Array<{printingId:string;quantity:number;unitAmount?:number}>;
+  amount:number;
+  currency:string;
+  expiresAt:string|null;
+};
+
 export function ListingArtRotator({items}:{items:MarketListingCard[]}){
   const [activeIndex,setActiveIndex]=useState(0);
   useEffect(()=>{
@@ -204,7 +213,8 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
   const [preview,setPreview]=useState<Card>();
   const [vaultTarget,setVaultTarget]=useState<MarketListingCard|null>(null);
   const {data:session,isPending:sessionPending}=authClient.useSession();
-  const [submitting,setSubmitting]=useState(false); const [submitted,setSubmitted]=useState(false);
+  const [submitting,setSubmitting]=useState(false); const [activeOffer,setActiveOffer]=useState<ActiveListingOffer|null>(null);
+  const [offerJustSent,setOfferJustSent]=useState(false);
   const [offerCheckComplete,setOfferCheckComplete]=useState(false);
   const [language,setLanguage]=useState<'EN'|'ID'>('EN');
 
@@ -223,8 +233,17 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
   },[]);
 
   const t=(en:string,idStr:string)=>language==='ID'?idStr:en;
+  const restoreActiveOffer=useCallback((offer:ActiveListingOffer)=>{
+    const offerItems=offer.items.filter(item=>items.some(listingItem=>listingItem.id===item.printingId)&&Number.isInteger(item.quantity)&&item.quantity>0);
+    if(!offerItems.length)return false;
+    setSelected(Object.fromEntries(offerItems.map(item=>[item.printingId,Math.min(item.quantity,items.find(listingItem=>listingItem.id===item.printingId)?.quantity??item.quantity)])));
+    setCustomPrices(Object.fromEntries(offerItems.filter(item=>Number.isSafeInteger(item.unitAmount)&&Number(item.unitAmount)>0).map(item=>[item.printingId,Number(item.unitAmount)])));
+    setActiveOffer({...offer,items:offerItems});
+    return true;
+  },[items]);
 
   const selectedCount=useMemo(()=>Object.values(selected).reduce((total,amount)=>total+amount,0),[selected]);
+  const publicListingTotal=useMemo(()=>items.reduce((total,item)=>total+item.quantity*item.unitAmount,0),[items]);
   const originalTotal=useMemo(()=>items.reduce((total,item)=>total+(selected[item.id]??0)*item.unitAmount,0),[items,selected]);
   const selectedTotal=useMemo(()=>items.reduce((total,item)=>{
     const qty=selected[item.id]??0;
@@ -293,22 +312,18 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
     setOfferCheckComplete(false);
     const controller=new AbortController();
     void fetch(`/api/listings/${encodeURIComponent(listingId)}/offers`,{cache:'no-store',signal:controller.signal})
-      .then(async response=>response.ok?await response.json() as {offer?:{items?:Array<{printingId:string;quantity:number;unitAmount?:number}>}|null}:null)
+      .then(async response=>response.ok?await response.json() as {offer?:ActiveListingOffer|null}:null)
       .then(payload=>{
         if(!active||!payload?.offer)return;
-        const offerItems=(payload.offer.items??[]).filter(item=>items.some(listingItem=>listingItem.id===item.printingId)&&Number.isInteger(item.quantity)&&item.quantity>0);
-        if(!offerItems.length)return;
-        setSelected(Object.fromEntries(offerItems.map(item=>[item.printingId,Math.min(item.quantity,items.find(listingItem=>listingItem.id===item.printingId)?.quantity??item.quantity)])));
-        setCustomPrices(Object.fromEntries(offerItems.filter(item=>Number.isSafeInteger(item.unitAmount)&&Number(item.unitAmount)>0).map(item=>[item.printingId,Number(item.unitAmount)])));
-        setSubmitted(true);
+        restoreActiveOffer(payload.offer);
       })
       .catch(()=>{})
       .finally(()=>{if(active)setOfferCheckComplete(true)});
     return()=>{active=false;controller.abort()};
-  },[listingId,session?.user.id,sessionPending,readOnly,acceptsOffers,items]);
+  },[listingId,session?.user.id,sessionPending,readOnly,acceptsOffers,items,restoreActiveOffer]);
   const continueOffer=async()=>{
     if(!session){window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));return;}
-    setSubmitting(true);try{const offerItems=items.flatMap(item=>{const quantity=selected[item.id]??0;if(!quantity)return[];const unitAmount=getUnitPrice(item);return [{printingId:item.id,quantity,unitAmount}];});const response=await fetch(`/api/listings/${encodeURIComponent(listingId)}/offers`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({type:isBuying?'BUY':'SELL',items:offerItems,amount:selectedTotal,currency})});const payload=await response.json() as {error?:string};if(!response.ok)throw new Error(payload.error??t('We could not send your offer.','Gagal mengirimkan penawaran Anda.'));setSubmitted(true);setOfferCheckComplete(true);toast.success(isBuying?t('Offer sent to the seller.','Penawaran dikirim ke penjual.'):t('Your cards were offered to the buyer.','Kartu Anda ditawarkan ke pembeli.'));}catch(error){const message=error instanceof Error?error.message:'';const localized=language==='ID'&&message.includes('listing is no longer active')?'Listing ini sudah tidak aktif.':language==='ID'&&message.includes('listing has expired')?'Listing ini sudah kedaluwarsa.':language==='ID'&&message.includes('firm price')?'Listing ini menggunakan harga pas dan tidak menerima penawaran.':language==='ID'&&message.includes('Offer total must match')?'Total penawaran harus sesuai dengan harga tiap kartu.':message||t('We could not send your offer.','Gagal mengirimkan penawaran Anda.');toast.error(localized)}
+    setSubmitting(true);try{const offerItems=items.flatMap(item=>{const quantity=selected[item.id]??0;if(!quantity)return[];const unitAmount=getUnitPrice(item);return [{printingId:item.id,quantity,unitAmount}];});const response=await fetch(`/api/listings/${encodeURIComponent(listingId)}/offers`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({type:isBuying?'BUY':'SELL',items:offerItems,amount:selectedTotal,currency})});const payload=await response.json() as {id?:string;actorId?:string;status?:string;expiresAt?:string;error?:string;offerId?:string};if(!response.ok){if(response.status===409&&payload.offerId){const currentResponse=await fetch(`/api/listings/${encodeURIComponent(listingId)}/offers`,{cache:'no-store'});const current=await currentResponse.json() as {offer?:ActiveListingOffer|null};if(currentResponse.ok&&current.offer&&restoreActiveOffer(current.offer)){setOfferCheckComplete(true);toast.info(t('An open offer already exists. Continue in its conversation.','Penawaran masih terbuka. Lanjutkan melalui percakapannya.'));return;}}throw new Error(payload.error??t('We could not send your offer.','Gagal mengirimkan penawaran Anda.'));}const id=payload.id;if(!id)throw new Error(t('We could not confirm your offer. Refresh and check your Offers.','Penawaran belum dapat dikonfirmasi. Muat ulang dan periksa Penawaran Anda.'));setActiveOffer({id,actorId:payload.actorId??session.user.id,items:offerItems,amount:selectedTotal,currency,expiresAt:payload.expiresAt??null});setOfferJustSent(true);setOfferCheckComplete(true);toast.success(isBuying?t('Offer sent to the seller.','Penawaran dikirim ke penjual.'):t('Your cards were offered to the buyer.','Kartu Anda ditawarkan ke pembeli.'));}catch(error){const message=error instanceof Error?error.message:'';const localized=language==='ID'&&message.includes('listing is no longer active')?'Listing ini sudah tidak aktif.':language==='ID'&&message.includes('listing has expired')?'Listing ini sudah kedaluwarsa.':language==='ID'&&message.includes('firm price')?'Listing ini menggunakan harga pas dan tidak menerima penawaran.':language==='ID'&&message.includes('Offer total must match')?'Total penawaran harus sesuai dengan harga tiap kartu.':message||t('We could not send your offer.','Gagal mengirimkan penawaran Anda.');toast.error(localized)}
   };
   const buySelected=()=>{
     if(!session){window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));return;}
@@ -320,7 +335,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
   return <section className="market-listing-cards" aria-labelledby="listing-cards-heading">
     <header className="market-listing-cards-header">
       <h2 id="listing-cards-heading">{t('Cards in this listing','Kartu dalam listing ini')}</h2>
-      {!readOnly&&!singleCopyListing&&<div className="market-listing-bulk-actions" role="toolbar" aria-label={t('Bulk card selection','Pilihan borongan kartu')}>
+      {!readOnly&&offerCheckComplete&&!activeOffer&&!submitting&&!singleCopyListing&&<div className="market-listing-bulk-actions" role="toolbar" aria-label={t('Bulk card selection','Pilihan borongan kartu')}>
         <button
           type="button"
           className={`market-bulk-btn ${selectedCount===totalAvailable?'is-active':''}`}
@@ -382,7 +397,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
               {listingType==='WTS'&&<button type="button" className="button secondary is-icon-only market-listing-add-vault" onClick={()=>setVaultTarget(item)} aria-label={t('Add an owned copy to Vault','Simpan salinan milik Anda ke Koleksi')} title={t('Add an owned copy to Vault','Simpan salinan milik Anda ke Koleksi')}><Plus size={17}/></button>}
               <WishlistButton printingId={item.id} language={language} iconOnly/>
             </div>}
-            {!readOnly&&!singleCopyListing&&<span className="deck-stack-actions market-listing-quantity" aria-label={`Select ${item.card.name}`}>
+            {!readOnly&&offerCheckComplete&&!activeOffer&&!submitting&&!singleCopyListing&&<span className="deck-stack-actions market-listing-quantity" aria-label={`Select ${item.card.name}`}>
               <button type="button" onClick={()=>change(item.id,-1,item.quantity)} disabled={!amount} aria-label={`Remove one ${item.card.name}`}><Minus size={13}/></button>
               <button type="button" onClick={()=>change(item.id,1,item.quantity)} disabled={amount===item.quantity} aria-label={`Add one ${item.card.name}`}><Plus size={13}/></button>
               {item.quantity>1 && (
@@ -416,7 +431,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
             <p><span>{item.condition}</span>{!readOnly&&!singleCopyListing&&<em>{amount}/{item.quantity} {t('selected','dipilih')}</em>}</p>
             <b>{formatMoney(item.unitAmount,currency)} {t('each','per kartu')}</b>
 
-            {!readOnly&&acceptsOffers&&amount>0 && (
+            {!readOnly&&acceptsOffers&&offerCheckComplete&&!activeOffer&&!submitting&&amount>0 && (
               <div className="market-card-offer">
                 <div className="market-card-offer-label">
                   <span>{t('Offer price / card:','Tawar harga / kartu:')}</span>
@@ -491,10 +506,11 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
     </div>
     {preview&&<CardPreviewModal card={preview} language={preview.language==='JP'?'JP':'EN'} cards={items.map(item=>item.card)} marketActions={!readOnly} onClose={()=>setPreview(undefined)} onNavigate={setPreview}/>}
     <AddEditItemModal key={`${vaultTarget?.id??'market-listing-card'}-${Boolean(vaultTarget)}`} open={Boolean(vaultTarget)} onClose={()=>setVaultTarget(null)} onSaved={()=>router.refresh()} initialCard={vaultTarget?.card} initialPrintingId={vaultTarget?.id} isAnonymous={!session?.user} language={language}/>
-    {!readOnly&&<footer className={`market-listing-selection${submitted?' has-push-prompt':''}`} aria-live="polite">
+    {!readOnly&&<footer className={`market-listing-selection${offerJustSent?' has-push-prompt':''}`} aria-live="polite">
       <div className="market-listing-selection-info">
-        <span>{submitted?t('Offer sent - awaiting a response.','Penawaran terkirim - menunggu tanggapan.'):selectedCount?(language==='ID'?`${selectedCount} kartu dipilih`:`${selectedCount} ${selectedCount===1?'card':'cards'} selected`):t('Select cards to calculate a total','Pilih kartu untuk menghitung total')}</span>
-        {!submitted&&selectedCount>0&&acceptsOffers&&<small>{t('Offers expire after 24 hours or when the listing ends.','Penawaran berakhir setelah 24 jam atau saat listing berakhir.')}</small>}
+        <span>{activeOffer?(activeOffer.actorId===session?.user.id?t('Offer sent, awaiting a response.','Penawaran terkirim, menunggu tanggapan.'):t('A counteroffer is waiting for you.','Ada penawaran balik untuk Anda.')):selectedCount?(language==='ID'?`${selectedCount} kartu dipilih`:`${selectedCount} ${selectedCount===1?'card':'cards'} selected`):t('Select cards to calculate a total','Pilih kartu untuk menghitung total')}</span>
+        {!activeOffer&&selectedCount>0&&acceptsOffers&&<small>{t('Offers expire after 24 hours or when the listing ends.','Penawaran berakhir setelah 24 jam atau saat listing berakhir.')}</small>}
+        {activeOffer?.expiresAt&&<small>{t('Expires','Berakhir')} {new Intl.DateTimeFormat(language==='ID'?'id-ID':'en-US',{dateStyle:'medium',timeStyle:'short'}).format(new Date(activeOffer.expiresAt.includes('T')?activeOffer.expiresAt:`${activeOffer.expiresAt.replace(' ','T')}Z`))}</small>}
         <div className="market-listing-pricing-block">
           {hasPriceAdjustments && originalTotal>0 && (
             <span className="market-listing-asking-total">
@@ -503,7 +519,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
             </span>
           )}
           <div className="market-listing-final-total">
-            {hasPriceAdjustments && <small>{t('Your offer:','Tawaran Anda:')}</small>}
+            {(hasPriceAdjustments||activeOffer)&&<small>{activeOffer?(activeOffer.actorId===session?.user.id?t('Offer amount:','Nilai penawaran:'):t('Counteroffer:','Penawaran balik:')):t('Your offer:','Tawaran Anda:')}</small>}
             <strong>{formatMoney(selectedTotal,currency)}</strong>
             {hasPriceAdjustments && totalDiffPercent!==0 && (
               <span className={`market-listing-diff-chip ${totalDiffPercent<0?'is-below':'is-above'}`}>
@@ -514,8 +530,9 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
         </div>
       </div>
       <div className="market-listing-selection-actions">
-        {isBuying&&<button type="button" className="button market-buy-selected" disabled={!selectedCount} onClick={buySelected}>{singleCopyListing?t('Buy now','Beli sekarang'):t('Buy selected','Beli pilihan')}</button>}
-        {acceptsOffers&&<button type="button" className="button" disabled={!selectedCount||submitting||submitted||!offerCheckComplete} onClick={continueOffer}>{submitted?t('Offer sent','Penawaran terkirim'):submitting?t('Sending...','Mengirim...'):!offerCheckComplete?t('Checking offer…','Memeriksa penawaran…'):session?(hasPriceAdjustments?t('Submit offer','Kirim penawaran'):actionLabel):(language==='ID'?`Masuk untuk ${isBuying?'menawar':'menawarkan'}`:`Sign in to ${actionLabel.toLowerCase()}`)}</button>}
+        {isBuying&&<button type="button" className="button market-buy-selected" disabled={!selectedCount||submitting} onClick={buySelected}>{singleCopyListing?t('Buy now','Beli sekarang'):t('Buy selected','Beli pilihan')}</button>}
+        {activeOffer&&<button type="button" className="button" onClick={()=>router.push(`/market?activity=offers&conversation=${encodeURIComponent(activeOffer.id)}`)}>{activeOffer.actorId===session?.user.id?t('View offer','Lihat penawaran'):t('Review counteroffer','Tinjau penawaran balik')}</button>}
+        {!activeOffer&&acceptsOffers&&<button type="button" className="button" disabled={!selectedCount||submitting||!offerCheckComplete} onClick={continueOffer}>{submitting?t('Sending...','Mengirim...'):!offerCheckComplete?t('Checking offer…','Memeriksa penawaran…'):session?(hasPriceAdjustments?t('Submit offer','Kirim penawaran'):actionLabel):(language==='ID'?`Masuk untuk ${isBuying?'menawar':'menawarkan'}`:`Sign in to ${actionLabel.toLowerCase()}`)}</button>}
         <ShareButton
           title={listingTitle ?? t('Card listing','Listing kartu')}
           path={`/market/${listingId}`}
@@ -523,13 +540,13 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
             card: item.card,
             quantity: item.quantity,
             condition: item.condition,
-            unitAmount: getUnitPrice(item),
+            unitAmount: item.unitAmount,
           }))}
-          price={formatMoney(selectedTotal || items[0]?.unitAmount, currency)}
+          price={formatMoney(publicListingTotal, currency)}
           subtitle={language==='ID'?`${items.reduce((acc, it) => acc + it.quantity, 0)} kartu`:`${items.reduce((acc, it) => acc + it.quantity, 0)} ${items.reduce((acc, it) => acc + it.quantity, 0) === 1 ? 'card' : 'cards'}`}
         />
       </div>
-      {submitted&&<PushNotificationPrompt language={language} message="offer"/>}
+      {offerJustSent&&<PushNotificationPrompt language={language} message="offer"/>}
     </footer>}
   </section>;
 }
