@@ -30,7 +30,7 @@ async function searchPhotonAreas(query: string): Promise<AreaSearchResult[]> {
   url.searchParams.set('countrycode', 'ID');
   url.searchParams.set('lang', 'id');
   url.searchParams.set('limit', '8');
-  const response = await fetch(url, { headers: { accept: 'application/geo+json' }, cache: 'force-cache', next: { revalidate: 3600 } });
+  const response = await fetch(url, { headers: { accept: 'application/geo+json' } });
   if (!response.ok) return [];
   const payload = await response.json() as { features?: PhotonAreaFeature[] };
   return (payload.features ?? []).flatMap((feature, index) => {

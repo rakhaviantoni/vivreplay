@@ -19,7 +19,7 @@ function errorMessage(payload:BiteshipResponse|null,status:number){
   return upstream||'Biteship could not complete the shipping request.';
 }
 
-type BiteshipRequestInit=RequestInit&{next?:{revalidate?:number}};
+type BiteshipRequestInit=RequestInit;
 export async function biteshipRequest<T extends BiteshipResponse>(path:string,init:BiteshipRequestInit={}):Promise<T>{
   const key=biteshipApiKey();
   if(!key)throw new BiteshipError('Biteship shipping is not configured.',503);
@@ -29,7 +29,7 @@ export async function biteshipRequest<T extends BiteshipResponse>(path:string,in
       ...init,
       headers:{authorization:key,'content-type':'application/json',...init.headers},
       signal:init.signal??AbortSignal.timeout(15_000),
-      cache:init.method?'no-store':(init.next?'force-cache':init.cache),
+      cache:init.cache==='no-cache'?'no-cache':'no-store',
     });
   }catch(error){
     if(error instanceof BiteshipError)throw error;
@@ -44,7 +44,7 @@ export async function searchBiteshipAreas(query:string){
   const value=query.trim();
   if(value.length<2||!biteshipApiKey())return [] as BiteshipArea[];
   const params=new URLSearchParams({countries:'ID',input:value,type:'single'});
-  const data=await biteshipRequest<BiteshipResponse&{areas?:BiteshipArea[]}>(`/maps/areas?${params}`,{cache:'force-cache',next:{revalidate:86400}});
+  const data=await biteshipRequest<BiteshipResponse&{areas?:BiteshipArea[]}>(`/maps/areas?${params}`);
   return Array.isArray(data.areas)?data.areas:[];
 }
 

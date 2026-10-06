@@ -1,6 +1,5 @@
 import {db,errorResponse,guard,user} from '@/lib/server/store';
 import {isBiteshipAreaId} from '@/lib/shipping/biteship-area';
-import {verifyBiteshipPostal,BiteshipError} from '@/lib/server/biteship';
 
 export async function GET(request:Request){
   try{
@@ -58,11 +57,6 @@ export async function POST(request:Request){
     const areaId=typeof input.areaId==='string'&&isBiteshipAreaId(input.areaId)?input.areaId.trim():null;
     if(!address||!city)return Response.json({error:'Street address and city are required.'},{status:400});
     if(!/^\d{5}$/.test(postalCode)&&!areaId)return Response.json({error:'Choose a delivery area with a valid postal code.'},{status:400});
-    let resolvedAreaId=areaId;
-    if(!resolvedAreaId&&process.env.BITESHIP_API_KEY?.trim()){
-      try{const area=await verifyBiteshipPostal(postalCode);resolvedAreaId=area?.id??null}
-      catch(error){if(error instanceof BiteshipError)return Response.json({error:error.message},{status:error.status}) ;throw error}
-    }
 
     const allowed = ['instant','regular','jnt','jne','sicepat','anteraja','tiki','pos','lion','ninja','wahana','grab','gojek'];
     const rawMethods = Array.isArray(input.shippingMethods) ? input.shippingMethods : [];
@@ -73,7 +67,7 @@ export async function POST(request:Request){
       regionNames: input.regions&&typeof input.regions==='object'?input.regions:undefined,
     });
 
-    await db().prepare(`INSERT INTO seller_shipping_origins (owner_id,label,recipient_name,phone,address_line,city,postal_code,area_id,latitude,longitude,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(owner_id) DO UPDATE SET label=excluded.label,recipient_name=excluded.recipient_name,phone=excluded.phone,address_line=excluded.address_line,city=excluded.city,postal_code=excluded.postal_code,area_id=excluded.area_id,latitude=excluded.latitude,longitude=excluded.longitude,updated_at=CURRENT_TIMESTAMP`).bind(profile.id,label,typeof input.recipientName==='string'?input.recipientName.trim().slice(0,100):null,typeof input.phone==='string'?input.phone.trim().slice(0,30):null,address,city,postalCode,resolvedAreaId,typeof input.latitude==='number'?input.latitude:null,typeof input.longitude==='number'?input.longitude:null).run();
+    await db().prepare(`INSERT INTO seller_shipping_origins (owner_id,label,recipient_name,phone,address_line,city,postal_code,area_id,latitude,longitude,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(owner_id) DO UPDATE SET label=excluded.label,recipient_name=excluded.recipient_name,phone=excluded.phone,address_line=excluded.address_line,city=excluded.city,postal_code=excluded.postal_code,area_id=excluded.area_id,latitude=excluded.latitude,longitude=excluded.longitude,updated_at=CURRENT_TIMESTAMP`).bind(profile.id,label,typeof input.recipientName==='string'?input.recipientName.trim().slice(0,100):null,typeof input.phone==='string'?input.phone.trim().slice(0,30):null,address,city,postalCode,areaId,typeof input.latitude==='number'?input.latitude:null,typeof input.longitude==='number'?input.longitude:null).run();
     return Response.json({ok:true, shippingMethods});
   }catch(error){return errorResponse(error)}
 }

@@ -20,7 +20,7 @@ function rowsFrom(value:unknown):RegionRow[]{
 }
 
 async function fetchRows(url:string):Promise<RegionRow[]>{
-  const response=await fetch(url,{headers:{accept:'application/json'},cache:'force-cache',next:{revalidate:604800}});
+  const response=await fetch(url,{headers:{accept:'application/json'}});
   if(!response.ok)throw new Error(`Region data request failed (${response.status}).`);
   const rows=rowsFrom(await response.json());
   if(!rows.length)throw new Error('Region data response was empty.');

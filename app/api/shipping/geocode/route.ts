@@ -13,7 +13,7 @@ export async function GET(request:Request){
   const lat=Number(params.get('lat')),lon=Number(params.get('lon'));
   if(Number.isFinite(lat)&&Number.isFinite(lon)){url.searchParams.set('lat',String(lat));url.searchParams.set('lon',String(lon));}
   try{
-    const upstream=await fetch(url,{headers:{accept:'application/geo+json'},cache:'force-cache',next:{revalidate:3600}});
+    const upstream=await fetch(url,{headers:{accept:'application/geo+json'}});
     if(!upstream.ok)throw new Error('Address search unavailable.');
     const payload=await upstream.json() as {features?:PhotonFeature[]};
     const results=(payload.features??[]).flatMap(feature=>{
