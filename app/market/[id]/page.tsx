@@ -99,6 +99,7 @@ export default async function Page({params}:{params:Promise<{id:string}>}){
     try{const parsed=JSON.parse(stored.shippingOriginLabel??'null');if(Array.isArray(parsed?.methods))methods=parsed.methods.filter((value:unknown):value is string=>typeof value==='string')}catch{}
     const couriers=new Set(enabledShippingCouriers(methods));
     listing.shippingOptionCount=couriers.size;
+    listing.shippingCouriers=[...couriers];
   }
 
   const isOwner = Boolean(me && stored && me.id === stored.sellerId);

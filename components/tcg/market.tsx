@@ -40,7 +40,7 @@ import {CollectionForm} from './collection-form';
 import {AddEditItemModal} from './vault/modals/add-edit-item-modal';
 import {VivreMark} from './brand-assets';
 import {MarketTimestamp} from './market-timestamp';
-import {ShippingOptions} from './market-listing-items';
+import {ShippingCouriers} from './market-listing-items';
 import {Dialog,DialogContent,DialogDescription,DialogTitle} from '@/components/ui/dialog';
 import {DropdownMenu,DropdownMenuContent,DropdownMenuItem,DropdownMenuLabel,DropdownMenuSeparator,DropdownMenuTrigger} from '@/components/ui/dropdown-menu';
 import {ListingsTab} from './vault/tabs/listings-tab';
@@ -1095,7 +1095,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
                       <p>{totalCards} {locale==='ID'?'kartu':(totalCards===1?'card':'cards')}{items.length===1&&<> <i>·</i> {cardLanguage}</>}</p>
                       <small>
                         <MapPin size={11}/>{listing.city} <b>·</b> {listing.seller}
-                        {listing.type==='WTS'&&<><b>·</b><ShippingOptions listingId={listing.id} courierCount={listing.shippingOptionCount??0} variant="compact"/></>}
+                        {listing.type==='WTS'&&<><b>·</b><ShippingCouriers couriers={listing.shippingCouriers??[]} language={locale}/></>}
                         {listing.createdAt&&<><b>·</b><MarketTimestamp value={listing.createdAt}/></>}
                       </small>
                     </div>

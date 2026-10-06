@@ -21,19 +21,22 @@ type CourierRate={courier_code:string;courier_service_code:string;courier_name:s
 const COURIER_LABELS:Record<string,string>={'jne':'JNE Express','jnt':'J&T Express','sicepat':'SiCepat Ekspres','anteraja':'Anteraja','tiki':'TIKI','pos':'Pos Indonesia','lion':'Lion Parcel','ninja':'Ninja Xpress','wahana':'Wahana Express','grab':'GrabExpress','gojek':'GoSend','grab_instant':'Grab Instant','gojek_instant':'Gojek Instant'};
 const INSTANT_COURIERS=new Set(['grab','gojek','grab_instant','gojek_instant']);
 
-export function ShippingOptions({listingId,courierCount=0,variant='fact'}:{listingId:string;courierCount?:number;variant?:'fact'|'compact';}){
+export function ShippingCouriers({couriers,language,maxVisible=2}:{couriers:string[];language:'EN'|'ID';maxVisible?:number}){
+  const labels=couriers.map(code=>COURIER_LABELS[code]??code);
+  return <span className="market-feed-shipping-availability" title={labels.join(', ')}><Truck size={11}/><span>{labels.length?`${labels.slice(0,maxVisible).join(', ')}${labels.length>maxVisible?` +${labels.length-maxVisible}`:''}`:language==='ID'?'Pengiriman belum diatur':'Shipping not configured'}</span></span>;
+}
+
+export function ShippingOptions({listingId,courierCount=0,couriers=[]}:{listingId:string;courierCount?:number;couriers?:string[]}){
   const {data:session}=authClient.useSession();
   const [open,setOpen]=useState(false);
   const [rates,setRates]=useState<CourierRate[]>([]);
   const [startingFee,setStartingFee]=useState<number|null>(null);
   const [loading,setLoading]=useState(false);
   const [quoteState,setQuoteState]=useState<'idle'|'ready'|'needs-address'|'unavailable'|'error'>('idle');
-  const autoAttempted=useRef(false);
   const inFlight=useRef(false);
   const quoteRequest=useRef<AbortController|null>(null);
   const [language,setLanguage]=useState<'EN'|'ID'>('EN');
   const dialogRef=useRef<HTMLDivElement>(null);
-  const triggerRef=useRef<HTMLElement>(null);
 
   useEffect(()=>{
     const sync=()=>setLanguage(window.localStorage.getItem('vivreplay-locale')==='ID'?'ID':'EN');
@@ -48,7 +51,7 @@ export function ShippingOptions({listingId,courierCount=0,variant='fact'}:{listi
   useEffect(()=>{
     const reset=()=>{
       quoteRequest.current?.abort();quoteRequest.current=null;
-      inFlight.current=false;autoAttempted.current=false;
+      inFlight.current=false;
       setRates([]);setStartingFee(null);setLoading(false);setQuoteState('idle');
     };
     reset();
@@ -56,44 +59,35 @@ export function ShippingOptions({listingId,courierCount=0,variant='fact'}:{listi
     return()=>{window.removeEventListener('vivreplay:shipping-updated',reset);quoteRequest.current?.abort();};
   },[listingId,session?.user.id]);
 
-  const loadRates=useCallback(async(showLoading:boolean,force=false)=>{
-    if(inFlight.current||(!force&&quoteState==='ready')||(!force&&autoAttempted.current))return;
+  const loadRates=useCallback(async(cacheOnly=false)=>{
+    if(inFlight.current){if(cacheOnly)return;quoteRequest.current?.abort();}
     if(courierCount===0){setQuoteState('unavailable');return;}
-    autoAttempted.current=true;
     inFlight.current=true;
-    setLoading(true);
+    if(!cacheOnly)setLoading(true);
     const controller=new AbortController();quoteRequest.current=controller;
     try{
-      const res=await fetch('/api/shipping/quotes',{signal:controller.signal,method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({listingId})});
-      const data=await res.json() as {pricing?:CourierRate[];couriers?:string[];destinationRequired?:boolean;error?:string};
+      const res=await fetch('/api/shipping/quotes',{signal:controller.signal,method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({listingId,cacheOnly})});
+      const data=await res.json() as {pricing?:CourierRate[];couriers?:string[];destinationRequired?:boolean;cacheMiss?:boolean;error?:string};
       if(controller.signal.aborted)return;
       if(!res.ok)throw new Error(data.error||t('Live rates could not be loaded.','Tarif pengiriman belum dapat dimuat.'));
+      if(data.cacheMiss)return;
       if(data.destinationRequired){setRates([]);setStartingFee(null);setQuoteState('needs-address');return;}
       if(Array.isArray(data.pricing)&&data.pricing.length>0){
-        const priced=data.pricing.filter(rate=>Number.isFinite(rate.price)&&rate.price>0);
+        const priced=data.pricing.filter(rate=>Number.isFinite(rate.price)&&rate.price>=0);
         setRates(priced);
         const prices=priced.map(rate=>rate.price);
         setStartingFee(prices.length?Math.min(...prices):null);
         setQuoteState(prices.length?'ready':'unavailable');
       }
       else{setRates([]);setStartingFee(null);setQuoteState('unavailable');}
-    }catch(error){if(controller.signal.aborted)return;setQuoteState('error');if(showLoading)toast.error(error instanceof Error?error.message:t('Live rates could not be loaded.','Tarif pengiriman belum dapat dimuat.'));}
+    }catch(error){if(controller.signal.aborted||cacheOnly)return;setQuoteState('error');if(!cacheOnly)toast.error(error instanceof Error?error.message:t('Live rates could not be loaded.','Tarif pengiriman belum dapat dimuat.'));}
     finally{if(quoteRequest.current===controller){inFlight.current=false;setLoading(false);quoteRequest.current=null;}}
-  },[courierCount,listingId,loading,quoteState,language]);
-  const openDialog=async()=>{setOpen(true);await loadRates(true,true)};
+  },[courierCount,listingId,language]);
+  const openDialog=async()=>{setOpen(true);await loadRates()};
 
   useEffect(()=>{
-    const target=triggerRef.current;
-    if(!target||quoteState==='ready'||autoAttempted.current||typeof IntersectionObserver==='undefined')return;
-    const observer=new IntersectionObserver(entries=>{
-      if(entries.some(entry=>entry.isIntersecting)){
-        observer.disconnect();
-        void loadRates(false);
-      }
-    },{rootMargin:'120px'});
-    observer.observe(target);
-    return()=>observer.disconnect();
-  },[loadRates,quoteState]);
+    if(session?.user.id)void loadRates(true);
+  },[session?.user.id,loadRates]);
 
   useEffect(()=>{
     if(!open)return;
@@ -132,7 +126,7 @@ export function ShippingOptions({listingId,courierCount=0,variant='fact'}:{listi
                     {INSTANT_COURIERS.has(rate.courier_code)&&rate.max_km!=null&&(
                       <span className="shipping-options-constraint">{t('max','maks')} {rate.max_km} km</span>
                     )}
-                    {rate.price>0&&(
+                    {rate.price>=0&&(
                       <span className="shipping-options-rate-price">{formatMoney(rate.price,'IDR')}</span>
                     )}
                   </div>
@@ -143,7 +137,7 @@ export function ShippingOptions({listingId,courierCount=0,variant='fact'}:{listi
           {!loading&&activeRates.length===0&&<div className="shipping-options-empty">
             <p>{quoteState==='needs-address'?t('Add a delivery address to see rates for this listing.', 'Tambahkan alamat pengiriman untuk melihat ongkir listing ini.'):quoteState==='error'?t('Rates could not load. Try again.', 'Ongkir gagal dimuat. Coba lagi.'):courierCount>0?t('No live rates are available for this address right now.', 'Belum ada tarif langsung untuk alamat ini.'):t('The seller has not configured shipping options yet.','Penjual belum mengatur opsi pengiriman.')}</p>
             {quoteState==='needs-address'&&<a className="shipping-options-address-btn" href="/profile?tab=shipping" onClick={e=>e.stopPropagation()}>{t('Set delivery address','Atur alamat pengiriman')}</a>}
-            {(quoteState==='error'||quoteState==='unavailable')&&courierCount>0&&<button type="button" className="shipping-options-retry" onClick={()=>void loadRates(true,true)}>{t('Retry','Coba lagi')}</button>}
+            {(quoteState==='error'||quoteState==='unavailable')&&courierCount>0&&<button type="button" className="shipping-options-retry" onClick={()=>void loadRates()}>{t('Retry','Coba lagi')}</button>}
           </div>}
         </div>
         <footer className="shipping-options-footer">
@@ -153,33 +147,14 @@ export function ShippingOptions({listingId,courierCount=0,variant='fact'}:{listi
     </div>
   ):null;
 
-  if(variant==='compact'){
-    return(
-      <>
-        <span
-          ref={node=>{triggerRef.current=node}}
-          role="button"
-          tabIndex={0}
-          className="market-feed-shipping-trigger"
-          onClick={e=>{e.preventDefault();e.stopPropagation();openDialog();}}
-          onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();e.stopPropagation();openDialog();}}}
-          aria-haspopup="dialog"
-          aria-expanded={open}
-        >
-          <Truck size={11}/>
-          <span>{startingFee!=null?`${t('Delivery from','Ongkir mulai')} ${formatMoney(startingFee,'IDR')}`:courierCount>0?t('See delivery fees','Lihat ongkir'):t('Shipping not configured','Pengiriman belum diatur')}</span>
-        </span>
-        {modal}
-      </>
-    );
-  }
 
   return(
     <div className="shipping-options-fact">
       <dt><Truck size={11}/>{t('Shipping','Pengiriman')}</dt>
       <dd>
-        <button type="button" className="shipping-options-trigger" ref={node=>{triggerRef.current=node}} onClick={openDialog} aria-haspopup="dialog" aria-expanded={open}>
-          {startingFee!=null?`${t('Delivery from','Ongkir mulai')} ${formatMoney(startingFee,'IDR')}`:courierCount>0?t('See delivery fees','Lihat ongkir'):t('Shipping not configured','Pengiriman belum diatur')}
+        {couriers.length>0&&<ShippingCouriers couriers={couriers} language={language} maxVisible={couriers.length}/>}
+        <button type="button" className="shipping-options-trigger" onClick={openDialog} aria-haspopup="dialog" aria-expanded={open}>
+          {startingFee!=null?`${t('Delivery from','Ongkir mulai')} ${formatMoney(startingFee,'IDR')}`:courierCount>0?t('Check delivery fees','Cek ongkir'):t('Shipping not configured','Pengiriman belum diatur')}
         </button>
         {modal}
       </dd>
@@ -643,7 +618,7 @@ export function MarketListingDetailView({
               <dt>{t('Cards', 'Kartu')}</dt>
               <dd>{cardCount}</dd>
             </div>}
-            {!isBuying && <ShippingOptions listingId={listing.id} courierCount={listing.shippingOptionCount??0}/>}
+            {!isBuying && <ShippingOptions listingId={listing.id} courierCount={listing.shippingOptionCount??0} couriers={listing.shippingCouriers??[]}/>}
           </dl>
 
           {isOwner && (

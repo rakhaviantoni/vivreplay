@@ -297,6 +297,7 @@ export async function market(){
       card,
       items,
       shippingOptionCount:couriers.size,
+      shippingCouriers:[...couriers],
     } satisfies Listing;
   });
 }

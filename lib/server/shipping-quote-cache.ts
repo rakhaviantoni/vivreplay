@@ -2,7 +2,7 @@ import {db,HttpError} from './store';
 import {biteshipApiKey,biteshipRates,validCoordinates} from './biteship';
 
 type Rate={courier_code:string;courier_service_code:string;price:number;courier_name:string;courier_service_name:string;company:string;type:string;[key:string]:unknown};
-type Quote={pricing:Rate[]};
+type Quote={pricing:Rate[];cacheMiss?:boolean};
 const pending=new Map<string,Promise<Quote>>();
 
 function canonical(value:unknown):unknown{
@@ -11,7 +11,7 @@ function canonical(value:unknown):unknown{
   return value;
 }
 
-export async function cachedShippingRates(buyerId:string|null,listingId:string,payload:Record<string,unknown>,context:unknown=null):Promise<Quote>{
+export async function cachedShippingRates(buyerId:string|null,listingId:string,payload:Record<string,unknown>,context:unknown=null,cacheOnly=false):Promise<Quote>{
   const load=async()=>{
     const data=await biteshipRates<{pricing?:Rate[]}>(payload);
     const enabled=new Set(String(payload.couriers??'').split(','));
@@ -22,9 +22,13 @@ export async function cachedShippingRates(buyerId:string|null,listingId:string,p
     }
     return {pricing:[...unique.values()].sort((a,b)=>a.price-b.price)};
   };
-  if(!buyerId)return load();
+  if(!buyerId)return cacheOnly?{pricing:[],cacheMiss:true}:load();
   const bytes=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(JSON.stringify(canonical({version:1,buyerId,listingId,payload,context,key:biteshipApiKey()}))));
   const key=Array.from(new Uint8Array(bytes),byte=>byte.toString(16).padStart(2,'0')).join('');
+  if(cacheOnly){
+    const hit=await db().prepare('SELECT quote_json AS json,expires_at AS expiresAt FROM shipping_quote_cache WHERE cache_key=?').bind(key).first<{json:string|null;expiresAt:number}>();
+    return hit?.json&&hit.expiresAt>Date.now()?JSON.parse(hit.json) as Quote:{pricing:[],cacheMiss:true};
+  }
   const existing=pending.get(key);if(existing)return existing;
   const work=(async()=>{
     const database=db();
@@ -51,15 +55,15 @@ export async function cachedShippingRates(buyerId:string|null,listingId:string,p
   try{return await work;}finally{pending.delete(key);}
 }
 
-export async function shippingRateOptions(buyerId:string|null,listingId:string,options:{couriers:string[];origin:{areaId?:string;postalCode?:number};destination:{areaId?:string;postalCode?:number};originLatitude:number|null;originLongitude:number|null;destinationLatitude:number|null;destinationLongitude:number|null;items:unknown[]}){
+export async function shippingRateOptions(buyerId:string|null,listingId:string,options:{couriers:string[];origin:{areaId?:string;postalCode?:number};destination:{areaId?:string;postalCode?:number};originLatitude:number|null;originLongitude:number|null;destinationLatitude:number|null;destinationLongitude:number|null;items:unknown[];cacheOnly?:boolean}){
   const {couriers,origin,destination,items}=options;
   const from=validCoordinates(options.originLatitude,options.originLongitude);const to=validCoordinates(options.destinationLatitude,options.destinationLongitude);
   const coordinates=from&&to?{origin_latitude:from.latitude,origin_longitude:from.longitude,destination_latitude:to.latitude,destination_longitude:to.longitude}:null;
   // Coordinates cover standard couriers too, avoiding a second billable request.
-  if(coordinates)return cachedShippingRates(buyerId,listingId,{...coordinates,couriers:[...couriers].sort().join(','),items},{origin,destination});
+  if(coordinates)return cachedShippingRates(buyerId,listingId,{...coordinates,couriers:[...couriers].sort().join(','),items},{origin,destination},options.cacheOnly);
   const regular=couriers.filter(code=>!['grab','gojek'].includes(code));
   if(!regular.length)return {pricing:[]};
   const pickup=origin.areaId?{origin_area_id:origin.areaId}:from?{origin_latitude:from.latitude,origin_longitude:from.longitude}:{origin_postal_code:origin.postalCode};
   const dropoff=destination.areaId?{destination_area_id:destination.areaId}:to?{destination_latitude:to.latitude,destination_longitude:to.longitude}:{destination_postal_code:destination.postalCode};
-  return cachedShippingRates(buyerId,listingId,{...pickup,...dropoff,couriers:[...regular].sort().join(','),items},{origin,destination});
+  return cachedShippingRates(buyerId,listingId,{...pickup,...dropoff,couriers:[...regular].sort().join(','),items},{origin,destination},options.cacheOnly);
 }
