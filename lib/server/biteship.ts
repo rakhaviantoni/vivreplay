@@ -13,16 +13,15 @@ export class BiteshipError extends HttpError{
 export function biteshipApiKey(){return process.env.BITESHIP_API_KEY?.trim()??'';}
 
 function errorMessage(payload:BiteshipResponse|null,status:number){
-  const upstream=typeof payload?.error==='string'?payload.error:payload?.error?.message??payload?.message;
-  if(payload?.code===40001001)return 'Biteship could not match this postal code. Search for and select the exact delivery area, then try again.';
-  if(status===401||status===403)return 'Biteship rejected the API key. Check the configured Biteship environment key.';
-  return upstream||'Biteship could not complete the shipping request.';
+  if(payload?.code===40001001)return 'That postal code didn’t match a delivery area. Search for your district or village and choose the right one.';
+  if(status===401||status===403)return 'Shipping rates are temporarily unavailable. Try again shortly.';
+  return status>=500?'Shipping rates are temporarily unavailable. Try again shortly.':'We couldn’t get rates for this address. Check the delivery details and try again.';
 }
 
 type BiteshipRequestInit=RequestInit;
 export async function biteshipRequest<T extends BiteshipResponse>(path:string,init:BiteshipRequestInit={}):Promise<T>{
   const key=biteshipApiKey();
-  if(!key)throw new BiteshipError('Biteship shipping is not configured.',503);
+  if(!key)throw new BiteshipError('Shipping rates are temporarily unavailable. Try again shortly.',503);
   let response:Response;
   try{
     response=await fetch(`${API}${path}`,{
@@ -33,7 +32,7 @@ export async function biteshipRequest<T extends BiteshipResponse>(path:string,in
     });
   }catch(error){
     if(error instanceof BiteshipError)throw error;
-    throw new BiteshipError('Biteship is not responding. Try again shortly.',502);
+    throw new BiteshipError('Shipping rates are temporarily unavailable. Try again shortly.',502);
   }
   const payload=await response.json().catch(()=>null) as T|null;
   if(!response.ok||payload?.success===false)throw new BiteshipError(errorMessage(payload,response.status),response.status,payload?.code);
@@ -54,7 +53,7 @@ export async function verifyBiteshipPostal(postalCode:string){
   if(!biteshipApiKey())return null;
   const areas=await searchBiteshipAreas(postal);
   const matched=areas.find(area=>String(area.postal_code??'')===postal);
-  if(!matched)throw new BiteshipError(`Biteship has no delivery area for postal code ${postal}. Search for your district and select a matching area.`,400);
+  if(!matched)throw new BiteshipError(`No delivery area matched postal code ${postal}. Search for your district or village and choose the right one.`,400);
   return matched;
 }
 

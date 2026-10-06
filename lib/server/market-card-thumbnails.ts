@@ -1,6 +1,6 @@
 import {db} from '@/lib/server/store';
 
-export type MarketCardThumbnail={printingId:string;name:string;code:string;language:string;variant:string;rarity:string;imageUrl:string|null};
+export type MarketCardThumbnail={printingId:string;name:string;code:string;language:string;variant:string;rarity:string;setCode:string;imageUrl:string|null};
 
 function publicImagePath(imageUrl:string|null,setCode:string,language:string,printingCode:string){
   if(imageUrl){
@@ -30,14 +30,14 @@ export async function marketCardThumbnails(printingIds:string[]){
     const rows=(await database.prepare(`SELECT p.id AS printingId,p.printing_code AS printingCode,p.language,p.variant,p.rarity,p.set_code AS setCode,p.image_url AS imageUrl,i.code,i.name FROM card_printings p LEFT JOIN card_identities i ON i.id=p.identity_id WHERE p.id IN (${chunk.map(()=>'?').join(',')})`).bind(...chunk).all<{printingId:string;printingCode:string|null;language:string;variant:string|null;rarity:string;setCode:string;imageUrl:string|null;code:string|null;name:string|null}>()).results;
     for(const row of rows){
       const code=row.code??row.printingCode??row.printingId;
-      result.set(row.printingId,{printingId:row.printingId,name:row.name??code,code,language:row.language,variant:row.variant??'Standard',rarity:row.rarity,imageUrl:publicImagePath(row.imageUrl,row.setCode,row.language,row.printingCode??code)});
+      result.set(row.printingId,{printingId:row.printingId,name:row.name??code,code,language:row.language,variant:row.variant??'Standard',rarity:row.rarity,setCode:row.setCode,imageUrl:publicImagePath(row.imageUrl,row.setCode,row.language,row.printingCode??code)});
     }
     const missing=chunk.filter(id=>!result.has(id));
     if(missing.length){
       const mirrored=(await database.prepare(`SELECT p.id AS printingId,p.printing_code AS printingCode,p.language,p.variant,p.rarity,p.set_code AS setCode,p.card_image_url AS imageUrl,i.code,i.name FROM tcg_card_printings p LEFT JOIN tcg_card_identities i ON i.id=p.identity_id WHERE p.id IN (${missing.map(()=>'?').join(',')})`).bind(...missing).all<{printingId:string;printingCode:string|null;language:string;variant:string|null;rarity:string;setCode:string;imageUrl:string|null;code:string|null;name:string|null}>()).results;
       for(const row of mirrored){
         const code=row.code??row.printingCode??row.printingId;
-        result.set(row.printingId,{printingId:row.printingId,name:row.name??code,code,language:row.language,variant:row.variant??'Standard',rarity:row.rarity??'',imageUrl:publicImagePath(row.imageUrl,row.setCode,row.language,row.printingCode??code)});
+        result.set(row.printingId,{printingId:row.printingId,name:row.name??code,code,language:row.language,variant:row.variant??'Standard',rarity:row.rarity??'',setCode:row.setCode,imageUrl:publicImagePath(row.imageUrl,row.setCode,row.language,row.printingCode??code)});
       }
     }
   }

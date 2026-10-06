@@ -159,7 +159,7 @@ export function VaultHeader({
               <>
                 <span>{isPricingLoading ? '…' : stats.marketPricedCount ? formatCompactMoney(stats.estimatedValue, 'IDR') : '-'}</span>
                 {stats.marketPricedCount > 0 && <span className="vault-confidence-badge" title={language === 'ID' ? 'Data listing Yuyutei untuk cetakan Jepang yang cocok' : 'Yuyutei listing data for exact Japanese printings'}>
-                  {stats.marketPricedCount} {t('printings priced','cetakan berharga')}
+                  {stats.marketPricedCount} {t('printings with prices','cetakan dengan data harga')}
                 </span>}
               </>
             )}
@@ -171,7 +171,7 @@ export function VaultHeader({
               t('Checking saved Yuyutei prices…','Memeriksa harga Yuyutei tersimpan…')
             ) : (
               <>
-                <span>{isPricingLoading ? t('Checking saved Yuyutei prices…','Memeriksa harga Yuyutei tersimpan…') : stats.marketPricedCount ? `${t('Priced copies only:','Hanya kartu dengan harga:')} ${formatMoney(stats.estimatedValue, 'IDR')}` : t('No exact printing prices available','Harga cetakan persis belum tersedia')}</span>
+                <span>{isPricingLoading ? t('Checking saved Yuyutei prices…','Memeriksa harga Yuyutei…') : stats.marketPricedCount ? `${t('Value of priced cards:','Nilai kartu dengan data harga:')} ${formatMoney(stats.estimatedValue, 'IDR')}` : t('No exact printing prices available','Harga untuk cetakan ini belum tersedia')}</span>
               </>
             )}
           </span>
@@ -203,7 +203,7 @@ export function VaultHeader({
           <span className="vault-metric-sub">
             {stats.change30DayPercent === null
               ? t('Insufficient matched history','Riwayat pembanding belum cukup')
-              : t(`From ${stats.change30DayCount} priced printings`, `Dari ${stats.change30DayCount} cetakan berharga`)}
+              : t(`From ${stats.change30DayCount} printings with prices`, `Dari ${stats.change30DayCount} cetakan dengan data harga`)}
           </span>
         </div>
       </div>

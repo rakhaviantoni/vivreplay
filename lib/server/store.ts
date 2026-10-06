@@ -162,7 +162,7 @@ export async function collection(ownerId:string){
   }}) as CollectionItem[];
 }
 export async function savedDecks(ownerId:string){const rows=(await db().prepare(`SELECT d.id,d.name,d.visibility,v.id AS versionId,v.number AS version,v.leader_id AS leaderId FROM decks d JOIN deck_versions v ON v.deck_id=d.id WHERE d.owner_id=? AND d.deleted_at IS NULL AND v.number=(SELECT MAX(number) FROM deck_versions WHERE deck_id=d.id) ORDER BY d.created_at DESC`).bind(ownerId).all<Omit<SavedDeck,'cards'>>()).results;return Promise.all(rows.map(async r=>({...r,cards:(await db().prepare('SELECT card_id AS cardId,quantity FROM deck_entries WHERE version_id=?').bind(r.versionId).all<{cardId:string;quantity:number}>()).results})));}
-export async function market(){
+export async function market(viewerId?:string){
   const rows = (await db().prepare(`
     SELECT
       l.id,
@@ -180,6 +180,7 @@ export async function market(){
       l.items AS itemsJson,
       o.label AS shippingOriginLabel,
       p.display_name AS seller,
+      l.seller_id AS sellerId,
       cp.image_url AS cardImageUrl,
       cp.language AS cardLanguage,
       cp.rarity AS cardRarity,
@@ -215,6 +216,7 @@ export async function market(){
     createdAt:string;
     expiresAt?:string;
     seller:string;
+    sellerId:string;
     cardImageUrl?:string;
     cardLanguage?:string;
     cardRarity?:string;
@@ -293,6 +295,7 @@ export async function market(){
       createdAt: r.createdAt,
       expiresAt: r.expiresAt,
       seller: r.seller,
+      isOwner: Boolean(viewerId&&r.sellerId===viewerId),
       language: r.cardLanguage ?? 'EN',
       card,
       items,

@@ -3,7 +3,6 @@ import {notFound} from 'next/navigation';
 import {db,optionalUser} from '@/lib/server/store';
 import {cardFor,printings,type Card} from '@/packages/card-data/catalog';
 import {Listing} from '@/packages/domain';
-import {marketListingPreviews} from '@/lib/market/listing-previews';
 import {MarketListingDetailView,type MarketListingCard} from '@/components/tcg/market-listing-items';
 import {MarketStoreNav} from '@/components/tcg/market-store-nav';
 import {pageMetadata} from '@/lib/site-metadata';
@@ -36,8 +35,7 @@ type RawStoredListing = Listing & {
 
 export async function generateMetadata({params}:{params:Promise<{id:string}>}){
   const {id}=await params;
-  const preview=marketListingPreviews.find(item=>item.id===id);
-  return pageMetadata({title:preview?`${preview.title} · Market listing`:'Market listing',description:preview?`View this VivrePlay Market listing for ${preview.title}.`:'View this VivrePlay Market listing.',path:`/market/${encodeURIComponent(id)}`});
+  return pageMetadata({title:'Market listing',description:'View this VivrePlay Market listing.',path:`/market/${encodeURIComponent(id)}`});
 }
 
 export default async function Page({params}:{params:Promise<{id:string}>}){
@@ -86,7 +84,7 @@ export default async function Page({params}:{params:Promise<{id:string}>}){
     optionalUser(),
   ]);
 
-  const listing=stored??marketListingPreviews.find(item=>item.id===id);
+  const listing=stored;
   if(!listing)notFound();
   if(stored?.itemsJson){
     try{

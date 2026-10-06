@@ -2,32 +2,14 @@
   "source": "d1",
   "cards": 2995,
   "excludedUnsupportedReleaseCards": 60,
-  "dslTimingWindows": 3863,
-  "customInstructionPlans": 25,
-  "blockedCustomCount": 20,
+  "dslTimingWindows": 3910,
+  "customInstructionPlans": 7,
+  "blockedCustomCount": 2,
   "blockedCustom": [
     "EB03-031: EB03_031_ON_PLAY (on-play) has instructions but no board executor",
-    "EB03-059: EB03_059_TRIGGER (trigger) has instructions but no board executor",
-    "OP06-086: OP06_086_ON_PLAY (on-play) has instructions but no board executor",
-    "OP08-001: OP08_001_ACTIVATE_MAIN (activate-main) has instructions but no board executor",
-    "OP09-064: OP09_064_ON_PLAY (on-play) has instructions but no board executor",
-    "OP11-031: OP11_031_ACTIVATE_MAIN (activate-main) has instructions but no board executor",
-    "OP12-037: OP12_037_MAIN (main) has instructions but no board executor",
-    "OP14-027: OP14_027_CONTINUOUS (continuous) has instructions but no board executor",
-    "OP14-053: OP14_053_CONTINUOUS (continuous) has instructions but no board executor",
-    "OP14-105: OP14_105_ACTIVATE_MAIN (activate-main) has instructions but no board executor",
-    "OP15-023: OP15_023_ACTIVATE_MAIN (activate-main) has instructions but no board executor",
-    "OP16-030: OP16_030_END_TURN (end-turn) has instructions but no board executor",
-    "OP16-036: OP16_036_WHEN_ATTACKING (when-attacking) has instructions but no board executor",
-    "OP16-039: OP16_039_TRIGGER (trigger) has instructions but no board executor",
-    "OP16-100: OP16_100_MAIN (main) has instructions but no board executor",
-    "OP17-119: OP17_119_ON_PLAY (on-play) has instructions but no board executor",
-    "P-098: P_098_ON_PLAY (on-play) has instructions but no board executor",
-    "PRB02-005: PRB02_005_ON_PLAY (on-play) has instructions but no board executor",
-    "ST13-002: ST13_002_END_TURN (end-turn) has instructions but no board executor",
-    "ST13-005: ST13_005_ON_PLAY (on-play) has instructions but no board executor"
+    "OP14-027: OP14_027_CONTINUOUS (continuous) has instructions but no board executor"
   ],
-  "unhandledCustomCount": 81,
+  "unhandledCustomCount": 74,
   "unhandledCustom": [
     {
       "code": "EB01-001",
@@ -60,12 +42,6 @@
       "text": "[On Play] Place up to 1 of your opponent's Characters with a cost of 3 or less at the top or bottom of your opponent's Life cards face-up.[Trigger] Give up to a total of 2 of your opponent's Leader or Character cards -3000 power during this turn."
     },
     {
-      "code": "EB01-061",
-      "handler": "EB01_061_WHEN_ATTACKING",
-      "timing": "on-play",
-      "text": "[On Play] Add up to 1 DON!! card from your DON!! deck and set it as active.[When Attacking] Select up to 1 of your opponent's Characters. This Character's base power becomes the same as the selected Character's power during this turn."
-    },
-    {
       "code": "EB03-055",
       "handler": "EB03_055_ON_KO",
       "timing": "on-play",
@@ -90,22 +66,10 @@
       "text": "If this Character would be K.O.'d, you may return 1 DON!! card from your field to your DON!! deck instead.\n[Activate: Main] [Once Per Turn] If your Leader has the {Animal Kingdom Pirates} type and you have no other [King] Characters, add up to 1 DON!! card from your DON!! deck and set it as active, and add up to 1 additional DON!! card and rest it."
     },
     {
-      "code": "EB04-052",
-      "handler": "EB04_052_WHEN_ATTACKING",
-      "timing": "when-attacking",
-      "text": "[When Attacking] This Character's base power becomes the same as your opponent's Leader during this turn.\n[On K.O.] If you have 2 or less Life cards, play up to 1 yellow Character card with 6000 power or less from your hand."
-    },
-    {
       "code": "OP02-018",
       "handler": "OP02_018_ON_KO",
       "timing": "unknown",
       "text": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[On K.O.] You may trash 1 card with a type including \"Whitebeard Pirates\" from your hand: If you have 2 or less Life cards, play this Character card from your trash rested."
-    },
-    {
-      "code": "OP02-066",
-      "handler": "OP02_066_MAIN",
-      "timing": "main",
-      "text": "[Main] You may trash 2 cards from your hand: If your Leader has the {Impel Down} type, draw up to 2 cards."
     },
     {
       "code": "OP02-118",
@@ -154,18 +118,6 @@
       "handler": "OP05_119_ON_PLAY",
       "timing": "on-play",
       "text": "[On Play] DON!! -10: Place all of your Characters except this Character at the bottom of your deck in any order. Then, take an extra turn after this one. [Activate:Main][Once Per Turn] (1): Add up to 1 DON!! card from your DON!! deck and set it as active."
-    },
-    {
-      "code": "OP06-009",
-      "handler": "OP06_009_WHEN_ATTACKING",
-      "timing": "unknown",
-      "text": "[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)\n[When Attacking] / [On Block] [Once Per Turn] This Character's base power becomes the same as your opponent's Leader until the start of your next turn."
-    },
-    {
-      "code": "OP06-051",
-      "handler": "OP06_051_ON_PLAY",
-      "timing": "on-play",
-      "text": "[On Play] You may trash 2 cards from your hand: Your opponent returns 1 of their Characters to the owner's hand."
     },
     {
       "code": "OP07-117",
@@ -372,12 +324,6 @@
       "text": "[Opponent's Turn] All of your Characters gain +1 cost. [On your Opponent's Attack] [Once Per Turn] You may trash 1 card with a [Trigger] from your hand: Change the target of that attack to this Leader or to one of your {Blackbeard Pirates} type Character cards."
     },
     {
-      "code": "OP16-104",
-      "handler": "OP16_104_WHEN_ATTACKING",
-      "timing": "when-attacking",
-      "text": "[When Attacking] Select up to 1 of your opponent's Characters. This Character's base power becomes the same as the selected Character's power during this turn.\n[Trigger] Draw 1 card and play up to 1 {Blackbeard Pirates} type Character with a cost of 1 from your trash."
-    },
-    {
       "code": "OP16-118",
       "handler": "OP16_118_UNKNOWN",
       "timing": "unknown",
@@ -412,12 +358,6 @@
       "handler": "OP17_118_UNKNOWN",
       "timing": "unknown",
       "text": "If you only have Characters without a Counter, this card in your hand has a +2000 Counter.\n[On Play] Draw 1 card and play up to 2 {Rocks Pirates} type cards with different card names and a total cost of 9 or less from your hand."
-    },
-    {
-      "code": "P-055",
-      "handler": "P_055_ON_PLAY",
-      "timing": "on-play",
-      "text": "[On Play] You may trash 2 cards from your hand: Your opponent places 1 of their Characters at the bottom of the owner's deck."
     },
     {
       "code": "P-084",
@@ -516,21 +456,18 @@
       "text": "[On Your Opponent's Attack] [Once Per Turn] You may turn 1 card from the top or bottom of your Life cards face-down: Change the target of the attack to your [Eustass\"Captain\"Kid] with 5000 base power or more.[Activate: Main] [Once Per Turn] You may turn 1 card from the top or bottom of your Life cards face-up: Give up to 1 rested DON!! card to your Leader."
     }
   ],
-  "issueCount": 81,
+  "issueCount": 74,
   "issues": [
     "EB01-001: custom handler EB01_001_UNKNOWN is RAW",
     "EB01-028: custom handler EB01_028_TRIGGER is RAW",
     "EB01-038: custom handler EB01_038_COUNTER is RAW",
     "EB01-039: custom handler EB01_039_TRIGGER is RAW",
     "EB01-053: custom handler EB01_053_ON_PLAY is RAW",
-    "EB01-061: custom handler EB01_061_WHEN_ATTACKING is RAW",
     "EB03-055: custom handler EB03_055_ON_KO is RAW",
     "EB04-007: custom handler EB04_007_ACTIVATE_MAIN is RAW",
     "EB04-030: custom handler EB04_030_UNKNOWN is RAW",
     "EB04-031: custom handler EB04_031_UNKNOWN is RAW",
-    "EB04-052: custom handler EB04_052_WHEN_ATTACKING is RAW",
     "OP02-018: custom handler OP02_018_ON_KO is RAW",
-    "OP02-066: custom handler OP02_066_MAIN is RAW",
     "OP02-118: custom handler OP02_118_COUNTER is RAW",
     "OP03-013: custom handler OP03_013_ON_KO is RAW",
     "OP03-076: custom handler OP03_076_CONTINUOUS is RAW",
@@ -539,8 +476,6 @@
     "OP05-040: custom handler OP05_040_UNKNOWN is RAW",
     "OP05-100: custom handler OP05_100_CONTINUOUS is RAW",
     "OP05-119: custom handler OP05_119_ON_PLAY is RAW",
-    "OP06-009: custom handler OP06_009_WHEN_ATTACKING is RAW",
-    "OP06-051: custom handler OP06_051_ON_PLAY is RAW",
     "OP07-117: custom handler OP07_117_END_TURN is RAW",
     "OP08-038: custom handler OP08_038_MAIN is RAW",
     "OP09-022: custom handler OP09_022_UNKNOWN is RAW",
@@ -575,14 +510,12 @@
     "OP16-014: custom handler OP16_014_UNKNOWN is RAW",
     "OP16-043: custom handler OP16_043_ON_KO is RAW",
     "OP16-080: custom handler OP16_080_OPPONENT_ATTACK is RAW",
-    "OP16-104: custom handler OP16_104_WHEN_ATTACKING is RAW",
     "OP16-118: custom handler OP16_118_UNKNOWN is RAW",
     "OP17-015: custom handler OP17_015_UNKNOWN is RAW",
     "OP17-018: custom handler OP17_018_MAIN is RAW",
     "OP17-044: custom handler OP17_044_UNKNOWN is RAW",
     "OP17-087: custom handler OP17_087_ON_PLAY is RAW",
     "OP17-118: custom handler OP17_118_UNKNOWN is RAW",
-    "P-055: custom handler P_055_ON_PLAY is RAW",
     "P-084: custom handler P_084_UNKNOWN is RAW",
     "P-115: custom handler P_115_ON_PLAY is RAW",
     "PRB02-017: custom handler PRB02_017_CONTINUOUS is RAW",

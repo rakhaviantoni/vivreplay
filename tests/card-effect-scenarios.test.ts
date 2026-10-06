@@ -6,6 +6,13 @@ import {advanceEffectExecution,beginEffectExecution} from '../packages/domain/ef
 import {executeEffectCommands,resolveEffectTiming} from '../packages/domain/effect-runtime';
 import {scenarios} from '../scripts/card-effect-scenarios';
 
+test('EB04-011 applies Rush: Character and resolves its Neptunian draw-then-trash count',()=>{
+ const effect='[Rush: Character] (This card can attack Characters on the turn in which it is played.)\n[On Play] Draw a card for each of your {Neptunian} type Characters. Then, trash the same number of cards from your hand.';
+ const document=compileEffectDocument({id:'EB04-011',code:'EB04-011',name:'Scaled Neptunian',color:'Blue',type:'Character',cost:1,power:2000,counter:0,rarity:'',art:0,effect});
+ const scenario=scenarios({id:'EB04-011',code:'EB04-011',name:'Scaled Neptunian',color:'Blue',card_type:'Character',cost:1,power:2000,effect_text:effect}).find(item=>item.name.includes('Neptunians'));
+ assert.ok(scenario);scenario.run(document);
+});
+
 test('KO-protection scenarios enforce DON, source attributes and printed conditions',()=>{
  const cases=[
   ['ST06-004','Ulti',`This Character cannot be K.O.'d by effects. [DON!! x1] If there is a Character with a cost of 0, this Character gains [Double Attack]. (This card deals 2 damage.)`,2],
@@ -38,6 +45,20 @@ test('KO-protection scenarios enforce DON, source attributes and printed conditi
   assert.ok(cardCases.length>=count,`${code} lost previously verified scenario coverage`);
   for(const scenario of cardCases)scenario.run(document);
  }
+});
+
+test('PRB02-005 has card-specific delayed-rest scenario coverage',()=>{
+ const effect='[Your Turn] [On Play] If your Leader is multicolored and your opponent has 7 or less DON!! cards on their field, your opponent rests 1 of their active DON!! cards at the start of their next Main Phase.';
+ const row={id:'prb02-005',code:'PRB02-005',name:'Monkey.D.Luffy',color:'Red/Green',card_type:'Character' as const,cost:3,power:4000,effect_text:effect};
+ const doc=compileEffectDocument({...row,type:row.card_type,counter:0,rarity:'',art:0,effect});const cases=scenarios(row).filter(scenario=>scenario.name.startsWith('PRB02-005 delayed'));
+ assert.equal(cases.length,1);for(const scenario of cases)scenario.run(doc);
+});
+
+test('OP02-066 has card-specific optional hand-trash and up-to-draw scenario coverage',()=>{
+ const effect='[Main] You may trash 2 cards from your hand: If your Leader has the [Impel Down] type, draw up to 2 cards. [Trigger] Draw 2 cards.';
+ const row={id:'op02-066',code:'OP02-066',name:'Test Event',color:'Black',card_type:'Event' as const,cost:1,power:0,effect_text:effect};
+ const doc=compileEffectDocument({...row,type:row.card_type,counter:0,rarity:'',art:0,effect});const cases=scenarios(row).filter(scenario=>scenario.name.startsWith('OP02-066 Main pays'));
+ assert.equal(cases.length,1);for(const scenario of cases)scenario.run(doc);
 });
 
 test('Kujyaku continuously raises only your eligible SWORD Characters during the opponent turn',()=>{
@@ -585,6 +606,29 @@ test('opponent power effects preserve target limits, sign, ownership and duratio
 test('generic rested-card no-ready effects allow up-to targets across opponent field zones',()=>{
  const effect='[On K.O.] Up to 2 of your opponent\'s rested cards will not become active in your opponent\'s next Refresh Phase.',document=compileEffectDocument({id:'test',code:'OP15-023',name:'Arlong',color:'Red',type:'Character',cost:4,power:5000,counter:0,rarity:'',art:0,effect}),action=document.ast[0].actions[0];assert.equal(action.kind,'prevent-ready');if(action.kind!=='prevent-ready')throw new Error('Expected prevent-ready action');assert.equal(action.scope,'opponent-card');assert.deepEqual(action.selection,{min:0,max:2});
  const scenario=scenarios({id:'test',code:'OP15-023',name:'Arlong',color:'Red',card_type:'Character',cost:4,power:5000,effect_text:effect}).find(item=>item.name.startsWith('schema-prevent-ready'));assert.ok(scenario);scenario.run(document);
+});
+
+test('OP15-023 opponent-DON sequence resolves its cost before its optional transfer without masking other scenarios',()=>{
+ const effect="[Activate: Main] You may give 1 of your opponent's rested DON!! cards to 1 of your opponent's Characters: Give up to 1 DON!! to 1 of your opponent's Leaders or Characters. [On K.O.] Up to 2 of your opponent's rested cards will not become active in your opponent's next Refresh Phase.";
+ const document=compileEffectDocument({id:'OP15-023',code:'OP15-023',name:'Arlong',color:'Red',type:'Character',cost:4,power:5000,counter:0,rarity:'',art:0,effect});
+ const scenario=scenarios({id:'OP15-023',code:'OP15-023',name:'Arlong',color:'Red',card_type:'Character',cost:4,power:5000,effect_text:effect}).find(item=>item.name.startsWith('Activate: Main gameplay:'));
+ assert.ok(scenario);scenario.run(document);
+ const unrelated='[On K.O.] Up to 2 of your opponent\'s rested cards will not become active in your opponent\'s next Refresh Phase.',other=compileEffectDocument({id:'test',code:'OP15-023',name:'Arlong',color:'Red',type:'Character',cost:4,power:5000,counter:0,rarity:'',art:0,effect:unrelated});
+ assert.ok(scenarios({id:'test',code:'OP15-023',name:'Arlong',color:'Red',card_type:'Character',cost:4,power:5000,effect_text:unrelated}).some(item=>item.name.startsWith('schema-prevent-ready')));assert.equal(other.ast[0].actions[0].kind,'prevent-ready');
+});
+
+test('OP14-105 reveals three eligible hand cards before distributing one rested DON!! per recipient',()=>{
+ const effect='[Activate: Main] [Once Per Turn] You may reveal 3 {Amazon Lily} or {Kuja Pirates} type cards from your hand: Give your Leader and all of your Characters up to 1 rested DON!! card each.';
+ const document=compileEffectDocument({id:'OP14-105',code:'OP14-105',name:'Gorgon Sisters',color:'Green',type:'Character',cost:4,power:5000,counter:1000,rarity:'',art:0,effect});
+ const scenario=scenarios({id:'OP14-105',code:'OP14-105',name:'Gorgon Sisters',color:'Green',card_type:'Character',cost:4,power:5000,effect_text:effect}).find(item=>item.name.startsWith('Activate: Main gameplay:'));
+ assert.ok(scenario);scenario.run(document);
+});
+
+test('OP06-086 resolves its two Trash play choices separately and applies rested only to the other Character',()=>{
+ const effect='[On Play] Choose up to 1 Character card with a cost of 4 or less and up to 1 Character card with a cost of 2 or less from your trash. Play 1 card and play the other card rested.';
+ const document=compileEffectDocument({id:'OP06-086',code:'OP06-086',name:'Gecko Moria',color:'Black',type:'Character',cost:4,power:5000,counter:1000,rarity:'',art:0,effect});
+ const scenario=scenarios({id:'OP06-086',code:'OP06-086',name:'Gecko Moria',color:'Black',card_type:'Character',cost:4,power:5000,effect_text:effect}).find(item=>item.name.startsWith('On Play gameplay:'));
+ assert.ok(scenario);scenario.run(document);
 });
 
 test('no-ready effects enforce attached DON!! thresholds on opponent Characters',()=>{

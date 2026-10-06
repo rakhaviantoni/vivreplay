@@ -5,6 +5,7 @@ import {getCurrentUser} from '@/lib/server/auth';
 import {hasMarketIpaymuPaymentConfig} from '@/lib/server/ipaymu';
 import {biteshipDestination,isBiteshipAreaId} from '@/lib/shipping/biteship-area';
 import {shippingRateOptions} from '@/lib/server/shipping-quote-cache';
+import {getDynamicListingPolicy} from '@/lib/market/policy';
 
 const schema=z.object({listingId:z.string().min(1),offerId:z.string().min(1).optional(),items:z.array(z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(99)})).min(1).max(60),courierName:z.string().min(1),courierServiceName:z.string().min(1),courierCode:z.string().min(1),courierServiceCode:z.string().min(1),courierType:z.string().min(1),shippingFee:z.number().int().nonnegative().optional()});
 type BundleEntry={instanceId?:string;printingId:string;quantity:number;condition?:string;unitAmount:number};
@@ -117,8 +118,11 @@ export async function POST(request:Request){
     const amount=subtotal+rate.price;
     const expiresAt=new Date(Date.now()+24*60*60*1000).toISOString().replace('T',' ').slice(0,19);
     if(rate.type!==input.courierType)throw new HttpError(409,'That delivery service changed. Choose an updated quote.');
+    const sellerProfile=await database.prepare('SELECT tier FROM profiles WHERE id=?').bind(listing.sellerId).first<{tier:string}>();
+    const sellerPolicy=await getDynamicListingPolicy(sellerProfile?.tier,database);
+    const sellerNetAmount=Math.max(0,subtotal-Math.round(subtotal*sellerPolicy.commissionPercent/100));
     const shipping={recipientName:address.recipientName,addressLine:address.addressLine,city:address.city,postalCode:address.postalCode,areaId:dropoff.areaId,latitude:address.latitude,longitude:address.longitude,phone:address.phone,courierName:rate.courier_name,courierServiceName:rate.courier_service_name,courierCode:rate.courier_code,courierServiceCode:rate.courier_service_code,courierCompany:rate.company,courierType:rate.type,sender:{recipientName:seller.recipientName,addressLine:seller.addressLine,city:seller.city,postalCode:seller.postalCode,areaId:pickup.areaId,latitude:seller.latitude,longitude:seller.longitude,phone:seller.phone},shippingLabel:address.label};
-    await database.prepare(`INSERT INTO checkout_orders (id,kind,buyer_id,seller_id,listing_id,offer_id,items,details,subtotal,shipping_fee,amount,currency,status,expires_at) VALUES (?,'MARKET',?,?,?,?,?,?,?,?,?,?,'PENDING_PAYMENT',?)`).bind(id,profile.id,listing.sellerId,listing.id,acceptedOffer?.id??null,JSON.stringify(orderItems),JSON.stringify(shipping),subtotal,rate.price,amount,'IDR',expiresAt).run();
+    await database.prepare(`INSERT INTO checkout_orders (id,kind,buyer_id,seller_id,listing_id,offer_id,items,details,subtotal,seller_net_amount,shipping_fee,amount,currency,status,expires_at) VALUES (?,'MARKET',?,?,?,?,?,?,?,?,?,?,?,'PENDING_PAYMENT',?)`).bind(id,profile.id,listing.sellerId,listing.id,acceptedOffer?.id??null,JSON.stringify(orderItems),JSON.stringify(shipping),subtotal,sellerNetAmount,rate.price,amount,'IDR',expiresAt).run();
     return Response.json({id,checkoutUrl:`/checkout/order/${id}`,subtotal,shippingFee:rate.price,total:amount},{status:201});
   }catch(error){return errorResponse(error)}
 }

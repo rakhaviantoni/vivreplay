@@ -11,7 +11,7 @@ function parseJson(value: unknown) {
   try { return JSON.parse(value); } catch { return value; }
 }
 
-async function fromD1(language: string, identityCode?: string) {
+async function fromD1(language: string, identityCode?: string, setCode?: string) {
   const db = database();
   const { results } = await db.prepare(`
     SELECT p.id,p.rarity,p.variant,p.set_code,p.set_name,p.printing_code,p.language,
@@ -25,9 +25,9 @@ async function fromD1(language: string, identityCode?: string) {
     JOIN tcg_card_identities i ON i.id=p.identity_id
     LEFT JOIN tcg_card_localizations l ON l.identity_id=i.id AND l.language=p.language
     LEFT JOIN tcg_card_assets a ON a.printing_id=p.id AND a.kind='small'
-    WHERE p.language=? AND (? IS NULL OR UPPER(i.code)=?) AND COALESCE(NULLIF(a.object_key,''), NULLIF(p.card_image_url,'')) IS NOT NULL
+    WHERE p.language=? AND (? IS NULL OR UPPER(i.code)=?) AND (? IS NULL OR UPPER(p.set_code)=?)
     ORDER BY p.set_code,p.id
-  `).bind(language, identityCode ?? null, identityCode ?? null).all<Record<string, unknown>>();
+  `).bind(language, identityCode ?? null, identityCode ?? null, setCode ?? null, setCode ?? null).all<Record<string, unknown>>();
   return results.flatMap(row => {
     const identity = {
       id: row.identity_id, code: row.identity_code,
@@ -40,7 +40,7 @@ async function fromD1(language: string, identityCode?: string) {
     const setCode = String(row.set_code ?? '');
     if (!isPlayableSet(setCode) && !PREVIEW_CARD_CODES.has(code) && row.variant !== 'Preview') return [];
     const imageKey = String(row.image_key ?? '');
-    const imageUrl = imageKey.startsWith('http') ? imageKey : publicCardPath(imageKey);
+    const imageUrl = !imageKey ? null : imageKey.startsWith('http') ? imageKey : publicCardPath(imageKey);
     return [{
       id: row.id, rarity: row.rarity, variant: row.variant,
       set_code: row.set_code, set_name: row.set_name,
@@ -56,7 +56,7 @@ async function fromD1(language: string, identityCode?: string) {
   });
 }
 
-async function fromSupabase(language: string, identityCode?: string) {
+async function fromSupabase(language: string, identityCode?: string, setCode?: string) {
   const supabase = supabaseAdmin();
   if (!supabase) throw new Error('Supabase catalog fallback is unavailable.');
   const rows: Record<string, unknown>[] = [];
@@ -65,6 +65,7 @@ async function fromSupabase(language: string, identityCode?: string) {
       .select('id,rarity,variant,set_code,set_name,printing_code,language,attribute,counter_amount,sub_types,source_payload,card_image_url,tcg_card_assets(kind,object_key),tcg_card_identities!inner(id,code,name,color,card_type,cost,power,effect_text)')
       .eq('language', language);
     if (identityCode) query = query.eq('tcg_card_identities.code', identityCode);
+    if (setCode) query = query.eq('set_code', setCode);
     const { data, error } = await query.range(from, from + 999);
     if (error) throw error;
     rows.push(...((data ?? []) as unknown as Record<string, unknown>[]));
@@ -82,10 +83,13 @@ export async function GET(request: Request) {
   const language = params.get('language')?.toUpperCase() === 'JP' ? 'JP' : 'EN';
   const rawCode = params.get('code')?.trim().toUpperCase();
   const identityCode = rawCode && /^[A-Z0-9-]{1,32}$/.test(rawCode) ? rawCode : undefined;
+  const rawSet = params.get('set')?.trim().toUpperCase();
+  const setCode = rawSet && /^[A-Z0-9_-]{1,24}$/.test(rawSet) ? rawSet : undefined;
   let cards: Record<string, unknown>[];
-  try { cards = await fromD1(language, identityCode); }
-  catch {
-    try { cards = await fromSupabase(language, identityCode); }
+  try { cards = await fromD1(language, identityCode, setCode); }
+  catch { cards = []; }
+  if (!cards.length) {
+    try { cards = await fromSupabase(language, identityCode, setCode); }
     catch { return Response.json({ error: 'Catalog is temporarily unavailable.' }, { status: 503 }); }
   }
   return Response.json({ cards }, {

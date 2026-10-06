@@ -4,12 +4,16 @@ import {StarIcon as Star} from '@phosphor-icons/react';
 import {api} from '@/lib/client';
 import {toast} from 'sonner';
 type Reputation={rating:Array<{role:string;count:number;average:number}>;completed:number;response:{samples:number;percent:number|null;medianHours:number|null};shipping:{samples:number;medianHours:number|null;deliverySamples:number;deliveryHours:number|null};reviews:Array<{rating:number;comment:string;role:string;reviewer:string;createdAt:string}>};
-export function MarketReputation({listingId,language}:{listingId:string;language:'EN'|'ID'}){
+export function MarketReputation({listingId,language,role='seller'}:{listingId:string;language:'EN'|'ID';role?:'seller'|'buyer'}){
  const [data,setData]=useState<Reputation|null>(null);const [failed,setFailed]=useState(false);const id=language==='ID';
  useEffect(()=>{let active=true;setData(null);setFailed(false);void api<Reputation>(`/api/market/reputation?listing=${encodeURIComponent(listingId)}`).then(r=>{if(active)setData(r)}).catch(()=>{if(active)setFailed(true)});return()=>{active=false}},[listingId]);
- if(failed)return null;if(!data)return <div className="reputation-loading" role="status">{id?'Memuat ulasan…':'Loading reviews…'}</div>;
- const hours=(n:number)=>n<1?(id?'Kurang dari 1 jam':'Under 1 hour'):`${Math.round(n)} ${id?'jam':'hours'}`;
- return <section className="market-reputation"><h3>{id?'Reputasi Market':'Market reputation'}</h3><div className="reputation-metrics">{data.rating.map(r=><span key={r.role}><Star size={14} weight="fill"/>{r.average.toFixed(1)}/5 <small>{r.count} {id?'ulasan':'reviews'} ({r.role==='seller'?(id?'penjual':'seller'):(id?'pembeli':'buyer')})</small></span>)}<span>{data.completed} {id?'penjualan selesai':'completed sales'}</span>{data.response.percent!==null&&<span>{data.response.percent}% {id?'dibalas dalam 24 jam':'answered within 24h'}<small>{data.response.samples} {id?'penawaran, 90 hari terakhir':'offers, last 90 days'}</small></span>}{data.response.medianHours!==null&&<span>{id?'Biasanya membalas dalam':'Typical reply'} {hours(data.response.medianHours)}</span>}{data.shipping.medianHours!==null&&<span>{id?'Biasanya diserahkan ke kurir dalam':'Typical dispatch'} {hours(data.shipping.medianHours)}<small>{data.shipping.samples} {id?'pesanan':'orders'}</small></span>}{data.shipping.deliveryHours!==null&&<span>{id?'Waktu perjalanan paket':'Courier transit time'} {hours(data.shipping.deliveryHours)}<small>{data.shipping.deliverySamples} {id?'pesanan, bergantung pada kurir dan tujuan':'orders, varies by courier and destination'}</small></span>}</div>{!data.rating.length&&<p>{id?'Belum ada ulasan dari pesanan selesai':'No completed-order reviews yet'}</p>}{data.reviews.length>0&&<details><summary>{id?'Lihat ulasan':'Read reviews'}</summary>{data.reviews.map((r,i)=><article key={i}><strong>{r.reviewer} - {r.rating}/5</strong>{r.comment&&<p>{r.comment}</p>}<small>{r.role==='seller'?(id?'Ulasan penjual':'Seller review'):(id?'Ulasan pembeli':'Buyer review')}</small></article>)}</details>}</section>;
+ if(failed)return null;
+ if(!data)return <span className="market-reputation-inline is-loading" role="status">{id?'Memuat ulasan':'Loading rating'}</span>;
+ const rating=data.rating.find(item=>item.role===role);
+ return <span className={`market-reputation-inline ${rating?'has-rating':'is-new'}`} aria-label={rating?`${rating.average.toFixed(1)} out of 5, ${rating.count} ${id?'ulasan':'reviews'}`:id?'Belum ada ulasan':'No reviews yet'}>
+   {rating?<><Star size={13} weight="fill" aria-hidden="true"/><b>{rating.average.toFixed(1)}</b><small>({rating.count})</small></>:<small>{id?'Baru':'New'}</small>}
+   {data.completed>0&&<i>{data.completed} {id?'pesanan selesai':'completed'}</i>}
+ </span>;
 }
 export function OrderReview({orderId,role,language}:{orderId:string;role:'buyer'|'seller';language:'EN'|'ID'}){
  const id=language==='ID';const [review,setReview]=useState<{rating:number;comment:string}|null|undefined>();const [rating,setRating]=useState(0);const [comment,setComment]=useState('');const [busy,setBusy]=useState(false);const [error,setError]=useState(false);

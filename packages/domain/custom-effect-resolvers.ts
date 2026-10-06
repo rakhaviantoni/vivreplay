@@ -23,13 +23,6 @@ const implemented=(handler:string,timing:EffectTrigger,instruction:string):Custo
  * Every TESTED entry has a pure resolver fixture in tests/custom-effect-resolvers.test.ts.
  */
 const definitions:CustomEffectDefinition[]=[
- tested('OP06_086_ON_PLAY','on-play',[
-  {kind:'choose',count:1,from:'own-trash',constraint:'Character with cost 4 or less'},
-  {kind:'choose',count:1,from:'own-trash',constraint:'Character with cost 2 or less'},
-  {kind:'choose-one',options:['Play the first selected card','Play the second selected card']},
-  {kind:'play-selected'},
-  {kind:'play-selected',rested:true},
- ]),
  tested('OP06_092_ON_PLAY','on-play',[{kind:'choose-one',options:['Trash up to 1 opponent Character with cost 4 or less','Put 3 cards from opponent trash on deck bottom in any order']}]),
  tested('EB01_052_ON_PLAY','on-play',[{kind:'choose-one',options:['Reorder all of your opponent’s Life cards','Turn all of your Life cards face-down']}]),
  tested('PRB02_005_ON_PLAY','on-play',[{kind:'delayed',when:'next-main-phase',instruction:'Rest 1 active opponent DON!! if the printed condition held on play'}]),

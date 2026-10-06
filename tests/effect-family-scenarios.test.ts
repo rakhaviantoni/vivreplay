@@ -2,9 +2,10 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {familyScenarios} from '../scripts/effect-family-scenarios';
 import {compileEffectDocument} from '../packages/domain/effect-rules';
-import {resolveEffectTiming} from '../packages/domain/effect-runtime';
+import {executeEffectCommands,resolveEffectTiming} from '../packages/domain/effect-runtime';
 import {beginEffectExecution} from '../packages/domain/effect-controller';
 import {advanceEffectExecution} from '../packages/domain/effect-controller';
+import type {MatchEffectState} from '../packages/domain/match-effect-state';
 import {customEffectBranch} from '../packages/domain/custom-effect-resolvers';
 import {scenarios} from '../scripts/card-effect-scenarios';
 
@@ -64,6 +65,13 @@ test('EB01-052 choose-one reorders opposing Life or turns every own Life card fa
  const makeState=()=>({turn:'player' as const,cards:[{id:'eb01-052',owner:'player' as const,zone:'character' as const,type:'Character' as const},...['opp-top','opp-next','opp-bottom'].map(id=>({id,owner:'opponent' as const,zone:'life' as const,type:'Character' as const})),{id:'own-life',owner:'player' as const,zone:'life' as const,type:'Character' as const,faceUp:true}],turnEffects:[],restrictions:[],delayed:[]});
  const reorder=customEffectBranch('EB01_052_ON_PLAY',0)!;assert.equal(reorder[0].kind,'reorder-life');const reorderStart=beginEffectExecution(makeState(),'player','eb01-052','on-play',reorder.map((value,abilityId)=>({kind:'resolve-action' as const,value,abilityId})));assert(reorderStart.requiresSelection,'The first branch must ask to order opposing Life');const ordered=advanceEffectExecution(reorderStart.execution,{cardIds:['opp-bottom','opp-top','opp-next']});assert(ordered.complete&&!ordered.error,'The opponent Life order was rejected');assert.deepEqual(ordered.execution.state.cards.filter(card=>card.owner==='opponent'&&card.zone==='life').map(card=>card.id),['opp-bottom','opp-top','opp-next']);assert(ordered.execution.state.cards.find(card=>card.id==='own-life')?.faceUp,'Reordering opponent Life changed your own Life');
  const faceDown=customEffectBranch('EB01_052_ON_PLAY',1)!;assert.equal(faceDown[0].kind,'set-life-face');const turned=beginEffectExecution(makeState(),'player','eb01-052','on-play',faceDown.map((value,abilityId)=>({kind:'resolve-action' as const,value,abilityId})));assert(turned.complete&&!turned.error,'Turning own Life face-down did not resolve');assert.equal(turned.execution.state.cards.find(card=>card.id==='own-life')?.faceUp,false);assert(turned.execution.state.cards.filter(card=>card.owner==='opponent'&&card.zone==='life').every(card=>card.faceUp===undefined),'The branch changed the opponent Life cards');
+});
+test('ST13-002 end of turn trashes every face-up own Life card, not face-down Life',()=>{
+ const doc=compileEffectDocument({id:'st13-002',code:'ST13-002',name:'Test',color:'Black',type:'Character',cost:5,power:5000,rarity:'C',art:0,effect:'[DON!! x2][Activate: Main][Once Per Turn] Look at 5 cards from the top of your deck and add up to 1 Character card with a cost of 5 to the top of your Life cards face-up. Then, place the rest at the bottom of your deck in any order.\n[End of Your Turn] Trash all your face-up Life cards.'});
+ assert.equal(doc.resolver.type,'DSL','Both timing windows must compile without a custom fallback');
+ const commands=resolveEffectTiming(doc,'end-turn').commands;assert.deepEqual(commands.map(command=>command.kind==='resolve-action'?command.value.kind:command.kind),['trash-life']);
+ const state:MatchEffectState={turn:'player',cards:[{id:'source',owner:'player',zone:'character',type:'Character',effectSchema:doc},{id:'face-up-top',owner:'player',zone:'life',type:'Character',faceUp:true},{id:'face-down',owner:'player',zone:'life',type:'Character',faceUp:false},{id:'face-up-bottom',owner:'player',zone:'life',type:'Character',faceUp:true},{id:'opponent-face-up',owner:'opponent',zone:'life',type:'Character',faceUp:true}],turnEffects:[],restrictions:[],delayed:[]};
+ const result=executeEffectCommands(state,'player',commands,[],'source');assert.equal(result.error,undefined);assert.deepEqual(result.state.cards.filter(card=>card.owner==='player'&&card.zone==='trash').map(card=>card.id),['face-up-top','face-up-bottom']);assert.equal(result.state.cards.find(card=>card.id==='face-down')?.zone,'life');assert.equal(result.state.cards.find(card=>card.id==='opponent-face-up')?.zone,'life');
 });
 test('OP12-039 readies only a matching Roronoa Zoro Leader',()=>{
  const branch=customEffectBranch('OP12_039_MAIN',0)!;assert.equal(branch[0].kind,'ready');

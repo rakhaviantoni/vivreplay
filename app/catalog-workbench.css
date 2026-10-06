@@ -321,7 +321,9 @@ html[data-theme=dark] .home-hero:before { opacity:.9!important; mix-blend-mode:s
   bottom:0;
   left:50%;
   z-index:7;
-  display:grid;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
   width:min(100%,250px);
   padding:10px 12px 9px;
   border:1px solid #bca87888;

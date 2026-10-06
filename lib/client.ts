@@ -4,6 +4,7 @@ import {CollectionItem,SavedDeck} from '@/packages/domain';
 import {authClient} from '@/lib/auth-client';
 export type WishlistItem = {
   printingId: string;
+  card?: {printingId:string;name:string;code:string;language:string;variant:string;rarity:string;setCode:string;imageUrl:string|null}|null;
   alerts?: boolean | number;
   targetCondition?: string;
   targetGrade?: string;

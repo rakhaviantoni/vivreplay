@@ -8,7 +8,7 @@ const itemSchema=z.object({instanceId:z.string().uuid().optional(),printingId:z.
 const schema=z.object({instanceId:z.string().uuid(),amount:z.number().int().positive().max(100000000000),quantity:z.number().int().positive().max(999),city:z.string().trim().min(2).max(60),title:z.string().trim().min(3).max(100),type:z.enum(['WTS','WTB']).default('WTS'),negotiable:z.boolean().default(true),items:z.array(itemSchema).max(30).optional()});
 
 export async function GET(){
-  try{return Response.json({listings:await market()})}
+  try{let viewerId:string|undefined;try{viewerId=(await user()).id}catch{}return Response.json({listings:await market(viewerId)})}
   catch(error){console.error('listings_load_failed',error);return Response.json({error:'Live listings are temporarily unavailable. Please retry.'},{status:503})}
 }
 

@@ -599,7 +599,7 @@ export function Vault() {
           onClick={() => setActiveTab('wishlist')}
         >
           <Heart size={16} />
-          {t('Wishlist','Daftar Keinginan')}
+          {t('Wishlist','Kartu incaran')}
           <span className="vault-tab-count">{wishlistList.length}</span>
         </button>
 
@@ -638,12 +638,14 @@ export function Vault() {
           {filteredCollectionItems.length === 0 ? (
             <div className="vault-empty-state">
               <div className="vault-empty-slot-composition">
+                <div className="vault-empty-dummy-slot" aria-hidden="true" />
                 <div className="vault-empty-dummy-slot">
                   <Search size={24} />
                 </div>
+                <div className="vault-empty-dummy-slot" aria-hidden="true" />
               </div>
-              <h2>{enrichedItems.length===0?t('Your Vault is empty','Koleksi Anda masih kosong'):t('No Cards Match That Search','Tidak Ada Kartu yang Cocok')}</h2>
-              <p>{enrichedItems.length===0?t('Search the catalog to add a real card printing to your collection.','Cari katalog untuk menambahkan cetakan kartu ke koleksi Anda.'):t('Try clearing your active filters or search terms to inspect your catalog.','Coba hapus filter aktif atau kata kunci pencarian Anda.')}</p>
+              <h2>{enrichedItems.length===0?t('Your Vault is empty','Koleksi Anda masih kosong'):t('No cards match','Tidak ada kartu yang cocok')}</h2>
+              <p>{enrichedItems.length===0?t('Add a card printing to start your collection.','Tambahkan cetakan kartu untuk memulai koleksi Anda.'):t('Clear a filter or change your search.','Hapus filter atau ubah pencarian Anda.')}</p>
               {enrichedItems.length===0?<button type="button" className="vault-btn vault-btn-primary" onClick={()=>setQuickAddOpen(true)}>{t('Find a card to add','Cari kartu untuk ditambahkan')}</button>:<button
                 type="button"
                 className="vault-btn vault-btn-secondary"
@@ -715,6 +717,7 @@ export function Vault() {
       {activeTab === 'sets' && (
         <section style={{ marginTop: '24px' }}>
           <SetsTab
+            language={language}
             progressList={setProgressList}
             items={enrichedItems}
             onShareProgress={set => {
@@ -723,6 +726,7 @@ export function Vault() {
             }}
             onFindMissingInMarket={handleFindListings}
             onSelectItem={handleSelectItem}
+            wishlistSetCodes={wishlistList.map(item=>item.card?.setCode??'').filter(Boolean)}
           />
         </section>
       )}
@@ -737,7 +741,7 @@ export function Vault() {
             onRemoveFromWishlist={async (printingId) => {
               try {
                 await api('/api/wishlist', { printingId, saved: false });
-                toast.success(t('Removed from wishlist','Dihapus dari daftar keinginan'));
+                toast.success(t('Removed from wishlist','Dihapus dari kartu incaran'));
                 await refresh();
               } catch (error) {
                 toast.error(error instanceof Error?error.message:t('Could not remove card','Kartu gagal dihapus'));
@@ -751,6 +755,7 @@ export function Vault() {
       {activeTab === 'portfolio' && (
         <section style={{ marginTop: '24px' }}>
           <PortfolioTab
+            language={language}
             stats={stats}
             items={enrichedItems}
             hideValues={hideValues}

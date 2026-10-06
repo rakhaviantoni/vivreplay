@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import {SaveListingButton} from './market-saved';
+import {SaveListingButton,WishlistButton} from './market-saved';
 import {MarketReputation} from './market-reputation';
 import {useRouter} from 'next/navigation';
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
@@ -34,7 +34,7 @@ export function ShippingOptions({listingId,courierCount=0,couriers=[]}:{listingI
   const [rates,setRates]=useState<CourierRate[]>([]);
   const [startingFee,setStartingFee]=useState<number|null>(null);
   const [loading,setLoading]=useState(false);
-  const [quoteState,setQuoteState]=useState<'idle'|'ready'|'needs-address'|'unavailable'|'error'>('idle');
+  const [quoteState,setQuoteState]=useState<'idle'|'ready'|'needs-address'|'needs-sign-in'|'unavailable'|'error'>('idle');
   const inFlight=useRef(false);
   const quoteRequest=useRef<AbortController|null>(null);
   const autoLoaded=useRef('');
@@ -89,7 +89,7 @@ export function ShippingOptions({listingId,courierCount=0,couriers=[]}:{listingI
     }catch(error){if(controller.signal.aborted||cacheOnly)return;setQuoteState('error');if(!cacheOnly&&!silent)toast.error(error instanceof Error?error.message:t('Live rates could not be loaded.','Tarif pengiriman belum dapat dimuat.'));}
     finally{if(quoteRequest.current===controller){inFlight.current=false;setLoading(false);quoteRequest.current=null;}}
   },[courierCount,listingId,language]);
-  const openDialog=async()=>{setOpen(true);if(rates.length&&quoteExpiresAt>Date.now()){setLoading(false);return;}setLoading(true);await loadRates()};
+  const openDialog=async()=>{setOpen(true);if(!session?.user.id){setLoading(false);setQuoteState('needs-sign-in');return;}if(rates.length&&quoteExpiresAt>Date.now()){setLoading(false);return;}setLoading(true);await loadRates()};
 
   useEffect(()=>{
     const key=`${session?.user.id??''}:${listingId}:${courierCount}`;
@@ -143,13 +143,14 @@ export function ShippingOptions({listingId,courierCount=0,couriers=[]}:{listingI
             </ul>
           )}
           {!loading&&activeRates.length===0&&<div className="shipping-options-empty">
-            <p>{quoteState==='needs-address'?t('Add a delivery address to see rates for this listing.', 'Tambahkan alamat pengiriman untuk melihat ongkir listing ini.'):quoteState==='error'?t('Rates could not load. Try again.', 'Ongkir gagal dimuat. Coba lagi.'):courierCount>0?t('No live rates are available for this address right now.', 'Belum ada tarif langsung untuk alamat ini.'):t('The seller has not configured shipping options yet.','Penjual belum mengatur opsi pengiriman.')}</p>
-            {quoteState==='needs-address'&&<a className="shipping-options-address-btn" href="/profile?tab=shipping" onClick={e=>e.stopPropagation()}>{t('Set delivery address','Atur alamat pengiriman')}</a>}
+            <p>{quoteState==='needs-sign-in'?t('Sign in to check delivery fees for this listing.','Masuk untuk melihat ongkir listing ini.'):quoteState==='needs-address'?t('Add a delivery address to see rates for this listing.', 'Tambahkan alamat pengiriman untuk melihat ongkir listing ini.'):quoteState==='error'?t('Rates could not load. Try again.', 'Ongkir belum dapat dimuat. Coba lagi.'):courierCount>0?t('No live rates are available for this address right now.', 'Belum ada tarif untuk alamat ini.'):t('The seller has not set up shipping yet.','Penjual belum mengatur pengiriman.')}</p>
+            {quoteState==='needs-sign-in'&&<button type="button" className="shipping-options-address-btn" onClick={()=>window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}))}>{t('Sign in','Masuk')}</button>}
+            {quoteState==='needs-address'&&<a className="shipping-options-address-btn" href="/profile?tab=shipping" onClick={e=>e.stopPropagation()}>{t('Add delivery address','Tambahkan alamat pengiriman')}</a>}
             {(quoteState==='error'||quoteState==='unavailable')&&courierCount>0&&<button type="button" className="shipping-options-retry" onClick={()=>void loadRates()}>{t('Retry','Coba lagi')}</button>}
           </div>}
         </div>
         <footer className="shipping-options-footer">
-          <p>{startingFee!=null?t('Rates use your saved delivery address. The final fee is confirmed at checkout.','Tarif menggunakan alamat pengiriman tersimpan. Biaya akhir dikonfirmasi saat checkout.'):t('Confirm the delivery address and final fee with the seller before payment.','Konfirmasikan alamat pengiriman dan ongkir akhir kepada penjual sebelum pembayaran.')}</p>
+          {startingFee!=null&&<p>{t('Rates use your saved delivery address. The final fee is confirmed at checkout.','Tarif memakai alamat pengiriman tersimpan. Ongkir final terlihat saat checkout.')}</p>}
         </footer>
       </div>
     </div>
@@ -386,10 +387,11 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
           </div>
           <div className="market-listing-card-copy">
             <strong>{item.card.name}</strong>
-            <small>{item.card.code} · {item.card.rarity} · {item.language}</small>
+            <small className="market-card-meta"><span>{item.card.code}</span><span>{item.card.rarity}</span><span>{item.language}</span></small>
             <p><span>{item.condition}</span>{!readOnly&&!singleCopyListing&&<em>{amount}/{item.quantity} {t('selected','dipilih')}</em>}</p>
             <b>{formatMoney(item.unitAmount,currency)} {t('each','per kartu')}</b>
-            {listingType==='WTS'&&<button type="button" className="market-listing-add-vault" onClick={()=>setVaultTarget(item)}><Plus size={13}/>{t('Add owned copy to Vault','Simpan salinan milik Anda ke koleksi')}</button>}
+            {listingType==='WTS'&&!readOnly&&<button type="button" className="market-listing-add-vault" onClick={()=>setVaultTarget(item)}><Plus size={13}/>{t('Add owned copy to Vault','Simpan salinan milik Anda ke koleksi')}</button>}
+            {!readOnly&&<div className="market-listing-card-actions"><WishlistButton printingId={item.id} language={language}/></div>}
 
             {!readOnly&&acceptsOffers&&amount>0 && (
               <div className="market-card-offer">
@@ -464,7 +466,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
         </article>;
       })}
     </div>
-    {preview&&<CardPreviewModal card={preview} language={preview.language==='JP'?'JP':'EN'} cards={items.map(item=>item.card)} onClose={()=>setPreview(undefined)} onNavigate={setPreview}/>}
+    {preview&&<CardPreviewModal card={preview} language={preview.language==='JP'?'JP':'EN'} cards={items.map(item=>item.card)} marketActions={!readOnly} onClose={()=>setPreview(undefined)} onNavigate={setPreview}/>}
     <AddEditItemModal key={`${vaultTarget?.id??'market-listing-card'}-${Boolean(vaultTarget)}`} open={Boolean(vaultTarget)} onClose={()=>setVaultTarget(null)} onSaved={()=>router.refresh()} initialCard={vaultTarget?.card} initialPrintingId={vaultTarget?.id} isAnonymous={!session?.user} language={language}/>
     {!readOnly&&<footer className="market-listing-selection" aria-live="polite">
       <div className="market-listing-selection-info">
@@ -502,7 +504,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
             unitAmount: getUnitPrice(item),
           }))}
           price={formatMoney(selectedTotal || items[0]?.unitAmount, currency)}
-          subtitle={language==='ID'?`${items.reduce((acc, it) => acc + it.quantity, 0)} kartu · ${items.length} item`:`${items.reduce((acc, it) => acc + it.quantity, 0)} ${items.reduce((acc, it) => acc + it.quantity, 0) === 1 ? 'card' : 'cards'} · ${items.length} ${items.length === 1 ? 'item' : 'items'}`}
+          subtitle={language==='ID'?`${items.reduce((acc, it) => acc + it.quantity, 0)} kartu`:`${items.reduce((acc, it) => acc + it.quantity, 0)} ${items.reduce((acc, it) => acc + it.quantity, 0) === 1 ? 'card' : 'cards'}`}
         />
       </div>
     </footer>}
@@ -599,9 +601,9 @@ export function MarketListingDetailView({
           <header className="market-listing-heading">
             <div>
               <p className="eyebrow market-listing-eyebrow">
-                {primary.language} {t('printing', 'cetakan')}
-                {listing.createdAt && <> · <MarketTimestamp value={listing.createdAt}/></>}
-                {expiresAt && <>{' · '}{isExpired?(status==='CLOSED'?t('Closed','Ditutup'):t('Expired','Kedaluwarsa')):<>{t('Expires in','Berakhir dalam')} {daysLeft ?? renewDurationDays} {t('days','hari')}</>}</>}
+                <span>{primary.language} {t('printing', 'cetakan')}</span>
+                {listing.createdAt && <span><MarketTimestamp value={listing.createdAt}/></span>}
+                {expiresAt && <span>{isExpired?(status==='CLOSED'?t('Closed','Ditutup'):t('Expired','Kedaluwarsa')):<>{t('Expires in','Berakhir dalam')} {daysLeft ?? renewDurationDays} {t('days','hari')}</>}</span>}
               </p>
               <h1>{listing.title}</h1>
             </div>
@@ -625,7 +627,7 @@ export function MarketListingDetailView({
               <dt>{t('Cards', 'Kartu')}</dt>
               <dd>{cardCount}</dd>
             </div>}
-            {!isBuying && <ShippingOptions listingId={listing.id} courierCount={listing.shippingOptionCount??0} couriers={listing.shippingCouriers??[]}/>}
+            {!isBuying && !isOwner && <ShippingOptions listingId={listing.id} courierCount={listing.shippingOptionCount??0} couriers={listing.shippingCouriers??[]}/>}
           </dl>
 
           {isOwner && (
@@ -636,7 +638,7 @@ export function MarketListingDetailView({
                   {isExpired
                     ? t('This listing is hidden from the Market feed. Renew to reactivate it.', 'Listing ini disembunyikan dari feed Market. Perbarui untuk mengaktifkannya kembali.')
                     : daysLeft !== null
-                    ? (language === 'ID' ? `Listing aktif · Berakhir dalam ${daysLeft} hari (${expiresAt?.split(' ')[0]})` : `Active listing · Expires in ${daysLeft} days (${expiresAt?.split(' ')[0]})`)
+                    ? (language === 'ID' ? `Listing aktif, berakhir dalam ${daysLeft} hari (${expiresAt?.split(' ')[0]})` : `Active listing, expires in ${daysLeft} days (${expiresAt?.split(' ')[0]})`)
                     : t('Active on Market', 'Aktif di Market')}
                 </small>
               </div>
@@ -672,14 +674,12 @@ export function MarketListingDetailView({
 
           <section className="market-listing-seller">
             <span>{listing.seller.slice(0, 1).toUpperCase()}</span>
-            <div>
+            <div className="market-listing-seller-copy">
               <small>{isBuying ? t('Buyer', 'Pembeli') : t('Seller', 'Penjual')}</small>
-              <strong>{stored ? <Link href={`/players/${stored.username}`}>{listing.seller}</Link> : listing.seller}</strong>
+              <div className="market-listing-seller-name"><strong>{stored ? <Link href={`/players/${stored.username}`}>{listing.seller}</Link> : listing.seller}</strong><MarketReputation listingId={listing.id} language={language} role={isBuying?'buyer':'seller'}/></div>
             </div>
           </section>
-          {!isOwner&&<SaveListingButton listingId={listing.id} language={language}/>}
-          <MarketReputation listingId={listing.id} language={language}/>
-          {!isOwner&&<FeedbackLaunchButton request={{initialCategory:'market-report',listingId:listing.id}} className="market-report-link">{t('Report listing or seller','Laporkan listing atau penjual')}</FeedbackLaunchButton>}
+          {!isOwner&&<div className="market-listing-utility-actions"><FeedbackLaunchButton request={{initialCategory:'market-report',listingId:listing.id}} className="market-report-link">{t('Report listing','Laporkan listing')}</FeedbackLaunchButton><SaveListingButton listingId={listing.id} language={language}/></div>}
 
           {(!isExpired||isOwner)&&(
             <MarketListingItems

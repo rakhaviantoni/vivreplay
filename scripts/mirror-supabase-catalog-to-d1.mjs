@@ -23,6 +23,8 @@ const tables = [
   'tcg_match_events',
 ];
 const apply = process.argv.includes('--apply');
+const targetArg = process.argv.find(argument => argument.startsWith('--target='))?.split('=')[1] ?? 'remote';
+if (!['local', 'remote'].includes(targetArg)) throw new Error('Choose --target=local or --target=remote.');
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!url || !key) throw new Error('Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SECRET_KEY in the environment.');
@@ -87,17 +89,20 @@ for (const [table, rows] of results) {
 const sqlPath = join(tmpdir(), `vivreplay-tcg-catalog-${Date.now()}.sql`);
 writeFileSync(sqlPath, statements.join('\n'), { mode: 0o600 });
 try {
+  const locationArgs = targetArg === 'local' ? ['--local', '--persist-to', '.wrangler/state'] : ['--remote'];
+  const wranglerEnv = {...process.env, WRANGLER_LOG_PATH: join(tmpdir(), `vivreplay-wrangler-${targetArg}.log`)};
   execFileSync('node_modules/.bin/wrangler', [
-    'd1', 'execute', 'site-creator-d1', '--remote', '--config', 'wrangler.migrations.json', '--file', sqlPath,
-  ], { stdio: 'inherit' });
+    'd1', 'execute', 'site-creator-d1', ...locationArgs, '--config', 'wrangler.migrations.json', '--file', sqlPath,
+  ], { stdio: 'inherit', env: wranglerEnv });
 } finally {
   rmSync(sqlPath, { force: true });
 }
 const countColumns = tables.map((table, index) => `(SELECT count(*) FROM \`${table}\`) AS c${index}`).join(',');
+const locationArgs = targetArg === 'local' ? ['--local', '--persist-to', '.wrangler/state'] : ['--remote'];
 const countOutput = execFileSync('node_modules/.bin/wrangler', [
-  'd1', 'execute', 'site-creator-d1', '--remote', '--config', 'wrangler.migrations.json',
+  'd1', 'execute', 'site-creator-d1', ...locationArgs, '--config', 'wrangler.migrations.json',
   '--json', '--command', `SELECT ${countColumns}`,
-], { encoding: 'utf8' });
+], { encoding: 'utf8', env: {...process.env, WRANGLER_LOG_PATH: join(tmpdir(), `vivreplay-wrangler-${targetArg}.log`)} });
 const countResults = JSON.parse(countOutput)[0]?.results?.[0] ?? {};
 const mismatches = tables.filter((table, index) => Number(countResults[`c${index}`]) !== results.get(table).length);
 if (mismatches.length) throw new Error(`D1 row-count verification failed for: ${mismatches.join(', ')}`);

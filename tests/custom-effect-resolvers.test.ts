@@ -7,11 +7,11 @@ import type {Card} from '../packages/card-data/catalog';
 
 const card=(code:string,effect:string)=>({id:code,code,name:'Test',color:'Black',type:'Character',cost:1,power:1000,counter:0,rarity:'C',art:0,effect} as Card);
 
-test('custom resolver plans preserve ordered select, branch, and play instructions',()=>{
- const plan=resolveCustomEffect('OP06_086_ON_PLAY');
- assert.equal(plan.status,'ready');
- assert.deepEqual(plan.instructions.map(instruction=>instruction.kind),['choose','choose','choose-one','play-selected','play-selected']);
- assert.equal(plan.instructions[4].kind==='play-selected'&&plan.instructions[4].rested,true);
+test('OP06-086 has an ordered DSL sequence for its active and rested Trash plays',()=>{
+ const document=compileEffectDocument(card('OP06-086','[On Play] Choose up to 1 Character card with a cost of 4 or less and up to 1 Character card with a cost of 2 or less from your trash. Play 1 card and play the other card rested.'));
+ const actions=document.ast.find(item=>item.trigger==='on-play')?.actions;
+ assert.equal(document.resolver.type,'DSL');
+ assert.deepEqual(actions,[{kind:'play',source:'trash',amount:1,maxCost:4,selection:{min:0,max:1}},{kind:'play',source:'trash',amount:1,maxCost:2,restedIfPreviousPlayed:true,selection:{min:0,max:1}}]);
 });
 
 test('delayed and replacement custom effects stay explicit contracts',()=>{
@@ -44,14 +44,12 @@ test('Kin’emon’s next-play reduction is parsed into the executable DSL',()=>
  assert.deepEqual(document.ast[0].actions,[{kind:'cost-reduction',trait:'Land of Wano',cardType:'Character',minimumCost:3,amount:1,nextOnly:true}]);
 });
 
-test('custom handler audits use the handler timing when another window appears first',()=>{
+test('OP11-031 attack permission stays in the Activate Main timing when another window appears first',()=>{
  const document=compileEffectDocument(card('OP11-031','[On Play] If your Leader has the "Fish-Man" or "Merfolk" type, rest up to 1 of your opponent\'s Characters with a cost of 5 or less.\n[Activate: Main] [Once Per Turn] Up to 1 of your "Fish-Man" or "Merfolk" type Characters can attack Characters on the turn in which it is played.'));
- assert.equal(document.resolver.type,'CUSTOM');
- const handler=document.resolver.type==='CUSTOM'?document.resolver.handler:undefined;
- const timing=handler?customEffectDefinitions().find(item=>item.handler===handler)?.timing:undefined;
- assert.equal(timing,'activate-main');
- const resolution=resolveEffectTiming(document,timing!);
- assert.equal(resolution.status,'custom');assert.ok(resolution.instructions?.length);
+ assert.equal(document.resolver.type,'DSL');
+ const resolution=resolveEffectTiming(document,'activate-main');
+ assert.equal(resolution.status,'ready');
+ assert.ok(resolution.commands.some(command=>command.kind==='resolve-action'&&command.value.kind==='attack-permission'));
 });
 
 test('unknown custom handlers remain blocked from execution',()=>{

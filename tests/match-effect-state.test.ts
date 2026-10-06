@@ -1,7 +1,8 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {applyEffectAction,beginTurn,declareAttack,declareBlock,effectiveCardPower,effectivePlayCost,expireEffectModifiers,payEffectCost,playCard,playCounters,resolveBattle,type MatchEffectState} from '../packages/domain/match-effect-state';
-import {executeEffectCommands,resolveCardEffect} from '../packages/domain/effect-runtime';
+import {applyEffectAction,beginTurn,characterBattleLosers,declareAttack,declareBlock,effectiveCardPower,effectivePlayCost,expireEffectModifiers,payEffectCost,playCard,playCounters,resolveBattle,type MatchEffectState} from '../packages/domain/match-effect-state';
+import {executeEffectCommands,resolveCardEffect,resolveEffectTiming} from '../packages/domain/effect-runtime';
+import {beginEffectExecution} from '../packages/domain/effect-controller';
 import {compileEffectDocument,type EffectAction} from '../packages/domain/effect-rules';
 import type {Card} from '../packages/card-data/catalog';
 
@@ -15,6 +16,23 @@ const state=():MatchEffectState=>({turn:'player',turnEffects:[],restrictions:[],
  {id:'enemy-rested',owner:'opponent',zone:'character',type:'Character',cost:4,power:4000,rested:true},
  {id:'enemy-active',owner:'opponent',zone:'character',type:'Character',cost:6,power:7000},
 ]});
+
+test('Character battle losses resolve lower-power and equal-power clashes for both Characters',()=>{
+ assert.deepEqual(characterBattleLosers('attacker','defender',6000,5000),['defender']);
+ assert.deepEqual(characterBattleLosers('attacker','defender',4000,5000),['attacker']);
+ assert.deepEqual(characterBattleLosers('attacker','defender',5000,5000),['attacker','defender']);
+ assert.deepEqual(characterBattleLosers('leader','defender',5000,5000,true),['defender']);
+ assert.deepEqual(characterBattleLosers('leader','defender',4000,5000,true),[]);
+});
+
+test('PRB02-005 schedules one active opponent DON!! to rest at their next Main only when its On Play condition is met',()=>{
+ const doc=compileEffectDocument({id:'prb02-005',code:'PRB02-005',name:'Monkey.D.Luffy',color:'Red/Green',type:'Character',cost:3,power:4000,counter:0,rarity:'',art:0,effect:'[Your Turn] [On Play] If your Leader is multicolored and your opponent has 7 or less DON!! cards on their field, your opponent rests 1 of their active DON!! cards at the start of their next Main Phase.'});
+ assert.equal(doc.resolver.type,'DSL');const commands=resolveEffectTiming(doc,'on-play').commands;assert.equal(commands.length,1);assert.equal(commands[0]?.kind,'resolve-action');if(commands[0]?.kind!=='resolve-action')throw new Error('Expected a delayed rest command');assert.equal(commands[0].value.kind,'schedule-rest-don');
+ const makeBoard=(leaderColor:string,opponentDonCount=2):MatchEffectState=>({turn:'player',cards:[{id:'leader',owner:'player',zone:'leader',type:'Leader',color:leaderColor},{id:'luffy',owner:'player',zone:'character',type:'Character',effectSchema:doc},{id:'opponent-deck',owner:'opponent',zone:'deck',type:'Character'},...Array.from({length:opponentDonCount},(_,index)=>({id:`op-don-${index}`,owner:'opponent' as const,zone:'cost-area' as const,type:'DON!!' as const,rested:false}))],turnEffects:[],restrictions:[],delayed:[]});
+ const started=beginEffectExecution(makeBoard('Red/Green'),'player','luffy','on-play',commands);assert.equal(started.error,undefined);assert.equal(started.execution.state.delayed.length,1);const next=beginTurn(started.execution.state,'opponent',2);assert.equal(next.state.cards.filter(card=>card.owner==='opponent'&&card.type==='DON!!'&&card.rested).length,1);assert.equal(next.state.delayed.length,0);
+ const failed=beginEffectExecution(makeBoard('Red'),'player','luffy','on-play',commands);assert.equal(failed.error,undefined);assert.equal(failed.execution.state.delayed.length,0,'A single-colour Leader must not schedule the opponent DON!! rest');
+ const donLimit=beginEffectExecution(makeBoard('Red/Green',8),'player','luffy','on-play',commands);assert.equal(donLimit.execution.state.delayed.length,0,'More than seven opponent DON!! must not schedule the rest');
+});
 
 test('the effect state applies a selected K.O. only when its printed restrictions hold',()=>{
  const killed=applyEffectAction(state(),'player',{kind:'ko',maxCost:4,restedOnly:true},{targetId:'enemy-rested'});

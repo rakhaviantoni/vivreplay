@@ -71,6 +71,7 @@ export function executeEffectCommands(
  let current=state;
  let lastPlayedCardId:string|undefined;
  let lastTargetCardId:string|undefined;
+ let lastDrawCount=0;
  const attachedDon=sourceCardId?state.cards.filter(card=>card.owner===actor&&card.type==='DON!!'&&card.attachedTo===sourceCardId).length:0;
  const disabledAbilityIds=new Set(commands.filter(command=>(command.requiredAttachedDon??0)>attachedDon).map(command=>command.abilityId).filter((id):id is number=>id!==undefined));
  const conditionResults=new Map<string,boolean>();
@@ -84,11 +85,14 @@ export function executeEffectCommands(
   const selfBound=command.kind==='resolve-action'&&(command.value.kind==='negate-source-effect'||(command.value.kind==='grant-keyword'&&command.value.scope==='self')||(command.value.kind==='copy-base-power'&&command.value.target==='own-character')||(command.value.kind==='bottom-deck'&&command.value.scope==='self'));
   const previousTargetId=command.kind==='resolve-action'&&command.value.kind==='grant-keyword'?(command.value.scope==='previous-played'?lastPlayedCardId:command.value.scope==='previous-target'?lastTargetCardId:undefined):undefined;
   const selection={...(selections[index]??{}),...(sourceCardId?{sourceCardId,...(selfBound?{targetId:sourceCardId}:{})}:{}) ,...(previousTargetId?{targetId:previousTargetId}: {})};
+  const actionValue=command.kind==='resolve-action'&&command.value.kind==='trash'&&command.value.scope==='hand'&&'amountFromPreviousDraw'in command.value&&command.value.amountFromPreviousDraw?{...command.value,amount:lastDrawCount}:command.value;
+  const beforeHandCount=current.cards.filter(card=>card.owner===actor&&card.zone==='hand').length;
   const result=command.kind==='pay-cost'
    ? payEffectCost(current,actor,command.value as EffectCost,selection)
-   : applyEffectAction(current,actor,command.value as EffectAction,selection);
+   : applyEffectAction(current,actor,actionValue as EffectAction,selection);
   if(result.error||result.requiresSelection)return {state:result.state,nextCommand:index,requiresSelection:result.requiresSelection,error:result.error};
   current=result.state;
+  if(command.kind==='resolve-action'&&(command.value.kind==='draw'||command.value.kind==='draw-by'))lastDrawCount=Math.max(0,current.cards.filter(card=>card.owner===actor&&card.zone==='hand').length-beforeHandCount);
   if(command.kind==='resolve-action'&&['play','ready'].includes((command.value as EffectAction).kind)){
    const input=selections[index],id=input?.cardIds?.length===1?input.cardIds[0]:input?.targetId;
    const valid=id&&current.cards.some(card=>card.id===id&&card.zone==='character'&&card.owner===actor)?id:undefined;

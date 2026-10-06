@@ -11,6 +11,14 @@ test('failed leader condition leaves the next draw in deck',()=>{
  const result=executeEffectCommands(state,'player',[{kind:'resolve-action',conditions:['your Leader is [Luffy]'],value:{kind:'draw',amount:1}}]);
  assert.equal(result.state.cards.find(card=>card.id==='draw')?.zone,'deck');
 });
+test('designated-event Leader identity satisfies name, type, and attribute rules',()=>{
+ const universal:MatchEffectState={turn:'player',cards:[{id:'event-leader',owner:'player',zone:'leader',type:'Leader',name:'Monkey.D.Luffy',effectText:'This Leader is treated as a card with all card names, types, and attributes according to the rules.'}],turnEffects:[],restrictions:[],delayed:[]};
+ assert.equal(evaluateEffectCondition('your Leader is [Nami]',universal,'player'),true);
+ assert.equal(evaluateEffectCondition('your Leader has the [Straw Hat Crew] type',universal,'player'),true);
+ assert.equal(evaluateEffectCondition('your Leader has the Slash attribute',universal,'player'),true);
+ const ordinary={...universal,cards:universal.cards.map(card=>({...card,effectText:''}))};
+ assert.equal(evaluateEffectCondition('your Leader is [Nami]',ordinary,'player'),false);
+});
 test('unknown prerequisites stop resolution before moving cards',()=>{
  const result=executeEffectCommands(state,'player',[{kind:'resolve-action',conditions:['a special unimplemented prerequisite'],value:{kind:'draw',amount:1}}]);
  assert.ok(result.error);assert.deepEqual(result.state,state);

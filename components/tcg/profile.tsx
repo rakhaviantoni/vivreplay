@@ -156,11 +156,11 @@ const COMMON_REGIONS = [
 ];
 
 const COMMON_TIMEZONES = [
-  { value: 'Asia/Jakarta', label: 'Asia/Jakarta (WIB · UTC+7)' },
-  { value: 'Asia/Makassar', label: 'Asia/Makassar (WITA · UTC+8)' },
-  { value: 'Asia/Jayapura', label: 'Asia/Jayapura (WIT · UTC+9)' },
-  { value: 'Asia/Tokyo', label: 'Asia/Tokyo (JST · UTC+9)' },
-  { value: 'Asia/Singapore', label: 'Asia/Singapore (SGT · UTC+8)' },
+  { value: 'Asia/Jakarta', label: 'Asia/Jakarta (WIB - UTC+7)' },
+  { value: 'Asia/Makassar', label: 'Asia/Makassar (WITA - UTC+8)' },
+  { value: 'Asia/Jayapura', label: 'Asia/Jayapura (WIT - UTC+9)' },
+  { value: 'Asia/Tokyo', label: 'Asia/Tokyo (JST - UTC+9)' },
+  { value: 'Asia/Singapore', label: 'Asia/Singapore (SGT - UTC+8)' },
   { value: 'America/New_York', label: 'America/New_York (EST/EDT)' },
   { value: 'America/Los_Angeles', label: 'America/Los_Angeles (PST/PDT)' },
   { value: 'America/Chicago', label: 'America/Chicago (CST/CDT)' },
@@ -183,7 +183,7 @@ export const BITESHIP_COURIERS: BiteshipCourierOption[] = [
   {
     id: 'grab',
     name: 'GrabExpress',
-    badge: { en: 'Instant / Same Day · Up to 40 km', id: 'Instan / Same Day · Maks 40 km' },
+    badge: { en: 'Instant / Same Day - Up to 40 km', id: 'Instan / Same Day - Maks 40 km' },
     desc: {
       en: 'Direct on-demand bike delivery for local orders within 40 km radius.',
       id: 'Pengiriman instan sepeda motor untuk pesanan lokal radius hingga 40 km.',
@@ -193,7 +193,7 @@ export const BITESHIP_COURIERS: BiteshipCourierOption[] = [
   {
     id: 'gojek',
     name: 'GoSend (Gojek)',
-    badge: { en: 'Instant / Same Day · Up to 40 km', id: 'Instan / Same Day · Maks 40 km' },
+    badge: { en: 'Instant / Same Day - Up to 40 km', id: 'Instan / Same Day - Maks 40 km' },
     desc: {
       en: 'Reliable on-demand door-to-door courier service across metropolitan areas.',
       id: 'Layanan kurir on-demand pintu-ke-pintu terpercaya di area metropolitan.',
@@ -204,7 +204,7 @@ export const BITESHIP_COURIERS: BiteshipCourierOption[] = [
   {
     id: 'jnt',
     name: 'J&T Express',
-    badge: { en: 'Nationwide · Drop-off / Pick-up', id: 'Seluruh Indonesia · Drop-off / Pick-up' },
+    badge: { en: 'Nationwide - Drop-off / Pick-up', id: 'Seluruh Indonesia - Drop-off / Pick-up' },
     desc: {
       en: 'Fast nationwide parcel delivery with 365 days pickup and drop point service.',
       id: 'Pengiriman paket cepat ke seluruh Indonesia tanpa hari libur dengan layanan pick-up & drop point.',
@@ -214,7 +214,7 @@ export const BITESHIP_COURIERS: BiteshipCourierOption[] = [
   {
     id: 'jne',
     name: 'JNE Express',
-    badge: { en: 'Nationwide · REG / YES', id: 'Seluruh Indonesia · REG / YES' },
+    badge: { en: 'Nationwide - REG / YES', id: 'Seluruh Indonesia - REG / YES' },
     desc: {
       en: 'Most extensive shipping network in Indonesia with dependable tracking.',
       id: 'Jaringan kurir terluas di Indonesia dengan pelacakan paket akurat.',
@@ -224,7 +224,7 @@ export const BITESHIP_COURIERS: BiteshipCourierOption[] = [
   {
     id: 'sicepat',
     name: 'SiCepat Ekspres',
-    badge: { en: 'Nationwide · Best / Reguler', id: 'Seluruh Indonesia · Best / Reguler' },
+    badge: { en: 'Nationwide - Best / Reguler', id: 'Seluruh Indonesia - Best / Reguler' },
     desc: {
       en: 'High-speed eCommerce logistics with fast transit times.',
       id: 'Logistik cepat untuk transaksi jual-beli kartu dengan durasi pengiriman singkat.',
@@ -234,7 +234,7 @@ export const BITESHIP_COURIERS: BiteshipCourierOption[] = [
   {
     id: 'anteraja',
     name: 'Anteraja',
-    badge: { en: 'Nationwide · Reguler / Next Day', id: 'Seluruh Indonesia · Reguler / Next Day' },
+    badge: { en: 'Nationwide - Reguler / Next Day', id: 'Seluruh Indonesia - Reguler / Next Day' },
     desc: {
       en: 'Modern app-tracked courier service with scheduled doorstep pickup.',
       id: 'Layanan kurir modern dengan penjemputan paket terjadwal di alamat Anda.',
@@ -244,7 +244,7 @@ export const BITESHIP_COURIERS: BiteshipCourierOption[] = [
   {
     id: 'tiki',
     name: 'TIKI',
-    badge: { en: 'Nationwide · ONS / TDS / REG', id: 'Seluruh Indonesia · ONS / TDS / REG' },
+    badge: { en: 'Nationwide - ONS / TDS / REG', id: 'Seluruh Indonesia - ONS / TDS / REG' },
     desc: {
       en: 'Established courier service with flexible delivery speed options.',
       id: 'Penyedia jasa pengiriman berpengalaman dengan opsi layanan reguler dan kilat.',
@@ -254,7 +254,7 @@ export const BITESHIP_COURIERS: BiteshipCourierOption[] = [
   {
     id: 'pos',
     name: 'Pos Indonesia',
-    badge: { en: 'All 38 Provinces · Pos Reguler', id: 'Seluruh 38 Provinsi · Pos Reguler' },
+    badge: { en: 'All 38 Provinces - Pos Reguler', id: 'Seluruh 38 Provinsi, Pos Reguler' },
     desc: {
       en: 'Complete coverage reaching all districts and sub-districts throughout Indonesia.',
       id: 'Jangkauan terlengkap hingga ke kecamatan dan pelosok seluruh Indonesia.',
@@ -264,7 +264,7 @@ export const BITESHIP_COURIERS: BiteshipCourierOption[] = [
   {
     id: 'lion',
     name: 'Lion Parcel',
-    badge: { en: 'Air Cargo · REGPACK / ONEPACK', id: 'Kargo Udara · REGPACK / ONEPACK' },
+    badge: { en: 'Air Cargo - REGPACK / ONEPACK', id: 'Kargo Udara - REGPACK / ONEPACK' },
     desc: {
       en: 'Air cargo-backed delivery connecting islands and remote regions rapidly.',
       id: 'Didukung armada kargo udara untuk pengiriman antarpulau yang efisien.',
@@ -274,7 +274,7 @@ export const BITESHIP_COURIERS: BiteshipCourierOption[] = [
   {
     id: 'ninja',
     name: 'Ninja Xpress',
-    badge: { en: 'Nationwide · Standard / COD', id: 'Seluruh Indonesia · Standard / COD' },
+    badge: { en: 'Nationwide - Standard / COD', id: 'Seluruh Indonesia - Standard / COD' },
     desc: {
       en: 'Tech-enabled parcel delivery with high fulfillment success rates.',
       id: 'Pengiriman paket berbasis teknologi dengan tingkat keberhasilan antar tinggi.',
@@ -284,7 +284,7 @@ export const BITESHIP_COURIERS: BiteshipCourierOption[] = [
   {
     id: 'wahana',
     name: 'Wahana Express',
-    badge: { en: 'Economical · Express', id: 'Ekonomis · Express' },
+    badge: { en: 'Economical, Express', id: 'Ekonomis - Express' },
     desc: {
       en: 'Cost-effective logistics solution for lightweight trading card shipments.',
       id: 'Solusi logistik hemat biaya untuk pengiriman paket kartu koleksi.',
@@ -910,7 +910,7 @@ function ProfileForm({
             {session.user.email}
           </span>
         )}
-        <span className="badge">{t('COLLECTOR · EARLY ACCESS','KOLEKTOR · AKSES AWAL')}</span>
+        <span className="badge">{t('EARLY ACCESS COLLECTOR','KOLEKTOR AKSES AWAL')}</span>
 
         {/* Vault & Activity Overview */}
         <div className="profile-stats-grid">
@@ -932,7 +932,7 @@ function ProfileForm({
         </div>
 
         <div className="profile-facts">
-          <span><Globe size={15}/>{region} · {timezone.split('/')[1] || timezone}</span>
+          <span><Globe size={15}/>{region} / {timezone.split('/')[1] || timezone}</span>
           <span><ShieldCheck size={15}/>{t('Collection private by default','Koleksi privat secara default')}</span>
           {shippingOrigin ? (
             <span className="profile-shipping-badge">
@@ -1197,7 +1197,7 @@ function ProfileForm({
                   ))}
                   {shippingProvince && !provinces.some(p=>normalizeRegionName(p.name)===normalizeRegionName(shippingProvince)) && <option value={shippingProvince}>{shippingProvince}</option>}
                 </select>
-                {regionsError && <button type="button" className="shipping-region-retry" onClick={()=>void loadProvinces()}>{t('Could not load provinces · Retry','Provinsi gagal dimuat · Coba lagi')}</button>}
+                {regionsError && <button type="button" className="shipping-region-retry" onClick={()=>void loadProvinces()}>{t('Could not load provinces. Retry','Provinsi tidak dapat dimuat. Coba lagi')}</button>}
                 {!regionsError && regionsLoading && <small className="shipping-region-note">{t('Loading provinces…','Memuat provinsi…')}</small>}
               </label>
 
@@ -1326,8 +1326,8 @@ function ProfileForm({
                 <strong>{t('Active Shipping Methods & Couriers','Metode & Pilihan Kurir Aktif')}</strong>
                 <p>
                   {t(
-                    'Select which couriers and fulfillment services you provide for buyers on Market. Couriers are integrated via Biteship.',
-                    'Pilih kurir dan layanan pengiriman yang Anda sediakan untuk pembeli di Market. Kurir terintegrasi otomatis melalui Biteship.'
+                    'Choose the couriers and services you offer to buyers on Market.',
+                    'Pilih kurir dan layanan yang Anda sediakan untuk pembeli di Market.'
                   )}
                 </p>
               </div>

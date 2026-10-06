@@ -9,6 +9,7 @@ import { formatCompactMoney, formatMoney } from '@/packages/domain';
 import type { VaultStats, EnrichedCollectionItem } from '../types';
 
 interface PortfolioTabProps {
+  language: 'EN'|'ID';
   stats: VaultStats;
   items: EnrichedCollectionItem[];
   hideValues: boolean;
@@ -16,11 +17,14 @@ interface PortfolioTabProps {
 }
 
 export function PortfolioTab({
+  language,
   stats,
   items,
   hideValues,
   isPricingLoading = false,
 }: PortfolioTabProps) {
+  const id=language==='ID';
+  const t=(en:string,indo:string)=>id?indo:en;
 
   // Breakdown calculations
   // 1. By Set
@@ -63,16 +67,16 @@ export function PortfolioTab({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
           <div>
             <span style={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--vault-gold)' }}>
-              Collector Portfolio Summary
+              {t('Collection overview','Ringkasan koleksi')}
             </span>
             <h2 style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '28px', fontWeight: 600, margin: '4px 0 0' }}>
-              Collection Valuation
+              {t('Collection value','Nilai koleksi')}
             </h2>
           </div>
 
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <span className="vault-confidence-badge" style={{ padding: '4px 10px', fontSize: '11px' }}>
-              YUYUTEI · {stats.marketPricedCount} PRINTINGS
+              YUYUTEI · {stats.marketPricedCount} {t('PRINTINGS WITH PRICES','CETAKAN DENGAN DATA HARGA')}
             </span>
           </div>
         </div>
@@ -88,31 +92,31 @@ export function PortfolioTab({
         }}>
           <div>
             <span style={{ fontSize: '11px', color: 'var(--vault-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>
-              Estimated Portfolio Value
+              {t('Estimated collection value','Perkiraan nilai koleksi')}
             </span>
             <div style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '32px', fontWeight: 600, color: 'var(--vault-ink)', margin: '4px 0' }}>
               {hideValues ? 'Rp ••••••••' : isPricingLoading ? 'Loading…' : stats.marketPricedCount ? formatCompactMoney(stats.estimatedValue, 'IDR') : '-'}
             </div>
             <span style={{ fontSize: '11.5px', color: 'var(--vault-ink-secondary)' }}>
-              {hideValues ? 'Hidden' : isPricingLoading ? 'Checking saved Yuyutei prices…' : stats.marketPricedCount ? `Priced copies only: ${formatMoney(stats.estimatedValue, 'IDR')}` : 'No exact printing prices available'}
+              {hideValues ? t('Hidden','Disembunyikan') : isPricingLoading ? t('Checking saved Yuyutei prices…','Memeriksa harga Yuyutei…') : stats.marketPricedCount ? `${t('Priced copies only:','Nilai kartu dengan data harga:')} ${formatMoney(stats.estimatedValue, 'IDR')}` : t('No exact printing prices available','Harga untuk cetakan ini belum tersedia')}
             </span>
           </div>
 
           <div>
             <span style={{ fontSize: '11px', color: 'var(--vault-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>
-              Acquisition Cost of Priced Copies
+              {t('Acquisition cost of priced copies','Biaya perolehan cetakan dengan data harga')}
             </span>
             <div style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '32px', fontWeight: 600, color: 'var(--vault-ink)', margin: '4px 0' }}>
               {hideValues ? 'Rp ••••••••' : formatCompactMoney(stats.valuedAcquisitionCost, 'IDR')}
             </div>
             <span style={{ fontSize: '11.5px', color: 'var(--vault-ink-secondary)' }}>
-              {hideValues ? 'Hidden' : 'Cards with an exact current Yuyutei price'}
+              {hideValues ? t('Hidden','Disembunyikan') : t('Cards with an exact current Yuyutei price','Kartu dengan harga Yuyutei terkini untuk cetakan yang sama')}
             </span>
           </div>
 
           <div>
             <span style={{ fontSize: '11px', color: 'var(--vault-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>
-              Unrealized Difference
+              {t('Unrealized difference','Selisih nilai saat ini')}
             </span>
             <div style={{
               fontFamily: 'var(--display-font, var(--font-sans))',
@@ -133,7 +137,7 @@ export function PortfolioTab({
               )}
             </div>
             <span style={{ fontSize: '11.5px', color: stats.unrealizedChangePercent === null ? 'var(--vault-ink-muted)' : stats.unrealizedChangeAmount >= 0 ? '#2e8b57' : '#c0392b', fontWeight: 600 }}>
-              {hideValues ? 'Hidden' : stats.unrealizedChangePercent === null ? 'Add acquisition costs for comparison' : `${stats.unrealizedChangePercent >= 0 ? '+' : ''}${stats.unrealizedChangePercent.toFixed(1)}% vs cost of priced copies`}
+              {hideValues ? t('Hidden','Disembunyikan') : stats.unrealizedChangePercent === null ? t('Add acquisition costs for comparison','Tambahkan biaya perolehan untuk melihat selisih') : `${stats.unrealizedChangePercent >= 0 ? '+' : ''}${stats.unrealizedChangePercent.toFixed(1)}% ${t('vs cost of priced copies','dari biaya cetakan dengan data harga')}`}
             </span>
           </div>
         </div>
@@ -163,7 +167,7 @@ export function PortfolioTab({
         {/* Value Allocation by Set */}
         <div className="vault-chart-card">
           <h3>
-            <span>Allocation by Set</span>
+            <span>{t('Value by set','Nilai per set')}</span>
             <small style={{ fontSize: '11px', color: 'var(--vault-ink-muted)', fontWeight: 400 }}>{Object.keys(valueBySet).length} sets</small>
           </h3>
           <div>
@@ -187,12 +191,12 @@ export function PortfolioTab({
         {/* Raw vs Graded Slabs Ratio */}
         <div className="vault-chart-card">
           <h3>
-            <span>Format Breakdown</span>
-            <small style={{ fontSize: '11px', color: 'var(--vault-ink-muted)', fontWeight: 400 }}>Raw vs Graded</small>
+            <span>{t('Card condition','Kondisi kartu')}</span>
+            <small style={{ fontSize: '11px', color: 'var(--vault-ink-muted)', fontWeight: 400 }}>{t('Raw vs graded','Tanpa grading vs dengan grading')}</small>
           </h3>
           <div>
             <div className="vault-alloc-row">
-              <span className="vault-alloc-label">Graded Slabs</span>
+              <span className="vault-alloc-label">{t('Graded slabs','Kartu graded')}</span>
               <div className="vault-alloc-bar-track">
                 <div className="vault-alloc-bar-fill" style={{ width: `${((slabValue / totalVal) * 100).toFixed(1)}%`, background: 'var(--vault-gold)' }} />
               </div>
@@ -201,7 +205,7 @@ export function PortfolioTab({
               </span>
             </div>
             <div className="vault-alloc-row">
-              <span className="vault-alloc-label">Raw Collection</span>
+              <span className="vault-alloc-label">{t('Raw cards','Kartu tanpa grading')}</span>
               <div className="vault-alloc-bar-track">
                 <div className="vault-alloc-bar-fill" style={{ width: `${((rawValue / totalVal) * 100).toFixed(1)}%`, background: '#62a5cd' }} />
               </div>
@@ -211,19 +215,19 @@ export function PortfolioTab({
             </div>
           </div>
           <div style={{ marginTop: '16px', fontSize: '11px', color: 'var(--vault-ink-muted)', borderTop: '1px dashed var(--vault-border-light)', paddingTop: '10px' }}>
-            Slabs account for <b>{hideValues ? '•••' : formatCompactMoney(slabValue, 'IDR')}</b> across {stats.slabsCount} verified units.
+            {t('Graded cards total','Total kartu graded')} <b>{hideValues ? '•••' : formatCompactMoney(slabValue, 'IDR')}</b> {t('across','dari')} {stats.slabsCount} {t('cards.','kartu.')}
           </div>
         </div>
 
         {/* Language Allocation */}
         <div className="vault-chart-card">
           <h3>
-            <span>Language Distribution</span>
+            <span>{t('Language','Bahasa')}</span>
             <small style={{ fontSize: '11px', color: 'var(--vault-ink-muted)', fontWeight: 400 }}>JP vs EN</small>
           </h3>
           <div>
             <div className="vault-alloc-row">
-              <span className="vault-alloc-label">Japanese (JP)</span>
+              <span className="vault-alloc-label">日本語 (JP)</span>
               <div className="vault-alloc-bar-track">
                 <div className="vault-alloc-bar-fill" style={{ width: `${((valueByLang.JP / totalVal) * 100).toFixed(1)}%`, background: '#df675e' }} />
               </div>
@@ -246,8 +250,8 @@ export function PortfolioTab({
         {/* Grading Provider Allocation */}
         <div className="vault-chart-card">
           <h3>
-            <span>Grading Company Share</span>
-            <small style={{ fontSize: '11px', color: 'var(--vault-ink-muted)', fontWeight: 400 }}>By slab value</small>
+            <span>{t('Grading company','Perusahaan grading')}</span>
+            <small style={{ fontSize: '11px', color: 'var(--vault-ink-muted)', fontWeight: 400 }}>{t('Share of graded value','Bagian dari nilai kartu graded')}</small>
           </h3>
           <div>
             {Object.entries(valueByProvider).map(([provider, amount]) => {
@@ -272,9 +276,9 @@ export function PortfolioTab({
       <div className="vault-chart-card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
           <div>
-            <h3 style={{ margin: 0 }}>30-Day Yuyutei Price Movement</h3>
+            <h3 style={{ margin: 0 }}>{t('Yuyutei price change over 30 days','Perubahan harga Yuyutei dalam 30 hari')}</h3>
             <span style={{ fontSize: '11px', color: 'var(--vault-ink-secondary)' }}>
-              Scraped Yuyutei listing observations · This view shows current totals and the 30-day comparison where history exists
+              {t('Saved Yuyutei listing data, with a 30-day comparison when history is available.','Data listing Yuyutei tersimpan, dengan perbandingan 30 hari jika riwayat tersedia.')}
             </span>
           </div>
 
@@ -297,7 +301,7 @@ export function PortfolioTab({
             <strong style={{ display: 'block', color: stats.change30DayPercent === null ? 'var(--vault-ink-muted)' : 'var(--vault-ink)', fontSize: 24 }}>
               {hideValues ? '••••••' : stats.change30DayPercent === null ? '-' : `${stats.change30DayPercent >= 0 ? '+' : ''}${stats.change30DayPercent.toFixed(1)}%`}
             </strong>
-            <span>From saved Yuyutei listing observations · {stats.change30DayPercent === null ? 'not enough observations near 30 days ago' : `${stats.change30DayCount} printings with comparable history`}</span>
+            <span>{stats.change30DayPercent===null?t('Not enough saved prices from 30 days ago to compare.','Data harga dari 30 hari lalu belum cukup untuk dibandingkan.'):`${t('Based on','Berdasarkan')} ${stats.change30DayCount} ${t('printings with comparable history','cetakan dengan riwayat harga yang sebanding')}`}</span>
           </div>
         </div>
       </div>
