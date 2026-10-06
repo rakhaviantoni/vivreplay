@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import {useRouter,useSearchParams} from 'next/navigation';
-import {useEffect,useMemo,useState} from 'react';
+import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {ArrowLeftIcon as ArrowLeft,MapPinIcon as MapPin,ShieldCheckIcon as ShieldCheck,TruckIcon as Truck} from '@phosphor-icons/react';
 import {formatMoney,Listing} from '@/packages/domain';
 import {cardFor,Card} from '@/packages/card-data/catalog';
@@ -11,14 +11,14 @@ import {CardArt} from './card-art';
 import {toast} from 'sonner';
 import {isBiteshipAreaId} from '@/lib/shipping/biteship-area';
 
-type Origin={addressLine:string;city:string;postalCode:string;areaId:string|null;recipientName:string|null;phone:string|null;regionNames?:{province?:string;district?:string;subdistrict?:string}};
+type Origin={addressLine:string;city:string;postalCode:string;areaId:string|null;recipientName:string|null;phone:string|null;latitude?:number|null;longitude?:number|null;regionNames?:{province?:string;district?:string;subdistrict?:string}};
 type Rate={courier_name:string;courier_service_name:string;courier_code:string;courier_service_code:string;company:string;type:string;price:number;duration?:string};
 type CheckoutLine={printingId:string;quantity:number;unitAmount?:number};
 
 export function MarketCheckout(){
   const params=useSearchParams();
   const router=useRouter();
-  const {data:account}=useAccount();
+  const {data:account,loading:accountLoading,error:accountError}=useAccount();
   const listingId=params.get('listing')??'';
   const offerId=params.get('offer')??'';
   const rawItems=params.get('items')??'';
@@ -32,13 +32,23 @@ export function MarketCheckout(){
   const [quoting,setQuoting]=useState(false);
   const [submitting,setSubmitting]=useState(false);
   const [error,setError]=useState('');
+  const [detailsError,setDetailsError]=useState('');
+  const [contactName,setContactName]=useState('');
+  const [contactPhone,setContactPhone]=useState('');
+  const [savingContact,setSavingContact]=useState(false);
+  const [editingContact,setEditingContact]=useState(false);
+  const autoQuoteKey=useRef('');
+  const quoteRequest=useRef<AbortController|null>(null);
+
   const [locale,setLocale]=useState<'EN'|'ID'>('EN');
   const id=locale==='ID';
   const t=(en:string,idText:string)=>id?idText:en;
 
   useEffect(()=>{const sync=()=>setLocale(window.localStorage.getItem('vivreplay-locale')==='ID'?'ID':'EN');const onLocale=(event:Event)=>setLocale((event as CustomEvent<'EN'|'ID'>).detail==='ID'?'ID':'EN');sync();window.addEventListener('vivreplay:locale',onLocale);return()=>window.removeEventListener('vivreplay:locale',onLocale)},[]);
   useEffect(()=>{
-    if(!account)return;
+    if(accountLoading)return;
+    if(!account){setLoading(false);return;}
+    setLoading(true);setDetailsError('');
     let active=true;
     Promise.all([
       api<{listings:Listing[]}>('/api/listings'),
@@ -49,9 +59,9 @@ export function MarketCheckout(){
       setListing(market.listings.find(row=>row.id===listingId));
       setOrigin(shipping.origin??undefined);
       setCheckoutAvailable(checkout.available);
-    }).catch(cause=>{if(active)setError(cause instanceof Error?cause.message:'Checkout details could not load.')}).finally(()=>{if(active)setLoading(false)});
+    }).catch(cause=>{if(active)setDetailsError(cause instanceof Error?cause.message:'Checkout details could not load.')}).finally(()=>{if(active)setLoading(false)});
     return()=>{active=false};
-  },[account,listingId]);
+  },[account?.profile.id,accountLoading,listingId]);
 
   const selectedCards=useMemo(()=>{
     const cardItems=listing?.items??[];
@@ -67,17 +77,37 @@ export function MarketCheckout(){
     const currentRate=rates.find(rate=>`${rate.courier_code}:${rate.courier_service_code}`===selectedRate);
   const courierName=(name:string)=>({jne:'JNE Express',jnt:'J&T Express',sicepat:'SiCepat Ekspres',anteraja:'Anteraja',tiki:'TIKI',pos:'Pos Indonesia',lion:'Lion Parcel',ninja:'Ninja Xpress',wahana:'Wahana Express',grab:'GrabExpress',gojek:'GoSend'}[name]??name);
 
-  const loadQuotes=async(forceRefresh=false)=>{
+  const loadQuotes=useCallback(async(forceRefresh=false)=>{
     if(!listing||!origin||(!/^\d{5}$/.test(origin.postalCode)&&!isBiteshipAreaId(origin.areaId))||!items.length){setError(t('Choose a valid listing and delivery address first.','Pilih listing dan alamat pengiriman yang valid.'));return}
+    quoteRequest.current?.abort();
+    const controller=new AbortController();quoteRequest.current=controller;
     setQuoting(true);setError('');setRates([]);setSelectedRate('');
     try{
-      const response=await fetch('/api/shipping/quotes',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({listingId,items,destinationAreaId:origin.areaId,destinationPostalCode:origin.postalCode,refresh:forceRefresh})});
+      const response=await fetch('/api/shipping/quotes',{signal:controller.signal,method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({listingId,items,destinationAreaId:origin.areaId,destinationPostalCode:origin.postalCode,refresh:forceRefresh})});
       const result=await response.json() as {pricing?:Rate[];error?:string};
+      if(controller.signal.aborted)return;
       if(!response.ok)throw new Error(result.error??t('Shipping rates could not be loaded.','Ongkir tidak dapat dimuat.'));
       const options=result.pricing??[];setRates(options);if(options[0])setSelectedRate(`${options[0].courier_code}:${options[0].courier_service_code}`);
       if(!options.length)throw new Error(t('No delivery services are available for this address. Update the address or ask the seller for help.','Tidak ada layanan pengiriman untuk alamat ini. Perbarui alamat atau hubungi penjual.'));
-    }catch(cause){setError(cause instanceof Error?cause.message:t('Shipping rates could not be loaded.','Ongkir tidak dapat dimuat.'))}finally{setQuoting(false)}
+    }catch(cause){if(!controller.signal.aborted)setError(cause instanceof Error?cause.message:t('Shipping rates could not be loaded.','Ongkir tidak dapat dimuat.'))}finally{if(quoteRequest.current===controller){setQuoting(false);quoteRequest.current=null;}}
+  },[listing,origin,items,listingId,locale]);
+
+  useEffect(()=>{
+    if(!listing||!origin||!items.length)return;
+    const key=JSON.stringify({buyer:account?.profile.id,listingId,items,postal:origin.postalCode,area:origin.areaId,latitude:origin.latitude,longitude:origin.longitude});
+    if(autoQuoteKey.current!==key){autoQuoteKey.current=key;void loadQuotes();}
+  },[account?.profile.id,listing,origin,items,listingId,loadQuotes]);
+  useEffect(()=>()=>{quoteRequest.current?.abort();},[]);
+  useEffect(()=>{setContactName(origin?.recipientName||account?.profile.display_name||'');setContactPhone(origin?.phone||'');},[origin?.recipientName,origin?.phone,account?.profile.display_name]);
+  const contactDigits=(origin?.phone??'').replace(/\D/g,'');
+  const contactComplete=Boolean(contactDigits.length>=8&&contactDigits.length<=16&&(origin?.recipientName?.trim()||account?.profile.display_name));
+  const saveContact=async(event:React.FormEvent)=>{
+    event.preventDefault();setSavingContact(true);setError('');
+    try{const saved=await api<{recipientName:string;phone:string}>('/api/shipping/origin',{recipientName:contactName,phone:contactPhone},'PATCH');setOrigin(current=>current?{...current,recipientName:saved.recipientName,phone:saved.phone}:current);setEditingContact(false);toast.success(t('Delivery contact saved','Kontak pengiriman disimpan'));}
+    catch{setError(t('The delivery contact could not be saved. Check the name and phone number.','Kontak pengiriman gagal disimpan. Periksa nama dan nomor telepon.'));}
+    finally{setSavingContact(false);}
   };
+  const chooseDelivery=()=>{const panel=document.getElementById('checkout-delivery-services');panel?.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'center'});panel?.focus({preventScroll:true});};
 
   const startCheckout=async()=>{
     if(!currentRate)return;
@@ -91,7 +121,8 @@ export function MarketCheckout(){
     }catch(cause){const message=cause instanceof Error?cause.message:t('Checkout could not be started.','Checkout tidak dapat dimulai.');setError(message);toast.error(message)}finally{setSubmitting(false)}
   };
 
-  if(loading)return <main className="page vivre-checkout-page"><div className="checkout-loading"><i/><span>{t('Loading your checkout…','Memuat checkout…')}</span></div></main>;
+  if(loading||accountLoading)return <main className="page vivre-checkout-page"><div className="checkout-loading"><i/><span>{t('Loading your checkout…','Memuat checkout…')}</span></div></main>;
+  if(detailsError||accountError)return <main className="page vivre-checkout-page"><section className="checkout-message"><h1>{t('Checkout could not load','Checkout gagal dimuat')}</h1><p>{t('Please refresh to load the listing and delivery address.','Muat ulang untuk memuat listing dan alamat pengiriman.')}</p><button className="button" onClick={()=>window.location.reload()}>{t('Retry','Coba lagi')}</button></section></main>;
   if(!account)return <main className="page vivre-checkout-page"><section className="checkout-message"><ShieldCheck size={24}/><h1>{t('Sign in to check out','Masuk untuk checkout')}</h1><p>{t('Your delivery address and order are tied to your VivrePlay account.','Alamat pengiriman dan pesanan terhubung dengan akun VivrePlay Anda.')}</p><button className="button" onClick={()=>window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}))}>{t('Sign in','Masuk')}</button></section></main>;
   if(!listing||!items.length)return <main className="page vivre-checkout-page"><section className="checkout-message"><h1>{t('Listing unavailable','Listing tidak tersedia')}</h1><p>{t('Return to Market and select cards from an active seller listing.','Kembali ke Market dan pilih kartu dari listing yang aktif.')}</p><Link className="button" href="/market"><ArrowLeft size={16}/>{t('Back to Market','Kembali ke Market')}</Link></section></main>;
 
@@ -101,15 +132,20 @@ export function MarketCheckout(){
     <div className="checkout-layout">
       <section className="checkout-panel checkout-order-summary"><h2>{listing.title}</h2><p className="checkout-seller">{listing.seller} · {listing.city}</p>
         <div className="checkout-items">{selectedCards.map(item=><div key={item.printingId} className="checkout-item-row"><div className="checkout-item-art">{item.card?<CardArt card={item.card}/>:<span>{item.printingId}</span>}</div><div className="checkout-item-copy"><strong>{item.card?.name||listing.title}</strong><small>{item.card?.code||item.card?.printingCode||item.printingId}{item.card?.language&&` · ${item.card.language}`}{item.card?.variant&&` · ${item.card.variant}`}{item.card?.setCode&&` · ${item.card.setCode}`} · {item.condition} · {item.quantity}×</small></div><b>{formatMoney(item.unitAmount*item.quantity,listing.currency)}</b></div>)}</div>
-        <dl className="checkout-totals"><div><dt>{t('Cards','Kartu')}</dt><dd>{formatMoney(subtotal,listing.currency)}</dd></div><div><dt>{t('Delivery','Pengiriman')}</dt><dd>{currentRate?formatMoney(currentRate.price,listing.currency):t('Choose a service','Pilih layanan')}</dd></div><div className="checkout-grand-total"><dt>{t('Total','Total')}</dt><dd>{formatMoney(subtotal+(currentRate?.price??0),listing.currency)}</dd></div></dl>
+        <dl className="checkout-totals"><div><dt>{t('Cards','Kartu')}</dt><dd>{formatMoney(subtotal,listing.currency)}</dd></div><div><dt>{t('Delivery','Pengiriman')}</dt><dd><button type="button" className="checkout-delivery-action" aria-controls="checkout-delivery-services" onClick={chooseDelivery}>{currentRate?`${formatMoney(currentRate.price,listing.currency)} - ${t('Change','Ubah')}`:quoting?t('Loading rates…','Memuat ongkir…'):t('Choose a service','Pilih layanan')}</button></dd></div><div className="checkout-grand-total"><dt>{t('Total','Total')}</dt><dd>{formatMoney(subtotal+(currentRate?.price??0),listing.currency)}</dd></div></dl>
       </section>
       <section className="checkout-panel checkout-delivery-panel"><div className="checkout-section-title"><MapPin size={18}/><div><h2>{t('Delivery address','Alamat pengiriman')}</h2><p>{t('Shipping is quoted from your saved address.','Ongkir dihitung dari alamat yang tersimpan.')}</p></div></div>
-        {origin?<div className="checkout-address-card"><strong>{origin.recipientName||account.profile?.displayName||t('Recipient','Penerima')} · {origin.phone||t('No phone','Tanpa nomor')}</strong><p>{origin.addressLine}<br/>{origin.regionNames?.subdistrict?`${origin.regionNames.subdistrict}, `:''}{origin.regionNames?.district?`${origin.regionNames.district}, `:''}{origin.city} {origin.postalCode}</p><Link href="/profile?tab=shipping">{t('Change address','Ubah alamat')}</Link></div>:<div className="checkout-address-empty"><p>{t('Add an address and delivery contact before checkout.','Tambahkan alamat dan kontak pengiriman sebelum checkout.')}</p><Link className="button secondary" href="/profile?tab=shipping">{t('Set delivery address','Atur alamat pengiriman')}</Link></div>}
-        <div className="checkout-quote-row"><div className="checkout-section-title"><Truck size={18}/><div><h2>{t('Delivery service','Layanan pengiriman')}</h2><p>{t('Live options from the seller’s enabled couriers.','Opsi langsung dari kurir aktif penjual.')}</p></div></div><button type="button" className="button secondary" disabled={quoting||!origin} onClick={()=>void loadQuotes()}>{quoting?t('Checking…','Memeriksa…'):t('Get shipping rates','Hitung ongkir')}</button></div>
-        {rates.length>0&&<div className="checkout-rate-list">{rates.map(rate=>{const key=`${rate.courier_code}:${rate.courier_service_code}`;return <label key={key} className={selectedRate===key?'is-selected':''}><input type="radio" name="shipping-rate" value={key} checked={selectedRate===key} onChange={()=>setSelectedRate(key)}/><span><strong>{courierName(rate.courier_name)} · {rate.courier_service_name}</strong><small>{rate.duration||t('Delivery estimate provided by courier','Estimasi dari kurir')}</small></span><b>{formatMoney(rate.price,listing.currency)}</b></label>})}</div>}
+        {origin?<div className="checkout-address-card"><strong>{origin.recipientName||account.profile?.display_name}{origin.phone&&` - ${origin.phone}`}</strong><p>{origin.addressLine}<br/>{origin.regionNames?.subdistrict?`${origin.regionNames.subdistrict}, `:''}{origin.regionNames?.district?`${origin.regionNames.district}, `:''}{origin.city} {origin.postalCode}</p><Link href="/profile?tab=shipping">{t('Change address','Ubah alamat')}</Link>
+          {(!contactComplete||editingContact)&&<form className="checkout-contact-form form-stack" onSubmit={saveContact}><h3>{t('Delivery contact','Kontak pengiriman')}</h3><div className="form-row"><label>{t('Recipient name','Nama penerima')}<input required minLength={2} maxLength={100} autoComplete="name" value={contactName} onChange={event=>setContactName(event.target.value)}/></label><label>{t('Phone number','Nomor telepon')}<input required type="tel" minLength={8} maxLength={24} autoComplete="tel" value={contactPhone} onChange={event=>setContactPhone(event.target.value)}/></label></div><button type="submit" className="button secondary" disabled={savingContact}>{savingContact?t('Saving…','Menyimpan…'):t('Save delivery contact','Simpan kontak pengiriman')}</button></form>}
+          {contactComplete&&!editingContact&&<button type="button" className="checkout-contact-edit" onClick={()=>setEditingContact(true)}>{t('Edit contact','Ubah kontak')}</button>}
+        </div>:<div className="checkout-address-empty"><p>{t('Add an address and delivery contact before checkout.','Tambahkan alamat dan kontak pengiriman sebelum checkout.')}</p><Link className="button secondary" href="/profile?tab=shipping">{t('Set delivery address','Atur alamat pengiriman')}</Link></div>}
+
+        <div className="checkout-quote-row" id="checkout-delivery-services" tabIndex={-1}><div className="checkout-section-title"><Truck size={18}/><div><h2>{t('Delivery service','Layanan pengiriman')}</h2><p>{t('Live options from the seller’s enabled couriers.','Opsi langsung dari kurir aktif penjual.')}</p></div></div><button type="button" className="button secondary" disabled={quoting||!origin} onClick={()=>void loadQuotes()}>{quoting?t('Checking…','Memeriksa…'):t('Refresh rates','Muat ulang ongkir')}</button></div>
+        {quoting&&<div className="shipping-options-skeleton" role="status" aria-label={t('Loading shipping options','Memuat opsi pengiriman')}>{[0,1,2].map(index=><div key={index}><span><i/><i/></span><i/></div>)}</div>}
+        {!quoting&&rates.length>0&&<div className="checkout-rate-list">{rates.map(rate=>{const key=`${rate.courier_code}:${rate.courier_service_code}`;return <label key={key} className={selectedRate===key?'is-selected':''}><input type="radio" name="shipping-rate" value={key} checked={selectedRate===key} onChange={()=>setSelectedRate(key)}/><span><strong>{courierName(rate.courier_code)} · {rate.courier_service_name}</strong><small>{rate.duration||t('Delivery estimate provided by courier','Estimasi dari kurir')}</small></span><b>{formatMoney(rate.price,listing.currency)}</b></label>})}</div>}
         {error&&<p className="checkout-error" role="alert">{error}</p>}
         {!checkoutAvailable&&<p className="checkout-config-unavailable">{t('Online payment is not enabled for Market orders yet.','Pembayaran online belum diaktifkan untuk pesanan Market.')}</p>}
-        <button type="button" className="button checkout-pay-button" disabled={!currentRate||submitting||!checkoutAvailable} onClick={startCheckout}>{submitting?t('Preparing payment…','Menyiapkan pembayaran…'):t('Continue to payment','Lanjut ke pembayaran')}</button>
+        <button type="button" className="button checkout-pay-button" disabled={!currentRate||submitting||!checkoutAvailable||!contactComplete||quoting} onClick={startCheckout}>{submitting?t('Preparing payment…','Menyiapkan pembayaran…'):t('Continue to payment','Lanjut ke pembayaran')}</button>
       </section>
     </div>
   </main>

@@ -3051,3 +3051,10 @@ html[data-theme='dark'] .market-price-mode-options button.is-selected{border-col
 .payout-error{padding:12px;border:1px solid var(--line);border-radius:6px}
 .payout-error p{margin:0 0 10px}
 @media(max-width:640px){.payout-accounts>li{align-items:flex-start;flex-direction:column}.payout-account-actions,.payout-form-actions{width:100%}.payout-account-actions .button,.payout-form-actions .button{flex:1}.payout-form .form-row{grid-template-columns:minmax(0,1fr)}.profile-tab-bar{flex-wrap:wrap}}
+
+.checkout-delivery-action,.checkout-contact-edit{padding:0;border:0;background:transparent;color:var(--accent);font:inherit;text-align:right;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.checkout-contact-edit{display:block;min-height:36px;margin-top:8px;text-align:left}
+.checkout-contact-form{margin-top:16px;padding-top:16px;border-top:1px solid var(--line)}
+.checkout-contact-form h3{margin:0;font-size:14px}
+.checkout-contact-form .button{justify-self:start;min-height:40px;border-radius:6px}
+@media(max-width:640px){.checkout-contact-form .form-row{grid-template-columns:minmax(0,1fr)}}

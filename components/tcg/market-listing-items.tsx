@@ -35,6 +35,8 @@ export function ShippingOptions({listingId,courierCount=0,couriers=[]}:{listingI
   const [quoteState,setQuoteState]=useState<'idle'|'ready'|'needs-address'|'unavailable'|'error'>('idle');
   const inFlight=useRef(false);
   const quoteRequest=useRef<AbortController|null>(null);
+  const autoLoaded=useRef('');
+  const [quoteExpiresAt,setQuoteExpiresAt]=useState(0);
   const [language,setLanguage]=useState<'EN'|'ID'>('EN');
   const dialogRef=useRef<HTMLDivElement>(null);
 
@@ -51,7 +53,7 @@ export function ShippingOptions({listingId,courierCount=0,couriers=[]}:{listingI
   useEffect(()=>{
     const reset=()=>{
       quoteRequest.current?.abort();quoteRequest.current=null;
-      inFlight.current=false;
+      inFlight.current=false;autoLoaded.current='';setQuoteExpiresAt(0);
       setRates([]);setStartingFee(null);setLoading(false);setQuoteState('idle');
     };
     reset();
@@ -59,18 +61,20 @@ export function ShippingOptions({listingId,courierCount=0,couriers=[]}:{listingI
     return()=>{window.removeEventListener('vivreplay:shipping-updated',reset);quoteRequest.current?.abort();};
   },[listingId,session?.user.id]);
 
-  const loadRates=useCallback(async(cacheOnly=false)=>{
-    if(inFlight.current){if(cacheOnly)return;quoteRequest.current?.abort();}
+  const loadRates=useCallback(async(cacheOnly=false,silent=false)=>{
+    if(inFlight.current)return;
     if(courierCount===0){setLoading(false);setQuoteState('unavailable');return;}
     inFlight.current=true;
     if(!cacheOnly){setLoading(true);setRates([]);}
     const controller=new AbortController();quoteRequest.current=controller;
     try{
       const res=await fetch('/api/shipping/quotes',{signal:controller.signal,method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({listingId,cacheOnly})});
-      const data=await res.json() as {pricing?:CourierRate[];couriers?:string[];destinationRequired?:boolean;cacheMiss?:boolean;error?:string};
+      const data=await res.json() as {pricing?:CourierRate[];couriers?:string[];destinationRequired?:boolean;cacheMiss?:boolean;regularExpiresAt?:number;instantExpiresAt?:number;error?:string};
       if(controller.signal.aborted)return;
       if(!res.ok)throw new Error(data.error||t('Live rates could not be loaded.','Tarif pengiriman belum dapat dimuat.'));
       if(data.cacheMiss)return;
+      const expiries=[data.regularExpiresAt,data.instantExpiresAt].filter((value):value is number=>typeof value==='number'&&value>Date.now());
+      setQuoteExpiresAt(expiries.length?Math.min(...expiries):Date.now()+60_000);
       if(data.destinationRequired){setRates([]);setStartingFee(null);setQuoteState('needs-address');return;}
       if(Array.isArray(data.pricing)&&data.pricing.length>0){
         const priced=data.pricing.filter(rate=>Number.isFinite(rate.price)&&rate.price>=0);
@@ -80,14 +84,15 @@ export function ShippingOptions({listingId,courierCount=0,couriers=[]}:{listingI
         setQuoteState(prices.length?'ready':'unavailable');
       }
       else{setRates([]);setStartingFee(null);setQuoteState('unavailable');}
-    }catch(error){if(controller.signal.aborted||cacheOnly)return;setQuoteState('error');if(!cacheOnly)toast.error(error instanceof Error?error.message:t('Live rates could not be loaded.','Tarif pengiriman belum dapat dimuat.'));}
+    }catch(error){if(controller.signal.aborted||cacheOnly)return;setQuoteState('error');if(!cacheOnly&&!silent)toast.error(error instanceof Error?error.message:t('Live rates could not be loaded.','Tarif pengiriman belum dapat dimuat.'));}
     finally{if(quoteRequest.current===controller){inFlight.current=false;setLoading(false);quoteRequest.current=null;}}
   },[courierCount,listingId,language]);
-  const openDialog=async()=>{setLoading(true);setOpen(true);await loadRates()};
+  const openDialog=async()=>{setOpen(true);if(rates.length&&quoteExpiresAt>Date.now()){setLoading(false);return;}setLoading(true);await loadRates()};
 
   useEffect(()=>{
-    if(session?.user.id)void loadRates(true);
-  },[session?.user.id,loadRates]);
+    const key=`${session?.user.id??''}:${listingId}:${courierCount}`;
+    if(session?.user.id&&autoLoaded.current!==key){autoLoaded.current=key;void loadRates(false,true);}
+  },[session?.user.id,listingId,courierCount,loadRates]);
 
   useEffect(()=>{
     if(!open)return;
@@ -153,8 +158,8 @@ export function ShippingOptions({listingId,courierCount=0,couriers=[]}:{listingI
     <div className="shipping-options-fact">
       <dt><Truck size={11}/>{t('Shipping','Pengiriman')}</dt>
       <dd>
-        <button type="button" className="shipping-options-trigger" onClick={openDialog} aria-haspopup="dialog" aria-expanded={open}>
-          {startingFee!=null?`${t('Delivery from','Ongkir mulai')} ${formatMoney(startingFee,'IDR')}`:courierCount>0?t('Check delivery fees','Cek ongkir'):t('Shipping not configured','Pengiriman belum diatur')}
+        <button type="button" className="shipping-options-trigger" aria-busy={loading} onClick={openDialog} aria-haspopup="dialog" aria-expanded={open}>
+          {loading?t('Loading rates…','Memuat ongkir…'):startingFee!=null?`${t('Delivery from','Ongkir mulai')} ${formatMoney(startingFee,'IDR')}`:courierCount>0?t('Check delivery fees','Cek ongkir'):t('Shipping not configured','Pengiriman belum diatur')}
         </button>
         {modal}
       </dd>

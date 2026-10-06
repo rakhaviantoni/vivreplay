@@ -628,7 +628,7 @@ function ProfileForm({
       .then(res=>{
         if(!active||!res?.origin)return;
         setShippingOrigin(res.origin);
-        setShippingRecipient(res.origin.recipientName||'');
+        setShippingRecipient(res.origin.recipientName||profile.display_name||'');
         setShippingPhone(res.origin.phone||'');
         setShippingAddress(res.origin.addressLine||'');
         const c = res.origin.city||'';
@@ -838,6 +838,8 @@ function ProfileForm({
       toast.error(t('Choose a delivery area with a valid postal code.', 'Pilih wilayah pengiriman dengan kode pos yang valid.'));
       return;
     }
+    if(shippingRecipient.trim().length<2){toast.error(t('Enter the recipient name.','Masukkan nama penerima.'));return;}
+    if(!/^\+?[\d\s().-]+$/.test(shippingPhone.trim())||shippingPhone.replace(/\D/g,'').length<8||shippingPhone.replace(/\D/g,'').length>16){toast.error(t('Enter a valid delivery phone number.','Masukkan nomor telepon pengiriman yang valid.'));return;}
     const activeCourierIds = shippingMethods.filter(id => BITESHIP_COURIERS.some(c => c.id === id));
     setSavingShipping(true);
     try{
@@ -1091,9 +1093,11 @@ function ProfileForm({
                 {t('Recipient name','Nama penerima')}
                 <input
                   name="recipientName"
+                  required
+                  minLength={2}
                   value={shippingRecipient}
                   onChange={e => setShippingRecipient(e.target.value)}
-                  placeholder={profile.display_name || 'Budi Santoso'}
+                  placeholder={t('Name on the delivery label','Nama pada label pengiriman')}
                   maxLength={100}
                 />
               </label>
@@ -1101,6 +1105,9 @@ function ProfileForm({
                 {t('Phone number','Nomor telepon / WhatsApp')}
                 <input
                   name="phone"
+                  required
+                  type="tel"
+                  minLength={8}
                   value={shippingPhone}
                   onChange={e => setShippingPhone(e.target.value)}
                   placeholder="081234567890"

@@ -185,9 +185,9 @@ export function Shell({children}:{children:React.ReactNode}) {
     window.dispatchEvent(new CustomEvent('vivreplay:locale',{detail:next}));
     if(next==='ID'){
       const target=normalizedPath==='/'?'/id':`/id${normalizedPath}`;
-      router.push(target);
+      router.push(`${target}${window.location.search}${window.location.hash}`);
     }else{
-      router.push(normalizedPath);
+      router.push(`${normalizedPath}${window.location.search}${window.location.hash}`);
     }
     return next;
   };
