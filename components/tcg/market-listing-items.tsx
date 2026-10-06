@@ -203,8 +203,9 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
   const [customPrices,setCustomPrices]=useState<Record<string,number>>({});
   const [preview,setPreview]=useState<Card>();
   const [vaultTarget,setVaultTarget]=useState<MarketListingCard|null>(null);
-  const {data:session}=authClient.useSession();
+  const {data:session,isPending:sessionPending}=authClient.useSession();
   const [submitting,setSubmitting]=useState(false); const [submitted,setSubmitted]=useState(false);
+  const [offerCheckComplete,setOfferCheckComplete]=useState(false);
   const [language,setLanguage]=useState<'EN'|'ID'>('EN');
 
   useEffect(()=>{
@@ -285,9 +286,29 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
   const isBuying=listingType==='WTS';
   const acceptsOffers=!isBuying||negotiable;
   const actionLabel=isBuying?t('Make offer','Ajukan penawaran'):t('Offer cards','Tawarkan kartu');
+  useEffect(()=>{
+    let active=true;
+    if(sessionPending)return()=>{active=false};
+    if(!session?.user||readOnly||!acceptsOffers){setOfferCheckComplete(true);return()=>{active=false};}
+    setOfferCheckComplete(false);
+    const controller=new AbortController();
+    void fetch(`/api/listings/${encodeURIComponent(listingId)}/offers`,{cache:'no-store',signal:controller.signal})
+      .then(async response=>response.ok?await response.json() as {offer?:{items?:Array<{printingId:string;quantity:number;unitAmount?:number}>}|null}:null)
+      .then(payload=>{
+        if(!active||!payload?.offer)return;
+        const offerItems=(payload.offer.items??[]).filter(item=>items.some(listingItem=>listingItem.id===item.printingId)&&Number.isInteger(item.quantity)&&item.quantity>0);
+        if(!offerItems.length)return;
+        setSelected(Object.fromEntries(offerItems.map(item=>[item.printingId,Math.min(item.quantity,items.find(listingItem=>listingItem.id===item.printingId)?.quantity??item.quantity)])));
+        setCustomPrices(Object.fromEntries(offerItems.filter(item=>Number.isSafeInteger(item.unitAmount)&&Number(item.unitAmount)>0).map(item=>[item.printingId,Number(item.unitAmount)])));
+        setSubmitted(true);
+      })
+      .catch(()=>{})
+      .finally(()=>{if(active)setOfferCheckComplete(true)});
+    return()=>{active=false;controller.abort()};
+  },[listingId,session?.user.id,sessionPending,readOnly,acceptsOffers,items]);
   const continueOffer=async()=>{
     if(!session){window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));return;}
-    setSubmitting(true);try{const offerItems=items.flatMap(item=>{const quantity=selected[item.id]??0;if(!quantity)return[];const unitAmount=getUnitPrice(item);return [{printingId:item.id,quantity,unitAmount}];});const response=await fetch(`/api/listings/${encodeURIComponent(listingId)}/offers`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({type:isBuying?'BUY':'SELL',items:offerItems,amount:selectedTotal,currency})});const payload=await response.json() as {error?:string};if(!response.ok)throw new Error(payload.error??t('We could not send your offer.','Gagal mengirimkan penawaran Anda.'));setSubmitted(true);toast.success(isBuying?t('Offer sent to the seller.','Penawaran dikirim ke penjual.'):t('Your cards were offered to the buyer.','Kartu Anda ditawarkan ke pembeli.'));}catch(error){const message=error instanceof Error?error.message:'';const localized=language==='ID'&&message.includes('listing is no longer active')?'Listing ini sudah tidak aktif.':language==='ID'&&message.includes('listing has expired')?'Listing ini sudah kedaluwarsa.':language==='ID'&&message.includes('firm price')?'Listing ini menggunakan harga pas dan tidak menerima penawaran.':language==='ID'&&message.includes('Offer total must match')?'Total penawaran harus sesuai dengan harga tiap kartu.':message||t('We could not send your offer.','Gagal mengirimkan penawaran Anda.');toast.error(localized)}
+    setSubmitting(true);try{const offerItems=items.flatMap(item=>{const quantity=selected[item.id]??0;if(!quantity)return[];const unitAmount=getUnitPrice(item);return [{printingId:item.id,quantity,unitAmount}];});const response=await fetch(`/api/listings/${encodeURIComponent(listingId)}/offers`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({type:isBuying?'BUY':'SELL',items:offerItems,amount:selectedTotal,currency})});const payload=await response.json() as {error?:string};if(!response.ok)throw new Error(payload.error??t('We could not send your offer.','Gagal mengirimkan penawaran Anda.'));setSubmitted(true);setOfferCheckComplete(true);toast.success(isBuying?t('Offer sent to the seller.','Penawaran dikirim ke penjual.'):t('Your cards were offered to the buyer.','Kartu Anda ditawarkan ke pembeli.'));}catch(error){const message=error instanceof Error?error.message:'';const localized=language==='ID'&&message.includes('listing is no longer active')?'Listing ini sudah tidak aktif.':language==='ID'&&message.includes('listing has expired')?'Listing ini sudah kedaluwarsa.':language==='ID'&&message.includes('firm price')?'Listing ini menggunakan harga pas dan tidak menerima penawaran.':language==='ID'&&message.includes('Offer total must match')?'Total penawaran harus sesuai dengan harga tiap kartu.':message||t('We could not send your offer.','Gagal mengirimkan penawaran Anda.');toast.error(localized)}
   };
   const buySelected=()=>{
     if(!session){window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));return;}
@@ -494,7 +515,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
       </div>
       <div className="market-listing-selection-actions">
         {isBuying&&<button type="button" className="button market-buy-selected" disabled={!selectedCount} onClick={buySelected}>{singleCopyListing?t('Buy now','Beli sekarang'):t('Buy selected','Beli pilihan')}</button>}
-        {acceptsOffers&&<button type="button" className="button" disabled={!selectedCount||submitting||submitted} onClick={continueOffer}>{submitted?t('Offer sent','Penawaran terkirim'):submitting?t('Sending...','Mengirim...'):session?(hasPriceAdjustments?t('Submit offer','Kirim penawaran'):actionLabel):(language==='ID'?`Masuk untuk ${isBuying?'menawar':'menawarkan'}`:`Sign in to ${actionLabel.toLowerCase()}`)}</button>}
+        {acceptsOffers&&<button type="button" className="button" disabled={!selectedCount||submitting||submitted||!offerCheckComplete} onClick={continueOffer}>{submitted?t('Offer sent','Penawaran terkirim'):submitting?t('Sending...','Mengirim...'):!offerCheckComplete?t('Checking offer…','Memeriksa penawaran…'):session?(hasPriceAdjustments?t('Submit offer','Kirim penawaran'):actionLabel):(language==='ID'?`Masuk untuk ${isBuying?'menawar':'menawarkan'}`:`Sign in to ${actionLabel.toLowerCase()}`)}</button>}
         <ShareButton
           title={listingTitle ?? t('Card listing','Listing kartu')}
           path={`/market/${listingId}`}

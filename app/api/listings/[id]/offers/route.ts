@@ -5,6 +5,19 @@ import {sendMarketEmail} from '@/lib/server/market-notifications';
 
 const schema=z.object({type:z.enum(['BUY','SELL']),items:z.array(z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(99),unitAmount:z.number().int().positive().optional()})).min(1).max(30),amount:z.number().int().positive(),currency:z.string().length(3)});
 
+export async function GET(_request:Request,{params}:{params:Promise<{id:string}>}){try{
+  const actor=await user();const {id}=await params;
+  const row=await db().prepare(`SELECT o.id,o.type,o.items,o.amount,o.currency,o.expires_at AS expiresAt
+    FROM listing_offers o JOIN listings l ON l.id=o.listing_id
+    WHERE o.listing_id=? AND o.actor_id=? AND o.actor_id!=l.seller_id AND o.status='PENDING'
+      AND (o.expires_at IS NULL OR o.expires_at>CURRENT_TIMESTAMP)
+      AND l.status='ACTIVE' AND (l.expires_at IS NULL OR l.expires_at>CURRENT_TIMESTAMP)
+    ORDER BY o.created_at DESC,o.rowid DESC LIMIT 1`).bind(id,actor.id).first<{id:string;type:string;items:string;amount:number;currency:string;expiresAt:string|null}>();
+  let items:Array<{printingId:string;quantity:number;unitAmount?:number}>=[];
+  if(row){try{const parsed=JSON.parse(row.items) as unknown;if(Array.isArray(parsed))items=parsed.filter((item):item is {printingId:string;quantity:number;unitAmount?:number}=>Boolean(item&&typeof item==='object'&&typeof item.printingId==='string'&&Number.isInteger(item.quantity)&&item.quantity>0));}catch{}}
+  return Response.json({offer:row?{id:row.id,type:row.type,items,amount:row.amount,currency:row.currency,expiresAt:row.expiresAt}:null},{headers:{'Cache-Control':'private, no-store'}});
+}catch(error){return errorResponse(error)}}
+
 export async function POST(request:Request,{params}:{params:Promise<{id:string}>}){try{
   guard(request);const actor=await user();const {id}=await params;const value=schema.parse(await request.json());
   const listing=await db().prepare('SELECT seller_id,printing_id,quantity,currency,type,status,items,title,expires_at,negotiable FROM listings WHERE id=?').bind(id).first<{seller_id:string;printing_id:string;quantity:number;currency:string;type:string;status:string;items:string|null;title:string;expires_at:string|null;negotiable:number}>();
