@@ -11,10 +11,11 @@ const hash=(value:unknown)=>createHash('sha256').update(canonical(value)).digest
 const scenarioIdentity=(name:string)=>name.replace(/^(?:unknown|on play|when attacking|activate main|main|counter|trigger|on k\.o\.|on block|on your opponent's attack|end of your turn) gameplay /i,'timing gameplay ');
 const semanticTextParity=(code:string,printed:string,published:string|null)=>{
  if(!published)return false;
- const normalize=(value:string)=>value.toLowerCase().replace(/\{([^}]+)\}|\[([^\]]+)\]/g,(_all,a,b)=>a??b).replace(/activate\s*:\s*main/g,'activate:main').replace(/this character has played on this turn/g,'this character was played on this turn').replace(/\s+/g,' ').trim();
- if((code==='OP02-025'||code==='EB04-012')&&normalize(printed)===normalize(published))return true;
+ const normalize=(value:string)=>value.toLowerCase().replace(/[−–—]/g,'-').replace(/[’‘]/g,"'").replace(/[×x]/g,'x').replace(/[①➀]/g,'1').replace(/[②➁]/g,'2').replace(/[③➂]/g,'3').replace(/[④➃]/g,'4').replace(/[⑤➄]/g,'5').replace(/[⑥➅]/g,'6').replace(/[⑦➆]/g,'7').replace(/[⑧➇]/g,'8').replace(/[⑨➈]/g,'9').replace(/[⑩➉]/g,'10').replace(/[{}\[\]"“”]/g,'').replace(/activate\s*:\s*main/g,'activate:main').replace(/this character has played on this turn/g,'this character was played on this turn').replace(/\s+/g,' ').replace(/\s*([:;,.])\s*/g,'$1 ').trim();
+ if(normalize(printed)===normalize(published))return true;
  return code==='OP03-074'&&normalize(printed)===normalize(published.replace(/\s*\[Trigger\]\s*Activate this card's \[Main\] effect\.?\s*$/i,'').trim());
 };
+const fullyCoveredByStandaloneActions=(schema:EffectDocument,cardScenarios:Array<{name:string}>)=>schema.resolver.type==='DSL'&&schema.implementationStatus==='PARSED'&&schema.ast.some(ability=>ability.actions.length>0)&&schema.ast.every(ability=>ability.actions.length===0||ability.actions.length===1&&!ability.conditions.length&&!ability.costs.length&&ability.actions[0].kind!=='custom-resolver'&&cardScenarios.some(scenario=>scenario.name===`engine-action ${ability.trigger} ${ability.actions[0].kind}: resolve isolated parsed instruction`));
 const candidates:Array<Record<string,unknown>>=[];
 const skipped:Record<string,number>={};
 const skip=(reason:string)=>{skipped[reason]=(skipped[reason]??0)+1;};
@@ -30,7 +31,7 @@ for(const card of snapshot.cards){
  if(card.localSchema.resolver.type!=='DSL'||card.localSchema.implementationStatus!=='PARSED'){skip('local-schema-not-fully-parsed');continue;}
  const cardScenarios=scenarios({code:card.code,effect_text:card.printedText} as Identity);
  if(!cardScenarios.length){skip('no-card-scenarios');continue;}
- if(!cardScenarios.some(scenario=>!scenario.name.startsWith('engine-action ')&&!scenario.name.startsWith('schema-atomic-action '))){skip('gameplay-scenario-required');continue;}
+ if(!cardScenarios.some(scenario=>!scenario.name.startsWith('engine-action ')&&!scenario.name.startsWith('schema-atomic-action '))&&!fullyCoveredByStandaloneActions(card.localSchema,cardScenarios)){skip('gameplay-scenario-required');continue;}
  const topKnotReference=card.code==='OP03-074'&&textNeedsCorrection;
  const after=topKnotReference?compileEffectDocument({code:card.code,name:card.name,type:'Event',effect:card.publishedText??''} as unknown as Card):structuredClone(card.localSchema);
  const verified:string[]=[];
