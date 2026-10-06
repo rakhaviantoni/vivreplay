@@ -8,6 +8,10 @@ export async function GET(){
   return webhookProbeResponse();
 }
 
+export async function HEAD(){
+  return new Response(null,{status:200,headers:{'Cache-Control':'no-store'}});
+}
+
 export async function POST(request:Request){
   let rawBody='';
   let body:{event?:string;order_id?:string;courier_tracking_id?:string;courier_waybill_id?:string;courier_company?:string;courier_type?:string;courier_link?:string;status?:string;price?:number;order_price?:number};
@@ -20,9 +24,12 @@ export async function POST(request:Request){
     if(!body.event)return webhookProbeResponse();
   }catch{return Response.json({error:'Webhook payload must be valid JSON.'},{status:400})}
 
+  const supplied=request.headers.get('x-vivreplay-webhook-secret')?.trim()??'';
+  // Endpoint installation checks may send a sample event without the configured
+  // signature. Acknowledge the check, but never apply unsigned event data.
+  if(!supplied)return webhookProbeResponse();
   const secret=process.env.BITESHIP_WEBHOOK_SECRET?.trim();
   if(!secret)return Response.json({error:'Webhook authentication is not configured.'},{status:503});
-  const supplied=request.headers.get('x-vivreplay-webhook-secret')?.trim()??'';
   const [providedHash,expectedHash]=await Promise.all([crypto.subtle.digest('SHA-256',new TextEncoder().encode(supplied)),crypto.subtle.digest('SHA-256',new TextEncoder().encode(secret))]);
   const left=new Uint8Array(providedHash);const right=new Uint8Array(expectedHash);let mismatch=0;for(let index=0;index<left.length;index++)mismatch|=left[index]^right[index];
   if(mismatch!==0)return Response.json({error:'Unauthorized.'},{status:401});
