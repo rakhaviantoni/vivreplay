@@ -61,9 +61,9 @@ export function ShippingOptions({listingId,courierCount=0,couriers=[]}:{listingI
 
   const loadRates=useCallback(async(cacheOnly=false)=>{
     if(inFlight.current){if(cacheOnly)return;quoteRequest.current?.abort();}
-    if(courierCount===0){setQuoteState('unavailable');return;}
+    if(courierCount===0){setLoading(false);setQuoteState('unavailable');return;}
     inFlight.current=true;
-    if(!cacheOnly)setLoading(true);
+    if(!cacheOnly){setLoading(true);setRates([]);}
     const controller=new AbortController();quoteRequest.current=controller;
     try{
       const res=await fetch('/api/shipping/quotes',{signal:controller.signal,method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({listingId,cacheOnly})});
@@ -83,7 +83,7 @@ export function ShippingOptions({listingId,courierCount=0,couriers=[]}:{listingI
     }catch(error){if(controller.signal.aborted||cacheOnly)return;setQuoteState('error');if(!cacheOnly)toast.error(error instanceof Error?error.message:t('Live rates could not be loaded.','Tarif pengiriman belum dapat dimuat.'));}
     finally{if(quoteRequest.current===controller){inFlight.current=false;setLoading(false);quoteRequest.current=null;}}
   },[courierCount,listingId,language]);
-  const openDialog=async()=>{setOpen(true);await loadRates()};
+  const openDialog=async()=>{setLoading(true);setOpen(true);await loadRates()};
 
   useEffect(()=>{
     if(session?.user.id)void loadRates(true);
@@ -113,8 +113,8 @@ export function ShippingOptions({listingId,courierCount=0,couriers=[]}:{listingI
           <button type="button" className="shipping-options-close" onClick={e=>{e.preventDefault();e.stopPropagation();setOpen(false);}} aria-label={t('Close','Tutup')}><X size={15}/></button>
         </header>
         <div className="shipping-options-body">
-          {(loading||activeRates.length===0)&&couriers.length>0&&<p className="shipping-options-enabled"><ShippingCouriers couriers={couriers} language={language} maxVisible={couriers.length}/></p>}
-          {loading&&<p className="shipping-options-loading">{t('Loading shipping options…','Memuat opsi pengiriman…')}</p>}
+          {!loading&&activeRates.length===0&&couriers.length>0&&<p className="shipping-options-enabled"><ShippingCouriers couriers={couriers} language={language} maxVisible={couriers.length}/></p>}
+          {loading&&<div className="shipping-options-skeleton" role="status" aria-label={t('Loading shipping options','Memuat opsi pengiriman')}>{Array.from({length:4},(_,index)=><div key={index}><span><i/><i/></span><i/></div>)}</div>}
           {!loading&&activeRates.length>0&&(
             <ul className="shipping-options-list">
               {activeRates.map(rate=>(

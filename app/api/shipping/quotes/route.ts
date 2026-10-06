@@ -3,7 +3,7 @@ import {db,errorResponse,guard,HttpError,optionalUser} from '@/lib/server/store'
 import {biteshipDestination,isBiteshipAreaId} from '@/lib/shipping/biteship-area';
 import {shippingRateOptions} from '@/lib/server/shipping-quote-cache';
 
-type QuoteRequest={listingId?:unknown;destinationPostalCode?:unknown;destinationAreaId?:unknown;items?:unknown;cacheOnly?:unknown};
+type QuoteRequest={listingId?:unknown;destinationPostalCode?:unknown;destinationAreaId?:unknown;items?:unknown;cacheOnly?:unknown;refresh?:unknown};
 export async function POST(request:Request){
   try{
     guard(request);
@@ -76,7 +76,7 @@ export async function POST(request:Request){
     if(!origin.areaId&&!origin.postalCode)throw new HttpError(400,'The seller needs a valid 5-digit pickup postal code.');
     if(!destination.areaId&&!destination.postalCode)throw new HttpError(400,'Choose a delivery area with a valid 5-digit postal code.');
     const packageItems=[{name:row.title,value:declaredValue,length:18,width:13,height:2,weight:Math.max(100,totalQuantity*100),quantity:1}];
-    const quote=await shippingRateOptions(buyer?.id??null,listingId,{couriers:finalCouriers,origin,destination,originLatitude:row.originLatitude,originLongitude:row.originLongitude,destinationLatitude,destinationLongitude,items:packageItems,cacheOnly:body.cacheOnly===true});
+    const quote=await shippingRateOptions(buyer?.id??null,listingId,{couriers:finalCouriers,origin,destination,originLatitude:row.originLatitude,originLongitude:row.originLongitude,destinationLatitude,destinationLongitude,items:packageItems,cacheOnly:body.cacheOnly===true,refresh:body.refresh===true&&body.cacheOnly!==true});
     return Response.json({...quote,couriers:finalCouriers},{headers:{'Cache-Control':'private, no-store'}});
   }catch(error){return errorResponse(error)}
 }

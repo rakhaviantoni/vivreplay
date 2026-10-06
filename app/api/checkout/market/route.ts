@@ -6,7 +6,7 @@ import {createAzekhaIntent,hasAzekhaPaymentConfig} from '@/lib/server/azekha-pay
 import {biteshipDestination,isBiteshipAreaId} from '@/lib/shipping/biteship-area';
 import {shippingRateOptions} from '@/lib/server/shipping-quote-cache';
 
-const schema=z.object({listingId:z.string().min(1),offerId:z.string().min(1).optional(),items:z.array(z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(99)})).min(1).max(60),courierName:z.string().min(1),courierServiceName:z.string().min(1),courierCode:z.string().min(1),courierServiceCode:z.string().min(1),courierType:z.string().min(1)});
+const schema=z.object({listingId:z.string().min(1),offerId:z.string().min(1).optional(),items:z.array(z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(99)})).min(1).max(60),courierName:z.string().min(1),courierServiceName:z.string().min(1),courierCode:z.string().min(1),courierServiceCode:z.string().min(1),courierType:z.string().min(1),shippingFee:z.number().int().nonnegative().optional()});
 type BundleEntry={instanceId?:string;printingId:string;quantity:number;condition?:string;unitAmount:number};
 type Rate={courier_name:string;courier_service_name:string;courier_code:string;courier_service_code:string;company:string;type:string;price:number};
 type AcceptedOffer={id:string;actorId:string;listingId:string;status:string;amount:number;items:string};
@@ -97,6 +97,7 @@ export async function POST(request:Request){
       if(subtotal!==acceptedOffer.amount)throw new HttpError(400,'The accepted offer total does not match its card prices.');
     }
 
+    if(!couriers.includes(input.courierCode))throw new HttpError(409,'The seller no longer offers this courier. Choose another service.');
     const apiKey=process.env.BITESHIP_API_KEY;
     if(!apiKey)throw new HttpError(503,'Live shipping quotes are not configured yet.');
     const pickup=biteshipDestination(seller.postalCode,seller.areaId);
@@ -105,10 +106,11 @@ export async function POST(request:Request){
     if(!dropoff.areaId&&!dropoff.postalCode)throw new HttpError(400,'Save a valid 5-digit delivery postal code in your profile.');
     const quantity=orderItems.reduce((sum,item)=>sum+item.quantity,0);
     const packageItems=[{name:listing.title,value:subtotal,length:18,width:13,height:2,weight:Math.max(100,quantity*100),quantity:1}];
-    const {pricing:rates}=await shippingRateOptions(profile.id,listing.id,{couriers,origin:pickup,destination:dropoff,originLatitude:seller.latitude,originLongitude:seller.longitude,destinationLatitude:address.latitude,destinationLongitude:address.longitude,items:packageItems});
+    const {pricing:rates}=await shippingRateOptions(profile.id,listing.id,{couriers:[input.courierCode],refresh:true,origin:pickup,destination:dropoff,originLatitude:seller.latitude,originLongitude:seller.longitude,destinationLatitude:address.latitude,destinationLongitude:address.longitude,items:packageItems});
     const rate=rates.find(item=>item.courier_name===input.courierName&&item.courier_service_name===input.courierServiceName&&item.courier_code===input.courierCode&&item.courier_service_code===input.courierServiceCode);
     if(!rate||!Number.isSafeInteger(rate.price)||rate.price<0)throw new HttpError(409,'That delivery service is no longer available. Choose an updated quote.');
 
+    if(input.shippingFee!==undefined&&input.shippingFee!==rate.price)throw new HttpError(409,'The delivery fee changed. Refresh the shipping rates before paying.');
     const id=crypto.randomUUID();
     const amount=subtotal+rate.price;
     const expiresAt=new Date(Date.now()+24*60*60*1000).toISOString().replace('T',' ').slice(0,19);

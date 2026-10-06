@@ -3022,3 +3022,32 @@ html[data-theme='dark'] .market-price-mode-options button.is-selected{border-col
 .market-feed-shipping-availability{display:inline-flex;align-items:center;gap:4px;min-width:0;color:var(--muted);font-size:11px;font-weight:650;white-space:normal;overflow-wrap:anywhere}
 .market-feed-shipping-availability svg{flex-shrink:0}
 .shipping-options-enabled{margin:8px 18px 12px;line-height:1.5}
+
+.shipping-options-skeleton{padding:0 18px}
+.shipping-options-skeleton>div{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:15px 0;border-bottom:1px solid var(--line)}
+.shipping-options-skeleton>div:last-child{border:0}
+.shipping-options-skeleton span{display:grid;gap:7px;flex:1}
+.shipping-options-skeleton i{display:block;height:12px;border-radius:4px;background:linear-gradient(90deg,var(--line),var(--surface),var(--line));background-size:200% 100%;animation:shipping-skeleton-shimmer 1.5s linear infinite}
+.shipping-options-skeleton span i:first-child{width:65%;height:14px}
+.shipping-options-skeleton span i:last-child{width:45%}
+.shipping-options-skeleton>div>i{width:70px;height:15px}
+@keyframes shipping-skeleton-shimmer{to{background-position:-200% 0}}
+@media(prefers-reduced-motion:reduce){.shipping-options-skeleton i{animation:none}}
+
+.payout-settings{display:grid;gap:20px;min-width:0}
+.payout-settings h2{display:flex;align-items:center;gap:8px}
+.payout-accounts{display:grid;gap:12px;list-style:none;margin:0;padding:0}
+.payout-accounts>li{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+.payout-account-info{display:grid;gap:5px;min-width:0;overflow-wrap:anywhere}
+.payout-account-info strong{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.payout-account-info small,.payout-empty{color:var(--muted)}
+.payout-default{border:1px solid var(--line);border-radius:4px;padding:2px 6px;font-size:11px;font-weight:650;color:var(--muted)}
+.payout-account-actions,.payout-form-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.payout-account-actions .button,.payout-form-actions .button,.payout-add{min-height:40px;border-radius:6px}
+.payout-add{justify-self:start}
+.payout-form{border-top:1px solid var(--line);padding-top:20px;min-width:0}
+.payout-default-option{display:flex!important;align-items:center;gap:10px}
+.payout-default-option input{width:18px!important;min-height:18px!important;margin:0;accent-color:var(--accent)}
+.payout-error{padding:12px;border:1px solid var(--line);border-radius:6px}
+.payout-error p{margin:0 0 10px}
+@media(max-width:640px){.payout-accounts>li{align-items:flex-start;flex-direction:column}.payout-account-actions,.payout-form-actions{width:100%}.payout-account-actions .button,.payout-form-actions .button{flex:1}.payout-form .form-row{grid-template-columns:minmax(0,1fr)}.profile-tab-bar{flex-wrap:wrap}}

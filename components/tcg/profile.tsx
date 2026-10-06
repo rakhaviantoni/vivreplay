@@ -1,4 +1,5 @@
 'use client';
+import {PayoutAccountSettings} from './payout-account-settings';
 import {enabledShippingCouriers} from '@/lib/shipping/couriers';
 import {useEffect, useMemo, useRef, useState} from 'react';
 import Link from 'next/link';
@@ -416,8 +417,8 @@ function ProfileForm({
   const searchParams = useSearchParams();
   const {data: session} = authClient.useSession();
 
-  const [activeTab, setActiveTab] = useState<'general' | 'shipping'>(
-    searchParams.get('tab') === 'shipping' ? 'shipping' : 'general'
+  const [activeTab, setActiveTab] = useState<'general' | 'shipping' | 'bank'>(
+    searchParams.get('tab') === 'bank' ? 'bank' : searchParams.get('tab') === 'shipping' ? 'shipping' : 'general'
   );
 
   const [currency, setCurrency] = useState(profile.currency || 'IDR');
@@ -440,7 +441,7 @@ function ProfileForm({
   const [shippingAreaId, setShippingAreaId] = useState<string | null>(null);
   const [shippingLatitude, setShippingLatitude] = useState<number | null>(null);
   const [shippingLongitude, setShippingLongitude] = useState<number | null>(null);
-  const [shippingMethods, setShippingMethods] = useState<string[]>([]);
+  const [shippingMethods, setShippingMethods] = useState<string[]>(['jnt','jne']);
   const [savingShipping, setSavingShipping] = useState(false);
   const [provinces,setProvinces]=useState<RegionOption[]>([]);
   const [regionsLoading,setRegionsLoading]=useState(true);
@@ -979,6 +980,7 @@ function ProfileForm({
             <span>{t('Shipping Address','Alamat Pengiriman')}</span>
             {shippingOrigin?.postalCode && <CheckCircle size={14} className="profile-tab-check"/>}
           </button>
+          <button type="button" role="tab" aria-selected={activeTab==='bank'} className={`profile-tab ${activeTab==='bank'?'is-active':''}`} onClick={()=>setActiveTab('bank')}><span>{t('Bank accounts','Rekening bank')}</span></button>
         </div>
 
         {activeTab === 'general' ? (
@@ -1069,7 +1071,7 @@ function ProfileForm({
           </form>
           <PushNotificationSettings language={language}/>
           </>
-        ) : (
+        ) : activeTab === 'bank' ? <PayoutAccountSettings language={language}/> : (
           <form className="form-stack profile-tab-content" onSubmit={saveShipping}>
             <div className="shipping-banner">
               <Truck size={22}/>

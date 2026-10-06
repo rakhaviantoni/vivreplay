@@ -60,7 +60,7 @@ export async function POST(request:Request){
     if(!/^\d{5}$/.test(postalCode)&&!areaId)return Response.json({error:'Choose a delivery area with a valid postal code.'},{status:400});
 
     const allowed = ['instant','regular','jnt','jne','sicepat','anteraja','tiki','pos','lion','ninja','wahana','grab','gojek'];
-    const rawMethods = Array.isArray(input.shippingMethods) ? input.shippingMethods : [];
+    const rawMethods = Array.isArray(input.shippingMethods) ? input.shippingMethods : ['jnt','jne'];
     const shippingMethods = enabledShippingCouriers(rawMethods.filter((m: unknown): m is string => typeof m === 'string' && allowed.includes(m)));
     const label = JSON.stringify({
       label: rawLabel,
