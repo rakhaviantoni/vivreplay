@@ -68,8 +68,10 @@ export default defineConfig(async ({ command, mode }) => {
 
     // Server-only local credential: Vite's Node env is separate from the
     // Cloudflare Worker env, so pass the shipping key into the dev binding.
-    if (localEnv.BITESHIP_API_KEY?.trim()) {
-      localBindingConfig.vars.BITESHIP_API_KEY = localEnv.BITESHIP_API_KEY.trim();
+    for (const key of ["BITESHIP_API_KEY", "BITESHIP_WEBHOOK_SECRET", "BITESHIP_WEBHOOK_INSTALLATION_MODE"]) {
+      if (localEnv[key]?.trim()) {
+        localBindingConfig.vars[key] = localEnv[key].trim();
+      }
     }
   }
 
