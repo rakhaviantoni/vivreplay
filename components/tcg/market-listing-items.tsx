@@ -695,14 +695,16 @@ export function MarketListingDetailView({
             </div>
           )}
 
-          <section className="market-listing-seller">
-            <span>{listing.seller.slice(0, 1).toUpperCase()}</span>
-            <div className="market-listing-seller-copy">
-              <small>{isBuying ? t('Buyer', 'Pembeli') : t('Seller', 'Penjual')}</small>
-              <div className="market-listing-seller-name"><strong>{stored ? <Link href={`/players/${stored.username}`}>{listing.seller}</Link> : listing.seller}</strong><MarketReputation listingId={listing.id} language={language} role={isBuying?'buyer':'seller'}/></div>
-            </div>
-          </section>
-          {!isOwner&&<div className="market-listing-utility-actions"><FeedbackLaunchButton request={{initialCategory:'market-report',listingId:listing.id}} className="market-report-link">{t('Report listing','Laporkan listing')}</FeedbackLaunchButton><SaveListingButton listingId={listing.id} language={language} iconOnly/></div>}
+          <div className="market-listing-seller-toolbar">
+            <section className="market-listing-seller">
+              <span>{listing.seller.slice(0, 1).toUpperCase()}</span>
+              <div className="market-listing-seller-copy">
+                <small>{isBuying ? t('Buyer', 'Pembeli') : t('Seller', 'Penjual')}</small>
+                <div className="market-listing-seller-name"><strong>{stored ? <Link href={`/players/${stored.username}`}>{listing.seller}</Link> : listing.seller}</strong><MarketReputation listingId={listing.id} language={language} role={isBuying?'buyer':'seller'}/></div>
+              </div>
+            </section>
+            {!isOwner&&<div className="market-listing-utility-actions"><FeedbackLaunchButton request={{initialCategory:'market-report',listingId:listing.id}} className="market-report-link">{t('Report listing','Laporkan listing')}</FeedbackLaunchButton><SaveListingButton listingId={listing.id} language={language} iconOnly/></div>}
+          </div>
 
           {(!isExpired||isOwner)&&(
             <MarketListingItems
