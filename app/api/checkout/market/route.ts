@@ -2,7 +2,7 @@ import {enabledShippingCouriers} from '@/lib/shipping/couriers';
 import {z} from 'zod';
 import {db,errorResponse,guard,user,HttpError} from '@/lib/server/store';
 import {getCurrentUser} from '@/lib/server/auth';
-import {createAzekhaIntent,hasAzekhaPaymentConfig} from '@/lib/server/azekha-payments';
+import {hasMarketIpaymuPaymentConfig} from '@/lib/server/ipaymu';
 import {biteshipDestination,isBiteshipAreaId} from '@/lib/shipping/biteship-area';
 import {shippingRateOptions} from '@/lib/server/shipping-quote-cache';
 
@@ -12,7 +12,7 @@ type Rate={courier_name:string;courier_service_name:string;courier_code:string;c
 type AcceptedOffer={id:string;actorId:string;listingId:string;status:string;amount:number;items:string};
 
 export async function GET(){
-  const available=process.env.VIVREPLAY_MARKET_CHECKOUT_ENABLED==='true'&&process.env.VIVREPLAY_MARKET_SELLER_OPERATIONS_READY==='true'&&hasAzekhaPaymentConfig()&&Boolean(process.env.BITESHIP_API_KEY?.trim());
+  const available=process.env.VIVREPLAY_MARKET_CHECKOUT_ENABLED==='true'&&process.env.VIVREPLAY_MARKET_SELLER_OPERATIONS_READY==='true'&&hasMarketIpaymuPaymentConfig()&&Boolean(process.env.BITESHIP_API_KEY?.trim());
   return Response.json({available});
 }
 
@@ -20,7 +20,7 @@ export async function POST(request:Request){
   try{
     guard(request);
     if(process.env.VIVREPLAY_MARKET_CHECKOUT_ENABLED!=='true'||process.env.VIVREPLAY_MARKET_SELLER_OPERATIONS_READY!=='true')throw new HttpError(503,'Market checkout is not available yet.');
-    if(!hasAzekhaPaymentConfig())throw new HttpError(503,'Online payment is temporarily unavailable.');
+    if(!hasMarketIpaymuPaymentConfig())throw new HttpError(503,'Market payments require an iPaymu sandbox account or explicit live-payment enablement.');
     const profile=await user();
     const account=await getCurrentUser();
     if(!account?.email)throw new HttpError(401,'Sign in with an email address to continue.');
@@ -119,19 +119,6 @@ export async function POST(request:Request){
     if(rate.type!==input.courierType)throw new HttpError(409,'That delivery service changed. Choose an updated quote.');
     const shipping={recipientName:address.recipientName,addressLine:address.addressLine,city:address.city,postalCode:address.postalCode,areaId:dropoff.areaId,latitude:address.latitude,longitude:address.longitude,phone:address.phone,courierName:rate.courier_name,courierServiceName:rate.courier_service_name,courierCode:rate.courier_code,courierServiceCode:rate.courier_service_code,courierCompany:rate.company,courierType:rate.type,sender:{recipientName:seller.recipientName,addressLine:seller.addressLine,city:seller.city,postalCode:seller.postalCode,areaId:pickup.areaId,latitude:seller.latitude,longitude:seller.longitude,phone:seller.phone},shippingLabel:address.label};
     await database.prepare(`INSERT INTO checkout_orders (id,kind,buyer_id,seller_id,listing_id,offer_id,items,details,subtotal,shipping_fee,amount,currency,status,expires_at) VALUES (?,'MARKET',?,?,?,?,?,?,?,?,?,?,'PENDING_PAYMENT',?)`).bind(id,profile.id,listing.sellerId,listing.id,acceptedOffer?.id??null,JSON.stringify(orderItems),JSON.stringify(shipping),subtotal,rate.price,amount,'IDR',expiresAt).run();
-    const siteOrigin=new URL(request.url).origin;
-    let intent;
-    try{
-      intent=await createAzekhaIntent({orderId:`vivreplay-market-${id}`,amount,customer:{name:address.recipientName||profile.display_name,email:account.email,mobile:address.phone},successUrl:`${siteOrigin}/checkout/order/${id}`,cancelUrl:`${siteOrigin}/market/${encodeURIComponent(listing.id)}`});
-    }catch(error){
-      await database.prepare("UPDATE checkout_orders SET status='FAILED',updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT'").bind(id).run();
-      throw error;
-    }
-    if(intent.order_id!==`vivreplay-market-${id}`||intent.amount!==amount||intent.currency!=='IDR'){
-      await database.prepare("UPDATE checkout_orders SET status='FAILED',updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT'").bind(id).run();
-      throw new HttpError(502,'The payment service returned mismatched checkout details.');
-    }
-    await database.prepare("UPDATE checkout_orders SET payment_id=?,amount=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT'").bind(intent.payment_id,intent.amount,id).run();
-    return Response.json({id,checkoutUrl:`/checkout/order/${id}`,subtotal,shippingFee:rate.price,total:intent.amount},{status:201});
+    return Response.json({id,checkoutUrl:`/checkout/order/${id}`,subtotal,shippingFee:rate.price,total:amount},{status:201});
   }catch(error){return errorResponse(error)}
 }

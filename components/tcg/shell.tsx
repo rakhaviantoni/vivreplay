@@ -17,6 +17,7 @@ import {NewCardsAnnouncement} from './new-cards-announcement';
 import {FeedbackForm} from './feedback-form';
 import {FeedbackLaunchButton,type FeedbackRequest} from './feedback-launch';
 import {AnalyticsConsent} from './analytics-consent';
+import {MarketStoreNav} from './market-store-nav';
 
 type Locale='EN'|'ID';
 type NavItem={href:string;label:string;labelId:string;icon:typeof Home};
@@ -81,6 +82,7 @@ export function Shell({children}:{children:React.ReactNode}) {
   const path=usePathname();
   const isIdPath=path==='/id'||path.startsWith('/id/');
   const normalizedPath=isIdPath?(path.replace(/^\/id/,'')||'/'):path;
+  const marketCheckout=normalizedPath==='/checkout/market';
   const {data}=useAccount();
   const [theme,setTheme]=useState<'light'|'dark'>('light');
   const [language,setLanguage]=useState<Locale>('EN');
@@ -196,8 +198,8 @@ export function Shell({children}:{children:React.ReactNode}) {
   const crumb=normalizedPath==='/'?(language==='ID'?'Beranda':'Home'):normalizedPath.split('/')[1].replace(/^./,char=>char.toUpperCase());
   const getHref=(href:string)=>language==='ID'?(href==='/'?'/id':`/id${href}`):href;
 
-  return <div className="site-shell">
-    <header className={`masthead ${scrolled?'is-scrolled':''} ${theme==='dark'?'theme-dark':''}`}>
+  return <div className={`site-shell${marketCheckout?' market-checkout-shell':''}`}>
+    {marketCheckout?<MarketStoreNav showPromo={false}/>:<header className={`masthead ${scrolled?'is-scrolled':''} ${theme==='dark'?'theme-dark':''}`}>
       <Link className="wordmark" href={getHref('/')}><VivreMark size={28}/><span>VivrePlay</span></Link>
       <PrimaryNav language={language} selected={selected}/>
       <div className="masthead-actions">
@@ -206,10 +208,10 @@ export function Shell({children}:{children:React.ReactNode}) {
         <button className="theme-toggle" type="button" onClick={toggleTheme} aria-label={`Use ${theme==='light'?'dark':'light'} mode`}>{theme==='light'?<Moon size={16}/>:<Sun size={16}/>}</button>
         {data?<Link href={getHref('/profile')} aria-label="Open your profile" className="profile-mark"><UserRound size={17}/></Link>:<AuthDialog language={language}/>}
       </div>
-    </header>
-    <div className="context-row"><span>VivrePlay</span><span aria-hidden="true">/</span><strong>{crumb}</strong></div>
+    </header>}
+    {!marketCheckout&&<div className="context-row"><span>VivrePlay</span><span aria-hidden="true">/</span><strong>{crumb}</strong></div>}
     {children}
-    <Footer language={language}/>
+    {!marketCheckout&&<Footer language={language}/>}
     <Dialog open={feedbackOpen} onOpenChange={setFeedbackOpen}>
       <DialogContent className="feedback-dialog">
         <DialogHeader>
@@ -221,11 +223,11 @@ export function Shell({children}:{children:React.ReactNode}) {
     </Dialog>
     <CookieNotice language={language}/>
     <AnalyticsConsent/>
-    <NewCardsAnnouncement/>
-    <MiniRail language={language}/>
-    <nav className="mobile-nav" aria-label="Mobile navigation">
+    {!marketCheckout&&<NewCardsAnnouncement/>}
+    {!marketCheckout&&<MiniRail language={language}/>}
+    {!marketCheckout&&<nav className="mobile-nav" aria-label="Mobile navigation">
       {mobileNav.map(item=>{const Icon=item.icon;return <Link key={item.href} href={getHref(item.href)} className={selected(item.href)?'active':''}><Icon size={20}/><span>{language==='ID'?item.labelId:item.label}</span></Link>})}
-    </nav>
+    </nav>}
     <Toaster richColors theme={theme}/>
   </div>;
 }

@@ -3,6 +3,7 @@ import {useEffect,useState,type FormEvent} from 'react';
 import {BankIcon,FloppyDiskIcon,PlusIcon,TrashIcon,PencilSimpleIcon} from '@phosphor-icons/react';
 import {toast} from 'sonner';
 import {api} from '@/lib/client';
+import {Picker} from './catalog';
 
 type Account={id:string;bankName:string;accountHolder:string;lastFour:string;isDefault:boolean};
 const empty={bankName:'',accountHolder:'',accountNumber:'',makeDefault:false};
@@ -16,6 +17,7 @@ export function PayoutAccountSettings({language}:{language:'EN'|'ID'}){
   const [showForm,setShowForm]=useState(false);
   const [confirmDelete,setConfirmDelete]=useState<string|null>(null);
   const [form,setForm]=useState(empty);
+  const [customBank,setCustomBank]=useState('');
 
   const load=async()=>{
     setError('');
@@ -28,8 +30,8 @@ export function PayoutAccountSettings({language}:{language:'EN'|'ID'}){
   const save=async(event:FormEvent)=>{
     event.preventDefault();setBusy(true);setError('');
     try{
-      await api('/api/profile/bank-accounts',{id:editing??undefined,bankName:form.bankName,accountHolder:form.accountHolder,accountNumber:form.accountNumber||undefined,makeDefault:form.makeDefault});
-      await load();setShowForm(false);setEditing(null);setForm(empty);
+      await api('/api/profile/bank-accounts',{id:editing??undefined,bankName:form.bankName==='Other'?customBank:form.bankName,accountHolder:form.accountHolder,accountNumber:form.accountNumber||undefined,makeDefault:form.makeDefault});
+      await load();setShowForm(false);setEditing(null);setForm(empty);setCustomBank('');
       toast.success(t('Bank account saved','Rekening bank disimpan'));
     }catch{setError(t('Bank account could not be saved. Check the details and try again.','Rekening bank gagal disimpan. Periksa datanya dan coba lagi.'));}
     finally{setBusy(false);}
@@ -45,11 +47,13 @@ export function PayoutAccountSettings({language}:{language:'EN'|'ID'}){
     finally{setBusy(false);}
   };
   const startEdit=(account:Account)=>{
-    setEditing(account.id);setForm({bankName:account.bankName,accountHolder:account.accountHolder,accountNumber:'',makeDefault:account.isDefault});setShowForm(true);setConfirmDelete(null);
+    const known=['BCA','Mandiri','BRI','BNI','BSI','CIMB Niaga','Permata','Danamon','BTPN','SeaBank'];
+    const isKnown=known.includes(account.bankName);
+    setEditing(account.id);setForm({bankName:isKnown?account.bankName:'Other',accountHolder:account.accountHolder,accountNumber:'',makeDefault:account.isDefault});setCustomBank(isKnown?'':account.bankName);setShowForm(true);setConfirmDelete(null);
   };
 
   return <div className="profile-tab-content payout-settings">
-    <div className="profile-section-header"><h2><BankIcon size={20}/>{t('Bank accounts','Rekening bank')}</h2><p>{t('Save an account for future seller payouts. Payouts are not available yet.','Simpan rekening untuk pencairan hasil penjualan nantinya. Pencairan dana belum tersedia.')}</p></div>
+    <div className="profile-section-header"><h2><BankIcon size={20}/>{t('Bank accounts','Rekening bank')}</h2><p>{t('Add the account you want to use for Market earnings. Your bank details stay private.','Tambahkan rekening untuk menerima hasil penjualan di Market. Data rekening Anda tetap pribadi.')}</p></div>
     {loading?<div className="shipping-options-skeleton" role="status" aria-label={t('Loading bank accounts','Memuat rekening bank')}>{[0,1].map(index=><div key={index}><span><i/><i/></span><i/></div>)}</div>:<>
       {error&&<div className="payout-error" role="alert"><p>{error}</p><button type="button" className="button secondary" disabled={busy} onClick={()=>void load()}>{t('Retry','Coba lagi')}</button></div>}
       {accounts.length>0?<ul className="payout-accounts">{accounts.map(account=><li key={account.id}>
@@ -63,10 +67,10 @@ export function PayoutAccountSettings({language}:{language:'EN'|'ID'}){
       {!showForm&&<button type="button" className="button secondary payout-add" disabled={busy||accounts.length>=5} onClick={()=>{setEditing(null);setForm({...empty,makeDefault:accounts.length===0});setShowForm(true);}}><PlusIcon size={16}/>{t('Add bank account','Tambah rekening bank')}</button>}
       {showForm&&<form className="form-stack payout-form" onSubmit={save}>
         <h3>{editing?t('Edit bank account','Ubah rekening bank'):t('Add bank account','Tambah rekening bank')}</h3>
-        <div className="form-row"><label>{t('Bank name','Nama bank')}<input required minLength={2} maxLength={80} autoComplete="off" list="payout-bank-names" value={form.bankName} onChange={event=>setForm({...form,bankName:event.target.value})}/><datalist id="payout-bank-names">{['BCA','Mandiri','BRI','BNI','BSI','CIMB Niaga','Permata','Danamon','BTPN','SeaBank'].map(name=><option key={name} value={name}/>)}</datalist></label><label>{t('Account holder','Nama pemilik rekening')}<input required minLength={2} maxLength={120} autoComplete="off" value={form.accountHolder} onChange={event=>setForm({...form,accountHolder:event.target.value})}/><small>{t('Use the name registered with your bank','Gunakan nama yang terdaftar di bank')}</small></label></div>
+        <div className="form-row"><label>{t('Bank name','Nama bank')}<Picker value={form.bankName} onChange={bankName=>setForm({...form,bankName})} label={t('Bank name','Nama bank')} options={['BCA','Mandiri','BRI','BNI','BSI','CIMB Niaga','Permata','Danamon','BTPN','SeaBank','Other'].map(name=>({value:name,label:name==='Other'?t('Other','Lainnya'):name}))}/>{form.bankName==='Other'&&<input aria-label={t('Enter bank name','Masukkan nama bank')} required minLength={2} maxLength={80} autoComplete="off" value={customBank} placeholder={t('Enter bank name','Masukkan nama bank')} onChange={event=>setCustomBank(event.target.value)}/>}</label><label>{t('Account holder','Nama pemilik rekening')}<input required minLength={2} maxLength={120} autoComplete="off" value={form.accountHolder} onChange={event=>setForm({...form,accountHolder:event.target.value})}/><small>{t('Enter the name as it appears on your bank account','Masukkan nama sesuai yang tercatat di bank')}</small></label></div>
         <label>{t('Account number','Nomor rekening')}<input required={!editing} inputMode="numeric" pattern="[0-9]{6,34}" maxLength={34} autoComplete="off" data-lpignore="true" value={form.accountNumber} onChange={event=>setForm({...form,accountNumber:event.target.value.replace(/\D/g,'')})}/>{editing&&<small>{t('Leave blank to keep the saved number','Kosongkan untuk mempertahankan nomor tersimpan')}</small>}</label>
         <label className="payout-default-option"><input type="checkbox" checked={form.makeDefault} disabled={accounts.length===0||accounts.some(account=>account.id===editing&&account.isDefault)} onChange={event=>setForm({...form,makeDefault:event.target.checked})}/><span>{t('Use as my default account','Jadikan rekening utama')}</span></label>
-        <div className="payout-form-actions"><button type="submit" className="button" disabled={busy}><FloppyDiskIcon size={16}/>{busy?t('Saving…','Menyimpan…'):t('Save bank account','Simpan rekening')}</button><button type="button" className="button secondary" disabled={busy} onClick={()=>{setShowForm(false);setEditing(null);setForm(empty);}}>{t('Cancel','Batal')}</button></div>
+        <div className="payout-form-actions"><button type="submit" className="button" disabled={busy||!form.bankName||(form.bankName==='Other'&&customBank.trim().length<2)}><FloppyDiskIcon size={16}/>{busy?t('Saving…','Menyimpan…'):t('Save bank account','Simpan rekening')}</button><button type="button" className="button secondary" disabled={busy} onClick={()=>{setShowForm(false);setEditing(null);setForm(empty);setCustomBank('');}}>{t('Cancel','Batal')}</button></div>
       </form>}
     </>}
   </div>;

@@ -21,6 +21,10 @@ export function hasIpaymuPaymentConfig(){
   try{configuration();return true}catch{return false}
 }
 
+export function hasMarketIpaymuPaymentConfig(){
+  return hasIpaymuPaymentConfig()&&((process.env.IPAYMU_MODE??'production').trim().toLowerCase()==='sandbox'||process.env.VIVREPLAY_MARKET_LIVE_PAYMENTS_ENABLED==='true');
+}
+
 export function isIpaymuProductionReady(){
   return Boolean((process.env.IPAYMU_MODE??'production').trim().toLowerCase()==='production'&&process.env.IPAYMU_PRODUCTION_READY==='true'&&process.env.IPAYMU_VA?.trim()&&process.env.IPAYMU_API_KEY?.trim());
 }
@@ -65,7 +69,8 @@ export async function createIpaymuRedirect(input:{orderId:string;products:Ipaymu
   const sessionId=payload?.Data?.SessionID;
   if(!response.ok||payload?.Status!==200||!sessionId||!url)throw new Error('iPaymu could not start this payment. Please try again.');
   const parsed=new URL(url);
-  if(parsed.protocol!=='https:'||!['my.ipaymu.com','sandbox.ipaymu.com'].includes(parsed.hostname))throw new Error('iPaymu returned an invalid checkout address.');
+  const allowedHosts=baseUrl==='https://sandbox.ipaymu.com'?['sandbox-payment.ipaymu.com','sandbox.ipaymu.com']:['my.ipaymu.com','payment.ipaymu.com'];
+  if(parsed.protocol!=='https:'||!allowedHosts.includes(parsed.hostname))throw new Error('iPaymu returned an invalid checkout address.');
   return {sessionId,url:parsed.toString()};
 }
 

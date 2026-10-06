@@ -734,22 +734,15 @@ export function Vault() {
             wishlist={wishlistList}
             language={language}
             onUpdated={refresh}
-            onFindListings={handleFindListings}
-            onAddToVault={printingId => {
-              const card = cards.find(c => printings.find(p => p.id === printingId)?.cardId === c.id);
-              setEditingItem(null);
-              setFullAddOpen(true);
-            }}
             onRemoveFromWishlist={async (printingId) => {
               try {
                 await api('/api/wishlist', { printingId, saved: false });
                 toast.success(t('Removed from wishlist','Dihapus dari daftar keinginan'));
                 await refresh();
-              } catch {
-                toast.error(t('Could not remove card','Kartu gagal dihapus'));
+              } catch (error) {
+                toast.error(error instanceof Error?error.message:t('Could not remove card','Kartu gagal dihapus'));
               }
             }}
-            onAddNewWishlistItem={() => router.push('/cards')}
           />
         </section>
       )}

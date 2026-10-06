@@ -16,7 +16,7 @@ export function SaveListingButton({listingId,language}:{listingId:string;languag
 }
 export function WishlistButton({printingId,language}:{printingId:string;language:'EN'|'ID'}){
  const {data,refresh,loading}=useAccount();const [busy,setBusy]=useState(false);const id=language==='ID';const saved=Boolean(data?.wishlist.some(w=>w.printingId===printingId));
- const toggle=async()=>{if(!data){window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));return}setBusy(true);try{await api('/api/wishlist',{printingId,saved:!saved});await refresh();toast.success(id?(saved?'Dihapus dari daftar keinginan':'Ditambahkan ke daftar keinginan'):(saved?'Removed from wishlist':'Added to wishlist'))}catch{toast.error(id?'Daftar keinginan gagal diperbarui':'Could not update wishlist')}finally{setBusy(false)}};
+ const toggle=async()=>{if(!data){window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));return}setBusy(true);try{await api('/api/wishlist',{printingId,saved:!saved});await refresh();toast.success(id?(saved?'Dihapus dari daftar keinginan':'Ditambahkan ke daftar keinginan'):(saved?'Removed from wishlist':'Added to wishlist'))}catch(error){toast.error(error instanceof Error?error.message:(id?'Daftar keinginan gagal diperbarui':'Could not update wishlist'))}finally{setBusy(false)}};
  return <button type="button" className="button secondary" disabled={busy||loading||!printingId} aria-pressed={saved} onClick={()=>void toggle()}><Heart size={17} weight={saved?'fill':'regular'}/>{id?(saved?'Di daftar keinginan':'Daftar keinginan'):(saved?'Wishlisted':'Wishlist')}</button>;
 }
 export function SavedListings({language}:{language:'EN'|'ID'}){
