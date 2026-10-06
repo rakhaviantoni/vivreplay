@@ -59,5 +59,7 @@ export async function shippingRateOptions(buyerId:string|null,listingId:string,o
   if(coordinates)return cachedShippingRates(buyerId,listingId,{...coordinates,couriers:[...couriers].sort().join(','),items},{origin,destination});
   const regular=couriers.filter(code=>!['grab','gojek'].includes(code));
   if(!regular.length)return {pricing:[]};
-  return cachedShippingRates(buyerId,listingId,{origin_area_id:origin.areaId,origin_postal_code:origin.postalCode,destination_area_id:destination.areaId,destination_postal_code:destination.postalCode,couriers:[...regular].sort().join(','),items});
+  const pickup=origin.areaId?{origin_area_id:origin.areaId}:from?{origin_latitude:from.latitude,origin_longitude:from.longitude}:{origin_postal_code:origin.postalCode};
+  const dropoff=destination.areaId?{destination_area_id:destination.areaId}:to?{destination_latitude:to.latitude,destination_longitude:to.longitude}:{destination_postal_code:destination.postalCode};
+  return cachedShippingRates(buyerId,listingId,{...pickup,...dropoff,couriers:[...regular].sort().join(','),items},{origin,destination});
 }
