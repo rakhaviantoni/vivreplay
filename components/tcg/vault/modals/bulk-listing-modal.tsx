@@ -35,8 +35,8 @@ export function BulkListingModal({open,onClose,stacks,onPublished,language}:{ope
     try{
       const bundle=chosen.flatMap(stack=>stack.items.filter(copy=>copy.quantity-(copy.listedQuantity??0)>0).map(copy=>({instanceId:copy.id,printingId:copy.printingId,quantity:copy.quantity-(copy.listedQuantity??0),condition:copy.condition,unitAmount:Number(prices[stack.item.id])})));
       const response=await fetch('/api/listings',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({instanceId:bundle[0].instanceId,title:title.trim(),amount:totalAmount,quantity,city:city.trim(),type:'WTS',negotiable,items:bundle})});
-      const result=await response.json() as {error?:string};if(!response.ok)throw new Error(result.error||'Listing could not be published.');
-      toast.success(id?'Bundle listing dipublikasikan':'Bundle listing published');await onPublished();onClose();
+      const result=await response.json() as {error?:string;id?:string};if(!response.ok)throw new Error(result.error||'Listing could not be published.');
+      toast.success(id?'Bundle listing dipublikasikan':'Bundle listing published',result.id?{action:{label:id?'Lihat listing':'View listing',onClick:()=>window.location.assign(`/market/${encodeURIComponent(result.id!)}`)}}:undefined);await onPublished();onClose();
     }catch(cause){setError(cause instanceof Error?cause.message:'Listing could not be published.')}
   };
   return <div className="vault-modal-overlay" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget&&!busy)onClose()}}><section className="vault-bulk-listing-modal" role="dialog" aria-modal="true" aria-labelledby="bulk-listing-title">

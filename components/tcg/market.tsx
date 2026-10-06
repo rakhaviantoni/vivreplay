@@ -781,13 +781,13 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
           unitAmount:item.unitAmount,
         })),
       })});
-      const result=await response.json() as {error?:string};
+      const result=await response.json() as {error?:string;id?:string};
       if(!response.ok)throw new Error(result.error??'Listing could not be published.');
       await refresh();
       await refreshAccount();
       setOpen(false);
       setBundleCards([]);
-      toast.success(locale==='ID'?'Listing berhasil dipublikasikan':'Listing published');
+      toast.success(locale==='ID'?'Listing berhasil dipublikasikan':'Listing published',result.id?{action:{label:locale==='ID'?'Lihat listing':'View listing',onClick:()=>window.location.assign(`/market/${encodeURIComponent(result.id!)}`)}}:undefined);
     }catch(cause){
       setSaveError((cause as Error).message);
     }finally{
