@@ -2,7 +2,7 @@ import {db,errorResponse,user,HttpError} from '@/lib/server/store';
 import {getCurrentUser} from '@/lib/server/auth';
 import {createIpaymuQris,createIpaymuRedirect,hasMarketIpaymuPaymentConfig,ipaymuExpiryTimestamp,ipaymuQrImageUrl} from '@/lib/server/ipaymu';
 
-type Order={id:string;kind:string;buyerId:string;sellerId:string|null;listingId:string|null;items:string;details:string;amount:number;shippingFee:number;title:string|null;paymentId:string|null;status:string;expiresAt:string|null};
+type Order={id:string;kind:string;buyerId:string;sellerId:string|null;listingId:string|null;items:string;details:string;subtotal:number;amount:number;shippingFee:number;title:string|null;paymentId:string|null;status:string;expiresAt:string|null};
 type OrderItem={printingId:string;quantity:number;unitAmount:number};
 
 export async function POST(request:Request,{params}:{params:Promise<{id:string}>}){
@@ -12,7 +12,7 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     if(!account?.email)throw new HttpError(401,'Sign in with an email address to continue.');
     const {id}=await params;
     const database=db();
-    const order=await database.prepare(`SELECT o.id,o.kind,o.buyer_id AS buyerId,o.seller_id AS sellerId,o.listing_id AS listingId,o.items,o.details,o.amount,o.shipping_fee AS shippingFee,o.payment_id AS paymentId,o.status,o.expires_at AS expiresAt,l.title FROM checkout_orders o LEFT JOIN listings l ON l.id=o.listing_id WHERE o.id=?`).bind(id).first<Order>();
+    const order=await database.prepare(`SELECT o.id,o.kind,o.buyer_id AS buyerId,o.seller_id AS sellerId,o.listing_id AS listingId,o.items,o.details,o.subtotal,o.amount,o.shipping_fee AS shippingFee,o.payment_id AS paymentId,o.status,o.expires_at AS expiresAt,l.title FROM checkout_orders o LEFT JOIN listings l ON l.id=o.listing_id WHERE o.id=?`).bind(id).first<Order>();
     if(!order||order.buyerId!==profile.id)throw new HttpError(404,'Checkout was not found.');
     if(order.kind==='MARKET'&&!hasMarketIpaymuPaymentConfig())throw new HttpError(503,'Market payments require an iPaymu sandbox account or explicit live-payment enablement.');
     if(order.status!=='PENDING_PAYMENT')throw new HttpError(409,'This checkout is no longer payable.');
@@ -51,9 +51,23 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
         ...products.map(item=>({name:item.printingId,quantity:item.quantity,unitPrice:item.unitAmount,description:`One Piece Card Game card · ${item.printingId}`})),
         ...(order.shippingFee>0?[{name:'Delivery',quantity:1,unitPrice:order.shippingFee,description:'Courier delivery for this Market order'}]:[]),
       ];
-    const buyerServiceFee=order.kind==='MARKET'&&Number.isSafeInteger(details.marketBuyerFeeAmount)?Number(details.marketBuyerFeeAmount):0;
-    const total=productLines.reduce((sum,item)=>sum+item.quantity*item.unitPrice,0)+buyerServiceFee;
-    if(total!==order.amount)throw new HttpError(409,'The order total changed. Please start checkout again.');
+    let buyerServiceFee=order.kind==='MARKET'&&Number.isSafeInteger(details.marketBuyerFeeAmount)?Number(details.marketBuyerFeeAmount):0;
+    // The order's saved subtotal and delivery fee are the checkout snapshot. Rebuilding
+    // the total from card lines can drift for grouped or repriced listings, even though
+    // the amount shown to the buyer is still correct.
+    if(order.kind==='MARKET'){
+      const savedFee=order.amount-order.subtotal-order.shippingFee;
+      if(!Number.isSafeInteger(savedFee)||savedFee<0)throw new HttpError(409,'This order needs to be refreshed before payment.');
+      if(savedFee!==buyerServiceFee){
+        buyerServiceFee=savedFee;
+        details.marketBuyerFeeAmount=savedFee;
+        await database.prepare("UPDATE checkout_orders SET details=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id IS NULL").bind(JSON.stringify(details),id).run();
+      }
+    }
+    const total=order.kind==='MARKET'
+      ?order.subtotal+order.shippingFee+buyerServiceFee
+      :productLines.reduce((sum,item)=>sum+item.quantity*item.unitPrice,0);
+    if(total!==order.amount)throw new HttpError(409,'This order needs to be refreshed before payment.');
     const name=typeof details.customerName==='string'?details.customerName:typeof details.recipientName==='string'?details.recipientName:profile.display_name||'VivrePlay customer';
     const phone=typeof details.customerPhone==='string'?details.customerPhone:typeof details.phone==='string'?details.phone:'';
     const payment: {url?:string;sessionId?:string;transactionId?:string;qrImage?:string;qrString?:string|null;fee?:number|null;expiresAt?:string|null}=order.kind==='MARKET'

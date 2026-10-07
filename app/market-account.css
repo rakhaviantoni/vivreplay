@@ -90,6 +90,26 @@ html[data-theme='dark'] .market-account-menu [data-slot='dropdown-menu-separator
 @media(max-width:620px){.market-order-qris{align-items:flex-start;gap:11px;padding:10px}.market-order-qris-code{width:92px;height:92px}.market-order-qris-prompt{align-items:flex-start;flex-direction:column}.market-order-qris-prompt .button{width:100%}}
 @media(prefers-reduced-motion:reduce){.market-order-row,.market-order-details{transition:none;animation:none}}
 
+/* Keep the order role with its status and give the expanded ledger room to scan. */
+.market-activity-panel .market-order-summary .market-activity-row-title{justify-content:flex-start;gap:8px}
+.market-activity-panel .market-order-summary .market-order-role{flex:none;margin-left:0}
+.market-order-details{gap:20px 30px;padding-top:20px}
+.market-order-detail-item{gap:12px;padding:11px 0}
+.market-order-ledger{gap:11px;padding:16px}
+.market-order-shipping-detail{padding:16px}
+.market-order-qris{gap:18px;padding:16px}
+@media(max-width:620px){
+  .market-activity-panel .market-order-row{gap:12px;padding:14px}
+  .market-order-summary .market-activity-row-title{gap:6px}
+  .market-order-details{gap:16px;padding-top:16px}
+  .market-order-detail-item{grid-template-columns:42px minmax(0,1fr);gap:8px 11px;padding:12px 0}
+  .market-order-detail-item img,.market-order-detail-placeholder{width:38px;height:53px}
+  .market-order-detail-item>b{grid-column:2;justify-self:start;white-space:normal}
+  .market-order-ledger{gap:10px;padding:14px}
+  .market-order-shipping-detail{padding:14px}
+  .market-order-qris{padding:12px}
+}
+
 /* Order details need room for long card names, fee labels, and tracking data on phones. */
 @media(max-width:620px){
   .market-activity-panel .market-order-summary{grid-template-columns:44px minmax(0,1fr);align-items:start;gap:10px 12px}
