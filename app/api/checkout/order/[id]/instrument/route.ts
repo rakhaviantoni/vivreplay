@@ -32,9 +32,7 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     }
     if(order.paymentId&&existingUrl&&details.ipaymuPaymentMethod!=='qris')return Response.json({checkoutUrl:existingUrl,paymentMethod:details.ipaymuPaymentMethod??'hosted',expiresAt:null,reused:true});
     if(order.paymentId&&details.ipaymuPaymentMethod==='qris'&&existingPaymentExpiry!==null&&existingPaymentExpiry<=Date.now()){
-      delete details.ipaymuCheckoutUrl;delete details.ipaymuPaymentQrImage;delete details.ipaymuPaymentQrString;delete details.ipaymuTransactionId;delete details.ipaymuSessionId;delete details.ipaymuPaymentFee;delete details.ipaymuPaymentCreatedAt;delete details.ipaymuPaymentExpiresAt;delete details.ipaymuPaymentMethod;
-      const cleared=await database.prepare("UPDATE checkout_orders SET payment_id=NULL,details=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id=?").bind(JSON.stringify(details),id,order.paymentId).run();
-      if(!cleared.meta.changes)throw new HttpError(409,'Refresh the checkout to get the latest payment status.');
+      throw new HttpError(409,'This QRIS window has ended. We are confirming the payment status; you cannot start another payment for this order yet.');
     }
 
     const baseUrl=process.env.VIVREPLAY_PUBLIC_URL?.trim().replace(/\/$/,'')||'https://vivreplay.com';

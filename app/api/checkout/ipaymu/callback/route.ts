@@ -17,20 +17,33 @@ export async function POST(request:Request){
     let details:Record<string,unknown>={};try{details=JSON.parse(order.details) as Record<string,unknown>}catch{}
     const validPaymentIds=[order.paymentId,details.ipaymuTransactionId].filter(Boolean).map(String);
     if(!validPaymentIds.includes(sessionId)&&!validPaymentIds.includes(transactionId))return Response.json({error:'Payment session does not match this order.'},{status:409});
-    if(order.status!=='PENDING_PAYMENT')return Response.json({status:'already_processed'});
     if(callbackIsSuccessful(payload)){
       const paidAmount=callbackAmount(payload);
       if(paidAmount!==null&&paidAmount!==order.amount)return Response.json({error:'Payment amount does not match this order.'},{status:409});
       if(paidAmount===null)return Response.json({error:'Payment amount was missing.'},{status:400});
-      await fulfillCheckoutOrder(database,order);
+      if(order.status==='EXPIRED'){
+        await database.prepare("UPDATE checkout_orders SET status='PAYMENT_REVIEW',updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='EXPIRED' AND payment_id=?").bind(orderId,order.paymentId).run();
+        console.error('ipaymu_paid_after_expiry_requires_review',orderId);
+        return Response.json({status:'payment_review'});
+      }
+      if(order.status!=='PENDING_PAYMENT')return Response.json({status:'already_processed'});
+      const fulfilled=await fulfillCheckoutOrder(database,{...order,paymentId:order.paymentId});
+      if(!fulfilled)return Response.json({status:'already_processed'});
       if(order.kind==='MARKET'){
         const title=order.title||'Market order';
         await Promise.all([sendMarketEmail(order.buyerId,'order-paid',title,order.id),...(order.sellerId?[sendMarketEmail(order.sellerId,'order-seller-paid',title,order.id)]:[])]);
       }
       return Response.json({status:'ok'});
     }
+    if(order.status!=='PENDING_PAYMENT')return Response.json({status:'already_processed'});
     const nextStatus=callbackStatus(payload);
-    if(nextStatus!=='PENDING_PAYMENT')await database.prepare('UPDATE checkout_orders SET status=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status=\'PENDING_PAYMENT\' AND payment_id=?').bind(nextStatus,orderId,order.paymentId).run();
+    if(nextStatus!=='PENDING_PAYMENT'){
+      const updated=await database.prepare('UPDATE checkout_orders SET status=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status=\'PENDING_PAYMENT\' AND payment_id=?').bind(nextStatus,orderId,order.paymentId).run();
+      if(updated.meta.changes&&nextStatus==='EXPIRED'&&order.kind==='MARKET'){
+        const title=order.title||'Market order';
+        await Promise.all([sendMarketEmail(order.buyerId,'order-expired',title,order.id),...(order.sellerId?[sendMarketEmail(order.sellerId,'order-expired',title,order.id)]:[])]);
+      }
+    }
     return Response.json({status:'ok'});
   }catch{
     return Response.json({error:'Callback could not be processed.'},{status:500});

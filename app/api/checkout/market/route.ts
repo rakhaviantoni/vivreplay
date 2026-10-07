@@ -81,8 +81,8 @@ export async function POST(request:Request){
       for(const entry of entries){
         if(remaining<=0)break;
         const reservedQuery=entry.instanceId
-          ?database.prepare(`SELECT COALESCE(SUM(CAST(json_extract(j.value,'$.quantity') AS INTEGER)),0) AS quantity FROM checkout_orders o,json_each(o.items) j WHERE o.listing_id=? AND o.kind='MARKET' AND o.status='PENDING_PAYMENT' AND o.expires_at>CURRENT_TIMESTAMP AND json_extract(j.value,'$.instanceId')=?`).bind(listing.id,entry.instanceId)
-          :database.prepare(`SELECT COALESCE(SUM(CAST(json_extract(j.value,'$.quantity') AS INTEGER)),0) AS quantity FROM checkout_orders o,json_each(o.items) j WHERE o.listing_id=? AND o.kind='MARKET' AND o.status='PENDING_PAYMENT' AND o.expires_at>CURRENT_TIMESTAMP AND json_extract(j.value,'$.printingId')=?`).bind(listing.id,printingId);
+          ?database.prepare(`SELECT COALESCE(SUM(CAST(json_extract(j.value,'$.quantity') AS INTEGER)),0) AS quantity FROM checkout_orders o,json_each(o.items) j WHERE o.listing_id=? AND o.kind='MARKET' AND (o.status='PROCESSING' OR (o.status='PENDING_PAYMENT' AND o.expires_at>CURRENT_TIMESTAMP)) AND json_extract(j.value,'$.instanceId')=?`).bind(listing.id,entry.instanceId)
+          :database.prepare(`SELECT COALESCE(SUM(CAST(json_extract(j.value,'$.quantity') AS INTEGER)),0) AS quantity FROM checkout_orders o,json_each(o.items) j WHERE o.listing_id=? AND o.kind='MARKET' AND (o.status='PROCESSING' OR (o.status='PENDING_PAYMENT' AND o.expires_at>CURRENT_TIMESTAMP)) AND json_extract(j.value,'$.printingId')=?`).bind(listing.id,printingId);
         const reserved=await reservedQuery.first<{quantity:number}>();
         const held=reserved?.quantity??0;
         const available=Math.max(0,entry.quantity-held);
@@ -124,7 +124,28 @@ export async function POST(request:Request){
     const standardPolicy=await getDynamicListingPolicy('free',database);
     const sellerNetAmount=Math.max(0,subtotal-Math.round(subtotal*sellerPolicy.commissionPercent/100));
     const shipping={recipientName:address.recipientName,addressLine:address.addressLine,city:address.city,postalCode:address.postalCode,areaId:dropoff.areaId,latitude:address.latitude,longitude:address.longitude,phone:address.phone,courierName:rate.courier_name,courierServiceName:rate.courier_service_name,courierCode:rate.courier_code,courierServiceCode:rate.courier_service_code,courierCompany:rate.company,courierType:rate.type,sender:{recipientName:seller.recipientName,addressLine:seller.addressLine,city:seller.city,postalCode:seller.postalCode,areaId:pickup.areaId,latitude:seller.latitude,longitude:seller.longitude,phone:seller.phone},shippingLabel:address.label,marketFeePercent:sellerPolicy.commissionPercent,marketSellerTier:sellerProfile?.tier==='pro'?'pro':'free',marketStandardFeePercent:standardPolicy.commissionPercent,marketBuyerFeePercent:MARKET_BUYER_FEE_PERCENT,marketBuyerFeeAmount:buyerServiceFeeAmount};
-    await database.prepare(`INSERT INTO checkout_orders (id,kind,buyer_id,seller_id,listing_id,offer_id,items,details,subtotal,seller_net_amount,shipping_fee,amount,currency,status,expires_at) VALUES (?,'MARKET',?,?,?,?,?,?,?,?,?,?,?,'PENDING_PAYMENT',?)`).bind(id,profile.id,listing.sellerId,listing.id,acceptedOffer?.id??null,JSON.stringify(orderItems),JSON.stringify(shipping),subtotal,sellerNetAmount,rate.price,amount,'IDR',expiresAt).run();
+    const requested=new Map<string,{instanceId:string|null;printingId:string;quantity:number;capacity:number}>();
+    for(const item of orderItems){
+      const key=item.instanceId?`instance:${item.instanceId}`:`printing:${item.printingId}`;
+      const entry=requested.get(key)??{instanceId:item.instanceId??null,printingId:item.printingId,quantity:0,capacity:0};
+      entry.quantity+=item.quantity;requested.set(key,entry);
+    }
+    for(const entry of bundle){
+      const key=entry.instanceId?`instance:${entry.instanceId}`:`printing:${entry.printingId}`;
+      const requestedEntry=requested.get(key);if(requestedEntry)requestedEntry.capacity+=entry.quantity;
+    }
+    const reservationChecks=`NOT EXISTS(SELECT 1 FROM json_each(?) requested WHERE CAST(json_extract(requested.value,'$.quantity') AS INTEGER)+COALESCE((SELECT SUM(CAST(json_extract(j.value,'$.quantity') AS INTEGER)) FROM checkout_orders o,json_each(o.items) j WHERE o.listing_id=? AND o.kind='MARKET' AND (o.status='PROCESSING' OR (o.status='PENDING_PAYMENT' AND o.expires_at>CURRENT_TIMESTAMP)) AND ((json_extract(requested.value,'$.instanceId') IS NOT NULL AND json_extract(j.value,'$.instanceId')=json_extract(requested.value,'$.instanceId')) OR (json_extract(requested.value,'$.instanceId') IS NULL AND json_extract(j.value,'$.instanceId') IS NULL AND json_extract(j.value,'$.printingId')=json_extract(requested.value,'$.printingId')))),0)>CAST(json_extract(requested.value,'$.capacity') AS INTEGER))`;
+    const offerGuard=acceptedOffer
+      ?`AND EXISTS(SELECT 1 FROM listing_offers f WHERE f.id=? AND f.listing_id=? AND f.actor_id=? AND f.status='ACCEPTED') AND NOT EXISTS(SELECT 1 FROM checkout_orders prior WHERE prior.offer_id=? AND prior.status IN ('PENDING_PAYMENT','PROCESSING','PAID','SHIPPED','RECEIVED','COMPLETED','FULFILLED'))`
+      :'';
+    const offerBindings=acceptedOffer?[acceptedOffer.id,listing.id,profile.id,acceptedOffer.id]:[];
+    const inserted=await database.prepare(`INSERT INTO checkout_orders (id,kind,buyer_id,seller_id,listing_id,offer_id,items,details,subtotal,seller_net_amount,shipping_fee,amount,currency,status,expires_at)
+      SELECT ?,'MARKET',?,?,?,?,?,?,?,?,?,?,?,'PENDING_PAYMENT',?
+      WHERE EXISTS(SELECT 1 FROM listings current WHERE current.id=? AND current.status='ACTIVE' AND current.amount=? AND current.quantity=? AND current.items IS ? AND (current.expires_at IS NULL OR current.expires_at>CURRENT_TIMESTAMP))
+      ${offerGuard}
+      AND ${reservationChecks}`)
+      .bind(id,profile.id,listing.sellerId,listing.id,acceptedOffer?.id??null,JSON.stringify(orderItems),JSON.stringify(shipping),subtotal,sellerNetAmount,rate.price,amount,'IDR',expiresAt,listing.id,listing.amount,listing.quantity,listing.items,...offerBindings,JSON.stringify([...requested.values()]),listing.id).run();
+    if(!inserted.meta.changes)throw new HttpError(409,'This listing changed or the selected cards were reserved by another checkout. Refresh and try again.');
     return Response.json({id,checkoutUrl:`/checkout/order/${id}`,subtotal,shippingFee:rate.price,buyerServiceFeeAmount,total:amount},{status:201});
   }catch(error){return errorResponse(error)}
 }

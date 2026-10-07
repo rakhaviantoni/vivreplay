@@ -141,3 +141,41 @@ html[data-theme='dark'] .market-account-menu [data-slot='dropdown-menu-separator
   .market-order-qris{flex-wrap:wrap}
   .market-order-qris-copy{flex:1 1 150px}
 }
+
+/* Compact expanded order details while keeping payment and delivery actions easy to find. */
+.market-order-details{gap:12px 18px;padding:12px 0 0}
+.market-order-details h4{margin-bottom:6px}
+.market-order-detail-item{padding:6px 0;gap:9px}
+.market-order-ledger{gap:7px;padding:11px}
+.market-order-ledger .market-order-ledger-total{padding-top:7px}
+.market-order-shipping-detail{padding:8px 10px}
+.market-order-shipping-detail summary{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;cursor:pointer;list-style:none}
+.market-order-shipping-detail summary::-webkit-details-marker{display:none}
+.market-order-shipping-detail summary>span:first-child{color:var(--muted);font-size:10px;font-weight:750;letter-spacing:.04em;text-transform:uppercase}
+.market-order-shipping-detail summary>strong{color:var(--ink);font-size:11px}
+.market-order-shipping-summary-tracking{display:inline-flex;align-items:center;gap:10px;margin-left:auto;font-size:10px}
+.market-order-shipping-summary-tracking>b{color:var(--muted);font-variant-numeric:tabular-nums}
+.market-order-shipping-summary-tracking>a{display:inline-flex;align-items:center;gap:4px;color:var(--accent);font-weight:700;text-decoration:none}
+.market-order-shipping-detail[open]>p{margin-top:8px;padding-top:8px;border-top:1px solid var(--line)}
+.market-order-qris{gap:10px;padding:9px 10px}
+.market-order-qris-code{width:84px;height:84px;padding:5px}
+.market-order-qris-copy{gap:3px}
+.market-order-qris-copy strong{font-size:12px}
+.market-order-qris-prompt{gap:8px;font-size:11px}
+.market-order-detail-actions{gap:6px 10px;margin-top:0}
+.market-order-detail-actions .button{min-height:36px;padding-inline:10px}
+.market-order-cancel-note{flex-basis:100%;font-size:10px}
+@media(max-width:620px){
+  .market-order-details{gap:10px;padding-top:10px}
+  .market-order-ledger{gap:7px;padding:10px}
+  .market-order-shipping-detail{padding:8px 9px}
+  .market-order-shipping-detail summary{gap:6px 9px}
+  .market-order-shipping-summary-tracking{margin-left:0}
+  .market-order-qris{align-items:center;gap:9px;padding:8px}
+  .market-order-qris-code{width:88px;height:88px}
+  .market-order-qris-copy{flex:1 1 140px}
+  .market-order-qris-prompt{align-items:center;flex-direction:row}
+  .market-order-qris-prompt .button{width:auto;min-height:42px}
+  .market-order-detail-actions{align-items:center;gap:7px}
+  .market-order-detail-actions .button{flex:1 1 145px;min-height:42px}
+}

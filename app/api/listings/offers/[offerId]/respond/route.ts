@@ -35,7 +35,9 @@ export async function POST(request:Request,{params}:{params:Promise<{offerId:str
       if((sent?.total??0)>=3)throw new HttpError(409,'You have reached the three-counteroffer limit for this conversation.');
     }
     const nowStatus=value.action==='accept'?'ACCEPTED':value.action==='decline'?'DECLINED':'COUNTERED';
-    const update=db().prepare("UPDATE listing_offers SET status=? WHERE id=? AND status='PENDING'").bind(nowStatus,offerId);
+    const update=db().prepare(`UPDATE listing_offers SET status=? WHERE id=? AND status='PENDING'
+      AND (expires_at IS NULL OR datetime(expires_at)>CURRENT_TIMESTAMP)
+      AND EXISTS(SELECT 1 FROM listings l WHERE l.id=listing_offers.listing_id AND l.status='ACTIVE' AND (l.expires_at IS NULL OR datetime(l.expires_at)>CURRENT_TIMESTAMP))`).bind(nowStatus,offerId);
     if(value.action==='counter'){
       const nextId=crypto.randomUUID();
       const results=await db().batch([
