@@ -75,7 +75,7 @@ export async function POST(request:Request){
     });
 
     await db().prepare(`INSERT INTO seller_shipping_origins (owner_id,label,recipient_name,phone,address_line,city,postal_code,area_id,latitude,longitude,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(owner_id) DO UPDATE SET label=excluded.label,recipient_name=excluded.recipient_name,phone=excluded.phone,address_line=excluded.address_line,city=excluded.city,postal_code=excluded.postal_code,area_id=excluded.area_id,latitude=excluded.latitude,longitude=excluded.longitude,updated_at=CURRENT_TIMESTAMP`).bind(profile.id,label,recipientName,phone,address,city,postalCode,areaId,typeof input.latitude==='number'?input.latitude:null,typeof input.longitude==='number'?input.longitude:null).run();
-    const listingUpdate=await db().prepare("UPDATE listings SET city=?,updated_at=CURRENT_TIMESTAMP WHERE seller_id=? AND status='ACTIVE' AND type='WTS'").bind(city,profile.id).run();
+    const listingUpdate=await db().prepare("UPDATE listings SET city=? WHERE seller_id=? AND status='ACTIVE' AND type='WTS'").bind(city,profile.id).run();
     await db().prepare('UPDATE profiles SET phone=? WHERE id=?').bind(phone,profile.id).run();
     return Response.json({ok:true, shippingMethods,updatedListings:listingUpdate.meta.changes});
   }catch(error){return errorResponse(error)}
