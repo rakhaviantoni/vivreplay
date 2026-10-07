@@ -109,7 +109,7 @@ export async function POST(request:Request){
     if(!dropoff.areaId&&!dropoff.postalCode)throw new HttpError(400,'Save a valid 5-digit delivery postal code in your profile.');
     const quantity=orderItems.reduce((sum,item)=>sum+item.quantity,0);
     const packageItems=[{name:listing.title,value:subtotal,length:18,width:13,height:2,weight:Math.max(100,quantity*100),quantity:1}];
-    const {pricing:rates}=await shippingRateOptions(profile.id,listing.id,{couriers,origin:pickup,destination:dropoff,originLatitude:seller.latitude,originLongitude:seller.longitude,destinationLatitude:address.latitude,destinationLongitude:address.longitude,items:packageItems});
+    const {pricing:rates}=await shippingRateOptions(profile.id,listing.id,{couriers,origin:pickup,destination:dropoff,originLatitude:seller.latitude,originLongitude:seller.longitude,destinationLatitude:address.latitude,destinationLongitude:address.longitude,items:packageItems,refresh:true});
     const rate=rates.find(item=>item.courier_name===input.courierName&&item.courier_service_name===input.courierServiceName&&item.courier_code===input.courierCode&&item.courier_service_code===input.courierServiceCode);
     if(!rate||!Number.isSafeInteger(rate.price)||rate.price<0)throw new HttpError(409,'That delivery service is no longer available. Choose an updated quote.');
 
