@@ -43,6 +43,10 @@ export function MarketStoreNav({initialQuery='',sellHref='/market?sell=open',sho
   const search=(event:FormEvent)=>{event.preventDefault();router.push(`/market${query.trim()?`?card=${encodeURIComponent(query.trim())}`:''}`)};
   const onSell=()=>{
     if(data){
+      if(pathname.includes('/market/')){
+        const printingId=new URL(sellHref,window.location.origin).searchParams.get('sell');
+        if(printingId){window.dispatchEvent(new CustomEvent('vivreplay:open-sell-printing',{detail:printingId}));return;}
+      }
       router.push(sellHref);
     }else{
       window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));
@@ -50,6 +54,10 @@ export function MarketStoreNav({initialQuery='',sellHref='/market?sell=open',sho
   };
   const onCreateListing=()=>{
     setAccountPanel(null);
+    if(pathname.includes('/market/')&&data){
+      const printingId=new URL(sellHref,window.location.origin).searchParams.get('sell');
+      if(printingId){window.dispatchEvent(new CustomEvent('vivreplay:open-sell-printing',{detail:printingId}));return;}
+    }
     if(pathname==='/market')window.dispatchEvent(new CustomEvent('vivreplay:open-sell-listing'));
     else router.push(sellHref);
   };

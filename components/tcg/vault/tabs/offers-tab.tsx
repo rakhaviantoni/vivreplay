@@ -8,8 +8,9 @@ import {PushNotificationPrompt} from '@/components/tcg/push-notification-setting
 
 type Offer={id:string;threadId:string;listingId:string;listingTitle:string;listingExpiresAt:string|null;offerExpiresAt:string|null;direction:'received'|'sent';counterparty:string|null;status:string;amount:number;currency:string;createdAt:string;items:Array<{printingId:string;quantity:number;card?:{name:string;code:string;imageUrl:string|null}}>};
 const money=(amount:number,currency:string)=>new Intl.NumberFormat('id-ID',{style:'currency',currency:currency||'IDR',maximumFractionDigits:0}).format(amount);
-const dateLabel=(value:string,id:boolean)=>new Intl.DateTimeFormat(id?'id-ID':'en-US',{dateStyle:'medium',timeStyle:'short'}).format(new Date(`${value.replace(' ','T')}Z`));
-const countdown=(value:string,now:number,id:boolean)=>{const left=Math.max(0,new Date(`${value.replace(' ','T')}Z`).getTime()-now);const minutes=Math.ceil(left/60_000);if(minutes<60)return id?`${minutes} mnt lagi`:`${minutes}m left`;const hours=Math.floor(minutes/60);if(hours<24)return id?`${hours} jam ${minutes%60} mnt lagi`:`${hours}h ${minutes%60}m left`;const days=Math.floor(hours/24);return id?`${days} hari ${hours%24} jam lagi`:`${days}d ${hours%24}h left`};
+const dateLabel=(value:string,id:boolean)=>{const time=expiryTime(value);return time===null?(id?'Tanggal tidak tersedia':'Date unavailable'):new Intl.DateTimeFormat(id?'id-ID':'en-US',{dateStyle:'medium',timeStyle:'short'}).format(time)};
+const expiryTime=(value:string)=>{const raw=value.trim();const iso=/^\d{4}-\d{2}-\d{2}$/.test(raw)?`${raw}T23:59:59Z`:raw.includes('T')?raw:raw.replace(' ','T');const zoned=/([zZ]|[+-]\d{2}(?::?\d{2})?)$/.test(iso)?iso:`${iso}Z`;const parsed=Date.parse(zoned);return Number.isFinite(parsed)?parsed:null};
+const countdown=(value:string,now:number,id:boolean)=>{const time=expiryTime(value);if(time===null)return id?'Tanggal akhir tidak tersedia':'Expiry date unavailable';const minutes=Math.ceil(Math.max(0,time-now)/60_000);if(minutes<60)return id?`${minutes} mnt lagi`:`${minutes}m left`;const hours=Math.floor(minutes/60);if(hours<24)return id?`${hours} jam ${minutes%60} mnt lagi`:`${hours}h ${minutes%60}m left`;const days=Math.floor(hours/24);return id?`${days} hari ${hours%24} jam lagi`:`${days}d ${hours%24}h left`};
 
 export function OffersTab({language,initialConversationId}:{language:'EN'|'ID';initialConversationId?:string|null}){
   const id=language==='ID';
@@ -43,7 +44,7 @@ export function OffersTab({language,initialConversationId}:{language:'EN'|'ID';i
     <PushNotificationPrompt language={language} message="activity"/>
     {error&&<div className="market-activity-error" role="alert"><span>{error}</span><button type="button" onClick={()=>void refresh()}>{id?'Coba lagi':'Try again'}</button></div>}
     {!offers.length?<MarketActivityEmpty title={id?'Belum ada penawaran':'No offers yet'} description={id?'Penawaran masuk dan terkirim akan muncul di sini.':'Incoming and sent offers will appear here.'}/>:<div className="market-activity-list">{offers.map(offer=>{
-      const expiryCandidates=[offer.offerExpiresAt,offer.listingExpiresAt].filter((value):value is string=>Boolean(value)).map(value=>new Date(`${value.replace(' ','T')}Z`).getTime()).filter(Number.isFinite);
+      const expiryCandidates=[offer.offerExpiresAt,offer.listingExpiresAt].filter((value):value is string=>Boolean(value)).map(expiryTime).filter((value):value is number=>value!==null);
       const expiresAt=expiryCandidates.length?new Date(Math.min(...expiryCandidates)).toISOString():null;
       const expired=offer.status==='PENDING'&&Boolean(expiresAt)&&new Date(expiresAt).getTime()<=now;
       const status=expired?'EXPIRED':offer.status;

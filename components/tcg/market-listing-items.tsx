@@ -641,20 +641,20 @@ export function MarketListingDetailView({
         <section className="live-detail-copy market-listing-copy">
           <header className="market-listing-heading">
             <div>
-              <p className="eyebrow market-listing-eyebrow">
-                <span>{primary.language} {t('printing', 'cetakan')}</span>
-                {listing.createdAt && <span><MarketTimestamp value={listing.createdAt}/></span>}
-                {expiresAt && <span>{isExpired?(status==='CLOSED'?t('Closed','Ditutup'):t('Expired','Kedaluwarsa')):<>{t('Expires in','Berakhir dalam')} {daysLeft ?? renewDurationDays} {t('days','hari')}</>}</span>}
-              </p>
+              <div className="market-listing-eyebrow-row">
+                <p className="eyebrow market-listing-eyebrow">
+                  <span>{primary.language} {t('printing', 'cetakan')}</span>
+                  {listing.createdAt && <><span className="market-listing-eyebrow-separator" aria-hidden="true">/</span><span><MarketTimestamp value={listing.createdAt}/></span></>}
+                  {expiresAt && <><span className="market-listing-eyebrow-separator" aria-hidden="true">/</span><span>{isExpired?(status==='CLOSED'?t('Closed','Ditutup'):t('Expired','Kedaluwarsa')):daysLeft===null?t('Expiry date unavailable','Tanggal akhir tidak tersedia'):<>{t('Ends in','Berakhir dalam')} {daysLeft} {t('days','hari')}</>}</span></>}
+                </p>
+                {isOwner&&<><span className="market-listing-eyebrow-separator" aria-hidden="true">/</span><div className="market-listing-owner-actions">
+                  <button type="button" className="btn-renew" disabled={renewing} onClick={handleRenew} aria-label={isExpired?t('Renew listing','Perbarui listing'):t('Extend listing','Perpanjang listing')}><Renew size={14}/><span>{renewing?t('Saving…','Menyimpan…'):isExpired?t('Renew','Perbarui'):t('Extend','Perpanjang')}</span></button>
+                  {!isExpired&&<button type="button" className="btn-close" disabled={closing} onClick={handleClose} aria-label={t('Close listing','Tutup listing')}><X size={14}/><span>{closing?t('Closing…','Menutup…'):t('Close','Tutup')}</span></button>}
+                </div></>}
+              </div>
               <h1>{listing.title}</h1>
             </div>
-            <div className="market-listing-heading-tools">
-              <span className={`market-listing-status ${isBuying ? 'is-buying' : 'is-selling'}`}>{typeLabel}</span>
-              {isOwner&&<div className="market-listing-owner-actions">
-                <button type="button" className="btn-renew" disabled={renewing} onClick={handleRenew} aria-label={isExpired?t('Renew listing','Perbarui listing'):t('Extend listing','Perpanjang listing')}><Renew size={14}/><span>{renewing?t('Saving…','Menyimpan…'):isExpired?t('Renew','Perbarui'):t('Extend','Perpanjang')}</span></button>
-                {!isExpired&&<button type="button" className="btn-close" disabled={closing} onClick={handleClose} aria-label={t('Close listing','Tutup listing')}><X size={14}/><span>{closing?t('Closing…','Menutup…'):t('Close','Tutup')}</span></button>}
-              </div>}
-            </div>
+            <span className={`market-listing-status ${isBuying ? 'is-buying' : 'is-selling'}`}>{typeLabel}</span>
           </header>
 
           <dl className="market-listing-facts">

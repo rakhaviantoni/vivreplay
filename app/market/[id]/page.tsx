@@ -5,6 +5,7 @@ import {cardFor,printings,type Card} from '@/packages/card-data/catalog';
 import {Listing} from '@/packages/domain';
 import {MarketListingDetailView,type MarketListingCard} from '@/components/tcg/market-listing-items';
 import {MarketStoreNav} from '@/components/tcg/market-store-nav';
+import {Market} from '@/components/tcg/market';
 import {pageMetadata} from '@/lib/site-metadata';
 import {isListingExpired} from '@/lib/market/policy';
 import {getDynamicListingPolicy} from '@/lib/market/policy';
@@ -160,6 +161,7 @@ export default async function Page({params}:{params:Promise<{id:string}>}){
         initialExpired={initialExpired}
         renewDurationDays={renewDurationDays}
       />
+      <Market modalOnly/>
     </>
   );
 }

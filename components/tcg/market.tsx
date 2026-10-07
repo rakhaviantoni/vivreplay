@@ -8,7 +8,6 @@ import {
   ArrowLeftIcon as ArrowLeft,
   ArrowRightIcon as ArrowRight,
   CardsIcon as Cards,
-  CheckIcon as Check,
   ListIcon as List,
   MapPinIcon as MapPin,
   MinusIcon as Minus,
@@ -27,7 +26,7 @@ import {
   XIcon as X,
 } from '@phosphor-icons/react';
 import {toast} from 'sonner';
-import {Card,cardFor,cards,printingFor,printings} from '@/packages/card-data/catalog';
+import {Card,cardFor,cards,printings} from '@/packages/card-data/catalog';
 import {createClient} from '@/utils/supabase/client';
 import {displayCardName} from './card-name';
 import {printingLabel} from './card-printing-selector';
@@ -376,7 +375,7 @@ function MarketCardLookup({
     </section>
   );
 }
-export function Market({initialCards=[]}:{initialCards?:string[]}) {
+export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[];modalOnly?:boolean}) {
   const {data,loading:accountLoading,refresh:refreshAccount}=useAccount();
   const searchParams=useSearchParams();
   const [listings,setListings]=useState<Listing[]>([]);
@@ -388,8 +387,9 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
   const [tradeType,setTradeType]=useState<'all'|'WTS'|'WTB'>('all');
   const [listingView,setListingView]=useState<'list'|'grid'>('list');
   const [feedScope,setFeedScope]=useState<'listings'|'cards'>('listings');
-  const [open,setOpen]=useState(()=>Boolean(searchParams.get('sell')&&searchParams.get('sell')!=='open'));
-  const [directSellLoading,setDirectSellLoading]=useState(()=>Boolean(searchParams.get('sell')&&searchParams.get('sell')!=='open'));
+  const [open,setOpen]=useState(()=>!modalOnly&&Boolean(searchParams.get('sell')&&searchParams.get('sell')!=='open'));
+  const [directSellLoading,setDirectSellLoading]=useState(()=>!modalOnly&&Boolean(searchParams.get('sell')&&searchParams.get('sell')!=='open'));
+  const queuedSellPrinting=useRef('');
   const [bulkListingOpen,setBulkListingOpen]=useState(false);
   const directSellSearchHandled=useRef(false);
   const configLoadVersion=useRef(0);
@@ -469,9 +469,9 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
       setError(cause instanceof Error?cause.message:(locale==='ID'?'Listing tidak dapat dimuat sementara. Silakan coba lagi.':'Live listings are temporarily unavailable. Please retry.'));
     }finally{setListingsLoading(false)}
   }
-  useEffect(()=>{void refresh()},[]);
+  useEffect(()=>{if(!modalOnly)void refresh()},[modalOnly]);
   useEffect(()=>{
-    if(!profileId)return;
+    if(!profileId||modalOnly)return;
     let active=true;
     const update=async()=>{try{const response=await fetch('/api/market/activity',{cache:'no-store'});if(!response.ok)return;const result=await response.json() as {counts?:{listings?:number;offers?:number;orders?:number}};if(active)setActivityCounts({listings:result.counts?.listings??0,offers:result.counts?.offers??0,orders:result.counts?.orders??0})}catch{}}
     void update();const timer=window.setInterval(()=>void update(),15_000);
@@ -699,6 +699,40 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
     setDirectSellLoading(false);
     setOpen(true);
   }
+  const sellPrinting=async(printingId:string)=>{
+    if(accountLoading){toast.message(locale==='ID'?'Memeriksa akun Anda…':'Checking your account…');return;}
+    if(!data){signInToContinue();return;}
+    const catalogCard=cardFor(printingId);
+    if(catalogCard){sellCard(catalogCard);return;}
+    setDirectSellLoading(true);
+    setOpen(true);
+    try{
+      const client=createClient();
+      const {data:row}=await client.from('tcg_card_printings').select('id,card_image_url,rarity,set_code,language,printing_code,variant,tcg_card_identities!inner(code,name,color,card_type,cost,power,effect_text)').eq('id',printingId).maybeSingle();
+      if(!row){setDirectSellLoading(false);toast.error(locale==='ID'?'Cetakan kartu tidak ditemukan.':'Card printing could not be found.');return;}
+      const printing=row as unknown as {id:string;card_image_url:string|null;rarity:string|null;set_code:string|null;language:string;printing_code:string|null;variant:string|null;tcg_card_identities:{code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number;effect_text:string}};
+      const identity=printing.tcg_card_identities;
+      const cardObj:Card={id:printing.id,code:identity.code,name:displayCardName(identity.name,identity.code),color:identity.color,type:identity.card_type,cost:identity.cost,power:identity.power,rarity:printing.rarity??'',art:0,effect:identity.effect_text,imageUrl:printing.card_image_url??undefined,imageSource:'external',setCode:printing.set_code??undefined,language:printing.language,printingCode:printing.printing_code??undefined,variant:printing.variant??undefined};
+      sellCard(cardObj);
+    }catch{
+      setDirectSellLoading(false);
+      toast.error(locale==='ID'?'Cetakan kartu gagal dimuat.':'Could not load this card printing.');
+    }
+  };
+  useEffect(()=>{
+    if(!modalOnly)return;
+    const onSell=(event:Event)=>{const printingId=(event as CustomEvent<string>).detail;if(printingId){if(accountLoading)queuedSellPrinting.current=printingId;else void sellPrinting(printingId)}};
+    const onCreate=()=>beginListing();
+    window.addEventListener('vivreplay:open-sell-printing',onSell);
+    window.addEventListener('vivreplay:open-sell-listing',onCreate);
+    return()=>{window.removeEventListener('vivreplay:open-sell-printing',onSell);window.removeEventListener('vivreplay:open-sell-listing',onCreate)};
+  },[modalOnly,accountLoading,beginListing,sellPrinting]);
+  useEffect(()=>{
+    if(!modalOnly||!queuedSellPrinting.current||accountLoading)return;
+    const printingId=queuedSellPrinting.current;
+    queuedSellPrinting.current='';
+    void sellPrinting(printingId);
+  },[modalOnly,accountLoading,sellPrinting]);
   const addToVault=(card:Card)=>{
     if(accountLoading){toast.message(locale==='ID'?'Memeriksa akun Anda...':'Checking your account...');return;}
     setMarketVaultCard(card);
@@ -822,7 +856,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
   const totalBundleQuantity=bundleCards.reduce((sum,c)=>sum+c.quantity,0);
   const totalCalculatedUnitSum=bundleCards.reduce((sum,c)=>sum+(c.unitAmount*c.quantity),0);
   return (
-    <main className="market-feed-page">
+    <main className={`market-feed-page${modalOnly?' market-sell-modal-host':''}`}>
       <div className="market-store-promo">
         {locale==='ID'?'Koleksi yang tepat, satu kartu pada satu waktu.':'Build your collection, one exact card at a time.'}
       </div>
