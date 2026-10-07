@@ -68,7 +68,7 @@ export function MarketPolicyManager() {
     load();
   }, []);
 
-  const applyPreset = (preset: 'recommended' | 'cardtell' | 'relaxed') => {
+  const applyPreset = (preset: 'recommended' | 'quick-turn' | 'relaxed') => {
     if (preset === 'recommended') {
       setFreeDays(7);
       setFreeMax(12);
@@ -78,7 +78,7 @@ export function MarketPolicyManager() {
       setProFee(0);
       setProAutoRenew(true);
       toast.info('Applied "Recommended (7d / 12 listings)" preset. Click Save to apply.');
-    } else if (preset === 'cardtell') {
+    } else if (preset === 'quick-turn') {
       setFreeDays(3);
       setFreeMax(12);
       setFreeFee(0);
@@ -86,7 +86,7 @@ export function MarketPolicyManager() {
       setProMax(500);
       setProFee(0);
       setProAutoRenew(true);
-      toast.info('Applied "Cardtell Match (3d / 12 listings)" preset. Click Save to apply.');
+      toast.info('Applied "Quick-turn listings (3d / 12 listings)" preset. Click Save to apply.');
     } else if (preset === 'relaxed') {
       setFreeDays(30);
       setFreeMax(25);
@@ -183,9 +183,9 @@ export function MarketPolicyManager() {
           <button
             type="button"
             className="admin-preset-btn"
-            onClick={() => applyPreset('cardtell')}
+            onClick={() => applyPreset('quick-turn')}
           >
-            Cardtell Match (3d / 12)
+            Quick-turn (3d / 12)
           </button>
           <button
             type="button"
