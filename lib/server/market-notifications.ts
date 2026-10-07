@@ -15,6 +15,7 @@ const copy:Record<Event,{en:{subject:string;line:string;cta:string};id:{subject:
   counteroffer:{en:{subject:'A counteroffer is waiting',line:'A new price is waiting in your conversation',cta:'Review conversation'},id:{subject:'Ada penawaran balik',line:'Harga baru menunggu di percakapan Anda',cta:'Lihat percakapan'}},
   accepted:{en:{subject:'Your offer was accepted',line:'The seller accepted your offer',cta:'Open conversation'},id:{subject:'Penawaran Anda diterima',line:'Penjual menerima penawaran Anda',cta:'Buka percakapan'}},
   declined:{en:{subject:'An update on your offer',line:'The other collector declined your offer',cta:'View conversation'},id:{subject:'Pembaruan penawaran Anda',line:'Kolektor tersebut menolak penawaran Anda',cta:'Lihat percakapan'}},
+  'offer-unavailable':{en:{subject:'Some cards in your offer have sold',line:'The offer is closed because none of its cards remain available',cta:'View conversation'},id:{subject:'Kartu dalam penawaran sudah terjual',line:'Penawaran ditutup karena kartu yang diminta sudah tidak tersedia',cta:'Lihat percakapan'}},
   message:{en:{subject:'A new message about your listing',line:'You have a new Market message',cta:'Open conversation'},id:{subject:'Pesan baru tentang listing Anda',line:'Ada pesan Market baru untuk Anda',cta:'Buka percakapan'}},
   'photo-request':{en:{subject:'A buyer asked for card photos',line:'A buyer requested photos from your listing',cta:'Open conversation'},id:{subject:'Pembeli meminta foto kartu',line:'Pembeli meminta foto dari listing Anda',cta:'Buka percakapan'}},
   'photo-shared':{en:{subject:'New card photos in your conversation',line:'The seller added card photos to your conversation',cta:'View photos'},id:{subject:'Ada foto kartu baru di percakapan',line:'Penjual menambahkan foto kartu ke percakapan Anda',cta:'Lihat foto'}},
@@ -24,7 +25,7 @@ const copy:Record<Event,{en:{subject:string;line:string;cta:string};id:{subject:
   'order-tracking':{en:{subject:'Shipment update',line:'The carrier updated your shipment',cta:'Track shipment'},id:{subject:'Pembaruan pengiriman',line:'Kurir memperbarui status paket Anda',cta:'Lacak pengiriman'}},
   'order-received':{en:{subject:'The buyer received their order',line:'The buyer confirmed delivery',cta:'View order'},id:{subject:'Pembeli sudah menerima pesanan',line:'Pembeli mengonfirmasi pengiriman',cta:'Lihat pesanan'}},
   'order-cancelled':{en:{subject:'Unpaid order cancelled',line:'The other party cancelled this unpaid order',cta:'View order'},id:{subject:'Pesanan yang belum dibayar dibatalkan',line:'Pihak lain membatalkan pesanan ini sebelum pembayaran',cta:'Lihat pesanan'}},
-  'order-expired':{en:{subject:'Payment window expired',line:'The QRIS code expired before payment was received. The order is closed and the cards are available again.',cta:'View order'},id:{subject:'Batas pembayaran berakhir',line:'Kode QRIS kedaluwarsa sebelum pembayaran diterima. Pesanan ditutup dan kartu kembali tersedia.',cta:'Lihat pesanan'}},
+  'order-expired':{en:{subject:'Payment deadline passed',line:'Payment was not received before the deadline. The order is closed and the cards are available again.',cta:'View order'},id:{subject:'Batas pembayaran berakhir',line:'Pembayaran belum diterima sampai batas waktu. Pesanan ditutup dan kartu kembali tersedia.',cta:'Lihat pesanan'}},
 };
 
 const trackingStatusCopy:Record<string,{en:string;id:string}>={picking_up:{en:'The courier is on the way to collect your parcel',id:'Kurir sedang menuju lokasi penjual'},picked:{en:'Picked up by the courier',id:'Paket sudah dijemput kurir'},in_transit:{en:'In transit to you',id:'Paket sedang dalam perjalanan'},dropping_off:{en:'Out for delivery',id:'Paket sedang diantar'},delivered:{en:'Delivered',id:'Paket sudah diantar'},on_hold:{en:'Shipment is on hold',id:'Pengiriman tertahan'},rejected:{en:'Shipment was rejected',id:'Pengiriman ditolak'},cancelled:{en:'Shipment was cancelled',id:'Pengiriman dibatalkan'},return_in_transit:{en:'Returning to the seller',id:'Paket sedang dikembalikan ke penjual'},returned:{en:'Returned to the seller',id:'Paket sudah dikembalikan ke penjual'},disposed:{en:'Shipment was disposed of by the courier',id:'Paket dimusnahkan oleh kurir'},courier_not_found:{en:'No courier was assigned',id:'Kurir belum ditemukan'}};
@@ -80,6 +81,10 @@ function personalizedCopy(event:Event,details:NotificationDetails|undefined,titl
     case 'declined':
       subject=id?`Penawaran ${title} ditolak`:`Offer declined for ${title}`;
       line=surface==='push'?(id?`${name||'Kolektor'} menolak penawaran${amount?` ${amount}`:''}${cards?` untuk ${cards}`:''} pada ${title}`:`${name||'The other collector'} declined your${amount?` ${amount}`:''}${cards?` offer for ${cards}`:''} on ${title}`):(id?'Percakapan tetap tersedia jika Anda ingin meninjau penawarannya.':'The conversation is still open if you want to review the offer.');
+      break;
+    case 'offer-unavailable':
+      subject=id?`Penawaran untuk ${title} ditutup`:`Offer closed for ${title}`;
+      line=surface==='push'?(id?`Kartu dalam penawaran untuk ${title} sudah terjual.`:`The cards in your offer for ${title} have sold.`):(id?'Tidak ada kartu tersisa dari penawaran ini.':'None of the cards in this offer remain available.');
       break;
     case 'message':
       subject=id?`Pesan dari ${name||'kolektor'} tentang ${title}`:`Message from ${name||'a collector'} about ${title}`;
@@ -141,7 +146,7 @@ export function renderMarketEmail(event:Event,listingTitle='Edward.Newgate (001)
   const title=escapeHtml(listingTitle);const safeUrl=escapeHtml(url);const safeRecipient=escapeHtml(recipient);
   const detail=eventDetail(event,details);
   const safeDetail=detail?escapeHtml(detail):'';
-  const eventHeading=watch?(event==='price-drop'?(id?'Harga turun':'Price drop'):(id?'Kartu tersedia':'Wishlist match')):event==='order-expired'?(id?'Pembayaran berakhir':'Payment expired'):event==='order-cancelled'?(id?'Pesanan dibatalkan':'Order cancelled'):event==='order-seller-paid'?(id?'Pesanan dibayar':'Order paid'):event==='order-shipped'?(id?'Pesanan dikirim':'Order shipped'):event==='order-tracking'?(id?'Status pengiriman':'Shipment status'):event==='order-paid'?(id?'Pembayaran diterima':'Payment received'):event==='order-received'?(id?'Pesanan diterima':'Delivery confirmed'):event==='new-offer'?(id?'Penawaran baru':'New offer'):event==='counteroffer'?(id?'Penawaran balik':'Counteroffer'):event==='accepted'?(id?'Penawaran diterima':'Offer accepted'):event==='declined'?(id?'Penawaran ditolak':'Offer declined'):event==='message'?(id?'Pesan baru':'New message'):event==='photo-request'?(id?'Permintaan foto':'Photo request'):(id?'Foto kartu dibagikan':'Card photos shared');
+  const eventHeading=watch?(event==='price-drop'?(id?'Harga turun':'Price drop'):(id?'Kartu tersedia':'Wishlist match')):event==='offer-unavailable'?(id?'Kartu terjual':'Cards sold'):event==='order-expired'?(id?'Pembayaran berakhir':'Payment expired'):event==='order-cancelled'?(id?'Pesanan dibatalkan':'Order cancelled'):event==='order-seller-paid'?(id?'Pesanan dibayar':'Order paid'):event==='order-shipped'?(id?'Pesanan dikirim':'Order shipped'):event==='order-tracking'?(id?'Status pengiriman':'Shipment status'):event==='order-paid'?(id?'Pembayaran diterima':'Payment received'):event==='order-received'?(id?'Pesanan diterima':'Delivery confirmed'):event==='new-offer'?(id?'Penawaran baru':'New offer'):event==='counteroffer'?(id?'Penawaran balik':'Counteroffer'):event==='accepted'?(id?'Penawaran diterima':'Offer accepted'):event==='declined'?(id?'Penawaran ditolak':'Offer declined'):event==='message'?(id?'Pesan baru':'New message'):event==='photo-request'?(id?'Permintaan foto':'Photo request'):(id?'Foto kartu dibagikan':'Card photos shared');
   const summaryRows:Array<[string,string]>=[];
   if(event.startsWith('order-')&&details?.orderCode){
     summaryRows.push([id?'Pesanan':'Order',details.orderCode]);
@@ -154,7 +159,7 @@ export function renderMarketEmail(event:Event,listingTitle='Edward.Newgate (001)
     if(details.amount!==undefined&&details.currency)summaryRows.push([id?'Total dibayar':'Total paid',formatAmount(details.amount,details.currency,locale)]);
     if(details.city)summaryRows.push([id?'Kota tujuan':'Destination',`${details.city}${details.postalCode?` ${details.postalCode}`:''}`]);
     if(event==='order-seller-paid')summaryRows.push([id?'Kirim paling lambat':'Ship by',details.shippingDeadline??shippingDeadlineFromPayment(undefined,locale)??'']);
-  }else if(['new-offer','counteroffer','accepted','declined'].includes(event)){
+  }else if(['new-offer','counteroffer','accepted','declined','offer-unavailable'].includes(event)){
     if(details?.participant)summaryRows.push([id?'Dari':'From',details.participant]);
     if(details?.amount!==undefined&&details.currency)summaryRows.push([id?'Total penawaran':'Offer total',formatAmount(details.amount,details.currency,locale)]);
   }else if(event==='message'&&details?.participant)summaryRows.push([id?'Pengirim':'From',details.participant]);
@@ -197,7 +202,7 @@ export function sampleNotificationDetails(event:Event,locale='en'):NotificationD
   const id=locale.toLowerCase().startsWith('id');
   const items:NotificationItem[]=[{name:'Monkey.D.Luffy',code:'OP05-119',language:'JP',variant:'Alt art, p1',rarity:'SEC',condition:'NM',quantity:1,unitAmount:175000},{name:'Monkey.D.Luffy',code:'OP05-119',language:'EN',variant:'Standard',rarity:'SEC',condition:'NM',quantity:1,unitAmount:75000}];
   if(event.startsWith('order-'))return{orderCode:'VPM-KREH2VS2VQ',amount:285000,currency:'IDR',subtotal:250000,shippingFee:35000,courier:'J&T EZ',trackingNumber:event==='order-tracking'?'JP1234567890':undefined,trackingStatus:event==='order-tracking'?'dropping_off':undefined,city:'Jakarta Pusat',postalCode:'10110',shippingDeadline:event==='order-seller-paid'?shippingDeadlineFromPayment(new Date().toISOString(),locale):undefined,itemCount:2,items,participant:id?'Raka':'Raka Viantoni'};
-  if(event==='new-offer'||event==='counteroffer'||event==='accepted'||event==='declined')return{participant:id?'Dimas':'Dimas Pratama',amount:250000,currency:'IDR',itemCount:2,items};
+  if(event==='new-offer'||event==='counteroffer'||event==='accepted'||event==='declined'||event==='offer-unavailable')return{participant:id?'Dimas':'Dimas Pratama',amount:250000,currency:'IDR',itemCount:2,items};
   if(event==='message')return{participant:id?'Dimas':'Dimas Pratama',message:id?'Bisa kirim foto bagian belakang kartunya?':'Could you send a photo of the back of the card?',itemCount:2,items};
   if(event==='photo-request')return{participant:id?'Dimas':'Dimas Pratama',itemCount:2,items};
   if(event==='photo-shared')return{participant:id?'Dimas':'Dimas Pratama',photoCount:3,itemCount:2,items};
@@ -226,7 +231,7 @@ async function notificationDetails(event:Event,reference:string,locale='en'):Pro
     const cancelledBy=shipping?.cancelledByRole==='seller'?'seller':'buyer';
     return{orderCode:`VPM-${row.id.slice(0,8).toUpperCase()}`,amount:row.amount,currency:row.currency,subtotal:row.subtotal,shippingFee:row.shippingFee,itemCount:itemCount(row.items),items:await notificationItems(row.items),participant:event==='order-paid'?row.seller:event==='order-cancelled'?(cancelledBy==='seller'?row.seller:row.buyer):row.buyer,courier:[shipping?.courierName,shipping?.courierServiceName].filter(Boolean).join(' '),trackingNumber:shipping?.trackingNumber??shipping?.tracking_number??shipping?.waybillId??shipping?.waybill_id,trackingStatus:shipping?.trackingStatus as string|undefined,city:shipping?.city,postalCode:shipping?.postalCode,shippingDeadline:event==='order-seller-paid'?shippingDeadlineFromPayment(row.paidAt??row.updatedAt,locale):undefined};
   }
-  if(event==='new-offer'||event==='counteroffer'||event==='accepted'||event==='declined'){
+  if(event==='new-offer'||event==='counteroffer'||event==='accepted'||event==='declined'||event==='offer-unavailable'){
     if(event==='accepted'||event==='declined'){
       const kind=event==='accepted'?'OFFER_ACCEPTED':'OFFER_DECLINED';
       const response=await db().prepare(`SELECT o.amount,o.currency,o.items,p.display_name AS participant FROM listing_offer_messages m

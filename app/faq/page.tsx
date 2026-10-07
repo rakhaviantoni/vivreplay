@@ -26,7 +26,7 @@ export default async function FaqPage(){
       {question:'Apakah harga listing sudah termasuk ongkir?',answer:'Ongkir ditampilkan terpisah. Tarif dihitung dari alamat tujuan dan layanan kurir yang tersedia sebelum pembayaran.'},
       {question:'Kapan kartu masuk ke Koleksi saya?',answer:'Kartu dipindahkan setelah pesanan selesai sesuai alur konfirmasi penerimaan. Periksa rincian pesanan sebelum mengonfirmasi.'},
       {question:'Apa yang harus dilakukan jika pesanan bermasalah?',answer:<>Hubungi penjual melalui percakapan pesanan. Untuk bantuan pembayaran atau pengembalian dana, lihat <Link href="/legal/refund">Kebijakan Pengembalian Dana</Link> dan sertakan nomor pesanan saat menghubungi support@vivreplay.com.</>},
-      {question:'Apa itu Market Pro?',answer:'Market Pro adalah paket berbayar untuk fitur penjual. Batas listing, masa aktif, dan harga ditampilkan di halaman paket sebelum Anda membayar.'},
+      {question:'Apa itu Market Pro?',answer:'Market Pro adalah satu paket untuk pembeli dan penjual. Manfaatnya mencakup batas dan masa aktif listing yang lebih besar, biaya layanan lebih rendah, serta voucher ongkir bulanan dengan syarat yang ditampilkan di halaman paket.'},
     ]},
   ]:[
     {title:'Account and collection',items:[
@@ -39,7 +39,7 @@ export default async function FaqPage(){
       {question:'Does the listing price include shipping?',answer:'Shipping is shown separately. Rates are calculated from the delivery address and available courier services before payment.'},
       {question:'When will the cards move to my Vault?',answer:'Cards are transferred after the order is completed through the delivery confirmation flow. Review the order details before confirming receipt.'},
       {question:'What should I do if there is a problem with an order?',answer:<>Contact the seller in the order conversation. For payment or refund help, see the <Link href="/legal/refund">Refund Policy</Link> and include your order number when contacting support@vivreplay.com.</>},
-      {question:'What is Market Pro?',answer:'Market Pro is a paid plan for seller features. Listing limits, duration, and price are shown on the plan page before you pay.'},
+      {question:'What is Market Pro?',answer:'Market Pro is one plan for both buyers and sellers. It includes higher listing limits, longer listing periods, lower service fees, and monthly delivery vouchers subject to the terms shown on the plan page.'},
     ]},
   ];
   const entities=groups.flatMap(group=>group.items).map(item=>({

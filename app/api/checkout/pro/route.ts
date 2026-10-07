@@ -1,13 +1,13 @@
 import {db,errorResponse,guard,user,HttpError} from '@/lib/server/store';
 import {getCurrentUser} from '@/lib/server/auth';
 import {hasIpaymuPaymentConfig} from '@/lib/server/ipaymu';
-import {getDynamicListingPolicy} from '@/lib/market/policy';
+import {getDynamicListingPolicy,MARKET_BUYER_FEE_PERCENT,MARKET_PRO_BUYER_FEE_PERCENT,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH,MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL,MARKET_PRO_SHIPPING_VOUCHER_SHARE,MARKET_PRO_SHIPPING_VOUCHER_CAP} from '@/lib/market/policy';
 
 export async function GET(){
   const amount=Number(process.env.VIVREPLAY_PRO_PRICE_IDR);
   const durationDays=Number(process.env.VIVREPLAY_PRO_DURATION_DAYS);
   const policy=await getDynamicListingPolicy('pro',db());
-  return Response.json({available:hasIpaymuPaymentConfig()&&Number.isSafeInteger(amount)&&amount>0&&Number.isInteger(durationDays)&&durationDays>0,amount:Number.isSafeInteger(amount)&&amount>0?amount:null,durationDays:Number.isInteger(durationDays)&&durationDays>0?durationDays:null,maxActiveListings:policy.maxActiveListings,commissionPercent:policy.commissionPercent,canAutoRenew:policy.canAutoRenew,currency:'IDR'});
+  return Response.json({available:hasIpaymuPaymentConfig()&&Number.isSafeInteger(amount)&&amount>0&&Number.isInteger(durationDays)&&durationDays>0,amount:Number.isSafeInteger(amount)&&amount>0?amount:null,durationDays:Number.isInteger(durationDays)&&durationDays>0?durationDays:null,maxActiveListings:policy.maxActiveListings,commissionPercent:policy.commissionPercent,freeCommissionPercent:(await getDynamicListingPolicy('free',db())).commissionPercent,buyerFeePercent:MARKET_PRO_BUYER_FEE_PERCENT,freeBuyerFeePercent:MARKET_BUYER_FEE_PERCENT,shippingVouchersPerMonth:MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH,shippingVoucherMinSubtotal:MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL,shippingVoucherSharePercent:MARKET_PRO_SHIPPING_VOUCHER_SHARE*100,shippingVoucherCap:MARKET_PRO_SHIPPING_VOUCHER_CAP,canAutoRenew:policy.canAutoRenew,currency:'IDR'});
 }
 
 export async function POST(request:Request){

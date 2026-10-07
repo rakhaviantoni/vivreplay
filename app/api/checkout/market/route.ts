@@ -5,7 +5,7 @@ import {getCurrentUser} from '@/lib/server/auth';
 import {hasMarketIpaymuPaymentConfig} from '@/lib/server/ipaymu';
 import {biteshipDestination,isBiteshipAreaId} from '@/lib/shipping/biteship-area';
 import {shippingRateOptions} from '@/lib/server/shipping-quote-cache';
-import {getDynamicListingPolicy,MARKET_BUYER_FEE_PERCENT} from '@/lib/market/policy';
+import {getDynamicListingPolicy,MARKET_BUYER_FEE_PERCENT,MARKET_PRO_BUYER_FEE_PERCENT,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH,MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL,MARKET_PRO_SHIPPING_VOUCHER_SHARE,MARKET_PRO_SHIPPING_VOUCHER_CAP} from '@/lib/market/policy';
 
 const schema=z.object({listingId:z.string().min(1),offerId:z.string().min(1).optional(),items:z.array(z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(99)})).min(1).max(60),courierName:z.string().min(1),courierServiceName:z.string().min(1),courierCode:z.string().min(1),courierServiceCode:z.string().min(1),courierType:z.string().min(1),shippingFee:z.number().int().nonnegative().optional()});
 type BundleEntry={instanceId?:string;printingId:string;quantity:number;condition?:string;unitAmount:number};
@@ -14,7 +14,13 @@ type AcceptedOffer={id:string;actorId:string;buyerId:string;listingId:string;sta
 
 export async function GET(){
   const available=process.env.VIVREPLAY_MARKET_CHECKOUT_ENABLED==='true'&&process.env.VIVREPLAY_MARKET_SELLER_OPERATIONS_READY==='true'&&hasMarketIpaymuPaymentConfig()&&Boolean(process.env.BITESHIP_API_KEY?.trim());
-  return Response.json({available,sandbox:process.env.IPAYMU_MODE==='sandbox'});
+  try{
+    const profile=await user();
+    const buyer=await db().prepare('SELECT tier FROM profiles WHERE id=?').bind(profile.id).first<{tier:string}>();
+    const voucherMonth=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jakarta',year:'numeric',month:'2-digit'}).format(new Date());
+    const voucherUsage=buyer?.tier==='pro'?await db().prepare(`SELECT COUNT(*) AS total FROM checkout_orders WHERE buyer_id=? AND kind='MARKET' AND status IN ('PENDING_PAYMENT','PROCESSING','PAID','SHIPPED','RECEIVED','COMPLETED') AND json_extract(details,'$.marketProShippingVoucherMonth')=?`).bind(profile.id,voucherMonth).first<{total:number}>():null;
+    return Response.json({available,sandbox:process.env.IPAYMU_MODE==='sandbox',buyerTier:buyer?.tier==='pro'?'pro':'free',buyerFeePercent:buyer?.tier==='pro'?MARKET_PRO_BUYER_FEE_PERCENT:MARKET_BUYER_FEE_PERCENT,shippingVouchersRemaining:Math.max(0,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH-(voucherUsage?.total??0))});
+  }catch(error){return errorResponse(error)}
 }
 
 export async function POST(request:Request){
@@ -117,15 +123,23 @@ export async function POST(request:Request){
 
     if(input.shippingFee!==undefined&&input.shippingFee!==rate.price)throw new HttpError(409,'The delivery fee changed. Refresh the shipping rates before paying.');
     const id=crypto.randomUUID();
-    const buyerServiceFeeAmount=Math.round(subtotal*MARKET_BUYER_FEE_PERCENT/100);
-    const amount=subtotal+rate.price+buyerServiceFeeAmount;
+    const buyerProfile=await database.prepare('SELECT tier FROM profiles WHERE id=?').bind(profile.id).first<{tier:string}>();
+    const buyerIsPro=buyerProfile?.tier==='pro';
+    const buyerFeePercent=buyerIsPro?MARKET_PRO_BUYER_FEE_PERCENT:MARKET_BUYER_FEE_PERCENT;
+    const buyerServiceFeeAmount=Math.round(subtotal*buyerFeePercent/100);
+    const voucherMonth=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jakarta',year:'numeric',month:'2-digit'}).format(new Date());
+    const voucherEligible=buyerIsPro&&subtotal>=MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL&&rate.price>0;
+    const voucherUsage=voucherEligible?await database.prepare(`SELECT COUNT(*) AS total FROM checkout_orders WHERE buyer_id=? AND kind='MARKET' AND status IN ('PENDING_PAYMENT','PROCESSING','PAID','SHIPPED','RECEIVED','COMPLETED') AND json_extract(details,'$.marketProShippingVoucherMonth')=?`).bind(profile.id,voucherMonth).first<{total:number}>():null;
+    const voucherAvailable=voucherEligible&&(voucherUsage?.total??0)<MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH;
+    const shippingDiscount=voucherAvailable?Math.min(Math.round(rate.price*MARKET_PRO_SHIPPING_VOUCHER_SHARE),MARKET_PRO_SHIPPING_VOUCHER_CAP):0;
+    const amount=subtotal+rate.price-shippingDiscount+buyerServiceFeeAmount;
     const expiresAt=new Date(Date.now()+24*60*60*1000).toISOString().replace('T',' ').slice(0,19);
     if(rate.type!==input.courierType)throw new HttpError(409,'That delivery service changed. Choose an updated quote.');
     const sellerProfile=await database.prepare('SELECT tier FROM profiles WHERE id=?').bind(listing.sellerId).first<{tier:string}>();
     const sellerPolicy=await getDynamicListingPolicy(sellerProfile?.tier,database);
     const standardPolicy=await getDynamicListingPolicy('free',database);
     const sellerNetAmount=Math.max(0,subtotal-Math.round(subtotal*sellerPolicy.commissionPercent/100));
-    const shipping={recipientName:address.recipientName,addressLine:address.addressLine,city:address.city,postalCode:address.postalCode,areaId:dropoff.areaId,latitude:address.latitude,longitude:address.longitude,phone:address.phone,courierName:rate.courier_name,courierServiceName:rate.courier_service_name,courierCode:rate.courier_code,courierServiceCode:rate.courier_service_code,courierCompany:rate.company,courierType:rate.type,sender:{recipientName:seller.recipientName,addressLine:seller.addressLine,city:seller.city,postalCode:seller.postalCode,areaId:pickup.areaId,latitude:seller.latitude,longitude:seller.longitude,phone:seller.phone},shippingLabel:address.label,marketFeePercent:sellerPolicy.commissionPercent,marketSellerTier:sellerProfile?.tier==='pro'?'pro':'free',marketStandardFeePercent:standardPolicy.commissionPercent,marketBuyerFeePercent:MARKET_BUYER_FEE_PERCENT,marketBuyerFeeAmount:buyerServiceFeeAmount};
+    const shipping={recipientName:address.recipientName,addressLine:address.addressLine,city:address.city,postalCode:address.postalCode,areaId:dropoff.areaId,latitude:address.latitude,longitude:address.longitude,phone:address.phone,courierName:rate.courier_name,courierServiceName:rate.courier_service_name,courierCode:rate.courier_code,courierServiceCode:rate.courier_service_code,courierCompany:rate.company,courierType:rate.type,sender:{recipientName:seller.recipientName,addressLine:seller.addressLine,city:seller.city,postalCode:seller.postalCode,areaId:pickup.areaId,latitude:seller.latitude,longitude:seller.longitude,phone:seller.phone},shippingLabel:address.label,marketFeePercent:sellerPolicy.commissionPercent,marketSellerTier:sellerProfile?.tier==='pro'?'pro':'free',marketStandardFeePercent:standardPolicy.commissionPercent,marketBuyerFeePercent:buyerFeePercent,marketBuyerFeeAmount:buyerServiceFeeAmount,marketBuyerTier:buyerIsPro?'pro':'free',marketProShippingDiscount:shippingDiscount,marketProShippingVoucherMonth:voucherAvailable?voucherMonth:null};
     const requested=new Map<string,{instanceId:string|null;printingId:string;quantity:number;capacity:number}>();
     for(const item of orderItems){
       const key=item.instanceId?`instance:${item.instanceId}`:`printing:${item.printingId}`;
@@ -145,9 +159,10 @@ export async function POST(request:Request){
       SELECT ?,'MARKET',?,?,?,?,?,?,?,?,?,?,?,'PENDING_PAYMENT',?
       WHERE EXISTS(SELECT 1 FROM listings current WHERE current.id=? AND current.status='ACTIVE' AND current.amount=? AND current.quantity=? AND current.items IS ? AND (current.expires_at IS NULL OR current.expires_at>CURRENT_TIMESTAMP))
       ${offerGuard}
-      AND ${reservationChecks}`)
-      .bind(id,profile.id,listing.sellerId,listing.id,acceptedOffer?.id??null,JSON.stringify(orderItems),JSON.stringify(shipping),subtotal,sellerNetAmount,rate.price,amount,'IDR',expiresAt,listing.id,listing.amount,listing.quantity,listing.items,...offerBindings,JSON.stringify([...requested.values()]),listing.id).run();
-    if(!inserted.meta.changes)throw new HttpError(409,'This listing changed or the selected cards were reserved by another checkout. Refresh and try again.');
-    return Response.json({id,checkoutUrl:`/checkout/order/${id}`,subtotal,shippingFee:rate.price,buyerServiceFeeAmount,total:amount},{status:201});
+      AND ${reservationChecks}
+      AND (?=0 OR (SELECT COUNT(*) FROM checkout_orders prior WHERE prior.buyer_id=? AND prior.kind='MARKET' AND prior.status IN ('PENDING_PAYMENT','PROCESSING','PAID','SHIPPED','RECEIVED','COMPLETED') AND json_extract(prior.details,'$.marketProShippingVoucherMonth')=?)<${MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH})`)
+      .bind(id,profile.id,listing.sellerId,listing.id,acceptedOffer?.id??null,JSON.stringify(orderItems),JSON.stringify(shipping),subtotal,sellerNetAmount,rate.price,amount,'IDR',expiresAt,listing.id,listing.amount,listing.quantity,listing.items,...offerBindings,JSON.stringify([...requested.values()]),listing.id,voucherAvailable?1:0,profile.id,voucherMonth).run();
+    if(!inserted.meta.changes)throw new HttpError(409,voucherAvailable?'Your monthly shipping benefit was just used. Refresh checkout to continue.':'This listing changed or the selected cards were reserved by another checkout. Refresh and try again.');
+    return Response.json({id,checkoutUrl:`/checkout/order/${id}`,subtotal,shippingFee:rate.price,shippingDiscount,buyerServiceFeeAmount,total:amount},{status:201});
   }catch(error){return errorResponse(error)}
 }

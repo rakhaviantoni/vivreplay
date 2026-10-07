@@ -26,6 +26,11 @@ export const LISTING_POLICIES: Record<AccountTier, ListingTierPolicy> = {
 };
 
 export const MARKET_BUYER_FEE_PERCENT = 0.75;
+export const MARKET_PRO_BUYER_FEE_PERCENT = 0.5;
+export const MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH = 2;
+export const MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL = 200_000;
+export const MARKET_PRO_SHIPPING_VOUCHER_SHARE = 0.5;
+export const MARKET_PRO_SHIPPING_VOUCHER_CAP = 5_000;
 
 export function parseMarketPolicies(rawJson: string | null | undefined): Record<AccountTier, ListingTierPolicy> {
   if (!rawJson) return LISTING_POLICIES;

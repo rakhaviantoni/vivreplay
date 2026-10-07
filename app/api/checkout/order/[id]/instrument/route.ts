@@ -59,7 +59,8 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     // the total from card lines can drift for grouped or repriced listings, even though
     // the amount shown to the buyer is still correct.
     if(order.kind==='MARKET'){
-      const savedFee=order.amount-order.subtotal-order.shippingFee;
+      const shippingDiscount=Number.isSafeInteger(details.marketProShippingDiscount)?Number(details.marketProShippingDiscount):0;
+      const savedFee=order.amount-order.subtotal-order.shippingFee+shippingDiscount;
       if(!Number.isSafeInteger(savedFee)||savedFee<0)throw new HttpError(409,'This order needs to be refreshed before payment.');
       if(savedFee!==buyerServiceFee){
         buyerServiceFee=savedFee;
@@ -68,7 +69,7 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
       }
     }
     const total=order.kind==='MARKET'
-      ?order.subtotal+order.shippingFee+buyerServiceFee
+      ?order.subtotal+order.shippingFee-(Number.isSafeInteger(details.marketProShippingDiscount)?Number(details.marketProShippingDiscount):0)+buyerServiceFee
       :productLines.reduce((sum,item)=>sum+item.quantity*item.unitPrice,0);
     if(total!==order.amount)throw new HttpError(409,'This order needs to be refreshed before payment.');
     const name=typeof details.customerName==='string'?details.customerName:typeof details.recipientName==='string'?details.recipientName:profile.display_name||'VivrePlay customer';

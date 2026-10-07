@@ -111,6 +111,14 @@ html[data-theme='dark'] .market-account-menu [data-slot='dropdown-menu-separator
   .market-order-qris{padding:12px}
 }
 
+/* Keep the payment code and delivery summary side by side on desktop, then
+   stack them naturally on narrow screens. */
+.market-order-details>.market-order-qris{grid-column:1;align-self:start;min-width:0}
+.market-order-details>.market-order-shipping-detail{grid-column:2;align-self:start;min-width:0}
+.market-order-detail-actions .button:not(.secondary){background:#e6a12b!important;border:1px solid #a96708!important;color:#211706!important;font-weight:750;opacity:1}
+.market-order-detail-actions .button:not(.secondary):hover{background:#d58d17!important}
+@media(max-width:620px){.market-order-details>.market-order-qris,.market-order-details>.market-order-shipping-detail{grid-column:1}.market-order-qris{flex-wrap:nowrap}.market-order-qris-code{width:76px;height:76px}.market-order-detail-actions .button:not(.secondary){min-height:44px}}
+
 /* Order details need room for long card names, fee labels, and tracking data on phones. */
 @media(max-width:620px){
   .market-activity-panel .market-order-summary{grid-template-columns:44px minmax(0,1fr);align-items:start;gap:10px 12px}
@@ -179,3 +187,6 @@ html[data-theme='dark'] .market-account-menu [data-slot='dropdown-menu-separator
   .market-order-detail-actions{align-items:center;gap:7px}
   .market-order-detail-actions .button{flex:1 1 145px;min-height:42px}
 }
+
+.market-order-ledger .market-order-discount{color:#24724b!important}.market-order-ledger .market-order-discount b{color:#24724b!important}
+.checkout-discount-line{color:#24724b!important}.checkout-discount-line b{color:#24724b!important}

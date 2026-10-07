@@ -87,9 +87,8 @@ export async function createIpaymuRedirect(input:{orderId:string;products:Ipaymu
 export async function createIpaymuQris(input:{orderId:string;amount:number;buyer:{name:string;email:string;phone:string};returnUrl:string;notifyUrl:string}){
   const {va,apiKey,baseUrl}=configuration();
   if(!Number.isSafeInteger(input.amount)||input.amount<1)throw new Error('This checkout has an invalid amount.');
-  // Direct QRIS codes are valid for five minutes. The API's `Expired` field
-  // can describe the longer transaction lifetime, so it must not extend the
-  // code's payment window.
+  // The transaction stays payable until iPaymu's Expired time. The QR image
+  // may need refreshing sooner, but that does not end or recreate the payment.
   const paymentCreatedAt=new Date().toISOString();
   const body={
     name:input.buyer.name.slice(0,100),
@@ -119,7 +118,9 @@ export async function createIpaymuQris(input:{orderId:string;amount:number;buyer
   const parsed=ipaymuQrImageUrl(qrImage,baseUrl.includes('sandbox')?'sandbox':'production');
   if(!parsed)throw new Error('iPaymu returned an invalid payment address.');
   const fee=Number(data.Fee);
-  const expiresAt=Date.parse(paymentCreatedAt)+5*60*1000;
+  const providerExpiry=ipaymuExpiryTimestamp(data.Expired,paymentCreatedAt);
+  const createdTimestamp=Date.parse(paymentCreatedAt);
+  const expiresAt=providerExpiry!==null&&providerExpiry>createdTimestamp?providerExpiry:createdTimestamp+24*60*60*1000;
   return {sessionId:String(sessionId),transactionId:String(transactionId),qrImage:parsed,qrString:typeof data.QrString==='string'?data.QrString:null,fee:Number.isFinite(fee)&&fee>=0?Math.round(fee):null,total:Number.isFinite(providerTotal)&&providerTotal>0?Math.round(providerTotal):input.amount,paymentCreatedAt,expiresAt:new Date(expiresAt).toISOString()};
 }
 
@@ -195,15 +196,18 @@ function timestamp(value:unknown,defaultZone:'+07:00'|'Z'='+07:00'){
 }
 
 export function ipaymuExpiryTimestamp(value:unknown,paymentCreatedAt?:unknown,legacyUpdatedAt?:unknown){
-  // A direct QRIS code expires after five minutes. iPaymu's timezone-less
-  // `Expired` transaction field can be much later and is not the QR deadline.
+  // iPaymu's timezone-less `Expired` is the transaction's payable-until time.
+  const providerExpiry=timestamp(value);
+  if(providerExpiry!==null)return providerExpiry;
+  // Some responses omit it; keep the checkout aligned with iPaymu's default
+  // transaction window. Refreshing an image must never expire the order.
   const created=timestamp(paymentCreatedAt);
-  if(created!==null)return created+5*60*1000;
+  if(created!==null)return created+24*60*60*1000;
   // Older orders did not store the QRIS creation instant. Their updated_at is
   // the nearest available timestamp for when the gateway payment was created.
   const legacyCreated=timestamp(legacyUpdatedAt,'Z');
-  if(legacyCreated!==null)return legacyCreated+5*60*1000-10_000;
-  return timestamp(value);
+  if(legacyCreated!==null)return legacyCreated+24*60*60*1000-10_000;
+  return null;
 }
 
 export function callbackStatus(payload:IpaymuCallback):'EXPIRED'|'FAILED'|'PENDING_PAYMENT'{
