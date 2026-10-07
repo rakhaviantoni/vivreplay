@@ -22,11 +22,12 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     }
     let details:Record<string,unknown>={};
     try{details=JSON.parse(order.details) as Record<string,unknown>}catch{}
-    let existingUrl=typeof details.ipaymuCheckoutUrl==='string'?details.ipaymuCheckoutUrl:null;
-    if(order.paymentId&&existingUrl&&details.ipaymuPaymentMethod==='qris'&&ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt)!==null&&ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt)!>Date.now())return Response.json({checkoutUrl:existingUrl,paymentMethod:'qris',expiresAt:details.ipaymuPaymentExpiresAt,reused:true});
+    const existingUrl=typeof details.ipaymuCheckoutUrl==='string'?details.ipaymuCheckoutUrl:null;
+    const existingQrImage=typeof details.ipaymuPaymentQrImage==='string'?details.ipaymuPaymentQrImage:null;
+    if(order.paymentId&&existingQrImage&&details.ipaymuPaymentMethod==='qris'&&ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt)!==null&&ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt)!>Date.now())return Response.json({paymentMethod:'qris',qrImage:existingQrImage,qrString:details.ipaymuPaymentQrString??null,paymentFee:details.ipaymuPaymentFee??null,expiresAt:details.ipaymuPaymentExpiresAt,reused:true});
     if(order.paymentId&&existingUrl&&details.ipaymuPaymentMethod!=='qris')return Response.json({checkoutUrl:existingUrl,paymentMethod:details.ipaymuPaymentMethod??'hosted',expiresAt:null,reused:true});
     if(order.paymentId&&details.ipaymuPaymentMethod==='qris'&&ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt)!==null&&ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt)!<=Date.now()){
-      delete details.ipaymuCheckoutUrl;delete details.ipaymuTransactionId;delete details.ipaymuPaymentFee;delete details.ipaymuPaymentExpiresAt;delete details.ipaymuPaymentMethod;existingUrl=null;
+      delete details.ipaymuCheckoutUrl;delete details.ipaymuPaymentQrImage;delete details.ipaymuPaymentQrString;delete details.ipaymuTransactionId;delete details.ipaymuSessionId;delete details.ipaymuPaymentFee;delete details.ipaymuPaymentExpiresAt;delete details.ipaymuPaymentMethod;
       const cleared=await database.prepare("UPDATE checkout_orders SET payment_id=NULL,details=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id=?").bind(JSON.stringify(details),id,order.paymentId).run();
       if(!cleared.meta.changes)throw new HttpError(409,'Refresh the checkout to get the latest payment status.');
     }
@@ -50,26 +51,32 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     if(total!==order.amount)throw new HttpError(409,'The order total changed. Please start checkout again.');
     const name=typeof details.customerName==='string'?details.customerName:typeof details.recipientName==='string'?details.recipientName:profile.display_name||'VivrePlay customer';
     const phone=typeof details.customerPhone==='string'?details.customerPhone:typeof details.phone==='string'?details.phone:'';
-    const payment: {url:string;sessionId?:string;transactionId?:string;fee?:number|null;expiresAt?:string|null}=order.kind==='MARKET'
+    const payment: {url?:string;sessionId?:string;transactionId?:string;qrImage?:string;qrString?:string|null;fee?:number|null;expiresAt?:string|null}=order.kind==='MARKET'
       ?await createIpaymuQris({orderId:order.id,amount:order.amount,buyer:{name,email:account.email,phone},returnUrl:`${origin}/checkout/order/${encodeURIComponent(order.id)}`,notifyUrl})
       :await createIpaymuRedirect({orderId:order.id,products:productLines,buyer:{name,email:account.email,phone},returnUrl:`${origin}/checkout/order/${encodeURIComponent(order.id)}`,cancelUrl:`${origin}/checkout/order/${encodeURIComponent(order.id)}?payment=cancelled`,notifyUrl});
-    details.ipaymuCheckoutUrl=payment.url;
     details.ipaymuPaymentMethod=order.kind==='MARKET'?'qris':'hosted';
     if(order.kind==='MARKET'){
+      details.ipaymuPaymentQrImage=payment.qrImage;
+      details.ipaymuPaymentQrString=payment.qrString;
       details.ipaymuTransactionId=payment.transactionId;
+      details.ipaymuSessionId=payment.sessionId;
       details.ipaymuPaymentFee=payment.fee;
       details.ipaymuPaymentExpiresAt=payment.expiresAt;
+    }else{
+      if(!payment.url)throw new HttpError(502,'The payment provider returned an incomplete payment session.');
+      details.ipaymuCheckoutUrl=payment.url;
     }
     details.ipaymuMode=process.env.IPAYMU_MODE==='sandbox'?'sandbox':'production';
-    const paymentId=order.kind==='MARKET'?payment.transactionId:payment.sessionId;
+    const paymentId=payment.sessionId;
     if(!paymentId)throw new HttpError(502,'The payment provider returned an incomplete payment session.');
     const updated=await database.prepare("UPDATE checkout_orders SET payment_id=?,details=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id IS NULL").bind(paymentId,JSON.stringify(details),id).run();
     if(!updated.meta.changes){
       const latest=await database.prepare('SELECT payment_id AS paymentId,details FROM checkout_orders WHERE id=?').bind(id).first<{paymentId:string|null;details:string}>();
       let latestDetails:Record<string,unknown>={};try{latestDetails=JSON.parse(latest?.details??'{}') as Record<string,unknown>}catch{}
+      if(latest?.paymentId&&typeof latestDetails.ipaymuPaymentQrImage==='string')return Response.json({paymentMethod:'qris',qrImage:latestDetails.ipaymuPaymentQrImage,qrString:latestDetails.ipaymuPaymentQrString??null,paymentFee:latestDetails.ipaymuPaymentFee??null,expiresAt:latestDetails.ipaymuPaymentExpiresAt??null,reused:true});
       if(latest?.paymentId&&typeof latestDetails.ipaymuCheckoutUrl==='string')return Response.json({checkoutUrl:latestDetails.ipaymuCheckoutUrl,paymentMethod:latestDetails.ipaymuPaymentMethod??'hosted',expiresAt:latestDetails.ipaymuPaymentExpiresAt??null,reused:true});
       throw new HttpError(409,'This checkout has already been updated. Refresh the page.');
     }
-    return Response.json({checkoutUrl:payment.url,paymentMethod:order.kind==='MARKET'?'qris':'hosted',expiresAt:order.kind==='MARKET'?payment.expiresAt:null,reused:false});
+    return Response.json(order.kind==='MARKET'?{paymentMethod:'qris',qrImage:payment.qrImage,qrString:payment.qrString,paymentFee:payment.fee,expiresAt:payment.expiresAt,reused:false}:{checkoutUrl:payment.url,paymentMethod:'hosted',expiresAt:null,reused:false});
   }catch(error){return errorResponse(error)}
 }

@@ -94,18 +94,19 @@ export async function createIpaymuQris(input:{orderId:string;amount:number;buyer
   const now=new Date();
   const timestamp=`${now.getUTCFullYear()}${String(now.getUTCMonth()+1).padStart(2,'0')}${String(now.getUTCDate()).padStart(2,'0')}${String(now.getUTCHours()).padStart(2,'0')}${String(now.getUTCMinutes()).padStart(2,'0')}${String(now.getUTCSeconds()).padStart(2,'0')}`;
   const response=await fetch(`${baseUrl}/api/v2/payment/direct`,{method:'POST',headers:{'Content-Type':'application/json',va,timestamp,signature:await requestSignature(bodyText,va,apiKey)},body:bodyText,cache:'no-store'});
-  const payload=await response.json().catch(()=>null) as {Status?:number;Message?:string;Data?:{TransactionId?:string|number;Url?:string;Total?:number|string;Fee?:number|string;Expired?:string}}|null;
+  const payload=await response.json().catch(()=>null) as {Status?:number;Message?:string;Data?:{SessionId?:string|number;TransactionId?:string|number;QrImage?:string;QrString?:string;Total?:number|string;Fee?:number|string;Expired?:string}}|null;
   const data=payload?.Data;
   const transactionId=data?.TransactionId;
-  const url=data?.Url;
-  if(!response.ok||payload?.Status!==200||transactionId===undefined||!url)throw new Error('QRIS could not be started. Check that QRIS is enabled for this iPaymu account, then try again.');
+  const sessionId=data?.SessionId;
+  const qrImage=data?.QrImage;
+  if(!response.ok||payload?.Status!==200||transactionId===undefined||sessionId===undefined||!qrImage)throw new Error('QRIS could not be started. Check that QRIS is enabled for this iPaymu account, then try again.');
   const providerTotal=Number(data.Total);
   if(Number.isFinite(providerTotal)&&providerTotal>0&&Math.round(providerTotal)!==input.amount)throw new Error('The QRIS amount did not match this order. Please try again.');
-  const parsed=new URL(url);
+  const parsed=new URL(qrImage);
   const allowedHosts=baseUrl==='https://sandbox.ipaymu.com'?['sandbox-payment.ipaymu.com','sandbox.ipaymu.com']:['my.ipaymu.com','payment.ipaymu.com'];
   if(parsed.protocol!=='https:'||!allowedHosts.includes(parsed.hostname))throw new Error('iPaymu returned an invalid payment address.');
   const fee=Number(data.Fee);
-  return {transactionId:String(transactionId),url:parsed.toString(),fee:Number.isFinite(fee)&&fee>=0?Math.round(fee):null,total:Number.isFinite(providerTotal)&&providerTotal>0?Math.round(providerTotal):input.amount,expiresAt:typeof data.Expired==='string'&&data.Expired?data.Expired:new Date(Date.now()+5*60*1000).toISOString()};
+  return {sessionId:String(sessionId),transactionId:String(transactionId),qrImage:parsed.toString(),qrString:typeof data.QrString==='string'?data.QrString:null,fee:Number.isFinite(fee)&&fee>=0?Math.round(fee):null,total:Number.isFinite(providerTotal)&&providerTotal>0?Math.round(providerTotal):input.amount,expiresAt:typeof data.Expired==='string'&&data.Expired?data.Expired:new Date(Date.now()+5*60*1000).toISOString()};
 }
 
 type CallbackValue=string|number|boolean|null|unknown[];

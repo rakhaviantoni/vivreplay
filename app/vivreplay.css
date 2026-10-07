@@ -2701,6 +2701,10 @@ html[data-theme='dark'] .player-intro-meta{color:#a4bcc7!important}
 .checkout-rate-list strong,.checkout-rate-list b{font-size:12px}
 .checkout-rate-list small{color:var(--muted,#716a5e);font-size:11px}
 .checkout-pay-button{width:100%;justify-content:center;margin-top:18px}
+.checkout-qris-code{display:grid;justify-items:center;gap:12px;margin:20px auto 8px;padding:18px;width:min(100%,320px);border:1px solid var(--line,#dfd1b8);border-radius:14px;background:#fff}
+.checkout-qris-code img{display:block;width:min(100%,260px);aspect-ratio:1;object-fit:contain}
+.checkout-qris-code a{display:inline-flex;align-items:center;gap:7px;color:var(--accent,#9b6a16);font-size:12px;font-weight:700}
+.checkout-qris-status{margin:10px 0 0;text-align:center;color:var(--muted,#716a5e);font-size:12px}
 .checkout-error{margin:12px 0 0;color:#a3332b;font-size:13px}
 .checkout-loading{min-height:45vh;display:flex;align-items:center;justify-content:center;gap:12px;color:var(--muted,#716a5e)}
 .checkout-loading i{width:18px;height:18px;border:2px solid var(--line,#dfd1b8);border-top-color:var(--accent,#b78327);border-radius:50%;animation:checkout-spin .8s linear infinite}
