@@ -1,6 +1,7 @@
 import {db,errorResponse,user,HttpError} from '@/lib/server/store';
 import {getCurrentUser} from '@/lib/server/auth';
 import {createIpaymuQris,createIpaymuRedirect,hasMarketIpaymuPaymentConfig,ipaymuExpiryTimestamp,ipaymuQrImageUrl} from '@/lib/server/ipaymu';
+import {sendMarketEmail} from '@/lib/server/market-notifications';
 
 type Order={id:string;kind:string;buyerId:string;sellerId:string|null;listingId:string|null;items:string;details:string;subtotal:number;amount:number;shippingFee:number;title:string|null;paymentId:string|null;status:string;expiresAt:string|null;updatedAt:string|null};
 type OrderItem={printingId:string;quantity:number;unitAmount:number};
@@ -16,13 +17,19 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     if(!order||order.buyerId!==profile.id)throw new HttpError(404,'Checkout was not found.');
     if(order.kind==='MARKET'&&!hasMarketIpaymuPaymentConfig())throw new HttpError(503,'Market payments require an iPaymu sandbox account or explicit live-payment enablement.');
     if(order.status!=='PENDING_PAYMENT')throw new HttpError(409,'This checkout is no longer payable.');
-    if(order.expiresAt&&new Date(`${order.expiresAt.replace(' ','T')}Z`).getTime()<=Date.now()){
-      await database.prepare("UPDATE checkout_orders SET status='EXPIRED',updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT'").bind(id).run();
-      throw new HttpError(409,'This checkout has expired. Start a new checkout to continue.');
-    }
     let details:Record<string,unknown>={};
     try{details=JSON.parse(order.details) as Record<string,unknown>}catch{}
     const existingPaymentExpiry=details.ipaymuPaymentMethod==='qris'?ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt,details.ipaymuPaymentCreatedAt,order.updatedAt):null;
+    const effectiveExpiry=existingPaymentExpiry!==null?new Date(existingPaymentExpiry).toISOString():order.expiresAt;
+    if(effectiveExpiry&&new Date(`${effectiveExpiry.replace(' ','T')}Z`).getTime()<=Date.now()){
+      const expirySql=existingPaymentExpiry!==null?new Date(existingPaymentExpiry).toISOString().slice(0,19).replace('T',' '):effectiveExpiry;
+      const expired=await database.prepare("UPDATE checkout_orders SET status='EXPIRED',expires_at=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id IS ?").bind(expirySql,id,order.paymentId).run();
+      if(expired.meta.changes&&order.kind==='MARKET'){
+        const title=order.title||'Market order';
+        await Promise.all([sendMarketEmail(order.buyerId,'order-expired',title,order.id),...(order.sellerId?[sendMarketEmail(order.sellerId,'order-expired',title,order.id)]:[])]);
+      }
+      throw new HttpError(409,'This checkout has expired. Start a new checkout to continue.');
+    }
     const existingUrl=typeof details.ipaymuCheckoutUrl==='string'?details.ipaymuCheckoutUrl:null;
     const existingQrImage=typeof details.ipaymuPaymentQrImage==='string'?details.ipaymuPaymentQrImage:null;
     const existingQrUrl=ipaymuQrImageUrl(existingQrImage,details.ipaymuMode);
@@ -31,9 +38,6 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
       return Response.json({paymentMethod:'qris',qrImage:`/api/checkout/order/${encodeURIComponent(order.id)}/qris`,qrString:details.ipaymuPaymentQrString??null,paymentFee:details.ipaymuPaymentFee??null,expiresAt:new Date(existingPaymentExpiry).toISOString(),reused:true});
     }
     if(order.paymentId&&existingUrl&&details.ipaymuPaymentMethod!=='qris')return Response.json({checkoutUrl:existingUrl,paymentMethod:details.ipaymuPaymentMethod??'hosted',expiresAt:null,reused:true});
-    if(order.paymentId&&details.ipaymuPaymentMethod==='qris'&&existingPaymentExpiry!==null&&existingPaymentExpiry<=Date.now()){
-      throw new HttpError(409,'This QRIS window has ended. We are confirming the payment status; you cannot start another payment for this order yet.');
-    }
 
     const baseUrl=process.env.VIVREPLAY_PUBLIC_URL?.trim().replace(/\/$/,'')||'https://vivreplay.com';
     const callbackOrigin=new URL(request.url).origin;
@@ -99,7 +103,8 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     details.ipaymuMode=process.env.IPAYMU_MODE==='sandbox'?'sandbox':'production';
     const paymentId=payment.sessionId;
     if(!paymentId){if(paymentClaim)await database.prepare("UPDATE checkout_orders SET payment_id=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id=?").bind(id,paymentClaim).run();throw new HttpError(502,'The payment provider returned an incomplete payment session.');}
-    const updated=await database.prepare("UPDATE checkout_orders SET payment_id=?,details=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id IS ?").bind(paymentId,JSON.stringify(details),id,paymentClaim).run();
+    const paymentExpirySql=payment.expiresAt?new Date(payment.expiresAt).toISOString().slice(0,19).replace('T',' '):order.expiresAt;
+    const updated=await database.prepare("UPDATE checkout_orders SET payment_id=?,details=?,expires_at=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id IS ?").bind(paymentId,JSON.stringify(details),paymentExpirySql,id,paymentClaim).run();
     if(!updated.meta.changes){
       const latest=await database.prepare('SELECT payment_id AS paymentId,details FROM checkout_orders WHERE id=?').bind(id).first<{paymentId:string|null;details:string}>();
       let latestDetails:Record<string,unknown>={};try{latestDetails=JSON.parse(latest?.details??'{}') as Record<string,unknown>}catch{}

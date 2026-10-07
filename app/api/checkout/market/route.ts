@@ -10,7 +10,7 @@ import {getDynamicListingPolicy,MARKET_BUYER_FEE_PERCENT} from '@/lib/market/pol
 const schema=z.object({listingId:z.string().min(1),offerId:z.string().min(1).optional(),items:z.array(z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(99)})).min(1).max(60),courierName:z.string().min(1),courierServiceName:z.string().min(1),courierCode:z.string().min(1),courierServiceCode:z.string().min(1),courierType:z.string().min(1),shippingFee:z.number().int().nonnegative().optional()});
 type BundleEntry={instanceId?:string;printingId:string;quantity:number;condition?:string;unitAmount:number};
 type Rate={courier_name:string;courier_service_name:string;courier_code:string;courier_service_code:string;company:string;type:string;price:number};
-type AcceptedOffer={id:string;actorId:string;listingId:string;status:string;amount:number;items:string};
+type AcceptedOffer={id:string;actorId:string;buyerId:string;listingId:string;status:string;amount:number;items:string};
 
 export async function GET(){
   const available=process.env.VIVREPLAY_MARKET_CHECKOUT_ENABLED==='true'&&process.env.VIVREPLAY_MARKET_SELLER_OPERATIONS_READY==='true'&&hasMarketIpaymuPaymentConfig()&&Boolean(process.env.BITESHIP_API_KEY?.trim());
@@ -34,8 +34,10 @@ export async function POST(request:Request){
     if(listing.currency!=='IDR')throw new HttpError(400,'Checkout currently supports IDR listings only.');
     let acceptedOffer:AcceptedOffer|null=null;
     if(input.offerId){
-      acceptedOffer=await database.prepare('SELECT id,actor_id AS actorId,listing_id AS listingId,status,amount,items FROM listing_offers WHERE id=?').bind(input.offerId).first<AcceptedOffer>();
-      if(!acceptedOffer||acceptedOffer.status!=='ACCEPTED'||acceptedOffer.actorId!==profile.id||acceptedOffer.listingId!==listing.id||listing.type!=='WTS')throw new HttpError(409,'This accepted offer is no longer available for checkout.');
+      acceptedOffer=await database.prepare(`SELECT f.id,f.actor_id AS actorId,f.listing_id AS listingId,f.status,f.amount,f.items,
+        (SELECT first.actor_id FROM listing_offers first WHERE COALESCE(first.thread_id,first.id)=COALESCE(f.thread_id,f.id) ORDER BY first.created_at,first.rowid LIMIT 1) AS buyerId
+        FROM listing_offers f WHERE f.id=?`).bind(input.offerId).first<AcceptedOffer>();
+      if(!acceptedOffer||acceptedOffer.status!=='ACCEPTED'||acceptedOffer.buyerId!==profile.id||acceptedOffer.listingId!==listing.id||listing.type!=='WTS')throw new HttpError(409,'This accepted offer is no longer available for checkout.');
       const previousOrder=await database.prepare("SELECT id,status,expires_at AS expiresAt FROM checkout_orders WHERE offer_id=? ORDER BY created_at DESC LIMIT 1").bind(acceptedOffer.id).first<{id:string;status:string;expiresAt:string|null}>();
       if(previousOrder){
         const pendingPayment=previousOrder.status==='PENDING_PAYMENT'&&(!previousOrder.expiresAt||previousOrder.expiresAt>new Date().toISOString().replace('T',' ').slice(0,19));
@@ -136,7 +138,7 @@ export async function POST(request:Request){
     }
     const reservationChecks=`NOT EXISTS(SELECT 1 FROM json_each(?) requested WHERE CAST(json_extract(requested.value,'$.quantity') AS INTEGER)+COALESCE((SELECT SUM(CAST(json_extract(j.value,'$.quantity') AS INTEGER)) FROM checkout_orders o,json_each(o.items) j WHERE o.listing_id=? AND o.kind='MARKET' AND (o.status='PROCESSING' OR (o.status='PENDING_PAYMENT' AND o.expires_at>CURRENT_TIMESTAMP)) AND ((json_extract(requested.value,'$.instanceId') IS NOT NULL AND json_extract(j.value,'$.instanceId')=json_extract(requested.value,'$.instanceId')) OR (json_extract(requested.value,'$.instanceId') IS NULL AND json_extract(j.value,'$.instanceId') IS NULL AND json_extract(j.value,'$.printingId')=json_extract(requested.value,'$.printingId')))),0)>CAST(json_extract(requested.value,'$.capacity') AS INTEGER))`;
     const offerGuard=acceptedOffer
-      ?`AND EXISTS(SELECT 1 FROM listing_offers f WHERE f.id=? AND f.listing_id=? AND f.actor_id=? AND f.status='ACCEPTED') AND NOT EXISTS(SELECT 1 FROM checkout_orders prior WHERE prior.offer_id=? AND prior.status IN ('PENDING_PAYMENT','PROCESSING','PAID','SHIPPED','RECEIVED','COMPLETED','FULFILLED'))`
+      ?`AND EXISTS(SELECT 1 FROM listing_offers f WHERE f.id=? AND f.listing_id=? AND f.status='ACCEPTED' AND (SELECT first.actor_id FROM listing_offers first WHERE COALESCE(first.thread_id,first.id)=COALESCE(f.thread_id,f.id) ORDER BY first.created_at,first.rowid LIMIT 1)=?) AND NOT EXISTS(SELECT 1 FROM checkout_orders prior WHERE prior.offer_id=? AND (prior.status IN ('PROCESSING','PAID','SHIPPED','RECEIVED','COMPLETED','FULFILLED') OR (prior.status='PENDING_PAYMENT' AND prior.expires_at>CURRENT_TIMESTAMP)))`
       :'';
     const offerBindings=acceptedOffer?[acceptedOffer.id,listing.id,profile.id,acceptedOffer.id]:[];
     const inserted=await database.prepare(`INSERT INTO checkout_orders (id,kind,buyer_id,seller_id,listing_id,offer_id,items,details,subtotal,seller_net_amount,shipping_fee,amount,currency,status,expires_at)

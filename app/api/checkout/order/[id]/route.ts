@@ -14,13 +14,28 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
     if(!order||(order.buyerId!==profile.id&&order.sellerId!==profile.id))throw new HttpError(404,'Checkout was not found.');
     const viewerRole=order.buyerId===profile.id?'buyer':'seller';
 
-    if(order.status==='PENDING_PAYMENT'&&order.expiresAt&&new Date(`${order.expiresAt.replace(' ','T')}Z`).getTime()<=Date.now()){
-      await database.prepare("UPDATE checkout_orders SET status='EXPIRED',updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT'").bind(id).run();
-      order.status='EXPIRED';
-    }
     let items:unknown[]=[];let details:Record<string,unknown>={};
     try{items=JSON.parse(order.items) as unknown[]}catch{}
     try{const parsed=JSON.parse(order.details) as unknown;if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))details=parsed as Record<string,unknown>}catch{}
+    const paymentExpiry=details.ipaymuPaymentMethod==='qris'?ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt,details.ipaymuPaymentCreatedAt,order.updatedAt):null;
+    const paymentExpiresAt=paymentExpiry===null?null:new Date(paymentExpiry).toISOString();
+    let effectiveExpiry=paymentExpiresAt??order.expiresAt;
+    if(order.status==='PENDING_PAYMENT'&&paymentExpiresAt){
+      const providerExpirySql=new Date(paymentExpiry!).toISOString().slice(0,19).replace('T',' ');
+      await database.prepare("UPDATE checkout_orders SET expires_at=? WHERE id=? AND status='PENDING_PAYMENT' AND payment_id IS NOT NULL").bind(providerExpirySql,id).run();
+      effectiveExpiry=providerExpirySql;
+    }
+    if(order.status==='PENDING_PAYMENT'&&effectiveExpiry&&new Date(`${effectiveExpiry.replace(' ','T')}Z`).getTime()<=Date.now()){
+      const expirySql=paymentExpiresAt?new Date(paymentExpiry!).toISOString().slice(0,19).replace('T',' '):effectiveExpiry;
+      const expired=await database.prepare("UPDATE checkout_orders SET status='EXPIRED',expires_at=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT'").bind(expirySql,id).run();
+      if(expired.meta.changes){
+        order.status='EXPIRED';
+        if(order.kind==='MARKET'){
+          const title=order.title||'Market order';
+          await Promise.all([sendMarketEmail(order.buyerId,'order-expired',title,order.id),...(order.sellerId?[sendMarketEmail(order.sellerId,'order-expired',title,order.id)]:[])]);
+        }
+      }
+    }
     const marketFeePercent=typeof details.marketFeePercent==='number'?details.marketFeePercent:order.subtotal>0?Math.max(0,Math.round((order.subtotal-(order.sellerNetAmount??order.subtotal))*10000/order.subtotal)/100):0;
     const marketSellerTier=details.marketSellerTier==='pro'?'pro':details.marketSellerTier==='free'?'free':null;
     const marketStandardFeePercent=typeof details.marketStandardFeePercent==='number'?details.marketStandardFeePercent:null;
@@ -31,15 +46,13 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
     const printingIds=items.flatMap(item=>item&&typeof item==='object'&&typeof (item as {printingId?:unknown}).printingId==='string'?[(item as {printingId:string}).printingId]:[]);
     const cards=await marketCardThumbnails(printingIds);
     const orderItems=items.map(item=>item&&typeof item==='object'?{...item as Record<string,unknown>,card:cards.get(String((item as {printingId?:unknown}).printingId??''))??null}:item);
-    const paymentExpiry=details.ipaymuPaymentMethod==='qris'?ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt,details.ipaymuPaymentCreatedAt,order.updatedAt):null;
-    const paymentExpiresAt=paymentExpiry===null?null:new Date(paymentExpiry).toISOString();
     const paymentExpired=details.ipaymuPaymentMethod==='qris'&&(paymentExpiry===null||paymentExpiry<=Date.now());
     const paymentMode=details.ipaymuMode??process.env.IPAYMU_MODE;
     const paymentQrSource=viewerRole==='buyer'&&details.ipaymuPaymentMethod==='qris'&&!paymentExpired?ipaymuQrImageUrl(details.ipaymuPaymentQrImage,paymentMode):null;
     const paymentQrImage=paymentQrSource?`/api/checkout/order/${encodeURIComponent(order.id)}/qris`:null;
     const hasActivePayment=order.status==='PENDING_PAYMENT'&&Boolean(order.paymentId);
     const canCancel=order.kind==='MARKET'&&order.status==='PENDING_PAYMENT'&&!order.paymentId&&(!order.expiresAt||new Date(`${order.expiresAt.replace(' ','T')}Z`).getTime()>Date.now());
-    return Response.json({id:order.id,kind:order.kind,status:order.status,viewerRole,title:order.title??'VivrePlay Market Pro',items:orderItems,details:{},shipping,sellerNetAmount:order.sellerNetAmount,marketFeePercent,marketSellerTier,marketStandardFeePercent,marketBuyerFeePercent,marketBuyerFeeAmount,waybillId:order.waybillId,trackingUrl:order.trackingUrl,checkoutUrl:viewerRole==='buyer'&&!paymentExpired&&typeof details.ipaymuCheckoutUrl==='string'?details.ipaymuCheckoutUrl:null,paymentMethod:viewerRole==='buyer'?details.ipaymuPaymentMethod??null:null,paymentMode:paymentMode==='sandbox'?'sandbox':'production',paymentFee:viewerRole==='buyer'&&typeof details.ipaymuPaymentFee==='number'?details.ipaymuPaymentFee:null,paymentExpiresAt:order.kind==='MARKET'?paymentExpiresAt:null,paymentExpired,paymentQrImage,paymentQrString:viewerRole==='buyer'&&!paymentExpired&&typeof details.ipaymuPaymentQrString==='string'?details.ipaymuPaymentQrString:null,canCancel,hasActivePayment,subtotal:order.subtotal,shippingFee:order.shippingFee,amount:order.amount,currency:order.currency,expiresAt:order.expiresAt});
+    return Response.json({id:order.id,kind:order.kind,status:order.status,viewerRole,title:order.title??'VivrePlay Market Pro',items:orderItems,details:{},shipping,sellerNetAmount:order.sellerNetAmount,marketFeePercent,marketSellerTier,marketStandardFeePercent,marketBuyerFeePercent,marketBuyerFeeAmount,waybillId:order.waybillId,trackingUrl:order.trackingUrl,checkoutUrl:viewerRole==='buyer'&&!paymentExpired&&typeof details.ipaymuCheckoutUrl==='string'?details.ipaymuCheckoutUrl:null,paymentMethod:viewerRole==='buyer'?details.ipaymuPaymentMethod??null:null,paymentMode:paymentMode==='sandbox'?'sandbox':'production',paymentFee:viewerRole==='buyer'&&typeof details.ipaymuPaymentFee==='number'?details.ipaymuPaymentFee:null,paymentExpiresAt:order.kind==='MARKET'?paymentExpiresAt:null,paymentExpired,paymentQrImage,paymentQrString:viewerRole==='buyer'&&!paymentExpired&&typeof details.ipaymuPaymentQrString==='string'?details.ipaymuPaymentQrString:null,canCancel,hasActivePayment,subtotal:order.subtotal,shippingFee:order.shippingFee,amount:order.amount,currency:order.currency,expiresAt:effectiveExpiry});
   }catch(error){return errorResponse(error)}
 }
 
