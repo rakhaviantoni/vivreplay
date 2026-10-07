@@ -2,7 +2,7 @@ import {db,errorResponse,user,HttpError} from '@/lib/server/store';
 import {getCurrentUser} from '@/lib/server/auth';
 import {createIpaymuQris,createIpaymuRedirect,hasMarketIpaymuPaymentConfig,ipaymuExpiryTimestamp,ipaymuQrImageUrl} from '@/lib/server/ipaymu';
 
-type Order={id:string;kind:string;buyerId:string;sellerId:string|null;listingId:string|null;items:string;details:string;subtotal:number;amount:number;shippingFee:number;title:string|null;paymentId:string|null;status:string;expiresAt:string|null};
+type Order={id:string;kind:string;buyerId:string;sellerId:string|null;listingId:string|null;items:string;details:string;subtotal:number;amount:number;shippingFee:number;title:string|null;paymentId:string|null;status:string;expiresAt:string|null;updatedAt:string|null};
 type OrderItem={printingId:string;quantity:number;unitAmount:number};
 
 export async function POST(request:Request,{params}:{params:Promise<{id:string}>}){
@@ -12,7 +12,7 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     if(!account?.email)throw new HttpError(401,'Sign in with an email address to continue.');
     const {id}=await params;
     const database=db();
-    const order=await database.prepare(`SELECT o.id,o.kind,o.buyer_id AS buyerId,o.seller_id AS sellerId,o.listing_id AS listingId,o.items,o.details,o.subtotal,o.amount,o.shipping_fee AS shippingFee,o.payment_id AS paymentId,o.status,o.expires_at AS expiresAt,l.title FROM checkout_orders o LEFT JOIN listings l ON l.id=o.listing_id WHERE o.id=?`).bind(id).first<Order>();
+    const order=await database.prepare(`SELECT o.id,o.kind,o.buyer_id AS buyerId,o.seller_id AS sellerId,o.listing_id AS listingId,o.items,o.details,o.subtotal,o.amount,o.shipping_fee AS shippingFee,o.payment_id AS paymentId,o.status,o.expires_at AS expiresAt,o.updated_at AS updatedAt,l.title FROM checkout_orders o LEFT JOIN listings l ON l.id=o.listing_id WHERE o.id=?`).bind(id).first<Order>();
     if(!order||order.buyerId!==profile.id)throw new HttpError(404,'Checkout was not found.');
     if(order.kind==='MARKET'&&!hasMarketIpaymuPaymentConfig())throw new HttpError(503,'Market payments require an iPaymu sandbox account or explicit live-payment enablement.');
     if(order.status!=='PENDING_PAYMENT')throw new HttpError(409,'This checkout is no longer payable.');
@@ -22,16 +22,17 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     }
     let details:Record<string,unknown>={};
     try{details=JSON.parse(order.details) as Record<string,unknown>}catch{}
+    const existingPaymentExpiry=details.ipaymuPaymentMethod==='qris'?ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt,details.ipaymuPaymentCreatedAt,order.updatedAt):null;
     const existingUrl=typeof details.ipaymuCheckoutUrl==='string'?details.ipaymuCheckoutUrl:null;
     const existingQrImage=typeof details.ipaymuPaymentQrImage==='string'?details.ipaymuPaymentQrImage:null;
     const existingQrUrl=ipaymuQrImageUrl(existingQrImage,details.ipaymuMode);
-    if(order.paymentId&&existingQrImage&&details.ipaymuPaymentMethod==='qris'&&ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt)!==null&&ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt)!>Date.now()){
+    if(order.paymentId&&existingQrImage&&details.ipaymuPaymentMethod==='qris'&&existingPaymentExpiry!==null&&existingPaymentExpiry>Date.now()){
       if(!existingQrUrl)throw new HttpError(502,'The payment provider returned an invalid QR code address.');
-      return Response.json({paymentMethod:'qris',qrImage:`/api/checkout/order/${encodeURIComponent(order.id)}/qris`,qrString:details.ipaymuPaymentQrString??null,paymentFee:details.ipaymuPaymentFee??null,expiresAt:details.ipaymuPaymentExpiresAt,reused:true});
+      return Response.json({paymentMethod:'qris',qrImage:`/api/checkout/order/${encodeURIComponent(order.id)}/qris`,qrString:details.ipaymuPaymentQrString??null,paymentFee:details.ipaymuPaymentFee??null,expiresAt:new Date(existingPaymentExpiry).toISOString(),reused:true});
     }
     if(order.paymentId&&existingUrl&&details.ipaymuPaymentMethod!=='qris')return Response.json({checkoutUrl:existingUrl,paymentMethod:details.ipaymuPaymentMethod??'hosted',expiresAt:null,reused:true});
-    if(order.paymentId&&details.ipaymuPaymentMethod==='qris'&&ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt)!==null&&ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt)!<=Date.now()){
-      delete details.ipaymuCheckoutUrl;delete details.ipaymuPaymentQrImage;delete details.ipaymuPaymentQrString;delete details.ipaymuTransactionId;delete details.ipaymuSessionId;delete details.ipaymuPaymentFee;delete details.ipaymuPaymentExpiresAt;delete details.ipaymuPaymentMethod;
+    if(order.paymentId&&details.ipaymuPaymentMethod==='qris'&&existingPaymentExpiry!==null&&existingPaymentExpiry<=Date.now()){
+      delete details.ipaymuCheckoutUrl;delete details.ipaymuPaymentQrImage;delete details.ipaymuPaymentQrString;delete details.ipaymuTransactionId;delete details.ipaymuSessionId;delete details.ipaymuPaymentFee;delete details.ipaymuPaymentCreatedAt;delete details.ipaymuPaymentExpiresAt;delete details.ipaymuPaymentMethod;
       const cleared=await database.prepare("UPDATE checkout_orders SET payment_id=NULL,details=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id=?").bind(JSON.stringify(details),id,order.paymentId).run();
       if(!cleared.meta.changes)throw new HttpError(409,'Refresh the checkout to get the latest payment status.');
     }
@@ -75,7 +76,7 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
       const claimed=await database.prepare("UPDATE checkout_orders SET payment_id=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id IS NULL").bind(paymentClaim,id).run();
       if(!claimed.meta.changes)throw new HttpError(409,'This order is already being paid or has changed. Refresh to check its status.');
     }
-    let payment: {url?:string;sessionId?:string;transactionId?:string;qrImage?:string;qrString?:string|null;fee?:number|null;expiresAt?:string|null};
+    let payment: {url?:string;sessionId?:string;transactionId?:string;qrImage?:string;qrString?:string|null;fee?:number|null;paymentCreatedAt?:string;expiresAt?:string|null};
     try{
       payment=order.kind==='MARKET'
         ?await createIpaymuQris({orderId:order.id,amount:order.amount,buyer:{name,email:account.email,phone},returnUrl:`${origin}/checkout/order/${encodeURIComponent(order.id)}`,notifyUrl})
@@ -91,6 +92,7 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
       details.ipaymuTransactionId=payment.transactionId;
       details.ipaymuSessionId=payment.sessionId;
       details.ipaymuPaymentFee=payment.fee;
+      details.ipaymuPaymentCreatedAt=payment.paymentCreatedAt;
       details.ipaymuPaymentExpiresAt=payment.expiresAt;
     }else{
       if(!payment.url)throw new HttpError(502,'The payment provider returned an incomplete payment session.');

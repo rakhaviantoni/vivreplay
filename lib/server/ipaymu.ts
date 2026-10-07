@@ -87,6 +87,10 @@ export async function createIpaymuRedirect(input:{orderId:string;products:Ipaymu
 export async function createIpaymuQris(input:{orderId:string;amount:number;buyer:{name:string;email:string;phone:string};returnUrl:string;notifyUrl:string}){
   const {va,apiKey,baseUrl}=configuration();
   if(!Number.isSafeInteger(input.amount)||input.amount<1)throw new Error('This checkout has an invalid amount.');
+  // QRIS expiry is fixed by iPaymu at five minutes. The provider's Expired
+  // field is a timezone-less wall-clock value and has differed by seven hours
+  // between API responses and the sandbox dashboard, so store our UTC instant.
+  const paymentCreatedAt=new Date().toISOString();
   const body={
     name:input.buyer.name.slice(0,100),
     phone:input.buyer.phone.slice(0,30),
@@ -115,7 +119,7 @@ export async function createIpaymuQris(input:{orderId:string;amount:number;buyer
   const parsed=ipaymuQrImageUrl(qrImage,baseUrl.includes('sandbox')?'sandbox':'production');
   if(!parsed)throw new Error('iPaymu returned an invalid payment address.');
   const fee=Number(data.Fee);
-  return {sessionId:String(sessionId),transactionId:String(transactionId),qrImage:parsed,qrString:typeof data.QrString==='string'?data.QrString:null,fee:Number.isFinite(fee)&&fee>=0?Math.round(fee):null,total:Number.isFinite(providerTotal)&&providerTotal>0?Math.round(providerTotal):input.amount,expiresAt:typeof data.Expired==='string'&&data.Expired?data.Expired:new Date(Date.now()+5*60*1000).toISOString()};
+  return {sessionId:String(sessionId),transactionId:String(transactionId),qrImage:parsed,qrString:typeof data.QrString==='string'?data.QrString:null,fee:Number.isFinite(fee)&&fee>=0?Math.round(fee):null,total:Number.isFinite(providerTotal)&&providerTotal>0?Math.round(providerTotal):input.amount,paymentCreatedAt,expiresAt:new Date(Date.parse(paymentCreatedAt)+5*60*1000).toISOString()};
 }
 
 type CallbackValue=string|number|boolean|null|unknown[];
@@ -181,12 +185,22 @@ export function callbackReference(payload:IpaymuCallback){return String(payload.
 export function callbackSessionId(payload:IpaymuCallback){return String(payload.sid??'')}
 export function callbackTransactionId(payload:IpaymuCallback){return String(payload.trx_id??'')}
 
-export function ipaymuExpiryTimestamp(value:unknown){
+function timestamp(value:unknown,defaultZone:'+07:00'|'Z'='+07:00'){
   if(typeof value!=='string'||!value.trim())return null;
   const raw=value.trim();
-  const withZone=/Z$|[+-]\d{2}:?\d{2}$/.test(raw)?raw:`${raw.replace(' ','T')}+07:00`;
+  const withZone=/Z$|[+-]\d{2}:?\d{2}$/.test(raw)?raw:`${raw.replace(' ','T')}${defaultZone}`;
   const timestamp=Date.parse(withZone);
   return Number.isFinite(timestamp)?timestamp:null;
+}
+
+export function ipaymuExpiryTimestamp(value:unknown,paymentCreatedAt?:unknown,legacyUpdatedAt?:unknown){
+  const created=timestamp(paymentCreatedAt);
+  if(created!==null)return created+5*60*1000;
+  // Older orders did not store the QRIS creation instant. Their updated_at is
+  // the nearest available timestamp for when the gateway payment was created.
+  const legacyCreated=timestamp(legacyUpdatedAt,'Z');
+  if(legacyCreated!==null)return legacyCreated+5*60*1000-10_000;
+  return timestamp(value);
 }
 
 export function callbackStatus(payload:IpaymuCallback):'EXPIRED'|'FAILED'|'PENDING_PAYMENT'{
