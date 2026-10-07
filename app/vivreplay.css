@@ -3395,3 +3395,12 @@ html[data-theme='dark'] .market-listing-status.is-buying{color:#e6b65e!important
 @media(max-width:760px){.market-feed-entry .market-feed-status{right:8px}.market-feed-entry.has-row-action .market-feed-status{right:49px}.market-listing-heading{gap:10px!important}.market-listing-heading-tools{gap:6px}.market-listing-owner-actions{gap:4px}.market-listing-owner-actions button{min-height:32px;padding-inline:7px}.market-listing-owner-actions button span{font-size:9px}.market-listing-eyebrow-row{align-items:flex-start}.market-listing-owner-actions{justify-content:flex-start}}
 @media(max-width:420px){.market-listing-heading-tools{max-width:44%}.market-listing-owner-actions{flex-wrap:wrap}.market-listing-owner-actions button{min-height:30px}}
 @media(prefers-reduced-motion:reduce){.market-direct-sell-loading span{animation:none}}
+.checkout-qris-code{min-height:300px;align-content:center}
+.checkout-qris-code img{min-height:240px}
+.checkout-qris-code small{color:var(--muted,#716a5e);font-size:11px;line-height:1.45;text-align:center}
+.checkout-order-breakdown{display:grid;gap:14px}
+.checkout-payment-lines{display:grid;gap:9px;padding-top:12px;border-top:1px solid var(--line,#dfd1b8)}
+.checkout-payment-lines>div{display:flex;align-items:center;justify-content:space-between;gap:14px;color:var(--muted,#716a5e);font-size:13px}
+.checkout-payment-lines>div b{color:var(--ink,#29251f);font-size:13px;font-variant-numeric:tabular-nums}
+.checkout-grand-total{display:flex;align-items:baseline;justify-content:space-between;gap:14px;padding-top:12px;border-top:1px solid var(--line,#dfd1b8)}
+.checkout-fee-note{display:block;color:var(--muted,#716a5e);font-size:11px;line-height:1.5}

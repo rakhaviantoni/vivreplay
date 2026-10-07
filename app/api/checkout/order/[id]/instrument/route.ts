@@ -24,7 +24,8 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     try{details=JSON.parse(order.details) as Record<string,unknown>}catch{}
     const existingUrl=typeof details.ipaymuCheckoutUrl==='string'?details.ipaymuCheckoutUrl:null;
     const existingQrImage=typeof details.ipaymuPaymentQrImage==='string'?details.ipaymuPaymentQrImage:null;
-    if(order.paymentId&&existingQrImage&&details.ipaymuPaymentMethod==='qris'&&ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt)!==null&&ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt)!>Date.now())return Response.json({paymentMethod:'qris',qrImage:existingQrImage,qrString:details.ipaymuPaymentQrString??null,paymentFee:details.ipaymuPaymentFee??null,expiresAt:details.ipaymuPaymentExpiresAt,reused:true});
+    const qrImagePath=`/api/checkout/order/${encodeURIComponent(id)}/qris`;
+    if(order.paymentId&&existingQrImage&&details.ipaymuPaymentMethod==='qris'&&ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt)!==null&&ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt)!>Date.now())return Response.json({paymentMethod:'qris',qrImage:qrImagePath,qrString:details.ipaymuPaymentQrString??null,paymentFee:details.ipaymuPaymentFee??null,expiresAt:details.ipaymuPaymentExpiresAt,reused:true});
     if(order.paymentId&&existingUrl&&details.ipaymuPaymentMethod!=='qris')return Response.json({checkoutUrl:existingUrl,paymentMethod:details.ipaymuPaymentMethod??'hosted',expiresAt:null,reused:true});
     if(order.paymentId&&details.ipaymuPaymentMethod==='qris'&&ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt)!==null&&ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt)!<=Date.now()){
       delete details.ipaymuCheckoutUrl;delete details.ipaymuPaymentQrImage;delete details.ipaymuPaymentQrString;delete details.ipaymuTransactionId;delete details.ipaymuSessionId;delete details.ipaymuPaymentFee;delete details.ipaymuPaymentExpiresAt;delete details.ipaymuPaymentMethod;
@@ -73,10 +74,10 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     if(!updated.meta.changes){
       const latest=await database.prepare('SELECT payment_id AS paymentId,details FROM checkout_orders WHERE id=?').bind(id).first<{paymentId:string|null;details:string}>();
       let latestDetails:Record<string,unknown>={};try{latestDetails=JSON.parse(latest?.details??'{}') as Record<string,unknown>}catch{}
-      if(latest?.paymentId&&typeof latestDetails.ipaymuPaymentQrImage==='string')return Response.json({paymentMethod:'qris',qrImage:latestDetails.ipaymuPaymentQrImage,qrString:latestDetails.ipaymuPaymentQrString??null,paymentFee:latestDetails.ipaymuPaymentFee??null,expiresAt:latestDetails.ipaymuPaymentExpiresAt??null,reused:true});
+      if(latest?.paymentId&&typeof latestDetails.ipaymuPaymentQrImage==='string')return Response.json({paymentMethod:'qris',qrImage:qrImagePath,qrString:latestDetails.ipaymuPaymentQrString??null,paymentFee:latestDetails.ipaymuPaymentFee??null,expiresAt:latestDetails.ipaymuPaymentExpiresAt??null,reused:true});
       if(latest?.paymentId&&typeof latestDetails.ipaymuCheckoutUrl==='string')return Response.json({checkoutUrl:latestDetails.ipaymuCheckoutUrl,paymentMethod:latestDetails.ipaymuPaymentMethod??'hosted',expiresAt:latestDetails.ipaymuPaymentExpiresAt??null,reused:true});
       throw new HttpError(409,'This checkout has already been updated. Refresh the page.');
     }
-    return Response.json(order.kind==='MARKET'?{paymentMethod:'qris',qrImage:payment.qrImage,qrString:payment.qrString,paymentFee:payment.fee,expiresAt:payment.expiresAt,reused:false}:{checkoutUrl:payment.url,paymentMethod:'hosted',expiresAt:null,reused:false});
+    return Response.json(order.kind==='MARKET'?{paymentMethod:'qris',qrImage:qrImagePath,qrString:payment.qrString,paymentFee:payment.fee,expiresAt:payment.expiresAt,reused:false}:{checkoutUrl:payment.url,paymentMethod:'hosted',expiresAt:null,reused:false});
   }catch(error){return errorResponse(error)}
 }
