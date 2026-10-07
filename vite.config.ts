@@ -27,6 +27,10 @@ const localBindingConfig = {
     BETTER_AUTH_URL: "https://vivreplay.com",
     NEXT_PUBLIC_SUPABASE_URL: "https://shqwaqxpxsyjafxdcibj.supabase.co",
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_yg4vygJx5VP-ecakkYF8WA_WTwBloIZ",
+    IPAYMU_MODE: "sandbox",
+    VIVREPLAY_MARKET_CHECKOUT_ENABLED: "true",
+    VIVREPLAY_MARKET_SELLER_OPERATIONS_READY: "true",
+    VIVREPLAY_MARKET_LIVE_PAYMENTS_ENABLED: "false",
     SUPABASE_JWKS_URL:
       "https://shqwaqxpxsyjafxdcibj.supabase.co/auth/v1/.well-known/jwks.json",
   } as Record<string, string>,
@@ -68,7 +72,7 @@ export default defineConfig(async ({ command, mode }) => {
 
     // Server-only local credential: Vite's Node env is separate from the
     // Cloudflare Worker env, so pass the shipping key into the dev binding.
-    for (const key of ["BITESHIP_API_KEY", "BITESHIP_WEBHOOK_SECRET", "BITESHIP_WEBHOOK_INSTALLATION_MODE", "PAYOUT_ACCOUNT_ENCRYPTION_KEY"]) {
+    for (const key of ["BITESHIP_API_KEY", "BITESHIP_WEBHOOK_SECRET", "BITESHIP_WEBHOOK_INSTALLATION_MODE", "PAYOUT_ACCOUNT_ENCRYPTION_KEY", "IPAYMU_VA", "IPAYMU_API_KEY"]) {
       if (localEnv[key]?.trim()) {
         localBindingConfig.vars[key] = localEnv[key].trim();
       }

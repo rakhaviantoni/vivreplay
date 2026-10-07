@@ -17,6 +17,10 @@
     "NEXT_PUBLIC_SUPABASE_URL": "https://shqwaqxpxsyjafxdcibj.supabase.co",
     "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_yg4vygJx5VP-ecakkYF8WA_WTwBloIZ",
     "NEXT_PUBLIC_TURNSTILE_SITE_KEY": "0x4AAAAAAFLjvjAWmkfLwlgD",
+    "IPAYMU_MODE": "sandbox",
+    "VIVREPLAY_MARKET_CHECKOUT_ENABLED": "true",
+    "VIVREPLAY_MARKET_SELLER_OPERATIONS_READY": "true",
+    "VIVREPLAY_MARKET_LIVE_PAYMENTS_ENABLED": "false",
     "SUPABASE_JWKS_URL": "https://shqwaqxpxsyjafxdcibj.supabase.co/auth/v1/.well-known/jwks.json"
   },
   "durable_objects": {

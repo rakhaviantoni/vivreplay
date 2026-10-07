@@ -14,7 +14,7 @@ export const LISTING_POLICIES: Record<AccountTier, ListingTierPolicy> = {
     durationDays: 7,
     maxActiveListings: 12,
     canAutoRenew: false,
-    commissionPercent: 0,
+    commissionPercent: 1,
   },
   pro: {
     tier: 'pro',
@@ -35,14 +35,14 @@ export function parseMarketPolicies(rawJson: string | null | undefined): Record<
         durationDays: Math.max(1, Number(parsed.free?.durationDays) || LISTING_POLICIES.free.durationDays),
         maxActiveListings: Math.max(1, Number(parsed.free?.maxActiveListings) || LISTING_POLICIES.free.maxActiveListings),
         canAutoRenew: Boolean(parsed.free?.canAutoRenew),
-        commissionPercent: Math.max(0, Number(parsed.free?.commissionPercent) ?? LISTING_POLICIES.free.commissionPercent),
+        commissionPercent: Number.isFinite(Number(parsed.free?.commissionPercent)) ? Math.max(0, Number(parsed.free.commissionPercent)) : LISTING_POLICIES.free.commissionPercent,
       },
       pro: {
         tier: 'pro',
         durationDays: Math.max(1, Number(parsed.pro?.durationDays) || LISTING_POLICIES.pro.durationDays),
         maxActiveListings: Math.max(1, Number(parsed.pro?.maxActiveListings) || LISTING_POLICIES.pro.maxActiveListings),
         canAutoRenew: parsed.pro?.canAutoRenew !== false,
-        commissionPercent: Math.max(0, Number(parsed.pro?.commissionPercent) ?? LISTING_POLICIES.pro.commissionPercent),
+        commissionPercent: Number.isFinite(Number(parsed.pro?.commissionPercent)) ? Math.max(0, Number(parsed.pro.commissionPercent)) : LISTING_POLICIES.pro.commissionPercent,
       },
     };
   } catch {

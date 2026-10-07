@@ -18,7 +18,7 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
     ORDER BY o.created_at DESC,o.rowid DESC LIMIT 1`).bind(id,actor.id).first<{id:string;actorId:string;type:string;items:string;amount:number;currency:string;expiresAt:string|null}>();
   let items:Array<{printingId:string;quantity:number;unitAmount?:number}>=[];
   if(row){try{const parsed=JSON.parse(row.items) as unknown;if(Array.isArray(parsed))items=parsed.filter((item):item is {printingId:string;quantity:number;unitAmount?:number}=>Boolean(item&&typeof item==='object'&&typeof item.printingId==='string'&&Number.isInteger(item.quantity)&&item.quantity>0));}catch{}}
-  return Response.json({offer:row?{id:row.id,actorId:row.actorId,type:row.type,items,amount:row.amount,currency:row.currency,expiresAt:row.expiresAt}:null},{headers:{'Cache-Control':'private, no-store'}});
+  return Response.json({offer:row?{id:row.id,actorId:row.actorId,viewerIsActor:row.actorId===actor.id,type:row.type,items,amount:row.amount,currency:row.currency,expiresAt:row.expiresAt}:null},{headers:{'Cache-Control':'private, no-store'}});
 }catch(error){return errorResponse(error)}}
 
 export async function POST(request:Request,{params}:{params:Promise<{id:string}>}){try{

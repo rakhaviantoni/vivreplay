@@ -14,7 +14,7 @@ type AcceptedOffer={id:string;actorId:string;listingId:string;status:string;amou
 
 export async function GET(){
   const available=process.env.VIVREPLAY_MARKET_CHECKOUT_ENABLED==='true'&&process.env.VIVREPLAY_MARKET_SELLER_OPERATIONS_READY==='true'&&hasMarketIpaymuPaymentConfig()&&Boolean(process.env.BITESHIP_API_KEY?.trim());
-  return Response.json({available});
+  return Response.json({available,sandbox:process.env.IPAYMU_MODE==='sandbox'});
 }
 
 export async function POST(request:Request){

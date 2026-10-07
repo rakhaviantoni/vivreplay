@@ -33,7 +33,7 @@ export function MarketPolicyManager() {
   // Form states
   const [freeDays, setFreeDays] = useState(7);
   const [freeMax, setFreeMax] = useState(12);
-  const [freeFee, setFreeFee] = useState(0);
+  const [freeFee, setFreeFee] = useState(1);
 
   const [proDays, setProDays] = useState(14);
   const [proMax, setProMax] = useState(500);
@@ -72,7 +72,7 @@ export function MarketPolicyManager() {
     if (preset === 'recommended') {
       setFreeDays(7);
       setFreeMax(12);
-      setFreeFee(0);
+      setFreeFee(1);
       setProDays(14);
       setProMax(500);
       setProFee(0);
@@ -81,7 +81,7 @@ export function MarketPolicyManager() {
     } else if (preset === 'quick-turn') {
       setFreeDays(3);
       setFreeMax(12);
-      setFreeFee(0);
+      setFreeFee(1);
       setProDays(14);
       setProMax(500);
       setProFee(0);
@@ -90,7 +90,7 @@ export function MarketPolicyManager() {
     } else if (preset === 'relaxed') {
       setFreeDays(30);
       setFreeMax(25);
-      setFreeFee(0);
+      setFreeFee(1);
       setProDays(60);
       setProMax(1000);
       setProFee(0);
@@ -264,7 +264,7 @@ export function MarketPolicyManager() {
 
             <div className="admin-policy-field">
               <label htmlFor="free-fee">
-                Platform Commission <span>(Percentage %)</span>
+                Seller fee <span>(%)</span>
               </label>
               <input
                 id="free-fee"
@@ -276,7 +276,7 @@ export function MarketPolicyManager() {
                 onChange={(e) => setFreeFee(Number(e.target.value))}
                 required
               />
-              <small>Standard platform transaction fee on completed purchases.</small>
+              <small>Deducted from seller proceeds after a completed sale.</small>
             </div>
 
             <div className="admin-policy-field">
@@ -341,7 +341,7 @@ export function MarketPolicyManager() {
 
             <div className="admin-policy-field">
               <label htmlFor="pro-fee">
-                Platform Commission <span>(Discounted %)</span>
+                Seller fee <span>(%)</span>
               </label>
               <input
                 id="pro-fee"
@@ -353,7 +353,7 @@ export function MarketPolicyManager() {
                 onChange={(e) => setProFee(Number(e.target.value))}
                 required
               />
-              <small>Reduced transaction fee for Pro accounts.</small>
+              <small>Deducted from seller proceeds after a completed sale.</small>
             </div>
 
             <div className="admin-policy-field">

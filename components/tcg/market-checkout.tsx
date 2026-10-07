@@ -30,6 +30,7 @@ export function MarketCheckout(){
   const [selectedRate,setSelectedRate]=useState('');
   const [loading,setLoading]=useState(true);
   const [checkoutAvailable,setCheckoutAvailable]=useState(false);
+  const [sandboxPayment,setSandboxPayment]=useState(false);
   const [quoting,setQuoting]=useState(false);
   const [submitting,setSubmitting]=useState(false);
   const [error,setError]=useState('');
@@ -58,12 +59,13 @@ export function MarketCheckout(){
     Promise.all([
       api<{listings:Listing[]}>('/api/listings'),
       api<{origin:Origin|null}>('/api/shipping/origin',undefined,'GET'),
-      api<{available:boolean}>('/api/checkout/market',undefined,'GET'),
+      api<{available:boolean;sandbox?:boolean}>('/api/checkout/market',undefined,'GET'),
     ]).then(([market,shipping,checkout])=>{
       if(!active)return;
       setListing(market.listings.find(row=>row.id===listingId));
       setOrigin(shipping.origin??undefined);
       setCheckoutAvailable(checkout.available);
+      setSandboxPayment(checkout.sandbox===true);
     }).catch(cause=>{if(active)setDetailsError(cause instanceof Error?cause.message:'Checkout details could not load.')}).finally(()=>{if(active)setLoading(false)});
     return()=>{active=false};
   },[account?.profile.id,accountLoading,listingId]);
@@ -143,7 +145,7 @@ export function MarketCheckout(){
 
   return <main className="page vivre-checkout-page">
     <Link href={`/market/${encodeURIComponent(listingId)}`} className="back-link"><ArrowLeft size={16}/>{t('Back to listing','Kembali ke listing')}</Link>
-    <header className="checkout-page-heading"><div><h1>{t('Checkout','Checkout')}</h1><p>{t('Review the cards and delivery service before payment.','Periksa kartu dan layanan pengiriman sebelum membayar.')}</p></div><span className="checkout-secure"><ShieldCheck size={15}/>{t('Secure payment','Pembayaran aman')}</span></header>
+    <header className="checkout-page-heading"><div><h1>{t('Review your order','Periksa pesanan')}</h1><p>{t('Check the cards, delivery address, and total before paying.','Periksa kartu, alamat pengiriman, dan total sebelum membayar.')}</p></div><span className="checkout-secure"><ShieldCheck size={15}/>{sandboxPayment?t('Sandbox test','Uji coba sandbox'):t('Secure payment','Pembayaran aman')}</span></header>
     <div className="checkout-layout">
       <section className="checkout-panel checkout-order-summary"><h2>{listing.title}</h2><p className="checkout-seller"><strong>{listing.seller}</strong><span>{listing.city}</span></p>
         <div className="checkout-items">{selectedCards.map(item=><div key={item.printingId} className="checkout-item-row"><div className="checkout-item-art">{item.card?<CardArt card={item.card}/>:<span>{item.printingId}</span>}</div><div className="checkout-item-copy"><strong>{item.card?.name||listing.title}</strong><small><span>{item.card?.code||item.card?.printingCode||item.printingId}</span>{item.card?.language&&<span>{item.card.language}</span>}{item.card?.variant&&<span>{item.card.variant}</span>}{item.card?.setCode&&<span>{item.card.setCode}</span>}<span>{item.condition}</span><span>{item.quantity}×</span></small></div><b>{formatMoney(item.unitAmount*item.quantity,listing.currency)}</b></div>)}</div>
