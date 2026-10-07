@@ -82,7 +82,7 @@ export function Shell({children}:{children:React.ReactNode}) {
   const path=usePathname();
   const isIdPath=path==='/id'||path.startsWith('/id/');
   const normalizedPath=isIdPath?(path.replace(/^\/id/,'')||'/'):path;
-  const marketCheckout=normalizedPath==='/checkout/market';
+  const marketCheckout=normalizedPath==='/checkout/market'||normalizedPath.startsWith('/checkout/order/');
   const {data}=useAccount();
   const [theme,setTheme]=useState<'light'|'dark'>('light');
   const [language,setLanguage]=useState<Locale>('EN');
