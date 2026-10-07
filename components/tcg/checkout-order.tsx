@@ -37,8 +37,9 @@ export function CheckoutOrder(){
     finally{setBusy(false)}
   },[id,params.id]);
   useEffect(()=>{
-    if(order?.kind==='MARKET'&&order.viewerRole==='buyer'&&order.status==='PENDING_PAYMENT'&&!order.paymentQrImage&&!order.checkoutUrl&&autoPaymentOrder.current!==order.id){
-      autoPaymentOrder.current=order.id;
+    const paymentAttemptKey=order?`${order.id}:${order.paymentQrImage??'no-qr'}:${order.paymentExpiresAt??'no-expiry'}`:'';
+    if(order?.kind==='MARKET'&&order.viewerRole==='buyer'&&order.status==='PENDING_PAYMENT'&&!order.paymentQrImage&&!order.checkoutUrl&&autoPaymentOrder.current!==paymentAttemptKey){
+      autoPaymentOrder.current=paymentAttemptKey;
       void beginPayment();
     }
   },[order?.id,order?.kind,order?.status,order?.viewerRole,order?.paymentQrImage,order?.checkoutUrl,beginPayment]);
