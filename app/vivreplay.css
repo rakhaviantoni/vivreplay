@@ -2803,6 +2803,41 @@ html[data-theme='dark'] .player-intro-meta{color:#a4bcc7!important}
 .admin-access-card form .button{display:flex;align-items:center;justify-content:center;gap:7px;min-height:44px;margin-top:5px;border-radius:9px;font-weight:800}
 .admin-access-error{margin:0;color:#a3332b;font-size:12px}
 html[data-theme='dark'] .admin-access-card{border-color:#294653;background:#0f212b;color:#edf5f0}
+
+/* Market Pro comparison and one-step upgrade */
+.pro-checkout-page{max-width:1120px!important;padding-top:40px!important}
+.pro-checkout-heading{max-width:740px;margin-bottom:26px}
+.pro-checkout-heading>.eyebrow{margin:0 0 8px;color:var(--muted);font-size:11px;font-weight:750;letter-spacing:.08em}
+.pro-checkout-heading h1{font-size:clamp(32px,4vw,46px);letter-spacing:-.045em}
+.pro-checkout-heading>p:last-child{margin-top:10px;font-size:15px}
+.pro-checkout-grid{grid-template-columns:minmax(0,1fr) minmax(280px,.54fr);gap:22px;align-items:start}
+.pro-benefits-panel{padding:24px}
+.pro-panel-heading h2{margin:0;font-size:20px}
+.pro-panel-heading p{margin:5px 0 0;color:var(--muted);font-size:13px}
+.pro-comparison-wrap{margin-top:18px;overflow-x:auto}
+.pro-comparison-table{width:100%;border-collapse:collapse;table-layout:fixed;text-align:left}
+.pro-comparison-table th,.pro-comparison-table td{padding:13px 10px;border-bottom:1px solid var(--line);font-size:13px;overflow-wrap:anywhere}
+.pro-comparison-table thead th{color:var(--muted);font-size:11px;font-weight:750}
+.pro-comparison-table thead th:first-child{width:44%}
+.pro-comparison-table thead th:nth-child(2),.pro-comparison-table thead th:nth-child(3){width:28%;text-align:center}
+.pro-comparison-table tbody th{font-weight:650}
+.pro-comparison-table tbody td{text-align:center;color:var(--muted);font-variant-numeric:tabular-nums}
+.pro-comparison-table tbody td:last-child{color:var(--ink);font-weight:750}
+.pro-comparison-table tbody tr:last-child th,.pro-comparison-table tbody tr:last-child td{border-bottom:0}
+.pro-voucher-note{margin:16px 0 0;padding:13px 14px;border-radius:10px;background:var(--surface);color:var(--muted);font-size:12px;line-height:1.55}
+.pro-market-scope{margin:14px 0 0;padding-top:13px;font-size:12px}
+.pro-purchase-panel{position:sticky;top:20px;padding:22px;background:var(--surface-raised)}
+.pro-purchase-price{margin:7px 0 0;font-size:clamp(30px,3.4vw,38px)}
+.pro-purchase-price small{display:block;margin:4px 0 0;font-size:13px}
+.pro-purchase-caption{margin:13px 0 20px;font-size:12px}
+.pro-purchase-button{min-height:48px;margin-top:0;font-size:14px}
+.pro-phone-required p,.pro-current-state p{margin:0 0 14px;color:var(--muted);font-size:12px;line-height:1.5}
+.pro-current-state>strong{display:block;margin-bottom:7px}
+.pro-current-state .pro-purchase-button{display:flex}
+.pro-payment-note{display:block;margin-top:12px;color:var(--muted);font-size:11px;line-height:1.45}
+.pro-purchase-panel>.pro-back-link{margin-top:18px;padding-top:14px;border-top:1px solid var(--line);font-size:12px}
+@media(max-width:780px){.pro-checkout-page{padding-top:24px!important}.pro-checkout-grid{grid-template-columns:1fr;gap:14px}.pro-purchase-panel{position:static;order:-1;padding:19px}.pro-benefits-panel{padding:17px}.pro-checkout-heading{margin-bottom:18px}.pro-comparison-table th,.pro-comparison-table td{padding:12px 7px;font-size:12px}.pro-comparison-table thead th{font-size:10px}.pro-voucher-note{font-size:11px}}
+@media(max-width:390px){.pro-comparison-table th,.pro-comparison-table td{padding-inline:5px;font-size:11px}.pro-comparison-table thead th:first-child{width:42%}.pro-comparison-table thead th:nth-child(2),.pro-comparison-table thead th:nth-child(3){width:29%}}
 @media(max-width:520px){.admin-access-page{min-height:calc(100vh - 110px);padding:24px 16px 60px!important}.admin-access-card{padding:23px}}
 @media(max-width:780px){.pro-checkout-page{padding-top:26px!important}.pro-checkout-heading{margin-bottom:22px}.pro-checkout-grid{grid-template-columns:1fr}.pro-benefits-panel,.pro-purchase-panel{padding:18px}.pro-benefit-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:440px){.pro-benefit-grid{grid-template-columns:1fr}.pro-panel-heading{align-items:flex-start;flex-direction:column}.pro-benefit{min-height:0}.pro-purchase-price{margin-top:18px}}

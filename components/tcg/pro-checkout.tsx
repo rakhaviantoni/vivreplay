@@ -3,20 +3,17 @@
 import Link from 'next/link';
 import {useRouter} from 'next/navigation';
 import {useEffect,useState} from 'react';
-import {CheckIcon as Check,SparkleIcon as Sparkle,StorefrontIcon as Store} from '@phosphor-icons/react';
 import {formatMoney} from '@/packages/domain';
 import {useAccount} from '@/lib/client';
 import {toast} from 'sonner';
 
-type Plan={available:boolean;amount:number|null;durationDays:number|null;maxActiveListings:number;commissionPercent:number;freeCommissionPercent:number;buyerFeePercent:number;freeBuyerFeePercent:number;shippingVouchersPerMonth:number;shippingVoucherMinSubtotal:number;shippingVoucherSharePercent:number;shippingVoucherCap:number;canAutoRenew:boolean;currency:'IDR'};
+type Plan={available:boolean;amount:number|null;durationDays:number|null;maxActiveListings:number;freeMaxActiveListings:number;freeDurationDays:number;commissionPercent:number;freeCommissionPercent:number;buyerFeePercent:number;freeBuyerFeePercent:number;shippingVouchersPerMonth:number;shippingVoucherMinSubtotal:number;shippingVoucherSharePercent:number;shippingVoucherCap:number;canAutoRenew:boolean;freeCanAutoRenew:boolean;currency:'IDR'};
 
 export function ProCheckout(){
   const router=useRouter();
   const {data:account,loading:accountLoading}=useAccount();
   const [planLoading,setPlanLoading]=useState(true);
   const [plan,setPlan]=useState<Plan>();
-  const [name,setName]=useState('');
-  const [phone,setPhone]=useState('');
   const [submitting,setSubmitting]=useState(false);
   const [error,setError]=useState('');
   const [id,setId]=useState(false);
@@ -31,33 +28,52 @@ export function ProCheckout(){
     }).catch(cause=>setError(cause instanceof Error?cause.message:'Market Pro is temporarily unavailable.')).finally(()=>setPlanLoading(false));
   },[]);
 
+  const phone=String(account?.profile?.phone??'').replace(/[\s().-]/g,'');
+  const hasPhone=/^\+?[0-9]{8,16}$/.test(phone);
   const begin=async()=>{
+    if(!hasPhone){router.push('/profile');return;}
     setError('');setSubmitting(true);
     try{
-      const response=await fetch('/api/checkout/pro',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({name:name.trim()||account?.profile.display_name||'',phone})});
+      const response=await fetch('/api/checkout/pro',{method:'POST',headers:{'content-type':'application/json'},body:'{}'});
       const result=await response.json() as {checkoutUrl?:string;error?:string};
-      if(!response.ok||!result.checkoutUrl)throw new Error(result.error==='VivrePlay Pro checkout is not configured yet.'?'Market Pro is temporarily unavailable.':result.error??'Market Pro is temporarily unavailable.');
+      if(!response.ok||!result.checkoutUrl)throw new Error(result.error??'Market Pro is temporarily unavailable.');
       router.push(result.checkoutUrl);
     }catch(cause){const message=cause instanceof Error?cause.message:'Market Pro is temporarily unavailable.';setError(message);toast.error(message)}finally{setSubmitting(false)}
   };
 
   if(accountLoading||planLoading)return <main className="page vivre-checkout-page pro-checkout-page"><div className="checkout-loading"><i/><span>{t('Loading Market Pro…','Memuat Market Pro…')}</span></div></main>;
-  if(!account)return <main className="page vivre-checkout-page pro-checkout-page"><section className="pro-signin-card"><span className="pro-icon"><Store size={20}/></span><p className="eyebrow">VIVREPLAY MARKET</p><h1>Market Pro</h1><p>{t('Sign in to view the plan and continue to checkout.','Masuk untuk melihat paket dan melanjutkan ke pembayaran.')}</p><button className="button" onClick={()=>window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}))}>{t('Sign in','Masuk')}</button></section></main>;
+  if(!account)return <main className="page vivre-checkout-page pro-checkout-page"><section className="pro-signin-card"><p className="eyebrow">MARKET MEMBERSHIP</p><h1>Market Pro</h1><p>{t('Sign in to compare plans and upgrade your account.','Masuk untuk membandingkan paket dan meningkatkan akun.')}</p><button className="button" onClick={()=>window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}))}>{t('Sign in','Masuk')}</button></section></main>;
 
-  const benefits=[
-    {title:t(`${plan?.durationDays??30}-day listing window`,`Listing aktif selama ${plan?.durationDays??30} hari`),detail:t('Keep active listings visible for longer.','Listing tetap tampil lebih lama.'),},
-    {title:t(`Up to ${(plan?.maxActiveListings??2500).toLocaleString()} active listings`,`Hingga ${(plan?.maxActiveListings??2500).toLocaleString()} listing aktif`),detail:t('Manage more of your collection on Market.','Kelola lebih banyak kartu di Market.')},
-    {title:t(`${plan?.commissionPercent??0}% seller fee`,`Biaya penjual ${plan?.commissionPercent??0}%`),detail:t(`Free accounts pay ${plan?.freeCommissionPercent??1.5}% on completed sales.`,`Akun gratis dikenai ${plan?.freeCommissionPercent??1.5}% untuk penjualan yang selesai.`)},
-    {title:t(`${plan?.buyerFeePercent??0.5}% buyer fee`,`Biaya pembeli ${plan?.buyerFeePercent??0.5}%`),detail:t(`Free accounts pay ${plan?.freeBuyerFeePercent??0.75}%. Applies when you buy with this same account.`,`Akun gratis dikenai ${plan?.freeBuyerFeePercent??0.75}%. Berlaku saat Anda membeli dengan akun ini.`)},
-    {title:t(`${plan?.shippingVouchersPerMonth??2} delivery vouchers each month`,`${plan?.shippingVouchersPerMonth??2} voucher ongkir setiap bulan`),detail:t(`Save ${plan?.shippingVoucherSharePercent??50}% of delivery, up to ${formatMoney(plan?.shippingVoucherCap??5000,'IDR')} per order on purchases of ${formatMoney(plan?.shippingVoucherMinSubtotal??200000,'IDR')} or more.`,`Hemat ${plan?.shippingVoucherSharePercent??50}% ongkir, maksimal ${formatMoney(plan?.shippingVoucherCap??5000,'IDR')} per pesanan dengan belanja minimal ${formatMoney(plan?.shippingVoucherMinSubtotal??200000,'IDR')}.`)},
-    {title:plan?.canAutoRenew?t('Automatic listing renewal','Perpanjangan listing otomatis'):t('Manual one-click renewal','Perpanjangan listing sekali klik'),detail:t('Keep eligible listings active without republishing them.','Perpanjang listing yang memenuhi syarat tanpa menerbitkannya ulang.')},
+  const freeLabel=t('Free','Gratis');
+  const proLabel='Pro';
+  const rows=[
+    {label:t('Active listings','Listing aktif'),free:(plan?.freeMaxActiveListings??25).toLocaleString(id?'id-ID':'en-US'),pro:(plan?.maxActiveListings??2500).toLocaleString(id?'id-ID':'en-US')},
+    {label:t('Listing period','Masa listing'),free:`${plan?.freeDurationDays??7} ${t('days','hari')}`,pro:`${plan?.durationDays??30} ${t('days','hari')}`},
+    {label:t('Seller fee','Biaya penjual'),free:`${plan?.freeCommissionPercent??1.5}%`,pro:`${plan?.commissionPercent??0.75}%`},
+    {label:t('Buyer fee','Biaya pembeli'),free:`${plan?.freeBuyerFeePercent??0.75}%`,pro:`${plan?.buyerFeePercent??0.5}%`},
+    {label:t('Shipping vouchers','Voucher ongkir'),free:t('—','—'),pro:`${plan?.shippingVouchersPerMonth??2} ${t('per month','per bulan')}`},
+    {label:t('Listing renewal','Perpanjangan listing'),free:plan?.freeCanAutoRenew?t('Automatic','Otomatis'):t('Manual','Manual'),pro:plan?.canAutoRenew?t('Automatic','Otomatis'):t('Manual','Manual')},
   ];
+  const alreadyPro=String(account.profile.tier??'free').toLowerCase()==='pro';
 
   return <main className="page vivre-checkout-page pro-checkout-page">
-    <header className="pro-checkout-heading"><div className="pro-checkout-mark"><span className="pro-icon"><Store size={20}/></span><span className="pro-badge"><Sparkle size={12}/> PRO</span></div><p className="eyebrow">VIVREPLAY MARKET</p><h1>Market Pro</h1><p>{t('One membership for buying and selling on Market.','Satu keanggotaan untuk membeli dan menjual di Market.')}</p></header>
+    <header className="pro-checkout-heading"><h1>Market Pro</h1><p>{t('Lower fees, more listings, and delivery vouchers for the same account you use to buy and sell.','Biaya lebih rendah, lebih banyak listing, dan voucher ongkir untuk akun yang sama saat membeli maupun menjual.')}</p></header>
     <div className="pro-checkout-grid">
-      <section className="pro-benefits-panel"><div className="pro-panel-heading"><div><span className="eyebrow">{t('BUYER + SELLER BENEFITS','MANFAAT PEMBELI + PENJUAL')}</span><h2>{t('One plan for your Market account','Satu paket untuk akun Market Anda')}</h2></div></div><div className="pro-benefit-grid">{benefits.map(item=><article className="pro-benefit" key={item.title}><span><Check size={14}/></span><div><strong>{item.title}</strong><p>{item.detail}</p></div></article>)}</div><p className="pro-market-scope">{t('One Market Pro membership covers purchases and sales on this account. Vouchers apply automatically at checkout on eligible orders; unused monthly vouchers do not roll over.','Satu keanggotaan Market Pro berlaku untuk pembelian dan penjualan dari akun ini. Voucher otomatis digunakan saat checkout yang memenuhi syarat; voucher yang tidak terpakai tidak dibawa ke bulan berikutnya.')}</p></section>
-      <section className="pro-purchase-panel"><div className="pro-purchase-top"><span>{t('MARKET PRO','MARKET PRO')}</span><Sparkle size={18}/></div>{plan?.available&&plan.amount&&plan.durationDays?<><p className="pro-purchase-price">{formatMoney(plan.amount,'IDR')}<small>/{plan.durationDays} {id?'hari':'days'}</small></p><p className="pro-purchase-caption">{t('Membership starts after successful payment.','Keanggotaan dimulai setelah pembayaran berhasil.')}</p><div className="pro-purchase-fields"><label>{t('Name','Nama')}<input value={name} placeholder={account.profile.display_name??''} onChange={event=>setName(event.target.value)} autoComplete="name"/></label><label>{t('Mobile number','Nomor ponsel')}<input value={phone} onChange={event=>setPhone(event.target.value)} autoComplete="tel" inputMode="tel" placeholder="+62…"/></label></div><button className="button pro-purchase-button" disabled={submitting||!(name.trim()||account.profile.display_name)||phone.replace(/\D/g,'').length<8} onClick={begin}>{submitting?t('Opening checkout…','Membuka pembayaran…'):t('Continue to payment','Lanjut ke pembayaran')}</button></>:<div className="pro-coming-soon"><span className="pro-coming-soon-mark"><Sparkle size={16}/></span><strong>{t('Market Pro is temporarily unavailable','Market Pro sementara tidak tersedia')}</strong><p>{t('Please try again later.','Silakan coba lagi nanti.')}</p></div>}{error&&<p className="checkout-error" role="alert">{error}</p>}<Link href="/market">{t('Back to Market','Kembali ke Market')}</Link></section>
+      <section className="pro-benefits-panel" aria-labelledby="pro-comparison-title">
+        <div className="pro-panel-heading"><div><h2 id="pro-comparison-title">{t('Free vs Pro','Gratis vs Pro')}</h2></div></div>
+        <div className="pro-comparison-wrap"><table className="pro-comparison-table"><thead><tr><th scope="col">{t('Benefit','Manfaat')}</th><th scope="col">{freeLabel}</th><th scope="col">{proLabel}</th></tr></thead><tbody>{rows.map(row=><tr key={row.label}><th scope="row">{row.label}</th><td>{row.free}</td><td>{row.pro}</td></tr>)}</tbody></table></div>
+        <p className="pro-voucher-note">{t(`Each voucher cuts the selected delivery fee by ${plan?.shippingVoucherSharePercent??50}%, up to ${formatMoney(plan?.shippingVoucherCap??5000,'IDR')}, on orders with a card subtotal of ${formatMoney(plan?.shippingVoucherMinSubtotal??200000,'IDR')} or more. With ${plan?.shippingVouchersPerMonth??2} vouchers, the maximum monthly discount is ${formatMoney((plan?.shippingVouchersPerMonth??2)*(plan?.shippingVoucherCap??5000),'IDR')}.`,`Setiap voucher memotong ongkir yang dipilih sebesar ${plan?.shippingVoucherSharePercent??50}%, maksimal ${formatMoney(plan?.shippingVoucherCap??5000,'IDR')}, untuk pesanan dengan subtotal kartu minimal ${formatMoney(plan?.shippingVoucherMinSubtotal??200000,'IDR')}. Dengan ${plan?.shippingVouchersPerMonth??2} voucher, total diskon maksimal per bulan adalah ${formatMoney((plan?.shippingVouchersPerMonth??2)*(plan?.shippingVoucherCap??5000),'IDR')}.`)}</p>
+        <p className="pro-market-scope">{t('One membership covers purchases and sales. Vouchers are used automatically on eligible orders and reset each month.','Satu keanggotaan berlaku untuk pembelian dan penjualan. Voucher digunakan otomatis pada pesanan yang memenuhi syarat dan direset setiap bulan.')}</p>
+      </section>
+      <aside className="pro-purchase-panel" aria-label={t('Market Pro price','Harga Market Pro')}>
+        <p className="pro-purchase-kicker">{t('30-day membership','Keanggotaan 30 hari')}</p>
+        {plan?.available&&plan.amount&&plan.durationDays?<><p className="pro-purchase-price">{formatMoney(plan.amount,'IDR')}<small>/{plan.durationDays} {t('days','hari')}</small></p><p className="pro-purchase-caption">{t('One payment. No automatic renewal.','Satu kali pembayaran. Tidak diperpanjang otomatis.')}</p>
+          {alreadyPro?<div className="pro-current-state"><strong>{t('You already have Pro','Akun Anda sudah Pro')}</strong><p>{t('Manage your account and membership from Profile.','Kelola akun dan keanggotaan melalui Profil.')}</p><Link className="button secondary pro-purchase-button" href="/profile">{t('Open Profile','Buka Profil')}</Link></div>:hasPhone?<button className="button pro-purchase-button" disabled={submitting} onClick={begin}>{submitting?t('Opening payment…','Membuka pembayaran…'):t('Get Market Pro','Dapatkan Market Pro')}</button>:<div className="pro-phone-required"><p>{t('Add a phone number to your profile before paying. iPaymu requires it to create the payment.','Tambahkan nomor telepon di profil sebelum membayar. iPaymu memerlukannya untuk membuat pembayaran.')}</p><Link className="button pro-purchase-button" href="/profile">{t('Add phone number','Tambahkan nomor telepon')}</Link></div>}
+          <small className="pro-payment-note">{t('Payment opens in the secure iPaymu checkout. Pro starts after payment is confirmed.','Pembayaran dibuka melalui checkout iPaymu. Pro aktif setelah pembayaran dikonfirmasi.')}</small>
+        </>:<div className="pro-coming-soon"><strong>{t('Membership checkout is unavailable','Pembayaran keanggotaan tidak tersedia')}</strong><p>{t('Please try again later.','Silakan coba lagi nanti.')}</p></div>}
+        {error&&<p className="checkout-error" role="alert">{error}</p>}
+        <Link className="pro-back-link" href="/market">{t('Back to Market','Kembali ke Market')}</Link>
+      </aside>
     </div>
   </main>;
 }
