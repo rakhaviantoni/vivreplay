@@ -3,14 +3,14 @@ import {sendMarketEmail} from '@/lib/server/market-notifications';
 import {marketCardThumbnails} from '@/lib/server/market-card-thumbnails';
 import {ipaymuExpiryTimestamp} from '@/lib/server/ipaymu';
 
-type OrderRow={id:string;kind:string;buyerId:string;sellerId:string|null;listingId:string|null;items:string;details:string;subtotal:number;shippingFee:number;amount:number;currency:string;paymentId:string|null;status:string;expiresAt:string|null;title:string|null};
+type OrderRow={id:string;kind:string;buyerId:string;sellerId:string|null;listingId:string|null;items:string;details:string;subtotal:number;sellerNetAmount:number|null;shippingFee:number;amount:number;currency:string;paymentId:string|null;status:string;expiresAt:string|null;title:string|null};
 
 export async function GET(_request:Request,{params}:{params:Promise<{id:string}>}){
   try{
     const profile=await user();
     const {id}=await params;
     const database=db();
-    const order=await database.prepare(`SELECT o.id,o.kind,o.buyer_id AS buyerId,o.seller_id AS sellerId,o.listing_id AS listingId,o.items,o.details,o.subtotal,o.shipping_fee AS shippingFee,o.amount,o.currency,o.payment_id AS paymentId,o.status,o.expires_at AS expiresAt,o.shipping_waybill_id AS waybillId,o.shipping_tracking_url AS trackingUrl,l.title FROM checkout_orders o LEFT JOIN listings l ON l.id=o.listing_id WHERE o.id=?`).bind(id).first<OrderRow&{waybillId:string|null;trackingUrl:string|null}>();
+    const order=await database.prepare(`SELECT o.id,o.kind,o.buyer_id AS buyerId,o.seller_id AS sellerId,o.listing_id AS listingId,o.items,o.details,o.subtotal,o.seller_net_amount AS sellerNetAmount,o.shipping_fee AS shippingFee,o.amount,o.currency,o.payment_id AS paymentId,o.status,o.expires_at AS expiresAt,o.shipping_waybill_id AS waybillId,o.shipping_tracking_url AS trackingUrl,l.title FROM checkout_orders o LEFT JOIN listings l ON l.id=o.listing_id WHERE o.id=?`).bind(id).first<OrderRow&{waybillId:string|null;trackingUrl:string|null}>();
     if(!order||(order.buyerId!==profile.id&&order.sellerId!==profile.id))throw new HttpError(404,'Checkout was not found.');
     const viewerRole=order.buyerId===profile.id?'buyer':'seller';
 
@@ -21,12 +21,16 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
     let items:unknown[]=[];let details:Record<string,unknown>={};
     try{items=JSON.parse(order.items) as unknown[]}catch{}
     try{const parsed=JSON.parse(order.details) as unknown;if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))details=parsed as Record<string,unknown>}catch{}
-    if(viewerRole==='seller')details={};
+    const marketFeePercent=typeof details.marketFeePercent==='number'?details.marketFeePercent:order.subtotal>0?Math.max(0,Math.round((order.subtotal-(order.sellerNetAmount??order.subtotal))*10000/order.subtotal)/100):0;
+    const marketSellerTier=details.marketSellerTier==='pro'?'pro':details.marketSellerTier==='free'?'free':null;
+    const marketStandardFeePercent=typeof details.marketStandardFeePercent==='number'?details.marketStandardFeePercent:null;
+    const shippingStatusAllowsAddress=['PAID','SHIPPED','RECEIVED','COMPLETED','FULFILLED','PROCESSING'].includes(order.status);
+    const shipping=viewerRole==='seller'&&shippingStatusAllowsAddress?{recipientName:details.recipientName,addressLine:details.addressLine,city:details.city,postalCode:details.postalCode,phone:details.phone,label:details.shippingLabel,courierName:details.courierName,courierServiceName:details.courierServiceName,waybillId:order.waybillId,trackingUrl:order.trackingUrl}:viewerRole==='buyer'?{courierName:details.courierName,courierServiceName:details.courierServiceName,waybillId:order.waybillId,trackingUrl:order.trackingUrl}:null;
     const printingIds=items.flatMap(item=>item&&typeof item==='object'&&typeof (item as {printingId?:unknown}).printingId==='string'?[(item as {printingId:string}).printingId]:[]);
     const cards=await marketCardThumbnails(printingIds);
     const orderItems=items.map(item=>item&&typeof item==='object'?{...item as Record<string,unknown>,card:cards.get(String((item as {printingId?:unknown}).printingId??''))??null}:item);
     const paymentExpired=details.ipaymuPaymentMethod==='qris'&&ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt)!==null&&ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt)!<=Date.now();
-    return Response.json({id:order.id,kind:order.kind,status:order.status,viewerRole,title:order.title??'VivrePlay Market Pro',items:orderItems,details,waybillId:order.waybillId,trackingUrl:order.trackingUrl,checkoutUrl:viewerRole==='buyer'&&!paymentExpired&&typeof details.ipaymuCheckoutUrl==='string'?details.ipaymuCheckoutUrl:null,paymentMethod:viewerRole==='buyer'?details.ipaymuPaymentMethod??null:null,paymentMode:details.ipaymuMode??(process.env.IPAYMU_MODE==='sandbox'?'sandbox':'production'),paymentFee:viewerRole==='buyer'&&typeof details.ipaymuPaymentFee==='number'?details.ipaymuPaymentFee:null,paymentExpiresAt:viewerRole==='buyer'&&typeof details.ipaymuPaymentExpiresAt==='string'?details.ipaymuPaymentExpiresAt:null,paymentQrImage:viewerRole==='buyer'&&!paymentExpired&&typeof details.ipaymuPaymentQrImage==='string'?details.ipaymuPaymentQrImage:null,paymentQrString:viewerRole==='buyer'&&!paymentExpired&&typeof details.ipaymuPaymentQrString==='string'?details.ipaymuPaymentQrString:null,subtotal:order.subtotal,shippingFee:order.shippingFee,amount:order.amount,currency:order.currency,expiresAt:order.expiresAt});
+    return Response.json({id:order.id,kind:order.kind,status:order.status,viewerRole,title:order.title??'VivrePlay Market Pro',items:orderItems,details:{},shipping,sellerNetAmount:order.sellerNetAmount,marketFeePercent,marketSellerTier,marketStandardFeePercent,waybillId:order.waybillId,trackingUrl:order.trackingUrl,checkoutUrl:viewerRole==='buyer'&&!paymentExpired&&typeof details.ipaymuCheckoutUrl==='string'?details.ipaymuCheckoutUrl:null,paymentMethod:viewerRole==='buyer'?details.ipaymuPaymentMethod??null:null,paymentMode:details.ipaymuMode??(process.env.IPAYMU_MODE==='sandbox'?'sandbox':'production'),paymentFee:viewerRole==='buyer'&&typeof details.ipaymuPaymentFee==='number'?details.ipaymuPaymentFee:null,paymentExpiresAt:viewerRole==='buyer'&&typeof details.ipaymuPaymentExpiresAt==='string'?details.ipaymuPaymentExpiresAt:null,paymentQrImage:viewerRole==='buyer'&&!paymentExpired&&typeof details.ipaymuPaymentQrImage==='string'?details.ipaymuPaymentQrImage:null,paymentQrString:viewerRole==='buyer'&&!paymentExpired&&typeof details.ipaymuPaymentQrString==='string'?details.ipaymuPaymentQrString:null,subtotal:order.subtotal,shippingFee:order.shippingFee,amount:order.amount,currency:order.currency,expiresAt:order.expiresAt});
   }catch(error){return errorResponse(error)}
 }
 
