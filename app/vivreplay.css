@@ -3413,6 +3413,7 @@ html[data-theme='dark'] .market-listing-status.is-buying{color:#e6b65e!important
 .checkout-waiting-state .checkout-payment-lines h3{margin:0 0 3px;font-size:15px}
 .checkout-waiting-state .checkout-grand-total{grid-column:1/-1;margin-top:0}
 .checkout-waiting-state>.button{width:max-content;min-height:46px;margin-top:16px;padding-inline:20px}
+.checkout-cancel-area{display:grid;gap:8px;max-width:560px;margin-top:16px;padding:13px 15px;border:1px solid var(--line,#dfd1b8);border-radius:9px;background:var(--surface-raised,#f8f3e9)}.checkout-cancel-area p{margin:0;color:var(--muted,#716a5e);font-size:13px;line-height:1.45}.checkout-cancel-area>div{display:flex;flex-wrap:wrap;gap:8px}.checkout-cancel-area .button{min-height:42px}.checkout-cancel-confirm{border-color:color-mix(in srgb,#b54a3a 38%,var(--line,#dfd1b8))!important;color:#a53c30!important}
 .checkout-order-card-line>div{text-align:left}
 .checkout-payment-panel{padding:clamp(20px,3vw,32px)}
 .checkout-payment-panel .checkout-provider-copy{max-width:58ch;margin:8px 0 18px;color:var(--muted,#716a5e);line-height:1.5}
@@ -3457,6 +3458,7 @@ html[data-theme='dark'] .market-listing-status.is-buying{color:#e6b65e!important
   .checkout-waiting-state .checkout-payment-lines h3{font-size:14px}
   .checkout-waiting-state .checkout-grand-total{grid-column:auto;margin-top:0}
   .checkout-waiting-state>.button{width:100%;min-height:44px;margin-top:12px}
+  .checkout-cancel-area{max-width:none;margin-top:12px;padding:12px}.checkout-cancel-area>div{display:grid;grid-template-columns:1fr}.checkout-cancel-area .button{width:100%;min-height:44px}
 }
 @media(max-width:780px){
   .checkout-waiting-state .checkout-order-breakdown{grid-template-columns:minmax(0,1fr)!important;width:100%;}

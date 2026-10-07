@@ -77,6 +77,7 @@ html[data-theme='dark'] .market-account-menu [data-slot='dropdown-menu-separator
 .market-activity-panel .market-order-summary .market-activity-row-title{justify-content:flex-start;width:100%;margin-inline:0;text-align:left}
 .market-order-row{transition:background-color .16s ease,border-color .16s ease,box-shadow .16s ease,transform .16s ease}
 .market-order-details{animation:market-order-detail-in .18s ease-out both}
+.market-order-cancel-confirm{grid-column:1/-1;display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;padding:13px 14px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}.market-order-cancel-confirm>span,.market-order-cancel-note{min-width:0;flex:1 1 220px;color:var(--muted);font-size:11px;line-height:1.45}.market-order-detail-actions .market-order-cancel{margin-left:auto}.market-order-cancel-confirm .button{min-height:38px;padding-inline:12px}.market-order-cancel-confirm-action{border-color:color-mix(in srgb,#b54a3a 38%,var(--line))!important;color:#a53c30!important}
 @keyframes market-order-detail-in{from{opacity:.65;transform:translateY(-3px)}to{opacity:1;transform:translateY(0)}}
 .market-order-qris{grid-column:1/-1;display:flex;align-items:center;gap:14px;padding:12px;border:1px solid color-mix(in srgb,var(--accent) 25%,var(--line));border-radius:9px;background:color-mix(in srgb,var(--accent) 4%,var(--surface-raised))}
 .market-order-qris-code{display:grid;width:112px;height:112px;flex:none;place-items:center;padding:7px;border:1px solid var(--line);border-radius:7px;background:#fff}
@@ -133,6 +134,10 @@ html[data-theme='dark'] .market-account-menu [data-slot='dropdown-menu-separator
   .market-order-shipping-detail p{overflow-wrap:anywhere}
   .market-order-detail-actions{align-items:stretch}
   .market-order-detail-actions .button{flex:1 1 145px;min-height:42px}
+  .market-order-detail-actions .market-order-cancel{margin-left:0}
+  .market-order-cancel-confirm{align-items:stretch;flex-direction:column;gap:9px;padding:12px}
+  .market-order-cancel-confirm>span{flex:auto}
+  .market-order-cancel-confirm .button{width:100%;min-height:44px}
   .market-order-qris{flex-wrap:wrap}
   .market-order-qris-copy{flex:1 1 150px}
 }

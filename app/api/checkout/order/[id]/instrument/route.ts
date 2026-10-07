@@ -70,9 +70,20 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     if(total!==order.amount)throw new HttpError(409,'This order needs to be refreshed before payment.');
     const name=typeof details.customerName==='string'?details.customerName:typeof details.recipientName==='string'?details.recipientName:profile.display_name||'VivrePlay customer';
     const phone=typeof details.customerPhone==='string'?details.customerPhone:typeof details.phone==='string'?details.phone:'';
-    const payment: {url?:string;sessionId?:string;transactionId?:string;qrImage?:string;qrString?:string|null;fee?:number|null;expiresAt?:string|null}=order.kind==='MARKET'
-      ?await createIpaymuQris({orderId:order.id,amount:order.amount,buyer:{name,email:account.email,phone},returnUrl:`${origin}/checkout/order/${encodeURIComponent(order.id)}`,notifyUrl})
-      :await createIpaymuRedirect({orderId:order.id,products:productLines,buyer:{name,email:account.email,phone},returnUrl:`${origin}/checkout/order/${encodeURIComponent(order.id)}`,cancelUrl:`${origin}/checkout/order/${encodeURIComponent(order.id)}?payment=cancelled`,notifyUrl});
+    const paymentClaim=order.kind==='MARKET'?`CREATING:${crypto.randomUUID()}`:null;
+    if(paymentClaim){
+      const claimed=await database.prepare("UPDATE checkout_orders SET payment_id=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id IS NULL").bind(paymentClaim,id).run();
+      if(!claimed.meta.changes)throw new HttpError(409,'This order is already being paid or has changed. Refresh to check its status.');
+    }
+    let payment: {url?:string;sessionId?:string;transactionId?:string;qrImage?:string;qrString?:string|null;fee?:number|null;expiresAt?:string|null};
+    try{
+      payment=order.kind==='MARKET'
+        ?await createIpaymuQris({orderId:order.id,amount:order.amount,buyer:{name,email:account.email,phone},returnUrl:`${origin}/checkout/order/${encodeURIComponent(order.id)}`,notifyUrl})
+        :await createIpaymuRedirect({orderId:order.id,products:productLines,buyer:{name,email:account.email,phone},returnUrl:`${origin}/checkout/order/${encodeURIComponent(order.id)}`,cancelUrl:`${origin}/checkout/order/${encodeURIComponent(order.id)}?payment=cancelled`,notifyUrl});
+    }catch(error){
+      if(paymentClaim)await database.prepare("UPDATE checkout_orders SET payment_id=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id=?").bind(id,paymentClaim).run();
+      throw error;
+    }
     details.ipaymuPaymentMethod=order.kind==='MARKET'?'qris':'hosted';
     if(order.kind==='MARKET'){
       details.ipaymuPaymentQrImage=payment.qrImage;
@@ -87,8 +98,8 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     }
     details.ipaymuMode=process.env.IPAYMU_MODE==='sandbox'?'sandbox':'production';
     const paymentId=payment.sessionId;
-    if(!paymentId)throw new HttpError(502,'The payment provider returned an incomplete payment session.');
-    const updated=await database.prepare("UPDATE checkout_orders SET payment_id=?,details=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id IS NULL").bind(paymentId,JSON.stringify(details),id).run();
+    if(!paymentId){if(paymentClaim)await database.prepare("UPDATE checkout_orders SET payment_id=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id=?").bind(id,paymentClaim).run();throw new HttpError(502,'The payment provider returned an incomplete payment session.');}
+    const updated=await database.prepare("UPDATE checkout_orders SET payment_id=?,details=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id IS ?").bind(paymentId,JSON.stringify(details),id,paymentClaim).run();
     if(!updated.meta.changes){
       const latest=await database.prepare('SELECT payment_id AS paymentId,details FROM checkout_orders WHERE id=?').bind(id).first<{paymentId:string|null;details:string}>();
       let latestDetails:Record<string,unknown>={};try{latestDetails=JSON.parse(latest?.details??'{}') as Record<string,unknown>}catch{}
