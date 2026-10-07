@@ -3,7 +3,7 @@ import {biteshipApiKey,biteshipRates,validCoordinates} from './biteship';
 
 type Rate={courier_code:string;courier_service_code:string;price:number;courier_name:string;courier_service_name:string;company:string;type:string;[key:string]:unknown};
 type Quote={pricing:Rate[];cacheMiss?:boolean;regularExpiresAt?:number;instantExpiresAt?:number};
-const REGULAR_RATE_TTL_MS=7*24*60*60_000;
+const REGULAR_RATE_TTL_MS=365*24*60*60_000;
 const INSTANT_RATE_TTL_MS=3*60_000;
 const isInstant=(code:string)=>['grab','gojek'].includes(code);
 function freshRates(quote:Quote,now:number){return quote.pricing.filter(rate=>((isInstant(rate.courier_code)?quote.instantExpiresAt:quote.regularExpiresAt)??0)>now);}
