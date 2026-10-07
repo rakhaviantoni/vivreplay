@@ -19,6 +19,36 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
     try{const parsed=JSON.parse(order.details) as unknown;if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))details=parsed as Record<string,unknown>}catch{}
     const paymentExpiry=details.ipaymuPaymentMethod==='qris'?ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt,details.ipaymuPaymentCreatedAt,order.updatedAt):null;
     const paymentExpiresAt=paymentExpiry===null?null:new Date(paymentExpiry).toISOString();
+    // Earlier versions closed QRIS orders after the image's five-minute window.
+    // Restore one of those orders only while iPaymu's transaction deadline is
+    // still ahead and the original listing can safely cover every reserved copy.
+    if(order.status==='EXPIRED'&&order.kind==='MARKET'&&order.paymentId&&paymentExpiry!==null&&paymentExpiry>Date.now()){
+      const deadline=new Date(paymentExpiry).toISOString().slice(0,19).replace('T',' ');
+      const reopened=await database.prepare(`UPDATE checkout_orders SET status='PENDING_PAYMENT',expires_at=?,updated_at=CURRENT_TIMESTAMP
+        WHERE id=? AND kind='MARKET' AND status='EXPIRED' AND payment_id IS NOT NULL
+        AND EXISTS(
+          SELECT 1 FROM listings l WHERE l.id=checkout_orders.listing_id AND l.status='ACTIVE'
+            AND (l.expires_at IS NULL OR l.expires_at>CURRENT_TIMESTAMP)
+            AND NOT EXISTS(
+              SELECT 1 FROM json_each(checkout_orders.items) mine
+              WHERE CAST(json_extract(mine.value,'$.quantity') AS INTEGER)<1
+                OR CAST(json_extract(mine.value,'$.quantity') AS INTEGER)+COALESCE((
+                  SELECT SUM(CAST(json_extract(theirs.value,'$.quantity') AS INTEGER))
+                  FROM checkout_orders other,json_each(other.items) theirs
+                  WHERE other.id<>checkout_orders.id AND other.listing_id=checkout_orders.listing_id AND other.kind='MARKET'
+                    AND (other.status='PROCESSING' OR (other.status='PENDING_PAYMENT' AND other.expires_at>CURRENT_TIMESTAMP))
+                    AND ((json_extract(mine.value,'$.instanceId') IS NOT NULL AND json_extract(theirs.value,'$.instanceId')=json_extract(mine.value,'$.instanceId'))
+                      OR (json_extract(mine.value,'$.instanceId') IS NULL AND json_extract(theirs.value,'$.instanceId') IS NULL AND json_extract(theirs.value,'$.printingId')=json_extract(mine.value,'$.printingId')))
+                ),0)>COALESCE((
+                  SELECT CAST(json_extract(stock.value,'$.quantity') AS INTEGER) FROM json_each(l.items) stock
+                  WHERE ((json_extract(mine.value,'$.instanceId') IS NOT NULL AND json_extract(stock.value,'$.instanceId')=json_extract(mine.value,'$.instanceId'))
+                    OR (json_extract(mine.value,'$.instanceId') IS NULL AND json_extract(stock.value,'$.instanceId') IS NULL AND json_extract(stock.value,'$.printingId')=json_extract(mine.value,'$.printingId')))
+                  LIMIT 1
+                ),l.quantity)
+            )
+        )`).bind(deadline,id).run();
+      if(reopened.meta.changes)order.status='PENDING_PAYMENT';
+    }
     let effectiveExpiry=paymentExpiresAt??order.expiresAt;
     if(order.status==='PENDING_PAYMENT'&&paymentExpiresAt){
       const providerExpirySql=new Date(paymentExpiry!).toISOString().slice(0,19).replace('T',' ');
@@ -46,7 +76,7 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
     const printingIds=items.flatMap(item=>item&&typeof item==='object'&&typeof (item as {printingId?:unknown}).printingId==='string'?[(item as {printingId:string}).printingId]:[]);
     const cards=await marketCardThumbnails(printingIds);
     const orderItems=items.map(item=>item&&typeof item==='object'?{...item as Record<string,unknown>,card:cards.get(String((item as {printingId?:unknown}).printingId??''))??null}:item);
-    const paymentExpired=details.ipaymuPaymentMethod==='qris'&&(paymentExpiry===null||paymentExpiry<=Date.now());
+    const paymentExpired=details.ipaymuPaymentMethod==='qris'&&(order.status!=='PENDING_PAYMENT'||paymentExpiry===null||paymentExpiry<=Date.now());
     const paymentMode=details.ipaymuMode??process.env.IPAYMU_MODE;
     const paymentQrSource=viewerRole==='buyer'&&details.ipaymuPaymentMethod==='qris'&&!paymentExpired?ipaymuQrImageUrl(details.ipaymuPaymentQrImage,paymentMode):null;
     // iPaymu serves this QR as an image URL. Use it directly so browser refreshes
