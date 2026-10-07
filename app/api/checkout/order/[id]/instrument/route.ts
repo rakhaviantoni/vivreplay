@@ -27,7 +27,7 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     const existingQrUrl=ipaymuQrImageUrl(existingQrImage,details.ipaymuMode);
     if(order.paymentId&&existingQrImage&&details.ipaymuPaymentMethod==='qris'&&ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt)!==null&&ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt)!>Date.now()){
       if(!existingQrUrl)throw new HttpError(502,'The payment provider returned an invalid QR code address.');
-      return Response.json({paymentMethod:'qris',qrImage:existingQrUrl,qrString:details.ipaymuPaymentQrString??null,paymentFee:details.ipaymuPaymentFee??null,expiresAt:details.ipaymuPaymentExpiresAt,reused:true});
+      return Response.json({paymentMethod:'qris',qrImage:`/api/checkout/order/${encodeURIComponent(order.id)}/qris`,qrString:details.ipaymuPaymentQrString??null,paymentFee:details.ipaymuPaymentFee??null,expiresAt:details.ipaymuPaymentExpiresAt,reused:true});
     }
     if(order.paymentId&&existingUrl&&details.ipaymuPaymentMethod!=='qris')return Response.json({checkoutUrl:existingUrl,paymentMethod:details.ipaymuPaymentMethod??'hosted',expiresAt:null,reused:true});
     if(order.paymentId&&details.ipaymuPaymentMethod==='qris'&&ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt)!==null&&ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt)!<=Date.now()){
@@ -80,11 +80,11 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
       if(latest?.paymentId&&typeof latestDetails.ipaymuPaymentQrImage==='string'){
         const latestQrUrl=ipaymuQrImageUrl(latestDetails.ipaymuPaymentQrImage,latestDetails.ipaymuMode);
         if(!latestQrUrl)throw new HttpError(502,'The payment provider returned an invalid QR code address.');
-        return Response.json({paymentMethod:'qris',qrImage:latestQrUrl,qrString:latestDetails.ipaymuPaymentQrString??null,paymentFee:latestDetails.ipaymuPaymentFee??null,expiresAt:latestDetails.ipaymuPaymentExpiresAt??null,reused:true});
+        return Response.json({paymentMethod:'qris',qrImage:`/api/checkout/order/${encodeURIComponent(order.id)}/qris`,qrString:latestDetails.ipaymuPaymentQrString??null,paymentFee:latestDetails.ipaymuPaymentFee??null,expiresAt:latestDetails.ipaymuPaymentExpiresAt??null,reused:true});
       }
       if(latest?.paymentId&&typeof latestDetails.ipaymuCheckoutUrl==='string')return Response.json({checkoutUrl:latestDetails.ipaymuCheckoutUrl,paymentMethod:latestDetails.ipaymuPaymentMethod??'hosted',expiresAt:latestDetails.ipaymuPaymentExpiresAt??null,reused:true});
       throw new HttpError(409,'This checkout has already been updated. Refresh the page.');
     }
-    return Response.json(order.kind==='MARKET'?{paymentMethod:'qris',qrImage:payment.qrImage,qrString:payment.qrString,paymentFee:payment.fee,expiresAt:payment.expiresAt,reused:false}:{checkoutUrl:payment.url,paymentMethod:'hosted',expiresAt:null,reused:false});
+    return Response.json(order.kind==='MARKET'?{paymentMethod:'qris',qrImage:`/api/checkout/order/${encodeURIComponent(order.id)}/qris`,qrString:payment.qrString,paymentFee:payment.fee,expiresAt:payment.expiresAt,reused:false}:{checkoutUrl:payment.url,paymentMethod:'hosted',expiresAt:null,reused:false});
   }catch(error){return errorResponse(error)}
 }

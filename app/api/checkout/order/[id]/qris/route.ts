@@ -1,7 +1,7 @@
 import {db,errorResponse,user,HttpError} from '@/lib/server/store';
 import {ipaymuExpiryTimestamp,ipaymuQrImageUrl} from '@/lib/server/ipaymu';
 
-export async function GET(_request:Request,{params}:{params:Promise<{id:string}>}){
+export async function GET(request:Request,{params}:{params:Promise<{id:string}>}){
   try{
     const profile=await user();
     const {id}=await params;
@@ -14,6 +14,15 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
     if(details.ipaymuPaymentMethod!=='qris'||typeof source!=='string'||ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt)===null||ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt)!<=Date.now())throw new HttpError(404,'This payment code has expired.');
     const target=ipaymuQrImageUrl(source,details.ipaymuMode);
     if(!target)throw new HttpError(502,'The payment provider returned an invalid QR code address.');
-    return new Response(null,{status:302,headers:{Location:target,'Cache-Control':'private, no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff'}});
+    if(new URL(request.url).searchParams.get('open')==='1')return new Response(null,{status:302,headers:{Location:target,'Cache-Control':'private, no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff'}});
+    const upstream=await fetch(target,{cache:'no-store',redirect:'follow',headers:{Accept:'image/avif,image/webp,image/png,image/jpeg,image/*;q=0.9,*/*;q=0.1',Referer:`${new URL(target).origin}/`}});
+    const finalUrl=new URL(upstream.url||target);
+    const trustedHost=finalUrl.hostname==='ipaymu.com'||finalUrl.hostname.endsWith('.ipaymu.com')||finalUrl.hostname==='storage.googleapis.com';
+    if(!upstream.ok||!trustedHost)throw new HttpError(502,'The payment code could not be loaded.');
+    const contentType=upstream.headers.get('content-type')?.split(';')[0].trim().toLowerCase()??'';
+    if(!contentType.startsWith('image/'))throw new HttpError(502,'The payment code could not be loaded.');
+    const body=await upstream.arrayBuffer();
+    if(!body.byteLength||body.byteLength>1_500_000)throw new HttpError(502,'The payment code could not be loaded.');
+    return new Response(body,{status:200,headers:{'Content-Type':contentType,'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'}});
   }catch(error){return errorResponse(error)}
 }
