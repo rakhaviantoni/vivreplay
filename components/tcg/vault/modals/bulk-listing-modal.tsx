@@ -6,6 +6,7 @@ import {toast} from 'sonner';
 import type {VaultStackGroup} from '../types';
 import {CardArt} from '../../card-art';
 import {MarketPriceMode} from '../../market-price-mode';
+import {ShareButton,type ShareCardItem} from '../../share';
 
 export function BulkListingModal({open,onClose,stacks,onPublished,language}:{open:boolean;onClose:()=>void;stacks:VaultStackGroup[];onPublished:()=>Promise<void>|void;language:'EN'|'ID'}){
   const id=language==='ID';
@@ -16,13 +17,14 @@ export function BulkListingModal({open,onClose,stacks,onPublished,language}:{ope
   const [negotiable,setNegotiable]=useState(true);
   const [error,setError]=useState('');
   const [busy,setBusy]=useState(false);
+  const [published,setPublished]=useState<{id:string;title:string;amount:number;cards:ShareCardItem[]}|null>(null);
   const choices=useMemo(()=>stacks.filter(stack=>stack.item.type==='RAW'&&stack.items.some(copy=>copy.quantity-(copy.listedQuantity??0)>0)),[stacks]);
   const chosen=choices.filter(stack=>selected.has(stack.item.id));
   const quantity=chosen.reduce((sum,stack)=>sum+stack.items.reduce((n,copy)=>n+Math.max(0,copy.quantity-(copy.listedQuantity??0)),0),0);
   const lineQuantity=(stack:VaultStackGroup)=>stack.items.reduce((sum,copy)=>sum+Math.max(0,copy.quantity-(copy.listedQuantity??0)),0);
   const totalAmount=chosen.reduce((sum,stack)=>sum+(Number(prices[stack.item.id])||0)*lineQuantity(stack),0);
-  useEffect(()=>{if(!open)return;setSelected(new Set());setPrices({});setTitle('');setError('');setNegotiable(true);void fetch('/api/shipping/origin').then(response=>response.json() as Promise<{origin?:{city?:string}|null}>).then(data=>{if(data.origin?.city)setCity(data.origin.city)}).catch(()=>{})},[open]);
-  if(!open)return null;
+  useEffect(()=>{if(!open)return;void fetch('/api/shipping/origin').then(response=>response.json() as Promise<{origin?:{city?:string}|null}>).then(data=>{if(data.origin?.city)setCity(data.origin.city)}).catch(()=>{})},[open]);
+  if(!open&&!published)return null;
   const toggle=(stack:VaultStackGroup)=>{setSelected(previous=>{const next=new Set(previous);if(next.has(stack.item.id))next.delete(stack.item.id);else next.add(stack.item.id);if(!title&&next.size===1)setTitle(stack.item.card.name);return next});setPrices(previous=>({...previous,[stack.item.id]:previous[stack.item.id]??String(Math.round((stack.estimatedValue||0)/Math.max(1,stack.quantity))||'')}))};
   const submit=async(event:React.FormEvent)=>{
     event.preventDefault();setError('');
@@ -36,9 +38,11 @@ export function BulkListingModal({open,onClose,stacks,onPublished,language}:{ope
       const bundle=chosen.flatMap(stack=>stack.items.filter(copy=>copy.quantity-(copy.listedQuantity??0)>0).map(copy=>({instanceId:copy.id,printingId:copy.printingId,quantity:copy.quantity-(copy.listedQuantity??0),condition:copy.condition,unitAmount:Number(prices[stack.item.id])})));
       const response=await fetch('/api/listings',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({instanceId:bundle[0].instanceId,title:title.trim(),amount:totalAmount,quantity,city:city.trim(),type:'WTS',negotiable,items:bundle})});
       const result=await response.json() as {error?:string;id?:string};if(!response.ok)throw new Error(result.error||'Listing could not be published.');
-      toast.success(id?'Bundle listing dipublikasikan':'Bundle listing published',result.id?{action:{label:id?'Lihat listing':'View listing',onClick:()=>window.location.assign(`/market/${encodeURIComponent(result.id!)}`)}}:undefined);await onPublished();onClose();
+      await onPublished();
+      if(result.id){setPublished({id:result.id,title:title.trim(),amount:totalAmount,cards:chosen.map(stack=>({card:stack.item.card,quantity:lineQuantity(stack),condition:stack.items[0]?.condition,unitAmount:Number(prices[stack.item.id])}))});toast.success(id?'Listing berhasil dipublikasikan':'Listing published');}
     }catch(cause){setError(cause instanceof Error?cause.message:'Listing could not be published.')}
   };
+  if(published)return <div className="vault-modal-overlay" role="presentation"><section className="vault-bulk-listing-modal" role="dialog" aria-modal="true" aria-labelledby="bulk-listing-published-title"><header><div><span className="vault-modal-eyebrow">MARKET</span><h2 id="bulk-listing-published-title">{id?'Listing sudah tayang':'Your listing is live'}</h2><p>{id?'Bagikan listing agar kolektor lain dapat menemukannya.':'Share the listing so other collectors can find it.'}</p></div><button type="button" className="vault-icon-btn" onClick={()=>{setPublished(null);onClose()}} aria-label={id?'Tutup':'Close'}><Close size={20}/></button></header><div className="vault-bulk-listing-summary"><span>{published.title}</span><strong>Rp {published.amount.toLocaleString('id-ID')}</strong></div><div className="vault-bulk-listing-fields"><a className="vault-btn vault-btn-primary" href={`/market/${encodeURIComponent(published.id)}`}>{id?'Lihat listing':'View listing'}</a><button className="vault-btn vault-btn-secondary" type="button" onClick={()=>{setPublished(null);onClose()}}>{id?'Selesai':'Done'}</button></div><ShareButton title={published.title} path={`/market/${encodeURIComponent(published.id)}`} cards={published.cards} subtitle={id?`${published.cards.reduce((sum,item)=>sum+(item.quantity??1),0)} kartu`:`${published.cards.reduce((sum,item)=>sum+(item.quantity??1),0)} cards`} price={`Rp ${published.amount.toLocaleString('id-ID')}`} openOnMount hideTrigger/></section></div>;
   return <div className="vault-modal-overlay" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget&&!busy)onClose()}}><section className="vault-bulk-listing-modal" role="dialog" aria-modal="true" aria-labelledby="bulk-listing-title">
     <header><div><span className="vault-modal-eyebrow">{id?'MARKET':'MARKET'}</span><h2 id="bulk-listing-title">{id?'Buat satu listing bundle':'Create one bundle listing'}</h2><p>{id?'Pilih kartu koleksi yang tersedia untuk digabungkan dalam satu halaman listing.':'Select available Vault cards to publish together on one listing page.'}</p></div><button type="button" className="vault-icon-btn" onClick={onClose} disabled={busy} aria-label={id?'Tutup':'Close'}><Close size={20}/></button></header>
     <form onSubmit={submit}>

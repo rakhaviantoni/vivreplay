@@ -2729,6 +2729,7 @@ html[data-theme='dark'] .player-intro-meta{color:#a4bcc7!important}
 .checkout-instrument>strong{font-size:21px;letter-spacing:.05em}
 .checkout-instrument>small,.checkout-expiry{color:var(--muted,#716a5e);font-size:11px}
 .checkout-order-summary .checkout-payment-lines{display:grid;gap:10px;margin:16px 0}
+.checkout-order-cards{display:grid;gap:10px;margin-bottom:16px}.checkout-order-card-line{display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:center;gap:10px;min-width:0}.checkout-order-card-line>img,.checkout-order-card-placeholder{display:block;width:42px;height:58px;object-fit:cover;border:1px solid var(--line);border-radius:5px;background:var(--surface)}.checkout-order-card-line>div{display:grid;gap:3px;min-width:0}.checkout-order-card-line strong{overflow:hidden;color:var(--ink);font-size:12px;text-overflow:ellipsis;white-space:nowrap}.checkout-order-card-line small{color:var(--muted);font-size:10px}.checkout-order-card-line>b{font-size:11px;white-space:nowrap}.checkout-fee-note{display:block;margin-top:8px;color:var(--muted);font-size:10px}
 .checkout-payment-lines>div{display:flex;justify-content:space-between;gap:12px;font-size:12px}
 .checkout-order-summary>.checkout-grand-total{margin-top:16px}
 @media(max-width:780px){.vivre-checkout-page{padding:24px 16px 80px!important}.checkout-layout,.checkout-pro-layout{grid-template-columns:1fr}.checkout-page-heading{align-items:flex-start;flex-direction:column;gap:12px}.checkout-panel{padding:17px}.checkout-quote-row{align-items:flex-start;flex-direction:column}}

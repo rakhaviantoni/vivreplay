@@ -46,6 +46,7 @@ import {ListingsTab} from './vault/tabs/listings-tab';
 import {OffersTab} from './vault/tabs/offers-tab';
 import {OrdersTab} from './vault/tabs/orders-tab';
 import {MarketPriceMode} from './market-price-mode';
+import {ShareButton} from './share';
 import {BulkListingModal} from './vault/modals/bulk-listing-modal';
 import {enrichCollectionItem,groupVaultStacks} from './vault/vault-utils';
 import {isPlayableSet} from '@/packages/domain/release-availability';
@@ -65,6 +66,7 @@ type ListingBundleCard={
   unitAmount:number;
   availableQuantity:number;
 };
+type PublishedShare={id:string;title:string;price:number;cards:ListingBundleCard[]};
 function printingToCard(baseCard:Card,p:CardPrintingItem):Card{
   return {
     ...baseCard,
@@ -399,6 +401,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
   const profileId=String(data?.profile?.id??'');
   // Bundle & Card Listing Draft State
   const [bundleCards,setBundleCards]=useState<ListingBundleCard[]>([]);
+  const [publishedShare,setPublishedShare]=useState<PublishedShare|null>(null);
   const [configuringCard,setConfiguringCard]=useState<MarketCard|null>(null);
   const [cardPrintings,setCardPrintings]=useState<CardPrintingItem[]>([]);
   const [selectedPrintingId,setSelectedPrintingId]=useState<string>('');
@@ -786,8 +789,11 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
       await refresh();
       await refreshAccount();
       setOpen(false);
-      setBundleCards([]);
-      toast.success(locale==='ID'?'Listing berhasil dipublikasikan':'Listing published',result.id?{action:{label:locale==='ID'?'Lihat listing':'View listing',onClick:()=>window.location.assign(`/market/${encodeURIComponent(result.id!)}`)}}:undefined);
+      if(result.id){
+        setPublishedShare({id:result.id,title:listingTitle||primary.card.name,price:Number(listingPrice),cards:[...bundleCards]});
+        setBundleCards([]);
+        toast.success(locale==='ID'?'Listing berhasil dipublikasikan':'Listing published');
+      }
     }catch(cause){
       setSaveError((cause as Error).message);
     }finally{
@@ -1513,7 +1519,8 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
           </div>
         </DialogContent>
       </Dialog>
-      <BulkListingModal open={bulkListingOpen} onClose={()=>setBulkListingOpen(false)} language={locale} stacks={groupVaultStacks((data?.collection??[]).map(item=>enrichCollectionItem(item,new Set())))} onPublished={async()=>{await refresh();await refreshAccount()}}/>
+      {bulkListingOpen&&<BulkListingModal open={bulkListingOpen} onClose={()=>setBulkListingOpen(false)} language={locale} stacks={groupVaultStacks((data?.collection??[]).map(item=>enrichCollectionItem(item,new Set())))} onPublished={async()=>{await refresh();await refreshAccount()}}/>}
+      {publishedShare&&<ShareButton title={publishedShare.title} path={`/market/${encodeURIComponent(publishedShare.id)}`} cards={publishedShare.cards.map(item=>({card:printingToCard(item.card,item.printing),quantity:item.quantity,condition:item.condition,unitAmount:item.unitAmount}))} subtitle={locale==='ID'?`${publishedShare.cards.reduce((sum,item)=>sum+item.quantity,0)} kartu untuk dijual`:`${publishedShare.cards.reduce((sum,item)=>sum+item.quantity,0)} cards for sale`} price={formatMoney(publishedShare.price,'IDR')} openOnMount hideTrigger onOpenChange={open=>{if(!open)setPublishedShare(null)}}/>}
       {data&&<Dialog open={Boolean(accountPanel)} onOpenChange={open=>{if(!open)setAccountPanel(null)}}><DialogContent className="market-account-dialog"><div className="market-account-dialog-heading"><DialogTitle>{accountPanel==='saved'?(locale==='ID'?'Listing tersimpan':'Saved listings'):accountPanel==='orders'?(locale==='ID'?'Pesanan Market':'Market orders'):accountPanel==='offers'?(locale==='ID'?'Penawaran':'Offers'):(locale==='ID'?'Listing saya':'My listings')}</DialogTitle></div><div className="market-account-dialog-tabs" role="tablist" aria-label={locale==='ID'?'Aktivitas Market':'Market activity'}><button type="button" role="tab" aria-selected={accountPanel==='listings'} className={accountPanel==='listings'?'is-active':''} onClick={()=>setAccountPanel('listings')}>{locale==='ID'?'Listing':'Listings'}{activityCounts.listings>0&&<span className="market-activity-badge">{activityCounts.listings>99?'99+':activityCounts.listings}</span>}</button><button type="button" role="tab" aria-selected={accountPanel==='offers'} className={accountPanel==='offers'?'is-active':''} onClick={()=>setAccountPanel('offers')}>{locale==='ID'?'Penawaran':'Offers'}{activityCounts.offers>0&&<span className="market-activity-badge">{activityCounts.offers>99?'99+':activityCounts.offers}</span>}</button><button type="button" role="tab" aria-selected={accountPanel==='orders'} className={accountPanel==='orders'?'is-active':''} onClick={()=>setAccountPanel('orders')}>{locale==='ID'?'Pesanan':'Orders'}{activityCounts.orders>0&&<span className="market-activity-badge">{activityCounts.orders>99?'99+':activityCounts.orders}</span>}</button><button type="button" role="tab" aria-selected={accountPanel==='saved'} className={accountPanel==='saved'?'is-active':''} onClick={()=>setAccountPanel('saved')}>{locale==='ID'?'Tersimpan':'Saved'}</button></div><div className="market-account-dialog-body">{accountPanel==='saved'?<SavedListings language={locale}/>:accountPanel==='orders'?<OrdersTab language={locale} initialOrderId={searchParams.get('order')}/>:accountPanel==='offers'?<OffersTab language={locale} initialConversationId={searchParams.get('conversation')}/>:<ListingsTab language={locale} onCreateListing={()=>{setAccountPanel(null);beginListing()}}/>}</div></DialogContent></Dialog>}
       <AddEditItemModal
         key={`${marketVaultCard?.id??'market-card'}-${marketVaultOpen?'open':'closed'}`}

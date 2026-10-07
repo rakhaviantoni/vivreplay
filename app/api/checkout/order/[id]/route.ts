@@ -1,5 +1,6 @@
 import {db,errorResponse,user,HttpError} from '@/lib/server/store';
 import {sendMarketEmail} from '@/lib/server/market-notifications';
+import {marketCardThumbnails} from '@/lib/server/market-card-thumbnails';
 
 type OrderRow={id:string;kind:string;buyerId:string;sellerId:string|null;listingId:string|null;items:string;details:string;subtotal:number;shippingFee:number;amount:number;currency:string;paymentId:string|null;status:string;expiresAt:string|null;title:string|null};
 
@@ -18,7 +19,10 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
     let items:unknown[]=[];let details:Record<string,unknown>={};
     try{items=JSON.parse(order.items) as unknown[]}catch{}
     try{const parsed=JSON.parse(order.details) as unknown;if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))details=parsed as Record<string,unknown>}catch{}
-    return Response.json({id:order.id,kind:order.kind,status:order.status,title:order.title??'VivrePlay Market Pro',items,details,waybillId:order.waybillId,trackingUrl:order.trackingUrl,checkoutUrl:typeof details.ipaymuCheckoutUrl==='string'?details.ipaymuCheckoutUrl:null,subtotal:order.subtotal,shippingFee:order.shippingFee,amount:order.amount,currency:order.currency,expiresAt:order.expiresAt});
+    const printingIds=items.flatMap(item=>item&&typeof item==='object'&&typeof (item as {printingId?:unknown}).printingId==='string'?[(item as {printingId:string}).printingId]:[]);
+    const cards=await marketCardThumbnails(printingIds);
+    const orderItems=items.map(item=>item&&typeof item==='object'?{...item as Record<string,unknown>,card:cards.get(String((item as {printingId?:unknown}).printingId??''))??null}:item);
+    return Response.json({id:order.id,kind:order.kind,status:order.status,title:order.title??'VivrePlay Market Pro',items:orderItems,details,waybillId:order.waybillId,trackingUrl:order.trackingUrl,checkoutUrl:typeof details.ipaymuCheckoutUrl==='string'?details.ipaymuCheckoutUrl:null,subtotal:order.subtotal,shippingFee:order.shippingFee,amount:order.amount,currency:order.currency,expiresAt:order.expiresAt});
   }catch(error){return errorResponse(error)}
 }
 

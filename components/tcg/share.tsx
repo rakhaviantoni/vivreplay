@@ -1,6 +1,6 @@
 'use client';
 
-import {useEffect, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import {
   CopyIcon as Copy,
   CheckIcon as Check,
@@ -31,6 +31,9 @@ export type ShareButtonProps = {
   subtitle?: string;
   price?: string;
   className?: string;
+  openOnMount?: boolean;
+  hideTrigger?: boolean;
+  onOpenChange?: (open: boolean) => void;
 };
 
 function drawRoundedRect(
@@ -329,11 +332,15 @@ export function ShareButton({
   subtitle,
   price,
   className = '',
+  openOnMount = false,
+  hideTrigger = false,
+  onOpenChange,
 }: ShareButtonProps) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(openOnMount);
   const [copied, setCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [language, setLanguage] = useState<'EN' | 'ID'>('EN');
+  const [imagePreview, setImagePreview] = useState('');
 
   useEffect(() => {
     const sync = () => setLanguage(window.localStorage.getItem('vivreplay-locale') === 'ID' ? 'ID' : 'EN');
@@ -343,10 +350,19 @@ export function ShareButton({
     return () => window.removeEventListener('vivreplay:locale', onLocale);
   }, []);
 
-  const cardList: ShareCardItem[] =
-    cards && cards.length > 0 ? cards : card ? [{card, quantity: 1}] : [];
+  const cardList: ShareCardItem[] = useMemo(() => cards && cards.length > 0 ? cards : card ? [{card, quantity: 1}] : [], [cards, card]);
 
   const url = typeof window === 'undefined' ? path : new URL(path, window.location.origin).href;
+
+  useEffect(() => {
+    if (!open || cardList.length === 0 || imagePreview) return;
+    let active = true;
+    void generateListingCompositeBlob({title,price,subtitle,cards:cardList,language}).then(blob => {
+      if (!active || !blob) return;
+      setImagePreview(URL.createObjectURL(blob));
+    }).catch(() => {});
+    return () => { active = false; };
+  }, [open,cardList,imagePreview,title,price,subtitle,language]);
 
   const handleCopy = async () => {
     try {
@@ -372,6 +388,9 @@ export function ShareButton({
       });
       if (!blob) throw new Error('Image generation failed');
 
+      const previewUrl = URL.createObjectURL(blob);
+      setImagePreview((old) => { if (old) URL.revokeObjectURL(old); return previewUrl; });
+
       const objectUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = objectUrl;
@@ -388,10 +407,17 @@ export function ShareButton({
     }
   };
 
+  useEffect(() => () => { if (imagePreview) URL.revokeObjectURL(imagePreview); }, [imagePreview]);
+
   const handleNativeShare = async () => {
     if (typeof navigator !== 'undefined' && Boolean(navigator.share)) {
       try {
-        await navigator.share({title, url});
+        if (imagePreview) {
+          const response = await fetch(imagePreview);
+          const file = new File([await response.blob()], `${title.replaceAll(/[^a-zA-Z0-9_-]/g, '_')}_listing.png`, {type: 'image/png'});
+          if (navigator.canShare?.({files: [file]})) { await navigator.share({title, text: subtitle, url, files: [file]}); return; }
+        }
+        await navigator.share({title, text: subtitle, url});
       } catch {
         // User cancelled or dismissed share sheet
       }
@@ -400,17 +426,17 @@ export function ShareButton({
 
   return (
     <>
-      <button
+      {!hideTrigger && <button
         type="button"
         className={`share-action-button button secondary ${className}`}
-        onClick={() => setOpen(true)}
+        onClick={() => { setOpen(true); onOpenChange?.(true); }}
         aria-label={language === 'ID' ? `Bagikan ${title}` : `Share ${title}`}
       >
         <ShareRouteIcon size={15} />
         <span>{language === 'ID' ? 'Bagikan' : 'Share'}</span>
-      </button>
+      </button>}
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(next) => { setOpen(next); onOpenChange?.(next); }}>
         <DialogContent className="share-dialog-content">
           <DialogHeader className="share-dialog-header">
             <div className="share-brand-lockup">
@@ -429,6 +455,7 @@ export function ShareButton({
 
           {cardList.length > 0 && (
             <div className="share-preview-listing">
+              {imagePreview && <img className="share-listing-image-preview" src={imagePreview} alt={language === 'ID' ? `Gambar listing ${title}` : `${title} listing image`} />}
               <div className="share-preview-header">
                 <div className="share-preview-meta">
                   <h3 className="share-preview-title">{title}</h3>
