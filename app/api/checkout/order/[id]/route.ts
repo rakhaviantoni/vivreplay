@@ -1,7 +1,7 @@
 import {db,errorResponse,user,HttpError} from '@/lib/server/store';
 import {sendMarketEmail} from '@/lib/server/market-notifications';
 import {marketCardThumbnails} from '@/lib/server/market-card-thumbnails';
-import {ipaymuExpiryTimestamp} from '@/lib/server/ipaymu';
+import {ipaymuExpiryTimestamp,ipaymuQrImageUrl} from '@/lib/server/ipaymu';
 
 type OrderRow={id:string;kind:string;buyerId:string;sellerId:string|null;listingId:string|null;items:string;details:string;subtotal:number;sellerNetAmount:number|null;shippingFee:number;amount:number;currency:string;paymentId:string|null;status:string;expiresAt:string|null;title:string|null};
 
@@ -30,8 +30,9 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
     const cards=await marketCardThumbnails(printingIds);
     const orderItems=items.map(item=>item&&typeof item==='object'?{...item as Record<string,unknown>,card:cards.get(String((item as {printingId?:unknown}).printingId??''))??null}:item);
     const paymentExpired=details.ipaymuPaymentMethod==='qris'&&ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt)!==null&&ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt)!<=Date.now();
-    const hasActiveQr=viewerRole==='buyer'&&!paymentExpired&&typeof details.ipaymuPaymentQrImage==='string';
-    return Response.json({id:order.id,kind:order.kind,status:order.status,viewerRole,title:order.title??'VivrePlay Market Pro',items:orderItems,details:{},shipping,sellerNetAmount:order.sellerNetAmount,marketFeePercent,marketSellerTier,marketStandardFeePercent,waybillId:order.waybillId,trackingUrl:order.trackingUrl,checkoutUrl:viewerRole==='buyer'&&!paymentExpired&&typeof details.ipaymuCheckoutUrl==='string'?details.ipaymuCheckoutUrl:null,paymentMethod:viewerRole==='buyer'?details.ipaymuPaymentMethod??null:null,paymentMode:details.ipaymuMode??(process.env.IPAYMU_MODE==='sandbox'?'sandbox':'production'),paymentFee:viewerRole==='buyer'&&typeof details.ipaymuPaymentFee==='number'?details.ipaymuPaymentFee:null,paymentExpiresAt:viewerRole==='buyer'&&typeof details.ipaymuPaymentExpiresAt==='string'?details.ipaymuPaymentExpiresAt:null,paymentQrImage:hasActiveQr?`/api/checkout/order/${encodeURIComponent(id)}/qris`:null,paymentQrString:viewerRole==='buyer'&&!paymentExpired&&typeof details.ipaymuPaymentQrString==='string'?details.ipaymuPaymentQrString:null,subtotal:order.subtotal,shippingFee:order.shippingFee,amount:order.amount,currency:order.currency,expiresAt:order.expiresAt});
+    const paymentMode=details.ipaymuMode??process.env.IPAYMU_MODE;
+    const paymentQrImage=viewerRole==='buyer'&&details.ipaymuPaymentMethod==='qris'&&!paymentExpired?ipaymuQrImageUrl(details.ipaymuPaymentQrImage,paymentMode):null;
+    return Response.json({id:order.id,kind:order.kind,status:order.status,viewerRole,title:order.title??'VivrePlay Market Pro',items:orderItems,details:{},shipping,sellerNetAmount:order.sellerNetAmount,marketFeePercent,marketSellerTier,marketStandardFeePercent,waybillId:order.waybillId,trackingUrl:order.trackingUrl,checkoutUrl:viewerRole==='buyer'&&!paymentExpired&&typeof details.ipaymuCheckoutUrl==='string'?details.ipaymuCheckoutUrl:null,paymentMethod:viewerRole==='buyer'?details.ipaymuPaymentMethod??null:null,paymentMode:paymentMode==='sandbox'?'sandbox':'production',paymentFee:viewerRole==='buyer'&&typeof details.ipaymuPaymentFee==='number'?details.ipaymuPaymentFee:null,paymentExpiresAt:viewerRole==='buyer'&&!paymentExpired&&typeof details.ipaymuPaymentExpiresAt==='string'?details.ipaymuPaymentExpiresAt:null,paymentQrImage,paymentQrString:viewerRole==='buyer'&&!paymentExpired&&typeof details.ipaymuPaymentQrString==='string'?details.ipaymuPaymentQrString:null,subtotal:order.subtotal,shippingFee:order.shippingFee,amount:order.amount,currency:order.currency,expiresAt:order.expiresAt});
   }catch(error){return errorResponse(error)}
 }
 

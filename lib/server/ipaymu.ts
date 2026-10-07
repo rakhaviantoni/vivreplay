@@ -29,6 +29,16 @@ export function isIpaymuProductionReady(){
   return Boolean((process.env.IPAYMU_MODE??'production').trim().toLowerCase()==='production'&&process.env.IPAYMU_PRODUCTION_READY==='true'&&process.env.IPAYMU_VA?.trim()&&process.env.IPAYMU_API_KEY?.trim());
 }
 
+export function ipaymuQrImageUrl(value:unknown,mode:unknown=process.env.IPAYMU_MODE){
+  if(typeof value!=='string')return null;
+  try{
+    const parsed=new URL(value);
+    const sandbox=String(mode??'').trim().toLowerCase()==='sandbox';
+    const allowedHosts=sandbox?['sandbox-payment.ipaymu.com','sandbox.ipaymu.com']:['my.ipaymu.com','payment.ipaymu.com'];
+    return parsed.protocol==='https:'&&!parsed.username&&!parsed.password&&allowedHosts.includes(parsed.hostname)?parsed.toString():null;
+  }catch{return null}
+}
+
 function hex(bytes:ArrayBuffer){return [...new Uint8Array(bytes)].map(value=>value.toString(16).padStart(2,'0')).join('')}
 
 async function hmac(value:string,key:string){
@@ -102,11 +112,10 @@ export async function createIpaymuQris(input:{orderId:string;amount:number;buyer
   if(!response.ok||payload?.Status!==200||transactionId===undefined||sessionId===undefined||!qrImage)throw new Error('QRIS could not be started. Check that QRIS is enabled for this iPaymu account, then try again.');
   const providerTotal=Number(data.Total);
   if(Number.isFinite(providerTotal)&&providerTotal>0&&Math.round(providerTotal)!==input.amount)throw new Error('The QRIS amount did not match this order. Please try again.');
-  const parsed=new URL(qrImage);
-  const allowedHosts=baseUrl==='https://sandbox.ipaymu.com'?['sandbox-payment.ipaymu.com','sandbox.ipaymu.com']:['my.ipaymu.com','payment.ipaymu.com'];
-  if(parsed.protocol!=='https:'||!allowedHosts.includes(parsed.hostname))throw new Error('iPaymu returned an invalid payment address.');
+  const parsed=ipaymuQrImageUrl(qrImage,baseUrl.includes('sandbox')?'sandbox':'production');
+  if(!parsed)throw new Error('iPaymu returned an invalid payment address.');
   const fee=Number(data.Fee);
-  return {sessionId:String(sessionId),transactionId:String(transactionId),qrImage:parsed.toString(),qrString:typeof data.QrString==='string'?data.QrString:null,fee:Number.isFinite(fee)&&fee>=0?Math.round(fee):null,total:Number.isFinite(providerTotal)&&providerTotal>0?Math.round(providerTotal):input.amount,expiresAt:typeof data.Expired==='string'&&data.Expired?data.Expired:new Date(Date.now()+5*60*1000).toISOString()};
+  return {sessionId:String(sessionId),transactionId:String(transactionId),qrImage:parsed,qrString:typeof data.QrString==='string'?data.QrString:null,fee:Number.isFinite(fee)&&fee>=0?Math.round(fee):null,total:Number.isFinite(providerTotal)&&providerTotal>0?Math.round(providerTotal):input.amount,expiresAt:typeof data.Expired==='string'&&data.Expired?data.Expired:new Date(Date.now()+5*60*1000).toISOString()};
 }
 
 type CallbackValue=string|number|boolean|null|unknown[];
