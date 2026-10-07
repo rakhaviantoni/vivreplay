@@ -201,3 +201,15 @@ html[data-theme='dark'] .market-account-menu [data-slot='dropdown-menu-separator
 .market-order-filter-clear:hover{border-color:var(--accent);color:var(--accent)}
 @media(max-width:760px){.market-order-filters{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;padding:12px}.market-order-filters>small{grid-column:1/-1}}
 @media(max-width:420px){.market-order-filters{grid-template-columns:minmax(0,1fr)}.market-order-filters>small{grid-column:1;justify-self:start}}
+
+/* Keep order filters, date range, and refresh in one compact control surface. */
+.market-order-controls{display:grid;gap:12px;margin:0 0 14px;padding:14px;border:1px solid var(--line);border-radius:9px;background:var(--surface)}
+.market-order-controls-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;min-width:0}
+.market-order-controls-heading>p{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin:0;color:var(--ink);font-size:12px;font-weight:700}
+.market-order-controls-heading>p span{color:var(--muted);font-size:10px;font-weight:500}
+.market-order-controls-actions{display:flex;align-items:center;gap:8px;flex:none}
+.market-order-controls .market-order-filters{grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:0;padding:0;border:0;border-radius:0;background:transparent}
+.market-order-controls .market-order-filters>small{align-self:center;grid-column:auto;justify-self:end}
+.market-order-controls .market-order-filter-clear{min-height:36px}
+@media(max-width:760px){.market-order-controls{gap:11px;padding:12px}.market-order-controls-heading{align-items:flex-start}.market-order-controls-heading>p{display:grid;gap:3px}.market-order-controls-heading>p span{line-height:1.4}.market-order-controls .market-order-filters{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.market-order-controls .market-order-filters>small{grid-column:1/-1;justify-self:start}.market-order-controls-actions{gap:6px}.market-order-controls .market-order-filter-clear{min-height:40px}}
+@media(max-width:420px){.market-order-controls-heading{flex-wrap:wrap}.market-order-controls-heading>p{flex:1 1 100%}.market-order-controls-actions{width:100%;justify-content:flex-end}.market-order-controls .market-order-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.market-order-controls .market-order-filters label span{font-size:9px}.market-order-controls .market-order-filters select,.market-order-controls .market-order-filters input{min-height:40px;padding-inline:8px;font-size:11px}}
