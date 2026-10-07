@@ -1,6 +1,6 @@
 import {db} from '@/lib/server/store';
 import {fulfillCheckoutOrder} from '@/lib/server/checkout-orders';
-import {callbackAmount,callbackIsSuccessful,callbackReference,callbackSessionId,callbackStatus,parseAndVerifyIpaymuCallback} from '@/lib/server/ipaymu';
+import {callbackAmount,callbackIsSuccessful,callbackReference,callbackSessionId,callbackStatus,callbackTransactionId,parseAndVerifyIpaymuCallback} from '@/lib/server/ipaymu';
 import {sendMarketEmail} from '@/lib/server/market-notifications';
 
 export async function POST(request:Request){
@@ -9,11 +9,14 @@ export async function POST(request:Request){
     if(!payload)return Response.json({error:'Invalid callback signature.'},{status:400});
     const orderId=callbackReference(payload);
     const sessionId=callbackSessionId(payload);
-    if(!orderId||!sessionId)return Response.json({error:'Missing payment reference.'},{status:400});
+    const transactionId=callbackTransactionId(payload);
+    if(!orderId||(!sessionId&&!transactionId))return Response.json({error:'Missing payment reference.'},{status:400});
     const database=db();
     const order=await database.prepare(`SELECT o.id,o.kind,o.buyer_id AS buyerId,o.seller_id AS sellerId,o.listing_id AS listingId,o.items,o.details,o.subtotal,o.amount,o.payment_id AS paymentId,o.status,l.title FROM checkout_orders o LEFT JOIN listings l ON l.id=o.listing_id WHERE o.id=?`).bind(orderId).first<{id:string;kind:string;buyerId:string;sellerId:string|null;listingId:string|null;items:string;details:string;subtotal:number;amount:number;paymentId:string|null;status:string;title:string|null}>();
     if(!order)return Response.json({error:'Order was not found.'},{status:404});
-    if(order.paymentId!==sessionId)return Response.json({error:'Payment session does not match this order.'},{status:409});
+    let details:Record<string,unknown>={};try{details=JSON.parse(order.details) as Record<string,unknown>}catch{}
+    const validPaymentIds=[order.paymentId,details.ipaymuTransactionId].filter(Boolean).map(String);
+    if(!validPaymentIds.includes(sessionId)&&!validPaymentIds.includes(transactionId))return Response.json({error:'Payment session does not match this order.'},{status:409});
     if(order.status!=='PENDING_PAYMENT')return Response.json({status:'already_processed'});
     if(callbackIsSuccessful(payload)){
       const paidAmount=callbackAmount(payload);
@@ -27,7 +30,7 @@ export async function POST(request:Request){
       return Response.json({status:'ok'});
     }
     const nextStatus=callbackStatus(payload);
-    if(nextStatus!=='PENDING_PAYMENT')await database.prepare('UPDATE checkout_orders SET status=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status=\'PENDING_PAYMENT\' AND payment_id=?').bind(nextStatus,orderId,sessionId).run();
+    if(nextStatus!=='PENDING_PAYMENT')await database.prepare('UPDATE checkout_orders SET status=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status=\'PENDING_PAYMENT\' AND payment_id=?').bind(nextStatus,orderId,order.paymentId).run();
     return Response.json({status:'ok'});
   }catch{
     return Response.json({error:'Callback could not be processed.'},{status:500});

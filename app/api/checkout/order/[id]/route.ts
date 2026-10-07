@@ -1,6 +1,7 @@
 import {db,errorResponse,user,HttpError} from '@/lib/server/store';
 import {sendMarketEmail} from '@/lib/server/market-notifications';
 import {marketCardThumbnails} from '@/lib/server/market-card-thumbnails';
+import {ipaymuExpiryTimestamp} from '@/lib/server/ipaymu';
 
 type OrderRow={id:string;kind:string;buyerId:string;sellerId:string|null;listingId:string|null;items:string;details:string;subtotal:number;shippingFee:number;amount:number;currency:string;paymentId:string|null;status:string;expiresAt:string|null;title:string|null};
 
@@ -22,7 +23,8 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
     const printingIds=items.flatMap(item=>item&&typeof item==='object'&&typeof (item as {printingId?:unknown}).printingId==='string'?[(item as {printingId:string}).printingId]:[]);
     const cards=await marketCardThumbnails(printingIds);
     const orderItems=items.map(item=>item&&typeof item==='object'?{...item as Record<string,unknown>,card:cards.get(String((item as {printingId?:unknown}).printingId??''))??null}:item);
-    return Response.json({id:order.id,kind:order.kind,status:order.status,title:order.title??'VivrePlay Market Pro',items:orderItems,details,waybillId:order.waybillId,trackingUrl:order.trackingUrl,checkoutUrl:typeof details.ipaymuCheckoutUrl==='string'?details.ipaymuCheckoutUrl:null,subtotal:order.subtotal,shippingFee:order.shippingFee,amount:order.amount,currency:order.currency,expiresAt:order.expiresAt});
+    const paymentExpired=details.ipaymuPaymentMethod==='qris'&&ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt)!==null&&ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt)!<=Date.now();
+    return Response.json({id:order.id,kind:order.kind,status:order.status,title:order.title??'VivrePlay Market Pro',items:orderItems,details,waybillId:order.waybillId,trackingUrl:order.trackingUrl,checkoutUrl:paymentExpired?null:typeof details.ipaymuCheckoutUrl==='string'?details.ipaymuCheckoutUrl:null,paymentMethod:details.ipaymuPaymentMethod??null,paymentFee:typeof details.ipaymuPaymentFee==='number'?details.ipaymuPaymentFee:null,paymentExpiresAt:typeof details.ipaymuPaymentExpiresAt==='string'?details.ipaymuPaymentExpiresAt:null,subtotal:order.subtotal,shippingFee:order.shippingFee,amount:order.amount,currency:order.currency,expiresAt:order.expiresAt});
   }catch(error){return errorResponse(error)}
 }
 

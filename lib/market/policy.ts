@@ -14,14 +14,14 @@ export const LISTING_POLICIES: Record<AccountTier, ListingTierPolicy> = {
     durationDays: 7,
     maxActiveListings: 12,
     canAutoRenew: false,
-    commissionPercent: 2,
+    commissionPercent: 0,
   },
   pro: {
     tier: 'pro',
     durationDays: 14,
     maxActiveListings: 500,
     canAutoRenew: true,
-    commissionPercent: 1,
+    commissionPercent: 0,
   },
 };
 

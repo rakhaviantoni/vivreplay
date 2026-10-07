@@ -74,6 +74,40 @@ export async function createIpaymuRedirect(input:{orderId:string;products:Ipaymu
   return {sessionId,url:parsed.toString()};
 }
 
+export async function createIpaymuQris(input:{orderId:string;amount:number;buyer:{name:string;email:string;phone:string};returnUrl:string;notifyUrl:string}){
+  const {va,apiKey,baseUrl}=configuration();
+  if(!Number.isSafeInteger(input.amount)||input.amount<1)throw new Error('This checkout has an invalid amount.');
+  const body={
+    name:input.buyer.name.slice(0,100),
+    phone:input.buyer.phone.slice(0,30),
+    email:input.buyer.email.slice(0,150),
+    amount:input.amount,
+    notifyUrl:input.notifyUrl,
+    referenceId:input.orderId,
+    paymentMethod:'qris',
+    paymentChannel:'mpm',
+    feeDirection:'MERCHANT',
+    successUrl:input.returnUrl,
+    comments:`VivrePlay Market order ${input.orderId}`.slice(0,255),
+  };
+  const bodyText=JSON.stringify(body);
+  const now=new Date();
+  const timestamp=`${now.getUTCFullYear()}${String(now.getUTCMonth()+1).padStart(2,'0')}${String(now.getUTCDate()).padStart(2,'0')}${String(now.getUTCHours()).padStart(2,'0')}${String(now.getUTCMinutes()).padStart(2,'0')}${String(now.getUTCSeconds()).padStart(2,'0')}`;
+  const response=await fetch(`${baseUrl}/api/v2/payment/direct`,{method:'POST',headers:{'Content-Type':'application/json',va,timestamp,signature:await requestSignature(bodyText,va,apiKey)},body:bodyText,cache:'no-store'});
+  const payload=await response.json().catch(()=>null) as {Status?:number;Message?:string;Data?:{TransactionId?:string|number;Url?:string;Total?:number|string;Fee?:number|string;Expired?:string}}|null;
+  const data=payload?.Data;
+  const transactionId=data?.TransactionId;
+  const url=data?.Url;
+  if(!response.ok||payload?.Status!==200||transactionId===undefined||!url)throw new Error('QRIS could not be started. Check that QRIS is enabled for this iPaymu account, then try again.');
+  const providerTotal=Number(data.Total);
+  if(Number.isFinite(providerTotal)&&providerTotal>0&&Math.round(providerTotal)!==input.amount)throw new Error('The QRIS amount did not match this order. Please try again.');
+  const parsed=new URL(url);
+  const allowedHosts=baseUrl==='https://sandbox.ipaymu.com'?['sandbox-payment.ipaymu.com','sandbox.ipaymu.com']:['my.ipaymu.com','payment.ipaymu.com'];
+  if(parsed.protocol!=='https:'||!allowedHosts.includes(parsed.hostname))throw new Error('iPaymu returned an invalid payment address.');
+  const fee=Number(data.Fee);
+  return {transactionId:String(transactionId),url:parsed.toString(),fee:Number.isFinite(fee)&&fee>=0?Math.round(fee):null,total:Number.isFinite(providerTotal)&&providerTotal>0?Math.round(providerTotal):input.amount,expiresAt:typeof data.Expired==='string'&&data.Expired?data.Expired:new Date(Date.now()+5*60*1000).toISOString()};
+}
+
 type CallbackValue=string|number|boolean|null|unknown[];
 export type IpaymuCallback=Record<string,CallbackValue>;
 
@@ -135,6 +169,15 @@ export function callbackAmount(payload:IpaymuCallback){
 export function callbackReference(payload:IpaymuCallback){return String(payload.reference_id??payload.referenceId??'')}
 
 export function callbackSessionId(payload:IpaymuCallback){return String(payload.sid??'')}
+export function callbackTransactionId(payload:IpaymuCallback){return String(payload.trx_id??'')}
+
+export function ipaymuExpiryTimestamp(value:unknown){
+  if(typeof value!=='string'||!value.trim())return null;
+  const raw=value.trim();
+  const withZone=/Z$|[+-]\d{2}:?\d{2}$/.test(raw)?raw:`${raw.replace(' ','T')}+07:00`;
+  const timestamp=Date.parse(withZone);
+  return Number.isFinite(timestamp)?timestamp:null;
+}
 
 export function callbackStatus(payload:IpaymuCallback):'EXPIRED'|'FAILED'|'PENDING_PAYMENT'{
   const status=String(payload.status??'').toLowerCase();

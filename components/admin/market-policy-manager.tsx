@@ -33,11 +33,11 @@ export function MarketPolicyManager() {
   // Form states
   const [freeDays, setFreeDays] = useState(7);
   const [freeMax, setFreeMax] = useState(12);
-  const [freeFee, setFreeFee] = useState(2);
+  const [freeFee, setFreeFee] = useState(0);
 
   const [proDays, setProDays] = useState(14);
   const [proMax, setProMax] = useState(500);
-  const [proFee, setProFee] = useState(1);
+  const [proFee, setProFee] = useState(0);
   const [proAutoRenew, setProAutoRenew] = useState(true);
 
   const load = async () => {
@@ -72,28 +72,28 @@ export function MarketPolicyManager() {
     if (preset === 'recommended') {
       setFreeDays(7);
       setFreeMax(12);
-      setFreeFee(2);
+      setFreeFee(0);
       setProDays(14);
       setProMax(500);
-      setProFee(1);
+      setProFee(0);
       setProAutoRenew(true);
       toast.info('Applied "Recommended (7d / 12 listings)" preset. Click Save to apply.');
     } else if (preset === 'cardtell') {
       setFreeDays(3);
       setFreeMax(12);
-      setFreeFee(2);
+      setFreeFee(0);
       setProDays(14);
       setProMax(500);
-      setProFee(1);
+      setProFee(0);
       setProAutoRenew(true);
       toast.info('Applied "Cardtell Match (3d / 12 listings)" preset. Click Save to apply.');
     } else if (preset === 'relaxed') {
       setFreeDays(30);
       setFreeMax(25);
-      setFreeFee(2);
+      setFreeFee(0);
       setProDays(60);
       setProMax(1000);
-      setProFee(1);
+      setProFee(0);
       setProAutoRenew(true);
       toast.info('Applied "Relaxed (30d / 25 listings)" preset. Click Save to apply.');
     }
