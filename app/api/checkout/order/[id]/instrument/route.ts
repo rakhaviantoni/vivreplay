@@ -51,7 +51,8 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
         ...products.map(item=>({name:item.printingId,quantity:item.quantity,unitPrice:item.unitAmount,description:`One Piece Card Game card · ${item.printingId}`})),
         ...(order.shippingFee>0?[{name:'Delivery',quantity:1,unitPrice:order.shippingFee,description:'Courier delivery for this Market order'}]:[]),
       ];
-    const total=productLines.reduce((sum,item)=>sum+item.quantity*item.unitPrice,0);
+    const buyerServiceFee=order.kind==='MARKET'&&Number.isSafeInteger(details.marketBuyerFeeAmount)?Number(details.marketBuyerFeeAmount):0;
+    const total=productLines.reduce((sum,item)=>sum+item.quantity*item.unitPrice,0)+buyerServiceFee;
     if(total!==order.amount)throw new HttpError(409,'The order total changed. Please start checkout again.');
     const name=typeof details.customerName==='string'?details.customerName:typeof details.recipientName==='string'?details.recipientName:profile.display_name||'VivrePlay customer';
     const phone=typeof details.customerPhone==='string'?details.customerPhone:typeof details.phone==='string'?details.phone:'';

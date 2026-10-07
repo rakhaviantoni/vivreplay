@@ -63,7 +63,6 @@ export function OrdersTab({language,initialOrderId}:{language:'EN'|'ID';initialO
               <div><span>{id?'Subtotal kartu':'Cards subtotal'}</span><b>{money(detail.subtotal,detail.currency)}</b></div>
               {detail.shippingFee>0&&<div><span>{id?'Pengiriman':'Delivery'}</span><b>{money(detail.shippingFee,detail.currency)}</b></div>}
               {order.role==='seller'&&order.kind==='MARKET'&&<>
-                {order.marketBuyerFeePercent>0&&<div><span>{id?`Biaya layanan pembeli (${order.marketBuyerFeePercent}%)`:`Buyer service fee (${order.marketBuyerFeePercent}%)`}</span><b>{money(order.marketBuyerFeeAmount,detail.currency)}</b></div>}
                 <div><span>{id?`Biaya layanan penjual (${order.marketFeePercent}%)`:`Seller fee (${order.marketFeePercent}%)`}</span><b>{money(feeAmount,detail.currency)}</b></div>
                 {order.marketSellerTier==='pro'&&order.marketProSavings>0&&<p className="checkout-fee-note">{id?`Pro menghemat ${money(order.marketProSavings,detail.currency)} dari biaya layanan penjual. Tarif standar ${order.marketStandardFeePercent}%.`:`Pro saved you ${money(order.marketProSavings,detail.currency)} on the seller fee. Standard rate: ${order.marketStandardFeePercent}%.`}</p>}
                 <div className="market-order-ledger-total"><span>{id?'Anda terima':'You receive'}</span><b>{money(detail.sellerNetAmount??detail.subtotal,detail.currency)}</b></div>

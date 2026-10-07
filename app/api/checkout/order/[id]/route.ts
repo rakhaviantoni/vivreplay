@@ -24,8 +24,8 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
     const marketFeePercent=typeof details.marketFeePercent==='number'?details.marketFeePercent:order.subtotal>0?Math.max(0,Math.round((order.subtotal-(order.sellerNetAmount??order.subtotal))*10000/order.subtotal)/100):0;
     const marketSellerTier=details.marketSellerTier==='pro'?'pro':details.marketSellerTier==='free'?'free':null;
     const marketStandardFeePercent=typeof details.marketStandardFeePercent==='number'?details.marketStandardFeePercent:null;
-    const marketBuyerFeePercent=typeof details.marketBuyerFeePercent==='number'?details.marketBuyerFeePercent:0;
-    const marketBuyerFeeAmount=typeof details.marketBuyerFeeAmount==='number'?details.marketBuyerFeeAmount:0;
+    const marketBuyerFeePercent=viewerRole==='buyer'&&typeof details.marketBuyerFeePercent==='number'?details.marketBuyerFeePercent:0;
+    const marketBuyerFeeAmount=viewerRole==='buyer'&&typeof details.marketBuyerFeeAmount==='number'?details.marketBuyerFeeAmount:0;
     const shippingStatusAllowsAddress=['PAID','SHIPPED','RECEIVED','COMPLETED','FULFILLED','PROCESSING'].includes(order.status);
     const shipping=viewerRole==='seller'&&shippingStatusAllowsAddress?{recipientName:details.recipientName,addressLine:details.addressLine,city:details.city,postalCode:details.postalCode,phone:details.phone,label:details.shippingLabel,courierName:details.courierName,courierServiceName:details.courierServiceName,waybillId:order.waybillId,trackingUrl:order.trackingUrl}:viewerRole==='buyer'?{courierName:details.courierName,courierServiceName:details.courierServiceName,waybillId:order.waybillId,trackingUrl:order.trackingUrl}:null;
     const printingIds=items.flatMap(item=>item&&typeof item==='object'&&typeof (item as {printingId?:unknown}).printingId==='string'?[(item as {printingId:string}).printingId]:[]);

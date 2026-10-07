@@ -3451,10 +3451,14 @@ html[data-theme='dark'] .market-listing-status.is-buying{color:#e6b65e!important
   .checkout-waiting-heading>span svg{width:22px;height:22px}
   .checkout-waiting-heading h2{font-size:20px}
   .checkout-waiting-heading p{font-size:13px;line-height:1.45}
-  .checkout-waiting-state .checkout-order-breakdown{gap:14px;padding-top:14px}
+  .checkout-waiting-state .checkout-order-breakdown{grid-template-columns:minmax(0,1fr);gap:14px;padding-top:14px;width:100%}
   .checkout-waiting-state .checkout-order-cards{gap:12px}
   .checkout-waiting-state .checkout-payment-lines{padding-top:12px;border-top:1px solid var(--line,#dfd1b8)}
   .checkout-waiting-state .checkout-payment-lines h3{font-size:14px}
   .checkout-waiting-state .checkout-grand-total{grid-column:auto;margin-top:0}
   .checkout-waiting-state>.button{width:100%;min-height:44px;margin-top:12px}
+}
+@media(max-width:780px){
+  .checkout-waiting-state .checkout-order-breakdown{grid-template-columns:minmax(0,1fr)!important;width:100%;}
+  .checkout-waiting-state .checkout-order-cards,.checkout-waiting-state .checkout-payment-lines,.checkout-waiting-state .checkout-grand-total{grid-column:1;min-width:0;width:100%;}
 }
