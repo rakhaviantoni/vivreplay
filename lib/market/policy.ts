@@ -14,16 +14,18 @@ export const LISTING_POLICIES: Record<AccountTier, ListingTierPolicy> = {
     durationDays: 7,
     maxActiveListings: 12,
     canAutoRenew: false,
-    commissionPercent: 1,
+    commissionPercent: 1.5,
   },
   pro: {
     tier: 'pro',
     durationDays: 14,
     maxActiveListings: 500,
     canAutoRenew: true,
-    commissionPercent: 0,
+    commissionPercent: 0.75,
   },
 };
+
+export const MARKET_BUYER_FEE_PERCENT = 0.5;
 
 export function parseMarketPolicies(rawJson: string | null | undefined): Record<AccountTier, ListingTierPolicy> {
   if (!rawJson) return LISTING_POLICIES;

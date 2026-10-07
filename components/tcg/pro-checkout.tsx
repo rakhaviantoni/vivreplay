@@ -43,7 +43,7 @@ export function ProCheckout(){
   const benefits=[
     {title:`${plan?.durationDays??14}-day listing window`,detail:'Keep active listings visible for longer.'},
     {title:`Up to ${(plan?.maxActiveListings??500).toLocaleString()} active listings`,detail:'Manage more of your collection on Market.'},
-    {title:`${plan?.commissionPercent??0}% Market commission`,detail:'Your seller fee is set by the current Market policy.'},
+    {title:`${plan?.commissionPercent??0}% seller fee`,detail:'Applied to completed Market sales; the buyer fee is shown separately at checkout.'},
     {title:plan?.canAutoRenew?'Automatic renewal option':'Manual one-click renewal',detail:'Choose how your listings stay active.'},
   ];
 

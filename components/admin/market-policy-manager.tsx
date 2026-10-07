@@ -15,6 +15,7 @@ import {
 } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import type { AccountTier, ListingTierPolicy } from '@/lib/market/policy';
+import { MARKET_BUYER_FEE_PERCENT } from '@/lib/market/policy';
 
 interface PolicyResponse {
   policies: Record<AccountTier, ListingTierPolicy>;
@@ -33,11 +34,11 @@ export function MarketPolicyManager() {
   // Form states
   const [freeDays, setFreeDays] = useState(7);
   const [freeMax, setFreeMax] = useState(12);
-  const [freeFee, setFreeFee] = useState(1);
+  const [freeFee, setFreeFee] = useState(1.5);
 
   const [proDays, setProDays] = useState(14);
   const [proMax, setProMax] = useState(500);
-  const [proFee, setProFee] = useState(0);
+  const [proFee, setProFee] = useState(0.75);
   const [proAutoRenew, setProAutoRenew] = useState(true);
 
   const load = async () => {
@@ -72,28 +73,28 @@ export function MarketPolicyManager() {
     if (preset === 'recommended') {
       setFreeDays(7);
       setFreeMax(12);
-      setFreeFee(1);
+      setFreeFee(1.5);
       setProDays(14);
       setProMax(500);
-      setProFee(0);
+      setProFee(0.75);
       setProAutoRenew(true);
       toast.info('Applied "Recommended (7d / 12 listings)" preset. Click Save to apply.');
     } else if (preset === 'quick-turn') {
       setFreeDays(3);
       setFreeMax(12);
-      setFreeFee(1);
+      setFreeFee(1.5);
       setProDays(14);
       setProMax(500);
-      setProFee(0);
+      setProFee(0.75);
       setProAutoRenew(true);
       toast.info('Applied "Quick-turn listings (3d / 12 listings)" preset. Click Save to apply.');
     } else if (preset === 'relaxed') {
       setFreeDays(30);
       setFreeMax(25);
-      setFreeFee(1);
+      setFreeFee(1.5);
       setProDays(60);
       setProMax(1000);
-      setProFee(0);
+      setProFee(0.75);
       setProAutoRenew(true);
       toast.info('Applied "Relaxed (30d / 25 listings)" preset. Click Save to apply.');
     }
@@ -168,7 +169,7 @@ export function MarketPolicyManager() {
         <div>
           <h2>Market Retention & Limits Policy</h2>
           <p>
-            Configure listing lifespans and seller quotas. Changes apply to new listings and the next renewal; existing expiration dates stay as stored until the seller renews.
+            Configure listing lifespans, seller quotas, and seller fees. Buyers also pay a {MARKET_BUYER_FEE_PERCENT}% Market service fee on new orders.
           </p>
         </div>
         <div className="admin-policy-presets">
@@ -270,8 +271,8 @@ export function MarketPolicyManager() {
                 id="free-fee"
                 type="number"
                 min="0"
-                max="100"
-                step="0.1"
+            max="100"
+            step="0.01"
                 value={freeFee}
                 onChange={(e) => setFreeFee(Number(e.target.value))}
                 required
@@ -347,8 +348,8 @@ export function MarketPolicyManager() {
                 id="pro-fee"
                 type="number"
                 min="0"
-                max="100"
-                step="0.1"
+            max="100"
+            step="0.01"
                 value={proFee}
                 onChange={(e) => setProFee(Number(e.target.value))}
                 required

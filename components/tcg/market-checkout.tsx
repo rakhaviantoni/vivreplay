@@ -11,6 +11,7 @@ import {api,useAccount} from '@/lib/client';
 import {CardArt} from './card-art';
 import {toast} from 'sonner';
 import {isBiteshipAreaId} from '@/lib/shipping/biteship-area';
+import {MARKET_BUYER_FEE_PERCENT} from '@/lib/market/policy';
 
 type Origin={addressLine:string;city:string;postalCode:string;areaId:string|null;recipientName:string|null;phone:string|null;latitude?:number|null;longitude?:number|null;regionNames?:{province?:string;district?:string;subdistrict?:string}};
 type Rate={courier_name:string;courier_service_name:string;courier_code:string;courier_service_code:string;company:string;type:string;price:number;duration?:string};
@@ -81,6 +82,7 @@ export function MarketCheckout(){
     });
   },[items,listing]);
   const subtotal=selectedCards.reduce((sum,item)=>sum+item.unitAmount*item.quantity,0);
+  const buyerServiceFee=Math.round(subtotal*MARKET_BUYER_FEE_PERCENT/100);
     const currentRate=rates.find(rate=>`${rate.courier_code}:${rate.courier_service_code}`===selectedRate);
   const courierName=(name:string)=>({jne:'JNE Express',jnt:'J&T Express',sicepat:'SiCepat Ekspres',anteraja:'Anteraja',tiki:'TIKI',pos:'Pos Indonesia',lion:'Lion Parcel',ninja:'Ninja Xpress',wahana:'Wahana Express',grab:'GrabExpress',gojek:'GoSend'}[name]??name);
 
@@ -149,7 +151,7 @@ export function MarketCheckout(){
     <div className="checkout-layout">
       <section className="checkout-panel checkout-order-summary"><h2>{listing.title}</h2><p className="checkout-seller"><strong>{listing.seller}</strong><span>{listing.city}</span></p>
         <div className="checkout-items">{selectedCards.map(item=><div key={item.printingId} className="checkout-item-row"><div className="checkout-item-art">{item.card?<CardArt card={item.card}/>:<span>{item.printingId}</span>}</div><div className="checkout-item-copy"><strong>{item.card?.name||listing.title}</strong><small><span>{item.card?.code||item.card?.printingCode||item.printingId}</span>{item.card?.language&&<span>{item.card.language}</span>}{item.card?.variant&&<span>{item.card.variant}</span>}{item.card?.setCode&&<span>{item.card.setCode}</span>}<span>{item.condition}</span><span>{item.quantity}×</span></small></div><b>{formatMoney(item.unitAmount*item.quantity,listing.currency)}</b></div>)}</div>
-        <dl className="checkout-totals"><div><dt>{t('Cards','Kartu')}</dt><dd>{formatMoney(subtotal,listing.currency)}</dd></div><div><dt>{t('Delivery','Pengiriman')}</dt><dd><button type="button" className="checkout-delivery-action" aria-controls="checkout-delivery-services" onClick={chooseDelivery}>{currentRate?`${formatMoney(currentRate.price,listing.currency)} - ${t('Change','Ubah')}`:quoting?t('Loading rates…','Memuat ongkir…'):t('Choose a service','Pilih layanan')}</button></dd></div><div className="checkout-grand-total"><dt>{t('Total','Total')}</dt><dd>{formatMoney(subtotal+(currentRate?.price??0),listing.currency)}</dd></div></dl>
+        <dl className="checkout-totals"><div><dt>{t('Cards','Kartu')}</dt><dd>{formatMoney(subtotal,listing.currency)}</dd></div><div><dt>{t('Delivery','Pengiriman')}</dt><dd><button type="button" className="checkout-delivery-action" aria-controls="checkout-delivery-services" onClick={chooseDelivery}>{currentRate?`${formatMoney(currentRate.price,listing.currency)} - ${t('Change','Ubah')}`:quoting?t('Loading rates…','Memuat ongkir…'):t('Choose a service','Pilih layanan')}</button></dd></div><div><dt>{t(`Market service fee (${MARKET_BUYER_FEE_PERCENT}%)`,`Biaya layanan Market (${MARKET_BUYER_FEE_PERCENT}%)`)}</dt><dd>{formatMoney(buyerServiceFee,listing.currency)}</dd></div><div className="checkout-grand-total"><dt>{t('Total','Total')}</dt><dd>{formatMoney(subtotal+(currentRate?.price??0)+buyerServiceFee,listing.currency)}</dd></div></dl>
       </section>
       <section className="checkout-panel checkout-delivery-panel"><div className="checkout-section-title"><MapPin size={18}/><div><h2>{t('Delivery address','Alamat pengiriman')}</h2></div></div>
         {origin&&!editingAddress?<div className="checkout-address-card"><strong>{origin.recipientName||account.profile?.display_name}{origin.phone&&` - ${origin.phone}`}</strong><p>{origin.addressLine}<br/>{origin.regionNames?.subdistrict?`${origin.regionNames.subdistrict}, `:''}{origin.regionNames?.district?`${origin.regionNames.district}, `:''}{origin.city} {origin.postalCode}</p><button type="button" className="checkout-inline-link" onClick={()=>setEditingAddress(true)}>{t('Change address','Ubah alamat')}</button>
@@ -163,7 +165,7 @@ export function MarketCheckout(){
         {!quoting&&rates.length>0&&<div className="checkout-rate-list">{rates.map(rate=>{const key=`${rate.courier_code}:${rate.courier_service_code}`;return <label key={key} className={selectedRate===key?'is-selected':''}><input type="radio" name="shipping-rate" value={key} checked={selectedRate===key} onChange={()=>setSelectedRate(key)}/><span><strong><span>{courierName(rate.courier_code)}</span><span>{rate.courier_service_name}</span></strong>{rate.duration&&<small>{rate.duration}</small>}</span><b>{formatMoney(rate.price,listing.currency)}</b></label>})}</div>}
         {quoteError&&<div><p className="checkout-error" role="alert">{quoteError}</p><button type="button" className="button secondary" disabled={quoting||!origin} onClick={()=>void loadQuotes()}>{t('Try again','Coba lagi')}</button></div>}
         {error&&<p className="checkout-error" role="alert">{error}</p>}
-        {!checkoutAvailable&&<MarketPaymentPreview amount={subtotal+(currentRate?.price??0)} currency={listing.currency} language={locale}/>}
+        {!checkoutAvailable&&<MarketPaymentPreview amount={subtotal+(currentRate?.price??0)+buyerServiceFee} currency={listing.currency} language={locale}/>}
         <button type="button" className="button checkout-pay-button" disabled={!currentRate||submitting||!checkoutAvailable||!contactComplete||quoting} onClick={startCheckout}>{submitting?t('Preparing payment…','Menyiapkan pembayaran…'):checkoutAvailable?t('Continue to payment','Lanjut ke pembayaran'):t('Payment coming soon','Pembayaran segera tersedia')}</button>
       </section>
     </div>

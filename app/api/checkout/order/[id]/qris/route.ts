@@ -20,9 +20,30 @@ export async function GET(request:Request,{params}:{params:Promise<{id:string}>}
     const trustedHost=finalUrl.hostname==='ipaymu.com'||finalUrl.hostname.endsWith('.ipaymu.com')||finalUrl.hostname==='storage.googleapis.com';
     if(!upstream.ok||!trustedHost)throw new HttpError(502,'The payment code could not be loaded.');
     const contentType=upstream.headers.get('content-type')?.split(';')[0].trim().toLowerCase()??'';
-    if(!contentType.startsWith('image/'))throw new HttpError(502,'The payment code could not be loaded.');
-    const body=await upstream.arrayBuffer();
+    let body:ArrayBuffer;
+    let imageType=contentType;
+    if(contentType.startsWith('image/')){
+      body=await upstream.arrayBuffer();
+    }else if(contentType==='text/html'||contentType==='application/xhtml+xml'){
+      const html=await upstream.text();
+      if(html.length>500_000)throw new HttpError(502,'The payment code could not be loaded.');
+      const match=html.match(/data:image\/(png|jpeg|webp);base64,([a-z0-9+/=\s]+)['"]/i);
+      if(!match)throw new HttpError(502,'The payment code could not be loaded.');
+      const base64=match[2].replace(/\s/g,'');
+      const binary=atob(base64);
+      if(!binary.length||binary.length>1_500_000)throw new HttpError(502,'The payment code could not be loaded.');
+      const bytes=new Uint8Array(binary.length);
+      for(let index=0;index<binary.length;index++)bytes[index]=binary.charCodeAt(index);
+      body=bytes.buffer;
+      imageType=`image/${match[1].toLowerCase()}`;
+    }else{
+      throw new HttpError(502,'The payment code could not be loaded.');
+    }
     if(!body.byteLength||body.byteLength>1_500_000)throw new HttpError(502,'The payment code could not be loaded.');
-    return new Response(body,{status:200,headers:{'Content-Type':contentType,'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'}});
+    if(imageType==='image/png'){
+      const signature=new Uint8Array(body,0,Math.min(8,body.byteLength));
+      if(signature.length!==8||signature.some((value,index)=>value!==[137,80,78,71,13,10,26,10][index]))throw new HttpError(502,'The payment code could not be loaded.');
+    }
+    return new Response(body,{status:200,headers:{'Content-Type':imageType,'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'}});
   }catch(error){return errorResponse(error)}
 }
