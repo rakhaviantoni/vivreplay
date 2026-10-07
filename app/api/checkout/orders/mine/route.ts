@@ -11,7 +11,7 @@ export async function GET(){
     const orders=(await db().prepare(`SELECT o.id,o.kind,o.status,o.amount,o.subtotal,o.seller_net_amount AS sellerNetAmount,o.currency,o.details,o.payment_id AS paymentId,o.shipping_fee AS shippingFee,o.shipping_status AS shippingStatus,o.biteship_tracking_id AS trackingId,o.shipping_waybill_id AS waybillId,o.shipping_tracking_url AS trackingUrl,o.created_at AS createdAt,o.expires_at AS expiresAt,o.updated_at AS updatedAt,
       CASE WHEN o.buyer_id=? THEN 'buyer' ELSE 'seller' END AS role,l.title AS listingTitle,l.printing_id AS printingId,o.items,p.tier AS sellerTier
       FROM checkout_orders o LEFT JOIN listings l ON l.id=o.listing_id LEFT JOIN profiles p ON p.id=o.seller_id
-      WHERE o.buyer_id=? OR o.seller_id=? ORDER BY o.created_at DESC LIMIT 100`)
+      WHERE o.buyer_id=? OR (o.seller_id=? AND o.status IN ('PAID','SHIPPED','RECEIVED','COMPLETED','FULFILLED','REFUNDED')) ORDER BY o.created_at DESC LIMIT 100`)
       .bind(profile.id,profile.id,profile.id).all<OrderRow>()).results;
     const entries=orders.map(order=>{
       let cards:Array<{printingId:string;quantity:number}>=[];
