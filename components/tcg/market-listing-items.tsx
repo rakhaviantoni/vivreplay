@@ -5,7 +5,7 @@ import {SaveListingButton,WishlistButton} from './market-saved';
 import {MarketReputation} from './market-reputation';
 import {useRouter} from 'next/navigation';
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
-import {ArrowLeftIcon, InfoIcon as Info, MinusIcon as Minus, PlusIcon as Plus, TruckIcon as Truck, XIcon as X} from '@phosphor-icons/react';
+import {ArrowClockwiseIcon as Renew,ArrowLeftIcon, InfoIcon as Info, MinusIcon as Minus, PlusIcon as Plus, TruckIcon as Truck, XIcon as X} from '@phosphor-icons/react';
 import type {Card} from '@/packages/card-data/catalog';
 import {formatMoney,Listing} from '@/packages/domain';
 import {CardArt} from './card-art';
@@ -648,7 +648,13 @@ export function MarketListingDetailView({
               </p>
               <h1>{listing.title}</h1>
             </div>
-            <span className={`market-listing-status ${isBuying ? 'is-buying' : 'is-selling'}`}>{typeLabel}</span>
+            <div className="market-listing-heading-tools">
+              <span className={`market-listing-status ${isBuying ? 'is-buying' : 'is-selling'}`}>{typeLabel}</span>
+              {isOwner&&<div className="market-listing-owner-actions">
+                <button type="button" className="btn-renew" disabled={renewing} onClick={handleRenew} aria-label={isExpired?t('Renew listing','Perbarui listing'):t('Extend listing','Perpanjang listing')}><Renew size={14}/><span>{renewing?t('Saving…','Menyimpan…'):isExpired?t('Renew','Perbarui'):t('Extend','Perpanjang')}</span></button>
+                {!isExpired&&<button type="button" className="btn-close" disabled={closing} onClick={handleClose} aria-label={t('Close listing','Tutup listing')}><X size={14}/><span>{closing?t('Closing…','Menutup…'):t('Close','Tutup')}</span></button>}
+              </div>}
+            </div>
           </header>
 
           <dl className="market-listing-facts">
@@ -670,41 +676,6 @@ export function MarketListingDetailView({
             </div>}
             {!isBuying && !isOwner && <ShippingOptions listingId={listing.id} courierCount={listing.shippingOptionCount??0} couriers={listing.shippingCouriers??[]}/>}
           </dl>
-
-          {isOwner && (
-            <aside className={`market-seller-banner ${isExpired ? 'is-expired' : ''}`} aria-label={t('Seller listing controls', 'Kontrol listing penjual')}>
-              <div className="market-seller-banner-copy">
-                <strong>{isExpired ? (status === 'CLOSED' ? t('Listing is closed', 'Listing ditutup') : t('Listing has expired', 'Listing telah kedaluwarsa')) : t('Your active listing', 'Listing aktif Anda')}</strong>
-                <small>
-                  {isExpired
-                    ? t('This listing is hidden from the Market feed. Renew to reactivate it.', 'Listing ini disembunyikan dari feed Market. Perbarui untuk mengaktifkannya kembali.')
-                    : daysLeft !== null
-                    ? (language === 'ID' ? `Listing aktif, berakhir dalam ${daysLeft} hari (${expiresAt?.split(' ')[0]})` : `Active listing, expires in ${daysLeft} days (${expiresAt?.split(' ')[0]})`)
-                    : t('Active on Market', 'Aktif di Market')}
-                </small>
-              </div>
-              <div className="market-seller-banner-actions">
-                <button
-                  type="button"
-                  className="btn-renew"
-                  disabled={renewing}
-                  onClick={handleRenew}
-                >
-                  {renewing ? t('Renewing...', 'Memperbarui...') : isExpired ? t(`Renew (+${renewDurationDays}d)`, `Perbarui (+${renewDurationDays} hari)`) : t(`Extend (+${renewDurationDays}d)`, `Perpanjang (+${renewDurationDays} hari)`)}
-                </button>
-                {!isExpired && (
-                  <button
-                    type="button"
-                    className="btn-close"
-                    disabled={closing}
-                    onClick={handleClose}
-                  >
-                    {closing ? t('Closing...', 'Menutup...') : t('Close', 'Tutup')}
-                  </button>
-                )}
-              </div>
-            </aside>
-          )}
 
           {!isOwner && isExpired && (
             <div className="market-expired-banner">

@@ -3367,3 +3367,23 @@ html[data-theme='dark'] .market-feed-skeleton-row>i,html[data-theme='dark'] .mar
 .market-listing-card-copy>.market-listing-card-unit-price{position:static!important;grid-area:price;justify-self:end;max-width:100%;margin:0!important;padding:0!important;color:var(--accent)!important;font-size:clamp(9.5px,2.8vw,11px)!important;line-height:1.2!important;text-align:right;white-space:nowrap}
 .market-listing-card-copy>.market-card-offer{grid-column:1/-1}
 @media(max-width:380px){.market-listing-card-copy{column-gap:5px!important}.market-listing-card-copy>.market-card-meta{gap:5px!important}.market-listing-card-copy>.market-listing-card-unit-price{font-size:9.5px!important}}
+
+/* Keep Market status chips consistent and leave the status at the edge when a row has no save action. */
+.market-feed-entry .market-feed-status{right:8px}
+.market-feed-entry.has-row-action .market-feed-status{right:54px}
+.market-feed-entry .market-feed-status b,.market-listing-status{min-width:0!important;margin:0!important;padding:5px 9px!important;border:1px solid color-mix(in srgb,currentColor 32%,transparent)!important;border-radius:999px!important;background:color-mix(in srgb,currentColor 10%,var(--surface-raised))!important;font-size:9px!important;font-weight:800!important;letter-spacing:.025em!important;line-height:1!important;box-shadow:none!important}.market-feed-entry .market-feed-status b{color:var(--market-row-accent)!important}
+.market-listing-status.is-selling{--listing-status-color:#16845f;color:var(--listing-status-color)!important}
+.market-listing-status.is-buying{--listing-status-color:#a66b12;color:var(--listing-status-color)!important}
+html[data-theme='dark'] .market-listing-status.is-buying{color:#e6b65e!important}
+.market-listing-heading-tools{display:flex;flex:none;flex-direction:column;align-items:flex-end;gap:8px}
+.market-listing-owner-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px}
+.market-listing-owner-actions button{display:inline-flex;min-height:30px;align-items:center;justify-content:center;gap:5px;padding:0 9px;border:1px solid var(--line);border-radius:7px;background:var(--surface-raised);color:var(--ink);font:700 10px var(--game-font);white-space:nowrap;cursor:pointer;transition:border-color .15s ease,background-color .15s ease,color .15s ease}
+.market-listing-owner-actions .btn-renew{border-color:color-mix(in srgb,var(--accent) 45%,var(--line));color:var(--accent)}
+.market-listing-owner-actions button:hover:not(:disabled){border-color:var(--accent);background:color-mix(in srgb,var(--accent) 9%,var(--surface-raised));color:var(--ink)}
+.market-listing-owner-actions button:disabled{opacity:.55;cursor:wait}
+.market-listing-eyebrow{row-gap:4px!important;column-gap:9px!important}
+.market-feed-meta{display:flex!important;flex-wrap:wrap;align-items:center;gap:4px 10px!important;margin-top:5px!important;line-height:1.4!important}
+.market-feed-seller{color:var(--muted);font-weight:650}
+@media(max-width:760px){.market-feed-entry .market-feed-status{right:8px}.market-feed-entry.has-row-action .market-feed-status{right:49px}.market-listing-heading{gap:10px!important}.market-listing-heading-tools{gap:6px}.market-listing-owner-actions{gap:4px}.market-listing-owner-actions button{min-height:32px;padding-inline:7px}.market-listing-owner-actions button span{font-size:9px}}
+@media(max-width:420px){.market-listing-heading-tools{max-width:44%}.market-listing-owner-actions{flex-wrap:wrap}.market-listing-owner-actions button{min-height:30px}}
+@media(prefers-reduced-motion:reduce){.market-direct-sell-loading span{animation:none}}

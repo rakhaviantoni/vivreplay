@@ -43,6 +43,8 @@ export default function SignInPage() {
   const [busy, setBusy] = useState(false);
   const [turnstileToken,setTurnstileToken]=useState('');
   const [turnstileResetKey,setTurnstileResetKey]=useState(0);
+  const [googleTurnstileToken,setGoogleTurnstileToken]=useState('');
+  const [googleTurnstileResetKey,setGoogleTurnstileResetKey]=useState(0);
   const returnTo = safeReturnTo(searchParams.get("return_to"));
   const verified = searchParams.get("verified") === "1";
 
@@ -71,13 +73,13 @@ export default function SignInPage() {
   async function signInWithGoogle() {
     setBusy(true);
     setError("");
-    if(turnstileEnabled&&!turnstileToken){setError('Complete the security check first.');setBusy(false);return;}
+    if(turnstileEnabled&&!googleTurnstileToken){setError('Complete the security check first.');setBusy(false);return;}
     const { error: googleError } = await authClient.signIn.social({
       provider: "google",
       callbackURL: `${window.location.origin}${returnTo}`,
-      fetchOptions:{headers:turnstileHeaders(turnstileToken)},
+      fetchOptions:{headers:turnstileHeaders(googleTurnstileToken)},
     });
-    setTurnstileToken('');setTurnstileResetKey(value=>value+1);
+    setGoogleTurnstileToken('');setGoogleTurnstileResetKey(value=>value+1);
     if (googleError) {
       setError(googleError.message ?? "We could not continue with Google.");
       setBusy(false);
@@ -113,8 +115,7 @@ export default function SignInPage() {
             </div>
           )}
 
-          <TurnstileField onToken={setTurnstileToken} resetKey={turnstileResetKey}/>
-
+          <div className="auth-action-security"><TurnstileField onToken={setGoogleTurnstileToken} resetKey={googleTurnstileResetKey}/></div>
           <button className="auth-google" type="button" disabled={busy} onClick={signInWithGoogle}>
             <img src="/brand/google-g.svg" alt="" width="18" height="18" />
             Continue with Google
@@ -140,6 +141,7 @@ export default function SignInPage() {
               <Link href="/verify-email">Resend verification</Link>
             </div>
 
+            <TurnstileField onToken={setTurnstileToken} resetKey={turnstileResetKey}/>
             <button className="button" disabled={busy}>
               {busy ? "Signing in…" : "Sign in"}
             </button>

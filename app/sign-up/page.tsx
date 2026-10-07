@@ -20,6 +20,8 @@ export default function SignUpPage() {
   const [busy, setBusy] = useState(false);
   const [turnstileToken,setTurnstileToken]=useState('');
   const [turnstileResetKey,setTurnstileResetKey]=useState(0);
+  const [googleTurnstileToken,setGoogleTurnstileToken]=useState('');
+  const [googleTurnstileResetKey,setGoogleTurnstileResetKey]=useState(0);
   const returnTo = safeReturnTo(searchParams.get("return_to"));
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -49,13 +51,13 @@ export default function SignUpPage() {
   async function signUpWithGoogle() {
     setBusy(true);
     setError("");
-    if(turnstileEnabled&&!turnstileToken){setError('Complete the security check first.');setBusy(false);return;}
+    if(turnstileEnabled&&!googleTurnstileToken){setError('Complete the security check first.');setBusy(false);return;}
     const { error: googleError } = await authClient.signIn.social({
       provider: "google",
       callbackURL: `${window.location.origin}${returnTo}`,
-      fetchOptions:{headers:turnstileHeaders(turnstileToken)},
+      fetchOptions:{headers:turnstileHeaders(googleTurnstileToken)},
     });
-    setTurnstileToken('');setTurnstileResetKey(value=>value+1);
+    setGoogleTurnstileToken('');setGoogleTurnstileResetKey(value=>value+1);
     if (googleError) {
       setError(googleError.message ?? "We could not continue with Google.");
       setBusy(false);
@@ -98,8 +100,7 @@ export default function SignUpPage() {
                 </div>
               )}
 
-              <TurnstileField onToken={setTurnstileToken} resetKey={turnstileResetKey}/>
-
+              <div className="auth-action-security"><TurnstileField onToken={setGoogleTurnstileToken} resetKey={googleTurnstileResetKey}/></div>
               <button className="auth-google" type="button" disabled={busy} onClick={signUpWithGoogle}>
                 <img src="/brand/google-g.svg" alt="" width="18" height="18" />
                 Continue with Google
@@ -125,6 +126,7 @@ export default function SignUpPage() {
                   <input name="password" type="password" autoComplete="new-password" minLength={8} placeholder="At least 8 characters" required />
                 </label>
 
+                <TurnstileField onToken={setTurnstileToken} resetKey={turnstileResetKey}/>
                 <button className="button" disabled={busy}>
                   {busy ? "Creating account…" : "Create account"}
                 </button>

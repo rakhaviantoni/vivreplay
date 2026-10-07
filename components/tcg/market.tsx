@@ -388,7 +388,8 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
   const [tradeType,setTradeType]=useState<'all'|'WTS'|'WTB'>('all');
   const [listingView,setListingView]=useState<'list'|'grid'>('list');
   const [feedScope,setFeedScope]=useState<'listings'|'cards'>('listings');
-  const [open,setOpen]=useState(false);
+  const [open,setOpen]=useState(()=>Boolean(searchParams.get('sell')&&searchParams.get('sell')!=='open'));
+  const [directSellLoading,setDirectSellLoading]=useState(()=>Boolean(searchParams.get('sell')&&searchParams.get('sell')!=='open'));
   const [bulkListingOpen,setBulkListingOpen]=useState(false);
   const directSellSearchHandled=useRef(false);
   const configLoadVersion=useRef(0);
@@ -563,7 +564,8 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
     void (async()=>{
       const client=createClient();
       const {data}=await client.from('tcg_card_printings').select('id,card_image_url,rarity,set_code,language,tcg_card_identities!inner(code,name,color,card_type,cost,power,effect_text)').eq('id',sell).maybeSingle();
-      if(!active||!data)return;
+      if(!active)return;
+      if(!data){setDirectSellLoading(false);return;}
       const row=data as unknown as {id:string;card_image_url:string|null;rarity:string|null;set_code:string|null;language:string;tcg_card_identities:{code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number;effect_text:string}};
       const identity=row.tcg_card_identities;
       const cardObj:Card={id:row.id,code:identity.code,name:displayCardName(identity.name,identity.code),color:identity.color,type:identity.card_type,cost:identity.cost,power:identity.power,rarity:row.rarity??'',art:0,effect:identity.effect_text,imageUrl:row.card_image_url??undefined,imageSource:'external',setCode:row.set_code??undefined,language:row.language};
@@ -656,6 +658,8 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
     }
     if(data)return true;
     window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));
+    setOpen(false);
+    setDirectSellLoading(false);
     return false;
   };
   function beginListing(){
@@ -692,6 +696,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
     const savedCity=window.localStorage.getItem('vivreplay-seller-city')||'Jakarta';
     setListingCity(savedCity);
     loadCardForConfig(card);
+    setDirectSellLoading(false);
     setOpen(true);
   }
   const addToVault=(card:Card)=>{
@@ -1024,9 +1029,9 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
                     <div className="market-feed-copy">
                       <h2>{listing.title}</h2>
                       <p>{totalCards} {locale==='ID'?'kartu':(totalCards===1?'card':'cards')}{items.length===1&&<span className="market-feed-language">{cardLanguage}</span>}</p>
-                      <small>
+                      <small className="market-feed-meta">
                         <span className="market-feed-location"><MapPin size={11}/>{listing.city}</span>
-                        <span>{listing.seller}</span>
+                        <span className="market-feed-seller">{locale==='ID'?'oleh':'by'} {listing.seller}</span>
                         {listing.type==='WTS'&&<ShippingCouriers couriers={listing.shippingCouriers??[]} language={locale}/>}
                         {listing.createdAt&&<MarketTimestamp value={listing.createdAt}/>}
                       </small>
@@ -1041,7 +1046,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
                     </div>
                   </>
                 );
-                const rowClass=`market-feed-row ${listing.type==='WTB'?'is-wtb':'is-wts'}`;
+                const rowClass=`market-feed-row ${listing.type==='WTB'?'is-wtb':'is-wts'}${listing.isOwner?'':' has-row-action'}`;
                 return <article key={listing.id} className={`${rowClass} market-feed-entry`}>
                   <Link href={`/market/${listing.id}`} className="market-feed-row-link" aria-label={locale==='ID'?`Buka ${listing.title}`:`Open ${listing.title}`}>{content}</Link>
                   {!listing.isOwner&&<div className="market-feed-row-actions"><SaveListingButton listingId={listing.id} language={locale} iconOnly/></div>}
@@ -1099,6 +1104,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
             </DialogDescription>
           </div>
           <div className="market-sell-body">
+            {directSellLoading?<div className="market-direct-sell-loading" role="status" aria-label={locale==='ID'?'Memuat pilihan jual':'Loading sell options'}><span/><span/><span/></div>:<>
             {/* VIEW 1: Card Configuration Step */}
             {configuringCard&&activeCardObj?(
               <div className="listing-selection">
@@ -1516,6 +1522,7 @@ export function Market({initialCards=[]}:{initialCards?:string[]}) {
                 )}
               </div>
             )}
+            </>}
           </div>
         </DialogContent>
       </Dialog>
