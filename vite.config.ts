@@ -28,6 +28,8 @@ const localBindingConfig = {
     NEXT_PUBLIC_SUPABASE_URL: "https://shqwaqxpxsyjafxdcibj.supabase.co",
     NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "sb_publishable_yg4vygJx5VP-ecakkYF8WA_WTwBloIZ",
     IPAYMU_MODE: "sandbox",
+    VIVREPLAY_PRO_PRICE_IDR: "24900",
+    VIVREPLAY_PRO_DURATION_DAYS: "30",
     VIVREPLAY_MARKET_CHECKOUT_ENABLED: "true",
     VIVREPLAY_MARKET_SELLER_OPERATIONS_READY: "true",
     VIVREPLAY_MARKET_LIVE_PAYMENTS_ENABLED: "false",

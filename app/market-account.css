@@ -89,3 +89,30 @@ html[data-theme='dark'] .market-account-menu [data-slot='dropdown-menu-separator
 @media(hover:hover){.market-order-row:hover{transform:translateY(-1px);border-color:color-mix(in srgb,var(--accent) 32%,var(--line));background:color-mix(in srgb,var(--accent) 2.5%,var(--surface-raised));box-shadow:0 5px 14px rgb(20 27 24 / .055)}.market-order-row.is-expanded:hover{transform:none}}
 @media(max-width:620px){.market-order-qris{align-items:flex-start;gap:11px;padding:10px}.market-order-qris-code{width:92px;height:92px}.market-order-qris-prompt{align-items:flex-start;flex-direction:column}.market-order-qris-prompt .button{width:100%}}
 @media(prefers-reduced-motion:reduce){.market-order-row,.market-order-details{transition:none;animation:none}}
+
+/* Order details need room for long card names, fee labels, and tracking data on phones. */
+@media(max-width:620px){
+  .market-activity-panel .market-order-summary{grid-template-columns:44px minmax(0,1fr);align-items:start;gap:10px 12px}
+  .market-order-summary .market-card-stack{width:42px;min-width:42px}
+  .market-order-summary .market-activity-row-main{min-width:0}
+  .market-order-summary .market-activity-row-title{flex-wrap:wrap;gap:6px}
+  .market-order-summary .market-activity-row-main h3{white-space:normal;overflow-wrap:anywhere;line-height:1.35}
+  .market-order-total{flex-wrap:wrap;gap:6px 10px}
+  .market-order-total>strong{font-size:13px;font-variant-numeric:tabular-nums}
+  .market-order-expand-label{margin-left:auto}
+  .market-order-details{min-width:0;gap:12px}
+  .market-order-detail-items,.market-order-ledger,.market-order-shipping-detail{min-width:0}
+  .market-order-detail-item{grid-template-columns:36px minmax(0,1fr);gap:8px 10px}
+  .market-order-detail-item img,.market-order-detail-placeholder{width:34px;height:47px}
+  .market-order-detail-item strong{white-space:normal;overflow-wrap:anywhere;line-height:1.35}
+  .market-order-detail-item small{overflow-wrap:anywhere}
+  .market-order-detail-item>b{grid-column:2;justify-self:start;font-size:12px}
+  .market-order-ledger>div{align-items:flex-start;gap:10px;line-height:1.4}
+  .market-order-ledger>div>span{min-width:0;overflow-wrap:anywhere}
+  .market-order-ledger>div>b{flex:none;text-align:right;white-space:normal}
+  .market-order-shipping-detail p{overflow-wrap:anywhere}
+  .market-order-detail-actions{align-items:stretch}
+  .market-order-detail-actions .button{flex:1 1 145px;min-height:42px}
+  .market-order-qris{flex-wrap:wrap}
+  .market-order-qris-copy{flex:1 1 150px}
+}

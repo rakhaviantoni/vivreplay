@@ -33,11 +33,11 @@ export function MarketPolicyManager() {
 
   // Form states
   const [freeDays, setFreeDays] = useState(7);
-  const [freeMax, setFreeMax] = useState(12);
+  const [freeMax, setFreeMax] = useState(25);
   const [freeFee, setFreeFee] = useState(1.5);
 
-  const [proDays, setProDays] = useState(14);
-  const [proMax, setProMax] = useState(500);
+  const [proDays, setProDays] = useState(30);
+  const [proMax, setProMax] = useState(2500);
   const [proFee, setProFee] = useState(0.75);
   const [proAutoRenew, setProAutoRenew] = useState(true);
 
@@ -72,28 +72,28 @@ export function MarketPolicyManager() {
   const applyPreset = (preset: 'recommended' | 'quick-turn' | 'relaxed') => {
     if (preset === 'recommended') {
       setFreeDays(7);
-      setFreeMax(12);
+      setFreeMax(25);
       setFreeFee(1.5);
-      setProDays(14);
-      setProMax(500);
+      setProDays(30);
+      setProMax(2500);
       setProFee(0.75);
       setProAutoRenew(true);
-      toast.info('Applied "Recommended (7d / 12 listings)" preset. Click Save to apply.');
+      toast.info('Applied "Recommended (7d / 25 listings)" preset. Click Save to apply.');
     } else if (preset === 'quick-turn') {
       setFreeDays(3);
-      setFreeMax(12);
+      setFreeMax(25);
       setFreeFee(1.5);
-      setProDays(14);
-      setProMax(500);
+      setProDays(30);
+      setProMax(2500);
       setProFee(0.75);
       setProAutoRenew(true);
-      toast.info('Applied "Quick-turn listings (3d / 12 listings)" preset. Click Save to apply.');
+      toast.info('Applied "Quick-turn listings (3d / 25 listings)" preset. Click Save to apply.');
     } else if (preset === 'relaxed') {
       setFreeDays(30);
       setFreeMax(25);
       setFreeFee(1.5);
       setProDays(60);
-      setProMax(1000);
+      setProMax(2500);
       setProFee(0.75);
       setProAutoRenew(true);
       toast.info('Applied "Relaxed (30d / 25 listings)" preset. Click Save to apply.');
@@ -179,14 +179,14 @@ export function MarketPolicyManager() {
             className="admin-preset-btn"
             onClick={() => applyPreset('recommended')}
           >
-            Recommended (7d / 12)
+            Recommended (7d / 25)
           </button>
           <button
             type="button"
             className="admin-preset-btn"
             onClick={() => applyPreset('quick-turn')}
           >
-            Quick-turn (3d / 12)
+            Quick-turn (3d / 25)
           </button>
           <button
             type="button"

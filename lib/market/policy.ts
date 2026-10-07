@@ -12,20 +12,20 @@ export const LISTING_POLICIES: Record<AccountTier, ListingTierPolicy> = {
   free: {
     tier: 'free',
     durationDays: 7,
-    maxActiveListings: 12,
+    maxActiveListings: 25,
     canAutoRenew: false,
     commissionPercent: 1.5,
   },
   pro: {
     tier: 'pro',
-    durationDays: 14,
-    maxActiveListings: 500,
+    durationDays: 30,
+    maxActiveListings: 2500,
     canAutoRenew: true,
     commissionPercent: 0.75,
   },
 };
 
-export const MARKET_BUYER_FEE_PERCENT = 0.5;
+export const MARKET_BUYER_FEE_PERCENT = 0.75;
 
 export function parseMarketPolicies(rawJson: string | null | undefined): Record<AccountTier, ListingTierPolicy> {
   if (!rawJson) return LISTING_POLICIES;

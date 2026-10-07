@@ -41,8 +41,8 @@ export function ProCheckout(){
   if(!account)return <main className="page vivre-checkout-page pro-checkout-page"><section className="pro-signin-card"><span className="pro-icon"><Store size={20}/></span><p className="eyebrow">VIVREPLAY MARKET</p><h1>Market Pro</h1><p>Sign in to view seller membership and checkout.</p><button className="button" onClick={()=>window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}))}>Sign in</button></section></main>;
 
   const benefits=[
-    {title:`${plan?.durationDays??14}-day listing window`,detail:'Keep active listings visible for longer.'},
-    {title:`Up to ${(plan?.maxActiveListings??500).toLocaleString()} active listings`,detail:'Manage more of your collection on Market.'},
+    {title:`${plan?.durationDays??30}-day listing window`,detail:'Keep active listings visible for longer.'},
+    {title:`Up to ${(plan?.maxActiveListings??2500).toLocaleString()} active listings`,detail:'Manage more of your collection on Market.'},
     {title:`${plan?.commissionPercent??0}% seller fee`,detail:'Applied to completed Market sales; the buyer fee is shown separately at checkout.'},
     {title:plan?.canAutoRenew?'Automatic renewal option':'Manual one-click renewal',detail:'Choose how your listings stay active.'},
   ];
