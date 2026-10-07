@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import {useCallback,useEffect,useRef,useState} from 'react';
+import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {ArrowCounterClockwiseIcon as Refresh,CaretDownIcon as CaretDown,PackageIcon as Package,TruckIcon as Truck,CheckCircleIcon as CheckCircle,ArrowSquareOutIcon as ExternalLink} from '@phosphor-icons/react';
 import {OrderReview} from '@/components/tcg/market-reputation';
 import {formatMoney} from '@/packages/domain';
@@ -21,6 +21,7 @@ const qrisExpiryLabel=(value:string,id:boolean)=>`${new Intl.DateTimeFormat(id?'
 export function OrdersTab({language,initialOrderId}:{language:'EN'|'ID';initialOrderId?:string|null}){
   const id=language==='ID';
   const [orders,setOrders]=useState<Order[]>([]);const [loading,setLoading]=useState(true);const [error,setError]=useState('');const [now,setNow]=useState(0);
+  const [roleFilter,setRoleFilter]=useState<'all'|'buyer'|'seller'>('all');const [statusFilter,setStatusFilter]=useState('all');const [dateFrom,setDateFrom]=useState('');const [dateTo,setDateTo]=useState('');
   const [expanded,setExpanded]=useState('');const [details,setDetails]=useState<Record<string,OrderDetail>>({});const [detailBusy,setDetailBusy]=useState('');const [detailError,setDetailError]=useState('');const [paymentBusy,setPaymentBusy]=useState('');
   const [shipmentOrder,setShipmentOrder]=useState('');const [shipmentBusy,setShipmentBusy]=useState('');const [confirmBusy,setConfirmBusy]=useState('');const [cancelPrompt,setCancelPrompt]=useState('');const [cancelBusy,setCancelBusy]=useState('');const [tracking,setTracking]=useState<Record<string,Tracking>>({});
   const focusedOrder=useRef('');
@@ -40,10 +41,30 @@ export function OrdersTab({language,initialOrderId}:{language:'EN'|'ID';initialO
   const cancelOrder=async(orderId:string)=>{setCancelBusy(orderId);setDetailError('');try{const response=await fetch(`/api/checkout/order/${encodeURIComponent(orderId)}/cancel`,{method:'POST'});const data=await response.json() as {error?:string};if(!response.ok)throw new Error(data.error||(id?'Pesanan tidak dapat dibatalkan.':'This order could not be cancelled.'));setCancelPrompt('');await refresh(true);await loadDetails(orderId)}catch(reason){setDetailError(reason instanceof Error?reason.message:(id?'Pesanan tidak dapat dibatalkan.':'This order could not be cancelled.'))}finally{setCancelBusy('')}};
   if(loading)return <MarketActivityLoading kind="orders" label={id?'Memuat pesanan…':'Loading your orders…'}/>;
   const statusLabels:Record<string,string>=id?{PENDING_PAYMENT:'Menunggu pembayaran',PROCESSING:'Diproses',PAID:'Dibayar',SHIPPED:'Dikirim',RECEIVED:'Diterima',COMPLETED:'Selesai',CANCELLED:'Dibatalkan',EXPIRED:'Kedaluwarsa',PAYMENT_REVIEW:'Perlu pemeriksaan pembayaran'}:{PENDING_PAYMENT:'Pending payment',PROCESSING:'Processing',PAID:'Paid',SHIPPED:'Shipped',RECEIVED:'Received',COMPLETED:'Completed',CANCELLED:'Cancelled',EXPIRED:'Expired',PAYMENT_REVIEW:'Payment review'};
+  const filteredOrders=useMemo(()=>orders.filter(order=>{
+    if(roleFilter!=='all'&&order.role!==roleFilter)return false;
+    const expired=order.status==='PENDING_PAYMENT'&&order.expiresAt&&new Date(`${order.expiresAt.replace(' ','T')}Z`).getTime()<=now;
+    const visibleStatus=expired?'EXPIRED':order.status;
+    if(statusFilter!=='all'&&visibleStatus!==statusFilter)return false;
+    const created=parseDate(order.createdAt).getTime();
+    if(dateFrom&&created<new Date(`${dateFrom}T00:00:00`).getTime())return false;
+    if(dateTo&&created>=new Date(`${dateTo}T00:00:00`).getTime()+24*60*60*1000)return false;
+    return true;
+  }),[orders,roleFilter,statusFilter,dateFrom,dateTo,now]);
+  const hasFilters=roleFilter!=='all'||statusFilter!=='all'||Boolean(dateFrom)||Boolean(dateTo);
+  const clearFilters=()=>{setRoleFilter('all');setStatusFilter('all');setDateFrom('');setDateTo('')};
   return <section className="market-activity-panel" aria-label={id?'Pesanan Market':'Market orders'}>
     <div className="market-activity-toolbar"><p>{id?'Pembelian dan penjualan Anda. Checkout yang belum dibayar berakhir setelah 24 jam.':'Your purchases and sales. Unpaid checkouts expire after 24 hours.'}</p><button type="button" className="market-activity-refresh" onClick={()=>void refresh()}><Refresh size={15}/>{id?'Muat ulang':'Refresh'}</button></div>
     {error&&<div className="market-activity-error" role="alert"><span>{error}</span><button type="button" onClick={()=>void refresh()}>{id?'Coba lagi':'Try again'}</button></div>}
-    {!orders.length?<MarketActivityEmpty title={id?'Belum ada pesanan':'No orders yet'} description={id?'Pembelian dan penjualan akan muncul di sini.':'Your purchases and sales will appear here.'}/>:<div className="market-activity-list">{orders.map(order=>{
+    {!!orders.length&&<div className="market-order-filters" aria-label={id?'Filter pesanan':'Order filters'}>
+      <label><span>{id?'Aktivitas':'Activity'}</span><select value={roleFilter} onChange={event=>setRoleFilter(event.target.value as 'all'|'buyer'|'seller')}><option value="all">{id?'Pembelian & penjualan':'Purchases & sales'}</option><option value="buyer">{id?'Pembelian':'Purchases'}</option><option value="seller">{id?'Penjualan':'Sales'}</option></select></label>
+      <label><span>{id?'Status':'Status'}</span><select value={statusFilter} onChange={event=>setStatusFilter(event.target.value)}><option value="all">{id?'Semua status':'All statuses'}</option>{Object.entries(statusLabels).map(([value,label])=><option value={value} key={value}>{label}</option>)}</select></label>
+      <label><span>{id?'Dari tanggal':'From date'}</span><input type="date" value={dateFrom} max={dateTo||undefined} onChange={event=>setDateFrom(event.target.value)}/></label>
+      <label><span>{id?'Sampai tanggal':'Through date'}</span><input type="date" value={dateTo} min={dateFrom||undefined} onChange={event=>setDateTo(event.target.value)}/></label>
+      {hasFilters&&<button type="button" className="market-order-filter-clear" onClick={clearFilters}>{id?'Hapus filter':'Clear filters'}</button>}
+      <small>{id?`${filteredOrders.length} dari ${orders.length} pesanan`:`${filteredOrders.length} of ${orders.length} orders`}</small>
+    </div>}
+    {!orders.length?<MarketActivityEmpty title={id?'Belum ada pesanan':'No orders yet'} description={id?'Pembelian dan penjualan akan muncul di sini.':'Your purchases and sales will appear here.'}/>:!filteredOrders.length?<MarketActivityEmpty title={id?'Tidak ada pesanan yang cocok':'No matching orders'} description={id?'Ubah filter atau rentang tanggal untuk melihat pesanan lain.':'Change the filters or date range to see other orders.'} action={hasFilters?<button type="button" className="market-activity-empty-action" onClick={clearFilters}>{id?'Hapus filter':'Clear filters'}</button>:undefined}/>:<div className="market-activity-list">{filteredOrders.map(order=>{
       const expired=order.status==='PENDING_PAYMENT'&&order.expiresAt&&new Date(`${order.expiresAt.replace(' ','T')}Z`).getTime()<=now;
       const status=expired?'EXPIRED':order.status;const isExpanded=expanded===order.id;const detail=details[order.id];const activeQr=Boolean(detail?.paymentQrImage&&detail.paymentExpiresAt&&parseDate(detail.paymentExpiresAt).getTime()>now);const feeAmount=Math.max(0,order.subtotal-(order.sellerNetAmount??order.subtotal));
       return <article id={`market-order-${order.id}`} className={`market-activity-row market-order-row${initialOrderId===order.id?' is-targeted':''}${isExpanded?' is-expanded':''}`} key={order.id}>
