@@ -52,12 +52,12 @@ export function ProCheckout(){
     {label:t('Seller fee','Biaya penjual'),free:`${plan?.freeCommissionPercent??1.5}%`,pro:`${plan?.commissionPercent??0.75}%`},
     {label:t('Buyer fee','Biaya pembeli'),free:`${plan?.freeBuyerFeePercent??0.75}%`,pro:`${plan?.buyerFeePercent??0.5}%`},
     {label:t('Shipping vouchers','Voucher ongkir'),free:t('—','—'),pro:`${plan?.shippingVouchersPerMonth??2} ${t('per month','per bulan')}`},
-    {label:t('Listing renewal','Perpanjangan listing'),free:plan?.freeCanAutoRenew?t('Automatic','Otomatis'):t('Manual','Manual'),pro:plan?.canAutoRenew?t('Automatic','Otomatis'):t('Manual','Manual')},
+    {label:t('Listing auto-renewal','Perpanjangan listing otomatis'),free:plan?.freeCanAutoRenew?t('Automatic','Otomatis'):t('Manual','Manual'),pro:plan?.canAutoRenew?t('Automatic','Otomatis'):t('Manual','Manual')},
   ];
   const alreadyPro=String(account.profile.tier??'free').toLowerCase()==='pro';
 
   return <main className="page vivre-checkout-page pro-checkout-page">
-    <header className="pro-checkout-heading"><h1>Market Pro</h1><p>{t('Lower fees, more listings, and delivery vouchers for the same account you use to buy and sell.','Biaya lebih rendah, lebih banyak listing, dan voucher ongkir untuk akun yang sama saat membeli maupun menjual.')}</p></header>
+    <header className="pro-checkout-heading"><h1>Market Pro</h1><p>{t('Lower fees, more room to list, and delivery vouchers.','Biaya lebih rendah, batas listing lebih tinggi, dan voucher ongkir.')}</p></header>
     <div className="pro-checkout-grid">
       <section className="pro-benefits-panel" aria-labelledby="pro-comparison-title">
         <div className="pro-panel-heading"><div><h2 id="pro-comparison-title">{t('Free vs Pro','Gratis vs Pro')}</h2></div></div>
