@@ -79,9 +79,9 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
     const paymentExpired=details.ipaymuPaymentMethod==='qris'&&(order.status!=='PENDING_PAYMENT'||paymentExpiry===null||paymentExpiry<=Date.now());
     const paymentMode=details.ipaymuMode??process.env.IPAYMU_MODE;
     const paymentQrSource=viewerRole==='buyer'&&details.ipaymuPaymentMethod==='qris'&&!paymentExpired?ipaymuQrImageUrl(details.ipaymuPaymentQrImage,paymentMode):null;
-    // iPaymu serves this QR as an image URL. Use it directly so browser refreshes
-    // can retrieve the provider image without relying on an HTML image proxy.
-    const paymentQrImage=paymentQrSource;
+    // iPaymu's QR URL serves an HTML page with an embedded PNG, not an image
+    // response. Keep the browser same-origin and let the QR route extract it.
+    const paymentQrImage=paymentQrSource?`/api/checkout/order/${encodeURIComponent(order.id)}/qris`:null;
     const hasActivePayment=order.status==='PENDING_PAYMENT'&&Boolean(order.paymentId);
     const canCancel=order.kind==='MARKET'&&order.status==='PENDING_PAYMENT'&&!order.paymentId&&(!order.expiresAt||new Date(`${order.expiresAt.replace(' ','T')}Z`).getTime()>Date.now());
     return Response.json({id:order.id,kind:order.kind,status:order.status,viewerRole,title:order.title??'VivrePlay Market Pro',items:orderItems,details:{},shipping,sellerNetAmount:order.sellerNetAmount,marketFeePercent,marketSellerTier,marketStandardFeePercent,marketBuyerFeePercent,marketBuyerFeeAmount,shippingDiscount:viewerRole==='buyer'&&typeof details.marketProShippingDiscount==='number'?details.marketProShippingDiscount:0,waybillId:order.waybillId,trackingUrl:order.trackingUrl,checkoutUrl:viewerRole==='buyer'&&!paymentExpired&&typeof details.ipaymuCheckoutUrl==='string'?details.ipaymuCheckoutUrl:null,paymentMethod:viewerRole==='buyer'?details.ipaymuPaymentMethod??null:null,paymentMode:paymentMode==='sandbox'?'sandbox':'production',paymentFee:viewerRole==='buyer'&&typeof details.ipaymuPaymentFee==='number'?details.ipaymuPaymentFee:null,paymentExpiresAt:order.kind==='MARKET'?paymentExpiresAt:null,paymentExpired,paymentQrImage,paymentQrString:viewerRole==='buyer'&&!paymentExpired&&typeof details.ipaymuPaymentQrString==='string'?details.ipaymuPaymentQrString:null,canCancel,hasActivePayment,subtotal:order.subtotal,shippingFee:order.shippingFee,amount:order.amount,currency:order.currency,expiresAt:effectiveExpiry});
