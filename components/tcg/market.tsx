@@ -26,6 +26,7 @@ import {
   SunIcon as Sun,
   TrashIcon as Trash,
   WalletIcon as WalletCards,
+  ShoppingCartIcon as Cart,
   XIcon as X,
 } from '@phosphor-icons/react';
 import {toast} from 'sonner';
@@ -403,6 +404,8 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
   const [locale,setLocale]=useState<'EN'|'ID'>('EN');
   const [accountPanel,setAccountPanel]=useState<'listings'|'offers'|'orders'|'saved'|null>(()=>{const activity=searchParams.get('activity');return activity==='offers'||activity==='orders'||activity==='listings'||activity==='saved'?activity:null});
   const [activityCounts,setActivityCounts]=useState({listings:0,offers:0,orders:0});
+  const [marketCartCount,setMarketCartCount]=useState(0);
+  useEffect(()=>{const update=()=>{try{const cart=JSON.parse(window.localStorage.getItem('vivreplay-market-cart-v1')||'null');setMarketCartCount(Array.isArray(cart?.lines)?cart.lines.reduce((n:number,line:{items?:{quantity?:number}[]})=>n+(line.items??[]).reduce((m,item)=>m+(item.quantity??0),0),0):0)}catch{setMarketCartCount(0)}};update();window.addEventListener('vivreplay:market-cart-updated',update);window.addEventListener('storage',update);return()=>{window.removeEventListener('vivreplay:market-cart-updated',update);window.removeEventListener('storage',update)}},[]);
   const profileId=String(data?.profile?.id??'');
   // Bundle & Card Listing Draft State
   const [bundleCards,setBundleCards]=useState<ListingBundleCard[]>([]);
@@ -890,6 +893,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
           />
         </label>
         <div className="masthead-actions market-store-actions">
+        <Link href="/checkout/market?cart=1" className="market-store-link market-cart-link" aria-label={locale==='ID'?`Keranjang, ${marketCartCount} kartu`:`Cart, ${marketCartCount} cards`}><Cart size={17}/><span>{locale==='ID'?'Keranjang':'Cart'}</span>{marketCartCount>0&&<b>{marketCartCount}</b>}</Link>
         {data && (
           <DropdownMenu><DropdownMenuTrigger asChild><button type="button" className="market-account-trigger" aria-label={locale==='ID'?'Market saya: listing, penawaran, dan pesanan':'My Market: listings, offers, and orders'}><Store size={16} aria-hidden="true"/>{activityCounts.listings+activityCounts.offers+activityCounts.orders>0&&<span className="market-account-unread-badge">{Math.min(99,activityCounts.listings+activityCounts.offers+activityCounts.orders)}</span>}<span className="market-account-trigger-name">{locale==='ID'?'Market saya':'My Market'}</span><CaretDown size={14} aria-hidden="true"/></button></DropdownMenuTrigger><DropdownMenuContent align="end" sideOffset={10} className="market-account-menu"><DropdownMenuLabel className="market-account-menu-label"><span className="market-account-menu-name">{data.profile.display_name||`@${data.profile.username}`}</span><span className="market-account-menu-handle">@{data.profile.username}</span></DropdownMenuLabel><DropdownMenuSeparator/><DropdownMenuItem className="market-account-menu-item" onSelect={()=>setAccountPanel('listings')}><ClipboardText size={16}/>{locale==='ID'?'Listing saya':'My listings'}{activityCounts.listings>0&&<span className="market-activity-badge">{activityCounts.listings>99?'99+':activityCounts.listings}</span>}</DropdownMenuItem><DropdownMenuItem className="market-account-menu-item" onSelect={()=>setAccountPanel('offers')}><OrdersIcon size={16}/>{locale==='ID'?'Penawaran':'Offers'}{activityCounts.offers>0&&<span className="market-activity-badge">{activityCounts.offers>99?'99+':activityCounts.offers}</span>}</DropdownMenuItem><DropdownMenuItem className="market-account-menu-item" onSelect={()=>setAccountPanel('orders')}><OrdersIcon size={16}/>{locale==='ID'?'Pesanan':'Orders'}{activityCounts.orders>0&&<span className="market-activity-badge">{activityCounts.orders>99?'99+':activityCounts.orders}</span>}</DropdownMenuItem><DropdownMenuItem className="market-account-menu-item" onSelect={()=>setAccountPanel('saved')}><Bookmark size={16}/>{locale==='ID'?'Listing tersimpan':'Saved listings'}</DropdownMenuItem><DropdownMenuItem className="market-account-menu-item" asChild><Link href="/vault?tab=wishlist"><Heart size={16}/>{locale==='ID'?'Kartu incaran':'Wishlist'}</Link></DropdownMenuItem><DropdownMenuItem className="market-account-menu-item" asChild><Link href="/profile"><History size={16}/>{locale==='ID'?'Profil':'Profile'}</Link></DropdownMenuItem></DropdownMenuContent></DropdownMenu>
         )}

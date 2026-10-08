@@ -7,8 +7,8 @@ import {biteshipDestination,isBiteshipAreaId} from '@/lib/shipping/biteship-area
 import {shippingRateOptions} from '@/lib/server/shipping-quote-cache';
 import {getDynamicListingPolicy,MARKET_BUYER_FEE_PERCENT,MARKET_PRO_BUYER_FEE_PERCENT,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH,MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL,MARKET_PRO_SHIPPING_VOUCHER_SHARE,MARKET_PRO_SHIPPING_VOUCHER_CAP} from '@/lib/market/policy';
 
-const schema=z.object({listingId:z.string().min(1),offerId:z.string().min(1).optional(),items:z.array(z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(99)})).min(1).max(60),courierName:z.string().min(1),courierServiceName:z.string().min(1),courierCode:z.string().min(1),courierServiceCode:z.string().min(1),courierType:z.string().min(1),shippingFee:z.number().int().nonnegative().optional()});
-type BundleEntry={instanceId?:string;printingId:string;quantity:number;condition?:string;unitAmount:number};
+const schema=z.object({listingId:z.string().min(1),offerId:z.string().min(1).optional(),items:z.array(z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(99),listingId:z.string().optional()})).min(1).max(600),lines:z.array(z.object({listingId:z.string().min(1),items:z.array(z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(99)})).min(1).max(60)})).max(10).optional(),courierName:z.string().min(1),courierServiceName:z.string().min(1),courierCode:z.string().min(1),courierServiceCode:z.string().min(1),courierType:z.string().min(1),shippingFee:z.number().int().nonnegative().optional()});
+type BundleEntry={instanceId?:string;printingId:string;quantity:number;condition?:string;unitAmount:number;listingId?:string};
 type Rate={courier_name:string;courier_service_name:string;courier_code:string;courier_service_code:string;company:string;type:string;price:number};
 type AcceptedOffer={id:string;actorId:string;buyerId:string;listingId:string;status:string;amount:number;items:string};
 
@@ -63,25 +63,28 @@ export async function POST(request:Request){
     const couriers=enabledShippingCouriers(sellerMethods);
     if(!couriers.length)throw new HttpError(400,'The seller has not enabled a delivery method.');
 
-    let bundle:BundleEntry[];
-    try{
-      const parsed=listing.items?JSON.parse(listing.items) as BundleEntry[]:[];
-      const valid=parsed.filter(item=>typeof item.printingId==='string'&&item.printingId&&Number.isInteger(item.quantity)&&item.quantity>0);
-      const totalQuantity=valid.reduce((sum,item)=>sum+item.quantity,0)||listing.quantity;
-      const fallbackUnitAmount=Math.max(1,Math.floor(listing.amount/Math.max(1,totalQuantity)));
-      bundle=valid.length?valid.map(item=>({...item,unitAmount:Number.isSafeInteger(item.unitAmount)&&item.unitAmount>0?item.unitAmount:fallbackUnitAmount})): [{instanceId:undefined,printingId:listing.printingId,quantity:listing.quantity,unitAmount:Math.max(1,Math.round(listing.amount/listing.quantity))}];
-    }catch{bundle=[{printingId:listing.printingId,quantity:listing.quantity,unitAmount:Math.round(listing.amount/listing.quantity)}]}
-    const wanted=new Map<string,number>();
-    for(const item of input.items)wanted.set(item.printingId,(wanted.get(item.printingId)??0)+item.quantity);
+    const requestedLines=input.lines?.length?input.lines.map(line=>({listingId:line.listingId,items:line.items})): [{listingId:listing.id,items:input.items}];
+    if(!input.lines?.length&&input.items.length>60)throw new HttpError(400,'Select up to 60 card entries.');
+    if(input.offerId&&requestedLines.length!==1)throw new HttpError(400,'Accepted offers must be checked out on their listing.');
+    if(requestedLines.length>10||new Set(requestedLines.map(line=>line.listingId)).size!==requestedLines.length)throw new HttpError(400,'Remove duplicate listings from the cart and try again.');
+    const listingRows=await database.prepare(`SELECT l.id,l.seller_id AS sellerId,l.printing_id AS printingId,l.title,l.amount,l.currency,l.quantity,l.type,l.status,l.items,l.expires_at AS expiresAt FROM listings l WHERE l.id IN (${requestedLines.map(()=>'?').join(',')})`).bind(...requestedLines.map(line=>line.listingId)).all<{id:string;sellerId:string;printingId:string;title:string;amount:number;currency:string;quantity:number;type:string;status:string;items:string|null;expiresAt:string|null}>();
+    const listingById=new Map(listingRows.results.map(row=>[row.id,row]));
+    if(listingById.size!==requestedLines.length)throw new HttpError(404,'One or more listings are no longer available.');
+    for(const row of listingRows.results){if(row.sellerId!==listing.sellerId)throw new HttpError(400,'A cart can only include listings from one seller.');if(row.type!=='WTS'||row.status!=='ACTIVE'||(row.expiresAt&&new Date(`${row.expiresAt.replace(' ','T')}Z`).getTime()<=Date.now()))throw new HttpError(409,'One or more listings are no longer available.');if(row.currency!==listing.currency)throw new HttpError(400,'Cart listings must use the same currency.');}
+    const bundleByListing=new Map<string,BundleEntry[]>();
+    for(const row of listingRows.results){let bundle:BundleEntry[];try{const parsed=row.items?JSON.parse(row.items) as BundleEntry[]:[];const valid=parsed.filter(item=>typeof item.printingId==='string'&&item.printingId&&Number.isInteger(item.quantity)&&item.quantity>0);const total=valid.reduce((sum,item)=>sum+item.quantity,0)||row.quantity;const fallback=Math.max(1,Math.floor(row.amount/Math.max(1,total)));bundle=valid.length?valid.map(item=>({...item,listingId:row.id,unitAmount:Number.isSafeInteger(item.unitAmount)&&item.unitAmount>0?item.unitAmount:fallback})):[{printingId:row.printingId,quantity:row.quantity,unitAmount:Math.max(1,Math.round(row.amount/row.quantity)),listingId:row.id}]}catch{bundle=[{printingId:row.printingId,quantity:row.quantity,unitAmount:Math.round(row.amount/row.quantity),listingId:row.id}]}bundleByListing.set(row.id,bundle);}
+    const firstWanted=new Map<string,number>();for(const item of requestedLines[0].items)firstWanted.set(item.printingId,(firstWanted.get(item.printingId)??0)+item.quantity);
     let acceptedLines:BundleEntry[]=[];
     if(acceptedOffer){
       try{const parsed=JSON.parse(acceptedOffer.items) as BundleEntry[];acceptedLines=parsed.filter(item=>typeof item.printingId==='string'&&Number.isInteger(item.quantity)&&item.quantity>0&&Number.isSafeInteger(item.unitAmount)&&item.unitAmount>0)}catch{}
-      const requested=[...wanted].sort(([a],[b])=>a.localeCompare(b));const offered=[...acceptedLines.reduce((map,item)=>map.set(item.printingId,(map.get(item.printingId)??0)+item.quantity),new Map<string,number>())].sort(([a],[b])=>a.localeCompare(b));
+      const requested=[...firstWanted].sort(([a],[b])=>a.localeCompare(b));const offered=[...acceptedLines.reduce((map,item)=>map.set(item.printingId,(map.get(item.printingId)??0)+item.quantity),new Map<string,number>())].sort(([a],[b])=>a.localeCompare(b));
       if(JSON.stringify(requested)!==JSON.stringify(offered)||acceptedLines.reduce((sum,item)=>sum+item.quantity*item.unitAmount,0)!==acceptedOffer.amount)throw new HttpError(400,'Checkout cards and prices must match the accepted offer.');
     }
     const orderItems:BundleEntry[]=[];
     let subtotal=0;
-    for(const [printingId,quantity] of wanted){
+    for(const line of requestedLines){
+      const row=listingById.get(line.listingId)!;const bundle=bundleByListing.get(line.listingId)!;const wanted=new Map<string,number>();for(const item of line.items)wanted.set(item.printingId,(wanted.get(item.printingId)??0)+item.quantity);
+      for(const [printingId,quantity] of wanted){
       const entries=bundle.filter(item=>item.printingId===printingId);
       const listed=entries.reduce((sum,item)=>sum+item.quantity,0);
       if(!listed||quantity>listed)throw new HttpError(400,'One or more selected cards are not in this listing.');
@@ -89,15 +92,16 @@ export async function POST(request:Request){
       for(const entry of entries){
         if(remaining<=0)break;
         const reservedQuery=entry.instanceId
-          ?database.prepare(`SELECT COALESCE(SUM(CAST(json_extract(j.value,'$.quantity') AS INTEGER)),0) AS quantity FROM checkout_orders o,json_each(o.items) j WHERE o.listing_id=? AND o.kind='MARKET' AND (o.status='PROCESSING' OR (o.status='PENDING_PAYMENT' AND o.expires_at>CURRENT_TIMESTAMP)) AND json_extract(j.value,'$.instanceId')=?`).bind(listing.id,entry.instanceId)
-          :database.prepare(`SELECT COALESCE(SUM(CAST(json_extract(j.value,'$.quantity') AS INTEGER)),0) AS quantity FROM checkout_orders o,json_each(o.items) j WHERE o.listing_id=? AND o.kind='MARKET' AND (o.status='PROCESSING' OR (o.status='PENDING_PAYMENT' AND o.expires_at>CURRENT_TIMESTAMP)) AND json_extract(j.value,'$.printingId')=?`).bind(listing.id,printingId);
+          ?database.prepare(`SELECT COALESCE(SUM(CAST(json_extract(j.value,'$.quantity') AS INTEGER)),0) AS quantity FROM checkout_orders o,json_each(o.items) j WHERE o.kind='MARKET' AND (o.status='PROCESSING' OR (o.status='PENDING_PAYMENT' AND o.expires_at>CURRENT_TIMESTAMP)) AND json_extract(j.value,'$.instanceId')=?`).bind(entry.instanceId)
+          :database.prepare(`SELECT COALESCE(SUM(CAST(json_extract(j.value,'$.quantity') AS INTEGER)),0) AS quantity FROM checkout_orders o,json_each(o.items) j WHERE (json_extract(j.value,'$.listingId')=? OR (json_extract(j.value,'$.listingId') IS NULL AND o.listing_id=?)) AND o.kind='MARKET' AND (o.status='PROCESSING' OR (o.status='PENDING_PAYMENT' AND o.expires_at>CURRENT_TIMESTAMP)) AND json_extract(j.value,'$.printingId')=?`).bind(row.id,row.id,printingId);
         const reserved=await reservedQuery.first<{quantity:number}>();
         const held=reserved?.quantity??0;
         const available=Math.max(0,entry.quantity-held);
         const take=Math.min(available,remaining);
-        if(take>0){const unitAmount=Number.isSafeInteger(entry.unitAmount)&&entry.unitAmount>0?entry.unitAmount:Math.max(1,Math.round(listing.amount/listing.quantity));orderItems.push({...entry,quantity:take,unitAmount});subtotal+=take*unitAmount;remaining-=take;}
+        if(take>0){if(entry.instanceId&&orderItems.some(item=>item.instanceId===entry.instanceId&&item.listingId!==row.id))throw new HttpError(409,'A card copy appears in more than one cart listing. Remove one listing and try again.');const unitAmount=Number.isSafeInteger(entry.unitAmount)&&entry.unitAmount>0?entry.unitAmount:Math.max(1,Math.round(row.amount/row.quantity));orderItems.push({...entry,listingId:row.id,quantity:take,unitAmount});subtotal+=take*unitAmount;remaining-=take;}
       }
       if(remaining>0)throw new HttpError(409,'Some selected cards are currently reserved by another checkout.');
+    }
     }
     if(acceptedOffer){
       const priceQueues=new Map<string,Array<{quantity:number;unitAmount:number}>>();
@@ -140,17 +144,12 @@ export async function POST(request:Request){
     const standardPolicy=await getDynamicListingPolicy('free',database);
     const sellerNetAmount=Math.max(0,subtotal-Math.round(subtotal*sellerPolicy.commissionPercent/100));
     const shipping={recipientName:address.recipientName,addressLine:address.addressLine,city:address.city,postalCode:address.postalCode,areaId:dropoff.areaId,latitude:address.latitude,longitude:address.longitude,phone:address.phone,courierName:rate.courier_name,courierServiceName:rate.courier_service_name,courierCode:rate.courier_code,courierServiceCode:rate.courier_service_code,courierCompany:rate.company,courierType:rate.type,sender:{recipientName:seller.recipientName,addressLine:seller.addressLine,city:seller.city,postalCode:seller.postalCode,areaId:pickup.areaId,latitude:seller.latitude,longitude:seller.longitude,phone:seller.phone},shippingLabel:address.label,marketFeePercent:sellerPolicy.commissionPercent,marketSellerTier:sellerProfile?.tier==='pro'?'pro':'free',marketStandardFeePercent:standardPolicy.commissionPercent,marketBuyerFeePercent:buyerFeePercent,marketBuyerFeeAmount:buyerServiceFeeAmount,marketBuyerTier:buyerIsPro?'pro':'free',marketProShippingDiscount:shippingDiscount,marketProShippingVoucherMonth:voucherAvailable?voucherMonth:null};
-    const requested=new Map<string,{instanceId:string|null;printingId:string;quantity:number;capacity:number}>();
-    for(const item of orderItems){
-      const key=item.instanceId?`instance:${item.instanceId}`:`printing:${item.printingId}`;
-      const entry=requested.get(key)??{instanceId:item.instanceId??null,printingId:item.printingId,quantity:0,capacity:0};
-      entry.quantity+=item.quantity;requested.set(key,entry);
-    }
-    for(const entry of bundle){
-      const key=entry.instanceId?`instance:${entry.instanceId}`:`printing:${entry.printingId}`;
-      const requestedEntry=requested.get(key);if(requestedEntry)requestedEntry.capacity+=entry.quantity;
-    }
-    const reservationChecks=`NOT EXISTS(SELECT 1 FROM json_each(?) requested WHERE CAST(json_extract(requested.value,'$.quantity') AS INTEGER)+COALESCE((SELECT SUM(CAST(json_extract(j.value,'$.quantity') AS INTEGER)) FROM checkout_orders o,json_each(o.items) j WHERE o.listing_id=? AND o.kind='MARKET' AND (o.status='PROCESSING' OR (o.status='PENDING_PAYMENT' AND o.expires_at>CURRENT_TIMESTAMP)) AND ((json_extract(requested.value,'$.instanceId') IS NOT NULL AND json_extract(j.value,'$.instanceId')=json_extract(requested.value,'$.instanceId')) OR (json_extract(requested.value,'$.instanceId') IS NULL AND json_extract(j.value,'$.instanceId') IS NULL AND json_extract(j.value,'$.printingId')=json_extract(requested.value,'$.printingId')))),0)>CAST(json_extract(requested.value,'$.capacity') AS INTEGER))`;
+    const requested=new Map<string,{listingId:string;instanceId:string|null;printingId:string;quantity:number;capacity:number}>();
+    for(const item of orderItems){const sourceListingId=item.listingId||listing.id;const key=`${sourceListingId}:${item.instanceId?`instance:${item.instanceId}`:`printing:${item.printingId}`}`;const entry=requested.get(key)??{listingId:sourceListingId,instanceId:item.instanceId??null,printingId:item.printingId,quantity:0,capacity:0};entry.quantity+=item.quantity;requested.set(key,entry);}
+    for(const [sourceListingId,bundle] of bundleByListing){for(const item of bundle){const key=`${sourceListingId}:${item.instanceId?`instance:${item.instanceId}`:`printing:${item.printingId}`}`;const requestedEntry=requested.get(key);if(requestedEntry)requestedEntry.capacity+=item.quantity;}}
+    const reservationChecks=`NOT EXISTS(SELECT 1 FROM json_each(?) requested WHERE CAST(json_extract(requested.value,'$.quantity') AS INTEGER)+COALESCE((SELECT SUM(CAST(json_extract(j.value,'$.quantity') AS INTEGER)) FROM checkout_orders o,json_each(o.items) j WHERE ((json_extract(requested.value,'$.instanceId') IS NOT NULL AND json_extract(j.value,'$.instanceId')=json_extract(requested.value,'$.instanceId')) OR (json_extract(requested.value,'$.instanceId') IS NULL AND (json_extract(j.value,'$.listingId')=json_extract(requested.value,'$.listingId') OR (json_extract(j.value,'$.listingId') IS NULL AND o.listing_id=json_extract(requested.value,'$.listingId'))))) AND o.kind='MARKET' AND (o.status='PROCESSING' OR (o.status='PENDING_PAYMENT' AND o.expires_at>CURRENT_TIMESTAMP)) AND ((json_extract(requested.value,'$.instanceId') IS NOT NULL AND json_extract(j.value,'$.instanceId')=json_extract(requested.value,'$.instanceId')) OR (json_extract(requested.value,'$.instanceId') IS NULL AND json_extract(j.value,'$.instanceId') IS NULL AND json_extract(j.value,'$.printingId')=json_extract(requested.value,'$.printingId')))),0)>CAST(json_extract(requested.value,'$.capacity') AS INTEGER))`;
+    const listingGuards=listingRows.results.map(()=>`AND EXISTS(SELECT 1 FROM listings current WHERE current.id=? AND current.seller_id=? AND current.status='ACTIVE' AND current.amount=? AND current.quantity=? AND current.items IS ? AND (current.expires_at IS NULL OR current.expires_at>CURRENT_TIMESTAMP))`).join('\n');
+    const listingGuardBindings=listingRows.results.flatMap(row=>[row.id,row.sellerId,row.amount,row.quantity,row.items]);
     const offerGuard=acceptedOffer
       ?`AND EXISTS(SELECT 1 FROM listing_offers f WHERE f.id=? AND f.listing_id=? AND f.status='ACCEPTED' AND (SELECT first.actor_id FROM listing_offers first WHERE COALESCE(first.thread_id,first.id)=COALESCE(f.thread_id,f.id) ORDER BY first.created_at,first.rowid LIMIT 1)=?) AND NOT EXISTS(SELECT 1 FROM checkout_orders prior WHERE prior.offer_id=? AND (prior.status IN ('PROCESSING','PAID','SHIPPED','RECEIVED','COMPLETED','FULFILLED') OR (prior.status='PENDING_PAYMENT' AND prior.expires_at>CURRENT_TIMESTAMP)))`
       :'';
@@ -158,10 +157,11 @@ export async function POST(request:Request){
     const inserted=await database.prepare(`INSERT INTO checkout_orders (id,kind,buyer_id,seller_id,listing_id,offer_id,items,details,subtotal,seller_net_amount,shipping_fee,amount,currency,status,expires_at)
       SELECT ?,'MARKET',?,?,?,?,?,?,?,?,?,?,?,'PENDING_PAYMENT',?
       WHERE EXISTS(SELECT 1 FROM listings current WHERE current.id=? AND current.status='ACTIVE' AND current.amount=? AND current.quantity=? AND current.items IS ? AND (current.expires_at IS NULL OR current.expires_at>CURRENT_TIMESTAMP))
+      ${listingGuards}
       ${offerGuard}
       AND ${reservationChecks}
       AND (?=0 OR (SELECT COUNT(*) FROM checkout_orders prior WHERE prior.buyer_id=? AND prior.kind='MARKET' AND prior.status IN ('PENDING_PAYMENT','PROCESSING','PAID','SHIPPED','RECEIVED','COMPLETED') AND json_extract(prior.details,'$.marketProShippingVoucherMonth')=?)<${MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH})`)
-      .bind(id,profile.id,listing.sellerId,listing.id,acceptedOffer?.id??null,JSON.stringify(orderItems),JSON.stringify(shipping),subtotal,sellerNetAmount,rate.price,amount,'IDR',expiresAt,listing.id,listing.amount,listing.quantity,listing.items,...offerBindings,JSON.stringify([...requested.values()]),listing.id,voucherAvailable?1:0,profile.id,voucherMonth).run();
+      .bind(id,profile.id,listing.sellerId,listing.id,acceptedOffer?.id??null,JSON.stringify(orderItems),JSON.stringify(shipping),subtotal,sellerNetAmount,rate.price,amount,'IDR',expiresAt,listing.id,listing.amount,listing.quantity,listing.items,...listingGuardBindings,...offerBindings,JSON.stringify([...requested.values()]),voucherAvailable?1:0,profile.id,voucherMonth).run();
     if(!inserted.meta.changes)throw new HttpError(409,voucherAvailable?'Your monthly shipping benefit was just used. Refresh checkout to continue.':'This listing changed or the selected cards were reserved by another checkout. Refresh and try again.');
     return Response.json({id,checkoutUrl:`/checkout/order/${id}`,subtotal,shippingFee:rate.price,shippingDiscount,buyerServiceFeeAmount,total:amount},{status:201});
   }catch(error){return errorResponse(error)}

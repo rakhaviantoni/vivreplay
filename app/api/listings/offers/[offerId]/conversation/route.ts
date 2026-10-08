@@ -18,12 +18,12 @@ export async function GET(_request:Request,{params}:{params:Promise<{offerId:str
     if(latest?.status==='PENDING'&&current.listingType==='WTS'){
       const inventory=new Map<string,number>();
       try{
-        const bundle=JSON.parse(current.listingItems??'[]') as Array<{printingId?:unknown;quantity?:unknown}>;
+        const bundle=JSON.parse(current.listingItems??'[]') as Array<{printingId?:unknown;quantity?:unknown;listingId?:unknown}>;
         for(const item of bundle)if(typeof item.printingId==='string'&&Number.isInteger(item.quantity)&&Number(item.quantity)>0)inventory.set(item.printingId,(inventory.get(item.printingId)??0)+Number(item.quantity));
         if(!inventory.size)inventory.set(current.printingId,current.quantity);
       }catch{inventory.set(current.printingId,current.quantity)}
-      const reservations=(await db().prepare("SELECT o.items FROM checkout_orders o WHERE o.listing_id=? AND o.kind='MARKET' AND (o.status='PROCESSING' OR (o.status='PENDING_PAYMENT' AND o.expires_at>CURRENT_TIMESTAMP))").bind(current.listingId).all<{items:string}>()).results;
-      for(const reservation of reservations)try{for(const item of JSON.parse(reservation.items) as Array<{printingId?:unknown;quantity?:unknown}>){if(typeof item.printingId==='string'&&Number.isInteger(item.quantity))inventory.set(item.printingId,Math.max(0,(inventory.get(item.printingId)??0)-Number(item.quantity)))}}catch{}
+      const reservations=(await db().prepare("SELECT DISTINCT o.items FROM checkout_orders o,json_each(o.items) j WHERE (json_extract(j.value,'$.listingId')=? OR (json_extract(j.value,'$.listingId') IS NULL AND o.listing_id=?)) AND o.kind='MARKET' AND (o.status='PROCESSING' OR (o.status='PENDING_PAYMENT' AND o.expires_at>CURRENT_TIMESTAMP))").bind(current.listingId,current.listingId).all<{items:string}>()).results;
+      for(const reservation of reservations)try{for(const item of JSON.parse(reservation.items) as Array<{printingId?:unknown;quantity?:unknown;listingId?:unknown}>){if(typeof item.printingId==='string'&&Number.isInteger(item.quantity)&&(!item.listingId||item.listingId===current.listingId))inventory.set(item.printingId,Math.max(0,(inventory.get(item.printingId)??0)-Number(item.quantity)))}}catch{}
       const remaining=new Map(inventory);
       revisedItems=latest.items.flatMap(item=>{const take=Math.min(item.quantity,remaining.get(item.printingId)??0);remaining.set(item.printingId,Math.max(0,(remaining.get(item.printingId)??0)-take));if(take<item.quantity)requiresRevision=true;return take? [{...item,quantity:take}]:[]});
       if(requiresRevision&&!revisedItems.length){

@@ -60,11 +60,11 @@ export async function validateListingOfferItems(offer:OfferContext,actorId:strin
   if(offer.listingType==='WTS'){
     let available=new Map<string,number>([[offer.printingId,offer.quantity]]);
     try{
-      const bundle=JSON.parse(offer.listingItems??'[]') as Array<{printingId?:unknown;quantity?:unknown}>;
+      const bundle=JSON.parse(offer.listingItems??'[]') as Array<{printingId?:unknown;quantity?:unknown;listingId?:unknown}>;
       if(bundle.length){available=new Map();for(const item of bundle)if(typeof item.printingId==='string'&&Number.isInteger(item.quantity)&&Number(item.quantity)>0)available.set(item.printingId,(available.get(item.printingId)??0)+Number(item.quantity));}
     }catch{}
-    const reservations=(await db().prepare("SELECT items FROM checkout_orders WHERE listing_id=? AND kind='MARKET' AND (status='PROCESSING' OR (status='PENDING_PAYMENT' AND expires_at>CURRENT_TIMESTAMP))").bind(offer.listingId).all<{items:string}>()).results;
-    for(const reservation of reservations)try{for(const item of JSON.parse(reservation.items) as Array<{printingId?:unknown;quantity?:unknown}>){if(typeof item.printingId==='string'&&Number.isInteger(item.quantity))available.set(item.printingId,Math.max(0,(available.get(item.printingId)??0)-Number(item.quantity)))}}catch{}
+    const reservations=(await db().prepare("SELECT DISTINCT o.items FROM checkout_orders o,json_each(o.items) j WHERE (json_extract(j.value,'$.listingId')=? OR (json_extract(j.value,'$.listingId') IS NULL AND o.listing_id=?)) AND o.kind='MARKET' AND (o.status='PROCESSING' OR (o.status='PENDING_PAYMENT' AND o.expires_at>CURRENT_TIMESTAMP))").bind(offer.listingId,offer.listingId).all<{items:string}>()).results;
+    for(const reservation of reservations)try{for(const item of JSON.parse(reservation.items) as Array<{printingId?:unknown;quantity?:unknown;listingId?:unknown}>){if(typeof item.printingId==='string'&&Number.isInteger(item.quantity)&&(!item.listingId||item.listingId===offer.listingId))available.set(item.printingId,Math.max(0,(available.get(item.printingId)??0)-Number(item.quantity)))}}catch{}
     const requested=new Map<string,number>();for(const item of items)requested.set(item.printingId,(requested.get(item.printingId)??0)+item.quantity);
     if([...requested].some(([printingId,count])=>count>(available.get(printingId)??0)))throw new HttpError(409,'Some cards in this offer have sold or are reserved. Revise the offer for the cards still available.');
   }else{

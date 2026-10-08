@@ -5,7 +5,7 @@ import {SaveListingButton,WishlistButton} from './market-saved';
 import {MarketReputation} from './market-reputation';
 import {useRouter} from 'next/navigation';
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
-import {ArrowClockwiseIcon as Renew,ArrowLeftIcon, InfoIcon as Info, MinusIcon as Minus, PlusIcon as Plus, TruckIcon as Truck, XIcon as X} from '@phosphor-icons/react';
+import {ArrowClockwiseIcon as Renew,ArrowLeftIcon, InfoIcon as Info, MinusIcon as Minus, PlusIcon as Plus, ShoppingCartIcon as Cart, TruckIcon as Truck, XIcon as X} from '@phosphor-icons/react';
 import type {Card} from '@/packages/card-data/catalog';
 import {formatMoney,Listing} from '@/packages/domain';
 import {CardArt} from './card-art';
@@ -206,7 +206,7 @@ export function ListingArtRotator({items}:{items:MarketListingCard[]}){
   </div>;
 }
 
-export function MarketListingItems({items,currency,listingType,listingId,listingTitle,negotiable=true,readOnly=false}:{items:MarketListingCard[];currency:string;listingType:'WTS'|'WTB';listingId:string;listingTitle?:string;listingAmount?:string;negotiable?:boolean;readOnly?:boolean;}){
+export function MarketListingItems({items,currency,listingType,listingId,listingTitle,sellerId,negotiable=true,readOnly=false}:{items:MarketListingCard[];currency:string;listingType:'WTS'|'WTB';listingId:string;listingTitle?:string;sellerId?:string;listingAmount?:string;negotiable?:boolean;readOnly?:boolean;}){
   const router=useRouter();
   const singleCopyListing=items.length===1&&items[0].quantity===1;
   const [selected,setSelected]=useState<Record<string,number>>(()=>singleCopyListing?{[items[0].id]:1}:{});
@@ -332,6 +332,20 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
     const orderItems=items.flatMap(item=>{const quantity=selected[item.id]??0;return quantity?[{printingId:item.id,quantity}]:[];});
     const query=new URLSearchParams({listing:listingId,items:JSON.stringify(orderItems)});
     router.push(`/checkout/market?${query.toString()}`);
+  };
+  const addSelectedToCart=()=>{
+    if(!session){window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));return;}
+    const cartKey='vivreplay-market-cart-v1';
+    let cart:{sellerId:string;lines:{listingId:string;listingTitle:string;items:{printingId:string;quantity:number}[]}[]}={sellerId:sellerId??'',lines:[]};
+    try{const saved=JSON.parse(window.localStorage.getItem(cartKey)||'null');if(saved&&Array.isArray(saved.lines))cart=saved;}catch{}
+    if(cart.sellerId&&sellerId&&cart.sellerId!==sellerId){const replace=window.confirm(t('Your cart has listings from another seller. Clear it and add this listing?','Keranjang Anda berisi listing dari penjual lain. Kosongkan dan tambahkan listing ini?'));if(!replace)return;cart={sellerId,lines:[]};}
+    cart.sellerId=sellerId??cart.sellerId;
+    if(!cart.lines.some(line=>line.listingId===listingId)&&cart.lines.length>=10){toast.error(t('A cart can hold listings from up to 10 of this seller’s listings.','Keranjang dapat berisi hingga 10 listing dari penjual ini.'));return;}const incoming=items.flatMap(item=>selected[item.id]?[{printingId:item.id,quantity:Math.min(99,selected[item.id])}]:[]);
+    const current=cart.lines.find(line=>line.listingId===listingId);
+    if(current){for(const item of incoming){const existing=current.items.find(line=>line.printingId===item.printingId);if(existing)existing.quantity=Math.min(99,existing.quantity+item.quantity);else current.items.push(item);}}
+    else cart.lines.push({listingId,listingTitle:listingTitle??t('Card listing','Listing kartu'),items:incoming});
+    window.localStorage.setItem(cartKey,JSON.stringify(cart));window.dispatchEvent(new Event('vivreplay:market-cart-updated'));
+    toast.success(t('Added to cart','Ditambahkan ke keranjang'),{action:{label:t('View cart','Lihat keranjang'),onClick:()=>router.push('/checkout/market?cart=1')}});
   };
 
   return <section className="market-listing-cards" aria-labelledby="listing-cards-heading">
@@ -533,6 +547,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
       </div>
       <div className="market-listing-selection-actions">
         {isBuying&&<button type="button" className="button market-buy-selected" disabled={!selectedCount||submitting} onClick={buySelected}>{singleCopyListing?t('Buy now','Beli sekarang'):t('Buy selected','Beli pilihan')}</button>}
+        {isBuying&&!readOnly&&<button type="button" className="button secondary market-add-cart" title={t('Add selected cards to cart','Tambahkan kartu pilihan ke keranjang')} aria-label={t('Add selected cards to cart','Tambahkan kartu pilihan ke keranjang')} disabled={!selectedCount||submitting} onClick={addSelectedToCart}><Cart size={18}/></button>}
         {activeOffer&&<button type="button" className="button" onClick={()=>openOfferConversation(activeOffer.id)}>{activeOffer.viewerIsActor?t('See offer','Lihat penawaran'):t('Review counteroffer','Tinjau penawaran balik')}</button>}
         {!activeOffer&&acceptsOffers&&<button type="button" className="button" disabled={!selectedCount||submitting||!offerCheckComplete} onClick={continueOffer}>{submitting?t('Sending...','Mengirim...'):!offerCheckComplete?t('Checking offer…','Memeriksa penawaran…'):session?(hasPriceAdjustments?t('Submit offer','Kirim penawaran'):actionLabel):(language==='ID'?`Masuk untuk ${isBuying?'menawar':'menawarkan'}`:`Sign in to ${actionLabel.toLowerCase()}`)}</button>}
         <ShareButton
@@ -702,6 +717,7 @@ export function MarketListingDetailView({
               currency={listing.currency}
               listingType={listing.type === 'WTB' ? 'WTB' : 'WTS'}
               listingId={listing.id}
+              sellerId={listing.sellerId}
               listingTitle={listing.title}
               listingAmount={formatMoney(listing.amount, listing.currency)}
               negotiable={listing.negotiable!==false}
