@@ -345,7 +345,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
     if(current){for(const item of incoming){const existing=current.items.find(line=>line.printingId===item.printingId);if(existing)existing.quantity=Math.min(99,existing.quantity+item.quantity);else current.items.push(item);}}
     else cart.lines.push({listingId,listingTitle:listingTitle??t('Card listing','Listing kartu'),items:incoming});
     window.localStorage.setItem(cartKey,JSON.stringify(cart));window.dispatchEvent(new Event('vivreplay:market-cart-updated'));
-    toast.success(t('Added to cart','Ditambahkan ke keranjang'),{action:{label:t('View cart','Lihat keranjang'),onClick:()=>router.push('/checkout/market?cart=1')}});
+    toast.success(t('Added to cart','Ditambahkan ke keranjang'),{action:{label:t('View cart','Lihat keranjang'),onClick:()=>window.dispatchEvent(new Event('vivreplay:open-market-cart'))}});
   };
 
   return <section className="market-listing-cards" aria-labelledby="listing-cards-heading">

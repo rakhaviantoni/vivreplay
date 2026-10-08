@@ -2,13 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import {
-  CheckCircleIcon as CheckCircle,
   FloppyDiskIcon as FloppyDisk,
   ArrowCounterClockwiseIcon as Reset,
   StorefrontIcon as Storefront,
   ClockIcon as Clock,
   TagIcon as Tag,
-  PercentIcon as Percent,
   SparkleIcon as Sparkle,
   ShieldCheckIcon as ShieldCheck,
   LightningIcon as Lightning,
@@ -16,13 +14,22 @@ import {
 import { toast } from 'sonner';
 import type { AccountTier, ListingTierPolicy } from '@/lib/market/policy';
 import { MARKET_BUYER_FEE_PERCENT } from '@/lib/market/policy';
+import { DEFAULT_PRO_PRICING,type ProPricing } from '@/lib/market/pro-pricing';
 
 interface PolicyResponse {
   policies: Record<AccountTier, ListingTierPolicy>;
+  proPricing:ProPricing;
   stats: {
     activeListings: number;
     activeSellers: number;
   };
+}
+
+function dateForInput(value:string|null){
+  if(!value)return '';
+  const date=new Date(value);
+  if(!Number.isFinite(date.getTime()))return '';
+  return new Date(date.getTime()-date.getTimezoneOffset()*60_000).toISOString().slice(0,10);
 }
 
 export function MarketPolicyManager() {
@@ -40,6 +47,12 @@ export function MarketPolicyManager() {
   const [proMax, setProMax] = useState(2500);
   const [proFee, setProFee] = useState(0.75);
   const [proAutoRenew, setProAutoRenew] = useState(true);
+  const [proPrice,setProPrice]=useState(DEFAULT_PRO_PRICING.amount);
+  const [proDuration,setProDuration]=useState(DEFAULT_PRO_PRICING.durationDays);
+  const [proIntroPrice,setProIntroPrice]=useState<number|null>(DEFAULT_PRO_PRICING.introAmount);
+  const [proIntroEndDate,setProIntroEndDate]=useState(dateForInput(DEFAULT_PRO_PRICING.introEndsAt));
+  const [proIntroLimit,setProIntroLimit]=useState(DEFAULT_PRO_PRICING.introLimit);
+  const [initialPricing,setInitialPricing]=useState<ProPricing>(DEFAULT_PRO_PRICING);
 
   const load = async () => {
     setLoading(true);
@@ -58,7 +71,13 @@ export function MarketPolicyManager() {
       setProMax(data.policies.pro.maxActiveListings);
       setProFee(data.policies.pro.commissionPercent);
       setProAutoRenew(data.policies.pro.canAutoRenew);
-    } catch (err) {
+      setProPrice(data.proPricing.amount);
+      setProDuration(data.proPricing.durationDays);
+      setProIntroPrice(data.proPricing.introAmount);
+      setProIntroEndDate(dateForInput(data.proPricing.introEndsAt));
+      setProIntroLimit(data.proPricing.introLimit);
+      setInitialPricing(data.proPricing);
+    } catch {
       toast.error('Unable to fetch live Market policies');
     } finally {
       setLoading(false);
@@ -66,7 +85,8 @@ export function MarketPolicyManager() {
   };
 
   useEffect(() => {
-    load();
+    const timer=window.setTimeout(()=>void load(),0);
+    return()=>window.clearTimeout(timer);
   }, []);
 
   const applyPreset = (preset: 'recommended' | 'quick-turn' | 'relaxed') => {
@@ -110,6 +130,11 @@ export function MarketPolicyManager() {
     setProMax(initialPolicies.pro.maxActiveListings);
     setProFee(initialPolicies.pro.commissionPercent);
     setProAutoRenew(initialPolicies.pro.canAutoRenew);
+    setProPrice(initialPricing.amount);
+    setProDuration(initialPricing.durationDays);
+    setProIntroPrice(initialPricing.introAmount);
+    setProIntroEndDate(dateForInput(initialPricing.introEndsAt));
+    setProIntroLimit(initialPricing.introLimit);
     toast.message('Reverted to currently active policy.');
   };
 
@@ -130,6 +155,13 @@ export function MarketPolicyManager() {
           commissionPercent: Math.max(0, Number(proFee)),
           canAutoRenew: proAutoRenew,
         },
+        proPricing:{
+          amount:Number(proPrice),
+          durationDays:Number(proDuration),
+          introAmount:proIntroPrice===null?null:Number(proIntroPrice),
+          introEndsAt:proIntroEndDate?new Date(`${proIntroEndDate}T23:59:59+07:00`).toISOString():null,
+          introLimit:Number(proIntroLimit),
+        },
       };
 
       const res = await fetch('/api/admin/market-policy', {
@@ -143,7 +175,11 @@ export function MarketPolicyManager() {
         throw new Error(err?.error || 'Failed to update policy');
       }
 
-      setInitialPolicies(payload as Record<AccountTier, ListingTierPolicy>);
+      setInitialPolicies({
+        free: { ...payload.free, tier: 'free' },
+        pro: { ...payload.pro, tier: 'pro' },
+      });
+      setInitialPricing(payload.proPricing);
       toast.success('Market policies updated live in D1 storage!');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to save policies');
@@ -371,6 +407,18 @@ export function MarketPolicyManager() {
           </div>
         </div>
       </div>
+
+      <section className="admin-policy-card admin-pro-pricing-card">
+        <span className="admin-tier-badge pro"><Sparkle size={13}/>Market Pro pricing</span>
+        <p className="tier-desc">Changes apply to new checkouts. Existing orders keep their original total and membership term.</p>
+        <div className="admin-policy-fields">
+          <div className="admin-policy-field"><label htmlFor="pro-price">Regular price <span>(IDR)</span></label><input id="pro-price" type="number" min="1000" step="100" value={proPrice} onChange={event=>setProPrice(Number(event.target.value))} required/><small>Charged for each membership period.</small></div>
+          <div className="admin-policy-field"><label htmlFor="pro-duration">Membership length <span>(days)</span></label><input id="pro-duration" type="number" min="1" max="365" value={proDuration} onChange={event=>setProDuration(Number(event.target.value))} required/><small>How long Pro benefits remain active after payment.</small></div>
+          <div className="admin-policy-field"><label htmlFor="pro-intro-price">Launch price <span>(IDR, optional)</span></label><input id="pro-intro-price" type="number" min="1000" step="100" value={proIntroPrice??''} onChange={event=>setProIntroPrice(event.target.value?Number(event.target.value):null)} placeholder="Off"/><small>Must be lower than the regular price.</small></div>
+          <div className="admin-policy-field"><label htmlFor="pro-intro-date">Launch offer ends <span>(Jakarta time)</span></label><input id="pro-intro-date" type="date" value={proIntroEndDate} onChange={event=>setProIntroEndDate(event.target.value)} disabled={proIntroPrice===null}/><small>Leave blank to turn off the launch offer.</small></div>
+          <div className="admin-policy-field"><label htmlFor="pro-intro-limit">Launch offer account limit</label><input id="pro-intro-limit" type="number" min="0" step="1" value={proIntroLimit} onChange={event=>setProIntroLimit(Number(event.target.value))} disabled={proIntroPrice===null} required/><small>Set to 0 for no account limit.</small></div>
+        </div>
+      </section>
 
       <footer className="admin-policy-footer">
         <button type="button" className="admin-discard-btn" onClick={resetToSaved} disabled={saving}>

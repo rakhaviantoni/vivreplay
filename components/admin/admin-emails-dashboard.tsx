@@ -18,9 +18,11 @@ import {
   LockKeyOpenIcon as LockKeyOpen,
   SparkleIcon as Sparkle,
   ArrowLeftIcon as ArrowLeft,
+  ArrowClockwiseIcon as Refresh,
 } from '@phosphor-icons/react';
 import type { AuthEmailAction, RenderedEmail } from '@/lib/auth-email';
 import {marketEmailEvents,marketEmailLabels,type MarketEmailEvent} from '@/lib/market/email-template-types';
+import {Dialog,DialogContent,DialogHeader,DialogTitle} from '@/components/ui/dialog';
 
 type AdminEmailAction=AuthEmailAction|`market:${MarketEmailEvent}`;
 const authEmailActions:AuthEmailAction[]=['verify','reset','password-changed','welcome'];
@@ -56,6 +58,11 @@ const adminEmailThemeStyles=`
 .admin-emails-page .admin-email-result[data-success=false]{background:var(--mail-admin-error-bg)!important;border-color:var(--mail-admin-error-border)!important;color:var(--mail-admin-error-ink)!important}
 .admin-emails-page .admin-email-result span{color:inherit!important}
 .admin-emails-page .admin-email-pre{background:var(--mail-admin-code)!important;border-color:var(--mail-admin-border)!important;color:var(--mail-admin-code-ink)!important}
+.admin-emails-page .admin-sent-email-dialog{width:min(1100px,calc(100vw - 32px));max-width:1100px;max-height:88vh;overflow:auto;background:var(--mail-admin-panel);border-color:var(--mail-admin-border);color:var(--mail-admin-ink)}
+.admin-emails-page .admin-sent-email-row{width:100%;display:grid;grid-template-columns:minmax(180px,1fr) minmax(220px,1.5fr) minmax(130px,.8fr) auto;gap:16px;align-items:center;padding:14px 16px;text-align:left;border:0;border-bottom:1px solid var(--mail-admin-border);background:transparent;color:var(--mail-admin-ink);cursor:pointer}
+.admin-emails-page .admin-sent-email-row:hover{background:var(--mail-admin-soft)}
+.admin-emails-page .admin-sent-email-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 20px;padding:16px 0;border-bottom:1px solid var(--mail-admin-border)}
+@media(max-width:640px){.admin-emails-page .admin-sent-email-row{grid-template-columns:minmax(0,1fr) auto;gap:4px 12px}.admin-emails-page .admin-sent-email-meta{grid-template-columns:minmax(0,1fr)}}
 html[data-theme=light] .admin-emails-page{--mail-admin-ink:#292b27;--mail-admin-muted:#6f7169;--mail-admin-panel:#fffdf8;--mail-admin-soft:#f4f0e7;--mail-admin-canvas:#e9e5dc;--mail-admin-input:#fff;--mail-admin-code:#f7f4ec;--mail-admin-code-ink:#40443e;--mail-admin-border:#ded8cb;--mail-admin-selected:#f4ead1;--mail-admin-accent:#b28731;--mail-admin-accent-ink:#4f3c14;--mail-admin-success-bg:#e8f2e8;--mail-admin-success-border:#b9d0bb;--mail-admin-success-ink:#31563a;--mail-admin-error-bg:#f7e9e7;--mail-admin-error-border:#e0bfbb;--mail-admin-error-ink:#8c3631;--mail-admin-shadow:0 8px 24px rgba(52,45,30,.06)}
 html[data-theme=dark] .admin-emails-page{--mail-admin-ink:#e7ecee;--mail-admin-muted:#a5b2b8;--mail-admin-panel:#101d2b;--mail-admin-soft:#0a1723;--mail-admin-canvas:#0b1520;--mail-admin-input:#07101a;--mail-admin-code:#060d15;--mail-admin-code-ink:#d5e2e8;--mail-admin-border:#284158;--mail-admin-selected:#2c3440;--mail-admin-accent:#d8a63b;--mail-admin-accent-ink:#1b1b17;--mail-admin-success-bg:#16271c;--mail-admin-success-border:#315b3a;--mail-admin-success-ink:#a8d6ae;--mail-admin-error-bg:#2b1c1b;--mail-admin-error-border:#67403d;--mail-admin-error-ink:#efaaa3;--mail-admin-shadow:0 14px 32px rgba(0,0,0,.16)}
 @media(max-width:980px){.admin-emails-page .admin-emails-layout{grid-template-columns:minmax(0,1fr)!important}}
@@ -68,6 +75,8 @@ type EmailData = RenderedEmail & {
   name: string;
   url: string;
 };
+
+type SentEmail={id:string;to:string[];from:string;subject:string;created_at:string;last_event?:string;html?:string|null;text?:string|null;reply_to?:string[]|null;cc?:string[]|null;bcc?:string[]|null;message_id?:string|null};
 
 export function AdminEmailsDashboard() {
   const [emails, setEmails] = useState<EmailData[]>([]);
@@ -83,6 +92,16 @@ export function AdminEmailsDashboard() {
   const [testEmail, setTestEmail] = useState('');
   const [sending, setSending] = useState(false);
   const [sendResult, setSendResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [sentDialogOpen,setSentDialogOpen]=useState(false);
+  const [sentEmails,setSentEmails]=useState<SentEmail[]>([]);
+  const [sentHasMore,setSentHasMore]=useState(false);
+  const [sentCursor,setSentCursor]=useState<string|undefined>();
+  const [sentLoading,setSentLoading]=useState(false);
+  const [sentError,setSentError]=useState('');
+  const [selectedSentEmail,setSelectedSentEmail]=useState<SentEmail|null>(null);
+  const [sentDetailLoading,setSentDetailLoading]=useState(false);
+  const [sentDetailError,setSentDetailError]=useState('');
+  const [sentDetailMode,setSentDetailMode]=useState<'preview'|'text'|'html'>('preview');
 
   useEffect(() => {
     fetch(`/api/admin/emails/preview?locale=${previewLanguage}&theme=${previewTheme}`)
@@ -141,6 +160,26 @@ export function AdminEmailsDashboard() {
     } finally {
       setSending(false);
     }
+  };
+
+  const loadSentEmails=async(after?:string,append=false)=>{
+    setSentLoading(true);setSentError('');
+    try{
+      const response=await fetch(`/api/admin/emails/sent?limit=100${after?`&after=${encodeURIComponent(after)}`:''}`,{cache:'no-store'});
+      const data=await response.json() as {data?:SentEmail[];has_more?:boolean;next_cursor?:string;error?:string};
+      if(!response.ok)throw new Error(data.error||'Could not load sent emails.');
+      setSentEmails(current=>append?[...current,...(data.data??[])]:data.data??[]);setSentHasMore(Boolean(data.has_more));setSentCursor(data.next_cursor);
+    }catch(error){setSentError(error instanceof Error?error.message:'Could not load sent emails.')}finally{setSentLoading(false)}
+  };
+
+  const openSentEmail=async(email:SentEmail)=>{
+    setSelectedSentEmail(email);setSentDetailLoading(true);setSentDetailError('');setSentDetailMode('preview');
+    try{
+      const response=await fetch(`/api/admin/emails/sent/${encodeURIComponent(email.id)}`,{cache:'no-store'});
+      const data=await response.json() as SentEmail&{error?:string};
+      if(!response.ok)throw new Error(data.error||'Could not load this email.');
+      setSelectedSentEmail({...email,...data});
+    }catch(error){setSentDetailError(error instanceof Error?error.message:'Could not load this email.')}finally{setSentDetailLoading(false)}
   };
 
   const getActionIcon = (action: AdminEmailAction) => {
@@ -266,6 +305,33 @@ export function AdminEmailsDashboard() {
           </div>
         </div>
       </header>
+
+      <section className="admin-email-panel" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:16,flexWrap:'wrap',margin:'0 0 24px',padding:'16px 20px',border:'1px solid #22384e',borderRadius:12,background:'#0d1b2a'}}>
+        <div><strong style={{display:'block',fontSize:15}}>Sent emails</strong><span style={{color:'var(--mail-admin-muted)',fontSize:13}}>Check delivery status and open the message that was sent.</span></div>
+        <button type="button" className="admin-email-submit" onClick={()=>{setSentDialogOpen(true);void loadSentEmails()}} style={{display:'inline-flex',alignItems:'center',gap:8,padding:'9px 14px',border:0,borderRadius:8,fontWeight:700,cursor:'pointer'}}><EnvelopeSimple size={16}/>Recent emails</button>
+      </section>
+
+      <Dialog open={sentDialogOpen} onOpenChange={open=>{setSentDialogOpen(open);if(!open){setSelectedSentEmail(null);setSentDetailError('')}}}>
+        <DialogContent className="admin-sent-email-dialog">
+          <DialogHeader><DialogTitle>{selectedSentEmail?.subject||'Recent sent emails'}</DialogTitle></DialogHeader>
+          {selectedSentEmail? <div>
+            <button type="button" onClick={()=>setSelectedSentEmail(null)} style={{margin:'0 0 12px',padding:0,border:0,background:'transparent',color:'var(--mail-admin-accent-ink)',fontWeight:700,cursor:'pointer'}}>← All sent emails</button>
+            {sentDetailLoading?<p>Loading email…</p>:sentDetailError?<p role="alert">{sentDetailError}</p>:<>
+              <div className="admin-sent-email-meta">
+                {([['From',selectedSentEmail.from],['Subject',selectedSentEmail.subject],['To',selectedSentEmail.to?.join(', ')],['ID',selectedSentEmail.id],['Sent',selectedSentEmail.created_at],['Status',selectedSentEmail.last_event??'Sent']] as const).map(([label,value])=><div key={label}><small style={{display:'block',color:'var(--mail-admin-muted)',fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em'}}>{label}</small><span style={{overflowWrap:'anywhere'}}>{value||'—'}</span></div>)}
+              </div>
+              <div style={{display:'flex',gap:6,padding:'14px 0'}}>{(['preview','text','html'] as const).map(mode=><button key={mode} type="button" aria-pressed={sentDetailMode===mode} onClick={()=>setSentDetailMode(mode)} style={{padding:'7px 12px',border:'1px solid var(--mail-admin-border)',borderRadius:7,background:sentDetailMode===mode?'var(--mail-admin-selected)':'var(--mail-admin-soft)',color:'var(--mail-admin-ink)',fontWeight:700,cursor:'pointer',textTransform:'capitalize'}}>{mode}</button>)}</div>
+              {sentDetailMode==='preview'?<iframe title="Sent email preview" sandbox="" srcDoc={selectedSentEmail.html||'<p>No HTML body was saved for this email.</p>'} style={{width:'100%',height:'min(58vh,680px)',border:'1px solid var(--mail-admin-border)',borderRadius:8,background:'#fff'}}/>:<pre className="admin-email-pre" style={{maxHeight:'58vh',overflow:'auto',whiteSpace:'pre-wrap',overflowWrap:'anywhere',padding:16,border:'1px solid var(--mail-admin-border)',borderRadius:8}}>{sentDetailMode==='html'?selectedSentEmail.html||'No HTML body was saved for this email.':selectedSentEmail.text||'No plain-text body was saved for this email.'}</pre>}
+            </>}
+          </div>:<div>
+            <div style={{display:'flex',justifyContent:'flex-end',marginBottom:8}}><button type="button" onClick={()=>void loadSentEmails()} disabled={sentLoading} aria-label="Refresh sent emails" title="Refresh" style={{display:'inline-flex',alignItems:'center',gap:6,padding:'7px 10px',border:'1px solid var(--mail-admin-border)',borderRadius:7,background:'var(--mail-admin-soft)',color:'var(--mail-admin-ink)',cursor:'pointer'}}><Refresh size={15}/>Refresh</button></div>
+            {sentError?<p role="alert">{sentError}</p>:sentEmails.length===0&&!sentLoading?<p style={{color:'var(--mail-admin-muted)'}}>No sent emails found.</p>:null}
+            <div>{sentEmails.map(email=><button className="admin-sent-email-row" key={email.id} type="button" onClick={()=>void openSentEmail(email)}><strong style={{overflowWrap:'anywhere'}}>{email.to?.join(', ')||'Unknown recipient'}</strong><span style={{overflowWrap:'anywhere'}}>{email.subject}</span><small style={{color:'var(--mail-admin-muted)'}}>{email.created_at?new Date(email.created_at).toLocaleString():''}</small><span className="admin-email-category">{email.last_event||'sent'}</span></button>)}</div>
+            {sentLoading&&<p style={{padding:'12px 16px',color:'var(--mail-admin-muted)'}}>Loading emails…</p>}
+            {sentHasMore&&sentCursor&&<button type="button" onClick={()=>void loadSentEmails(sentCursor,true)} disabled={sentLoading} style={{marginTop:12,padding:'8px 12px',border:'1px solid var(--mail-admin-border)',borderRadius:7,background:'var(--mail-admin-soft)',color:'var(--mail-admin-ink)',fontWeight:700,cursor:'pointer'}}>Load more</button>}
+          </div>}
+        </DialogContent>
+      </Dialog>
 
       {/* Template Tabs & Viewport Controls */}
       <section

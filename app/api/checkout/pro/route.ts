@@ -2,28 +2,13 @@ import {db,errorResponse,guard,user,optionalUser,HttpError} from '@/lib/server/s
 import {getCurrentUser} from '@/lib/server/auth';
 import {createIpaymuQris,hasMarketIpaymuPaymentConfig} from '@/lib/server/ipaymu';
 import {getDynamicListingPolicy,MARKET_BUYER_FEE_PERCENT,MARKET_PRO_BUYER_FEE_PERCENT,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH,MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL,MARKET_PRO_SHIPPING_VOUCHER_SHARE,MARKET_PRO_SHIPPING_VOUCHER_CAP} from '@/lib/market/policy';
+import {getProPricing} from '@/lib/market/pro-pricing';
 
 const PAID_INTRO_STATUSES="'PROCESSING','PAID','COMPLETED'";
 
-function proPricing(){
-  const amount=Number(process.env.VIVREPLAY_PRO_PRICE_IDR);
-  const durationDays=Number(process.env.VIVREPLAY_PRO_DURATION_DAYS);
-  const introAmount=Number(process.env.VIVREPLAY_PRO_INTRO_PRICE_IDR);
-  const introEndsAt=process.env.VIVREPLAY_PRO_INTRO_END_AT??'';
-  const parsedEnd=Date.parse(introEndsAt);
-  const introLimit=Number(process.env.VIVREPLAY_PRO_INTRO_LIMIT);
-  return {
-    amount:Number.isSafeInteger(amount)&&amount>0?amount:null,
-    durationDays:Number.isInteger(durationDays)&&durationDays>0?durationDays:null,
-    introAmount:Number.isSafeInteger(introAmount)&&introAmount>0?introAmount:null,
-    introEndsAt:Number.isFinite(parsedEnd)?new Date(parsedEnd).toISOString():null,
-    introLimit:Number.isSafeInteger(introLimit)&&introLimit>0?introLimit:0,
-  };
-}
-
 async function introStatus(profileId?:string|null){
   const database=db();
-  const pricing=proPricing();
+  const pricing=await getProPricing(database);
   const claimed=(await database.prepare(`SELECT COUNT(DISTINCT buyer_id) AS total FROM checkout_orders
     WHERE kind='PRO' AND json_extract(details,'$.introOffer')=1 AND (
       status IN ('PAYMENT_REVIEW','PROCESSING','PAID','COMPLETED') OR
@@ -38,17 +23,16 @@ async function introStatus(profileId?:string|null){
       AND json_extract(details,'$.introOffer')=1 AND status='PENDING_PAYMENT'
       AND (expires_at IS NULL OR expires_at>CURRENT_TIMESTAMP) ORDER BY created_at DESC LIMIT 1`).bind(profileId).first<{id:string}>())?.id??null;
   }
-  const promoOpen=Boolean(pricing.introAmount&&pricing.introLimit&&pricing.introEndsAt&&Date.now()<Date.parse(pricing.introEndsAt));
-  const spotsRemaining=Math.max(0,pricing.introLimit-claimed);
-  return {promoOpen,spotsRemaining,eligible:promoOpen&&!priorPaid&&(spotsRemaining>0||Boolean(pendingOrderId)),pendingOrderId,priorPaid};
+  const promoOpen=Boolean(pricing.introAmount&&pricing.introEndsAt&&Date.now()<Date.parse(pricing.introEndsAt));
+  const spotsRemaining=pricing.introLimit>0?Math.max(0,pricing.introLimit-claimed):null;
+  return {promoOpen,spotsRemaining,eligible:promoOpen&&!priorPaid&&(pricing.introLimit===0||(spotsRemaining??0)>0||Boolean(pendingOrderId)),pendingOrderId,priorPaid};
 }
 
 export async function GET(){
   try{
-    const pricing=proPricing();
     const database=db();
-    const [policy,freePolicy,profile]=await Promise.all([
-      getDynamicListingPolicy('pro',database),getDynamicListingPolicy('free',database),optionalUser().catch(()=>null),
+    const [pricing,policy,freePolicy,profile]=await Promise.all([
+      getProPricing(database),getDynamicListingPolicy('pro',database),getDynamicListingPolicy('free',database),optionalUser().catch(()=>null),
     ]);
     const intro=await introStatus(profile?.id);
     const canBuyIntro=intro.eligible&&profile?.tier!=='pro';
@@ -86,7 +70,7 @@ export async function POST(request:Request){
     const profile=await user();
     const account=await getCurrentUser();
     if(!account?.email)throw new HttpError(401,'Sign in with an email address to continue.');
-    const pricing=proPricing();
+    const pricing=await getProPricing(db());
     const amount=pricing.amount;
     const durationDays=pricing.durationDays;
     if(!hasMarketIpaymuPaymentConfig()||!amount||!durationDays)throw new HttpError(503,'Market Pro checkout is temporarily unavailable.');
@@ -109,14 +93,14 @@ export async function POST(request:Request){
       const result=await database.prepare(`INSERT INTO checkout_orders (id,kind,buyer_id,items,details,subtotal,shipping_fee,amount,currency,status,expires_at)
         SELECT ?,'PRO',?,'[]',?,?,0,?,'IDR','PENDING_PAYMENT',?
         WHERE julianday(?)>julianday('now')
-          AND (SELECT COUNT(DISTINCT buyer_id) FROM checkout_orders WHERE kind='PRO' AND json_extract(details,'$.introOffer')=1 AND (
+          AND (?=0 OR (SELECT COUNT(DISTINCT buyer_id) FROM checkout_orders WHERE kind='PRO' AND json_extract(details,'$.introOffer')=1 AND (
             status IN ('PAYMENT_REVIEW','PROCESSING','PAID','COMPLETED') OR
             (status='PENDING_PAYMENT' AND (expires_at IS NULL OR expires_at>CURRENT_TIMESTAMP))
-          )) < ?
+          )) < ?)
           AND NOT EXISTS(SELECT 1 FROM checkout_orders WHERE kind='PRO' AND buyer_id=? AND json_extract(details,'$.introOffer')=1 AND (
             status IN ('PAYMENT_REVIEW','PROCESSING','PAID','COMPLETED') OR
             (status='PENDING_PAYMENT' AND (expires_at IS NULL OR expires_at>CURRENT_TIMESTAMP))
-          ))`).bind(orderId,profile.id,details,introPrice,introPrice,expiresAt,pricing.introEndsAt,pricing.introLimit,profile.id).run();
+          ))`).bind(orderId,profile.id,details,introPrice,introPrice,expiresAt,pricing.introEndsAt,pricing.introLimit,pricing.introLimit,profile.id).run();
       introOffer=Number(result.meta?.changes??0)>0;
       if(!introOffer){
         const retry=(await database.prepare(`SELECT id FROM checkout_orders WHERE kind='PRO' AND buyer_id=? AND json_extract(details,'$.introOffer')=1

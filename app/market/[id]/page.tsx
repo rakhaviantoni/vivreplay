@@ -1,5 +1,5 @@
 import {enabledShippingCouriers} from '@/lib/shipping/couriers';
-import {notFound} from 'next/navigation';
+import {notFound,permanentRedirect} from 'next/navigation';
 import {db,optionalUser} from '@/lib/server/store';
 import {cardFor,printings,type Card} from '@/packages/card-data/catalog';
 import {Listing} from '@/packages/domain';
@@ -9,6 +9,7 @@ import {Market} from '@/components/tcg/market';
 import {pageMetadata} from '@/lib/site-metadata';
 import {isListingExpired} from '@/lib/market/policy';
 import {getDynamicListingPolicy} from '@/lib/market/policy';
+import {listingIdFromMarketPath,marketListingPath} from '@/lib/market/listing-url';
 
 export const dynamic='force-dynamic';
 
@@ -40,7 +41,9 @@ export async function generateMetadata({params}:{params:Promise<{id:string}>}){
 }
 
 export default async function Page({params}:{params:Promise<{id:string}>}){
-  const {id}=await params;
+  const {id:segment}=await params;
+  const id=listingIdFromMarketPath(segment);
+  if(!id)notFound();
   const [stored, me]=await Promise.all([
     db().prepare(`
       SELECT
@@ -87,6 +90,8 @@ export default async function Page({params}:{params:Promise<{id:string}>}){
 
   const listing=stored;
   if(!listing)notFound();
+  const canonicalPath=marketListingPath(stored.title,stored.id);
+  if(segment!==canonicalPath.split('/').at(-1))permanentRedirect(canonicalPath);
   if(stored?.itemsJson){
     try{
       const parsed=JSON.parse(stored.itemsJson);
@@ -150,7 +155,7 @@ export default async function Page({params}:{params:Promise<{id:string}>}){
 
   return (
     <>
-      <MarketStoreNav initialQuery={primary.card.name} sellHref={`/market?sell=${encodeURIComponent(primary.id)}`}/>
+      <MarketStoreNav initialQuery={primary.card.name} sellHref={`/market?sell=${encodeURIComponent(`${primary.card.printingCode??primary.card.code}--${primary.language.toLowerCase()}`)}`}/>
       <MarketListingDetailView
         listing={listing}
         stored={stored}

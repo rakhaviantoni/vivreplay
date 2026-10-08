@@ -38,6 +38,10 @@ export async function verifyAdminPassword(candidate:string){
   return constantTimeEqual(new Uint8Array(candidateDigest),new Uint8Array(expectedDigest));
 }
 
+export function isAdminPasswordConfigured(){
+  return Boolean(process.env.ADMIN_PASSWORD);
+}
+
 export async function createAdminSession(){
   const secret=process.env.ADMIN_PASSWORD;
   if(!secret)throw new Error('ADMIN_PASSWORD is not configured.');
