@@ -2816,6 +2816,18 @@ html[data-theme='dark'] .admin-access-card{border-color:#294653;background:#0f21
 
 /* Market Pro comparison and one-step upgrade */
 .pro-checkout-page{max-width:1120px!important;padding-top:40px!important}
+.pro-savings-calculator{margin:18px 0 0;padding:12px 0 0;border-top:1px solid var(--line)}
+.pro-savings-calculator>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;cursor:pointer;list-style:none}
+.pro-savings-calculator>summary::-webkit-details-marker{display:none}
+.pro-savings-calculator>summary>span:first-child{display:grid;gap:3px;min-width:0}
+.pro-savings-calculator>summary strong{font-size:13px;line-height:1.35}
+.pro-savings-calculator>summary small{color:var(--muted);font-size:11px;line-height:1.4}
+.pro-calculator-toggle{display:grid;place-items:center;flex:none;width:28px;height:28px;border:1px solid var(--line);border-radius:50%;color:var(--accent);font-size:18px;line-height:1;transition:transform .16s ease}
+.pro-savings-calculator[open] .pro-calculator-toggle{transform:rotate(45deg)}
+.pro-savings-calculator>summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:6px}
+.pro-calculator-body{padding-top:8px}
+.pro-calculator-body>.pro-calculator-inputs{margin-top:0}
+.pro-calculator-body>small{display:block;margin-top:7px;color:var(--muted);font-size:10px;line-height:1.45}
 .pro-checkout-heading{max-width:740px;margin-bottom:26px}
 .pro-checkout-heading>.eyebrow{margin:0 0 8px;color:var(--muted);font-size:11px;font-weight:750;letter-spacing:.08em}
 .pro-checkout-heading h1{font-size:clamp(32px,4vw,46px);letter-spacing:-.045em}

@@ -80,9 +80,27 @@ export function ProCheckout(){
   const buyerSavings=Math.round(numberValue(monthlyPurchases)*Math.max(0,(plan?.freeBuyerFeePercent??0.75)-(plan?.buyerFeePercent??0.5))/100);
   const voucherSavings=Math.min(Math.max(0,Math.floor(Number(voucherCount)||0)),plan?.shippingVouchersPerMonth??2)*Math.min(Math.round(numberValue(averageDelivery)*(plan?.shippingVoucherSharePercent??50)/100),plan?.shippingVoucherCap??5000);
   const totalEstimatedSavings=sellerSavings+buyerSavings+voucherSavings;
-  const estimatedAfterPlan=totalEstimatedSavings-(plan?.standardAmount??plan?.amount??0);
+  const estimatedAfterPlan=totalEstimatedSavings-(plan?.amount??plan?.standardAmount??0);
   const introEndLabel=plan?.introOfferEndsAt?new Intl.DateTimeFormat(id?'id-ID':'en-US',{dateStyle:'long',timeZone:'Asia/Jakarta'}).format(new Date(plan.introOfferEndsAt)):'';
   const moneyInput=(value:string,setValue:(next:string)=>void,label:string)=><label>{label}<input inputMode="numeric" type="number" min="0" step="100000" value={value} onChange={event=>setValue(event.target.value)} /></label>;
+  const savingsCalculator=<details className="pro-savings-calculator">
+    <summary><span><strong>{t('Estimate your monthly savings','Hitung perkiraan hemat per bulan')}</strong><small>{t('Try it with your usual Market activity.','Coba dengan aktivitas Market bulanan Anda.')}</small></span><span className="pro-calculator-toggle" aria-hidden="true">+</span></summary>
+    <div className="pro-calculator-body">
+      <div className="pro-calculator-inputs">
+        {moneyInput(monthlySales,setMonthlySales,t('Cards you sell (IDR)','Nilai kartu yang dijual (IDR)'))}
+        {moneyInput(monthlyPurchases,setMonthlyPurchases,t('Cards you buy (IDR)','Nilai kartu yang dibeli (IDR)'))}
+        {moneyInput(averageDelivery,setAverageDelivery,t('Average delivery per eligible order','Rata-rata ongkir per pesanan yang memenuhi syarat'))}
+        <label>{t('Vouchers you expect to use','Voucher yang diperkirakan dipakai')}<select value={voucherCount} onChange={event=>setVoucherCount(event.target.value)}>{Array.from({length:(plan?.shippingVouchersPerMonth??2)+1},(_,index)=><option key={index} value={index}>{index}</option>)}</select></label>
+      </div>
+      <dl className="pro-calculator-results">
+        <div><dt>{t('Lower seller fees','Hemat biaya penjual')}</dt><dd>{formatMoney(sellerSavings,'IDR')}</dd></div>
+        <div><dt>{t('Lower buyer fees','Hemat biaya pembeli')}</dt><dd>{formatMoney(buyerSavings,'IDR')}</dd></div>
+        <div><dt>{t('Estimated vouchers','Perkiraan voucher')}</dt><dd>{formatMoney(voucherSavings,'IDR')}</dd></div>
+        <div className="pro-calculator-total"><dt>{t('Estimated net benefit','Perkiraan manfaat bersih')}</dt><dd className={estimatedAfterPlan>=0?'is-positive':'is-negative'}>{estimatedAfterPlan>=0?'+':''}{formatMoney(estimatedAfterPlan,'IDR')}</dd></div>
+      </dl>
+      <small>{t('Estimate only. Vouchers require a card subtotal of at least IDR 200,000; actual delivery savings depend on the order.','Perkiraan saja. Voucher berlaku untuk subtotal kartu minimal IDR 200.000; hemat ongkir mengikuti biaya pesanan.')}</small>
+    </div>
+  </details>;
 
   const paymentDate=(value:string)=>new Intl.DateTimeFormat(id?'id-ID':'en-US',{dateStyle:'medium',timeStyle:'short'}).format(new Date(`${value.replace(' ','T')}Z`));
   const membershipStatus=(status:string)=>status==='PAID'?t('Paid','Dibayar'):status==='PENDING_PAYMENT'?t('Awaiting payment','Menunggu pembayaran'):status==='EXPIRED'?t('Expired','Kedaluwarsa'):status==='CANCELLED'?t('Cancelled','Dibatalkan'):status==='PAYMENT_REVIEW'?t('Under review','Sedang diperiksa'):t('Processing','Diproses');
@@ -94,28 +112,12 @@ export function ProCheckout(){
         <div className="pro-panel-heading"><div><h2 id="pro-comparison-title">{t('Free vs Pro','Gratis vs Pro')}</h2></div></div>
         <div className="pro-comparison-wrap"><table className="pro-comparison-table"><thead><tr><th scope="col">{t('What you get','Manfaat')}</th><th scope="col">{freeLabel}</th><th scope="col">{proLabel}</th></tr></thead><tbody>{rows.map(row=><tr key={row.label}><th scope="row">{row.label}</th><td>{row.free}</td><td>{row.pro}</td></tr>)}</tbody></table></div>
         <p className="pro-voucher-note">{t(`On card orders of ${formatMoney(plan?.shippingVoucherMinSubtotal??200000,'IDR')} or more, your ${plan?.shippingVouchersPerMonth??2} monthly vouchers each cover ${plan?.shippingVoucherSharePercent??50}% of delivery, up to ${formatMoney(plan?.shippingVoucherCap??5000,'IDR')}. Applied automatically.`,`Untuk pesanan kartu minimal ${formatMoney(plan?.shippingVoucherMinSubtotal??200000,'IDR')}, ${plan?.shippingVouchersPerMonth??2} voucher bulanan masing-masing memotong ongkir ${plan?.shippingVoucherSharePercent??50}% hingga ${formatMoney(plan?.shippingVoucherCap??5000,'IDR')}. Digunakan otomatis.`)}</p>
-        <section className="pro-savings-calculator" aria-labelledby="pro-calculator-title">
-          <header><h3 id="pro-calculator-title">{t('Estimate your monthly savings','Hitung perkiraan hemat per bulan')}</h3><p>{t('Use your typical monthly Market activity.','Masukkan perkiraan aktivitas Market bulanan Anda.')}</p></header>
-          <div className="pro-calculator-inputs">
-            {moneyInput(monthlySales,setMonthlySales,t('Cards you sell (IDR)','Nilai kartu yang dijual (IDR)'))}
-            {moneyInput(monthlyPurchases,setMonthlyPurchases,t('Cards you buy (IDR)','Nilai kartu yang dibeli (IDR)'))}
-            {moneyInput(averageDelivery,setAverageDelivery,t('Average delivery per eligible order','Rata-rata ongkir per pesanan yang memenuhi syarat'))}
-            <label>{t('Vouchers you expect to use','Voucher yang diperkirakan dipakai')}<select value={voucherCount} onChange={event=>setVoucherCount(event.target.value)}>{Array.from({length:(plan?.shippingVouchersPerMonth??2)+1},(_,index)=><option key={index} value={index}>{index}</option>)}</select></label>
-          </div>
-          <dl className="pro-calculator-results">
-            <div><dt>{t('Lower seller fees','Hemat biaya penjual')}</dt><dd>{formatMoney(sellerSavings,'IDR')}</dd></div>
-            <div><dt>{t('Lower buyer fees','Hemat biaya pembeli')}</dt><dd>{formatMoney(buyerSavings,'IDR')}</dd></div>
-            <div><dt>{t('Estimated vouchers','Perkiraan voucher')}</dt><dd>{formatMoney(voucherSavings,'IDR')}</dd></div>
-            <div className="pro-calculator-total"><dt>{t('After regular price','Setelah harga reguler')}</dt><dd className={estimatedAfterPlan>=0?'is-positive':'is-negative'}>{estimatedAfterPlan>=0?'+':''}{formatMoney(estimatedAfterPlan,'IDR')}</dd></div>
-          </dl>
-          <small>{t('Estimate only. Vouchers require a card subtotal of at least IDR 200,000; actual delivery savings depend on the order.','Perkiraan saja. Voucher berlaku untuk subtotal kartu minimal IDR 200.000; hemat ongkir mengikuti biaya pesanan.')}</small>
-          {plan?.introOffer&&<small>{t('The first 30 days cost IDR 19,900, so add IDR 5,000 to this estimate for the launch month.','30 hari pertama seharga IDR 19.900, jadi tambahkan IDR 5.000 pada perkiraan ini untuk bulan promo.')}</small>}
-        </section>
       </section>
       <aside className="pro-purchase-panel" aria-label={t('Market Pro price','Harga Market Pro')}>
         {plan?.available&&plan.amount&&plan.durationDays?<><p className="pro-purchase-price">{formatMoney(plan.amount,'IDR')}<small>{t(`/ ${plan.durationDays} days`,`/ ${plan.durationDays} hari`)}</small></p>{plan.introOffer?<><p className="pro-intro-price-note"><s>{formatMoney(plan.standardAmount??24900,'IDR')}</s> {t(`for your first ${plan.durationDays} days. Then ${formatMoney(plan.standardAmount??24900,'IDR')} per 30 days; renew manually.`,`untuk ${plan.durationDays} hari pertama. Setelah itu ${formatMoney(plan.standardAmount??24900,'IDR')} per 30 hari; perpanjang manual.`)}</p><p className="pro-intro-limit-note">{t(`New members only · until ${introEndLabel} or the first 100 memberships, whichever comes first.`,`Khusus anggota baru · sampai ${introEndLabel} atau 100 keanggotaan pertama, mana yang lebih dulu.`)}</p></>:<p className="pro-purchase-caption">{t(`30-day membership. Renew manually when you want.`,`Keanggotaan 30 hari. Perpanjang manual saat Anda mau.`)}</p>}
           {!account?<button className="button pro-purchase-button" onClick={()=>window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}))}>{t('Sign in to continue','Masuk untuk melanjutkan')}</button>:alreadyPro?<div className="pro-current-state"><strong>{t('You already have Pro','Akun Anda sudah Pro')}</strong><p>{t('Your Pro membership is active.','Keanggotaan Pro Anda aktif.')}</p><Link className="button secondary pro-purchase-button" href="/profile">{t('Open Profile','Buka Profil')}</Link></div>:hasPhone?<button className="button pro-purchase-button" disabled={submitting} onClick={begin}>{submitting?t('Opening payment…','Membuka pembayaran…'):t('Get Market Pro','Dapatkan Market Pro')}</button>:<div className="pro-phone-required"><p>{t('Add a phone number to your profile before checkout.','Tambahkan nomor telepon di profil sebelum checkout.')}</p><Link className="button pro-purchase-button" href="/profile">{t('Add phone number','Tambahkan nomor telepon')}</Link></div>}
           <small className="pro-payment-note">{t('Your membership starts when payment clears.','Keanggotaan Anda aktif setelah pembayaran diterima.')}</small>
+          {savingsCalculator}
         </>:<div className="pro-coming-soon"><strong>{t('Membership checkout is unavailable','Pembayaran keanggotaan tidak tersedia')}</strong><p>{t('Please try again later.','Silakan coba lagi nanti.')}</p></div>}
         {error&&<p className="checkout-error" role="alert">{error}</p>}
         <Link className="pro-back-link" href="/market">{t('Back to Market','Kembali ke Market')}</Link>
