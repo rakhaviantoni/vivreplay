@@ -220,7 +220,7 @@ function CardSearch({value,onChange,onSelect,locale='EN'}:{value:string;onChange
 
 function matchesCardSearch(card:Card, query:string) {
   let text=query.toLowerCase();
-  const filters:{cost?:number;power?:number;color:string[];rarity:string[];type:string[];tokens:string[]}={color:[],rarity:[],type:[],tokens:[]};
+  const filters:{cost?:number;power?:number;color:string[];rarity:string[];type:string[];tokens:string[];parallel?:boolean}={color:[],rarity:[],type:[],tokens:[]};
   const costMatch=text.match(/(?:\b(\d+)\s*c\b|\bcost\s*(\d+)\b|\b(\d+)\s*cost\b)/i);
   if(costMatch){filters.cost=Number(costMatch[1]??costMatch[2]??costMatch[3]);text=text.replace(costMatch[0],' ')}
   const powerMatch=text.match(/(?:\b(\d+(?:\.\d+)?)\s*k\b|\bpower\s*(\d+)\b)/i);
@@ -240,6 +240,7 @@ function matchesCardSearch(card:Card, query:string) {
   for(const token of text.replace(/[^\p{L}\p{N}\s-]/gu,' ').split(/\s+/).filter(Boolean)){
     const normalized=token.toLowerCase();
     if(typeAliases[normalized])filters.type.push(typeAliases[normalized]);
+    else if(normalized==='psec'){filters.rarity.push('sec');filters.parallel=true}
     else if(rarityAliases.has(normalized))filters.rarity.push(normalized);
     else filters.tokens.push(normalized);
   }
@@ -249,6 +250,7 @@ function matchesCardSearch(card:Card, query:string) {
   if(filters.color.some(color=>!cardColor.includes(color)))return false;
   if(filters.type.some(type=>card.type.toLowerCase()!==type))return false;
   if(filters.rarity.some(rarity=>card.rarity.toLowerCase()!==rarity))return false;
+  if(filters.parallel&&!/parallel|alt\s*art/i.test(card.variant??''))return false;
   const searchable=`${card.name} ${card.code} ${card.effect} ${card.setCode??''} ${card.type} ${card.rarity} ${card.color}`.toLowerCase();
   return filters.tokens.every(token=>searchable.includes(token));
 }
