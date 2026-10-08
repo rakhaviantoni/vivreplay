@@ -52,6 +52,7 @@ import {OffersTab} from './vault/tabs/offers-tab';
 import {OrdersTab} from './vault/tabs/orders-tab';
 import {MarketPriceMode} from './market-price-mode';
 import {ShareButton} from './share';
+import {MarketCartButton} from './market-cart-drawer';
 import {BulkListingModal} from './vault/modals/bulk-listing-modal';
 import {enrichCollectionItem,groupVaultStacks} from './vault/vault-utils';
 import {isPlayableSet} from '@/packages/domain/release-availability';
@@ -60,7 +61,7 @@ import '@/app/market-account.css';
 type MarketBenchmark={amount:number;currency:string;url:string|null;observedAt:string;confidence:string;normalizedAmount:number|null;normalizedCurrency:string|null};
 type CardPrintingItem={id:string;language:string;variant:string|null;printing_code:string|null;card_image_url:string|null;rarity?:string|null;set_code?:string};
 type MarketCard=Card&{availablePrintings?:CardPrintingItem[]};
-type SearchIdentity={id:string;code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number;effect_text:string;tcg_card_printings?:Array<{id:string;card_image_url:string|null;rarity:string|null;set_code:string;language:string;variant:string|null;printing_code:string|null}>};
+type SearchIdentity={id:string;code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number;effect_text:string;imageUrl?:string;set_code?:string;rarity?:string|null;tcg_card_printings?:Array<{id:string;card_image_url:string|null;rarity:string|null;set_code:string;language:string;variant:string|null;printing_code:string|null}>};
 type ListingBundleCard={
   id:string;
   card:Card;
@@ -92,10 +93,10 @@ function searchedCard(identity:SearchIdentity):MarketCard|undefined {
   const printingsList=(identity.tcg_card_printings??[]).filter(item=>item.card_image_url&&isPlayableSet(item.set_code));
   const sorted=[...printingsList].sort((a,b)=>Number(a.language!=='EN')-Number(b.language!=='EN')+Number((a.variant??'').toLowerCase().includes('parallel'))-Number((b.variant??'').toLowerCase().includes('parallel')));
   const printing=sorted[0];
-  if(!printing?.card_image_url)return undefined;
+  if(!printing?.card_image_url&&!identity.imageUrl)return undefined;
   const canonical=cards.find(card=>card.code===identity.code);
-  const image={imageUrl:printing.card_image_url,imageSource:'external' as const,setCode:printing.set_code,language:printing.language,printingCode:printing.printing_code??identity.code,variant:printing.variant??undefined};
-  const baseCard=canonical?{...canonical,...image}:{id:printing.id,code:identity.code,name:displayCardName(identity.name,identity.code),color:identity.color,type:identity.card_type,cost:identity.cost,power:identity.power,rarity:printing.rarity??'',art:0,effect:identity.effect_text,...image};
+  const image={imageUrl:printing?.card_image_url??identity.imageUrl!,imageSource:'external' as const,setCode:printing?.set_code??identity.set_code??'',language:printing?.language??'EN',printingCode:printing?.printing_code??identity.code,variant:printing?.variant??undefined};
+  const baseCard=canonical?{...canonical,...image}:{id:printing?.id??identity.id,code:identity.code,name:displayCardName(identity.name,identity.code),color:identity.color,type:identity.card_type,cost:identity.cost,power:identity.power,rarity:printing?.rarity??identity.rarity??'',art:0,effect:identity.effect_text,...image};
   return {...baseCard,id:printing.id,availablePrintings:printingsList.map(item=>({id:item.id,language:item.language,variant:item.variant,printing_code:item.printing_code,card_image_url:item.card_image_url,rarity:item.rarity,set_code:item.set_code}))};
 }
 function CardSearch({value,onChange,onSelect,locale='EN'}:{value:string;onChange:(value:string)=>void;onSelect:(card:MarketCard)=>void;locale?:'EN'|'ID'}) {
@@ -107,11 +108,11 @@ function CardSearch({value,onChange,onSelect,locale='EN'}:{value:string;onChange
     let active=true;
     const timer=window.setTimeout(async()=>{
       setLoading(true);
-      const client=createClient();
-      const {data}=await client.from('tcg_card_identities').select('id,code,name,color,card_type,cost,power,effect_text,tcg_card_printings(id,card_image_url,rarity,set_code,language,variant,printing_code)').or(`code.ilike.%${term.replaceAll(',',' ')}%,name.ilike.%${term.replaceAll(',',' ')}%`).limit(7);
+      const response=await fetch(`/api/cards/identities?q=${encodeURIComponent(term)}`,{cache:'force-cache'});
+      const payload=await response.json() as {cards?:SearchIdentity[]};
       if(active){
-        const live=((data??[]) as SearchIdentity[]).map(searchedCard).filter((card):card is MarketCard=>Boolean(card));
-        setResults(live.length?live:cards.filter(card=>`${card.name} ${card.code}`.toLowerCase().includes(term.toLowerCase())).slice(0,7));
+        const live=(payload.cards??[]).map(searchedCard).filter((card):card is MarketCard=>Boolean(card));
+        setResults(live.length?live:cards.filter(card=>`${card.name} ${card.code} ${card.setCode??''} ${card.type}`.toLowerCase().includes(term.toLowerCase())).slice(0,7));
         setLoading(false);
       }
     },170);
@@ -271,15 +272,11 @@ function MarketCardLookup({
     let active = true;
     const timer = window.setTimeout(async () => {
       setLoading(true);
-      const client = createClient();
-      const { data } = await client
-        .from('tcg_card_identities')
-        .select('id,code,name,color,card_type,cost,power,effect_text,tcg_card_printings(id,card_image_url,rarity,set_code,language,variant,printing_code)')
-        .or(`code.ilike.%${term.replaceAll(',', ' ')}%,name.ilike.%${term.replaceAll(',', ' ')}%`)
-        .limit(10);
+      const response=await fetch(`/api/cards/identities?q=${encodeURIComponent(term)}`,{cache:'force-cache'});
+      const payload=await response.json() as {cards?:SearchIdentity[]};
       if (active) {
-        const live = ((data ?? []) as SearchIdentity[]).map(searchedCard).filter((card): card is Card => Boolean(card));
-        setResults(live.length ? live : cards.filter(card => `${card.name} ${card.code}`.toLowerCase().includes(term.toLowerCase())).slice(0, 10));
+        const live = (payload.cards ?? []).map(searchedCard).filter((card): card is Card => Boolean(card));
+        setResults(live.length ? live : cards.filter(card => `${card.name} ${card.code} ${card.setCode??''} ${card.type}`.toLowerCase().includes(term.toLowerCase())).slice(0, 10));
         setLoading(false);
       }
     }, 170);
@@ -387,12 +384,12 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
   const [listings,setListings]=useState<Listing[]>([]);
   const [listingsLoading,setListingsLoading]=useState(true);
   const [error,setError]=useState('');
-  const [query,setQuery]=useState('');
+  const [query,setQuery]=useState(()=>searchParams.get('card')??'');
   const [lang,setLang]=useState<'all'|'EN'|'JP'>('all');
   const [sort,setSort]=useState<'newest'|'price_asc'|'price_desc'>('newest');
   const [tradeType,setTradeType]=useState<'all'|'WTS'|'WTB'>('all');
   const [listingView,setListingView]=useState<'list'|'grid'>('list');
-  const [feedScope,setFeedScope]=useState<'listings'|'cards'>('listings');
+  const [feedScope,setFeedScope]=useState<'listings'|'cards'>(()=>searchParams.get('scope')==='cards'||Boolean(searchParams.get('card'))?'cards':'listings');
   const [open,setOpen]=useState(()=>!modalOnly&&Boolean(searchParams.get('sell')&&searchParams.get('sell')!=='open'));
   const [directSellLoading,setDirectSellLoading]=useState(()=>!modalOnly&&Boolean(searchParams.get('sell')&&searchParams.get('sell')!=='open'));
   const queuedSellPrinting=useRef('');
@@ -405,8 +402,6 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
   const [locale,setLocale]=useState<'EN'|'ID'>('EN');
   const [accountPanel,setAccountPanel]=useState<'listings'|'offers'|'orders'|'saved'|null>(()=>{const activity=searchParams.get('activity');return activity==='offers'||activity==='orders'||activity==='listings'||activity==='saved'?activity:null});
   const [activityCounts,setActivityCounts]=useState({listings:0,offers:0,orders:0});
-  const [marketCartCount,setMarketCartCount]=useState(0);
-  useEffect(()=>{const update=()=>{try{const cart=JSON.parse(window.localStorage.getItem('vivreplay-market-cart-v1')||'null');setMarketCartCount(Array.isArray(cart?.lines)?cart.lines.reduce((n:number,line:{items?:{quantity?:number}[]})=>n+(line.items??[]).reduce((m,item)=>m+(item.quantity??0),0),0):0)}catch{setMarketCartCount(0)}};update();window.addEventListener('vivreplay:market-cart-updated',update);window.addEventListener('storage',update);return()=>{window.removeEventListener('vivreplay:market-cart-updated',update);window.removeEventListener('storage',update)}},[]);
   const profileId=String(data?.profile?.id??'');
   // Bundle & Card Listing Draft State
   const [bundleCards,setBundleCards]=useState<ListingBundleCard[]>([]);
@@ -894,8 +889,8 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
           />
         </label>
         <div className="masthead-actions market-store-actions">
-        <Link href="/checkout/pro" className="market-pro-nav-link" aria-label={locale==='ID'?'Market Pro':'Market Pro'}><Crown size={15} aria-hidden="true"/><span className="market-pro-nav-long">Market Pro</span><span className="market-pro-nav-short">Pro</span></Link>
-        <Link href="/checkout/market?cart=1" className="market-store-link market-cart-link" aria-label={locale==='ID'?`Keranjang, ${marketCartCount} kartu`:`Cart, ${marketCartCount} cards`}><Cart size={17}/><span>{locale==='ID'?'Keranjang':'Cart'}</span>{marketCartCount>0&&<b>{marketCartCount}</b>}</Link>
+        {String(data?.profile?.tier).toLowerCase()!=='pro'&&<Link href="/checkout/pro" className="market-pro-nav-link" aria-label="Market Pro"><Crown size={15} aria-hidden="true"/><span className="market-pro-nav-long">Market Pro</span><span className="market-pro-nav-short">Pro</span></Link>}
+        <MarketCartButton locale={locale}/>
         {data && (
           <DropdownMenu><DropdownMenuTrigger asChild><button type="button" className="market-account-trigger" aria-label={locale==='ID'?'Market saya: listing, penawaran, dan pesanan':'My Market: listings, offers, and orders'}><Store size={16} aria-hidden="true"/>{activityCounts.listings+activityCounts.offers+activityCounts.orders>0&&<span className="market-account-unread-badge">{Math.min(99,activityCounts.listings+activityCounts.offers+activityCounts.orders)}</span>}<span className="market-account-trigger-name">{locale==='ID'?'Market saya':'My Market'}</span><CaretDown size={14} aria-hidden="true"/></button></DropdownMenuTrigger><DropdownMenuContent align="end" sideOffset={10} className="market-account-menu"><DropdownMenuLabel className="market-account-menu-label"><span className="market-account-menu-name">{data.profile.display_name||`@${data.profile.username}`}{String(data.profile.tier).toLowerCase()==='pro'&&<span className="market-pro-badge">Pro</span>}</span><span className="market-account-menu-handle">@{data.profile.username}</span></DropdownMenuLabel><DropdownMenuSeparator/><DropdownMenuItem className="market-account-menu-item" onSelect={()=>setAccountPanel('listings')}><ClipboardText size={16}/>{locale==='ID'?'Listing saya':'My listings'}{activityCounts.listings>0&&<span className="market-activity-badge">{activityCounts.listings>99?'99+':activityCounts.listings}</span>}</DropdownMenuItem><DropdownMenuItem className="market-account-menu-item" onSelect={()=>setAccountPanel('offers')}><OrdersIcon size={16}/>{locale==='ID'?'Penawaran':'Offers'}{activityCounts.offers>0&&<span className="market-activity-badge">{activityCounts.offers>99?'99+':activityCounts.offers}</span>}</DropdownMenuItem><DropdownMenuItem className="market-account-menu-item" onSelect={()=>setAccountPanel('orders')}><OrdersIcon size={16}/>{locale==='ID'?'Pesanan':'Orders'}{activityCounts.orders>0&&<span className="market-activity-badge">{activityCounts.orders>99?'99+':activityCounts.orders}</span>}</DropdownMenuItem><DropdownMenuItem className="market-account-menu-item" onSelect={()=>setAccountPanel('saved')}><Bookmark size={16}/>{locale==='ID'?'Listing tersimpan':'Saved listings'}</DropdownMenuItem><DropdownMenuItem className="market-account-menu-item" asChild><Link href="/vault?tab=wishlist"><Heart size={16}/>{locale==='ID'?'Kartu incaran':'Wishlist'}</Link></DropdownMenuItem><DropdownMenuItem className="market-account-menu-item" asChild><Link href="/profile"><History size={16}/>{locale==='ID'?'Profil':'Profile'}</Link></DropdownMenuItem></DropdownMenuContent></DropdownMenu>
         )}

@@ -8,9 +8,10 @@ function publicCardPath(objectKey:string) {
   return `/${objectKey.replace(/^\/+/, '').replace(/^one-piece\/([^/]+)\//,(_,setCode:string)=>`${setCode.replaceAll('-','')}/`)}`;
 }
 
-async function fromD1(tokens:string[]) {
+async function fromD1(tokens:string[], cardType:string|null) {
   const conditions=tokens.map(()=>`(UPPER(i.code) LIKE ? OR LOWER(i.name) LIKE ? OR EXISTS (SELECT 1 FROM tcg_card_printings fp WHERE fp.identity_id=i.id AND UPPER(fp.set_code) LIKE ?))`);
-  const values=tokens.flatMap(token=>{const pattern=`%${token}%`;return [pattern,pattern,pattern]});
+  if(cardType)conditions.push('UPPER(i.card_type) LIKE ?');
+  const values=[...tokens.flatMap(token=>{const pattern=`%${token}%`;return [pattern,pattern,pattern]}),...(cardType?[`%${cardType}%`]:[])];
   const {results} = await database().prepare(`
     SELECT i.id,i.code,i.name,i.color,i.card_type,i.cost,i.power,i.effect_text,
       (SELECT p.rarity FROM tcg_card_printings p WHERE p.identity_id=i.id AND p.language='EN' ORDER BY p.set_code,p.id LIMIT 1) AS rarity,
@@ -23,7 +24,7 @@ async function fromD1(tokens:string[]) {
   return results;
 }
 
-async function fromSupabase(tokens:string[]) {
+async function fromSupabase(tokens:string[],cardType:string|null) {
   const db = supabaseAdmin();
   if (!db) throw new Error('Card catalog is unavailable.');
   let matchedIds:Set<string>|null=null;
@@ -43,6 +44,12 @@ async function fromSupabase(tokens:string[]) {
     else{const intersection=new Set<string>();for(const id of matchedIds)if(tokenIds.has(id))intersection.add(id);matchedIds=intersection;}
     if(!matchedIds.size)return [];
   }
+  if(cardType){
+    const {data,error}=await db.from('tcg_card_identities').select('id').ilike('card_type',`%${cardType}%`).limit(500);
+    if(error)throw error;
+    const typeIds=new Set((data??[]).map(row=>(row as {id:string}).id));
+    matchedIds=matchedIds===null?typeIds:new Set([...matchedIds].filter(id=>typeIds.has(id)));
+  }
   const ids=[...(matchedIds??[])].slice(0,100);
   if(!ids.length)return [];
   const {data,error} = await db.from('tcg_card_identities')
@@ -61,12 +68,15 @@ export async function GET(request:Request) {
   const raw = new URL(request.url).searchParams.get('q')?.trim() ?? '';
   const query = raw.replace(/[^\p{L}\p{N}\s-]/gu,'').replace(/\s+/g,' ');
   if (query.length < 2) return Response.json({cards:[]});
-  const tokens=[...new Set(query.split(/\s+/).map(token=>token.trim()).filter(token=>token.length>=2))].slice(0,8);
-  if(!tokens.length)return Response.json({cards:[]});
+  const typeAliases:Record<string,string>={leader:'LEADER',leaders:'LEADER',character:'CHARACTER',characters:'CHARACTER',event:'EVENT',events:'EVENT',stage:'STAGE',stages:'STAGE'};
+  const rawTokens=[...new Set(query.split(/\s+/).map(token=>token.trim()).filter(token=>token.length>=2))].slice(0,8);
+  const cardType=rawTokens.map(token=>typeAliases[token.toLowerCase()]).find(Boolean)??null;
+  const tokens=rawTokens.filter(token=>!typeAliases[token.toLowerCase()]);
+  if(!tokens.length&&!cardType)return Response.json({cards:[]});
   let cards:IdentityRow[];
-  try { cards = await fromD1(tokens); }
+  try { cards = await fromD1(tokens,cardType); }
   catch {
-    try { cards = await fromSupabase(tokens); }
+    try { cards = await fromSupabase(tokens,cardType); }
     catch { return Response.json({error:'Card catalog is temporarily unavailable.'},{status:503}); }
   }
   cards=cards.filter(card=>isPlayableSet(card.set_code??'')||PREVIEW_CARD_CODES.has(card.code.toUpperCase()));

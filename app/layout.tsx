@@ -13,7 +13,7 @@ const siteName='VivrePlay';
 const description='A premium One Piece Card Game companion for cards, decks, collections, and play.';
 export const metadata:Metadata={
   metadataBase:new URL('https://vivreplay.com'),
-  title:{default:siteName,template:`%s · ${siteName}`},
+  title:{default:siteName,template:`%s | ${siteName}`},
   description,
   applicationName:siteName,
   keywords:['VivrePlay','One Piece Card Game','OPTCG','TCG cards','deck builder','card collection'],

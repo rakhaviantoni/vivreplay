@@ -14,7 +14,7 @@ export function pageMetadata({
   path: string;
   image?: string;
 }): Metadata {
-  const socialTitle = `${title} · ${siteName}`;
+  const socialTitle = `${title} | ${siteName}`;
   return {
     title,
     description,
