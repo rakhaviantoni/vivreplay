@@ -19,7 +19,7 @@ export async function GET(request:Request,{params}:{params:Promise<{id:string}>}
     const refreshedTarget=new URL(target);
     refreshedTarget.searchParams.set('refresh',refreshBucket);
     if(new URL(request.url).searchParams.get('open')==='1')return new Response(null,{status:302,headers:{Location:refreshedTarget.toString(),'Cache-Control':'private, no-store','Referrer-Policy':'no-referrer','X-Content-Type-Options':'nosniff'}});
-    const upstream=await fetch(refreshedTarget.toString(),{cache:'no-store',redirect:'follow',headers:{Accept:'image/avif,image/webp,image/png,image/jpeg,image/*;q=0.9,*/*;q=0.1',Referer:`${new URL(target).origin}/`}});
+    const upstream=await fetch(refreshedTarget.toString(),{cache:'no-store',redirect:'follow',headers:{'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',Accept:'image/avif,image/webp,image/png,image/jpeg,image/*;q=0.9,*/*;q=0.1',Referer:`${new URL(target).origin}/`}});
     const finalUrl=new URL(upstream.url||target);
     const trustedHost=finalUrl.hostname==='ipaymu.com'||finalUrl.hostname.endsWith('.ipaymu.com')||finalUrl.hostname==='storage.googleapis.com';
     if(!upstream.ok||!trustedHost)throw new HttpError(502,'The payment code could not be loaded.');
