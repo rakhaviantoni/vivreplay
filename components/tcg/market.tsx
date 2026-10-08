@@ -604,7 +604,10 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
     let active=true;
     void (async()=>{
       const client=createClient();
-      const {data}=await client.from('tcg_card_printings').select('id,card_image_url,rarity,set_code,language,tcg_card_identities!inner(code,name,color,card_type,cost,power,effect_text)').eq('id',sell).maybeSingle();
+      const slug=sell.match(/^(.+)--([a-z]{2,3})$/i);
+      let query=client.from('tcg_card_printings').select('id,card_image_url,rarity,set_code,language,printing_code,variant,tcg_card_identities!inner(code,name,color,card_type,cost,power,effect_text)');
+      query=slug?query.eq('printing_code',slug[1]).eq('language',slug[2].toUpperCase()).limit(1):query.eq('id',sell);
+      const {data}=await query.maybeSingle();
       if(!active)return;
       if(!data){setDirectSellLoading(false);return;}
       const row=data as unknown as {id:string;card_image_url:string|null;rarity:string|null;set_code:string|null;language:string;tcg_card_identities:{code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number;effect_text:string}};
@@ -750,7 +753,10 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
     setOpen(true);
     try{
       const client=createClient();
-      const {data:row}=await client.from('tcg_card_printings').select('id,card_image_url,rarity,set_code,language,printing_code,variant,tcg_card_identities!inner(code,name,color,card_type,cost,power,effect_text)').eq('id',printingId).maybeSingle();
+      const slug=printingId.match(/^(.+)--([a-z]{2,3})$/i);
+      let query=client.from('tcg_card_printings').select('id,card_image_url,rarity,set_code,language,printing_code,variant,tcg_card_identities!inner(code,name,color,card_type,cost,power,effect_text)');
+      query=slug?query.eq('printing_code',slug[1]).eq('language',slug[2].toUpperCase()).limit(1):query.eq('id',printingId);
+      const {data:row}=await query.maybeSingle();
       if(!row){setDirectSellLoading(false);toast.error(locale==='ID'?'Cetakan kartu tidak ditemukan.':'Card printing could not be found.');return;}
       const printing=row as unknown as {id:string;card_image_url:string|null;rarity:string|null;set_code:string|null;language:string;printing_code:string|null;variant:string|null;tcg_card_identities:{code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number;effect_text:string}};
       const identity=printing.tcg_card_identities;

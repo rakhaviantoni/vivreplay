@@ -150,7 +150,7 @@ export default async function Page({params}:{params:Promise<{id:string}>}){
 
   return (
     <>
-      <MarketStoreNav initialQuery={primary.card.name} sellHref={`/market?sell=${encodeURIComponent(primary.id)}`}/>
+      <MarketStoreNav initialQuery={primary.card.name} sellHref={`/market?sell=${encodeURIComponent(`${primary.card.printingCode??primary.card.code}--${primary.language.toLowerCase()}`)}`}/>
       <MarketListingDetailView
         listing={listing}
         stored={stored}

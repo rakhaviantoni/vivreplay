@@ -345,3 +345,11 @@ export async function sendMarketEmail(profileId:string,event:Event,listingTitle:
     if(recipient.email)await sendRenderedMarketEmail(recipient.email,event,listingTitle,threadId,recipient.locale??'en',undefined,details);
   }catch(error){console.error('market_email_delivery_failed',error instanceof Error?error.message:'unknown error')}
 }
+
+export async function resendProActivationEmail(profileId:string,orderId:string){
+  const recipient=await db().prepare(`SELECT u.email,p.locale FROM profiles p JOIN user u ON u.id=p.auth_subject WHERE p.id=?`).bind(profileId).first<{email:string;locale:string}>();
+  if(!recipient?.email)throw new Error('This account does not have a deliverable email address.');
+  const locale=recipient.locale??'en';
+  const details=await notificationDetails('pro-paid',orderId,locale);
+  await sendRenderedMarketEmail(recipient.email,'pro-paid','Market Pro',orderId,locale,undefined,details);
+}
