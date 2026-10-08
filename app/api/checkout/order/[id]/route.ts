@@ -3,14 +3,14 @@ import {sendMarketEmail} from '@/lib/server/market-notifications';
 import {marketCardThumbnails} from '@/lib/server/market-card-thumbnails';
 import {ipaymuExpiryTimestamp,ipaymuQrImageUrl} from '@/lib/server/ipaymu';
 
-type OrderRow={id:string;kind:string;buyerId:string;sellerId:string|null;listingId:string|null;items:string;details:string;subtotal:number;sellerNetAmount:number|null;shippingFee:number;amount:number;currency:string;paymentId:string|null;status:string;expiresAt:string|null;updatedAt:string|null;title:string|null};
+type OrderRow={id:string;kind:string;buyerId:string;sellerId:string|null;listingId:string|null;items:string;details:string;subtotal:number;sellerNetAmount:number|null;shippingFee:number;amount:number;currency:string;paymentId:string|null;status:string;expiresAt:string|null;updatedAt:string|null;title:string|null;deliveredAt:string|null;disputeStatus:string|null};
 
 export async function GET(_request:Request,{params}:{params:Promise<{id:string}>}){
   try{
     const profile=await user();
     const {id}=await params;
     const database=db();
-    const order=await database.prepare(`SELECT o.id,o.kind,o.buyer_id AS buyerId,o.seller_id AS sellerId,o.listing_id AS listingId,o.items,o.details,o.subtotal,o.seller_net_amount AS sellerNetAmount,o.shipping_fee AS shippingFee,o.amount,o.currency,o.payment_id AS paymentId,o.status,o.expires_at AS expiresAt,o.updated_at AS updatedAt,o.shipping_waybill_id AS waybillId,o.shipping_tracking_url AS trackingUrl,l.title FROM checkout_orders o LEFT JOIN listings l ON l.id=o.listing_id WHERE o.id=?`).bind(id).first<OrderRow&{waybillId:string|null;trackingUrl:string|null}>();
+    const order=await database.prepare(`SELECT o.id,o.kind,o.buyer_id AS buyerId,o.seller_id AS sellerId,o.listing_id AS listingId,o.items,o.details,o.subtotal,o.seller_net_amount AS sellerNetAmount,o.shipping_fee AS shippingFee,o.amount,o.currency,o.payment_id AS paymentId,o.status,o.expires_at AS expiresAt,o.updated_at AS updatedAt,o.delivered_at AS deliveredAt,(SELECT status FROM market_disputes d WHERE d.order_id=o.id) AS disputeStatus,o.shipping_waybill_id AS waybillId,o.shipping_tracking_url AS trackingUrl,l.title FROM checkout_orders o LEFT JOIN listings l ON l.id=o.listing_id WHERE o.id=?`).bind(id).first<OrderRow&{waybillId:string|null;trackingUrl:string|null}>();
     if(!order||(order.buyerId!==profile.id&&order.sellerId!==profile.id))throw new HttpError(404,'Checkout was not found.');
     const viewerRole=order.buyerId===profile.id?'buyer':'seller';
 
@@ -71,6 +71,9 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
     const marketStandardFeePercent=typeof details.marketStandardFeePercent==='number'?details.marketStandardFeePercent:null;
     const marketBuyerFeePercent=viewerRole==='buyer'&&typeof details.marketBuyerFeePercent==='number'?details.marketBuyerFeePercent:0;
     const marketBuyerFeeAmount=viewerRole==='buyer'&&typeof details.marketBuyerFeeAmount==='number'?details.marketBuyerFeeAmount:0;
+    const marketDisputeRefund=details.marketDisputeResolution&&typeof details.marketDisputeResolution==='object'?details.marketDisputeResolution as {refundAmount?:unknown;shippingRefund?:unknown}:null;
+    const disputeRefundAmount=typeof marketDisputeRefund?.refundAmount==='number'?marketDisputeRefund.refundAmount:0;
+    const disputeShippingRefund=typeof marketDisputeRefund?.shippingRefund==='number'?marketDisputeRefund.shippingRefund:0;
     const shippingStatusAllowsAddress=['PAID','SHIPPED','RECEIVED','COMPLETED','FULFILLED','PROCESSING'].includes(order.status);
     const shipping=viewerRole==='seller'&&shippingStatusAllowsAddress?{recipientName:details.recipientName,addressLine:details.addressLine,city:details.city,postalCode:details.postalCode,phone:details.phone,label:details.shippingLabel,courierName:details.courierName,courierServiceName:details.courierServiceName,waybillId:order.waybillId,trackingUrl:order.trackingUrl}:viewerRole==='buyer'?{courierName:details.courierName,courierServiceName:details.courierServiceName,waybillId:order.waybillId,trackingUrl:order.trackingUrl}:null;
     const printingIds=items.flatMap(item=>item&&typeof item==='object'&&typeof (item as {printingId?:unknown}).printingId==='string'?[(item as {printingId:string}).printingId]:[]);
@@ -86,7 +89,7 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
     const paymentQrImage=paymentQrSource?`/api/checkout/order/${encodeURIComponent(order.id)}/qris`:null;
     const hasActivePayment=order.status==='PENDING_PAYMENT'&&Boolean(order.paymentId);
     const canCancel=order.kind==='MARKET'&&order.status==='PENDING_PAYMENT'&&!order.paymentId&&(!order.expiresAt||new Date(`${order.expiresAt.replace(' ','T')}Z`).getTime()>Date.now());
-    return Response.json({id:order.id,kind:order.kind,status:order.status,viewerRole,listingId:order.listingId,title:order.title??'VivrePlay Market Pro',membershipDurationDays:order.kind==='PRO'&&Number.isInteger(Number(details.durationDays))?Number(details.durationDays):null,items:orderItems,details:{},shipping,sellerNetAmount:order.sellerNetAmount,marketFeePercent,marketSellerTier,marketStandardFeePercent,marketBuyerFeePercent,marketBuyerFeeAmount,shippingDiscount:viewerRole==='buyer'&&typeof details.marketProShippingDiscount==='number'?details.marketProShippingDiscount:0,waybillId:order.waybillId,trackingUrl:order.trackingUrl,checkoutUrl:viewerRole==='buyer'&&!paymentExpired&&typeof details.ipaymuCheckoutUrl==='string'?details.ipaymuCheckoutUrl:null,paymentMethod:viewerRole==='buyer'?details.ipaymuPaymentMethod??null:null,paymentMode:paymentMode==='sandbox'?'sandbox':'production',paymentFee:viewerRole==='buyer'&&typeof details.ipaymuPaymentFee==='number'?details.ipaymuPaymentFee:null,paymentExpiresAt:paymentExpiresAt,paymentExpired,paymentQrImage,paymentQrString:viewerRole==='buyer'&&!paymentExpired&&typeof details.ipaymuPaymentQrString==='string'?details.ipaymuPaymentQrString:null,canCancel,hasActivePayment,subtotal:order.subtotal,shippingFee:order.shippingFee,amount:order.amount,currency:order.currency,expiresAt:effectiveExpiry});
+    return Response.json({id:order.id,kind:order.kind,status:order.status,viewerRole,listingId:order.listingId,title:order.title??'VivrePlay Market Pro',membershipDurationDays:order.kind==='PRO'&&Number.isInteger(Number(details.durationDays))?Number(details.durationDays):null,items:orderItems,details:{},shipping,sellerNetAmount:order.sellerNetAmount,marketFeePercent,marketSellerTier,marketStandardFeePercent,marketBuyerFeePercent,marketBuyerFeeAmount,disputeRefundAmount,disputeShippingRefund,shippingDiscount:viewerRole==='buyer'&&typeof details.marketProShippingDiscount==='number'?details.marketProShippingDiscount:0,waybillId:order.waybillId,trackingUrl:order.trackingUrl,deliveredAt:order.deliveredAt,disputeStatus:order.disputeStatus,checkoutUrl:viewerRole==='buyer'&&!paymentExpired&&typeof details.ipaymuCheckoutUrl==='string'?details.ipaymuCheckoutUrl:null,paymentMethod:viewerRole==='buyer'?details.ipaymuPaymentMethod??null:null,paymentMode:paymentMode==='sandbox'?'sandbox':'production',paymentFee:viewerRole==='buyer'&&typeof details.ipaymuPaymentFee==='number'?details.ipaymuPaymentFee:null,paymentExpiresAt:paymentExpiresAt,paymentExpired,paymentQrImage,paymentQrString:viewerRole==='buyer'&&!paymentExpired&&typeof details.ipaymuPaymentQrString==='string'?details.ipaymuPaymentQrString:null,canCancel,hasActivePayment,subtotal:order.subtotal,shippingFee:order.shippingFee,amount:order.amount,currency:order.currency,expiresAt:effectiveExpiry});
   }catch(error){return errorResponse(error)}
 }
 
@@ -124,8 +127,10 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
           .bind(crypto.randomUUID(),order.buyerId,purchase.printingId,purchase.quantity,purchase.condition,purchase.amount,order.currency));
       }
     }
-    statements.push(database.prepare("UPDATE checkout_orders SET status='RECEIVED',fulfilled_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=? AND buyer_id=? AND status='SHIPPED'").bind(id,profile.id));
-    await database.batch(statements);
+    statements.push(database.prepare("UPDATE checkout_orders SET status='RECEIVED',fulfilled_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=? AND buyer_id=? AND status='RECEIVING'").bind(id,profile.id));
+    const claim=await database.prepare(`UPDATE checkout_orders SET status='RECEIVING' WHERE id=? AND buyer_id=? AND status='SHIPPED' AND NOT EXISTS(SELECT 1 FROM market_disputes WHERE order_id=? AND status!='RESOLVED')`).bind(id,profile.id,id).run();
+    if(!claim.meta.changes)throw new HttpError(409,'This order has an open report or was updated elsewhere. Refresh the order before continuing.');
+    try{await database.batch(statements)}catch(error){await database.prepare("UPDATE checkout_orders SET status='SHIPPED' WHERE id=? AND status='RECEIVING'").bind(id).run();throw error;}
     if(order.sellerId)await sendMarketEmail(order.sellerId,'order-received',order.title||'Market order',order.id);
     const updated=await database.prepare('SELECT status FROM checkout_orders WHERE id=?').bind(id).first<{status:string}>();
     return Response.json({ok:true,status:updated?.status??'RECEIVED'});

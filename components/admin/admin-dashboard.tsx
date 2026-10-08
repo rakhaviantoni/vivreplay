@@ -21,13 +21,14 @@ import { MarketplaceManager } from '@/components/admin/marketplace-manager';
 import { FeedbackInbox } from '@/components/admin/feedback-inbox';
 import { TrafficAttribution } from '@/components/admin/traffic-attribution';
 import { PayoutManager } from '@/components/admin/payout-manager';
+import { MarketDisputesManager } from '@/components/admin/market-disputes-manager';
 
 type Health={generatedAt:string;summary:{identities:number;printings:number;sets:number;storedSmall:number;missingImages:number;missingCards:number;unrepresentedSets:number};missingImages:Array<{id:string;code:string;name:string;setCode:string;language:string;variant:string;reason:string}>;missingCards:Array<{code:string;name:string}>;sets:Array<{setCode:string;setName:string;total:number;stored:number;sourceMissing:number}>;unrepresentedSets:Array<{setCode:string;setName:string;kind:string}>};
 type CoachRequest={id:string;actor_email:string|null;actor_subject:string|null;ip_address:string|null;user_agent:string|null;locale:string;model:string;question:string;leader_code:string|null;deck_size:number;candidate_count:number;response_text:string|null;status:string;error_code:string|null;duration_ms:number;created_at:string};
 const number=new Intl.NumberFormat('en-US');
 
 export function AdminDashboard(){
-  const [section, setSection] = useState<'catalog' | 'policy' | 'marketplace' | 'feedback' | 'traffic' | 'payouts'>('catalog');
+  const [section, setSection] = useState<'catalog' | 'policy' | 'marketplace' | 'feedback' | 'traffic' | 'payouts' | 'disputes'>('catalog');
   const [data,setData]=useState<Health|null>(null);
   const [requests,setRequests]=useState<CoachRequest[]>([]);
   const [query,setQuery]=useState('');
@@ -64,11 +65,11 @@ export function AdminDashboard(){
       <header className="admin-health-heading">
         <div>
           <p className="eyebrow">OPERATIONS & CONTROL</p>
-          <h1>{section === 'catalog' ? 'Catalog health' : section === 'policy' ? 'Market Policy' : section === 'marketplace' ? 'Listings & sellers' : section === 'traffic' ? 'Campaign attribution' : section==='payouts'?'Payouts':'Feedback inbox'}</h1>
+          <h1>{section === 'catalog' ? 'Catalog health' : section === 'policy' ? 'Market Policy' : section === 'marketplace' ? 'Listings & sellers' : section === 'traffic' ? 'Campaign attribution' : section==='payouts'?'Payouts':section==='disputes'?'Order reports':'Feedback inbox'}</h1>
           <p>
             {section === 'catalog'
               ? 'Storage coverage and import gaps across the live One Piece catalog.'
-              : section === 'policy' ? 'Dynamic listing lifespans, seller quotas, and retention rules.' : section === 'marketplace' ? 'Recent Market listings and the sellers behind them.' : section === 'traffic' ? 'UTM campaigns, landing pages, and referrals to VivrePlay.' : section==='payouts'?'Review seller withdrawal requests and record transfers.':'Card data reports, product feedback, and bug reports.'}
+              : section === 'policy' ? 'Dynamic listing lifespans, seller quotas, and retention rules.' : section === 'marketplace' ? 'Recent Market listings and the sellers behind them.' : section === 'traffic' ? 'UTM campaigns, landing pages, and referrals to VivrePlay.' : section==='payouts'?'Review seller withdrawal requests and record transfers.':section==='disputes'?'Review buyer evidence, seller responses, and order outcomes.':'Card data reports, product feedback, and bug reports.'}
           </p>
         </div>
 
@@ -93,6 +94,7 @@ export function AdminDashboard(){
             <ChartLineUp size={15}/>Traffic
           </button>
           <button type="button" className="admin-refresh" onClick={()=>setSection('payouts')} style={section==='payouts'?{background:'#2f493d',color:'#fff9ee',borderColor:'#2f493d'}:undefined}>Payouts</button>
+          <button type="button" className="admin-refresh" onClick={()=>setSection('disputes')} style={section==='disputes'?{background:'#2f493d',color:'#fff9ee',borderColor:'#2f493d'}:undefined}>Order reports</button>
           <button
             type="button"
             className="admin-refresh"
@@ -133,6 +135,8 @@ export function AdminDashboard(){
         <TrafficAttribution />
       ) : section === 'payouts' ? (
         <PayoutManager />
+      ) : section === 'disputes' ? (
+        <MarketDisputesManager />
       ) : (
         <>
           {error && <p className="admin-error">{error}</p>}
