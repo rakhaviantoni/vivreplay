@@ -127,7 +127,7 @@ function CardSearch({value,onChange,onSelect,locale='EN'}:{value:string;onChange
           type="text"
           value={value}
           onChange={event=>onChange(event.target.value)}
-          placeholder={locale==='ID'?'Cari nama kartu, kode, atau nomor seri...':'Search a card name, code, or number...'}
+          placeholder={locale==='ID'?'Nama, set, 3c, warna, rarity, atau efek…':'Name, set, 3c, color, rarity, or effect…'}
           aria-label={locale==='ID'?'Cari kartu untuk dijual':'Search card to sell'}
         />
         {value.trim().length>0&&(
@@ -216,6 +216,41 @@ function CardSearch({value,onChange,onSelect,locale='EN'}:{value:string;onChange
       </div>
     </div>
   );
+}
+
+function matchesCardSearch(card:Card, query:string) {
+  let text=query.toLowerCase();
+  const filters:{cost?:number;power?:number;color:string[];rarity:string[];type:string[];tokens:string[]}={color:[],rarity:[],type:[],tokens:[]};
+  const costMatch=text.match(/(?:\b(\d+)\s*c\b|\bcost\s*(\d+)\b|\b(\d+)\s*cost\b)/i);
+  if(costMatch){filters.cost=Number(costMatch[1]??costMatch[2]??costMatch[3]);text=text.replace(costMatch[0],' ')}
+  const powerMatch=text.match(/(?:\b(\d+(?:\.\d+)?)\s*k\b|\bpower\s*(\d+)\b)/i);
+  if(powerMatch){filters.power=Math.round(Number(powerMatch[1])*1000||Number(powerMatch[2]));text=text.replace(powerMatch[0],' ')}
+  const colorCodeMap:Record<string,string>={r:'red',g:'green',u:'blue',p:'purple',b:'black',y:'yellow'};
+  const codeColors=text.match(/(?:^|\s)(?:color\s+)?([rgupby](?:\s*[\/+]+\s*[rgupby])+)(?=\s|$)/i);
+  if(codeColors){filters.color.push(...codeColors[1].toLowerCase().split(/[\/+\s]+/).filter(Boolean).map(code=>colorCodeMap[code]));text=text.replace(codeColors[0],' ')}
+  const colorPattern=/\b(red|green|blue|purple|black|yellow)\b/gi;
+  filters.color.push(...[...text.matchAll(colorPattern)].map(match=>match[1].toLowerCase()));
+  text=text.replace(colorPattern,' ');
+  const namedCode=text.match(/\bcolor\s+([rgupby])\b/i);
+  if(namedCode){filters.color.push(colorCodeMap[namedCode[1].toLowerCase()]);text=text.replace(namedCode[0],' ')}
+  const typeAliases:Record<string,string>={leader:'leader',leaders:'leader',character:'character',characters:'character',event:'event',events:'event',stage:'stage',stages:'stage',don:'don',dons:'don'};
+  const rarityAliases=new Set(['sec','psec','sr','sp','uc','r','c','l','tr']);
+  const donBang=text.match(/\bdon\s*!!?/i);
+  if(donBang){filters.type.push('don');text=text.replace(donBang[0],' ')}
+  for(const token of text.replace(/[^\p{L}\p{N}\s-]/gu,' ').split(/\s+/).filter(Boolean)){
+    const normalized=token.toLowerCase();
+    if(typeAliases[normalized])filters.type.push(typeAliases[normalized]);
+    else if(rarityAliases.has(normalized))filters.rarity.push(normalized);
+    else filters.tokens.push(normalized);
+  }
+  if(filters.cost!==undefined&&card.cost!==filters.cost)return false;
+  if(filters.power!==undefined&&card.power!==filters.power)return false;
+  const cardColor=card.color.toLowerCase();
+  if(filters.color.some(color=>!cardColor.includes(color)))return false;
+  if(filters.type.some(type=>card.type.toLowerCase()!==type))return false;
+  if(filters.rarity.some(rarity=>card.rarity.toLowerCase()!==rarity))return false;
+  const searchable=`${card.name} ${card.code} ${card.effect} ${card.setCode??''} ${card.type} ${card.rarity} ${card.color}`.toLowerCase();
+  return filters.tokens.every(token=>searchable.includes(token));
 }
 function VaultCardPicker({items,onSelect,locale='EN'}:{items:CollectionItem[];onSelect:(card:MarketCard,instanceId:string,quantity:number,condition:string)=>void;locale?:'EN'|'ID'}) {
   return (
@@ -636,7 +671,8 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
       const cardName=card?.name??listing.title;
       const cardCode=card?.code??'';
       const matchesTrade = tradeType === 'all' || listing.type === tradeType;
-      const matchesSearch = !term || [listing.title,cardName,cardCode].some(value=>value.toLowerCase().includes(term));
+      const searchableCards=[card,...(listing.items??[]).map(item=>item.card??cardFor(item.printingId))].filter((item):item is Card=>Boolean(item));
+      const matchesSearch = !term || [listing.title,cardName,cardCode].some(value=>value.toLowerCase().includes(term)) || searchableCards.some(item=>matchesCardSearch(item,term));
       const matchesLang = lang === 'all' || cardLanguage === lang;
       const matchesInitial = !initialCards.length || (card && initialCards.includes(card.id));
       return matchesTrade && matchesSearch && matchesLang && matchesInitial;

@@ -716,3 +716,72 @@ html[data-theme='dark'] .card-viewer > header { background: #101d2b !important; 
 .market-store-nav .market-cart-link,
 .market-cart-link { display: inline-flex !important; align-items: center; gap: 6px; padding-inline: 10px; }
 @media (max-width: 520px) { .market-store-nav .market-cart-link span, .market-cart-link span { display: none; } }
+
+/* The cart is a true right-side sheet; clear Dialog's centered translate on the content. */
+[data-slot='dialog-content'].market-cart-drawer {
+  position: fixed !important;
+  inset: 0 0 0 auto !important;
+  width: min(440px, 92vw) !important;
+  max-width: none !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  translate: none !important;
+  transform: none !important;
+  animation: none !important;
+  border-radius: 16px 0 0 16px !important;
+}
+[data-slot='dialog-content'].market-cart-drawer > [data-slot='dialog-body'] {
+  height: 100% !important;
+  min-height: 0 !important;
+  gap: 0 !important;
+  padding: 24px 20px 0 !important;
+}
+
+@media (max-width: 760px) {
+  .market-store-promo { display: none !important; }
+  .market-store-nav {
+    grid-template-columns: 34px minmax(0, 1fr) auto !important;
+    grid-template-rows: 34px 34px !important;
+    gap: 4px 6px !important;
+    padding: 6px 10px !important;
+  }
+  .market-store-nav .market-back-link,
+  .market-store-nav .market-account-trigger,
+  .market-store-nav .market-cart-link,
+  .market-store-nav .market-pro-nav-link,
+  .market-store-nav .market-store-locale,
+  .market-store-nav .market-store-theme,
+  .market-store-nav .market-list-button.join-link {
+    width: 34px !important;
+    min-width: 34px !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    padding: 0 !important;
+    border-radius: 50% !important;
+  }
+  .market-store-nav .market-store-actions { gap: 4px !important; }
+  .market-store-nav .market-account-trigger-name,
+  .market-store-nav .market-account-trigger > svg:last-child,
+  .market-store-nav .market-cart-link span,
+  .market-store-nav .market-pro-nav-long,
+  .market-store-nav .market-pro-nav-short,
+  .market-store-nav .market-list-button .market-list-button-text,
+  .market-store-nav .market-list-button .market-list-button-short { display: none !important; }
+  .market-store-nav .market-store-search { height: 34px !important; min-height: 34px !important; }
+  .market-store-nav .market-store-search input { font-size: 12px !important; }
+}
+
+@media (max-width: 380px) {
+  .market-store-nav { grid-template-columns: minmax(0, 1fr) auto !important; }
+  .market-store-nav .market-back-link { display: none !important; }
+  .market-store-nav .market-store-wordmark { grid-column: 1 !important; }
+  .market-store-nav .market-store-actions { grid-column: 2 !important; }
+}
+
+@media (max-width: 520px) {
+  [data-slot='dialog-content'].market-cart-drawer { width: 100vw !important; border-radius: 0 !important; }
+  [data-slot='dialog-content'].market-cart-drawer > [data-slot='dialog-body'] { padding: 20px 16px 0 !important; }
+  .market-cart-footer { margin-inline: -16px; padding-inline: 16px; }
+}
