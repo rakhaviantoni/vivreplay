@@ -1,7 +1,7 @@
 import type {MetadataRoute} from 'next';
 
 export default function robots():MetadataRoute.Robots{
-  const privatePaths=['/admin/','/api/','/profile','/vault','/sign-in','/sign-up','/forgot-password','/reset-password','/verify-email','/decks/builder','/play/board','/play/table','/arena','/events'];
+  const privatePaths=['/admin/','/api/','/profile','/vault','/sign-in','/sign-up','/forgot-password','/reset-password','/verify-email','/decks/builder','/play/board','/play/table'];
   return {
     rules:[
       {userAgent:'*',allow:'/',disallow:privatePaths},

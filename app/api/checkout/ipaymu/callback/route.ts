@@ -32,6 +32,8 @@ export async function POST(request:Request){
       if(order.kind==='MARKET'){
         const title=order.title||'Market order';
         await Promise.all([sendMarketEmail(order.buyerId,'order-paid',title,order.id),...(order.sellerId?[sendMarketEmail(order.sellerId,'order-seller-paid',title,order.id)]:[])]);
+      }else if(order.kind==='PRO'){
+        await sendMarketEmail(order.buyerId,'pro-paid','Market Pro',order.id);
       }
       return Response.json({status:'ok'});
     }

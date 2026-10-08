@@ -168,17 +168,17 @@ export function renderAuthEmail(email: AuthEmail): RenderedEmail {
     .email-button{background:#b8791d!important;color:#fffdf7!important}
     ${email.theme ? "" : "@media(prefers-color-scheme:dark){"}
       ${email.theme ? "" : `
-      body,.email-bg{background:#10171d!important;color:#e8e7e1!important}
-      .email-card{background:#182129!important;color:#e8e7e1!important}
-      .email-brand,.email-title{color:#f3f0e8!important}
-      .email-copy{color:#c5c7c2!important}
-      .email-muted{color:#a0aaa9!important}
-      .email-link{color:#e6bd70!important}
-      .email-footer{background:#141c23!important}
-      .email-button{background:#d69b36!important;color:#171b1e!important}
-      .email-rule{border-color:#303b43!important}
+      body,.email-bg{background:#292a27!important;color:#eeeae1!important}
+      .email-card{background:#34342f!important;color:#eeeae1!important}
+      .email-brand,.email-title{color:#f4f0e7!important}
+      .email-copy{color:#d1cbbf!important}
+      .email-muted{color:#c1bbaf!important}
+      .email-link{color:#e0c27e!important}
+      .email-footer{background:#2e2f2b!important}
+      .email-button{background:#c89a45!important;color:#211f19!important}
+      .email-rule{border-color:#555248!important}
     }`}
-    ${email.theme === 'dark' ? 'body,.email-bg{background:#10171d!important;color:#e8e7e1!important}.email-card{background:#182129!important;color:#e8e7e1!important}.email-brand,.email-title{color:#f3f0e8!important}.email-copy{color:#c5c7c2!important}.email-muted{color:#a0aaa9!important}.email-link{color:#e6bd70!important}.email-footer{background:#141c23!important}.email-button{background:#d69b36!important;color:#171b1e!important}.email-rule{border-color:#303b43!important}' : ''}
+    ${email.theme === 'dark' ? 'body,.email-bg{background:#292a27!important;color:#eeeae1!important}.email-card{background:#34342f!important;color:#eeeae1!important}.email-brand,.email-title{color:#f4f0e7!important}.email-copy{color:#d1cbbf!important}.email-muted{color:#c1bbaf!important}.email-link{color:#e0c27e!important}.email-footer{background:#2e2f2b!important}.email-button{background:#c89a45!important;color:#211f19!important}.email-rule{border-color:#555248!important}' : ''}
     @media(max-width:600px){.email-wrapper{padding:18px 12px!important}.email-content{padding:32px 24px!important}.email-title{font-size:27px!important}.email-footer{padding:18px 24px!important}.email-button{display:block!important;text-align:center!important}}
   </style>
 </head>
@@ -207,7 +207,9 @@ export function renderAuthEmail(email: AuthEmail): RenderedEmail {
           <p style="margin:0 0 9px;font-size:12px;line-height:1.7;">
             <a class="email-link" href="${appUrl}/cards" style="color:#815510;text-decoration:none;">${id?'Kartu':'Cards'}</a><span class="email-muted" style="color:#aaa59a;">&nbsp; | &nbsp;</span><a class="email-link" href="${appUrl}/decks" style="color:#815510;text-decoration:none;">Deck</a><span class="email-muted" style="color:#aaa59a;">&nbsp; | &nbsp;</span><a class="email-link" href="${appUrl}/vault" style="color:#815510;text-decoration:none;">${id?'Koleksi':'Vault'}</a><span class="email-muted" style="color:#aaa59a;">&nbsp; | &nbsp;</span><a class="email-link" href="${appUrl}/market" style="color:#815510;text-decoration:none;">Market</a>
           </p>
-          <p class="email-muted" style="margin:0;color:#777267;font-size:11px;line-height:1.6;">${id?'Dikirim ke':'Sent to'} <strong>${safeTo}</strong>. ${id?'Bantuan:':'Help:'} <a class="email-link" href="mailto:${DEFAULT_SUPPORT_EMAIL}" style="color:#815510;text-decoration:none;">${DEFAULT_SUPPORT_EMAIL}</a> <span style="padding:0 5px">|</span> <a class="email-link" href="https://wa.me/6287892660993" style="color:#815510;text-decoration:none;">WhatsApp +62 878-9266-0993</a></p>
+          <p style="margin:0 0 8px;font-size:11px;line-height:1.7;"><a class="email-link" href="${appUrl}${id?'/id':''}/faq" style="color:#815510;text-decoration:none;">FAQ</a><span class="email-muted" style="color:#aaa59a;">&nbsp; | &nbsp;</span><a class="email-link" href="${appUrl}${id?'/id':''}/legal/terms" style="color:#815510;text-decoration:none;">${id?'Ketentuan':'Terms'}</a><span class="email-muted" style="color:#aaa59a;">&nbsp; | &nbsp;</span><a class="email-link" href="${appUrl}${id?'/id':''}/legal/privacy" style="color:#815510;text-decoration:none;">${id?'Privasi':'Privacy'}</a><span class="email-muted" style="color:#aaa59a;">&nbsp; | &nbsp;</span><a class="email-link" href="${appUrl}${id?'/id':''}/legal/refund" style="color:#815510;text-decoration:none;">${id?'Refund':'Refunds'}</a></p>
+          <p style="margin:0 0 8px;font-size:11px;line-height:1.7;"><a class="email-link" href="${appUrl}${id?'/id':''}/faq" style="color:#815510;text-decoration:none;">FAQ</a><span class="email-muted" style="color:#aaa59a;">&nbsp; | &nbsp;</span><a class="email-link" href="${appUrl}${id?'/id':''}/legal/terms" style="color:#815510;text-decoration:none;">${id?'Ketentuan':'Terms'}</a><span class="email-muted" style="color:#aaa59a;">&nbsp; | &nbsp;</span><a class="email-link" href="${appUrl}${id?'/id':''}/legal/privacy" style="color:#815510;text-decoration:none;">${id?'Privasi':'Privacy'}</a><span class="email-muted" style="color:#aaa59a;">&nbsp; | &nbsp;</span><a class="email-link" href="${appUrl}${id?'/id':''}/legal/refund" style="color:#815510;text-decoration:none;">${id?'Refund':'Refunds'}</a></p>
+          <p class="email-muted" style="margin:0;color:#777267;font-size:11px;line-height:1.6;">${id?'Dikirim ke':'Sent to'} <strong>${safeTo}</strong>. ${id?'Bantuan:':'Help:'} <a class="email-link" href="mailto:${DEFAULT_SUPPORT_EMAIL}" style="color:#815510;text-decoration:none;">${DEFAULT_SUPPORT_EMAIL}</a> <span style="padding:0 5px">|</span> <a class="email-link" href="https://wa.me/6287892660993?text=Hi%20VivrePlay%20support%2C%20I%20need%20help%20with%3A%20" style="color:#815510;text-decoration:none;">WhatsApp +62 878-9266-0993</a></p>
         </td></tr>
       </table>
       <p class="email-muted" style="max-width:560px;margin:14px 0 0;color:#827e74;font-size:11px;line-height:1.5;">${id?'VivrePlay | Pendamping One Piece Card Game':'VivrePlay | A companion for the One Piece Card Game'}</p>
@@ -230,7 +232,8 @@ ${content.note}
 ${id?'Kartu | Deck | Koleksi | Market':'Cards | Deck | Vault | Market'}
 ${id?'Dikirim ke':'Sent to'}: ${email.to}
 ${id?'Bantuan':'Support'}: ${DEFAULT_SUPPORT_EMAIL}
-WhatsApp: +62 878-9266-0993
+${id?"FAQ | Ketentuan | Privasi | Refund":"FAQ | Terms | Privacy | Refunds"}: ${appUrl}${id?"/id":""}/faq | ${appUrl}${id?"/id":""}/legal/terms | ${appUrl}${id?"/id":""}/legal/privacy | ${appUrl}${id?"/id":""}/legal/refund
+WhatsApp: https://wa.me/6287892660993?text=Hi%20VivrePlay%20support%2C%20I%20need%20help%20with%3A%20
 `;
 
   return {
