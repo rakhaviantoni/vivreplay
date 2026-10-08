@@ -16,11 +16,24 @@ export async function GET(){
     const [listings,offers,orders]=await Promise.all([
       db().prepare(`SELECT COUNT(DISTINCT o.listing_id) AS count FROM listing_offers o JOIN listings l ON l.id=o.listing_id WHERE l.seller_id=? AND o.actor_id<>? AND o.created_at>?`).bind(profile.id,profile.id,listingSince).first<{count:number}>(),
       db().prepare(`SELECT COUNT(DISTINCT thread_id) AS count FROM (
-        SELECT COALESCE(thread_id,id) AS thread_id FROM listing_offers WHERE actor_id<>? AND created_at>? AND listing_id IN (SELECT id FROM listings WHERE seller_id=? UNION SELECT listing_id FROM listing_offers WHERE actor_id=?)
+        WITH my_listing_ids(id) AS (
+          SELECT id FROM listings WHERE seller_id=?
+          UNION
+          SELECT listing_id FROM listing_offers WHERE actor_id=?
+        ), my_threads(thread_id) AS (
+          SELECT COALESCE(thread_id,id) FROM listing_offers WHERE actor_id=?
+          UNION
+          SELECT COALESCE(o.thread_id,o.id) FROM listing_offers o JOIN my_listing_ids l ON l.id=o.listing_id
+        )
+        SELECT COALESCE(o.thread_id,o.id) AS thread_id FROM listing_offers o JOIN my_listing_ids l ON l.id=o.listing_id WHERE o.actor_id<>? AND o.created_at>?
         UNION ALL
-        SELECT thread_id FROM listing_offer_messages WHERE actor_id<>? AND created_at>? AND thread_id IN (SELECT COALESCE(thread_id,id) FROM listing_offers WHERE actor_id=? UNION SELECT COALESCE(thread_id,id) FROM listing_offers WHERE listing_id IN (SELECT id FROM listings WHERE seller_id=?))
-      )`).bind(profile.id,offerSince,profile.id,profile.id,profile.id,offerSince,profile.id,profile.id).first<{count:number}>(),
-      db().prepare(`SELECT COUNT(*) AS count FROM checkout_orders WHERE (buyer_id=? OR seller_id=?) AND updated_at>? AND status NOT IN ('FAILED','CANCELLED','EXPIRED')`).bind(profile.id,profile.id,orderSince).first<{count:number}>(),
+        SELECT m.thread_id FROM listing_offer_messages m JOIN my_threads t ON t.thread_id=m.thread_id WHERE m.actor_id<>? AND m.created_at>?
+      )`).bind(profile.id,profile.id,profile.id,profile.id,offerSince,profile.id,offerSince).first<{count:number}>(),
+      db().prepare(`SELECT COUNT(*) AS count FROM (
+        SELECT id FROM checkout_orders WHERE buyer_id=? AND updated_at>? AND status NOT IN ('FAILED','CANCELLED','EXPIRED')
+        UNION
+        SELECT id FROM checkout_orders WHERE seller_id=? AND updated_at>? AND status NOT IN ('FAILED','CANCELLED','EXPIRED')
+      )`).bind(profile.id,orderSince,profile.id,orderSince).first<{count:number}>(),
     ]);
     return Response.json({counts:{listings:listings?.count??0,offers:offers?.count??0,orders:orders?.count??0}},{headers:{'Cache-Control':'private, no-store','Vary':'Cookie'}});
   }catch(error){return errorResponse(error)}

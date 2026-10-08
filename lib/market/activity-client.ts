@@ -1,6 +1,6 @@
 export type MarketActivityCounts = {listings:number;offers:number;orders:number};
 
-const CACHE_MS=10_000;
+const CACHE_MS=30_000;
 const cachedByProfile=new Map<string,{counts:MarketActivityCounts;at:number}>();
 const requestsByProfile=new Map<string,Promise<MarketActivityCounts|null>>();
 

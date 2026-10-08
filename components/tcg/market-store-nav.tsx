@@ -69,7 +69,7 @@ export function MarketStoreNav({initialQuery='',sellHref='/market?sell=open',sho
     let active=true;
     const update=async()=>{if(document.visibilityState!=='visible')return;const counts=await loadMarketActivityCounts(data.profile.id);if(active&&counts)setActivityCounts(counts)};
     const onVisibility=()=>{if(document.visibilityState==='visible')void update()};
-    void update();const timer=window.setInterval(()=>void update(),60_000);document.addEventListener('visibilitychange',onVisibility);
+    void update();const timer=window.setInterval(()=>void update(),120_000);document.addEventListener('visibilitychange',onVisibility);
     return()=>{active=false;window.clearInterval(timer);document.removeEventListener('visibilitychange',onVisibility)};
   },[data?.profile?.id]);
   const openAccountPanel=(panel:'listings'|'offers'|'orders'|'saved')=>{setAccountPanel(panel);if(panel==='saved')return;setActivityCounts(current=>({...current,[panel]:0}));void fetch('/api/market/activity',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({section:panel})}).catch(()=>undefined)};
