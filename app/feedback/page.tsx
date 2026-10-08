@@ -1,7 +1,7 @@
 import type {Metadata} from 'next';
 import {FeedbackLaunchButton,FeedbackPageAutoOpen} from '@/components/tcg/feedback-launch';
 
-export const metadata:Metadata={title:'Feedback & reports | VivrePlay',description:'Report a VivrePlay bug, missing card printing, incorrect card data, or rules issue.',robots:{index:false,follow:false}};
+export const metadata:Metadata={title:'Feedback & reports',description:'Report a VivrePlay bug, missing card printing, incorrect card data, or rules issue.',robots:{index:false,follow:false}};
 export default async function FeedbackPage({searchParams}:{searchParams?:Promise<{type?:string;card?:string;printing?:string;listing?:string;from?:string}>}){
   const params=searchParams?await searchParams:{};
   const sourcePath=params.from?.startsWith('/')&&!params.from.startsWith('//')?params.from:undefined;

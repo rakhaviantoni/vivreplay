@@ -148,7 +148,7 @@ export default async function Page({params}: {params: Promise<{username: string}
           <IntroCardRail/>
           <div className="library-intro-actions">
             <ShareButton
-              title={`${p.display_name} (@${p.username}) · Vivreplay`}
+              title={`${p.display_name} (@${p.username}) | VivrePlay`}
               path={`/players/${username}`}
             />
           </div>

@@ -10,7 +10,7 @@ import { ShareButton } from '@/components/tcg/share';
 import { ArrowLeftIcon as ArrowLeft, ShieldCheckIcon as ShieldCheck, CheckCircleIcon as CheckCircle, StorefrontIcon as Store } from '@phosphor-icons/react/dist/ssr';
 
 export const dynamic = 'force-dynamic';
-export const metadata = { title: 'Slab Collection · VivrePlay', robots: { index: false, follow: false } };
+export const metadata = { title: 'Slab Collection', robots: { index: false, follow: false } };
 
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -259,7 +259,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           {/* Share & Actions */}
           <div style={{ display: 'flex', gap: '10px', marginTop: 'auto', flexWrap: 'wrap' }}>
             <ShareButton
-              title={`${c.name} · ${row.provider} ${row.grade}`}
+              title={`${c.name} - ${row.provider} ${row.grade}`}
               path={`/slabs/${id}`}
               privateEntity={row.visibility !== 'public'}
             />
