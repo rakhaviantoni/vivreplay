@@ -22,8 +22,8 @@ const localBindingConfig = {
   workers_dev: true,
   preview_urls: true,
   routes: [
-    { pattern: "vivreplay.com", custom_domain: true },
-    { pattern: "www.vivreplay.com", custom_domain: true },
+    { pattern: "vivreplay.com", zone_name: "vivreplay.com" },
+    { pattern: "www.vivreplay.com", zone_name: "vivreplay.com" },
   ],
   vars: {
     BETTER_AUTH_URL: "https://vivreplay.com",
