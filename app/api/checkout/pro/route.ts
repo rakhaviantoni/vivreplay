@@ -126,8 +126,10 @@ export async function POST(request:Request){
       }
     }
     const finalAmount=introOffer?introPrice!:amount;
-    const details=JSON.stringify({durationDays,customerName:name,customerPhone:phone,introOffer});
-    await database.prepare(`INSERT INTO checkout_orders (id,kind,buyer_id,items,details,subtotal,shipping_fee,amount,currency,status,expires_at) VALUES (?,'PRO',?,'[]',?,?,0,?,'IDR','PENDING_PAYMENT',?)`).bind(orderId,profile.id,details,finalAmount,finalAmount,expiresAt).run();
+    if(!introOffer){
+      const details=JSON.stringify({durationDays,customerName:name,customerPhone:phone,introOffer:false});
+      await database.prepare(`INSERT INTO checkout_orders (id,kind,buyer_id,items,details,subtotal,shipping_fee,amount,currency,status,expires_at) VALUES (?,'PRO',?,'[]',?,?,0,?,'IDR','PENDING_PAYMENT',?)`).bind(orderId,profile.id,details,finalAmount,finalAmount,expiresAt).run();
+    }
     return Response.json({id:orderId,checkoutUrl:`/checkout/order/${orderId}`,introOffer,amount:finalAmount},{status:201});
   }catch(error){return errorResponse(error)}
 }
