@@ -102,7 +102,7 @@ export function messageFor(email: AuthEmail) {
         title: "Kata sandi berhasil diubah",
         copy: `${greeting} kata sandi akun VivrePlay Anda berhasil diubah.`,
         action: "Masuk",
-        note: "Jika Anda tidak mengubah kata sandi ini, segera atur ulang kata sandi atau hubungi support@vivreplay.com.",
+        note: "Jika Anda tidak mengubah kata sandi ini, segera atur ulang kata sandi atau hubungi support@vivreplay.com atau WhatsApp +62 878-9266-0993.",
         showLinkFallback: false,
       }: {
         subject: "Password changed | VivrePlay",
@@ -110,7 +110,7 @@ export function messageFor(email: AuthEmail) {
         title: "Password changed",
         copy: `${greeting} your VivrePlay account password was changed successfully.`,
         action: "Sign in",
-        note: "If you didn't make this change, please reset your password immediately or email support@vivreplay.com.",
+        note: "If you didn't make this change, reset your password immediately or contact support@vivreplay.com or WhatsApp +62 878-9266-0993.",
         showLinkFallback: false,
       };
 
@@ -121,7 +121,7 @@ export function messageFor(email: AuthEmail) {
         title: "Akun Anda siap digunakan",
         copy: `${greeting} email Anda sudah dikonfirmasi dan akun VivrePlay siap digunakan.`,
         action: "Buka VivrePlay",
-        note: "Perlu bantuan? Hubungi kami di support@vivreplay.com.",
+        note: "Perlu bantuan? Hubungi support@vivreplay.com atau WhatsApp +62 878-9266-0993.",
         showLinkFallback: false,
       }: {
         subject: "Welcome to VivrePlay",
@@ -129,7 +129,7 @@ export function messageFor(email: AuthEmail) {
         title: "Welcome to VivrePlay",
         copy: `${greeting} your email has been confirmed and your account is ready.`,
         action: "Open VivrePlay",
-        note: "If you have any questions, you can reach us anytime at support@vivreplay.com.",
+        note: "Questions? Contact support@vivreplay.com or WhatsApp +62 878-9266-0993.",
         showLinkFallback: false,
       };
   }
@@ -207,7 +207,7 @@ export function renderAuthEmail(email: AuthEmail): RenderedEmail {
           <p style="margin:0 0 9px;font-size:12px;line-height:1.7;">
             <a class="email-link" href="${appUrl}/cards" style="color:#815510;text-decoration:none;">${id?'Kartu':'Cards'}</a><span class="email-muted" style="color:#aaa59a;">&nbsp; | &nbsp;</span><a class="email-link" href="${appUrl}/decks" style="color:#815510;text-decoration:none;">Deck</a><span class="email-muted" style="color:#aaa59a;">&nbsp; | &nbsp;</span><a class="email-link" href="${appUrl}/vault" style="color:#815510;text-decoration:none;">${id?'Koleksi':'Vault'}</a><span class="email-muted" style="color:#aaa59a;">&nbsp; | &nbsp;</span><a class="email-link" href="${appUrl}/market" style="color:#815510;text-decoration:none;">Market</a>
           </p>
-          <p class="email-muted" style="margin:0;color:#777267;font-size:11px;line-height:1.6;">${id?'Dikirim ke':'Sent to'} <strong>${safeTo}</strong>. ${id?'Perlu bantuan?':'Need help?'} <a class="email-link" href="mailto:${DEFAULT_SUPPORT_EMAIL}" style="color:#815510;text-decoration:none;">${DEFAULT_SUPPORT_EMAIL}</a></p>
+          <p class="email-muted" style="margin:0;color:#777267;font-size:11px;line-height:1.6;">${id?'Dikirim ke':'Sent to'} <strong>${safeTo}</strong>. ${id?'Bantuan:':'Help:'} <a class="email-link" href="mailto:${DEFAULT_SUPPORT_EMAIL}" style="color:#815510;text-decoration:none;">${DEFAULT_SUPPORT_EMAIL}</a> <span style="padding:0 5px">|</span> <a class="email-link" href="https://wa.me/6287892660993" style="color:#815510;text-decoration:none;">WhatsApp +62 878-9266-0993</a></p>
         </td></tr>
       </table>
       <p class="email-muted" style="max-width:560px;margin:14px 0 0;color:#827e74;font-size:11px;line-height:1.5;">${id?'VivrePlay | Pendamping One Piece Card Game':'VivrePlay | A companion for the One Piece Card Game'}</p>
@@ -230,6 +230,7 @@ ${content.note}
 ${id?'Kartu | Deck | Koleksi | Market':'Cards | Deck | Vault | Market'}
 ${id?'Dikirim ke':'Sent to'}: ${email.to}
 ${id?'Bantuan':'Support'}: ${DEFAULT_SUPPORT_EMAIL}
+WhatsApp: +62 878-9266-0993
 `;
 
   return {
