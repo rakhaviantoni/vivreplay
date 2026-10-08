@@ -116,7 +116,7 @@ export async function POST(request:Request){
           AND NOT EXISTS(SELECT 1 FROM checkout_orders WHERE kind='PRO' AND buyer_id=? AND json_extract(details,'$.introOffer')=1 AND (
             status IN ('PAYMENT_REVIEW','PROCESSING','PAID','COMPLETED') OR
             (status='PENDING_PAYMENT' AND (expires_at IS NULL OR expires_at>CURRENT_TIMESTAMP))
-          ))`).bind(orderId,profile.id,details,introPrice,expiresAt,pricing.introEndsAt,pricing.introLimit,profile.id).run();
+          ))`).bind(orderId,profile.id,details,introPrice,introPrice,expiresAt,pricing.introEndsAt,pricing.introLimit,profile.id).run();
       introOffer=Number(result.meta?.changes??0)>0;
       if(!introOffer){
         const retry=(await database.prepare(`SELECT id FROM checkout_orders WHERE kind='PRO' AND buyer_id=? AND json_extract(details,'$.introOffer')=1
