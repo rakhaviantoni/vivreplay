@@ -50,7 +50,13 @@ export async function GET(){
     const [policy,freePolicy,profile]=await Promise.all([
       getDynamicListingPolicy('pro',database),getDynamicListingPolicy('free',database),optionalUser().catch(()=>null),
     ]);
-    const intro=await introStatus(profile?.id);
+    const [intro,deliveryAverage]=await Promise.all([
+      introStatus(profile?.id),
+      profile?database.prepare(`SELECT ROUND(AVG(shipping_fee)) AS average FROM checkout_orders
+        WHERE kind='MARKET' AND buyer_id=? AND status IN ('PROCESSING','PAID','SHIPPED','COMPLETED')
+          AND subtotal>=? AND shipping_fee>0 AND created_at>=datetime('now','-180 days')`)
+        .bind(profile.id,MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL).first<{average:number|null}>():Promise.resolve(null),
+    ]);
     const canBuyIntro=intro.eligible&&profile?.tier!=='pro';
     const available=hasMarketIpaymuPaymentConfig()&&Boolean(pricing.amount&&pricing.durationDays);
     return Response.json({
@@ -72,6 +78,7 @@ export async function GET(){
       shippingVoucherMinSubtotal:MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL,
       shippingVoucherSharePercent:MARKET_PRO_SHIPPING_VOUCHER_SHARE*100,
       shippingVoucherCap:MARKET_PRO_SHIPPING_VOUCHER_CAP,
+      typicalDeliveryAmount:deliveryAverage?.average===null||deliveryAverage?.average===undefined?null:Math.max(0,Math.round(deliveryAverage.average)),
       canAutoRenew:policy.canAutoRenew,
       freeCanAutoRenew:freePolicy.canAutoRenew,
       currency:'IDR',

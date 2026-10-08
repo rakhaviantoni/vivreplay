@@ -20,7 +20,7 @@ export async function GET(){
         UNION ALL
         SELECT thread_id FROM listing_offer_messages WHERE actor_id<>? AND created_at>? AND thread_id IN (SELECT COALESCE(thread_id,id) FROM listing_offers WHERE actor_id=? UNION SELECT COALESCE(thread_id,id) FROM listing_offers WHERE listing_id IN (SELECT id FROM listings WHERE seller_id=?))
       )`).bind(profile.id,offerSince,profile.id,profile.id,profile.id,offerSince,profile.id,profile.id).first<{count:number}>(),
-      db().prepare(`SELECT COUNT(*) AS count FROM checkout_orders WHERE (buyer_id=? OR seller_id=?) AND updated_at>? AND status NOT IN ('FAILED','CANCELLED','EXPIRED')`).bind(profile.id,profile.id,orderSince).first<{count:number}>(),
+      db().prepare(`SELECT COUNT(*) AS count FROM checkout_orders WHERE kind='MARKET' AND (buyer_id=? OR seller_id=?) AND updated_at>? AND status NOT IN ('FAILED','CANCELLED','EXPIRED')`).bind(profile.id,profile.id,orderSince).first<{count:number}>(),
     ]);
     return Response.json({counts:{listings:listings?.count??0,offers:offers?.count??0,orders:orders?.count??0}},{headers:{'Cache-Control':'private, no-store','Vary':'Cookie'}});
   }catch(error){return errorResponse(error)}

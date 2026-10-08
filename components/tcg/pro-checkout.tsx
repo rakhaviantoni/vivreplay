@@ -7,7 +7,7 @@ import {formatMoney} from '@/packages/domain';
 import {useAccount} from '@/lib/client';
 import {toast} from 'sonner';
 
-type Plan={available:boolean;amount:number|null;standardAmount:number|null;durationDays:number|null;introOffer:boolean;introOfferEndsAt:string|null;introOfferSpotsRemaining:number|null;maxActiveListings:number;freeMaxActiveListings:number;freeDurationDays:number;commissionPercent:number;freeCommissionPercent:number;buyerFeePercent:number;freeBuyerFeePercent:number;shippingVouchersPerMonth:number;shippingVoucherMinSubtotal:number;shippingVoucherSharePercent:number;shippingVoucherCap:number;canAutoRenew:boolean;freeCanAutoRenew:boolean;currency:'IDR'};
+type Plan={available:boolean;amount:number|null;standardAmount:number|null;durationDays:number|null;introOffer:boolean;introOfferEndsAt:string|null;introOfferSpotsRemaining:number|null;maxActiveListings:number;freeMaxActiveListings:number;freeDurationDays:number;commissionPercent:number;freeCommissionPercent:number;buyerFeePercent:number;freeBuyerFeePercent:number;shippingVouchersPerMonth:number;shippingVoucherMinSubtotal:number;shippingVoucherSharePercent:number;shippingVoucherCap:number;typicalDeliveryAmount:number|null;canAutoRenew:boolean;freeCanAutoRenew:boolean;currency:'IDR'};
 type MembershipOrder={id:string;status:string;amount:number;currency:string;createdAt:string;paidAt:string|null};
 
 export function ProCheckout(){
@@ -20,7 +20,7 @@ export function ProCheckout(){
   const [membershipOrders,setMembershipOrders]=useState<MembershipOrder[]>([]);
   const [monthlySales,setMonthlySales]=useState('0');
   const [monthlyPurchases,setMonthlyPurchases]=useState('0');
-  const [averageDelivery,setAverageDelivery]=useState('10000');
+  const [averageDelivery,setAverageDelivery]=useState('');
   const [voucherCount,setVoucherCount]=useState('0');
   const [id,setId]=useState(false);
 
@@ -34,7 +34,7 @@ export function ProCheckout(){
     fetch('/api/checkout/pro',{cache:'no-store'}).then(async response=>{
       if(!response.ok)throw new Error('Market Pro is temporarily unavailable.');
       const result=await response.json() as Plan;
-      if(active)setPlan(result);
+      if(active){setPlan(result);if(result.typicalDeliveryAmount!==null)setAverageDelivery(String(result.typicalDeliveryAmount))}
     }).catch(cause=>{if(active)setError(cause instanceof Error?cause.message:'Market Pro is temporarily unavailable.')}).finally(()=>{if(active)setPlanLoading(false)});
     return()=>{active=false};
   },[accountLoading,account?.profile?.id]);
@@ -89,7 +89,7 @@ export function ProCheckout(){
       <div className="pro-calculator-inputs">
         {moneyInput(monthlySales,setMonthlySales,t('Cards you sell (IDR)','Nilai kartu yang dijual (IDR)'))}
         {moneyInput(monthlyPurchases,setMonthlyPurchases,t('Cards you buy (IDR)','Nilai kartu yang dibeli (IDR)'))}
-        {moneyInput(averageDelivery,setAverageDelivery,t('Average delivery per eligible order','Rata-rata ongkir per pesanan yang memenuhi syarat'))}
+        {moneyInput(averageDelivery,setAverageDelivery,t('Delivery fee per eligible order (IDR)','Ongkir per pesanan yang memenuhi syarat (IDR)'))}
         <label>{t('Vouchers you expect to use','Voucher yang diperkirakan dipakai')}<select value={voucherCount} onChange={event=>setVoucherCount(event.target.value)}>{Array.from({length:(plan?.shippingVouchersPerMonth??2)+1},(_,index)=><option key={index} value={index}>{index}</option>)}</select></label>
       </div>
       <dl className="pro-calculator-results">
@@ -98,7 +98,7 @@ export function ProCheckout(){
         <div><dt>{t('Estimated vouchers','Perkiraan voucher')}</dt><dd>{formatMoney(voucherSavings,'IDR')}</dd></div>
         <div className="pro-calculator-total"><dt>{t('Estimated net benefit','Perkiraan manfaat bersih')}</dt><dd className={estimatedAfterPlan>=0?'is-positive':'is-negative'}>{estimatedAfterPlan>=0?'+':''}{formatMoney(estimatedAfterPlan,'IDR')}</dd></div>
       </dl>
-      <small>{t('Estimate only. Vouchers require a card subtotal of at least IDR 200,000; actual delivery savings depend on the order.','Perkiraan saja. Voucher berlaku untuk subtotal kartu minimal IDR 200.000; hemat ongkir mengikuti biaya pesanan.')}</small>
+      <small>{t('Vouchers require at least IDR 200,000 in cards. Your recent eligible delivery fees are prefilled when available; rates vary by seller and address.','Voucher berlaku untuk subtotal kartu minimal IDR 200.000. Rata-rata ongkir dari pesanan yang memenuhi syarat akan terisi jika tersedia; tarif bergantung pada penjual dan alamat.')}</small>
     </div>
   </details>;
 
