@@ -239,3 +239,21 @@ html[data-theme='dark'] .market-account-menu [data-slot='dropdown-menu-separator
   .market-order-operations>.market-order-shipping-detail,
   .market-order-operations>.market-order-detail-actions{width:100%;max-width:none}
 }
+
+/* Keep payment and delivery compact; put the full order link where delivery is shown. */
+.market-order-operations{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(250px,.75fr);align-items:start;gap:10px 14px}
+.market-order-operations>.market-order-qris{grid-column:1;width:100%;max-width:none;min-height:0;align-self:start;gap:12px;padding:11px 13px}
+.market-order-operations>.market-order-qris .market-order-qris-code{width:112px;height:112px;padding:6px}
+.market-order-operations>.market-order-qris .market-order-qris-copy{flex:1;align-content:center;gap:5px;font-size:12px}
+.market-order-operations>.market-order-qris .market-order-qris-copy strong{font-size:14px}
+.market-order-delivery-card{grid-column:2;display:grid;align-content:start;justify-items:start;gap:11px;min-width:0;padding:11px 13px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.market-order-delivery-card>.market-order-shipping-detail{width:100%;min-height:0;margin:0;padding:0;border:0;background:transparent}
+.market-order-delivery-card>.market-order-shipping-detail summary{width:100%;gap:6px 10px}
+.market-order-delivery-card>.market-order-shipping-detail summary>strong{font-size:12px}
+.market-order-delivery-card>.market-order-shipping-detail[open]>p{margin-top:8px}
+.market-order-delivery-card>.market-order-open-link{min-height:34px;padding:0 10px;border:1px solid var(--line);border-radius:7px;background:var(--surface-raised);color:var(--accent);font-size:11px}
+.market-order-current-tracking{display:flex;align-items:center;gap:6px;margin:0;color:var(--muted);font-size:11px;line-height:1.4}
+.market-order-delivery-card>.market-order-tracking-history{grid-column:auto;margin:0;padding-top:8px;border-top:1px solid var(--line)}
+.market-order-operations>.market-order-detail-actions{grid-column:1/-1;display:flex;align-items:center;justify-content:flex-start;gap:8px 10px;width:100%;max-width:none;margin:0;padding:0;border:0;background:transparent}
+@media(max-width:760px){.market-order-operations{grid-template-columns:minmax(0,1fr)}.market-order-operations>.market-order-qris,.market-order-delivery-card,.market-order-operations>.market-order-detail-actions{grid-column:1}.market-order-delivery-card{width:100%}}
+@media(max-width:620px){.market-order-operations>.market-order-qris{width:100%;padding:10px}.market-order-operations>.market-order-qris .market-order-qris-code{width:88px;height:88px}.market-order-operations>.market-order-detail-actions{align-items:stretch}.market-order-operations>.market-order-detail-actions .button{flex:1 1 145px;min-height:42px}}
