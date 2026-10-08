@@ -199,7 +199,7 @@ export function Shell({children}:{children:React.ReactNode}) {
   const getHref=(href:string)=>language==='ID'?(href==='/'?'/id':`/id${href}`):href;
 
   return <div className={`site-shell${marketCheckout?' market-checkout-shell':''}`}>
-    {marketCheckout?<MarketStoreNav showPromo={false}/>:<header className={`masthead ${scrolled?'is-scrolled':''} ${theme==='dark'?'theme-dark':''}`}>
+    {marketCheckout?<><MarketStoreNav showPromo={false}/>{!data&&<AuthDialog language={language}/>}</>:<header className={`masthead ${scrolled?'is-scrolled':''} ${theme==='dark'?'theme-dark':''}`}>
       <Link className="wordmark" href={getHref('/')}><VivreMark size={28}/><span>VivrePlay</span></Link>
       <PrimaryNav language={language} selected={selected}/>
       <div className="masthead-actions">

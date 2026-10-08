@@ -213,7 +213,6 @@ export function AuthDialog({ language }: { language: 'EN' | 'ID' }) {
         </DialogHeader>
 
         <div className="auth-dialog-body">
-          <TurnstileField onToken={setTurnstileToken} resetKey={turnstileResetKey}/>
           {notice ? (
             <div className="auth-success" role="status">
               <p>{notice}</p>
@@ -305,6 +304,8 @@ export function AuthDialog({ language }: { language: 'EN' | 'ID' }) {
                     {error}
                   </p>
                 )}
+
+                <TurnstileField onToken={setTurnstileToken} resetKey={turnstileResetKey}/>
 
                 <button className="button auth-submit-btn" disabled={busy}>
                   {busy ? copy.working : mode === 'sign-in' ? copy.signIn : copy.signUp}
