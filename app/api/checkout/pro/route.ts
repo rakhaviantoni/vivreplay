@@ -4,6 +4,13 @@ import {hasMarketIpaymuPaymentConfig} from '@/lib/server/ipaymu';
 import {getDynamicListingPolicy,MARKET_BUYER_FEE_PERCENT,MARKET_PRO_BUYER_FEE_PERCENT,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH,MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL,MARKET_PRO_SHIPPING_VOUCHER_SHARE,MARKET_PRO_SHIPPING_VOUCHER_CAP} from '@/lib/market/policy';
 
 const PAID_INTRO_STATUSES="'PROCESSING','PAID','COMPLETED'";
+type PendingProOrder={id:string;amount:number;currency:string;details:string;expiresAt:string|null};
+
+async function pendingProOrder(profileId:string){
+  return db().prepare(`SELECT id,amount,currency,details,expires_at AS expiresAt FROM checkout_orders
+    WHERE kind='PRO' AND buyer_id=? AND status='PENDING_PAYMENT' AND (expires_at IS NULL OR expires_at>CURRENT_TIMESTAMP)
+    ORDER BY created_at DESC LIMIT 1`).bind(profileId).first<PendingProOrder>();
+}
 
 function proPricing(){
   const amount=Number(process.env.VIVREPLAY_PRO_PRICE_IDR);
@@ -50,21 +57,23 @@ export async function GET(){
     const [policy,freePolicy,profile]=await Promise.all([
       getDynamicListingPolicy('pro',database),getDynamicListingPolicy('free',database),optionalUser().catch(()=>null),
     ]);
-    const [intro,deliveryAverage]=await Promise.all([
+    const [intro,deliveryAverage,pending]=await Promise.all([
       introStatus(profile?.id),
       profile?database.prepare(`SELECT ROUND(AVG(shipping_fee)) AS average FROM checkout_orders
         WHERE kind='MARKET' AND buyer_id=? AND status IN ('PROCESSING','PAID','SHIPPED','COMPLETED')
           AND subtotal>=? AND shipping_fee>0 AND created_at>=datetime('now','-180 days')`)
         .bind(profile.id,MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL).first<{average:number|null}>():Promise.resolve(null),
+      profile?pendingProOrder(profile.id):Promise.resolve(null),
     ]);
-    const canBuyIntro=intro.eligible&&profile?.tier!=='pro';
+    let pendingDetails:Record<string,unknown>={};try{pendingDetails=JSON.parse(pending?.details??'{}') as Record<string,unknown>}catch{}
+    const canBuyIntro=!pending&&intro.eligible&&profile?.tier!=='pro';
     const available=hasMarketIpaymuPaymentConfig()&&Boolean(pricing.amount&&pricing.durationDays);
     return Response.json({
       available,
-      amount:canBuyIntro?pricing.introAmount:pricing.amount,
+      amount:pending?.amount??(canBuyIntro?pricing.introAmount:pricing.amount),
       standardAmount:pricing.amount,
       durationDays:pricing.durationDays,
-      introOffer:canBuyIntro,
+      introOffer:pending?pendingDetails.introOffer===true:canBuyIntro,
       introOfferEndsAt:canBuyIntro?pricing.introEndsAt:null,
       introOfferSpotsRemaining:canBuyIntro?intro.spotsRemaining:null,
       maxActiveListings:policy.maxActiveListings,
@@ -81,6 +90,7 @@ export async function GET(){
       typicalDeliveryAmount:deliveryAverage?.average===null||deliveryAverage?.average===undefined?null:Math.max(0,Math.round(deliveryAverage.average)),
       canAutoRenew:policy.canAutoRenew,
       freeCanAutoRenew:freePolicy.canAutoRenew,
+      pendingOrder:pending?{id:pending.id,amount:pending.amount,currency:pending.currency,expiresAt:pending.expiresAt}:null,
       currency:'IDR',
     },{headers:{'Cache-Control':'private, no-store, max-age=0','Vary':'Cookie'}});
   }catch(error){return errorResponse(error)}
@@ -98,11 +108,15 @@ export async function POST(request:Request){
     const durationDays=pricing.durationDays;
     if(!hasMarketIpaymuPaymentConfig()||!amount||!durationDays)throw new HttpError(503,'Market Pro checkout is temporarily unavailable.');
     if(profile.tier==='pro')throw new HttpError(409,'Your account already has an active Pro plan.');
+    const database=db();
+    await database.prepare(`UPDATE checkout_orders SET status='EXPIRED',updated_at=CURRENT_TIMESTAMP
+      WHERE kind='PRO' AND buyer_id=? AND status='PENDING_PAYMENT' AND expires_at IS NOT NULL AND expires_at<=CURRENT_TIMESTAMP`).bind(profile.id).run();
+    const pending=await pendingProOrder(profile.id);
+    if(pending)return Response.json({id:pending.id,checkoutUrl:`/checkout/order/${encodeURIComponent(pending.id)}`,amount:pending.amount,introOffer:(()=>{try{return (JSON.parse(pending.details) as {introOffer?:boolean}).introOffer===true}catch{return false}})()},{status:200});
     const name=String(profile.display_name||account.name||account.email.split('@')[0]||'VivrePlay member').trim();
     const phone=String(profile.phone??'').replace(/[\s().-]/g,'');
     if(!/^\+?[0-9]{8,16}$/.test(phone))throw new HttpError(400,'Add a valid phone number to your profile before continuing.');
 
-    const database=db();
     const intro=await introStatus(profile.id);
     if(intro.pendingOrderId)return Response.json({id:intro.pendingOrderId,checkoutUrl:`/checkout/order/${encodeURIComponent(intro.pendingOrderId)}`,introOffer:true},{status:200});
     if(body.introOffer===true&&!intro.eligible)throw new HttpError(409,'The launch offer is no longer available. Refresh the page to see the current price.');
@@ -123,18 +137,27 @@ export async function POST(request:Request){
           AND NOT EXISTS(SELECT 1 FROM checkout_orders WHERE kind='PRO' AND buyer_id=? AND json_extract(details,'$.introOffer')=1 AND (
             status IN ('PAYMENT_REVIEW','PROCESSING','PAID','COMPLETED') OR
             (status='PENDING_PAYMENT' AND (expires_at IS NULL OR expires_at>CURRENT_TIMESTAMP))
-          ))`).bind(orderId,profile.id,details,introPrice,expiresAt,pricing.introEndsAt,pricing.introLimit,profile.id).run();
+          ))
+          AND NOT EXISTS(SELECT 1 FROM checkout_orders WHERE kind='PRO' AND buyer_id=? AND status='PENDING_PAYMENT' AND (expires_at IS NULL OR expires_at>CURRENT_TIMESTAMP))`)
+        .bind(orderId,profile.id,details,introPrice,expiresAt,pricing.introEndsAt,pricing.introLimit,profile.id,profile.id).run();
       introOffer=Number(result.meta?.changes??0)>0;
       if(!introOffer){
-        const retry=(await database.prepare(`SELECT id FROM checkout_orders WHERE kind='PRO' AND buyer_id=? AND json_extract(details,'$.introOffer')=1
-          AND status='PENDING_PAYMENT' AND (expires_at IS NULL OR expires_at>CURRENT_TIMESTAMP) ORDER BY created_at DESC LIMIT 1`).bind(profile.id).first<{id:string}>())?.id;
-        if(retry)return Response.json({id:retry,checkoutUrl:`/checkout/order/${encodeURIComponent(retry)}`,introOffer:true},{status:200});
+        const retry=await pendingProOrder(profile.id);
+        if(retry)return Response.json({id:retry.id,checkoutUrl:`/checkout/order/${encodeURIComponent(retry.id)}`,amount:retry.amount,introOffer:(()=>{try{return (JSON.parse(retry.details) as {introOffer?:boolean}).introOffer===true}catch{return false}})()},{status:200});
         if(body.introOffer===true)throw new HttpError(409,'The launch offer just ran out. Refresh the page to see the current price.');
       }
     }
     const finalAmount=introOffer?introPrice!:amount;
     const details=JSON.stringify({durationDays,customerName:name,customerPhone:phone,introOffer});
-    await database.prepare(`INSERT INTO checkout_orders (id,kind,buyer_id,items,details,subtotal,shipping_fee,amount,currency,status,expires_at) VALUES (?,'PRO',?,'[]',?,?,0,?,'IDR','PENDING_PAYMENT',?)`).bind(orderId,profile.id,details,finalAmount,finalAmount,expiresAt).run();
+    const created=await database.prepare(`INSERT INTO checkout_orders (id,kind,buyer_id,items,details,subtotal,shipping_fee,amount,currency,status,expires_at)
+      SELECT ?,'PRO',?,'[]',?,?,0,?,'IDR','PENDING_PAYMENT',?
+      WHERE NOT EXISTS(SELECT 1 FROM checkout_orders WHERE kind='PRO' AND buyer_id=? AND status='PENDING_PAYMENT' AND (expires_at IS NULL OR expires_at>CURRENT_TIMESTAMP))`)
+      .bind(orderId,profile.id,details,finalAmount,finalAmount,expiresAt,profile.id).run();
+    if(!created.meta.changes){
+      const retry=await pendingProOrder(profile.id);
+      if(retry)return Response.json({id:retry.id,checkoutUrl:`/checkout/order/${encodeURIComponent(retry.id)}`,amount:retry.amount,introOffer:(()=>{try{return (JSON.parse(retry.details) as {introOffer?:boolean}).introOffer===true}catch{return false}})()},{status:200});
+      throw new HttpError(409,'A Market Pro checkout is already being created. Refresh and continue that payment.');
+    }
     return Response.json({id:orderId,checkoutUrl:`/checkout/order/${orderId}`,introOffer,amount:finalAmount},{status:201});
   }catch(error){return errorResponse(error)}
 }
