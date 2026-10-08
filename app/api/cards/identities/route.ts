@@ -106,10 +106,15 @@ async function fromSupabase(filters:SearchFilters){
 export async function GET(request:Request){
   const raw=new URL(request.url).searchParams.get('q')?.trim()??'';
   if(raw.length<2)return Response.json({cards:[]});
+  const edgeCache=(globalThis as typeof globalThis&{caches?:{default?:Cache}}).caches?.default;
+  const cacheKey=new Request(request.url,{method:'GET'});
+  if(edgeCache){try{const cached=await edgeCache.match(cacheKey);if(cached)return cached}catch{}}
   const filters=parseSearch(raw);
   if(!filters.tokens.length&&!filters.cardType&&filters.cost===null&&filters.power===null&&!filters.colors.length&&!filters.rarity&&!filters.parallel&&!filters.setCode)return Response.json({cards:[]});
   let cards:IdentityRow[];
   try{cards=await fromD1(filters)}catch{try{cards=await fromSupabase(filters)}catch{return Response.json({error:'Card catalog is temporarily unavailable.'},{status:503})}}
   cards=cards.filter(card=>isPlayableSet(card.set_code??'')||PREVIEW_CARD_CODES.has(card.code.toUpperCase()));
-  return Response.json({cards:cards.map(card=>({...card,imageUrl:card.imageUrl?.startsWith('http')||card.imageUrl?.startsWith('/')?card.imageUrl:card.imageUrl?`/${card.imageUrl.replace(/^\/+/, '').replace(/^one-piece\/([^/]+)\//,(_,setCode:string)=>`${setCode.replaceAll('-','')}/`)}`:undefined}))},{headers:{'Cache-Control':'public, max-age=300, stale-while-revalidate=86400','Cloudflare-CDN-Cache-Control':'public, max-age=31536000, immutable'}});
+  const response=Response.json({cards:cards.map(card=>({...card,imageUrl:card.imageUrl?.startsWith('http')||card.imageUrl?.startsWith('/')?card.imageUrl:card.imageUrl?`/${card.imageUrl.replace(/^\/+/, '').replace(/^one-piece\/([^/]+)\//,(_,setCode:string)=>`${setCode.replaceAll('-','')}/`)}`:undefined}))},{headers:{'Cache-Control':'public, max-age=300, s-maxage=31536000, stale-while-revalidate=86400','Cloudflare-CDN-Cache-Control':'public, max-age=31536000, immutable'}});
+  if(edgeCache&&response.ok){try{await edgeCache.put(cacheKey,response.clone())}catch{}}
+  return response;
 }
