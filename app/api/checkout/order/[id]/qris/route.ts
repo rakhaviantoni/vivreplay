@@ -14,7 +14,7 @@ export async function GET(request:Request,{params}:{params:Promise<{id:string}>}
     const paymentExpiry=details.ipaymuPaymentMethod==='qris'?ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt,details.ipaymuPaymentCreatedAt,order.updatedAt):null;
     if(details.ipaymuPaymentMethod!=='qris'||typeof source!=='string'||paymentExpiry===null||paymentExpiry<=Date.now())throw new HttpError(404,'This payment code has expired.');
     const target=ipaymuQrImageUrl(source,details.ipaymuMode);
-    if(!target)throw new HttpError(502,'The payment provider returned an invalid QR code address.');
+    if(!target)throw new HttpError(502,'Could not load the payment code. Please try again.');
     const refreshBucket=String(Math.floor(Date.now()/(5*60*1000)));
     const refreshedTarget=new URL(target);
     refreshedTarget.searchParams.set('refresh',refreshBucket);

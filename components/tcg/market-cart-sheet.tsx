@@ -4,7 +4,7 @@ import {useCallback,useEffect,useMemo,useState} from 'react';
 import {useRouter} from 'next/navigation';
 import {ArrowRightIcon as ArrowRight,ShoppingCartIcon as Cart,TrashIcon as Trash} from '@phosphor-icons/react';
 import {formatMoney} from '@/packages/domain';
-import {Sheet,SheetContent,SheetDescription,SheetHeader,SheetTitle} from '@/components/ui/sheet';
+import {Sheet,SheetContent,SheetHeader,SheetTitle} from '@/components/ui/sheet';
 
 type CartStored={sellerId:string;lines:{listingId:string;listingTitle?:string;items:{printingId:string;quantity:number}[]}[]};
 type CartPreview={id:string;title:string;seller:string;currency:string;items:{printingId:string;name:string;code:string;quantity:number;unitAmount:number;condition:string}[];subtotal:number};
@@ -73,9 +73,9 @@ export function MarketCartSheet({locale='EN'}:{locale:'EN'|'ID'}){
   return <Sheet open={open} onOpenChange={changeOpen}>
     <button type="button" className="market-store-link market-cart-link" aria-label={isId?`Keranjang, ${cardCount} kartu`:`Cart, ${cardCount} cards`} aria-expanded={open} onClick={()=>changeOpen(true)}><Cart size={17}/><span>{isId?'Keranjang':'Cart'}</span>{cardCount>0&&<b>{cardCount}</b>}</button>
     <SheetContent side="right" showCloseButton className="market-cart-sheet-content" style={{position:'fixed',inset:'0 0 0 auto',width:'min(440px, 100vw)',height:'100dvh',maxWidth:'none',maxHeight:'100dvh',boxSizing:'border-box',padding:0,gap:0,borderRadius:'16px 0 0 16px',overflow:'hidden'}}>
-      <SheetHeader className="market-cart-sheet-header"><SheetTitle>{isId?'Keranjang':'Your cart'}</SheetTitle><SheetDescription>{isId?'Listing dari satu penjual':'Listings from one seller'}</SheetDescription></SheetHeader>
+      <SheetHeader className="market-cart-sheet-header"><SheetTitle>{isId?'Keranjang':'Your cart'}</SheetTitle></SheetHeader>
       <div className="market-cart-sheet-body">
-        {loading?<div className="market-cart-sheet-loading" role="status">{isId?'Memuat keranjang…':'Loading cart…'}</div>:error?<div className="market-cart-sheet-empty"><Cart size={24}/><p>{error}</p><button type="button" className="button secondary" onClick={()=>void sync()}>{isId?'Coba lagi':'Try again'}</button></div>:!cart.lines.length?<div className="market-cart-sheet-empty"><Cart size={24}/><strong>{isId?'Keranjang masih kosong':'Your cart is empty'}</strong><p>{isId?'Tambahkan kartu dari listing untuk checkout bersama.':'Add cards from listings to check out together.'}</p></div>:<>
+        {loading?<div className="market-cart-sheet-loading" role="status">{isId?'Memuat keranjang…':'Loading cart…'}</div>:error?<div className="market-cart-sheet-empty"><Cart size={24}/><p>{error}</p><button type="button" className="button secondary" onClick={()=>void sync()}>{isId?'Coba lagi':'Try again'}</button></div>:!cart.lines.length?<div className="market-cart-sheet-empty"><Cart size={24}/><strong>{isId?'Keranjang masih kosong':'Your cart is empty'}</strong><p>{isId?'Lihat listing untuk menambahkan kartu.':'Browse listings to add cards.'}</p></div>:<>
           {(unavailableIds.length>0||unavailableSelection||mixedCurrencies)&&<div className="market-cart-sheet-notice" role="status">{mixedCurrencies?(isId?'Pilih listing dengan mata uang yang sama.':'Cart listings must use the same currency.'):isId?'Beberapa kartu atau listing sudah tidak tersedia. Hapus sebelum checkout.':'Some cards or listings are no longer available. Remove them to continue.'}</div>}
           {cart.lines.map(line=>{
             const listing=listings.find(item=>item.id===line.listingId);

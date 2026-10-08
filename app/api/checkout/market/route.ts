@@ -27,7 +27,7 @@ export async function POST(request:Request){
   try{
     guard(request);
     if(process.env.VIVREPLAY_MARKET_CHECKOUT_ENABLED!=='true'||process.env.VIVREPLAY_MARKET_SELLER_OPERATIONS_READY!=='true')throw new HttpError(503,'Market checkout is not available yet.');
-    if(!hasMarketIpaymuPaymentConfig())throw new HttpError(503,'Market payments require an iPaymu sandbox account or explicit live-payment enablement.');
+    if(!hasMarketIpaymuPaymentConfig())throw new HttpError(503,'Payments are temporarily unavailable. Please try again later.');
     const profile=await user();
     const account=await getCurrentUser();
     if(!account?.email)throw new HttpError(401,'Sign in with an email address to continue.');
