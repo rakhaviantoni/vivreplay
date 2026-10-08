@@ -55,7 +55,7 @@ async function fromD1(filters:SearchFilters){
   if(filters.power!==null){conditions.push('i.power=?');values.push(filters.power)}
   for(const color of filters.colors){conditions.push('UPPER(i.color) LIKE ?');values.push(`%${color}%`)}
   if(filters.rarity){conditions.push('EXISTS(SELECT 1 FROM tcg_card_printings rp WHERE rp.identity_id=i.id AND UPPER(rp.rarity) LIKE ?)');values.push(`%${filters.rarity}%`)}
-  if(filters.parallel){conditions.push("EXISTS(SELECT 1 FROM tcg_card_printings pp WHERE pp.identity_id=i.id AND LOWER(pp.variant) LIKE '%parallel%')")}
+  if(filters.parallel){conditions.push("EXISTS(SELECT 1 FROM tcg_card_printings pp WHERE pp.identity_id=i.id AND (LOWER(pp.variant) LIKE '%parallel%' OR LOWER(pp.variant) LIKE '%alt art%'))")}
   if(!conditions.length)return[];
   const result=await database().prepare(`
     SELECT i.id,i.code,i.name,i.color,i.card_type,i.cost,i.power,i.effect_text,
@@ -88,7 +88,7 @@ async function fromSupabase(filters:SearchFilters){
   if(filters.cardType||filters.cost!==null||filters.power!==null||filters.colors.length){
     const {data,error}=await structured.limit(2000);if(error)throw error;intersect(new Set((data??[]).map(row=>(row as {id:string}).id)));
   }
-  if(filters.rarity||filters.parallel){let query=client.from('tcg_card_printings').select('identity_id');if(filters.rarity)query=query.ilike('rarity',`%${filters.rarity}%`);if(filters.parallel)query=query.ilike('variant','%parallel%');const {data,error}=await query.limit(2000);if(error)throw error;intersect(new Set((data??[]).map(row=>(row as {identity_id:string}).identity_id)))}
+  if(filters.rarity||filters.parallel){let query=client.from('tcg_card_printings').select('identity_id');if(filters.rarity)query=query.ilike('rarity',`%${filters.rarity}%`);if(filters.parallel)query=query.or('variant.ilike.%parallel%,variant.ilike.%alt art%');const {data,error}=await query.limit(2000);if(error)throw error;intersect(new Set((data??[]).map(row=>(row as {identity_id:string}).identity_id)))}
   const ids=[...(matchedIds??[])].slice(0,250);if(!ids.length)return[];
   const {data,error}=await client.from('tcg_card_identities').select('id,code,name,color,card_type,cost,power,effect_text,tcg_card_printings(language,rarity,set_code,card_image_url,tcg_card_assets(kind,object_key))').in('id',ids).limit(250);
   if(error)throw error;
