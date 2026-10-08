@@ -35,7 +35,6 @@ export function MarketCheckout(){
   const [selectedRate,setSelectedRate]=useState('');
   const [loading,setLoading]=useState(true);
   const [checkoutAvailable,setCheckoutAvailable]=useState(false);
-  const [sandboxPayment,setSandboxPayment]=useState(false);
   const [buyerTier,setBuyerTier]=useState<'free'|'pro'>('free');
   const [shippingVouchersRemaining,setShippingVouchersRemaining]=useState(0);
   const [quoting,setQuoting]=useState(false);
@@ -67,14 +66,13 @@ export function MarketCheckout(){
     Promise.all([
       api<{listings:Listing[]}>('/api/listings'),
       api<{origin:Origin|null}>('/api/shipping/origin',undefined,'GET'),
-      api<{available:boolean;sandbox?:boolean;buyerTier?:'free'|'pro';shippingVouchersRemaining?:number}>('/api/checkout/market',undefined,'GET'),
+      api<{available:boolean;buyerTier?:'free'|'pro';shippingVouchersRemaining?:number}>('/api/checkout/market',undefined,'GET'),
     ]).then(([market,shipping,checkout])=>{
       if(!active)return;
       const selectedListings=cartMode?cartLines.map(line=>market.listings.find(row=>row.id===line.listingId)).filter((row):row is Listing=>Boolean(row)):[market.listings.find(row=>row.id===listingId)].filter((row):row is Listing=>Boolean(row));
       if(cartMode&&selectedListings.length!==cartLines.length)throw new Error(t('A listing in your cart is no longer available. Remove it and try again.','Salah satu listing di keranjang sudah tidak tersedia. Hapus listing tersebut lalu coba lagi.'));setCartListings(selectedListings);setListing(selectedListings[0]);
       setOrigin(shipping.origin??undefined);
       setCheckoutAvailable(checkout.available);
-      setSandboxPayment(checkout.sandbox===true);
       setBuyerTier(checkout.buyerTier==='pro'?'pro':'free');
       setShippingVouchersRemaining(checkout.shippingVouchersRemaining??0);
     }).catch(cause=>{if(active)setDetailsError(cause instanceof Error?cause.message:'Checkout details could not load.')}).finally(()=>{if(active)setLoading(false)});
@@ -162,7 +160,7 @@ export function MarketCheckout(){
 
   return <main className="page vivre-checkout-page">
     <Link href={cartMode?'/market':`/market/${encodeURIComponent(listingId)}`} className="back-link"><ArrowLeft size={16}/>{cartMode?t('Back to Market','Kembali ke Market'):t('Back to listing','Kembali ke listing')}</Link>
-    <header className="checkout-page-heading"><div><h1>{t('Review your order','Periksa pesanan')}</h1><p>{t('Check the cards, delivery address, and total before paying.','Periksa kartu, alamat pengiriman, dan total sebelum membayar.')}</p></div><span className="checkout-secure"><ShieldCheck size={15}/>{sandboxPayment?t('Sandbox test','Uji coba sandbox'):t('Secure payment','Pembayaran aman')}</span></header>
+    <header className="checkout-page-heading"><div><h1>{t('Review your order','Periksa pesanan')}</h1><p>{t('Check the cards, delivery address, and total before paying.','Periksa kartu, alamat pengiriman, dan total sebelum membayar.')}</p></div><span className="checkout-secure"><ShieldCheck size={15}/>{t('Secure payment','Pembayaran aman')}</span></header>
     <div className="checkout-layout">
       <section className="checkout-panel checkout-order-summary"><h2>{cartMode?t(`${cartLines.length} listings from ${listing.seller}`,`${cartLines.length} listing dari ${listing.seller}`):listing.title}</h2><p className="checkout-seller"><strong>{listing.seller}</strong><span>{listing.city}</span></p>
         <div className="checkout-items">{selectedCards.map(item=><div className="checkout-item-row" key={`${item.listingId}-${item.printingId}`}><div className="checkout-item-art">{item.card?<CardArt card={item.card}/>:<span>{item.printingId}</span>}</div><div className="checkout-item-copy"><strong>{item.card?.name||item.listingTitle||listing.title}</strong>{cartMode&&<small className="checkout-source-listing">{item.listingTitle}</small>}<small><span>{item.card?.code||item.card?.printingCode||item.printingId}</span>{item.card?.language&&<span>{item.card.language}</span>}{item.card?.variant&&<span>{item.card.variant}</span>}{item.card?.setCode&&<span>{item.card.setCode}</span>}<span>{item.condition}</span></small>{cartMode&&<div className="checkout-cart-quantity"><button type="button" aria-label={t('Remove one','Kurangi satu')} onClick={()=>updateCartQuantity(item.listingId!,item.printingId,item.quantity-1)}>−</button><span>{item.quantity}</span><button type="button" aria-label={t('Add one','Tambah satu')} onClick={()=>updateCartQuantity(item.listingId!,item.printingId,item.quantity+1)}>+</button><button type="button" className="checkout-cart-remove" onClick={()=>updateCartQuantity(item.listingId!,item.printingId,0)}>{t('Remove','Hapus')}</button></div>}</div><b>{formatMoney(item.unitAmount*item.quantity,listing.currency)}</b></div>)}</div>

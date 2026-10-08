@@ -34,7 +34,7 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     const existingQrImage=typeof details.ipaymuPaymentQrImage==='string'?details.ipaymuPaymentQrImage:null;
     const existingQrUrl=ipaymuQrImageUrl(existingQrImage,details.ipaymuMode);
     if(order.paymentId&&existingQrImage&&details.ipaymuPaymentMethod==='qris'&&existingPaymentExpiry!==null&&existingPaymentExpiry>Date.now()){
-      if(!existingQrUrl)throw new HttpError(502,'The payment provider returned an invalid QR code address.');
+      if(!existingQrUrl)throw new HttpError(502,'The QR code could not be loaded. Please try again.');
       return Response.json({paymentMethod:'qris',qrImage:`/api/checkout/order/${encodeURIComponent(order.id)}/qris`,qrString:details.ipaymuPaymentQrString??null,paymentFee:details.ipaymuPaymentFee??null,expiresAt:new Date(existingPaymentExpiry).toISOString(),reused:true});
     }
     if(order.paymentId&&existingUrl&&details.ipaymuPaymentMethod!=='qris')return Response.json({checkoutUrl:existingUrl,paymentMethod:details.ipaymuPaymentMethod??'hosted',expiresAt:null,reused:true});
@@ -94,7 +94,7 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     details.ipaymuPaymentExpiresAt=payment.expiresAt;
     details.ipaymuMode=process.env.IPAYMU_MODE==='sandbox'?'sandbox':'production';
     const paymentId=payment.sessionId;
-    if(!paymentId){await database.prepare("UPDATE checkout_orders SET payment_id=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id=?").bind(id,paymentClaim).run();throw new HttpError(502,'The payment provider returned an incomplete payment session.');}
+    if(!paymentId){await database.prepare("UPDATE checkout_orders SET payment_id=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id=?").bind(id,paymentClaim).run();throw new HttpError(502,'Payment could not be started. Please try again.');}
     const paymentExpirySql=payment.expiresAt?new Date(payment.expiresAt).toISOString().slice(0,19).replace('T',' '):order.expiresAt;
     const updated=await database.prepare("UPDATE checkout_orders SET payment_id=?,details=?,expires_at=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id IS ?").bind(paymentId,JSON.stringify(details),paymentExpirySql,id,paymentClaim).run();
     if(!updated.meta.changes){
@@ -102,7 +102,7 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
       let latestDetails:Record<string,unknown>={};try{latestDetails=JSON.parse(latest?.details??'{}') as Record<string,unknown>}catch{}
       if(latest?.paymentId&&typeof latestDetails.ipaymuPaymentQrImage==='string'){
         const latestQrUrl=ipaymuQrImageUrl(latestDetails.ipaymuPaymentQrImage,latestDetails.ipaymuMode);
-        if(!latestQrUrl)throw new HttpError(502,'The payment provider returned an invalid QR code address.');
+        if(!latestQrUrl)throw new HttpError(502,'The QR code could not be loaded. Please try again.');
         return Response.json({paymentMethod:'qris',qrImage:`/api/checkout/order/${encodeURIComponent(order.id)}/qris`,qrString:latestDetails.ipaymuPaymentQrString??null,paymentFee:latestDetails.ipaymuPaymentFee??null,expiresAt:latestDetails.ipaymuPaymentExpiresAt??null,reused:true});
       }
       if(latest?.paymentId&&typeof latestDetails.ipaymuCheckoutUrl==='string')return Response.json({checkoutUrl:latestDetails.ipaymuCheckoutUrl,paymentMethod:latestDetails.ipaymuPaymentMethod??'hosted',expiresAt:latestDetails.ipaymuPaymentExpiresAt??null,reused:true});

@@ -579,7 +579,7 @@ export function MarketListingDetailView({
   renewDurationDays = 7,
 }: {
   listing: Listing;
-  stored?: (Listing & { username: string }) | null;
+  stored?: (Listing & { username: string;sellerTier?:string }) | null;
   listingCards: MarketListingCard[];
   primary: MarketListingCard;
   cardCount: number;
@@ -705,7 +705,7 @@ export function MarketListingDetailView({
               <span>{listing.seller.slice(0, 1).toUpperCase()}</span>
               <div className="market-listing-seller-copy">
                 <small>{isBuying ? t('Buyer', 'Pembeli') : t('Seller', 'Penjual')}</small>
-                <div className="market-listing-seller-name"><strong>{stored ? <Link href={`/players/${stored.username}`}>{listing.seller}</Link> : listing.seller}</strong><MarketReputation listingId={listing.id} language={language} role={isBuying?'buyer':'seller'}/></div>
+                <div className="market-listing-seller-name"><strong>{stored ? <Link href={`/players/${stored.username}`}>{listing.seller}</Link> : listing.seller}</strong>{stored?.sellerTier==='pro'&&<span className="market-pro-badge">Pro</span>}<MarketReputation listingId={listing.id} language={language} role={isBuying?'buyer':'seller'}/></div>
               </div>
             </section>
             {!isOwner&&<div className="market-listing-utility-actions"><FeedbackLaunchButton request={{initialCategory:'market-report',listingId:listing.id}} className="market-report-link">{t('Report listing','Laporkan listing')}</FeedbackLaunchButton><SaveListingButton listingId={listing.id} language={language} iconOnly/></div>}

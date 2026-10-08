@@ -180,6 +180,7 @@ export async function market(viewerId?:string){
       l.items AS itemsJson,
       o.label AS shippingOriginLabel,
       p.display_name AS seller,
+      p.tier AS sellerTier,
       l.seller_id AS sellerId,
       cp.image_url AS cardImageUrl,
       cp.language AS cardLanguage,
@@ -216,6 +217,7 @@ export async function market(viewerId?:string){
     createdAt:string;
     expiresAt?:string;
     seller:string;
+    sellerTier:string;
     sellerId:string;
     cardImageUrl?:string;
     cardLanguage?:string;
@@ -295,6 +297,7 @@ export async function market(viewerId?:string){
       createdAt: r.createdAt,
       expiresAt: r.expiresAt,
       seller: r.seller,
+      sellerTier:r.sellerTier,
       isOwner: Boolean(viewerId&&r.sellerId===viewerId),
       language: r.cardLanguage ?? 'EN',
       card,

@@ -19,7 +19,7 @@ export async function GET(){
     const buyer=await db().prepare('SELECT tier FROM profiles WHERE id=?').bind(profile.id).first<{tier:string}>();
     const voucherMonth=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jakarta',year:'numeric',month:'2-digit'}).format(new Date());
     const voucherUsage=buyer?.tier==='pro'?await db().prepare(`SELECT COUNT(*) AS total FROM checkout_orders WHERE buyer_id=? AND kind='MARKET' AND status IN ('PENDING_PAYMENT','PROCESSING','PAID','SHIPPED','RECEIVED','COMPLETED') AND json_extract(details,'$.marketProShippingVoucherMonth')=?`).bind(profile.id,voucherMonth).first<{total:number}>():null;
-    return Response.json({available,sandbox:process.env.IPAYMU_MODE==='sandbox',buyerTier:buyer?.tier==='pro'?'pro':'free',buyerFeePercent:buyer?.tier==='pro'?MARKET_PRO_BUYER_FEE_PERCENT:MARKET_BUYER_FEE_PERCENT,shippingVouchersRemaining:Math.max(0,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH-(voucherUsage?.total??0))});
+    return Response.json({available,buyerTier:buyer?.tier==='pro'?'pro':'free',buyerFeePercent:buyer?.tier==='pro'?MARKET_PRO_BUYER_FEE_PERCENT:MARKET_BUYER_FEE_PERCENT,shippingVouchersRemaining:Math.max(0,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH-(voucherUsage?.total??0))});
   }catch(error){return errorResponse(error)}
 }
 
@@ -27,7 +27,7 @@ export async function POST(request:Request){
   try{
     guard(request);
     if(process.env.VIVREPLAY_MARKET_CHECKOUT_ENABLED!=='true'||process.env.VIVREPLAY_MARKET_SELLER_OPERATIONS_READY!=='true')throw new HttpError(503,'Market checkout is not available yet.');
-    if(!hasMarketIpaymuPaymentConfig())throw new HttpError(503,'Market payments require an iPaymu sandbox account or explicit live-payment enablement.');
+    if(!hasMarketIpaymuPaymentConfig())throw new HttpError(503,'Market checkout is temporarily unavailable. Please try again later.');
     const profile=await user();
     const account=await getCurrentUser();
     if(!account?.email)throw new HttpError(401,'Sign in with an email address to continue.');

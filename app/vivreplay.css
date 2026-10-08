@@ -3563,3 +3563,17 @@ html[data-theme='dark'] .market-listing-status.is-buying{color:#e6b65e!important
 .checkout-cart-quantity button{min-width:44px;height:44px}
 .checkout-error-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
 @media(max-width:600px){.checkout-error-actions{flex-direction:column}.checkout-error-actions .button{width:100%;justify-content:center}}
+
+/* Checkout outcomes share one compact, left-aligned structure across roles. */
+.checkout-result:not(.checkout-closed-state):not(.checkout-waiting-state){display:grid;grid-template-columns:minmax(0,1fr);gap:18px;max-width:760px;margin:32px auto;text-align:left}
+.checkout-result-heading{display:grid;grid-template-columns:40px minmax(0,1fr);align-items:start;gap:14px}
+.checkout-result-heading>span{display:grid;width:40px;height:40px;place-items:center;border:1px solid color-mix(in srgb,var(--accent,#b78327) 42%,var(--line));border-radius:50%;color:var(--accent,#b78327)}
+.checkout-result-heading h2{margin:1px 0 5px;text-align:left;font-size:clamp(20px,2.5vw,25px);line-height:1.2}
+.checkout-result-heading p{max-width:58ch;margin:0;text-align:left;font-size:14px;line-height:1.5}
+.checkout-result:not(.checkout-closed-state):not(.checkout-waiting-state)>.button{justify-self:start;min-height:46px;margin:0;padding-inline:20px}
+.checkout-result:not(.checkout-closed-state):not(.checkout-waiting-state) .checkout-order-breakdown{width:100%;padding-top:16px;border-top:1px solid var(--line,#dfd1b8)}
+.checkout-result:not(.checkout-closed-state):not(.checkout-waiting-state) .market-push-prompt{margin:0}
+.market-pro-badge{display:inline-flex;align-items:center;flex:none;padding:2px 6px;border:1px solid color-mix(in srgb,var(--accent,#b78327) 42%,var(--line,#dfd1b8));border-radius:5px;background:color-mix(in srgb,var(--accent,#b78327) 8%,var(--surface-raised,#fffaf0));color:var(--accent-dark,#885b12);font-size:9px;font-weight:800;letter-spacing:.04em;line-height:1.25;vertical-align:middle}
+.market-feed-seller{display:inline-flex;align-items:center;flex-wrap:wrap;gap:5px}
+.market-account-menu-name{display:flex;align-items:center;gap:8px;min-width:0}
+@media(max-width:600px){.checkout-result:not(.checkout-closed-state):not(.checkout-waiting-state){gap:14px;margin:16px auto;padding:18px;text-align:left}.checkout-result-heading{grid-template-columns:36px minmax(0,1fr);gap:11px}.checkout-result-heading>span{width:36px;height:36px}.checkout-result-heading>span svg{width:20px;height:20px}.checkout-result-heading h2{font-size:20px}.checkout-result-heading p{font-size:13px}.checkout-result:not(.checkout-closed-state):not(.checkout-waiting-state)>.button{width:100%;justify-content:center}.checkout-result:not(.checkout-closed-state):not(.checkout-waiting-state) .checkout-order-breakdown{padding-top:13px}}

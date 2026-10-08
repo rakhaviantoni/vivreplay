@@ -77,10 +77,10 @@ export async function createIpaymuRedirect(input:{orderId:string;products:Ipaymu
   const payload=await response.json().catch(()=>null) as {Status?:number;Message?:string;Data?:{SessionID?:string;Url?:string}}|null;
   const url=payload?.Data?.Url;
   const sessionId=payload?.Data?.SessionID;
-  if(!response.ok||payload?.Status!==200||!sessionId||!url)throw new Error('iPaymu could not start this payment. Please try again.');
+  if(!response.ok||payload?.Status!==200||!sessionId||!url)throw new Error('Payment could not be started. Please try again.');
   const parsed=new URL(url);
   const allowedHosts=baseUrl==='https://sandbox.ipaymu.com'?['sandbox-payment.ipaymu.com','sandbox.ipaymu.com']:['my.ipaymu.com','payment.ipaymu.com'];
-  if(parsed.protocol!=='https:'||!allowedHosts.includes(parsed.hostname))throw new Error('iPaymu returned an invalid checkout address.');
+  if(parsed.protocol!=='https:'||!allowedHosts.includes(parsed.hostname))throw new Error('Payment could not be started. Please try again.');
   return {sessionId,url:parsed.toString()};
 }
 
@@ -112,11 +112,11 @@ export async function createIpaymuQris(input:{orderId:string;amount:number;buyer
   const transactionId=data?.TransactionId;
   const sessionId=data?.SessionId;
   const qrImage=data?.QrImage;
-  if(!response.ok||payload?.Status!==200||transactionId===undefined||sessionId===undefined||!qrImage)throw new Error('QRIS could not be started. Check that QRIS is enabled for this iPaymu account, then try again.');
+  if(!response.ok||payload?.Status!==200||transactionId===undefined||sessionId===undefined||!qrImage)throw new Error('QRIS could not be started. Please try again.');
   const providerTotal=Number(data.Total);
   if(Number.isFinite(providerTotal)&&providerTotal>0&&Math.round(providerTotal)!==input.amount)throw new Error('The QRIS amount did not match this order. Please try again.');
   const parsed=ipaymuQrImageUrl(qrImage,baseUrl.includes('sandbox')?'sandbox':'production');
-  if(!parsed)throw new Error('iPaymu returned an invalid payment address.');
+  if(!parsed)throw new Error('QRIS could not be started. Please try again.');
   const fee=Number(data.Fee);
   const providerExpiry=ipaymuExpiryTimestamp(data.Expired,paymentCreatedAt);
   const createdTimestamp=Date.parse(paymentCreatedAt);
