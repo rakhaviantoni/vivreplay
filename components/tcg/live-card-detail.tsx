@@ -12,6 +12,7 @@ import {CardPrintingSelector,orderPrintings,uniquePrintings,type CardPrinting} f
 import {CardDetailContent} from './card-detail-content';
 import {FeedbackLaunchButton} from './feedback-launch';
 import type {Card} from '@/packages/card-data/catalog';
+import {versionedCardCatalogUrl} from '@/lib/card-catalog-cache';
 
 type Identity={id:string;code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number;effect_text:string};
 type Printing=CardPrinting & {rarity:string|null;set_code:string|null;set_name:string|null;counter_amount:number|null;attribute:string|null;life:number|null;sub_types:string[]|null;source_payload?:{block?:string|number;block_value?:string|number}|null;tcg_card_assets?:Array<{kind:string;object_key:string}>};
@@ -32,7 +33,7 @@ export function LiveCardDetail({code,initialLanguage}:{code:string;initialLangua
  const id=locale==='ID';
  const loadCard=useCallback(async(signal?:AbortSignal)=>{
    try{
-     const response=await fetch(`/api/cards/${encodeURIComponent(code)}`,{signal,cache:'no-store'});
+     const response=await fetch(versionedCardCatalogUrl(`/api/cards/${encodeURIComponent(code)}`),{signal});
      if(response.status===404){setIdentity(undefined);setPrintings([]);setRulings([]);setLoadState('missing');return;}
      if(!response.ok)throw new Error('Card details could not be loaded.');
      const payload=await response.json() as {identity:Identity;printings:Printing[];rulings:Ruling[]};
@@ -46,7 +47,7 @@ export function LiveCardDetail({code,initialLanguage}:{code:string;initialLangua
  },[code,initialLanguage]);
  useEffect(()=>{
    const controller=new AbortController();let active=true;
-   fetch(`/api/cards/${encodeURIComponent(code)}`,{signal:controller.signal,cache:'no-store'}).then(async response=>{
+   fetch(versionedCardCatalogUrl(`/api/cards/${encodeURIComponent(code)}`),{signal:controller.signal}).then(async response=>{
      if(!active)return;
      if(response.status===404){setIdentity(undefined);setPrintings([]);setRulings([]);setLoadState('missing');return;}
      if(!response.ok)throw new Error('Card details could not be loaded.');

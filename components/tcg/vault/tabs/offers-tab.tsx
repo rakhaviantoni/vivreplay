@@ -35,7 +35,7 @@ export function OffersTab({language,initialConversationId}:{language:'EN'|'ID';i
   // Initial loading is represented by the initial state; manual refreshes toggle it later.
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(()=>{void refresh()},[refresh]);
-  useEffect(()=>{const timer=window.setInterval(()=>void refresh(true),10_000);return()=>window.clearInterval(timer)},[refresh]);
+  useEffect(()=>{const timer=window.setInterval(()=>{if(document.visibilityState==='visible')void refresh(true)},30_000);return()=>window.clearInterval(timer)},[refresh]);
   useEffect(()=>{const timer=window.setInterval(()=>setNow(Date.now()),60_000);return()=>window.clearInterval(timer)},[]);
   if(conversationId)return <section className="market-activity-panel"><OfferConversation offerId={conversationId} language={language} open onOpenChange={open=>{if(!open)setConversationId(null)}} onChanged={()=>void refresh()} presentation="panel"/></section>;
   if(loading)return <MarketActivityLoading kind="offers" label={id?'Memuat penawaran…':'Loading your offers…'}/>;

@@ -93,6 +93,9 @@ export async function GET(request: Request) {
     catch { return Response.json({ error: 'Catalog is temporarily unavailable.' }, { status: 503 }); }
   }
   return Response.json({ cards }, {
-    headers: { 'Cache-Control': 'public, max-age=60, s-maxage=3600, stale-while-revalidate=86400' },
+    headers: {
+      'Cache-Control': 'public, max-age=300, stale-while-revalidate=86400',
+      'Cloudflare-CDN-Cache-Control': 'public, max-age=31536000, immutable',
+    },
   });
 }

@@ -16,7 +16,9 @@ const managedLinux = readExecutionProfile() === "managed-linux";
 const localBindingConfig = {
   name: "vivreplay",
   main: "vinext/server/fetch-handler",
+  compatibility_date: "2026-10-08",
   compatibility_flags: ["nodejs_compat"],
+  cache: { enabled: true },
   workers_dev: true,
   preview_urls: true,
   routes: [

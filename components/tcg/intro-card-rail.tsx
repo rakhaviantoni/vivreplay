@@ -2,6 +2,7 @@
 
 import {useEffect,useState} from 'react';
 import type {Card} from '@/packages/card-data/catalog';
+import {versionedCardCatalogUrl} from '@/lib/card-catalog-cache';
 import {CardArt} from './card-art';
 
 type CatalogRow={
@@ -33,7 +34,7 @@ export function IntroCardRail({className=''}:{className?:string}){
   const [cards,setCards]=useState<Card[]>([]);
   useEffect(()=>{
     const controller=new AbortController();
-    void fetch('/api/cards/catalog',{signal:controller.signal})
+    void fetch(versionedCardCatalogUrl('/api/cards/catalog'),{signal:controller.signal})
       .then(async response=>{
         if(!response.ok)throw new Error('Card catalog unavailable');
         return await response.json() as {cards?:CatalogRow[]};

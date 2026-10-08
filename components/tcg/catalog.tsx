@@ -11,6 +11,7 @@ import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/c
 import {CardPreviewModal} from './card-preview-modal';
 import {isPlayableSet, PREVIEW_CARD_CODES} from '@/packages/domain/release-availability';
 import {splitArchetypeTraits} from './library-directory';
+import {versionedCardCatalogUrl} from '@/lib/card-catalog-cache';
 
 type LibraryCard = Card & {setCode:string;setName:string;attribute:string;counter:number;block:string;keywords:string[];traits:string[];variant:string;printingCode:string};
 type FilterOption = string | {value:string;label:string};
@@ -162,7 +163,7 @@ export function Catalog({home=false,initialSet,initialArchetype,setPage=false,se
     }
     async function loadCatalog(){
       setCatalogLoading(true);setCatalogPage(0);setLiveCards([]);const rows:Record<string,unknown>[]=[];
-      const response=await fetch(`/api/cards/catalog?language=${encodeURIComponent(language)}`,{signal:controller.signal});
+      const response=await fetch(versionedCardCatalogUrl(`/api/cards/catalog?language=${encodeURIComponent(language)}`),{signal:controller.signal});
       if(!response.ok)throw new Error('Catalog is unavailable.');
       const payload=await response.json() as {cards?:Record<string,unknown>[]};
       rows.push(...(payload.cards??[]));

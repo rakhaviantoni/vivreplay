@@ -14,6 +14,7 @@ import {
 import { CardArt } from '../card-art';
 import type { Card } from '@/packages/card-data/catalog';
 import type { SetProgress, EnrichedCollectionItem } from '../types';
+import {versionedCardCatalogUrl} from '@/lib/card-catalog-cache';
 
 interface SetsTabProps {
   language: 'EN'|'ID';
@@ -48,7 +49,7 @@ export function SetsTab({
   const [showAllSets,setShowAllSets]=useState(false);
   const [preview,setPreview]=useState<Card|null>(null);
 
-  useEffect(()=>{let active=true;fetch('/api/cards/sets').then(response=>{if(!response.ok)throw new Error('Set catalog unavailable');return response.json() as Promise<{sets?:SetRow[]}>}).then(result=>{if(active&&result.sets?.length)setCatalogSets(result.sets)}).catch(()=>{});return()=>{active=false}},[]);
+  useEffect(()=>{let active=true;fetch(versionedCardCatalogUrl('/api/cards/sets')).then(response=>{if(!response.ok)throw new Error('Set catalog unavailable');return response.json() as Promise<{sets?:SetRow[]}>}).then(result=>{if(active&&result.sets?.length)setCatalogSets(result.sets)}).catch(()=>{});return()=>{active=false}},[]);
 
   const allProgressList=React.useMemo(()=>{
     const source=catalogSets.length?catalogSets:progressList.map(set=>({code:set.code,name:set.name,releaseYear:set.releaseYear,mainSetTotal:set.mainSetTotal,parallelsTotal:set.parallelsTotal}));
@@ -66,7 +67,7 @@ export function SetsTab({
     if(!activeSetCode)return;
     const controller=new AbortController();
     setCatalogLoading(true);setCatalogError(false);setCatalogCards([]);
-    fetch(`/api/cards/catalog?language=EN&set=${encodeURIComponent(activeSetCode)}`,{signal:controller.signal})
+    fetch(versionedCardCatalogUrl(`/api/cards/catalog?language=EN&set=${encodeURIComponent(activeSetCode)}`),{signal:controller.signal})
       .then(response=>{if(!response.ok)throw new Error('catalog unavailable');return response.json() as Promise<{cards?:Array<Record<string,unknown>>}>})
       .then(payload=>{
         if(controller.signal.aborted)return;

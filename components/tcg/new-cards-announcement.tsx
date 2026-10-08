@@ -6,6 +6,7 @@ import {ArrowUpRightIcon, EyeIcon, SparkleIcon, XIcon} from '@phosphor-icons/rea
 import {useEffect,useState} from 'react';
 import type {Card} from '@/packages/card-data/catalog';
 import {CardArt} from './card-art';
+import {versionedCardCatalogUrl} from '@/lib/card-catalog-cache';
 
 const ANNOUNCEMENT_VERSION='p163-op18-eb05-2026-09';
 const STORAGE_KEY='vivreplay-new-cards-announcement';
@@ -37,7 +38,7 @@ export function NewCardsAnnouncement(){
  useEffect(()=>{
   if(!open)return;
   const controller=new AbortController();
-  fetch('/api/cards/catalog?language=EN',{signal:controller.signal}).then(response=>response.ok?response.json():Promise.reject(new Error('Catalog unavailable'))).then(payload=>{
+  fetch(versionedCardCatalogUrl('/api/cards/catalog?language=EN'),{signal:controller.signal}).then(response=>response.ok?response.json():Promise.reject(new Error('Catalog unavailable'))).then(payload=>{
    const rows=(payload as {cards?:Record<string,unknown>[]}).cards??[];
    const unique=new Map<string,ReleaseCard>();
    for(const row of rows){const card=releaseCard(row);if(card&&!unique.has(card.code))unique.set(card.code,card)}

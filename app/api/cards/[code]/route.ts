@@ -64,12 +64,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cod
   try {
     const card = await fromD1(code);
     if (!card) return Response.json({ error: 'Card not found.' }, { status: 404 });
-    return Response.json(card, { headers: { 'Cache-Control': 'public, max-age=60, s-maxage=300, stale-while-revalidate=3600' } });
+    return Response.json(card, { headers: { 'Cache-Control': 'public, max-age=300, stale-while-revalidate=86400', 'Cloudflare-CDN-Cache-Control': 'public, max-age=31536000, immutable' } });
   } catch {
     try {
       const card = await fromSupabase(code);
       if (!card) return Response.json({ error: 'Card not found.' }, { status: 404 });
-      return Response.json(card, { headers: { 'Cache-Control': 'public, max-age=60, s-maxage=300, stale-while-revalidate=3600' } });
+      return Response.json(card, { headers: { 'Cache-Control': 'public, max-age=300, stale-while-revalidate=86400', 'Cloudflare-CDN-Cache-Control': 'public, max-age=31536000, immutable' } });
     } catch { return Response.json({ error: 'Card details are temporarily unavailable.' }, { status: 503 }); }
   }
 }

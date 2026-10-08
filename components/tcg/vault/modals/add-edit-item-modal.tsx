@@ -14,6 +14,7 @@ import { GRADING_PROVIDERS } from '@/packages/domain';
 import { CardArt } from '../card-art';
 import { CardMarketPanel } from '../../card-market-panel';
 import { api } from '@/lib/client';
+import {versionedCardCatalogUrl} from '@/lib/card-catalog-cache';
 import { addLocalVaultItem, deleteLocalVaultItem, getLocalVaultItems, updateLocalVaultItem } from '../local-vault';
 import type { EnrichedCollectionItem } from '../types';
 import type { VaultPrinting } from '../types';
@@ -141,7 +142,7 @@ export function AddEditItemModal({
     const controller=new AbortController();
     const timer=window.setTimeout(()=>{
       setIdentitySearchLoading(true);
-      void fetch(`/api/cards/identities?q=${encodeURIComponent(query)}`,{signal:controller.signal})
+      void fetch(versionedCardCatalogUrl(`/api/cards/identities?q=${encodeURIComponent(query)}`),{signal:controller.signal})
         .then(async response=>{if(!response.ok)throw new Error('Card search is unavailable.');return await response.json() as {cards?:Array<{id:string;code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number;effect_text:string;rarity:string|null;imageUrl?:string}>};})
         .then(result=>{if(active)setIdentityResults((result.cards??[]).map(card=>({id:card.id,code:card.code,name:card.name,color:card.color,type:card.card_type,cost:card.cost,power:card.power,effect:card.effect_text,rarity:card.rarity??'',art:0,imageSource:'external',imageUrl:card.imageUrl})));})
         .catch(()=>{if(active)setIdentityResults([]);})
@@ -157,7 +158,7 @@ export function AddEditItemModal({
     const controller = new AbortController();
     setCatalogLoading(true);
     void Promise.all((['EN', 'JP'] as const).map(async language => {
-      const response = await fetch(`/api/cards/catalog?language=${language}&code=${encodeURIComponent(identityCode)}`, {signal: controller.signal});
+      const response = await fetch(versionedCardCatalogUrl(`/api/cards/catalog?language=${language}&code=${encodeURIComponent(identityCode)}`), {signal: controller.signal});
       if (!response.ok) return [];
       const payload = await response.json() as {cards?:Array<{id:string;language:string;variant:string|null;printing_code:string|null;card_image_url:string|null;set_code:string|null;rarity:string|null}>};
       return (payload.cards ?? []).map(printing => ({

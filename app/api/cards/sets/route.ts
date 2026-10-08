@@ -18,6 +18,6 @@ export async function GET(){
    const supabase=supabaseAdmin();if(!supabase)throw new Error('Catalog unavailable');
    for(let from=0;;from+=1000){const {data,error}=await supabase.from('tcg_card_printings').select('set_code,set_name,identity_id,variant').range(from,from+999);if(error)throw error;rows.push(...((data??[]) as Row[]));if((data??[]).length<1000)break}
   }
-  return Response.json({sets:summarize(rows)},{headers:{'Cache-Control':'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400'}});
+  return Response.json({sets:summarize(rows)},{headers:{'Cache-Control':'public, max-age=300, stale-while-revalidate=86400','Cloudflare-CDN-Cache-Control':'public, max-age=31536000, immutable'}});
  }catch{return Response.json({error:'Set progress is temporarily unavailable.'},{status:503})}
 }

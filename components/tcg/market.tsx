@@ -35,6 +35,7 @@ import {displayCardName} from './card-name';
 import {printingLabel} from './card-printing-selector';
 import {CollectionItem,Listing,formatMoney} from '@/packages/domain';
 import {api,useAccount,type AccountState} from '@/lib/client';
+import {loadMarketActivityCounts} from '@/lib/market/activity-client';
 import {CardArt} from './card-art';
 import {Picker} from './catalog';
 import {CollectionForm} from './collection-form';
@@ -476,9 +477,10 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
   useEffect(()=>{
     if(!profileId||modalOnly)return;
     let active=true;
-    const update=async()=>{try{const response=await fetch('/api/market/activity',{cache:'no-store'});if(!response.ok)return;const result=await response.json() as {counts?:{listings?:number;offers?:number;orders?:number}};if(active)setActivityCounts({listings:result.counts?.listings??0,offers:result.counts?.offers??0,orders:result.counts?.orders??0})}catch{}}
-    void update();const timer=window.setInterval(()=>void update(),15_000);
-    return()=>{active=false;window.clearInterval(timer)};
+    const update=async()=>{if(document.visibilityState!=='visible')return;const counts=await loadMarketActivityCounts(profileId);if(active&&counts)setActivityCounts(counts)};
+    const onVisibility=()=>{if(document.visibilityState==='visible')void update()};
+    void update();const timer=window.setInterval(()=>void update(),60_000);document.addEventListener('visibilitychange',onVisibility);
+    return()=>{active=false;window.clearInterval(timer);document.removeEventListener('visibilitychange',onVisibility)};
   },[profileId]);
   useEffect(()=>{
     if(!accountPanel||accountPanel==='saved')return;

@@ -6,6 +6,7 @@ import {FormEvent,useEffect,useState} from 'react';
 import {ArrowLeftIcon as ArrowLeft,BookmarkSimpleIcon as Bookmark,HeartIcon as Heart,ClipboardTextIcon as ClipboardText,ClockCounterClockwiseIcon as History,ShoppingBagIcon as OrdersIcon,MoonIcon as Moon,PlusIcon as Plus,MagnifyingGlassIcon as Search,SunIcon as Sun,UserIcon as UserRound,CaretDownIcon as CaretDown,StorefrontIcon as Storefront} from '@phosphor-icons/react';
 import {VivreMark} from './brand-assets';
 import {useAccount} from '@/lib/client';
+import {loadMarketActivityCounts} from '@/lib/market/activity-client';
 import {DropdownMenu,DropdownMenuContent,DropdownMenuItem,DropdownMenuLabel,DropdownMenuSeparator,DropdownMenuTrigger} from '@/components/ui/dropdown-menu';
 import {Dialog,DialogContent,DialogHeader,DialogTitle} from '@/components/ui/dialog';
 import {ListingsTab} from './vault/tabs/listings-tab';
@@ -65,9 +66,10 @@ export function MarketStoreNav({initialQuery='',sellHref='/market?sell=open',sho
   useEffect(()=>{
     if(!data?.profile?.id)return;
     let active=true;
-    const update=async()=>{try{const response=await fetch('/api/market/activity',{cache:'no-store'});if(!response.ok)return;const result=await response.json() as {counts?:{listings?:number;offers?:number;orders?:number}};if(active)setActivityCounts({listings:result.counts?.listings??0,offers:result.counts?.offers??0,orders:result.counts?.orders??0})}catch{}};
-    void update();const timer=window.setInterval(()=>void update(),15_000);
-    return()=>{active=false;window.clearInterval(timer)};
+    const update=async()=>{if(document.visibilityState!=='visible')return;const counts=await loadMarketActivityCounts(data.profile.id);if(active&&counts)setActivityCounts(counts)};
+    const onVisibility=()=>{if(document.visibilityState==='visible')void update()};
+    void update();const timer=window.setInterval(()=>void update(),60_000);document.addEventListener('visibilitychange',onVisibility);
+    return()=>{active=false;window.clearInterval(timer);document.removeEventListener('visibilitychange',onVisibility)};
   },[data?.profile?.id]);
   const openAccountPanel=(panel:'listings'|'offers'|'orders'|'saved')=>{setAccountPanel(panel);if(panel==='saved')return;setActivityCounts(current=>({...current,[panel]:0}));void fetch('/api/market/activity',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({section:panel})}).catch(()=>undefined)};
   const unreadCount=activityCounts.listings+activityCounts.offers+activityCounts.orders;

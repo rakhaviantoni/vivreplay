@@ -34,7 +34,7 @@ export function ListingsTab({language,onCreateListing}:{language:'EN'|'ID';onCre
   // Initial loading is represented by the initial state; manual refreshes toggle it later.
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(()=>{void refresh()},[refresh]);
-  useEffect(()=>{const timer=window.setInterval(()=>void refresh(true),10_000);return()=>window.clearInterval(timer)},[refresh]);
+  useEffect(()=>{const timer=window.setInterval(()=>{if(document.visibilityState==='visible')void refresh(true)},30_000);return()=>window.clearInterval(timer)},[refresh]);
   useEffect(()=>{const timer=window.setInterval(()=>setNow(Date.now()),60_000);return()=>window.clearInterval(timer)},[]);
 
   const act=async(listing:SellerListing,action:'pause'|'resume'|'close'|'renew')=>{
