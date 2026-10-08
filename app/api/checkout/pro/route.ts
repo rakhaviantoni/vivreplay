@@ -1,13 +1,13 @@
 import {db,errorResponse,guard,user,HttpError} from '@/lib/server/store';
 import {getCurrentUser} from '@/lib/server/auth';
-import {hasIpaymuPaymentConfig} from '@/lib/server/ipaymu';
+import {hasMarketIpaymuPaymentConfig} from '@/lib/server/ipaymu';
 import {getDynamicListingPolicy,MARKET_BUYER_FEE_PERCENT,MARKET_PRO_BUYER_FEE_PERCENT,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH,MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL,MARKET_PRO_SHIPPING_VOUCHER_SHARE,MARKET_PRO_SHIPPING_VOUCHER_CAP} from '@/lib/market/policy';
 
 export async function GET(){
   const amount=Number(process.env.VIVREPLAY_PRO_PRICE_IDR);
   const durationDays=Number(process.env.VIVREPLAY_PRO_DURATION_DAYS);
   const [policy,freePolicy]=await Promise.all([getDynamicListingPolicy('pro',db()),getDynamicListingPolicy('free',db())]);
-  return Response.json({available:hasIpaymuPaymentConfig()&&Number.isSafeInteger(amount)&&amount>0&&Number.isInteger(durationDays)&&durationDays>0,amount:Number.isSafeInteger(amount)&&amount>0?amount:null,durationDays:Number.isInteger(durationDays)&&durationDays>0?durationDays:null,maxActiveListings:policy.maxActiveListings,freeMaxActiveListings:freePolicy.maxActiveListings,freeDurationDays:freePolicy.durationDays,commissionPercent:policy.commissionPercent,freeCommissionPercent:freePolicy.commissionPercent,buyerFeePercent:MARKET_PRO_BUYER_FEE_PERCENT,freeBuyerFeePercent:MARKET_BUYER_FEE_PERCENT,shippingVouchersPerMonth:MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH,shippingVoucherMinSubtotal:MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL,shippingVoucherSharePercent:MARKET_PRO_SHIPPING_VOUCHER_SHARE*100,shippingVoucherCap:MARKET_PRO_SHIPPING_VOUCHER_CAP,canAutoRenew:policy.canAutoRenew,freeCanAutoRenew:freePolicy.canAutoRenew,currency:'IDR'});
+  return Response.json({available:hasMarketIpaymuPaymentConfig()&&Number.isSafeInteger(amount)&&amount>0&&Number.isInteger(durationDays)&&durationDays>0,amount:Number.isSafeInteger(amount)&&amount>0?amount:null,durationDays:Number.isInteger(durationDays)&&durationDays>0?durationDays:null,maxActiveListings:policy.maxActiveListings,freeMaxActiveListings:freePolicy.maxActiveListings,freeDurationDays:freePolicy.durationDays,commissionPercent:policy.commissionPercent,freeCommissionPercent:freePolicy.commissionPercent,buyerFeePercent:MARKET_PRO_BUYER_FEE_PERCENT,freeBuyerFeePercent:MARKET_BUYER_FEE_PERCENT,shippingVouchersPerMonth:MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH,shippingVoucherMinSubtotal:MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL,shippingVoucherSharePercent:MARKET_PRO_SHIPPING_VOUCHER_SHARE*100,shippingVoucherCap:MARKET_PRO_SHIPPING_VOUCHER_CAP,canAutoRenew:policy.canAutoRenew,freeCanAutoRenew:freePolicy.canAutoRenew,currency:'IDR'});
 }
 
 export async function POST(request:Request){
@@ -18,7 +18,7 @@ export async function POST(request:Request){
     if(!account?.email)throw new HttpError(401,'Sign in with an email address to continue.');
     const amount=Number(process.env.VIVREPLAY_PRO_PRICE_IDR);
     const durationDays=Number(process.env.VIVREPLAY_PRO_DURATION_DAYS);
-    if(!hasIpaymuPaymentConfig()||!Number.isSafeInteger(amount)||amount<1||!Number.isInteger(durationDays)||durationDays<1)throw new HttpError(503,'Market Pro checkout is temporarily unavailable.');
+    if(!hasMarketIpaymuPaymentConfig()||!Number.isSafeInteger(amount)||amount<1||!Number.isInteger(durationDays)||durationDays<1)throw new HttpError(503,'Market Pro checkout is temporarily unavailable.');
     if(profile.tier==='pro')throw new HttpError(409,'Your account already has an active Pro plan.');
     const name=String(profile.display_name||account.name||account.email.split('@')[0]||'VivrePlay member').trim();
     const phone=String(profile.phone??'').replace(/[\s().-]/g,'');

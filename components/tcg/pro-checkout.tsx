@@ -8,6 +8,7 @@ import {useAccount} from '@/lib/client';
 import {toast} from 'sonner';
 
 type Plan={available:boolean;amount:number|null;durationDays:number|null;maxActiveListings:number;freeMaxActiveListings:number;freeDurationDays:number;commissionPercent:number;freeCommissionPercent:number;buyerFeePercent:number;freeBuyerFeePercent:number;shippingVouchersPerMonth:number;shippingVoucherMinSubtotal:number;shippingVoucherSharePercent:number;shippingVoucherCap:number;canAutoRenew:boolean;freeCanAutoRenew:boolean;currency:'IDR'};
+type MembershipOrder={id:string;status:string;amount:number;currency:string;createdAt:string;paidAt:string|null};
 
 export function ProCheckout(){
   const router=useRouter();
@@ -16,6 +17,7 @@ export function ProCheckout(){
   const [plan,setPlan]=useState<Plan>();
   const [submitting,setSubmitting]=useState(false);
   const [error,setError]=useState('');
+  const [membershipOrders,setMembershipOrders]=useState<MembershipOrder[]>([]);
   const [id,setId]=useState(false);
 
   useEffect(()=>{const sync=()=>setId(window.localStorage.getItem('vivreplay-locale')==='ID');const change=(event:Event)=>setId((event as CustomEvent<'EN'|'ID'>).detail==='ID');sync();window.addEventListener('vivreplay:locale',change);return()=>window.removeEventListener('vivreplay:locale',change)},[]);
@@ -27,6 +29,17 @@ export function ProCheckout(){
       setPlan(await response.json() as Plan);
     }).catch(cause=>setError(cause instanceof Error?cause.message:'Market Pro is temporarily unavailable.')).finally(()=>setPlanLoading(false));
   },[]);
+
+  useEffect(()=>{
+    if(accountLoading||!account)return;
+    let active=true;
+    fetch('/api/checkout/pro/orders',{cache:'no-store'}).then(async response=>{
+      if(!response.ok)return;
+      const result=await response.json() as {orders?:MembershipOrder[]};
+      if(active)setMembershipOrders(result.orders??[]);
+    }).catch(()=>{});
+    return()=>{active=false};
+  },[accountLoading,account?.profile?.id]);
 
   const phone=String(account?.profile?.phone??'').replace(/[\s().-]/g,'');
   const hasPhone=/^\+?[0-9]{8,16}$/.test(phone);
@@ -56,14 +69,16 @@ export function ProCheckout(){
   ];
   const alreadyPro=String(account.profile.tier??'free').toLowerCase()==='pro';
 
+  const paymentDate=(value:string)=>new Intl.DateTimeFormat(id?'id-ID':'en-US',{dateStyle:'medium',timeStyle:'short'}).format(new Date(`${value.replace(' ','T')}Z`));
+  const membershipStatus=(status:string)=>status==='PAID'?t('Paid','Dibayar'):status==='PENDING_PAYMENT'?t('Awaiting payment','Menunggu pembayaran'):status==='EXPIRED'?t('Expired','Kedaluwarsa'):status==='CANCELLED'?t('Cancelled','Dibatalkan'):status==='PAYMENT_REVIEW'?t('Under review','Sedang diperiksa'):t('Processing','Diproses');
+
   return <main className="page vivre-checkout-page pro-checkout-page">
     <header className="pro-checkout-heading"><h1>Market Pro</h1><p>{t('Lower fees, more room to list, and delivery vouchers.','Biaya lebih rendah, batas listing lebih tinggi, dan voucher ongkir.')}</p></header>
     <div className="pro-checkout-grid">
       <section className="pro-benefits-panel" aria-labelledby="pro-comparison-title">
         <div className="pro-panel-heading"><div><h2 id="pro-comparison-title">{t('Free vs Pro','Gratis vs Pro')}</h2></div></div>
         <div className="pro-comparison-wrap"><table className="pro-comparison-table"><thead><tr><th scope="col">{t('What you get','Manfaat')}</th><th scope="col">{freeLabel}</th><th scope="col">{proLabel}</th></tr></thead><tbody>{rows.map(row=><tr key={row.label}><th scope="row">{row.label}</th><td>{row.free}</td><td>{row.pro}</td></tr>)}</tbody></table></div>
-        <p className="pro-voucher-note">{t(`Each voucher takes ${plan?.shippingVoucherSharePercent??50}% off delivery, up to ${formatMoney(plan?.shippingVoucherCap??5000,'IDR')}, on orders with at least ${formatMoney(plan?.shippingVoucherMinSubtotal??200000,'IDR')} in cards.`,`Setiap voucher memotong ongkir ${plan?.shippingVoucherSharePercent??50}%, maksimal ${formatMoney(plan?.shippingVoucherCap??5000,'IDR')}, untuk pesanan dengan nilai kartu minimal ${formatMoney(plan?.shippingVoucherMinSubtotal??200000,'IDR')}.`)}</p>
-        <p className="pro-market-scope">{t('Pro works for buying and selling. Vouchers are applied automatically to eligible orders.','Pro berlaku saat membeli maupun menjual. Voucher otomatis dipakai pada pesanan yang memenuhi syarat.')}</p>
+        <p className="pro-voucher-note">{t(`On card orders of ${formatMoney(plan?.shippingVoucherMinSubtotal??200000,'IDR')} or more, each voucher takes ${plan?.shippingVoucherSharePercent??50}% off delivery, up to ${formatMoney(plan?.shippingVoucherCap??5000,'IDR')}. Applied automatically at checkout.`,`Untuk pesanan kartu minimal ${formatMoney(plan?.shippingVoucherMinSubtotal??200000,'IDR')}, tiap voucher memotong ongkir ${plan?.shippingVoucherSharePercent??50}% hingga ${formatMoney(plan?.shippingVoucherCap??5000,'IDR')}. Otomatis digunakan saat checkout.`)}</p>
       </section>
       <aside className="pro-purchase-panel" aria-label={t('Market Pro price','Harga Market Pro')}>
         <p className="pro-purchase-kicker">{t('30-day membership','Keanggotaan 30 hari')}</p>
@@ -75,5 +90,6 @@ export function ProCheckout(){
         <Link className="pro-back-link" href="/market">{t('Back to Market','Kembali ke Market')}</Link>
       </aside>
     </div>
+    {!!membershipOrders.length&&<section className="pro-billing-history" aria-labelledby="pro-billing-title"><h2 id="pro-billing-title">{t('Membership payments','Pembayaran keanggotaan')}</h2><div>{membershipOrders.map(order=><Link className="pro-billing-row" href={`/checkout/order/${encodeURIComponent(order.id)}`} key={order.id}><span><strong>{paymentDate(order.paidAt??order.createdAt)}</strong><small>{membershipStatus(order.status)}</small></span><b>{formatMoney(order.amount,order.currency)}</b><span className="pro-billing-action">{order.status==='PENDING_PAYMENT'?t('Pay now','Bayar'):t('View payment','Lihat pembayaran')}</span></Link>)}</div></section>}
   </main>;
 }

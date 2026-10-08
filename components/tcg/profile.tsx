@@ -948,7 +948,7 @@ function ProfileForm({
         </div>
 
         <div className="profile-card-actions">
-          {String(profile.tier??'free').toLowerCase()!=='pro'&&<Link className="button profile-pro-link" href="/checkout/pro">{t('Explore Pro','Lihat Pro')}</Link>}
+          <Link className="button profile-pro-link" href="/checkout/pro">{String(profile.tier??'free').toLowerCase()==='pro'?t('Manage Pro','Kelola Pro'):t('Explore Pro','Lihat Pro')}</Link>
           <Link className="button secondary profile-public-btn" href={`/players/${profile.username}`}>
             <ArrowSquareOut size={16}/>
             {t('View public profile','Lihat profil publik')}
