@@ -62,6 +62,7 @@ type MarketBenchmark={amount:number;currency:string;url:string|null;observedAt:s
 type CardPrintingItem={id:string;language:string;variant:string|null;printing_code:string|null;card_image_url:string|null;rarity?:string|null;set_code?:string};
 type MarketCard=Card&{availablePrintings?:CardPrintingItem[]};
 type SearchIdentity={id:string;code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number;effect_text:string;imageUrl?:string;set_code?:string;rarity?:string|null;tcg_card_printings?:Array<{id:string;card_image_url:string|null;rarity:string|null;set_code:string;language:string;variant:string|null;printing_code:string|null}>};
+const cardSearchCacheVersion='2026-10-08.1';
 type ListingBundleCard={
   id:string;
   card:Card;
@@ -108,7 +109,7 @@ function CardSearch({value,onChange,onSelect,locale='EN'}:{value:string;onChange
     let active=true;
     const timer=window.setTimeout(async()=>{
       setLoading(true);
-      const response=await fetch(`/api/cards/identities?q=${encodeURIComponent(term)}`,{cache:'force-cache'});
+      const response=await fetch(`/api/cards/identities?q=${encodeURIComponent(term)}&v=${cardSearchCacheVersion}`,{cache:'force-cache'});
       const payload=await response.json() as {cards?:SearchIdentity[]};
       if(active){
         const live=(payload.cards??[]).map(searchedCard).filter((card):card is MarketCard=>Boolean(card));
@@ -309,7 +310,7 @@ function MarketCardLookup({
     let active = true;
     const timer = window.setTimeout(async () => {
       setLoading(true);
-      const response=await fetch(`/api/cards/identities?q=${encodeURIComponent(term)}`,{cache:'force-cache'});
+      const response=await fetch(`/api/cards/identities?q=${encodeURIComponent(term)}&v=${cardSearchCacheVersion}`,{cache:'force-cache'});
       const payload=await response.json() as {cards?:SearchIdentity[]};
       if (active) {
         const live = (payload.cards ?? []).map(searchedCard).filter((card): card is Card => Boolean(card));
