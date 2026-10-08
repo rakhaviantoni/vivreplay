@@ -19,11 +19,13 @@ export async function GET(){
       if(!cards.length&&order.printingId)cards=[{printingId:order.printingId,quantity:1}];
       return {order,cards};
     });
-    const thumbnails=await marketCardThumbnails(entries.flatMap(entry=>entry.cards.map(card=>card.printingId)));
+    let thumbnails:Awaited<ReturnType<typeof marketCardThumbnails>>=new Map();
+    try{thumbnails=await marketCardThumbnails(entries.flatMap(entry=>entry.cards.map(card=>card.printingId)))}catch(error){console.error('market_order_thumbnails_failed',error instanceof Error?error.message:error)}
     return Response.json({orders:entries.map(({order,cards})=>{let details:Record<string,unknown>={};try{details=JSON.parse(order.details||'{}') as Record<string,unknown>}catch{}const {details:_privateDetails,paymentId,updatedAt,...safeOrder}=order;const paymentExpiry=details.ipaymuPaymentMethod==='qris'?ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt,details.ipaymuPaymentCreatedAt,order.updatedAt):null;const expiresAt=paymentExpiry===null?order.expiresAt:new Date(paymentExpiry).toISOString();const canCancel=order.kind==='MARKET'&&order.status==='PENDING_PAYMENT'&&!paymentId&&(!expiresAt||new Date(`${expiresAt.replace(' ','T')}Z`).getTime()>Date.now());const marketFeePercent=typeof details.marketFeePercent==='number'?details.marketFeePercent:order.subtotal>0?Math.max(0,Math.round((order.subtotal-(order.sellerNetAmount??order.subtotal))*10000/order.subtotal)/100):0;const marketSellerTier=details.marketSellerTier==='pro'?'pro':details.marketSellerTier==='free'?'free':order.sellerTier==='pro'?'pro':'free';const marketStandardFeePercent=typeof details.marketStandardFeePercent==='number'?details.marketStandardFeePercent:null;const marketProSavings=marketSellerTier==='pro'&&marketStandardFeePercent!==null?Math.round(order.subtotal*(marketStandardFeePercent-marketFeePercent)/100):0;const marketBuyerFeePercent=order.role==='buyer'&&typeof details.marketBuyerFeePercent==='number'?details.marketBuyerFeePercent:0;const marketBuyerFeeAmount=order.role==='buyer'&&typeof details.marketBuyerFeeAmount==='number'?details.marketBuyerFeeAmount:0;return{...safeOrder,expiresAt,canCancel,hasActivePayment:order.status==='PENDING_PAYMENT'&&Boolean(paymentId),marketFeePercent,marketSellerTier,marketStandardFeePercent,marketProSavings,marketBuyerFeePercent,marketBuyerFeeAmount,trackingStatus:typeof details.trackingStatus==='string'?details.trackingStatus:null,cards:cards.map(card=>({...card,card:thumbnails.get(card.printingId)??null}))}})},{headers:{'Cache-Control':'private, no-store, max-age=0','Vary':'Cookie'}});
   }catch(error){
     console.error('market_orders_load_failed',error instanceof Error?error.message:error);
-    if(error instanceof HttpError)return errorResponse(error);
+    const response=errorResponse(error);
+    if(response.status!==500)return response;
     return Response.json({error:'Orders could not be loaded. Please refresh and try again.'},{status:500,headers:{'Cache-Control':'private, no-store'}});
   }
 }

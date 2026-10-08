@@ -174,7 +174,7 @@ export async function market(viewerId?:string){
       l.condition,
       l.type,
       l.negotiable,
-      l.city,
+      COALESCE(o.city,l.city) AS city,
       l.created_at AS createdAt,
       l.expires_at AS expiresAt,
       l.items AS itemsJson,

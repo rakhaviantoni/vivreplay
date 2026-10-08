@@ -88,8 +88,8 @@ export function MarketCheckout(){
   const subtotal=selectedCards.reduce((sum,item)=>sum+item.unitAmount*item.quantity,0);
   const buyerServiceFeePercent=buyerTier==='pro'?MARKET_PRO_BUYER_FEE_PERCENT:MARKET_BUYER_FEE_PERCENT;
   const buyerServiceFee=Math.round(subtotal*buyerServiceFeePercent/100);
+  const currentRate=rates.find(rate=>`${rate.courier_code}:${rate.courier_service_code}`===selectedRate);
   const shippingDiscount=buyerTier==='pro'&&shippingVouchersRemaining>0&&subtotal>=MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL&&currentRate?Math.min(Math.round(currentRate.price*MARKET_PRO_SHIPPING_VOUCHER_SHARE),MARKET_PRO_SHIPPING_VOUCHER_CAP):0;
-    const currentRate=rates.find(rate=>`${rate.courier_code}:${rate.courier_service_code}`===selectedRate);
   const courierName=(name:string)=>({jne:'JNE Express',jnt:'J&T Express',sicepat:'SiCepat Ekspres',anteraja:'Anteraja',tiki:'TIKI',pos:'Pos Indonesia',lion:'Lion Parcel',ninja:'Ninja Xpress',wahana:'Wahana Express',grab:'GrabExpress',gojek:'GoSend'}[name]??name);
 
   const loadQuotes=useCallback(async(forceRefresh=false)=>{

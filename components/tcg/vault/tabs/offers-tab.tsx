@@ -40,13 +40,13 @@ export function OffersTab({language,initialConversationId}:{language:'EN'|'ID';i
   if(conversationId)return <section className="market-activity-panel"><OfferConversation offerId={conversationId} language={language} open onOpenChange={open=>{if(!open)setConversationId(null)}} onChanged={()=>void refresh()} presentation="panel"/></section>;
   if(loading)return <MarketActivityLoading kind="offers" label={id?'Memuat penawaran…':'Loading your offers…'}/>;
   return <section className="market-activity-panel" aria-label={id?'Penawaran Market':'Market offers'}>
-    <div className="market-activity-toolbar"><p>{id?'Penawaran untuk listing Anda dan penawaran yang Anda kirim.':'Offers on your listings and offers you have sent.'}</p><button type="button" className="market-activity-refresh" onClick={()=>void refresh()}><Refresh size={15}/>{id?'Muat ulang':'Refresh'}</button></div>
+    <div className="market-activity-toolbar"><p>{id?'Penawaran untuk listing Anda dan penawaran yang Anda kirim.':'Offers on your listings and offers you have sent.'}</p><button type="button" className="market-activity-refresh market-activity-icon-action" aria-label={id?'Muat ulang penawaran':'Refresh offers'} title={id?'Muat ulang':'Refresh'} onClick={()=>void refresh()}><Refresh size={15}/></button></div>
     <PushNotificationPrompt language={language} message="activity"/>
     {error&&<div className="market-activity-error" role="alert"><span>{error}</span><button type="button" onClick={()=>void refresh()}>{id?'Coba lagi':'Try again'}</button></div>}
     {!offers.length?<MarketActivityEmpty title={id?'Belum ada penawaran':'No offers yet'} description={id?'Penawaran masuk dan terkirim akan muncul di sini.':'Incoming and sent offers will appear here.'}/>:<div className="market-activity-list">{offers.map(offer=>{
       const expiryCandidates=[offer.offerExpiresAt,offer.listingExpiresAt].filter((value):value is string=>Boolean(value)).map(expiryTime).filter((value):value is number=>value!==null);
       const expiresAt=expiryCandidates.length?new Date(Math.min(...expiryCandidates)).toISOString():null;
-      const expired=offer.status==='PENDING'&&Boolean(expiresAt)&&new Date(expiresAt).getTime()<=now;
+      const expired=offer.status==='PENDING'&&expiresAt!==null&&new Date(expiresAt).getTime()<=now;
       const status=expired?'EXPIRED':offer.status;
       const statusLabel:Record<string,string>=id?{PENDING:'Menunggu',ACCEPTED:'Diterima',DECLINED:'Ditolak',COUNTERED:'Dibalas',EXPIRED:'Kedaluwarsa',UNAVAILABLE:'Kartu terjual'}:{PENDING:'Pending',ACCEPTED:'Accepted',DECLINED:'Declined',COUNTERED:'Countered',EXPIRED:'Expired',UNAVAILABLE:'Cards sold'};
       return <article className="market-activity-row market-offer-row" key={offer.threadId}>

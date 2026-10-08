@@ -21,12 +21,13 @@ export async function POST(request:Request,{params}:{params:Promise<{offerId:str
     }
     let items:ReturnType<typeof parseOfferItems>|undefined;let currency=offer.currency;
     if(value.action==='counter'||value.action==='accept'||value.action==='revise'){
-      if(value.action==='revise'||(value.action==='counter'&&value.items?.every(item=>Number.isSafeInteger(item.unitAmount)&&Number(item.unitAmount)>0))){
-        const pricedTotal=value.items.reduce((sum,item)=>sum+item.quantity*Number(item.unitAmount),0);
+      const suppliedItems=value.action==='counter'||value.action==='revise'?value.items:undefined;
+      if(value.action==='revise'||(value.action==='counter'&&suppliedItems?.every(item=>Number.isSafeInteger(item.unitAmount)&&Number(item.unitAmount)>0))){
+        if(!suppliedItems)throw new HttpError(400,'Select the cards and prices for this offer.');
+        const pricedTotal=suppliedItems.reduce((sum,item)=>sum+item.quantity*Number(item.unitAmount),0);
         if(pricedTotal!==value.amount)throw new HttpError(400,'Offer card prices must add up to the offer total.');
-        items=value.items as Array<{printingId:string;quantity:number;unitAmount:number}>;
-      }else if(value.action==='revise')items=value.items;
-      else if(value.action==='counter')items=priceOfferItems(value.items??parseOfferItems(offer.items),value.amount);
+        items=suppliedItems as Array<{printingId:string;quantity:number;unitAmount:number}>;
+      }else if(value.action==='counter')items=priceOfferItems(suppliedItems??parseOfferItems(offer.items),value.amount);
       else items=parseOfferItems(offer.items);
       const supplierId=offer.listingType==='WTB'&&actor.id===offer.sellerId?offer.actorId:actor.id;
       await validateListingOfferItems(offer,supplierId,items);
@@ -43,7 +44,7 @@ export async function POST(request:Request,{params}:{params:Promise<{offerId:str
     const update=db().prepare(`UPDATE listing_offers SET status=? WHERE id=? AND status='PENDING'
       AND (expires_at IS NULL OR datetime(expires_at)>CURRENT_TIMESTAMP)
       AND EXISTS(SELECT 1 FROM listings l WHERE l.id=listing_offers.listing_id AND l.status='ACTIVE' AND (l.expires_at IS NULL OR datetime(l.expires_at)>CURRENT_TIMESTAMP))`).bind(nowStatus,offerId);
-    if(value.action==='counter'){
+    if(value.action==='counter'||value.action==='revise'){
       const nextId=crypto.randomUUID();
       const results=await db().batch([
         update,
@@ -53,7 +54,7 @@ export async function POST(request:Request,{params}:{params:Promise<{offerId:str
       if(!results[0]?.meta.changes)throw new HttpError(409,'This offer has already been answered.');
       const recipient=value.action==='revise'?(actor.id===offer.sellerId?offer.buyerId:offer.sellerId):offer.actorId;
       await sendMarketEmail(recipient,'counteroffer',offer.listingTitle,nextId);
-      return Response.json({status:'COUNTERED',offerId:nextId},{headers:{'Cache-Control':'private, no-store'}});
+      return Response.json({status:value.action==='revise'?'REVISED':'COUNTERED',offerId:nextId},{headers:{'Cache-Control':'private, no-store'}});
     }
     const results=await db().batch([
       update,

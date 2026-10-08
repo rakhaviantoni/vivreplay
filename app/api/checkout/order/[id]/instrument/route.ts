@@ -1,6 +1,6 @@
 import {db,errorResponse,user,HttpError} from '@/lib/server/store';
 import {getCurrentUser} from '@/lib/server/auth';
-import {createIpaymuQris,hasMarketIpaymuPaymentConfig,ipaymuExpiryTimestamp,ipaymuQrImageUrl} from '@/lib/server/ipaymu';
+import {createIpaymuQris,hasIpaymuPaymentConfig,hasMarketIpaymuPaymentConfig,ipaymuExpiryTimestamp,ipaymuQrImageUrl} from '@/lib/server/ipaymu';
 import {sendMarketEmail} from '@/lib/server/market-notifications';
 
 type Order={id:string;kind:string;buyerId:string;sellerId:string|null;listingId:string|null;items:string;details:string;subtotal:number;amount:number;shippingFee:number;title:string|null;paymentId:string|null;status:string;expiresAt:string|null;updatedAt:string|null};
@@ -15,7 +15,7 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     const database=db();
     const order=await database.prepare(`SELECT o.id,o.kind,o.buyer_id AS buyerId,o.seller_id AS sellerId,o.listing_id AS listingId,o.items,o.details,o.subtotal,o.amount,o.shipping_fee AS shippingFee,o.payment_id AS paymentId,o.status,o.expires_at AS expiresAt,o.updated_at AS updatedAt,l.title FROM checkout_orders o LEFT JOIN listings l ON l.id=o.listing_id WHERE o.id=?`).bind(id).first<Order>();
     if(!order||order.buyerId!==profile.id)throw new HttpError(404,'Checkout was not found.');
-    if(!hasMarketIpaymuPaymentConfig())throw new HttpError(503,'Checkout is temporarily unavailable.');
+    if(order.kind==='MARKET'&&!hasMarketIpaymuPaymentConfig()||order.kind==='PRO'&&!hasIpaymuPaymentConfig())throw new HttpError(503,'Checkout is temporarily unavailable.');
     if(order.status!=='PENDING_PAYMENT')throw new HttpError(409,'This checkout is no longer payable.');
     let details:Record<string,unknown>={};
     try{details=JSON.parse(order.details) as Record<string,unknown>}catch{}
