@@ -8,7 +8,7 @@ import {useAccount} from '@/lib/client';
 import {toast} from 'sonner';
 
 type Plan={available:boolean;amount:number|null;standardAmount:number|null;durationDays:number|null;introOffer:boolean;introOfferEndsAt:string|null;introOfferSpotsRemaining:number|null;maxActiveListings:number;freeMaxActiveListings:number;freeDurationDays:number;commissionPercent:number;freeCommissionPercent:number;buyerFeePercent:number;freeBuyerFeePercent:number;shippingVouchersPerMonth:number;shippingVoucherMinSubtotal:number;shippingVoucherSharePercent:number;shippingVoucherCap:number;typicalDeliveryAmount:number|null;canAutoRenew:boolean;freeCanAutoRenew:boolean;currency:'IDR'};
-type MembershipOrder={id:string;status:string;amount:number;currency:string;createdAt:string;paidAt:string|null};
+type MembershipOrder={id:string;status:string;amount:number;currency:string;createdAt:string;paidAt:string|null;currentOrderId:string|null};
 
 export function ProCheckout(){
   const router=useRouter();
@@ -123,6 +123,6 @@ export function ProCheckout(){
         <Link className="pro-back-link" href="/market">{t('Back to Market','Kembali ke Market')}</Link>
       </aside>
     </div>
-    {!!membershipOrders.length&&<section className="pro-billing-history" aria-labelledby="pro-billing-title"><h2 id="pro-billing-title">{t('Membership payments','Pembayaran keanggotaan')}</h2><div>{membershipOrders.map(order=><Link className="pro-billing-row" href={`/checkout/order/${encodeURIComponent(order.id)}`} key={order.id}><span><strong>{paymentDate(order.paidAt??order.createdAt)}</strong><small>{membershipStatus(order.status)}</small></span><b>{formatMoney(order.amount,order.currency)}</b><span className="pro-billing-action">{order.status==='PENDING_PAYMENT'?t('Pay now','Bayar'):t('View payment','Lihat pembayaran')}</span></Link>)}</div></section>}
+    {!!membershipOrders.length&&<section className="pro-billing-history" aria-labelledby="pro-billing-title"><h2 id="pro-billing-title">{t('Membership payments','Pembayaran keanggotaan')}</h2><div>{membershipOrders.map(order=><Link className="pro-billing-row" href={`/checkout/order/${encodeURIComponent(order.currentOrderId??order.id)}`} key={order.id}><span><strong>{paymentDate(order.paidAt??order.createdAt)}</strong><small>{order.currentOrderId?t('Older checkout · use the newer QRIS order','Checkout lama · gunakan pesanan QRIS terbaru'):membershipStatus(order.status)}</small></span><b>{formatMoney(order.amount,order.currency)}</b><span className="pro-billing-action">{order.currentOrderId?t('Open current QRIS','Buka QRIS terbaru'):order.status==='PENDING_PAYMENT'?t('Pay now','Bayar'):t('View payment','Lihat pembayaran')}</span></Link>)}</div></section>}
   </main>;
 }
