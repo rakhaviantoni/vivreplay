@@ -224,3 +224,18 @@ html[data-theme='dark'] .market-account-menu [data-slot='dropdown-menu-separator
 .market-order-operations{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:stretch;gap:12px}.market-order-operations>.market-order-qris,.market-order-operations>.market-order-shipping-detail,.market-order-operations>.market-order-detail-actions{grid-column:auto;min-width:0;align-self:stretch;margin:0;box-sizing:border-box}.market-order-operations>.market-order-qris{align-items:center;gap:10px;padding:10px}.market-order-operations>.market-order-shipping-detail{padding:12px}.market-order-operations>.market-order-detail-actions{display:flex;align-content:start;align-items:center;flex-wrap:wrap;gap:8px;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}.market-order-source-link,.market-order-open-link{display:inline-flex;align-items:center;gap:4px;color:var(--accent);font-size:10px;font-weight:700;text-decoration:none}.market-order-source-link{margin-top:3px}.market-order-source-link:hover,.market-order-open-link:hover{text-decoration:underline;text-underline-offset:2px}.market-order-open-link{min-height:34px;padding:0 9px;border:1px solid var(--line);border-radius:7px;white-space:nowrap}
 @media(max-width:980px){.market-order-operations{grid-template-columns:repeat(2,minmax(0,1fr))}.market-order-operations>.market-order-detail-actions{grid-column:1/-1}}
 @media(max-width:620px){.market-order-operations{grid-template-columns:minmax(0,1fr);gap:10px}.market-order-operations>.market-order-detail-actions{grid-column:1;align-items:stretch}.market-order-operations>.market-order-detail-actions .button,.market-order-operations>.market-order-detail-actions>a{flex:1 1 145px;justify-content:center;min-height:42px}.market-order-operations>.market-order-qris{flex-wrap:nowrap}.market-order-source-link{min-height:28px}}
+
+/* Keep order actions as compact controls instead of stretching them into tall columns. */
+.market-order-operations{display:flex;align-items:flex-start;justify-content:flex-start;flex-wrap:wrap;gap:10px}
+.market-order-operations>.market-order-qris,
+.market-order-operations>.market-order-shipping-detail,
+.market-order-operations>.market-order-detail-actions{width:fit-content;max-width:100%;align-self:flex-start}
+.market-order-operations>.market-order-qris{min-height:0}
+.market-order-operations>.market-order-shipping-detail{flex:0 1 auto}
+.market-order-operations>.market-order-detail-actions{flex:0 1 auto;align-content:flex-start}
+@media(max-width:620px){
+  .market-order-operations{display:grid;grid-template-columns:minmax(0,1fr);gap:9px}
+  .market-order-operations>.market-order-qris,
+  .market-order-operations>.market-order-shipping-detail,
+  .market-order-operations>.market-order-detail-actions{width:100%;max-width:none}
+}
