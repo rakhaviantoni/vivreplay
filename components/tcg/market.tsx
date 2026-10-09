@@ -17,7 +17,6 @@ import {
   SquaresFourIcon as Grid,
   UserIcon as UserRound,
   CaretDownIcon as CaretDown,
-  CrownIcon as Crown,
   ClipboardTextIcon as ClipboardText,
   BookmarkSimpleIcon as Bookmark,
   HeartIcon as Heart,
@@ -53,6 +52,7 @@ import {MarketPriceMode} from './market-price-mode';
 import {ShareButton} from './share';
 import {BulkListingModal} from './vault/modals/bulk-listing-modal';
 import {MarketCartSheet} from './market-cart-sheet';
+import {MarketProDialog} from './market-pro-dialog';
 import {enrichCollectionItem,groupVaultStacks} from './vault/vault-utils';
 import {isPlayableSet} from '@/packages/domain/release-availability';
 import {uniquePrintingIds,matchingPrintingCopies,selectedPrintingCopy} from '@/lib/market/printing-selection';
@@ -896,7 +896,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
           />
         </label>
         <div className="masthead-actions market-store-actions">
-        <Link href="/checkout/pro" className="market-pro-nav-link" aria-label={locale==='ID'?'Market Pro':'Market Pro'}><Crown size={15} aria-hidden="true"/><span className="market-pro-nav-long">Market Pro</span><span className="market-pro-nav-short">Pro</span></Link>
+        <MarketProDialog locale={locale} member={accountLoading||String(data?.profile?.tier??'free').toLowerCase()==='pro'}/>
         <MarketCartSheet locale={locale}/>
         {data && (
           <DropdownMenu><DropdownMenuTrigger asChild><button type="button" className="market-account-trigger" aria-label={locale==='ID'?'Market saya: listing, penawaran, dan pesanan':'My Market: listings, offers, and orders'}><Store size={16} aria-hidden="true"/>{activityCounts.listings+activityCounts.offers+activityCounts.orders>0&&<span className="market-account-unread-badge">{Math.min(99,activityCounts.listings+activityCounts.offers+activityCounts.orders)}</span>}<span className="market-account-trigger-name">{locale==='ID'?'Market saya':'My Market'}</span><CaretDown size={14} aria-hidden="true"/></button></DropdownMenuTrigger><DropdownMenuContent align="end" sideOffset={10} className="market-account-menu"><DropdownMenuLabel className="market-account-menu-label"><span className="market-account-menu-name">{data.profile.display_name||`@${data.profile.username}`}</span><span className="market-account-menu-handle">@{data.profile.username}</span></DropdownMenuLabel><DropdownMenuSeparator/><DropdownMenuItem className="market-account-menu-item" onSelect={()=>setAccountPanel('listings')}><ClipboardText size={16}/>{locale==='ID'?'Listing saya':'My listings'}{activityCounts.listings>0&&<span className="market-activity-badge">{activityCounts.listings>99?'99+':activityCounts.listings}</span>}</DropdownMenuItem><DropdownMenuItem className="market-account-menu-item" onSelect={()=>setAccountPanel('offers')}><OrdersIcon size={16}/>{locale==='ID'?'Penawaran':'Offers'}{activityCounts.offers>0&&<span className="market-activity-badge">{activityCounts.offers>99?'99+':activityCounts.offers}</span>}</DropdownMenuItem><DropdownMenuItem className="market-account-menu-item" onSelect={()=>setAccountPanel('orders')}><OrdersIcon size={16}/>{locale==='ID'?'Pesanan':'Orders'}{activityCounts.orders>0&&<span className="market-activity-badge">{activityCounts.orders>99?'99+':activityCounts.orders}</span>}</DropdownMenuItem><DropdownMenuItem className="market-account-menu-item" onSelect={()=>setAccountPanel('saved')}><Bookmark size={16}/>{locale==='ID'?'Listing tersimpan':'Saved listings'}</DropdownMenuItem><DropdownMenuItem className="market-account-menu-item" asChild><Link href="/vault?tab=wishlist"><Heart size={16}/>{locale==='ID'?'Kartu incaran':'Wishlist'}</Link></DropdownMenuItem><DropdownMenuItem className="market-account-menu-item" asChild><Link href="/profile"><History size={16}/>{locale==='ID'?'Profil':'Profile'}</Link></DropdownMenuItem></DropdownMenuContent></DropdownMenu>
