@@ -3642,3 +3642,7 @@ html[data-theme='dark'] .market-listing-status.is-buying{color:#e6b65e!important
  .market-feed-entry .market-feed-row-actions .button.is-icon-only{width:34px;min-width:34px;height:34px;min-height:34px}
 }
 .market-feed-list.is-list .market-feed-meta>*{overflow:visible!important;white-space:normal!important;text-overflow:clip!important}
+.market-feed-list.is-list .market-feed-meta{width:100%;gap:4px!important}
+.market-feed-list.is-list .market-feed-meta-primary{gap:3px 8px;line-height:1.35}
+.market-feed-list.is-list .market-feed-meta-secondary{line-height:1.3}
+.market-feed-list.is-list .market-feed-meta-secondary .market-feed-shipping-availability{font-size:11px}
