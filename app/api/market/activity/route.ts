@@ -30,9 +30,9 @@ export async function GET(){
         SELECT m.thread_id FROM listing_offer_messages m JOIN my_threads t ON t.thread_id=m.thread_id WHERE m.actor_id<>? AND m.created_at>?
       )`).bind(profile.id,profile.id,profile.id,profile.id,offerSince,profile.id,offerSince).first<{count:number}>(),
       db().prepare(`SELECT COUNT(*) AS count FROM (
-        SELECT id FROM checkout_orders WHERE buyer_id=? AND updated_at>? AND status NOT IN ('FAILED','CANCELLED','EXPIRED')
+        SELECT id FROM checkout_orders WHERE buyer_id=? AND kind='MARKET' AND updated_at>? AND status NOT IN ('FAILED','CANCELLED','EXPIRED')
         UNION
-        SELECT id FROM checkout_orders WHERE seller_id=? AND updated_at>? AND status NOT IN ('FAILED','CANCELLED','EXPIRED')
+        SELECT id FROM checkout_orders WHERE seller_id=? AND kind='MARKET' AND updated_at>? AND status NOT IN ('FAILED','CANCELLED','EXPIRED')
       )`).bind(profile.id,orderSince,profile.id,orderSince).first<{count:number}>(),
     ]);
     return Response.json({counts:{listings:listings?.count??0,offers:offers?.count??0,orders:orders?.count??0}},{headers:{'Cache-Control':'private, no-store','Vary':'Cookie'}});

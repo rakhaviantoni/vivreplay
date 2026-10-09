@@ -78,7 +78,7 @@ function addFeedListingToCart(listing:Listing,printingId:string,locale:'EN'|'ID'
   try{const saved=JSON.parse(window.localStorage.getItem(cartKey)||'null');if(saved&&Array.isArray(saved.lines))cart=saved;}catch{}
   if(cart.lines.some(line=>line.listingId===listing.id&&line.items.some(item=>item.printingId===printingId)))return false;
   if(cart.sellerId&&listing.sellerId&&cart.sellerId!==listing.sellerId){
-    const replace=window.confirm(locale==='ID'?'Keranjang berisi listing dari penjual lain. Kosongkan keranjang dan mulai yang baru?':'Your cart has listings from another seller. Clear it and start a new cart?');
+    const replace=window.confirm(locale==='ID'?'Checkout hanya bisa untuk satu penjual. Mengganti penjual akan menghapus isi keranjang saat ini. Lanjutkan?':'Checkout is limited to one seller at a time. Switching sellers will clear your current cart. Continue?');
     if(!replace)return;
     cart={sellerId:listing.sellerId,lines:[]};
   }

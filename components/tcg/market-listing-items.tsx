@@ -418,7 +418,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
     const cartKey='vivreplay-market-cart-v1';
     let cart:{sellerId:string;lines:{listingId:string;listingTitle:string;items:{printingId:string;quantity:number}[]}[]}={sellerId:sellerId??'',lines:[]};
     try{const saved=JSON.parse(window.localStorage.getItem(cartKey)||'null');if(saved&&Array.isArray(saved.lines))cart=saved;}catch{}
-    if(cart.sellerId&&sellerId&&cart.sellerId!==sellerId){const replace=window.confirm(t('Your cart has listings from another seller. Clear it and add this listing?','Keranjang Anda berisi listing dari penjual lain. Kosongkan dan tambahkan listing ini?'));if(!replace)return;cart={sellerId,lines:[]};}
+    if(cart.sellerId&&sellerId&&cart.sellerId!==sellerId){const replace=window.confirm(t('Checkout is limited to one seller at a time. Switching sellers will clear your current cart. Continue?','Checkout hanya bisa untuk satu penjual. Mengganti penjual akan menghapus isi keranjang saat ini. Lanjutkan?'));if(!replace)return;cart={sellerId,lines:[]};}
     cart.sellerId=sellerId??cart.sellerId;
     if(!cart.lines.some(line=>line.listingId===listingId)&&cart.lines.length>=10){toast.error(t('A cart can hold listings from up to 10 of this seller’s listings.','Keranjang dapat berisi hingga 10 listing dari penjual ini.'));return;}const incoming=items.flatMap(item=>selected[item.id]?[{printingId:item.id,quantity:Math.min(99,selected[item.id])}]:[]);
     const current=cart.lines.find(line=>line.listingId===listingId);

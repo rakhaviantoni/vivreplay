@@ -78,7 +78,7 @@ export function Vault() {
   const { data, error, loading, refresh } = useAccount();
 
   // Active Tab & View Mode State
-  const [activeTab, setActiveTab] = useState<VaultTab>(searchParams.get('tab')==='wishlist'?'wishlist':'collection');
+  const [activeTab, setActiveTab] = useState<VaultTab>(searchParams.get('tab')==='wishlist'?'wishlist':searchParams.get('tab')==='portfolio'?'portfolio':'collection');
   const [viewMode, setViewMode] = useState<VaultViewMode>('binder');
   const binderOrderStorageKey=`vivreplay-vault-binder-order:${String(data?.profile?.id??'guest')}`;
   const [binderOrder,setBinderOrder]=useState<string[]>([]);
