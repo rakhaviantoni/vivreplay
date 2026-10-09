@@ -22,6 +22,7 @@ import {
   HeartIcon as Heart,
   ClockCounterClockwiseIcon as History,
   ShoppingBagIcon as OrdersIcon,
+  ShoppingCartIcon as Cart,
   StorefrontIcon as Store,
   SunIcon as Sun,
   TrashIcon as Trash,
@@ -72,6 +73,23 @@ type ListingBundleCard={
   availableQuantity:number;
 };
 type PublishedShare={id:string;title:string;price:number;cards:ListingBundleCard[]};
+function addFeedListingToCart(listing:Listing,printingId:string,locale:'EN'|'ID'){
+  const cartKey='vivreplay-market-cart-v1';
+  let cart:{sellerId:string;lines:{listingId:string;listingTitle:string;items:{printingId:string;quantity:number}[]}[]}={sellerId:listing.sellerId??'',lines:[]};
+  try{const saved=JSON.parse(window.localStorage.getItem(cartKey)||'null');if(saved&&Array.isArray(saved.lines))cart=saved;}catch{}
+  if(cart.sellerId&&listing.sellerId&&cart.sellerId!==listing.sellerId){
+    const replace=window.confirm(locale==='ID'?'Keranjang berisi listing dari penjual lain. Kosongkan keranjang dan mulai yang baru?':'Your cart has listings from another seller. Clear it and start a new cart?');
+    if(!replace)return;
+    cart={sellerId:listing.sellerId,lines:[]};
+  }
+  cart.sellerId=listing.sellerId??cart.sellerId;
+  if(!cart.lines.some(line=>line.listingId===listing.id)&&cart.lines.length>=10){toast.error(locale==='ID'?'Keranjang dapat berisi hingga 10 listing.':'A cart can hold up to 10 listings.');return;}
+  const line=cart.lines.find(item=>item.listingId===listing.id);
+  if(line){const existing=line.items.find(item=>item.printingId===printingId);if(existing)existing.quantity=Math.min(99,existing.quantity+1);else line.items.push({printingId,quantity:1});}
+  else cart.lines.push({listingId:listing.id,listingTitle:listing.title,items:[{printingId,quantity:1}]});
+  window.localStorage.setItem(cartKey,JSON.stringify(cart));window.dispatchEvent(new Event('vivreplay:market-cart-updated'));
+  toast.success(locale==='ID'?'1 kartu ditambahkan':'Added 1 card',{action:{label:locale==='ID'?'Lihat keranjang':'View cart',onClick:()=>window.dispatchEvent(new Event('vivreplay:open-market-cart'))}});
+}
 function printingToCard(baseCard:Card,p:CardPrintingItem):Card{
   return {
     ...baseCard,
@@ -1090,10 +1108,13 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
                     </div>
                   </>
                 );
-                const rowClass=`market-feed-row ${listing.type==='WTB'?'is-wtb':'is-wts'}${listing.isOwner?'':' has-row-action'}`;
+                const rowClass=`market-feed-row ${listing.type==='WTB'?'is-wtb':'is-wts'}${listing.isOwner?'':' has-row-action'}${!listing.isOwner&&listing.type==='WTS'&&items.length===1?' has-cart-action':''}`;
                 return <article key={listing.id} className={`${rowClass} market-feed-entry`}>
                   <Link href={`/market/${listing.id}`} className="market-feed-row-link" aria-label={locale==='ID'?`Buka ${listing.title}`:`Open ${listing.title}`}>{content}</Link>
-                  {!listing.isOwner&&<div className="market-feed-row-actions"><SaveListingButton listingId={listing.id} language={locale} iconOnly/></div>}
+                  {!listing.isOwner&&<div className="market-feed-row-actions">
+                    {listing.type==='WTS'&&items.length===1&&items[0].quantity>0&&<button type="button" className="button secondary is-icon-only market-feed-add-cart" title={locale==='ID'?'Tambahkan 1 kartu ke keranjang':'Add 1 card to cart'} aria-label={locale==='ID'?'Tambahkan 1 kartu ke keranjang':'Add 1 card to cart'} onClick={event=>{event.preventDefault();event.stopPropagation();addFeedListingToCart(listing,items[0].printingId,locale)}}><Cart size={17}/></button>}
+                    <SaveListingButton listingId={listing.id} language={locale} iconOnly/>
+                  </div>}
                 </article>;
               })}
             </section>
