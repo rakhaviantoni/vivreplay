@@ -3647,3 +3647,16 @@ html[data-theme='dark'] .market-listing-status.is-buying{color:#e6b65e!important
 .market-feed-list.is-list .market-feed-meta-secondary{line-height:1.3}
 .market-feed-list.is-list .market-feed-meta-secondary .market-feed-shipping-availability{font-size:11px}
 .market-feed-meta-separator{color:var(--line-strong,var(--muted));font-size:.9em}
+/* Market list metadata stays on two readable lines; action badges have their own lane. */
+.market-feed-list.is-list .market-feed-meta{display:grid!important;grid-template-columns:minmax(0,1fr)!important;justify-items:stretch;gap:4px!important;width:100%;overflow:hidden}
+.market-feed-list.is-list .market-feed-meta-primary,.market-feed-list.is-list .market-feed-meta-secondary{display:flex;flex-wrap:nowrap;align-items:center;gap:0 7px;width:100%;min-width:0;overflow:hidden;white-space:nowrap}
+.market-feed-list.is-list .market-feed-meta-primary{color:var(--muted);font-size:11px;font-weight:550;line-height:1.35}
+.market-feed-list.is-list .market-feed-meta-primary .market-feed-location,.market-feed-list.is-list .market-feed-meta-primary .market-feed-seller{flex:0 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.market-feed-list.is-list .market-feed-meta-primary .market-feed-location{max-width:34%}
+.market-feed-list.is-list .market-feed-meta-primary .market-feed-seller{max-width:42%}
+.market-feed-list.is-list .market-feed-meta-primary time{flex:0 0 auto;color:var(--muted);font-size:10px;font-weight:500}
+.market-feed-list.is-list .market-feed-meta-separator{flex:0 0 auto;color:color-mix(in srgb,var(--muted) 70%,transparent);font-size:10px}
+.market-feed-list.is-list .market-feed-meta-secondary{color:var(--muted);font-size:10px;line-height:1.3}
+.market-feed-list.is-list .market-feed-meta-secondary .market-feed-shipping-availability{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;font-weight:550}
+.market-feed-entry.has-cart-action .market-feed-status{right:96px!important}
+@media(max-width:760px){.market-feed-entry.has-cart-action .market-feed-status{right:88px!important}}
