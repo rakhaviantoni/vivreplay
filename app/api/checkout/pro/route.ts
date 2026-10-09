@@ -1,6 +1,6 @@
 import {db,errorResponse,guard,user,optionalUser,HttpError} from '@/lib/server/store';
 import {getCurrentUser} from '@/lib/server/auth';
-import {createIpaymuQris,hasMarketIpaymuPaymentConfig} from '@/lib/server/ipaymu';
+import {createIpaymuQris,hasMarketIpaymuPaymentConfig,ipaymuExpiryTimestamp} from '@/lib/server/ipaymu';
 import {getDynamicListingPolicy,MARKET_BUYER_FEE_PERCENT,MARKET_PRO_BUYER_FEE_PERCENT,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH,MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL,MARKET_PRO_SHIPPING_VOUCHER_SHARE,MARKET_PRO_SHIPPING_VOUCHER_CAP} from '@/lib/market/policy';
 import {getProPricing} from '@/lib/market/pro-pricing';
 
@@ -80,6 +80,30 @@ export async function POST(request:Request){
     if(!/^\+?[0-9]{8,16}$/.test(phone))throw new HttpError(400,'Add a valid phone number to your profile before continuing.');
 
     const database=db();
+    const pendingOrders=(await database.prepare(`SELECT id,details,expires_at AS expiresAt,updated_at AS updatedAt
+      FROM checkout_orders WHERE kind='PRO' AND buyer_id=? AND status='PENDING_PAYMENT'
+      ORDER BY created_at DESC LIMIT 20`).bind(profile.id).all<{id:string;details:string;expiresAt:string|null;updatedAt:string|null}>()).results;
+    let resumableOrder:{id:string;details:string}|null=null;
+    for(const pendingOrder of pendingOrders){
+      let pendingDetails:Record<string,unknown>={};
+      try{const parsed=JSON.parse(pendingOrder.details) as unknown;if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))pendingDetails=parsed as Record<string,unknown>}catch{}
+      const pendingPaymentExpiry=pendingDetails.ipaymuPaymentMethod==='qris'
+        ?ipaymuExpiryTimestamp(pendingDetails.ipaymuPaymentExpiresAt,pendingDetails.ipaymuPaymentCreatedAt,pendingOrder.updatedAt)
+        :null;
+      const pendingStoredExpiry=pendingOrder.expiresAt?Date.parse(`${pendingOrder.expiresAt.replace(' ','T')}Z`):null;
+      const pendingExpiry=pendingPaymentExpiry??(pendingStoredExpiry!==null&&Number.isFinite(pendingStoredExpiry)?pendingStoredExpiry:null);
+      if(pendingExpiry===null||pendingExpiry>Date.now()){
+        resumableOrder={id:pendingOrder.id,details:pendingOrder.details};
+        break;
+      }
+      await database.prepare(`UPDATE checkout_orders SET status='EXPIRED',updated_at=CURRENT_TIMESTAMP
+        WHERE id=? AND buyer_id=? AND kind='PRO' AND status='PENDING_PAYMENT'`).bind(pendingOrder.id,profile.id).run();
+    }
+    if(resumableOrder){
+      let pendingDetails:Record<string,unknown>={};
+      try{const parsed=JSON.parse(resumableOrder.details) as unknown;if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))pendingDetails=parsed as Record<string,unknown>}catch{}
+      return Response.json({id:resumableOrder.id,checkoutUrl:`/checkout/order/${encodeURIComponent(resumableOrder.id)}`,introOffer:Boolean(pendingDetails.introOffer)},{status:200});
+    }
     const intro=await introStatus(profile.id);
     if(intro.pendingOrderId)return Response.json({id:intro.pendingOrderId,checkoutUrl:`/checkout/order/${encodeURIComponent(intro.pendingOrderId)}`,introOffer:true},{status:200});
     if(body.introOffer===true&&!intro.eligible)throw new HttpError(409,'The launch offer is no longer available. Refresh the page to see the current price.');

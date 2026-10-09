@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import {useRouter} from 'next/navigation';
 import {useEffect,useState} from 'react';
 import {CrownIcon as Crown} from '@phosphor-icons/react';
 import {formatMoney} from '@/packages/domain';
@@ -25,13 +26,40 @@ type PlanPreview={
   shippingVoucherCap:number;
 };
 
-export function MarketProDialog({locale,member=false}:{locale:'EN'|'ID';member?:boolean}){
+export function MarketProDialog({locale,member=false,profile=null,accountLoading=false}:{locale:'EN'|'ID';member?:boolean;profile?:Record<string,unknown>|null;accountLoading?:boolean}){
+  const router=useRouter();
   const [open,setOpen]=useState(false);
   const [plan,setPlan]=useState<PlanPreview|null>(null);
   const [loading,setLoading]=useState(false);
+  const [joining,setJoining]=useState(false);
+  const [error,setError]=useState('');
   const [loaded,setLoaded]=useState(false);
   const isId=locale==='ID';
   const t=(en:string,id:string)=>isId?id:en;
+  const route=(path:string)=>isId?`/id${path}`:path;
+
+  const join=async()=>{
+    if(!profile){
+      setError(t('Sign in to continue.','Masuk untuk melanjutkan.'));
+      window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));
+      return;
+    }
+    const phone=String(profile.phone??'').replace(/[\s().-]/g,'');
+    if(!/^\+?[0-9]{8,16}$/.test(phone)){
+      setOpen(false);
+      router.push(route('/profile'));
+      return;
+    }
+    setJoining(true);setError('');
+    try{
+      const response=await fetch('/api/checkout/pro',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({introOffer:Boolean(plan?.introOffer)})});
+      const result=await response.json() as {checkoutUrl?:string;error?:string};
+      if(!response.ok||!result.checkoutUrl)throw new Error(result.error??t('Market Pro checkout is unavailable.','Checkout Market Pro tidak tersedia.'));
+      setOpen(false);
+      router.push(result.checkoutUrl.startsWith('/')?route(result.checkoutUrl):result.checkoutUrl);
+    }catch(cause){setError(cause instanceof Error?cause.message:t('Market Pro checkout is unavailable.','Checkout Market Pro tidak tersedia.'))}
+    finally{setJoining(false)}
+  };
 
   useEffect(()=>{
     if(!open||loaded)return;
@@ -73,7 +101,8 @@ export function MarketProDialog({locale,member=false}:{locale:'EN'|'ID';member?:
         </div>
         <div className="market-pro-dialog-table-wrap"><table className="market-pro-dialog-table"><thead><tr><th>{t('Benefit','Manfaat')}</th><th>{t('Free','Gratis')}</th><th>Pro</th></tr></thead><tbody>{rows.map(row=><tr key={row.label}><th scope="row">{row.label}</th><td>{row.free}</td><td>{row.pro}</td></tr>)}</tbody></table></div>
         <p className="market-pro-dialog-note">{t(`Each voucher covers ${plan?.shippingVoucherSharePercent??50}% of delivery, up to ${formatMoney(plan?.shippingVoucherCap??5000,'IDR')}, on card orders of ${formatMoney(plan?.shippingVoucherMinSubtotal??200000,'IDR')} or more.`,`Setiap voucher memotong ${plan?.shippingVoucherSharePercent??50}% ongkir hingga ${formatMoney(plan?.shippingVoucherCap??5000,'IDR')} untuk pesanan kartu minimal ${formatMoney(plan?.shippingVoucherMinSubtotal??200000,'IDR')}.`)}</p>
-        <Link className="button market-pro-dialog-join" href="/checkout/pro" onClick={()=>setOpen(false)}>{plan?.available===false?t('View plan','Lihat paket'):t('Join Market Pro','Gabung Market Pro')}</Link>
+        {error&&<p className="checkout-error" role="alert">{error}</p>}
+        {profile&&!/^\+?[0-9]{8,16}$/.test(String(profile.phone??'').replace(/[\s().-]/g,''))?<Link className="button market-pro-dialog-join" href={route('/profile')} onClick={()=>setOpen(false)}>{t('Add phone number','Tambahkan nomor telepon')}</Link>:<button type="button" className="button market-pro-dialog-join" disabled={joining||loading||accountLoading||plan?.available===false||amount==null} onClick={()=>void join()}>{joining?t('Opening checkout…','Membuka checkout…'):!profile&&!accountLoading?t('Sign in to join','Masuk untuk bergabung'):t('Join Market Pro','Gabung Market Pro')}</button>}
       </DialogContent>
     </Dialog>
   </>;

@@ -28,7 +28,7 @@ export function ShippingCouriers({couriers,language,maxVisible=2}:{couriers:stri
   return <span className="market-feed-shipping-availability" title={labels.join(', ')}><Truck size={11}/><span>{labels.length?`${labels.slice(0,maxVisible).join(', ')}${labels.length>maxVisible?` +${labels.length-maxVisible}`:''}`:language==='ID'?'Pengiriman belum diatur':'Shipping not configured'}</span></span>;
 }
 
-export function ShippingOptions({listingId,courierCount=0,couriers=[]}:{listingId:string;courierCount?:number;couriers?:string[]}){
+export function ShippingOptions({listingId,courierCount=0,couriers=[],items=[]}:{listingId:string;courierCount?:number;couriers?:string[];items?:Array<{printingId:string;quantity:number;unitAmount:number}>}){
   const {data:session}=authClient.useSession();
   const [open,setOpen]=useState(false);
   const [rates,setRates]=useState<CourierRate[]>([]);
@@ -70,7 +70,7 @@ export function ShippingOptions({listingId,courierCount=0,couriers=[]}:{listingI
     if(!cacheOnly){setLoading(true);setRates([]);}
     const controller=new AbortController();quoteRequest.current=controller;
     try{
-      const res=await fetch('/api/shipping/quotes',{signal:controller.signal,method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({listingId,cacheOnly})});
+      const res=await fetch('/api/shipping/quotes',{signal:controller.signal,method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({listingId,items,cacheOnly})});
       const data=await res.json() as {pricing?:CourierRate[];couriers?:string[];destinationRequired?:boolean;cacheMiss?:boolean;regularExpiresAt?:number;instantExpiresAt?:number;error?:string};
       if(controller.signal.aborted)return;
       if(!res.ok)throw new Error(data.error||t('Live rates could not be loaded.','Tarif pengiriman belum dapat dimuat.'));
@@ -88,7 +88,7 @@ export function ShippingOptions({listingId,courierCount=0,couriers=[]}:{listingI
       else{setRates([]);setStartingFee(null);setQuoteState('unavailable');}
     }catch(error){if(controller.signal.aborted||cacheOnly)return;setQuoteState('error');if(!cacheOnly&&!silent)toast.error(error instanceof Error?error.message:t('Live rates could not be loaded.','Tarif pengiriman belum dapat dimuat.'));}
     finally{if(quoteRequest.current===controller){inFlight.current=false;setLoading(false);quoteRequest.current=null;}}
-  },[courierCount,listingId,language]);
+  },[courierCount,listingId,language,items]);
   const openDialog=async()=>{setOpen(true);if(!session?.user.id){setLoading(false);setQuoteState('needs-sign-in');return;}if(rates.length&&quoteExpiresAt>Date.now()){setLoading(false);return;}setLoading(true);await loadRates()};
 
   useEffect(()=>{
@@ -604,6 +604,7 @@ export function MarketListingDetailView({
   const t = (en: string, idStr: string) => language === 'ID' ? idStr : en;
   const isBuying = listing.type === 'WTB';
   const typeLabel = isBuying ? t('Buying', 'Dicari') : t('Selling', 'Dijual');
+  const shippingQuoteItems=useMemo(()=>listingCards.map(item=>({printingId:item.id,quantity:item.quantity,unitAmount:item.unitAmount})),[listingCards]);
 
   const daysLeft = expiresAt ? getDaysUntilExpiration(expiresAt) : null;
   const isExpired = status !== 'ACTIVE' || (expiresAt ? isListingExpired(expiresAt) : false);
@@ -690,7 +691,7 @@ export function MarketListingDetailView({
               <dt>{t('Cards', 'Kartu')}</dt>
               <dd>{cardCount}</dd>
             </div>}
-            {!isBuying && !isOwner && <ShippingOptions listingId={listing.id} courierCount={listing.shippingOptionCount??0} couriers={listing.shippingCouriers??[]}/>}
+            {!isBuying && !isOwner && <ShippingOptions listingId={listing.id} courierCount={listing.shippingOptionCount??0} couriers={listing.shippingCouriers??[]} items={shippingQuoteItems}/>}
           </dl>
 
           {!isOwner && isExpired && (

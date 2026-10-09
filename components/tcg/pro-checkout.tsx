@@ -121,6 +121,6 @@ export function ProCheckout(){
         <Link className="pro-back-link" href="/market">{t('Back to Market','Kembali ke Market')}</Link>
       </aside>
     </div>
-    {!!membershipOrders.length&&<section className="pro-billing-history" aria-labelledby="pro-billing-title"><h2 id="pro-billing-title">{t('Membership payments','Pembayaran keanggotaan')}</h2><div>{membershipOrders.map(order=><Link className="pro-billing-row" href={`/checkout/order/${encodeURIComponent(order.id)}`} key={order.id}><span><strong>{paymentDate(order.paidAt??order.createdAt)}</strong><small>{membershipStatus(order.status)}</small></span><b>{formatMoney(order.amount,order.currency)}</b><span className="pro-billing-action">{order.status==='PENDING_PAYMENT'?t('Pay now','Bayar'):t('View payment','Lihat pembayaran')}</span></Link>)}</div></section>}
+    {!!membershipOrders.length&&<section className="pro-billing-history" id="membership-payments" aria-labelledby="pro-billing-title"><h2 id="pro-billing-title">{t('Membership payments','Pembayaran keanggotaan')}</h2><div>{membershipOrders.map(order=><Link className="pro-billing-row" href={`/checkout/order/${encodeURIComponent(order.id)}`} key={order.id}><span><strong>{paymentDate(order.paidAt??order.createdAt)}</strong><small>{membershipStatus(order.status)}</small></span><b>{formatMoney(order.amount,order.currency)}</b><span className="pro-billing-action">{order.status==='PENDING_PAYMENT'?t('Pay now','Bayar'):t('View payment','Lihat pembayaran')}</span></Link>)}</div></section>}
   </main>;
 }
