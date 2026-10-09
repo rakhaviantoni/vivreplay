@@ -2,11 +2,12 @@
 'use client';
 import {useEffect,useMemo,useRef,useState,type CSSProperties} from 'react';
 import Link from 'next/link';
-import {SavedListings,SaveListingButton} from './market-saved';
+import {SaveListingButton} from './market-saved';
 import {useSearchParams} from 'next/navigation';
 import {
   ArrowLeftIcon as ArrowLeft,
   ArrowRightIcon as ArrowRight,
+  CheckIcon as Check,
   CardsIcon as Cards,
   ListIcon as List,
   MapPinIcon as MapPin,
@@ -46,9 +47,6 @@ import {MarketTimestamp} from './market-timestamp';
 import {ShippingCouriers} from './market-listing-items';
 import {Dialog,DialogContent,DialogDescription,DialogTitle} from '@/components/ui/dialog';
 import {DropdownMenu,DropdownMenuContent,DropdownMenuItem,DropdownMenuLabel,DropdownMenuSeparator,DropdownMenuTrigger} from '@/components/ui/dropdown-menu';
-import {ListingsTab} from './vault/tabs/listings-tab';
-import {OffersTab} from './vault/tabs/offers-tab';
-import {OrdersTab} from './vault/tabs/orders-tab';
 import {MarketPriceMode} from './market-price-mode';
 import {ShareButton} from './share';
 import {BulkListingModal} from './vault/modals/bulk-listing-modal';
@@ -78,6 +76,7 @@ function addFeedListingToCart(listing:Listing,printingId:string,locale:'EN'|'ID'
   const cartKey='vivreplay-market-cart-v1';
   let cart:{sellerId:string;lines:{listingId:string;listingTitle:string;items:{printingId:string;quantity:number}[]}[]}={sellerId:listing.sellerId??'',lines:[]};
   try{const saved=JSON.parse(window.localStorage.getItem(cartKey)||'null');if(saved&&Array.isArray(saved.lines))cart=saved;}catch{}
+  if(cart.lines.some(line=>line.listingId===listing.id&&line.items.some(item=>item.printingId===printingId)))return false;
   if(cart.sellerId&&listing.sellerId&&cart.sellerId!==listing.sellerId){
     const replace=window.confirm(locale==='ID'?'Keranjang berisi listing dari penjual lain. Kosongkan keranjang dan mulai yang baru?':'Your cart has listings from another seller. Clear it and start a new cart?');
     if(!replace)return;
@@ -86,10 +85,20 @@ function addFeedListingToCart(listing:Listing,printingId:string,locale:'EN'|'ID'
   cart.sellerId=listing.sellerId??cart.sellerId;
   if(!cart.lines.some(line=>line.listingId===listing.id)&&cart.lines.length>=10){toast.error(locale==='ID'?'Keranjang dapat berisi hingga 10 listing.':'A cart can hold up to 10 listings.');return;}
   const line=cart.lines.find(item=>item.listingId===listing.id);
-  if(line){const existing=line.items.find(item=>item.printingId===printingId);if(existing)existing.quantity=Math.min(99,existing.quantity+1);else line.items.push({printingId,quantity:1});}
+  if(line){const existing=line.items.find(item=>item.printingId===printingId);if(existing)return false;line.items.push({printingId,quantity:1});}
   else cart.lines.push({listingId:listing.id,listingTitle:listing.title,items:[{printingId,quantity:1}]});
   window.localStorage.setItem(cartKey,JSON.stringify(cart));window.dispatchEvent(new Event('vivreplay:market-cart-updated'));
   toast.success(locale==='ID'?'1 kartu ditambahkan':'Added 1 card',{action:{label:locale==='ID'?'Lihat keranjang':'View cart',onClick:()=>window.dispatchEvent(new Event('vivreplay:open-market-cart'))}});
+  return true;
+}
+function MarketFeedCartButton({listing,printingId,locale}:{listing:Listing;printingId:string;locale:'EN'|'ID'}){
+  const [inCart,setInCart]=useState(false);
+  useEffect(()=>{
+    const sync=()=>{try{const cart=JSON.parse(window.localStorage.getItem('vivreplay-market-cart-v1')||'null');setInCart(Boolean(cart?.lines?.some((line:{listingId:string;items:{printingId:string}[]})=>line.listingId===listing.id&&line.items.some(item=>item.printingId===printingId))))}catch{setInCart(false)}};
+    sync();window.addEventListener('vivreplay:market-cart-updated',sync);window.addEventListener('storage',sync);return()=>{window.removeEventListener('vivreplay:market-cart-updated',sync);window.removeEventListener('storage',sync)};
+  },[listing.id,printingId]);
+  const label=locale==='ID'?(inCart?'Sudah di keranjang':'Tambahkan 1 kartu ke keranjang'):(inCart?'In cart · View cart':'Add 1 card to cart');
+  return <button type="button" className={`button secondary is-icon-only market-feed-add-cart${inCart?' is-in-cart':''}`} title={label} aria-label={label} aria-pressed={inCart} onClick={event=>{event.preventDefault();event.stopPropagation();if(inCart){window.dispatchEvent(new Event('vivreplay:open-market-cart'));return;}addFeedListingToCart(listing,printingId,locale)}}>{inCart?<Check size={17}/>:<Cart size={17}/>}</button>;
 }
 function printingToCard(baseCard:Card,p:CardPrintingItem):Card{
   return {
@@ -708,7 +717,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
     setOpen(true);
   }
   useEffect(()=>{
-    const openSellListing=()=>{setAccountPanel(null);beginListing()};
+    const openSellListing=()=>{setAccountPanel(null);setQuickPanel(null);beginListing()};
     window.addEventListener('vivreplay:open-sell-listing',openSellListing);
     return()=>window.removeEventListener('vivreplay:open-sell-listing',openSellListing);
   },[data,accountLoading,locale]);
@@ -919,9 +928,9 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
         <MarketProDialog locale={locale} profile={data?.profile??null} accountLoading={accountLoading} member={accountLoading||String(data?.profile?.tier??'free').toLowerCase()==='pro'}/>
         <MarketCartSheet locale={locale}/>
         {data && (
-          <DropdownMenu><DropdownMenuTrigger asChild><button type="button" className="market-account-trigger" aria-label={locale==='ID'?'Market saya: listing, penawaran, dan pesanan':'My Market: listings, offers, and orders'}><Store size={16} aria-hidden="true"/>{activityCounts.listings+activityCounts.offers+activityCounts.orders>0&&<span className="market-account-unread-badge">{Math.min(99,activityCounts.listings+activityCounts.offers+activityCounts.orders)}</span>}<span className="market-account-trigger-name">{locale==='ID'?'Market saya':'My Market'}</span><CaretDown size={14} aria-hidden="true"/></button></DropdownMenuTrigger><DropdownMenuContent align="end" sideOffset={10} className="market-account-menu"><DropdownMenuLabel className="market-account-menu-label"><span className="market-account-menu-name">{data.profile.display_name||`@${data.profile.username}`}</span><span className="market-account-menu-handle">@{data.profile.username}</span></DropdownMenuLabel><DropdownMenuSeparator/><DropdownMenuItem className="market-account-menu-item" onSelect={()=>setAccountPanel('listings')}><ClipboardText size={16}/>{locale==='ID'?'Listing saya':'My listings'}{activityCounts.listings>0&&<span className="market-activity-badge">{activityCounts.listings>99?'99+':activityCounts.listings}</span>}</DropdownMenuItem><DropdownMenuItem className="market-account-menu-item" onSelect={()=>setAccountPanel('offers')}><OffersIcon size={16}/>{locale==='ID'?'Penawaran':'Offers'}{activityCounts.offers>0&&<span className="market-activity-badge">{activityCounts.offers>99?'99+':activityCounts.offers}</span>}</DropdownMenuItem><DropdownMenuItem className="market-account-menu-item" onSelect={()=>setAccountPanel('orders')}><OrdersIcon size={16}/>{locale==='ID'?'Pesanan':'Orders'}{activityCounts.orders>0&&<span className="market-activity-badge">{activityCounts.orders>99?'99+':activityCounts.orders}</span>}</DropdownMenuItem><DropdownMenuItem className="market-account-menu-item" onSelect={()=>setAccountPanel('saved')}><Bookmark size={16}/>{locale==='ID'?'Listing tersimpan':'Saved listings'}</DropdownMenuItem><DropdownMenuItem className="market-account-menu-item" onSelect={()=>setQuickPanel('wishlist')}><Heart size={16}/>{locale==='ID'?'Kartu incaran':'Wishlist'}</DropdownMenuItem><DropdownMenuItem className="market-account-menu-item" onSelect={()=>setQuickPanel('profile')}><UserRound size={16}/>{locale==='ID'?'Profil':'Profile'}</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
+          <DropdownMenu><DropdownMenuTrigger asChild><button type="button" className="market-account-trigger" aria-label={locale==='ID'?'Market saya: listing, penawaran, dan pesanan':'My Market: listings, offers, and orders'}><Store size={16} aria-hidden="true"/>{activityCounts.listings+activityCounts.offers+activityCounts.orders>0&&<span className="market-account-unread-badge">{Math.min(99,activityCounts.listings+activityCounts.offers+activityCounts.orders)}</span>}<span className="market-account-trigger-name">{locale==='ID'?'Market saya':'My Market'}</span><CaretDown size={14} aria-hidden="true"/></button></DropdownMenuTrigger><DropdownMenuContent align="end" sideOffset={10} className="market-account-menu"><DropdownMenuLabel className="market-account-menu-label"><span className="market-account-menu-name">{data.profile.display_name||`@${data.profile.username}`}</span><span className="market-account-menu-handle">@{data.profile.username}</span></DropdownMenuLabel><DropdownMenuSeparator/><DropdownMenuItem className="market-account-menu-item" onSelect={()=>setAccountPanel('listings')}><ClipboardText size={16}/>{locale==='ID'?'Listing saya':'My listings'}{activityCounts.listings>0&&<span className="market-activity-badge">{activityCounts.listings>99?'99+':activityCounts.listings}</span>}</DropdownMenuItem><DropdownMenuItem className="market-account-menu-item" onSelect={()=>setAccountPanel('offers')}><OffersIcon size={16}/>{locale==='ID'?'Penawaran':'Offers'}{activityCounts.offers>0&&<span className="market-activity-badge">{activityCounts.offers>99?'99+':activityCounts.offers}</span>}</DropdownMenuItem><DropdownMenuItem className="market-account-menu-item" onSelect={()=>setAccountPanel('orders')}><OrdersIcon size={16}/>{locale==='ID'?'Pesanan':'Orders'}{activityCounts.orders>0&&<span className="market-activity-badge">{activityCounts.orders>99?'99+':activityCounts.orders}</span>}</DropdownMenuItem><DropdownMenuItem className="market-account-menu-item" onSelect={()=>setAccountPanel('saved')}><Bookmark size={16}/>{locale==='ID'?'Listing tersimpan':'Saved listings'}</DropdownMenuItem><DropdownMenuItem className="market-account-menu-item" onSelect={()=>{setAccountPanel(null);setQuickPanel('wishlist')}}><Heart size={16}/>{locale==='ID'?'Kartu incaran':'Wishlist'}</DropdownMenuItem><DropdownMenuItem className="market-account-menu-item" onSelect={()=>{setAccountPanel(null);setQuickPanel('profile')}}><UserRound size={16}/>{locale==='ID'?'Profil':'Profile'}</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
         )}
-        <button type="button" className="market-store-link" onClick={()=>setQuickPanel('vault')}>
+        <button type="button" className="market-store-link" onClick={()=>{setAccountPanel(null);setQuickPanel('vault')}}>
           {locale==='ID'?'Koleksi saya':'Vault'}
         </button>
         <button className="market-store-locale locale-toggle" type="button" onClick={toggleLocale} aria-label={locale==='ID'?'Ganti bahasa':'Switch language'}>
@@ -1112,7 +1121,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
                 return <article key={listing.id} className={`${rowClass} market-feed-entry`}>
                   <Link href={`/market/${listing.id}`} className="market-feed-row-link" aria-label={locale==='ID'?`Buka ${listing.title}`:`Open ${listing.title}`}>{content}</Link>
                   {!listing.isOwner&&<div className="market-feed-row-actions">
-                    {listing.type==='WTS'&&items.length===1&&items[0].quantity>0&&<button type="button" className="button secondary is-icon-only market-feed-add-cart" title={locale==='ID'?'Tambahkan 1 kartu ke keranjang':'Add 1 card to cart'} aria-label={locale==='ID'?'Tambahkan 1 kartu ke keranjang':'Add 1 card to cart'} onClick={event=>{event.preventDefault();event.stopPropagation();addFeedListingToCart(listing,items[0].printingId,locale)}}><Cart size={17}/></button>}
+                    {listing.type==='WTS'&&items.length===1&&items[0].quantity>0&&<MarketFeedCartButton listing={listing} printingId={items[0].printingId} locale={locale}/>}
                     <SaveListingButton listingId={listing.id} language={locale} iconOnly/>
                   </div>}
                 </article>;
@@ -1150,7 +1159,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
       <Dialog open={open} onOpenChange={next=>{if(!next)configLoadVersion.current++;setOpen(next)}}>
         <DialogContent className="listing-dialog market-sell-dialog">
           <div className="market-sell-heading">
-            <div className="market-sell-heading-actions"><span>{locale==='ID'?'BUAT LISTING':'CREATE LISTING'}</span><button type="button" className="market-sell-manage-listings" onClick={()=>{setOpen(false);setAccountPanel('listings')}}><ClipboardText size={15}/>{locale==='ID'?'Listing saya':'My listings'}</button></div>
+            <div className="market-sell-heading-actions"><span>{locale==='ID'?'BUAT LISTING':'CREATE LISTING'}</span><button type="button" className="market-sell-manage-listings" onClick={()=>{setOpen(false);setQuickPanel(null);setAccountPanel('listings')}}><ClipboardText size={15}/>{locale==='ID'?'Listing saya':'My listings'}</button></div>
             <DialogTitle>
               {configuringCard
                 ? (locale==='ID'?'Konfigurasi kartu.':'Configure card.')
@@ -1593,8 +1602,8 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
       </Dialog>
       {bulkListingOpen&&<BulkListingModal open={bulkListingOpen} onClose={()=>setBulkListingOpen(false)} language={locale} stacks={groupVaultStacks((data?.collection??[]).map(item=>enrichCollectionItem(item,new Set())))} onPublished={async()=>{await refresh();await refreshAccount()}}/>}
       {publishedShare&&<ShareButton title={publishedShare.title} path={`/market/${encodeURIComponent(publishedShare.id)}`} cards={publishedShare.cards.map(item=>({card:printingToCard(item.card,item.printing),quantity:item.quantity,condition:item.condition,unitAmount:item.unitAmount}))} subtitle={locale==='ID'?`${publishedShare.cards.reduce((sum,item)=>sum+item.quantity,0)} kartu untuk dijual`:`${publishedShare.cards.reduce((sum,item)=>sum+item.quantity,0)} cards for sale`} price={formatMoney(publishedShare.price,'IDR')} openOnMount hideTrigger onOpenChange={open=>{if(!open)setPublishedShare(null)}}/>}
-      {data&&<Dialog open={Boolean(accountPanel)} onOpenChange={open=>{if(!open)setAccountPanel(null)}}><DialogContent className="market-account-dialog"><div className="market-account-dialog-heading"><DialogTitle>{accountPanel==='saved'?(locale==='ID'?'Listing tersimpan':'Saved listings'):accountPanel==='orders'?(locale==='ID'?'Pesanan Market':'Market orders'):accountPanel==='offers'?(locale==='ID'?'Penawaran':'Offers'):(locale==='ID'?'Listing saya':'My listings')}</DialogTitle></div><div className="market-account-dialog-tabs" role="tablist" aria-label={locale==='ID'?'Aktivitas Market':'Market activity'}><button type="button" role="tab" aria-selected={accountPanel==='listings'} className={accountPanel==='listings'?'is-active':''} onClick={()=>setAccountPanel('listings')}>{locale==='ID'?'Listing':'Listings'}{activityCounts.listings>0&&<span className="market-activity-badge">{activityCounts.listings>99?'99+':activityCounts.listings}</span>}</button><button type="button" role="tab" aria-selected={accountPanel==='offers'} className={accountPanel==='offers'?'is-active':''} onClick={()=>setAccountPanel('offers')}>{locale==='ID'?'Penawaran':'Offers'}{activityCounts.offers>0&&<span className="market-activity-badge">{activityCounts.offers>99?'99+':activityCounts.offers}</span>}</button><button type="button" role="tab" aria-selected={accountPanel==='orders'} className={accountPanel==='orders'?'is-active':''} onClick={()=>setAccountPanel('orders')}>{locale==='ID'?'Pesanan':'Orders'}{activityCounts.orders>0&&<span className="market-activity-badge">{activityCounts.orders>99?'99+':activityCounts.orders}</span>}</button><button type="button" role="tab" aria-selected={accountPanel==='saved'} className={accountPanel==='saved'?'is-active':''} onClick={()=>setAccountPanel('saved')}>{locale==='ID'?'Tersimpan':'Saved'}</button></div><div className="market-account-dialog-body">{accountPanel==='saved'?<SavedListings language={locale}/>:accountPanel==='orders'?<OrdersTab language={locale} initialOrderId={searchParams.get('order')}/>:accountPanel==='offers'?<OffersTab language={locale} initialConversationId={searchParams.get('conversation')}/>:<ListingsTab language={locale} onCreateListing={()=>{setAccountPanel(null);beginListing()}}/>}</div></DialogContent></Dialog>}
-      {data&&<MarketQuickPanel panel={quickPanel} onOpenChange={open=>{if(!open)setQuickPanel(null)}} locale={locale} account={data} onRefresh={refreshAccount} onSaved={async()=>{await refreshAccount();setQuickPanel(null)}}/>}
+
+      {data&&<MarketQuickPanel panel={accountPanel??quickPanel} onOpenChange={open=>{if(!open){setAccountPanel(null);setQuickPanel(null)}}} onPanelChange={next=>{if(next==='listings'||next==='offers'||next==='orders'||next==='saved'){setQuickPanel(null);setAccountPanel(next)}else{setAccountPanel(null);setQuickPanel(next)}}} onCreateListing={()=>{setAccountPanel(null);setQuickPanel(null);beginListing()}} locale={locale} account={data} activityCounts={activityCounts} initialOrderId={searchParams.get('order')} initialConversationId={searchParams.get('conversation')} onRefresh={refreshAccount} onSaved={async()=>{await refreshAccount();setAccountPanel(null);setQuickPanel(null)}}/>}
       <AddEditItemModal
         key={`${marketVaultCard?.id??'market-card'}-${marketVaultOpen?'open':'closed'}`}
         open={marketVaultOpen}

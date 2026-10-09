@@ -293,3 +293,46 @@ html[data-theme='dark'] .market-account-menu [data-slot='dropdown-menu-separator
  .market-quick-vault-actions{align-items:stretch;flex-direction:column}
  .market-quick-vault-actions .button,.market-quick-vault-actions .market-quick-secondary{justify-content:center}
 }
+.market-account-unified{width:min(1040px,calc(100vw - 28px))!important;max-width:1040px!important;max-height:min(90dvh,940px)!important;display:flex!important;flex-direction:column!important;gap:14px!important;overflow:hidden!important}
+.market-account-unified-heading{display:grid;grid-template-columns:46px minmax(0,1fr) auto;grid-template-rows:auto auto;align-items:center;column-gap:12px;row-gap:3px;padding-right:34px}
+.market-account-unified-avatar,.market-profile-quick-avatar{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:color-mix(in srgb,var(--accent) 15%,var(--surface));color:var(--accent);font-size:18px;font-weight:800}
+.market-account-unified-heading>.market-account-unified-avatar{grid-row:1 / span 2}
+.market-account-unified-heading [data-slot='dialog-body']{gap:2px!important}
+.market-account-unified-heading [data-slot='dialog-title']{font-size:17px!important;line-height:1.2}
+.market-account-unified-heading [data-slot='dialog-description']{font-size:11px!important}
+.market-account-unified-heading .market-account-section-title{grid-column:2 / -1;color:var(--muted);font-size:11px;font-weight:650}
+.market-account-unified-tabs{display:flex;align-items:center;gap:4px;overflow-x:auto;padding:4px;border:1px solid var(--line);border-radius:11px;background:var(--surface);scrollbar-width:thin}
+.market-account-unified-tabs button{position:relative;display:inline-flex;flex:1 0 auto;align-items:center;justify-content:center;gap:7px;min-height:40px;padding:0 12px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--muted);font:700 12px var(--game-font);white-space:nowrap;cursor:pointer;transition:color .15s,background-color .15s,border-color .15s}
+.market-account-unified-tabs button:hover{color:var(--ink);background:color-mix(in srgb,var(--accent) 5%,var(--surface))}
+.market-account-unified-tabs button.is-active{border-color:var(--line);background:var(--surface-raised);color:var(--ink);box-shadow:0 1px 3px rgb(20 27 24 / .08)}
+.market-account-unified-tabs .market-activity-badge{height:17px;min-width:17px;font-size:9px}
+.market-account-mobile-select{display:none;align-items:center;gap:10px;color:var(--muted);font-size:11px;font-weight:700}
+.market-account-mobile-select select{flex:1;min-width:0;min-height:42px;padding:0 11px;border:1px solid var(--line);border-radius:9px;background:var(--surface-raised);color:var(--ink);font:700 13px var(--game-font)}
+.market-account-unified-body{min-height:0;overflow:auto;overscroll-behavior:contain;padding:0 2px 2px}
+.market-vault-quick-summary{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px;padding:14px 16px;border:1px solid var(--line);border-radius:11px;background:var(--surface)}
+.market-vault-quick-summary>div{display:flex;align-items:baseline;gap:8px;min-width:0}.market-vault-quick-summary strong{font-size:22px;font-variant-numeric:tabular-nums}.market-vault-quick-summary span{color:var(--muted);font-size:12px}
+.market-vault-quick-summary>a{display:inline-flex;align-items:center;gap:6px;color:var(--accent);font-size:12px;font-weight:750;text-decoration:none;white-space:nowrap}
+.market-account-unified-body.is-vault .market-quick-vault-list{grid-template-columns:repeat(2,minmax(0,1fr));max-height:none;gap:5px}
+.market-account-unified-body.is-vault .market-quick-vault-row{border-color:var(--line);background:var(--surface-raised)}
+.market-account-unified-body.is-vault .market-quick-vault-actions{margin-top:12px}
+.market-account-unified-body.is-profile{max-width:600px}
+.market-profile-quick-identity{display:flex;align-items:center;gap:12px;margin-bottom:16px;padding:14px;border:1px solid var(--line);border-radius:11px;background:var(--surface)}
+.market-profile-quick-identity>span:last-child{display:grid;gap:3px;min-width:0}.market-profile-quick-identity strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}.market-profile-quick-identity small{color:var(--muted);font-size:11px}
+.market-account-unified-body.is-profile .market-quick-profile-form{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.market-account-unified-body.is-profile .market-quick-profile-form button{grid-column:1/-1;justify-self:start;min-width:180px}
+.market-account-unified-body.is-profile .market-quick-secondary{max-width:260px}
+.market-account-unified-body.is-wishlist .wishlist-header{align-items:center}
+.market-account-unified-body.is-wishlist .wishlist-tab{padding:0}
+html[data-theme='dark'] .market-account-unified-tabs{background:#081821}
+html[data-theme='dark'] .market-account-unified-tabs button.is-active{background:#102732}
+@media(max-width:760px){
+ .market-account-unified{width:calc(100vw - 16px)!important;max-height:calc(100dvh - 16px)!important;padding:14px!important;gap:10px!important}
+ .market-account-unified-tabs{display:none}
+ .market-account-mobile-select{display:flex}
+ .market-account-unified-heading{grid-template-columns:40px minmax(0,1fr) auto;column-gap:10px;padding-right:32px}
+ .market-account-unified-avatar{width:38px;height:38px;font-size:15px}
+ .market-account-unified-body.is-vault .market-quick-vault-list{grid-template-columns:minmax(0,1fr)}
+ .market-account-unified-body.is-profile .market-quick-profile-form{grid-template-columns:minmax(0,1fr)}
+ .market-account-unified-body.is-profile .market-quick-profile-form button{grid-column:1}
+}
+@media(max-width:520px){.market-account-unified{padding:12px!important}.market-vault-quick-summary{align-items:flex-start;flex-direction:column;gap:8px}.market-account-unified-heading .market-account-section-title{font-size:10px}}

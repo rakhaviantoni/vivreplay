@@ -2,7 +2,7 @@
 
 import {useCallback,useEffect,useMemo,useState} from 'react';
 import {useRouter} from 'next/navigation';
-import {ArrowRightIcon as ArrowRight,ShoppingCartIcon as Cart,TrashIcon as Trash} from '@phosphor-icons/react';
+import {ArrowRightIcon as ArrowRight,MinusIcon as Minus,PlusIcon as Plus,ShoppingCartIcon as Cart,TrashIcon as Trash} from '@phosphor-icons/react';
 import {formatMoney} from '@/packages/domain';
 import {Sheet,SheetContent,SheetHeader,SheetTitle} from '@/components/ui/sheet';
 
@@ -60,13 +60,21 @@ export function MarketCartSheet({locale='EN'}:{locale:'EN'|'ID'}){
   },[changeOpen]);
 
   const removeListing=(listingId:string)=>{
-    const next={...cart,lines:cart.lines.filter(line=>line.listingId!==listingId)};
+    const lines=cart.lines.filter(line=>line.listingId!==listingId);
+    const next={...cart,lines,sellerId:lines.length?cart.sellerId:''};
     setCart(next);window.localStorage.setItem(CART_KEY,JSON.stringify(next));window.dispatchEvent(new Event('vivreplay:market-cart-updated'));
     setListings(current=>current.filter(listing=>listing.id!==listingId));setUnavailableIds(current=>current.filter(id=>id!==listingId));
   };
+  const updateQuantity=(listingId:string,printingId:string,quantity:number)=>{
+    const available=listings.find(listing=>listing.id===listingId)?.items.find(item=>item.printingId===printingId)?.quantity??0;
+    const nextQuantity=Math.max(0,Math.min(available,99,quantity));
+    const lines=cart.lines.map(line=>line.listingId===listingId?{...line,items:line.items.map(item=>item.printingId===printingId?{...item,quantity:nextQuantity}:item).filter(item=>item.quantity>0)}:line).filter(line=>line.items.length>0);
+    const next={...cart,lines,sellerId:lines.length?cart.sellerId:''};
+    setCart(next);window.localStorage.setItem(CART_KEY,JSON.stringify(next));window.dispatchEvent(new Event('vivreplay:market-cart-updated'));
+  };
   const clearCart=()=>{window.localStorage.removeItem(CART_KEY);setCart(emptyCart);setListings([]);setUnavailableIds([]);window.dispatchEvent(new Event('vivreplay:market-cart-updated'))};
   const continueToCheckout=()=>{setOpen(false);router.push('/checkout/market?cart=1')};
-  const unavailableSelection=cart.lines.some(line=>{const listing=listings.find(item=>item.id===line.listingId);return !listing||line.items.some(selected=>!listing.items.some(item=>item.printingId===selected.printingId))});
+  const unavailableSelection=cart.lines.some(line=>{const listing=listings.find(item=>item.id===line.listingId);return !listing||line.items.some(selected=>{const item=listing.items.find(candidate=>candidate.printingId===selected.printingId);return !item||selected.quantity>item.quantity})});
   const mixedCurrencies=new Set(listings.map(listing=>listing.currency)).size>1;
   const disabled=!cart.lines.length||loading||Boolean(error)||unavailableIds.length>0||unavailableSelection||mixedCurrencies;
 
@@ -81,11 +89,11 @@ export function MarketCartSheet({locale='EN'}:{locale:'EN'|'ID'}){
             const listing=listings.find(item=>item.id===line.listingId);
             const selectedItems=line.items.map(selected=>{
               const item=listing?.items.find(candidate=>candidate.printingId===selected.printingId);
-              return item?{...item,quantity:selected.quantity,unavailable:false}:{printingId:selected.printingId,name:selected.printingId,code:selected.printingId,quantity:selected.quantity,unitAmount:0,condition:'',unavailable:true};
+              return item?{...item,availableQuantity:item.quantity,quantity:selected.quantity,unavailable:false}:{printingId:selected.printingId,name:selected.printingId,code:selected.printingId,quantity:selected.quantity,availableQuantity:0,unitAmount:0,condition:'',unavailable:true};
             });
             return <article className={`market-cart-sheet-listing${!listing?' is-unavailable':''}`} key={line.listingId}>
               <header><div><strong>{listing?.title??line.listingTitle??(isId?'Listing tidak tersedia':'Listing unavailable')}</strong><small>{listing?.seller??''}</small></div><button type="button" className="market-cart-sheet-remove" onClick={()=>removeListing(line.listingId)} aria-label={isId?'Hapus listing dari keranjang':'Remove listing from cart'}><Trash size={16}/></button></header>
-              {listing?selectedItems.map(item=><div className="market-cart-sheet-item" key={item.printingId}><div><strong>{item.name} × {item.quantity}</strong><small>{item.code}{item.condition?` · ${item.condition}`:''}</small></div><b>{item.unavailable?'—':formatMoney(item.unitAmount*item.quantity,listing.currency)}</b></div>):<p className="market-cart-sheet-unavailable">{isId?'Listing ini perlu dihapus sebelum checkout.':'Remove this listing before checkout.'}</p>}
+              {listing?selectedItems.map(item=><div className="market-cart-sheet-item" key={item.printingId}><div><strong>{item.name}</strong><small>{item.code}{item.condition?` · ${item.condition}`:''}</small><span className="market-cart-sheet-quantity"><button type="button" aria-label={isId?'Kurangi jumlah':'Decrease quantity'} disabled={item.unavailable||item.quantity<=0} onClick={()=>updateQuantity(line.listingId,item.printingId,item.quantity-1)}><Minus size={14}/></button><b>{item.quantity}</b><button type="button" aria-label={isId?'Tambah jumlah':'Increase quantity'} disabled={item.unavailable||item.quantity>=item.availableQuantity||item.quantity>=99} onClick={()=>updateQuantity(line.listingId,item.printingId,item.quantity+1)}><Plus size={14}/></button><small>{isId?`dari ${item.availableQuantity}`:`of ${item.availableQuantity} available`}</small></span></div><b>{item.unavailable?'—':formatMoney(item.unitAmount*item.quantity,listing.currency)}</b></div>):<p className="market-cart-sheet-unavailable">{isId?'Listing ini perlu dihapus sebelum checkout.':'Remove this listing before checkout.'}</p>}
             </article>
           })}
         </>}

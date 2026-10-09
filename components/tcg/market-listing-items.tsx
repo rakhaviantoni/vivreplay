@@ -5,7 +5,7 @@ import {SaveListingButton,WishlistButton} from './market-saved';
 import {MarketReputation} from './market-reputation';
 import {useRouter} from 'next/navigation';
 import {useCallback,useEffect,useMemo,useRef,useState,type FormEvent} from 'react';
-import {ArrowClockwiseIcon as Renew,ArrowLeftIcon, InfoIcon as Info, MinusIcon as Minus, PlusIcon as Plus, ShoppingCartIcon as Cart, TruckIcon as Truck, XIcon as X} from '@phosphor-icons/react';
+import {ArrowClockwiseIcon as Renew,ArrowLeftIcon, CheckIcon as Check, InfoIcon as Info, MinusIcon as Minus, PlusIcon as Plus, ShoppingCartIcon as Cart, TruckIcon as Truck, XIcon as X} from '@phosphor-icons/react';
 import type {Card} from '@/packages/card-data/catalog';
 import {formatMoney,Listing} from '@/packages/domain';
 import {CardArt} from './card-art';
@@ -283,6 +283,19 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
   const [offerJustSent,setOfferJustSent]=useState(false);
   const [offerCheckComplete,setOfferCheckComplete]=useState(false);
   const [language,setLanguage]=useState<'EN'|'ID'>('EN');
+  const [cartQuantities,setCartQuantities]=useState<Record<string,number>>({});
+
+  useEffect(()=>{
+    const sync=()=>{
+      try{
+        const cart=JSON.parse(window.localStorage.getItem('vivreplay-market-cart-v1')||'null') as {lines?:Array<{listingId:string;items?:Array<{printingId:string;quantity:number}>}>}|null;
+        const line=cart?.lines?.find(entry=>entry.listingId===listingId);
+        setCartQuantities(Object.fromEntries((line?.items??[]).map(item=>[item.printingId,item.quantity])));
+      }catch{setCartQuantities({})}
+    };
+    sync();window.addEventListener('vivreplay:market-cart-updated',sync);window.addEventListener('storage',sync);
+    return()=>{window.removeEventListener('vivreplay:market-cart-updated',sync);window.removeEventListener('storage',sync)};
+  },[listingId]);
 
   useEffect(()=>{
     if(!singleCopyListing)return;
@@ -309,6 +322,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
   },[items]);
 
   const selectedCount=useMemo(()=>Object.values(selected).reduce((total,amount)=>total+amount,0),[selected]);
+  const selectionInCart=selectedCount>0&&items.every(item=>{const quantity=selected[item.id]??0;return quantity===0||(cartQuantities[item.id]??0)>=quantity});
   const publicListingTotal=useMemo(()=>items.reduce((total,item)=>total+item.quantity*item.unitAmount,0),[items]);
   const originalTotal=useMemo(()=>items.reduce((total,item)=>total+(selected[item.id]??0)*item.unitAmount,0),[items,selected]);
   const selectedTotal=useMemo(()=>items.reduce((total,item)=>{
@@ -400,6 +414,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
   };
   const addSelectedToCart=()=>{
     if(!session){window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));return;}
+    if(selectionInCart){window.dispatchEvent(new Event('vivreplay:open-market-cart'));return;}
     const cartKey='vivreplay-market-cart-v1';
     let cart:{sellerId:string;lines:{listingId:string;listingTitle:string;items:{printingId:string;quantity:number}[]}[]}={sellerId:sellerId??'',lines:[]};
     try{const saved=JSON.parse(window.localStorage.getItem(cartKey)||'null');if(saved&&Array.isArray(saved.lines))cart=saved;}catch{}
@@ -407,10 +422,10 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
     cart.sellerId=sellerId??cart.sellerId;
     if(!cart.lines.some(line=>line.listingId===listingId)&&cart.lines.length>=10){toast.error(t('A cart can hold listings from up to 10 of this seller’s listings.','Keranjang dapat berisi hingga 10 listing dari penjual ini.'));return;}const incoming=items.flatMap(item=>selected[item.id]?[{printingId:item.id,quantity:Math.min(99,selected[item.id])}]:[]);
     const current=cart.lines.find(line=>line.listingId===listingId);
-    if(current){for(const item of incoming){const existing=current.items.find(line=>line.printingId===item.printingId);if(existing)existing.quantity=Math.min(99,existing.quantity+item.quantity);else current.items.push(item);}}
+    if(current){for(const item of incoming){const existing=current.items.find(line=>line.printingId===item.printingId);const available=items.find(listingItem=>listingItem.id===item.printingId)?.quantity??item.quantity;if(existing)existing.quantity=Math.min(99,available,Math.max(existing.quantity,item.quantity));else current.items.push({...item,quantity:Math.min(99,available,item.quantity)});}}
     else cart.lines.push({listingId,listingTitle:listingTitle??t('Card listing','Listing kartu'),items:incoming});
     window.localStorage.setItem(cartKey,JSON.stringify(cart));window.dispatchEvent(new Event('vivreplay:market-cart-updated'));
-    toast.success(t('Added to cart','Ditambahkan ke keranjang'),{action:{label:t('View cart','Lihat keranjang'),onClick:()=>window.dispatchEvent(new Event('vivreplay:open-market-cart'))}});
+    toast.success(current?t('Cart updated','Keranjang diperbarui'):t('Added to cart','Ditambahkan ke keranjang'),{action:{label:t('View cart','Lihat keranjang'),onClick:()=>window.dispatchEvent(new Event('vivreplay:open-market-cart'))}});
   };
 
   return <section className="market-listing-cards" aria-labelledby="listing-cards-heading">
@@ -612,7 +627,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
       </div>
       <div className="market-listing-selection-actions">
         {isBuying&&<button type="button" className="button market-buy-selected" disabled={!selectedCount||submitting} onClick={buySelected}>{singleCopyListing?t('Buy now','Beli sekarang'):t('Buy selected','Beli pilihan')}</button>}
-        {isBuying&&!readOnly&&<button type="button" className="button secondary market-add-cart" title={t('Add selected cards to cart','Tambahkan kartu pilihan ke keranjang')} aria-label={t('Add selected cards to cart','Tambahkan kartu pilihan ke keranjang')} disabled={!selectedCount||submitting} onClick={addSelectedToCart}><Cart size={18}/></button>}
+        {isBuying&&!readOnly&&<button type="button" className={`button secondary market-add-cart${selectionInCart?' is-in-cart':''}`} title={selectionInCart?t('In cart — view cart','Sudah di keranjang — lihat keranjang'):t('Add selected cards to cart','Tambahkan kartu pilihan ke keranjang')} aria-label={selectionInCart?t('In cart — view cart','Sudah di keranjang — lihat keranjang'):t('Add selected cards to cart','Tambahkan kartu pilihan ke keranjang')} aria-pressed={selectionInCart} disabled={!selectedCount||submitting} onClick={addSelectedToCart}>{selectionInCart?<Check size={18}/>:<Cart size={18}/>}</button>}
         {activeOffer&&<button type="button" className="button" onClick={()=>openOfferConversation(activeOffer.id)}>{activeOffer.viewerIsActor?t('See offer','Lihat penawaran'):t('Review counteroffer','Tinjau penawaran balik')}</button>}
         {!activeOffer&&acceptsOffers&&<button type="button" className="button" disabled={!selectedCount||submitting||!offerCheckComplete} onClick={continueOffer}>{submitting?t('Sending...','Mengirim...'):!offerCheckComplete?t('Checking offer…','Memeriksa penawaran…'):session?(hasPriceAdjustments?t('Submit offer','Kirim penawaran'):actionLabel):(language==='ID'?`Masuk untuk ${isBuying?'menawar':'menawarkan'}`:`Sign in to ${actionLabel.toLowerCase()}`)}</button>}
         <ShareButton
