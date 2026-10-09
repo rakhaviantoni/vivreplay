@@ -1,7 +1,6 @@
 import {database} from '@/lib/server/database';
 import {supabaseAdmin} from '@/lib/server/supabase-storage';
 import {isPlayableSet,PREVIEW_CARD_CODES} from '@/packages/domain/release-availability';
-import {gameId} from '@/packages/card-data/catalog';
 
 type IdentityRow={id:string;code:string;name:string;color:string;card_type:string;cost:number;power:number;effect_text:string;rarity?:string|null;imageUrl?:string;set_code?:string|null;tcg_card_printings?:Array<{language:string;rarity:string|null;set_code:string|null;card_image_url:string|null;tcg_card_assets?:Array<{kind:string;object_key:string}>}>};
 type SearchFilters={terms:string[];setCode?:string;rarity?:string;cardType?:string;cost?:number};
@@ -30,8 +29,8 @@ function parseSearch(query:string):SearchFilters{
 }
 
 async function fromD1(filters:SearchFilters){
-  const where=['i.game_id=?'];
-  const values:(string|number)[]=[gameId];
+  const where=["i.game_id=(SELECT id FROM tcg_games WHERE slug=?)"];
+  const values:(string|number)[]=['one-piece'];
   if(filters.terms.length){
     where.push('i.id IN (SELECT identity_id FROM tcg_card_identity_search WHERE tcg_card_identity_search MATCH ?)');
     values.push(filters.terms.map(term=>`${term}*`).join(' AND '));
