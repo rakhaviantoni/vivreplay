@@ -72,9 +72,10 @@ function ProfileQuickEdit({profile,locale,onSaved}:{profile:Record<string,unknow
   const [saving,setSaving]=useState(false);
   const [tab,setTab]=useState<ProfileQuickTab>('account');
   const [shipping,setShipping]=useState<Record<string,unknown>|null>(null);
+  const [pendingProCount,setPendingProCount]=useState(0);
   const isPro=String(profile.tier??'free').toLowerCase()==='pro';
   const t=(en:string,id:string)=>locale==='ID'?id:en;
-  useEffect(()=>{let live=true;api<{origin:Record<string,unknown>|null}>('/api/shipping/origin').then(value=>{if(live)setShipping(value.origin)}).catch(()=>{if(live)setShipping(null)});return()=>{live=false}},[]);
+  useEffect(()=>{let live=true;api<{origin:Record<string,unknown>|null}>('/api/shipping/origin').then(value=>{if(live)setShipping(value.origin)}).catch(()=>{if(live)setShipping(null)});fetch('/api/checkout/pro/orders',{cache:'no-store'}).then(response=>response.ok?response.json() as Promise<{orders?:{status?:string}[]}>:null).then(value=>{if(live&&value&&Array.isArray(value.orders))setPendingProCount(value.orders.filter(order=>order.status==='PENDING_PAYMENT').length)}).catch(()=>undefined);return()=>{live=false}},[]);
   const submit=async(event:FormEvent<HTMLFormElement>)=>{
     event.preventDefault();setSaving(true);
     try{await api('/api/profile',{username:String(profile.username??''),displayName,phone,region:String(profile.region??'ID'),currency:String(profile.currency??'IDR'),timezone:String(profile.timezone??'Asia/Jakarta'),locale:String(profile.locale??'en')});await onSaved();toast.success(locale==='ID'?'Profil diperbarui':'Profile updated')}
@@ -82,7 +83,7 @@ function ProfileQuickEdit({profile,locale,onSaved}:{profile:Record<string,unknow
     finally{setSaving(false)}
   };
   return <div className="market-profile-quick"><div className="market-profile-quick-identity"><span className="market-profile-quick-avatar">{String(profile.display_name??profile.username??'V').slice(0,1).toUpperCase()}</span><span><strong>{String(profile.display_name||`@${profile.username}`)}</strong><small>@{String(profile.username??'')}</small></span>{isPro&&<span className="market-pro-user-badge"><Crown size={13} weight="fill"/>Pro</span>}</div>
-    <nav className="market-profile-quick-tabs" role="tablist" aria-label={t('Profile sections','Bagian profil')}>{(['account','delivery','membership','payouts'] as const).map(key=><button type="button" role="tab" aria-selected={tab===key} key={key} className={tab===key?'is-active':''} onClick={()=>setTab(key)}>{key==='account'?<User size={15}/>:key==='delivery'?<Truck size={15}/>:key==='membership'?<Crown size={15}/>:<Wallet size={15}/>}<span>{key==='account'?t('Account','Akun'):key==='delivery'?t('Delivery','Pengiriman'):key==='membership'?'Market Pro':t('Payouts','Pencairan')}</span></button>)}</nav>
+    <nav className="market-profile-quick-tabs" role="tablist" aria-label={t('Profile sections','Bagian profil')}>{(['account','delivery','membership','payouts'] as const).map(key=><button type="button" role="tab" aria-selected={tab===key} key={key} className={tab===key?'is-active':''} onClick={()=>setTab(key)}>{key==='account'?<User size={15}/>:key==='delivery'?<Truck size={15}/>:key==='membership'?<Crown size={15}/>:<Wallet size={15}/>}<span>{key==='account'?t('Account','Akun'):key==='delivery'?t('Delivery','Pengiriman'):key==='membership'?'Market Pro':t('Payouts','Pencairan')}</span>{key==='membership'&&pendingProCount>0&&<b className="market-activity-badge">{pendingProCount>99?'99+':pendingProCount}</b>}</button>)}</nav>
     {tab==='account'?<form className="market-quick-profile-form" onSubmit={submit}>
       <label>{t('Display name','Nama tampilan')}<input required minLength={2} maxLength={50} value={displayName} onChange={event=>setDisplayName(event.target.value)}/></label>
       <label>{t('Phone number','Nomor telepon')}<input type="tel" maxLength={24} value={phone} onChange={event=>setPhone(event.target.value)} placeholder="+62"/></label>

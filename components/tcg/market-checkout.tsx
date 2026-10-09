@@ -16,13 +16,14 @@ import {MARKET_BUYER_FEE_PERCENT,MARKET_PRO_BUYER_FEE_PERCENT,MARKET_PRO_SHIPPIN
 type Origin={addressLine:string;city:string;postalCode:string;areaId:string|null;recipientName:string|null;phone:string|null;latitude?:number|null;longitude?:number|null;regionNames?:{province?:string;district?:string;subdistrict?:string}};
 type Rate={courier_name:string;courier_service_name:string;courier_code:string;courier_service_code:string;company:string;type:string;price:number;duration?:string};
 type CheckoutLine={printingId:string;quantity:number;unitAmount?:number};
-type CartLine={listingId:string;listingTitle:string;items:CheckoutLine[]};
+type CartLine={listingId:string;listingTitle:string;sellerId?:string;items:CheckoutLine[]};
 
 export function MarketCheckout(){
   const params=useSearchParams();
   const router=useRouter();
   const {data:account,loading:accountLoading,error:accountError}=useAccount();
   const cartMode=params.get('cart')==='1';
+  const requestedSellerId=params.get('seller')??'';
   const [cartLines,setCartLines]=useState<CartLine[]>([]);const [cartReady,setCartReady]=useState(!cartMode);
   const listingId=params.get('listing')??cartLines[0]?.listingId??'';
   const offerId=params.get('offer')??'';
@@ -57,7 +58,7 @@ export function MarketCheckout(){
   const t=(en:string,idText:string)=>id?idText:en;
 
   useEffect(()=>{const sync=()=>setLocale(window.localStorage.getItem('vivreplay-locale')==='ID'?'ID':'EN');const onLocale=(event:Event)=>setLocale((event as CustomEvent<'EN'|'ID'>).detail==='ID'?'ID':'EN');sync();window.addEventListener('vivreplay:locale',onLocale);return()=>window.removeEventListener('vivreplay:locale',onLocale)},[]);
-  useEffect(()=>{if(!cartMode)return;try{const cart=JSON.parse(window.localStorage.getItem('vivreplay-market-cart-v1')||'null');setCartLines(Array.isArray(cart?.lines)?cart.lines.filter((line:CartLine)=>line?.listingId&&Array.isArray(line.items)&&line.items.length):[])}catch{setCartLines([])}finally{setCartReady(true)}},[cartMode]);
+  useEffect(()=>{if(!cartMode)return;try{const cart=JSON.parse(window.localStorage.getItem('vivreplay-market-cart-v1')||'null');const lines=Array.isArray(cart?.lines)?cart.lines.filter((line:CartLine)=>line?.listingId&&Array.isArray(line.items)&&line.items.length).map((line:CartLine)=>({...line,sellerId:line.sellerId??cart.sellerId??''})):[];setCartLines(requestedSellerId?lines.filter((line:CartLine)=>line.sellerId===requestedSellerId):lines)}catch{setCartLines([])}finally{setCartReady(true)}},[cartMode,requestedSellerId]);
   useEffect(()=>{
     if(accountLoading)return;
     if(!account){setLoading(false);return;}
@@ -69,15 +70,18 @@ export function MarketCheckout(){
       api<{available:boolean;sandbox?:boolean;buyerTier?:'free'|'pro';shippingVouchersRemaining?:number}>('/api/checkout/market',undefined,'GET'),
     ]).then(([market,shipping,checkout])=>{
       if(!active)return;
-      const selectedListings=cartMode?cartLines.map(line=>market.listings.find(row=>row.id===line.listingId)).filter((row):row is Listing=>Boolean(row)):[market.listings.find(row=>row.id===listingId)].filter((row):row is Listing=>Boolean(row));
-      if(cartMode&&selectedListings.length!==cartLines.length)throw new Error(t('A listing in your cart is no longer available. Remove it and try again.','Salah satu listing di keranjang sudah tidak tersedia. Hapus listing tersebut lalu coba lagi.'));setCartListings(selectedListings);setListing(selectedListings[0]);
+      let checkoutLines=cartLines;
+      if(cartMode&&!requestedSellerId&&cartLines.length){const firstListing=market.listings.find(row=>row.id===cartLines[0].listingId);if(firstListing)checkoutLines=cartLines.filter(line=>market.listings.find(row=>row.id===line.listingId)?.sellerId===firstListing.sellerId);}
+      if(cartMode&&checkoutLines.length!==cartLines.length)setCartLines(checkoutLines);
+      const selectedListings=cartMode?checkoutLines.map(line=>market.listings.find(row=>row.id===line.listingId)).filter((row):row is Listing=>Boolean(row)):[market.listings.find(row=>row.id===listingId)].filter((row):row is Listing=>Boolean(row));
+      if(cartMode&&selectedListings.length!==checkoutLines.length)throw new Error(t('A listing in your cart is no longer available. Remove it and try again.','Salah satu listing di keranjang sudah tidak tersedia. Hapus listing tersebut lalu coba lagi.'));setCartListings(selectedListings);setListing(selectedListings[0]);
       setOrigin(shipping.origin??undefined);
       setCheckoutAvailable(checkout.available);
       setBuyerTier(checkout.buyerTier==='pro'?'pro':'free');
       setShippingVouchersRemaining(checkout.shippingVouchersRemaining??0);
     }).catch(cause=>{if(active)setDetailsError(cause instanceof Error?cause.message:'Checkout details could not load.')}).finally(()=>{if(active)setLoading(false)});
     return()=>{active=false};
-  },[account?.profile.id,accountLoading,listingId,cartMode,cartLines]);
+  },[account?.profile.id,accountLoading,listingId,cartMode,cartLines,requestedSellerId]);
 
   const selectedCards=useMemo(()=>{
     const sourceLines=cartMode?cartLines.map(line=>({listing:cartListings.find(row=>row.id===line.listingId),items:line.items})).filter(line=>line.listing):[{listing,items}];
@@ -148,7 +152,7 @@ export function MarketCheckout(){
       const result=await response.json() as {checkoutUrl?:string;error?:string};
       if(response.status===409&&result.error?.includes('delivery fee changed')){await loadQuotes(true);throw new Error(t('Delivery fees changed. Review the updated options before paying.','Ongkir berubah. Periksa opsi terbaru sebelum membayar.'));}
       if(!response.ok||!result.checkoutUrl)throw new Error(result.error??t('Checkout could not be started.','Checkout tidak dapat dimulai.'));
-      if(cartMode){window.localStorage.removeItem('vivreplay-market-cart-v1');window.dispatchEvent(new Event('vivreplay:market-cart-updated'));}
+      if(cartMode){const stored=JSON.parse(window.localStorage.getItem('vivreplay-market-cart-v1')||'{"lines":[]}') as {lines?:CartLine[]};const completedIds=new Set(cartLines.map(line=>line.listingId));const remaining=(stored.lines??[]).filter(line=>!completedIds.has(line.listingId));window.localStorage.setItem('vivreplay-market-cart-v1',JSON.stringify({sellerId:'',lines:remaining}));window.dispatchEvent(new Event('vivreplay:market-cart-updated'));}
       router.push(result.checkoutUrl);
     }catch(cause){const message=cause instanceof Error?cause.message:t('Checkout could not be started.','Checkout tidak dapat dimulai.');setError(message);toast.error(message)}finally{setSubmitting(false)}
   };
