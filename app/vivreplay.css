@@ -3609,3 +3609,36 @@ html[data-theme='dark'] .market-listing-status.is-buying{color:#e6b65e!important
 .market-feed-list.is-list .market-feed-copy{min-width:0!important}
 .market-feed-list.is-list .market-feed-meta{display:grid!important;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr)!important;gap:3px 10px!important;min-width:0!important;margin-top:5px!important}
 .market-feed-list.is-list .market-feed-meta>*{min-width:0!important;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* Market feed rows keep their text and action alignment stable on hover. */
+.market-feed-list.is-list .market-feed-row:hover,
+.market-feed-list.is-list .market-feed-row:focus-within{margin-inline:0!important;padding:14px 12px!important}
+.market-feed-list.is-grid .market-feed-row:hover,
+.market-feed-list.is-grid .market-feed-row:focus-within{margin:0!important;padding:16px!important}
+.market-feed-list .market-feed-row:hover .market-feed-copy h2,
+.market-feed-list .market-feed-row:focus-within .market-feed-copy h2,
+.market-feed-list .market-feed-row:hover .market-feed-copy p,
+.market-feed-list .market-feed-row:focus-within .market-feed-copy p,
+.market-feed-list .market-feed-row:hover .market-feed-status,
+.market-feed-list .market-feed-row:focus-within .market-feed-status,
+.market-feed-list .market-feed-row:hover .market-feed-price,
+.market-feed-list .market-feed-row:focus-within .market-feed-price{transform:none!important}
+.market-feed-meta{display:grid!important;justify-items:start;gap:3px!important;width:fit-content;max-width:100%;min-width:0;margin-top:5px!important;line-height:1.35!important}
+.market-feed-meta-primary,.market-feed-meta-secondary{display:flex;align-items:center;flex-wrap:wrap;gap:3px 9px;min-width:0;max-width:100%}
+.market-feed-meta-primary>*{min-width:0}
+.market-feed-meta-secondary{color:var(--muted);font-size:.92em}
+.market-feed-meta-secondary>*{min-width:0;max-width:100%}
+.market-feed-location,.market-feed-seller{display:inline-flex;align-items:center;gap:4px;min-width:0}
+.market-feed-list .market-feed-trade{min-width:0;padding-top:0!important}
+.market-feed-list.is-list .market-feed-trade{align-content:end;justify-items:end;gap:8px}
+.market-feed-list.is-list .market-feed-price{text-align:right}
+.market-feed-list.is-grid .market-feed-trade{padding-top:10px!important}
+.market-feed-entry .market-feed-row-actions{top:10px;right:10px;gap:7px;padding:0}
+.market-feed-entry .market-feed-row-actions .button.is-icon-only{width:36px;min-width:36px;height:36px;min-height:36px;border-radius:10px}
+.market-feed-entry .market-feed-row-actions .button.is-icon-only:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media(max-width:760px){
+ .market-feed-list.is-list .market-feed-row:hover,.market-feed-list.is-list .market-feed-row:focus-within{padding:13px 8px!important}
+ .market-feed-entry .market-feed-row-actions{top:7px;right:7px;gap:5px}
+ .market-feed-entry .market-feed-row-actions .button.is-icon-only{width:34px;min-width:34px;height:34px;min-height:34px}
+}
+.market-feed-list.is-list .market-feed-meta>*{overflow:visible!important;white-space:normal!important;text-overflow:clip!important}

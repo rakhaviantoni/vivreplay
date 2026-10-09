@@ -268,3 +268,28 @@ html[data-theme='dark'] .market-account-menu [data-slot='dropdown-menu-separator
   .market-order-operations>.market-order-shipping-detail,
   .market-order-operations>.market-order-detail-actions{width:100%;max-width:none}
 }
+
+.market-quick-panel.is-wishlist{width:min(980px,calc(100vw - 28px))!important;max-width:980px!important;max-height:min(90dvh,920px)!important;overflow:hidden!important}
+.market-quick-wishlist{min-height:0;max-height:calc(90dvh - 80px);overflow:auto;overscroll-behavior:contain;padding-right:3px}
+.market-quick-wishlist .wishlist-tab{min-width:0}
+.market-quick-vault-list{display:grid;gap:2px;max-height:min(48dvh,420px);overflow:auto;padding:3px 1px;overscroll-behavior:contain}
+.market-quick-vault-row{display:grid;grid-template-columns:42px minmax(0,1fr) 36px;align-items:center;gap:11px;min-width:0;padding:8px 9px;border:1px solid transparent;border-radius:10px;transition:background-color .15s,border-color .15s}
+.market-quick-vault-row:hover{border-color:var(--line);background:var(--surface)}
+.market-quick-vault-art{display:block;width:42px;height:58px;overflow:hidden;border-radius:5px;background:var(--surface)}
+.market-quick-vault-art img{display:block;width:100%;height:100%;object-fit:cover}
+.market-quick-vault-copy{display:grid;gap:4px;min-width:0}
+.market-quick-vault-copy strong,.market-quick-vault-copy small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.market-quick-vault-copy strong{font-size:13px}
+.market-quick-vault-copy small{color:var(--muted);font-size:11px}
+.market-quick-vault-edit{display:grid;place-items:center;width:34px;height:34px;border:1px solid var(--line);border-radius:8px;background:var(--surface-raised);color:var(--muted);cursor:pointer}
+.market-quick-vault-edit:hover{border-color:var(--accent);color:var(--accent)}
+.market-quick-vault-empty{margin:0;padding:22px 10px;color:var(--muted);text-align:center}
+.market-quick-vault-actions{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding-top:10px;border-top:1px solid var(--line)}
+.market-quick-vault-actions .button{min-height:40px}
+.market-quick-panel.is-wishlist .wishlist-header{align-items:center;gap:12px}
+@media(max-width:520px){
+ .market-quick-panel.is-wishlist{width:calc(100vw - 16px)!important;max-height:calc(100dvh - 16px)!important;padding:16px!important}
+ .market-quick-wishlist{max-height:calc(100dvh - 76px)}
+ .market-quick-vault-actions{align-items:stretch;flex-direction:column}
+ .market-quick-vault-actions .button,.market-quick-vault-actions .market-quick-secondary{justify-content:center}
+}
