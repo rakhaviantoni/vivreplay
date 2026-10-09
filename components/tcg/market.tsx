@@ -61,6 +61,7 @@ type MarketBenchmark={amount:number;currency:string;url:string|null;observedAt:s
 type CardPrintingItem={id:string;language:string;variant:string|null;printing_code:string|null;card_image_url:string|null;rarity?:string|null;set_code?:string};
 type MarketCard=Card&{availablePrintings?:CardPrintingItem[]};
 type SearchIdentity={id:string;code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number;effect_text:string;tcg_card_printings?:Array<{id:string;card_image_url:string|null;rarity:string|null;set_code:string;language:string;variant:string|null;printing_code:string|null}>};
+type CardSearchFilters={nameTerms:string[];code:string|null;setCode:string|null;cardType:string|null;rarities:string[];color:string|null;cost:number|null};
 type ListingBundleCard={
   id:string;
   card:Card;
@@ -126,6 +127,41 @@ function searchedCard(identity:SearchIdentity):MarketCard|undefined {
   const baseCard=canonical?{...canonical,...image}:{id:printing.id,code:identity.code,name:displayCardName(identity.name,identity.code),color:identity.color,type:identity.card_type,cost:identity.cost,power:identity.power,rarity:printing.rarity??'',art:0,effect:identity.effect_text,...image};
   return {...baseCard,id:printing.id,availablePrintings:printingsList.map(item=>({id:item.id,language:item.language,variant:item.variant,printing_code:item.printing_code,card_image_url:item.card_image_url,rarity:item.rarity,set_code:item.set_code}))};
 }
+function parseCardSearch(value:string):CardSearchFilters{
+  const words=value.trim().split(/\s+/).filter(Boolean);const removed=new Set<number>();let code:string|null=null,setCode:string|null=null,cardType:string|null=null,color:string|null=null,cost:number|null=null;const rarities:string[]=[];
+  const codePattern=/^(OP|EB|ST|PRB|DON|P)[- ]?0*\d{1,3}-\d{1,3}$/i;const setPattern=/^(OP|EB|ST|PRB|DON|P)[- ]?0*\d{1,3}$/i;
+  words.forEach((word,index)=>{const cleaned=word.replace(/[.,]/g,'');if(codePattern.test(cleaned)){code=cleaned.toUpperCase().replace(/\s+/g,'').replace(/^(OP|EB|ST|PRB|DON|P)-?(\d)/,'$1$2');removed.add(index);const match=code.match(/^(OP|EB|ST|PRB|DON|P)0*(\d{1,3})-/);if(match)setCode=`${match[1]}${match[2]}`;}});
+  words.forEach((word,index)=>{if(removed.has(index))return;const cleaned=word.replace(/[.,]/g,'');if(setPattern.test(cleaned)){const match=cleaned.toUpperCase().match(/^(OP|EB|ST|PRB|DON|P)[- ]?0*(\d{1,3})$/);if(match)setCode=`${match[1]}${match[2]}`;removed.add(index);}});
+  const typeAliases=new Map([['leader','Leader'],['leaders','Leader'],['character','Character'],['characters','Character'],['event','Event'],['events','Event'],['stage','Stage'],['stages','Stage'],['don','DON!!'],['don!!','DON!!']]);
+  const rarityAliases=new Set(['C','UC','R','SR','SEC','PSEC','SP','L','TR','DON']);
+  const colorAliases=new Map([['red','Red'],['blue','Blue'],['green','Green'],['purple','Purple'],['black','Black'],['yellow','Yellow']]);
+  words.forEach((word,index)=>{if(removed.has(index))return;const lower=word.toLowerCase();const upper=word.toUpperCase();
+    const costCompact=lower.match(/^(\d{1,2})c$/);if(costCompact){cost=Number(costCompact[1]);removed.add(index);return;}
+    if(/^\d{1,2}$/.test(word)&&words[index+1]?.toLowerCase()==='cost'){cost=Number(word);removed.add(index);removed.add(index+1);return;}
+    if(lower==='cost'&&/^\d{1,2}$/.test(words[index+1]??'')){cost=Number(words[index+1]);removed.add(index);removed.add(index+1);return;}
+    if(typeAliases.has(lower)){cardType=typeAliases.get(lower)??null;removed.add(index);return;}
+    if(colorAliases.has(lower)){color=colorAliases.get(lower)??null;removed.add(index);return;}
+    if(rarityAliases.has(upper)&&(upper.length>1||word===upper)){rarities.push(upper);removed.add(index);}
+  });
+  const nameTerms=words.filter((_,index)=>!removed.has(index)).map(word=>word.toLowerCase().replace(/[^a-z0-9]/g,'')).filter(Boolean);
+  return {nameTerms,code,setCode,cardType,rarities:[...new Set(rarities)],color,cost};
+}
+function matchesCardSearch(card:Card,filters:CardSearchFilters){
+  const normalize=(value:string)=>value.toLowerCase().replace(/[^a-z0-9]/g,'');const name=normalize(card.name),code=normalize(card.code),full=`${name} ${code}`;
+  return (!filters.code||code===normalize(filters.code))&&(!filters.setCode||normalize(card.setCode??'').startsWith(normalize(filters.setCode))||code.startsWith(normalize(filters.setCode)))&&(!filters.cardType||card.type.toLowerCase()===filters.cardType.toLowerCase())&&(!filters.rarities.length||filters.rarities.includes(card.rarity.toUpperCase()))&&(!filters.color||card.color.toLowerCase().includes(filters.color.toLowerCase()))&&(filters.cost===null||card.cost===filters.cost)&&filters.nameTerms.every(term=>full.includes(term));
+}
+async function searchMarketCards(value:string,limit:number):Promise<MarketCard[]>{
+  const filters=parseCardSearch(value);const client=createClient();let query=client.from('tcg_card_identities').select('id,code,name,color,card_type,cost,power,effect_text,tcg_card_printings!inner(id,card_image_url,rarity,set_code,language,variant,printing_code)');
+  if(filters.code)query=query.eq('code',filters.code);else for(const term of filters.nameTerms)query=query.ilike('name',`%${term}%`);
+  if(filters.setCode){const match=filters.setCode.match(/^(OP|EB|ST|PRB|DON|P)(\d+)$/);query=query.ilike('tcg_card_printings.set_code',match?`${match[1]}%${match[2]}`:`%${filters.setCode}%`);}
+  if(filters.cardType)query=query.ilike('card_type',filters.cardType);
+  if(filters.rarities.length)query=query.in('tcg_card_printings.rarity',filters.rarities);
+  if(filters.color)query=query.ilike('color',`%${filters.color}%`);
+  if(filters.cost!==null)query=query.eq('cost',filters.cost);
+  const {data,error}=await query.limit(limit);
+  if(!error){const live=((data??[]) as SearchIdentity[]).map(searchedCard).filter((card):card is MarketCard=>Boolean(card));if(live.length)return live;}
+  return cards.filter(card=>matchesCardSearch(card,filters)).slice(0,limit);
+}
 function CardSearch({value,onChange,onSelect,locale='EN'}:{value:string;onChange:(value:string)=>void;onSelect:(card:MarketCard)=>void;locale?:'EN'|'ID'}) {
   const [results,setResults]=useState<MarketCard[]>([]);
   const [loading,setLoading]=useState(false);
@@ -135,13 +171,7 @@ function CardSearch({value,onChange,onSelect,locale='EN'}:{value:string;onChange
     let active=true;
     const timer=window.setTimeout(async()=>{
       setLoading(true);
-      const client=createClient();
-      const {data}=await client.from('tcg_card_identities').select('id,code,name,color,card_type,cost,power,effect_text,tcg_card_printings(id,card_image_url,rarity,set_code,language,variant,printing_code)').or(`code.ilike.%${term.replaceAll(',',' ')}%,name.ilike.%${term.replaceAll(',',' ')}%`).limit(7);
-      if(active){
-        const live=((data??[]) as SearchIdentity[]).map(searchedCard).filter((card):card is MarketCard=>Boolean(card));
-        setResults(live.length?live:cards.filter(card=>`${card.name} ${card.code}`.toLowerCase().includes(term.toLowerCase())).slice(0,7));
-        setLoading(false);
-      }
+      try{const found=await searchMarketCards(term,7);if(active)setResults(found)}catch{if(active)setResults([])}finally{if(active)setLoading(false)}
     },170);
     return()=>{active=false;window.clearTimeout(timer)};
   },[value]);
@@ -154,7 +184,7 @@ function CardSearch({value,onChange,onSelect,locale='EN'}:{value:string;onChange
           type="text"
           value={value}
           onChange={event=>onChange(event.target.value)}
-          placeholder={locale==='ID'?'Cari nama kartu, kode, atau nomor seri...':'Search a card name, code, or number...'}
+          placeholder={locale==='ID'?'Nama, set, tipe, rarity, atau biaya (mis. OP17 Leader)':'Name, set, type, rarity, or cost (e.g. OP17 Leader)'}
           aria-label={locale==='ID'?'Cari kartu untuk dijual':'Search card to sell'}
         />
         {value.trim().length>0&&(
@@ -299,17 +329,7 @@ function MarketCardLookup({
     let active = true;
     const timer = window.setTimeout(async () => {
       setLoading(true);
-      const client = createClient();
-      const { data } = await client
-        .from('tcg_card_identities')
-        .select('id,code,name,color,card_type,cost,power,effect_text,tcg_card_printings(id,card_image_url,rarity,set_code,language,variant,printing_code)')
-        .or(`code.ilike.%${term.replaceAll(',', ' ')}%,name.ilike.%${term.replaceAll(',', ' ')}%`)
-        .limit(10);
-      if (active) {
-        const live = ((data ?? []) as SearchIdentity[]).map(searchedCard).filter((card): card is Card => Boolean(card));
-        setResults(live.length ? live : cards.filter(card => `${card.name} ${card.code}`.toLowerCase().includes(term.toLowerCase())).slice(0, 10));
-        setLoading(false);
-      }
+      try{const found=await searchMarketCards(term,10);if(active)setResults(found)}catch{if(active)setResults([])}finally{if(active)setLoading(false)}
     }, 170);
     return () => {
       active = false;
@@ -403,7 +423,7 @@ function MarketCardLookup({
         </div>
       ) : (
         <div className="market-feed-empty" style={{ minHeight: 180, padding: '28px 18px' }}>
-          <p>{locale === 'ID' ? 'Ketik nama kartu, nomor, atau kode set (contoh: OP05-001 atau Luffy) di kolom pencarian.' : 'Type a card name, number, or set code (e.g. OP05-001 or Luffy) in the search bar.'}</p>
+          <p>{locale === 'ID' ? 'Cari nama, nomor kartu, set, tipe, rarity, atau biaya (contoh: OP17 Leader, SEC Luffy, 3c Robin).' : 'Search by name, card number, set, type, rarity, or cost (e.g. OP17 Leader, SEC Luffy, 3c Robin).'}</p>
         </div>
       )}
     </section>
