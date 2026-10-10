@@ -981,7 +981,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
                 onClick={() => setFeedScope('listings')}
               >
                 <Store size={16} />
-                <span>{locale === 'ID' ? 'Listing Market' : 'Market Listings'}</span>
+                <span>{locale === 'ID' ? 'Listing' : 'Listings'}</span>
                 <span className="market-tab-badge">{displayListings.length}</span>
               </button>
               <button
@@ -990,7 +990,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
                 onClick={() => setFeedScope('cards')}
               >
                 <Cards size={16} />
-                <span>{locale === 'ID' ? 'Katalog Kartu' : 'Card Catalog'}</span>
+                <span>{locale === 'ID' ? 'Kartu' : 'Cards'}</span>
               </button>
             </nav>
             {/* <div className="market-feed-tabs-meta">
@@ -1036,7 +1036,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
                   onClick={() => setTradeType('WTS')}
                 >
                   <span className="market-trade-dot is-wts" aria-hidden="true" />
-                  <span>{locale === 'ID' ? 'Dijual (WTS)' : 'For Sale (WTS)'}</span>
+                  <span>{locale === 'ID' ? 'Dijual' : 'For sale'}</span>
                   <small>({tradeCounts.wts})</small>
                 </button>
                 <button
@@ -1045,7 +1045,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
                   onClick={() => setTradeType('WTB')}
                 >
                   <span className="market-trade-dot is-wtb" aria-hidden="true" />
-                  <span>{locale === 'ID' ? 'Dicari (WTB)' : 'Buying (WTB)'}</span>
+                  <span>{locale === 'ID' ? 'Dicari' : 'Wanted'}</span>
                   <small>({tradeCounts.wtb})</small>
                 </button>
               </div>

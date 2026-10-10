@@ -11,7 +11,7 @@ import {api,useAccount} from '@/lib/client';
 import {CardArt} from './card-art';
 import {toast} from 'sonner';
 import {isBiteshipAreaId} from '@/lib/shipping/biteship-area';
-import {MARKET_BUYER_FEE_PERCENT,MARKET_PRO_BUYER_FEE_PERCENT,MARKET_BUYER_FEE_CAP,calculateBuyerServiceFee,MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL,MARKET_PRO_SHIPPING_VOUCHER_SHARE,MARKET_PRO_SHIPPING_VOUCHER_CAP} from '@/lib/market/policy';
+import {MARKET_BUYER_FEE_PERCENT,MARKET_PRO_BUYER_FEE_PERCENT,getMarketBuyerFeeCap,calculateBuyerServiceFee,MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL,MARKET_PRO_SHIPPING_VOUCHER_SHARE,MARKET_PRO_SHIPPING_VOUCHER_CAP} from '@/lib/market/policy';
 
 type Origin={addressLine:string;city:string;postalCode:string;areaId:string|null;recipientName:string|null;phone:string|null;latitude?:number|null;longitude?:number|null;regionNames?:{province?:string;district?:string;subdistrict?:string}};
 type Rate={courier_name:string;courier_service_name:string;courier_code:string;courier_service_code:string;company:string;type:string;price:number;duration?:string};
@@ -97,7 +97,8 @@ export function MarketCheckout(){
   const subtotal=selectedCards.reduce((sum,item)=>sum+item.unitAmount*item.quantity,0);
   const buyerServiceFeePercent=buyerTier==='pro'?MARKET_PRO_BUYER_FEE_PERCENT:MARKET_BUYER_FEE_PERCENT;
   const buyerServiceFee=calculateBuyerServiceFee(subtotal,buyerServiceFeePercent);
-  const buyerFeeLabel=t(`Market service fee (${buyerServiceFeePercent}% up to ${formatMoney(MARKET_BUYER_FEE_CAP,'IDR')})`,`Biaya layanan Market (${buyerServiceFeePercent.toLocaleString('id-ID')}% maks. ${formatMoney(MARKET_BUYER_FEE_CAP,'IDR')})`);
+  const buyerFeeCap=getMarketBuyerFeeCap(subtotal);
+  const buyerFeeLabel=t(`Market service fee (${buyerServiceFeePercent}%, capped at ${formatMoney(buyerFeeCap,'IDR')} for this subtotal)`,`Biaya layanan Market (${buyerServiceFeePercent.toLocaleString('id-ID')}%, maksimal ${formatMoney(buyerFeeCap,'IDR')} untuk subtotal ini)`);
   const currentRate=rates.find(rate=>`${rate.courier_code}:${rate.courier_service_code}`===selectedRate);
   const shippingDiscount=buyerTier==='pro'&&shippingVouchersRemaining>0&&subtotal>=MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL&&currentRate?Math.min(Math.round(currentRate.price*MARKET_PRO_SHIPPING_VOUCHER_SHARE),MARKET_PRO_SHIPPING_VOUCHER_CAP):0;
   const courierName=(name:string)=>({jne:'JNE Express',jnt:'J&T Express',sicepat:'SiCepat Ekspres',anteraja:'Anteraja',tiki:'TIKI',pos:'Pos Indonesia',lion:'Lion Parcel',ninja:'Ninja Xpress',wahana:'Wahana Express',grab:'GrabExpress',gojek:'GoSend'}[name]??name);

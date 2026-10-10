@@ -27,14 +27,25 @@ export const LISTING_POLICIES: Record<AccountTier, ListingTierPolicy> = {
 
 export const MARKET_BUYER_FEE_PERCENT = 1.5;
 export const MARKET_PRO_BUYER_FEE_PERCENT = 0.75;
-export const MARKET_BUYER_FEE_CAP = 100_000;
+export const MARKET_BUYER_FEE_CAP_BANDS = [
+  { maxSubtotal: 5_000_000, cap: 75_000 },
+  { maxSubtotal: 10_000_000, cap: 150_000 },
+  { maxSubtotal: 20_000_000, cap: 300_000 },
+  { maxSubtotal: Number.POSITIVE_INFINITY, cap: 500_000 },
+] as const;
+export const MARKET_BUYER_FEE_CAP = MARKET_BUYER_FEE_CAP_BANDS.at(-1)!.cap;
 export const MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH = 2;
 export const MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL = 200_000;
 export const MARKET_PRO_SHIPPING_VOUCHER_SHARE = 0.5;
 export const MARKET_PRO_SHIPPING_VOUCHER_CAP = 5_000;
 
+export function getMarketBuyerFeeCap(subtotal: number): number {
+  const safeSubtotal = Math.max(0, subtotal);
+  return MARKET_BUYER_FEE_CAP_BANDS.find(band => safeSubtotal <= band.maxSubtotal)?.cap ?? MARKET_BUYER_FEE_CAP;
+}
+
 export function calculateBuyerServiceFee(subtotal: number, percent: number): number {
-  return Math.min(Math.round(Math.max(0, subtotal) * Math.max(0, percent) / 100), MARKET_BUYER_FEE_CAP);
+  return Math.min(Math.round(Math.max(0, subtotal) * Math.max(0, percent) / 100), getMarketBuyerFeeCap(subtotal));
 }
 
 export function parseMarketPolicies(rawJson: string | null | undefined): Record<AccountTier, ListingTierPolicy> {

@@ -5,7 +5,6 @@ import {useRouter} from 'next/navigation';
 import {useEffect,useState} from 'react';
 import {CrownIcon as Crown} from '@phosphor-icons/react';
 import {formatMoney} from '@/packages/domain';
-import {MARKET_BUYER_FEE_CAP} from '@/lib/market/policy';
 import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle} from '@/components/ui/dialog';
 
 type PlanPreview={
@@ -84,7 +83,7 @@ export function MarketProDialog({locale,member=false,profile=null,accountLoading
     {label:t('Active listings','Listing aktif'),free:(plan?.freeMaxActiveListings??25).toLocaleString(isId?'id-ID':'en-US'),pro:(plan?.maxActiveListings??2500).toLocaleString(isId?'id-ID':'en-US')},
     {label:t('Listing period','Masa listing'),free:`${plan?.freeDurationDays??7} ${t('days','hari')}`,pro:`${plan?.durationDays??30} ${t('days','hari')}`},
     {label:t('Seller fee','Biaya penjual'),free:`${plan?.freeCommissionPercent??0.75}%`,pro:`${plan?.commissionPercent??0.5}%`},
-    {label:t('Buyer fee','Biaya pembeli'),free:`${plan?.freeBuyerFeePercent??1.5}% (${t('up to','maks.')} ${formatMoney(plan?.buyerFeeCap??MARKET_BUYER_FEE_CAP,'IDR')})`,pro:`${plan?.buyerFeePercent??0.75}% (${t('up to','maks.')} ${formatMoney(plan?.buyerFeeCap??MARKET_BUYER_FEE_CAP,'IDR')})`},
+    {label:t('Buyer fee','Biaya pembeli'),free:`${plan?.freeBuyerFeePercent??1.5}%`,pro:`${plan?.buyerFeePercent??0.75}%`},
     {label:t('Delivery vouchers','Voucher ongkir'),free:'—',pro:`${plan?.shippingVouchersPerMonth??2} ${t('per month','per bulan')}`},
   ];
   const amount=plan?.amount;
@@ -102,6 +101,7 @@ export function MarketProDialog({locale,member=false,profile=null,accountLoading
           {loading?<span className="market-pro-dialog-loading" aria-live="polite">{t('Loading price…','Memuat harga…')}</span>:amount!==null&&amount!==undefined?<><strong>{formatMoney(amount,'IDR')}</strong><span>{t(`/ ${plan?.durationDays??30} days`,`/ ${plan?.durationDays??30} hari`)}</span>{plan?.introOffer&&plan.standardAmount!==null&&<small>{t(`First ${plan.durationDays??30} days, then ${formatMoney(plan.standardAmount,'IDR')} per 30 days.`,`30 hari pertama, lalu ${formatMoney(plan.standardAmount,'IDR')} per 30 hari.`)}</small>}</>:<span>{t('Plan details unavailable','Detail paket tidak tersedia')}</span>}
         </div>
         <div className="market-pro-dialog-table-wrap"><table className="market-pro-dialog-table"><thead><tr><th>{t('Benefit','Manfaat')}</th><th>{t('Free','Gratis')}</th><th>Pro</th></tr></thead><tbody>{rows.map(row=><tr key={row.label}><th scope="row">{row.label}</th><td>{row.free}</td><td>{row.pro}</td></tr>)}</tbody></table></div>
+        <p className="market-pro-dialog-note">{t('Buyer fee cap: IDR 75,000 up to IDR 5m in cards; IDR 150,000 up to IDR 10m; IDR 300,000 up to IDR 20m; IDR 500,000 above that.','Batas biaya pembeli: IDR 75.000 untuk subtotal kartu hingga IDR 5 juta; IDR 150.000 hingga IDR 10 juta; IDR 300.000 hingga IDR 20 juta; IDR 500.000 di atasnya.')}</p>
         <p className="market-pro-dialog-note">{t(`Each voucher covers ${plan?.shippingVoucherSharePercent??50}% of delivery, up to ${formatMoney(plan?.shippingVoucherCap??5000,'IDR')}, on card orders of ${formatMoney(plan?.shippingVoucherMinSubtotal??200000,'IDR')} or more.`,`Setiap voucher memotong ${plan?.shippingVoucherSharePercent??50}% ongkir hingga ${formatMoney(plan?.shippingVoucherCap??5000,'IDR')} untuk pesanan kartu minimal ${formatMoney(plan?.shippingVoucherMinSubtotal??200000,'IDR')}.`)}</p>
         {error&&<p className="checkout-error" role="alert">{error}</p>}
         {profile&&!/^\+?[0-9]{8,16}$/.test(String(profile.phone??'').replace(/[\s().-]/g,''))?<Link className="button market-pro-dialog-join" href={route('/profile')} onClick={()=>setOpen(false)}>{t('Add phone number','Tambahkan nomor telepon')}</Link>:<button type="button" className="button market-pro-dialog-join" disabled={joining||loading||accountLoading||plan?.available===false||amount==null} onClick={()=>void join()}>{joining?t('Opening checkout…','Membuka checkout…'):!profile&&!accountLoading?t('Sign in to join','Masuk untuk bergabung'):t('Join Market Pro','Gabung Market Pro')}</button>}

@@ -205,7 +205,7 @@ export function MarketPolicyManager() {
         <div>
           <h2>Market Retention & Limits Policy</h2>
           <p>
-            Configure listing limits and seller fees. Buyers pay {MARKET_BUYER_FEE_PERCENT}% on Free orders or {MARKET_PRO_BUYER_FEE_PERCENT}% with Pro, capped at {new Intl.NumberFormat('en-US',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(MARKET_BUYER_FEE_CAP)} per order.
+            Configure listing limits and seller fees. Buyer fees are {MARKET_BUYER_FEE_PERCENT}% on Free orders and {MARKET_PRO_BUYER_FEE_PERCENT}% with Pro; the cap rises with card subtotal, up to {new Intl.NumberFormat('en-US',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(MARKET_BUYER_FEE_CAP)}.
           </p>
         </div>
         <div className="admin-policy-presets">
