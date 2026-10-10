@@ -871,7 +871,7 @@ html[data-theme='dark'] .card-viewer > header { background: #101d2b !important; 
   .market-feed-entry.has-cart-action .market-feed-status { right: auto !important; }
   .market-feed-list.is-grid .market-feed-entry { min-width: 0; }
   .market-feed-list.is-grid .market-feed-row { padding: 12px 12px 54px !important; }
-  .market-feed-list.is-grid .market-feed-row-actions { top: auto !important; right: 9px !important; bottom: 8px !important; display: flex !important; width: auto !important; justify-content: flex-end !important; gap: 6px !important; }
+  .market-feed-list.is-grid .market-feed-row-actions { top: auto !important; right: 9px !important; bottom: 8px !important; display: flex !important; width: auto !important; justify-content: flex-end !important; gap: 10px !important; }
   .market-feed-list.is-grid .market-feed-row-actions .button.is-icon-only { position: relative; width: 40px !important; min-width: 40px !important; height: 40px !important; min-height: 40px !important; padding: 0 !important; font-size: 0 !important; }
   .market-feed-list.is-grid .market-feed-trade { padding-right: 0 !important; }
 }
@@ -909,14 +909,26 @@ html[data-theme='dark'] .card-viewer > header { background: #101d2b !important; 
   .market-store-nav .market-store-wordmark,
   .market-store-nav .market-nav-divider { display: none !important; }
   .market-store-nav .market-back-link { grid-area: brand; width: 36px !important; min-width: 36px !important; height: 40px !important; }
-  .market-store-nav .market-store-actions { grid-area: actions; gap: 3px !important; }
+  .market-store-nav .market-store-actions { grid-area: actions; gap: 6px !important; }
   .market-store-nav .market-store-search { grid-area: search; height: 42px !important; }
   .market-store-nav .market-cart-link,
   .market-store-nav .market-account-trigger,
   .market-store-nav .market-store-locale,
   .market-store-nav .market-store-theme,
   .market-store-nav .market-list-button.join-link,
-  .market-store-nav .market-pro-nav-link { width: 38px !important; min-width: 38px !important; height: 38px !important; min-height: 38px !important; }
+  .market-store-nav .market-pro-nav-link {
+    position: relative !important;
+    width: 38px !important;
+    min-width: 38px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+  }
+  .market-store-nav .market-cart-link::before,
+  .market-store-nav .market-account-trigger::before,
+  .market-store-nav .market-store-locale::before,
+  .market-store-nav .market-store-theme::before,
+  .market-store-nav .market-list-button.join-link::before,
+  .market-store-nav .market-pro-nav-link::before { position: absolute; inset: -3px; content: ""; }
   .market-store-nav .market-list-button.join-link { padding: 0 !important; }
 }
 
@@ -942,24 +954,22 @@ html[data-theme='dark'] .card-viewer > header { background: #101d2b !important; 
   .market-feed-list.is-list .market-feed-entry.has-row-action .market-feed-row-actions {
     grid-column: 3 / 4 !important;
     grid-row: 2 !important;
-    gap: 2px !important;
+    gap: 10px !important;
   }
-  .market-feed-list.is-list .market-feed-entry.has-row-action .market-feed-row-actions .button.is-icon-only {
+  .market-feed-list.is-list .market-feed-entry.has-row-action .market-feed-row-actions .button.is-icon-only,
+  .market-feed-list.is-grid .market-feed-row-actions .button.is-icon-only {
+    position: relative !important;
     width: 34px !important;
     min-width: 34px !important;
     height: 34px !important;
     min-height: 34px !important;
     border-radius: 8px !important;
   }
+  .market-feed-list.is-list .market-feed-entry.has-row-action .market-feed-row-actions .button.is-icon-only::before,
+  .market-feed-list.is-grid .market-feed-row-actions .button.is-icon-only::before { position: absolute; inset: -5px; content: ""; }
   .market-feed-list.is-list .market-feed-entry.has-row-action:not(.has-cart-action) .market-feed-row-actions { grid-column: 3 / 4 !important; }
 }
 
 @media (max-width: 360px) {
-  .market-store-nav .market-store-actions { gap: 1px !important; }
-  .market-store-nav .market-cart-link,
-  .market-store-nav .market-account-trigger,
-  .market-store-nav .market-store-locale,
-  .market-store-nav .market-store-theme,
-  .market-store-nav .market-list-button.join-link,
-  .market-store-nav .market-pro-nav-link { width: 36px !important; min-width: 36px !important; height: 36px !important; min-height: 36px !important; }
+  .market-store-nav .market-store-actions { gap: 6px !important; }
 }
