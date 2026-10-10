@@ -1505,3 +1505,28 @@ html[data-theme='dark'] .card-viewer > header { background: #101d2b !important; 
     min-height: 32px !important;
   }
 }
+
+/* Keep the two grid utilities anchored to the card corners at every phone width. */
+@media (max-width: 600px) {
+  .market-feed-list.is-grid .market-feed-entry.has-cart-action .market-feed-row-actions {
+    position: absolute !important;
+    top: 8px !important;
+    right: 8px !important;
+    bottom: auto !important;
+    left: 8px !important;
+    width: auto !important;
+    justify-content: space-between !important;
+    align-items: flex-start !important;
+  }
+  .market-feed-list.is-grid .market-feed-entry.has-cart-action .market-feed-row-actions > :first-child { margin-right: auto !important; }
+  .market-feed-list.is-grid .market-feed-entry.has-cart-action .market-feed-row-actions > :last-child { margin-left: auto !important; }
+}
+
+/* Listing metadata reads as place, age, seller. Counts only appear when useful. */
+.market-feed-meta-primary { gap: 3px 8px !important; }
+.market-feed-meta-primary .market-feed-location { flex: 0 1 auto; }
+.market-feed-meta-primary .market-feed-seller { min-width: 0; }
+.market-feed-list.is-list .market-feed-meta-primary .market-feed-location { flex: 0 1 34% !important; max-width: 34% !important; }
+.market-feed-list.is-list .market-feed-meta-primary time { flex: 0 0 auto !important; }
+.market-feed-list.is-list .market-feed-meta-primary .market-feed-seller { flex: 1 1 auto !important; max-width: none !important; }
+.market-feed-copy p .market-feed-language { margin-left: 0 !important; }
