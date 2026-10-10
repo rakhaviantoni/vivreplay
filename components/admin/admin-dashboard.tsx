@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import {useEffect,useMemo,useState} from 'react';
+import {useCallback,useEffect,useMemo,useState} from 'react';
 import {
   WarningIcon as AlertTriangle,
   CheckCircleIcon as CheckCircle2,
@@ -22,13 +22,14 @@ import { FeedbackInbox } from '@/components/admin/feedback-inbox';
 import { TrafficAttribution } from '@/components/admin/traffic-attribution';
 import { PayoutManager } from '@/components/admin/payout-manager';
 import { MarketDisputesManager } from '@/components/admin/market-disputes-manager';
+import { AdminCustomerManager, AdminOverview } from '@/components/admin/admin-overview';
 
 type Health={generatedAt:string;summary:{identities:number;printings:number;sets:number;storedSmall:number;missingImages:number;missingCards:number;unrepresentedSets:number};missingImages:Array<{id:string;code:string;name:string;setCode:string;language:string;variant:string;reason:string}>;missingCards:Array<{code:string;name:string}>;sets:Array<{setCode:string;setName:string;total:number;stored:number;sourceMissing:number}>;unrepresentedSets:Array<{setCode:string;setName:string;kind:string}>};
 type CoachRequest={id:string;actor_email:string|null;actor_subject:string|null;ip_address:string|null;user_agent:string|null;locale:string;model:string;question:string;leader_code:string|null;deck_size:number;candidate_count:number;response_text:string|null;status:string;error_code:string|null;duration_ms:number;created_at:string};
 const number=new Intl.NumberFormat('en-US');
 
 export function AdminDashboard(){
-  const [section, setSection] = useState<'catalog' | 'policy' | 'marketplace' | 'feedback' | 'traffic' | 'payouts' | 'disputes'>('catalog');
+  const [section, setSection] = useState<'overview' | 'customers' | 'catalog' | 'policy' | 'marketplace' | 'feedback' | 'traffic' | 'payouts' | 'disputes'>('overview');
   const [data,setData]=useState<Health|null>(null);
   const [requests,setRequests]=useState<CoachRequest[]>([]);
   const [query,setQuery]=useState('');
@@ -36,7 +37,7 @@ export function AdminDashboard(){
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState('');
 
-  const load=()=>{
+  const load=useCallback(()=>{
     setLoading(true);
     setError('');
     Promise.all([
@@ -51,9 +52,9 @@ export function AdminDashboard(){
         setRequests(coach.requests);
       }
     }).catch(reason=>setError(reason instanceof Error?reason.message:'Unable to load catalog health.')).finally(()=>setLoading(false));
-  };
+  },[]);
 
-  useEffect(load,[]);
+  useEffect(()=>{if(section==='catalog')load()},[section,load]);
 
   const filteredImages=useMemo(()=>data?.missingImages.filter(item=>`${item.code} ${item.name} ${item.setCode} ${item.language}`.toLowerCase().includes(query.toLowerCase()))??[],[data,query]);
   const filteredCards=useMemo(()=>data?.missingCards.filter(item=>`${item.code} ${item.name}`.toLowerCase().includes(query.toLowerCase()))??[],[data,query]);
@@ -65,15 +66,24 @@ export function AdminDashboard(){
       <header className="admin-health-heading">
         <div>
           <p className="eyebrow">OPERATIONS & CONTROL</p>
-          <h1>{section === 'catalog' ? 'Catalog health' : section === 'policy' ? 'Market Policy' : section === 'marketplace' ? 'Listings & sellers' : section === 'traffic' ? 'Campaign attribution' : section==='payouts'?'Payouts':section==='disputes'?'Order reports':'Feedback inbox'}</h1>
+          <h1>{section === 'overview' ? 'Dashboard' : section === 'customers' ? 'Customers' : section === 'catalog' ? 'Catalog health' : section === 'policy' ? 'Market Policy' : section === 'marketplace' ? 'Listings & sellers' : section === 'traffic' ? 'Campaign attribution' : section==='payouts'?'Payouts':section==='disputes'?'Order reports':'Feedback inbox'}</h1>
           <p>
-            {section === 'catalog'
+            {section === 'overview'
+              ? 'Accounts, paid orders, and sales activity.'
+              : section === 'customers' ? 'Search accounts and check membership details.'
+              : section === 'catalog'
               ? 'Storage coverage and import gaps across the live One Piece catalog.'
               : section === 'policy' ? 'Dynamic listing lifespans, seller quotas, and retention rules.' : section === 'marketplace' ? 'Recent Market listings and the sellers behind them.' : section === 'traffic' ? 'UTM campaigns, landing pages, and referrals to VivrePlay.' : section==='payouts'?'Review seller withdrawal requests and record transfers.':section==='disputes'?'Review buyer evidence, seller responses, and order outcomes.':'Card data reports, product feedback, and bug reports.'}
           </p>
         </div>
 
-        <div style={{display:'flex',gap:10,flexWrap:'wrap'}}>
+        <nav className="admin-section-nav" aria-label="Admin sections">
+          <button type="button" className="admin-refresh" onClick={()=>setSection('overview')} aria-current={section==='overview'?'page':undefined}>
+            <ChartLineUp size={15}/>Overview
+          </button>
+          <button type="button" className="admin-refresh" onClick={()=>setSection('customers')} aria-current={section==='customers'?'page':undefined}>
+            <Search size={15}/>Customers
+          </button>
           <button
             type="button"
             className="admin-refresh"
@@ -122,10 +132,14 @@ export function AdminDashboard(){
               <RefreshCw size={15} className={loading?'spin':''}/>Refresh
             </button>
           )}
-        </div>
+        </nav>
       </header>
 
-      {section === 'policy' ? (
+      {section === 'overview' ? (
+        <AdminOverview />
+      ) : section === 'customers' ? (
+        <AdminCustomerManager />
+      ) : section === 'policy' ? (
         <MarketPolicyManager />
       ) : section === 'marketplace' ? (
         <MarketplaceManager />

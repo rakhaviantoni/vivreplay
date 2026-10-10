@@ -628,8 +628,8 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
       <div className="market-listing-selection-actions">
         {isBuying&&<button type="button" className="button market-buy-selected" disabled={!selectedCount||submitting} onClick={buySelected}>{singleCopyListing?t('Buy now','Beli sekarang'):t('Buy selected','Beli pilihan')}</button>}
         {isBuying&&!readOnly&&<button type="button" className={`button secondary market-add-cart${selectionInCart?' is-in-cart':''}`} title={selectionInCart?t('In cart — view cart','Sudah di keranjang — lihat keranjang'):t('Add selected cards to cart','Tambahkan kartu pilihan ke keranjang')} aria-label={selectionInCart?t('In cart — view cart','Sudah di keranjang — lihat keranjang'):t('Add selected cards to cart','Tambahkan kartu pilihan ke keranjang')} aria-pressed={selectionInCart} disabled={!selectedCount||submitting} onClick={addSelectedToCart}>{selectionInCart?<Check size={18}/>:<Cart size={18}/>}</button>}
-        {activeOffer&&<button type="button" className="button" onClick={()=>openOfferConversation(activeOffer.id)}>{activeOffer.viewerIsActor?t('See offer','Lihat penawaran'):t('Review counteroffer','Tinjau penawaran balik')}</button>}
-        {!activeOffer&&acceptsOffers&&<button type="button" className="button" disabled={!selectedCount||submitting||!offerCheckComplete} onClick={continueOffer}>{submitting?t('Sending...','Mengirim...'):!offerCheckComplete?t('Checking offer…','Memeriksa penawaran…'):session?(hasPriceAdjustments?t('Submit offer','Kirim penawaran'):actionLabel):(language==='ID'?`Masuk untuk ${isBuying?'menawar':'menawarkan'}`:`Sign in to ${actionLabel.toLowerCase()}`)}</button>}
+        {activeOffer&&<button type="button" className="button market-listing-offer-action" onClick={()=>openOfferConversation(activeOffer.id)}>{activeOffer.viewerIsActor?t('See offer','Lihat penawaran'):t('Review counteroffer','Tinjau penawaran balik')}</button>}
+        {!activeOffer&&acceptsOffers&&<button type="button" className="button market-listing-offer-action" disabled={!selectedCount||submitting||!offerCheckComplete} onClick={continueOffer}>{submitting?t('Sending...','Mengirim...'):!offerCheckComplete?t('Checking offer…','Memeriksa penawaran…'):session?(hasPriceAdjustments?t('Submit offer','Kirim penawaran'):actionLabel):(language==='ID'?`Masuk untuk ${isBuying?'menawar':'menawarkan'}`:`Sign in to ${actionLabel.toLowerCase()}`)}</button>}
         <ShareButton
           title={listingTitle ?? t('Card listing','Listing kartu')}
           path={`/market/${listingId}`}
@@ -641,6 +641,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
           }))}
           price={formatMoney(publicListingTotal, currency)}
           subtitle={language==='ID'?`${items.reduce((acc, it) => acc + it.quantity, 0)} kartu`:`${items.reduce((acc, it) => acc + it.quantity, 0)} ${items.reduce((acc, it) => acc + it.quantity, 0) === 1 ? 'card' : 'cards'}`}
+          className="market-listing-share"
         />
       </div>
       {offerJustSent&&<PushNotificationPrompt language={language} message="offer"/>}
