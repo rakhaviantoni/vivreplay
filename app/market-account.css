@@ -362,6 +362,7 @@ html[data-theme='dark'] .market-pro-user-badge{background:#172a2b;border-color:#
 .market-membership-compare>div>b,.market-membership-compare>div>strong{text-align:center;font-variant-numeric:tabular-nums}
 .market-membership-compare-head{background:color-mix(in srgb,var(--accent) 5%,var(--surface-raised));font-weight:750}
 .market-membership-compare-head>strong:last-child,.market-membership-compare>div>b:last-child{color:var(--accent)}
+.market-membership-compare-note{margin:6px 2px 0;color:var(--muted);font-size:11px;line-height:1.45}
 .market-vault-summary-links{display:flex;align-items:center;gap:14px}
 .market-quick-vault-row{grid-template-columns:42px minmax(0,1fr) 36px;border-radius:8px}
 .market-quick-vault-art{border-radius:3px}

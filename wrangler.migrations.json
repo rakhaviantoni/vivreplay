@@ -34,7 +34,7 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "site-creator-d1",
+      "database_name": "vivreplay",
       "database_id": "86245ee8-4a6e-450d-a4ed-dc6d843aa079",
       "migrations_dir": "drizzle"
     }

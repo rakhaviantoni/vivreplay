@@ -9,7 +9,7 @@ const parseJson = (value: unknown) => {
 
 async function fromD1(code: string) {
   const db = database();
-  const identity = await db.prepare(`SELECT id,code,name,color,card_type,cost,power,effect_text FROM tcg_card_identities WHERE upper(code)=? LIMIT 1`)
+  const identity = await db.prepare(`SELECT id,code,name,color,card_type,cost,power,effect_text FROM tcg_card_identities WHERE code=? LIMIT 1`)
     .bind(code).first<Record<string, unknown>>();
   if (!identity) return null;
   const identityId = String(identity.id);

@@ -129,7 +129,7 @@ export async function collection(ownerId:string){
       const available=await db().prepare(`SELECT p.id,i.code,p.language,p.variant,p.printing_code,p.rarity,p.set_code,p.card_image_url,a.object_key AS objectKey
         FROM tcg_card_printings p JOIN tcg_card_identities i ON i.id=p.identity_id
         LEFT JOIN tcg_card_assets a ON a.printing_id=p.id AND a.kind='small'
-        WHERE upper(i.code) IN (${placeholders}) ORDER BY p.language,p.set_code,p.variant,p.printing_code`).bind(...chunk).all<{id:string;code:string;language:string;variant:string|null;printing_code:string|null;rarity:string|null;set_code:string|null;card_image_url:string|null;objectKey:string|null}>();
+        WHERE i.code IN (${placeholders}) ORDER BY p.language,p.set_code,p.variant,p.printing_code`).bind(...chunk).all<{id:string;code:string;language:string;variant:string|null;printing_code:string|null;rarity:string|null;set_code:string|null;card_image_url:string|null;objectKey:string|null}>();
       for(const printing of available.results){
         const key=printing.code.toUpperCase();
         const values=tcgPrintingMap.get(key)??[];

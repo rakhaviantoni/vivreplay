@@ -1,6 +1,8 @@
 import {database} from '@/lib/server/database';
+import {readPublicEdgeCache,storePublicEdgeCache} from '@/lib/server/public-edge-cache';
 import {supabaseAdmin} from '@/lib/server/supabase-storage';
 import {isPlayableSet,PREVIEW_CARD_CODES} from '@/packages/domain/release-availability';
+import {CARD_CATALOG_CACHE_REVISION} from '@/lib/card-catalog-cache';
 
 type IdentityRow={id:string;code:string;name:string;color:string;card_type:string;cost:number;power:number;effect_text:string;rarity?:string|null;imageUrl?:string;set_code?:string|null;tcg_card_printings?:Array<{language:string;rarity:string|null;set_code:string|null;card_image_url:string|null;tcg_card_assets?:Array<{kind:string;object_key:string}>}>};
 type SearchFilters={terms:string[];setCode?:string;rarity?:string;cardType?:string;cost?:number};
@@ -77,10 +79,16 @@ export async function GET(request:Request){
   const raw=new URL(request.url).searchParams.get('q')?.trim()??'';
   const query=raw.replace(/[^\p{L}\p{N}\s-]/gu,' ').replace(/\s+/g,' ').trim();
   if(query.length<2)return Response.json({cards:[]});
+  const cacheUrl=new URL(request.url);
+  cacheUrl.searchParams.set('q',query);
+  cacheUrl.searchParams.set('_catalog',CARD_CATALOG_CACHE_REVISION);
+  const cacheRequest=new Request(cacheUrl,request);
+  const cached=await readPublicEdgeCache(cacheRequest);
+  if(cached)return cached;
   const filters=parseSearch(query);
   if(!filters.terms.length&&!filters.setCode&&!filters.rarity&&!filters.cardType&&filters.cost===undefined)return Response.json({cards:[]});
   let cards:IdentityRow[];
   try{cards=await fromD1(filters)}catch{try{cards=await fromSupabase(filters)}catch{return Response.json({error:'Card catalog is temporarily unavailable.'},{status:503})}}
   cards=cards.filter(card=>isPlayableSet(card.set_code??'')||PREVIEW_CARD_CODES.has(card.code.toUpperCase()));
-  return Response.json({cards:cards.map(card=>({...card,imageUrl:card.imageUrl?.startsWith('http')||card.imageUrl?.startsWith('/')?card.imageUrl:card.imageUrl?publicCardPath(card.imageUrl):undefined}))},{headers:{'Cache-Control':'public, max-age=300, stale-while-revalidate=86400','Cloudflare-CDN-Cache-Control':'public, max-age=86400'}});
+  return storePublicEdgeCache(cacheRequest,Response.json({cards:cards.map(card=>({...card,imageUrl:card.imageUrl?.startsWith('http')||card.imageUrl?.startsWith('/')?card.imageUrl:card.imageUrl?publicCardPath(card.imageUrl):undefined}))},{headers:{'Cache-Control':'public, max-age=300, stale-while-revalidate=86400','Cloudflare-CDN-Cache-Control':'public, max-age=86400'}}));
 }

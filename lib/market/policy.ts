@@ -14,23 +14,28 @@ export const LISTING_POLICIES: Record<AccountTier, ListingTierPolicy> = {
     durationDays: 7,
     maxActiveListings: 25,
     canAutoRenew: false,
-    commissionPercent: 1.5,
+    commissionPercent: 0.75,
   },
   pro: {
     tier: 'pro',
     durationDays: 30,
     maxActiveListings: 2500,
     canAutoRenew: true,
-    commissionPercent: 0.75,
+    commissionPercent: 0.5,
   },
 };
 
-export const MARKET_BUYER_FEE_PERCENT = 0.75;
-export const MARKET_PRO_BUYER_FEE_PERCENT = 0.5;
+export const MARKET_BUYER_FEE_PERCENT = 1.5;
+export const MARKET_PRO_BUYER_FEE_PERCENT = 0.75;
+export const MARKET_BUYER_FEE_CAP = 100_000;
 export const MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH = 2;
 export const MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL = 200_000;
 export const MARKET_PRO_SHIPPING_VOUCHER_SHARE = 0.5;
 export const MARKET_PRO_SHIPPING_VOUCHER_CAP = 5_000;
+
+export function calculateBuyerServiceFee(subtotal: number, percent: number): number {
+  return Math.min(Math.round(Math.max(0, subtotal) * Math.max(0, percent) / 100), MARKET_BUYER_FEE_CAP);
+}
 
 export function parseMarketPolicies(rawJson: string | null | undefined): Record<AccountTier, ListingTierPolicy> {
   if (!rawJson) return LISTING_POLICIES;

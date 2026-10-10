@@ -5,6 +5,7 @@ import {useRouter} from 'next/navigation';
 import {useEffect,useState} from 'react';
 import {CrownIcon as Crown} from '@phosphor-icons/react';
 import {formatMoney} from '@/packages/domain';
+import {MARKET_BUYER_FEE_CAP} from '@/lib/market/policy';
 import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle} from '@/components/ui/dialog';
 
 type PlanPreview={
@@ -20,6 +21,7 @@ type PlanPreview={
   freeCommissionPercent:number;
   buyerFeePercent:number;
   freeBuyerFeePercent:number;
+  buyerFeeCap:number;
   shippingVouchersPerMonth:number;
   shippingVoucherMinSubtotal:number;
   shippingVoucherSharePercent:number;
@@ -81,8 +83,8 @@ export function MarketProDialog({locale,member=false,profile=null,accountLoading
   const rows=[
     {label:t('Active listings','Listing aktif'),free:(plan?.freeMaxActiveListings??25).toLocaleString(isId?'id-ID':'en-US'),pro:(plan?.maxActiveListings??2500).toLocaleString(isId?'id-ID':'en-US')},
     {label:t('Listing period','Masa listing'),free:`${plan?.freeDurationDays??7} ${t('days','hari')}`,pro:`${plan?.durationDays??30} ${t('days','hari')}`},
-    {label:t('Seller fee','Biaya penjual'),free:`${plan?.freeCommissionPercent??1.5}%`,pro:`${plan?.commissionPercent??0.75}%`},
-    {label:t('Buyer fee','Biaya pembeli'),free:`${plan?.freeBuyerFeePercent??0.75}%`,pro:`${plan?.buyerFeePercent??0.5}%`},
+    {label:t('Seller fee','Biaya penjual'),free:`${plan?.freeCommissionPercent??0.75}%`,pro:`${plan?.commissionPercent??0.5}%`},
+    {label:t('Buyer fee','Biaya pembeli'),free:`${plan?.freeBuyerFeePercent??1.5}% (${t('up to','maks.')} ${formatMoney(plan?.buyerFeeCap??MARKET_BUYER_FEE_CAP,'IDR')})`,pro:`${plan?.buyerFeePercent??0.75}% (${t('up to','maks.')} ${formatMoney(plan?.buyerFeeCap??MARKET_BUYER_FEE_CAP,'IDR')})`},
     {label:t('Delivery vouchers','Voucher ongkir'),free:'—',pro:`${plan?.shippingVouchersPerMonth??2} ${t('per month','per bulan')}`},
   ];
   const amount=plan?.amount;

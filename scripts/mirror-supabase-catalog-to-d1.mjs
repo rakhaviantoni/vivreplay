@@ -92,7 +92,7 @@ try {
   const locationArgs = targetArg === 'local' ? ['--local', '--persist-to', '.wrangler/state'] : ['--remote'];
   const wranglerEnv = {...process.env, WRANGLER_LOG_PATH: join(tmpdir(), `vivreplay-wrangler-${targetArg}.log`)};
   execFileSync('node_modules/.bin/wrangler', [
-    'd1', 'execute', 'site-creator-d1', ...locationArgs, '--config', 'wrangler.migrations.json', '--file', sqlPath,
+    'd1', 'execute', 'vivreplay', ...locationArgs, '--config', 'dist/server/wrangler.json', '--file', sqlPath,
   ], { stdio: 'inherit', env: wranglerEnv });
 } finally {
   rmSync(sqlPath, { force: true });
@@ -100,7 +100,7 @@ try {
 const countColumns = tables.map((table, index) => `(SELECT count(*) FROM \`${table}\`) AS c${index}`).join(',');
 const locationArgs = targetArg === 'local' ? ['--local', '--persist-to', '.wrangler/state'] : ['--remote'];
 const countOutput = execFileSync('node_modules/.bin/wrangler', [
-  'd1', 'execute', 'site-creator-d1', ...locationArgs, '--config', 'wrangler.migrations.json',
+  'd1', 'execute', 'vivreplay', ...locationArgs, '--config', 'dist/server/wrangler.json',
   '--json', '--command', `SELECT ${countColumns}`,
 ], { encoding: 'utf8', env: {...process.env, WRANGLER_LOG_PATH: join(tmpdir(), `vivreplay-wrangler-${targetArg}.log`)} });
 const countResults = JSON.parse(countOutput)[0]?.results?.[0] ?? {};

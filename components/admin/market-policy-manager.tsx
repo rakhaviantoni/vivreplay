@@ -13,7 +13,7 @@ import {
 } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import type { AccountTier, ListingTierPolicy } from '@/lib/market/policy';
-import { MARKET_BUYER_FEE_PERCENT } from '@/lib/market/policy';
+import { MARKET_BUYER_FEE_PERCENT, MARKET_PRO_BUYER_FEE_PERCENT, MARKET_BUYER_FEE_CAP } from '@/lib/market/policy';
 import { DEFAULT_PRO_PRICING,type ProPricing } from '@/lib/market/pro-pricing';
 
 interface PolicyResponse {
@@ -41,11 +41,11 @@ export function MarketPolicyManager() {
   // Form states
   const [freeDays, setFreeDays] = useState(7);
   const [freeMax, setFreeMax] = useState(25);
-  const [freeFee, setFreeFee] = useState(1.5);
+  const [freeFee, setFreeFee] = useState(0.75);
 
   const [proDays, setProDays] = useState(30);
   const [proMax, setProMax] = useState(2500);
-  const [proFee, setProFee] = useState(0.75);
+  const [proFee, setProFee] = useState(0.5);
   const [proAutoRenew, setProAutoRenew] = useState(true);
   const [proPrice,setProPrice]=useState(DEFAULT_PRO_PRICING.amount);
   const [proDuration,setProDuration]=useState(DEFAULT_PRO_PRICING.durationDays);
@@ -93,28 +93,28 @@ export function MarketPolicyManager() {
     if (preset === 'recommended') {
       setFreeDays(7);
       setFreeMax(25);
-      setFreeFee(1.5);
+      setFreeFee(0.75);
       setProDays(30);
       setProMax(2500);
-      setProFee(0.75);
+      setProFee(0.5);
       setProAutoRenew(true);
       toast.info('Applied "Recommended (7d / 25 listings)" preset. Click Save to apply.');
     } else if (preset === 'quick-turn') {
       setFreeDays(3);
       setFreeMax(25);
-      setFreeFee(1.5);
+      setFreeFee(0.75);
       setProDays(30);
       setProMax(2500);
-      setProFee(0.75);
+      setProFee(0.5);
       setProAutoRenew(true);
       toast.info('Applied "Quick-turn listings (3d / 25 listings)" preset. Click Save to apply.');
     } else if (preset === 'relaxed') {
       setFreeDays(30);
       setFreeMax(25);
-      setFreeFee(1.5);
+      setFreeFee(0.75);
       setProDays(60);
       setProMax(2500);
-      setProFee(0.75);
+      setProFee(0.5);
       setProAutoRenew(true);
       toast.info('Applied "Relaxed (30d / 25 listings)" preset. Click Save to apply.');
     }
@@ -205,7 +205,7 @@ export function MarketPolicyManager() {
         <div>
           <h2>Market Retention & Limits Policy</h2>
           <p>
-            Configure listing lifespans, seller quotas, and seller fees. Buyers also pay a {MARKET_BUYER_FEE_PERCENT}% Market service fee on new orders.
+            Configure listing limits and seller fees. Buyers pay {MARKET_BUYER_FEE_PERCENT}% on Free orders or {MARKET_PRO_BUYER_FEE_PERCENT}% with Pro, capped at {new Intl.NumberFormat('en-US',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(MARKET_BUYER_FEE_CAP)} per order.
           </p>
         </div>
         <div className="admin-policy-presets">
