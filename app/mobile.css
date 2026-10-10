@@ -1708,3 +1708,60 @@ html[data-theme='dark'] .card-viewer > header { background: #101d2b !important; 
   body:has(.market-listing-detail) .market-listing-detail { padding-bottom: calc(112px + env(safe-area-inset-bottom)) !important; }
   .market-checkout-shell .market-mobile-nav { display: none !important; }
 }
+
+/* Keep the desktop Market header independent from the phone navigation layout. */
+@media (min-width: 761px) {
+  .market-store-nav {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+    height: 64px !important;
+    padding-inline: clamp(18px, 4vw, 64px) !important;
+  }
+  .market-store-nav .market-back-link {
+    display: flex !important;
+    flex: 0 0 auto !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 6px !important;
+    width: auto !important;
+    min-width: 0 !important;
+    height: auto !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+  }
+  .market-store-nav .market-back-link > svg:first-child,
+  .market-store-nav .market-back-link > img,
+  .market-store-nav .market-back-link > span {
+    display: inline !important;
+  }
+}
+
+/* The phone header keeps the same back arrow and VivrePlay mark as desktop. */
+@media (max-width: 760px) {
+  .market-store-nav:has(+ .market-mobile-nav) .market-back-link {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 7px !important;
+    white-space: nowrap !important;
+  }
+  .market-store-nav:has(+ .market-mobile-nav) .market-back-link > svg:first-child {
+    display: inline-block !important;
+    flex: 0 0 auto !important;
+    width: 17px !important;
+    height: 17px !important;
+  }
+  .market-store-nav:has(+ .market-mobile-nav) .market-back-link > img {
+    display: inline-block !important;
+    flex: 0 0 auto !important;
+    width: 19px !important;
+    height: 19px !important;
+  }
+  .market-store-nav:has(+ .market-mobile-nav) .market-back-link > span {
+    display: inline !important;
+    font-size: 15px !important;
+    font-weight: 800 !important;
+  }
+}

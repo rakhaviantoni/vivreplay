@@ -1128,7 +1128,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
                     <div className="market-feed-copy">
                       <h2>{listing.title}</h2>
                       <small className="market-feed-meta">
-                        <span className="market-feed-meta-primary"><span className="market-feed-meta-primary-line"><span className="market-feed-location"><MapPin size={11}/>{listing.city}</span>{listing.createdAt&&<><span className="market-feed-meta-separator" aria-hidden="true">|</span><MarketTimestamp value={listing.createdAt}/></>}</span><span className="market-feed-meta-separator" aria-hidden="true">|</span><span className="market-feed-seller">{locale==='ID'?'oleh':'by'} {listing.seller}</span></span>
+                        <span className="market-feed-meta-primary"><span className="market-feed-meta-primary-line"><span className="market-feed-location"><MapPin size={11}/>{listing.city}</span>{listing.createdAt&&<><span className="market-feed-meta-separator" aria-hidden="true">|</span><MarketTimestamp value={listing.createdAt}/></>}</span><span className="market-feed-seller">{locale==='ID'?'oleh':'by'} {listing.seller}</span></span>
                         {listing.type==='WTS'&&<span className="market-feed-meta-secondary"><ShippingCouriers couriers={listing.shippingCouriers??[]} language={locale}/></span>}
                       </small>
                     </div>
