@@ -1554,7 +1554,7 @@ html[data-theme='dark'] .card-viewer > header { background: #101d2b !important; 
 .market-feed-copy p .market-feed-language { margin-left: 0 !important; }
 
 /* Market keeps search at the top and moves frequent actions into a real bottom nav. */
-@media (max-width: 600px) {
+@media (max-width: 760px) {
   .market-store-nav:has(+ .market-mobile-nav) {
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) 40px 40px !important;
