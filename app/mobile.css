@@ -437,11 +437,6 @@
   .tutorial-dock { width: calc(100vw - (var(--mobile-gutter) * 2)) !important; max-width: none !important; }
   .tutorial-dialog { padding: 22px var(--mobile-gutter) 18px !important; }
 
-  .play-fullscreen { min-width: 0; overflow: hidden !important; overscroll-behavior: none; }
-  .play-fullscreen .battle-table { width: 100% !important; min-width: 0 !important; max-width: 100% !important; margin: 0 !important; }
-  .play-fullscreen .game-log { right: 12px !important; width: min(300px, calc(100vw - 24px)) !important; }
-  .play-fullscreen .end-turn { top: 8px !important; right: 10px !important; bottom: auto !important; height: auto !important; min-height: 40px !important; }
-
   .site-shell .footer-top { grid-template-columns: 1fr 1fr !important; gap: 28px 18px !important; padding-inline: var(--mobile-gutter) !important; }
   .site-shell .footer-bottom,
   .footer-bottom {

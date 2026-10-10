@@ -2,10 +2,9 @@ import type {Metadata} from 'next';
 import Script from 'next/script';
 import {headers} from 'next/headers';
 import {Shell} from '@/components/tcg/shell';
+import {DeferredWebFonts} from '@/components/tcg/deferred-web-fonts';
 import './globals.css';
 import './vivreplay.css';
-import './vault.css';
-import './playmat.css';
 import './catalog-workbench.css';
 import './mobile.css';
 
@@ -38,9 +37,9 @@ export default async function RootLayout({children}:{children:React.ReactNode}){
         <link rel="preconnect" href="https://shqwaqxpxsyjafxdcibj.supabase.co"/>
         <link rel="preconnect" href="https://fonts.googleapis.com"/>
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous"/>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:ital,wght@0,500;0,600;0,700;0,800;1,600&family=Roboto+Condensed:wght@400;500;600;700&display=swap"/>
       </head>
       <body>
+        <DeferredWebFonts/>
         <script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(structuredData)}}/>
         <Script id="error-guard" strategy="beforeInteractive">{`window.addEventListener('error',function(e){if(e&&e.message&&e.message.indexOf("reading 'startTime'")!==-1){e.preventDefault();e.stopImmediatePropagation()}});`}</Script>
         <Shell>{children}</Shell>

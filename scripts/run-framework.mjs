@@ -32,13 +32,28 @@ try {
     handlerCode = `import handler from "virtual:vinext-worker-entry";
 
 const GTAG_SNIPPET = \`<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-2Z50572QD3"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
-
   gtag('config', 'G-2Z50572QD3');
+  (function(){
+    var started = false;
+    function loadTag(){
+      if (started) return;
+      started = true;
+      var script = document.createElement('script');
+      script.async = true;
+      script.src = 'https://www.googletagmanager.com/gtag/js?id=G-2Z50572QD3';
+      document.head.appendChild(script);
+    }
+    function schedule(){
+      if ('requestIdleCallback' in window) window.requestIdleCallback(loadTag, {timeout: 4000});
+      else window.setTimeout(loadTag, 1800);
+    }
+    if (document.readyState === 'complete') schedule();
+    else window.addEventListener('load', schedule, {once: true});
+  })();
 </script>\`;
 
 class HeadRewriter {
