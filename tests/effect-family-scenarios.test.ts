@@ -82,8 +82,8 @@ test('OP12-039 readies only a matching Roronoa Zoro Leader',()=>{
 });
 test('OP17-116 offers the optional two-DON cost before choosing an opponent Stage',()=>{
  const document=compileEffectDocument({id:'test',code:'OP17-116',name:'Fulgora',color:'Blue',type:'Event',cost:3,power:0,rarity:'C',art:0,effect:"[Main] You may rest 2 of your DON!! cards: K.O. up to 1 of your opponent's Stages.\n[Counter] Up to 1 of your Leader or Characters gains +4000 power during this battle."});
- assert.equal(document.resolver.type,'CUSTOM');if(document.resolver.type!=='CUSTOM')return;assert.equal(document.resolver.handler,'OP17_116_MAIN');
- const branch=customEffectBranch('OP17_116_MAIN',0)!,commands=[...document.ast.find(item=>item.trigger==='main')!.costs.map((value,abilityId)=>({kind:'pay-cost' as const,value,abilityId})),...branch.map((value,abilityId)=>({kind:'resolve-action' as const,value,abilityId}))];
+ assert.equal(document.resolver.type,'DSL');
+ const commands=resolveEffectTiming(document,'main').commands;
  const state=()=>({turn:'player' as const,cards:[{id:'event',owner:'player' as const,zone:'hand' as const,type:'Event' as const},{id:'don-1',owner:'player' as const,zone:'cost-area' as const,type:'DON!!' as const,rested:false},{id:'don-2',owner:'player' as const,zone:'cost-area' as const,type:'DON!!' as const,rested:false},{id:'stage',owner:'opponent' as const,zone:'stage' as const,type:'Stage' as const},{id:'character',owner:'opponent' as const,zone:'character' as const,type:'Character' as const}],turnEffects:[],restrictions:[],delayed:[]});
  const start=beginEffectExecution(state(),'player','event','main',commands);assert(start.requiresSelection,'Optional cost must be offered before the K.O.');const declined=advanceEffectExecution(start.execution,{choice:'decline'});assert(declined.complete&&!declined.error,'Declining the optional cost should end the effect');assert(declined.execution.state.cards.every(card=>card.type!=='DON!!'||!card.rested));assert.equal(declined.execution.state.cards.find(card=>card.id==='stage')?.zone,'stage');
  const offered=advanceEffectExecution(start.execution,{choice:'accept'});assert(offered.requiresSelection&&!offered.error,'Accepting must request two DON!! cards');const paid=advanceEffectExecution(offered.execution,{cardIds:['don-1','don-2']});assert(paid.requiresSelection&&!paid.error,'K.O. target must be chosen after payment');assert(paid.execution.state.cards.filter(card=>card.type==='DON!!'&&card.rested).length===2);const ko=advanceEffectExecution(paid.execution,{cardIds:['stage']});assert(ko.complete&&!ko.error,'Selected opponent Stage should be K.O.d');assert.equal(ko.execution.state.cards.find(card=>card.id==='stage')?.zone,'trash');assert.equal(ko.execution.state.cards.find(card=>card.id==='character')?.zone,'character');
@@ -209,7 +209,7 @@ test('effectless-card coverage rejects phantom commands in stored schemas',()=>{
 test('printed Blocker schema supports legal blocking and respects negation',()=>{
  const effect='[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)';
  const document=compileEffectDocument({id:'test',code:'TEST',name:'Test',color:'Green',type:'Character',cost:1,power:1000,rarity:'C',art:0,effect});
- const cases=scenarios({code:'TEST',effect_text:effect} as Parameters<typeof scenarios>[0]);assert.equal(cases.length,7);
+ const cases=scenarios({code:'TEST',effect_text:effect} as Parameters<typeof scenarios>[0]);assert.equal(cases.length,8);
  for(const scenario of cases)scenario.run(document);
  const broken=structuredClone(document);broken.ast[0].actions=[];broken.rawEffectText='';
  assert.throws(()=>cases[0].run(broken),/Active printed Blocker rejected/);

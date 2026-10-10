@@ -41,7 +41,7 @@ test('Kin’emon’s next-play reduction is parsed into the executable DSL',()=>
  const document=compileEffectDocument(card('OP02-025','[Activate: Main] [Once Per Turn] If you have 1 or less Characters, the next time you play a {Land of Wano} type Character card with a cost of 3 or more from your hand during this turn, the cost will be reduced by 1.'));
  assert.equal(document.resolver.type,'DSL');
  assert.equal(document.implementationStatus,'PARSED');
- assert.deepEqual(document.ast[0].actions,[{kind:'cost-reduction',trait:'Land of Wano',cardType:'Character',minimumCost:3,amount:1,nextOnly:true}]);
+ assert.deepEqual(document.ast[0].actions,[{kind:'cost-reduction',trait:'Land of Wano',cardType:'Character',minimumCost:3,amount:1,nextOnly:true,oncePerTurn:true,activationKey:'OP02-025:activate-main'}]);
 });
 
 test('OP11-031 attack permission stays in the Activate Main timing when another window appears first',()=>{

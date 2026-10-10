@@ -34,6 +34,12 @@ export default async function RootLayout({children}:{children:React.ReactNode}){
   };
   return (
     <html lang={locale}>
+      <head>
+        <link rel="preconnect" href="https://shqwaqxpxsyjafxdcibj.supabase.co"/>
+        <link rel="preconnect" href="https://fonts.googleapis.com"/>
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous"/>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:ital,wght@0,500;0,600;0,700;0,800;1,600&family=Roboto+Condensed:wght@400;500;600;700&display=swap"/>
+      </head>
       <body>
         <script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(structuredData)}}/>
         <Script id="error-guard" strategy="beforeInteractive">{`window.addEventListener('error',function(e){if(e&&e.message&&e.message.indexOf("reading 'startTime'")!==-1){e.preventDefault();e.stopImmediatePropagation()}});`}</Script>

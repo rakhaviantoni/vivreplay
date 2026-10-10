@@ -1,16 +1,170 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {compileEffectDocument,type EffectAction} from '../packages/domain/effect-rules';
-import {applyEffectAction,declareAttack} from '../packages/domain/match-effect-state';
+import {applyEffectAction,declareAttack,beginTurn,effectiveCardCost,effectiveCardPower,playCard} from '../packages/domain/match-effect-state';
 import {advanceEffectExecution,beginEffectExecution} from '../packages/domain/effect-controller';
 import {executeEffectCommands,resolveEffectTiming} from '../packages/domain/effect-runtime';
 import {scenarios} from '../scripts/card-effect-scenarios';
+
+test('Sai, Charlotte Katakuri and Miss Doublefinger resolve conditional power and cost effects to exact recipients',()=>{
+ const rows=[
+  {id:'OP06-088',code:'OP06-088',name:'Sai',color:'Green',card_type:'Character' as const,cost:3,power:4000,effect_text:'If your Leader has the [Dressrosa] type and is active, this Character gains +2000 power.'},
+  {id:'ST16-003',code:'ST16-003',name:'Charlotte Katakuri',color:'Purple',card_type:'Character' as const,cost:4,power:5000,effect_text:'If your Leader has the "FILM" type and you have 6 or more rested cards, this Character gains +2000 power.'},
+  {id:'OP14-086',code:'OP14-086',name:'Miss Doublefinger(Zala)',color:'Black',card_type:'Character' as const,cost:4,power:5000,effect_text:'If you have 7 or more cards in your trash, this Character gains +1000 power, and all of your Characters with a type including "Baroque Works" gain +2 cost.'},
+ ];
+ for(const row of rows){const document=compileEffectDocument({id:row.id,code:row.code,name:row.name,color:row.color,type:'Character',cost:row.cost,power:row.power,counter:0,rarity:'',art:0,effect:row.effect_text});const scenario=scenarios(row).find(item=>item.name.startsWith(`${row.code} real play:`));assert.ok(scenario,`${row.code} needs a card-specific scenario`);scenario.run(document);}
+});
+
+test('OP12-061 compiles both Law-only effects and consumes the named next-play discount',()=>{
+ const row={id:'OP12-061',code:'OP12-061',name:'Donquixote Rosinante',color:'Purple Yellow',card_type:'Leader' as const,cost:0,power:5000,effect_text:"[Once Per Turn] If your [Trafalgar Law] would be K.O.'d, you may add 1 card from the top of your Life cards to your hand instead.\n[Activate: Main] [Once Per Turn] DON!! 1: The next time you play [Trafalgar Law] with a cost of 4 or more from your hand during this turn, the cost will be reduced by 2."};
+ const document=compileEffectDocument({id:row.id,code:row.code,name:row.name,color:row.color,type:'Leader',cost:row.cost,power:row.power,counter:0,rarity:'',art:0,effect:row.effect_text});assert.equal(document.resolver.type,'DSL');const scenario=scenarios(row).find(item=>item.name.startsWith('OP12-061 real play:'));assert.ok(scenario);scenario.run(document);
+});
+
+test('OP17-018 resolves its Stage K.O. Main and gated Counter independently',()=>{
+ const row={id:'OP17-018',code:'OP17-018',name:'Ice Age',color:'Blue',card_type:'Event' as const,cost:2,power:0,effect_text:"[Main] You may rest 2 of your DON!! cards: K.O. up to 1 of your opponent's Stages. [Counter] If you have 2 or more Characters with 8000 base power or more, up to 1 of your Leader or Characters gains +4000 power during this battle."};
+ const document=compileEffectDocument({id:row.id,code:row.code,name:row.name,color:row.color,type:'Event',cost:row.cost,power:0,counter:0,rarity:'',art:0,effect:row.effect_text});const scenario=scenarios(row).find(item=>item.name.startsWith('OP17-018 real play:'));assert.ok(scenario);scenario.run(document);
+});
+
+test('ST30-014 activation rests itself and allows per-Character rested DON!! distribution',()=>{
+ const row={id:'ST30-014',code:'ST30-014',name:'Mr.3(Galdino)',color:'Blue',card_type:'Character' as const,cost:3,power:5000,effect_text:'[Activate: Main] You may rest this Character: Give up to 2 of your Characters with 6000 base power up to 2 rested DON!! cards each.'};
+ const document=compileEffectDocument({id:row.id,code:row.code,name:row.name,color:row.color,type:'Character',cost:row.cost,power:row.power,counter:0,rarity:'',art:0,effect:row.effect_text});
+ const scenario=scenarios(row).find(item=>item.name.startsWith('ST30-014 real play:'));assert.ok(scenario);scenario.run(document);
+});
+
+test('ST30-012 only rests Blocker Characters, EB04-007 grants conditional Rush: Character once, and ST01-016 accepts a Leader',()=>{
+ const rows=[
+  {id:'ST30-012',code:'ST30-012',name:'Monkey.D.Luffy',color:'Green',card_type:'Character' as const,cost:4,power:6000,effect_text:"[On Play] You may rest 1 of your DON!! cards: This Character gains [Rush] during this turn. (This card can attack on the turn in which it is played.)\n[When Attacking] Rest up to 1 of your opponent's [Blocker] Characters."},
+  {id:'EB04-007',code:'EB04-007',name:'Roronoa Zoro',color:'Red',card_type:'Character' as const,cost:7,power:9000,effect_text:"[On Play] Your Leader gains +2000 power until the end of your opponent's next End Phase.\n[Activate: Main] [Once Per Turn] If your opponent has a Character with 8000 power or more, this Character gains [Rush: Character] during this turn."},
+  {id:'ST01-016',code:'ST01-016',name:'Diable Jambe',color:'Red',card_type:'Event' as const,cost:1,power:0,effect_text:"[Main] Select up to 1 of your {Straw Hat Crew} type Leader or Character cards. Your opponent cannot activate [Blocker] if that Leader or Character attacks during this turn. [Trigger] K.O. up to 1 of your opponent's [Blocker] Characters with a cost of 3 or less."},
+  {id:'ST32-004',code:'ST32-004',name:'Silvers Rayleigh',color:'Green',card_type:'Character' as const,cost:4,power:5000,effect_text:'If your Leader has the attribute, this Character gains [Rush: Character]. (This card can attack Characters on the turn in which it is played.) [On Play] Rest up to 2 of your opponent\'s Characters with a cost of 2 or less.'},
+ ];
+ for(const row of rows){const document=compileEffectDocument({id:row.id,code:row.code,name:row.name,color:row.color,type:row.card_type,cost:row.cost,power:row.power,counter:0,rarity:'',art:0,effect:row.effect_text});const scenario=scenarios(row).find(item=>item.name.startsWith(`${row.code} real play:`));assert.ok(scenario,`${row.code} needs a whole-effect gameplay scenario`);scenario.run(document);}
+});
+
+test('conditional and rested-trigger catalog cards resolve complete timing windows against qualifying boards',()=>{
+ const rows=[
+  {id:'OP01-032',code:'OP01-032',name:'Ashura Doji',color:'Green',card_type:'Character' as const,cost:4,power:5000,effect_text:'[DON!! x1] If your opponent has 2 or more rested Characters, this Character gains +2000 power.'},
+  {id:'OP01-083',code:'OP01-083',name:'Mr.1 (Daz.Bonez)',color:'Green',card_type:'Character' as const,cost:3,power:4000,effect_text:'[DON!! x1] [Your Turn] If your Leader has the "Baroque Works" type, this Character gains +1000 power for every 2 Events in your trash.'},
+  {id:'OP15-051',code:'OP15-051',name:'Monkey.D.Luffy',color:'Purple',card_type:'Character' as const,cost:4,power:5000,effect_text:'[Opponent\'s Turn] If your Leader has the "Dressrosa" type, this Character gains +3000 power.'},
+  {id:'ST16-005',code:'ST16-005',name:'Monkey.D.Luffy',color:'Purple',card_type:'Character' as const,cost:5,power:6000,effect_text:'If you have a rested [Uta], this Character gains +1000 power.'},
+  {id:'OP03-026',code:'OP03-026',name:'Kuroobi',color:'Blue',card_type:'Character' as const,cost:2,power:3000,effect_text:"[On Play] If your Leader has the {East Blue} type, rest up to 1 of your opponent's Characters."},
+  {id:'OP14-032',code:'OP14-032',name:'Humandrill',color:'Blue',card_type:'Character' as const,cost:3,power:4000,effect_text:"[Your Turn] When this Character becomes rested, rest up to 1 of your opponent's Characters with a cost of 4 or less."},
+  {id:'OP14-035',code:'OP14-035',name:'Yosaku',color:'Blue',card_type:'Character' as const,cost:3,power:4000,effect_text:"[Your Turn] When this Character becomes rested, up to 1 of your opponent's rested Characters with a cost of 4 or less will not become active in your opponent's next Refresh Phase."},
+  {id:'OP17-091',code:'OP17-091',name:'Brook',color:'Blue',card_type:'Character' as const,cost:4,power:4000,effect_text:"If there is a Character with a cost of 12 or more, this Character gains +3000 power. [On Play] If there is a Character with a cost of 12 or more, your opponent trashes 1 card from their hand."},
+ ];
+ for(const row of rows){const document=compileEffectDocument({id:row.id,code:row.code,name:row.name,color:row.color,type:'Character',cost:row.cost,power:row.power,counter:0,rarity:'',art:0,effect:row.effect_text});const scenario=scenarios(row).find(item=>item.name.startsWith(`${row.code} real play:`));assert.ok(scenario,`${row.code} needs a complete gameplay scenario`);scenario.run(document);}
+});
+
+test('OP03-098, OP03-120 and OP13-108 resolve their full gated sequences in real play',()=>{
+ const rows=[
+  {id:'OP03-098',code:'OP03-098',name:'Kalifa',color:'Black',card_type:'Stage' as const,cost:3,power:0,effect_text:'[Activate: Main] You may rest this Stage: If your Leader\'s type includes "CP", give up to 1 of your opponent\'s Characters -2 cost during this turn.'},
+  {id:'OP03-120',code:'OP03-120',name:'Six King Pistol',color:'Black',card_type:'Event' as const,cost:4,power:0,effect_text:'[Main] If your opponent has 4 or more Life cards, trash up to 1 card from the top of your opponent\'s Life cards.'},
+  {id:'OP13-108',code:'OP13-108',name:'Nami',color:'Red',card_type:'Character' as const,cost:4,power:5000,effect_text:'[On Play] If your Leader has the "Egghead" type, this Character gains [Rush] during this turn. Then, your opponent adds 1 card from the top of their Life cards to their hand.\n[Trigger] If you have 1 or less Life cards, rest up to 1 of your opponent\'s Characters with a cost of 7 or less.'},
+ ];
+ for(const row of rows){const document=compileEffectDocument({id:row.id,code:row.code,name:row.name,color:row.color,type:row.card_type==='Stage'?'Character':row.card_type,cost:row.cost,power:row.power,counter:0,rarity:'',art:0,effect:row.effect_text});const scenario=scenarios(row).find(item=>item.name.startsWith(`${row.code} real play:`));assert.ok(scenario,`${row.code} needs a card-specific sequence scenario`);scenario.run(document);}
+});
+
+test('ST04-001 Kaido returns seven DON!! before optionally trashing the top opponent Life card',()=>{
+ const row={id:'ST04-001',code:'ST04-001',name:'Kaido',color:'Purple',card_type:'Leader' as const,cost:0,power:5000,effect_text:"[Activate: Main] [Once Per Turn] DON!! -7 (You may return the specified number of DON!! cards from your field to your DON!! deck.): Trash up to 1 of your opponent's Life cards."};const document=compileEffectDocument({id:row.id,code:row.code,name:row.name,color:row.color,type:'Leader',cost:row.cost,power:row.power,counter:0,rarity:'',art:0,effect:row.effect_text});assert.equal(document.resolver.type,'DSL');const scenario=scenarios(row).find(item=>item.name.startsWith('ST04-001 Activate: Main gameplay:'));assert.ok(scenario);scenario.run(document);
+});
+
+test('P-084 Buggy restricts attacks only at costs three/four while its controller has a Buggy Leader',()=>{
+ const row={id:'P-084',code:'P-084',name:'Buggy',color:'Blue',card_type:'Character' as const,cost:4,power:4000,effect_text:'This Character cannot attack.If your Leader is [Buggy], all Characters with a cost of 3 or 4 cannot attack.[On Play] Play up to 1 "Cross Guild" type Character card with a cost of 6 or less from your hand.'};const document=compileEffectDocument({id:row.id,code:row.code,name:row.name,color:row.color,type:'Character',cost:row.cost,power:row.power,counter:0,rarity:'',art:0,effect:row.effect_text});assert.equal(document.resolver.type,'DSL');const scenario=scenarios(row).find(item=>item.name.startsWith('P-084 continuous gameplay:'));assert.ok(scenario);scenario.run(document);
+});
+
+test('OP15-026 trashes itself before transferring only a rested opponent DON!!',()=>{
+ const effect='[On Play] Look at 3 cards from the top of your deck; reveal up to 1 {East Blue} type card and add it to your hand. Then, place the rest at the bottom of your deck in any order.\n[Activate: Main] You may trash this Character: Give up to 1 of your opponent\'s rested DON!! cards to 1 of your opponent\'s Characters.';
+ const row={id:'OP15-026',code:'OP15-026',name:'Jango',color:'Blue',card_type:'Character' as const,cost:2,power:3000,effect_text:effect};const document=compileEffectDocument({id:row.code,code:row.code,name:row.name,color:row.color,type:'Character',cost:row.cost,power:row.power,counter:0,rarity:'',art:0,effect});const scenario=scenarios(row).find(item=>item.name.startsWith('OP15-026 real play:'));assert.ok(scenario);scenario.run(document);
+});
+
+test('OP14-027 separates its becomes-rested trigger from the conditional passive',()=>{
+ const effect="[Your Turn] When this Character becomes rested, rest up to 1 of your opponent's Characters with 7000 base power or less.\n[Opponent's Turn] If this Character is rested, give all of your opponent's Characters +1000 power.";
+ const row={id:'OP14-027',code:'OP14-027',name:'Shanks',color:'Red',card_type:'Character' as const,cost:5,power:6000,effect_text:effect};
+ const document=compileEffectDocument({id:row.code,code:row.code,name:row.name,color:row.color,type:'Character',cost:row.cost,power:row.power,counter:0,rarity:'',art:0,effect});
+ const scenario=scenarios(row).find(item=>item.name.startsWith('OP14-027 real play:'));
+ assert.ok(scenario);scenario.run(document);
+});
+
+test('conditional passive followed by a printed keyword is not duplicated into an unresolved window',()=>{
+ const effect="If the number of DON!! cards on your field is equal to or less than the number on your opponent's field, this Character gains +1000 power.\n[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)";
+ const row={id:'OP06-067',code:'OP06-067',name:'Vinsmoke Yonji',color:'Green',card_type:'Character' as const,cost:4,power:5000,effect_text:effect};
+ const document=compileEffectDocument({id:row.code,code:row.code,name:row.name,color:row.color,type:'Character',cost:row.cost,power:row.power,counter:0,rarity:'',art:0,effect});
+ assert.deepEqual(document.ast.map(ability=>[ability.trigger,ability.actions.map(action=>action.kind)]),[['unknown',['power']],['continuous',['blocker']]]);
+ const aura=scenarios(row).find(scenario=>scenario.name.startsWith('engine-aura unknown:'));
+ assert.ok(aura);aura.run(document);
+ const state={turn:'player' as const,cards:[{id:'source',owner:'player' as const,zone:'character' as const,type:'Character' as const,name:row.name,power:row.power,effectSchema:document},{id:'target',owner:'player' as const,zone:'character' as const,type:'Character' as const,power:5000},{id:'own-don',owner:'player' as const,zone:'cost-area' as const,type:'DON!!' as const},{id:'opponent-don',owner:'opponent' as const,zone:'cost-area' as const,type:'DON!!' as const}],turnEffects:[],restrictions:[],delayed:[]};
+ assert.equal(effectiveCardPower(state,'target'),6000);
+ const blocker=document.ast.find(ability=>ability.actions.some(action=>action.kind==='blocker'));
+ assert.equal(blocker?.conditions.length,0);
+});
+
+test('printed Blocker ability redirects an attack and cannot activate while rested',()=>{
+ const effect='[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)';
+ const row={id:'test-blocker',code:'test-blocker',name:'Blocker Test',color:'Blue',card_type:'Character' as const,cost:2,power:3000,effect_text:effect};
+ const document=compileEffectDocument({id:row.code,code:row.code,name:row.name,color:row.color,type:'Character',cost:row.cost,power:row.power,counter:0,rarity:'',art:0,effect});
+ const scenario=scenarios(row).find(item=>item.name.includes('Blocker redirects an attack'));
+ assert.ok(scenario);scenario.run(document);
+});
+
+test('OP15-092 applies each continuous Trash threshold independently during real play',()=>{
+ const effect="Apply each of the following effects based on the number of cards in your trash:\n• If there are 10 or more cards, this Character's base power becomes 9000 and it gains +10 cost.\n• If you have 20 or more cards, during your opponent's turn, your Leader's base power becomes 7000.\n• If you have 30 or more cards, this Character gains +1000 power.";
+ const row={id:'OP15-092',code:'OP15-092',name:'Lafitte',color:'Black',card_type:'Character' as const,cost:4,power:5000,effect_text:effect};
+ const document=compileEffectDocument({id:row.code,code:row.code,name:row.name,color:row.color,type:'Character',cost:row.cost,power:row.power,counter:0,rarity:'',art:0,effect});
+ assert.deepEqual(document.ast.map(ability=>ability.trigger),['continuous','continuous','continuous']);
+ const scenario=scenarios(row).find(item=>item.name.startsWith('OP15-092 real play:'));
+ assert.ok(scenario);scenario.run(document);
+ assert.equal(effectiveCardCost({turn:'player',cards:[{id:'source',owner:'player',zone:'character',type:'Character',cost:4,effectSchema:document},...Array.from({length:10},(_,i)=>({id:`trash-${i}`,owner:'player' as const,zone:'trash' as const,type:'Character' as const}))],turnEffects:[],restrictions:[],delayed:[]},{id:'source',owner:'player',zone:'character',type:'Character',cost:4,effectSchema:document}),14);
+});
+
+test('OP17-094 applies its +12 cost only while your Leader has the Elbaph type',()=>{
+ const effect='If your Leader has the {Elbaph} type, this Character gains +12 cost.';
+ const row={id:'OP17-094',code:'OP17-094',name:'Gerd',color:'Yellow',card_type:'Character' as const,cost:3,power:4000,effect_text:effect};
+ const document=compileEffectDocument({id:row.code,code:row.code,name:row.name,color:row.color,type:'Character',cost:row.cost,power:row.power,counter:0,rarity:'',art:0,effect});
+ const scenario=scenarios(row).find(item=>item.name==='OP17-094 real play: conditional self-cost applies only under its printed condition');
+ assert.ok(scenario,'A typed-Leader cost aura needs a real-play condition scenario');scenario.run(document);
+});
+
+test('OP12-015 enforces the Event reveal cost and preserves its play-then-DON sequence',()=>{
+ const effect='If you have a total of 2 or more given DON!! cards, this Character gains +2000 power.\n[On Play] You may reveal 2 Events from your hand: Play up to 1 red Character card with 3000 power or less from your hand. Then, give up to 1 rested DON!! card to your Leader or 1 of your Characters.';
+ const row={id:'OP12-015',code:'OP12-015',name:'Koala',color:'Red',card_type:'Character' as const,cost:4,power:5000,effect_text:effect};
+ const document=compileEffectDocument({id:row.code,code:row.code,name:row.name,color:row.color,type:'Character',cost:row.cost,power:row.power,counter:0,rarity:'',art:0,effect});
+ const scenario=scenarios(row).find(item=>item.name.startsWith('OP12-015 real play:'));
+ assert.ok(scenario);scenario.run(document);
+});
+
+test('EB03-042 On K.O. accepts only its printed card options from hand or Trash',()=>{
+ const effect="If your Leader has the {Revolutionary Army} type, this Character gains +4 cost. [Opponent's Turn] [On K.O.] Play up to 1 {Revolutionary Army} type Character card with a cost of 6 or less other than [Koala] or up to 1 [Nico Robin] with a cost of 6 or less from your hand or trash.";
+ const row={id:'EB03-042',code:'EB03-042',name:'Belo Betty',color:'Red',card_type:'Character' as const,cost:4,power:5000,effect_text:effect};
+ const document=compileEffectDocument({id:row.code,code:row.code,name:row.name,color:row.color,type:'Character',cost:row.cost,power:row.power,counter:0,rarity:'',art:0,effect});
+ const scenario=scenarios(row).find(item=>item.name.startsWith('EB03-042 real play:'));
+ assert.ok(scenario);scenario.run(document);
+});
 
 test('EB04-011 applies Rush: Character and resolves its Neptunian draw-then-trash count',()=>{
  const effect='[Rush: Character] (This card can attack Characters on the turn in which it is played.)\n[On Play] Draw a card for each of your {Neptunian} type Characters. Then, trash the same number of cards from your hand.';
  const document=compileEffectDocument({id:'EB04-011',code:'EB04-011',name:'Scaled Neptunian',color:'Blue',type:'Character',cost:1,power:2000,counter:0,rarity:'',art:0,effect});
  const scenario=scenarios({id:'EB04-011',code:'EB04-011',name:'Scaled Neptunian',color:'Blue',card_type:'Character',cost:1,power:2000,effect_text:effect}).find(item=>item.name.includes('Neptunians'));
  assert.ok(scenario);scenario.run(document);
+});
+
+test('OP02-118 Counter pays its optional hand-trash cost before choosing one Character to protect',()=>{
+ const effect='[Counter] You may trash 1 card from your hand: Select up to 1 of your Characters. The selected Character cannot be K.O.\'d during this battle.';
+ const row={id:'OP02-118',code:'OP02-118',name:'Yasakani Sacred Jewel',color:'Black',card_type:'Event' as const,cost:0,power:0,effect_text:effect};
+ const document=compileEffectDocument({id:row.code,code:row.code,name:row.name,color:'Black',type:'Event',cost:0,power:0,counter:0,rarity:'C',art:0,effect});
+ assert.equal(document.resolver.type,'DSL');
+ assert.equal(document.normalized[0].sequence[0].type,'PAY_COST');
+ const action=document.ast[0].actions[0];assert.equal(action.kind,'prevent-ko');
+ if(action.kind==='prevent-ko')assert.deepEqual(action.selection,{min:0,max:1});
+ const scenario=scenarios(row).find(item=>item.name.includes('engine-action counter prevent-ko'));
+ assert.ok(scenario);scenario.run(document);
+});
+
+test('move-to-Life destination choice survives optional-target eligibility and resolution',()=>{
+ const action:EffectAction={kind:'move-to-life',scope:'opponent',source:'character',amount:1,maxCost:3,position:'choice',faceUp:true,selection:{min:0,max:1}};
+ const state={turn:'player' as const,cards:[{id:'target',owner:'opponent' as const,zone:'character' as const,type:'Character' as const,cost:3}],turnEffects:[],restrictions:[],delayed:[]};
+ const result=applyEffectAction(state,'player',action,{cardIds:['target'],position:'bottom'});
+ assert.equal(result.error,undefined);assert.equal(result.requiresSelection,undefined);
+ const moved=result.state.cards.find(card=>card.id==='target');assert.equal(moved?.zone,'life');assert.equal(moved?.faceUp,true);
 });
 
 test('KO-protection scenarios enforce DON, source attributes and printed conditions',()=>{
@@ -115,6 +269,36 @@ test('OP16-073 On Play separately chooses active and rested DON!! from the DON!!
  const document=compileEffectDocument({id:'OP16-073',code:'OP16-073',name:'Borsalino',color:'Black',type:'Character',cost:5,power:6000,counter:0,rarity:'R',art:0,effect});
  const scenario=scenarios({id:'OP16-073',code:'OP16-073',name:'Borsalino',color:'Black',card_type:'Character',cost:5,power:6000,effect_text:effect}).find(item=>item.name.startsWith('schema-add-don on-play: active then additional rested'));
  assert.ok(scenario);scenario.run(document);
+});
+
+test('OP05-040 Birdcage prevents eligible Characters from refreshing for either player',()=>{
+ const effect='[End of Your Turn] K.O. all of your opponent\'s rested Characters with a cost of 5 or less.\nIf your Leader is [Donquixote Doflamingo], all Characters with a cost of 5 or less do not become active in your and your opponent\'s Refresh Phases.';
+ const doc=compileEffectDocument({id:'OP05-040',code:'OP05-040',name:'Birdcage',color:'Purple',type:'Character',cost:6,power:0,counter:0,rarity:'',art:0,effect});
+ const scenario=scenarios({id:'OP05-040',code:'OP05-040',name:'Birdcage',color:'Purple',card_type:'Stage',cost:6,power:0,effect_text:effect});
+ assert.ok(doc.ast.some(ability=>ability.actions.some(action=>action.kind==='refresh-prohibition')),'Birdcage refresh text must compile to a continuous prohibition');
+ const stage={id:'stage',owner:'player' as const,zone:'stage' as const,type:'Stage' as const,effectSchema:doc},leader={id:'leader',owner:'player' as const,zone:'leader' as const,type:'Leader' as const,name:'Donquixote Doflamingo'},ownFive={id:'own-five',owner:'player' as const,zone:'character' as const,type:'Character' as const,cost:5,rested:true},ownSix={id:'own-six',owner:'player' as const,zone:'character' as const,type:'Character' as const,cost:6,rested:true},oppFour={id:'opp-four',owner:'opponent' as const,zone:'character' as const,type:'Character' as const,cost:4,rested:true};
+ const start={turn:'player' as const,firstPlayer:'player' as const,turnNumber:1,cards:[stage,leader,ownFive,ownSix,oppFour,{id:'deck-p',owner:'player' as const,zone:'deck' as const,type:'Character' as const},{id:'deck-o',owner:'opponent' as const,zone:'deck' as const,type:'Character' as const}],turnEffects:[],restrictions:[],delayed:[]};
+ const ownTurn=beginTurn(start,'player',2);assert(ownTurn.state.cards.find(card=>card.id==='own-five')?.rested,'Birdcage must leave own 5-cost Character rested');assert(!ownTurn.state.cards.find(card=>card.id==='own-six')?.rested,'Birdcage must allow 6-cost Character to refresh');
+ const opponentTurn=beginTurn(ownTurn.state,'opponent',3);assert(opponentTurn.state.cards.find(card=>card.id==='opp-four')?.rested,'Birdcage must also leave opponent 4-cost Character rested');
+ const wrongLeader=beginTurn({...start,cards:start.cards.map(card=>card.id==='leader'?{...card,name:'Other'}:card)},'player',2);assert(!wrongLeader.state.cards.find(card=>card.id==='own-five')?.rested,'Birdcage refresh prohibition must require Donquixote Doflamingo Leader');
+});
+
+test('OP09-022 makes Character plays enter rested while its Leader effect is active',()=>{
+ const effect='Your Character cards are played rested.\n[Activate: Main] [Once Per Turn] You may rest 3 of your DON!! cards: Draw 1 card.';
+ const doc=compileEffectDocument({id:'OP09-022',code:'OP09-022',name:'Charlotte Pudding',color:'Yellow',type:'Leader',cost:5,power:5000,counter:0,rarity:'',art:0,effect});
+ assert.ok(doc.ast.some(ability=>ability.trigger==='continuous'&&ability.actions.some(action=>action.kind==='characters-enter-rested')),'The replacement rule must compile as a continuous action');
+ const leader={id:'leader',owner:'player' as const,zone:'leader' as const,type:'Leader' as const,effectSchema:doc},character={id:'character',owner:'player' as const,zone:'hand' as const,type:'Character' as const,cost:1},don={id:'don',owner:'player' as const,zone:'cost-area' as const,type:'DON!!' as const,rested:false};
+ const state={turn:'player' as const,phase:'main' as const,cards:[leader,character,don],turnEffects:[],restrictions:[],delayed:[]};const played=playCard(state,'player','character');assert.equal(played.state.cards.find(card=>card.id==='character')?.zone,'character');assert.equal(played.state.cards.find(card=>card.id==='character')?.rested,true,'The card should enter rested under the Leader rule');
+ const negated=playCard({...state,cards:state.cards.map(card=>card.id==='leader'?{...card,effectNegated:true}:card)},'player','character');assert.equal(negated.state.cards.find(card=>card.id==='character')?.rested,false,'The rule must stop applying while the Leader effect is negated');
+});
+
+test('OP17-087 applies its conditional On Play -3000 power to up to one opposing Character',()=>{
+ const effect='If there is a Character with a cost of 12 or more, this Character gains +3000 power. [On Play] If there is a Character with a cost of 12 or more, give up to 1 of your opponent\'s Characters -3000 poser during this turn.';
+ const doc=compileEffectDocument({id:'OP17-087',code:'OP17-087',name:'Test Character',color:'Purple',type:'Character',cost:5,power:5000,counter:0,rarity:'R',art:0,effect});
+ const action=doc.ast.find(ability=>ability.trigger==='on-play')?.actions.find(item=>item.kind==='power');assert.equal(action?.kind,'power');if(action?.kind!=='power')throw new Error('Expected the typo-tolerant power action');assert.equal(action.amount,-3000);assert.equal(action.target,'opponent-character');assert.deepEqual(action.selection,{min:0,max:1});
+ const source={id:'source',owner:'player' as const,zone:'character' as const,type:'Character' as const,effectSchema:doc},enemy={id:'enemy',owner:'opponent' as const,zone:'character' as const,type:'Character' as const,power:6000},qualifier={id:'large',owner:'opponent' as const,zone:'character' as const,type:'Character' as const,cost:12,power:12000};
+ const commands=resolveEffectTiming(doc,'on-play').commands,run=executeEffectCommands({turn:'player',cards:[source,enemy,qualifier],turnEffects:[],restrictions:[],delayed:[]},'player',commands,[{targetId:'enemy'}],'source');assert.equal(run.state.cards.find(card=>card.id==='enemy')?.powerModifier,-3000,'The eligible target must receive -3000');
+ const noQualifier=executeEffectCommands({turn:'player',cards:[source,enemy],turnEffects:[],restrictions:[],delayed:[]},'player',commands,[{targetId:'enemy'}],'source');assert.equal(noQualifier.state.cards.find(card=>card.id==='enemy')?.powerModifier,undefined,'The debuff must not resolve without a 12-cost Character');
 });
 
 test('effect timing markers split after reminder text and slash-separated timing windows',()=>{
@@ -667,4 +851,10 @@ test('conditional and turn-limited attack prohibitions apply only to their print
  assert.match(declareAttack(turnState,'player','source','leader').error??'',/prohibited/);
  const character={id:'target',owner:'opponent' as const,zone:'character' as const,type:'Character' as const,rested:true};
  assert.equal(declareAttack({...turnState,cards:[rushSource,character,attached]},'player','source','target').error,undefined);
+});
+
+test('OP03-051 separates its gated attack-damage mill from its optional On K.O. mill',()=>{
+ const row={id:'OP03-051',code:'OP03-051',name:'Arlong',color:'Blue',card_type:'Character' as const,cost:5,power:6000,effect_text:"[DON!! x1] When this Character's attack deals damage to your opponent's Life, you may trash 7 cards from the top of your deck.\n[On K.O.] You may trash 3 cards from the top of your deck."};
+ const document=compileEffectDocument({id:row.id,code:row.code,name:row.name,color:row.color,type:'Character',cost:row.cost,power:row.power,counter:0,rarity:'',art:0,effect:row.effect_text});
+ const scenario=scenarios(row).find(item=>item.name.startsWith('OP03-051 real play:'));assert.ok(scenario,'Arlong needs a complete card-specific gameplay scenario');scenario.run(document);
 });

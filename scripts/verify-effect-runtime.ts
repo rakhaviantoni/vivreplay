@@ -15,7 +15,7 @@ if(auditSource!=='d1'){
 }
 const rows:Array<{id:string;code:string;name:string;color:string;card_type:string;cost:number;power:number;effect_text:string}>=[];
 if(auditSource==='d1'){
- const output=execFileSync('node_modules/.bin/wrangler',['d1','execute','site-creator-d1','--remote','--config','wrangler.migrations.json','--json','--command',"SELECT id,code,name,color,card_type,cost,power,effect_text FROM tcg_card_identities ORDER BY code"],{encoding:'utf8',maxBuffer:32*1024*1024});
+ const output=execFileSync('node_modules/.bin/wrangler',['d1','execute','vivreplay','--remote','--config','dist/server/wrangler.json','--json','--command',"SELECT id,code,name,color,card_type,cost,power,effect_text FROM tcg_card_identities ORDER BY code"],{encoding:'utf8',maxBuffer:32*1024*1024});
  const envelope=JSON.parse(output.trimStart()) as Array<{results?:typeof rows;success?:boolean;error?:{text?:string}}>;
  if(!envelope[0]?.success)throw new Error(envelope[0]?.error?.text??'Cloudflare D1 query failed.');
  rows.push(...(envelope[0].results??[]));

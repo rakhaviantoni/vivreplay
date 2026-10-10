@@ -9,7 +9,7 @@ const hash=(value:unknown)=>createHash('sha256').update(canonical(value)).digest
 const mainActionIsRest=(action:EffectAction|undefined):action is Extract<EffectAction,{kind:'rest'}>=>action?.kind==='rest';
 const normalizedWindowText=(value:string)=>value.replace(/\s+/g,' ').replace(/[−–—]/g,'-').replace(/Activate:\s*Main/gi,'Activate: Main').replace(/\[(On Play|When Attacking|Activate\s*:\s*Main|Main|Counter|Trigger|On K\.O\.|On Block|On Your Opponent's Attack|End of Your Turn)\]\s*/gi,'[$1] ').replace(/\[(DON!!\s*[x×]\s*\d+)\]\s*(\[(?:On Play|When Attacking|Activate\s*:\s*Main|Main|Counter|Trigger|On K\.O\.|On Block|On Your Opponent's Attack|End of Your Turn|Your Turn|Opponent's Turn)\])/gi,'$2 [$1] ').replace(/\[DON!!\s*[x×]\s*(\d+)\]\s*\[(Opponent's Turn|Your Turn)\]/gi,'[$2] [DON!!x$1]').replace(/DON!!\s*[x×]/gi,'DON!!x').replace(/\{([^{}]+)\}/g,'[$1]').replace(/gains\s+\[?(Rush|Blocker|Double Attack|Banish)\]?/gi,'gains [$1]').replace(/\s*\(/g,' (').replace(/\s+([.,:;])/g,'$1').replace(/\]\s*\[/g,'] [').replace(/\s+/g,' ');
 const containsSourceWindow=(source:string,window:string)=>{const normalizedSource=normalizedWindowText(source),normalizedWindow=normalizedWindowText(window),expandedSource=normalizedSource.replace(/\[([^\]]+)\]\s*\/\s*\[([^\]]+)\]/gi,'[$1] [$2]'),sharedOnPlay=normalizedSource.replace(/\[(On Play|On K\.O\.)\]\s*\/\s*\[(On Play|On K\.O\.)\]\s*/gi,'[$1] '),sharedOnKo=normalizedSource.replace(/\[(On Play|On K\.O\.)\]\s*\/\s*\[(On Play|On K\.O\.)\]\s*/gi,'[$2] '),sharedMain=normalizedSource.replace(/\[(Main|Counter)\]\s*\/\s*\[(Main|Counter)\]\s*/gi,'[$1] '),sharedCounter=normalizedSource.replace(/\[(Main|Counter)\]\s*\/\s*\[(Main|Counter)\]\s*/gi,'[$2] ');return normalizedSource.includes(normalizedWindow)||expandedSource.includes(normalizedWindow)||sharedOnPlay.includes(normalizedWindow)||sharedOnKo.includes(normalizedWindow)||sharedMain.includes(normalizedWindow)||sharedCounter.includes(normalizedWindow);};
-type Row={code:string;name:string;printedText:string;publishedText:string|null;localSchema:EffectDocument;databaseSchema:EffectDocument|null;textMatches:boolean};
+type Row={code:string;name:string;color:string;cardType:'Character'|'Leader'|'Event'|'Stage';cost:number;power:number;printedText:string;publishedText:string|null;localSchema:EffectDocument;databaseSchema:EffectDocument|null;textMatches:boolean};
 const windowPresentInBothSources=(card:Row,window:string)=>Boolean(card.publishedText&&containsSourceWindow(card.printedText,window)&&containsSourceWindow(card.publishedText,window));
 function scenarioWindow(name:string,schema:EffectDocument):EffectTrigger|undefined{
  if(/^schema-op07-017 main\/trigger:/i.test(name))return 'main';
@@ -165,15 +165,15 @@ for(const card of snapshot.cards){
   if(changed.length){candidates.push({code:card.code,printedText:card.printedText,publishedText:card.publishedText,timings:changed,scenarioNames:[...new Set(checks.map(s=>s.name))],scenarioCount:new Set(checks.map(s=>s.name)).size,before:card.databaseSchema,after,beforeHash:hash(card.databaseSchema),afterHash:hash(after)});continue;}
  }
  const attackRestrictionCases=cases.filter(s=>s.name.includes('gameplay attack prohibition:'));
- const attackRestrictionText=/This Character cannot attack (?:a Leader on the turn in which it is played|unless )/i.test(card.printedText);
- if(card.databaseScenarios.some(s=>s.status==='FAIL')&&card.textMatches&&card.databaseSchema?.resolver.type==='CUSTOM'&&card.localSchema.resolver.type==='DSL'&&attackRestrictionText&&attackRestrictionCases.length>0){
+ const attackRestrictionText=/This Character cannot attack (?:a Leader on the turn in which it is played|unless )|If you have \d+ or more cards in your hand, this Character cannot attack/i.test(card.printedText);
+ if(card.databaseScenarios.some(s=>s.status==='FAIL')&&card.textMatches&&card.databaseSchema&&card.localSchema.resolver.type==='DSL'&&attackRestrictionText&&attackRestrictionCases.length>0){
   const prohibitions=card.localSchema.ast.flatMap(ability=>ability.actions.filter(action=>action.kind==='attack-prohibition'&&(action.condition||action.target||action.during)));
   const sourcesMatch=prohibitions.length>0&&prohibitions.every(action=>card.localSchema.ast.some(ability=>ability.actions.includes(action)&&windowPresentInBothSources(card,ability.rawText.trim())));
   if(!sourcesMatch){block('attack-restriction-window-not-proven-in-both-sources');continue;}
-  try{for(const scenario of attackRestrictionCases)scenario.run(card.localSchema);}catch{block('attack-restriction-local-scenario-failed');continue;}
+  try{for(const scenario of cases)scenario.run(card.localSchema);}catch{block('attack-restriction-local-scenario-failed');continue;}
   const after=structuredClone(card.localSchema);
-  try{for(const scenario of attackRestrictionCases)scenario.run(after);}catch{block('attack-restriction-published-scenario-failed');continue;}
-  candidates.push({code:card.code,printedText:card.printedText,publishedText:card.publishedText,timings:card.localSchema.ast.filter(ability=>ability.actions.some(action=>action.kind==='attack-prohibition')).map(ability=>ability.trigger),scenarioNames:attackRestrictionCases.map(s=>s.name),scenarioCount:attackRestrictionCases.length,before:card.databaseSchema,after,beforeHash:hash(card.databaseSchema),afterHash:hash(after)});continue;
+  try{for(const scenario of cases)scenario.run(after);}catch{block('attack-restriction-published-scenario-failed');continue;}
+  candidates.push({code:card.code,printedText:card.printedText,publishedText:card.publishedText,timings:card.localSchema.ast.filter(ability=>ability.actions.some(action=>action.kind==='attack-prohibition')).map(ability=>ability.trigger),scenarioNames:cases.map(s=>s.name),scenarioCount:cases.length,before:card.databaseSchema,after,beforeHash:hash(card.databaseSchema),afterHash:hash(after)});continue;
  }
  const stageRestLifeCases=cases.filter(s=>s.name.startsWith('schema-stage-rest-life-power '));
  if(card.databaseScenarios.some(s=>s.status==='FAIL')&&card.textMatches&&card.databaseSchema&&card.localSchema.resolver.type==='DSL'&&stageRestLifeCases.length===1){
@@ -207,6 +207,28 @@ for(const card of snapshot.cards){
   const after=structuredClone(card.localSchema);
   try{for(const scenario of cases)scenario.run(after);}catch{block('op08-019-published-scenario-failed');continue;}
   candidates.push({code:card.code,printedText:card.printedText,publishedText:card.publishedText,timings:['main','counter','trigger'],scenarioNames:cases.map(s=>s.name),scenarioCount:cases.length,before:card.databaseSchema,after,beforeHash:hash(card.databaseSchema),afterHash:hash(after)});continue;
+ }
+ const handCounterWindows=card.localSchema.ast.filter(ability=>ability.actions.some(action=>action.kind==='hand-counter'));
+ if(card.databaseScenarios.some(s=>s.status==='FAIL')&&card.textMatches&&card.databaseSchema&&card.localSchema.resolver.type==='DSL'&&handCounterWindows.length){
+  const checks=cases.filter(s=>s.name.startsWith('hand-counter aura '));
+  const safe=handCounterWindows.every(ability=>ability.actions.length===1&&ability.actions[0].kind==='hand-counter'&&ability.conditions.length===0&&ability.costs.length===0&&windowPresentInBothSources(card,ability.rawText.trim()))&&checks.length===handCounterWindows.length;
+  if(!safe){block('hand-counter-aura-window-not-isolated');continue;}
+  try{for(const scenario of checks)scenario.run(card.localSchema);}catch{block('hand-counter-aura-local-scenario-failed');continue;}
+  const after=structuredClone(card.databaseSchema),removed=new Set<string>();
+  for(const ability of handCounterWindows){
+   const prior=after.ast.filter(item=>item.rawText.trim()===ability.rawText.trim());
+   if(prior.length!==1){block('hand-counter-aura-published-window-not-unique');break;}
+   const priorTiming=prior[0].trigger;removed.add(ability.rawText.trim());after.ast=after.ast.filter(item=>item!==prior[0]);
+   const normalizedIndex=after.normalized.findIndex(item=>item.timing===priorTiming&&item.sequence.some(step=>step.type==='RESOLVE'&&String(step.action.kind)==='grant-counter'));
+   if(normalizedIndex<0){block('hand-counter-aura-published-sequence-missing');break;}
+   after.normalized.splice(normalizedIndex,1);
+  }
+  if(blocked['hand-counter-aura-published-window-not-unique']||blocked['hand-counter-aura-published-sequence-missing'])continue;
+  const timings=[...new Set(handCounterWindows.map(ability=>ability.trigger))];
+  after.ast=[...after.ast,...handCounterWindows];
+  after.normalized=[...after.normalized,...timings.flatMap(timing=>card.localSchema.normalized.filter(item=>item.timing===timing&&handCounterWindows.some(ability=>ability.trigger===timing&&removed.has(ability.rawText.trim()))))];
+  try{for(const scenario of checks)scenario.run(after);}catch{block('hand-counter-aura-published-scenario-failed');continue;}
+  candidates.push({code:card.code,printedText:card.printedText,publishedText:card.publishedText,timings,scenarioNames:checks.map(s=>s.name),scenarioCount:checks.length,before:card.databaseSchema,after,beforeHash:hash(card.databaseSchema),afterHash:hash(after)});continue;
  }
  const standalonePowerCases=cases.filter(s=>/ gameplay power: verify the complete window and apply its printed target$/.test(s.name));
  if(card.databaseScenarios.some(s=>s.status==='FAIL')&&card.textMatches&&card.databaseSchema&&card.localSchema.resolver.type==='DSL'&&standalonePowerCases.length===1){
@@ -361,6 +383,7 @@ for(const card of snapshot.cards){
  const changed:EffectTrigger[]=[];
  let effectTextAfter:string|undefined;
  let preserveImplementationStatus=false;
+ let isolatedContinuousBlockerPatched=false;
  const op02TimingCases=cases.filter(s=>s.name.startsWith('schema-bottom-deck when-attacking:')||s.name.startsWith('schema-reorder on-play:'));
  const repairOp02CrossTiming=card.code==='OP02-056'&&op02TimingCases.some(s=>s.name.startsWith('schema-bottom-deck '))&&op02TimingCases.some(s=>s.name.startsWith('schema-reorder '))&&timings.has('when-attacking')&&timings.has('on-play');
  const referenceCases=cases.filter(s=>s.name.startsWith('schema-reference trigger:'));
@@ -900,6 +923,17 @@ for(const card of snapshot.cards){
   after.normalized=after.normalized.map(effect=>{if(effect.timing!=='on-play')return effect;const sequence=effect.sequence.filter(step=>step.type!=='RESOLVE'||step.action.kind!=='prevent-ko'),conditions=effect.conditions.filter(condition=>condition.text!=='this Character is rested');if(sequence.length===effect.sequence.length&&conditions.length===effect.conditions.length)return effect;removed=true;return {...effect,sequence,conditions};});
   if(removed&&!changed.includes('on-play'))changed.push('on-play');
  }
+ // A printed Blocker is unconditional even when an older schema folded it
+ // into a neighboring conditional passive. Preserve the existing passive and
+ // add the independently parsed Blocker window after checking both catalogs.
+ const isolatedBlocker=card.localSchema.ast.find(ast=>ast.trigger==='continuous'&&ast.conditions.length===0&&ast.costs.length===0&&ast.actions.length===1&&ast.actions[0].kind==='blocker');
+ const isolatedBlockerEffect=card.localSchema.normalized.find(effect=>effect.timing==='continuous'&&effect.conditions.length===0&&effect.sequence.length===1&&effect.sequence[0].type==='RESOLVE'&&effect.sequence[0].action.kind==='blocker');
+ if(isolatedBlocker&&isolatedBlockerEffect&&failingNames.has('engine-action continuous blocker: resolve isolated parsed instruction')&&windowPresentInBothSources(card,isolatedBlocker.rawText.trim())){
+  const alreadyIsolated=after.ast.some(ast=>ast.trigger==='continuous'&&ast.conditions.length===0&&ast.costs.length===0&&ast.actions.length===1&&canonical(ast.actions[0])===canonical(isolatedBlocker.actions[0]));
+  if(!alreadyIsolated){after.ast.push(structuredClone(isolatedBlocker));after.normalized.push(structuredClone(isolatedBlockerEffect));}
+  isolatedContinuousBlockerPatched=true;
+  if(!changed.includes('continuous'))changed.push('continuous');
+ }
  // A leading printed Blocker is an independent keyword, even when an older
  // published parser folded it into On Play/Trigger text. Move that action out
  // of the unrelated window while preserving every other action and condition.
@@ -962,14 +996,20 @@ for(const card of snapshot.cards){
  if(lostParsedActions){block('repair-would-drop-another-published-action');continue;}
  if(!changed.length){if(card.databaseScenarios.some(s=>s.status==='FAIL'))block('no-safe-changes');continue;}
  const verifiedAtomicTimings=new Set(changed.filter(timing=>{const ast=card.localSchema.ast.filter(item=>item.trigger===timing),normalized=card.localSchema.normalized.filter(item=>item.timing===timing);return card.textMatches&&ast.length===1&&normalized.length===1&&ast[0].conditions.length===0&&ast[0].costs.length===0&&ast[0].actions.length===1&&windowPresentInBothSources(card,ast[0].rawText.trim())&&cases.some(s=>s.name.startsWith(`engine-action ${timing} `));}));
- const verificationCases=cases.filter(s=>changed.includes(scenarioWindow(s.name,card.localSchema)!)&&!(repairReferencedMain&&s.name.startsWith('engine-action '))&&(!s.name.startsWith('engine-action ')||verifiedAtomicTimings.has(scenarioWindow(s.name,card.localSchema)!)));
- const unverifiedWindows=changed.filter(timing=>!verifiedAtomicTimings.has(timing)&&!verificationCases.some(s=>scenarioWindow(s.name,card.localSchema)===timing&&!s.name.startsWith('engine-action ')));
+ const verificationCases=cases.filter(s=>changed.includes(scenarioWindow(s.name,card.localSchema)!)&&!(repairReferencedMain&&s.name.startsWith('engine-action '))&&(!s.name.startsWith('engine-action ')||verifiedAtomicTimings.has(scenarioWindow(s.name,card.localSchema)!)||(isolatedContinuousBlockerPatched&&s.name==='engine-action continuous blocker: resolve isolated parsed instruction')));
+ const unverifiedWindows=changed.filter(timing=>!verifiedAtomicTimings.has(timing)&&!(isolatedContinuousBlockerPatched&&timing==='continuous')&&!verificationCases.some(s=>scenarioWindow(s.name,card.localSchema)===timing&&!s.name.startsWith('engine-action ')));
  if(unverifiedWindows.length){block('action-only-window-needs-printed-text-scenario');continue;}
  try{for(const scenario of verificationCases)scenario.run(after);}catch{block('local-window-scenarios-failed-after-merge');continue;}
  if(!preserveImplementationStatus)after.implementationStatus='PARSED';
  candidates.push({code:card.code,printedText:card.printedText,publishedText:card.publishedText,effectTextAfter,timings:changed,scenarioNames:verificationCases.map(s=>s.name),scenarioCount:verificationCases.length,before:card.databaseSchema,after,beforeHash:hash(card.databaseSchema),afterHash:hash(after)});
 }
 mkdirSync('reports/effects/publication',{recursive:true});
+const suppliedPlanArgument=process.argv.find(argument=>argument.startsWith('--plan='));
+if(suppliedPlanArgument){
+ const suppliedPlan=JSON.parse(readFileSync(suppliedPlanArgument.slice('--plan='.length),'utf8')) as {rulesetId:string;candidates:typeof candidates};
+ if(suppliedPlan.rulesetId!==snapshot.summary.ruleset.id)throw new Error('Supplied plan targets a different published ruleset.');
+ candidates.splice(0,candidates.length,...suppliedPlan.candidates);
+}
 const plan={rulesetId:snapshot.summary.ruleset.id,createdAt:new Date().toISOString(),candidates};
 const path=`reports/effects/publication/${new Date().toISOString().replace(/[:.]/g,'-')}.json`;
 writeFileSync(path,JSON.stringify(plan,null,2));
@@ -998,7 +1038,7 @@ for(const candidate of candidates){
  if(readError)throw readError;
  if(hash(readback.effect_schema)!==candidate.afterHash||readback.effect_text!==(candidate.effectTextAfter??candidate.printedText))throw new Error(`${candidate.code}: readback differs`);
  const scenarioNames=new Set(candidate.scenarioNames);
- for(const scenario of scenarios({code:candidate.code,effect_text:candidate.printedText} as Identity).filter(s=>scenarioNames.has(s.name)))scenario.run(readback.effect_schema);
+ const card=snapshot.cards.find(item=>item.code===candidate.code);if(!card)throw new Error(`${candidate.code}: audited card identity is missing`);for(const scenario of scenarios({id:candidate.code,code:candidate.code,name:card.name,color:card.color,card_type:card.cardType,cost:card.cost,power:card.power,effect_text:candidate.printedText} as Identity).filter(s=>scenarioNames.has(s.name)))scenario.run(readback.effect_schema);
  results.push({code:candidate.code,status:'PUBLISHED_AND_READBACK_TESTED'});
  writeFileSync(path.replace('.json','.results.json'),JSON.stringify(results,null,2));
 }

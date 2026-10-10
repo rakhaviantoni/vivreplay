@@ -18,7 +18,7 @@ const windowTextPresent=(card:AuditCard,timing:EffectTrigger)=>{
   return body.length>0&&sources.every(source=>source.includes(body));
  });
 };
-const timings:EffectTrigger[]=['on-play','when-attacking','activate-main','main','counter','trigger','on-ko','on-block','opponent-attack','opponent-blocker','don-attached','end-turn','continuous','unknown','character-played-from-trash'];
+const timings:EffectTrigger[]=['on-play','when-attacking','attack-damage','when-rested','activate-main','main','counter','trigger','on-ko','on-block','opponent-attack','opponent-blocker','don-attached','end-turn','continuous','unknown','character-played-from-trash'];
 const scenarioMatchesTiming=(name:string,timing:EffectTrigger)=>{
  if(name.startsWith('DON attached gameplay'))return timing==='don-attached';
  if(name.startsWith('Opponent Blocker gameplay'))return timing==='opponent-blocker';
@@ -29,11 +29,11 @@ const scenarioMatchesTiming=(name:string,timing:EffectTrigger)=>{
   return scenarioTiming===timing;
  }
  if(name.startsWith('unknown gameplay '))return timing==='unknown';
- const matchWindow=name.match(/^(On Play|When Attacking|Activate: Main|Main|Counter|Trigger|On K\.O\.|On Block|Opponent's Attack|End of Your Turn|Your Turn|Opponent's Turn|On your Opponent's Attack|On Your Turn|On Opponent's Turn|On K\.O\.|On Block|Continuous|On Character Played From Trash)/i);
+ const matchWindow=name.match(/^(On Play|When Attacking|Attack damage|When Rested|Activate: Main|Main|Counter|Trigger|On K\.O\.|On Block|Opponent's Attack|End of Your Turn|Your Turn|Opponent's Turn|On your Opponent's Attack|On Your Turn|On Opponent's Turn|On K\.O\.|On Block|Continuous|On Character Played From Trash)/i);
  if(!matchWindow)return false;
  const label=matchWindow[1].toLowerCase().replace(/\./g,'').replace(/\s+/g,' ');
  const map:Record<string,EffectTrigger>={
-  'on play':'on-play','when attacking':'when-attacking','activate: main':'activate-main','main':'main',counter:'counter',trigger:'trigger',
+  'on play':'on-play','when attacking':'when-attacking','attack damage':'attack-damage','when rested':'when-rested','activate: main':'activate-main','main':'main',counter:'counter',trigger:'trigger',
   'on ko':'on-ko','on block':'on-block',"opponent's attack":'opponent-attack',"on your opponent's attack":'opponent-attack',
   'end of your turn':'end-turn','your turn':'continuous',"opponent's turn":'continuous','on your turn':'continuous',"on opponent's turn":'continuous',
   continuous:'continuous','on character played from trash':'character-played-from-trash'

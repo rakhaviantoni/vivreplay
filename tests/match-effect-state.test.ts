@@ -25,6 +25,15 @@ test('Character battle losses resolve lower-power and equal-power clashes for bo
  assert.deepEqual(characterBattleLosers('leader','defender',4000,5000,true),[]);
 });
 
+test('hand-only conditional cost reductions apply to the played card under their live condition',()=>{
+ const checks=[
+  {code:'OP15-013',effect:'If your Leader has 0 power or less, give this card in your hand -2 cost.',cost:4,setup:(board:MatchEffectState)=>{board.cards.find(card=>card.zone==='leader'&&card.owner==='player')!.power=0;}},
+  {code:'ST23-001',effect:'If you have a Character with 10000 power or more, give this card in your hand -4 cost.',cost:6,setup:(board:MatchEffectState)=>board.cards.push({id:'big-character',owner:'player',zone:'character',type:'Character',power:10000})},
+  {code:'OP07-064',effect:"If the number of DON!! cards on your field is at least 2 less than the number on your opponent's field, give this card in your hand -3 cost.",cost:6,setup:(board:MatchEffectState)=>{board.cards=board.cards.filter(card=>!(card.owner==='player'&&card.type==='DON!!'));board.cards.push({id:'opponent-don-1',owner:'opponent',zone:'cost-area',type:'DON!!'},{id:'opponent-don-2',owner:'opponent',zone:'cost-area',type:'DON!!'});}},
+ ] as const;
+ for(const item of checks){const doc=compileEffectDocument({id:item.code,code:item.code,name:'Hand Discount',color:'Black',type:'Character',cost:item.cost,power:4000,counter:0,rarity:'',art:0,effect:item.effect});const card={id:'discount-card',owner:'player' as const,zone:'hand' as const,type:'Character' as const,cost:item.cost,effectSchema:doc};const board=state();board.cards.push(card);item.setup(board);const action=doc.ast.flatMap(ability=>ability.actions).find(candidate=>candidate.kind==='cost-self');assert.equal(action?.kind,'cost-self',`${item.code} must parse a self-hand discount`);assert.equal(effectivePlayCost(board,'player',card),Math.max(0,item.cost+(action?.kind==='cost-self'?action.amount:0)),`${item.code} must apply its discount to itself while in hand`);}
+});
+
 test('PRB02-005 schedules one active opponent DON!! to rest at their next Main only when its On Play condition is met',()=>{
  const doc=compileEffectDocument({id:'prb02-005',code:'PRB02-005',name:'Monkey.D.Luffy',color:'Red/Green',type:'Character',cost:3,power:4000,counter:0,rarity:'',art:0,effect:'[Your Turn] [On Play] If your Leader is multicolored and your opponent has 7 or less DON!! cards on their field, your opponent rests 1 of their active DON!! cards at the start of their next Main Phase.'});
  assert.equal(doc.resolver.type,'DSL');const commands=resolveEffectTiming(doc,'on-play').commands;assert.equal(commands.length,1);assert.equal(commands[0]?.kind,'resolve-action');if(commands[0]?.kind!=='resolve-action')throw new Error('Expected a delayed rest command');assert.equal(commands[0].value.kind,'schedule-rest-don');
@@ -67,6 +76,15 @@ test('OP17-095 replacement protects any own Character by bottom-decking exactly 
  const defender={id:'defender',owner:'player' as const,zone:'character' as const,type:'Character' as const,cost:4,power:5000};const protector={id:'protector',owner:'player' as const,zone:'character' as const,type:'Character' as const,effectSchema:doc};
  const cards:MatchEffectState['cards']=[defender,protector,...Array.from({length:3},(_,i)=>({id:`trash-${i}`,owner:'player' as const,zone:'trash' as const,type:'Event' as const})),{id:'enemy',owner:'opponent',zone:'character',type:'Character'}];const board:MatchEffectState={turn:'opponent',cards,turnEffects:[],restrictions:[],delayed:[]};
  const action:EffectAction={kind:'ko',scope:'opponent-character'};const offer=applyEffectAction(board,'opponent',action,{targetId:'defender'});assert.match(offer.requiresSelection??'',/may pay its removal replacement/);const paid=applyEffectAction(board,'opponent',action,{targetId:'defender',choice:'accept',cardIds:['trash-0','trash-1','trash-2']});assert.equal(paid.state.cards.find(card=>card.id==='defender')?.zone,'character');assert.equal(paid.state.cards.filter(card=>card.owner==='player'&&card.zone==='deck').length,3);
+});
+
+test('OP07-042 once-per-turn replacement bottoms a different Character only with the matching Leader type',()=>{
+ const doc=compileEffectDocument({id:'op07-042',code:'OP07-042',name:'Gecko Moria (042)',type:'Character',color:'Blue',cost:5,power:6000,counter:0,rarity:'',art:0,effect:"[Once Per Turn] If your Leader has the [The Seven Warlords of the Sea] type and this Character would be removed from the field by your opponent's effect, you may place 1 of your Characters other than [Gecko Moria] at the bottom of the owner's deck instead."});
+ const replacement=doc.ast.flatMap(ability=>ability.actions).find(action=>action.kind==='replacement');assert.equal(doc.ast.flatMap(ability=>ability.actions).length,1,'Replacement text must not also become an unconditional bottom-deck action');assert.equal(replacement?.kind,'replacement');if(replacement?.kind==='replacement'){assert.equal(replacement.cost.kind,'bottom-deck-own-character');assert.equal(replacement.eligibility?.leaderTrait,'The Seven Warlords of the Sea');assert.equal(replacement.eligibility?.excludeName,'Gecko Moria');assert.equal(replacement.oncePerTurn,true);}
+ const leader={id:'leader',owner:'player' as const,zone:'leader' as const,type:'Leader' as const,traits:['The Seven Warlords of the Sea']};const moria={id:'moria',owner:'player' as const,zone:'character' as const,type:'Character' as const,name:'Gecko Moria (042)',effectSchema:doc};const target={id:'target',owner:'player' as const,zone:'character' as const,type:'Character' as const,name:'Ally'};const forbidden={id:'moria-copy',owner:'player' as const,zone:'character' as const,type:'Character' as const,name:'Gecko Moria'};const board:MatchEffectState={turn:'opponent',cards:[leader,moria,target,forbidden,{id:'enemy',owner:'opponent',zone:'character',type:'Character'}],turnEffects:[],restrictions:[],delayed:[]};const ko:EffectAction={kind:'ko',scope:'opponent-character'};
+ const offered=applyEffectAction(board,'opponent',ko,{targetId:'moria'});assert.match(offered.requiresSelection??'',/place another Character at the bottom/);const invalid=applyEffectAction(board,'opponent',ko,{targetId:'moria',choice:'accept',cardIds:['moria-copy']});assert.match(invalid.error??'',/legal Character/);const paid=applyEffectAction(board,'opponent',ko,{targetId:'moria',choice:'accept',cardIds:['target']});assert.equal(paid.state.cards.find(card=>card.id==='moria')?.zone,'character');assert.equal(paid.state.cards.find(card=>card.id==='target')?.zone,'deck');assert.equal(paid.state.turnEffects.some(effect=>effect.kind==='replacement-used'&&effect.target==='moria'),true);
+ const repeated=applyEffectAction(paid.state,'opponent',ko,{targetId:'moria'});assert.equal(repeated.state.cards.find(card=>card.id==='moria')?.zone,'trash','Once per turn must prevent paying twice.');const wrongLeader={...board,cards:board.cards.map(card=>card.id==='leader'?{...card,traits:['Navy']}:card)};const noOffer=applyEffectAction(wrongLeader,'opponent',ko,{targetId:'moria'});assert.equal(noOffer.state.cards.find(card=>card.id==='moria')?.zone,'trash','A Leader without the required type must not offer the replacement.');
+ for(const action of [ko,{kind:'return-to-hand',scope:'opponent-character'} as const,{kind:'bottom-deck',scope:'opponent-character'} as const,{kind:'trash-character',scope:'opponent'} as const]){const fresh={...board,turnEffects:[]},offer=applyEffectAction(fresh,'opponent',action,{targetId:'moria'});assert.match(offer.requiresSelection??'',/place another Character/,'Every opponent effect that removes the Character should offer its replacement');const accepted=applyEffectAction(fresh,'opponent',action,{targetId:'moria',choice:'accept',cardIds:['target']});assert.equal(accepted.state.cards.find(card=>card.id==='moria')?.zone,'character');assert.equal(accepted.state.cards.find(card=>card.id==='target')?.zone,'deck');const declined=applyEffectAction(fresh,'opponent',action,{targetId:'moria',choice:'decline'});assert.equal(declined.state.cards.find(card=>card.id==='moria')?.zone,action.kind==='ko'||action.kind==='trash-character'?'trash':action.kind==='return-to-hand'?'hand':'deck','Declining must let the opponent effect remove the Character normally');}
 });
 
 test('an attack can prevent every opposing Blocker for the battle without a power threshold',()=>{
@@ -292,6 +310,12 @@ test('drawing the final deck card loses the game',()=>{
  assert.equal(result.state.cards.find(card=>card.id==='deck')?.zone,'hand');
 });
 
+test('OP03-040 deck-out rule replaces a loss with the opponent winning',()=>{
+ const schema=compileEffectDocument({id:'leader',code:'OP03-040',name:'Test',type:'Leader',color:'Red',cost:0,power:5000,rarity:'L',art:0,effect:'When your deck is reduced to 0, you win the game instead of losing.\n[DON!! x1] When this Leader\'s attack deals damage to your opponent\'s Life, you may trash 1 card from the top of your deck.'});
+ const result=beginTurn({...state(),firstPlayer:'opponent',turnNumber:2,cards:[{id:'leader',owner:'player',zone:'leader',type:'Leader',effectSchema:schema}]},'player',3);
+ assert.equal(result.gameOver,'opponent');
+});
+
 test('normal plays pay active DON!!, replace a Stage, and trash Events',()=>{
  const playState:MatchEffectState={...state(),phase:'main',cards:[
   {id:'don-1',owner:'player',zone:'cost-area',type:'DON!!'},
@@ -339,6 +363,21 @@ test('OP17-063 grants +1000 Counter only to Character cards in its owner hand wi
  assert.match(playCounters(match,'player',['event']).error??'',/not legal Counter/);
  assert.match(playCounters(match,'opponent',['enemy-card']).error??'',/not legal Counter/);
  assert.equal(playCounters({...match,cards:match.cards.map(card=>card.id==='source'?{...card,effectNegated:true}:card)},'player',['eligible']).error!==undefined,true);
+});
+
+test('EB01-001 grants its extra Counter only to Land of Wano Characters without printed Counter',()=>{
+ const schema=compileEffectDocument({id:'eb01-001',code:'EB01-001',name:'Kouzuki Oden',type:'Leader',color:'Green',cost:0,power:5000,counter:0,rarity:'L',art:0,effect:'All of your "Land of Wano" type Character cards without a Counter have a +1000 Counter, according to the rules.'});
+ const match:MatchEffectState={...state(),cards:[
+  {id:'source',owner:'player',zone:'leader',type:'Leader',effectSchema:schema},
+  {id:'eligible',owner:'player',zone:'hand',type:'Character',counter:0,traits:['Land of Wano']},
+  {id:'printed',owner:'player',zone:'hand',type:'Character',counter:1000,traits:['Land of Wano']},
+  {id:'wrong-trait',owner:'player',zone:'hand',type:'Character',counter:0,traits:['Straw Hat Crew']},
+  {id:'opponent',owner:'opponent',zone:'hand',type:'Character',counter:0,traits:['Land of Wano']},
+ ]};
+ assert.equal(playCounters(match,'player',['eligible']).total,1000);
+ assert.equal(playCounters(match,'player',['printed']).total,1000,'The printed Counter must not be increased');
+ assert.match(playCounters(match,'player',['wrong-trait']).error??'',/not legal Counter/);
+ assert.match(playCounters(match,'opponent',['opponent']).error??'',/not legal Counter/);
 });
 
 test('OP11-046 protects itself from opponent K.O. and rest effects only while all your Characters are GERMA',()=>{

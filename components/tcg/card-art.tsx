@@ -30,9 +30,10 @@ export function cardImageUrl(card:Card){
   return card.imageUrl;
 }
 
-export function CardArt({card,small=false,priority=false}:{card:Card;small?:boolean;priority?:boolean}) {
+export function CardArt({card,small=false,priority=false,imageWidth}:{card:Card;small?:boolean;priority?:boolean;imageWidth?:160|220|280|360}) {
   const preview=isPreviewCard(card.code,card.setCode,card.variant);
-  const storedImage=cardImageUrl(card);
+  const baseImage=cardImageUrl(card);
+  const storedImage=baseImage&&imageWidth?`${baseImage}?width=${imageWidth}`:baseImage;
   const [loaded,setLoaded]=useState(false);
   const imageRef=useRef<HTMLImageElement>(null);
   useEffect(()=>{
@@ -47,7 +48,7 @@ export function CardArt({card,small=false,priority=false}:{card:Card;small?:bool
   },[storedImage]);
   if (storedImage) return <div className={`tcg-card printing-image ${small?'small':''} ${loaded?'is-loaded':'is-loading'} ${preview?'is-preview-card':''}`} aria-label={preview?"Preview of a set that hasn’t launched yet. You can play it in Casual, New Cards, and Extended, but not Ranked. Its image and text may still change.":undefined}>
     {preview&&<span className="preview-card-badge" aria-hidden="true">Preview</span>}<span className="card-image-skeleton" aria-hidden="true"/>
-    <img ref={imageRef} src={storedImage} alt={`${card.name} card printing`} draggable={false} loading={priority?"eager":"lazy"} fetchPriority={priority?"high":undefined} decoding="async" width="420" height="580" onLoad={()=>setLoaded(true)} onError={()=>setLoaded(true)}/>
+    <img ref={imageRef} src={storedImage} alt={`${card.name} card printing`} draggable={false} loading={priority?"eager":"lazy"} fetchPriority={priority?"high":undefined} decoding="async" width={imageWidth??420} height={imageWidth?Math.round(imageWidth*580/420):580} onLoad={()=>setLoaded(true)} onError={()=>setLoaded(true)}/>
   </div>;
   return <div className={`tcg-card missing-printing ${small?'small':''} ${preview?'is-preview-card':''}`} style={{'--card-color':colors[card.color]} as React.CSSProperties} aria-label={`${card.name} artwork unavailable`}>
     {preview&&<span className="preview-card-badge" aria-hidden="true">Preview</span>}

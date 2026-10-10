@@ -4,7 +4,7 @@ type IconProps=SVGProps<SVGSVGElement>&{size?:number;label?:string};
 const hidden=(label?:string)=>label?{role:'img','aria-label':label}:{'aria-hidden':true};
 
 /** Primary brand emblem generated for VivrePlay; keep the familiar product mark in one component. */
-export function VivreMark({size=28,label,className}:IconProps){return <img src="/brand/vivreplay-compass.png" width={size} height={size} alt={label??''} aria-hidden={label?undefined:true} className={`vivre-brand-mark ${className??''}`}/>;}
+export function VivreMark({size=28,label,className}:IconProps){return <img src="/brand/vivreplay-compass-96.webp" width={size} height={size} alt={label??''} aria-hidden={label?undefined:true} className={`vivre-brand-mark ${className??''}`}/>;}
 
 /** Small visual primitives for card, deck, share, meta, and market surfaces. */
 export function DeckSealIcon({size=20,label,...props}:IconProps){return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" {...hidden(label)} {...props}><path d="M5 7.2 12 3l7 4.2v9.6L12 21l-7-4.2V7.2Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"/><path d="m8.3 9.1 3.7 2.2 3.7-2.2M12 11.4V16" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/></svg>}

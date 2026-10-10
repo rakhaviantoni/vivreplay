@@ -53,9 +53,10 @@ async function catalogAssetKeys(origin:string,key:string,setCode:string,language
     .filter((objectKey):objectKey is string=>Boolean(objectKey));
 }
 
-export async function serveCardImage(setCode:string,language:string,filename:string,variant='small'){
+export async function serveCardImage(setCode:string,language:string,filename:string,variant='small',requestedWidth?:number){
   if(!filenamePattern.test(filename)) return new Response('Not found',{status:404});
-  const cacheKey=new Request(`https://vivreplay.com/${encodeURIComponent(setCode)}/${encodeURIComponent(language)}/${encodeURIComponent(filename)}`);
+  const sizeQuery=requestedWidth?`?width=${requestedWidth}`:'';
+  const cacheKey=new Request(`https://vivreplay.com/${encodeURIComponent(setCode)}/${encodeURIComponent(language)}/${encodeURIComponent(filename)}${sizeQuery}`);
   const edgeCache=(globalThis.caches as (CacheStorage & {default?:Cache})|undefined)?.default;
   const cached=await edgeCache?.match(cacheKey);
   // Cache API responses have immutable headers in Workers. Return a fresh
@@ -69,7 +70,9 @@ export async function serveCardImage(setCode:string,language:string,filename:str
   const catalogKeys=await catalogAssetKeys(origin,key,setCode,language,filename);
   const candidateKeys=[...new Set([...catalogKeys,...candidateObjectKeys(setCode,language,filename,variant)])];
   for(const objectKey of candidateKeys){
-    const response=await fetch(`${origin}/storage/v1/object/${bucket}/${objectKey}`,{headers:{accept:'image/webp,image/*;q=0.8',authorization:`Bearer ${key}`,apikey:key},cf:{cacheTtl:31_536_000,cacheEverything:true}});
+    const sourceUrl=`${origin}/storage/v1/object/${bucket}/${objectKey}`;
+    let response=await fetch(sourceUrl,{headers:{accept:'image/avif,image/webp,image/*;q=0.8',authorization:`Bearer ${key}`,apikey:key},cf:{cacheTtl:31_536_000,cacheEverything:true,...(requestedWidth?{image:{width:requestedWidth,height:Math.round(requestedWidth*580/420),fit:'scale-down',quality:78,format:'auto'}}:{})}});
+    if(!response.ok&&requestedWidth)response=await fetch(sourceUrl,{headers:{accept:'image/webp,image/*;q=0.8',authorization:`Bearer ${key}`,apikey:key},cf:{cacheTtl:31_536_000,cacheEverything:true}});
     if(!response.ok||!response.body) continue;
     const image=new Response(response.body,{headers:{'Content-Type':response.headers.get('content-type')||'image/webp','Cache-Control':'public, max-age=31536000, immutable','X-Content-Type-Options':'nosniff'}});
     await edgeCache?.put(cacheKey,image.clone());
@@ -78,7 +81,9 @@ export async function serveCardImage(setCode:string,language:string,filename:str
   return new Response('Not found',{status:404});
 }
 
-export async function GET(_request:Request,{params}:{params:Promise<{setCode:string;language:string;filename:string}>}) {
+export async function GET(request:Request,{params}:{params:Promise<{setCode:string;language:string;filename:string}>}) {
   const {setCode,language,filename}=await params;
-  return serveCardImage(setCode,language,filename);
+  const rawWidth=Number(new URL(request.url).searchParams.get('width'));
+  const requestedWidth=[160,220,280,360].includes(rawWidth)?rawWidth:undefined;
+  return serveCardImage(setCode,language,filename,'small',requestedWidth);
 }

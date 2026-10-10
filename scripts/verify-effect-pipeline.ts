@@ -1,6 +1,6 @@
 import {publishedActionScenarios,scenarios} from './card-effect-scenarios';
 import {createClient} from '@supabase/supabase-js';
-import {mkdirSync,writeFileSync} from 'node:fs';
+import {mkdirSync,readFileSync,writeFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {compileEffectDocument,type EffectDocument,type EffectTrigger} from '../packages/domain/effect-rules';
 import {resolveEffectTiming} from '../packages/domain/effect-runtime';
@@ -14,9 +14,17 @@ const auditSource=process.env.EFFECT_AUDIT_SOURCE??'supabase';
 let ruleset:{id:string;code:string;effective_from:string};
 let identities:Identity[];
 let revisions:Revision[];
-if(auditSource==='d1'){
+if(auditSource==='report'){
+ // Reuse the last captured database snapshot when network access is unavailable.
+ // This refreshes local parser/scenario results without presenting the old DB
+ // values as a fresh live audit.
+ const snapshot=JSON.parse(readFileSync('reports/effects/per-card.json','utf8')) as {summary:{ruleset:{id:string;code:string;effective_from:string}};cards:Array<{code:string;name:string;color:string;cardType:Identity['card_type'];cost:number;power:number;printedText:string;publishedText:string|null;databaseSchema:EffectDocument|null}>};
+ ruleset=snapshot.summary.ruleset;
+ identities=snapshot.cards.map(row=>({id:row.code,code:row.code,name:row.name,color:row.color,card_type:row.cardType,cost:row.cost,power:row.power,effect_text:row.printedText}));
+ revisions=snapshot.cards.flatMap(row=>row.databaseSchema?[{identity_id:row.code,effect_text:row.publishedText??'',effect_schema:row.databaseSchema}]:[]);
+}else if(auditSource==='d1'){
  const runD1=(sql:string)=>{
-  const output=execFileSync('node_modules/.bin/wrangler',['d1','execute','site-creator-d1','--remote','--config','wrangler.migrations.json','--json','--command',sql],{encoding:'utf8',maxBuffer:96*1024*1024});
+  const output=execFileSync('node_modules/.bin/wrangler',['d1','execute','vivreplay','--remote','--config','dist/server/wrangler.json','--json','--command',sql],{encoding:'utf8',maxBuffer:96*1024*1024});
   const envelope=JSON.parse(output.trimStart()) as Array<{results?:unknown[];success?:boolean;error?:{text?:string}}>;
   if(!envelope[0]?.success)throw new Error(envelope[0]?.error?.text??'Cloudflare D1 query failed.');
   return envelope[0].results??[];
@@ -62,7 +70,7 @@ const cards=identities.filter(row=>! /^(OP18|EB05)-/.test(row.code)).map(row=>{
  const run=(doc:EffectDocument|undefined)=>cases.map(scenario=>{try{if(!doc)throw new Error('Missing published schema');scenario.run(doc);return {name:scenario.name,status:'PASS',error:null};}catch(error){return {name:scenario.name,status:'FAIL',error:error instanceof Error?error.message:String(error)};}});
  const runDatabase=(doc:EffectDocument|undefined)=>databaseCases.map(scenario=>{try{if(!doc)throw new Error('Missing published schema');scenario.run(doc);return {name:scenario.name,status:'PASS',error:null};}catch(error){return {name:scenario.name,status:'FAIL',error:error instanceof Error?error.message:String(error)};}});
  const gameplayScenarios=cases.filter(scenario=>!scenario.name.startsWith('engine-action ')),actionExecutionScenarios=cases.filter(scenario=>scenario.name.startsWith('engine-action ')),standalone=completeStandaloneCoverage(local,cases);
- return {code:row.code,name:row.name,printedText:row.effect_text,publishedText:published?.effect_text??null,published:!!published,textMatches:!!published&&clean(published.effect_text)===clean(row.effect_text)&&clean(published.effect_schema?.rawEffectText)===clean(row.effect_text),schemaMatches:!!published&&canonical(local.normalized)===canonical(published.effect_schema?.normalized),localScenarios:run(local),databaseScenarios:runDatabase(published?.effect_schema),gameplayScenarioCount:gameplayScenarios.length,standaloneActionComplete:standalone,actionExecutionScenarioCount:actionExecutionScenarios.length,publishedActionExecutionScenarioCount:publishedActions.length,coverage:gameplayScenarios.length?'BOUNDED_ENGINE_SCENARIO':standalone?'COMPLETE_SINGLE_ACTION_SCENARIOS':actionExecutionScenarios.length?'ACTION_EXECUTION_ONLY':'NOT_GAMEPLAY_VERIFIED',databaseCoverage:cases.some(scenario=>!scenario.name.startsWith('engine-action '))?'BOUNDED_ENGINE_SCENARIO':standalone?'COMPLETE_SINGLE_ACTION_SCENARIOS':databaseCases.length?'ACTION_EXECUTION_ONLY':'NOT_GAMEPLAY_VERIFIED',browserVerified:false,localSchema:local,databaseSchema:published?.effect_schema??null};
+ return {code:row.code,name:row.name,color:row.color,cardType:row.card_type,cost:row.cost,power:row.power,printedText:row.effect_text,publishedText:published?.effect_text??null,published:!!published,textMatches:!!published&&clean(published.effect_text)===clean(row.effect_text)&&clean(published.effect_schema?.rawEffectText)===clean(row.effect_text),schemaMatches:!!published&&canonical(local.normalized)===canonical(published.effect_schema?.normalized),localScenarios:run(local),databaseScenarios:runDatabase(published?.effect_schema),gameplayScenarioCount:gameplayScenarios.length,standaloneActionComplete:standalone,actionExecutionScenarioCount:actionExecutionScenarios.length,publishedActionExecutionScenarioCount:publishedActions.length,coverage:gameplayScenarios.length?'BOUNDED_ENGINE_SCENARIO':standalone?'COMPLETE_SINGLE_ACTION_SCENARIOS':actionExecutionScenarios.length?'ACTION_EXECUTION_ONLY':'NOT_GAMEPLAY_VERIFIED',databaseCoverage:cases.some(scenario=>!scenario.name.startsWith('engine-action '))?'BOUNDED_ENGINE_SCENARIO':standalone?'COMPLETE_SINGLE_ACTION_SCENARIOS':databaseCases.length?'ACTION_EXECUTION_ONLY':'NOT_GAMEPLAY_VERIFIED',browserVerified:false,localSchema:local,databaseSchema:published?.effect_schema??null};
 });
 const summary={source:auditSource,ruleset,cards:cards.length,missingPublished:cards.filter(c=>!c.published).length,textMismatches:cards.filter(c=>!c.textMatches).length,schemaMismatches:cards.filter(c=>!c.schemaMatches).length,scenarioCards:cards.filter(c=>c.localScenarios.length).length,gameplayScenarioCards:cards.filter(c=>c.gameplayScenarioCount>0).length,standaloneActionCompleteCards:cards.filter(c=>c.standaloneActionComplete).length,actionOnlyCards:cards.filter(c=>c.actionExecutionScenarioCount>0&&!c.gameplayScenarioCount&&!c.standaloneActionComplete).length,publishedScenarioCards:cards.filter(c=>c.databaseScenarios.length).length,publishedGameplayScenarioCards:cards.filter(c=>c.databaseCoverage==='BOUNDED_ENGINE_SCENARIO').length,publishedStandaloneActionCompleteCards:cards.filter(c=>c.databaseCoverage==='COMPLETE_SINGLE_ACTION_SCENARIOS').length,publishedActionOnlyCards:cards.filter(c=>c.databaseCoverage==='ACTION_EXECUTION_ONLY').length,publishedActionScenarios:cards.reduce((n,c)=>n+c.publishedActionExecutionScenarioCount,0),localFailures:cards.flatMap(c=>c.localScenarios).filter(s=>s.status==='FAIL').length,databaseFailures:cards.flatMap(c=>c.databaseScenarios).filter(s=>s.status==='FAIL').length,untestedCards:cards.filter(c=>!c.localScenarios.length).length,publishedUntestedCards:cards.filter(c=>!c.databaseScenarios.length).length,databaseWrites:0};
 mkdirSync('reports/effects',{recursive:true});
