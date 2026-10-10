@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  accessibility:
+    name: Build and accessibility scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm run install:ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - name: Prepare local database
+        run: |
+          npx wrangler d1 migrations apply DB --local --config wrangler.migrations.json --persist-to .wrangler/a11y-state > /tmp/a11y-d1-migrations.log 2>&1 || {
+            cat /tmp/a11y-d1-migrations.log
+            exit 1
+          }
+      - run: npm run a11y

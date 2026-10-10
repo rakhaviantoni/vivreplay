@@ -1593,6 +1593,9 @@ html[data-theme='dark'] .card-viewer > header { background: #101d2b !important; 
   .market-feed-meta-primary time { flex: 0 0 auto !important; white-space: nowrap; }
 }
 
+/* The bottom navigation is only part of the phone layout. */
+.market-mobile-nav { display: none !important; }
+
 /* Market keeps search at the top and moves frequent actions into a real bottom nav. */
 @media (max-width: 760px) {
   .market-store-nav:has(+ .market-mobile-nav) {
@@ -1759,4 +1762,40 @@ html[data-theme='dark'] .card-viewer > header { background: #101d2b !important; 
     font-size: 15px !important;
     font-weight: 800 !important;
   }
+}
+
+/* Keep small Market labels readable against the warm light surfaces. */
+html:not([data-theme='dark']) .market-store-nav .market-store-wordmark b { color: #78520e !important; }
+@media (max-width: 760px) {
+  html:not([data-theme='dark']) .market-store-nav .market-list-button.join-link { color: #272114 !important; }
+}
+html:not([data-theme='dark']) .market-mobile-nav > a[aria-current='page'],
+html:not([data-theme='dark']) .market-mobile-nav > button.is-sell { color: #78520e !important; }
+html:not([data-theme='dark']) .market-feed-page .market-scope-nav .market-scope-tab { color: #5e6862 !important; }
+html:not([data-theme='dark']) .market-feed-page .market-trade-chip.is-active,
+html:not([data-theme='dark']) .market-feed-page .market-trade-chip.is-active > * { color: #78520e !important; }
+html:not([data-theme='dark']) .market-feed-page .market-feed-filters label { color: #5e6862 !important; }
+html:not([data-theme='dark']) .market-feed-page .error-text,
+html:not([data-theme='dark']) .market-feed-page .error-text > span,
+html:not([data-theme='dark']) .market-feed-page .error-text > button { color: #8b2824 !important; }
+html:not([data-theme='dark']) body:has(.market-feed-page) .footer-bottom > p { color: #66645a !important; }
+html:not([data-theme='dark']) .pro-calculator-total dd.is-negative { color: #8b2824 !important; }
+
+/* Keep listing place visible, then fit age and seller together on the same line. */
+.market-feed-meta { width: 100% !important; min-width: 0 !important; }
+.market-feed-meta-primary { display: block !important; width: 100% !important; min-width: 0 !important; max-width: 100% !important; overflow: visible !important; }
+.market-feed-meta-primary-line { display: flex !important; align-items: center !important; flex-wrap: nowrap !important; gap: 0 7px !important; width: 100% !important; min-width: 0 !important; overflow: visible !important; white-space: nowrap !important; }
+.market-feed-meta-primary .market-feed-location { display: inline-flex !important; flex: 0 1 auto !important; align-items: center !important; gap: 4px !important; min-width: 0 !important; max-width: calc(100% - 76px) !important; overflow: visible !important; white-space: nowrap !important; }
+.market-feed-list.is-list .market-feed-meta-primary .market-feed-location { max-width: calc(100% - 76px) !important; }
+.market-feed-meta-primary-line:not(:has(.market-feed-meta-tail)) .market-feed-location { max-width: 100% !important; }
+.market-feed-list.is-list .market-feed-meta-primary-line:not(:has(.market-feed-meta-tail)) .market-feed-location { max-width: 100% !important; }
+.market-feed-meta-primary .market-feed-location > svg { flex: 0 0 auto !important; }
+.market-feed-location-name { display: block !important; min-width: 0 !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
+.market-feed-meta-primary .market-feed-meta-separator { flex: 0 0 auto !important; }
+.market-feed-meta-tail { display: flex !important; flex: 1 1 0% !important; align-items: center !important; gap: 0 5px !important; min-width: 0 !important; overflow: hidden !important; white-space: nowrap !important; }
+.market-feed-meta-tail > time { flex: 0 0 auto !important; white-space: nowrap !important; }
+.market-feed-meta-tail .market-feed-seller { display: block !important; flex: 1 1 0% !important; min-width: 0 !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
+
+@media (min-width: 761px) {
+  .market-feed-page .market-mobile-nav { display: none !important; }
 }
