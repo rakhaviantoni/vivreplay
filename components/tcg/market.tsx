@@ -450,7 +450,12 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
   const [accountPanel,setAccountPanel]=useState<'listings'|'offers'|'orders'|'saved'|null>(()=>{const activity=searchParams.get('activity');return activity==='offers'||activity==='orders'||activity==='listings'||activity==='saved'?activity:null});
   const [quickPanel,setQuickPanel]=useState<'profile'|'vault'|'wishlist'|null>(null);
   const [activityCounts,setActivityCounts]=useState({listings:0,offers:0,orders:0});
+  const [cartCount,setCartCount]=useState(0);
   const profileId=String(data?.profile?.id??'');
+  useEffect(()=>{
+    const sync=()=>{try{const cart=JSON.parse(window.localStorage.getItem('vivreplay-market-cart-v1')||'null') as {lines?:Array<{items?:Array<{quantity?:number}>}>}|null;setCartCount((cart?.lines??[]).reduce((sum,line)=>sum+(line.items??[]).reduce((total,item)=>total+(Number(item.quantity)||0),0),0))}catch{setCartCount(0)}};
+    sync();window.addEventListener('vivreplay:market-cart-updated',sync);window.addEventListener('storage',sync);return()=>{window.removeEventListener('vivreplay:market-cart-updated',sync);window.removeEventListener('storage',sync)};
+  },[]);
   // Bundle & Card Listing Draft State
   const [bundleCards,setBundleCards]=useState<ListingBundleCard[]>([]);
   const [publishedShare,setPublishedShare]=useState<PublishedShare|null>(null);
@@ -964,6 +969,13 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
         </button>
         </div>
       </nav>
+      {!modalOnly&&<nav className="market-mobile-nav" aria-label={locale==='ID'?'Navigasi Market':'Market navigation'}>
+        <Link href="/market" aria-current="page"><Store size={20}/><span>Market</span></Link>
+        <button type="button" onClick={()=>window.dispatchEvent(new Event('vivreplay:open-market-cart'))} aria-label={locale==='ID'?`Keranjang, ${cartCount} kartu`:`Cart, ${cartCount} cards`}><span className="market-mobile-nav-icon"><Cart size={20}/>{cartCount>0&&<b>{Math.min(99,cartCount)}</b>}</span><span>{locale==='ID'?'Keranjang':'Cart'}</span></button>
+        <button type="button" onClick={()=>{if(!data){window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));return}setAccountPanel(null);setQuickPanel('vault')}}><Cards size={20}/><span>{locale==='ID'?'Koleksi':'Vault'}</span></button>
+        <button type="button" onClick={()=>{if(!data){window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));return}setQuickPanel(null);setAccountPanel('listings')}} aria-label={locale==='ID'?'Buka Market saya':'Open My Market'}><span className="market-mobile-nav-icon"><Store size={20}/>{activityCounts.listings+activityCounts.offers+activityCounts.orders>0&&<b>{Math.min(99,activityCounts.listings+activityCounts.offers+activityCounts.orders)}</b>}</span><span>{locale==='ID'?'Market saya':'My Market'}</span></button>
+        <button type="button" className="is-sell" onClick={beginListing}><Plus size={20}/><span>{locale==='ID'?'Jual':'Sell'}</span></button>
+      </nav>}
       <div className="market-feed-shell">
         {printingFilter&&<div className="market-feed-note">{locale==='ID'?'Menampilkan cetakan yang dipilih':'Showing the selected printing'} <Link href="/market">{locale==='ID'?'Lihat semua listing':'View all listings'}</Link></div>}
         {initialCards.length>0&&(
@@ -1116,7 +1128,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
                     <div className="market-feed-copy">
                       <h2>{listing.title}</h2>
                       <small className="market-feed-meta">
-                        <span className="market-feed-meta-primary"><span className="market-feed-location"><MapPin size={11}/>{listing.city}</span>{listing.createdAt&&<><span className="market-feed-meta-separator" aria-hidden="true">|</span><MarketTimestamp value={listing.createdAt}/></>}<span className="market-feed-seller">{locale==='ID'?'oleh':'by'} {listing.seller}</span></span>
+                        <span className="market-feed-meta-primary"><span className="market-feed-meta-primary-line"><span className="market-feed-location"><MapPin size={11}/>{listing.city}</span>{listing.createdAt&&<><span className="market-feed-meta-separator" aria-hidden="true">|</span><MarketTimestamp value={listing.createdAt}/></>}</span><span className="market-feed-seller">{locale==='ID'?'oleh':'by'} {listing.seller}</span></span>
                         {listing.type==='WTS'&&<span className="market-feed-meta-secondary"><ShippingCouriers couriers={listing.shippingCouriers??[]} language={locale}/></span>}
                       </small>
                     </div>

@@ -1529,7 +1529,7 @@ html[data-theme='dark'] .card-viewer > header { background: #101d2b !important; 
 }
 
 /* Keep the two grid utilities anchored to the card corners at every phone width. */
-@media (max-width: 600px) {
+@media (max-width: 760px) {
   .market-feed-list.is-grid .market-feed-entry.has-cart-action .market-feed-row-actions {
     position: absolute !important;
     top: 8px !important;
@@ -1552,6 +1552,46 @@ html[data-theme='dark'] .card-viewer > header { background: #101d2b !important; 
 .market-feed-list.is-list .market-feed-meta-primary time { flex: 0 0 auto !important; }
 .market-feed-list.is-list .market-feed-meta-primary .market-feed-seller { flex: 1 1 auto !important; max-width: none !important; }
 .market-feed-copy p .market-feed-language { margin-left: 0 !important; }
+
+/* Keep grid actions on the card itself across the full mobile breakpoint. */
+@media (max-width: 760px) {
+  .market-feed-list.is-grid .market-feed-entry { position: relative !important; overflow: visible !important; }
+  .market-feed-list.is-grid .market-feed-entry .market-feed-row-actions {
+    position: absolute !important;
+    inset: 8px 8px auto !important;
+    z-index: 8 !important;
+    display: flex !important;
+    grid-column: auto !important;
+    grid-row: auto !important;
+    justify-content: space-between !important;
+    gap: 0 !important;
+    width: auto !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    pointer-events: none !important;
+  }
+  .market-feed-list.is-grid .market-feed-entry:not(.has-cart-action) .market-feed-row-actions { left: auto !important; }
+  .market-feed-list.is-grid .market-feed-row-actions .button.is-icon-only {
+    width: 34px !important;
+    min-width: 34px !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    pointer-events: auto !important;
+  }
+  .market-feed-list.is-grid .market-feed-row { grid-template-rows: auto minmax(0, 1fr) auto !important; }
+}
+
+/* Desktop listing metadata reads as place and age, then seller. */
+@media (min-width: 761px) {
+  .market-feed-meta-primary {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 3px !important;
+    align-items: start !important;
+  }
+  .market-feed-meta-primary-line { display: flex !important; align-items: center; gap: 0 8px; min-width: 0; }
+  .market-feed-meta-primary .market-feed-seller { max-width: 100% !important; }
+}
 
 /* Market keeps search at the top and moves frequent actions into a real bottom nav. */
 @media (max-width: 760px) {
