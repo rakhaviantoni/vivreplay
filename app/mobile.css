@@ -1026,6 +1026,154 @@ html[data-theme='dark'] .card-viewer > header { background: #101d2b !important; 
   .market-listing-detail .market-listing-selection.has-push-prompt{grid-template-columns:minmax(0,1fr);grid-template-areas:none}
   .market-listing-detail .market-listing-selection.has-push-prompt>.market-push-prompt{font-size:10px}
 }
+
+/* Mobile market feed: let titles breathe and keep card actions in their own row. */
+@media (max-width: 600px) {
+  .market-feed-list.is-list .market-feed-row {
+    grid-template-columns: 62px minmax(0, 1fr) !important;
+    grid-template-rows: auto auto auto !important;
+    align-items: start !important;
+    column-gap: 11px !important;
+    row-gap: 8px !important;
+    padding: 13px 12px !important;
+  }
+  .market-feed-list.is-list .market-feed-stack {
+    grid-column: 1 !important;
+    grid-row: 1 / span 3 !important;
+    width: 62px !important;
+    min-width: 62px !important;
+    height: 88px !important;
+    align-self: start !important;
+  }
+  .market-feed-list.is-list .market-feed-stack.is-single .market-feed-art {
+    width: 58px !important;
+    height: 81px !important;
+  }
+  .market-feed-list.is-list .market-feed-copy {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    width: 100% !important;
+    padding: 0 !important;
+  }
+  .market-feed-list.is-list .market-feed-copy h2 {
+    margin: 0 0 3px !important;
+    font-size: 15px !important;
+    line-height: 1.32 !important;
+    letter-spacing: -0.015em;
+  }
+  .market-feed-list.is-list .market-feed-copy > p {
+    margin: 0 !important;
+    font-size: 12px !important;
+    line-height: 1.4 !important;
+  }
+  .market-feed-list.is-list .market-feed-meta {
+    display: grid !important;
+    gap: 4px !important;
+    margin-top: 7px !important;
+    line-height: 1.4 !important;
+  }
+  .market-feed-list.is-list .market-feed-meta-primary {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 2px 7px !important;
+    font-size: 11px !important;
+    line-height: 1.4 !important;
+  }
+  .market-feed-list.is-list .market-feed-meta-primary .market-feed-location,
+  .market-feed-list.is-list .market-feed-meta-primary .market-feed-seller {
+    max-width: 100% !important;
+  }
+  .market-feed-list.is-list .market-feed-meta-primary time { font-size: 11px !important; }
+  .market-feed-list.is-list .market-feed-meta-secondary,
+  .market-feed-list.is-list .market-feed-meta-secondary .market-feed-shipping-availability {
+    font-size: 11px !important;
+    line-height: 1.4 !important;
+  }
+  .market-feed-list.is-list .market-feed-trade {
+    grid-column: 2 !important;
+    grid-row: 2 !important;
+    min-height: 34px !important;
+    padding: 7px 0 0 !important;
+  }
+  .market-feed-list.is-list .market-feed-price strong { font-size: 14px !important; }
+  .market-feed-list.is-list .market-feed-entry.has-row-action .market-feed-row-actions {
+    position: static !important;
+    grid-column: 2 !important;
+    grid-row: 3 !important;
+    justify-content: flex-start !important;
+    gap: 7px !important;
+    min-height: 36px !important;
+    padding: 0 !important;
+  }
+  .market-feed-list.is-list .market-feed-entry.has-row-action .market-feed-row-actions .button.is-icon-only {
+    width: 36px !important;
+    min-width: 36px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    border-radius: 9px !important;
+  }
+
+  .market-feed-list.is-grid .market-feed-row {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: auto 1fr auto auto !important;
+    gap: 9px !important;
+    padding: 13px 12px 11px !important;
+  }
+  .market-feed-list.is-grid .market-feed-stack { grid-column: 1 !important; grid-row: 1 !important; height: 122px !important; }
+  .market-feed-list.is-grid .market-feed-copy { grid-column: 1 !important; grid-row: 2 !important; }
+  .market-feed-list.is-grid .market-feed-trade {
+    grid-column: 1 !important;
+    grid-row: 3 !important;
+    margin-top: 0 !important;
+    padding: 8px 0 0 !important;
+  }
+  .market-feed-list.is-grid .market-feed-entry .market-feed-row-actions {
+    position: static !important;
+    grid-column: 1 !important;
+    grid-row: 4 !important;
+    justify-content: flex-start !important;
+    gap: 7px !important;
+    min-height: 36px !important;
+    padding: 0 !important;
+  }
+  .market-feed-list.is-grid .market-feed-row-actions .button.is-icon-only {
+    width: 36px !important;
+    min-width: 36px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+  }
+}
+
+/* Compact utility controls; keep the search field full width on the next row. */
+@media (max-width: 600px) {
+  .market-store-nav .market-store-actions { gap: 5px !important; }
+  .market-store-nav .market-cart-link,
+  .market-store-nav .market-account-trigger,
+  .market-store-nav .market-store-locale,
+  .market-store-nav .market-store-theme,
+  .market-store-nav .market-list-button.join-link,
+  .market-store-nav .market-pro-nav-link {
+    width: 36px !important;
+    min-width: 36px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    border-radius: 9px !important;
+  }
+  .market-store-nav .market-back-link { width: 40px !important; min-width: 40px !important; height: 40px !important; }
+  .market-store-nav .market-cart-link,
+  .market-store-nav .market-account-trigger,
+  .market-store-nav .market-store-locale,
+  .market-store-nav .market-store-theme,
+  .market-store-nav .market-list-button.join-link,
+  .market-store-nav .market-pro-nav-link { position: relative !important; }
+  .market-store-nav .market-cart-link::before,
+  .market-store-nav .market-account-trigger::before,
+  .market-store-nav .market-store-locale::before,
+  .market-store-nav .market-store-theme::before,
+  .market-store-nav .market-list-button.join-link::before,
+  .market-store-nav .market-pro-nav-link::before { position: absolute; inset: -4px; content: ""; }
+}
 @media(max-width:360px){
   .market-listing-detail .market-listing-layout{grid-template-columns:minmax(88px,32%) minmax(0,1fr)!important;gap:9px 10px!important;padding:11px!important}
   .market-listing-detail .market-listing-heading h1{font-size:22px!important}
