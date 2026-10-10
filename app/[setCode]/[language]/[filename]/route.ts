@@ -1,3 +1,5 @@
+import {env} from 'cloudflare:workers';
+
 const filenamePattern=/^[A-Za-z0-9_-]+\.webp$/;
 const bucket='tcg-card-images';
 
@@ -55,7 +57,7 @@ async function catalogAssetKeys(origin:string,key:string,setCode:string,language
 
 export async function serveCardImage(setCode:string,language:string,filename:string,variant='small',requestedWidth?:number){
   if(!filenamePattern.test(filename)) return new Response('Not found',{status:404});
-  const sizeQuery=requestedWidth?`?width=${requestedWidth}`:'';
+  const sizeQuery=requestedWidth?`?width=${requestedWidth}&v=2`:'';
   const cacheKey=new Request(`https://vivreplay.com/${encodeURIComponent(setCode)}/${encodeURIComponent(language)}/${encodeURIComponent(filename)}${sizeQuery}`);
   const edgeCache=(globalThis.caches as (CacheStorage & {default?:Cache})|undefined)?.default;
   const cached=await edgeCache?.match(cacheKey);
@@ -71,10 +73,20 @@ export async function serveCardImage(setCode:string,language:string,filename:str
   const candidateKeys=[...new Set([...catalogKeys,...candidateObjectKeys(setCode,language,filename,variant)])];
   for(const objectKey of candidateKeys){
     const sourceUrl=`${origin}/storage/v1/object/${bucket}/${objectKey}`;
-    let response=await fetch(sourceUrl,{headers:{accept:'image/avif,image/webp,image/*;q=0.8',authorization:`Bearer ${key}`,apikey:key},cf:{cacheTtl:31_536_000,cacheEverything:true,...(requestedWidth?{image:{width:requestedWidth,height:Math.round(requestedWidth*580/420),fit:'scale-down',quality:78,format:'auto'}}:{})}});
-    if(!response.ok&&requestedWidth)response=await fetch(sourceUrl,{headers:{accept:'image/webp,image/*;q=0.8',authorization:`Bearer ${key}`,apikey:key},cf:{cacheTtl:31_536_000,cacheEverything:true}});
+    const response=await fetch(sourceUrl,{headers:{accept:'image/avif,image/webp,image/*;q=0.8',authorization:`Bearer ${key}`,apikey:key},cf:{cacheTtl:31_536_000,cacheEverything:true}});
     if(!response.ok||!response.body) continue;
-    const image=new Response(response.body,{headers:{'Content-Type':response.headers.get('content-type')||'image/webp','Cache-Control':'public, max-age=31536000, immutable','X-Content-Type-Options':'nosniff'}});
+    const headers={'Cache-Control':'public, max-age=31536000, immutable','X-Content-Type-Options':'nosniff'};
+    const bytes=await response.arrayBuffer();
+    let image:Response;
+    if(requestedWidth&&env.IMAGES){
+      try{
+        image=(await env.IMAGES.input(bytes)
+          .transform({width:requestedWidth,height:Math.round(requestedWidth*580/420),fit:'scale-down'})
+          .output({format:'image/webp',quality:78})).response({headers});
+      }catch{
+        image=new Response(bytes,{headers:{...headers,'Content-Type':response.headers.get('content-type')||'image/webp'}});
+      }
+    }else image=new Response(bytes,{headers:{...headers,'Content-Type':response.headers.get('content-type')||'image/webp'}});
     await edgeCache?.put(cacheKey,image.clone());
     return image;
   }

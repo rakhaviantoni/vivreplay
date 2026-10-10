@@ -47,6 +47,7 @@ const localBindingConfig = {
     ]
     : [],
   r2_buckets: [{ binding: "CARD_IMAGES", bucket_name: "tcg-card-images" }],
+  images: { binding: "IMAGES" },
 };
 
 export default defineConfig(async ({ command, mode }) => {

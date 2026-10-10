@@ -45,6 +45,9 @@
       "bucket_name": "tcg-card-images"
     }
   ],
+  "images": {
+    "binding": "IMAGES"
+  },
   "vectorize": [],
   "ai_search_namespaces": [],
   "ai_search": [],
