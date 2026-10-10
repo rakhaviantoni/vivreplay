@@ -1180,6 +1180,194 @@ html[data-theme='dark'] .card-viewer > header { background: #101d2b !important; 
   .market-listing-detail .market-listing-selection-actions>.button{font-size:11px!important}
 }
 
+/* Mobile Market uses a roomy, labeled toolbar instead of shrinking every control. */
+@media (max-width: 600px) {
+  .market-store-nav {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) 36px 36px !important;
+    grid-template-rows: 42px 44px 42px !important;
+    grid-template-areas:
+      "brand market market sell sell"
+      "search search search search search"
+      "cart vault account locale theme" !important;
+    gap: 7px 5px !important;
+    padding: 9px 12px 10px !important;
+  }
+  .market-store-nav .market-store-actions { display: contents !important; }
+  .market-store-nav .market-back-link {
+    grid-area: brand !important;
+    display: inline-flex !important;
+    justify-content: flex-start !important;
+    gap: 5px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 42px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+  }
+  .market-store-nav .market-back-link > svg:first-child { display: none !important; }
+  .market-store-nav .market-back-link > span { display: inline !important; font-size: 12px !important; }
+  .market-store-nav .market-nav-divider { display: none !important; }
+  .market-store-nav .market-store-wordmark {
+    grid-area: market !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    min-width: 0 !important;
+    padding: 0 !important;
+    font-size: 15px !important;
+  }
+  .market-store-nav .market-store-search { grid-area: search !important; width: 100% !important; height: 44px !important; min-height: 44px !important; }
+  .market-store-nav .market-cart-link {
+    grid-area: cart !important;
+    display: inline-flex !important;
+    justify-content: flex-start !important;
+    gap: 5px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 42px !important;
+    padding: 0 8px !important;
+    border-radius: 10px !important;
+    font-size: 11px !important;
+    white-space: nowrap !important;
+  }
+  .market-store-nav .market-cart-link span { display: inline !important; }
+  .market-store-nav .market-cart-link > b { flex: 0 0 auto; }
+  .market-store-nav .market-store-link {
+    grid-area: vault !important;
+    display: inline-flex !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 42px !important;
+    padding: 0 7px !important;
+    overflow: hidden !important;
+    border-radius: 10px !important;
+    font-size: 10px !important;
+    text-overflow: ellipsis !important;
+  }
+  .market-store-nav .market-account-trigger {
+    grid-area: account !important;
+    display: inline-flex !important;
+    justify-content: space-between !important;
+    gap: 5px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 42px !important;
+    padding: 0 8px !important;
+    border-radius: 10px !important;
+    font-size: 11px !important;
+  }
+  .market-store-nav .market-account-trigger-name,
+  .market-store-nav .market-account-trigger > svg:last-child { display: inline !important; }
+  .market-store-nav .market-account-trigger-name { flex: 1 1 auto; max-width: none !important; font-size: 11px !important; }
+  .market-store-nav .market-account-trigger > svg:first-child { flex: 0 0 auto; width: 15px !important; }
+  .market-store-nav .market-account-trigger > svg:last-child { flex: 0 0 auto; width: 13px !important; }
+  .market-store-nav .market-store-locale,
+  .market-store-nav .market-store-theme {
+    position: relative !important;
+    width: 36px !important;
+    min-width: 36px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    padding: 0 !important;
+    border-radius: 10px !important;
+  }
+  .market-store-nav .market-store-locale { grid-area: locale !important; }
+  .market-store-nav .market-store-theme { grid-area: theme !important; }
+  .market-store-nav .market-list-button.join-link {
+    grid-area: sell !important;
+    display: inline-flex !important;
+    justify-self: end !important;
+    gap: 6px !important;
+    width: 73px !important;
+    min-width: 73px !important;
+    height: 40px !important;
+    min-height: 40px !important;
+    padding: 0 9px !important;
+    border-radius: 10px !important;
+    font-size: 12px !important;
+    white-space: nowrap !important;
+  }
+  .market-store-nav .market-list-button-text { display: none !important; }
+  .market-store-nav .market-list-button-short { display: inline !important; font-size: 12px !important; }
+  .market-store-nav .market-pro-nav-link { display: none !important; }
+  .market-store-nav .market-cart-link::before,
+  .market-store-nav .market-store-link::before,
+  .market-store-nav .market-account-trigger::before,
+  .market-store-nav .market-store-locale::before,
+  .market-store-nav .market-store-theme::before,
+  .market-store-nav .market-list-button.join-link::before { position: absolute; inset: -2px; content: ""; }
+}
+
+@media (max-width: 380px) {
+  .market-store-nav {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 36px 36px !important;
+    grid-template-rows: 42px 44px 42px 42px !important;
+    grid-template-areas:
+      "brand brand brand sell"
+      "search search search search"
+      "cart account account account"
+      "vault vault locale theme" !important;
+  }
+  .market-store-nav .market-store-wordmark { display: none !important; }
+  .market-store-nav .market-back-link { grid-column: 1 / 4 !important; }
+  .market-store-nav .market-list-button.join-link { width: 73px !important; min-width: 73px !important; }
+}
+
+/* The listing flow is a full-height sheet on phones so fields can scroll freely. */
+@media (max-width: 600px) {
+  [data-slot='dialog-content'].market-sell-dialog {
+    position: fixed !important;
+    inset: 0 !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    max-width: none !important;
+    max-height: 100dvh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    transform: none !important;
+    translate: none !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    overflow: hidden !important;
+  }
+  .market-sell-heading {
+    padding: calc(14px + env(safe-area-inset-top)) 58px 14px 18px !important;
+  }
+  .market-sell-heading-actions { gap: 8px !important; }
+  .market-sell-heading-actions > span { font-size: 9px !important; }
+  .market-sell-manage-listings { min-height: 36px !important; padding: 0 8px !important; font-size: 10px !important; }
+  .market-sell-dialog [data-slot='dialog-close'] { top: calc(12px + env(safe-area-inset-top)) !important; right: 12px !important; width: 38px !important; height: 38px !important; }
+  .market-sell-heading [data-slot='dialog-title'] { font-size: 22px !important; line-height: 1.15 !important; }
+  .market-sell-heading [data-slot='dialog-description'] { margin-top: 5px !important; font-size: 12px !important; line-height: 1.4 !important; }
+  .market-sell-body {
+    min-height: 0 !important;
+    padding: 14px 14px calc(18px + env(safe-area-inset-bottom)) !important;
+    gap: 14px !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain !important;
+  }
+  .market-sell-body > *,
+  .market-sell-body :is(form, fieldset, label, .form-row, .listing-selection, .listing-selection-right) { box-sizing: border-box !important; min-width: 0 !important; max-width: 100% !important; }
+  .market-sell-dialog .listing-selection { grid-template-columns: 68px minmax(0, 1fr) !important; gap: 10px !important; padding: 11px !important; }
+  .market-sell-dialog .listing-selection-card-preview { width: 68px !important; height: 96px !important; }
+  .market-sell-dialog .listing-selection-card-preview .tcg-card { width: 68px !important; height: 96px !important; }
+  .market-sell-dialog .listing-selection-right { gap: 10px !important; }
+  .market-sell-dialog .listing-selection h3 { font-size: 15px !important; line-height: 1.25 !important; overflow-wrap: anywhere; }
+  .market-sell-dialog .listing-selection label { margin-top: 8px !important; }
+  .market-sell-dialog .listing-form,
+  .market-sell-dialog .form-row { grid-template-columns: minmax(0, 1fr) !important; gap: 10px !important; }
+  .market-sell-dialog input,
+  .market-sell-dialog [data-slot='select-trigger'] { width: 100% !important; min-width: 0 !important; min-height: 44px !important; }
+  .market-sell-dialog .listing-form > .market-list-button { width: 100% !important; min-height: 46px !important; justify-self: stretch !important; }
+  .market-sell-dialog .listing-card-search > div { max-height: min(38dvh, 300px) !important; }
+}
+
 /* Market controls read in a deliberate order on phones: scope, filters, trade. */
 @media (max-width: 600px) {
   .market-feed-tabs {
