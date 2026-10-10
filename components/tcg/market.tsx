@@ -1103,21 +1103,18 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
             <section className={`market-feed-list is-${listingView}`} aria-label={locale==='ID'?'Daftar listing Market aktif':'Live Market listings'}>
               {displayListings.map(listing=>{
                 const items=listing.items?.length?listing.items:[{printingId:listing.printingId,quantity:listing.quantity}];
-                const printing=printings.find(item=>item.id===items[0].printingId);
-                const cardLanguage=listing.language??printing?.language??'EN';
                 const totalCards=items.reduce((total,item)=>total+item.quantity,0);
                 const content=(
                   <>
                     <div className={`market-feed-stack ${items.length===1?'is-single':''}`}>
                       {items.slice(0,3).map((item,index)=>{
                         const stackCard=(index===0&&listing.card)?listing.card:cardFor(item.printingId);
-                        return stackCard?<div key={`${item.printingId}-${index}`} className="market-feed-art" style={{'--stack-index':index} as CSSProperties}><CardArt card={stackCard}/></div>:null;
+                        return stackCard?<div key={`${item.printingId}-${index}`} className="market-feed-art" style={{'--stack-index':index} as CSSProperties}><CardArt card={stackCard}/>{index===0&&totalCards>1&&<span className="market-feed-quantity" aria-label={`${totalCards} ${locale==='ID'?'kartu':'cards'}`}>{totalCards}</span>}</div>:null;
                       })}
                       {items.length>3&&<span>+{items.length-3}</span>}
                     </div>
                     <div className="market-feed-copy">
                       <h2>{listing.title}</h2>
-                      {(totalCards>1||(items.length===1&&cardLanguage.toUpperCase()!=='EN'))&&<p>{totalCards>1&&<span>{totalCards} {locale==='ID'?'kartu':'cards'}</span>}{items.length===1&&cardLanguage.toUpperCase()!=='EN'&&<span className="market-feed-language">{cardLanguage}</span>}</p>}
                       <small className="market-feed-meta">
                         <span className="market-feed-meta-primary"><span className="market-feed-location"><MapPin size={11}/>{listing.city}</span>{listing.createdAt&&<><span className="market-feed-meta-separator" aria-hidden="true">|</span><MarketTimestamp value={listing.createdAt}/></>}<span className="market-feed-seller">{locale==='ID'?'oleh':'by'} {listing.seller}</span></span>
                         {listing.type==='WTS'&&<span className="market-feed-meta-secondary"><ShippingCouriers couriers={listing.shippingCouriers??[]} language={locale}/></span>}
