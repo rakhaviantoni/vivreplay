@@ -1179,3 +1179,141 @@ html[data-theme='dark'] .card-viewer > header { background: #101d2b !important; 
   .market-listing-detail .market-listing-heading h1{font-size:22px!important}
   .market-listing-detail .market-listing-selection-actions>.button{font-size:11px!important}
 }
+
+/* Market controls read in a deliberate order on phones: scope, filters, trade. */
+@media (max-width: 600px) {
+  .market-feed-tabs {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    grid-template-rows: auto auto auto !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin-top: 12px !important;
+    padding: 0 0 12px !important;
+  }
+  .market-feed-tabs-main,
+  .market-feed-tabs-sub { display: contents !important; }
+  .market-feed-tabs:not(:has(.market-feed-filters)) .market-scope-nav {
+    grid-column: 1 !important;
+  }
+  .market-feed-tabs:not(:has(.market-feed-filters)) .market-view-toggle {
+    grid-row: 1 !important;
+  }
+  .market-scope-nav {
+    grid-column: 1 / -1 !important;
+    grid-row: 1 !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    width: 100% !important;
+    gap: 3px !important;
+    padding: 3px !important;
+    border-radius: 10px !important;
+  }
+  .market-scope-tab {
+    min-width: 0 !important;
+    height: 38px !important;
+    gap: 6px !important;
+    padding-inline: 8px !important;
+    font-size: 12px !important;
+  }
+  .market-feed-filters {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+    min-width: 0 !important;
+  }
+  .market-feed-filters label {
+    display: grid !important;
+    grid-template-rows: auto 36px !important;
+    gap: 3px !important;
+    min-width: 0 !important;
+    color: var(--muted) !important;
+    font-size: 9px !important;
+    line-height: 1.1 !important;
+  }
+  .market-feed-filters label [data-slot='select-trigger'],
+  .market-feed-filters .picker,
+  .market-feed-filters .picker button {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    padding-inline: 7px !important;
+    overflow: hidden !important;
+    font-size: 10px !important;
+    text-overflow: ellipsis !important;
+  }
+  .market-view-toggle {
+    grid-column: 2 !important;
+    grid-row: 2 !important;
+    align-self: end !important;
+    gap: 2px !important;
+    padding: 2px !important;
+    border-radius: 8px !important;
+  }
+  .market-view-toggle button {
+    width: 34px !important;
+    min-width: 34px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    border-radius: 6px !important;
+  }
+  .market-trade-chips {
+    grid-column: 1 / -1 !important;
+    grid-row: 3 !important;
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 6px !important;
+    width: 100% !important;
+    padding: 0 !important;
+  }
+  .market-trade-chip {
+    min-width: 0 !important;
+    height: 36px !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    padding-inline: 5px !important;
+    border-radius: 8px !important;
+    font-size: 11px !important;
+    white-space: nowrap !important;
+  }
+  .market-trade-chip small { font-size: 10px !important; }
+
+  /* The card utilities sit on opposite corners; the sale state stays below. */
+  .market-feed-list.is-grid .market-feed-entry .market-feed-row-actions {
+    position: absolute !important;
+    inset: 8px 8px auto !important;
+    z-index: 7 !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    gap: 0 !important;
+    min-height: 0 !important;
+    pointer-events: none !important;
+  }
+  .market-feed-list.is-grid .market-feed-entry:not(.has-cart-action) .market-feed-row-actions {
+    justify-content: flex-end !important;
+  }
+  .market-feed-list.is-grid .market-feed-row-actions .button.is-icon-only {
+    position: relative !important;
+    width: 30px !important;
+    min-width: 30px !important;
+    height: 30px !important;
+    min-height: 30px !important;
+    border-radius: 8px !important;
+    pointer-events: auto !important;
+  }
+  .market-feed-list.is-grid .market-feed-row-actions .button.is-icon-only::before {
+    position: absolute;
+    inset: -7px;
+    content: "";
+  }
+  .market-feed-list.is-list .market-feed-entry.has-row-action .market-feed-row-actions .button.is-icon-only {
+    width: 32px !important;
+    min-width: 32px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+  }
+}
