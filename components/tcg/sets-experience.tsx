@@ -1,6 +1,6 @@
 'use client';
 
-import {useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import Link from 'next/link';
 import {useRouter} from 'next/navigation';
 import {ArrowUpRightIcon as ArrowUpRight, MagnifyingGlassIcon as Search, StackIcon as Stack, XIcon as X} from '@phosphor-icons/react';
@@ -11,14 +11,14 @@ import {DepthCarousel} from './depth-carousel';
 import type {Card} from '@/packages/card-data/catalog';
 import {isPlayableSet} from '@/packages/domain/release-availability';
 
-type Row={id:string;set_code:string;set_name:string;card_image_url:string|null;rarity:string|null;variant:string|null;printing_code:string|null;language:string;tcg_card_assets?:Array<{kind:string;object_key:string}>;tcg_card_identities:{code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number;effect_text:string}};
+type Row={id:string;set_code:string;set_name:string;card_image_url:string|null;rarity:string|null;variant:string|null;printing_code:string|null;language:string;tcg_card_assets?:Array<{kind:string;object_key:string}>;tcg_card_identities:{code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number}};
 type Release={code:string;name:string;count:number;cards:Card[]};
 type SetFamily='all'|'OP'|'EB'|'ST'|'other';
-const featuredReleaseOrder=['OP-18','EB-05','OP-17','ST-30','ST-29'];
+const featuredReleaseOrder=['OP-18','EB-05','OP-17','ST-30','ST-29','OP-16'];
 function rank(code:string){const featured=featuredReleaseOrder.indexOf(code.toUpperCase());if(featured>=0)return 1_000_000-featured;const m=code.toUpperCase().match(/^(OP|EB|ST|PRB)[-_ ]?0*(\d+)/);return m?(m[1]==='OP'?600:m[1]==='EB'?500:m[1]==='ST'?400:300)*1000+Number(m[2]):0}
 function family(code:string):Exclude<SetFamily,'all'>{const prefix=code.toUpperCase().match(/^[A-Z]+/)?.[0]??'other';return prefix==='OP'||prefix==='EB'||prefix==='ST'?prefix:'other'}
 function rarityScore(row:Row){const rarity=(row.rarity??'').toUpperCase();const base=rarity==='SP'?100:rarity==='SEC'?90:rarity==='L'?80:rarity==='SR'?70:rarity==='R'?50:rarity==='UC'?30:rarity==='C'?20:rarity==='PR'?65:10;return base+(/parallel|alternate|alt.?art|_p\d+/i.test(row.variant??'')?8:0)}
-function card(row:Row):Card{const i=row.tcg_card_identities;return{id:row.id,code:i.code,name:displayCardName(i.name,i.code),color:i.color,type:i.card_type,cost:i.cost,power:i.power,rarity:row.rarity??'',art:0,effect:i.effect_text,imageUrl:row.card_image_url??undefined,imageSource:'external',setCode:row.set_code,language:row.language,printingCode:row.printing_code??i.code,assetPath:row.tcg_card_assets?.find(asset=>asset.kind==='small')?.object_key}}
+function card(row:Row):Card{const i=row.tcg_card_identities;return{id:row.id,code:i.code,name:displayCardName(i.name,i.code),color:i.color,type:i.card_type,cost:i.cost,power:i.power,rarity:row.rarity??'',art:0,effect:'',imageUrl:row.card_image_url??undefined,imageSource:'external',setCode:row.set_code,language:row.language,printingCode:row.printing_code??i.code,assetPath:row.tcg_card_assets?.find(asset=>asset.kind==='small')?.object_key}}
 function ReleaseTile({release,language}:{release:Release;language:'EN'|'ID'}){
   const router=useRouter();
   const id=language==='ID';
@@ -28,6 +28,7 @@ function ReleaseTile({release,language}:{release:Release;language:'EN'|'ID'}){
 export function SetsExperience({compact=false}:{compact?:boolean}){
   const [rows,setRows]=useState<Row[]>([]);const [query,setQuery]=useState('');const [setFamily,setSetFamily]=useState<SetFamily>('all');
   const [language,setLanguage]=useState<'EN'|'ID'>('EN');
+  const rootRef=useRef<HTMLElement>(null);
   useEffect(()=>{
     const syncLocale=()=>setLanguage(window.localStorage.getItem('vivreplay-locale')==='ID'?'ID':'EN');
     const onLocale=(event:Event)=>setLanguage((event as CustomEvent<'EN'|'ID'>).detail);
@@ -36,7 +37,7 @@ export function SetsExperience({compact=false}:{compact?:boolean}){
     return()=>window.removeEventListener('vivreplay:locale',onLocale);
   },[]);
   const id=language==='ID';
-  useEffect(()=>{let live=true;const load=async()=>{try{const client=createClient();const all:Row[]=[];for(let from=0;;from+=1000){const {data,error}=await client.from('tcg_card_printings').select('id,set_code,set_name,card_image_url,rarity,variant,printing_code,language,tcg_card_assets(kind,object_key),tcg_card_identities!inner(code,name,color,card_type,cost,power,effect_text)').eq('language','EN').not('card_image_url','is',null).range(from,from+999);if(error||!data)break;all.push(...(data as unknown as Row[]).filter(row=>isPlayableSet(row.set_code)));if(data.length<1000)break}if(live)setRows(all)}catch(err){console.warn('Failed to load sets:',err)}};void load();return()=>{live=false}},[]);
+  useEffect(()=>{let live=true;let started=false;let observer:IntersectionObserver|undefined;const load=async()=>{if(started)return;started=true;try{const client=createClient();const all:Row[]=[];for(let from=0;;from+=1000){let request=client.from('tcg_card_printings').select('id,set_code,set_name,card_image_url,rarity,variant,printing_code,language,tcg_card_assets(kind,object_key),tcg_card_identities!inner(code,name,color,card_type,cost,power)').eq('language','EN').not('card_image_url','is',null);if(compact)request=request.in('set_code',featuredReleaseOrder);const {data,error}=await request.range(from,from+999);if(error||!data)break;all.push(...(data as unknown as Row[]).filter(row=>isPlayableSet(row.set_code)));if(data.length<1000)break}if(live)setRows(all)}catch(err){console.warn('Failed to load sets:',err)}};if(!compact){void load()}else if(typeof IntersectionObserver==='undefined'){void load()}else if(rootRef.current){observer=new IntersectionObserver(entries=>{if(entries.some(entry=>entry.isIntersecting)){observer?.disconnect();void load()}},{rootMargin:'900px 0px'});observer.observe(rootRef.current)}return()=>{live=false;observer?.disconnect()}},[compact]);
   const sets=useMemo<Release[]>(()=>{const groups=new Map<string,Row[]>();rows.forEach(row=>groups.set(row.set_code,[...(groups.get(row.set_code)??[]),row]));return [...groups.entries()].map(([code,cards])=>{const bestByIdentity=new Map<string,Row>();for(const printing of [...cards].sort((a,b)=>rarityScore(b)-rarityScore(a)||a.id.localeCompare(b.id))){if(!bestByIdentity.has(printing.tcg_card_identities.code))bestByIdentity.set(printing.tcg_card_identities.code,printing)}return {code,name:cards[0].set_name,count:new Set(cards.map(item=>item.tcg_card_identities.code)).size,cards:[...bestByIdentity.values()].slice(0,4).map(card)}}).sort((a,b)=>rank(b.code)-rank(a.code))},[rows]);
   const visible=useMemo(()=>sets.filter(set=>(setFamily==='all'||family(set.code)===setFamily)&&`${set.code} ${set.name}`.toLowerCase().includes(query.trim().toLowerCase())),[sets,query,setFamily]);
   const shown=compact?sets.slice(0,6):visible;
@@ -56,7 +57,7 @@ export function SetsExperience({compact=false}:{compact?:boolean}){
     ['other','Other releases'],
   ];
 
-  return <Wrapper className={compact?'home-sets home-reveal':'page sets-page'}>
+  return <Wrapper ref={rootRef} className={compact?'home-sets home-reveal':'page sets-page'}>
     {!compact ? (
       <header className="directory-hero sets-hero page-intro-surface">
         <p className="eyebrow"><Stack size={15}/> {id?'Arsip rilis':'Set archive'}</p>

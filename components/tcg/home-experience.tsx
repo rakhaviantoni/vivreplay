@@ -1,17 +1,18 @@
 'use client';
 
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import {useEffect, useRef, useState} from 'react';
 import {ArrowUpRightIcon as ArrowUpRight, SealCheckIcon as BadgeCheck, PlayCircleIcon as CirclePlay, StackIcon as Layers3, BooksIcon as Library, PauseIcon as Pause, PlayIcon as Play, ShoppingBagIcon as ShoppingBag, SwordIcon as Swords} from '@phosphor-icons/react';
 import {createClient} from '@/utils/supabase/client';
 import {CardArt} from './card-art';
-import {SetsExperience} from './sets-experience';
 import type {Card} from '@/packages/card-data/catalog';
 import {isPlayableSet} from '@/packages/domain/release-availability';
 
 type Identity = {id:string;code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number;effect_text?:string};
 type Row = {id:string;card_image_url:string|null;rarity:string|null;set_code:string;language:string;printing_code:string|null;tcg_card_assets?:Array<{kind:string;object_key:string}>;tcg_card_identities:Identity};
 const metaLeaderCodes=['OP09-062','OP17-079','OP14-020','ST30-001'];
+const DeferredHomeSets=dynamic(()=>import('./sets-experience').then(module=>module.SetsExperience),{ssr:false,loading:()=> <section className="home-sets home-reveal" aria-hidden="true"><div className="sets-skeleton"><i/><i/><i/></div></section>});
 
 function setRank(code:string){const match=code.toUpperCase().match(/^(OP|EB|ST|PRB|P|DON)[-_ ]?0*(\d+)/);if(!match)return 0;const family:{[key:string]:number}={OP:600,EB:500,ST:400,PRB:300,P:200,DON:100};return (family[match[1]]??0)*1000+Number(match[2]);}
 
@@ -27,13 +28,16 @@ export function HomeExperience(){
   const [motionPaused,setMotionPaused]=useState(false);
   const [language,setLanguage]=useState<'EN'|'ID'>('EN');
   const heroRef=useRef<HTMLElement>(null);
+  const setsRef=useRef<HTMLElement>(null);
+  const [showSets,setShowSets]=useState(false);
   useEffect(()=>{const client=createClient();let active=true;
     Promise.all([
       client.from('tcg_card_printings').select('id,card_image_url,rarity,set_code,language,printing_code,tcg_card_assets(kind,object_key),tcg_card_identities!inner(id,code,name,color,card_type,cost,power)').eq('language','EN').not('card_image_url','is',null).order('created_at',{ascending:false}).limit(36),
       client.from('tcg_card_printings').select('id,card_image_url,rarity,set_code,language,printing_code,tcg_card_assets(kind,object_key),tcg_card_identities!inner(id,code,name,color,card_type,cost,power)').eq('language','EN').in('tcg_card_identities.code',metaLeaderCodes).not('card_image_url','is',null).order('created_at',{ascending:false}).limit(12),
     ]).then(([featured,meta])=>{if(!active)return;const sorted=((featured.data??[]) as unknown as Row[]).filter(row=>isPlayableSet(row.set_code)).sort((a,b)=>setRank(b.set_code)-setRank(a.set_code)||(a.tcg_card_identities.card_type==='Leader'?0:1)-(b.tcg_card_identities.card_type==='Leader'?0:1)||a.tcg_card_identities.code.localeCompare(b.tcg_card_identities.code));const liveMeta=new Map<string,Row>();for(const row of (meta.data??[]) as unknown as Row[]){if(metaLeaderCodes.includes(row.tcg_card_identities.code)&&(!liveMeta.has(row.tcg_card_identities.code)||setRank(row.set_code)>setRank(liveMeta.get(row.tcg_card_identities.code)!.set_code)))liveMeta.set(row.tcg_card_identities.code,row)}setCards(sorted.slice(0,12).map(asCard));setLeaders((liveMeta.size?metaLeaderCodes.map(code=>liveMeta.get(code)).filter((row):row is Row=>Boolean(row)):sorted.filter(row=>row.tcg_card_identities.card_type==='Leader').slice(0,4)).map(asCard));});
     const loadCounts=()=>{void Promise.all([client.from('tcg_card_identities').select('id',{count:'exact',head:true}),client.from('tcg_card_printings').select('id',{count:'exact',head:true})]).then(([identities,printings])=>{if(active)setCounts({identities:identities.count??0,printings:printings.count??0})})};
-    if('requestIdleCallback'in window){const idle=window.requestIdleCallback(loadCounts,{timeout:5000});return()=>{active=false;window.cancelIdleCallback(idle)}}
+    const idleWindow=window as Window&{requestIdleCallback?:(callback:()=>void,options?:IdleRequestOptions)=>number;cancelIdleCallback?:(handle:number)=>void};
+    if(typeof idleWindow.requestIdleCallback==='function'){const idle=idleWindow.requestIdleCallback(loadCounts,{timeout:5000});return()=>{active=false;idleWindow.cancelIdleCallback?.(idle)}}
     const timer=window.setTimeout(loadCounts,2500);
     return()=>{active=false;window.clearTimeout(timer)};
   },[]);
@@ -45,6 +49,7 @@ export function HomeExperience(){
     return()=>window.removeEventListener('vivreplay:locale',onLocale);
   },[]);
   useEffect(()=>{const sections=document.querySelectorAll<HTMLElement>('.home-reveal');const observer=new IntersectionObserver(entries=>entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add('is-visible');observer.unobserve(entry.target)}}),{threshold:.16});sections.forEach(section=>observer.observe(section));return()=>observer.disconnect()},[]);
+  useEffect(()=>{const target=setsRef.current;if(!target){return}if(typeof IntersectionObserver==='undefined'){setShowSets(true);return}const observer=new IntersectionObserver(entries=>{if(entries.some(entry=>entry.isIntersecting)){setShowSets(true);observer.disconnect()}},{rootMargin:'700px 0px'});observer.observe(target);return()=>observer.disconnect()},[]);
   const copy=language==='ID'?{
     title:<>Kenali kartunya.<br/><em>Menangkan pertandingannya.</em></>,
     description:'Telusuri setiap versi cetak. Susun deck. Tentukan langkah berikutnya.',
@@ -119,7 +124,7 @@ export function HomeExperience(){
     </section>
     <section className="home-utility home-reveal"><div><p className="eyebrow">{copy.utilityEyebrow}</p><h2>{copy.utilityTitle}</h2><p>{copy.utilityDescription}</p></div><div className="utility-links"><Link href="/cards"><Layers3 size={20}/><span><b>{copy.explorePrintings}</b><small>{copy.explorePrintingsSub}</small></span><ArrowUpRight size={16}/></Link><Link href="/decks/builder"><Swords size={20}/><span><b>{copy.buildDeck}</b><small>{copy.buildDeckSub}</small></span><ArrowUpRight size={16}/></Link><Link href="/vault"><BadgeCheck size={20}/><span><b>{copy.trackVault}</b><small>{copy.trackVaultSub}</small></span><ArrowUpRight size={16}/></Link></div></section>
     <section className="home-featured home-reveal"><div className="section-heading"><div><p className="eyebrow">{copy.featuredEyebrow}</p><h2>{copy.featuredTitle}</h2></div><Link className="text-action" href="/cards">{copy.viewAllCards} <ArrowUpRight size={15}/></Link></div><div className="home-card-marquee" aria-label={copy.marqueeLabel}><div className="home-card-track">{[...cards.slice(0,8),...cards.slice(0,8)].map((card,index)=><Link href={`/cards/${card.code}`} key={`${card.id}-${index}`} aria-label={`Open ${card.name}`}><CardArt card={card} imageWidth={360}/></Link>)}</div></div></section>
-    <SetsExperience compact/>
+    <section ref={setsRef} aria-label={id?'Arsip rilis':'Set archive'}>{showSets?<DeferredHomeSets compact/>:<div className="home-sets home-reveal" aria-hidden="true"><div className="sets-skeleton"><i/><i/><i/></div></div>}</section>
     <section className="home-market home-reveal"><div className="market-copy"><p className="eyebrow">{copy.marketEyebrow}</p><h2>{copy.marketTitle}</h2><p>{copy.marketDescription}</p><Link className="button" href="/market"><ShoppingBag size={16}/>{copy.browseMarket}</Link></div><div className="market-board"><div><small>{copy.wantedTag}</small><b>{copy.completeDeck}</b><span>{copy.completeDeckDesc}</span></div><div><small>{copy.collectTag}</small><b>{copy.rawGraded}</b><span>{copy.rawGradedDesc}</span></div><div><small>{copy.playTag}</small><b>{copy.seeFit}</b><span>{copy.seeFitDesc}</span></div></div></section>
   </main>;
 }
