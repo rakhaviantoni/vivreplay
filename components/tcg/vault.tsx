@@ -11,8 +11,6 @@ import {
   HeartIcon as Heart, 
   ChartLineUpIcon as TrendingUp, 
   ClockIcon as Clock,
-  PlusIcon as Plus,
-  MagnifyingGlassIcon as Search,
   DownloadSimpleIcon as Download,
   StackIcon as Layers3,
   FloppyDiskIcon as Save,
@@ -43,6 +41,7 @@ import { SetsTab } from './vault/tabs/sets-tab';
 import { WishlistTab } from './vault/tabs/wishlist-tab';
 import { PortfolioTab } from './vault/tabs/portfolio-tab';
 import { ActivityTab } from './vault/tabs/activity-tab';
+import { VaultPanelEmpty } from './vault/vault-panel-empty';
 import { ListingsTab } from './vault/tabs/listings-tab';
 import { VivreMark } from './brand-assets';
 
@@ -636,35 +635,12 @@ export function Vault() {
           />
 
           {filteredCollectionItems.length === 0 ? (
-            <div className="vault-empty-state">
-              <div className="vault-empty-slot-composition">
-                <div className="vault-empty-dummy-slot" aria-hidden="true" />
-                <div className="vault-empty-dummy-slot">
-                  <Search size={24} />
-                </div>
-                <div className="vault-empty-dummy-slot" aria-hidden="true" />
-              </div>
-              <h2>{enrichedItems.length===0?t('Your Vault is empty','Koleksi Anda masih kosong'):t('No cards match','Tidak ada kartu yang cocok')}</h2>
-              <p>{enrichedItems.length===0?t('Add a card printing to start your collection.','Tambahkan cetakan kartu untuk memulai koleksi Anda.'):t('Clear a filter or change your search.','Hapus filter atau ubah pencarian Anda.')}</p>
-              {enrichedItems.length===0?<button type="button" className="vault-btn vault-btn-primary" onClick={()=>setQuickAddOpen(true)}>{t('Find a card to add','Cari kartu untuk ditambahkan')}</button>:<button
-                type="button"
-                className="vault-btn vault-btn-secondary"
-                onClick={() => setFilters(prev => ({
-                  ...prev,
-                  search: '',
-                  setCode: 'all',
-                  language: 'all',
-                  rarity: 'all',
-                  color: 'all',
-                  typeFilter: 'all',
-                  gradingProvider: 'all',
-                  grade: 'all',
-                  favoritesOnly: false,
-                }))}
-              >
-                {t('Clear Filters','Hapus Filter')}
-              </button>}
-            </div>
+            <VaultPanelEmpty
+              icon={<Layers3 size={22}/>}
+              title={enrichedItems.length===0?t('Your Vault is empty','Koleksi Anda masih kosong'):t('No cards match','Tidak ada kartu yang cocok')}
+              description={enrichedItems.length===0?t('Add a card printing to start your collection.','Tambahkan cetakan kartu untuk memulai koleksi Anda.'):t('Clear a filter or change your search.','Hapus filter atau ubah pencarian Anda.')}
+              action={enrichedItems.length===0?<button type="button" className="vault-btn vault-btn-primary" onClick={()=>setQuickAddOpen(true)}>{t('Find a card to add','Cari kartu untuk ditambahkan')}</button>:<button type="button" className="vault-btn vault-btn-secondary" onClick={()=>setFilters(prev=>({...prev,search:'',setCode:'all',language:'all',rarity:'all',color:'all',typeFilter:'all',gradingProvider:'all',grade:'all',favoritesOnly:false}))}>{t('Clear filters','Hapus filter')}</button>}
+            />
           ) : viewMode === 'binder' ? (
             <BinderView
               items={filteredCollectionItems}
@@ -726,7 +702,7 @@ export function Vault() {
             }}
             onFindMissingInMarket={handleFindListings}
             onSelectItem={handleSelectItem}
-            wishlistSetCodes={wishlistList.map(item=>item.card?.setCode??'').filter(Boolean)}
+            wishlistSetCodes={wishlistList.map(item=>({code:item.card?.setCode??'',language:item.card?.language??'EN'})).filter(item=>Boolean(item.code))}
           />
         </section>
       )}

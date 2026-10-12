@@ -3,15 +3,18 @@ import {createHash} from 'node:crypto';
 import {createClient} from '@supabase/supabase-js';
 import type {EffectAction,EffectDocument,EffectTrigger} from '../packages/domain/effect-rules';
 import {compileEffectDocument} from '../packages/domain/effect-rules';
-import {scenarios,type Identity,type Scenario} from './card-effect-scenarios';
+import {publishedActionScenarios,scenarios,type Identity,type Scenario} from './card-effect-scenarios';
 const canonical=(value:unknown):string=>JSON.stringify(value,(_key,item)=>item&&typeof item==='object'&&!Array.isArray(item)?Object.fromEntries(Object.entries(item).sort(([a],[b])=>a.localeCompare(b))):item);
 const hash=(value:unknown)=>createHash('sha256').update(canonical(value)).digest('hex');
 const mainActionIsRest=(action:EffectAction|undefined):action is Extract<EffectAction,{kind:'rest'}>=>action?.kind==='rest';
 const normalizedWindowText=(value:string)=>value.replace(/\s+/g,' ').replace(/[−–—]/g,'-').replace(/Activate:\s*Main/gi,'Activate: Main').replace(/\[(On Play|When Attacking|Activate\s*:\s*Main|Main|Counter|Trigger|On K\.O\.|On Block|On Your Opponent's Attack|End of Your Turn)\]\s*/gi,'[$1] ').replace(/\[(DON!!\s*[x×]\s*\d+)\]\s*(\[(?:On Play|When Attacking|Activate\s*:\s*Main|Main|Counter|Trigger|On K\.O\.|On Block|On Your Opponent's Attack|End of Your Turn|Your Turn|Opponent's Turn)\])/gi,'$2 [$1] ').replace(/\[DON!!\s*[x×]\s*(\d+)\]\s*\[(Opponent's Turn|Your Turn)\]/gi,'[$2] [DON!!x$1]').replace(/DON!!\s*[x×]/gi,'DON!!x').replace(/\{([^{}]+)\}/g,'[$1]').replace(/gains\s+\[?(Rush|Blocker|Double Attack|Banish)\]?/gi,'gains [$1]').replace(/\s*\(/g,' (').replace(/\s+([.,:;])/g,'$1').replace(/\]\s*\[/g,'] [').replace(/\s+/g,' ');
 const containsSourceWindow=(source:string,window:string)=>{const normalizedSource=normalizedWindowText(source),normalizedWindow=normalizedWindowText(window),expandedSource=normalizedSource.replace(/\[([^\]]+)\]\s*\/\s*\[([^\]]+)\]/gi,'[$1] [$2]'),sharedOnPlay=normalizedSource.replace(/\[(On Play|On K\.O\.)\]\s*\/\s*\[(On Play|On K\.O\.)\]\s*/gi,'[$1] '),sharedOnKo=normalizedSource.replace(/\[(On Play|On K\.O\.)\]\s*\/\s*\[(On Play|On K\.O\.)\]\s*/gi,'[$2] '),sharedMain=normalizedSource.replace(/\[(Main|Counter)\]\s*\/\s*\[(Main|Counter)\]\s*/gi,'[$1] '),sharedCounter=normalizedSource.replace(/\[(Main|Counter)\]\s*\/\s*\[(Main|Counter)\]\s*/gi,'[$2] ');return normalizedSource.includes(normalizedWindow)||expandedSource.includes(normalizedWindow)||sharedOnPlay.includes(normalizedWindow)||sharedOnKo.includes(normalizedWindow)||sharedMain.includes(normalizedWindow)||sharedCounter.includes(normalizedWindow);};
-type Row={code:string;name:string;color:string;cardType:'Character'|'Leader'|'Event'|'Stage';cost:number;power:number;printedText:string;publishedText:string|null;localSchema:EffectDocument;databaseSchema:EffectDocument|null;textMatches:boolean};
+type Row={code:string;name:string;color:string;cardType:'Character'|'Leader'|'Event'|'Stage';cost:number;power:number;printedText:string;publishedText:string|null;localSchema:EffectDocument;databaseSchema:EffectDocument|null;textMatches:boolean;gameplayScenarioCount:number;standaloneActionComplete:boolean};
 const windowPresentInBothSources=(card:Row,window:string)=>Boolean(card.publishedText&&containsSourceWindow(card.printedText,window)&&containsSourceWindow(card.publishedText,window));
 function scenarioWindow(name:string,schema:EffectDocument):EffectTrigger|undefined{
+ if(name.startsWith('OP05-119 real play: On Play'))return 'on-play';
+ if(name.startsWith('OP05-119 real play: Activate: Main'))return 'activate-main';
+ if(name.startsWith('EB03-031 real play:'))return 'on-play';
  if(/^schema-op07-017 main\/trigger:/i.test(name))return 'main';
  if(/^schema-st12-016 main\/counter\/trigger:/i.test(name))return 'main';
  if(/^engine-aura continuous:/i.test(name))return 'continuous';
@@ -142,7 +145,7 @@ const candidates=[];
 const blocked:Record<string,number>={};
 const block=(reason:string)=>{blocked[reason]=(blocked[reason]??0)+1;};
 for(const card of snapshot.cards){
- const cases=scenarios({code:card.code,effect_text:card.printedText} as Identity);
+ const cases=scenarios({id:card.code,code:card.code,name:card.name,color:card.color,card_type:card.cardType,cost:card.cost,power:card.power,effect_text:card.printedText} as Identity);
  if(card.databaseScenarios.some(s=>s.status==='FAIL')&&card.textMatches&&card.databaseSchema&&card.localSchema.resolver.type==='DSL'&&card.databaseSchema.resolver.type==='DSL'){
   const after=structuredClone(card.databaseSchema),changed:EffectTrigger[]=[],checks:Scenario[]=[];
   for(const timing of [...new Set(card.localSchema.ast.map(ability=>ability.trigger))]){
@@ -364,10 +367,63 @@ for(const card of snapshot.cards){
    const after=structuredClone(card.localSchema);after.implementationStatus='PARSED';const changed:EffectTrigger[]=['activate-main'];
    candidates.push({code:card.code,printedText:card.printedText,publishedText:null,timings:changed,scenarioNames:cases.filter(s=>s.name.startsWith('schema-mihawk-rested-don ')).map(s=>s.name),scenarioCount:1,before:null,after,beforeHash:hash(null),afterHash:hash(after)});continue;
   }
+  const localGameplayCases=cases.filter(s=>!s.name.startsWith('engine-action '));
+  const identity={id:card.code,code:card.code,name:card.name,color:card.color,card_type:card.cardType,cost:card.cost,power:card.power,effect_text:card.printedText} as Identity;
+  const actionCases=publishedActionScenarios(identity,card.localSchema);
+  const insertable=card.textMatches&&card.localSchema.implementationStatus==='PARSED'&&card.localSchema.resolver.type==='DSL'&&card.localSchema.parseConfidence>=0.9&&(localGameplayCases.length>0||card.standaloneActionComplete)&&cases.length>0;
+  if(insertable){
+   const after=structuredClone(card.localSchema),verification=[...cases,...actionCases];
+   try{for(const scenario of verification)scenario.run(after);}catch{block('missing-schema-local-verification-failed');continue;}
+   const names=[...new Set(verification.map(s=>s.name))];
+   candidates.push({code:card.code,printedText:card.printedText,publishedText:null,timings:[...new Set(after.ast.map(ability=>ability.trigger))],scenarioNames:names,scenarioCount:names.length,before:null,after,beforeHash:hash(null),afterHash:hash(after)});continue;
+  }
   if(card.databaseScenarios.some(s=>s.status==='FAIL'))block('missing-schema');continue;
  }
  if(!cases.length){if(card.databaseScenarios.some(s=>s.status==='FAIL'))block('no-scenarios');continue;}
  const failingNames=new Set(card.databaseScenarios.filter(s=>s.status==='FAIL').map(s=>s.name));
+ if(card.code==='OP14-009'&&failingNames.has('OP14-009 real play: pay two hand cards and swap only your Leader and Character through the opponent battle')){
+  const ability=card.localSchema.ast.filter(ast=>ast.trigger==='opponent-attack'),checks=cases.filter(s=>failingNames.has(s.name));
+  const safe=card.textMatches&&card.localSchema.resolver.type==='DSL'&&card.localSchema.ast.some(ast=>ast.actions.length===1&&ast.actions[0].kind==='rush')&&ability.length===1&&ability[0].costs.length===1&&ability[0].costs[0].kind==='trash'&&ability[0].costs[0].scope==='hand'&&ability[0].costs[0].amount===2&&ability[0].actions.length===1&&ability[0].actions[0].kind==='swap-power'&&ability[0].actions[0].leaderAndCharacter===true&&ability[0].actions[0].oncePerTurn===true&&ability[0].actions[0].until==='battle'&&checks.length>=2;
+  if(!safe){block('op14-009-opponent-attack-sequence-not-verified');continue;}
+  try{for(const scenario of checks)scenario.run(card.localSchema);}catch{block('op14-009-local-gameplay-scenario-failed');continue;}
+  const after=structuredClone(card.localSchema);try{for(const scenario of checks)scenario.run(after);}catch{block('op14-009-repaired-gameplay-scenario-failed');continue;}
+  candidates.push({code:card.code,printedText:card.printedText,publishedText:card.publishedText,timings:['unknown','opponent-attack'],scenarioNames:checks.map(s=>s.name),scenarioCount:checks.length,before:card.databaseSchema,after,beforeHash:hash(card.databaseSchema),afterHash:hash(after)});continue;
+ }
+ // These revisions have narrowly scoped, complete engine scenarios. Keep
+ // OP15-022's separate deck-out rule intact while repairing only its
+ // Activate: Main sequence; OP13-057 verifies both printed timing windows.
+ if(card.code==='OP13-057'&&failingNames.has('OP13-057 condition check: printed main')){
+  const main=card.localSchema.ast.filter(ast=>ast.trigger==='main'),counter=card.localSchema.ast.filter(ast=>ast.trigger==='counter');
+  const checks=cases.filter(s=>s.name==='OP13-057 condition check: printed main'||s.name==='Counter gameplay power: verify the complete window and apply its printed target');
+  const safe=card.localSchema.ast.length===2&&main.length===1&&counter.length===1&&main[0].conditions.length===1&&main[0].costs.length===1&&main[0].actions.length===1&&main[0].actions[0].kind==='attack-trigger-blocker-lock'&&main[0].actions[0].scope==='own-leader'&&counter[0].conditions.length===0&&counter[0].costs.length===0&&counter[0].actions.length===1&&counter[0].actions[0].kind==='power'&&checks.length===2&&windowPresentInBothSources(card,main[0].rawText.trim())&&windowPresentInBothSources(card,counter[0].rawText.trim());
+  if(!safe){block('op13-057-independent-main-counter-windows-not-verified');continue;}
+  try{for(const scenario of checks)scenario.run(card.localSchema);}catch{block('op13-057-local-gameplay-scenario-failed');continue;}
+  const after=structuredClone(card.localSchema);try{for(const scenario of checks)scenario.run(after);}catch{block('op13-057-repaired-gameplay-scenario-failed');continue;}
+  candidates.push({code:card.code,printedText:card.printedText,publishedText:card.publishedText,timings:['main','counter'],scenarioNames:checks.map(s=>s.name),scenarioCount:checks.length,before:card.databaseSchema,after,beforeHash:hash(card.databaseSchema),afterHash:hash(after)});continue;
+ }
+ if(card.code==='OP15-022'&&failingNames.size&&card.localSchema.resolver.type==='CUSTOM'&&card.localSchema.resolver.handler==='OP15_022_UNKNOWN'){
+  const activation=card.localSchema.ast.filter(ast=>ast.trigger==='activate-main'),localWindow=card.localSchema.normalized.filter(effect=>effect.timing==='activate-main');
+  const checks=cases.filter(s=>s.name==='Activate: Main gameplay ready: verify the complete window and eligible cards');
+  const after=structuredClone(card.databaseSchema!),localAst=activation[0];
+  const safe=activation.length===1&&localWindow.length===1&&localAst.actions.length===2&&localAst.actions[0].kind==='trash'&&localAst.actions[0].scope==='deck'&&localAst.actions[0].amount===4&&localAst.actions[1].kind==='ready'&&localAst.actions[1].scope==='own-character'&&localAst.actions[1].condition==='your deck has 0 cards'&&localWindow[0].sequence.length===2&&localWindow[0].sequence[0].type==='RESOLVE'&&localWindow[0].sequence[0].action.kind==='trash'&&localWindow[0].sequence[1].type==='RESOLVE'&&localWindow[0].sequence[1].action.kind==='ready'&&checks.length===1&&windowPresentInBothSources(card,localAst.rawText.trim());
+  if(!safe){block('op15-022-activation-sequence-not-verified');continue;}
+  after.ast=[...after.ast.filter(ast=>ast.trigger!=='activate-main'),...activation];
+  after.normalized=[...after.normalized.filter(effect=>effect.timing!=='activate-main'),...localWindow];
+  try{for(const scenario of checks)scenario.run(card.localSchema);for(const scenario of checks)scenario.run(after);}catch{block('op15-022-local-or-repaired-gameplay-scenario-failed');continue;}
+  after.parserVersion=card.localSchema.parserVersion;after.parseConfidence=card.localSchema.parseConfidence;after.implementationStatus='PARSED';
+  candidates.push({code:card.code,printedText:card.printedText,publishedText:card.publishedText,timings:['activate-main'],scenarioNames:checks.map(s=>s.name),scenarioCount:checks.length,before:card.databaseSchema,after,beforeHash:hash(card.databaseSchema),afterHash:hash(after)});continue;
+ }
+ if(['OP15-022','ST13-003'].includes(card.code)&&failingNames.size&&card.textMatches&&card.databaseSchema&&card.localSchema.resolver.type==='DSL'&&card.databaseSchema.resolver.type==='CUSTOM'){
+  const checks=cases;
+  const windows=card.localSchema.ast;
+  const safe=windows.length===2&&windows.every(ability=>windowPresentInBothSources(card,ability.rawText.trim()))&&checks.some(s=>s.name.startsWith(`${card.code} real play:`))&&checks.every(s=>{
+   try{s.run(card.localSchema);return true;}catch{return false;}
+  });
+  if(!safe){block(`${card.code.toLowerCase()}-full-board-scenario-not-verified`);continue;}
+  const after=structuredClone(card.localSchema);
+  try{for(const scenario of checks)scenario.run(after);}catch{block(`${card.code.toLowerCase()}-published-repair-scenario-failed`);continue;}
+  candidates.push({code:card.code,printedText:card.printedText,publishedText:card.publishedText,timings:[...new Set(windows.map(ability=>ability.trigger))],scenarioNames:checks.map(s=>s.name),scenarioCount:checks.length,before:card.databaseSchema,after,beforeHash:hash(card.databaseSchema),afterHash:hash(after)});continue;
+ }
  if(card.code==='OP08-105'&&[...failingNames].some(name=>name.startsWith('trigger: draw 2 then discard 1 /'))){
   const localAst=card.localSchema.ast.filter(ast=>ast.trigger==='trigger'),localEffects=card.localSchema.normalized.filter(effect=>effect.timing==='trigger'),checks=cases.filter(s=>s.name.startsWith('trigger: draw 2 then discard 1 /')||s.name==='schema-draw trigger: printed counts 2');
   const ability=localAst[0],effect=localEffects[0];
@@ -1018,27 +1074,27 @@ if(!process.argv.includes('--apply'))process.exit(0);
 const db=createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.SUPABASE_SECRET_KEY!,{auth:{persistSession:false,autoRefreshToken:false}});
 const results:Array<{code:string;status:string}>=[];
 for(const candidate of candidates){
- const {data:identity,error:identityError}=await db.from('tcg_card_identities').select('id,effect_text').eq('code',candidate.code).single();
+ const {data:identityRow,error:identityError}=await db.from('tcg_card_identities').select('id,effect_text').eq('code',candidate.code).single();
  if(identityError)throw identityError;
- if(identity.effect_text!==candidate.printedText)throw new Error(`${candidate.code}: catalog text changed; stopping`);
- const {data:current,error}=await db.from('tcg_card_rule_revisions').select('effect_schema,effect_text').eq('ruleset_id',plan.rulesetId).eq('identity_id',identity.id).maybeSingle();
+ if(identityRow.effect_text!==candidate.printedText)throw new Error(`${candidate.code}: catalog text changed; stopping`);
+ const {data:current,error}=await db.from('tcg_card_rule_revisions').select('effect_schema,effect_text').eq('ruleset_id',plan.rulesetId).eq('identity_id',identityRow.id).maybeSingle();
  if(error)throw error;
  if(candidate.before===null){
   if(current)throw new Error(`${candidate.code}: a published revision appeared after planning; stopping`);
-  const {error:insertError}=await db.from('tcg_card_rule_revisions').insert({ruleset_id:plan.rulesetId,identity_id:identity.id,effect_text:candidate.printedText,effect_schema:candidate.after,errata_reference:null,source_url:'https://en.onepiece-cardgame.com/cardlist/'});
+  const {error:insertError}=await db.from('tcg_card_rule_revisions').insert({ruleset_id:plan.rulesetId,identity_id:identityRow.id,effect_text:candidate.printedText,effect_schema:candidate.after,errata_reference:null,source_url:'https://en.onepiece-cardgame.com/cardlist/'});
   if(insertError)throw insertError;
  }else{
   if(!current||hash(current.effect_schema)!==candidate.beforeHash||current.effect_text!==candidate.publishedText)throw new Error(`${candidate.code}: published revision changed; stopping`);
   const updatedEffectText=candidate.effectTextAfter??candidate.printedText;
-  const {data:updated,error:updateError}=await db.from('tcg_card_rule_revisions').update({effect_text:updatedEffectText,effect_schema:candidate.after}).eq('ruleset_id',plan.rulesetId).eq('identity_id',identity.id).eq('effect_schema',JSON.stringify(current.effect_schema)).eq('effect_text',current.effect_text).select('identity_id');
+  const {data:updated,error:updateError}=await db.from('tcg_card_rule_revisions').update({effect_text:updatedEffectText,effect_schema:candidate.after}).eq('ruleset_id',plan.rulesetId).eq('identity_id',identityRow.id).eq('effect_schema',JSON.stringify(current.effect_schema)).eq('effect_text',current.effect_text).select('identity_id');
   if(updateError)throw updateError;
   if(updated.length!==1)throw new Error(`${candidate.code}: concurrent update detected`);
  }
- const {data:readback,error:readError}=await db.from('tcg_card_rule_revisions').select('effect_schema,effect_text').eq('ruleset_id',plan.rulesetId).eq('identity_id',identity.id).single();
+ const {data:readback,error:readError}=await db.from('tcg_card_rule_revisions').select('effect_schema,effect_text').eq('ruleset_id',plan.rulesetId).eq('identity_id',identityRow.id).single();
  if(readError)throw readError;
  if(hash(readback.effect_schema)!==candidate.afterHash||readback.effect_text!==(candidate.effectTextAfter??candidate.printedText))throw new Error(`${candidate.code}: readback differs`);
  const scenarioNames=new Set(candidate.scenarioNames);
- const card=snapshot.cards.find(item=>item.code===candidate.code);if(!card)throw new Error(`${candidate.code}: audited card identity is missing`);for(const scenario of scenarios({id:candidate.code,code:candidate.code,name:card.name,color:card.color,card_type:card.cardType,cost:card.cost,power:card.power,effect_text:candidate.printedText} as Identity).filter(s=>scenarioNames.has(s.name)))scenario.run(readback.effect_schema);
+ const card=snapshot.cards.find(item=>item.code===candidate.code);if(!card)throw new Error(`${candidate.code}: audited card identity is missing`);const identity={id:candidate.code,code:candidate.code,name:card.name,color:card.color,card_type:card.cardType,cost:card.cost,power:card.power,effect_text:candidate.printedText} as Identity;for(const scenario of [...scenarios(identity),...publishedActionScenarios(identity,readback.effect_schema)].filter(s=>scenarioNames.has(s.name)))scenario.run(readback.effect_schema);
  results.push({code:candidate.code,status:'PUBLISHED_AND_READBACK_TESTED'});
  writeFileSync(path.replace('.json','.results.json'),JSON.stringify(results,null,2));
 }

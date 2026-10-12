@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   XIcon as X, 
   ShieldCheckIcon as ShieldCheck, 
@@ -53,6 +54,12 @@ function uniquePrintings(printings:VaultPrinting[],preferredId?:string){
   });
 }
 
+function printingTitle(printing:VaultPrinting){
+  const set=printing.set_code?.trim();
+  const variant=(printing.variant??'Standard').trim();
+  return set?`${set} · ${variant}`:variant;
+}
+
 export function AddEditItemModal({
   open,
   onClose,
@@ -96,6 +103,7 @@ export function AddEditItemModal({
   const [corners, setCorners] = useState(String(existingSub.Corners || '9.5'));
   const [edges, setEdges] = useState(String(existingSub.Edges || '10'));
   const [surface, setSurface] = useState(String(existingSub.Surface || '9.5'));
+  const [showSubgrades,setShowSubgrades]=useState(Object.keys(editingItem?.subgrades??{}).length>0);
 
   const [busy, setBusy] = useState(false);
   const [catalogPrintings, setCatalogPrintings] = useState<VaultPrinting[]>([]);
@@ -107,6 +115,20 @@ export function AddEditItemModal({
     const normalized=Math.round(amount);
     setMarketEstimateIdr(normalized);
   },[]);
+
+  useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !busy) onClose();
+    };
+    document.body.style.overflow = 'hidden';
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [open, busy, onClose]);
 
   useEffect(() => {
     if (!open) return;
@@ -133,6 +155,7 @@ export function AddEditItemModal({
     setCorners(String(subgrades.Corners || '9.5'));
     setEdges(String(subgrades.Edges || '10'));
     setSurface(String(subgrades.Surface || '9.5'));
+    setShowSubgrades(Object.keys(subgrades).length>0);
   }, [open, editingItem, initialCard, initialPrintingId]);
 
   useEffect(() => {
@@ -209,6 +232,7 @@ export function AddEditItemModal({
     hasSelectedIdentity && !targetPrinting ? (catalogLoading ? 'Printings are still loading.' : 'Choose an available printing.') : '',
     itemType === 'RAW' && !quantityValid ? 'Enter a quantity from 1 to 999.' : '',
     itemType === 'GRADED' && !grade.trim() ? 'Enter the slab grade.' : '',
+    itemType === 'GRADED' && !certification.trim() ? 'Enter the certification number from the slab.' : '',
   ].filter(Boolean);
 
   useEffect(()=>{
@@ -247,7 +271,7 @@ export function AddEditItemModal({
     return()=>{active=false;controller.abort();};
   },[open,hasSelectedIdentity,targetLanguage,targetPrinting?.id]);
 
-  if (!open) return null;
+  if (!open || typeof document === 'undefined') return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -260,12 +284,12 @@ export function AddEditItemModal({
     setBusy(true);
 
     try {
-      const subgradesObj = itemType === 'GRADED' ? {
+      const subgradesObj = itemType === 'GRADED' && showSubgrades ? {
         Centering: parseFloat(centering) || 10,
         Corners: parseFloat(corners) || 9.5,
         Edges: parseFloat(edges) || 10,
         Surface: parseFloat(surface) || 9.5,
-      } : undefined;
+      } : null;
 
       const payload = {
         id: editingItem?.id,
@@ -276,7 +300,7 @@ export function AddEditItemModal({
         condition: itemType === 'GRADED' ? 'NM' : condition,
         provider: itemType === 'GRADED' ? provider : null,
         grade: itemType === 'GRADED' ? grade : null,
-        certification: itemType === 'GRADED' ? (certification.trim() || 'CERT-' + Math.floor(Math.random() * 899999 + 100000)) : null,
+        certification: itemType === 'GRADED' ? certification.trim() : null,
         visibility,
         acquisitionAmount: Math.round(Number(acquisitionCost || 0)),
         currency: 'IDR',
@@ -341,23 +365,32 @@ export function AddEditItemModal({
     }
   };
 
-  return (
-    <div style={{
+  return createPortal((
+    <div
+      role="presentation"
+      className="vault-item-modal-overlay"
+      onPointerDown={event=>event.stopPropagation()}
+      onMouseDown={event=>{if(event.target===event.currentTarget&&!busy)onClose()}}
+      style={{
       position: 'fixed',
       inset: 0,
-      zIndex: 150,
+      zIndex: 700,
       background: 'rgba(10, 12, 16, 0.75)',
       backdropFilter: 'blur(7px)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: '20px',
+      overflowY: 'auto',
+      padding: 'max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom))',
     }}>
-      <div style={{
+      <div className="vault-item-modal" role="dialog" aria-modal="true" aria-labelledby="vault-item-dialog-title" tabIndex={-1} style={{
         width: '100%',
         maxWidth: '680px',
-        maxHeight: '92vh',
+        maxHeight: 'calc(100dvh - 32px)',
         overflowY: 'auto',
+        overscrollBehavior: 'contain',
+        boxSizing: 'border-box',
+        flex: '0 0 auto',
         borderRadius: '18px',
         background: 'var(--vault-panel)',
         border: '1px solid var(--vault-border)',
@@ -367,10 +400,10 @@ export function AddEditItemModal({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
           <div>
             <span style={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '0.12em', color: 'var(--vault-gold)', textTransform: 'uppercase' }}>
-              {isEditing ? 'Curate Archive Item' : 'New Collection Record'}
+              VAULT
             </span>
-            <h2 style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '24px', fontWeight: 600, margin: '2px 0 0' }}>
-              {isEditing ? `Edit ${editingItem?.card.name}` : 'Add Card to Your Vault'}
+            <h2 id="vault-item-dialog-title" style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '24px', fontWeight: 600, margin: '2px 0 0' }}>
+              {isEditing ? `Edit ${editingItem?.card.name}` : 'Add to Vault'}
             </h2>
           </div>
           <button
@@ -413,7 +446,7 @@ export function AddEditItemModal({
             {availableLanguages.length > 0 && <div className="vault-language-options" role="group" aria-label="Card language">
               {availableLanguages.map(lang => <button type="button" key={lang} className={cardLanguage === lang ? 'active' : ''} onClick={() => {setCardLanguage(lang);const next=uniquePrintingOptions.find(printing=>printing.language===lang);setSelectedPrintingId(next?.id??'');}}>{lang === 'JP' ? '日本語 · JP' : 'English · EN'}</button>)}
             </div>}
-                {selectedPrinting&&selectedPrinting.language===cardLanguage&&<p className="vault-printing-current-selection">{language==='ID'?'Cetakan terpilih:':'Selected printing:'} <strong>{selectedPrinting.language} · {selectedPrinting.variant||'Standard'}</strong>{selectedPrinting.printing_code&&<span> · {selectedPrinting.printing_code}</span>}</p>}
+                {selectedPrinting&&selectedPrinting.language===cardLanguage&&<p className="vault-printing-current-selection">{language==='ID'?'Cetakan terpilih:':'Selected printing:'} <strong>{selectedPrinting.language} · {printingTitle(selectedPrinting)}</strong>{selectedPrinting.printing_code&&<span> · {selectedPrinting.printing_code}</span>}</p>}
             <div className="vault-printing-options">
               {languagePrintings.map(printing => {
                 const printingCard: Card = {...currentCard,id:printing.id,language:printing.language as 'EN'|'JP',variant:printing.variant??'Standard',setCode:printing.set_code??currentCard.setCode,printingCode:printing.printing_code??currentCard.printingCode,imageUrl:printing.card_image_url??currentCard.imageUrl};
@@ -421,7 +454,7 @@ export function AddEditItemModal({
                 const printNumber=printing.printing_code?.match(/(?:[_-]p)(\d+)$/i)?.[1];
                 const detail=[printing.set_code,currentCard.code,printNumber?`p${printNumber}`:printing.printing_code!==currentCard.code?printing.printing_code:null].filter(Boolean).join(' · ');
                 return <button type="button" key={printing.id} className={`vault-printing-option ${selected ? 'selected' : ''}`} aria-pressed={selected} onClick={() => {setSelectedIdentity(currentCard);setSelectedCardCode(currentCard.code);setIdentityConfirmed(true);setSelectedPrintingId(printing.id);setCardLanguage(printing.language as 'EN'|'JP');}}>
-                  <span className="vault-printing-option-art"><CardArt card={printingCard} small /></span><span className="vault-printing-option-copy"><b>{printing.variant || 'Standard'}</b><small>{detail || 'Standard printing'}</small></span>{selected && <span className="vault-printing-selected-mark">{language==='ID'?'Dipilih':'Selected'}</span>}
+                  <span className="vault-printing-option-art"><CardArt card={printingCard} small /></span><span className="vault-printing-option-copy"><b>{printingTitle(printing)}</b><small>{detail || printing.printing_code || 'Standard printing'}</small></span>{selected && <span className="vault-printing-selected-mark">{language==='ID'?'Dipilih':'Selected'}</span>}
                 </button>;
               })}
               {!languagePrintings.length && <p className="vault-printing-empty">{catalogLoading ? 'Loading available printings…' : 'No printings are listed for this language.'}</p>}
@@ -535,20 +568,26 @@ export function AddEditItemModal({
                 </label>
                 <input
                   type="text"
+                  required
                   maxLength={100}
-                  placeholder="e.g. 84920194"
+                  placeholder="Number printed on the slab label"
                   className="vault-select-compact"
                   style={{ width: '100%' }}
                   value={certification}
                   onChange={e => setCertification(e.target.value)}
+                  aria-invalid={submitAttempted && !certification.trim()}
+                  aria-describedby={submitAttempted && !certification.trim() ? 'vault-certification-error' : undefined}
                 />
+                {submitAttempted && !certification.trim() && <small id="vault-certification-error" className="vault-field-error">Enter the certification number from the slab.</small>}
               </div>
 
-              {/* Subgrades row */}
               <div>
-                <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--vault-ink-secondary)', display: 'block', marginBottom: '4px' }}>
-                  Subgrades (Optional):
+                <label style={{display:'inline-flex',alignItems:'center',gap:8,fontSize:12,fontWeight:650,color:'var(--vault-ink-secondary)',cursor:'pointer',marginBottom:showSubgrades?10:0}}>
+                  <input type="checkbox" checked={showSubgrades} onChange={event=>setShowSubgrades(event.target.checked)}/>
+                  Add subgrades
                 </label>
+              </div>
+              {showSubgrades&&<div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
                   <div>
                     <span style={{ fontSize: '10px', color: 'var(--vault-ink-muted)' }}>Centering</span>
@@ -591,7 +630,7 @@ export function AddEditItemModal({
                     />
                   </div>
                 </div>
-              </div>
+              </div>}
             </div>
           )}
 
@@ -693,5 +732,5 @@ export function AddEditItemModal({
         </form>
       </div>
     </div>
-  );
+  ), document.body);
 }

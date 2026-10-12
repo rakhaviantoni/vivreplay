@@ -77,6 +77,7 @@ export type VaultStackGroup = {
 
 export type SetProgress = {
   code: string;
+  language?: 'EN' | 'JP';
   name: string;
   releaseYear: number;
   totalCards: number;

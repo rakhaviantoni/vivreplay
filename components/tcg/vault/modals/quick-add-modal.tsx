@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   XIcon as X, 
   MagnifyingGlassIcon as Search, 
@@ -31,7 +32,7 @@ export function QuickAddModal({
   const [query, setQuery] = useState('');
   const [busy, setBusy] = useState(false);
 
-  if (!open) return null;
+  if (!open || typeof document === 'undefined') return null;
 
   const filteredCards = query.trim().length >= 2
     ? cards.filter(c => `${c.name} ${c.code}`.toLowerCase().includes(query.trim().toLowerCase())).slice(0, 6)
@@ -94,11 +95,11 @@ export function QuickAddModal({
     }
   };
 
-  return (
+  return createPortal((
     <div style={{
       position: 'fixed',
       inset: 0,
-      zIndex: 150,
+      zIndex: 700,
       background: 'rgba(10, 12, 16, 0.7)',
       backdropFilter: 'blur(6px)',
       display: 'flex',
@@ -193,5 +194,5 @@ export function QuickAddModal({
         </div>
       </div>
     </div>
-  );
+  ), document.body);
 }

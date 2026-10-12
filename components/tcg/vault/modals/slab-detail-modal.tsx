@@ -16,6 +16,7 @@ import {
   MagnifyingGlassPlusIcon as ZoomIn
 } from '@phosphor-icons/react';
 import { CardArt } from '../card-art';
+import { EffectText } from '../../effect-text';
 import { printings } from '@/packages/card-data/catalog';
 import { formatCompactMoney, GRADING_PROVIDERS } from '@/packages/domain';
 import { toast } from 'sonner';
@@ -87,6 +88,9 @@ export function SlabDetailModal({
   const subgrades = slab.subgrades;
   const storedProvider=String(slab.provider??'').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
   const providerDef = GRADING_PROVIDERS.find(p => [p.id,p.shortName,p.name].some(value=>value.toLowerCase().replace(/[^a-z0-9]/g,'')===storedProvider)||storedProvider==='beckett'&&p.id==='BGS');
+  const certificationUrl=slab.certification&&providerDef?.id==='PSA'
+    ? `https://www.psacard.com/cert/${encodeURIComponent(slab.certification)}/psa`
+    : providerDef?.website;
 
   // Verification badge details
   const getVerificationBadge = () => {
@@ -108,11 +112,11 @@ export function SlabDetailModal({
   const VIcon = vBadge.icon;
 
   return (
-    <div role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }} style={{
+    <div className="vault-slab-detail-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }} style={{
       position: 'fixed',
       inset: 0,
       zIndex: 150,
-      background: 'rgba(10, 12, 16, 0.8)',
+      background: 'var(--vault-modal-overlay)',
       backdropFilter: 'blur(8px)',
       display: 'flex',
       alignItems: 'center',
@@ -125,10 +129,10 @@ export function SlabDetailModal({
         maxHeight: 'calc(100dvh - 40px)',
         overflow: 'hidden',
         borderRadius: '20px',
-        background: 'linear-gradient(155deg, #1b1e25, #13151b)',
-        border: '1px solid #333a47',
-        boxShadow: '0 32px 80px rgba(0, 0, 0, 0.45)',
-        color: '#f6f3ed',
+        background: 'var(--vault-panel)',
+        border: '1px solid var(--vault-border)',
+        boxShadow: 'var(--vault-modal-shadow)',
+        color: 'var(--vault-ink)',
         position: 'relative',
       }}>
         <button type="button" className="vault-modal-close" onClick={onClose} aria-label="Close slab details">
@@ -149,7 +153,7 @@ export function SlabDetailModal({
                 fontSize: '10px',
                 fontWeight: 700,
                 color: vBadge.color,
-                background: 'rgba(255, 255, 255, 0.05)',
+                background: 'var(--vault-surface-warm)',
                 padding: '2px 8px',
                 borderRadius: '12px',
                 border: `1px solid ${vBadge.color}40`,
@@ -158,10 +162,10 @@ export function SlabDetailModal({
                 {vBadge.label}
               </span>
             </div>
-            <h2 style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '28px', fontWeight: 600, margin: '4px 0 0', color: '#fff' }}>
+            <h2 style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '28px', fontWeight: 600, margin: '4px 0 0', color: 'var(--vault-ink)' }}>
               {slab.card.name}
             </h2>
-            <div style={{ fontSize: '12px', color: '#9da7b5', marginTop: '2px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--vault-ink-muted)', marginTop: '2px' }}>
               {slab.card.code} · {lang} · {variant} · {slab.card.rarity}
             </div>
           </div>
@@ -170,7 +174,7 @@ export function SlabDetailModal({
             <button
               type="button"
               className="vault-btn vault-btn-secondary"
-              style={{ background: '#222732', borderColor: '#3a4352', color: '#e2e7ef', height: '34px' }}
+              style={{ background: 'var(--vault-surface-warm)', borderColor: 'var(--vault-border)', color: 'var(--vault-ink)', height: '34px' }}
               onClick={onToggleHideValues}
               title={hideValues ? 'Show values' : 'Hide values'}
             >
@@ -189,66 +193,53 @@ export function SlabDetailModal({
         }}>
           {/* Left: Slab Presentation Stage & Photo Gallery */}
           <div>
-            <div style={{
+            <div className="vault-slab-case" style={{
               position: 'relative',
               borderRadius: '14px',
-              background: '#0d0f14',
-              border: '2px solid #2e3542',
-              boxShadow: '0 16px 40px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
+              background: 'var(--vault-surface-warm)',
+              border: '2px solid var(--vault-border)',
+              boxShadow: 'var(--vault-case-shadow)',
               padding: '12px',
               display: 'flex',
               flexDirection: 'column',
             }}>
               {/* Slab Label Plate */}
-              <div style={{
+              <div className="vault-slab-case-plate" style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 padding: '10px 14px',
                 borderRadius: '8px',
-                background: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255, 255, 255, 0.09)',
+                background: 'var(--vault-panel)',
+                border: '1px solid var(--vault-border)',
                 marginBottom: '10px',
               }}>
                 <div>
                   <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--vault-gold)', letterSpacing: '0.08em' }}>
                     {slab.provider || 'PSA'}
                   </span>
-                  <div style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '18px', fontWeight: 700, color: '#fff' }}>
+                  <div style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '18px', fontWeight: 700, color: 'var(--vault-ink)' }}>
                     {slab.grade || '10'}
                   </div>
                 </div>
 
                 <div style={{ textAlign: 'right' }}>
-                  <span style={{ fontSize: '9px', color: '#8c95a4', display: 'block', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  <span style={{ fontSize: '9px', color: 'var(--vault-ink-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                     Certification
                   </span>
-                  <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: '11px', color: '#cbd3e0', fontWeight: 600 }}>
+                  <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: '11px', color: 'var(--vault-ink-secondary)', fontWeight: 600 }}>
                     #{slab.certification || '84920194'}
                   </span>
                 </div>
               </div>
 
               {/* Artwork Viewport with Zoom Option */}
-              <div className="vault-detail-art" style={{ position: 'relative', aspectRatio: '420 / 580', borderRadius: '8px', overflow: 'hidden', cursor: 'zoom-in', background: '#0b0d11' }} onClick={() => setIsZoomed(!isZoomed)}>
+              <div className="vault-detail-art" style={{ position: 'relative', aspectRatio: '420 / 580', borderRadius: '8px', overflow: 'hidden', cursor: 'zoom-in', background: 'var(--vault-surface-warm)' }} onClick={() => setIsZoomed(!isZoomed)}>
                 {activePhoto?<img src={`/api/photos/${activePhoto.id}`} alt={`${activePhotoRole} photo for ${slab.card.name} slab`} style={{width:'100%',height:'100%',objectFit:'contain'}}/>:activePhotoRole==='front'?<CardArt card={slab.card}/>:<div className="vault-slab-photo-empty">{photoBusy?'Uploading photo…':`No ${activePhotoRole} photo attached yet`}</div>}
                 <button
                   type="button"
-                  style={{
-                    position: 'absolute',
-                    bottom: '8px',
-                    right: '8px',
-                    background: 'rgba(0,0,0,0.6)',
-                    border: '1px solid rgba(255,255,255,0.2)',
-                    borderRadius: '50%',
-                    width: '28px',
-                    height: '28px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#fff',
-                    cursor: 'pointer',
-                  }}
+                  className="vault-slab-zoom-button"
+                  style={{position:'absolute',bottom:'8px',right:'8px'}}
                   title="Zoom artwork"
                 >
                   <ZoomIn size={14} />
@@ -257,7 +248,7 @@ export function SlabDetailModal({
             </div>
 
             {/* Slab Multi-Photo Switcher (Front, Back, Label, Extra) */}
-            <div style={{
+            <div className="vault-slab-photo-switch" style={{
               display: 'flex',
               gap: '6px',
               marginTop: '12px',
@@ -268,18 +259,7 @@ export function SlabDetailModal({
                   key={role}
                   type="button"
                   onClick={() => setActivePhotoRole(role)}
-                  style={{
-                    padding: '4px 10px',
-                    borderRadius: '6px',
-                    border: '1px solid',
-                    borderColor: activePhotoRole === role ? 'var(--vault-gold)' : '#2e3542',
-                    background: activePhotoRole === role ? 'rgba(198, 138, 44, 0.15)' : '#161920',
-                    color: activePhotoRole === role ? 'var(--vault-gold)' : '#8c95a4',
-                    fontSize: '10px',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    cursor: 'pointer',
-                  }}
+                  className={`vault-slab-photo-role${activePhotoRole===role?' is-active':''}`}
                 >
                   {role}{slabPhotos.some(photo=>photo.role===(role==='extra'?'additional':role))?' · ✓':''}
                 </button>
@@ -294,19 +274,19 @@ export function SlabDetailModal({
                 alignItems: 'center',
                 gap: '6px',
                 fontSize: '11px',
-                color: '#cbd4e1',
+                color: 'var(--vault-ink-secondary)',
                 cursor: 'pointer',
-                background: '#1d222b',
+                background: 'var(--vault-surface-warm)',
                 padding: '6px 14px',
                 borderRadius: '8px',
-                border: '1px solid #333c4a',
+                border: '1px solid var(--vault-border)',
               }}>
                 <Camera size={15} />
                 {photoBusy? 'Uploading…' : `Add ${activePhotoRole==='extra'?'additional':activePhotoRole} photo`}
                 <input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" disabled={photoBusy||slabPhotos.length>=8} onChange={uploadSlabPhoto} style={{ display: 'none' }} />
               </label>
-              <small style={{display:'block',marginTop:5,color:'#8893a2'}}>{slabPhotos.length}/8 photos · JPEG, PNG or WebP · max 5 MB</small>
-              </> : <small style={{color:'#8893a2'}}>Sign in to attach slab photos.</small>}
+              <small className="vault-slab-photo-help">{slabPhotos.length}/8 photos · JPEG, PNG or WebP · max 5 MB</small>
+              </> : <small className="vault-slab-photo-help">Sign in to attach slab photos.</small>}
             </div>
           </div>
 
@@ -316,41 +296,41 @@ export function SlabDetailModal({
             <div style={{
               padding: '16px',
               borderRadius: '12px',
-              background: '#161922',
-              border: '1px solid #2d3542',
+              background: 'var(--vault-surface-warm)',
+              border: '1px solid var(--vault-border)',
               display: 'grid',
               gridTemplateColumns: 'repeat(3, 1fr)',
               gap: '12px',
             }}>
               <div>
-                <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#8893a2' }}>
+                <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--vault-ink-muted)' }}>
                   Acquired Cost
                 </span>
-                <div style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '18px', fontWeight: 600, color: '#fff', marginTop: '2px' }}>
+                <div style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '18px', fontWeight: 600, color: 'var(--vault-ink)', marginTop: '2px' }}>
                   {hideValues ? '••••••••' : slab.acquisitionAmount > 0 ? formatCompactMoney(slab.acquisitionAmount, 'IDR') : '-'}
                 </div>
-                <small style={{ fontSize: '10px', color: '#8893a2' }}>{slab.acquiredAt ? new Date(slab.acquiredAt).toLocaleDateString() : 'Date not recorded'}</small>
+                <small style={{ fontSize: '10px', color: 'var(--vault-ink-muted)' }}>{slab.acquiredAt ? new Date(slab.acquiredAt).toLocaleDateString() : 'Date not recorded'}</small>
               </div>
 
               <div>
-                <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#8893a2' }}>
+                <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--vault-ink-muted)' }}>
                   Est. Market Value
                 </span>
                 <div style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '18px', fontWeight: 600, color: 'var(--vault-gold)', marginTop: '2px' }}>
                   {hideValues ? '••••••••' : slab.hasMarketEstimate ? formatCompactMoney(slab.estimatedValue, 'IDR') : 'Not available'}
                 </div>
-                <small style={{ fontSize: '10px', color: '#8893a2' }}>Yuyutei has no graded price for this slab</small>
+                <small style={{ fontSize: '10px', color: 'var(--vault-ink-muted)' }}>No graded price available</small>
               </div>
 
               <div>
-                <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#8893a2' }}>
+                <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--vault-ink-muted)' }}>
                   Unrealized Gain
                 </span>
                 <div style={{
                   fontFamily: 'var(--display-font, var(--font-sans))',
                   fontSize: '18px',
                   fontWeight: 600,
-                  color: '#4ade80',
+                  color: 'var(--vault-gold)',
                   marginTop: '2px',
                   display: 'flex',
                   alignItems: 'center',
@@ -363,7 +343,7 @@ export function SlabDetailModal({
                     </>
                   ) : '-'}
                 </div>
-                <small style={{ fontSize: '10px', color: '#4ade80' }}>
+                <small style={{ fontSize: '10px', color: 'var(--vault-ink-muted)' }}>
                   {hideValues ? 'Hidden' : slab.hasMarketEstimate && slab.acquisitionAmount > 0 ? `${slab.gainLossPercent >= 0 ? '+' : ''}${slab.gainLossPercent.toFixed(1)}%` : 'No comparable market price'}
                 </small>
               </div>
@@ -374,17 +354,17 @@ export function SlabDetailModal({
               <div style={{
                 padding: '14px 16px',
                 borderRadius: '12px',
-                background: '#161922',
-                border: '1px solid #2d3542',
+                background: 'var(--vault-surface-warm)',
+                border: '1px solid var(--vault-border)',
               }}>
-                <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#8893a2', fontWeight: 700, display: 'block', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--vault-ink-muted)', fontWeight: 700, display: 'block', marginBottom: '8px' }}>
                   Subgrades Inspection
                 </span>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
                   {Object.entries(subgrades).map(([key, val]) => (
-                    <div key={key} style={{ padding: '8px', background: '#1c212c', borderRadius: '8px', border: '1px solid #2d3646', textAlign: 'center' }}>
-                      <span style={{ fontSize: '9px', color: '#9da7b5', display: 'block', textTransform: 'uppercase' }}>{key}</span>
-                      <strong style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '16px', color: '#e2a63b' }}>
+                    <div key={key} style={{ padding: '8px', background: 'var(--vault-panel)', borderRadius: '8px', border: '1px solid var(--vault-border)', textAlign: 'center' }}>
+                      <span style={{ fontSize: '9px', color: 'var(--vault-ink-muted)', display: 'block', textTransform: 'uppercase' }}>{key}</span>
+                      <strong style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '16px', color: 'var(--vault-gold)' }}>
                         {String(val)}
                       </strong>
                     </div>
@@ -394,23 +374,13 @@ export function SlabDetailModal({
             )}
 
             {/* Tabs Selector: Overview | Price History | Population | Activity */}
-            <div style={{ display: 'flex', gap: '4px', borderBottom: '1px solid #2d3542', paddingBottom: '2px' }}>
+            <div className="vault-slab-tabs">
               {(['overview', 'price_history', 'population', 'activity'] as const).map(tab => (
                 <button
                   key={tab}
                   type="button"
                   onClick={() => setActiveTab(tab)}
-                  style={{
-                    padding: '8px 12px',
-                    background: 'transparent',
-                    border: 'none',
-                    borderBottom: activeTab === tab ? '2px solid var(--vault-gold)' : '2px solid transparent',
-                    color: activeTab === tab ? '#fff' : '#8893a2',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    textTransform: 'capitalize',
-                    cursor: 'pointer',
-                  }}
+                  className={`vault-slab-tab${activeTab===tab?' is-active':''}`}
                 >
                   {tab.replace('_', ' ')}
                 </button>
@@ -419,46 +389,47 @@ export function SlabDetailModal({
 
             {/* Tab Contents */}
             {activeTab === 'overview' && (
-              <div style={{ fontSize: '12px', color: '#c2cbd7', lineHeight: 1.6 }}>
+              <div style={{ fontSize: '12px', color: 'var(--vault-ink-secondary)', lineHeight: 1.6 }}>
                 <p style={{ margin: '0 0 10px' }}>
-                  <strong>Card Effect:</strong> {slab.card.effect || 'Standard card identity.'}
+                  <strong>Card Effect:</strong> {slab.card.effect ? <EffectText text={slab.card.effect}/> : 'No effect text available.'}
                 </p>
                 {slab.notes && (
-                  <p style={{ margin: '0 0 10px', fontStyle: 'italic', color: '#9aa5b6' }}>
+                  <p style={{ margin: '0 0 10px', fontStyle: 'italic', color: 'var(--vault-ink-muted)' }}>
                     <strong>Collector Notes:</strong> &ldquo;{slab.notes}&rdquo;
                   </p>
                 )}
-                {providerDef?.website && slab.certification && (
+                {certificationUrl && slab.certification && (
                   <a
-                    href={`${providerDef.website}${slab.certification}`}
+                    href={certificationUrl}
                     target="_blank"
                     rel="noreferrer"
                     style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--vault-gold)', fontSize: '11.5px', textDecoration: 'none', fontWeight: 600 }}
                   >
-                    Verify on {providerDef.name} Registry <ExternalLink size={13} />
+                    {providerDef?.id==='PSA'?'View PSA certificate, sales & population':'Open grading company site'} <ExternalLink size={13} />
                   </a>
                 )}
               </div>
             )}
 
             {activeTab === 'price_history' && (
-              <div style={{ fontSize: '12px', color: '#c2cbd7' }}>
-                <strong>No graded price history is available.</strong>
-                <p style={{ color: '#8893a2' }}>Stored Yuyutei observations cover raw listings and are not used to price graded slabs.</p>
+              <div style={{ fontSize: '12px', color: 'var(--vault-ink-secondary)' }}>
+                <strong>No graded sales history in Vault yet.</strong>
+                {providerDef?.id==='PSA'&&certificationUrl&&<p><a href={certificationUrl} target="_blank" rel="noreferrer" style={{color:'var(--vault-gold)'}}>View PSA sales for this certificate <ExternalLink size={13}/></a></p>}
+                <p style={{ color: 'var(--vault-ink-muted)' }}>Raw card prices are not used to estimate graded cards.</p>
               </div>
             )}
 
             {activeTab === 'population' && (
-              <div style={{ fontSize: '12px', color: '#c2cbd7' }}>
-                <span style={{ fontSize: '11px', color: '#8893a2', display: 'block', marginBottom: '8px' }}>
-                  Grading population data is not connected
+              <div style={{ fontSize: '12px', color: 'var(--vault-ink-secondary)' }}>
+                <span style={{ fontSize: '11px', color: 'var(--vault-ink-muted)', display: 'block', marginBottom: '8px' }}>
+                  Population report
                 </span>
-                <p style={{ color: '#8893a2' }}>No population counts are shown until a grading registry source is available.</p>
+                {providerDef?.id==='PSA'&&certificationUrl?<p><a href={certificationUrl} target="_blank" rel="noreferrer" style={{color:'var(--vault-gold)'}}>View PSA population for this certificate <ExternalLink size={13}/></a></p>:<p style={{ color: 'var(--vault-ink-muted)' }}>Open the grading company’s certificate page to check its current population data.</p>}
               </div>
             )}
 
             {activeTab === 'activity' && (
-              <div style={{ fontSize: '11.5px', color: '#9ba4b3', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ fontSize: '11.5px', color: 'var(--vault-ink-secondary)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <div>{slab.acquiredAt ? `Added to Vault on ${new Date(slab.acquiredAt).toLocaleDateString()}.` : 'Added date is not recorded.'}</div>
                 {slab.certification && providerDef?.website && <div>Certification: {slab.certification}</div>}
                 {slab.notes && <div>{slab.notes}</div>}
@@ -479,7 +450,7 @@ export function SlabDetailModal({
               <button
                 type="button"
                 className="vault-btn vault-btn-secondary"
-                style={{ background: '#222732', borderColor: '#3a4352', color: '#e2e7ef' }}
+                style={{ background: 'var(--vault-surface-warm)', borderColor: 'var(--vault-border)', color: 'var(--vault-ink)' }}
                 onClick={() => onSell(slab)}
               >
                 <Store size={15} />
@@ -488,7 +459,7 @@ export function SlabDetailModal({
               <button
                 type="button"
                 className="vault-btn vault-btn-secondary"
-                style={{ background: '#222732', borderColor: '#3a4352', color: '#e2e7ef' }}
+                style={{ background: 'var(--vault-surface-warm)', borderColor: 'var(--vault-border)', color: 'var(--vault-ink)' }}
                 onClick={() => onEdit(slab)}
               >
                 <Edit size={15} />

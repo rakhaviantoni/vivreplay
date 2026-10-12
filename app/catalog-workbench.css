@@ -996,6 +996,7 @@ html[data-theme=dark] .admin-health-table tr:hover td { background:#142a34; }
 .admin-overview-updated{margin:0;color:#798076;font:600 10px var(--game-font);text-align:right}
 .admin-overview-loading{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
 .admin-overview-loading i{height:122px;border-radius:10px;background:linear-gradient(105deg,#e6dac6 20%,#fffaf0 44%,#e6dac6 68%);background-size:260% 100%;animation:viewer-skeleton-shimmer 1.1s ease-in-out infinite}
+.admin-shell{min-height:100vh;background:#f4f3ee;color:#252821}.admin-shell-content{min-height:100vh;padding:1px 0 40px}.admin-route-loading{min-height:100vh;padding-top:clamp(32px,7vh,88px)}html[data-theme=dark] .admin-shell{background:#09151b;color:#e8efec}
 .admin-customers{margin-top:22px}
 .admin-customers-heading{padding:16px 18px;border-bottom:1px solid #e2d5c0}
 .admin-customers-heading>span{flex:none;color:#798076;font:700 10px var(--game-font)}

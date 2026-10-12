@@ -15,6 +15,7 @@ import {
   StackIcon as Deck
 } from '@phosphor-icons/react';
 import { CardArt } from '../card-art';
+import {marketListingPath} from '@/lib/market/listing-url';
 import { printings } from '@/packages/card-data/catalog';
 import { PRICECHARTING_USD_TO_IDR_RATE } from '@/lib/market/pricecharting';
 import { formatCompactMoney, formatMoney } from '@/packages/domain';
@@ -54,7 +55,7 @@ export function RawDetailModal({
   const variant = item.variant || item.card.variant || printing?.variant || 'Standard';
   const listedQuantity = Math.min(item.quantity, item.listedQuantity ?? 0);
   const availableQuantity = Math.max(0, item.quantity - listedQuantity);
-  const activeListingHref = item.activeListingId ? `/market/${encodeURIComponent(item.activeListingId)}` : null;
+  const activeListingHref = item.activeListingId ? marketListingPath('',item.activeListingId) : null;
   const notes = item.notes?.trim();
   const showNotes = notes && notes.toLowerCase() !== 'market listing copy';
 

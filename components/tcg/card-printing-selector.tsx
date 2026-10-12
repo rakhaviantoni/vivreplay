@@ -65,7 +65,11 @@ export function CardPrintingSelector<T extends CardPrinting>({printings,language
         const row=[...rows].reverse().find(item=>item.quantity>(item.listedQuantity??0));
         if(!row)return;
         if(row.quantity>1)await api('/api/collection',{id:row.id,quantity:row.quantity-1},'PATCH');
-        else await api('/api/collection',{id:row.id},'DELETE');
+        else {
+          const confirmed=window.confirm(locale==='ID'?`Hapus salinan terakhir ${card.name} dari koleksi?`:`Remove the last ${card.name} copy from your Vault?`);
+          if(!confirmed)return;
+          await api('/api/collection',{id:row.id},'DELETE');
+        }
       }else return;
       const result=await api<{collection:CollectionItem[]}>('/api/state');setCollection(result.collection??[]);setSignedIn(true);
       const quantity=Math.max(1,Math.abs(delta));

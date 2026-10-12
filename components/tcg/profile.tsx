@@ -3,6 +3,7 @@ import {PayoutAccountSettings} from './payout-account-settings';
 import {enabledShippingCouriers} from '@/lib/shipping/couriers';
 import {useEffect, useMemo, useRef, useState} from 'react';
 import Link from 'next/link';
+import {PhoneInput} from '@/components/tcg/phone-input';
 import {useRouter, useSearchParams} from 'next/navigation';
 import {
   GlobeIcon as Globe,
@@ -1028,7 +1029,7 @@ function ProfileForm({
               </label>
             </div>
 
-            <label>{t('Phone number','Nomor telepon')}<input name="phone" type="tel" autoComplete="tel" defaultValue={profile.phone||shippingPhone||''} maxLength={24}/><small>{t('Used for delivery, never shown on your public profile','Digunakan untuk pengiriman, tidak ditampilkan di profil publik')}</small></label>
+            <div><PhoneInput name="phone" label={t('Phone number','Nomor telepon')} autoComplete="tel" defaultValue={profile.phone||shippingPhone||''} locale={language}/><small>{t('Used for delivery, never shown on your public profile','Digunakan untuk pengiriman, tidak ditampilkan di profil publik')}</small></div>
             <div className="profile-section-header" style={{marginTop: '12px'}}>
               <h2>{t('Regional & Currency Preferences','Preferensi Regional & Mata Uang')}</h2>
               <p>{t('Choose your preferred Market currency and website interface language.','Pilih mata uang transaksi Market dan bahasa antarmuka situs.')}</p>
@@ -1105,19 +1106,7 @@ function ProfileForm({
                   maxLength={100}
                 />
               </label>
-              <label>
-                {t('Phone number','Nomor telepon / WhatsApp')}
-                <input
-                  name="phone"
-                  required
-                  type="tel"
-                  minLength={8}
-                  value={shippingPhone}
-                  onChange={e => setShippingPhone(e.target.value)}
-                  placeholder="081234567890"
-                  maxLength={30}
-                />
-              </label>
+              <PhoneInput name="phone" required label={t('Phone number','Nomor telepon / WhatsApp')} value={shippingPhone} onChange={setShippingPhone} locale={language}/>
             </div>
 
             {/* Fast Administrative Area Search */}

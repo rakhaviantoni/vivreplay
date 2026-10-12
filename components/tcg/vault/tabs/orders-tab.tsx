@@ -1,17 +1,19 @@
 'use client';
 
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
-import {ArrowCounterClockwiseIcon as Refresh,CaretDownIcon as CaretDown,CalendarBlankIcon as Calendar,PackageIcon as Package,TruckIcon as Truck,CheckCircleIcon as CheckCircle,ArrowSquareOutIcon as ExternalLink} from '@phosphor-icons/react';
+import {ArrowCounterClockwiseIcon as Refresh,CaretDownIcon as CaretDown,CalendarBlankIcon as Calendar,PackageIcon as Package,TruckIcon as Truck,CheckCircleIcon as CheckCircle,ArrowSquareOutIcon as ExternalLink,MagnifyingGlassIcon as Search} from '@phosphor-icons/react';
 import Link from 'next/link';
 import {OrderReview} from '@/components/tcg/market-reputation';
 import {formatMoney} from '@/packages/domain';
-import {MarketActivityEmpty,MarketActivityLoading,MarketCardStack,type MarketActivityCard} from '@/components/tcg/vault/tabs/market-activity-state';
+import {MarketActivityLoading,MarketCardStack,type MarketActivityCard} from '@/components/tcg/vault/tabs/market-activity-state';
+import {VaultPanelEmpty} from '@/components/tcg/vault/vault-panel-empty';
 import {Popover,PopoverContent,PopoverTrigger} from '@/components/ui/popover';
 import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue} from '@/components/ui/select';
+import {marketListingPath} from '@/lib/market/listing-url';
 
 type OrderItem={printingId:string;listingId?:string;listingTitle?:string;quantity:number;unitAmount?:number;condition?:string;card?:{name:string;code:string;language:string;variant:string;rarity:string;imageUrl:string|null}|null};
 type ShippingInfo={recipientName?:string;addressLine?:string;city?:string;postalCode?:string;phone?:string;label?:string;courierName?:string;courierServiceName?:string;waybillId?:string|null;trackingUrl?:string|null}|null;
-type OrderDetail={id:string;status:string;viewerRole:'buyer'|'seller';listingId:string|null;items:OrderItem[];shipping:ShippingInfo;subtotal:number;shippingFee:number;amount:number;currency:string;sellerNetAmount:number|null;marketFeePercent:number;marketSellerTier:'free'|'pro'|null;marketStandardFeePercent:number|null;marketBuyerFeePercent:number;marketBuyerFeeAmount:number;shippingDiscount:number;paymentFee:number|null;paymentMethod:string|null;paymentQrImage:string|null;paymentQrString:string|null;paymentExpiresAt:string|null;paymentExpired:boolean;expiresAt:string|null;canCancel:boolean;hasActivePayment:boolean};
+type OrderDetail={id:string;status:string;viewerRole:'buyer'|'seller';deliveredAt:string|null;listingId:string|null;items:OrderItem[];shipping:ShippingInfo;subtotal:number;shippingFee:number;amount:number;currency:string;sellerNetAmount:number|null;marketFeePercent:number;marketSellerTier:'free'|'pro'|null;marketStandardFeePercent:number|null;marketBuyerFeePercent:number;marketBuyerFeeAmount:number;shippingDiscount:number;paymentFee:number|null;paymentMethod:string|null;paymentQrImage:string|null;paymentQrString:string|null;paymentExpiresAt:string|null;paymentExpired:boolean;expiresAt:string|null;canCancel:boolean;hasActivePayment:boolean};
 type Order={id:string;kind:string;status:string;amount:number;subtotal:number;sellerNetAmount:number|null;currency:string;createdAt:string;expiresAt:string|null;role:'buyer'|'seller';listingTitle:string|null;printingId:string|null;shippingStatus:string|null;trackingId:string|null;waybillId:string|null;trackingUrl:string|null;trackingStatus:string|null;shippingFee:number;cards:MarketActivityCard[];marketFeePercent:number;marketSellerTier:'free'|'pro';marketStandardFeePercent:number|null;marketProSavings:number;marketBuyerFeePercent:number;marketBuyerFeeAmount:number;canCancel:boolean;hasActivePayment:boolean};
 type Tracking={status?:string;history?:Array<{status?:string;note?:string;updated_at?:string}>};
 const money=(amount:number,currency:string)=>formatMoney(amount,currency||'IDR');
@@ -29,7 +31,19 @@ export function OrdersTab({language,initialOrderId}:{language:'EN'|'ID';initialO
   const [loadedQrImages,setLoadedQrImages]=useState<Record<string,string>>({});const [failedQrImages,setFailedQrImages]=useState<Record<string,string>>({});
   const [shipmentOrder,setShipmentOrder]=useState('');const [shipmentBusy,setShipmentBusy]=useState('');const [confirmBusy,setConfirmBusy]=useState('');const [cancelPrompt,setCancelPrompt]=useState('');const [cancelBusy,setCancelBusy]=useState('');const [tracking,setTracking]=useState<Record<string,Tracking>>({});
   const focusedOrder=useRef('');
-  const refresh=useCallback(async(silent=false)=>{if(!silent){setLoading(true);setError('')}try{const response=await fetch('/api/checkout/orders/mine',{cache:'no-store'});const data=await response.json() as {orders?:Order[];error?:string};if(!response.ok)throw new Error(data.error||(id?'Pesanan tidak dapat dimuat.':'Orders could not be loaded.'));setNow(Date.now());setOrders(data.orders??[])}catch(reason){if(!silent)setError(reason instanceof Error?reason.message:(id?'Pesanan tidak dapat dimuat.':'Orders could not be loaded.'))}finally{if(!silent)setLoading(false)}},[id]);
+  const refreshSequence=useRef(0);
+  const refresh=useCallback(async(silent=false)=>{
+    const sequence=++refreshSequence.current;
+    if(!silent){setLoading(true);setError('')}
+    try{
+      const response=await fetch('/api/checkout/orders/mine',{cache:'no-store'});
+      const data=await response.json() as {orders?:Order[];error?:string};
+      if(!response.ok)throw new Error(data.error||(id?'Pesanan tidak dapat dimuat.':'Orders could not be loaded.'));
+      if(sequence!==refreshSequence.current)return;
+      setNow(Date.now());setOrders(data.orders??[]);
+    }catch(reason){if(!silent&&sequence===refreshSequence.current)setError(reason instanceof Error?reason.message:(id?'Pesanan tidak dapat dimuat.':'Orders could not be loaded.'))}
+    finally{if(sequence===refreshSequence.current)setLoading(false)}
+  },[id]);
   // Initial loading is represented by the initial state; manual refreshes toggle it later.
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(()=>{void refresh()},[refresh]);
@@ -67,7 +81,7 @@ export function OrdersTab({language,initialOrderId}:{language:'EN'|'ID';initialO
       <div className="market-order-control-meta"><small>{id?`${filteredOrders.length} dari ${orders.length}`:`${filteredOrders.length} of ${orders.length}`}</small>{hasFilters&&<button type="button" className="market-order-filter-clear" onClick={clearFilters}>{id?'Hapus':'Clear'}</button>}<button type="button" className="market-activity-refresh market-order-refresh" aria-label={id?'Muat ulang pesanan':'Refresh orders'} title={id?'Muat ulang':'Refresh'} onClick={()=>void refresh()}><Refresh size={15}/></button></div>
     </div>:<div className="market-activity-toolbar"><p>{id?'Pembelian dan penjualan Anda. Checkout yang belum dibayar berakhir setelah 24 jam.':'Your purchases and sales. Unpaid checkouts expire after 24 hours.'}</p><button type="button" className="market-activity-refresh market-activity-icon-action" aria-label={id?'Muat ulang pesanan':'Refresh orders'} title={id?'Muat ulang':'Refresh'} onClick={()=>void refresh()}><Refresh size={15}/></button></div>}
     {error&&<div className="market-activity-error" role="alert"><span>{error}</span><button type="button" onClick={()=>void refresh()}>{id?'Coba lagi':'Try again'}</button></div>}
-    {!orders.length?<MarketActivityEmpty title={id?'Belum ada pesanan':'No orders yet'} description={id?'Pembelian dan penjualan akan muncul di sini.':'Your purchases and sales will appear here.'}/>:!filteredOrders.length?<MarketActivityEmpty title={id?'Tidak ada pesanan yang cocok':'No matching orders'} description={id?'Ubah filter atau rentang tanggal untuk melihat pesanan lain.':'Change the filters or date range to see other orders.'} action={hasFilters?<button type="button" className="market-activity-empty-action" onClick={clearFilters}>{id?'Hapus filter':'Clear filters'}</button>:undefined}/>:<div className="market-activity-list">{filteredOrders.map(order=>{
+    {!orders.length?<VaultPanelEmpty icon={<Package size={22}/>} title={id?'Belum ada pesanan':'No orders yet'} description={id?'Pesanan yang Anda buat atau terima akan muncul di sini.':'Orders you place or receive will appear here.'}/>:!filteredOrders.length?<VaultPanelEmpty icon={<Search size={22}/>} title={id?'Tidak ada pesanan yang cocok':'No matching orders'} description={id?'Coba ubah filter tanggal atau status.':'Try changing the date or status filters.'} action={hasFilters?<button type="button" className="vault-btn vault-btn-secondary" onClick={clearFilters}>{id?'Hapus filter':'Clear filters'}</button>:undefined}/>:<div className="market-activity-list">{filteredOrders.map(order=>{
       const expired=order.status==='PENDING_PAYMENT'&&order.expiresAt&&new Date(`${order.expiresAt.replace(' ','T')}Z`).getTime()<=now;
       const status=expired?'EXPIRED':order.status;const isExpanded=expanded===order.id;const detail=details[order.id];const activeQr=Boolean(detail?.paymentQrImage&&detail.paymentExpiresAt&&parseDate(detail.paymentExpiresAt).getTime()>now);const qrImageSrc=activeQr&&detail?.paymentQrImage?`${detail.paymentQrImage}${detail.paymentQrImage.includes('?')?'&':'?'}refresh=${Math.floor(now/(5*60*1000))}`:'';const qrLoaded=Boolean(qrImageSrc&&loadedQrImages[order.id]===qrImageSrc);const qrFailed=Boolean(qrImageSrc&&failedQrImages[order.id]===qrImageSrc);const feeAmount=Math.max(0,order.subtotal-(order.sellerNetAmount??order.subtotal));
       return <article id={`market-order-${order.id}`} className={`market-activity-row market-order-row${initialOrderId===order.id?' is-targeted':''}${isExpanded?' is-expanded':''}`} key={order.id}>
@@ -82,7 +96,7 @@ export function OrdersTab({language,initialOrderId}:{language:'EN'|'ID';initialO
           {detail&&<>
             <div className="market-order-detail-items"><h4>{id?'Kartu':'Cards'}</h4>{detail.items.map((item,index)=><div className="market-order-detail-item" key={`${item.printingId}-${index}`}>
               {item.card?.imageUrl?<img src={item.card.imageUrl} alt=""/>:<span className="market-order-detail-placeholder"/>}
-              <div><strong>{item.card?.name??item.printingId}</strong><small>{item.card?.code??item.printingId}{item.card?.rarity?` · ${item.card.rarity}`:''}{item.card?.language?` · ${item.card.language}`:''}{item.condition?` · ${item.condition}`:''} × {item.quantity}</small>{(item.listingId||detail.listingId)&&<Link className="market-order-source-link" href={`/market/${encodeURIComponent(item.listingId||detail.listingId!)}`} target="_blank" rel="noreferrer">{id?'Buka listing':'View listing'}<ExternalLink size={12}/></Link>}</div>
+              <div><strong>{item.card?.name??item.printingId}</strong><small>{item.card?.code??item.printingId}{item.card?.rarity?` · ${item.card.rarity}`:''}{item.card?.language?` · ${item.card.language}`:''}{item.condition?` · ${item.condition}`:''} × {item.quantity}</small>{(item.listingId||detail.listingId)&&<Link className="market-order-source-link" href={marketListingPath(item.listingTitle??'',item.listingId||detail.listingId!)} target="_blank" rel="noreferrer">{id?'Buka listing':'View listing'}<ExternalLink size={12}/></Link>}</div>
               <b>{money((item.unitAmount??0)*item.quantity,detail.currency)}</b>
             </div>)}</div>
             <div className="market-order-ledger"><h4>{id?'Rincian pembayaran':'Payment breakdown'}</h4>
@@ -105,7 +119,7 @@ export function OrdersTab({language,initialOrderId}:{language:'EN'|'ID';initialO
               {status==='PENDING_PAYMENT'&&detail.canCancel&&<button type="button" className="button secondary market-order-cancel" disabled={cancelBusy===order.id} onClick={()=>setCancelPrompt(current=>current===order.id?'':order.id)}>{id?'Batalkan pesanan':'Cancel order'}</button>}
               {order.role==='seller'&&status==='PAID'&&<button type="button" className="button" disabled={shipmentBusy===order.id} onClick={()=>shipmentOrder===order.id?void arrangeShipping(order.id):setShipmentOrder(order.id)}><Package size={15}/>{shipmentBusy===order.id?(id?'Menyiapkan…':'Preparing…'):shipmentOrder===order.id?(id?'Buat pengiriman':'Create shipment'):(id?'Atur pengiriman':'Arrange shipping')}</button>}
               {(status==='SHIPPED'||order.trackingId)&&<button type="button" className="button secondary" onClick={()=>void loadTracking(order.id)}><Truck size={15}/>{id?'Perbarui pelacakan':'Refresh tracking'}</button>}
-              {order.role==='buyer'&&status==='SHIPPED'&&<button type="button" className="button" disabled={confirmBusy===order.id} onClick={()=>void confirmReceived(order.id)}><CheckCircle size={15}/>{confirmBusy===order.id?(id?'Menyimpan…':'Saving…'):(id?'Konfirmasi diterima':'Confirm delivery')}</button>}
+              {order.role==='buyer'&&status==='SHIPPED'&&detail?.deliveredAt&&<button type="button" className="button" disabled={confirmBusy===order.id} onClick={()=>void confirmReceived(order.id)}><CheckCircle size={15}/>{confirmBusy===order.id?(id?'Menyimpan…':'Saving…'):(id?'Konfirmasi diterima':'Confirm delivery')}</button>}{order.role==='buyer'&&status==='SHIPPED'&&detail&&!detail.deliveredAt&&<span>{id?'Konfirmasi tersedia setelah pelacakan menunjukkan pesanan terkirim.':'Confirm receipt after tracking shows delivery.'}</span>}
               {order.role==='seller'&&(status==='SHIPPED'||order.trackingId)&&<a href={`/api/checkout/order/${encodeURIComponent(order.id)}/label`} target="_blank" rel="noreferrer">{id?'Cetak label':'Print label'}<ExternalLink size={14}/></a>}
               <Link className="market-order-open-link" href={`/checkout/order/${encodeURIComponent(order.id)}`} target="_blank" rel="noreferrer">{id?'Buka detail pesanan':'Open order details'}<ExternalLink size={14}/></Link>
             </div>

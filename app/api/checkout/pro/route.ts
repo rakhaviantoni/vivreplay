@@ -6,14 +6,14 @@ import {getProPricing} from '@/lib/market/pro-pricing';
 
 const PAID_INTRO_STATUSES="'PROCESSING','PAID','COMPLETED'";
 
-async function introStatus(profileId?:string|null){
+async function introStatus(profileId?:string|null,checkCapacity=true,knownPricing?:Awaited<ReturnType<typeof getProPricing>>){
   const database=db();
-  const pricing=await getProPricing(database);
-  const claimed=(await database.prepare(`SELECT COUNT(DISTINCT buyer_id) AS total FROM checkout_orders
+  const pricing=knownPricing??await getProPricing(database);
+  const claimed=checkCapacity?(await database.prepare(`SELECT COUNT(DISTINCT buyer_id) AS total FROM checkout_orders
     WHERE kind='PRO' AND json_extract(details,'$.introOffer')=1 AND (
       status IN ('PAYMENT_REVIEW','PROCESSING','PAID','COMPLETED') OR
       (status='PENDING_PAYMENT' AND (expires_at IS NULL OR expires_at>CURRENT_TIMESTAMP))
-    )`).first<{total:number}>())?.total??0;
+    )`).first<{total:number}>())?.total??0:0;
   let priorPaid=false;
   let pendingOrderId:string|null=null;
   if(profileId){
@@ -24,8 +24,9 @@ async function introStatus(profileId?:string|null){
       AND (expires_at IS NULL OR expires_at>CURRENT_TIMESTAMP) ORDER BY created_at DESC LIMIT 1`).bind(profileId).first<{id:string}>())?.id??null;
   }
   const promoOpen=Boolean(pricing.introAmount&&pricing.introEndsAt&&Date.now()<Date.parse(pricing.introEndsAt));
-  const spotsRemaining=pricing.introLimit>0?Math.max(0,pricing.introLimit-claimed):null;
-  return {promoOpen,spotsRemaining,eligible:promoOpen&&!priorPaid&&(pricing.introLimit===0||(spotsRemaining??0)>0||Boolean(pendingOrderId)),pendingOrderId,priorPaid};
+  const spotsRemaining=checkCapacity&&pricing.introLimit>0?Math.max(0,pricing.introLimit-claimed):null;
+  const hasCapacity=!checkCapacity||pricing.introLimit===0||(spotsRemaining??0)>0||Boolean(pendingOrderId);
+  return {promoOpen,spotsRemaining,eligible:promoOpen&&!priorPaid&&hasCapacity,pendingOrderId,priorPaid};
 }
 
 export async function GET(){
@@ -34,7 +35,9 @@ export async function GET(){
     const [pricing,policy,freePolicy,profile]=await Promise.all([
       getProPricing(database),getDynamicListingPolicy('pro',database),getDynamicListingPolicy('free',database),optionalUser().catch(()=>null),
     ]);
-    const intro=await introStatus(profile?.id);
+    // The plan preview is public and may be opened often. The global promo
+    // capacity check belongs at checkout creation, not on every plan request.
+    const intro=await introStatus(profile?.id,false,pricing).catch(()=>({promoOpen:false,spotsRemaining:null,eligible:false,pendingOrderId:null,priorPaid:false}));
     const canBuyIntro=intro.eligible&&profile?.tier!=='pro';
     const available=hasMarketIpaymuPaymentConfig()&&Boolean(pricing.amount&&pricing.durationDays);
     return Response.json({
@@ -44,6 +47,7 @@ export async function GET(){
       durationDays:pricing.durationDays,
       introOffer:canBuyIntro,
       introOfferEndsAt:canBuyIntro?pricing.introEndsAt:null,
+      introOfferLimit:canBuyIntro?pricing.introLimit:null,
       introOfferSpotsRemaining:canBuyIntro?intro.spotsRemaining:null,
       maxActiveListings:policy.maxActiveListings,
       freeMaxActiveListings:freePolicy.maxActiveListings,
@@ -105,7 +109,7 @@ export async function POST(request:Request){
       try{const parsed=JSON.parse(resumableOrder.details) as unknown;if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))pendingDetails=parsed as Record<string,unknown>}catch{}
       return Response.json({id:resumableOrder.id,checkoutUrl:`/checkout/order/${encodeURIComponent(resumableOrder.id)}`,introOffer:Boolean(pendingDetails.introOffer)},{status:200});
     }
-    const intro=await introStatus(profile.id);
+    const intro=await introStatus(profile.id,true,pricing);
     if(intro.pendingOrderId)return Response.json({id:intro.pendingOrderId,checkoutUrl:`/checkout/order/${encodeURIComponent(intro.pendingOrderId)}`,introOffer:true},{status:200});
     if(body.introOffer===true&&!intro.eligible)throw new HttpError(409,'The launch offer is no longer available. Refresh the page to see the current price.');
 

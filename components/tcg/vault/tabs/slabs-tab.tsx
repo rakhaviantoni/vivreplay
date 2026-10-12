@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { 
-  ShieldCheckIcon as ShieldCheck, 
   CheckCircleIcon as CheckCircle, 
   PlusIcon as Plus
 } from '@phosphor-icons/react';
@@ -10,6 +9,7 @@ import { CardArt } from '../card-art';
 import { printings } from '@/packages/card-data/catalog';
 import { formatCompactMoney } from '@/packages/domain';
 import type { EnrichedCollectionItem } from '../types';
+import { VaultPanelEmpty } from '../vault-panel-empty';
 
 interface SlabsTabProps {
   slabs: EnrichedCollectionItem[];
@@ -26,31 +26,7 @@ export function SlabsTab({
 }: SlabsTabProps) {
   if (slabs.length === 0) {
     return (
-      <div className="vault-empty-state">
-        <div className="vault-empty-slot-composition">
-          <div className="vault-empty-dummy-slot" style={{ transform: 'rotate(-4deg)' }}>
-            <ShieldCheck size={28} />
-          </div>
-          <div className="vault-empty-dummy-slot" style={{ borderStyle: 'solid', borderColor: 'var(--vault-gold)' }}>
-            <ShieldCheck size={32} weight="fill" />
-          </div>
-          <div className="vault-empty-dummy-slot" style={{ transform: 'rotate(4deg)' }}>
-            <ShieldCheck size={28} />
-          </div>
-        </div>
-        <h2>No Graded Slabs Logged Yet</h2>
-        <p>
-          Preserve your authenticated cards with grading company tracking, certification numbers, subgrade breakdown, and population stats.
-        </p>
-        <button
-          type="button"
-          className="vault-btn vault-btn-primary"
-          onClick={onAddNewSlab}
-        >
-          <Plus size={16} weight="bold" />
-          Log Your First Slab
-        </button>
-      </div>
+      <VaultPanelEmpty icon={<CheckCircle size={22}/>} title="No graded cards yet" description="Add a slab to keep its grade, certificate, and value details here." action={<button type="button" className="vault-btn vault-btn-primary" onClick={onAddNewSlab}><Plus size={15}/>Add slab</button>}/>
     );
   }
 
@@ -59,10 +35,10 @@ export function SlabsTab({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <div>
           <h2 style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '22px', fontWeight: 600, margin: 0 }}>
-            Authenticated Slab Gallery
+            Graded cards
           </h2>
           <p style={{ fontSize: '12px', color: 'var(--vault-ink-secondary)', margin: '2px 0 0' }}>
-            {slabs.length} individually verified grading instances tracked in your Vault.
+            {slabs.length} Grades, certificates, and values in one place.
           </p>
         </div>
         <button
@@ -71,7 +47,7 @@ export function SlabsTab({
           onClick={onAddNewSlab}
         >
           <Plus size={15} />
-          Add Slab
+          Add slab
         </button>
       </div>
 

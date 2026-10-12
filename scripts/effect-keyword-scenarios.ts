@@ -28,7 +28,7 @@ export function keywordScenarios(text:string):KeywordScenario[]{
   else {check(result.error,`Illegal Blocker accepted (${choice})`);check(result.state===board,'Rejected block mutated state');}
  }})),{name:'keyword Blocker: schema isolation',run(document:EffectDocument){
   const keywordAbilities=document.ast.filter(ability=>ability.actions.some(action=>action.kind==='blocker'));
-  check(keywordAbilities.length===1&&/^\[Blocker\](?:\s*\([^)]*\))?\s*$/i.test(keywordAbilities[0].rawText.trim()),'Printed Blocker must be isolated from the card’s other ability text');
+  check(keywordAbilities.length===1&&keywordAbilities[0].rawText.trim().toLowerCase()===match[0].trim().toLowerCase(),'Printed Blocker must be isolated from the card’s other ability text');
   const timing=keywordAbilities[0].trigger,window=document.normalized.find(effect=>effect.timing===timing);
   check(Boolean(window?.sequence.some(step=>step.type==='RESOLVE'&&step.action.kind==='blocker')),'Isolated Blocker timing has no runtime action');
   check(document.normalized.filter(effect=>effect.timing!==timing).every(effect=>effect.sequence.every(step=>step.type!=='RESOLVE'||step.action.kind!=='blocker')),'Blocker leaked into another timing window');

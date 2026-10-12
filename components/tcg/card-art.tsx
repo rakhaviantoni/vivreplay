@@ -34,10 +34,16 @@ export function CardArt({card,small=false,priority=false,imageWidth}:{card:Card;
   const preview=isPreviewCard(card.code,card.setCode,card.variant);
   const baseImage=cardImageUrl(card);
   const storedImage=baseImage&&imageWidth?`${baseImage}?width=${imageWidth}`:baseImage;
+  let sourceFallback:string|undefined;
+  if(card.imageUrl?.startsWith('http'))try{const source=new URL(card.imageUrl);if(source.hostname==='cards.oplaytcg.com')sourceFallback=card.imageUrl;}catch{}
   const [loaded,setLoaded]=useState(false);
+  const [imageFailed,setImageFailed]=useState(false);
+  const [imageSource,setImageSource]=useState(storedImage);
   const imageRef=useRef<HTMLImageElement>(null);
   useEffect(()=>{
     setLoaded(false);
+    setImageFailed(false);
+    setImageSource(storedImage);
     const image=imageRef.current;
     if(!image)return;
     const finish=()=>setLoaded(true);
@@ -46,9 +52,9 @@ export function CardArt({card,small=false,priority=false,imageWidth}:{card:Card;
     if(image.complete)finish();
     return()=>{image.removeEventListener('load',finish);image.removeEventListener('error',finish);};
   },[storedImage]);
-  if (storedImage) return <div className={`tcg-card printing-image ${small?'small':''} ${loaded?'is-loaded':'is-loading'} ${preview?'is-preview-card':''}`} aria-label={preview?"Preview of a set that hasn’t launched yet. You can play it in Casual, New Cards, and Extended, but not Ranked. Its image and text may still change.":undefined}>
+  if (storedImage&&!imageFailed) return <div className={`tcg-card printing-image ${small?'small':''} ${loaded?'is-loaded':'is-loading'} ${preview?'is-preview-card':''}`} aria-label={preview?"Preview of a set that hasn’t launched yet. You can play it in Casual, New Cards, and Extended, but not Ranked. Its image and text may still change.":undefined}>
     {preview&&<span className="preview-card-badge" aria-hidden="true">Preview</span>}<span className="card-image-skeleton" aria-hidden="true"/>
-    <img ref={imageRef} src={storedImage} alt={`${card.name} card printing`} draggable={false} loading={priority?"eager":"lazy"} fetchPriority={priority?"high":undefined} decoding="async" width={imageWidth??420} height={imageWidth?Math.round(imageWidth*580/420):580} onLoad={()=>setLoaded(true)} onError={()=>setLoaded(true)}/>
+    <img ref={imageRef} src={imageSource} alt={`${card.name} card printing`} draggable={false} loading={priority?"eager":"lazy"} fetchPriority={priority?"high":undefined} decoding="async" width={imageWidth??420} height={imageWidth?Math.round(imageWidth*580/420):580} onLoad={()=>setLoaded(true)} onError={()=>{if(sourceFallback&&imageSource!==sourceFallback){setImageSource(sourceFallback);return;}setImageFailed(true);setLoaded(true);}}/>
   </div>;
   return <div className={`tcg-card missing-printing ${small?'small':''} ${preview?'is-preview-card':''}`} style={{'--card-color':colors[card.color]} as React.CSSProperties} aria-label={`${card.name} artwork unavailable`}>
     {preview&&<span className="preview-card-badge" aria-hidden="true">Preview</span>}

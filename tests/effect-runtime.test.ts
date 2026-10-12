@@ -2,9 +2,24 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {compileEffectDocument} from '../packages/domain/effect-rules';
 import {resolveCardEffect,resolveEffectTiming} from '../packages/domain/effect-runtime';
-import type {MatchEffectState} from '../packages/domain/match-effect-state';
+import {finishTurn,resolveBattle,type MatchEffectState} from '../packages/domain/match-effect-state';
 
 import {beginEffectExecution,advanceEffectExecution} from '../packages/domain/effect-controller';
+
+test('OP05-032 separates its end-turn DON!! payment from its once-per-turn K.O. replacement',()=>{
+ const text="[End of Your Turn] (1): Set this Character as active. [Once Per Turn] If this Character would be K.O.'d, you may rest up to 1 of your Characters with a cost of 3 or more other than [Pica] instead.";
+ const document=compileEffectDocument({id:'OP05-032',code:'OP05-032',name:'Pica',color:'Purple',type:'Character',cost:4,power:5000,counter:1000,rarity:'R',art:0,effect:text});
+ const endTurn=document.ast.find(ability=>ability.trigger==='end-turn');assert.ok(endTurn);assert.deepEqual(endTurn.costs,[{kind:'rest',scope:'don',amount:1,optional:false}]);assert.ok(endTurn.actions.some(action=>action.kind==='ready'&&action.scope==='self'));
+ const replacement=document.ast.find(ability=>ability.actions.some(action=>action.kind==='replacement'));assert.ok(replacement);assert.equal(replacement.trigger,'unknown');assert.deepEqual(replacement.conditions.map(condition=>condition.text),["this Character would be K.O.'d"]);
+ const action=replacement.actions.find(action=>action.kind==='replacement');assert.ok(action&&action.kind==='replacement');assert.equal(action.event,'ko');assert.equal(action.oncePerTurn,true);assert.deepEqual(action.cost,{kind:'rest-card',amount:1,minCost:3,excludeName:'Pica'});
+ const turnState:MatchEffectState={turn:'player',cards:[{id:'pica',owner:'player',zone:'character',type:'Character',name:'Pica',rested:true,effectSchema:document},{id:'don',owner:'player',zone:'cost-area',type:'DON!!',rested:false}],turnEffects:[],restrictions:[],delayed:[]};
+ const endCommands=resolveEffectTiming(document,'end-turn').commands;const started=beginEffectExecution(turnState,'player','pica','end-turn',endCommands);assert.equal(started.complete,false);assert.ok(started.requiresSelection);const paid=advanceEffectExecution(started.execution,{cardIds:['don']});assert.equal(paid.error,undefined);assert.equal(paid.complete,true);assert.equal(paid.execution.state.cards.find(card=>card.id==='pica')?.rested,false);assert.equal(paid.execution.state.cards.find(card=>card.id==='don')?.rested,true);
+ const battleState:MatchEffectState={turn:'opponent',cards:[{id:'pica',owner:'player',zone:'character',type:'Character',name:'Pica',power:5000,effectSchema:document},{id:'ally',owner:'player',zone:'character',type:'Character',name:'Purple Ally',cost:3},{id:'low',owner:'player',zone:'character',type:'Character',name:'Low Cost',cost:2},{id:'other-pica',owner:'player',zone:'character',type:'Character',name:'Pica',cost:4},{id:'attacker',owner:'opponent',zone:'character',type:'Character',power:6000}],turnEffects:[],restrictions:[],delayed:[]};
+ const prompt=resolveBattle(battleState,'attacker','pica',6000,5000);assert.match(prompt.requiresSelection??'',/replacement/i);
+ const invalid=resolveBattle(battleState,'attacker','pica',6000,5000,{choice:'accept',cardId:'low'});assert.match(invalid.error??'',/legal replacement payment/i);
+ const excluded=resolveBattle(battleState,'attacker','pica',6000,5000,{choice:'accept',cardId:'other-pica'});assert.match(excluded.error??'',/legal replacement payment/i);
+ const resolved=resolveBattle(battleState,'attacker','pica',6000,5000,{choice:'accept',cardId:'ally'});assert.equal(resolved.error,undefined);assert.equal(resolved.replacementResolved,true);assert.equal(resolved.state.cards.find(card=>card.id==='pica')?.zone,'character');assert.equal(resolved.state.cards.find(card=>card.id==='ally')?.rested,true);assert.equal(Boolean(resolved.state.cards.find(card=>card.id==='low')?.rested),false);
+});
 
 test('effect controller pauses for each selection and resumes the printed order',()=>{
  const document=compileEffectDocument({id:'test',code:'TEST-002',name:'Test',color:'Black',type:'Character',cost:1,power:1000,counter:0,rarity:'C',art:0,effect:'[On Play] You may trash 1 card with a [Trigger] from your hand: Draw 2 cards.'});
@@ -17,8 +32,10 @@ test('effect controller pauses for each selection and resumes the printed order'
  ]};
  const paused=beginEffectExecution(state,'player','source','on-play',commands);
  assert.equal(paused.complete,false);
- assert.match(paused.requiresSelection??'',/Select 1 card/);
- const done=advanceEffectExecution(paused.execution,{cardIds:['trigger']});
+ assert.match(paused.requiresSelection??'',/optional cost/);
+ const accepted=advanceEffectExecution(paused.execution,{choice:'accept'});
+ assert.match(accepted.requiresSelection??'',/Select 1 card/);
+ const done=advanceEffectExecution(accepted.execution,{cardIds:['trigger']});
  assert.equal(done.complete,true);
  assert.equal(done.execution.state.cards.find(card=>card.id==='trigger')?.zone,'trash');
  assert.equal(done.execution.state.cards.filter(card=>card.zone==='hand').length,2);
@@ -50,6 +67,31 @@ test('source-bound optional costs ask for approval without a redundant target se
  assert.equal(resolved.complete,true);
  assert.equal(resolved.execution.state.cards.find(card=>card.id==='source')?.rested,true);
  assert.equal(resolved.execution.state.cards.find(card=>card.id==='deck')?.zone,'hand');
+});
+
+test('OP05-119 returns ten DON!!, orders every other Character to deck bottom, then schedules an extra turn',()=>{
+ const document=compileEffectDocument({id:'op05-119',code:'OP05-119',name:'Monkey.D.Luffy',color:'Purple',type:'Character',cost:10,power:12000,counter:0,rarity:'SEC',art:0,effect:'[On Play] DON!! -10: Place all of your Characters except this Character at the bottom of your deck in any order. Then, take an extra turn after this one. [Activate:Main][Once Per Turn] (1): Add up to 1 DON!! card from your DON!! deck and set it as active.'});
+ const ability=document.ast.find(item=>item.trigger==='on-play'),bottom=ability?.actions.find((item):item is Extract<NonNullable<typeof ability>['actions'][number],{kind:'bottom-deck'}>=>item.kind==='bottom-deck');
+ assert.equal(document.resolver.type,'DSL');assert.equal(ability?.costs[0]?.kind,'return-don');assert.equal(bottom?.scope,'own-character');assert.equal(bottom?.excludeSource,true);assert.equal(ability?.actions.some(action=>action.kind==='extra-turn'),true);
+ const dons=Array.from({length:10},(_,index)=>({id:`don-${index}`,owner:'player' as const,zone:'cost-area' as const,type:'DON!!' as const}));
+ const state:MatchEffectState={turn:'player',turnEffects:[],restrictions:[],delayed:[],cards:[{id:'source',owner:'player',zone:'character',type:'Character',effectSchema:document},...dons,{id:'ally-a',owner:'player',zone:'character',type:'Character'},{id:'ally-b',owner:'player',zone:'character',type:'Character'}]};
+ const started=beginEffectExecution(state,'player','source','on-play',resolveEffectTiming(document,'on-play').commands);assert.match(started.requiresSelection??'',/10 DON!!/);
+ const paidOnPlay=advanceEffectExecution(started.execution,{cardIds:dons.map(card=>card.id)});assert.match(paidOnPlay.requiresSelection??'',/all eligible Characters/);assert.equal(paidOnPlay.execution.state.cards.filter(card=>card.type==='DON!!'&&card.zone==='don-deck').length,10);
+ const resolved=advanceEffectExecution(paidOnPlay.execution,{cardIds:['ally-b','ally-a']});assert.equal(resolved.complete,true);assert.equal(resolved.execution.state.cards.find(card=>card.id==='source')?.zone,'character');assert.equal(resolved.execution.state.cards.find(card=>card.id==='ally-a')?.zone,'deck');assert.equal(resolved.execution.state.cards.find(card=>card.id==='ally-b')?.zone,'deck');assert.equal(resolved.execution.state.cards.findIndex(card=>card.id==='ally-b')<resolved.execution.state.cards.findIndex(card=>card.id==='ally-a'),true);assert.deepEqual(resolved.execution.state.extraTurns,['player']);
+ const ended=finishTurn(resolved.execution.state);assert.equal(ended.extraTurn,true);assert.equal(ended.nextTurn,'player');assert.deepEqual(ended.state.extraTurns,[]);
+ const activated=beginEffectExecution({...state,cards:[{id:'source',owner:'player',zone:'character',type:'Character',effectSchema:document},{id:'active-don',owner:'player',zone:'cost-area',type:'DON!!'},{id:'reserve-don',owner:'player',zone:'don-deck',type:'DON!!'}]},'player','source','activate-main',resolveEffectTiming(document,'activate-main').commands);assert.match(activated.requiresSelection??'',/active DON!!/);const paidActivation=advanceEffectExecution(activated.execution,{cardIds:['active-don']});assert.match(paidActivation.requiresSelection??'',/DON!! to add/);const added=advanceEffectExecution(paidActivation.execution,{cardIds:['reserve-don']});assert.equal(added.complete,true);assert.equal(added.execution.state.cards.find(card=>card.id==='reserve-don')?.zone,'cost-area');assert.ok(added.execution.state.turnEffects.some(item=>item.kind==='activation-used'&&item.target==='source'&&item.detail==='OP05-119:activate-main'));assert.ok(beginEffectExecution(added.execution.state,'player','source','activate-main',resolveEffectTiming(document,'activate-main').commands).error);
+});
+
+test('EB03-031 pays one active DON!!, then resolves the selected eligible Event Main effect from Trash',()=>{
+ const document=compileEffectDocument({id:'eb03-031',code:'EB03-031',name:'Vinsmoke Reiju',color:'Purple',type:'Character',cost:5,power:5000,counter:0,rarity:'SR',art:0,effect:'[Your Turn] [On Play] DON!! 1: If your Leader is [Sanji], activate the [Main] effect of up to 1 Event card with a cost of 7 or less in your trash.'});
+ const ability=document.ast.find(item=>item.trigger==='on-play'),activation=ability?.actions.find((item):item is Extract<NonNullable<typeof ability>['actions'][number],{kind:'activate-trash-event-main'}>=>item.kind==='activate-trash-event-main');assert.equal(document.resolver.type,'DSL');assert.equal(activation?.maxCost,7);assert.equal(ability?.conditions.some(condition=>condition.text==='your Leader is [Sanji]'),true);
+ const eventSchema=compileEffectDocument({id:'event',code:'TEST-EVENT',name:'Test Event',color:'Purple',type:'Event',cost:7,power:0,counter:0,rarity:'C',art:0,effect:'[Main] Draw 2 cards.'});
+ const state:MatchEffectState={turn:'player',turnEffects:[],restrictions:[],delayed:[],cards:[{id:'leader',owner:'player',zone:'leader',type:'Leader',name:'Sanji'},{id:'source',owner:'player',zone:'character',type:'Character',effectSchema:document},{id:'don',owner:'player',zone:'cost-area',type:'DON!!'},{id:'event',owner:'player',zone:'trash',type:'Event',cost:7,effectSchema:eventSchema},{id:'too-expensive',owner:'player',zone:'trash',type:'Event',cost:8,effectSchema:eventSchema},{id:'deck-a',owner:'player',zone:'deck',type:'Character'},{id:'deck-b',owner:'player',zone:'deck',type:'Character'}]};
+ const started=beginEffectExecution(state,'player','source','on-play',resolveEffectTiming(document,'on-play').commands);assert.match(started.requiresSelection??'',/active DON!!/);
+ const paid=advanceEffectExecution(started.execution,{cardIds:['don']});assert.match(paid.requiresSelection??'',/up to 1 Event/);
+ const resolved=advanceEffectExecution(paid.execution,{cardIds:['event']});assert.equal(resolved.complete,true);assert.equal(resolved.execution.state.cards.find(card=>card.id==='don')?.rested,true);assert.equal(resolved.execution.state.cards.filter(card=>card.zone==='hand').length,2);assert.equal(resolved.execution.state.cards.find(card=>card.id==='event')?.zone,'trash');
+ const ineligible=beginEffectExecution(state,'player','source','on-play',resolveEffectTiming(document,'on-play').commands);const afterPay=advanceEffectExecution(ineligible.execution,{cardIds:['don']});assert.match(advanceEffectExecution(afterPay.execution,{cardIds:['too-expensive']}).error??'',/eligible Event/);
+ const noChoice=advanceEffectExecution(afterPay.execution,{cardIds:[]});assert.equal(noChoice.complete,true);assert.equal(noChoice.execution.state.cards.filter(card=>card.zone==='hand').length,0);
 });
 
 import {commandsForTiming} from '../packages/domain/match-effect-state';

@@ -16,10 +16,10 @@ export async function GET(){
   const available=process.env.VIVREPLAY_MARKET_CHECKOUT_ENABLED==='true'&&process.env.VIVREPLAY_MARKET_SELLER_OPERATIONS_READY==='true'&&hasMarketIpaymuPaymentConfig()&&Boolean(process.env.BITESHIP_API_KEY?.trim());
   try{
     const profile=await user();
-    const buyer=await db().prepare('SELECT tier FROM profiles WHERE id=?').bind(profile.id).first<{tier:string}>();
+    const database=db();
     const voucherMonth=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jakarta',year:'numeric',month:'2-digit'}).format(new Date());
-    const voucherUsage=buyer?.tier==='pro'?await db().prepare(`SELECT COUNT(*) AS total FROM checkout_orders WHERE buyer_id=? AND kind='MARKET' AND status IN ('PENDING_PAYMENT','PROCESSING','PAID','SHIPPED','RECEIVED','COMPLETED') AND json_extract(details,'$.marketProShippingVoucherMonth')=?`).bind(profile.id,voucherMonth).first<{total:number}>():null;
-    return Response.json({available,sandbox:process.env.IPAYMU_MODE==='sandbox',buyerTier:buyer?.tier==='pro'?'pro':'free',buyerFeePercent:buyer?.tier==='pro'?MARKET_PRO_BUYER_FEE_PERCENT:MARKET_BUYER_FEE_PERCENT,buyerFeeCap:MARKET_BUYER_FEE_CAP,shippingVouchersRemaining:Math.max(0,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH-(voucherUsage?.total??0))});
+    const [policy,voucherUsage]=await Promise.all([getDynamicListingPolicy(profile.tier,database),profile.tier==='pro'?database.prepare(`SELECT COUNT(*) AS total FROM checkout_orders WHERE buyer_id=? AND kind='MARKET' AND status IN ('PENDING_PAYMENT','PROCESSING','PAID','SHIPPED','RECEIVED','COMPLETED') AND json_extract(details,'$.marketProShippingVoucherMonth')=?`).bind(profile.id,voucherMonth).first<{total:number}>():Promise.resolve(null)]);
+    return Response.json({available,sandbox:process.env.IPAYMU_MODE==='sandbox',buyerTier:profile.tier==='pro'?'pro':'free',buyerFeePercent:profile.tier==='pro'?MARKET_PRO_BUYER_FEE_PERCENT:MARKET_BUYER_FEE_PERCENT,buyerFeeCap:MARKET_BUYER_FEE_CAP,sellerFeePercent:policy.commissionPercent,shippingVouchersRemaining:Math.max(0,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH-(voucherUsage?.total??0))});
   }catch(error){return errorResponse(error)}
 }
 

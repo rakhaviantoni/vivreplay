@@ -1,9 +1,9 @@
 import {evaluateEffectCondition} from './effect-conditions';
 import type {EffectAction,EffectCost,EffectDocument,EffectTrigger} from './effect-rules';
 import {resolveCustomEffect,type CustomInstruction} from './custom-effect-resolvers';
-import {applyEffectAction,payEffectCost,type EffectSelection,type MatchEffectState,type PlayerId} from './match-effect-state';
+import {applyEffectAction,isCardEffectNegated,payEffectCost,type EffectSelection,type MatchEffectState,type PlayerId} from './match-effect-state';
 
-export type EffectCommand={abilityId?:number;conditions?:string[];requiredAttachedDon?:number;kind:'pay-cost'|'resolve-action';value:EffectCost|EffectAction};
+export type EffectCommand={abilityId?:number;conditions?:string[];requiredAttachedDon?:number;sourceId?:string;kind:'pay-cost'|'resolve-action';value:EffectCost|EffectAction};
 export type RuntimeResolution={status:'ready'|'custom';commands:EffectCommand[];instructions?:CustomInstruction[];handler?:string};
 export type CardEffectResolution=RuntimeResolution&{actions:EffectAction[];costs:EffectCost[]};
 
@@ -83,6 +83,7 @@ export function executeEffectCommands(
  selections:EffectSelection[]=[],
  sourceCardId?:string
 ):RuntimeExecution{
+ if(sourceCardId){const source=state.cards.find(card=>card.id===sourceCardId);if(source&&isCardEffectNegated(state,source))return {state};}
  let current=state;
  let lastPlayedCardId:string|undefined;
  let lastTargetCardId:string|undefined;

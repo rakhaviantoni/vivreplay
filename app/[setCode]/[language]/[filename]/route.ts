@@ -80,9 +80,12 @@ export async function serveCardImage(setCode:string,language:string,filename:str
     let image:Response;
     if(requestedWidth&&env.IMAGES){
       try{
-        image=(await env.IMAGES.input(bytes)
+        const imageStream=new Response(bytes).body;
+        if(!imageStream)throw new Error('Could not create image stream.');
+        const transformed=(await env.IMAGES.input(imageStream)
           .transform({width:requestedWidth,height:Math.round(requestedWidth*580/420),fit:'scale-down'})
-          .output({format:'image/webp',quality:78})).response({headers});
+          .output({format:'image/webp',quality:78})).response();
+        image=new Response(transformed.body,{status:transformed.status,statusText:transformed.statusText,headers:{...Object.fromEntries(transformed.headers),...headers,'Content-Type':transformed.headers.get('content-type')??'image/webp'}});
       }catch{
         image=new Response(bytes,{headers:{...headers,'Content-Type':response.headers.get('content-type')||'image/webp'}});
       }

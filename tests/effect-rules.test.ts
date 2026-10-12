@@ -5,10 +5,82 @@ import type {Card} from '../packages/card-data/catalog';
 import {isPlayableSet} from '../packages/domain/release-availability';
 import {executeEffectCommands,resolveEffectTiming} from '../packages/domain/effect-runtime';
 import {beginEffectExecution} from '../packages/domain/effect-controller';
-import {applyEffectAction,expireEffectModifiers,hasCardKeyword,payEffectCost,type MatchEffectState} from '../packages/domain/match-effect-state';
+import {applyEffectAction,declareAttack,declareBlock,effectivePlayCost,expireEffectModifiers,hasCardKeyword,payEffectCost,type MatchEffectState} from '../packages/domain/match-effect-state';
 import {evaluateEffectCondition} from '../packages/domain/effect-conditions';
 
 const card=(effect:string)=>({id:'effect-test',code:'TEST-001',name:'Test',color:'Black',type:'Character',cost:1,power:1000,counter:0,rarity:'C',art:0,effect} as Card);
+
+test('P-115 gives one rested DON!! to its Leader or a Character',()=>{
+ const document=compileEffectDocument({id:'P-115',code:'P-115',name:'Boa Hancock',color:'Yellow',type:'Event',cost:3,power:0,counter:0,rarity:'P',art:0,effect:'[On Play] Give up to 1-rested DON!! card to your Leader or 1 of your Characters.[Trigger] Play up to 1 yellow Character card with 5000 power or less and a [Trigger] from your hand.'});
+ const ability=document.ast.find(item=>item.trigger==='on-play');assert.ok(ability);
+ assert.deepEqual(ability.actions,[{kind:'attach-don',amount:1,source:'cost-area',rested:true}]);
+});
+
+test('attack-redirection cards compile to their exact response timing, cost and target restrictions',()=>{
+ const cases=[
+  {code:'ST36-005',name:'Eustass Captain Kid',type:'Character' as const,effect:'[On Your Opponent\'s Attack] [Once Per Turn] You may turn 1 card from the top or bottom of your Life cards face-down: Change the target of the attack to your [Eustass"Captain"Kid] with 5000 base power or more.',timing:'opponent-attack',scope:'own-character',cost:'turn-life'},
+  {code:'OP16-080',name:'Marshall D. Teach',type:'Leader' as const,effect:'[Opponent\'s Turn] All of your Characters gain +1 cost.\n[On your Opponent\'s Attack] [Once Per Turn] You may trash 1 card with a [Trigger] from your hand: Change the target of that attack to this Leader or to one of your {Blackbeard Pirates} type Character cards.',timing:'opponent-attack',scope:'self-leader-or-trait-character',cost:'trash'},
+  {code:'EB01-038',name:'Oh Come My Way',type:'Event' as const,effect:'[Counter] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): If your Leader\'s type includes "Baroque Works", select 1 of your Characters. Change the attack target to the selected Character.',timing:'counter',scope:'own-character',cost:'return-don'},
+  {code:'OP14-060',name:'Donquixote Doflamingo',type:'Character' as const,effect:'[On Your Opponent\'s Attack] [Once Per Turn] DON!! -1: Select your Leader or 1 of your {Donquixote Pirates} type Character. Change the attack target to the selected card.',timing:'opponent-attack',scope:'own-leader-or-character',cost:'return-don'},
+ ] as const;
+ for(const item of cases){const doc=compileEffectDocument({id:item.code,code:item.code,name:item.name,color:'Black',type:item.type,cost:4,power:5000,counter:0,rarity:'R',art:0,effect:item.effect} as Card);const ability=doc.ast.find(entry=>entry.trigger===item.timing);assert.ok(ability,`${item.code} must retain its printed timing`);assert.ok(ability.actions.some(action=>action.kind==='redirect-attack'&&action.scope===item.scope),`${item.code} must parse a constrained attack-redirection action`);assert.equal(ability.costs[0]?.kind,item.cost,`${item.code} must pay its printed cost before redirecting`);assert.equal(doc.resolver.type,'DSL',`${item.code} must not be left on a custom resolver`);}
+});
+
+test('OP15-102 makes its in-hand cost reduction conditional and continuous',()=>{
+ const document=compileEffectDocument({id:'OP15-102',code:'OP15-102',name:'Gan.Fall',color:'Purple',type:'Character',cost:4,power:5000,counter:1000,rarity:'R',art:0,effect:'If you have a {Sky Island} type Character with 7000 power or more, give this card in your hand 3 cost.\n[On Play] Rest up to 1 of your opponent\'s Characters with a cost equal to or less than the number of your opponent\'s Life cards.'});
+ const ability=document.ast.find(item=>item.trigger==='continuous');assert.ok(ability);
+ assert.deepEqual(ability.conditions.map(condition=>condition.text),['you have a {Sky Island} type Character with 7000 power or more']);
+ assert.ok(ability.actions.some(action=>action.kind==='cost-self'&&action.amount===3&&action.continuous));
+});
+
+test('ST33-004 cost applies only after an effect trashes a card from hand and expires at turn end',()=>{
+ const document=compileEffectDocument({id:'ST33-004',code:'ST33-004',name:'Test Blocker',color:'Blue',type:'Character',cost:2,power:3000,counter:1000,rarity:'R',art:0,effect:'During the turn in which a card in your hand is trashed by an effect, give this card in your hand 3 cost.[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.)'});
+ const ability=document.ast.find(item=>item.actions.some(action=>action.kind==='cost-self'));assert.ok(ability);assert.equal(ability.trigger,'continuous');assert.deepEqual(ability.conditions.map(condition=>condition.text),['a card in your hand was trashed by an effect during this turn']);
+ const source:MatchEffectState={turn:'player',cards:[{id:'leader',owner:'player',zone:'leader',type:'Leader'},{id:'source',owner:'player',zone:'character',type:'Character'},{id:'priced-card',owner:'player',zone:'hand',type:'Character',cost:2,effectSchema:document},{id:'discard',owner:'player',zone:'hand',type:'Event'}],turnEffects:[],restrictions:[],delayed:[]};
+ assert.equal(effectivePlayCost(source,'player',source.cards.find(item=>item.id==='priced-card')!),2);
+ const trashed=applyEffectAction(source,'player',{kind:'trash',scope:'hand',amount:1},{sourceCardId:'source',cardIds:['discard']});assert.equal(trashed.error,undefined);assert.equal(effectivePlayCost(trashed.state,'player',trashed.state.cards.find(item=>item.id==='priced-card')!),5);
+ const expired=expireEffectModifiers(trashed.state,'turn-end');assert.equal(effectivePlayCost(expired,'player',expired.cards.find(item=>item.id==='priced-card')!),2);
+});
+
+test('OP15-022 trashes four deck cards before checking whether its Character can ready',()=>{
+ const document=compileEffectDocument({...card('Under the rules of this game, you do not lose when your deck has 0 cards. You lose at the end of the turn in which your deck becomes 0 cards.\n[Activate: Main] [Once Per Turn] Trash 4 cards from the top of your deck. Then, if your deck has 0 cards, set up to 1 of your Characters as active.'),code:'OP15-022'});
+ const ability=document.ast.find(item=>item.trigger==='activate-main');assert.ok(ability);
+ assert.deepEqual(ability.actions.map(action=>action.kind),['trash','ready']);
+ const [trash,ready]=ability.actions;assert.equal(trash?.kind,'trash');assert.equal(ready?.kind,'ready');if(ready?.kind==='ready')assert.equal(ready.condition,'your deck has 0 cards');
+ const commands=resolveEffectTiming(document,'activate-main').commands;
+ assert.equal(resolveEffectTiming(document,'activate-main').status,'ready');
+ const state:MatchEffectState={turn:'player',cards:[{id:'brook',owner:'player',zone:'character',type:'Character'},{id:'ready-me',owner:'player',zone:'character',type:'Character',rested:true},...Array.from({length:4},(_,index)=>({id:`deck-${index}`,owner:'player' as const,zone:'deck' as const,type:'Character' as const}))],turnEffects:[],restrictions:[],delayed:[]};
+ const result=executeEffectCommands(state,'player',commands,[{}, {targetId:'ready-me'}], 'brook');
+ assert.equal(result.error,undefined);assert.equal(result.state.cards.filter(item=>item.owner==='player'&&item.zone==='trash').length,4);assert.equal(result.state.cards.find(item=>item.id==='ready-me')?.rested,false);
+ const notEmpty={...state,cards:[...state.cards,{id:'extra-deck',owner:'player' as const,zone:'deck' as const,type:'Character' as const}]};
+ const noReady=executeEffectCommands(notEmpty,'player',commands,[{}, {targetId:'ready-me'}],'brook');assert.equal(noReady.state.cards.find(item=>item.id==='ready-me')?.rested,true);
+});
+
+test('OP13-057 locks Blocker only during its Leader battle and only when Life is low',()=>{
+ const document=compileEffectDocument({...card('[Main] You may rest 1 of your DON!! cards: If you have 1 or less Life cards, your opponent cannot activate [Blocker] whenever your Leader attacks during this turn.\n[Counter] Your Leader gains +3000 power during this battle.'),code:'OP13-057'});
+ assert.equal(document.resolver.type,'DSL');const main=resolveEffectTiming(document,'main');assert.equal(main.status,'ready');
+ const state:MatchEffectState={turn:'player',cards:[{id:'leader',owner:'player',zone:'leader',type:'Leader',power:5000},{id:'own-character',owner:'player',zone:'character',type:'Character',power:5000},{id:'don',owner:'player',zone:'cost-area',type:'DON!!'},{id:'target',owner:'opponent',zone:'character',type:'Character',power:5000,rested:true},{id:'blocker',owner:'opponent',zone:'character',type:'Character',power:5000,keywords:['blocker']}],turnEffects:[],restrictions:[],delayed:[]};
+ const resolved=executeEffectCommands(state,'player',main.commands,[{cardIds:['don']},{}]);assert.equal(resolved.error,undefined);assert.ok(resolved.state.turnEffects.some(effect=>effect.kind==='attack-trigger-blocker-lock'&&effect.target==='leader'));
+ const characterAttack=declareAttack(resolved.state,'player','own-character','target');assert.equal(characterAttack.state.turnEffects.some(effect=>effect.kind==='prevent-keyword-activation'&&effect.detail==='blocker'),false);assert.equal(declareBlock(characterAttack.state,'opponent','blocker').error,undefined);
+ const attack=declareAttack(resolved.state,'player','leader','target');assert.equal(attack.error,undefined);assert.ok(attack.state.turnEffects.some(effect=>effect.kind==='prevent-keyword-activation'&&effect.detail==='blocker'&&effect.expires==='battle'));
+ assert.match(declareBlock(attack.state,'opponent','blocker').error??'',/prevents Blocker activation this turn/);
+ const nextBattle=expireEffectModifiers(attack.state,'battle');assert.equal(nextBattle.turnEffects.some(effect=>effect.kind==='prevent-keyword-activation'&&effect.detail==='blocker'),false);
+ const highLife={...state,cards:[...state.cards,{id:'life-1',owner:'player' as const,zone:'life' as const,type:'Character' as const},{id:'life-2',owner:'player' as const,zone:'life' as const,type:'Character' as const}]};const gated=executeEffectCommands(highLife,'player',main.commands,[{cardIds:['don']},{}]);assert.equal(gated.state.turnEffects.some(effect=>effect.kind==='attack-trigger-blocker-lock'),false);
+});
+
+test('OP14-009 pays two cards, swaps only own Leader and Character base power for the battle, and cannot repeat',()=>{
+ const document=compileEffectDocument({id:'OP14-009',code:'OP14-009',name:'Trafalgar Law',color:'Red/Green',type:'Character',cost:5,power:6000,counter:0,rarity:'SR',art:0,effect:'[Rush]\n[On Your Opponent\'s Attack] [Once Per Turn] You may trash 2 cards from your hand: Select your Leader and 1 Character. Swap the base power of the selected cards with each other during this battle.'});
+ assert.equal(document.resolver.type,'DSL');assert.ok(document.ast.some(item=>item.actions.some(action=>action.kind==='rush')));
+ const ability=document.ast.find(item=>item.trigger==='opponent-attack');assert.ok(ability);assert.deepEqual(ability.costs,[{kind:'trash',scope:'hand',amount:2,optional:true}]);
+ const action=ability.actions[0];assert.equal(action?.kind,'swap-power');if(action?.kind!=='swap-power')throw new Error('Expected the power-swap action');assert.equal(action.leaderAndCharacter,true);assert.equal(action.oncePerTurn,true);
+ const state:MatchEffectState={turn:'opponent',pendingAttack:{attackerId:'attacker',targetId:'leader',attacker:'opponent',defender:'player'},cards:[{id:'source',owner:'player',zone:'character',type:'Character',power:6000,effectSchema:document},{id:'leader',owner:'player',zone:'leader',type:'Leader',power:5000},{id:'ally',owner:'player',zone:'character',type:'Character',power:7000},{id:'attacker',owner:'opponent',zone:'character',type:'Character',power:6000},{id:'discard-a',owner:'player',zone:'hand',type:'Character'},{id:'discard-b',owner:'player',zone:'hand',type:'Event'}],turnEffects:[],restrictions:[],delayed:[]};
+ const commands=resolveEffectTiming(document,'opponent-attack').commands;const resolved=executeEffectCommands(state,'player',commands,[{cardIds:['discard-a','discard-b']},{targetId:'leader',cardIds:['ally']}],'source');
+ assert.equal(resolved.error,undefined);assert.deepEqual(resolved.state.cards.filter(item=>item.id.startsWith('discard-')).map(item=>item.zone),['trash','trash']);assert.equal(resolved.state.cards.find(item=>item.id==='leader')?.power,7000);assert.equal(resolved.state.cards.find(item=>item.id==='ally')?.power,5000);
+ assert.match(applyEffectAction(resolved.state,'player',action,{sourceCardId:'source',targetId:'leader',cardIds:['ally']}).error??'',/already been used/);
+ const expired=expireEffectModifiers(resolved.state,'battle');assert.equal(expired.cards.find(item=>item.id==='leader')?.power,5000);assert.equal(expired.cards.find(item=>item.id==='ally')?.power,7000);
+ const invalid=applyEffectAction(state,'player',action,{sourceCardId:'source',targetId:'leader',cardIds:['attacker']});assert.match(invalid.error??'',/Leader and exactly one of your Characters/);
+});
+
 
 
 test('draw until a hand-size target draws only the missing cards',()=>{
@@ -86,6 +158,31 @@ test('continuous conditions count typed Characters, Events in Trash, Life and de
  assert.equal(evaluateEffectCondition('you have less Life cards than your opponent',state,'player','source'),true);
 });
 
+test('board conditions count attached DON, current power, alternative traits and own-only Characters',()=>{
+ const state:MatchEffectState={turn:'player',cards:[
+  {id:'source',owner:'player',zone:'character',type:'Character',name:'Foxy',power:4000,traits:['Foxy Pirates'],attributes:['Slash']},
+  {id:'leader',owner:'player',zone:'leader',type:'Leader',name:'Edward.Newgate',traits:['Land of Wano'],attributes:['Slash']},
+  {id:'own-don-1',owner:'player',zone:'cost-area',type:'DON!!',attachedTo:'source'},
+  {id:'own-don-2',owner:'player',zone:'cost-area',type:'DON!!'},
+  {id:'amazon',owner:'player',zone:'character',type:'Character',traits:['Amazon Lily'],power:3000},
+  {id:'kuja',owner:'player',zone:'character',type:'Character',traits:['Kuja Pirates'],power:4000},
+  {id:'opponent',owner:'opponent',zone:'character',type:'Character',power:4000},
+  {id:'opponent-don',owner:'opponent',zone:'cost-area',type:'DON!!',attachedTo:'opponent'},
+  {id:'rested-opponent',owner:'opponent',zone:'character',type:'Character',rested:true},
+ ],turnEffects:[],restrictions:[],delayed:[]};
+ assert.equal(evaluateEffectCondition('this Character has 5000 power or more',state,'player','source'),true);
+ assert.equal(evaluateEffectCondition('your opponent has a Character with 5000 or more power',state,'player','source'),true);
+ assert.equal(evaluateEffectCondition('you have 2 or less Characters with 5000 power or more',state,'player','source'),true);
+ assert.equal(evaluateEffectCondition('you have 2 or more [Amazon Lily] or [Kuja Pirates] type Characters on your field',state,'player','source'),true);
+ assert.equal(evaluateEffectCondition('your Leader is [Edward.Newgate] or has the {Land of Wano} type',state,'player','source'),true);
+ assert.equal(evaluateEffectCondition('your Leader has the attribute',state,'player','source'),true);
+ assert.equal(evaluateEffectCondition('the only Characters on your field are {Foxy Pirates} type Characters',state,'player','source'),false);
+ assert.equal(evaluateEffectCondition('you have any DON!! cards given',state,'player','source'),true);
+ assert.equal(evaluateEffectCondition('you have a total of 1 or more given DON!! cards',state,'player','source'),true);
+ assert.equal(evaluateEffectCondition("your opponent has more DON!! cards on their field than you",state,'player','source'),false);
+ assert.equal(evaluateEffectCondition('your opponent has 1 or more rested cards',state,'player','source'),true);
+});
+
 test('On K.O. can return its source from Trash to hand',()=>{
  const document=compileEffectDocument(card('[On K.O.] Add this Character card from your trash to your hand.'));
  const commands=resolveEffectTiming(document,'on-ko').commands;
@@ -112,6 +209,15 @@ test('resting a Stage and turning Life face-up are both paid costs before its ef
  const ability=document.ast.find(effect=>effect.trigger==='activate-main');assert.ok(ability);
  assert.deepEqual(ability?.costs.map(cost=>cost.kind),['rest','turn-life']);assert.equal(ability?.actions.some(action=>action.kind==='rest'&&action.scope==='self'),false);
  const sequence=document.normalized.find(effect=>effect.timing==='activate-main')?.sequence??[];assert.deepEqual(sequence.map(step=>step.type),['PAY_COST','PAY_COST','RESOLVE']);
+});
+
+test('ST36-005 may turn the top or bottom Life card face-up as its Activate: Main cost',()=>{
+ const document=compileEffectDocument({...card('[Activate: Main] [Once Per Turn] You may turn 1 card from the top or bottom of your Life cards face-up: Give up to 1 rested DON!! card to your Leader.'),code:'ST36-005'});
+ const cost=document.ast.find(effect=>effect.trigger==='activate-main')?.costs[0];assert.deepEqual(cost,{kind:'turn-life',scope:'own',amount:1,position:'choice',faceUp:true,optional:true});
+ const state:MatchEffectState={turn:'player',cards:[{id:'life-top',owner:'player',zone:'life',type:'Character'},{id:'life-middle',owner:'player',zone:'life',type:'Character'},{id:'life-bottom',owner:'player',zone:'life',type:'Character'}],turnEffects:[],restrictions:[],delayed:[]};
+ assert.equal(payEffectCost(state,'player',cost!).requiresSelection,'Choose the top or bottom Life card.');
+ const bottom=payEffectCost(state,'player',cost!,{position:'bottom'});assert.equal(bottom.state.cards.find(item=>item.id==='life-bottom')?.faceUp,true);assert.equal(bottom.state.cards.find(item=>item.id==='life-top')?.faceUp,undefined);
+ const top=payEffectCost(state,'player',cost!,{position:'top'});assert.equal(top.state.cards.find(item=>item.id==='life-top')?.faceUp,true);assert.equal(top.state.cards.find(item=>item.id==='life-bottom')?.faceUp,undefined);
 });
 
 test('OP08-082 keeps its DON!! rest mandatory when the Character rest is optional',()=>{
@@ -183,6 +289,21 @@ test('OP06-048 models both opponent Blocker and Event activations as response ti
  const ability=document.ast[0];assert.equal(ability.trigger,'opponent-blocker');assert.deepEqual(ability.conditions,[{kind:'text',text:'your Leader has the [East Blue] type'},{kind:'text',text:'it is your turn'}]);
  assert.deepEqual(ability.actions,[{kind:'trash',scope:'deck',amount:4,optional:true}]);
  assert.equal(resolveEffectTiming(document,'continuous').commands.length,0);assert.equal(resolveEffectTiming(document,'opponent-blocker').commands.length,1);
+});
+
+test('ST14-011 grants cost only to a black Straw Hat Crew Character through the opponent next turn',()=>{
+ const document=compileEffectDocument({id:'ST14-011',code:'ST14-011',name:'Franky',color:'Black',type:'Character',cost:4,power:5000,counter:0,rarity:'C',art:0,effect:'[Activate:Main] You may rest this Character: Up to 1 of your black "Straw Hat Crew" type Characters gains +2 cost until the end of your opponent\'s next turn.'});
+ const action=document.ast[0].actions[0];assert.deepEqual(action,{kind:'cost',amount:2,target:'own-character',trait:'Straw Hat Crew',color:'black',until:'opponent-next-turn',selection:{min:0,max:1}});
+ const state:MatchEffectState={turn:'player',turnEffects:[],restrictions:[],delayed:[],cards:[{id:'eligible',owner:'player',zone:'character',type:'Character',traits:['Straw Hat Crew'],color:'Black',cost:4},{id:'wrong-trait',owner:'player',zone:'character',type:'Character',traits:['Other'],color:'Black',cost:4},{id:'wrong-color',owner:'player',zone:'character',type:'Character',traits:['Straw Hat Crew'],color:'Red',cost:4}]};
+ assert.equal(applyEffectAction(state,'player',action,{targetId:'eligible'}).state.cards.find(card=>card.id==='eligible')?.costModifier,2);
+ assert.ok(applyEffectAction(state,'player',action,{targetId:'wrong-trait'}).error);assert.ok(applyEffectAction(state,'player',action,{targetId:'wrong-color'}).error);
+ const applied=applyEffectAction(state,'player',action,{targetId:'eligible'});assert.equal(expireEffectModifiers(applied.state,'opponent-next-turn','player').cards.find(card=>card.id==='eligible')?.costModifier,undefined);
+});
+
+test('ST14-008 keeps its unconditional cost grant before the conditional draw and discard',()=>{
+ const document=compileEffectDocument({id:'ST14-008',code:'ST14-008',name:'Franky',color:'Black',type:'Character',cost:4,power:5000,counter:0,rarity:'C',art:0,effect:'[Activate:Main] You may rest this Character: Up to 1 of your black "Straw Hat Crew" type Characters gains +2 cost until the end of your opponent\'s next turn. Then, if you have a Character with a cost of 8 or more, draw 1 card and trash 1 card from your hand.'});
+ const ability=document.ast[0];assert.equal(ability.conditions.length,0);assert.deepEqual(ability.actions.map(action=>action.kind),['cost','draw','trash']);assert.equal(ability.actions[1].condition,'you have a Character with a cost of 8 or more');assert.equal(ability.actions[2].condition,'you have a Character with a cost of 8 or more');
+ const commands=resolveEffectTiming(document,'activate-main').commands;assert.equal(commands[0].kind,'pay-cost');assert.equal(commands[1].kind,'resolve-action');assert.equal(commands[1].kind==='resolve-action'&&commands[1].value.kind,'cost');
 });
 
 test('opponent power effects retain their printed target count and Leader-or-Character scope',()=>{
@@ -402,7 +523,7 @@ test('life placement, DON payments, and effect negation preserve their targets',
 
 test('persistent effect documents preserve the four parser layers and custom escape hatch',()=>{
  const document=compileEffectDocument(card('[On Play] You may trash 1 card with a [Trigger] from your hand: Draw 3 cards.'));
- assert.equal(document.parserVersion,'0.8.0');
+ assert.equal(document.parserVersion,'0.8.2');
  assert.equal(document.resolver.type,'DSL');
  assert.equal(document.implementationStatus,'PARSED');
  assert.equal(document.ast[0].rawText,document.rawEffectText);
@@ -598,9 +719,26 @@ test('adjacent timing labels share the same ability body and preserve printed ke
  for(const timing of ['on-play','when-attacking'])assert.deepEqual(parsed.find(effect=>effect.trigger===timing)?.actions,[{kind:'draw',amount:1}]);
 });
 
+test('a printed Blocker before shared timing labels is parsed once, not copied into each timing',()=>{
+ const parsed=parseEffects(card("[Blocker] (After your opponent declares an attack, you may rest this card to make it the new target of the attack.) [When Attacking] / [On Block] This Character's base power becomes the same as your opponent's Leader until the start of your next turn."));
+ const blockers=parsed.filter(effect=>effect.actions.some(action=>action.kind==='blocker'));
+ assert.equal(blockers.length,1);
+ assert.equal(blockers[0]?.trigger,'continuous');
+ assert.deepEqual(parsed.find(effect=>effect.trigger==='when-attacking')?.actions,[{kind:'copy-base-power',target:'own-character',from:'opponent-leader',until:'opponent-next-turn'}]);
+ assert.deepEqual(parsed.find(effect=>effect.trigger==='on-block')?.actions,[{kind:'copy-base-power',target:'own-character',from:'opponent-leader',until:'opponent-next-turn'}]);
+});
+
+test('a complete conditional passive before shared Main/Counter timing stays a single independent ability',()=>{
+ const parsed=parseEffects(card('If you have 4 or more Events in your trash, give this card in your hand -3 cost. [Main]/[Counter] Give up to 1 of your opponent\'s Characters -3000 power during this turn.'));
+ assert.equal(parsed.filter(effect=>effect.actions.some(action=>action.kind==='cost-self')).length,1);
+ assert.equal(parsed.filter(effect=>effect.trigger==='unknown').length,1);
+ assert.deepEqual(parsed.find(effect=>effect.trigger==='main')?.actions,[{kind:'power',amount:-3000,until:'turn-end',selection:{min:0,max:1},target:'opponent-character'}]);
+ assert.deepEqual(parsed.find(effect=>effect.trigger==='counter')?.actions,[{kind:'power',amount:-3000,until:'turn-end',selection:{min:0,max:1},target:'opponent-character'}]);
+});
+
 test('turn qualifier before a printed timing stays on that timing instead of becoming a continuous duplicate',()=>{
  const document=compileEffectDocument(card('[Your Turn] [On Play] Play up to 1 {Big Mom Pirates} type Character card with a cost of 6 or less from your hand. Then, this Character gains [Rush] during this turn. [Trigger] Play this card.'));
- const onPlay=document.ast.filter(ability=>ability.trigger==='on-play'),continuous=document.ast.filter(ability=>ability.trigger==='continuous'),trigger=document.ast.filter(ability=>ability.trigger==='trigger');assert.equal(onPlay.length,1);assert.equal(continuous.length,0);assert.equal(trigger.length,1);assert.equal(onPlay[0].conditions[0]?.text,'it is your turn');assert.deepEqual(onPlay[0].actions.map(action=>action.kind),['play','grant-keyword']);assert.equal(trigger[0].actions[0]?.kind,'play');
+ const onPlay=document.ast.filter(ability=>ability.trigger==='on-play'),continuous=document.ast.filter(ability=>ability.trigger==='continuous'),trigger=document.ast.filter(ability=>ability.trigger==='trigger');assert.equal(onPlay.length,1);assert.equal(continuous.length,0);assert.equal(trigger.length,1);assert.equal(onPlay[0].conditions[0]?.text,'it is your turn');assert.deepEqual(onPlay[0].actions.map(action=>action.kind),['play','grant-keyword']);assert.deepEqual(trigger[0].actions,[{kind:'play',source:'life',thisCard:true}]);
 });
 
 test('a Trigger requirement in the middle of an ability is not a new timing window',()=>{

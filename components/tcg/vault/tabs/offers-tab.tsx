@@ -1,9 +1,10 @@
 'use client';
 
-import {useCallback,useEffect,useState} from 'react';
+import {useCallback,useEffect,useRef,useState} from 'react';
 import {ArrowCounterClockwiseIcon as Refresh,ChatCircleDotsIcon as Conversation} from '@phosphor-icons/react';
 import {OfferConversation} from '@/components/tcg/vault/offer-conversation';
-import {MarketActivityEmpty,MarketActivityLoading,MarketCardStack} from '@/components/tcg/vault/tabs/market-activity-state';
+import {MarketActivityLoading,MarketCardStack} from '@/components/tcg/vault/tabs/market-activity-state';
+import {VaultPanelEmpty} from '@/components/tcg/vault/vault-panel-empty';
 import {PushNotificationPrompt} from '@/components/tcg/push-notification-settings';
 
 type Offer={id:string;threadId:string;listingId:string;listingTitle:string;listingExpiresAt:string|null;offerExpiresAt:string|null;direction:'received'|'sent';counterparty:string|null;status:string;amount:number;currency:string;createdAt:string;items:Array<{printingId:string;quantity:number;card?:{name:string;code:string;imageUrl:string|null}}>};
@@ -19,18 +20,21 @@ export function OffersTab({language,initialConversationId}:{language:'EN'|'ID';i
   const [error,setError]=useState('');
   const [conversationId,setConversationId]=useState<string|null>(initialConversationId??null);
   const [now,setNow]=useState(0);
+  const refreshSequence=useRef(0);
   const refresh=useCallback(async(silent=false)=>{
-    if(!silent)setLoading(true);if(!silent)setError('');
+    const sequence=++refreshSequence.current;
+    if(!silent){setLoading(true);setError('')}
     try{
       const response=await fetch('/api/listings/offers/mine',{cache:'no-store'});
       const data=await response.json() as {offers?:Offer[];error?:string};
       if(!response.ok)throw new Error(data.error||(id?'Penawaran tidak dapat dimuat.':'Offers could not be loaded.'));
+      if(sequence!==refreshSequence.current)return;
       setNow(Date.now());
       const latest=new Map<string,Offer>();
       for(const offer of data.offers??[]){const previous=latest.get(offer.threadId);if(!previous||new Date(offer.createdAt).getTime()>new Date(previous.createdAt).getTime())latest.set(offer.threadId,offer)}
       setOffers([...latest.values()].sort((a,b)=>new Date(b.createdAt).getTime()-new Date(a.createdAt).getTime()));
-    }catch(reason){setError(reason instanceof Error?reason.message:(id?'Penawaran tidak dapat dimuat.':'Offers could not be loaded.'))}
-    finally{if(!silent)setLoading(false)}
+    }catch(reason){if(!silent&&sequence===refreshSequence.current)setError(reason instanceof Error?reason.message:(id?'Penawaran tidak dapat dimuat.':'Offers could not be loaded.'))}
+    finally{if(sequence===refreshSequence.current)setLoading(false)}
   },[id]);
   // Initial loading is represented by the initial state; manual refreshes toggle it later.
   // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -43,7 +47,7 @@ export function OffersTab({language,initialConversationId}:{language:'EN'|'ID';i
     <div className="market-activity-toolbar"><p>{id?'Penawaran untuk listing Anda dan penawaran yang Anda kirim.':'Offers on your listings and offers you have sent.'}</p><button type="button" className="market-activity-refresh market-activity-icon-action" aria-label={id?'Muat ulang penawaran':'Refresh offers'} title={id?'Muat ulang':'Refresh'} onClick={()=>void refresh()}><Refresh size={15}/></button></div>
     <PushNotificationPrompt language={language} message="activity"/>
     {error&&<div className="market-activity-error" role="alert"><span>{error}</span><button type="button" onClick={()=>void refresh()}>{id?'Coba lagi':'Try again'}</button></div>}
-    {!offers.length?<MarketActivityEmpty title={id?'Belum ada penawaran':'No offers yet'} description={id?'Penawaran masuk dan terkirim akan muncul di sini.':'Incoming and sent offers will appear here.'}/>:<div className="market-activity-list">{offers.map(offer=>{
+    {!offers.length?<VaultPanelEmpty icon={<Conversation size={22}/>} title={id?'Belum ada penawaran':'No offers yet'} description={id?'Penawaran yang Anda kirim atau terima akan muncul di sini.':'Offers you send or receive will appear here.'}/>:<div className="market-activity-list">{offers.map(offer=>{
       const expiryCandidates=[offer.offerExpiresAt,offer.listingExpiresAt].filter((value):value is string=>Boolean(value)).map(expiryTime).filter((value):value is number=>value!==null);
       const expiresAt=expiryCandidates.length?new Date(Math.min(...expiryCandidates)).toISOString():null;
       const expired=offer.status==='PENDING'&&expiresAt!==null&&new Date(expiresAt).getTime()<=now;

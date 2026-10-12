@@ -45,7 +45,8 @@ export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}){
     if(!listing)throw new HttpError(404,'Listing not found or you do not have permission to manage it.');
     if(body.action==='pause'){
       if(listing.status!=='ACTIVE')throw new HttpError(400,'Only active listings can be paused.');
-      await d.prepare("UPDATE listings SET status='PAUSED' WHERE id=? AND seller_id=? AND status='ACTIVE'").bind(id,p.id).run();
+      const changed=await d.prepare("UPDATE listings SET status='PAUSED' WHERE id=? AND seller_id=? AND status='ACTIVE'").bind(id,p.id).run();
+      if(!changed.meta.changes)throw new HttpError(409,'This listing changed before it could be paused. Refresh and try again.');
       return Response.json({ok:true,id,status:'PAUSED'});
     }
     if(listing.status!=='PAUSED'&&listing.status!=='CLOSED')throw new HttpError(400,'Only paused or closed listings can be resumed.');
@@ -58,12 +59,35 @@ export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}){
       if(!owned||quantity>owned.quantity)throw new HttpError(409,'The Vault no longer has enough copies to resume this listing.');
       const reserved=await d.prepare(`SELECT
         COALESCE((SELECT SUM(CASE WHEN items IS NULL THEN quantity ELSE 0 END) FROM listings WHERE instance_id=? AND status='ACTIVE' AND id!=? AND (expires_at IS NULL OR expires_at>CURRENT_TIMESTAMP)),0)
-        + COALESCE((SELECT SUM(CAST(json_extract(entry.value,'$.quantity') AS INTEGER)) FROM listings l,json_each(l.items) entry WHERE json_extract(entry.value,'$.instanceId')=? AND l.status='ACTIVE' AND l.id!=? AND (l.expires_at IS NULL OR l.expires_at>CURRENT_TIMESTAMP)),0) AS quantity`).bind(instanceId,id,instanceId,id).first<{quantity:number}>();
+        + COALESCE((SELECT SUM(CAST(json_extract(entry.value,'$.quantity') AS INTEGER)) FROM listings l,json_each(l.items) entry WHERE json_extract(entry.value,'$.instanceId')=? AND l.status='ACTIVE' AND l.id!=? AND (l.expires_at IS NULL OR l.expires_at>CURRENT_TIMESTAMP)),0)
+        + COALESCE((SELECT SUM(CAST(json_extract(entry.value,'$.quantity') AS INTEGER)) FROM checkout_orders o,json_each(o.items) entry WHERE json_extract(entry.value,'$.instanceId')=? AND o.kind='MARKET' AND (o.status='PROCESSING' OR (o.status='PENDING_PAYMENT' AND o.expires_at>CURRENT_TIMESTAMP))),0) AS quantity`).bind(instanceId,id,instanceId,id,instanceId).first<{quantity:number}>();
       if(quantity+(reserved?.quantity??0)>owned.quantity)throw new HttpError(409,'Some copies are already reserved by another active listing.');
     }
     const policy=await getDynamicListingPolicy(p.tier,d);
     const expiresAt=listing.expires_at&&new Date(`${listing.expires_at.replace(' ','T')}Z`).getTime()>Date.now()?listing.expires_at:computeListingExpiration(policy.durationDays);
-    await d.prepare("UPDATE listings SET status='ACTIVE',expires_at=? WHERE id=? AND seller_id=? AND status IN ('PAUSED','CLOSED')").bind(expiresAt,id,p.id).run();
+    const requested=JSON.stringify([...needed].map(([instanceId,quantity])=>({instanceId,quantity})));
+    const changed=await d.prepare(`UPDATE listings SET status='ACTIVE',expires_at=?
+      WHERE id=? AND seller_id=? AND status IN ('PAUSED','CLOSED')
+      AND NOT EXISTS(
+        SELECT 1 FROM json_each(?) requested
+        WHERE CAST(json_extract(requested.value,'$.quantity') AS INTEGER) >
+          COALESCE((SELECT c.quantity FROM collectible_instances c
+            WHERE c.id=json_extract(requested.value,'$.instanceId') AND c.owner_id=? AND c.deleted_at IS NULL),0)
+          - COALESCE((SELECT SUM(CASE WHEN l.items IS NULL THEN l.quantity ELSE 0 END)
+            FROM listings l WHERE l.seller_id=? AND l.instance_id=json_extract(requested.value,'$.instanceId')
+              AND l.status='ACTIVE' AND l.id!=? AND (l.expires_at IS NULL OR l.expires_at>CURRENT_TIMESTAMP)),0)
+          - COALESCE((SELECT SUM(CAST(json_extract(entry.value,'$.quantity') AS INTEGER))
+            FROM listings l,json_each(l.items) entry
+            WHERE l.seller_id=? AND json_extract(entry.value,'$.instanceId')=json_extract(requested.value,'$.instanceId')
+              AND l.status='ACTIVE' AND l.id!=? AND (l.expires_at IS NULL OR l.expires_at>CURRENT_TIMESTAMP)),0)
+          - COALESCE((SELECT SUM(CAST(json_extract(order_item.value,'$.quantity') AS INTEGER))
+            FROM checkout_orders o,json_each(o.items) order_item
+            WHERE (json_extract(order_item.value,'$.instanceId')=json_extract(requested.value,'$.instanceId')
+              OR (json_extract(order_item.value,'$.instanceId') IS NULL AND (json_extract(order_item.value,'$.listingId')=?
+                OR (json_extract(order_item.value,'$.listingId') IS NULL AND o.listing_id=?))))
+              AND o.kind='MARKET' AND (o.status='PROCESSING' OR (o.status='PENDING_PAYMENT' AND o.expires_at>CURRENT_TIMESTAMP))),0)
+      )`).bind(expiresAt,id,p.id,requested,p.id,p.id,id,p.id,id,id,id).run();
+    if(!changed.meta.changes)throw new HttpError(409,'Some copies are no longer available to resume this listing. Refresh and try again.');
     after(()=>notifyListingWatchers(id));
     return Response.json({ok:true,id,status:'ACTIVE',expiresAt});
   }catch(error){return errorResponse(error)}

@@ -51,6 +51,11 @@ const localBindingConfig = {
 };
 
 export default defineConfig(async ({ command, mode }) => {
+  // The Sites local runtime currently supports Workers dates through May 22,
+  // 2026. Keep its preview compatible without changing production builds.
+  localBindingConfig.compatibility_date =
+    command === "serve" ? "2026-05-22" : "2026-10-08";
+
   const localEnv = loadEnv(mode, process.cwd(), "");
   if (command === "serve") {
     localBindingConfig.vars.BETTER_AUTH_URL = "http://localhost:5173";
@@ -118,11 +123,17 @@ export default defineConfig(async ({ command, mode }) => {
       ...(managedLinux ? { host: "0.0.0.0", allowedHosts: ["terminal.local"] } : {}),
       ...(isCodexSeatbeltSandbox ? { watch: { useFsEvents: false, usePolling: true } } : {}),
     },
+    ...(command === "serve"
+      ? { environments: { client: { optimizeDeps: { exclude: ["vinext"] } } } }
+      : {}),
     plugins: [
       vinext(),
       sites({ mockAuth: !managedLinux }),
       cloudflare({
         viteEnvironment: { name: "rsc", childEnvironments: ["ssr"] },
+        persistState: {
+          path: process.env.VIVREPLAY_LOCAL_D1_STATE || ".wrangler/state",
+        },
         inspectorPort: false,
         config: localBindingConfig,
       }),

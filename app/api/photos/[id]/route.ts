@@ -18,7 +18,8 @@ export async function GET(_req: Request, {params}: {params: Promise<{id: string}
       'Content-Type': row.mime,
       'Cache-Control': 'private, no-store',
       'X-Content-Type-Options': 'nosniff',
-      'Content-Security-Policy': "default-src 'none'; sandbox",
+      'Content-Disposition': 'inline',
+      'Cross-Origin-Resource-Policy': 'same-site',
     },
   });
 }

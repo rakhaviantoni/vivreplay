@@ -233,6 +233,7 @@ export function ShareVaultModal({
                 {selectedSet ? selectedSet.name : 'OP-09 Emperors in the New World'}
               </h4>
               <div style={{ fontSize: '12px', color: 'var(--share-muted)', marginBottom: '14px' }}>
+                {selectedSet?.language && <>{selectedSet.language==='JP'?'Japanese':'English'} · </>}
                 {id?'Progres koleksi set: ':'Set Collection Progress: '}<b>{selectedSet ? selectedSet.ownedCount : 123} / {selectedSet ? selectedSet.totalCards : 142} {id?'kartu':'Cards'} ({selectedSet ? selectedSet.percentage : 86.6}%)</b>
               </div>
               <div className="vault-set-progress-track">

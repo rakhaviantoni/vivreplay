@@ -41,7 +41,7 @@ export function MarketPolicyManager() {
   // Form states
   const [freeDays, setFreeDays] = useState(7);
   const [freeMax, setFreeMax] = useState(25);
-  const [freeFee, setFreeFee] = useState(0.75);
+  const [freeFee, setFreeFee] = useState(1);
 
   const [proDays, setProDays] = useState(30);
   const [proMax, setProMax] = useState(2500);
@@ -93,7 +93,7 @@ export function MarketPolicyManager() {
     if (preset === 'recommended') {
       setFreeDays(7);
       setFreeMax(25);
-      setFreeFee(0.75);
+      setFreeFee(1);
       setProDays(30);
       setProMax(2500);
       setProFee(0.5);
@@ -102,7 +102,7 @@ export function MarketPolicyManager() {
     } else if (preset === 'quick-turn') {
       setFreeDays(3);
       setFreeMax(25);
-      setFreeFee(0.75);
+      setFreeFee(1);
       setProDays(30);
       setProMax(2500);
       setProFee(0.5);
@@ -111,7 +111,7 @@ export function MarketPolicyManager() {
     } else if (preset === 'relaxed') {
       setFreeDays(30);
       setFreeMax(25);
-      setFreeFee(0.75);
+      setFreeFee(1);
       setProDays(60);
       setProMax(2500);
       setProFee(0.5);

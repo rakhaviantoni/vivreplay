@@ -10,6 +10,8 @@ import {createClient} from '@/utils/supabase/client';
 import {CardMarketPanel} from './card-market-panel';
 import {CardPrintingSelector,orderPrintings,type CardPrinting} from './card-printing-selector';
 import {CardDetailContent, cardIdentityBackground} from './card-detail-content';
+import {EffectText} from './effect-text';
+export {EffectText} from './effect-text';
 
 type Printing = CardPrinting & {rarity:string|null;set_code:string|null;set_name:string|null;counter_amount:number|null;life:number|null;attribute:string|null;source_payload?:{block?:string|number;block_value?:string|number}|null;tcg_card_assets?:Array<{kind:string;object_key:string}>};
 type IdentityRecord={id:string;code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number;effect_text:string|null};
@@ -26,52 +28,6 @@ function blockForSet(code:string,payload?:{block?:string|number;block_value?:str
   if(match[1]==='EB') return String(Math.min(5,Math.max(1,Math.ceil((number+1)/2)+1)));
   if(match[1]==='ST') return number>=28?'5':number>=20?'4':number>=11?'3':number>=5?'2':'1';
   return number>=2?'5':'4';
-}
-
-const ruleWindows=new Set(['rush','blocker','when-attacking','on-play','on-k-o','on-your-opponent-s-attack','activate-main','main','once-per-turn','trigger','your-turn','opponent-s-turn','end-of-your-turn','counter','don']);
-
-function effectWindow(value:string) {
-  if (/^don!!\s*x\s*\d+/i.test(value)) return 'don';
-  const normalized=value.toLowerCase().replace(/[^a-z]+/g,'-').replace(/^-|-$/g,'');
-  // A compound prompt such as "Rush: Character" is still the Rush keyword.
-  return normalized.startsWith('rush-') ? 'rush' : normalized;
-}
-
-function startsRuleLine(previous:string) {
-  return /[.)]\s*(?:\*+)?\s*$/.test(previous);
-}
-
-function staysInModifierChain(previous:string, keyword:string) {
-  if (keyword!=='once-per-turn'||!/^\[[^\]]+\]$/.test(previous)) return false;
-  return ['activate-main','main','don','on-play','when-attacking','on-k-o','on-your-opponent-s-attack','your-turn','opponent-s-turn','end-of-your-turn'].includes(effectWindow(previous.slice(1,-1)));
-}
-
-export function EffectText({text}:{text:string}) {
-  const parts=text.split(/(\[[^\]]+\]|\([^)]*\))/g);
-  return <>{parts.map((part,index)=>{
-    const prior=parts[index-1]??'';
-    if (index>0&&/^\[[^\]]+\]$/.test(prior)&&ruleWindows.has(effectWindow(prior.slice(1,-1)))&&!/^\[[^\]]+\]$|^\([^)]*\)$/.test(part)) return null;
-    if (/^\[[^\]]+\]$/.test(part)) {
-      const keyword=effectWindow(part.slice(1,-1));
-      if (!ruleWindows.has(keyword)) return <span key={index} className="effect-reference">{part}</span>;
-      const previous=parts.slice(0,index).reverse().find(value=>value.trim().length>0)??'';
-      // Modifier chains stay together; a new bracketed ability begins a new clause.
-      // Text following a prompt stays on its line, e.g. "[Rush: Character] This character...".
-      const followsRule=/^\[[^\]]+\]$/.test(previous)&&ruleWindows.has(effectWindow(previous.slice(1,-1)));
-      const beginsRuleLine=!staysInModifierChain(previous,keyword)&&startsRuleLine(previous);
-      const instruction=parts[index+1]&&!/^\[[^\]]+\]$|^\([^)]*\)$/.test(parts[index+1])?parts[index+1].replace(/^\s+/, ' '):'';
-      const colon=instruction.indexOf(':');
-      return <span key={index} className="effect-rule-line">{beginsRuleLine&&<br/>}<span className="effect-rule-intro"><span className={`effect-keyword effect-keyword-${keyword}`}>{part.slice(1,-1).replace(/^\*+|\*+$/g,'')}</span>{colon>=0?<strong className="effect-clause">{instruction.slice(0,colon+1)}</strong>:instruction}</span>{colon>=0&&instruction.slice(colon+1)}</span>;
-    }
-    if (/^\([^)]*\)$/.test(part)) return <span key={index}>{/\.\s*$/.test(parts[index-1]??'')&&<br/>}<em className="effect-reminder">{part}</em></span>;
-    if (/^\[[^\]]+\]$/.test(parts[index-1]??'') && ruleWindows.has(effectWindow((parts[index-1]??'').slice(1,-1)))) {
-      const instruction=part.replace(/^\s+/, ' ');
-      const colon=instruction.indexOf(':');
-      if (colon>=0) return <span key={index}><strong className="effect-clause">{instruction.slice(0,colon+1)}</strong>{instruction.slice(colon+1)}</span>;
-      return <span key={index}>{instruction}</span>;
-    }
-    return part;
-  })}</>;
 }
 
 function splitDisclaimer(text:string) {

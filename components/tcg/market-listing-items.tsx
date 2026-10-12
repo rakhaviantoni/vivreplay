@@ -18,6 +18,8 @@ import {getDaysUntilExpiration, isListingExpired} from '@/lib/market/policy';
 import {FeedbackLaunchButton} from './feedback-launch';
 import {AddEditItemModal} from './vault/modals/add-edit-item-modal';
 import {PushNotificationPrompt} from './push-notification-settings';
+import {marketListingPath} from '@/lib/market/listing-url';
+import {PhoneInput} from '@/components/tcg/phone-input';
 
 type CourierRate={courier_code:string;courier_service_code:string;courier_name:string;courier_service_name:string;price:number;duration?:string;max_km?:number};
 type ShippingArea={id:string;name:string;province:string;city:string;district:string;subdistrict:string;postalCode:string;latitude?:number;longitude?:number;source:'biteship'|'local'};
@@ -202,7 +204,7 @@ export function ShippingOptions({listingId,courierCount=0,couriers=[],items=[]}:
             <div className="shipping-options-address-heading"><strong>{t('Delivery address','Alamat pengiriman')}</strong><button type="button" onClick={()=>{setAddressFormOpen(false);setAreaLoading(false)}}>{t('Cancel','Batal')}</button></div>
             {addressLoading?<div className="shipping-options-address-loading" role="status">{t('Loading saved address…','Memuat alamat tersimpan…')}</div>:<>
               <label>{t('Recipient','Penerima')}<input required minLength={2} maxLength={100} autoComplete="name" value={addressDraft.recipientName} onChange={event=>setAddressDraft(current=>({...current,recipientName:event.target.value}))}/></label>
-              <label>{t('Phone number','Nomor telepon')}<input required type="tel" autoComplete="tel" value={addressDraft.phone} onChange={event=>setAddressDraft(current=>({...current,phone:event.target.value}))}/></label>
+              <PhoneInput required label={t('Phone number','Nomor telepon')} autoComplete="tel" value={addressDraft.phone} onChange={phone=>setAddressDraft(current=>({...current,phone}))} locale={language}/>
               <label>{t('Street address','Alamat jalan')}<input required maxLength={260} autoComplete="street-address" value={addressDraft.addressLine} onChange={event=>setAddressDraft(current=>({...current,addressLine:event.target.value}))}/></label>
               <label>{t('Search delivery area','Cari wilayah pengiriman')}<input autoComplete="off" value={areaQuery||[addressDraft.regions.subdistrict,addressDraft.regions.district].filter(Boolean).join(', ')} onChange={event=>{const value=event.target.value;setAreaQuery(value);setAreaResults([]);setAreaLoading(value.trim().length>=2);setAddressDraft(current=>({...current,areaId:null,postalCode:'',latitude:null,longitude:null}))}} placeholder={t('Village or district','Kelurahan atau kecamatan')}/></label>
               {areaLoading&&<small className="shipping-options-address-hint" role="status">{t('Searching areas…','Mencari wilayah…')}</small>}
@@ -488,9 +490,9 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
               </div>
             ))}
             {item.quantity>1 && <b>×{item.quantity}</b>}
-            <button type="button" className="deck-info-action market-listing-info" onClick={()=>setPreview(item.card)} aria-label={`View ${item.card.name} details`}><Info size={13}/></button>
+            <button type="button" className="deck-info-action market-icon-action market-listing-info" onClick={()=>setPreview(item.card)} aria-label={`View ${item.card.name} details`}><Info size={13}/></button>
             {!readOnly&&<div className="market-listing-card-utility-actions">
-              {listingType==='WTS'&&<button type="button" className="button secondary is-icon-only market-listing-add-vault" onClick={()=>setVaultTarget(item)} aria-label={t('Add an owned copy to Vault','Simpan salinan milik Anda ke Koleksi')} title={t('Add an owned copy to Vault','Simpan salinan milik Anda ke Koleksi')}><Plus size={17}/></button>}
+              {listingType==='WTS'&&<button type="button" className="button secondary is-icon-only market-icon-action market-listing-add-vault" onClick={()=>setVaultTarget(item)} aria-label={t('Add an owned copy to Vault','Simpan salinan milik Anda ke Koleksi')} title={t('Add an owned copy to Vault','Simpan salinan milik Anda ke Koleksi')}><Plus size={17}/></button>}
               <WishlistButton printingId={item.id} language={language} iconOnly/>
             </div>}
             {!readOnly&&offerCheckComplete&&!activeOffer&&!submitting&&!singleCopyListing&&<span className="deck-stack-actions market-listing-quantity" aria-label={`Select ${item.card.name}`}>
@@ -632,7 +634,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
         {!activeOffer&&acceptsOffers&&<button type="button" className="button market-listing-offer-action" disabled={!selectedCount||submitting||!offerCheckComplete} onClick={continueOffer}>{submitting?t('Sending...','Mengirim...'):!offerCheckComplete?t('Checking offer…','Memeriksa penawaran…'):session?(hasPriceAdjustments?t('Submit offer','Kirim penawaran'):actionLabel):(language==='ID'?`Masuk untuk ${isBuying?'menawar':'menawarkan'}`:`Sign in to ${actionLabel.toLowerCase()}`)}</button>}
         <ShareButton
           title={listingTitle ?? t('Card listing','Listing kartu')}
-          path={`/market/${listingId}`}
+          path={marketListingPath(listingTitle??'Card listing',listingId)}
           cards={items.map(item => ({
             card: item.card,
             quantity: item.quantity,

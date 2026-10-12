@@ -24,6 +24,7 @@ const implemented=(handler:string,timing:EffectTrigger,instruction:string):Custo
  */
 const definitions:CustomEffectDefinition[]=[
  tested('OP06_092_ON_PLAY','on-play',[{kind:'choose-one',options:['Trash up to 1 opponent Character with cost 4 or less','Put 3 cards from opponent trash on deck bottom in any order']}]),
+ tested('OP06_116_MAIN','main',[{kind:'choose-one',options:['K.O. up to 1 opponent Character with cost 5 or less','If your opponent has exactly 1 Life, deal 1 damage; then add your top Life card to your hand']}]),
  tested('EB01_052_ON_PLAY','on-play',[{kind:'choose-one',options:['Reorder all of your opponent’s Life cards','Turn all of your Life cards face-down']}]),
  tested('PRB02_005_ON_PLAY','on-play',[{kind:'delayed',when:'next-main-phase',instruction:'Rest 1 active opponent DON!! if the printed condition held on play'}]),
  tested('OP10_074_CONTINUOUS','continuous',[{kind:'delayed',when:'replacement',instruction:'Instead of this Character being K.O.d by an opponent effect, optionally rest 2 active own DON!!'}]),
@@ -93,7 +94,7 @@ const definitions:CustomEffectDefinition[]=[
 ];
 
 const byHandler=new Map(definitions.map(definition=>[definition.handler,definition]));
-const boardExecutors=new Set(['OP06_092_ON_PLAY','EB01_052_ON_PLAY','OP09_009_ON_PLAY','OP12_039_MAIN','OP13_098_MAIN','OP17_116_MAIN']);
+const boardExecutors=new Set(['OP06_092_ON_PLAY','OP06_116_MAIN','EB01_052_ON_PLAY','OP09_009_ON_PLAY','OP12_039_MAIN','OP13_098_MAIN','OP17_116_MAIN']);
 export function customEffectDefinition(handler:string){return byHandler.get(handler);}
 export function hasCustomBoardExecutor(handler:string){return boardExecutors.has(handler);}
 export function customEffectBranch(handler:string,index:number):EffectAction[]|undefined{
@@ -101,6 +102,11 @@ export function customEffectBranch(handler:string,index:number):EffectAction[]|u
   ?[{kind:'trash-character',scope:'opponent',maxCost:4,selection:{min:0,max:1}}]
   :index===1
    ?[{kind:'bottom-deck',scope:'opponent-trash',selection:{min:3,max:3}}]
+   :undefined;
+ if(handler==='OP06_116_MAIN')return index===0
+  ?[{kind:'ko',scope:'opponent-character',maxCost:5,selection:{min:0,max:1}}]
+  :index===1
+   ?[{kind:'life',operation:'opponent-top-to-owner-hand',amount:1,auto:true}]
    :undefined;
  if(handler==='EB01_052_ON_PLAY')return index===0
   ?[{kind:'reorder-life',scope:'opponent',amount:'all'}]

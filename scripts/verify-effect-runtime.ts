@@ -38,8 +38,13 @@ function expectedCommands(document:ReturnType<typeof compileEffectDocument>,timi
 let executed=0,customInstructionPlans=0;const issues:string[]=[],blockedCustom:string[]=[],unhandledCustom:Array<{code:string;handler:string;timing:string;text:string}>=[];
 for(const row of supported){
  const document=compileEffectDocument({id:row.id,code:row.code,name:row.name,color:row.color,type:row.card_type as never,cost:row.cost,power:row.power,counter:0,rarity:'',art:0,effect:row.effect_text});
- if(document.resolver.type==='CUSTOM'){const definition=customEffectDefinition(document.resolver.handler),timing=definition?.timing??document.ast[0]?.trigger??'unknown',resolution=resolveEffectTiming(document,timing);if(definition)customInstructionPlans++;else{issues.push(`${row.code}: custom handler ${document.resolver.handler} is ${document.implementationStatus}`);unhandledCustom.push({code:row.code,handler:document.resolver.handler,timing,text:row.effect_text});}
-  if(definition){
+ if(document.resolver.type==='CUSTOM'){const definition=customEffectDefinition(document.resolver.handler),timing=definition?.timing??document.ast[0]?.trigger??'unknown',resolution=resolveEffectTiming(document,timing);if(definition)customInstructionPlans++;else{issues.push(`${row.code}: custom handler ${document.resolver.handler} has no registered resolver (${document.implementationStatus})`);unhandledCustom.push({code:row.code,handler:document.resolver.handler,timing,text:row.effect_text});}
+  if(!definition){
+   // A schema marked CUSTOM without a registered, tested resolver is not a
+   // passing runtime result. Keep it in the same blocking issue list as a
+   // missing board executor so live audits cannot report false green.
+   // The unregistered resolver was already added to issues above.
+  }else{
    if(resolution.status!=='custom'||!resolution.instructions?.length)issues.push(`${row.code}: custom handler ${document.resolver.handler} does not expose an explicit blocked plan`);
    else if(!hasCustomBoardExecutor(document.resolver.handler))blockedCustom.push(`${row.code}: ${document.resolver.handler} (${customEffectDefinition(document.resolver.handler)?.timing??'unknown'}) has instructions but no board executor`);
    else {const expectedBranches:Record<string,number>={OP06_092_ON_PLAY:2,EB01_052_ON_PLAY:2,OP09_009_ON_PLAY:1,OP12_039_MAIN:1,OP13_098_MAIN:1,OP17_116_MAIN:1};const expected=expectedBranches[document.resolver.handler];if(expected!==undefined)for(let branch=0;branch<expected;branch++)if(!customEffectBranch(document.resolver.handler,branch)?.length)issues.push(`${row.code}: ${document.resolver.handler} is missing executable branch ${branch}`);}
@@ -54,7 +59,7 @@ for(const row of supported){
   executed++;
  }
 }
-const report={source:auditSource,cards:supported.length,excludedUnsupportedReleaseCards:rows.length-supported.length,dslTimingWindows:executed,customInstructionPlans,blockedCustomCount:blockedCustom.length,blockedCustom,unhandledCustomCount:unhandledCustom.length,unhandledCustom,issueCount:issues.length,issues,verified:issues.length===0&&blockedCustom.length===0};
+const report={source:auditSource,cards:supported.length,excludedUnsupportedReleaseCards:rows.length-supported.length,dslTimingWindows:executed,customInstructionPlans,blockedCustomCount:blockedCustom.length,blockedCustom,unhandledCustomCount:unhandledCustom.length,unhandledCustom,issueCount:issues.length,issues,verified:issues.length===0&&blockedCustom.length===0&&unhandledCustom.length===0};
 mkdirSync('reports/effects',{recursive:true});writeFileSync('reports/effects/runtime-audit.json',JSON.stringify(report,null,2));
 console.log(JSON.stringify({...report,blockedCustom:blockedCustom.slice(0,20),issues:issues.slice(0,20),detailsInReport:'reports/effects/runtime-audit.json'},null,2));
 if(issues.length||blockedCustom.length)process.exitCode=1;

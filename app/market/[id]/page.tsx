@@ -9,7 +9,7 @@ import {Market} from '@/components/tcg/market';
 import {pageMetadata} from '@/lib/site-metadata';
 import {isListingExpired} from '@/lib/market/policy';
 import {getDynamicListingPolicy} from '@/lib/market/policy';
-import {listingIdFromMarketPath,marketListingPath} from '@/lib/market/listing-url';
+import {listingIdFromMarketPath,marketListingPath,marketListingSelectorFromPath} from '@/lib/market/listing-url';
 
 export const dynamic='force-dynamic';
 
@@ -43,9 +43,11 @@ export async function generateMetadata({params}:{params:Promise<{id:string}>}){
 
 export default async function Page({params}:{params:Promise<{id:string}>}){
   const {id:segment}=await params;
-  const id=listingIdFromMarketPath(segment);
-  if(!id)notFound();
-  const [stored, me]=await Promise.all([
+  const selector=marketListingSelectorFromPath(segment);
+  if(!selector)notFound();
+  const where=selector.kind==='id'?'l.id=?':'l.id>=? AND l.id<?';
+  const values=selector.kind==='id'?[selector.id]:[selector.lower,selector.upper];
+  const [storedRows, me]=await Promise.all([
     db().prepare(`
       SELECT
         l.id,
@@ -84,11 +86,15 @@ export default async function Page({params}:{params:Promise<{id:string}>}){
       LEFT JOIN card_printings cp ON cp.id=l.printing_id
       LEFT JOIN card_identities ci ON ci.id=cp.identity_id
       LEFT JOIN seller_shipping_origins o ON o.owner_id=l.seller_id
-      WHERE l.id=?
-    `).bind(id).first<RawStoredListing>(),
+      WHERE ${where}
+      ORDER BY l.id
+      LIMIT 2
+    `).bind(...values).all<RawStoredListing>(),
     optionalUser(),
   ]);
 
+  const matches=storedRows.results;
+  const stored=matches.length===1?matches[0]:null;
   const listing=stored;
   if(!listing)notFound();
   const canonicalPath=marketListingPath(stored.title,stored.id);

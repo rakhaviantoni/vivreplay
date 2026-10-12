@@ -79,10 +79,8 @@ export function familyScenarios(text:string,executionTiming?:EffectTrigger):Scen
     const source={id:'source',owner:'player' as const,zone:choice==='wrong-zone'?'hand' as const:'life' as const,type:choice==='wrong-type'?'Event' as const:'Character' as const,name:'Source',cost:2,power:3000};state.cards.push(source);
     const started=beginEffectExecution(state,'player','source','trigger',resolveEffectTiming(doc,'trigger').commands);
     if(choice==='condition-unmet'){check(started.complete&&!started.error,'Failed trigger condition did not skip');check(started.execution.state.cards.find(card=>card.id==='source')?.zone==='life','Failed trigger condition moved the card');return;}
-    check(started.requiresSelection&&!started.error,'Trigger play must ask which card to play');
-    const result=advanceEffectExecution(started.execution,{targetId:'source'});
-    if(choice==='wrong-zone'||choice==='wrong-type'){check(result.error&&!result.complete,'Illegal trigger card was played');check(result.execution.state.cards.find(card=>card.id==='source')?.zone===source.zone,'Rejected trigger play mutated the card');return;}
-    check(result.complete&&!result.error,'Eligible trigger card did not play');check(result.execution.state.cards.find(card=>card.id==='source')?.zone==='character','Trigger card entered the wrong zone');
+    if(choice==='wrong-zone'||choice==='wrong-type'){check(started.error&&!started.complete,'Illegal source card was played');check(started.execution.state.cards.find(card=>card.id==='source')?.zone===source.zone,'Rejected source card changed zones');return;}
+    check(started.complete&&!started.error&&!started.requiresSelection,'A qualifying Trigger must play its source card without a second choice');check(started.execution.state.cards.find(card=>card.id==='source')?.zone==='character','Trigger did not play its source card');
    }});
   }
   const readyAndRest=body.match(/^Set up to (\d+) of your DON!! cards as active\. Then, rest all of your opponent's Characters\.$/i);

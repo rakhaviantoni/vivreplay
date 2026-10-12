@@ -24,6 +24,7 @@ export const metadata:Metadata={
 export default async function RootLayout({children}:{children:React.ReactNode}){
   const requestHeaders=await headers();
   const locale=requestHeaders.get('x-locale')==='ID'||requestHeaders.get('x-middleware-rewrite')?.startsWith('/id')?'id':'en';
+  const initialPath=requestHeaders.get('x-vivreplay-path')??'/';
   const structuredData={
     '@context':'https://schema.org',
     '@graph':[
@@ -42,7 +43,7 @@ export default async function RootLayout({children}:{children:React.ReactNode}){
         <DeferredWebFonts/>
         <script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(structuredData)}}/>
         <Script id="error-guard" strategy="beforeInteractive">{`window.addEventListener('error',function(e){if(e&&e.message&&e.message.indexOf("reading 'startTime'")!==-1){e.preventDefault();e.stopImmediatePropagation()}});`}</Script>
-        <Shell>{children}</Shell>
+        <Shell initialPath={initialPath}>{children}</Shell>
       </body>
     </html>
   );

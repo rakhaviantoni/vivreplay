@@ -44,6 +44,7 @@ import {CollectionForm} from './collection-form';
 import {AddEditItemModal} from './vault/modals/add-edit-item-modal';
 import {VivreMark} from './brand-assets';
 import {MarketTimestamp} from './market-timestamp';
+import {LISTING_POLICIES} from '@/lib/market/policy';
 import {ShippingCouriers} from './market-listing-items';
 import {Dialog,DialogContent,DialogDescription,DialogTitle} from '@/components/ui/dialog';
 import {DropdownMenu,DropdownMenuContent,DropdownMenuItem,DropdownMenuLabel,DropdownMenuSeparator,DropdownMenuTrigger} from '@/components/ui/dropdown-menu';
@@ -56,6 +57,7 @@ import {MarketQuickPanel} from './market-quick-panel';
 import {enrichCollectionItem,groupVaultStacks} from './vault/vault-utils';
 import {isPlayableSet} from '@/packages/domain/release-availability';
 import {uniquePrintingIds,matchingPrintingCopies,selectedPrintingCopy} from '@/lib/market/printing-selection';
+import {marketListingPath} from '@/lib/market/listing-url';
 import '@/app/market-account.css';
 type MarketBenchmark={amount:number;currency:string;url:string|null;observedAt:string;confidence:string;normalizedAmount:number|null;normalizedCurrency:string|null};
 type CardPrintingItem={id:string;language:string;variant:string|null;printing_code:string|null;card_image_url:string|null;rarity?:string|null;set_code?:string};
@@ -95,7 +97,7 @@ function MarketFeedCartButton({listing,printingId,locale}:{listing:Listing;print
     sync();window.addEventListener('vivreplay:market-cart-updated',sync);window.addEventListener('storage',sync);return()=>{window.removeEventListener('vivreplay:market-cart-updated',sync);window.removeEventListener('storage',sync)};
   },[listing.id,printingId]);
   const label=locale==='ID'?(inCart?'Sudah di keranjang':'Tambahkan 1 kartu ke keranjang'):(inCart?'In cart · View cart':'Add 1 card to cart');
-  return <button type="button" className={`button secondary is-icon-only market-feed-add-cart${inCart?' is-in-cart':''}`} title={label} aria-label={label} aria-pressed={inCart} onClick={event=>{event.preventDefault();event.stopPropagation();if(inCart){window.dispatchEvent(new Event('vivreplay:open-market-cart'));return;}addFeedListingToCart(listing,printingId,locale)}}>{inCart?<Check size={17}/>:<Cart size={17}/>}</button>;
+  return <button type="button" className={`button secondary is-icon-only market-icon-action market-feed-add-cart${inCart?' is-in-cart':''}`} title={label} aria-label={label} aria-pressed={inCart} onClick={event=>{event.preventDefault();event.stopPropagation();if(inCart){window.dispatchEvent(new Event('vivreplay:open-market-cart'));return;}addFeedListingToCart(listing,printingId,locale)}}>{inCart?<Check size={17}/>:<Cart size={17}/>}</button>;
 }
 function printingToCard(baseCard:Card,p:CardPrintingItem):Card{
   return {
@@ -158,7 +160,7 @@ async function searchMarketCards(value:string,limit:number):Promise<MarketCard[]
   if(!error){const live=((data??[]) as SearchIdentity[]).map(searchedCard).filter((card):card is MarketCard=>Boolean(card));if(live.length)return live;}
   return cards.filter(card=>matchesCardSearch(card,filters)).slice(0,limit);
 }
-function CardSearch({value,onChange,onSelect,locale='EN'}:{value:string;onChange:(value:string)=>void;onSelect:(card:MarketCard)=>void;locale?:'EN'|'ID'}) {
+function CardSearch({value,onChange,onSelect,onAddToVault,locale='EN'}:{value:string;onChange:(value:string)=>void;onSelect:(card:MarketCard)=>void;onAddToVault:(card:MarketCard)=>void;locale?:'EN'|'ID'}) {
   const [results,setResults]=useState<MarketCard[]>([]);
   const [loading,setLoading]=useState(false);
   useEffect(()=>{
@@ -215,14 +217,7 @@ function CardSearch({value,onChange,onSelect,locale='EN'}:{value:string;onChange
             {results.map(card=>{
               const printingsCount=card.availablePrintings?.length||1;
               return (
-                <div
-                  key={card.id}
-                  className="market-sell-card-result"
-                  onClick={()=>onSelect(card)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();onSelect(card);}}}
-                >
+                <div key={card.id} className="market-sell-card-result">
                   <div className="market-sell-card-thumb">
                     <CardArt card={card}/>
                   </div>
@@ -249,14 +244,14 @@ function CardSearch({value,onChange,onSelect,locale='EN'}:{value:string;onChange
                       </span>
                     )}
                   </div>
-                  <button
-                    type="button"
-                    className="market-sell-card-select-btn"
-                    onClick={e=>{e.stopPropagation();onSelect(card);}}
-                  >
-                    <span>{locale==='ID'?'Pilih':'Select'}</span>
-                    <ArrowRight size={14}/>
-                  </button>
+                  <div className="market-sell-card-actions">
+                    <button type="button" className="market-sell-card-select-btn" onClick={()=>onSelect(card)}>
+                      <span>{locale==='ID'?'Pilih':'Select'}</span><ArrowRight size={14}/>
+                    </button>
+                    <button type="button" className="market-sell-card-vault-btn" onClick={()=>onAddToVault(card)}>
+                      {locale==='ID'?'Tambah ke Vault':'Add to Vault'}
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -271,9 +266,18 @@ function CardSearch({value,onChange,onSelect,locale='EN'}:{value:string;onChange
   );
 }
 function VaultCardPicker({items,onSelect,locale='EN'}:{items:CollectionItem[];onSelect:(card:MarketCard,instanceId:string,quantity:number,condition:string)=>void;locale?:'EN'|'ID'}) {
+  const [query,setQuery]=useState('');
+  const filtered=items.filter(item=>{
+    const card=(item.card as MarketCard|undefined)??cardFor(item.printingId);
+    if(!card)return false;
+    const term=query.trim().toLocaleLowerCase();
+    return !term||[card.name,card.code,item.setCode??card.setCode??''].some(value=>value.toLocaleLowerCase().includes(term));
+  });
   return (
-    <div className="market-vault-picker-grid">
-      {items.map(item=>{
+    <div className="market-vault-picker">
+      <label className="market-vault-picker-search"><Search size={16}/><input value={query} onChange={event=>setQuery(event.target.value)} placeholder={locale==='ID'?'Cari di Vault':'Search your Vault'} aria-label={locale==='ID'?'Cari kartu di Vault':'Search cards in your Vault'}/>{query&&<button type="button" onClick={()=>setQuery('')} aria-label={locale==='ID'?'Hapus pencarian':'Clear search'}><X size={14}/></button>}</label>
+      <div className="market-vault-picker-grid">
+      {filtered.map(item=>{
         const card=(item.card as MarketCard|undefined)??cardFor(item.printingId);
         if(!card)return null;
         return (
@@ -295,6 +299,8 @@ function VaultCardPicker({items,onSelect,locale='EN'}:{items:CollectionItem[];on
           </button>
         );
       })}
+      {!filtered.length&&<p className="market-vault-picker-empty">{locale==='ID'?'Tidak ada kartu yang cocok.':'No Vault cards match this search.'}</p>}
+      </div>
     </div>
   );
 }
@@ -473,8 +479,19 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
   // Overall Listing Inputs
   const [listingTitle,setListingTitle]=useState('');
   const [listingPrice,setListingPrice]=useState('');
+  const [liveListingFeePercent,setLiveListingFeePercent]=useState<number|null>(null);
   const [listingNegotiable,setListingNegotiable]=useState(true);
   const [listingCity,setListingCity]=useState('');
+  useEffect(()=>{
+    if(!open||!data?.profile?.id)return;
+    let active=true;
+    fetch('/api/checkout/market',{cache:'no-store'}).then(async response=>{
+      if(!response.ok)return;
+      const result=await response.json() as {sellerFeePercent?:number};
+      if(active&&Number.isFinite(result.sellerFeePercent))setLiveListingFeePercent(result.sellerFeePercent!);
+    }).catch(()=>undefined);
+    return()=>{active=false};
+  },[open,data?.profile?.id]);
   // Benchmark State
   const [benchmark,setBenchmark]=useState<MarketBenchmark|null>(null);
   const [benchmarkLoading,setBenchmarkLoading]=useState(false);
@@ -916,6 +933,9 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
   };
   const totalBundleQuantity=bundleCards.reduce((sum,c)=>sum+c.quantity,0);
   const totalCalculatedUnitSum=bundleCards.reduce((sum,c)=>sum+(c.unitAmount*c.quantity),0);
+  const listingFeePercent=liveListingFeePercent??(String(data?.profile?.tier??'free').toLowerCase()==='pro'?LISTING_POLICIES.pro.commissionPercent:LISTING_POLICIES.free.commissionPercent);
+  const enteredListingTotal=Math.max(0,Number(listingPrice)||0);
+  const estimatedSellerFee=Math.round(enteredListingTotal*listingFeePercent/100);
   return (
     <main className={`market-feed-page${modalOnly?' market-sell-modal-host':''}`}>
       <h1 className="market-page-title">Market</h1>
@@ -1145,7 +1165,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
                 );
                 const rowClass=`market-feed-row ${listing.type==='WTB'?'is-wtb':'is-wts'}${listing.isOwner?'':' has-row-action'}${!listing.isOwner&&listing.type==='WTS'&&items.length===1?' has-cart-action':''}`;
                 return <article key={listing.id} className={`${rowClass} market-feed-entry`}>
-                  <Link href={`/market/${listing.id}`} className="market-feed-row-link" aria-label={locale==='ID'?`Buka ${listing.title}`:`Open ${listing.title}`}>{content}</Link>
+                  <Link href={marketListingPath(listing.title,listing.id)} className="market-feed-row-link" aria-label={locale==='ID'?`Buka ${listing.title}`:`Open ${listing.title}`}>{content}</Link>
                   {!listing.isOwner&&<div className="market-feed-row-actions">
                     {listing.type==='WTS'&&items.length===1&&items[0].quantity>0&&<MarketFeedCartButton listing={listing} printingId={items[0].printingId} locale={locale}/>}
                     <SaveListingButton listingId={listing.id} language={locale} iconOnly/>
@@ -1182,7 +1202,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
         )}
       </div>
       {/* Create Listing Modal Dialog */}
-      <Dialog open={open} onOpenChange={next=>{if(!next)configLoadVersion.current++;setOpen(next)}}>
+      <Dialog open={open} onOpenChange={next=>{if(!next&&(marketVaultOpen||bulkListingOpen))return;if(!next)configLoadVersion.current++;setOpen(next)}}>
         <DialogContent className="listing-dialog market-sell-dialog">
           <div className="market-sell-heading">
             <div className="market-sell-heading-actions"><span>{locale==='ID'?'BUAT LISTING':'CREATE LISTING'}</span><button type="button" className="market-sell-manage-listings" onClick={()=>{setOpen(false);setQuickPanel(null);setAccountPanel('listings')}}><ClipboardText size={15}/>{locale==='ID'?'Listing saya':'My listings'}</button></div>
@@ -1540,6 +1560,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
                     <small style={{fontSize:11,color:'var(--muted)',marginTop:3}}>
                       {locale==='ID'?`Total akumulasi satuan: Rp ${totalCalculatedUnitSum.toLocaleString('id-ID')}`:`Calculated sum: Rp ${totalCalculatedUnitSum.toLocaleString('id-ID')}`}
                     </small>
+                    {enteredListingTotal>0&&<small className="market-sell-fee-estimate">{locale==='ID'?`Biaya penjual (${listingFeePercent}%): Rp ${estimatedSellerFee.toLocaleString('id-ID')} - perkiraan diterima Rp ${(enteredListingTotal-estimatedSellerFee).toLocaleString('id-ID')}`:`Seller fee (${listingFeePercent}%): Rp ${estimatedSellerFee.toLocaleString('id-ID')} - estimated payout Rp ${(enteredListingTotal-estimatedSellerFee).toLocaleString('id-ID')}`}</small>}
                   </label>
                   <label>
                     {locale==='ID'?'Dikirim dari':'Ships from'}
@@ -1580,16 +1601,14 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
                     <span>{locale==='ID'?'Kembali ke rincian listing':'Back to listing details'}</span>
                   </button>
                 )}
-                {/* Segmented Source Switcher if user has Vault cards */}
-                {bundleCards.length===0&&(data?.collection?.length??0)>0&&<button type="button" className="market-vault-bundle-start" onClick={()=>{configLoadVersion.current++;setOpen(false);setBulkListingOpen(true)}}><Cards size={16}/>{locale==='ID'?'Pilih beberapa kartu dari koleksi':'Select multiple cards from Vault'}</button>}
+                {/* Source choices and the bundle action stay together. */}
                 {(data?.collection?.length??0)>0&&(
-                  <div className="market-sell-source-toggle" role="tablist">
+                  <div className="market-sell-source-toggle" role="group" aria-label={locale==='ID'?'Sumber kartu':'Card source'}>
                     <button
                       type="button"
                       className={searchSource==='catalog'?'active':''}
                       onClick={()=>setSearchSource('catalog')}
-                      role="tab"
-                      aria-selected={searchSource==='catalog'}
+                      aria-pressed={searchSource==='catalog'}
                     >
                       <Search size={14}/>
                       <span>{locale==='ID'?'Cari di Katalog':'Search Catalog'}</span>
@@ -1598,12 +1617,14 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
                       type="button"
                       className={searchSource==='vault'?'active':''}
                       onClick={()=>setSearchSource('vault')}
-                      role="tab"
-                      aria-selected={searchSource==='vault'}
+                      aria-pressed={searchSource==='vault'}
                     >
                       <WalletCards size={14}/>
                       <span>{locale==='ID'?`Dari koleksi saya (${data!.collection.length})`:`From My Vault (${data!.collection.length})`}</span>
                     </button>
+                    {bundleCards.length===0&&<button type="button" className="market-sell-bundle-trigger" onClick={()=>setBulkListingOpen(true)} aria-haspopup="dialog">
+                      <Cards size={14}/><span>{locale==='ID'?'Listing bundle':'Bundle listing'}</span>
+                    </button>}
                   </div>
                 )}
                 {searchSource==='vault'&&(data?.collection?.length??0)>0?(
@@ -1617,6 +1638,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
                     value={cardSearch}
                     onChange={setCardSearch}
                     onSelect={card=>loadCardForConfig(card)}
+                    onAddToVault={card=>{setMarketVaultCard(card);setMarketVaultOpen(true);}}
                     locale={locale}
                   />
                 )}
@@ -1627,7 +1649,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
         </DialogContent>
       </Dialog>
       {bulkListingOpen&&<BulkListingModal open={bulkListingOpen} onClose={()=>setBulkListingOpen(false)} language={locale} stacks={groupVaultStacks((data?.collection??[]).map(item=>enrichCollectionItem(item,new Set())))} onPublished={async()=>{await refresh();await refreshAccount()}}/>}
-      {publishedShare&&<ShareButton title={publishedShare.title} path={`/market/${encodeURIComponent(publishedShare.id)}`} cards={publishedShare.cards.map(item=>({card:printingToCard(item.card,item.printing),quantity:item.quantity,condition:item.condition,unitAmount:item.unitAmount}))} subtitle={locale==='ID'?`${publishedShare.cards.reduce((sum,item)=>sum+item.quantity,0)} kartu untuk dijual`:`${publishedShare.cards.reduce((sum,item)=>sum+item.quantity,0)} cards for sale`} price={formatMoney(publishedShare.price,'IDR')} openOnMount hideTrigger onOpenChange={open=>{if(!open)setPublishedShare(null)}}/>}
+      {publishedShare&&<ShareButton title={publishedShare.title} path={marketListingPath(publishedShare.title,publishedShare.id)} cards={publishedShare.cards.map(item=>({card:printingToCard(item.card,item.printing),quantity:item.quantity,condition:item.condition,unitAmount:item.unitAmount}))} subtitle={locale==='ID'?`${publishedShare.cards.reduce((sum,item)=>sum+item.quantity,0)} kartu untuk dijual`:`${publishedShare.cards.reduce((sum,item)=>sum+item.quantity,0)} cards for sale`} price={formatMoney(publishedShare.price,'IDR')} openOnMount hideTrigger onOpenChange={open=>{if(!open)setPublishedShare(null)}}/>}
 
       {data&&<MarketQuickPanel panel={accountPanel??quickPanel} onOpenChange={open=>{if(!open){setAccountPanel(null);setQuickPanel(null)}}} onPanelChange={next=>{if(next==='listings'||next==='offers'||next==='orders'||next==='saved'){setQuickPanel(null);setAccountPanel(next)}else{setAccountPanel(null);setQuickPanel(next)}}} onCreateListing={()=>{setAccountPanel(null);setQuickPanel(null);beginListing()}} locale={locale} account={data} activityCounts={activityCounts} initialOrderId={searchParams.get('order')} initialConversationId={searchParams.get('conversation')} onRefresh={refreshAccount} onSaved={async()=>{await refreshAccount();setAccountPanel(null);setQuickPanel(null)}}/>}
       <AddEditItemModal

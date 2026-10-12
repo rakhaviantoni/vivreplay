@@ -8,6 +8,7 @@
   "scripts": {
     "install:ci": "node scripts/install-ci.mjs",
     "dev": "node scripts/run-framework.mjs dev",
+    "dev:production-data": "node scripts/run-production-data-dev.mjs",
     "build": "node scripts/run-framework.mjs build",
     "a11y": "playwright test --config=playwright.config.ts",
     "start:a11y": "node --import ./scripts/sites-env.mjs ./node_modules/wrangler/bin/wrangler.js dev --config dist/server/wrangler.json --local --persist-to .wrangler/a11y-state --ip 127.0.0.1 --inspector-port 0 --compatibility-date 2026-05-22",
@@ -16,6 +17,7 @@
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate",
     "db:mirror-supabase": "node --env-file=.env.local scripts/mirror-supabase-catalog-to-d1.mjs",
+    "catalog:import-sealed": "node --env-file=.env.local --import tsx scripts/import-sealed-products.ts",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test tests/*.test.ts",
     "effects:verify": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/verify-effect-pipeline.ts",

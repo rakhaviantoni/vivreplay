@@ -20,6 +20,37 @@ test('search scenarios enforce each printed trait notation, exclusions and deck 
   assert.throws(()=>cases.find(c=>c.name.endsWith('wrong-trait'))!.run(broken),/Illegal search choice accepted/);
  }
 });
+test('OP12-001 Activate Main reveals two Events and only boosts a Character at 4000 base power or less',()=>{
+ const effect='Under the rules of this game, you cannot include cards with a cost of 5 or more in your deck.\n[Activate: Main] [Once Per Turn] You may reveal 2 Events from your hand: Up to 1 of your Characters with 4000 base power or less gains +2000 power during this turn.';
+ const document=compileEffectDocument({id:'op12-001',code:'OP12-001',name:'Boa Hancock',color:'Blue',type:'Leader',cost:4,power:5000,rarity:'L',art:0,effect});
+ assert.equal(document.resolver.type,'DSL','Deck-construction reminder must not make the gameplay ability CUSTOM');
+ const commands=resolveEffectTiming(document,'activate-main').commands;
+ const cost=commands.find(command=>command.kind==='pay-cost')?.value;
+ assert.equal(cost?.kind,'reveal-hand-cards');assert.equal(cost?.kind==='reveal-hand-cards'?cost.amount:undefined,2);assert.equal(cost?.optional,true);
+ const power=commands.find(command=>command.kind==='resolve-action')?.value;
+ assert.equal(power?.kind,'power');assert.equal(power?.kind==='power'?power.maxPower:undefined,4000);
+ const state=()=>({turn:'player' as const,cards:[
+  {id:'leader',owner:'player' as const,zone:'leader' as const,type:'Leader' as const,effectSchema:document},
+  {id:'event-a',owner:'player' as const,zone:'hand' as const,type:'Event' as const},{id:'event-b',owner:'player' as const,zone:'hand' as const,type:'Event' as const},
+  {id:'legal',owner:'player' as const,zone:'character' as const,type:'Character' as const,power:4000},{id:'too-strong',owner:'player' as const,zone:'character' as const,type:'Character' as const,power:5000},
+ ],turnEffects:[],restrictions:[],delayed:[]});
+ const started=beginEffectExecution(state(),'player','leader','activate-main',commands);assert(started.requiresSelection,'Ability must ask whether to pay its optional reveal cost');
+ const declined=advanceEffectExecution(started.execution,{choice:'decline'});assert(declined.complete&&!declined.error,'Declining the optional reveal must end the ability cleanly');assert.equal(declined.execution.state.cards.find(card=>card.id==='legal')?.powerModifier,undefined);
+ const accepted=advanceEffectExecution(started.execution,{choice:'accept'});assert(accepted.requiresSelection,'Accepting must ask for exactly two Events');
+ const revealed=advanceEffectExecution(accepted.execution,{cardIds:['event-a','event-b']});assert(revealed.requiresSelection&&!revealed.error,'The power target must follow the reveal cost');
+ const boosted=advanceEffectExecution(revealed.execution,{targetId:'legal'});assert(boosted.complete&&!boosted.error);assert.equal(boosted.execution.state.cards.find(card=>card.id==='legal')?.powerModifier,2000);
+ const invalid=advanceEffectExecution(revealed.execution,{targetId:'too-strong'});assert(invalid.error,'A Character above 4000 base power must be rejected');
+});
+test('OP14-104 On Play chooses exactly one eligible Trash destination and Trigger keeps its broader Character filter',()=>{
+ const effect='[On Play] Select up to 1 {Thriller Bark Pirates} type Character with a cost of 4 or less from your trash and play it or add it to the top of your Life cards face-up. [Trigger] Play up to 1 Character card with a cost of 4 or less from your trash.';
+ const document=compileEffectDocument({id:'op14-104',code:'OP14-104',name:'Gecko Moria',color:'Black',type:'Character',cost:4,power:5000,rarity:'SR',art:0,effect});assert.equal(document.resolver.type,'DSL');
+ const state=()=>({turn:'player' as const,cards:[{id:'source',owner:'player' as const,zone:'character' as const,type:'Character' as const,effectSchema:document},{id:'legal',owner:'player' as const,zone:'trash' as const,type:'Character' as const,cost:4,traits:['Thriller Bark Pirates']},{id:'wrong-trait',owner:'player' as const,zone:'trash' as const,type:'Character' as const,cost:3,traits:['Straw Hat Crew']},{id:'too-costly',owner:'player' as const,zone:'trash' as const,type:'Character' as const,cost:5,traits:['Thriller Bark Pirates']}],turnEffects:[],restrictions:[],delayed:[]});
+ const commands=resolveEffectTiming(document,'on-play').commands,choice=beginEffectExecution(state(),'player','source','on-play',commands);assert(choice.requiresSelection?.includes('Choose one'),'On Play must offer the printed destination choice');
+ const playChoice=advanceEffectExecution(choice.execution,{choice:'option:0'});assert(playChoice.requiresSelection,'Play branch must ask for an eligible Trash Character');const played=advanceEffectExecution(playChoice.execution,{cardIds:['legal']});assert(played.complete&&!played.error&&played.execution.state.cards.find(card=>card.id==='legal')?.zone==='character');
+ const lifeChoice=advanceEffectExecution(choice.execution,{choice:'option:1'});assert(lifeChoice.requiresSelection,'Life branch must ask for an eligible Trash Character');const life=advanceEffectExecution(lifeChoice.execution,{cardIds:['legal']});assert(life.complete&&!life.error&&life.execution.state.cards.find(card=>card.id==='legal')?.zone==='life'&&life.execution.state.cards.find(card=>card.id==='legal')?.faceUp===true);
+ for(const illegal of ['wrong-trait','too-costly']){const start=advanceEffectExecution(choice.execution,{choice:'option:0'});assert(Boolean(advanceEffectExecution(start.execution,{cardIds:[illegal]}).error),`${illegal} must not be playable`);}
+ const trigger=beginEffectExecution(state(),'player','source','trigger',resolveEffectTiming(document,'trigger').commands);assert(trigger.requiresSelection,'Trigger must offer a cost-4-or-less Character without the Thriller Bark Pirates restriction');const triggerDone=advanceEffectExecution(trigger.execution,{cardIds:['wrong-trait']});assert(triggerDone.complete&&!triggerDone.error&&triggerDone.execution.state.cards.find(card=>card.id==='wrong-trait')?.zone==='character');
+});
 test('cost-limited search validates the threshold, look window, bottom placement and referenced Trigger timing',()=>{
  const effect="[Main] Look at 4 cards from the top of your deck; reveal up to 1 card with a cost of 4 or more and add it to your hand. Then, place the rest at the bottom of your deck in any order.\n[Trigger] Activate this card's [Main] effect.";
  const document=compileEffectDocument({id:'test',code:'TEST',name:'Search Event',color:'Purple',type:'Event',cost:1,power:0,rarity:'C',art:0,effect});

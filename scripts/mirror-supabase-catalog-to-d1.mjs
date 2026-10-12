@@ -9,6 +9,7 @@ const tables = [
   'tcg_import_runs',
   'tcg_card_identities',
   'tcg_sets',
+  'tcg_sealed_products',
   'tcg_card_asset_sources',
   'tcg_card_printings',
   'tcg_card_rules',

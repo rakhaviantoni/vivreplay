@@ -2,16 +2,20 @@ import type {MatchEffectState, PlayerId} from './match-effect-state';
 import {matchesCardAttribute,matchesCardName,matchesCardTrait} from './search-eligibility';
 
 export function evaluateEffectCondition(text:string,state:MatchEffectState,actor:PlayerId,sourceCardId?:string):boolean|undefined {
+ if(/^a card in your hand was trashed by an effect during this turn$/i.test(text))return state.turnEffects.some(effect=>effect.kind==='hand-trash-event'&&effect.owner===actor);
  const own=state.cards.filter(card=>card.owner===actor),enemy=state.cards.filter(card=>card.owner!==actor);
  const leader=own.find(card=>card.zone==='leader');
+ const currentPower=(card:(typeof state.cards)[number])=>Math.max(0,(card.power??0)+(card.powerModifier??0)+state.cards.filter(item=>item.owner===card.owner&&item.type==='DON!!'&&item.attachedTo===card.id).length*1000);
  if(/^the revealed card is an Event$/i.test(text)){const id=state.revealedCardIds?.at(-1);return id?state.cards.find(card=>card.id===id)?.type==='Event':false;}
  if(/^it is your opponent's turn$/i.test(text))return state.turn!==actor;
  if(/^it is your turn$/i.test(text))return state.turn===actor;
+ if(/^it is your second turn or later$/i.test(text))return state.turnNumber===undefined?undefined:state.turnNumber>=2;
  if(/^this Character is rested$/i.test(text))return Boolean(state.cards.find(card=>card.id===sourceCardId)?.rested);
  if(/^this Character becomes rested$/i.test(text))return Boolean(state.cards.find(card=>card.id===sourceCardId)?.zone==='character'&&state.cards.find(card=>card.id===sourceCardId)?.rested);
  if(/^this Character was K\.O\.'d by your opponent's effect$/i.test(text))return Boolean(sourceCardId&&state.turnEffects.some(effect=>effect.kind==='character-ko'&&effect.target===sourceCardId&&effect.detail==='effect'&&effect.owner!==actor));
  if(/^you added a card from your Life to your hand$/i.test(text))return state.turnEffects.some(effect=>effect.kind==='life-added-to-hand'&&effect.owner===actor&&effect.target===sourceCardId);
  if(/^you trashed cards from your deck$/i.test(text))return state.turnEffects.some(effect=>effect.kind==='trash-from-deck'&&effect.owner===actor&&effect.target===sourceCardId&&(effect.amount??0)>0);
+ if(/^your deck has 0 cards$/i.test(text))return !own.some(card=>card.zone==='deck');
  if(/^this Character is active$/i.test(text))return Boolean(sourceCardId&&state.cards.find(card=>card.id===sourceCardId)&&!state.cards.find(card=>card.id===sourceCardId)?.rested);
  if(/^your Leader is active$/i.test(text))return Boolean(leader&&!leader.rested);
  if(/^this Character was played on this turn$/i.test(text))return Boolean(sourceCardId&&(state.playedThisTurn??[]).includes(sourceCardId));
@@ -24,6 +28,10 @@ export function evaluateEffectCondition(text:string,state:MatchEffectState,actor
  if(name)return Boolean(leader&&matchesCardName(leader,name[1]));
  const namedCharacter=text.match(/^you have (?:a )?\[([^\]]+)\](?: or \[([^\]]+)\])? Character$/i);
  if(namedCharacter){const names=namedCharacter.slice(1).filter(Boolean);return own.some(card=>card.zone==='character'&&names.some(value=>matchesCardName(card,value!)));}
+ const typedCharacter=text.match(/^you have (?:a )?(?:\{([^}]+)\}|\[([^\]]+)\]|"([^"]+)") type Characters?$/i);
+ if(typedCharacter){const trait=typedCharacter[1]??typedCharacter[2]??typedCharacter[3]!;return own.some(card=>card.zone==='character'&&matchesCardTrait(card,trait));}
+ const absentNamedCharacter=text.match(/^you do not have \[([^\]]+)\] Character$/i);
+ if(absentNamedCharacter)return !own.some(card=>card.zone==='character'&&matchesCardName(card,absentNamedCharacter[1]));
  const restedNamedCharacter=text.match(/^you have a rested \[([^\]]+)\]$/i);
  if(restedNamedCharacter)return own.some(card=>card.zone==='character'&&card.rested&&matchesCardName(card,restedNamedCharacter[1]));
  const namedCard=text.match(/^you have \[([^\]]+)\]$/i);
@@ -40,8 +48,13 @@ export function evaluateEffectCondition(text:string,state:MatchEffectState,actor
  if(opponentCharacterCost){const limit=Number(opponentCharacterCost[1]),comparison=opponentCharacterCost[2]?.toLowerCase();return enemy.some(card=>card.zone==='character'&&(comparison==='less'?(card.cost??Infinity)<=limit:comparison==='more'?(card.cost??-Infinity)>=limit:(card.cost??Infinity)===limit));}
  const trait=text.match(/^your Leader (?:has the [\[{"]([^\]}" ]+(?: [^\]}" ]+)*)[\]}" ] type|type includes "([^"]+)")$/i);
  if(trait)return Boolean(leader&&matchesCardTrait(leader,trait[1]??trait[2]));
+ const leaderNameOrTrait=text.match(/^your Leader is \[([^\]]+)\] or has the (?:\{([^}]+)\}|\[([^\]]+)\]|"([^"]+)") type$/i);
+ if(leaderNameOrTrait)return Boolean(leader&&(matchesCardName(leader,leaderNameOrTrait[1])||matchesCardTrait(leader,leaderNameOrTrait[2]??leaderNameOrTrait[3]??leaderNameOrTrait[4]!)));
+ const onlyTypedCharacters=text.match(/^the only Characters on your field are (?:\{([^}]+)\}|\[([^\]]+)\]|"([^"]+)") type Characters?$/i);
+ if(onlyTypedCharacters){const traitName=onlyTypedCharacters[1]??onlyTypedCharacters[2]??onlyTypedCharacters[3]!,characters=own.filter(card=>card.zone==='character');return characters.every(card=>matchesCardTrait(card,traitName));}
  const onlyTrait=text.match(/^you only have Characters? with a type including "([^"]+)"$/i);
  if(onlyTrait){const characters=own.filter(card=>card.zone==='character');return characters.length>0&&characters.every(card=>card.traits?.some(value=>value.toLowerCase()===onlyTrait[1].toLowerCase()));}
+ if(/^you only have Characters? without a Counter$/i.test(text))return own.filter(card=>card.zone==='character').every(card=>!(card.counter??0));
  const leaderAttribute=text.match(/^your Leader has the \(?(Slash|Ranged|Wisdom|Strike|Special)\)? attribute$/i);
  if(leaderAttribute)return Boolean(leader&&matchesCardAttribute(leader,leaderAttribute[1]));
  if(/^your Leader has the attribute$/i.test(text)){
@@ -56,9 +69,18 @@ export function evaluateEffectCondition(text:string,state:MatchEffectState,actor
  const eitherDon=text.match(/^either you or your opponent has (\d+) DON!! cards on the field$/i);
  if(eitherDon){const count=(cards:typeof own)=>cards.filter(card=>card.type==='DON!!'&&(card.zone==='cost-area'||Boolean(card.attachedTo))).length;return count(own)>=Number(eitherDon[1])||count(enemy)>=Number(eitherDon[1]);}
  if(/^either you or your opponent has 0 Life cards$/i.test(text))return own.every(card=>card.zone!=='life')||enemy.every(card=>card.zone!=='life');
+ if(/^you have 0 Life cards$/i.test(text))return own.every(card=>card.zone!=='life');
  const exactDon=text.match(/^you have (\d+) DON!! cards on your field$/i);
  if(exactDon)return own.filter(card=>card.type==='DON!!'&&(card.zone==='cost-area'||Boolean(card.attachedTo))).length===Number(exactDon[1]);
  if(/^you have any DON!! cards on your field$/i.test(text))return own.some(card=>card.type==='DON!!'&&(card.zone==='cost-area'||Boolean(card.attachedTo)));
+ const givenDonThreshold=text.match(/^you have (?:a total of )?(\d+) or more given DON!! cards$/i);
+ if(givenDonThreshold)return own.filter(card=>card.type==='DON!!'&&Boolean(card.attachedTo)).length>=Number(givenDonThreshold[1]);
+ if(/^you have any DON!! cards given$/i.test(text))return own.some(card=>card.type==='DON!!'&&Boolean(card.attachedTo));
+ if(/^your opponent has more DON!! cards on their field than you$/i.test(text)){const count=(cards:typeof own)=>cards.filter(card=>card.type==='DON!!'&&(card.zone==='cost-area'||Boolean(card.attachedTo))).length;return count(enemy)>count(own);}
+ const traitAlternativeCount=text.match(/^you have (\d+) or (less|more) (?:\[([^\]]+)\]|\{([^}]+)\}|"([^"]+)") or (?:\[([^\]]+)\]|\{([^}]+)\}|"([^"]+)") type Characters? on your field$/i);
+ if(traitAlternativeCount){const traitNames=traitAlternativeCount.slice(3).filter(Boolean) as string[],count=own.filter(card=>card.zone==='character'&&traitNames.some(traitName=>matchesCardTrait(card,traitName))).length,limit=Number(traitAlternativeCount[1]);return traitAlternativeCount[2].toLowerCase()==='less'?count<=limit:count>=limit;}
+ const givenDonBounds=text.match(/^you have (\d+) or (\d+) or more DON!! cards on your field$/i);
+ if(givenDonBounds){const count=own.filter(card=>card.type==='DON!!'&&(card.zone==='cost-area'||Boolean(card.attachedTo))).length;return count===Number(givenDonBounds[1])||count>=Number(givenDonBounds[2]);}
  const characterThreshold=text.match(/^(you have|your opponent has) (\d+) or (less|more) Characters?$/i);
  if(characterThreshold){const pool=characterThreshold[1].toLowerCase()==='you have'?own:enemy,count=pool.filter(card=>card.zone==='character').length;return characterThreshold[3].toLowerCase()==='less'?count<=Number(characterThreshold[2]):count>=Number(characterThreshold[2]);}
  const poweredCharacterThreshold=text.match(/^(you have|your opponent has) (\d+) or more Characters? with (?:(?:a )?base power of (\d+)|(\d+) base power) or more$/i);
@@ -74,16 +96,24 @@ export function evaluateEffectCondition(text:string,state:MatchEffectState,actor
  const lifeComparison=text.match(/^you have less Life cards than your opponent$/i);if(lifeComparison)return own.filter(card=>card.zone==='life').length<enemy.filter(card=>card.zone==='life').length;
  const characterCountLimit=text.match(/^you have (\d+) or (less|more) Characters?$/i);
  if(characterCountLimit){const count=own.filter(card=>card.zone==='character').length,limit=Number(characterCountLimit[1]);return characterCountLimit[2].toLowerCase()==='less'?count<=limit:count>=limit;}
+ const exactCharacterCount=text.match(/^you have (\d+) Characters?$/i);
+ if(exactCharacterCount)return own.filter(card=>card.zone==='character').length===Number(exactCharacterCount[1]);
  const notEnoughCostedCharacters=text.match(/^you do not have (\d+) Characters? with a cost of (\d+) or more$/i);
  if(notEnoughCostedCharacters)return own.filter(card=>card.zone==='character'&&(card.cost??0)>=Number(notEnoughCostedCharacters[2])).length<Number(notEnoughCostedCharacters[1]);
  const boardPower=text.match(/^your opponent has a Leader or Character with a base power of (\d+) or more$/i);
  if(boardPower)return enemy.some(card=>(card.zone==='leader'||card.zone==='character')&&(card.power??0)>=Number(boardPower[1]));
  const opponentCharacterPower=text.match(/^your opponent has a Character with (\d+) power or more$/i);
- if(opponentCharacterPower)return enemy.some(card=>card.zone==='character'&&(card.power??0)+(card.powerModifier??0)>=Number(opponentCharacterPower[1]));
+ if(opponentCharacterPower)return enemy.some(card=>card.zone==='character'&&currentPower(card)>=Number(opponentCharacterPower[1]));
+ const opponentCharacterPowerAlternative=text.match(/^your opponent has a Character with (\d+) or more power$/i);
+ if(opponentCharacterPowerAlternative)return enemy.some(card=>card.zone==='character'&&currentPower(card)>=Number(opponentCharacterPowerAlternative[1]));
  const ownLeaderPower=text.match(/^your Leader has (\d+) power or less$/i);
  if(ownLeaderPower)return Boolean(leader&&Math.max(0,(leader.power??0)+(leader.powerModifier??0))<=Number(ownLeaderPower[1]));
  const ownCharacterPower=text.match(/^you have a Character with (\d+) power or more$/i);
- if(ownCharacterPower)return own.some(card=>card.zone==='character'&&(card.power??0)+(card.powerModifier??0)>=Number(ownCharacterPower[1]));
+ if(ownCharacterPower)return own.some(card=>card.zone==='character'&&currentPower(card)>=Number(ownCharacterPower[1]));
+ const thisCharacterPower=text.match(/^this Character has (\d+) power or more$/i);
+ if(thisCharacterPower){const source=sourceCardId?state.cards.find(card=>card.id===sourceCardId):undefined;return Boolean(source&&source.owner===actor&&source.zone==='character'&&currentPower(source)>=Number(thisCharacterPower[1]));}
+ const poweredCharacterThresholdAny=text.match(/^(you have|your opponent has) (\d+) or (less|more) Characters? with (\d+) power or more$/i);
+ if(poweredCharacterThresholdAny){const pool=poweredCharacterThresholdAny[1].toLowerCase()==='you have'?own:enemy,count=pool.filter(card=>card.zone==='character'&&currentPower(card)>=Number(poweredCharacterThresholdAny[4])).length,limit=Number(poweredCharacterThresholdAny[2]);return poweredCharacterThresholdAny[3].toLowerCase()==='less'?count<=limit:count>=limit;}
  const donGap=text.match(/^the number of DON!! cards on your field is at least (\d+) less than the number on your opponent's field$/i);
  if(donGap){const field=(cards:typeof own)=>cards.filter(card=>card.type==='DON!!'&&(card.zone==='cost-area'||Boolean(card.attachedTo))).length;return field(own)<=field(enemy)-Number(donGap[1]);}
  const anyCharacterPower=text.match(/^there is a Character with (\d+) base power or more$/i);
@@ -93,9 +123,11 @@ export function evaluateEffectCondition(text:string,state:MatchEffectState,actor
   const field=(cards:typeof own)=>cards.filter(card=>card.type==='DON!!'&&(card.zone==='cost-area'||Boolean(card.attachedTo))).length;
   return field(own)<=field(enemy);
  }
- const restedCards=text.match(/^you have (\d+) or more rested cards$/i);if(restedCards)return own.filter(card=>card.rested&&(card.zone==='character'||card.zone==='leader'||card.zone==='stage'||card.zone==='cost-area')).length>=Number(restedCards[1]);
+ const restedCards=text.match(/^(you have|your opponent has) (\d+) or (less|more) rested cards$/i);if(restedCards){const pool=restedCards[1].toLowerCase()==='you have'?own:enemy,count=pool.filter(card=>card.rested&&(card.zone==='character'||card.zone==='leader'||card.zone==='stage'||card.zone==='cost-area')).length,limit=Number(restedCards[2]);return restedCards[3].toLowerCase()==='less'?count<=limit:count>=limit;}
  const restedDon=text.match(/^you have (\d+) or more rested DON!! cards?$/i);if(restedDon)return own.filter(card=>card.type==='DON!!'&&card.rested&&(card.zone==='cost-area'||Boolean(card.attachedTo))).length>=Number(restedDon[1]);
  const threshold=text.match(/^(you have|your opponent has) (\d+) or (less|more) (Life cards|cards in your hand|cards in their hand|cards in your trash|Events in your trash|cards in your deck|cards in their deck|DON!! cards on (?:your|their) field|rested Characters)$/i);
  if(threshold){const pool=threshold[1].toLowerCase()==='you have'?own:enemy;const subject=threshold[4].toLowerCase();const count=pool.filter(card=>subject==='life cards'?card.zone==='life':subject.includes('hand')?card.zone==='hand':subject==='cards in your deck'||subject==='cards in their deck'?card.zone==='deck':subject.includes('events in your trash')?card.zone==='trash'&&card.type==='Event':subject.includes('trash')?card.zone==='trash':subject==='rested characters'?card.zone==='character'&&card.rested:card.type==='DON!!'&&(card.zone==='cost-area'||Boolean(card.attachedTo))).length;return threshold[3].toLowerCase()==='less'?count<=Number(threshold[2]):count>=Number(threshold[2]);}
+ const alternatives=text.split(/\s+or\s+/i);
+ if(alternatives.length>1){const results=alternatives.map(part=>evaluateEffectCondition(part,state,actor,sourceCardId));if(results.includes(true))return true;return results.includes(undefined)?undefined:false;}
  return undefined;
 }

@@ -16,6 +16,7 @@ import {formatMoney} from '@/packages/domain';
 import {cardFor} from '@/packages/card-data/catalog';
 import {CardArt} from '@/components/tcg/card-art';
 import {IntroCardRail} from '@/components/tcg/intro-card-rail';
+import {marketListingPath} from '@/lib/market/listing-url';
 
 export const metadata = privateMetadata('Player profile', 'Player profiles are available by direct link only.');
 export const dynamic = 'force-dynamic';
@@ -216,7 +217,7 @@ export default async function Page({params}: {params: Promise<{username: string}
                   } : undefined) ?? cardFor(item.printingId);
                   return (
                     <article key={item.id} className="player-listing-card">
-                      <Link href={`/market/${item.id}`} className="player-listing-card-art">
+                      <Link href={marketListingPath(item.title,item.id)} className="player-listing-card-art">
                         {card ? <CardArt card={card}/> : <div className="player-listing-art-placeholder"><Cards size={32}/></div>}
                       </Link>
                       <div className="player-listing-card-copy">

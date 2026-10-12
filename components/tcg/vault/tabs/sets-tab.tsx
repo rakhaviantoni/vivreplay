@@ -15,6 +15,7 @@ import { CardArt } from '../card-art';
 import type { Card } from '@/packages/card-data/catalog';
 import type { SetProgress, EnrichedCollectionItem } from '../types';
 import {versionedCardCatalogUrl} from '@/lib/card-catalog-cache';
+import {VaultPanelEmpty} from '../vault-panel-empty';
 
 interface SetsTabProps {
   language: 'EN'|'ID';
@@ -23,7 +24,7 @@ interface SetsTabProps {
   onShareProgress: (set: SetProgress) => void;
   onFindMissingInMarket: (setCode: string) => void;
   onSelectItem: (item: EnrichedCollectionItem) => void;
-  wishlistSetCodes?: string[];
+  wishlistSetCodes?: Array<{code:string;language:string}>;
 }
 type SetRow={code:string;name:string;releaseYear:number;mainSetTotal:number;parallelsTotal:number};
 
@@ -39,6 +40,7 @@ export function SetsTab({
   const id=language==='ID';
   const t=(en:string,indo:string)=>id?indo:en;
   const [activeSetCode, setActiveSetCode] = useState<string | null>(null);
+  const [cardLanguage,setCardLanguage]=useState<'EN'|'JP'>('EN');
   const [filterMissingOnly, setFilterMissingOnly] = useState(false);
   const [variantFilter, setVariantFilter] = useState<'all' | 'standard' | 'parallel'>('all');
   const [catalogCards,setCatalogCards]=useState<Card[]>([]);
@@ -49,25 +51,27 @@ export function SetsTab({
   const [showAllSets,setShowAllSets]=useState(false);
   const [preview,setPreview]=useState<Card|null>(null);
 
-  useEffect(()=>{let active=true;fetch(versionedCardCatalogUrl('/api/cards/sets')).then(response=>{if(!response.ok)throw new Error('Set catalog unavailable');return response.json() as Promise<{sets?:SetRow[]}>}).then(result=>{if(active&&result.sets?.length)setCatalogSets(result.sets)}).catch(()=>{});return()=>{active=false}},[]);
+  useEffect(()=>{try{if(window.localStorage.getItem('vault-set-language')==='JP')setCardLanguage('JP')}catch{}},[]);
+  useEffect(()=>{let active=true;setCatalogSets([]);fetch(versionedCardCatalogUrl(`/api/cards/sets?language=${cardLanguage}`)).then(response=>{if(!response.ok)throw new Error('Set catalog unavailable');return response.json() as Promise<{sets?:SetRow[]}>}).then(result=>{if(active&&result.sets)setCatalogSets(result.sets)}).catch(()=>{});return()=>{active=false}},[cardLanguage]);
+  useEffect(()=>{try{window.localStorage.setItem('vault-set-language',cardLanguage)}catch{}},[cardLanguage]);
 
   const allProgressList=React.useMemo(()=>{
-    const source=catalogSets.length?catalogSets:progressList.map(set=>({code:set.code,name:set.name,releaseYear:set.releaseYear,mainSetTotal:set.mainSetTotal,parallelsTotal:set.parallelsTotal}));
+    const source=catalogSets.length?catalogSets:cardLanguage==='EN'?progressList.map(set=>({code:set.code,name:set.name,releaseYear:set.releaseYear,mainSetTotal:set.mainSetTotal,parallelsTotal:set.parallelsTotal})):[];
     return source.map(set=>{
       const normalized=set.code.toUpperCase().replace(/[-_\s]/g,'');
-      const owned=items.filter(item=>(item.setCode||item.card.setCode||'').toUpperCase().replace(/[-_\s]/g,'')===normalized);
+      const owned=items.filter(item=>(item.language||item.card.language||'EN').toUpperCase()===cardLanguage&&(item.setCode||item.card.setCode||'').toUpperCase().replace(/[-_\s]/g,'')===normalized);
       const mainOwned=new Set(owned.map(item=>item.card.code)).size;
       const parallelOwned=new Set(owned.filter(item=>/parallel|manga|alt/i.test(item.variant||item.card.variant||'')).map(item=>item.card.code)).size;
       const percentage=set.mainSetTotal?Math.min(100,Number((mainOwned/set.mainSetTotal*100).toFixed(1))):0;
-      return{code:set.code,name:set.name,releaseYear:set.releaseYear,totalCards:set.mainSetTotal,ownedCount:mainOwned,percentage,mainSetOwned:mainOwned,mainSetTotal:set.mainSetTotal,parallelsOwned:parallelOwned,parallelsTotal:set.parallelsTotal,isComplete:percentage>=100};
+      return{code:set.code,name:set.name,releaseYear:set.releaseYear,language:cardLanguage,totalCards:set.mainSetTotal,ownedCount:mainOwned,percentage,mainSetOwned:mainOwned,mainSetTotal:set.mainSetTotal,parallelsOwned:parallelOwned,parallelsTotal:set.parallelsTotal,isComplete:percentage>=100};
     });
-  },[catalogSets,progressList,items]);
+  },[catalogSets,progressList,items,cardLanguage]);
 
   useEffect(()=>{
     if(!activeSetCode)return;
     const controller=new AbortController();
     setCatalogLoading(true);setCatalogError(false);setCatalogCards([]);
-    fetch(versionedCardCatalogUrl(`/api/cards/catalog?language=EN&set=${encodeURIComponent(activeSetCode)}`),{signal:controller.signal})
+    fetch(versionedCardCatalogUrl(`/api/cards/catalog?language=${cardLanguage}&set=${encodeURIComponent(activeSetCode)}`),{signal:controller.signal})
       .then(response=>{if(!response.ok)throw new Error('catalog unavailable');return response.json() as Promise<{cards?:Array<Record<string,unknown>>}>})
       .then(payload=>{
         if(controller.signal.aborted)return;
@@ -84,7 +88,7 @@ export function SetsTab({
       .catch(()=>{if(!controller.signal.aborted)setCatalogError(true)})
       .finally(()=>{if(!controller.signal.aborted)setCatalogLoading(false)});
     return()=>controller.abort();
-  },[activeSetCode,catalogAttempt]);
+  },[activeSetCode,catalogAttempt,cardLanguage]);
 
   const selectedSet = allProgressList.find(s => s.code === activeSetCode);
 
@@ -96,7 +100,7 @@ export function SetsTab({
     const ownedMap = new Map<string, EnrichedCollectionItem>();
     items.forEach(item => {
       const itemSet=(item.setCode||item.card.setCode||'').toUpperCase().replace(/[-_\s]/g,'');
-      if (itemSet === activeSetCode.toUpperCase().replace(/[-_\s]/g,'')) {
+      if ((item.language||item.card.language||'EN').toUpperCase()===cardLanguage&&itemSet === activeSetCode.toUpperCase().replace(/[-_\s]/g,'')) {
         ownedMap.set(item.card.code, item);
       }
     });
@@ -143,7 +147,7 @@ export function SetsTab({
         <div className="vault-set-card" style={{ marginBottom: '24px' }}>
           <div className="vault-set-header">
             <div>
-              <span className="vault-set-code">{selectedSet.code}</span>
+              <span className="vault-set-code">{selectedSet.code} / {cardLanguage}</span>
               <h2 className="vault-set-title">{selectedSet.name}</h2>
               <p style={{ fontSize: '12px', color: 'var(--vault-ink-secondary)', margin: '4px 0 0' }}>
                 {t('Browse every card in this set. Cards in your collection are marked.','Lihat semua kartu dalam set ini. Kartu yang sudah ada di koleksi akan ditandai.')}
@@ -247,14 +251,14 @@ export function SetsTab({
             );
           })}
         </div>
-        {preview&&<CardPreviewModal card={preview} language="EN" cards={setAllCards} onClose={()=>setPreview(null)} onNavigate={setPreview}/>}
+        {preview&&<CardPreviewModal card={preview} language={cardLanguage} cards={setAllCards} onClose={()=>setPreview(null)} onNavigate={setPreview}/>}
       </div>
     );
   }
 
   const activeCodes=new Set([
-    ...items.map(item=>item.setCode||item.card.setCode||'').filter(Boolean).map(code=>code.toUpperCase().replace(/[-_\s]/g,'')),
-    ...wishlistSetCodes.map(code=>code.toUpperCase().replace(/[-_\s]/g,'')),
+    ...items.filter(item=>(item.language||item.card.language||'EN').toUpperCase()===cardLanguage).map(item=>item.setCode||item.card.setCode||'').filter(Boolean).map(code=>code.toUpperCase().replace(/[-_\s]/g,'')),
+    ...wishlistSetCodes.filter(set=>set.language.toUpperCase()===cardLanguage).map(set=>set.code.toUpperCase().replace(/[-_\s]/g,'')),
   ]);
   const activeSets=allProgressList.filter(set=>activeCodes.has(set.code.toUpperCase().replace(/[-_\s]/g,'')));
   const shownSets=showAllSets?allProgressList:activeSets;
@@ -264,7 +268,7 @@ export function SetsTab({
       <div className="vault-sets-heading">
         <div>
           <h2>{t('Set progress','Progres set')}</h2>
-          <p>{showAllSets?t('Browse every supported set.','Lihat semua set yang tersedia.'):t('Sets with cards in your Vault or Wishlist.','Set yang memiliki kartu di Koleksi atau Wishlist.')}</p>
+          <p>{showAllSets?t('Browse every supported set. Progress is tracked separately by language.','Lihat semua set yang tersedia. Progres tiap bahasa dihitung terpisah.'):t('Sets with cards in your Vault or Wishlist. Progress is tracked separately by language.','Set yang memiliki kartu di Koleksi atau Wishlist. Progres tiap bahasa dihitung terpisah.')}</p>
         </div>
         <div className="vault-sets-switch" role="group" aria-label={t('Set list','Daftar set')}>
           <button type="button" className={!showAllSets?'is-active':''} aria-pressed={!showAllSets} onClick={()=>setShowAllSets(false)}>{t('Your sets','Set Anda')} <span>{activeSets.length}</span></button>
@@ -272,8 +276,13 @@ export function SetsTab({
         </div>
       </div>
 
+      <div className="vault-sets-language" role="group" aria-label={t('Card language','Bahasa kartu')}>
+        <span>{t('Card language','Bahasa kartu')}</span>
+        {(['EN','JP'] as const).map(value=><button type="button" key={value} className={cardLanguage===value?'is-active':''} aria-pressed={cardLanguage===value} onClick={()=>{setCardLanguage(value);setActiveSetCode(null);setFilterMissingOnly(false)}}>{value==='EN'?'English':'日本語'} <small>{value}</small></button>)}
+      </div>
+
       <div className="vault-sets-overview">
-        {!shownSets.length&&<div className="vault-sets-empty"><p>{t('Your Vault and Wishlist do not have cards from a supported set yet.','Koleksi dan Wishlist Anda belum berisi kartu dari set yang tersedia.')}</p><button type="button" className="vault-btn vault-btn-secondary" onClick={()=>setShowAllSets(true)}>{t('Browse all sets','Lihat semua set')}</button></div>}
+        {!shownSets.length&&<VaultPanelEmpty title={showAllSets?t(`No ${cardLanguage} sets are available yet.`,`Belum ada set ${cardLanguage} yang tersedia.`):t(`No ${cardLanguage} sets in your Vault or Wishlist yet.`,`Belum ada set ${cardLanguage} di Koleksi atau Wishlist Anda.`)} description={showAllSets?t('Try another language or check back later.','Coba bahasa lain atau periksa kembali nanti.'):t('Sets appear here when you add a card or save one to your Wishlist.','Set akan muncul setelah Anda menambahkan kartu atau menyimpannya ke Wishlist.')}/>}
         {shownSets.map(set => (
           <div key={set.code} className="vault-set-card">
             <div className="vault-set-header">

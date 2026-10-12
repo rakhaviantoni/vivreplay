@@ -98,11 +98,12 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     const profile=await user();
     const {id}=await params;
     const database=db();
-    const order=await database.prepare("SELECT o.id,o.kind,o.buyer_id AS buyerId,o.seller_id AS sellerId,o.items,o.currency,o.status,l.title FROM checkout_orders o LEFT JOIN listings l ON l.id=o.listing_id WHERE o.id=?").bind(id).first<{id:string;kind:string;buyerId:string;sellerId:string|null;items:string;currency:string;status:string;title:string|null}>();
+    const order=await database.prepare("SELECT o.id,o.kind,o.buyer_id AS buyerId,o.seller_id AS sellerId,o.items,o.currency,o.status,o.delivered_at AS deliveredAt,l.title FROM checkout_orders o LEFT JOIN listings l ON l.id=o.listing_id WHERE o.id=?").bind(id).first<{id:string;kind:string;buyerId:string;sellerId:string|null;items:string;currency:string;status:string;deliveredAt:string|null;title:string|null}>();
     if(!order||order.buyerId!==profile.id)throw new HttpError(404,'Order was not found.');
     if(order.kind!=='MARKET')throw new HttpError(400,'Only delivered Market orders can be added to your Vault.');
     if(order.status==='RECEIVED')return Response.json({ok:true,status:'RECEIVED'});
     if(order.status!=='SHIPPED')throw new HttpError(409,'The seller must arrange shipping before delivery can be confirmed.');
+    if(!order.deliveredAt)throw new HttpError(409,'The carrier has not marked this order as delivered yet.');
     let items:Array<{printingId:string;quantity:number;unitAmount?:number;condition?:string}>;
     try{items=JSON.parse(order.items) as typeof items}catch{throw new HttpError(500,'The order cards could not be loaded.');}
     if(!items.length)throw new HttpError(400,'This order has no cards to add.');
@@ -128,7 +129,7 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
       }
     }
     statements.push(database.prepare("UPDATE checkout_orders SET status='RECEIVED',fulfilled_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=? AND buyer_id=? AND status='RECEIVING'").bind(id,profile.id));
-    const claim=await database.prepare(`UPDATE checkout_orders SET status='RECEIVING' WHERE id=? AND buyer_id=? AND status='SHIPPED' AND NOT EXISTS(SELECT 1 FROM market_disputes WHERE order_id=? AND status!='RESOLVED')`).bind(id,profile.id,id).run();
+    const claim=await database.prepare(`UPDATE checkout_orders SET status='RECEIVING' WHERE id=? AND buyer_id=? AND status='SHIPPED' AND delivered_at IS NOT NULL AND NOT EXISTS(SELECT 1 FROM market_disputes WHERE order_id=? AND status!='RESOLVED')`).bind(id,profile.id,id).run();
     if(!claim.meta.changes)throw new HttpError(409,'This order has an open report or was updated elsewhere. Refresh the order before continuing.');
     try{await database.batch(statements)}catch(error){await database.prepare("UPDATE checkout_orders SET status='SHIPPED' WHERE id=? AND status='RECEIVING'").bind(id).run();throw error;}
     if(order.sellerId)await sendMarketEmail(order.sellerId,'order-received',order.title||'Market order',order.id);

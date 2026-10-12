@@ -2,7 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {applyEffectAction,beginTurn,characterBattleLosers,declareAttack,declareBlock,effectiveCardPower,effectivePlayCost,expireEffectModifiers,payEffectCost,playCard,playCounters,resolveBattle,type MatchEffectState} from '../packages/domain/match-effect-state';
 import {executeEffectCommands,resolveCardEffect,resolveEffectTiming} from '../packages/domain/effect-runtime';
-import {beginEffectExecution} from '../packages/domain/effect-controller';
+import {advanceEffectExecution,beginEffectExecution} from '../packages/domain/effect-controller';
 import {compileEffectDocument,type EffectAction} from '../packages/domain/effect-rules';
 import type {Card} from '../packages/card-data/catalog';
 
@@ -23,6 +23,77 @@ test('Character battle losses resolve lower-power and equal-power clashes for bo
  assert.deepEqual(characterBattleLosers('attacker','defender',5000,5000),['attacker','defender']);
  assert.deepEqual(characterBattleLosers('leader','defender',5000,5000,true),['defender']);
  assert.deepEqual(characterBattleLosers('leader','defender',4000,5000,true),[]);
+});
+
+test('OP11-110 life-to-hand payment gates its cost-1 K.O. and its replacement only rests a legal Leader',()=>{
+ const text="If this Character would be K.O.'d, you may rest 1 of your [Fish-Man Island] or your [Shirahoshi] Leader instead.\n[On Play] You may add 1 card from the top or bottom of your Life cards to your hand: K.O. up to 1 of your opponent's Characters with a cost of 1 or less.";
+ const document=compileEffectDocument({id:'fukaboshi',code:'OP11-110',name:'Fukaboshi',color:'Blue',type:'Character',cost:4,power:5000,counter:0,rarity:'R',art:0,effect:text});
+ assert.equal(document.resolver.type,'DSL');
+ const onPlay=resolveEffectTiming(document,'on-play');
+ assert.equal(onPlay.status,'ready');
+ assert.deepEqual(onPlay.commands.map(command=>command.kind),['pay-cost','resolve-action']);
+ const base=state(),lifeTop={id:'life-top',owner:'player' as const,zone:'life' as const,type:'Character' as const},lifeBottom={id:'life-bottom',owner:'player' as const,zone:'life' as const,type:'Character' as const},fukaboshi={id:'fukaboshi',owner:'player' as const,zone:'character' as const,type:'Character' as const,name:'Fukaboshi',effectSchema:document},legalTarget={id:'cost-one',owner:'opponent' as const,zone:'character' as const,type:'Character' as const,cost:1},illegalTarget={id:'cost-two',owner:'opponent' as const,zone:'character' as const,type:'Character' as const,cost:2};
+ const board={...base,cards:[...base.cards,lifeTop,lifeBottom,fukaboshi,legalTarget,illegalTarget]};
+ const initial=beginEffectExecution(board,'player','fukaboshi','on-play',onPlay.commands);
+ assert.ok(initial.requiresSelection,'The optional top-or-bottom Life payment should be presented before the K.O.');
+ const paid=advanceEffectExecution(initial.execution,{choice:'accept',position:'bottom'});
+ assert.ok(paid.requiresSelection,'After paying, the effect should ask for an eligible Character.');
+ assert.equal(paid.execution.state.cards.find(card=>card.id==='life-bottom')?.zone,'hand');
+ const rejected=advanceEffectExecution(paid.execution,{targetId:'cost-two'});
+ assert.match(rejected.error??'',/outside the printed effect target|cost limit/i);
+ const resolved=advanceEffectExecution(paid.execution,{targetId:'cost-one'});
+ assert.equal(resolved.execution.state.cards.find(card=>card.id==='cost-one')?.zone,'trash');
+ const declined=advanceEffectExecution(initial.execution,{choice:'decline'});
+ assert.equal(declined.execution.state.cards.find(card=>card.id==='life-top')?.zone,'life');
+ assert.equal(declined.execution.state.cards.find(card=>card.id==='cost-one')?.zone,'character');
+
+ const replacement=document.ast.find(ability=>ability.trigger==='continuous')!.actions[0];
+ assert.equal(replacement.kind,'replacement');
+ const leader={id:'fishman-leader',owner:'player' as const,zone:'leader' as const,type:'Leader' as const,traits:['Fish-Man Island']};
+ const wrongLeader={id:'wrong-leader',owner:'player' as const,zone:'leader' as const,type:'Leader' as const,traits:['Navy']};
+ const saved={...base,turn:'opponent' as const,cards:[leader,fukaboshi,wrongLeader]};
+ const offer=applyEffectAction(saved,'opponent',{kind:'ko',scope:'opponent-character'},{targetId:'fukaboshi'});
+ assert.match(offer.requiresSelection??'',/replacement/i);
+ const invalid=applyEffectAction(saved,'opponent',{kind:'ko',scope:'opponent-character'},{targetId:'fukaboshi',choice:'accept',cardIds:['wrong-leader']});
+ assert.ok(invalid.error,'An unrelated Leader must not pay the replacement.');
+ const accepted=applyEffectAction(saved,'opponent',{kind:'ko',scope:'opponent-character'},{targetId:'fukaboshi',choice:'accept',cardIds:['fishman-leader']});
+ assert.equal(accepted.state.cards.find(card=>card.id==='fukaboshi')?.zone,'character');
+ assert.equal(accepted.state.cards.find(card=>card.id==='fishman-leader')?.rested,true);
+});
+
+test('OP15-058 Enel waits until turn two, resolves its DON!! additions in order, and attaches up to four rested DON!! to one Character',()=>{
+ const text='Under the rules of this game, your DON!! deck consists of 6 cards.\n[Activate: Main] [Once Per Turn] If it is your second turn or later, add up to 1 DON!! card from your DON!! deck and set it as active, and add up to 4 additional DON!! cards and rest them. Then, give up to 4 rested DON!! cards to 1 of your Characters.';
+ const document=compileEffectDocument({id:'enel',code:'OP15-058',name:'Enel',color:'Purple',type:'Leader',cost:0,power:5000,counter:0,rarity:'L',art:0,effect:text}),commands=resolveEffectTiming(document,'activate-main').commands;
+ assert.equal(document.resolver.type,'DSL');assert.equal(document.ast.length,1);assert.equal(document.ast[0].conditions[0].text,'it is your second turn or later');
+ const leader={id:'enel',owner:'player' as const,zone:'leader' as const,type:'Leader' as const,effectSchema:document},character={id:'character',owner:'player' as const,zone:'character' as const,type:'Character' as const},dons=Array.from({length:6},(_,index)=>({id:`don-${index}`,owner:'player' as const,zone:'don-deck' as const,type:'DON!!' as const})),board=(turnNumber:number):MatchEffectState=>({...state(),turn:'player',turnNumber,cards:[leader,character,...dons]});
+ const first=beginEffectExecution(board(1),'player','enel','activate-main',commands);assert.equal(first.complete,true);assert.equal(first.execution.state.cards.filter(card=>card.zone==='cost-area').length,0);
+ const second=beginEffectExecution(board(2),'player','enel','activate-main',commands);assert.match(second.requiresSelection??'',/DON!!/);const active=advanceEffectExecution(second.execution,{cardIds:['don-0']});assert.equal(active.execution.state.cards.find(card=>card.id==='don-0')?.rested,false);const rested=advanceEffectExecution(active.execution,{cardIds:['don-1','don-2','don-3','don-4']});assert.equal(rested.execution.state.cards.filter(card=>card.owner==='player'&&card.zone==='cost-area'&&card.rested).length,4);const attached=advanceEffectExecution(rested.execution,{cardIds:['character'],donAssignments:[{recipientId:'character',amount:4}]});assert.equal(attached.complete,true);assert.equal(attached.execution.state.cards.filter(card=>card.attachedTo==='character').length,4);assert.equal(attached.execution.state.cards.find(card=>card.id==='don-5')?.zone,'don-deck');assert.match(beginEffectExecution(attached.execution.state,'player','enel','activate-main',commands).error??'',/already been used/);
+});
+
+test('printed attack-redirection costs change the live battle target and reject ineligible cards',()=>{
+ const makeIncoming=(doc:ReturnType<typeof compileEffectDocument>,code:string,sourceZone:'leader'|'character'|'hand'='character'):{board:MatchEffectState;sourceId:string}=>{
+  const sourceId='redirect-source',board:MatchEffectState={turn:'opponent',turnEffects:[],restrictions:[],delayed:[],cards:[
+   {id:'attacker',owner:'opponent',zone:'character',type:'Character',power:7000},
+   {id:'player-leader',owner:'player',zone:'leader',type:'Leader',power:5000},
+   {id:sourceId,owner:'player',zone:sourceZone,type:sourceZone==='leader'?'Leader':sourceZone==='hand'?'Event':'Character',name:code==='ST36-005'?'Eustass"Captain"Kid':code==='OP16-080'?'Marshall D. Teach':'Donquixote Doflamingo',power:code==='ST36-005'?5000:5000,traits:code==='OP16-080'?['Blackbeard Pirates']:code==='OP14-060'?['Donquixote Pirates']:[],effectSchema:doc},
+   {id:'other-character',owner:'player',zone:'character',type:'Character',name:'Other',power:4000,traits:['Other']},
+   {id:'top-life',owner:'player',zone:'life',type:'Character',faceUp:false},
+   {id:'bottom-life',owner:'player',zone:'life',type:'Character',faceUp:false},
+   {id:'don',owner:'player',zone:'cost-area',type:'DON!!'},
+   {id:'trigger',owner:'player',zone:'hand',type:'Event',keywords:['trigger']},
+  ]};
+  const declared=declareAttack(board,'opponent','attacker',sourceZone==='leader'?sourceId:'player-leader');assert.equal(declared.error,undefined);return {board:declared.state,sourceId};
+ };
+ const makeDoc=(code:string,name:string,type:Card['type'],effect:string)=>compileEffectDocument({id:code,code,name,color:'Black',type,cost:4,power:5000,counter:0,rarity:'R',art:0,effect});
+ const resolveRedirect=(board:MatchEffectState,doc:ReturnType<typeof compileEffectDocument>,sourceId:string,targetId:string)=>{const action=doc.ast.flatMap(item=>item.actions).find(item=>item.kind==='redirect-attack');assert.ok(action);return applyEffectAction(board,'player',action!,{sourceCardId:sourceId,targetId});};
+ const kid=makeDoc('ST36-005','Eustass Captain Kid','Character','[On Your Opponent\'s Attack] [Once Per Turn] You may turn 1 card from the top or bottom of your Life cards face-down: Change the target of the attack to your [Eustass"Captain"Kid] with 5000 base power or more.');
+ let {board,sourceId}=makeIncoming(kid,'ST36-005');const life=payEffectCost(board,'player',kid.ast.find(item=>item.trigger==='opponent-attack')!.costs[0],{position:'bottom'});assert.equal(life.state.cards.find(card=>card.id==='bottom-life')?.faceUp,false);const kidWrong=resolveRedirect(life.state,kid,sourceId,'other-character');assert.match(kidWrong.error??'',/eligible/);const kidResult=resolveRedirect(life.state,kid,sourceId,sourceId);assert.equal(kidResult.state.pendingAttack?.targetId,sourceId);assert.equal(resolveBattle(kidResult.state,'attacker','player-leader').state.cards.find(card=>card.id===sourceId)?.zone,'trash','Battle resolution must use the redirected target, not the original Leader.');
+ const teach=makeDoc('OP16-080','Marshall D. Teach','Leader','[On Your Opponent\'s Attack] [Once Per Turn] You may trash 1 card with a [Trigger] from your hand: Change the target of that attack to this Leader or to one of your {Blackbeard Pirates} type Character cards.');
+ ({board,sourceId}=makeIncoming(teach,'OP16-080','leader'));const discard=payEffectCost(board,'player',teach.ast[0].costs[0],{cardIds:['trigger']});assert.equal(discard.state.cards.find(card=>card.id==='trigger')?.zone,'trash');const teachResult=resolveRedirect(discard.state,teach,sourceId,sourceId);assert.equal(teachResult.state.pendingAttack?.targetId,sourceId);assert.equal(applyEffectAction(teachResult.state,'player',teach.ast[0].actions[0],{sourceCardId:sourceId,targetId:sourceId}).error,'This attack-redirection effect has already been used this turn.');
+ const counter=makeDoc('EB01-038','Oh Come My Way','Event','[Counter] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.): If your Leader\'s type includes "Baroque Works", select 1 of your Characters. Change the attack target to the selected Character.');
+ ({board,sourceId}=makeIncoming(counter,'EB01-038','hand'));const returned=payEffectCost(board,'player',counter.ast[0].costs[0],{cardIds:['don']});assert.equal(returned.state.cards.find(card=>card.id==='don')?.zone,'don-deck');const counterResult=resolveRedirect(returned.state,counter,sourceId,'other-character');assert.equal(counterResult.state.pendingAttack?.targetId,'other-character');
+ const doflamingo=makeDoc('OP14-060','Donquixote Doflamingo','Character','[On Your Opponent\'s Attack] [Once Per Turn] DON!! -1: Select your Leader or 1 of your {Donquixote Pirates} type Character. Change the attack target to the selected card.');
+ ({board,sourceId}=makeIncoming(doflamingo,'OP14-060'));const donPaid=payEffectCost(board,'player',doflamingo.ast[0].costs[0],{cardIds:['don']});const illegal=resolveRedirect(donPaid.state,doflamingo,sourceId,'other-character');assert.match(illegal.error??'',/eligible/);const redirected=resolveRedirect(donPaid.state,doflamingo,sourceId,'player-leader');assert.equal(redirected.state.pendingAttack?.targetId,'player-leader');
 });
 
 test('hand-only conditional cost reductions apply to the played card under their live condition',()=>{

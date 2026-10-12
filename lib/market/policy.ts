@@ -14,7 +14,7 @@ export const LISTING_POLICIES: Record<AccountTier, ListingTierPolicy> = {
     durationDays: 7,
     maxActiveListings: 25,
     canAutoRenew: false,
-    commissionPercent: 0.75,
+    commissionPercent: 1,
   },
   pro: {
     tier: 'pro',
@@ -39,8 +39,8 @@ export const MARKET_BUYER_FEE_CAP_BANDS = [
 export const MARKET_BUYER_FEE_CAP = MARKET_BUYER_FEE_CAP_BANDS.at(-1)!.cap;
 export const MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH = 2;
 export const MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL = 200_000;
-export const MARKET_PRO_SHIPPING_VOUCHER_SHARE = 0.5;
-export const MARKET_PRO_SHIPPING_VOUCHER_CAP = 5_000;
+export const MARKET_PRO_SHIPPING_VOUCHER_SHARE = 1;
+export const MARKET_PRO_SHIPPING_VOUCHER_CAP = 10_000;
 
 export function getMarketBuyerFeeCap(subtotal: number): number {
   const safeSubtotal = Math.max(0, subtotal);
