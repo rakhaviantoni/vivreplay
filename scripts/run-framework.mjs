@@ -28,9 +28,10 @@ try {
   // Ensure Cloudflare fetch handler injects Google tag directly into <head> for crawlers and verification
   const fetchHandlerPath = fileURLToPath(new URL("../node_modules/vinext/dist/server/fetch-handler.js", import.meta.url));
   let handlerCode = readFileSync(fetchHandlerPath, "utf8");
-  if (!handlerCode.includes('HTMLRewriter')) {
+  if (!handlerCode.includes('VivrePlay deferred home styles')) {
     handlerCode = `import handler from "virtual:vinext-worker-entry";
 
+// VivrePlay deferred home styles
 const GTAG_SNIPPET = \`<!-- Google tag (gtag.js) -->
 <script>
   window.dataLayer = window.dataLayer || [];
@@ -56,9 +57,30 @@ const GTAG_SNIPPET = \`<!-- Google tag (gtag.js) -->
   })();
 </script>\`;
 
+const HOME_CRITICAL_CSS = \`<style id="home-critical-css">
+:root{--vp-ink:#28251f;--vp-paper:#f4ecdc;--vp-line:#dfd1b8;--vp-gold:#b77a19;--vp-gold-deep:#855514;--game-font:Arial,Helvetica,sans-serif;--display-font:Arial,Helvetica,sans-serif}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#f4ecdc;color:#28251f}body{font:16px Arial,Helvetica,sans-serif;-webkit-font-smoothing:antialiased}a{color:inherit;text-decoration:none}.site-shell{min-height:100vh;background:linear-gradient(90deg,#f1e7d2,#f7f0e2 52%,#eee2ca)}
+.masthead{position:sticky;top:0;z-index:40;height:66px;padding:0 clamp(18px,4vw,64px);display:flex;align-items:center;gap:30px;background:#fff9edee;border-bottom:1px solid #dfd1b8;color:#28251f}.wordmark{display:flex;align-items:center;gap:9px;color:#28251f;font:700 22px Arial,Helvetica,sans-serif}.wordmark img{display:block;width:28px;height:28px}.masthead-actions{margin-left:auto;display:flex;align-items:center;gap:10px}.context-row{display:none}
+.home-page{max-width:1520px;margin:auto}.home-hero{position:relative;min-height:535px;display:grid;grid-template-columns:minmax(390px,.95fr) 1.05fr;overflow:hidden;padding:80px clamp(18px,5vw,78px);background:repeating-linear-gradient(90deg,#80642a10 0 1px,transparent 1px 42px),linear-gradient(100deg,#f9f1e3,#f3e5ce)}.home-hero-map{position:absolute;inset:0;z-index:0;display:block;overflow:hidden;pointer-events:none}.home-hero-map img{display:block;width:100%;height:100%;object-fit:cover;object-position:center 44%}.home-hero-copy{position:relative;z-index:2}.home-hero h1{margin:16px 0 18px;font:500 clamp(53px,5.8vw,86px)/.91 Arial,Helvetica,sans-serif;letter-spacing:-.055em;color:#30291f}.home-hero h1 em{color:#b77a19;font-weight:400}.home-hero-copy>p:not(.eyebrow){max-width:440px;color:#6d6458;font-size:15px;line-height:1.65}.hero-actions{display:flex;align-items:center;gap:18px;margin-top:27px}.button{display:inline-flex;align-items:center;min-height:42px;padding:0 16px;border:0;border-radius:8px;background:#b77a19;color:#fffaf0;font-weight:700}.text-action{display:inline-flex;align-items:center;gap:6px;color:#725519;font-size:12px;font-weight:700}.hero-stats{display:flex;gap:0;margin-top:46px}.hero-stats div{padding:0 21px;border-left:1px solid #d8c8ad}.hero-stats div:first-child{padding-left:0;border:0}.hero-stats dt{font-size:10px;color:#827564;text-transform:uppercase;letter-spacing:.08em}.hero-stats dd{margin:4px 0 0;font:500 24px Arial,Helvetica,sans-serif;color:#3b3327}.hero-printings{position:relative;z-index:2;min-height:365px}.hero-card{position:absolute;width:190px;transform-origin:50% 100%;filter:drop-shadow(8px 12px 9px #2e1e0b2e)}
+@media(max-width:700px){.masthead{height:58px;padding-inline:14px;gap:10px}.primary-nav{display:none}.masthead-actions{gap:6px}.home-hero{display:flex;flex-direction:column;min-height:0;padding:44px 18px 28px}.home-hero h1{font-size:clamp(43px,12vw,57px)}.home-hero-copy>p:not(.eyebrow){font-size:14px}.hero-actions{gap:12px;margin-top:20px}.hero-stats{margin-top:28px}.hero-stats div{padding-inline:10px}.hero-stats dd{font-size:18px}.hero-printings{height:205px;min-height:205px;margin-inline:-18px}.hero-card{width:112px}.hero-card-0{left:3%;top:20px;transform:rotate(-12deg)}.hero-card-1{left:23%;top:10px;transform:rotate(-5deg)}.hero-card-2{left:43%;top:0;transform:rotate(2deg)}.hero-card-3{left:63%;top:12px;transform:rotate(9deg)}}
+</style>\`;
+
 class HeadRewriter {
+  constructor(home) { this.home = home; }
   element(element) {
     element.prepend(GTAG_SNIPPET, { html: true });
+    if (this.home) element.prepend(HOME_CRITICAL_CSS, { html: true });
+  }
+}
+
+class HomeStylesheetRewriter {
+  constructor(home) { this.home = home; }
+  element(element) {
+    if (!this.home) return;
+    const href = element.getAttribute('href') || '';
+    if (!href.includes('/_next/static/css/')) return;
+    element.setAttribute('media', 'print');
+    element.setAttribute('onload', "this.media='all'");
   }
 }
 
@@ -67,7 +89,12 @@ var fetch_handler_default = {
     const response = await handler.fetch(request, env, ctx);
     const contentType = response?.headers?.get("content-type");
     if (contentType && contentType.includes("text/html") && typeof HTMLRewriter !== "undefined") {
-      return new HTMLRewriter().on("head", new HeadRewriter()).transform(response);
+      const pathname = new URL(request.url).pathname;
+      const home = pathname === '/' || pathname === '/id';
+      return new HTMLRewriter()
+        .on("head", new HeadRewriter(home))
+        .on("link[rel=stylesheet]", new HomeStylesheetRewriter(home))
+        .transform(response);
     }
     return response;
   }
