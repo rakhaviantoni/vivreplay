@@ -354,6 +354,7 @@ html[data-theme='dark'] .market-pro-user-badge{background:#172a2b;border-color:#
 .market-profile-quick-card{display:grid;grid-template-columns:38px minmax(0,1fr) auto;align-items:start;gap:12px;padding:15px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
 .market-profile-quick-card-icon{display:grid;place-items:center;width:36px;height:36px;border:1px solid color-mix(in srgb,var(--accent) 30%,var(--line));border-radius:9px;background:color-mix(in srgb,var(--accent) 8%,var(--surface-raised));color:var(--accent)}
 .market-profile-quick-card>div{min-width:0}.market-profile-quick-card>div>strong{display:block;color:var(--ink);font-size:13px;line-height:1.4}.market-profile-quick-card p{margin:4px 0;color:var(--muted);font-size:12px;line-height:1.5;overflow-wrap:anywhere}.market-profile-quick-card small{color:var(--muted);font-size:11px}
+.market-profile-courier-summary{display:grid;gap:3px;margin-top:9px;padding-top:8px;border-top:1px solid var(--line)}.market-profile-courier-summary span{color:var(--muted);font-size:10px;font-weight:700}.market-profile-courier-summary strong{color:var(--ink);font-size:11px;line-height:1.45;overflow-wrap:anywhere}
 .market-profile-quick-edit-link{display:inline-flex;align-items:center;gap:5px;min-height:32px;padding:0 8px;border:1px solid var(--line);border-radius:7px;color:var(--accent);font-size:11px;font-weight:750;text-decoration:none;white-space:nowrap}
 .market-profile-quick-edit-link:hover{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 6%,var(--surface))}
 .market-membership-quick{display:grid;gap:12px}
@@ -378,6 +379,14 @@ html[data-theme='dark'] .market-profile-quick-tabs button.is-active{background:#
 @media(max-width:520px){.market-profile-quick-tabs{gap:3px}.market-profile-quick-tabs button{gap:5px;padding-inline:8px;font-size:10px}.market-profile-quick-card{grid-template-columns:34px minmax(0,1fr);gap:9px;padding:12px}.market-profile-quick-card-icon{width:32px;height:32px}.market-profile-quick-edit-link{grid-column:2;justify-self:start;min-height:30px}.market-vault-summary-links{gap:7px}.market-vault-summary-links>a{flex:1 1 auto;min-width:0;padding-inline:9px}.market-membership-compare>div{grid-template-columns:minmax(0,1fr) 48px 48px;gap:5px;padding:8px;font-size:10px}}
 .market-profile-quick-section,.market-payout-quick{display:grid;gap:12px;min-width:0}
 .market-quick-address-form,.market-payout-quick-form{padding:14px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.market-quick-courier-options{grid-column:1/-1;min-width:0;margin:2px 0 0;padding:12px;border:1px solid var(--line);border-radius:9px;background:var(--surface-raised)}
+.market-quick-courier-options legend{padding:0 5px;color:var(--ink);font-size:11px;font-weight:750}
+.market-quick-courier-options>div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:3px 12px}
+.market-quick-courier-options label{display:flex;align-items:center;gap:8px;min-height:34px;color:var(--ink);font-size:11px;font-weight:600;cursor:pointer}
+.market-quick-courier-options input{width:16px;min-height:16px;accent-color:var(--accent)}
+.market-quick-map-field{grid-column:1/-1;min-width:0;padding:12px;border:1px solid color-mix(in srgb,var(--accent) 38%,var(--line));border-radius:9px;background:color-mix(in srgb,var(--accent) 4%,var(--surface-raised))}
+.market-quick-map-field>div:first-child{display:grid;gap:3px}.market-quick-map-field>div:first-child strong{font-size:12px}.market-quick-map-field>div:first-child small{color:var(--muted);font-size:11px;line-height:1.4}
+.market-quick-map-field .map-picker-wrapper{margin-top:9px}
 .market-quick-profile-form label{display:grid;gap:6px;color:var(--muted);font-size:11px;font-weight:700}
 .market-quick-profile-form input,.market-quick-profile-form select,.market-quick-profile-form textarea{width:100%;min-width:0;box-sizing:border-box;min-height:38px;padding:8px 10px;border:1px solid var(--line);border-radius:7px;background:var(--surface-raised);color:var(--ink);font:500 12px var(--game-font)}
 .market-quick-profile-form textarea{resize:vertical}

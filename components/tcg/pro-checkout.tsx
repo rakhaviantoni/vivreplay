@@ -83,7 +83,7 @@ export function ProCheckout(){
   const purchaseCount=Math.max(1,Math.min(100,Math.floor(Number(monthlyPurchaseCount)||1)));
   const averagePurchaseSubtotal=numberValue(monthlyPurchases)/purchaseCount;
   const buyerSavings=purchaseCount*Math.max(0,calculateBuyerServiceFee(averagePurchaseSubtotal,plan?.freeBuyerFeePercent??1.5)-calculateBuyerServiceFee(averagePurchaseSubtotal,plan?.buyerFeePercent??0.75));
-  const voucherSavings=Math.min(Math.max(0,Math.floor(Number(voucherCount)||0)),plan?.shippingVouchersPerMonth??2)*Math.min(Math.round(numberValue(averageDelivery)*(plan?.shippingVoucherSharePercent??50)/100),plan?.shippingVoucherCap??10000);
+  const voucherSavings=Math.min(Math.max(0,Math.floor(Number(voucherCount)||0)),plan?.shippingVouchersPerMonth??2)*Math.min(Math.round(numberValue(averageDelivery)*(plan?.shippingVoucherSharePercent??100)/100),plan?.shippingVoucherCap??10000);
   const totalEstimatedSavings=sellerSavings+buyerSavings+voucherSavings;
   const estimatedAfterPlan=totalEstimatedSavings-(plan?.amount??plan?.standardAmount??0);
   const introEndLabel=plan?.introOfferEndsAt?new Intl.DateTimeFormat(id?'id-ID':'en-US',{dateStyle:'long',timeZone:'Asia/Jakarta'}).format(new Date(plan.introOfferEndsAt)):'';
