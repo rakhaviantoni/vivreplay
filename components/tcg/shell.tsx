@@ -202,7 +202,7 @@ export function Shell({children,initialPath='/'}:{children:React.ReactNode;initi
   if(adminRoute)return <div className="admin-shell"><div className="admin-shell-content">{children}</div><Toaster richColors theme={theme}/></div>;
 
   return <div className={`site-shell${marketCheckout?' market-checkout-shell':''}`}>
-    {marketCheckout?<><MarketStoreNav showPromo={false}/>{!data&&<AuthDialog language={language}/>}</>:<header className={`masthead ${scrolled?'is-scrolled':''} ${theme==='dark'?'theme-dark':''}`}>
+    {marketCheckout?<><MarketStoreNav showPromo={false}/>{!data&&<AuthDialog language={language} showTrigger={false}/>}</>:<header className={`masthead ${scrolled?'is-scrolled':''} ${theme==='dark'?'theme-dark':''}`}>
       <Link className="wordmark" href={getHref('/')}><VivreMark size={28}/><span>VivrePlay</span></Link>
       <PrimaryNav language={language} selected={selected}/>
       <div className="masthead-actions">

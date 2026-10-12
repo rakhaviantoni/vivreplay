@@ -21,7 +21,7 @@ import {TurnstileField,turnstileEnabled,turnstileHeaders} from './turnstile-fiel
 
 type Mode = 'sign-in' | 'sign-up';
 
-export function AuthDialog({ language }: { language: 'EN' | 'ID' }) {
+export function AuthDialog({ language, showTrigger = true }: { language: 'EN' | 'ID'; showTrigger?: boolean }) {
   const path = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -187,7 +187,7 @@ export function AuthDialog({ language }: { language: 'EN' | 'ID' }) {
 
   return (
     <Dialog open={open} onOpenChange={close}>
-      <button
+      {showTrigger&&<button
         type="button"
         aria-label={copy.join}
         onClick={() => setOpen(true)}
@@ -195,7 +195,7 @@ export function AuthDialog({ language }: { language: 'EN' | 'ID' }) {
       >
         <UserRound size={15} aria-hidden="true" />
         <span>{copy.join}</span>
-      </button>
+      </button>}
 
       <DialogContent className="auth-dialog">
         <DialogHeader className="auth-dialog-heading">
