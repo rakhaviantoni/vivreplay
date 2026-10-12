@@ -1886,6 +1886,7 @@ html[data-theme=dark] .live-detail-layout.is-resolving .viewer-art-skeleton{back
 .new-cards-card strong{font:650 11px/1.2 var(--game-font)}
 .new-cards-card small{color:#8d806a;font:500 10px/1.2 var(--game-font)}
 .new-cards-set-empty{margin:0;color:#7d705b;font:500 13px/1.5 var(--game-font)}
+.new-cards-launcher{position:fixed;z-index:115;right:14px;bottom:calc(74px + env(safe-area-inset-bottom) + 12px);display:inline-flex;align-items:center;gap:7px;min-height:42px;padding:0 14px;border:1px solid #c99a3a;border-radius:999px;background:#fffaf1;color:#725016;font:750 12px var(--game-font);box-shadow:0 5px 18px #251b0f30}
 html[data-theme='dark'] .new-cards-release{border-color:#43505a}
 html[data-theme='dark'] .new-cards-release h3{color:#e8d8b8}
 html[data-theme='dark'] .new-cards-release>header a{color:#edbd60}
