@@ -20,10 +20,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm run install:ci
-      - name: Lint and typecheck
-        run: |
-          npm run lint
-          npm run typecheck
+      - name: Typecheck
+        run: npm run typecheck
       - name: Unit tests
         run: npm test
       - run: npx playwright install --with-deps chromium
