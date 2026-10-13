@@ -28,7 +28,52 @@ export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}){
     guard(req);
     const p=await user();
     const {id}=await params;
-    const body=await req.json() as {action?:unknown;amount?:unknown;prices?:unknown};
+    const body=await req.json() as {action?:unknown;amount?:unknown;prices?:unknown;title?:unknown;negotiable?:unknown};
+    if(body.action==='terms'){
+      if(typeof body.negotiable!=='boolean')throw new HttpError(400,'Choose valid price terms.');
+      const d=db();
+      const listing=await d.prepare("SELECT negotiable FROM listings WHERE id=? AND seller_id=? AND type='WTS' AND status IN ('ACTIVE','PAUSED')").bind(id,p.id).first<{negotiable:number}>();
+      if(!listing)throw new HttpError(404,'Listing not found or unavailable to edit.');
+      const changed=await d.prepare(`UPDATE listings SET negotiable=? WHERE id=? AND seller_id=? AND type='WTS' AND negotiable=? AND status IN ('ACTIVE','PAUSED')
+        AND NOT EXISTS(SELECT 1 FROM checkout_orders o,json_each(o.items) j WHERE (json_extract(j.value,'$.listingId')=? OR (json_extract(j.value,'$.listingId') IS NULL AND o.listing_id=?)) AND o.status IN ('PENDING_PAYMENT','PROCESSING') AND (o.expires_at IS NULL OR o.expires_at>CURRENT_TIMESTAMP))`).bind(Number(body.negotiable),id,p.id,listing.negotiable,id,id).run();
+      if(!changed.meta.changes)throw new HttpError(409,'An active checkout is using this listing. Try again after it closes.');
+      return Response.json({ok:true,id,negotiable:body.negotiable});
+    }
+    if(body.action==='details'){
+      const d=db();
+      const listing=await d.prepare("SELECT id,title,amount,quantity,type,status,items,negotiable FROM listings WHERE id=? AND seller_id=? AND status IN ('ACTIVE','PAUSED')").bind(id,p.id).first<{id:string;title:string;amount:number;quantity:number;type:string;status:string;items:string|null;negotiable:number}>();
+      if(!listing)throw new HttpError(404,'Listing not found or unavailable to edit.');
+      if(typeof body.title!=='string')throw new HttpError(400,'Enter a listing title.');
+      const title=body.title.trim();
+      if(title.length<3||title.length>100)throw new HttpError(400,'Title must be 3–100 characters.');
+      if(body.negotiable!==undefined&&typeof body.negotiable!=='boolean')throw new HttpError(400,'Choose valid price terms.');
+      let entries:Array<Record<string,unknown>>=[];
+      try{const parsed=JSON.parse(listing.items||'[]') as unknown;if(Array.isArray(parsed))entries=parsed as Array<Record<string,unknown>>}catch{}
+      const prices=body.prices;
+      let amount=listing.amount;
+      let items=listing.items;
+      if(prices!==undefined){
+        if(!Array.isArray(prices)||prices.some(value=>!Number.isSafeInteger(value)||Number(value)<1||Number(value)>100000000000))throw new HttpError(400,'Enter a valid unit price for every card.');
+        if(entries.length){
+          if(prices.length!==entries.length)throw new HttpError(400,'Enter a valid unit price for every card.');
+          amount=entries.reduce((sum,entry,index)=>sum+Number(entry.quantity)*Number(prices[index]),0);
+          items=JSON.stringify(entries.map((entry,index)=>({...entry,unitAmount:prices[index]})));
+        }else{
+          if(prices.length!==1)throw new HttpError(400,'Enter a valid price for this listing.');
+          amount=Number(prices[0])*listing.quantity;
+        }
+      }
+      if(!Number.isSafeInteger(amount)||amount<1||amount>100000000000)throw new HttpError(400,'The listing price is too large.');
+      const negotiable=listing.type==='WTS'?(body.negotiable===undefined?listing.negotiable:Number(body.negotiable)):listing.negotiable;
+      const changed=await d.prepare(`UPDATE listings SET title=?,amount=?,items=?,negotiable=?
+        WHERE id=? AND seller_id=? AND title=? AND amount=? AND negotiable=? AND status IN ('ACTIVE','PAUSED')
+        AND NOT EXISTS(SELECT 1 FROM checkout_orders o,json_each(o.items) j
+          WHERE (json_extract(j.value,'$.listingId')=? OR (json_extract(j.value,'$.listingId') IS NULL AND o.listing_id=?))
+          AND o.status IN ('PENDING_PAYMENT','PROCESSING') AND (o.expires_at IS NULL OR o.expires_at>CURRENT_TIMESTAMP))`).bind(title,amount,items,negotiable,id,p.id,listing.title,listing.amount,listing.negotiable,id,id).run();
+      if(!changed.meta.changes)throw new HttpError(409,'An active checkout is using this listing. Try again after it closes.');
+      if(amount!==listing.amount)after(()=>notifyListingWatchers(id,amount<listing.amount));
+      return Response.json({ok:true,id,title,amount,negotiable:Boolean(negotiable),prices:Array.isArray(prices)?prices:[]});
+    }
     if(body.action==='price'){
       const d=db();const listing=await d.prepare("SELECT amount,quantity,items FROM listings WHERE id=? AND seller_id=? AND type='WTS' AND status IN ('ACTIVE','PAUSED')").bind(id,p.id).first<{amount:number;quantity:number;items:string|null}>();if(!listing)throw new HttpError(404,'Listing not found.');
       let entries:Array<Record<string,unknown>>=[];try{entries=JSON.parse(listing.items||'[]')}catch{};

@@ -450,7 +450,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
   const [theme,setTheme]=useState<'light'|'dark'>('light');
   const [locale,setLocale]=useState<'EN'|'ID'>('EN');
   const [accountPanel,setAccountPanel]=useState<'listings'|'offers'|'orders'|'saved'|null>(()=>{const activity=searchParams.get('activity');return activity==='offers'||activity==='orders'||activity==='listings'||activity==='saved'?activity:null});
-  const [quickPanel,setQuickPanel]=useState<'profile'|'vault'|'wishlist'|null>(null);
+  const [quickPanel,setQuickPanel]=useState<'profile'|'vault'|'wishlist'|null>(()=>searchParams.get('profile')==='delivery'?'profile':null);
   const [activityCounts,setActivityCounts]=useState({listings:0,offers:0,orders:0});
   const [proPaymentsCount,setProPaymentsCount]=useState(0);
   const [cartCount,setCartCount]=useState(0);
@@ -459,6 +459,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
     const sync=()=>{try{const cart=JSON.parse(window.localStorage.getItem('vivreplay-market-cart-v1')||'null') as {lines?:Array<{items?:Array<{quantity?:number}>}>}|null;setCartCount((cart?.lines??[]).reduce((sum,line)=>sum+(line.items??[]).reduce((total,item)=>total+(Number(item.quantity)||0),0),0))}catch{setCartCount(0)}};
     sync();window.addEventListener('vivreplay:market-cart-updated',sync);window.addEventListener('storage',sync);return()=>{window.removeEventListener('vivreplay:market-cart-updated',sync);window.removeEventListener('storage',sync)};
   },[]);
+  useEffect(()=>{if(searchParams.get('profile')==='delivery'){setAccountPanel(null);setQuickPanel('profile')}},[searchParams]);
   // Bundle & Card Listing Draft State
   const [bundleCards,setBundleCards]=useState<ListingBundleCard[]>([]);
   const [publishedShare,setPublishedShare]=useState<PublishedShare|null>(null);
@@ -1148,7 +1149,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
                     <div className="market-feed-copy">
                       <h2>{listing.title}</h2>
                       <small className="market-feed-meta">
-                        <span className="market-feed-meta-primary"><span className="market-feed-meta-primary-line"><span className="market-feed-location"><MapPin size={11}/><span className="market-feed-location-name">{listing.city}</span></span>{listing.createdAt&&<><span className="market-feed-meta-separator" aria-hidden="true">|</span><span className="market-feed-meta-tail"><MarketTimestamp value={listing.createdAt}/><span className="market-feed-seller">{locale==='ID'?'oleh':'by'} {listing.seller}</span></span></>}</span></span>
+                        <span className="market-feed-meta-primary"><span className="market-feed-meta-primary-line"><span className="market-feed-location"><MapPin size={11}/><span className="market-feed-location-name">{listing.city}</span></span>{listing.createdAt&&<><span className="market-feed-meta-separator" aria-hidden="true">|</span><span className="market-feed-meta-tail"><MarketTimestamp value={listing.createdAt}/><span className="market-feed-seller">{locale==='ID'?'oleh':'by'} {listing.sellerUsername?<Link href={`/players/${encodeURIComponent(listing.sellerUsername)}`} onClick={event=>event.stopPropagation()}>{listing.seller}</Link>:listing.seller}</span></span></>}</span></span>
                         {listing.type==='WTS'&&<span className="market-feed-meta-secondary"><ShippingCouriers couriers={listing.shippingCouriers??[]} language={locale}/></span>}
                       </small>
                     </div>
@@ -1621,7 +1622,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
                       <WalletCards size={14}/>
                       <span>{locale==='ID'?`Dari koleksi saya (${data!.collection.length})`:`From My Vault (${data!.collection.length})`}</span>
                     </button>
-                    {bundleCards.length===0&&<button type="button" className="market-sell-bundle-trigger" onClick={()=>setBulkListingOpen(true)} aria-haspopup="dialog">
+                    {bundleCards.length===0&&<button type="button" className="market-sell-bundle-trigger" onClick={()=>{configLoadVersion.current++;setOpen(false);window.setTimeout(()=>setBulkListingOpen(true),0)}} aria-haspopup="dialog">
                       <Cards size={14}/><span>{locale==='ID'?'Listing bundle':'Bundle listing'}</span>
                     </button>}
                   </div>
@@ -1647,10 +1648,10 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
           </div>
         </DialogContent>
       </Dialog>
-      {bulkListingOpen&&<BulkListingModal open={bulkListingOpen} onClose={()=>setBulkListingOpen(false)} language={locale} stacks={groupVaultStacks((data?.collection??[]).map(item=>enrichCollectionItem(item,new Set())))} onPublished={async()=>{await refresh();await refreshAccount()}}/>}
+      {bulkListingOpen&&<BulkListingModal open={bulkListingOpen} onClose={wasPublished=>{setBulkListingOpen(false);if(!wasPublished)setOpen(true)}} language={locale} stacks={groupVaultStacks((data?.collection??[]).map(item=>enrichCollectionItem(item,new Set())))} onPublished={async()=>{await refresh();await refreshAccount()}}/>}
       {publishedShare&&<ShareButton title={publishedShare.title} path={marketListingPath(publishedShare.title,publishedShare.id)} cards={publishedShare.cards.map(item=>({card:printingToCard(item.card,item.printing),quantity:item.quantity,condition:item.condition,unitAmount:item.unitAmount}))} subtitle={locale==='ID'?`${publishedShare.cards.reduce((sum,item)=>sum+item.quantity,0)} kartu untuk dijual`:`${publishedShare.cards.reduce((sum,item)=>sum+item.quantity,0)} cards for sale`} price={formatMoney(publishedShare.price,'IDR')} openOnMount hideTrigger onOpenChange={open=>{if(!open)setPublishedShare(null)}}/>}
 
-      {data&&<MarketQuickPanel panel={accountPanel??quickPanel} onOpenChange={open=>{if(!open){setAccountPanel(null);setQuickPanel(null)}}} onPanelChange={next=>{if(next==='listings'||next==='offers'||next==='orders'||next==='saved'){setQuickPanel(null);setAccountPanel(next)}else{setAccountPanel(null);setQuickPanel(next)}}} onCreateListing={()=>{setAccountPanel(null);setQuickPanel(null);beginListing()}} locale={locale} account={data} activityCounts={activityCounts} initialOrderId={searchParams.get('order')} initialConversationId={searchParams.get('conversation')} onRefresh={refreshAccount} onSaved={async()=>{await refreshAccount();setAccountPanel(null);setQuickPanel(null)}}/>}
+      {data&&<MarketQuickPanel panel={accountPanel??quickPanel} onOpenChange={open=>{if(!open){setAccountPanel(null);setQuickPanel(null)}}} onPanelChange={next=>{if(next==='listings'||next==='offers'||next==='orders'||next==='saved'){setQuickPanel(null);setAccountPanel(next)}else{setAccountPanel(null);setQuickPanel(next)}}} onCreateListing={()=>{setAccountPanel(null);setQuickPanel(null);beginListing()}} locale={locale} account={data} activityCounts={activityCounts} initialOrderId={searchParams.get('order')} initialConversationId={searchParams.get('conversation')} initialProfileTab={searchParams.get('profile')==='delivery'?'delivery':'account'} onRefresh={refreshAccount} onSaved={async()=>{await refreshAccount();setAccountPanel(null);setQuickPanel(null)}}/>}
       <AddEditItemModal
         key={`${marketVaultCard?.id??'market-card'}-${marketVaultOpen?'open':'closed'}`}
         open={marketVaultOpen}

@@ -3778,3 +3778,11 @@ html[data-theme='dark'] .market-listing-status.is-buying{color:#e6b65e!important
 .market-listing-art-rotator.is-single>.market-listing-art-current{inset:0!important;animation:none!important;transform:none!important}
 
 .market-listing-card.is-selected .market-listing-card-stage .tcg-card{outline:2px solid var(--accent);outline-offset:2px;box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 18%,transparent)}
+
+/* Keep listing artwork flush to its card image; selection is shown by quantity controls. */
+.market-listing-card-stage{padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
+.market-listing-card.is-selected .market-listing-card-stage .tcg-card{outline:0!important;outline-offset:0!important;box-shadow:none!important}
+.market-feed-seller a{color:inherit;text-decoration:underline;text-decoration-color:color-mix(in srgb,currentColor 38%,transparent);text-underline-offset:2px}
+.market-feed-seller a:hover{color:var(--accent);text-decoration-color:currentColor}
+.card-viewer-backdrop{z-index:10000!important;width:100vw!important;height:100dvh!important;min-height:100dvh;box-sizing:border-box}
+.card-viewer-backdrop .viewer-nav{z-index:10002!important}

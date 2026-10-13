@@ -1,6 +1,6 @@
 'use client';
 
-import {useId,useMemo,useState} from 'react';
+import {useId,useMemo,useState,type CSSProperties} from 'react';
 import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue} from '@/components/ui/select';
 
 type PhoneCountry={name:string;code:string};
@@ -59,5 +59,9 @@ export function PhoneInput({label,value,defaultValue='',onChange,name,required,a
   };
 
   const nationalLimit=Math.max(1,Math.min(maxLength,16-selected.code.length));
-  return <div className="market-phone-field"><label htmlFor={inputId}>{label}</label><span className="market-phone-controls"><Select value={selected.code} onValueChange={onSelect}><SelectTrigger size="sm" className="market-phone-country-trigger" aria-label={locale==='ID'?'Kode negara':'Country code'}><SelectValue>{`+${selected.code}`}</SelectValue></SelectTrigger><SelectContent position="popper" align="start">{countryCodes.map(item=><SelectItem value={item.code} key={item.code}>{item.name} (+{item.code})</SelectItem>)}</SelectContent></Select><input id={inputId} type="tel" inputMode="tel" autoComplete={autoComplete} required={required} maxLength={nationalLimit} value={national} onChange={event=>setNumber(selected.code,event.target.value)} aria-label={label} placeholder={selected.code==='62'?'81234567890':'Phone number'} /></span>{name&&<input type="hidden" name={name} value={submittedValue}/>}</div>;
+  const phoneControlsStyle = {
+    '--phone-code-width': `${Math.max(42, selected.code.length * 7 + 26)}px`,
+  } as CSSProperties & { '--phone-code-width': string };
+
+  return <div className="market-phone-field"><label htmlFor={inputId}>{label}</label><span className="market-phone-controls" style={phoneControlsStyle}><Select value={selected.code} onValueChange={onSelect}><SelectTrigger size="sm" className="market-phone-country-trigger" aria-label={locale==='ID'?'Kode negara':'Country code'}><SelectValue>{`+${selected.code}`}</SelectValue></SelectTrigger><SelectContent position="popper" align="start">{countryCodes.map(item=><SelectItem value={item.code} key={item.code}>{item.name} (+{item.code})</SelectItem>)}</SelectContent></Select><input id={inputId} type="tel" inputMode="tel" autoComplete={autoComplete} required={required} maxLength={nationalLimit} value={national} onChange={event=>setNumber(selected.code,event.target.value)} aria-label={label} placeholder={selected.code==='62'?'81234567890':'Phone number'} /></span>{name&&<input type="hidden" name={name} value={submittedValue}/>}</div>;
 }

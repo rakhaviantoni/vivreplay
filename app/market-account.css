@@ -320,7 +320,7 @@ html[data-theme='dark'] .market-account-menu [data-slot='dropdown-menu-separator
 .market-account-unified-body.is-vault .market-quick-vault-actions{margin-top:12px}
 .market-account-unified-body.is-profile{width:100%;max-width:none}
 .market-account-unified-body.is-profile .market-quick-profile-form{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.market-account-unified-body.is-profile .market-quick-profile-form button{grid-column:1/-1;justify-self:start;min-width:180px}
+.market-account-unified-body.is-profile .market-profile-quick>.market-quick-profile-form>button{grid-column:1/-1;justify-self:start;min-width:180px}
 .market-account-unified-body.is-profile .market-quick-secondary{max-width:260px}
 .market-account-unified-body.is-wishlist .wishlist-header{align-items:center}
 .market-account-unified-body.is-wishlist .wishlist-tab{padding:0}
@@ -335,7 +335,7 @@ html[data-theme='dark'] .market-account-unified-tabs button.is-active{background
  .market-account-unified-avatar{width:38px;height:38px;font-size:15px}
  .market-account-unified-body.is-vault .market-quick-vault-list{grid-template-columns:minmax(0,1fr)}
  .market-account-unified-body.is-profile .market-quick-profile-form{grid-template-columns:minmax(0,1fr)}
- .market-account-unified-body.is-profile .market-quick-profile-form button{grid-column:1}
+ .market-account-unified-body.is-profile .market-profile-quick>.market-quick-profile-form>button{grid-column:1}
 }
 @media(max-width:520px){.market-account-unified{padding:12px!important}.market-vault-quick-summary{align-items:flex-start;flex-direction:column;gap:8px}}
 
@@ -485,3 +485,20 @@ html[data-theme='dark'] .market-profile-quick-tabs button.is-active{background:#
   .market-pro-purchase-confirm>div>.button,.market-pro-purchase-confirm>div>.market-quick-secondary{flex:1 1 auto;justify-content:center}
   .market-phone-controls{grid-template-columns:64px minmax(0,1fr);gap:5px}
 }
+
+/* Keep form controls compact without squeezing the popup's tab bars. */
+.market-phone-controls{grid-template-columns:var(--phone-code-width,54px) minmax(0,1fr)!important;gap:6px;align-items:stretch}
+.market-quick-courier-options>.shipping-presets-row{display:flex;align-items:center;justify-content:flex-start;flex-wrap:wrap;gap:6px;margin:4px 0 10px}
+.market-quick-courier-options>.shipping-presets-row>.shipping-preset-btn{flex:0 0 auto;width:auto;min-width:0!important;min-height:30px;margin:0;padding-inline:10px;white-space:nowrap}
+.market-profile-quick-tabs,.market-account-unified-tabs{flex:0 0 auto;min-height:48px;align-items:center}
+.market-profile-quick-tabs button,.market-account-unified-tabs button{flex:0 0 auto;min-height:40px}
+.market-quick-region-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px;min-width:0}
+.market-quick-region-grid label{min-width:0}
+.market-quick-region-grid select{min-width:0;text-overflow:ellipsis}
+.market-account-unified-body.is-profile .market-quick-address-form{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+.market-account-unified-body.is-profile .market-quick-address-form>.market-quick-region-grid{grid-column:1/-1}
+.market-account-unified-body.is-profile .market-quick-address-form>.market-quick-courier-options,.market-account-unified-body.is-profile .market-quick-address-form>.market-quick-map-field,.market-account-unified-body.is-profile .market-quick-address-form>.market-quick-form-actions{grid-column:1/-1}
+.market-account-unified-body.is-wishlist .wishlist-tab .wishlist-header{align-items:end}
+.market-account-unified-body.is-wishlist .wishlist-tab .wishlist-header-actions{justify-content:flex-end}
+@media(max-width:760px){.market-account-unified-body.is-profile .market-quick-address-form{grid-template-columns:minmax(0,1fr)}.market-account-unified-body.is-profile .market-quick-address-form>.market-quick-region-grid{grid-column:1}.market-quick-region-grid{grid-template-columns:minmax(0,1fr)}.market-profile-quick-tabs{min-height:48px}.market-profile-quick-tabs button{min-height:40px}}
+@media(max-width:540px){.market-account-unified-body.is-wishlist .wishlist-tab .wishlist-header{align-items:stretch}.market-account-unified-body.is-wishlist .wishlist-tab .wishlist-header-actions{justify-content:flex-start}}

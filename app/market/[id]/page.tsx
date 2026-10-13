@@ -170,6 +170,7 @@ export default async function Page({params}:{params:Promise<{id:string}>}){
         primary={primary}
         cardCount={cardCount}
         isOwner={isOwner}
+        canEdit={Boolean(isOwner&&stored&&['ACTIVE','PAUSED'].includes(stored.status))}
         initialExpired={initialExpired}
         renewDurationDays={renewDurationDays}
       />

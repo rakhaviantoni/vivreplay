@@ -20,6 +20,7 @@ import {AddEditItemModal} from './vault/modals/add-edit-item-modal';
 import {PushNotificationPrompt} from './push-notification-settings';
 import {marketListingPath} from '@/lib/market/listing-url';
 import {PhoneInput} from '@/components/tcg/phone-input';
+import {MarketListingPriceEdit,MarketListingPriceTerms,MarketListingTitleEdit,MarketListingUnitPriceEdit} from '@/components/tcg/market-listing-inline-edit';
 
 type CourierRate={courier_code:string;courier_service_code:string;courier_name:string;courier_service_name:string;price:number;duration?:string;max_km?:number};
 type ShippingArea={id:string;name:string;province:string;city:string;district:string;subdistrict:string;postalCode:string;latitude?:number;longitude?:number;source:'biteship'|'local'};
@@ -273,13 +274,14 @@ export function ListingArtRotator({items}:{items:MarketListingCard[]}){
   </div>;
 }
 
-export function MarketListingItems({items,currency,listingType,listingId,listingTitle,sellerId,negotiable=true,readOnly=false}:{items:MarketListingCard[];currency:string;listingType:'WTS'|'WTB';listingId:string;listingTitle?:string;sellerId?:string;listingAmount?:string;negotiable?:boolean;readOnly?:boolean;}){
+export function MarketListingItems({items,currency,listingType,listingId,listingTitle,sellerId,negotiable=true,readOnly=false,canEditPrices=false,onPriceSaved}:{items:MarketListingCard[];currency:string;listingType:'WTS'|'WTB';listingId:string;listingTitle?:string;sellerId?:string;listingAmount?:string;negotiable?:boolean;readOnly?:boolean;canEditPrices?:boolean;onPriceSaved?:(index:number,unitAmount:number)=>void;}){
   const router=useRouter();
   const singleCopyListing=items.length===1&&items[0].quantity===1;
   const [selected,setSelected]=useState<Record<string,number>>(()=>singleCopyListing?{[items[0].id]:1}:{});
   const [cardsView,setCardsView]=useState<'grid'|'list'>('grid');
   const [customPrices,setCustomPrices]=useState<Record<string,number>>({});
   const [preview,setPreview]=useState<Card>();
+  const [previewPrintingId,setPreviewPrintingId]=useState<string>();
   const [vaultTarget,setVaultTarget]=useState<MarketListingCard|null>(null);
   const {data:session,isPending:sessionPending}=authClient.useSession();
   const [submitting,setSubmitting]=useState(false); const [activeOffer,setActiveOffer]=useState<ActiveListingOffer|null>(null);
@@ -484,10 +486,10 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
                   <div
                     className="deck-stack-art"
                     title={item.card.name}
-                    onClick={()=>setPreview(item.card)}
+                    onClick={()=>{setPreview(item.card);setPreviewPrintingId(item.id)}}
                     role="button"
                     tabIndex={0}
-                    onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setPreview(item.card);}}}
+                    onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setPreview(item.card);setPreviewPrintingId(item.id);}}}
                   >
                     <CardArt card={item.card}/>
                   </div>
@@ -497,7 +499,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
               </div>
             ))}
             {item.quantity>1 && <b>×{item.quantity}</b>}
-            <button type="button" className="deck-info-action market-icon-action market-listing-info" onClick={()=>setPreview(item.card)} aria-label={`View ${item.card.name} details`}><Info size={13}/></button>
+            <button type="button" className="deck-info-action market-icon-action market-listing-info" onClick={()=>{setPreview(item.card);setPreviewPrintingId(item.id)}} aria-label={`View ${item.card.name} details`}><Info size={13}/></button>
             {!readOnly&&<div className="market-listing-card-utility-actions">
               {listingType==='WTS'&&<button type="button" className="button secondary is-icon-only market-icon-action market-listing-add-vault" onClick={()=>setVaultTarget(item)} aria-label={t('Add an owned copy to Vault','Simpan salinan milik Anda ke Koleksi')} title={t('Add an owned copy to Vault','Simpan salinan milik Anda ke Koleksi')}><Plus size={17}/></button>}
               <WishlistButton printingId={item.id} language={language} iconOnly/>
@@ -518,7 +520,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
             <strong>{item.card.name}</strong>
             <small className="market-card-meta"><span>{item.card.code}</span><span>{item.card.rarity}</span><span>{item.language}</span></small>
             <p className="market-listing-card-condition"><span>{item.condition}</span>{!readOnly&&!singleCopyListing&&<em>{amount}/{item.quantity} {t('selected','dipilih')}</em>}</p>
-            <b className="market-listing-card-unit-price" aria-label={`${formatMoney(item.unitAmount,currency)} ${t('per card','per kartu')}`} title={`${formatMoney(item.unitAmount,currency)} ${t('per card','per kartu')}`}>{formatMoney(item.unitAmount,currency)}</b>
+            <div className="market-listing-card-unit-price" aria-label={`${formatMoney(item.unitAmount,currency)} ${t('per card','per kartu')}`} title={`${formatMoney(item.unitAmount,currency)} ${t('per card','per kartu')}`}>{canEditPrices?<MarketListingUnitPriceEdit listingId={listingId} title={listingTitle||''} listingType={listingType} cards={items.map(entry=>({printingId:entry.id,name:entry.card.name,quantity:entry.quantity,unitAmount:entry.unitAmount}))} cardIndex={index} currency={currency} language={language} onSaved={unitAmount=>onPriceSaved?.(index,unitAmount)}><span>{formatMoney(item.unitAmount,currency)}</span></MarketListingUnitPriceEdit>:formatMoney(item.unitAmount,currency)}</div>
 
             {!readOnly&&acceptsOffers&&offerCheckComplete&&!activeOffer&&!submitting&&amount>0 && (
               <div className="market-card-offer">
@@ -593,7 +595,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
         </article>;
       })}
     </div>
-    {preview&&<CardPreviewModal card={preview} language={preview.language==='JP'?'JP':'EN'} cards={items.map(item=>item.card)} marketActions={!readOnly} onClose={()=>setPreview(undefined)} onNavigate={setPreview}/>}
+    {preview&&<CardPreviewModal card={preview} initialPrintingId={previewPrintingId} printingIds={items.map(item=>item.id)} language={preview.language==='JP'?'JP':'EN'} cards={items.map(item=>item.card)} marketActions={!readOnly} onClose={()=>{setPreview(undefined);setPreviewPrintingId(undefined)}} onNavigate={(card,index)=>{setPreview(card);setPreviewPrintingId(items[index]?.id)}}/>}
     <AddEditItemModal key={`${vaultTarget?.id??'market-listing-card'}-${Boolean(vaultTarget)}`} open={Boolean(vaultTarget)} onClose={()=>setVaultTarget(null)} onSaved={()=>router.refresh()} initialCard={vaultTarget?.card} initialPrintingId={vaultTarget?.id} isAnonymous={!session?.user} language={language}/>
     {!readOnly&&<footer className={`market-listing-selection${offerJustSent?' has-push-prompt':''}`} aria-live="polite">
       <div className="market-listing-selection-info">
@@ -649,6 +651,7 @@ export function MarketListingDetailView({
   primary,
   cardCount,
   isOwner = false,
+  canEdit = isOwner,
   initialExpired = false,
   renewDurationDays = 7,
 }: {
@@ -658,10 +661,16 @@ export function MarketListingDetailView({
   primary: MarketListingCard;
   cardCount: number;
   isOwner?: boolean;
+  canEdit?: boolean;
   initialExpired?: boolean;
   renewDurationDays?: number;
 }) {
+  const router=useRouter();
   const [language, setLanguage] = useState<'EN' | 'ID'>('EN');
+  const [listingTitle, setListingTitle] = useState(listing.title);
+  const [listingAmount, setListingAmount] = useState(listing.amount);
+  const [listingNegotiable, setListingNegotiable] = useState(listing.negotiable!==false);
+  const [editableCards, setEditableCards] = useState(listingCards);
   const [expiresAt, setExpiresAt] = useState<string | undefined>(listing.expiresAt);
   const [status, setStatus] = useState<string>(initialExpired ? 'EXPIRED' : 'ACTIVE');
   const [renewing, setRenewing] = useState(false);
@@ -678,7 +687,7 @@ export function MarketListingDetailView({
   const t = (en: string, idStr: string) => language === 'ID' ? idStr : en;
   const isBuying = listing.type === 'WTB';
   const typeLabel = isBuying ? t('Buying', 'Dicari') : t('Selling', 'Dijual');
-  const shippingQuoteItems=useMemo(()=>listingCards.map(item=>({printingId:item.id,quantity:item.quantity,unitAmount:item.unitAmount})),[listingCards]);
+  const shippingQuoteItems=useMemo(()=>editableCards.map(item=>({printingId:item.id,quantity:item.quantity,unitAmount:item.unitAmount})),[editableCards]);
 
   const daysLeft = expiresAt ? getDaysUntilExpiration(expiresAt) : null;
   const isExpired = status !== 'ACTIVE' || (expiresAt ? isListingExpired(expiresAt) : false);
@@ -726,7 +735,7 @@ export function MarketListingDetailView({
       </Link>
       <article className="live-detail-layout market-listing-layout">
         <aside className="live-detail-art viewer-primary-art market-listing-primary">
-          <ListingArtRotator items={listingCards}/>
+          <ListingArtRotator items={editableCards}/>
         </aside>
 
         <section className="live-detail-copy market-listing-copy">
@@ -743,7 +752,7 @@ export function MarketListingDetailView({
                   {!isExpired&&<button type="button" className="btn-close" disabled={closing} onClick={handleClose} aria-label={t('Close listing','Tutup listing')}><X size={14}/><span>{closing?t('Closing…','Menutup…'):t('Close','Tutup')}</span></button>}
                 </div></>}
               </div>
-              <h1>{listing.title}</h1>
+              {canEdit?<MarketListingTitleEdit listingId={listing.id} title={listingTitle} language={language} onSaved={updated=>{setListingTitle(updated);router.replace(marketListingPath(updated,listing.id),{scroll:false})}}><h1>{listingTitle}</h1></MarketListingTitleEdit>:<div className="market-listing-title-edit-row"><h1>{listingTitle}</h1></div>}
             </div>
             <span className={`market-listing-status ${isBuying ? 'is-buying' : 'is-selling'}`}>{typeLabel}</span>
           </header>
@@ -751,11 +760,11 @@ export function MarketListingDetailView({
           <dl className="market-listing-facts">
             <div>
               <dt>{t('Price', 'Harga')}</dt>
-              <dd>{formatMoney(listing.amount, listing.currency)}</dd>
+              <dd className="market-listing-price-value">{canEdit?<MarketListingPriceEdit listingId={listing.id} title={listingTitle} listingType={listing.type==='WTB'?'WTB':'WTS'} amount={listingAmount} currency={listing.currency} cards={editableCards.map(item=>({printingId:item.id,name:item.card.name,quantity:item.quantity,unitAmount:item.unitAmount}))} language={language} onSaved={updated=>{setListingAmount(updated.amount);setEditableCards(current=>current.map((item,index)=>({...item,unitAmount:updated.prices[index]??item.unitAmount})))}}><span>{formatMoney(listingAmount, listing.currency)}</span></MarketListingPriceEdit>:<span>{formatMoney(listingAmount, listing.currency)}</span>}</dd>
             </div>
             {listing.type==='WTS'&&<div>
               <dt>{t('Price terms','Ketentuan harga')}</dt>
-              <dd>{listing.negotiable===false?t('Firm price','Harga pas'):t('Negotiable','Bisa ditawar')}</dd>
+              <dd>{canEdit?<MarketListingPriceTerms listingId={listing.id} negotiable={listingNegotiable} language={language} onSaved={setListingNegotiable}/>:listingNegotiable===false?t('Firm price','Harga pas'):t('Negotiable','Bisa ditawar')}</dd>
             </div>}
             <div>
               <dt>{isBuying ? t('Location', 'Lokasi') : t('Ships from', 'Dikirim dari')}</dt>
@@ -788,15 +797,17 @@ export function MarketListingDetailView({
 
           {(!isExpired||isOwner)&&(
             <MarketListingItems
-              items={listingCards}
+              items={editableCards}
               currency={listing.currency}
               listingType={listing.type === 'WTB' ? 'WTB' : 'WTS'}
               listingId={listing.id}
               sellerId={listing.sellerId}
-              listingTitle={listing.title}
-              listingAmount={formatMoney(listing.amount, listing.currency)}
-              negotiable={listing.negotiable!==false}
+              listingTitle={listingTitle}
+              listingAmount={formatMoney(listingAmount, listing.currency)}
+              negotiable={listingNegotiable}
               readOnly={isOwner}
+              canEditPrices={canEdit&&editableCards.length>1}
+              onPriceSaved={(index,unitAmount)=>{setEditableCards(current=>current.map((item,currentIndex)=>currentIndex===index?{...item,unitAmount}:item));setListingAmount(current=>current+(unitAmount-editableCards[index].unitAmount)*editableCards[index].quantity)}}
             />
           )}
         </section>
