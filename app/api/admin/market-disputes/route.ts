@@ -1,5 +1,6 @@
 import {z} from 'zod';
 import {db,errorResponse,guard,HttpError,user} from '@/lib/server/store';
+import {calculateSellerServiceFee,MARKET_SELLER_FEE_MINIMUM} from '@/lib/market/policy';
 import {isCurrentUserAdmin} from '@/lib/server/admin-auth';
 import {sendMarketEmail} from '@/lib/server/market-notifications';
 
@@ -37,7 +38,9 @@ export async function PATCH(request:Request){
     let details:Record<string,unknown>={};try{details=JSON.parse(dispute.details||'{}') as Record<string,unknown>}catch{}
     details.marketDisputeResolution={decision:input.decision,refundAmount,shippingRefund,refundReference:input.refundReference?.trim()||null,serviceFeeRefund:0,decidedAt:new Date().toISOString()};
     const feePercent=typeof details.marketFeePercent==='number'?details.marketFeePercent:1.5;
-    const sellerNetAmount=input.decision==='FULL_REFUND'?0:input.decision==='PARTIAL_REFUND'?Math.max(0,(dispute.sellerNetAmount??dispute.subtotal)-refundAmount+Math.round(refundAmount*feePercent/100)):(dispute.sellerNetAmount??dispute.subtotal);
+    const feeMinimum=typeof details.marketSellerFeeMinimum==='number'?details.marketSellerFeeMinimum:MARKET_SELLER_FEE_MINIMUM;
+    const remainingSubtotal=Math.max(0,dispute.subtotal-refundAmount);
+    const sellerNetAmount=input.decision==='FULL_REFUND'?0:input.decision==='PARTIAL_REFUND'?Math.max(0,remainingSubtotal-calculateSellerServiceFee(remainingSubtotal,feePercent,feeMinimum)):(dispute.sellerNetAmount??dispute.subtotal);
     const decisionUpdate=d.prepare(`UPDATE market_disputes SET status='RESOLVED',decision=?,decision_note=?,refund_amount=?,shipping_refund=?,refund_reference=?,decided_by=?,resolved_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status!='RESOLVED'`).bind(input.decision,input.decisionNote.trim(),refundAmount,shippingRefund,input.refundReference?.trim()||null,actor.id,input.id);
     if(input.decision==='RESHIP'){
       const updateOrder=d.prepare(`UPDATE checkout_orders SET status='PAID',shipping_status='PENDING',shipping_waybill_id=NULL,shipping_tracking_url=NULL,biteship_order_id=NULL,biteship_tracking_id=NULL,biteship_draft_order_id=NULL,dispatched_at=NULL,delivered_at=NULL,details=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='SHIPPED' AND EXISTS(SELECT 1 FROM market_disputes WHERE id=? AND status='RESOLVED' AND decision='RESHIP')`).bind(JSON.stringify(details),dispute.orderId,input.id);

@@ -5,7 +5,7 @@ import {SaveListingButton,WishlistButton} from './market-saved';
 import {MarketReputation} from './market-reputation';
 import {useRouter} from 'next/navigation';
 import {useCallback,useEffect,useMemo,useRef,useState,type FormEvent} from 'react';
-import {ArrowClockwiseIcon as Renew,ArrowLeftIcon, CheckIcon as Check, InfoIcon as Info, MinusIcon as Minus, PlusIcon as Plus, ShoppingCartIcon as Cart, TruckIcon as Truck, XIcon as X} from '@phosphor-icons/react';
+import {ArrowClockwiseIcon as Renew,ArrowLeftIcon, CheckIcon as Check, InfoIcon as Info, ListIcon as List, MinusIcon as Minus, PlusIcon as Plus, ShoppingCartIcon as Cart, SquaresFourIcon as Grid, TruckIcon as Truck, XIcon as X} from '@phosphor-icons/react';
 import type {Card} from '@/packages/card-data/catalog';
 import {formatMoney,Listing} from '@/packages/domain';
 import {CardArt} from './card-art';
@@ -277,6 +277,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
   const router=useRouter();
   const singleCopyListing=items.length===1&&items[0].quantity===1;
   const [selected,setSelected]=useState<Record<string,number>>(()=>singleCopyListing?{[items[0].id]:1}:{});
+  const [cardsView,setCardsView]=useState<'grid'|'list'>('grid');
   const [customPrices,setCustomPrices]=useState<Record<string,number>>({});
   const [preview,setPreview]=useState<Card>();
   const [vaultTarget,setVaultTarget]=useState<MarketListingCard|null>(null);
@@ -430,9 +431,15 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
     toast.success(current?t('Cart updated','Keranjang diperbarui'):t('Added to cart','Ditambahkan ke keranjang'),{action:{label:t('View cart','Lihat keranjang'),onClick:()=>window.dispatchEvent(new Event('vivreplay:open-market-cart'))}});
   };
 
-  return <section className="market-listing-cards" aria-labelledby="listing-cards-heading">
+  return <section className="market-listing-cards" aria-label={t('Cards in this listing','Kartu dalam listing ini')}>
     <header className="market-listing-cards-header">
-      <h2 id="listing-cards-heading">{t('Cards in this listing','Kartu dalam listing ini')}</h2>
+      <div className="market-listing-cards-heading">
+        <h2>{t('Cards in this listing','Kartu dalam listing ini')}</h2>
+        <div className="market-view-toggle market-listing-view-toggle" role="group" aria-label={t('Card layout','Tata letak kartu')}>
+          <button type="button" className={cardsView==='grid'?'active':''} onClick={()=>setCardsView('grid')} aria-label={t('Grid view','Tampilan kisi')} aria-pressed={cardsView==='grid'}><Grid size={16}/></button>
+          <button type="button" className={cardsView==='list'?'active':''} onClick={()=>setCardsView('list')} aria-label={t('List view','Tampilan daftar')} aria-pressed={cardsView==='list'}><List size={16}/></button>
+        </div>
+      </div>
       {!readOnly&&offerCheckComplete&&!activeOffer&&!submitting&&!singleCopyListing&&<div className="market-listing-bulk-actions" role="toolbar" aria-label={t('Bulk card selection','Pilihan borongan kartu')}>
         <button
           type="button"
@@ -464,7 +471,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
         )}
       </div>}
     </header>
-    <div className="market-listing-card-grid">
+    <div className={`market-listing-card-grid is-${cardsView}`}>
       {items.map(item=>{
         const amount=selected[item.id]??0;
         const unitPrice=getUnitPrice(item);
@@ -498,29 +505,13 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
             {!readOnly&&offerCheckComplete&&!activeOffer&&!submitting&&!singleCopyListing&&<span className="deck-stack-actions market-listing-quantity" aria-label={`Select ${item.card.name}`}>
               <button type="button" onClick={()=>change(item.id,-1,item.quantity)} disabled={!amount} aria-label={`Remove one ${item.card.name}`}><Minus size={13}/></button>
               <button type="button" onClick={()=>change(item.id,1,item.quantity)} disabled={amount===item.quantity} aria-label={`Add one ${item.card.name}`}><Plus size={13}/></button>
-              {item.quantity>1 && (
-                (() => {
-                  const showPlayset = item.quantity >= 4 && amount < 4;
-                  const targetQty = showPlayset ? 4 : (amount === item.quantity ? 0 : item.quantity);
-                  const label = showPlayset ? '4×' : (amount === item.quantity ? '0' : (item.quantity === 4 ? '4×' : t('All','Semua')));
-                  const title = showPlayset
-                    ? t('Take playset of 4', 'Ambil playset 4×')
-                    : (amount === item.quantity
-                      ? t('Deselect card', 'Batalkan pilihan kartu')
-                      : t(`Take all ${item.quantity}`, `Ambil semua ${item.quantity}`));
-                  return (
-                    <button
-                      type="button"
-                      className={`market-card-quick-btn ${amount===item.quantity || (showPlayset && amount===4)?'is-active':''}`}
-                      onClick={()=>setItemExact(item.id, targetQty, item.quantity)}
-                      title={title}
-                      aria-label={`${label} ${item.card.name}`}
-                    >
-                      {label}
-                    </button>
-                  );
-                })()
-              )}
+              {item.quantity>1&&(()=>{
+                const showPlayset=item.quantity>=4&&amount<4;
+                const targetQty=showPlayset?4:(amount===item.quantity?0:item.quantity);
+                const label=showPlayset?'4×':(amount===item.quantity?'0':(item.quantity===4?'4×':t('All','Semua')));
+                const title=showPlayset?t('Take playset of 4','Ambil playset 4×'):(amount===item.quantity?t('Deselect card','Batalkan pilihan kartu'):t(`Take all ${item.quantity}`,`Ambil semua ${item.quantity}`));
+                return <button type="button" className={`market-card-quick-btn ${amount===item.quantity||(showPlayset&&amount===4)?'is-active':''}`} onClick={()=>setItemExact(item.id,targetQty,item.quantity)} title={title} aria-label={`${label} ${item.card.name}`}>{label}</button>;
+              })()}
             </span>}
           </div>
           <div className="market-listing-card-copy">

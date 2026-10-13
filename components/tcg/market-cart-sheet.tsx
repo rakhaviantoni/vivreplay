@@ -1,6 +1,6 @@
 'use client';
 
-import {useCallback,useEffect,useMemo,useState} from 'react';
+import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {useRouter} from 'next/navigation';
 import {ArrowRightIcon as ArrowRight,MinusIcon as Minus,PlusIcon as Plus,ShoppingCartIcon as Cart,TrashIcon as Trash} from '@phosphor-icons/react';
 import {formatMoney} from '@/packages/domain';
@@ -24,6 +24,7 @@ export function MarketCartSheet({locale='EN'}:{locale:'EN'|'ID'}){
   const [unavailableIds,setUnavailableIds]=useState<string[]>([]);
   const [loading,setLoading]=useState(false);
   const [error,setError]=useState('');
+  const openState=useRef(false);
   const isId=locale==='ID';
   const cardCount=cart.lines.reduce((total,line)=>total+line.items.reduce((sum,item)=>sum+item.quantity,0),0);
   const subtotal=useMemo(()=>cart.lines.reduce((sum,line)=>{
@@ -54,6 +55,8 @@ export function MarketCartSheet({locale='EN'}:{locale:'EN'|'ID'}){
   },[]);
 
   const changeOpen=useCallback((next:boolean)=>{
+    if(openState.current===next)return;
+    openState.current=next;
     setOpen(next);
     if(next)void sync();
   },[sync]);
@@ -82,7 +85,7 @@ export function MarketCartSheet({locale='EN'}:{locale:'EN'|'ID'}){
     setCart(next);window.localStorage.setItem(CART_KEY,JSON.stringify(next));window.dispatchEvent(new Event('vivreplay:market-cart-updated'));
   };
   const clearCart=()=>{if(!window.confirm(isId?'Kosongkan semua isi keranjang?':'Remove all items from your cart?'))return;window.localStorage.removeItem(CART_KEY);setCart(emptyCart);setListings([]);setUnavailableIds([]);window.dispatchEvent(new Event('vivreplay:market-cart-updated'))};
-  const continueToCheckout=()=>{if(!selectedSellerId||selectedSellerId.startsWith('unavailable:'))return;setOpen(false);router.push(`/checkout/market?cart=1&seller=${encodeURIComponent(selectedSellerId)}`)};
+  const continueToCheckout=()=>{if(!selectedSellerId||selectedSellerId.startsWith('unavailable:'))return;changeOpen(false);router.push(`/checkout/market?cart=1&seller=${encodeURIComponent(selectedSellerId)}`)};
   const selectedLines=cart.lines.filter(line=>{const listing=listings.find(item=>item.id===line.listingId);return selectedSellerId?listing?.sellerId===selectedSellerId:cart.lines.length===1});
   const selectedUnavailableIds=unavailableIds.filter(id=>selectedLines.some(line=>line.listingId===id));
   const unavailableSelection=selectedLines.some(line=>{const listing=listings.find(item=>item.id===line.listingId);return !listing||line.items.some(selected=>{const item=listing.items.find(candidate=>candidate.printingId===selected.printingId);return !item||selected.quantity>item.quantity})});

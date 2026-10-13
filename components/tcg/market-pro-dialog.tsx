@@ -6,7 +6,8 @@ import {useEffect,useState} from 'react';
 import {CrownIcon as Crown} from '@phosphor-icons/react';
 import {formatMoney} from '@/packages/domain';
 import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle} from '@/components/ui/dialog';
-import {BuyerFeeInfo} from '@/components/tcg/market-buyer-fee-cap-table';
+import {BuyerFeeInfo,SellerFeeInfo} from '@/components/tcg/market-buyer-fee-cap-table';
+import {MARKET_BUYER_FEE_MINIMUM,MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL} from '@/lib/market/policy';
 
 type PlanPreview={
   available:boolean;
@@ -24,6 +25,8 @@ type PlanPreview={
   buyerFeePercent:number;
   freeBuyerFeePercent:number;
   buyerFeeCap:number;
+  buyerFeeMinimum:number;
+  sellerFeeMinimum:number;
   shippingVouchersPerMonth:number;
   shippingVoucherMinSubtotal:number;
   shippingVoucherSharePercent:number;
@@ -86,8 +89,8 @@ export function MarketProDialog({locale,member=false,profile=null,accountLoading
   const rows=[
     {key:'listings',label:t('Active listings','Listing aktif'),free:(plan?.freeMaxActiveListings??25).toLocaleString(isId?'id-ID':'en-US'),pro:(plan?.maxActiveListings??2500).toLocaleString(isId?'id-ID':'en-US')},
     {key:'period',label:t('Listing period','Masa listing'),free:`${plan?.freeDurationDays??7} ${t('days','hari')}`,pro:`${plan?.durationDays??30} ${t('days','hari')}`},
-    {key:'seller-fee',label:t('Seller fee','Biaya penjual'),free:`${plan?.freeCommissionPercent??1}%`,pro:`${plan?.commissionPercent??0.5}%`},
-    {key:'buyer-fee',label:<span className="buyer-fee-row-label">{t('Buyer fee','Biaya pembeli')}<BuyerFeeInfo locale={isId?'id':'en'}/></span>,free:`${plan?.freeBuyerFeePercent??1.5}%`,pro:`${plan?.buyerFeePercent??0.75}%`},
+    {key:'seller-fee',label:<span className="buyer-fee-row-label">{t('Seller fee','Biaya penjual')}<SellerFeeInfo locale={isId?'id':'en'} minimumFee={plan?.sellerFeeMinimum} freePercent={plan?.freeCommissionPercent??1.25} proPercent={plan?.commissionPercent??0.75}/></span>,free:`${plan?.freeCommissionPercent??1.25}%`,pro:`${plan?.commissionPercent??0.75}%`},
+    {key:'buyer-fee',label:<span className="buyer-fee-row-label">{t('Buyer fee','Biaya pembeli')}<BuyerFeeInfo locale={isId?'id':'en'} minimumFee={plan?.buyerFeeMinimum??MARKET_BUYER_FEE_MINIMUM}/></span>,free:`${plan?.freeBuyerFeePercent??1.5}%`,pro:`${plan?.buyerFeePercent??0.75}%`},
     {key:'vouchers',label:t('Delivery vouchers','Voucher ongkir'),free:'—',pro:`${plan?.shippingVouchersPerMonth??2} ${t('per month','per bulan')}`},
   ];
   const amount=plan?.amount;
@@ -131,7 +134,7 @@ export function MarketProDialog({locale,member=false,profile=null,accountLoading
           )}
         </div>
         <div className="market-pro-dialog-table-wrap"><table className="market-pro-dialog-table"><thead><tr><th>{t('Benefit','Manfaat')}</th><th>{t('Free','Gratis')}</th><th>Pro</th></tr></thead><tbody>{rows.map(row=><tr key={row.key}><th scope="row">{row.label}</th><td>{row.free}</td><td>{row.pro}</td></tr>)}</tbody></table></div>
-        <p className="market-pro-dialog-note">{t(`Each voucher covers delivery up to ${formatMoney(plan?.shippingVoucherCap??10000,'IDR')} on card orders of ${formatMoney(plan?.shippingVoucherMinSubtotal??200000,'IDR')} or more.`,`Setiap voucher menanggung ongkir hingga ${formatMoney(plan?.shippingVoucherCap??10000,'IDR')} untuk pesanan kartu minimal ${formatMoney(plan?.shippingVoucherMinSubtotal??200000,'IDR')}.`)}</p>
+        <p className="market-pro-dialog-note">{t(`Each voucher takes ${plan?.shippingVoucherSharePercent??50}% off delivery, up to ${formatMoney(plan?.shippingVoucherCap??5000,'IDR')}, on card orders of ${formatMoney(plan?.shippingVoucherMinSubtotal??MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL,'IDR')} or more.`,`Setiap voucher memotong ${plan?.shippingVoucherSharePercent??50}% ongkir, maksimal ${formatMoney(plan?.shippingVoucherCap??5000,'IDR')}, untuk pesanan kartu minimal ${formatMoney(plan?.shippingVoucherMinSubtotal??MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL,'IDR')}.`)}</p>
         {error&&<p className="checkout-error" role="alert">{error}</p>}
         {profile&&!hasValidPhone?<Link className="button market-pro-dialog-join" href={route('/profile')} onClick={()=>setOpen(false)}>{t('Add phone number','Tambahkan nomor telepon')}</Link>:<button type="button" className="button market-pro-dialog-join" disabled={joining||loading||accountLoading||plan?.available===false||amount==null} onClick={()=>void join()}>{joining?t('Opening checkout…','Membuka checkout…'):!profile&&!accountLoading?t('Sign in to join','Masuk untuk bergabung'):t('Join Market Pro','Gabung Market Pro')}</button>}
       </DialogContent>

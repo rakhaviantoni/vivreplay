@@ -15,7 +15,7 @@ export function VaultPanelEmpty({
   icon?:ReactNode;
 }) {
   return <div className="vault-panel-empty">
-    <span className="vault-panel-empty-icon" aria-hidden="true">{icon??<Cards size={21} weight="regular"/>}</span>
+    <span className="vault-panel-empty-icon market-activity-empty-mark" aria-hidden="true">{icon??<Cards size={21} weight="regular"/>}</span>
     <div className="vault-panel-empty-copy"><strong>{title}</strong><p>{description}</p></div>
     {action&&<div className="vault-panel-empty-actions">{action}</div>}
   </div>;

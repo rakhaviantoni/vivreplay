@@ -9,6 +9,7 @@ import {
   ArrowRightIcon as ArrowRight,
   CheckIcon as Check,
   CardsIcon as Cards,
+  CardsIcon as VaultIcon,
   ListIcon as List,
   MapPinIcon as MapPin,
   MinusIcon as Minus,
@@ -17,12 +18,7 @@ import {
   MagnifyingGlassIcon as Search,
   SquaresFourIcon as Grid,
   UserIcon as UserRound,
-  CaretDownIcon as CaretDown,
   ClipboardTextIcon as ClipboardText,
-  BookmarkSimpleIcon as Bookmark,
-  HeartIcon as Heart,
-  ChatCircleDotsIcon as OffersIcon,
-  ShoppingBagIcon as OrdersIcon,
   ShoppingCartIcon as Cart,
   StorefrontIcon as Store,
   SunIcon as Sun,
@@ -44,10 +40,10 @@ import {CollectionForm} from './collection-form';
 import {AddEditItemModal} from './vault/modals/add-edit-item-modal';
 import {VivreMark} from './brand-assets';
 import {MarketTimestamp} from './market-timestamp';
-import {LISTING_POLICIES} from '@/lib/market/policy';
+import {calculateSellerServiceFee,LISTING_POLICIES,MARKET_SELLER_FEE_MINIMUM} from '@/lib/market/policy';
 import {ShippingCouriers} from './market-listing-items';
 import {Dialog,DialogContent,DialogDescription,DialogTitle} from '@/components/ui/dialog';
-import {DropdownMenu,DropdownMenuContent,DropdownMenuItem,DropdownMenuLabel,DropdownMenuSeparator,DropdownMenuTrigger} from '@/components/ui/dropdown-menu';
+import {MarketAccountMenu} from './market-account-menu';
 import {MarketPriceMode} from './market-price-mode';
 import {ShareButton} from './share';
 import {BulkListingModal} from './vault/modals/bulk-listing-modal';
@@ -456,6 +452,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
   const [accountPanel,setAccountPanel]=useState<'listings'|'offers'|'orders'|'saved'|null>(()=>{const activity=searchParams.get('activity');return activity==='offers'||activity==='orders'||activity==='listings'||activity==='saved'?activity:null});
   const [quickPanel,setQuickPanel]=useState<'profile'|'vault'|'wishlist'|null>(null);
   const [activityCounts,setActivityCounts]=useState({listings:0,offers:0,orders:0});
+  const [proPaymentsCount,setProPaymentsCount]=useState(0);
   const [cartCount,setCartCount]=useState(0);
   const profileId=String(data?.profile?.id??'');
   useEffect(()=>{
@@ -480,6 +477,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
   const [listingTitle,setListingTitle]=useState('');
   const [listingPrice,setListingPrice]=useState('');
   const [liveListingFeePercent,setLiveListingFeePercent]=useState<number|null>(null);
+  const [liveSellerFeeMinimum,setLiveSellerFeeMinimum]=useState<number|null>(null);
   const [listingNegotiable,setListingNegotiable]=useState(true);
   const [listingCity,setListingCity]=useState('');
   useEffect(()=>{
@@ -487,8 +485,9 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
     let active=true;
     fetch('/api/checkout/market',{cache:'no-store'}).then(async response=>{
       if(!response.ok)return;
-      const result=await response.json() as {sellerFeePercent?:number};
+      const result=await response.json() as {sellerFeePercent?:number;sellerFeeMinimum?:number};
       if(active&&Number.isFinite(result.sellerFeePercent))setLiveListingFeePercent(result.sellerFeePercent!);
+      if(active&&Number.isSafeInteger(result.sellerFeeMinimum))setLiveSellerFeeMinimum(result.sellerFeeMinimum!);
     }).catch(()=>undefined);
     return()=>{active=false};
   },[open,data?.profile?.id]);
@@ -544,11 +543,12 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
   }
   useEffect(()=>{if(!modalOnly)void refresh()},[modalOnly]);
   useEffect(()=>{
+    setProPaymentsCount(0);
     if(!profileId||modalOnly)return;
     let active=true;
-    const update=async()=>{if(document.visibilityState!=='visible')return;const counts=await loadMarketActivityCounts(profileId);if(active&&counts)setActivityCounts(counts)};
+    const update=async()=>{if(document.visibilityState!=='visible')return;const [counts,proResponse]=await Promise.all([loadMarketActivityCounts(profileId),fetch('/api/checkout/pro/orders',{cache:'no-store'}).catch(()=>null)]);if(active&&counts)setActivityCounts(counts);if(active&&proResponse?.ok){const result=await proResponse.json() as {orders?:{status:string}[]};setProPaymentsCount((result.orders??[]).filter(order=>order.status==='PENDING_PAYMENT').length)}};
     const onVisibility=()=>{if(document.visibilityState==='visible')void update()};
-    void update();const timer=window.setInterval(()=>void update(),60_000);document.addEventListener('visibilitychange',onVisibility);
+    void update();const timer=window.setInterval(()=>void update(),120_000);document.addEventListener('visibilitychange',onVisibility);
     return()=>{active=false;window.clearInterval(timer);document.removeEventListener('visibilitychange',onVisibility)};
   },[profileId]);
   useEffect(()=>{
@@ -934,8 +934,9 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
   const totalBundleQuantity=bundleCards.reduce((sum,c)=>sum+c.quantity,0);
   const totalCalculatedUnitSum=bundleCards.reduce((sum,c)=>sum+(c.unitAmount*c.quantity),0);
   const listingFeePercent=liveListingFeePercent??(String(data?.profile?.tier??'free').toLowerCase()==='pro'?LISTING_POLICIES.pro.commissionPercent:LISTING_POLICIES.free.commissionPercent);
+  const listingFeeMinimum=liveSellerFeeMinimum??MARKET_SELLER_FEE_MINIMUM;
   const enteredListingTotal=Math.max(0,Number(listingPrice)||0);
-  const estimatedSellerFee=Math.round(enteredListingTotal*listingFeePercent/100);
+  const estimatedSellerFee=calculateSellerServiceFee(enteredListingTotal,listingFeePercent,listingFeeMinimum);
   return (
     <main className={`market-feed-page${modalOnly?' market-sell-modal-host':''}`}>
       <h1 className="market-page-title">Market</h1>
@@ -969,9 +970,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
         <div className="masthead-actions market-store-actions">
         <MarketProDialog locale={locale} profile={data?.profile??null} accountLoading={accountLoading} member={accountLoading||String(data?.profile?.tier??'free').toLowerCase()==='pro'}/>
         <MarketCartSheet locale={locale}/>
-        {data && (
-          <DropdownMenu><DropdownMenuTrigger asChild><button type="button" className="market-account-trigger" aria-label={locale==='ID'?'Market saya: listing, penawaran, dan pesanan':'My Market: listings, offers, and orders'}><Store size={16} aria-hidden="true"/>{activityCounts.listings+activityCounts.offers+activityCounts.orders>0&&<span className="market-account-unread-badge">{Math.min(99,activityCounts.listings+activityCounts.offers+activityCounts.orders)}</span>}<span className="market-account-trigger-name">{locale==='ID'?'Market saya':'My Market'}</span><CaretDown size={14} aria-hidden="true"/></button></DropdownMenuTrigger><DropdownMenuContent align="end" sideOffset={10} className="market-account-menu"><DropdownMenuLabel className="market-account-menu-label"><span className="market-account-menu-name">{data.profile.display_name||`@${data.profile.username}`}</span><span className="market-account-menu-handle">@{data.profile.username}</span></DropdownMenuLabel><DropdownMenuSeparator/><DropdownMenuItem className="market-account-menu-item" onSelect={()=>setAccountPanel('listings')}><ClipboardText size={16}/>{locale==='ID'?'Listing saya':'My listings'}{activityCounts.listings>0&&<span className="market-activity-badge">{activityCounts.listings>99?'99+':activityCounts.listings}</span>}</DropdownMenuItem><DropdownMenuItem className="market-account-menu-item" onSelect={()=>setAccountPanel('offers')}><OffersIcon size={16}/>{locale==='ID'?'Penawaran':'Offers'}{activityCounts.offers>0&&<span className="market-activity-badge">{activityCounts.offers>99?'99+':activityCounts.offers}</span>}</DropdownMenuItem><DropdownMenuItem className="market-account-menu-item" onSelect={()=>setAccountPanel('orders')}><OrdersIcon size={16}/>{locale==='ID'?'Pesanan':'Orders'}{activityCounts.orders>0&&<span className="market-activity-badge">{activityCounts.orders>99?'99+':activityCounts.orders}</span>}</DropdownMenuItem><DropdownMenuItem className="market-account-menu-item" onSelect={()=>setAccountPanel('saved')}><Bookmark size={16}/>{locale==='ID'?'Listing tersimpan':'Saved listings'}</DropdownMenuItem><DropdownMenuItem className="market-account-menu-item" onSelect={()=>{setAccountPanel(null);setQuickPanel('wishlist')}}><Heart size={16}/>{locale==='ID'?'Kartu incaran':'Wishlist'}</DropdownMenuItem><DropdownMenuItem className="market-account-menu-item" onSelect={()=>{setAccountPanel(null);setQuickPanel('profile')}}><UserRound size={16}/>{locale==='ID'?'Profil':'Profile'}</DropdownMenuItem></DropdownMenuContent></DropdownMenu>
-        )}
+        {data&&<MarketAccountMenu account={data} locale={locale} activityCounts={activityCounts} proPaymentsCount={proPaymentsCount} onOpenSection={panel=>setAccountPanel(panel)} onOpenQuick={panel=>{setAccountPanel(null);setQuickPanel(panel)}}/>}
         <button type="button" className="market-store-link" onClick={()=>{setAccountPanel(null);setQuickPanel('vault')}}>
           {locale==='ID'?'Koleksi saya':'Vault'}
         </button>
@@ -1560,7 +1559,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
                     <small style={{fontSize:11,color:'var(--muted)',marginTop:3}}>
                       {locale==='ID'?`Total akumulasi satuan: Rp ${totalCalculatedUnitSum.toLocaleString('id-ID')}`:`Calculated sum: Rp ${totalCalculatedUnitSum.toLocaleString('id-ID')}`}
                     </small>
-                    {enteredListingTotal>0&&<small className="market-sell-fee-estimate">{locale==='ID'?`Biaya penjual (${listingFeePercent}%): Rp ${estimatedSellerFee.toLocaleString('id-ID')} - perkiraan diterima Rp ${(enteredListingTotal-estimatedSellerFee).toLocaleString('id-ID')}`:`Seller fee (${listingFeePercent}%): Rp ${estimatedSellerFee.toLocaleString('id-ID')} - estimated payout Rp ${(enteredListingTotal-estimatedSellerFee).toLocaleString('id-ID')}`}</small>}
+                    {enteredListingTotal>0&&<small className="market-sell-fee-estimate">{locale==='ID'?`Biaya penjual (${listingFeePercent}%, minimal Rp ${listingFeeMinimum.toLocaleString('id-ID')}): Rp ${estimatedSellerFee.toLocaleString('id-ID')} - perkiraan diterima Rp ${(enteredListingTotal-estimatedSellerFee).toLocaleString('id-ID')}`:`Seller fee (${listingFeePercent}%, minimum IDR ${listingFeeMinimum.toLocaleString('en-US')}): IDR ${estimatedSellerFee.toLocaleString('en-US')} - estimated payout IDR ${(enteredListingTotal-estimatedSellerFee).toLocaleString('en-US')}`}</small>}
                   </label>
                   <label>
                     {locale==='ID'?'Dikirim dari':'Ships from'}

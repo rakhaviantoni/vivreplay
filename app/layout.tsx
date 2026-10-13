@@ -4,6 +4,7 @@ import {headers} from 'next/headers';
 import {Shell} from '@/components/tcg/shell';
 import {DeferredWebFonts} from '@/components/tcg/deferred-web-fonts';
 import './globals.css';
+import './vault.css';
 import './vivreplay.css';
 import './catalog-workbench.css';
 import './mobile.css';

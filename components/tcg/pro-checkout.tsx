@@ -4,12 +4,12 @@ import Link from 'next/link';
 import {useRouter} from 'next/navigation';
 import {useEffect,useState} from 'react';
 import {formatMoney} from '@/packages/domain';
-import {calculateBuyerServiceFee} from '@/lib/market/policy';
-import {BuyerFeeInfo} from '@/components/tcg/market-buyer-fee-cap-table';
+import {calculateBuyerServiceFee,calculateSellerServiceFee,MARKET_BUYER_FEE_MINIMUM,MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL} from '@/lib/market/policy';
+import {BuyerFeeInfo,SellerFeeInfo} from '@/components/tcg/market-buyer-fee-cap-table';
 import {useAccount} from '@/lib/client';
 import {toast} from 'sonner';
 
-type Plan={available:boolean;amount:number|null;standardAmount:number|null;durationDays:number|null;introOffer:boolean;introOfferEndsAt:string|null;introOfferLimit:number|null;introOfferSpotsRemaining:number|null;maxActiveListings:number;freeMaxActiveListings:number;freeDurationDays:number;commissionPercent:number;freeCommissionPercent:number;buyerFeePercent:number;freeBuyerFeePercent:number;buyerFeeCap:number;shippingVouchersPerMonth:number;shippingVoucherMinSubtotal:number;shippingVoucherSharePercent:number;shippingVoucherCap:number;canAutoRenew:boolean;freeCanAutoRenew:boolean;currency:'IDR'};
+type Plan={available:boolean;amount:number|null;standardAmount:number|null;durationDays:number|null;introOffer:boolean;introOfferEndsAt:string|null;introOfferLimit:number|null;introOfferSpotsRemaining:number|null;maxActiveListings:number;freeMaxActiveListings:number;freeDurationDays:number;commissionPercent:number;freeCommissionPercent:number;sellerFeeMinimum:number;buyerFeePercent:number;freeBuyerFeePercent:number;buyerFeeCap:number;buyerFeeMinimum:number;shippingVouchersPerMonth:number;shippingVoucherMinSubtotal:number;shippingVoucherSharePercent:number;shippingVoucherCap:number;canAutoRenew:boolean;freeCanAutoRenew:boolean;currency:'IDR'};
 type MembershipOrder={id:string;status:string;amount:number;currency:string;createdAt:string;paidAt:string|null};
 
 export function ProCheckout(){
@@ -21,6 +21,7 @@ export function ProCheckout(){
   const [error,setError]=useState('');
   const [membershipOrders,setMembershipOrders]=useState<MembershipOrder[]>([]);
   const [monthlySales,setMonthlySales]=useState('0');
+  const [monthlySaleCount,setMonthlySaleCount]=useState('2');
   const [monthlyPurchases,setMonthlyPurchases]=useState('0');
   const [monthlyPurchaseCount,setMonthlyPurchaseCount]=useState('2');
   const [averageDelivery,setAverageDelivery]=useState('10000');
@@ -72,17 +73,19 @@ export function ProCheckout(){
   const rows=[
     {key:'listings',label:t('Active listings','Listing aktif'),free:(plan?.freeMaxActiveListings??25).toLocaleString(id?'id-ID':'en-US'),pro:(plan?.maxActiveListings??2500).toLocaleString(id?'id-ID':'en-US')},
     {key:'period',label:t('Listing period','Masa listing'),free:`${plan?.freeDurationDays??7} ${t('days','hari')}`,pro:`${plan?.durationDays??30} ${t('days','hari')}`},
-    {key:'seller-fee',label:t('Seller fee','Biaya penjual'),free:`${plan?.freeCommissionPercent??1}%`,pro:`${plan?.commissionPercent??0.5}%`},
-    {key:'buyer-fee',label:<span className="buyer-fee-row-label">{t('Buyer fee','Biaya pembeli')}<BuyerFeeInfo locale={id?'id':'en'}/></span>,free:`${plan?.freeBuyerFeePercent??1.5}%`,pro:`${plan?.buyerFeePercent??0.75}%`},
+    {key:'seller-fee',label:<span className="buyer-fee-row-label">{t('Seller fee','Biaya penjual')}<SellerFeeInfo locale={id?'id':'en'} minimumFee={plan?.sellerFeeMinimum} freePercent={plan?.freeCommissionPercent??1.25} proPercent={plan?.commissionPercent??0.75}/></span>,free:`${plan?.freeCommissionPercent??1.25}%`,pro:`${plan?.commissionPercent??0.75}%`},
+    {key:'buyer-fee',label:<span className="buyer-fee-row-label">{t('Buyer fee','Biaya pembeli')}<BuyerFeeInfo locale={id?'id':'en'} minimumFee={plan?.buyerFeeMinimum??MARKET_BUYER_FEE_MINIMUM}/></span>,free:`${plan?.freeBuyerFeePercent??1.5}%`,pro:`${plan?.buyerFeePercent??0.75}%`},
     {key:'vouchers',label:t('Shipping vouchers','Voucher ongkir'),free:t('—','—'),pro:`${plan?.shippingVouchersPerMonth??2} ${t('per month','per bulan')}`},
     {key:'renewal',label:t('Listing auto-renewal','Perpanjangan listing otomatis'),free:plan?.freeCanAutoRenew?t('Automatic','Otomatis'):t('Manual','Manual'),pro:plan?.canAutoRenew?t('Automatic','Otomatis'):t('Manual','Manual')},
   ];
   const alreadyPro=String(account?.profile?.tier??'free').toLowerCase()==='pro';
   const numberValue=(value:string)=>Math.max(0,Math.min(1_000_000_000_000,Number(value)||0));
-  const sellerSavings=Math.round(numberValue(monthlySales)*Math.max(0,(plan?.freeCommissionPercent??1)-(plan?.commissionPercent??0.5))/100);
+  const saleCount=Math.max(1,Math.min(100,Math.floor(Number(monthlySaleCount)||1)));
+  const averageSaleSubtotal=numberValue(monthlySales)/saleCount;
+  const sellerSavings=saleCount*Math.max(0,calculateSellerServiceFee(averageSaleSubtotal,plan?.freeCommissionPercent??1.25,plan?.sellerFeeMinimum)-calculateSellerServiceFee(averageSaleSubtotal,plan?.commissionPercent??0.75,plan?.sellerFeeMinimum));
   const purchaseCount=Math.max(1,Math.min(100,Math.floor(Number(monthlyPurchaseCount)||1)));
   const averagePurchaseSubtotal=numberValue(monthlyPurchases)/purchaseCount;
-  const buyerSavings=purchaseCount*Math.max(0,calculateBuyerServiceFee(averagePurchaseSubtotal,plan?.freeBuyerFeePercent??1.5)-calculateBuyerServiceFee(averagePurchaseSubtotal,plan?.buyerFeePercent??0.75));
+  const buyerSavings=purchaseCount*Math.max(0,calculateBuyerServiceFee(averagePurchaseSubtotal,plan?.freeBuyerFeePercent??1.5,plan?.buyerFeeMinimum??MARKET_BUYER_FEE_MINIMUM)-calculateBuyerServiceFee(averagePurchaseSubtotal,plan?.buyerFeePercent??0.75,plan?.buyerFeeMinimum??MARKET_BUYER_FEE_MINIMUM));
   const voucherSavings=Math.min(Math.max(0,Math.floor(Number(voucherCount)||0)),plan?.shippingVouchersPerMonth??2)*Math.min(Math.round(numberValue(averageDelivery)*(plan?.shippingVoucherSharePercent??100)/100),plan?.shippingVoucherCap??10000);
   const totalEstimatedSavings=sellerSavings+buyerSavings+voucherSavings;
   const estimatedAfterPlan=totalEstimatedSavings-(plan?.amount??plan?.standardAmount??0);
@@ -99,11 +102,12 @@ export function ProCheckout(){
       <section className="pro-benefits-panel" aria-labelledby="pro-comparison-title">
         <div className="pro-panel-heading"><div><h2 id="pro-comparison-title">{t('Free vs Pro','Gratis vs Pro')}</h2></div></div>
         <div className="pro-comparison-wrap"><table className="pro-comparison-table"><thead><tr><th scope="col">{t('What you get','Manfaat')}</th><th scope="col">{freeLabel}</th><th scope="col">{proLabel}</th></tr></thead><tbody>{rows.map(row=><tr key={row.key}><th scope="row">{row.label}</th><td>{row.free}</td><td>{row.pro}</td></tr>)}</tbody></table></div>
-        <p className="pro-voucher-note">{t(`Your ${plan?.shippingVouchersPerMonth??2} monthly vouchers cover delivery up to ${formatMoney(plan?.shippingVoucherCap??10000,'IDR')} each, on card orders of ${formatMoney(plan?.shippingVoucherMinSubtotal??200000,'IDR')} or more.`,`${plan?.shippingVouchersPerMonth??2} voucher bulanan menanggung ongkir hingga ${formatMoney(plan?.shippingVoucherCap??10000,'IDR')} per voucher, untuk pesanan kartu minimal ${formatMoney(plan?.shippingVoucherMinSubtotal??200000,'IDR')}.`)}</p>
+        <p className="pro-voucher-note">{t(`Your ${plan?.shippingVouchersPerMonth??2} monthly vouchers take ${plan?.shippingVoucherSharePercent??50}% off delivery, up to ${formatMoney(plan?.shippingVoucherCap??5000,'IDR')} each, on card orders of ${formatMoney(plan?.shippingVoucherMinSubtotal??MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL,'IDR')} or more.`,`${plan?.shippingVouchersPerMonth??2} voucher bulanan memotong ${plan?.shippingVoucherSharePercent??50}% ongkir, maksimal ${formatMoney(plan?.shippingVoucherCap??5000,'IDR')} per voucher, untuk pesanan kartu minimal ${formatMoney(plan?.shippingVoucherMinSubtotal??MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL,'IDR')}.`)}</p>
         <section className="pro-savings-calculator" aria-labelledby="pro-calculator-title">
           <header><h3 id="pro-calculator-title">{t('Estimate your monthly savings','Hitung perkiraan hemat per bulan')}</h3><p>{t('Use your typical monthly Market activity.','Masukkan perkiraan aktivitas Market bulanan Anda.')}</p></header>
           <div className="pro-calculator-inputs">
             {moneyInput(monthlySales,setMonthlySales,t('Cards you sell (IDR)','Nilai kartu yang dijual (IDR)'))}
+            <label>{t('Sales per month','Jumlah pesanan jual per bulan')}<input inputMode="numeric" type="number" min="1" max="100" step="1" value={monthlySaleCount} onChange={event=>setMonthlySaleCount(event.target.value)} /></label>
             {moneyInput(monthlyPurchases,setMonthlyPurchases,t('Cards you buy (IDR)','Nilai kartu yang dibeli (IDR)'))}
             <label>{t('Purchase orders per month','Jumlah pesanan beli per bulan')}<input inputMode="numeric" type="number" min="1" max="100" step="1" value={monthlyPurchaseCount} onChange={event=>setMonthlyPurchaseCount(event.target.value)} /></label>
             {moneyInput(averageDelivery,setAverageDelivery,t('Average delivery per eligible order','Rata-rata ongkir per pesanan yang memenuhi syarat'))}

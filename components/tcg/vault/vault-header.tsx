@@ -58,7 +58,7 @@ export function VaultHeader({
           <h1>{t('Your Vault','Koleksi Anda')}</h1>
           <p className="vault-subtitle">
             <span>{language === 'ID' ? `Arsip digital @${username}` : `@${username}'s digital archive`}</span>
-            <span>·</span>
+            <span> | </span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
               <Lock size={12} />
               {privacy.collection === 'public' ? t('Public Collection','Koleksi Publik') : t('Private Collection','Koleksi Privat')}

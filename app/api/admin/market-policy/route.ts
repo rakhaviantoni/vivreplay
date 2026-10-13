@@ -1,14 +1,16 @@
 import { db, errorResponse } from '@/lib/server/store';
 import {
   fetchMarketPolicies,
-  type AccountTier,
-  type ListingTierPolicy,
+  type MarketPolicies,
 } from '@/lib/market/policy';
 import { z } from 'zod';
 import {isCurrentUserAdmin} from '@/lib/server/admin-auth';
 import {getProPricing,type ProPricing} from '@/lib/market/pro-pricing';
 
 const policySchema = z.object({
+  buyerFeeMinimum: z.number().int().min(0).max(100_000),
+  sellerFeeMinimum: z.number().int().min(0).max(100_000),
+  shippingVoucherMinSubtotal: z.number().int().min(0).max(100_000_000),
   free: z.object({
     durationDays: z.number().int().min(1).max(365),
     maxActiveListings: z.number().int().min(1).max(100000),
@@ -71,7 +73,10 @@ export async function POST(req: Request) {
     const body = await req.json();
     const parsed = policySchema.extend({proPricing:pricingSchema}).parse(body);
 
-    const payload: Record<AccountTier, ListingTierPolicy> = {
+    const payload: MarketPolicies = {
+      buyerFeeMinimum: parsed.buyerFeeMinimum,
+      sellerFeeMinimum: parsed.sellerFeeMinimum,
+      shippingVoucherMinSubtotal: parsed.shippingVoucherMinSubtotal,
       free: {
         tier: 'free',
         durationDays: parsed.free.durationDays,

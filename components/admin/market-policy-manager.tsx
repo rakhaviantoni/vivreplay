@@ -12,12 +12,12 @@ import {
   LightningIcon as Lightning,
 } from '@phosphor-icons/react';
 import { toast } from 'sonner';
-import type { AccountTier, ListingTierPolicy } from '@/lib/market/policy';
+import type { MarketPolicies } from '@/lib/market/policy';
 import { MARKET_BUYER_FEE_PERCENT, MARKET_PRO_BUYER_FEE_PERCENT, MARKET_BUYER_FEE_CAP } from '@/lib/market/policy';
 import { DEFAULT_PRO_PRICING,type ProPricing } from '@/lib/market/pro-pricing';
 
 interface PolicyResponse {
-  policies: Record<AccountTier, ListingTierPolicy>;
+  policies: MarketPolicies;
   proPricing:ProPricing;
   stats: {
     activeListings: number;
@@ -36,17 +36,20 @@ export function MarketPolicyManager() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [stats, setStats] = useState({ activeListings: 0, activeSellers: 0 });
-  const [initialPolicies, setInitialPolicies] = useState<Record<AccountTier, ListingTierPolicy> | null>(null);
+  const [initialPolicies, setInitialPolicies] = useState<MarketPolicies | null>(null);
 
   // Form states
   const [freeDays, setFreeDays] = useState(7);
   const [freeMax, setFreeMax] = useState(25);
-  const [freeFee, setFreeFee] = useState(1);
+  const [freeFee, setFreeFee] = useState(1.25);
 
   const [proDays, setProDays] = useState(30);
   const [proMax, setProMax] = useState(2500);
-  const [proFee, setProFee] = useState(0.5);
+  const [proFee, setProFee] = useState(0.75);
   const [proAutoRenew, setProAutoRenew] = useState(true);
+  const [buyerFeeMinimum,setBuyerFeeMinimum]=useState(2000);
+  const [sellerFeeMinimum,setSellerFeeMinimum]=useState(1000);
+  const [voucherMinimum,setVoucherMinimum]=useState(1_000_000);
   const [proPrice,setProPrice]=useState(DEFAULT_PRO_PRICING.amount);
   const [proDuration,setProDuration]=useState(DEFAULT_PRO_PRICING.durationDays);
   const [proIntroPrice,setProIntroPrice]=useState<number|null>(DEFAULT_PRO_PRICING.introAmount);
@@ -71,6 +74,9 @@ export function MarketPolicyManager() {
       setProMax(data.policies.pro.maxActiveListings);
       setProFee(data.policies.pro.commissionPercent);
       setProAutoRenew(data.policies.pro.canAutoRenew);
+      setBuyerFeeMinimum(data.policies.buyerFeeMinimum);
+      setSellerFeeMinimum(data.policies.sellerFeeMinimum);
+      setVoucherMinimum(data.policies.shippingVoucherMinSubtotal);
       setProPrice(data.proPricing.amount);
       setProDuration(data.proPricing.durationDays);
       setProIntroPrice(data.proPricing.introAmount);
@@ -93,28 +99,28 @@ export function MarketPolicyManager() {
     if (preset === 'recommended') {
       setFreeDays(7);
       setFreeMax(25);
-      setFreeFee(1);
+      setFreeFee(1.25);
       setProDays(30);
       setProMax(2500);
-      setProFee(0.5);
+      setProFee(0.75);
       setProAutoRenew(true);
       toast.info('Applied "Recommended (7d / 25 listings)" preset. Click Save to apply.');
     } else if (preset === 'quick-turn') {
       setFreeDays(3);
       setFreeMax(25);
-      setFreeFee(1);
+      setFreeFee(1.25);
       setProDays(30);
       setProMax(2500);
-      setProFee(0.5);
+      setProFee(0.75);
       setProAutoRenew(true);
       toast.info('Applied "Quick-turn listings (3d / 25 listings)" preset. Click Save to apply.');
     } else if (preset === 'relaxed') {
       setFreeDays(30);
       setFreeMax(25);
-      setFreeFee(1);
+      setFreeFee(1.25);
       setProDays(60);
       setProMax(2500);
-      setProFee(0.5);
+      setProFee(0.75);
       setProAutoRenew(true);
       toast.info('Applied "Relaxed (30d / 25 listings)" preset. Click Save to apply.');
     }
@@ -130,6 +136,9 @@ export function MarketPolicyManager() {
     setProMax(initialPolicies.pro.maxActiveListings);
     setProFee(initialPolicies.pro.commissionPercent);
     setProAutoRenew(initialPolicies.pro.canAutoRenew);
+    setBuyerFeeMinimum(initialPolicies.buyerFeeMinimum);
+    setSellerFeeMinimum(initialPolicies.sellerFeeMinimum);
+    setVoucherMinimum(initialPolicies.shippingVoucherMinSubtotal);
     setProPrice(initialPricing.amount);
     setProDuration(initialPricing.durationDays);
     setProIntroPrice(initialPricing.introAmount);
@@ -143,6 +152,9 @@ export function MarketPolicyManager() {
     setSaving(true);
     try {
       const payload = {
+        buyerFeeMinimum: Math.max(0,Number(buyerFeeMinimum)),
+        sellerFeeMinimum: Math.max(0,Number(sellerFeeMinimum)),
+        shippingVoucherMinSubtotal: Math.max(0,Number(voucherMinimum)),
         free: {
           durationDays: Math.max(1, Number(freeDays)),
           maxActiveListings: Math.max(1, Number(freeMax)),
@@ -176,6 +188,9 @@ export function MarketPolicyManager() {
       }
 
       setInitialPolicies({
+        buyerFeeMinimum: payload.buyerFeeMinimum,
+        sellerFeeMinimum: payload.sellerFeeMinimum,
+        shippingVoucherMinSubtotal: payload.shippingVoucherMinSubtotal,
         free: { ...payload.free, tier: 'free' },
         pro: { ...payload.pro, tier: 'pro' },
       });
@@ -205,7 +220,7 @@ export function MarketPolicyManager() {
         <div>
           <h2>Market Retention & Limits Policy</h2>
           <p>
-            Configure listing limits and seller fees. Buyer fees are {MARKET_BUYER_FEE_PERCENT}% on Free orders and {MARKET_PRO_BUYER_FEE_PERCENT}% with Pro; the cap rises with card subtotal, up to {new Intl.NumberFormat('en-US',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(MARKET_BUYER_FEE_CAP)}.
+            Configure listing limits and seller fees. Buyer fees are {MARKET_BUYER_FEE_PERCENT}% on Free orders and {MARKET_PRO_BUYER_FEE_PERCENT}% with Pro, subject to a minimum and subtotal-based cap up to {new Intl.NumberFormat('en-US',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(MARKET_BUYER_FEE_CAP)}.
           </p>
         </div>
         <div className="admin-policy-presets">
@@ -417,6 +432,16 @@ export function MarketPolicyManager() {
           <div className="admin-policy-field"><label htmlFor="pro-intro-price">Launch price <span>(IDR, optional)</span></label><input id="pro-intro-price" type="number" min="1000" step="100" value={proIntroPrice??''} onChange={event=>setProIntroPrice(event.target.value?Number(event.target.value):null)} placeholder="Off"/><small>Must be lower than the regular price.</small></div>
           <div className="admin-policy-field"><label htmlFor="pro-intro-date">Launch offer ends <span>(Jakarta time)</span></label><input id="pro-intro-date" type="date" value={proIntroEndDate} onChange={event=>setProIntroEndDate(event.target.value)} disabled={proIntroPrice===null}/><small>Leave blank to turn off the launch offer.</small></div>
           <div className="admin-policy-field"><label htmlFor="pro-intro-limit">Launch offer account limit</label><input id="pro-intro-limit" type="number" min="0" step="1" value={proIntroLimit} onChange={event=>setProIntroLimit(Number(event.target.value))} disabled={proIntroPrice===null} required/><small>Set to 0 for no account limit.</small></div>
+        </div>
+      </section>
+
+      <section className="admin-policy-card admin-pro-pricing-card">
+        <span className="admin-tier-badge pro"><Tag size={13}/>Market checkout fees and vouchers</span>
+        <p className="tier-desc">These values apply to new checkouts. Existing orders keep their saved totals.</p>
+        <div className="admin-policy-fields">
+          <div className="admin-policy-field"><label htmlFor="buyer-fee-minimum">Minimum buyer service fee <span>(IDR)</span></label><input id="buyer-fee-minimum" type="number" min="0" max="100000" step="500" value={buyerFeeMinimum} onChange={event=>setBuyerFeeMinimum(Number(event.target.value))} required/><small>The percentage fee applies unless it is below this minimum. The subtotal cap still applies.</small></div>
+          <div className="admin-policy-field"><label htmlFor="seller-fee-minimum">Minimum seller fee <span>(IDR)</span></label><input id="seller-fee-minimum" type="number" min="0" max="100000" step="500" value={sellerFeeMinimum} onChange={event=>setSellerFeeMinimum(Number(event.target.value))} required/><small>Deducted from the card subtotal. It never exceeds the subtotal.</small></div>
+          <div className="admin-policy-field"><label htmlFor="voucher-minimum">Pro voucher minimum card subtotal <span>(IDR)</span></label><input id="voucher-minimum" type="number" min="0" max="100000000" step="50000" value={voucherMinimum} onChange={event=>setVoucherMinimum(Number(event.target.value))} required/><small>Pro vouchers apply only when the card subtotal reaches this amount.</small></div>
         </div>
       </section>
 

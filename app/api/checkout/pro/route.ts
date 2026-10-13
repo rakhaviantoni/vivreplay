@@ -1,7 +1,7 @@
 import {db,errorResponse,guard,user,optionalUser,HttpError} from '@/lib/server/store';
 import {getCurrentUser} from '@/lib/server/auth';
 import {createIpaymuQris,hasMarketIpaymuPaymentConfig,ipaymuExpiryTimestamp} from '@/lib/server/ipaymu';
-import {getDynamicListingPolicy,MARKET_BUYER_FEE_PERCENT,MARKET_PRO_BUYER_FEE_PERCENT,MARKET_BUYER_FEE_CAP,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH,MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL,MARKET_PRO_SHIPPING_VOUCHER_SHARE,MARKET_PRO_SHIPPING_VOUCHER_CAP} from '@/lib/market/policy';
+import {fetchMarketPolicies,MARKET_BUYER_FEE_PERCENT,MARKET_PRO_BUYER_FEE_PERCENT,MARKET_BUYER_FEE_CAP,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH,MARKET_PRO_SHIPPING_VOUCHER_SHARE,MARKET_PRO_SHIPPING_VOUCHER_CAP} from '@/lib/market/policy';
 import {getProPricing} from '@/lib/market/pro-pricing';
 
 const PAID_INTRO_STATUSES="'PROCESSING','PAID','COMPLETED'";
@@ -32,9 +32,11 @@ async function introStatus(profileId?:string|null,checkCapacity=true,knownPricin
 export async function GET(){
   try{
     const database=db();
-    const [pricing,policy,freePolicy,profile]=await Promise.all([
-      getProPricing(database),getDynamicListingPolicy('pro',database),getDynamicListingPolicy('free',database),optionalUser().catch(()=>null),
+    const [pricing,policies,profile]=await Promise.all([
+      getProPricing(database),fetchMarketPolicies(database),optionalUser().catch(()=>null),
     ]);
+    const policy=policies.pro;
+    const freePolicy=policies.free;
     // The plan preview is public and may be opened often. The global promo
     // capacity check belongs at checkout creation, not on every plan request.
     const intro=await introStatus(profile?.id,false,pricing).catch(()=>({promoOpen:false,spotsRemaining:null,eligible:false,pendingOrderId:null,priorPaid:false}));
@@ -54,11 +56,13 @@ export async function GET(){
       freeDurationDays:freePolicy.durationDays,
       commissionPercent:policy.commissionPercent,
       freeCommissionPercent:freePolicy.commissionPercent,
+      sellerFeeMinimum:policies.sellerFeeMinimum,
       buyerFeePercent:MARKET_PRO_BUYER_FEE_PERCENT,
       freeBuyerFeePercent:MARKET_BUYER_FEE_PERCENT,
       buyerFeeCap:MARKET_BUYER_FEE_CAP,
+      buyerFeeMinimum:policies.buyerFeeMinimum,
       shippingVouchersPerMonth:MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH,
-      shippingVoucherMinSubtotal:MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL,
+      shippingVoucherMinSubtotal:policies.shippingVoucherMinSubtotal,
       shippingVoucherSharePercent:MARKET_PRO_SHIPPING_VOUCHER_SHARE*100,
       shippingVoucherCap:MARKET_PRO_SHIPPING_VOUCHER_CAP,
       canAutoRenew:policy.canAutoRenew,

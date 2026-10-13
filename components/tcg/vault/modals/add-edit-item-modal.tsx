@@ -57,8 +57,10 @@ function uniquePrintings(printings:VaultPrinting[],preferredId?:string){
 function printingTitle(printing:VaultPrinting){
   const set=printing.set_code?.trim();
   const variant=(printing.variant??'Standard').trim();
-  return set?`${set} · ${variant}`:variant;
+  return set?`${variant} / ${set}`:variant;
 }
+
+const EMPTY_CARD: Card = {id:'',code:'',name:'',color:'',type:'Character',cost:0,power:0,rarity:'',art:0,effect:''};
 
 export function AddEditItemModal({
   open,
@@ -73,7 +75,7 @@ export function AddEditItemModal({
   const isEditing = Boolean(editingItem);
 
   const [selectedCardCode, setSelectedCardCode] = useState<string>(
-    editingItem ? editingItem.card.code : (initialCard ? initialCard.code : 'OP05-119')
+    editingItem ? editingItem.card.code : (initialCard ? initialCard.code : '')
   );
   const [cardQuery, setCardQuery] = useState('');
   const [identityPickerOpen, setIdentityPickerOpen] = useState(!editingItem && !initialCard);
@@ -133,7 +135,7 @@ export function AddEditItemModal({
   useEffect(() => {
     if (!open) return;
     setSubmitAttempted(false);
-    setSelectedCardCode(editingItem?.card.code ?? initialCard?.code ?? 'OP05-119');
+    setSelectedCardCode(editingItem?.card.code ?? initialCard?.code ?? '');
     setCardQuery('');
     setIdentityPickerOpen(!editingItem && !initialCard);
     setIdentityConfirmed(Boolean(editingItem || initialCard));
@@ -175,8 +177,8 @@ export function AddEditItemModal({
   },[open,identityPickerOpen,cardQuery]);
 
   useEffect(() => {
-    if (!open) return;
-    const identityCode=editingItem?.card.code??selectedCardCode;
+    const identityCode=editingItem?.card.code??(identityConfirmed?(selectedIdentity?.code??selectedCardCode):'');
+    if (!open || !identityCode) {setCatalogPrintings([]);setCatalogLoading(false);return;}
     let active = true;
     const controller = new AbortController();
     setCatalogLoading(true);
@@ -190,7 +192,7 @@ export function AddEditItemModal({
       } satisfies VaultPrinting));
     })).then(results => {if(active)setCatalogPrintings(results.flat());}).catch(() => {if(active)setCatalogPrintings([]);}).finally(() => {if(active)setCatalogLoading(false);});
     return () => {active = false;controller.abort();};
-  }, [open, editingItem?.card.code, selectedCardCode]);
+  }, [open, editingItem?.card.code, selectedIdentity?.code, selectedCardCode, identityConfirmed]);
 
   useEffect(() => {
     if (!open || !catalogPrintings.length || catalogPrintings.some(printing=>printing.language===cardLanguage)) return;
@@ -205,12 +207,14 @@ export function AddEditItemModal({
     setSelectedPrintingId(next?.id??'');
   },[open,identityConfirmed,isEditing,catalogLoading,catalogPrintings,selectedPrintingId,cardLanguage]);
 
-  const currentCard = (isEditing ? editingItem?.card : undefined) || selectedIdentity || cards.find(c => c.code === selectedCardCode) || cards[0];
+  const currentCard = (isEditing ? editingItem?.card : undefined) || selectedIdentity || cards.find(c => c.code === selectedCardCode) || EMPTY_CARD;
   const hasSelectedIdentity = Boolean(
-    currentCard?.code &&
+    currentCard.code &&
     (isEditing || selectedIdentity || identityConfirmed || initialCard)
   );
-  const sourcePrintingOptions:VaultPrinting[] = catalogPrintings.length
+  const sourcePrintingOptions:VaultPrinting[] = !hasSelectedIdentity
+    ? []
+    : catalogPrintings.length
     ? catalogPrintings
     : catalogLoading
       ? []
@@ -419,11 +423,11 @@ export function AddEditItemModal({
           {/* Top Card Preview & Selection */}
           <div className="vault-identity-picker">
             <div className="vault-selected-card">
-              <div className="vault-selected-card-art"><CardArt card={selectedCardArt} small /></div>
+              <div className={`vault-selected-card-art${hasSelectedIdentity?'':' is-empty'}`}>{hasSelectedIdentity?<CardArt card={selectedCardArt} small/>:<Search size={18}/>}</div>
               <div className="vault-selected-card-copy">
                 <span>Card identity</span>
-                <strong>{currentCard.code} · {currentCard.name}</strong>
-                <small>{hasSelectedIdentity ? `${currentCard.rarity || 'Card'} · choose the exact printing below` : 'Search by card name or code to select your card'}</small>
+                <strong>{hasSelectedIdentity ? `${currentCard.code} — ${currentCard.name}` : (language==='ID'?'Pilih kartu':'Choose a card')}</strong>
+                <small>{hasSelectedIdentity ? `${currentCard.rarity || 'Card'} / ${language==='ID'?'pilih cetakan yang tepat':'choose the exact printing'}` : (language==='ID'?'Cari nama atau kode kartu untuk memilih.':'Search by card name or code to select it.')}</small>
               </div>
               {!isEditing && <button type="button" className="vault-btn vault-btn-secondary" onClick={() => setIdentityPickerOpen(open => !open)}>
                 {identityPickerOpen ? 'Close' : 'Change'}
@@ -434,7 +438,7 @@ export function AddEditItemModal({
               {cardQuery.trim().length >= 2 && <div className="vault-identity-results" role="listbox" aria-label="Card identities">
                 {identitySearchLoading && <p>Searching cards…</p>}
                 {!identitySearchLoading && identityResults.map(card => <button type="button" role="option" aria-selected={hasSelectedIdentity && card.code === selectedCardCode} key={card.id} className={hasSelectedIdentity && card.code === selectedCardCode ? 'selected' : ''} onClick={() => {setSelectedCardCode(card.code);setSelectedIdentity(card);setSelectedPrintingId('');setIdentityConfirmed(true);setIdentityPickerOpen(false);setCardQuery('');}}>
-                  <span className="vault-identity-result-art"><CardArt card={card} small /></span><span><b>{card.name}</b><small>{card.code} · {card.rarity || card.type}</small></span>
+                  <span className="vault-identity-result-art"><CardArt card={card} small /></span><span><b>{card.name}</b><small>{card.code} / {card.rarity || card.type}</small></span>
                 </button>)}
                 {!identitySearchLoading && !identityResults.length && <p>No matching cards.</p>}
               </div>}
@@ -442,17 +446,18 @@ export function AddEditItemModal({
           </div>
 
           <section className="vault-printing-picker" aria-labelledby="vault-printing-heading">
-            <div className="vault-printing-heading-row"><div><label id="vault-printing-heading">Printing &amp; language</label><p>Choose the exact artwork and language you own.</p></div><span>{languagePrintings.length} {languagePrintings.length === 1 ? 'printing' : 'printings'}</span></div>
+            <div className="vault-printing-heading-row"><div><label id="vault-printing-heading">Printing &amp; language</label><p>Choose the exact artwork and language you own.</p></div><span>{hasSelectedIdentity?`${languagePrintings.length} ${languagePrintings.length === 1 ? 'printing' : 'printings'}`:''}</span></div>
+            {!hasSelectedIdentity ? <p className="vault-printing-empty">Choose a card to see its available printings.</p> : <>
             {availableLanguages.length > 0 && <div className="vault-language-options" role="group" aria-label="Card language">
-              {availableLanguages.map(lang => <button type="button" key={lang} className={cardLanguage === lang ? 'active' : ''} onClick={() => {setCardLanguage(lang);const next=uniquePrintingOptions.find(printing=>printing.language===lang);setSelectedPrintingId(next?.id??'');}}>{lang === 'JP' ? '日本語 · JP' : 'English · EN'}</button>)}
+              {availableLanguages.map(lang => <button type="button" key={lang} className={cardLanguage === lang ? 'active' : ''} onClick={() => {setCardLanguage(lang);const next=uniquePrintingOptions.find(printing=>printing.language===lang);setSelectedPrintingId(next?.id??'');}}>{lang === 'JP' ? '日本語 / JP' : 'English / EN'}</button>)}
             </div>}
-                {selectedPrinting&&selectedPrinting.language===cardLanguage&&<p className="vault-printing-current-selection">{language==='ID'?'Cetakan terpilih:':'Selected printing:'} <strong>{selectedPrinting.language} · {printingTitle(selectedPrinting)}</strong>{selectedPrinting.printing_code&&<span> · {selectedPrinting.printing_code}</span>}</p>}
+                {selectedPrinting&&selectedPrinting.language===cardLanguage&&<p className="vault-printing-current-selection">{language==='ID'?'Cetakan terpilih:':'Selected printing:'} <strong>{selectedPrinting.language} / {printingTitle(selectedPrinting)}</strong>{selectedPrinting.printing_code&&<span> / {selectedPrinting.printing_code}</span>}</p>}
             <div className="vault-printing-options">
               {languagePrintings.map(printing => {
                 const printingCard: Card = {...currentCard,id:printing.id,language:printing.language as 'EN'|'JP',variant:printing.variant??'Standard',setCode:printing.set_code??currentCard.setCode,printingCode:printing.printing_code??currentCard.printingCode,imageUrl:printing.card_image_url??currentCard.imageUrl};
                 const selected = printing.id === targetPrinting?.id;
                 const printNumber=printing.printing_code?.match(/(?:[_-]p)(\d+)$/i)?.[1];
-                const detail=[printing.set_code,currentCard.code,printNumber?`p${printNumber}`:printing.printing_code!==currentCard.code?printing.printing_code:null].filter(Boolean).join(' · ');
+                const detail=[currentCard.code,printing.set_code,printNumber?`p${printNumber}`:printing.printing_code!==currentCard.code?printing.printing_code:null].filter(Boolean).join(' / ');
                 return <button type="button" key={printing.id} className={`vault-printing-option ${selected ? 'selected' : ''}`} aria-pressed={selected} onClick={() => {setSelectedIdentity(currentCard);setSelectedCardCode(currentCard.code);setIdentityConfirmed(true);setSelectedPrintingId(printing.id);setCardLanguage(printing.language as 'EN'|'JP');}}>
                   <span className="vault-printing-option-art"><CardArt card={printingCard} small /></span><span className="vault-printing-option-copy"><b>{printingTitle(printing)}</b><small>{detail || printing.printing_code || 'Standard printing'}</small></span>{selected && <span className="vault-printing-selected-mark">{language==='ID'?'Dipilih':'Selected'}</span>}
                 </button>;
@@ -460,6 +465,7 @@ export function AddEditItemModal({
               {!languagePrintings.length && <p className="vault-printing-empty">{catalogLoading ? 'Loading available printings…' : 'No printings are listed for this language.'}</p>}
             </div>
             {targetLanguage === 'JP' && targetPrinting && <div className="vault-yuyutei-pricing"><p>Japanese market reference</p><CardMarketPanel printingId={targetPrinting.id} printing={{language:targetPrinting.language,setCode:targetPrinting.set_code,printingCode:targetPrinting.printing_code,variant:targetPrinting.variant}} onMarketPrice={onMarketPrice}/></div>}
+            </>}
           </section>
 
           {/* Format Selector: Raw Card vs Graded Slab */}
@@ -472,6 +478,7 @@ export function AddEditItemModal({
                 type="button"
                 className={`vault-btn ${itemType === 'RAW' ? 'vault-btn-primary' : 'vault-btn-secondary'}`}
                 style={{ justifyContent: 'center', height: '40px' }}
+                aria-pressed={itemType === 'RAW'}
                 onClick={() => setItemType('RAW')}
               >
                 Raw Card
@@ -480,6 +487,7 @@ export function AddEditItemModal({
                 type="button"
                 className={`vault-btn ${itemType === 'GRADED' ? 'vault-btn-primary' : 'vault-btn-secondary'}`}
                 style={{ justifyContent: 'center', height: '40px' }}
+                aria-pressed={itemType === 'GRADED'}
                 onClick={() => setItemType('GRADED')}
               >
                 <ShieldCheck size={16} />
@@ -677,18 +685,14 @@ export function AddEditItemModal({
             <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--vault-ink-secondary)', display: 'block', marginBottom: '4px' }}>
               Item Visibility:
             </label>
-            <select
-              className="vault-select-compact"
-              style={{ width: '100%' }}
-              value={visibility}
-              onChange={e => setVisibility(e.target.value as any)}
-            >
-              <option value="private">Private (Only you can see this item)</option>
-              <option value="public">Public (Visible on your profile & showcase)</option>
-            </select>
-            <span style={{ fontSize: '10px', color: 'var(--vault-ink-muted)' }}>
-              This controls Vault profile visibility; it does not create a listing. Selling requires sign-in and a card saved in your Vault.
-            </span>
+            <div className="vault-visibility-options" role="group" aria-label="Item visibility">
+              <button type="button" className={`vault-visibility-option ${visibility === 'private' ? 'selected' : ''}`} aria-pressed={visibility === 'private'} onClick={() => setVisibility('private')}>
+                <strong>Private</strong><span>Only you can see it</span>
+              </button>
+              <button type="button" className={`vault-visibility-option ${visibility === 'public' ? 'selected' : ''}`} aria-pressed={visibility === 'public'} onClick={() => setVisibility('public')}>
+                <strong>Public</strong><span>Shown on your profile</span>
+              </button>
+            </div>
           </div>
 
           <div>
