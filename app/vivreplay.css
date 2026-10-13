@@ -1999,6 +1999,11 @@ html[data-theme='dark'] .market-listing-asking-total s{color:#91a7b7}
 
 /* Listing cards keep the same stacked artwork in both layouts. */
 .market-listing-cards-heading{display:flex;align-items:center;gap:12px;min-width:0}
+.market-listing-add-cards{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 10px;font-size:12px;white-space:nowrap}
+.market-add-cards-overlay{z-index:1200}
+.market-add-cards-modal{width:min(620px,100%)}
+.market-add-cards-choices{max-height:min(52vh,440px)}
+.market-add-cards-modal .vault-bulk-listing-summary>span{display:grid;gap:4px}
 .market-listing-view-toggle{flex:0 0 auto;margin:0!important}
 .market-listing-card-grid.is-list{grid-template-columns:minmax(0,1fr)}
 .market-listing-card-grid.is-list .market-listing-card{display:grid;grid-template-columns:88px minmax(0,1fr);align-items:start;column-gap:14px;padding:10px 0 12px;border-bottom:1px solid var(--line)}

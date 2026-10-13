@@ -21,6 +21,7 @@ import {PushNotificationPrompt} from './push-notification-settings';
 import {marketListingPath} from '@/lib/market/listing-url';
 import {PhoneInput} from '@/components/tcg/phone-input';
 import {MarketListingPriceEdit,MarketListingPriceTerms,MarketListingTitleEdit,MarketListingUnitPriceEdit} from '@/components/tcg/market-listing-inline-edit';
+import {MarketAddCardsModal} from '@/components/tcg/market-add-cards-modal';
 
 type CourierRate={courier_code:string;courier_service_code:string;courier_name:string;courier_service_name:string;price:number;duration?:string;max_km?:number};
 type ShippingArea={id:string;name:string;province:string;city:string;district:string;subdistrict:string;postalCode:string;latitude?:number;longitude?:number;source:'biteship'|'local'};
@@ -240,6 +241,7 @@ export function ShippingOptions({listingId,courierCount=0,couriers=[],items=[]}:
 
 export type MarketListingCard={
   id:string;
+  instanceId?:string;
   card:Card;
   quantity:number;
   condition:string;
@@ -274,7 +276,7 @@ export function ListingArtRotator({items}:{items:MarketListingCard[]}){
   </div>;
 }
 
-export function MarketListingItems({items,currency,listingType,listingId,listingTitle,sellerId,negotiable=true,readOnly=false,canEditPrices=false,onPriceSaved}:{items:MarketListingCard[];currency:string;listingType:'WTS'|'WTB';listingId:string;listingTitle?:string;sellerId?:string;listingAmount?:string;negotiable?:boolean;readOnly?:boolean;canEditPrices?:boolean;onPriceSaved?:(index:number,unitAmount:number)=>void;}){
+export function MarketListingItems({items,currency,listingType,listingId,listingTitle,sellerId,negotiable=true,readOnly=false,canEditPrices=false,canManageListing=false,onItemsAdded,onPriceSaved}:{items:MarketListingCard[];currency:string;listingType:'WTS'|'WTB';listingId:string;listingTitle?:string;sellerId?:string;listingAmount?:string;negotiable?:boolean;readOnly?:boolean;canEditPrices?:boolean;canManageListing?:boolean;onItemsAdded?:(cards:MarketListingCard[])=>void;onPriceSaved?:(index:number,unitAmount:number)=>void;}){
   const router=useRouter();
   const singleCopyListing=items.length===1&&items[0].quantity===1;
   const [selected,setSelected]=useState<Record<string,number>>(()=>singleCopyListing?{[items[0].id]:1}:{});
@@ -283,6 +285,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
   const [preview,setPreview]=useState<Card>();
   const [previewPrintingId,setPreviewPrintingId]=useState<string>();
   const [vaultTarget,setVaultTarget]=useState<MarketListingCard|null>(null);
+  const [addCardsOpen,setAddCardsOpen]=useState(false);
   const {data:session,isPending:sessionPending}=authClient.useSession();
   const [submitting,setSubmitting]=useState(false); const [activeOffer,setActiveOffer]=useState<ActiveListingOffer|null>(null);
   const [offerJustSent,setOfferJustSent]=useState(false);
@@ -437,6 +440,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
     <header className="market-listing-cards-header">
       <div className="market-listing-cards-heading">
         <h2>{t('Cards in this listing','Kartu dalam listing ini')}</h2>
+        {canManageListing&&listingType==='WTS'&&<button type="button" className="button secondary market-listing-add-cards" onClick={()=>setAddCardsOpen(true)}><Plus size={15}/>{t('Add cards','Tambah kartu')}</button>}
         <div className="market-view-toggle market-listing-view-toggle" role="group" aria-label={t('Card layout','Tata letak kartu')}>
           <button type="button" className={cardsView==='grid'?'active':''} onClick={()=>setCardsView('grid')} aria-label={t('Grid view','Tampilan kisi')} aria-pressed={cardsView==='grid'}><Grid size={16}/></button>
           <button type="button" className={cardsView==='list'?'active':''} onClick={()=>setCardsView('list')} aria-label={t('List view','Tampilan daftar')} aria-pressed={cardsView==='list'}><List size={16}/></button>
@@ -474,7 +478,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
       </div>}
     </header>
     <div className={`market-listing-card-grid is-${cardsView}`}>
-      {items.map(item=>{
+      {items.map((item,index)=>{
         const amount=selected[item.id]??0;
         const unitPrice=getUnitPrice(item);
         const diffPercent=item.unitAmount>0?Math.round(((unitPrice-item.unitAmount)/item.unitAmount)*100):0;
@@ -595,6 +599,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
         </article>;
       })}
     </div>
+    {canManageListing&&listingType==='WTS'&&<MarketAddCardsModal key={addCardsOpen?'open':'closed'} open={addCardsOpen} listingId={listingId} listingItems={items.map(item=>({instanceId:item.instanceId,printingId:item.id,quantity:item.quantity,condition:item.condition,unitAmount:item.unitAmount,card:item.card,language:item.language}))} currency={currency} language={language} onClose={()=>setAddCardsOpen(false)} onAdded={cards=>{onItemsAdded?.(cards);router.refresh()}}/>}
     {preview&&<CardPreviewModal card={preview} initialPrintingId={previewPrintingId} printingIds={items.map(item=>item.id)} language={preview.language==='JP'?'JP':'EN'} cards={items.map(item=>item.card)} marketActions={!readOnly} onClose={()=>{setPreview(undefined);setPreviewPrintingId(undefined)}} onNavigate={(card,index)=>{setPreview(card);setPreviewPrintingId(items[index]?.id)}}/>}
     <AddEditItemModal key={`${vaultTarget?.id??'market-listing-card'}-${Boolean(vaultTarget)}`} open={Boolean(vaultTarget)} onClose={()=>setVaultTarget(null)} onSaved={()=>router.refresh()} initialCard={vaultTarget?.card} initialPrintingId={vaultTarget?.id} isAnonymous={!session?.user} language={language}/>
     {!readOnly&&<footer className={`market-listing-selection${offerJustSent?' has-push-prompt':''}`} aria-live="polite">
@@ -806,6 +811,8 @@ export function MarketListingDetailView({
               listingAmount={formatMoney(listingAmount, listing.currency)}
               negotiable={listingNegotiable}
               readOnly={isOwner}
+              canManageListing={canEdit}
+              onItemsAdded={setEditableCards}
               canEditPrices={canEdit&&editableCards.length>1}
               onPriceSaved={(index,unitAmount)=>{setEditableCards(current=>current.map((item,currentIndex)=>currentIndex===index?{...item,unitAmount}:item));setListingAmount(current=>current+(unitAmount-editableCards[index].unitAmount)*editableCards[index].quantity)}}
             />

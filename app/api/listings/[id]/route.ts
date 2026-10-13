@@ -2,6 +2,9 @@ import {after} from 'next/server';
 import {notifyListingWatchers} from '@/lib/server/market-watch-alerts';
 import {user,db,errorResponse,guard,HttpError} from '@/lib/server/store';
 import {getDynamicListingPolicy,computeListingExpiration} from '@/lib/market/policy';
+import {z} from 'zod';
+
+const addItemsSchema=z.object({action:z.literal('add-items'),items:z.array(z.object({instanceId:z.string().uuid(),printingId:z.string().min(1),quantity:z.number().int().min(1).max(999),unitAmount:z.number().int().min(1).max(100000000000)})).min(1).max(30)});
 
 export async function DELETE(req:Request,{params}:{params:Promise<{id:string}>}){
   try{
@@ -29,6 +32,53 @@ export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}){
     const p=await user();
     const {id}=await params;
     const body=await req.json() as {action?:unknown;amount?:unknown;prices?:unknown;title?:unknown;negotiable?:unknown};
+    if(body.action==='add-items'){
+      const input=addItemsSchema.parse(body);
+      const d=db();
+      const listing=await d.prepare("SELECT id,instance_id AS instanceId,printing_id AS printingId,amount,quantity,condition,items,status FROM listings WHERE id=? AND seller_id=? AND type='WTS' AND status IN ('ACTIVE','PAUSED')").bind(id,p.id).first<{id:string;instanceId:string|null;printingId:string;amount:number;quantity:number;condition:string;items:string|null;status:string}>();
+      if(!listing)throw new HttpError(404,'Listing not found or unavailable to edit.');
+      const openCheckout=await d.prepare(`SELECT 1 AS found FROM checkout_orders o,json_each(o.items) j WHERE (json_extract(j.value,'$.listingId')=? OR (json_extract(j.value,'$.listingId') IS NULL AND o.listing_id=?)) AND o.status IN ('PENDING_PAYMENT','PROCESSING') AND (o.expires_at IS NULL OR o.expires_at>CURRENT_TIMESTAMP) LIMIT 1`).bind(id,id).first<{found:number}>();
+      if(openCheckout)throw new HttpError(409,'Cards cannot be added while a buyer is checking out. Try again after that checkout closes.');
+      let entries:Array<{instanceId?:string;printingId:string;quantity:number;condition?:string;unitAmount:number}> = [];
+      try{const parsed=listing.items?JSON.parse(listing.items) as unknown:[];if(Array.isArray(parsed))entries=parsed.filter((entry):entry is {instanceId?:string;printingId:string;quantity:number;condition?:string;unitAmount:number}=>Boolean(entry&&typeof entry==='object'&&typeof entry.printingId==='string'&&Number.isInteger(entry.quantity)&&entry.quantity>0));}catch{}
+      if(!entries.length)entries=[{instanceId:listing.instanceId??undefined,printingId:listing.printingId,quantity:listing.quantity,condition:listing.condition,unitAmount:Math.max(1,Math.round(listing.amount/listing.quantity))}];
+      const addedByInstance=new Map<string,{printingId:string;quantity:number;condition:string;unitAmount:number}>();
+      for(const item of input.items){
+        const owned=await d.prepare("SELECT printing_id AS printingId,quantity,condition,type FROM collectible_instances WHERE id=? AND owner_id=? AND deleted_at IS NULL").bind(item.instanceId,p.id).first<{printingId:string;quantity:number;condition:string;type:string}>();
+        if(!owned||owned.type!=='RAW'||owned.printingId!==item.printingId)throw new HttpError(400,'Choose an available card from your Vault.');
+        const matching=entries.find(entry=>entry.printingId===item.printingId&&entry.condition===owned.condition);
+        const unitAmount=matching?.unitAmount??item.unitAmount;
+        const prior=addedByInstance.get(item.instanceId);
+        addedByInstance.set(item.instanceId,{printingId:item.printingId,quantity:(prior?.quantity??0)+item.quantity,condition:owned.condition,unitAmount});
+      }
+      for(const [instanceId,addition] of addedByInstance){
+        const existing=entries.find(entry=>entry.instanceId===instanceId);
+        if(existing){
+          if(existing.printingId!==addition.printingId||existing.condition!==addition.condition)throw new HttpError(400,'This Vault item does not match the listing entry.');
+          existing.quantity+=addition.quantity;
+        }else entries.push({instanceId,printingId:addition.printingId,quantity:addition.quantity,condition:addition.condition,unitAmount:addition.unitAmount});
+      }
+      if(entries.length>30)throw new HttpError(400,'A listing can contain up to 30 card entries.');
+      const quantity=entries.reduce((sum,entry)=>sum+entry.quantity,0);
+      const amount=entries.reduce((sum,entry)=>sum+entry.quantity*entry.unitAmount,0);
+      if(quantity>999)throw new HttpError(400,'A listing can contain up to 999 cards.');
+      if(!Number.isSafeInteger(amount)||amount<1||amount>100000000000)throw new HttpError(400,'The listing total is over the price limit.');
+      const itemsJson=JSON.stringify(entries);
+      const changed=await d.prepare(`UPDATE listings SET items=?,quantity=?,amount=?
+        WHERE id=? AND seller_id=? AND type='WTS' AND status IN ('ACTIVE','PAUSED') AND quantity=? AND amount=? AND (items=? OR (items IS NULL AND ? IS NULL))
+          AND NOT EXISTS(SELECT 1 FROM checkout_orders o,json_each(o.items) j WHERE (json_extract(j.value,'$.listingId')=? OR (json_extract(j.value,'$.listingId') IS NULL AND o.listing_id=?)) AND o.status IN ('PENDING_PAYMENT','PROCESSING') AND (o.expires_at IS NULL OR o.expires_at>CURRENT_TIMESTAMP))
+          AND NOT EXISTS(
+            SELECT 1 FROM (SELECT json_extract(value,'$.instanceId') AS instanceId,SUM(CAST(json_extract(value,'$.quantity') AS INTEGER)) AS quantity FROM json_each(?) GROUP BY json_extract(value,'$.instanceId')) requested
+            LEFT JOIN collectible_instances owned ON owned.id=requested.instanceId AND owned.owner_id=? AND owned.deleted_at IS NULL
+            WHERE owned.id IS NULL OR requested.quantity > owned.quantity
+              - COALESCE((SELECT SUM(CASE WHEN l.items IS NULL THEN l.quantity ELSE 0 END) FROM listings l WHERE l.seller_id=? AND l.instance_id=requested.instanceId AND l.id<>? AND l.status='ACTIVE' AND (l.expires_at IS NULL OR l.expires_at>CURRENT_TIMESTAMP)),0)
+              - COALESCE((SELECT SUM(CAST(json_extract(entry.value,'$.quantity') AS INTEGER)) FROM listings l,json_each(l.items) entry WHERE l.seller_id=? AND json_extract(entry.value,'$.instanceId')=requested.instanceId AND l.id<>? AND l.status='ACTIVE' AND (l.expires_at IS NULL OR l.expires_at>CURRENT_TIMESTAMP)),0)
+              - COALESCE((SELECT SUM(CAST(json_extract(entry.value,'$.quantity') AS INTEGER)) FROM checkout_orders o,json_each(o.items) entry WHERE json_extract(entry.value,'$.instanceId')=requested.instanceId AND o.kind='MARKET' AND (o.status='PROCESSING' OR (o.status='PENDING_PAYMENT' AND o.expires_at>CURRENT_TIMESTAMP))),0)
+          )`).bind(itemsJson,quantity,amount,id,p.id,listing.quantity,listing.amount,listing.items,listing.items,id,id,itemsJson,p.id,p.id,id,p.id,id).run();
+      if(!changed.meta.changes)throw new HttpError(409,'The listing or available Vault quantity changed. Refresh and try again.');
+      after(()=>notifyListingWatchers(id));
+      return Response.json({ok:true,id,amount,quantity,items:entries});
+    }
     if(body.action==='terms'){
       if(typeof body.negotiable!=='boolean')throw new HttpError(400,'Choose valid price terms.');
       const d=db();

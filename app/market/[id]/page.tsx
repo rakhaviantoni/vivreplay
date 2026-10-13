@@ -16,6 +16,7 @@ export const dynamic='force-dynamic';
 type RawStoredListing = Listing & {
   username: string;
   sellerId: string;
+  instanceId?:string|null;
   status: string;
   cardImageUrl?: string;
   cardLanguage?: string;
@@ -63,6 +64,7 @@ export default async function Page({params}:{params:Promise<{id:string}>}){
         l.expires_at AS expiresAt,
         l.created_at AS createdAt,
         l.items AS itemsJson,
+        l.instance_id AS instanceId,
         l.seller_id AS sellerId,
         p.display_name AS seller,
         p.username,
@@ -139,7 +141,7 @@ export default async function Page({params}:{params:Promise<{id:string}>}){
     variant: stored.cardVariant,
   } : undefined;
 
-  const items=listing.items?.length?listing.items:[{printingId:listing.printingId,quantity:listing.quantity,condition:listing.condition,unitAmount:Math.round(listing.amount/listing.quantity)}];
+  const items=listing.items?.length?listing.items:[{instanceId:stored.instanceId??undefined,printingId:listing.printingId,quantity:listing.quantity,condition:listing.condition,unitAmount:Math.round(listing.amount/listing.quantity)}];
   const extraPrintingIds=items.map(item=>item.printingId).filter(printingId=>printingId!==stored?.printingId);
   const bundleRows=extraPrintingIds.length?await db().prepare(`
     SELECT cp.id AS printingId,cp.image_url AS imageUrl,cp.language,cp.rarity,cp.set_code AS setCode,cp.variant,ci.id AS identityId,ci.code,ci.name,ci.color,ci.type,ci.cost,ci.power,ci.effect
@@ -154,7 +156,7 @@ export default async function Page({params}:{params:Promise<{id:string}>}){
     const card=(item.printingId === stored?.printingId ? storedCard : undefined) ?? bundleCards.get(item.printingId) ?? cardFor(item.printingId);
     const printing=printings.find(candidate=>candidate.id===item.printingId);
     const language=item.printingId===stored?.printingId?stored?.cardLanguage??printing?.language??'EN':bundleLanguages.get(item.printingId)??printing?.language??'EN';
-    return card?[{id:item.printingId,card,quantity:item.quantity,condition:item.condition??listing.condition,unitAmount:item.unitAmount??Math.round(listing.amount/listing.quantity),language}]:[];
+    return card?[{id:item.printingId,instanceId:'instanceId'in item?item.instanceId:undefined,card,quantity:item.quantity,condition:item.condition??listing.condition,unitAmount:item.unitAmount??Math.round(listing.amount/listing.quantity),language}]:[];
   });
   const primary=listingCards[0];
   if(!primary)notFound();
