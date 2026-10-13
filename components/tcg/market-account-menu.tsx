@@ -1,6 +1,6 @@
 'use client';
 
-import {BookmarkSimpleIcon as Bookmark,CardsIcon as Vault,ChatCircleDotsIcon as Offers,ClipboardTextIcon as Listings,HeartIcon as Heart,ShoppingBagIcon as Orders,UserIcon as User,CaretDownIcon as CaretDown,StorefrontIcon as Storefront} from '@phosphor-icons/react';
+import {BookmarkSimpleIcon as Bookmark,ChatCircleDotsIcon as Offers,ClipboardTextIcon as Listings,HeartIcon as Heart,ShoppingBagIcon as Orders,UserIcon as User,CaretDownIcon as CaretDown,StorefrontIcon as Storefront} from '@phosphor-icons/react';
 import {DropdownMenu,DropdownMenuContent,DropdownMenuItem,DropdownMenuLabel,DropdownMenuSeparator,DropdownMenuTrigger} from '@/components/ui/dropdown-menu';
 import type {AccountState} from '@/lib/client';
 
@@ -23,7 +23,6 @@ export function MarketAccountMenu({account,locale,activityCounts,proPaymentsCoun
       {rows.map(({panel,label,Icon,count})=><DropdownMenuItem key={panel} className="market-account-menu-item" onSelect={()=>onOpenSection(panel)}><Icon size={16}/>{label}{count>0&&<span className="market-activity-badge">{count>99?'99+':count}</span>}</DropdownMenuItem>)}
       <DropdownMenuItem className="market-account-menu-item" onSelect={()=>onOpenQuick('wishlist')}><Heart size={16}/>{labels?'Kartu incaran':'Wishlist'}</DropdownMenuItem>
       <DropdownMenuItem className="market-account-menu-item" onSelect={()=>onOpenQuick('profile')}><User size={16}/>{labels?'Profil':'Profile'}{proPaymentsCount>0&&<span className="market-activity-badge">{proPaymentsCount>99?'99+':proPaymentsCount}</span>}</DropdownMenuItem>
-      <DropdownMenuItem className="market-account-menu-item market-account-menu-mobile-vault" onSelect={()=>onOpenQuick('vault')}><Vault size={16}/>{labels?'Koleksi saya':'Vault'}</DropdownMenuItem>
     </DropdownMenuContent>
   </DropdownMenu>;
 }

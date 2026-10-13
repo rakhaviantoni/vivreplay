@@ -77,7 +77,7 @@ function DialogContent({
             <span className="sr-only">Close</span>
           </DialogPrimitive.Close>
         )}
-        <div data-slot="dialog-body" className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain">
+        <div data-slot="dialog-body" className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain">
           {children}
         </div>
       </DialogPrimitive.Content>
@@ -89,7 +89,7 @@ function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-header"
-      className={cn("flex flex-col gap-2 text-center sm:text-left", className)}
+      className={cn("flex flex-col gap-0.5 text-center sm:text-left", className)}
       {...props}
     />
   )

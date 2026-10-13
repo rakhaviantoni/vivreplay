@@ -151,11 +151,6 @@
   color: var(--vault-ink);
 }
 
-.vault-btn-secondary:hover {
-  background: var(--vault-slot-bg);
-  border-color: var(--vault-gold);
-}
-
 .vault-btn-ghost {
   background: transparent;
   color: var(--vault-ink-secondary);

@@ -74,7 +74,46 @@ function Footer({language}:{language:Locale}) {
   const id=language==='ID';
   const getHref=(href:string)=>id?(href==='/'?'/id':`/id${href}`):href;
   const reopenCookies=()=>{window.localStorage.removeItem('vivreplay-cookies');window.dispatchEvent(new Event('vivreplay:cookie-preferences'))};
-  return <footer className="page-footer"><div className="footer-top"><div className="footer-intro"><Link className="footer-brand" href={getHref('/')}><VivreMark size={25}/>VivrePlay</Link><p>{id?'Tempat untuk menemukan kartu, membangun deck, mengelola koleksi, dan bermain.':'Find cards, build decks, manage your collection, and play.'}</p><Link className="footer-about-link" href={getHref('/about')}>{id?'Tentang VivrePlay':'About VivrePlay'}<ChevronRight size={14}/></Link></div><nav className="footer-column" aria-label={id?'Jelajahi':'Explore'}><b>{id?'Jelajahi':'Explore'}</b><Link href={getHref('/cards')}>{id?'Katalog kartu':'Card library'}</Link><Link href={getHref('/cards/index')}>{id?'Indeks kartu':'Card index'}</Link><Link href={getHref('/archetypes')}>{id?'Arketipe':'Archetypes'}</Link><Link href={getHref('/sets')}>{id?'Arsip set':'Sets'}</Link></nav><nav className="footer-column" aria-label={id?'Main dan koleksi':'Play and collect'}><b>{id?'Main dan koleksi':'Play & collect'}</b><Link href={getHref('/decks')}>{id?'Deck':'Decks'}</Link><Link href={getHref('/decks/builder')}>{id?'Pembuat deck':'Deck builder'}</Link><Link href={getHref('/play')}>Arena</Link><Link href={getHref('/market')}>Market</Link><Link href={getHref('/faq')}>FAQ</Link><FeedbackLaunchButton request={{initialCategory:'feedback'}} className="footer-feedback-trigger">{id?'Masukan & laporan':'Feedback & reports'}</FeedbackLaunchButton></nav></div><div className="footer-bottom"><p>Unofficial fan-made project, not affiliated with or endorsed by Bandai. “One Piece Card Game” © Bandai Co., Ltd. “One Piece” © Eiichiro Oda / Shueisha, Toei Animation. All trademarks, card images and game content belong to their respective owners and are used for informational and community purposes.</p><div className="footer-bottom-side"><nav className="footer-legal" aria-label={id?'Legal':'Legal'}><Link href={getHref('/legal/terms')}>{id?'Syarat & Ketentuan':'Terms'}</Link><Link href={getHref('/legal/refund')}>{id?'Pengembalian dana':'Refunds'}</Link><Link href={getHref('/legal/privacy')}>{id?'Privasi':'Privacy'}</Link><button type="button" onClick={reopenCookies}>{id?'Preferensi cookie':'Cookie preferences'}</button></nav></div></div></footer>;
+  return <footer className="page-footer">
+    <div className="footer-top">
+      <div className="footer-intro">
+        <Link className="footer-brand" href={getHref('/')}><VivreMark size={25}/>VivrePlay</Link>
+        <p>{id?'Tempat untuk menemukan kartu, membangun deck, mengelola koleksi, dan bermain.':'Find cards, build decks, manage your collection, and play.'}</p>
+        <Link className="footer-about-link" href={getHref('/about')}>{id?'Tentang VivrePlay':'About VivrePlay'}<ChevronRight size={14}/></Link>
+      </div>
+      <nav className="footer-column" aria-label={id?'Jelajahi':'Explore'}>
+        <b>{id?'Jelajahi':'Explore'}</b>
+        <Link href={getHref('/cards')}>{id?'Katalog kartu':'Card library'}</Link>
+        <Link href={getHref('/cards/index')}>{id?'Indeks kartu':'Card index'}</Link>
+        <Link href={getHref('/archetypes')}>{id?'Arketipe':'Archetypes'}</Link>
+        <Link href={getHref('/sets')}>{id?'Arsip set':'Sets'}</Link>
+      </nav>
+      <nav className="footer-column" aria-label={id?'Deck dan permainan':'Decks and play'}>
+        <b>{id?'Deck dan permainan':'Decks & play'}</b>
+        <Link href={getHref('/decks')}>{id?'Deck':'Decks'}</Link>
+        <Link href={getHref('/decks/builder')}>{id?'Pembuat deck':'Deck builder'}</Link>
+        <Link href={getHref('/play')}>Arena</Link>
+      </nav>
+      <nav className="footer-column" aria-label={id?'Market dan bantuan':'Market and help'}>
+        <b>{id?'Market dan bantuan':'Market & help'}</b>
+        <Link href={getHref('/market')}>Market</Link>
+        <Link href={getHref('/faq')}>FAQ</Link>
+        <FeedbackLaunchButton request={{initialCategory:'feedback'}} className="footer-feedback-trigger">{id?'Masukan & laporan':'Feedback & reports'}</FeedbackLaunchButton>
+        <a href={`https://wa.me/6287892660993?text=${encodeURIComponent(id?'Halo VivrePlay, saya perlu bantuan tentang ':'Hi VivrePlay, I need help with ')}`} target="_blank" rel="noreferrer">WhatsApp</a>
+      </nav>
+    </div>
+    <div className="footer-bottom">
+      <p>Unofficial fan-made project, not affiliated with or endorsed by Bandai. “One Piece Card Game” © Bandai Co., Ltd. “One Piece” © Eiichiro Oda / Shueisha, Toei Animation. All trademarks, card images and game content belong to their respective owners and are used for informational and community purposes.</p>
+      <div className="footer-bottom-side">
+        <nav className="footer-legal" aria-label={id?'Legal':'Legal'}>
+          <Link href={getHref('/legal/terms')}>{id?'Syarat & Ketentuan':'Terms'}</Link>
+          <Link href={getHref('/legal/refund')}>{id?'Pengembalian dana':'Refunds'}</Link>
+          <Link href={getHref('/legal/privacy')}>{id?'Privasi':'Privacy'}</Link>
+          <button type="button" onClick={reopenCookies}>{id?'Preferensi cookie':'Cookie preferences'}</button>
+        </nav>
+      </div>
+    </div>
+  </footer>;
 }
 
 export function Shell({children,initialPath='/'}:{children:React.ReactNode;initialPath?:string}) {
@@ -221,7 +260,7 @@ export function Shell({children,initialPath='/'}:{children:React.ReactNode;initi
           <DialogTitle>{language==='ID'?'Masukan & laporan':'Feedback & reports'}</DialogTitle>
           <DialogDescription>{language==='ID'?'Ceritakan masalah atau ide Anda. Halaman yang sedang dibuka akan disertakan.':'Tell us what you found. The page you are viewing is attached automatically.'}</DialogDescription>
         </DialogHeader>
-        {feedbackRequest&&<FeedbackForm key={feedbackRequest.key} initialCategory={feedbackRequest.initialCategory} cardCode={feedbackRequest.cardCode} printingId={feedbackRequest.printingId} listingId={feedbackRequest.listingId} sourcePath={feedbackRequest.sourcePath}/>}
+        {feedbackRequest&&<FeedbackForm key={feedbackRequest.key} initialCategory={feedbackRequest.initialCategory} cardCode={feedbackRequest.cardCode} printingId={feedbackRequest.printingId} listingId={feedbackRequest.listingId} cardOptions={feedbackRequest.cardOptions} sourcePath={feedbackRequest.sourcePath}/>}
       </DialogContent>
     </Dialog>
     <CookieNotice language={language}/>

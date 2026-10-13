@@ -5,10 +5,10 @@ import {user,db,errorResponse,guard,market,HttpError} from '@/lib/server/store';
 import {getDynamicListingPolicy,computeListingExpiration} from '@/lib/market/policy';
 
 const itemSchema=z.object({instanceId:z.string().uuid().optional(),printingId:z.string(),quantity:z.number().int().positive().max(999),condition:z.string().optional(),unitAmount:z.number().int().nonnegative().optional()});
-const schema=z.object({instanceId:z.string().uuid(),amount:z.number().int().positive().max(100000000000),quantity:z.number().int().positive().max(999),city:z.string().trim().min(2).max(60),title:z.string().trim().min(3).max(100),type:z.enum(['WTS','WTB']).default('WTS'),negotiable:z.boolean().default(true),items:z.array(itemSchema).max(30).optional()});
+const schema=z.object({instanceId:z.string().uuid().optional(),amount:z.number().int().positive().max(100000000000),quantity:z.number().int().positive().max(999),city:z.string().trim().min(2).max(60),title:z.string().trim().min(3).max(100),type:z.enum(['WTS','WTB']).default('WTS'),negotiable:z.boolean().default(true),items:z.array(itemSchema).min(1).max(30).optional()});
 
 export async function GET(){
-  try{let viewerId:string|undefined;try{viewerId=(await user()).id}catch{}return Response.json({listings:await market(viewerId)})}
+  try{let viewerId:string|undefined;try{viewerId=(await user()).id}catch{}return Response.json({listings:await market(viewerId)},{headers:{'Cache-Control':'private, no-store','Vary':'Cookie'}})}
   catch(error){console.error('listings_load_failed',error);return Response.json({error:'Live listings are temporarily unavailable. Please retry.'},{status:503})}
 }
 
@@ -23,10 +23,30 @@ export async function POST(request:Request){
     if((activeCount?.total??0)>=policy.maxActiveListings)throw new HttpError(400,`You have reached the limit of ${policy.maxActiveListings} active listings for your account.`);
 
     const value=schema.parse(await request.json());
+    const bundle=value.items?.length?value.items:null;
+    if(value.type==='WTB'){
+      if(!bundle)throw new HttpError(400,'Add at least one card to your buying request.');
+      if(value.instanceId||bundle.some(item=>item.instanceId))throw new HttpError(400,'A buying request cannot reserve a Vault item.');
+      const bundleQuantity=bundle.reduce((sum,item)=>sum+item.quantity,0);
+      const bundleAmount=bundle.reduce((sum,item)=>sum+(item.unitAmount??0)*item.quantity,0);
+      if(bundleQuantity!==value.quantity)throw new HttpError(400,'The wanted quantity must match the combined card quantities.');
+      if(bundle.some(item=>!item.unitAmount||item.unitAmount<1)||bundleAmount!==value.amount)throw new HttpError(400,'Set a price for each card and make sure the total matches.');
+      const printingIds=[...new Set(bundle.map(item=>item.printingId))];
+      const placeholders=printingIds.map(()=>'?').join(',');
+      const known=await database.prepare(`SELECT id FROM card_printings WHERE id IN (${placeholders})`).bind(...printingIds).all<{id:string}>();
+      if((known.results??[]).length!==printingIds.length)throw new HttpError(400,'One or more card printings could not be found. Refresh the catalog and try again.');
+      const id=crypto.randomUUID();
+      const expiresAt=computeListingExpiration(policy.durationDays);
+      const first=bundle[0];
+      await database.prepare(`INSERT INTO listings (id,seller_id,printing_id,instance_id,title,amount,currency,quantity,condition,type,city,expires_at,items,negotiable)
+        VALUES (?,?,?,NULL,?,?,'IDR',?,?,?,?,?,?,?)`).bind(id,profile.id,first.printingId,value.title,value.amount,value.quantity,first.condition??'NM','WTB',value.city,expiresAt,JSON.stringify(bundle),value.negotiable?1:0).run();
+      after(()=>notifyListingWatchers(id));
+      return Response.json({id,expiresAt,durationDays:policy.durationDays},{status:201});
+    }
+    if(!value.instanceId)throw new HttpError(400,'Choose an owned item and available quantity.');
     const primary=await database.prepare('SELECT printing_id,quantity,condition FROM collectible_instances WHERE id=? AND owner_id=? AND deleted_at IS NULL').bind(value.instanceId,profile.id).first<{printing_id:string;quantity:number;condition:string}>();
     if(!primary)throw new HttpError(400,'Choose an owned item and available quantity.');
 
-    const bundle=value.items?.length?value.items:null;
     if(bundle){
       if(bundle[0].instanceId!==value.instanceId||bundle[0].printingId!==primary.printing_id)throw new HttpError(400,'The first bundle card must match the selected Vault item.');
       const bundleQuantity=bundle.reduce((sum,item)=>sum+item.quantity,0);

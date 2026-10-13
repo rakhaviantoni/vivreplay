@@ -41,10 +41,13 @@ export function PhoneInput({label,value,defaultValue='',onChange,name,required,a
   const inputId=useId();
   const controlled=value!==undefined;
   const [internalValue,setInternalValue]=useState(defaultValue);
+  const [preferredCountry,setPreferredCountry]=useState(()=>parsePhone(value??defaultValue).country);
   const current=controlled?value:internalValue;
   const parsed=useMemo(()=>parsePhone(current??''),[current]);
   const submittedValue=useMemo(()=>toInternationalPhone(current??''),[current]);
-  const selected=countries.find(item=>item.code===parsed.country)??countries[0];
+  const currentDigits=(current??'').replace(/\D/g,'');
+  const hasExplicitCountry=(current??'').trim().startsWith('+')||(currentDigits.startsWith('62')&&currentDigits.length>10);
+  const selected=countries.find(item=>item.code===(hasExplicitCountry?parsed.country:preferredCountry))??countries[0];
   const national=current?.trim().startsWith('+')||/^62\d{9,}$/.test((current??'').replace(/\D/g,''))?parsed.national:(current??'').replace(/\D/g,'').replace(/^0/,'');
 
   const setNumber=(dialCode:string,local:string)=>{
@@ -55,12 +58,13 @@ export function PhoneInput({label,value,defaultValue='',onChange,name,required,a
     onChange?.(next);
   };
   const onSelect=(dialCode:string)=>{
+    setPreferredCountry(dialCode);
     setNumber(dialCode,national);
   };
 
   const nationalLimit=Math.max(1,Math.min(maxLength,16-selected.code.length));
   const phoneControlsStyle = {
-    '--phone-code-width': `${Math.max(42, selected.code.length * 7 + 26)}px`,
+    '--phone-code-width': `${Math.max(58, selected.code.length * 8 + 36)}px`,
   } as CSSProperties & { '--phone-code-width': string };
 
   return <div className="market-phone-field"><label htmlFor={inputId}>{label}</label><span className="market-phone-controls" style={phoneControlsStyle}><Select value={selected.code} onValueChange={onSelect}><SelectTrigger size="sm" className="market-phone-country-trigger" aria-label={locale==='ID'?'Kode negara':'Country code'}><SelectValue>{`+${selected.code}`}</SelectValue></SelectTrigger><SelectContent position="popper" align="start">{countryCodes.map(item=><SelectItem value={item.code} key={item.code}>{item.name} (+{item.code})</SelectItem>)}</SelectContent></Select><input id={inputId} type="tel" inputMode="tel" autoComplete={autoComplete} required={required} maxLength={nationalLimit} value={national} onChange={event=>setNumber(selected.code,event.target.value)} aria-label={label} placeholder={selected.code==='62'?'81234567890':'Phone number'} /></span>{name&&<input type="hidden" name={name} value={submittedValue}/>}</div>;

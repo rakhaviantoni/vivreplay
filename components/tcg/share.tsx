@@ -8,11 +8,13 @@ import {
   XLogoIcon as XLogo,
   TelegramLogoIcon as TelegramLogo,
   DownloadSimpleIcon as DownloadSimple,
+  MoonIcon as Moon,
+  SunIcon as Sun,
 } from '@phosphor-icons/react';
 import {ShareRouteIcon, VivreMark} from './brand-assets';
 import {toast} from 'sonner';
 import {Dialog, DialogContent, DialogTitle, DialogDescription, DialogHeader} from '@/components/ui/dialog';
-import {CardArt, cardImageUrl} from './card-art';
+import {cardImageUrl} from './card-art';
 import type {Card} from '@/packages/card-data/catalog';
 
 export type ShareCardItem = {
@@ -30,11 +32,25 @@ export type ShareButtonProps = {
   card?: Card;
   subtitle?: string;
   price?: string;
+  listingInfo?: {seller?:string;city?:string;expiresAt?:string};
   className?: string;
   openOnMount?: boolean;
   hideTrigger?: boolean;
   onOpenChange?: (open: boolean) => void;
 };
+
+function shareExpiry(value:string,language:'EN'|'ID'){
+  const timestamp=new Date(value.includes('T')?value:`${value.replace(' ','T')}Z`);
+  if(!Number.isFinite(timestamp.getTime()))return '';
+  const date=new Intl.DateTimeFormat(language==='ID'?'id-ID':'en-US',{day:'numeric',month:'short',year:'numeric',timeZone:'Asia/Jakarta'}).format(timestamp);
+  return `${language==='ID'?'Berakhir':'Expires'} ${date}`;
+}
+
+function fitCanvasText(ctx:CanvasRenderingContext2D,value:string,maxWidth:number){
+  let text=value;
+  while(text.length>4&&ctx.measureText(text).width>maxWidth)text=`${text.slice(0,-4)}…`;
+  return text;
+}
 
 function drawRoundedRect(
   ctx: CanvasRenderingContext2D,
@@ -76,13 +92,17 @@ async function generateListingCompositeBlob({
   price,
   subtitle,
   cards,
+  link,
   language = 'EN',
+  style = 'light',
 }: {
   title: string;
   price?: string;
   subtitle?: string;
   cards: ShareCardItem[];
+  link: string;
   language?: 'EN' | 'ID';
+  style?: 'light' | 'dark';
 }): Promise<Blob | null> {
   const canvasWidth = 1200;
   const paddingX = 54;
@@ -109,11 +129,21 @@ async function generateListingCompositeBlob({
 
   const cardHeight = Math.round(cardWidth * (580 / 420));
   const rows = Math.ceil(count / cols);
-  const gapY = 24;
+  const gapY = 16;
+  const cardInfoHeight = 58;
   const headerHeight = 136;
   const footerHeight = 56;
-  const cardsAreaHeight = rows * (cardHeight + 28) + (rows - 1) * gapY;
+  const cardsAreaHeight = rows * (cardHeight + cardInfoHeight) + (rows - 1) * gapY;
   const canvasHeight = Math.max(640, headerHeight + cardsAreaHeight + footerHeight + 44);
+  const palette = style === 'light' ? {
+    bgStart: '#f5f0e6', bgMid: '#eee7d9', bgEnd: '#e8dfcf',
+    panel: '#fffaf0', line: '#d8cbb5', ink: '#28251f', muted: '#716a5e', accent: '#b77a19',
+    cardFallback: '#f5f0e6', cardText: '#28251f', badge: '#fffaf0', badgeText: '#28251f',
+  } : {
+    bgStart: '#10141a', bgMid: '#131922', bgEnd: '#171f2b',
+    panel: '#10161f', line: '#273344', ink: '#f6f2ea', muted: '#aab4c2', accent: '#e8c47d',
+    cardFallback: '#17202c', cardText: '#d5deea', badge: '#1d242d', badgeText: '#fff7e6',
+  };
 
   const canvas = document.createElement('canvas');
   canvas.width = canvasWidth;
@@ -121,16 +151,16 @@ async function generateListingCompositeBlob({
   const ctx = canvas.getContext('2d');
   if (!ctx) return null;
 
-  // Obsidian card-table background
+  // Listing image background
   const bgGrad = ctx.createLinearGradient(0, 0, 0, canvasHeight);
-  bgGrad.addColorStop(0, '#10141a');
-  bgGrad.addColorStop(0.5, '#131922');
-  bgGrad.addColorStop(1, '#171f2b');
+  bgGrad.addColorStop(0, palette.bgStart);
+  bgGrad.addColorStop(0.5, palette.bgMid);
+  bgGrad.addColorStop(1, palette.bgEnd);
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
   // Quiet border suggesting binder / display case
-  ctx.strokeStyle = '#273344';
+  ctx.strokeStyle = palette.line;
   ctx.lineWidth = 1.5;
   drawRoundedRect(ctx, 16, 16, canvasWidth - 32, canvasHeight - 32, 14);
   ctx.stroke();
@@ -164,24 +194,24 @@ async function generateListingCompositeBlob({
   }
 
   ctx.font = '800 16px "Plus Jakarta Sans", sans-serif';
-  ctx.fillStyle = '#f0ebe1';
+  ctx.fillStyle = palette.ink;
   ctx.fillText('VivrePlay', brandX, brandY - 2);
   const vpWidth = ctx.measureText('VivrePlay').width;
   brandX += vpWidth + 8;
 
   ctx.font = '400 14px "Plus Jakarta Sans", sans-serif';
-  ctx.fillStyle = '#4f5e71';
+  ctx.fillStyle = palette.muted;
   ctx.fillText('|', brandX, brandY - 3);
   brandX += 14;
 
   ctx.font = '800 16px "Plus Jakarta Sans", sans-serif';
-  ctx.fillStyle = '#c58b28';
+  ctx.fillStyle = palette.accent;
   ctx.fillText('Market', brandX, brandY - 2);
 
   // Price badge on the right
   if (price) {
     ctx.font = '800 24px "Plus Jakarta Sans", sans-serif';
-    ctx.fillStyle = '#e8c47d';
+    ctx.fillStyle = palette.accent;
     ctx.textAlign = 'right';
     ctx.fillText(price, canvasWidth - paddingX, brandY);
     ctx.textAlign = 'left';
@@ -189,7 +219,7 @@ async function generateListingCompositeBlob({
 
   // Display listing title in Plus Jakarta Sans
   ctx.font = '800 28px "Plus Jakarta Sans", sans-serif';
-  ctx.fillStyle = '#f6f2ea';
+  ctx.fillStyle = palette.ink;
   let displayTitle = title;
   if (displayTitle.length > 52) {
     displayTitle = displayTitle.slice(0, 49) + '…';
@@ -199,12 +229,12 @@ async function generateListingCompositeBlob({
   // Subtitle in Manrope
   if (subtitle) {
     ctx.font = '600 13px "Manrope", sans-serif';
-    ctx.fillStyle = '#8e9aa8';
-    ctx.fillText(subtitle, paddingX, 120);
+    ctx.fillStyle = palette.muted;
+    ctx.fillText(fitCanvasText(ctx,subtitle,canvasWidth-paddingX*2), paddingX, 120);
   }
 
   // Divider rule
-  ctx.strokeStyle = '#222d3b';
+  ctx.strokeStyle = palette.line;
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(paddingX, 136);
@@ -213,8 +243,9 @@ async function generateListingCompositeBlob({
 
   // Cards grid placement
   const availableWidth = canvasWidth - paddingX * 2;
-  const gapX = cols > 1 ? Math.floor((availableWidth - cols * cardWidth) / (cols - 1)) : 0;
-  const gridStartX = paddingX + (availableWidth - (cols * cardWidth + (cols - 1) * gapX)) / 2;
+  const gapX = 18;
+  const gridWidth = cols * cardWidth + (cols - 1) * gapX;
+  const gridStartX = paddingX + Math.max(0, (availableWidth - gridWidth) / 2);
   const startY = 162;
 
   for (let i = 0; i < count; i++) {
@@ -223,15 +254,40 @@ async function generateListingCompositeBlob({
     const r = Math.floor(i / cols);
     const c = i % cols;
     const cardX = gridStartX + c * (cardWidth + gapX);
-    const cardY = startY + r * (cardHeight + 28 + gapY);
+    const cardY = startY + r * (cardHeight + cardInfoHeight + gapY);
+
+    // Show duplicate copies as a small physical stack behind the top card.
+    const stackLayers = Math.min(2, Math.max(0, Math.ceil((item.quantity ?? 1) - 1)));
+    for (let layer = stackLayers; layer > 0; layer--) {
+      const layerX = cardX + layer * 5;
+      const layerY = cardY - layer * 4;
+      ctx.save();
+      ctx.fillStyle = palette.panel;
+      drawRoundedRect(ctx, layerX, layerY, cardWidth, cardHeight, 7);
+      ctx.fill();
+      ctx.save();
+      drawRoundedRect(ctx, layerX, layerY, cardWidth, cardHeight, 7);
+      ctx.clip();
+      if (img) ctx.drawImage(img, layerX, layerY, cardWidth, cardHeight);
+      else {
+        ctx.fillStyle = palette.cardFallback;
+        ctx.fillRect(layerX, layerY, cardWidth, cardHeight);
+      }
+      ctx.restore();
+      ctx.strokeStyle = palette.line;
+      ctx.lineWidth = 1.5;
+      drawRoundedRect(ctx, layerX, layerY, cardWidth, cardHeight, 7);
+      ctx.stroke();
+      ctx.restore();
+    }
 
     // Realistic physical card shadow
     ctx.save();
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.55)';
+    ctx.shadowColor = style === 'light' ? 'rgba(49, 38, 19, 0.18)' : 'rgba(0, 0, 0, 0.55)';
     ctx.shadowBlur = 14;
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 6;
-    ctx.fillStyle = '#10161f';
+    ctx.fillStyle = palette.panel;
     drawRoundedRect(ctx, cardX, cardY, cardWidth, cardHeight, 7);
     ctx.fill();
     ctx.restore();
@@ -243,16 +299,16 @@ async function generateListingCompositeBlob({
     if (img) {
       ctx.drawImage(img, cardX, cardY, cardWidth, cardHeight);
     } else {
-      ctx.fillStyle = '#17202c';
+      ctx.fillStyle = palette.cardFallback;
       ctx.fillRect(cardX, cardY, cardWidth, cardHeight);
-      ctx.fillStyle = '#d5deea';
+      ctx.fillStyle = palette.cardText;
       ctx.font = '700 13px "Plus Jakarta Sans", sans-serif';
       ctx.fillText(item.card.name, cardX + 12, cardY + cardHeight / 2);
     }
     ctx.restore();
 
     // Card border
-    ctx.strokeStyle = '#324053';
+    ctx.strokeStyle = palette.line;
     ctx.lineWidth = 1.5;
     drawRoundedRect(ctx, cardX, cardY, cardWidth, cardHeight, 7);
     ctx.stroke();
@@ -265,34 +321,44 @@ async function generateListingCompositeBlob({
       const badgeY = cardY + cardHeight - badgeH - 6;
 
       ctx.save();
-      ctx.fillStyle = '#1d242d';
+      ctx.fillStyle = palette.badge;
       drawRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, 11);
       ctx.fill();
-      ctx.strokeStyle = '#c58b28';
+      ctx.strokeStyle = palette.accent;
       ctx.lineWidth = 1.5;
       drawRoundedRect(ctx, badgeX, badgeY, badgeW, badgeH, 11);
       ctx.stroke();
 
       ctx.font = '800 11px "Plus Jakarta Sans", sans-serif';
-      ctx.fillStyle = '#fff7e6';
+      ctx.fillStyle = palette.badgeText;
       ctx.textAlign = 'center';
       ctx.fillText(`×${item.quantity}`, badgeX + badgeW / 2, badgeY + 15);
       ctx.restore();
     }
 
-    // Specimen label under card in Manrope
-    ctx.font = '700 12px "Manrope", sans-serif';
-    ctx.fillStyle = '#d1d8e3';
+    // Listing details stay attached to each card in the grid.
+    ctx.font = '700 13px "Plus Jakarta Sans", sans-serif';
+    ctx.fillStyle = palette.ink;
     ctx.textAlign = 'center';
-    const conditionTag = item.condition ? ` · ${item.condition}` : '';
-    const rarityTag = item.card.rarity ? ` · ${item.card.rarity}` : '';
-    const label = `${item.card.code}${rarityTag}${conditionTag}`;
-    ctx.fillText(label, cardX + cardWidth / 2, cardY + cardHeight + 18);
+    const maxLabelWidth = cardWidth - 8;
+    let nameLabel = item.card.name;
+    while (nameLabel.length > 3 && ctx.measureText(nameLabel).width > maxLabelWidth) nameLabel = `${nameLabel.slice(0, -2)}…`;
+    ctx.fillText(nameLabel, cardX + cardWidth / 2, cardY + cardHeight + 16);
+    ctx.font = '600 10px "Manrope", sans-serif';
+    ctx.fillStyle = palette.muted;
+    const cardDetails = [item.card.code, item.condition].filter(Boolean).join(' / ');
+    ctx.fillText(cardDetails, cardX + cardWidth / 2, cardY + cardHeight + 32);
+    if (typeof item.unitAmount === 'number' && item.unitAmount > 0) {
+      ctx.font = '800 12px "Plus Jakarta Sans", sans-serif';
+      ctx.fillStyle = palette.accent;
+      const unitPrice = new Intl.NumberFormat(language === 'ID' ? 'id-ID' : 'en-ID', {style: 'currency', currency: 'IDR', maximumFractionDigits: 0}).format(item.unitAmount);
+      ctx.fillText(`${unitPrice} / ${language === 'ID' ? 'kartu' : 'card'}`, cardX + cardWidth / 2, cardY + cardHeight + 50);
+    }
     ctx.textAlign = 'left';
   }
 
   // Footer rule & provenance in Manrope
-  ctx.strokeStyle = '#222d3b';
+  ctx.strokeStyle = palette.line;
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(paddingX, canvasHeight - 48);
@@ -301,21 +367,13 @@ async function generateListingCompositeBlob({
 
   const footerY = canvasHeight - 24;
   if (compassImg) ctx.drawImage(compassImg, paddingX, footerY - 13, 18, 18);
-  ctx.font = '500 11px "Manrope", sans-serif';
-  ctx.fillStyle = '#8997a9';
-  ctx.fillText('Powered by', paddingX + 25, footerY);
-  const poweredWidth = ctx.measureText('Powered by').width;
   ctx.font = '800 13px "Plus Jakarta Sans", sans-serif';
-  ctx.fillStyle = '#f0ebe1';
-  ctx.fillText('VivrePlay', paddingX + 31 + poweredWidth, footerY);
-  ctx.font = '500 10px "Manrope", sans-serif';
-  ctx.fillStyle = '#657487';
-  ctx.fillText('vivreplay.com', paddingX + 31 + poweredWidth + ctx.measureText('VivrePlay').width + 10, footerY);
-
+  ctx.fillStyle = palette.ink;
+  ctx.fillText('VivrePlay', paddingX + 25, footerY);
   ctx.textAlign = 'right';
-  ctx.fillStyle = '#8997a9';
-  ctx.font = '600 12px "Manrope", sans-serif';
-  ctx.fillText('Card Listing Showcase', canvasWidth - paddingX, canvasHeight - 24);
+  ctx.fillStyle = palette.muted;
+  ctx.font = '600 11px "Manrope", sans-serif';
+  ctx.fillText(link, canvasWidth - paddingX, footerY, 500);
   ctx.textAlign = 'left';
 
   return new Promise<Blob | null>((resolve) => {
@@ -331,6 +389,7 @@ export function ShareButton({
   card,
   subtitle,
   price,
+  listingInfo,
   className = '',
   openOnMount = false,
   hideTrigger = false,
@@ -340,7 +399,9 @@ export function ShareButton({
   const [copied, setCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [language, setLanguage] = useState<'EN' | 'ID'>('EN');
+  const [shareStyle, setShareStyle] = useState<'light' | 'dark'>('light');
   const [imagePreview, setImagePreview] = useState('');
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   useEffect(() => {
     const sync = () => setLanguage(window.localStorage.getItem('vivreplay-locale') === 'ID' ? 'ID' : 'EN');
@@ -353,16 +414,20 @@ export function ShareButton({
   const cardList: ShareCardItem[] = useMemo(() => cards && cards.length > 0 ? cards : card ? [{card, quantity: 1}] : [], [cards, card]);
 
   const url = typeof window === 'undefined' ? path : new URL(path, window.location.origin).href;
+  const imageLink = `vivreplay.com${new URL(path, 'https://vivreplay.com').pathname}`;
+  const imageSubtitle=[subtitle,listingInfo?.city,listingInfo?.seller?`${language==='ID'?'oleh':'by'} ${listingInfo.seller}`:'',listingInfo?.expiresAt?shareExpiry(listingInfo.expiresAt,language):''].filter(Boolean).join(' | ');
 
   useEffect(() => {
-    if (!open || cardList.length === 0 || imagePreview) return;
+    if (!open || cardList.length === 0) return;
     let active = true;
-    void generateListingCompositeBlob({title,price,subtitle,cards:cardList,language}).then(blob => {
+    setPreviewLoading(true);
+    setImagePreview('');
+    void generateListingCompositeBlob({title,price,subtitle:imageSubtitle,cards:cardList,link:imageLink,language,style:shareStyle}).then(blob => {
       if (!active || !blob) return;
       setImagePreview(URL.createObjectURL(blob));
-    }).catch(() => {});
+    }).catch(() => {}).finally(() => { if (active) setPreviewLoading(false); });
     return () => { active = false; };
-  }, [open,cardList,imagePreview,title,price,subtitle,language]);
+  }, [open,cardList,title,price,imageSubtitle,imageLink,listingInfo,language,shareStyle]);
 
   const handleCopy = async () => {
     try {
@@ -382,9 +447,11 @@ export function ShareButton({
       const blob = await generateListingCompositeBlob({
         title,
         price,
-        subtitle,
+        subtitle:imageSubtitle,
         cards: cardList,
+        link: imageLink,
         language,
+        style: shareStyle,
       });
       if (!blob) throw new Error('Image generation failed');
 
@@ -449,39 +516,30 @@ export function ShareButton({
             <DialogDescription>
               {privateEntity
                 ? (language === 'ID' ? 'Listing ini bersifat privat. Hanya Anda yang dapat membuka tautan ini.' : 'This listing is private. Only you can open this link.')
-                : (language === 'ID' ? 'Bagikan ke pemain lain atau simpan gambar showcase.' : 'Share with other players or save the showcase card.')}
+                : (language === 'ID' ? 'Bagikan listing lewat tautan atau gambar.' : 'Share this listing with a link or image.')}
             </DialogDescription>
           </DialogHeader>
 
           {cardList.length > 0 && (
             <div className="share-preview-listing">
-              {imagePreview && <img className="share-listing-image-preview" src={imagePreview} alt={language === 'ID' ? `Gambar listing ${title}` : `${title} listing image`} />}
-              <div className="share-preview-header">
-                <div className="share-preview-meta">
-                  <h3 className="share-preview-title">{title}</h3>
-                  {subtitle && <span className="share-preview-sub">{subtitle}</span>}
-                </div>
-                {price && <span className="share-preview-price">{price}</span>}
-              </div>
-
-              <div className="share-cards-grid-preview">
-                {cardList.map((item, index) => (
-                  <div
-                    className="share-card-thumb"
-                    key={item.card.id ?? `${item.card.code}-${index}`}
-                    title={`${item.card.name} (${item.card.code})`}
+              <div className="share-preview-canvas">
+                <div className="share-preview-style-picker">
+                  <button
+                    type="button"
+                    className="share-preview-theme-toggle"
+                    aria-label={shareStyle === 'light'
+                      ? (language === 'ID' ? 'Gunakan tema gelap' : 'Use dark image theme')
+                      : (language === 'ID' ? 'Gunakan tema terang' : 'Use light image theme')}
+                    aria-pressed={shareStyle === 'dark'}
+                    onClick={() => setShareStyle(current => current === 'light' ? 'dark' : 'light')}
                   >
-                    <div className="share-card-thumb-art">
-                      <CardArt card={item.card} small />
-                    </div>
-                    {item.quantity && item.quantity > 1 ? (
-                      <span className="share-card-qty">×{item.quantity}</span>
-                    ) : null}
-                    <span className="share-card-code">{item.card.code}</span>
-                  </div>
-                ))}
+                    {shareStyle === 'light' ? <Moon size={16} aria-hidden="true" /> : <Sun size={16} aria-hidden="true" />}
+                  </button>
+                </div>
+                {previewLoading && <div className="share-listing-image-loading" aria-label={language === 'ID' ? 'Memuat pratinjau' : 'Loading preview'} />}
+                {!previewLoading && imagePreview && <img className="share-listing-image-preview" src={imagePreview} alt={language === 'ID' ? `Gambar listing ${title}` : `Listing image for ${title}`} />}
+                {!previewLoading && !imagePreview && <p className="share-preview-error" role="status">{language === 'ID' ? 'Pratinjau gambar tidak tersedia.' : 'Image preview is unavailable.'}</p>}
               </div>
-
               <button
                 type="button"
                 className="share-preview-save-btn"
@@ -489,7 +547,7 @@ export function ShareButton({
                 disabled={downloading}
               >
                 <DownloadSimple size={15} />
-                <span>{downloading ? (language === 'ID' ? 'Membuat gambar showcase...' : 'Creating showcase card...') : (language === 'ID' ? 'Simpan gambar listing' : 'Save listing image')}</span>
+                <span>{downloading ? (language === 'ID' ? 'Membuat gambar...' : 'Creating image...') : (language === 'ID' ? 'Simpan gambar listing' : 'Save listing image')}</span>
               </button>
             </div>
           )}

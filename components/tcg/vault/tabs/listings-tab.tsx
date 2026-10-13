@@ -10,12 +10,12 @@ import {marketListingPath} from '@/lib/market/listing-url';
 import {MarketListingPriceEdit,MarketListingPriceTerms,MarketListingTitleEdit} from '@/components/tcg/market-listing-inline-edit';
 
 type SellerListing={id:string;title:string;amount:number;currency:string;quantity:number;type:string;status:string;city:string;createdAt:string;expiresAt:string|null;negotiable:boolean;cards:(MarketActivityCard&{unitAmount?:number})[]};
-const money=(amount:number,currency:string)=>new Intl.NumberFormat('id-ID',{style:'currency',currency:currency||'IDR',maximumFractionDigits:0}).format(amount);
+const money=(amount:number,currency:string)=>new Intl.NumberFormat('id-ID',{style:'currency',currency:currency||'IDR',currencyDisplay:'code',maximumFractionDigits:0}).format(amount);
 const expiryTime=(value:string)=>{const raw=value.trim();const iso=/^\d{4}-\d{2}-\d{2}$/.test(raw)?`${raw}T23:59:59Z`:raw.includes('T')?raw:raw.replace(' ','T');const zoned=/([zZ]|[+-]\d{2}(?::?\d{2})?)$/.test(iso)?iso:`${iso}Z`;const parsed=Date.parse(zoned);return Number.isFinite(parsed)?parsed:null};
 const shortDate=(value:string,id:boolean)=>{const time=expiryTime(value);return time===null?(id?'Tanggal tidak tersedia':'Date unavailable'):new Intl.DateTimeFormat(id?'id-ID':'en-US',{day:'numeric',month:'short',year:'numeric'}).format(time)};
 const countdown=(value:string,now:number,id:boolean)=>{const time=expiryTime(value);if(time===null)return id?'Tanggal akhir tidak tersedia':'Expiry date unavailable';const minutes=Math.max(0,Math.ceil((time-now)/60_000));if(minutes<60)return id?`${minutes} mnt lagi`:`${minutes}m left`;const hours=Math.floor(minutes/60);if(hours<24)return id?`${hours} jam ${minutes%60} mnt lagi`:`${hours}h ${minutes%60}m left`;const days=Math.floor(hours/24);return id?`${days} hari ${hours%24} jam lagi`:`${days}d ${hours%24}h left`};
 
-export function ListingsTab({language,onCreateListing}:{language:'EN'|'ID';onCreateListing?:()=>void}){
+export function ListingsTab({language,onCreateListing,onListingChanged}:{language:'EN'|'ID';onCreateListing?:()=>void;onListingChanged?:()=>void|Promise<void>}){
   const id=language==='ID';
   const [listings,setListings]=useState<SellerListing[]>([]);
   const [loading,setLoading]=useState(true);
@@ -58,6 +58,7 @@ export function ListingsTab({language,onCreateListing}:{language:'EN'|'ID';onCre
       if(data.status!==expectedStatus)throw new Error(id?'Status listing belum dapat dikonfirmasi. Muat ulang dan periksa lagi.':'The listing status could not be confirmed. Refresh and check again.');
       refreshSequence.current++;
       setListings(current=>current.map(item=>item.id===listing.id?{...item,status:data.status!,expiresAt:data.expiresAt??item.expiresAt}:item));
+      void Promise.resolve(onListingChanged?.()).catch(()=>undefined);
       toast.success(action==='pause'?(id?`“${listing.title}” dijeda`:`“${listing.title}” paused`):action==='resume'?(id?`“${listing.title}” aktif kembali`:`“${listing.title}” is active again`):action==='close'?(id?`“${listing.title}” ditutup`:`“${listing.title}” closed`):(id?`“${listing.title}” diperpanjang ${data.durationDays??''} hari`:`“${listing.title}” renewed for ${data.durationDays??''} days`));
       if(action==='pause'||action==='resume'){try{navigator.vibrate?.(10)}catch{}}
     }catch(error){const message=error instanceof Error?error.message:'Listing could not be updated.';setLoadError(message);toast.error(message);}

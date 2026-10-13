@@ -7,6 +7,7 @@ export type FeedbackRequest={
   cardCode?:string;
   printingId?:string;
   listingId?:string;
+  cardOptions?:Array<{cardCode:string;printingId:string;label:string}>;
   sourcePath?:string;
 };
 
@@ -20,7 +21,7 @@ export function FeedbackLaunchButton({request,className,children,disabled=false}
 }
 
 export function FeedbackPageAutoOpen({request}:{request:FeedbackRequest}){
-  const {initialCategory,cardCode,printingId,listingId,sourcePath}=request;
-  useEffect(()=>{openFeedback({initialCategory,cardCode,printingId,listingId,sourcePath})},[initialCategory,cardCode,printingId,listingId,sourcePath]);
+  const {initialCategory,cardCode,printingId,listingId,cardOptions,sourcePath}=request;
+  useEffect(()=>{openFeedback({initialCategory,cardCode,printingId,listingId,cardOptions,sourcePath})},[initialCategory,cardCode,printingId,listingId,cardOptions,sourcePath]);
   return null;
 }

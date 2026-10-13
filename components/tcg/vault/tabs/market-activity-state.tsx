@@ -2,6 +2,7 @@
 
 import type {ReactNode} from 'react';
 import Image from 'next/image';
+import {CardsIcon as Cards} from '@phosphor-icons/react';
 
 export type MarketActivityCard={printingId:string;quantity:number;card?:{name:string;code:string;imageUrl:string|null}|null};
 
@@ -31,6 +32,6 @@ export function MarketActivityLoading({label,kind}:{label:string;kind:'listings'
   </section>;
 }
 
-export function MarketActivityEmpty({title,description,action}:{title:string;description:string;action?:ReactNode}){
-  return <div className="market-activity-empty"><span className="market-activity-empty-mark" aria-hidden="true">-</span><strong>{title}</strong><p>{description}</p>{action}</div>;
+export function MarketActivityEmpty({title,description,action,icon}:{title:string;description:string;action?:ReactNode;icon?:ReactNode}){
+  return <div className="market-activity-empty"><span className="market-activity-empty-mark" aria-hidden="true">{icon??<Cards size={19}/>}</span><strong>{title}</strong><p>{description}</p>{action}</div>;
 }
