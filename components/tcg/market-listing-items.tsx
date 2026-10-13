@@ -267,16 +267,18 @@ export function ListingArtRotator({items}:{items:MarketListingCard[]}){
     return()=>window.clearInterval(timer);
   },[items.length]);
   const active=items[activeIndex]??items[0];
-  const underlays=[1,2].map(offset=>items[(activeIndex+offset)%items.length]).filter((item,index,self)=>items.length>1&&self.findIndex(candidate=>candidate.id===item.id)===index);
   if(!active)return null;
+  const cardCount=items.reduce((total,item)=>total+Math.max(0,item.quantity||0),0);
+  const visibleStackCount=Math.min(3,Math.max(1,cardCount));
+  const underlays=Array.from({length:visibleStackCount-1},(_,index)=>items[(activeIndex+index+1)%items.length]??active);
 
-  return <div className={`viewer-art-stack market-listing-art-rotator ${items.length===1?'is-single':''}`} aria-label={`Featured card: ${active.card.name}`}>
-    {underlays.map((item,index)=><div key={item.id} className={`viewer-art-underlay viewer-art-underlay-${index}`} aria-hidden="true"><CardArt card={item.card}/></div>)}
+  return <div className={`viewer-art-stack market-listing-art-rotator ${visibleStackCount===1?'is-single':''}`} data-card-count={cardCount} aria-label={`Featured card: ${active.card.name}; ${cardCount} cards in this listing`}>
+    {underlays.map((item,index)=><div key={`${item.id}-${index}`} className={`viewer-art-underlay viewer-art-underlay-${index}`} aria-hidden="true"><CardArt card={item.card}/></div>)}
     <div className="viewer-art-current market-listing-art-current" key={active.id}><CardArt card={active.card} priority/></div>
   </div>;
 }
 
-export function MarketListingItems({items,currency,listingType,listingId,listingTitle,sellerId,negotiable=true,readOnly=false,canEditPrices=false,canManageListing=false,onItemsAdded,onPriceSaved}:{items:MarketListingCard[];currency:string;listingType:'WTS'|'WTB';listingId:string;listingTitle?:string;sellerId?:string;listingAmount?:string;negotiable?:boolean;readOnly?:boolean;canEditPrices?:boolean;canManageListing?:boolean;onItemsAdded?:(cards:MarketListingCard[])=>void;onPriceSaved?:(index:number,unitAmount:number)=>void;}){
+export function MarketListingItems({items,currency,listingType,listingId,listingTitle,sellerId,negotiable=true,readOnly=false,previewOnly=false,canEditPrices=false,canManageListing=false,onItemsAdded,onPriceSaved}:{items:MarketListingCard[];currency:string;listingType:'WTS'|'WTB';listingId:string;listingTitle?:string;sellerId?:string;listingAmount?:string;negotiable?:boolean;readOnly?:boolean;previewOnly?:boolean;canEditPrices?:boolean;canManageListing?:boolean;onItemsAdded?:(cards:MarketListingCard[])=>void;onPriceSaved?:(index:number,unitAmount:number)=>void;}){
   const router=useRouter();
   const singleCopyListing=items.length===1&&items[0].quantity===1;
   const [selected,setSelected]=useState<Record<string,number>>(()=>singleCopyListing?{[items[0].id]:1}:{});
@@ -397,7 +399,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
   useEffect(()=>{
     let active=true;
     if(sessionPending)return()=>{active=false};
-    if(!session?.user||readOnly||!acceptsOffers){setOfferCheckComplete(true);return()=>{active=false};}
+    if(!session?.user||readOnly||previewOnly||!acceptsOffers){setOfferCheckComplete(true);return()=>{active=false};}
     setOfferCheckComplete(false);
     const controller=new AbortController();
     void fetch(`/api/listings/${encodeURIComponent(listingId)}/offers`,{cache:'no-store',signal:controller.signal})
@@ -409,18 +411,21 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
       .catch(()=>{})
       .finally(()=>{if(active)setOfferCheckComplete(true)});
     return()=>{active=false;controller.abort()};
-  },[listingId,session?.user.id,sessionPending,readOnly,acceptsOffers,items,restoreActiveOffer]);
+  },[listingId,session?.user.id,sessionPending,readOnly,previewOnly,acceptsOffers,items,restoreActiveOffer]);
   const continueOffer=async()=>{
+    if(previewOnly)return;
     if(!session){window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));return;}
     setSubmitting(true);try{const offerItems=items.flatMap(item=>{const quantity=selected[item.id]??0;if(!quantity)return[];const unitAmount=getUnitPrice(item);return [{printingId:item.id,quantity,unitAmount}];});const response=await fetch(`/api/listings/${encodeURIComponent(listingId)}/offers`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({type:isBuying?'BUY':'SELL',items:offerItems,amount:selectedTotal,currency})});const payload=await response.json() as {id?:string;actorId?:string;status?:string;expiresAt?:string;error?:string;offerId?:string};if(!response.ok){if(response.status===409&&payload.offerId){const currentResponse=await fetch(`/api/listings/${encodeURIComponent(listingId)}/offers`,{cache:'no-store'});const current=await currentResponse.json() as {offer?:ActiveListingOffer|null};if(currentResponse.ok&&current.offer&&restoreActiveOffer(current.offer)){setOfferCheckComplete(true);toast.info(t('An open offer already exists.','Penawaran masih terbuka.'),{action:{label:t('See offer','Lihat penawaran'),onClick:()=>openOfferConversation(current.offer!.id)}});return;}}throw new Error(payload.error??t('We could not send your offer.','Gagal mengirimkan penawaran Anda.'));}const id=payload.id;if(!id)throw new Error(t('We could not confirm your offer. Refresh and check your Offers.','Penawaran belum dapat dikonfirmasi. Muat ulang dan periksa Penawaran Anda.'));setActiveOffer({id,actorId:payload.actorId??session.user.id,viewerIsActor:true,items:offerItems,amount:selectedTotal,currency,expiresAt:payload.expiresAt??null});setOfferJustSent(true);setOfferCheckComplete(true);toast.success(isBuying?t('Offer sent to the seller.','Penawaran dikirim ke penjual.'):t('Your cards were offered to the buyer.','Kartu Anda ditawarkan ke pembeli.'),{action:{label:t('See offer','Lihat penawaran'),onClick:()=>openOfferConversation(id)}});}catch(error){const message=error instanceof Error?error.message:'';const localized=language==='ID'&&message.includes('listing is no longer active')?'Listing ini sudah tidak aktif.':language==='ID'&&message.includes('listing has expired')?'Listing ini sudah kedaluwarsa.':language==='ID'&&message.includes('firm price')?'Listing ini menggunakan harga pas dan tidak menerima penawaran.':language==='ID'&&message.includes('Offer total must match')?'Total penawaran harus sesuai dengan harga tiap kartu.':message||t('We could not send your offer.','Gagal mengirimkan penawaran Anda.');toast.error(localized)}
   };
   const buySelected=()=>{
+    if(previewOnly)return;
     if(!session){window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));return;}
     const orderItems=items.flatMap(item=>{const quantity=selected[item.id]??0;return quantity?[{printingId:item.id,quantity}]:[];});
     const query=new URLSearchParams({listing:listingId,items:JSON.stringify(orderItems)});
     router.push(`/checkout/market?${query.toString()}`);
   };
   const addSelectedToCart=()=>{
+    if(previewOnly)return;
     if(!session){window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));return;}
     if(selectionInCart){window.dispatchEvent(new Event('vivreplay:open-market-cart'));return;}
     const cartKey='vivreplay-market-cart-v1';
@@ -505,8 +510,8 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
             {item.quantity>1 && <b>×{item.quantity}</b>}
             <button type="button" className="deck-info-action market-icon-action market-listing-info" onClick={()=>{setPreview(item.card);setPreviewPrintingId(item.id)}} aria-label={`View ${item.card.name} details`}><Info size={13}/></button>
             {!readOnly&&<div className="market-listing-card-utility-actions">
-              {listingType==='WTS'&&<button type="button" className="button secondary is-icon-only market-icon-action market-listing-add-vault" onClick={()=>setVaultTarget(item)} aria-label={t('Add an owned copy to Vault','Simpan salinan milik Anda ke Koleksi')} title={t('Add an owned copy to Vault','Simpan salinan milik Anda ke Koleksi')}><Plus size={17}/></button>}
-              <WishlistButton printingId={item.id} language={language} iconOnly/>
+              {listingType==='WTS'&&<button type="button" className="button secondary is-icon-only market-icon-action market-listing-add-vault" disabled={previewOnly} onClick={()=>setVaultTarget(item)} aria-label={t('Add an owned copy to Vault','Simpan salinan milik Anda ke Koleksi')} title={t('Add an owned copy to Vault','Simpan salinan milik Anda ke Koleksi')}><Plus size={17}/></button>}
+              <WishlistButton printingId={item.id} language={language} iconOnly disabled={previewOnly}/>
             </div>}
             {!readOnly&&offerCheckComplete&&!activeOffer&&!submitting&&!singleCopyListing&&<span className="deck-stack-actions market-listing-quantity" aria-label={`Select ${item.card.name}`}>
               <button type="button" onClick={()=>change(item.id,-1,item.quantity)} disabled={!amount} aria-label={`Remove one ${item.card.name}`}><Minus size={13}/></button>
@@ -600,11 +605,11 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
       })}
     </div>
     {canManageListing&&listingType==='WTS'&&<MarketAddCardsModal key={addCardsOpen?'open':'closed'} open={addCardsOpen} listingId={listingId} listingItems={items.map(item=>({instanceId:item.instanceId,printingId:item.id,quantity:item.quantity,condition:item.condition,unitAmount:item.unitAmount,card:item.card,language:item.language}))} currency={currency} language={language} onClose={()=>setAddCardsOpen(false)} onAdded={cards=>{onItemsAdded?.(cards);router.refresh()}}/>}
-    {preview&&<CardPreviewModal card={preview} initialPrintingId={previewPrintingId} printingIds={items.map(item=>item.id)} language={preview.language==='JP'?'JP':'EN'} cards={items.map(item=>item.card)} marketActions={!readOnly} onClose={()=>{setPreview(undefined);setPreviewPrintingId(undefined)}} onNavigate={(card,index)=>{setPreview(card);setPreviewPrintingId(items[index]?.id)}}/>}
+    {preview&&<CardPreviewModal card={preview} initialPrintingId={previewPrintingId} printingIds={items.map(item=>item.id)} language={preview.language==='JP'?'JP':'EN'} cards={items.map(item=>item.card)} marketActions={!readOnly&&!previewOnly} onClose={()=>{setPreview(undefined);setPreviewPrintingId(undefined)}} onNavigate={(card,index)=>{setPreview(card);setPreviewPrintingId(items[index]?.id)}}/>}
     <AddEditItemModal key={`${vaultTarget?.id??'market-listing-card'}-${Boolean(vaultTarget)}`} open={Boolean(vaultTarget)} onClose={()=>setVaultTarget(null)} onSaved={()=>router.refresh()} initialCard={vaultTarget?.card} initialPrintingId={vaultTarget?.id} isAnonymous={!session?.user} language={language}/>
     {!readOnly&&<footer className={`market-listing-selection${offerJustSent?' has-push-prompt':''}`} aria-live="polite">
       <div className="market-listing-selection-info">
-        <span>{activeOffer?(activeOffer.viewerIsActor?t('Offer sent, awaiting a response.','Penawaran terkirim, menunggu tanggapan.'):t('A counteroffer is waiting for you.','Ada penawaran balik untuk Anda.')):selectedCount?(language==='ID'?`${selectedCount} kartu dipilih`:`${selectedCount} ${selectedCount===1?'card':'cards'} selected`):t('Select cards to calculate a total','Pilih kartu untuk menghitung total')}</span>
+        <span>{previewOnly?t('Buyer preview — checkout and offers are disabled.','Pratinjau pembeli — checkout dan penawaran dinonaktifkan.'):activeOffer?(activeOffer.viewerIsActor?t('Offer sent, awaiting a response.','Penawaran terkirim, menunggu tanggapan.'):t('A counteroffer is waiting for you.','Ada penawaran balik untuk Anda.')):selectedCount?(language==='ID'?`${selectedCount} kartu dipilih`:`${selectedCount} ${selectedCount===1?'card':'cards'} selected`):t('Select cards to calculate a total','Pilih kartu untuk menghitung total')}</span>
         {!activeOffer&&selectedCount>0&&acceptsOffers&&<small>{t('Offers expire after 24 hours or when the listing ends.','Penawaran berakhir setelah 24 jam atau saat listing berakhir.')}</small>}
         {activeOffer?.expiresAt&&<small>{t('Expires','Berakhir')} {new Intl.DateTimeFormat(language==='ID'?'id-ID':'en-US',{dateStyle:'medium',timeStyle:'short'}).format(new Date(activeOffer.expiresAt.includes('T')?activeOffer.expiresAt:`${activeOffer.expiresAt.replace(' ','T')}Z`))}</small>}
         <div className="market-listing-pricing-block">
@@ -626,10 +631,10 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
         </div>
       </div>
       <div className="market-listing-selection-actions">
-        {isBuying&&<button type="button" className="button market-buy-selected" disabled={!selectedCount||submitting} onClick={buySelected}>{singleCopyListing?t('Buy now','Beli sekarang'):t('Buy selected','Beli pilihan')}</button>}
-        {isBuying&&!readOnly&&<button type="button" className={`button secondary market-add-cart${selectionInCart?' is-in-cart':''}`} title={selectionInCart?t('In cart — view cart','Sudah di keranjang — lihat keranjang'):t('Add selected cards to cart','Tambahkan kartu pilihan ke keranjang')} aria-label={selectionInCart?t('In cart — view cart','Sudah di keranjang — lihat keranjang'):t('Add selected cards to cart','Tambahkan kartu pilihan ke keranjang')} aria-pressed={selectionInCart} disabled={!selectedCount||submitting} onClick={addSelectedToCart}>{selectionInCart?<Check size={18}/>:<Cart size={18}/>}</button>}
+        {isBuying&&<button type="button" className="button market-buy-selected" disabled={!selectedCount||submitting||previewOnly} onClick={buySelected}>{singleCopyListing?t('Buy now','Beli sekarang'):t('Buy selected','Beli pilihan')}</button>}
+        {isBuying&&!readOnly&&<button type="button" className={`button secondary market-add-cart${selectionInCart?' is-in-cart':''}`} title={selectionInCart?t('In cart — view cart','Sudah di keranjang — lihat keranjang'):t('Add selected cards to cart','Tambahkan kartu pilihan ke keranjang')} aria-label={selectionInCart?t('In cart — view cart','Sudah di keranjang — lihat keranjang'):t('Add selected cards to cart','Tambahkan kartu pilihan ke keranjang')} aria-pressed={selectionInCart} disabled={!selectedCount||submitting||previewOnly} onClick={addSelectedToCart}>{selectionInCart?<Check size={18}/>:<Cart size={18}/>}</button>}
         {activeOffer&&<button type="button" className="button market-listing-offer-action" onClick={()=>openOfferConversation(activeOffer.id)}>{activeOffer.viewerIsActor?t('See offer','Lihat penawaran'):t('Review counteroffer','Tinjau penawaran balik')}</button>}
-        {!activeOffer&&acceptsOffers&&<button type="button" className="button market-listing-offer-action" disabled={!selectedCount||submitting||!offerCheckComplete} onClick={continueOffer}>{submitting?t('Sending...','Mengirim...'):!offerCheckComplete?t('Checking offer…','Memeriksa penawaran…'):session?(hasPriceAdjustments?t('Submit offer','Kirim penawaran'):actionLabel):(language==='ID'?`Masuk untuk ${isBuying?'menawar':'menawarkan'}`:`Sign in to ${actionLabel.toLowerCase()}`)}</button>}
+        {!activeOffer&&acceptsOffers&&<button type="button" className="button market-listing-offer-action" disabled={!selectedCount||submitting||!offerCheckComplete||previewOnly} onClick={continueOffer}>{submitting?t('Sending...','Mengirim...'):!offerCheckComplete?t('Checking offer…','Memeriksa penawaran…'):session?(hasPriceAdjustments?t('Submit offer','Kirim penawaran'):actionLabel):(language==='ID'?`Masuk untuk ${isBuying?'menawar':'menawarkan'}`:`Sign in to ${actionLabel.toLowerCase()}`)}</button>}
         <ShareButton
           title={listingTitle ?? t('Card listing','Listing kartu')}
           path={marketListingPath(listingTitle??'Card listing',listingId)}
@@ -656,6 +661,7 @@ export function MarketListingDetailView({
   primary,
   cardCount,
   isOwner = false,
+  isAdmin = false,
   canEdit = isOwner,
   initialExpired = false,
   renewDurationDays = 7,
@@ -666,6 +672,7 @@ export function MarketListingDetailView({
   primary: MarketListingCard;
   cardCount: number;
   isOwner?: boolean;
+  isAdmin?: boolean;
   canEdit?: boolean;
   initialExpired?: boolean;
   renewDurationDays?: number;
@@ -680,6 +687,7 @@ export function MarketListingDetailView({
   const [status, setStatus] = useState<string>(initialExpired ? 'EXPIRED' : 'ACTIVE');
   const [renewing, setRenewing] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [buyerPreview, setBuyerPreview] = useState(false);
 
   useEffect(() => {
     const sync = () => setLanguage(window.localStorage.getItem('vivreplay-locale') === 'ID' ? 'ID' : 'EN');
@@ -691,6 +699,10 @@ export function MarketListingDetailView({
 
   const t = (en: string, idStr: string) => language === 'ID' ? idStr : en;
   const isBuying = listing.type === 'WTB';
+  const canPreviewAsBuyer = isOwner || isAdmin;
+  const isBuyerPreview = buyerPreview && canPreviewAsBuyer;
+  const ownerView = isOwner && !isBuyerPreview;
+  const canEditListing = canEdit && ownerView;
   const typeLabel = isBuying ? t('Buying', 'Dicari') : t('Selling', 'Dijual');
   const shippingQuoteItems=useMemo(()=>editableCards.map(item=>({printingId:item.id,quantity:item.quantity,unitAmount:item.unitAmount})),[editableCards]);
 
@@ -752,12 +764,12 @@ export function MarketListingDetailView({
                   {listing.createdAt && <><span className="market-listing-eyebrow-separator" aria-hidden="true">/</span><span><MarketTimestamp value={listing.createdAt}/></span></>}
                   {expiresAt && <><span className="market-listing-eyebrow-separator" aria-hidden="true">/</span><span>{isExpired?(status==='CLOSED'?t('Closed','Ditutup'):t('Expired','Kedaluwarsa')):daysLeft===null?t('Expiry date unavailable','Tanggal akhir tidak tersedia'):<>{t('Ends in','Berakhir dalam')} {daysLeft} {t('days','hari')}</>}</span></>}
                 </p>
-                {isOwner&&<><span className="market-listing-eyebrow-separator" aria-hidden="true">/</span><div className="market-listing-owner-actions">
+                {ownerView&&<><span className="market-listing-eyebrow-separator" aria-hidden="true">/</span><div className="market-listing-owner-actions">
                   <button type="button" className="btn-renew" disabled={renewing} onClick={handleRenew} aria-label={isExpired?t('Renew listing','Perbarui listing'):t('Extend listing','Perpanjang listing')}><Renew size={14}/><span>{renewing?t('Saving…','Menyimpan…'):isExpired?t('Renew','Perbarui'):t('Extend','Perpanjang')}</span></button>
                   {!isExpired&&<button type="button" className="btn-close" disabled={closing} onClick={handleClose} aria-label={t('Close listing','Tutup listing')}><X size={14}/><span>{closing?t('Closing…','Menutup…'):t('Close','Tutup')}</span></button>}
                 </div></>}
               </div>
-              {canEdit?<MarketListingTitleEdit listingId={listing.id} title={listingTitle} language={language} onSaved={updated=>{setListingTitle(updated);router.replace(marketListingPath(updated,listing.id),{scroll:false})}}><h1>{listingTitle}</h1></MarketListingTitleEdit>:<div className="market-listing-title-edit-row"><h1>{listingTitle}</h1></div>}
+              {canEditListing?<MarketListingTitleEdit listingId={listing.id} title={listingTitle} language={language} onSaved={updated=>{setListingTitle(updated);router.replace(marketListingPath(updated,listing.id),{scroll:false})}}><h1>{listingTitle}</h1></MarketListingTitleEdit>:<div className="market-listing-title-edit-row"><h1>{listingTitle}</h1></div>}
             </div>
             <span className={`market-listing-status ${isBuying ? 'is-buying' : 'is-selling'}`}>{typeLabel}</span>
           </header>
@@ -765,24 +777,24 @@ export function MarketListingDetailView({
           <dl className="market-listing-facts">
             <div>
               <dt>{t('Price', 'Harga')}</dt>
-              <dd className="market-listing-price-value">{canEdit?<MarketListingPriceEdit listingId={listing.id} title={listingTitle} listingType={listing.type==='WTB'?'WTB':'WTS'} amount={listingAmount} currency={listing.currency} cards={editableCards.map(item=>({printingId:item.id,name:item.card.name,quantity:item.quantity,unitAmount:item.unitAmount}))} language={language} onSaved={updated=>{setListingAmount(updated.amount);setEditableCards(current=>current.map((item,index)=>({...item,unitAmount:updated.prices[index]??item.unitAmount})))}}><span>{formatMoney(listingAmount, listing.currency)}</span></MarketListingPriceEdit>:<span>{formatMoney(listingAmount, listing.currency)}</span>}</dd>
-            </div>
-            {listing.type==='WTS'&&<div>
-              <dt>{t('Price terms','Ketentuan harga')}</dt>
-              <dd>{canEdit?<MarketListingPriceTerms listingId={listing.id} negotiable={listingNegotiable} language={language} onSaved={setListingNegotiable}/>:listingNegotiable===false?t('Firm price','Harga pas'):t('Negotiable','Bisa ditawar')}</dd>
-            </div>}
-            <div>
-              <dt>{isBuying ? t('Location', 'Lokasi') : t('Ships from', 'Dikirim dari')}</dt>
-              <dd>{listing.city}</dd>
+              <dd className="market-listing-price-value">{canEditListing?<MarketListingPriceEdit listingId={listing.id} title={listingTitle} listingType={listing.type==='WTB'?'WTB':'WTS'} amount={listingAmount} currency={listing.currency} cards={editableCards.map(item=>({printingId:item.id,name:item.card.name,quantity:item.quantity,unitAmount:item.unitAmount}))} language={language} onSaved={updated=>{setListingAmount(updated.amount);setEditableCards(current=>current.map((item,index)=>({...item,unitAmount:updated.prices[index]??item.unitAmount})))}}><span>{formatMoney(listingAmount, listing.currency)}</span></MarketListingPriceEdit>:<span>{formatMoney(listingAmount, listing.currency)}</span>}</dd>
             </div>
             {cardCount>1&&<div>
               <dt>{t('Cards', 'Kartu')}</dt>
               <dd>{cardCount}</dd>
             </div>}
-            {!isBuying && !isOwner && <ShippingOptions listingId={listing.id} courierCount={listing.shippingOptionCount??0} couriers={listing.shippingCouriers??[]} items={shippingQuoteItems}/>}
+            {listing.type==='WTS'&&<div>
+              <dt>{t('Price terms','Ketentuan harga')}</dt>
+              <dd>{canEditListing?<MarketListingPriceTerms listingId={listing.id} negotiable={listingNegotiable} language={language} onSaved={setListingNegotiable}/>:listingNegotiable===false?t('Firm price','Harga pas'):t('Negotiable','Bisa ditawar')}</dd>
+            </div>}
+            <div>
+              <dt>{isBuying ? t('Location', 'Lokasi') : t('Ships from', 'Dikirim dari')}</dt>
+              <dd>{listing.city}</dd>
+            </div>
+            {!isBuying && !ownerView && <ShippingOptions listingId={listing.id} courierCount={listing.shippingOptionCount??0} couriers={listing.shippingCouriers??[]} items={shippingQuoteItems}/>}
           </dl>
 
-          {!isOwner && isExpired && (
+          {!ownerView && isExpired && (
             <div className="market-expired-banner">
               <strong>{status === 'CLOSED' ? t('This listing has been closed', 'Listing ini telah ditutup') : t('This listing has expired', 'Listing ini telah kedaluwarsa')}</strong>
               <p>{t('The seller has not renewed this listing and it is no longer accepting offers.', 'Penjual belum memperbarui listing ini dan tidak lagi menerima penawaran.')}</p>
@@ -797,10 +809,15 @@ export function MarketListingDetailView({
                 <div className="market-listing-seller-name"><strong>{stored ? <Link href={`/players/${stored.username}`}>{listing.seller}</Link> : listing.seller}</strong><MarketReputation listingId={listing.id} language={language} role={isBuying?'buyer':'seller'}/></div>
               </div>
             </section>
-            {!isOwner&&<div className="market-listing-utility-actions"><FeedbackLaunchButton request={{initialCategory:'market-report',listingId:listing.id}} className="market-report-link">{t('Report listing','Laporkan listing')}</FeedbackLaunchButton><SaveListingButton listingId={listing.id} language={language} iconOnly/></div>}
+            <div className="market-listing-utility-actions">
+              {!ownerView&&<><FeedbackLaunchButton request={{initialCategory:'market-report',listingId:listing.id}} className="market-report-link" disabled={isBuyerPreview}>{t('Report listing','Laporkan listing')}</FeedbackLaunchButton><SaveListingButton listingId={listing.id} language={language} iconOnly disabled={isBuyerPreview}/></>}
+              {canPreviewAsBuyer&&<button type="button" className="button secondary market-listing-view-as-toggle" aria-pressed={isBuyerPreview} onClick={()=>setBuyerPreview(value=>!value)}>{isBuyerPreview?t('Seller view','Tampilan penjual'):t('Buyer preview','Pratinjau pembeli')}</button>}
+            </div>
           </div>
 
-          {(!isExpired||isOwner)&&(
+          {isBuyerPreview&&<p className="market-listing-preview-note" role="status">{t('Buyer preview. Checkout and offers are disabled.','Pratinjau pembeli. Checkout dan penawaran dinonaktifkan.')}</p>}
+
+          {(!isExpired||ownerView)&&(
             <MarketListingItems
               items={editableCards}
               currency={listing.currency}
@@ -810,10 +827,11 @@ export function MarketListingDetailView({
               listingTitle={listingTitle}
               listingAmount={formatMoney(listingAmount, listing.currency)}
               negotiable={listingNegotiable}
-              readOnly={isOwner}
-              canManageListing={canEdit}
+              readOnly={ownerView}
+              previewOnly={isBuyerPreview}
+              canManageListing={canEditListing}
               onItemsAdded={setEditableCards}
-              canEditPrices={canEdit&&editableCards.length>1}
+              canEditPrices={canEditListing&&editableCards.length>1}
               onPriceSaved={(index,unitAmount)=>{setEditableCards(current=>current.map((item,currentIndex)=>currentIndex===index?{...item,unitAmount}:item));setListingAmount(current=>current+(unitAmount-editableCards[index].unitAmount)*editableCards[index].quantity)}}
             />
           )}

@@ -2291,10 +2291,6 @@ html:not([data-theme='dark']) .pro-calculator-total dd.is-negative { color: #8b2
     padding: 0 0 10px !important;
   }
 
-  .market-listing-detail .market-listing-seller-toolbar .market-listing-seller {
-    padding: 0 0 12px !important;
-  }
-
   .market-feed-list.is-list .market-feed-row,
   .market-feed-row {
     margin-bottom: 0 !important;
@@ -2705,4 +2701,73 @@ html[data-theme='dark'] .market-icon-action[aria-pressed='true'] {
   .market-listing-detail .market-listing-add-cards{min-height:36px!important;padding:0 9px!important;font-size:11px!important}
   .market-add-cards-modal{max-height:min(88dvh,760px)}
   .market-add-cards-choices{max-height:42dvh}
+}
+
+/* Listing facts stay readable at every width, with dividers only between cells. */
+.market-listing-detail .market-listing-facts {
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 0 !important;
+  border-block: 1px solid var(--line) !important;
+}
+.market-listing-detail .market-listing-facts > div {
+  min-width: 0 !important;
+  padding: 12px 14px 12px 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+.market-listing-detail .market-listing-facts > div:nth-child(2n) {
+  padding-left: 14px !important;
+  border-left: 1px solid var(--line) !important;
+}
+.market-listing-detail .market-listing-facts > div:nth-child(2n + 1) {
+  padding-left: 0 !important;
+  border-left: 0 !important;
+}
+.market-listing-detail .market-listing-facts > div:nth-child(n + 3) {
+  border-top: 1px solid color-mix(in srgb, var(--line) 72%, transparent) !important;
+}
+@media (max-width: 380px) {
+  .market-listing-detail .market-listing-facts {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .market-listing-detail .market-listing-facts > div,
+  .market-listing-detail .market-listing-facts > div:nth-child(2n) {
+    padding-inline: 0 !important;
+    border-left: 0 !important;
+  }
+  .market-listing-detail .market-listing-facts > div + div {
+    border-top: 1px solid color-mix(in srgb, var(--line) 72%, transparent) !important;
+  }
+}
+
+.market-listing-detail .market-listing-heading h1,
+.market-listing-detail .market-listing-title-edit-row h1 {
+  color: var(--ink) !important;
+}
+.market-listing-view-as-toggle {
+  flex: 0 0 auto;
+  min-height: 40px !important;
+  padding-inline: 10px !important;
+  white-space: nowrap;
+}
+.market-listing-preview-note {
+  margin: 10px 0 0;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface-raised);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+@media (max-width: 620px) {
+  .market-listing-detail .market-listing-preview-note {
+    grid-column: 1 / -1;
+  }
+  .market-listing-view-as-toggle {
+    min-height: 40px !important;
+    padding-inline: 8px !important;
+    font-size: 11px !important;
+  }
 }

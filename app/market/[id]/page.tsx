@@ -10,6 +10,7 @@ import {pageMetadata} from '@/lib/site-metadata';
 import {isListingExpired} from '@/lib/market/policy';
 import {getDynamicListingPolicy} from '@/lib/market/policy';
 import {listingIdFromMarketPath,marketListingPath,marketListingSelectorFromPath} from '@/lib/market/listing-url';
+import {isCurrentUserAdmin} from '@/lib/server/admin-auth';
 
 export const dynamic='force-dynamic';
 
@@ -48,7 +49,7 @@ export default async function Page({params}:{params:Promise<{id:string}>}){
   if(!selector)notFound();
   const where=selector.kind==='id'?'l.id=?':'l.id>=? AND l.id<?';
   const values=selector.kind==='id'?[selector.id]:[selector.lower,selector.upper];
-  const [storedRows, me]=await Promise.all([
+  const [storedRows, me, isAdmin]=await Promise.all([
     db().prepare(`
       SELECT
         l.id,
@@ -93,6 +94,7 @@ export default async function Page({params}:{params:Promise<{id:string}>}){
       LIMIT 2
     `).bind(...values).all<RawStoredListing>(),
     optionalUser(),
+    isCurrentUserAdmin(),
   ]);
 
   const matches=storedRows.results;
@@ -172,6 +174,7 @@ export default async function Page({params}:{params:Promise<{id:string}>}){
         primary={primary}
         cardCount={cardCount}
         isOwner={isOwner}
+        isAdmin={isAdmin}
         canEdit={Boolean(isOwner&&stored&&['ACTIVE','PAUSED'].includes(stored.status))}
         initialExpired={initialExpired}
         renewDurationDays={renewDurationDays}
