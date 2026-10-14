@@ -64,11 +64,9 @@ const adminEmailThemeStyles=`
 .admin-emails-page .admin-email-result[data-success=false]{background:var(--mail-admin-error-bg)!important;border-color:var(--mail-admin-error-border)!important;color:var(--mail-admin-error-ink)!important}
 .admin-emails-page .admin-email-result span{color:inherit!important}
 .admin-emails-page .admin-email-pre{background:var(--mail-admin-code)!important;border-color:var(--mail-admin-border)!important;color:var(--mail-admin-code-ink)!important}
-.admin-emails-page .admin-sent-email-dialog{width:min(1100px,calc(100vw - 32px));max-width:1100px;max-height:88vh;overflow:auto;background:var(--mail-admin-panel);border-color:var(--mail-admin-border);color:var(--mail-admin-ink)}
-.admin-emails-page .admin-sent-email-row{width:100%;display:grid;grid-template-columns:minmax(180px,1fr) minmax(220px,1.5fr) minmax(130px,.8fr) auto;gap:16px;align-items:center;padding:14px 16px;text-align:left;border:0;border-bottom:1px solid var(--mail-admin-border);background:transparent;color:var(--mail-admin-ink);cursor:pointer}
-.admin-emails-page .admin-sent-email-row:hover{background:var(--mail-admin-soft)}
-.admin-emails-page .admin-sent-email-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 20px;padding:16px 0;border-bottom:1px solid var(--mail-admin-border)}
-@media(max-width:640px){.admin-emails-page .admin-sent-email-row{grid-template-columns:minmax(0,1fr) auto;gap:4px 12px}.admin-emails-page .admin-sent-email-meta{grid-template-columns:minmax(0,1fr)}}
+.admin-sent-email-dialog{--mail-admin-ink:#292b27;--mail-admin-muted:#6f7169;--mail-admin-panel:#fffdf8;--mail-admin-soft:#f4f0e7;--mail-admin-canvas:#e9e5dc;--mail-admin-input:#fff;--mail-admin-code:#f7f4ec;--mail-admin-code-ink:#40443e;--mail-admin-border:#ded8cb;--mail-admin-selected:#f4ead1;--mail-admin-accent:#b28731;--mail-admin-accent-ink:#4f3c14;--mail-admin-success-bg:#e8f2e8;--mail-admin-success-border:#b9d0bb;--mail-admin-success-ink:#31563a;--mail-admin-error-bg:#f7e9e7;--mail-admin-error-border:#e0bfbb;--mail-admin-error-ink:#8c3631;--mail-admin-shadow:0 8px 24px rgba(52,45,30,.06);width:min(1040px,calc(100vw - 32px));max-width:1040px;max-height:min(84dvh,820px);overflow:hidden;padding:0;background:var(--mail-admin-panel);border-color:var(--mail-admin-border);color:var(--mail-admin-ink)}
+html[data-theme=dark] .admin-sent-email-dialog{--mail-admin-ink:#e7ecee;--mail-admin-muted:#a5b2b8;--mail-admin-panel:#101d2b;--mail-admin-soft:#0a1723;--mail-admin-canvas:#0b1520;--mail-admin-input:#07101a;--mail-admin-code:#060d15;--mail-admin-code-ink:#d5e2e8;--mail-admin-border:#284158;--mail-admin-selected:#2c3440;--mail-admin-accent:#d8a63b;--mail-admin-accent-ink:#1b1b17;--mail-admin-success-bg:#16271c;--mail-admin-success-border:#315b3a;--mail-admin-success-ink:#a8d6ae;--mail-admin-error-bg:#2b1c1b;--mail-admin-error-border:#67403d;--mail-admin-error-ink:#efaaa3;--mail-admin-shadow:0 14px 32px rgba(0,0,0,.16)}
+.admin-sent-email-dialog [data-slot=dialog-body]{gap:0!important;overflow:hidden!important}
 html[data-theme=light] .admin-emails-page{--mail-admin-ink:#292b27;--mail-admin-muted:#6f7169;--mail-admin-panel:#fffdf8;--mail-admin-soft:#f4f0e7;--mail-admin-canvas:#e9e5dc;--mail-admin-input:#fff;--mail-admin-code:#f7f4ec;--mail-admin-code-ink:#40443e;--mail-admin-border:#ded8cb;--mail-admin-selected:#f4ead1;--mail-admin-accent:#b28731;--mail-admin-accent-ink:#4f3c14;--mail-admin-success-bg:#e8f2e8;--mail-admin-success-border:#b9d0bb;--mail-admin-success-ink:#31563a;--mail-admin-error-bg:#f7e9e7;--mail-admin-error-border:#e0bfbb;--mail-admin-error-ink:#8c3631;--mail-admin-shadow:0 8px 24px rgba(52,45,30,.06)}
 html[data-theme=dark] .admin-emails-page{--mail-admin-ink:#e7ecee;--mail-admin-muted:#a5b2b8;--mail-admin-panel:#101d2b;--mail-admin-soft:#0a1723;--mail-admin-canvas:#0b1520;--mail-admin-input:#07101a;--mail-admin-code:#060d15;--mail-admin-code-ink:#d5e2e8;--mail-admin-border:#284158;--mail-admin-selected:#2c3440;--mail-admin-accent:#d8a63b;--mail-admin-accent-ink:#1b1b17;--mail-admin-success-bg:#16271c;--mail-admin-success-border:#315b3a;--mail-admin-success-ink:#a8d6ae;--mail-admin-error-bg:#2b1c1b;--mail-admin-error-border:#67403d;--mail-admin-error-ink:#efaaa3;--mail-admin-shadow:0 14px 32px rgba(0,0,0,.16)}
 @media(max-width:980px){.admin-emails-page .admin-emails-layout{grid-template-columns:minmax(0,1fr)!important}}
@@ -83,6 +81,8 @@ type EmailData = RenderedEmail & {
 };
 
 type SentEmail={id:string;to:string[];from:string;subject:string;created_at:string;last_event?:string;html?:string|null;text?:string|null;reply_to?:string[]|null;cc?:string[]|null;bcc?:string[]|null;message_id?:string|null};
+const sentEmailTime=(value:string)=>value?`${new Intl.DateTimeFormat('en-ID',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Jakarta'}).format(new Date(value))} WIB`:'';
+const sentEmailStatus=(value?:string)=>{const status=(value||'sent').toLowerCase().replaceAll('_',' ');return status==='delivery delayed'?'delayed':status};
 
 export function AdminEmailsDashboard() {
   const [emails, setEmails] = useState<EmailData[]>([]);
@@ -309,34 +309,45 @@ export function AdminEmailsDashboard() {
       </header>
 
       <section className="admin-email-panel" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:16,flexWrap:'wrap',margin:'0 0 24px',padding:'16px 20px',border:'1px solid #22384e',borderRadius:12,background:'#0d1b2a'}}>
-        <div><strong style={{display:'block',fontSize:15}}>Sent emails</strong><span style={{color:'var(--mail-admin-muted)',fontSize:13}}>Check delivery status and open the message that was sent.</span></div>
-        <button type="button" className="admin-email-submit" onClick={()=>{setSentDialogOpen(true);void loadSentEmails()}} style={{display:'inline-flex',alignItems:'center',gap:8,padding:'9px 14px',border:0,borderRadius:8,fontWeight:700,cursor:'pointer'}}><EnvelopeSimple size={16}/>Recent emails</button>
+        <div><strong style={{display:'block',fontSize:15}}>Sent emails</strong><span style={{color:'var(--mail-admin-muted)',fontSize:13}}>Search messages and check delivery status.</span></div>
+        <button type="button" className="admin-email-submit" onClick={()=>{setSentDialogOpen(true);void loadSentEmails()}} style={{display:'inline-flex',alignItems:'center',gap:8,padding:'9px 14px',border:0,borderRadius:8,fontWeight:700,cursor:'pointer'}}><EnvelopeSimple size={16}/>Open email history</button>
       </section>
 
       <Dialog open={sentDialogOpen} onOpenChange={open=>{setSentDialogOpen(open);if(!open){setSelectedSentEmail(null);setSentDetailError('')}}}>
         <DialogContent className="admin-sent-email-dialog">
-          <DialogHeader><DialogTitle>{selectedSentEmail?.subject||'Recent sent emails'}</DialogTitle></DialogHeader>
-          {selectedSentEmail? <div>
-            <button type="button" onClick={()=>setSelectedSentEmail(null)} style={{margin:'0 0 12px',padding:0,border:0,background:'transparent',color:'var(--mail-admin-accent-ink)',fontWeight:700,cursor:'pointer'}}>← All sent emails</button>
-            {sentDetailLoading?<p>Loading email…</p>:sentDetailError?<p role="alert">{sentDetailError}</p>:<>
+          <DialogHeader className="admin-sent-email-dialog-heading">
+            <div className="admin-sent-email-title-wrap">
+              <span className="admin-sent-email-eyebrow">{selectedSentEmail?'MESSAGE DETAILS':'EMAIL HISTORY'}</span>
+              <DialogTitle>{selectedSentEmail?.subject||'Sent emails'}</DialogTitle>
+              <p>{selectedSentEmail?`${selectedSentEmail.to?.join(', ')||'Unknown recipient'}${selectedSentEmail.created_at?`  /  ${sentEmailTime(selectedSentEmail.created_at)}`:''}`:'Search sent messages and open one to review its contents.'}</p>
+            </div>
+            {selectedSentEmail&&<div className="admin-sent-email-heading-actions"><span className={`admin-email-category is-status-${(selectedSentEmail.last_event||'sent').toLowerCase().replaceAll('_','-')}`}>{sentEmailStatus(selectedSentEmail.last_event)}</span><button type="button" onClick={()=>setSelectedSentEmail(null)} className="admin-sent-email-back">All emails</button></div>}
+          </DialogHeader>
+          {selectedSentEmail? <div className="admin-sent-email-detail">
+            {sentDetailLoading?<div className="admin-sent-email-state" role="status">Loading message…</div>:sentDetailError?<p className="admin-sent-email-error" role="alert">{sentDetailError}</p>:<>
               <div className="admin-sent-email-meta">
-                {([['From',selectedSentEmail.from],['Subject',selectedSentEmail.subject],['To',selectedSentEmail.to?.join(', ')],['ID',selectedSentEmail.id],['Sent',selectedSentEmail.created_at],['Status',selectedSentEmail.last_event??'Sent']] as const).map(([label,value])=><div key={label}><small style={{display:'block',color:'var(--mail-admin-muted)',fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'.04em'}}>{label}</small><span style={{overflowWrap:'anywhere'}}>{value||'—'}</span></div>)}
+                <div><small>From</small><span>{selectedSentEmail.from||'—'}</span></div>
+                <div><small>To</small><span>{selectedSentEmail.to?.join(', ')||'—'}</span></div>
+                <div><small>Reply to</small><span>{selectedSentEmail.reply_to?.join(', ')||'—'}</span></div>
+                <div className="admin-sent-email-id"><small>Message ID</small><code title={selectedSentEmail.id}>{selectedSentEmail.id||'—'}</code><button type="button" onClick={()=>handleCopy(selectedSentEmail.id)} aria-label="Copy message ID"><Copy size={14}/>{copied?'Copied':'Copy'}</button></div>
               </div>
-              <div style={{display:'flex',gap:6,padding:'14px 0'}}>{(['preview','text','html'] as const).map(mode=><button key={mode} type="button" aria-pressed={sentDetailMode===mode} onClick={()=>setSentDetailMode(mode)} style={{padding:'7px 12px',border:'1px solid var(--mail-admin-border)',borderRadius:7,background:sentDetailMode===mode?'var(--mail-admin-selected)':'var(--mail-admin-soft)',color:'var(--mail-admin-ink)',fontWeight:700,cursor:'pointer',textTransform:'capitalize'}}>{mode}</button>)}</div>
-              {sentDetailMode==='preview'?<iframe title="Sent email preview" sandbox="" srcDoc={selectedSentEmail.html||'<p>No HTML body was saved for this email.</p>'} style={{width:'100%',height:'min(58vh,680px)',border:'1px solid var(--mail-admin-border)',borderRadius:8,background:'#fff'}}/>:<pre className="admin-email-pre" style={{maxHeight:'58vh',overflow:'auto',whiteSpace:'pre-wrap',overflowWrap:'anywhere',padding:16,border:'1px solid var(--mail-admin-border)',borderRadius:8}}>{sentDetailMode==='html'?selectedSentEmail.html||'No HTML body was saved for this email.':selectedSentEmail.text||'No plain-text body was saved for this email.'}</pre>}
+              <div className="admin-sent-email-viewer-toolbar"><div className="admin-sent-email-view-tabs" role="tablist" aria-label="Message format">{(['preview','text','html'] as const).map(mode=><button key={mode} type="button" role="tab" aria-selected={sentDetailMode===mode} onClick={()=>setSentDetailMode(mode)}>{mode==='text'?'Plain text':mode==='html'?'HTML':'Preview'}</button>)}</div><span>{sentDetailMode==='preview'?'Rendered message':sentDetailMode==='text'?'Plain-text version':'HTML source'}</span></div>
+              {sentDetailMode==='preview'?<iframe className="admin-sent-email-frame" title="Sent email preview" sandbox="" srcDoc={selectedSentEmail.html||'<p>No HTML body was saved for this email.</p>'}/>:<pre className="admin-email-pre admin-sent-email-source">{sentDetailMode==='html'?selectedSentEmail.html||'No HTML body was saved for this email.':selectedSentEmail.text||'No plain-text body was saved for this email.'}</pre>}
             </>}
-          </div>:<div>
+          </div>:<div className="admin-sent-email-inbox">
             <div className="admin-sent-email-toolbar">
               <label className="admin-sent-email-search"><Search size={15}/><input value={sentQuery} onChange={event=>setSentQuery(event.target.value)} placeholder="Search recipient or subject" aria-label="Search sent emails"/></label>
               <label className="admin-sent-email-filter"><span>Status</span><select value={sentStatus} onChange={event=>setSentStatus(event.target.value)} aria-label="Filter sent emails by status"><option value="all">All</option><option value="delivered">Delivered</option><option value="sent">Sent</option><option value="opened">Opened</option><option value="failed">Needs attention</option></select></label>
               <button type="button" onClick={()=>void loadSentEmails()} disabled={sentLoading} aria-label="Refresh sent emails" title="Refresh" className="admin-sent-email-refresh"><Refresh size={15}/>Refresh</button>
             </div>
-            <div className="admin-sent-email-count">{visibleSentEmails.length} {visibleSentEmails.length===1?'email':'emails'}{sentQuery||sentStatus!=='all'?' match your filters':''}</div>
-            {sentError?<p role="alert">{sentError}</p>:sentEmails.length===0&&!sentLoading?<p style={{color:'var(--mail-admin-muted)'}}>No sent emails found.</p>:null}
-            {sentEmails.length>0&&visibleSentEmails.length===0&&!sentLoading&&<p className="admin-sent-email-no-results">No sent emails match these filters.</p>}
-            <div>{visibleSentEmails.map(email=><button className="admin-sent-email-row" key={email.id} type="button" onClick={()=>void openSentEmail(email)}><span className="admin-sent-email-recipient"><strong>{email.to?.join(', ')||'Unknown recipient'}</strong><span>{email.subject}</span></span><small className="admin-sent-email-date">{email.created_at?new Intl.DateTimeFormat('en',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Jakarta'}).format(new Date(email.created_at))+' WIB':''}</small><span className={`admin-email-category is-status-${(email.last_event||'sent').toLowerCase().replaceAll('_','-')}`}>{(email.last_event||'sent').replaceAll('_',' ')}</span></button>)}</div>
-            {sentLoading&&<p style={{padding:'12px 16px',color:'var(--mail-admin-muted)'}}>Loading emails…</p>}
-            {sentHasMore&&sentCursor&&<button type="button" onClick={()=>void loadSentEmails(sentCursor,true)} disabled={sentLoading} style={{marginTop:12,padding:'8px 12px',border:'1px solid var(--mail-admin-border)',borderRadius:7,background:'var(--mail-admin-soft)',color:'var(--mail-admin-ink)',fontWeight:700,cursor:'pointer'}}>Load more</button>}
+            <div className="admin-sent-email-list-head"><strong>{visibleSentEmails.length} {visibleSentEmails.length===1?'email':'emails'}</strong><span>{sentQuery||sentStatus!=='all'?'Filtered results':'Newest first'}</span></div>
+            {sentError?<p className="admin-sent-email-error" role="alert">{sentError}</p>:null}
+            {sentLoading&&sentEmails.length===0?<div className="admin-sent-email-state" role="status">Loading sent emails…</div>:null}
+            {!sentError&&sentEmails.length===0&&!sentLoading?<div className="admin-sent-email-state"><EnvelopeSimple size={22}/><strong>No sent emails yet</strong><span>Messages will appear here after they are sent.</span></div>:null}
+            {sentEmails.length>0&&visibleSentEmails.length===0&&!sentLoading&&<div className="admin-sent-email-state"><strong>No matching emails</strong><span>Change the search or status filter.</span></div>}
+            {visibleSentEmails.length>0&&<div className="admin-sent-email-list">{visibleSentEmails.map(email=><button className="admin-sent-email-row" key={email.id} type="button" onClick={()=>void openSentEmail(email)}><span className="admin-sent-email-row-icon"><EnvelopeSimple size={17}/></span><span className="admin-sent-email-recipient"><strong>{email.to?.join(', ')||'Unknown recipient'}</strong><span>{email.subject}</span><small>From {email.from||'unknown sender'}</small></span><time className="admin-sent-email-date" dateTime={email.created_at}>{sentEmailTime(email.created_at)}</time><span className={`admin-email-category is-status-${(email.last_event||'sent').toLowerCase().replaceAll('_','-')}`}>{sentEmailStatus(email.last_event)}</span></button>)}</div>}
+            {sentLoading&&sentEmails.length>0&&<p className="admin-sent-email-loading-more" role="status">Loading more emails…</p>}
+            {sentHasMore&&sentCursor&&<div className="admin-sent-email-pagination"><button type="button" onClick={()=>void loadSentEmails(sentCursor,true)} disabled={sentLoading} className="admin-sent-email-load-more">{sentLoading?'Loading…':'Load more emails'}</button></div>}
           </div>}
         </DialogContent>
       </Dialog>
