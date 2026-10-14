@@ -34,7 +34,7 @@ export function cardPrintingImageUrl(printing:{assetPath?:string|null;imageUrl?:
   return undefined;
 }
 
-export function cardImageUrl(card:Omit<Partial<Card>,'imageUrl'>&{imageUrl?:string|null}){return cardPrintingImageUrl(card)}
+export function cardImageUrl(card:Omit<Partial<Card>,'imageUrl'|'assetPath'>&{imageUrl?:string|null;assetPath?:string|null}){return cardPrintingImageUrl(card)}
 
 export function CardArt({card,small=false,priority=false,imageWidth}:{card:Card;small?:boolean;priority?:boolean;imageWidth?:160|220|280|360}) {
   const preview=isPreviewCard(card.code,card.setCode,card.variant);

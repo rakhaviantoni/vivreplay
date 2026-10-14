@@ -3869,3 +3869,9 @@ html[data-theme='dark'] .market-listing-status.is-buying{color:#e6b65e!important
 html[data-theme='dark'] .market-listing-view-as-toggle{border-color:#354753;background:#12212a}
 html[data-theme='dark'] .market-listing-view-as-toggle button[aria-pressed="true"]{background:#1b3440;color:#edf5f0}
 @media(max-width:640px){.market-wanted-shipping-body{padding:12px 14px 18px}.market-wanted-shipping-dialog{border-radius:16px 16px 0 0!important}}
+
+/* Toggle controls share the same quiet hover, press, and selection motion. */
+:where(button[aria-pressed],button[role='tab'],[role='switch'],[data-slot='switch']){transition:background-color .16s ease,border-color .16s ease,color .16s ease,box-shadow .16s ease,transform .16s cubic-bezier(.2,.75,.25,1)}
+:where(button[aria-pressed],button[role='tab'],[role='switch'],[data-slot='switch']):not(:disabled):hover{transform:translateY(-1px)}
+:where(button[aria-pressed],button[role='tab'],[role='switch'],[data-slot='switch']):not(:disabled):active{transform:scale(.98)}
+@media(prefers-reduced-motion:reduce){:where(button[aria-pressed],button[role='tab'],[role='switch'],[data-slot='switch']){transition:none!important}:where(button[aria-pressed],button[role='tab'],[role='switch'],[data-slot='switch']):hover,:where(button[aria-pressed],button[role='tab'],[role='switch'],[data-slot='switch']):active{transform:none!important}}
