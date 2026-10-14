@@ -52,6 +52,40 @@ async function requestSignature(bodyText:string,va:string,apiKey:string){
   return hmac(`POST:${va}:${digest}:${apiKey}`,apiKey);
 }
 
+type PaymentMethodCode='va'|'cstore'|'qris'|'cc'|'paylater'|'ewallet';
+export type IpaymuPaymentChannel={method:PaymentMethodCode;channel:string;name:string;logo:string;fee:number;feeType:'FLAT'|'PERCENT';additionalFee:number};
+let paymentChannelsCache:{expiresAt:number;channels:IpaymuPaymentChannel[]}|null=null;
+
+export async function getIpaymuPaymentChannels():Promise<IpaymuPaymentChannel[]>{
+  if(paymentChannelsCache&&paymentChannelsCache.expiresAt>Date.now())return paymentChannelsCache.channels;
+  const {va,apiKey,baseUrl}=configuration();
+  const timestampValue=new Date();
+  const timestamp=`${timestampValue.getUTCFullYear()}${String(timestampValue.getUTCMonth()+1).padStart(2,'0')}${String(timestampValue.getUTCDate()).padStart(2,'0')}${String(timestampValue.getUTCHours()).padStart(2,'0')}${String(timestampValue.getUTCMinutes()).padStart(2,'0')}${String(timestampValue.getUTCSeconds()).padStart(2,'0')}`;
+  const emptyDigest=hex(await crypto.subtle.digest('SHA-256',new Uint8Array()));
+  const signature=await hmac(`GET:${va}:${emptyDigest}:${apiKey}`,apiKey);
+  const response=await fetch(`${baseUrl}/api/v2/payment-channels`,{method:'GET',headers:{'Content-Type':'application/json',va,timestamp,signature},cache:'no-store'});
+  const payload=await response.json().catch(()=>null) as {Status?:number;Data?:Array<{Code?:string;Channels?:Array<{Code?:string;Name?:string;Logo?:string;FeatureStatus?:string;HealthStatus?:string;TransactionFee?:{ActualFee?:number;ActualFeeType?:string;AdditionalFee?:number}}>} >}|null;
+  if(!response.ok||payload?.Status!==200||!Array.isArray(payload.Data))throw new Error('Payment options could not be loaded.');
+  const allowedMethods=new Set<PaymentMethodCode>(['va','cstore','qris','cc','paylater','ewallet']);
+  const channels=payload.Data.flatMap(method=>{
+    const code=String(method.Code??'').toLowerCase() as PaymentMethodCode;
+    if(!allowedMethods.has(code)||!Array.isArray(method.Channels))return [];
+    return method.Channels.flatMap(channel=>{
+      const channelCode=String(channel.Code??'').toLowerCase();
+      const name=String(channel.Name??'').trim();
+      if(!/^[a-z0-9_]{2,24}$/.test(channelCode)||!name||channel.FeatureStatus?.toLowerCase()!=='active'||channel.HealthStatus?.toLowerCase()!=='online')return [];
+      let logo='';
+      try{const parsed=new URL(String(channel.Logo??''));if(parsed.protocol==='https:'&&(parsed.hostname==='storage.googleapis.com'||parsed.hostname==='ipaymu.com'||parsed.hostname.endsWith('.ipaymu.com')))logo=parsed.toString()}catch{}
+      const fee=Number(channel.TransactionFee?.ActualFee??0);
+      const additionalFee=Number(channel.TransactionFee?.AdditionalFee??0);
+      const feeType:'FLAT'|'PERCENT'=String(channel.TransactionFee?.ActualFeeType??'FLAT').toUpperCase()==='PERCENT'?'PERCENT':'FLAT';
+      return [{method:code,channel:channelCode,name,logo,fee:Number.isFinite(fee)&&fee>=0?fee:0,feeType,additionalFee:Number.isFinite(additionalFee)&&additionalFee>=0?additionalFee:0}];
+    });
+  });
+  paymentChannelsCache={channels,expiresAt:Date.now()+5*60*1000};
+  return channels;
+}
+
 export async function createIpaymuRedirect(input:{orderId:string;products:IpaymuProduct[];buyer:{name:string;email:string;phone:string};returnUrl:string;cancelUrl:string;notifyUrl:string}){
   const {va,apiKey,baseUrl}=configuration();
   if(!input.products.length||input.products.length>50)throw new Error('This checkout has an invalid product list.');
@@ -84,11 +118,10 @@ export async function createIpaymuRedirect(input:{orderId:string;products:Ipaymu
   return {sessionId,url:parsed.toString()};
 }
 
-export async function createIpaymuQris(input:{orderId:string;amount:number;buyer:{name:string;email:string;phone:string};returnUrl:string;notifyUrl:string}){
+export async function createIpaymuDirectPayment(input:{orderId:string;amount:number;buyer:{name:string;email:string;phone:string};returnUrl:string;notifyUrl:string;method:PaymentMethodCode;channel:string}){
   const {va,apiKey,baseUrl}=configuration();
   if(!Number.isSafeInteger(input.amount)||input.amount<1)throw new Error('This checkout has an invalid amount.');
-  // The transaction stays payable until iPaymu's Expired time. The QR image
-  // may need refreshing sooner, but that does not end or recreate the payment.
+  if(!/^[a-z0-9_]{2,24}$/.test(input.channel))throw new Error('This payment option is unavailable.');
   const paymentCreatedAt=new Date().toISOString();
   const body={
     name:input.buyer.name.slice(0,100),
@@ -97,31 +130,46 @@ export async function createIpaymuQris(input:{orderId:string;amount:number;buyer
     amount:input.amount,
     notifyUrl:input.notifyUrl,
     referenceId:input.orderId,
-    paymentMethod:'qris',
-    paymentChannel:'mpm',
-    feeDirection:'MERCHANT',
+    paymentMethod:input.method,
+    paymentChannel:input.channel,
+    feeDirection:input.method==='qris'?'MERCHANT':'BUYER',
+    ...(input.method==='va'&&input.channel==='bri'?{expired:2}:input.method==='va'&&input.channel==='bsi'?{expired:3}:input.method==='va'&&input.channel!=='bca'?{expired:24}:{}),
     successUrl:input.returnUrl,
+    cancelUrl:input.returnUrl,
     comments:`VivrePlay Market order ${input.orderId}`.slice(0,255),
   };
   const bodyText=JSON.stringify(body);
   const now=new Date();
   const timestamp=`${now.getUTCFullYear()}${String(now.getUTCMonth()+1).padStart(2,'0')}${String(now.getUTCDate()).padStart(2,'0')}${String(now.getUTCHours()).padStart(2,'0')}${String(now.getUTCMinutes()).padStart(2,'0')}${String(now.getUTCSeconds()).padStart(2,'0')}`;
   const response=await fetch(`${baseUrl}/api/v2/payment/direct`,{method:'POST',headers:{'Content-Type':'application/json',va,timestamp,signature:await requestSignature(bodyText,va,apiKey)},body:bodyText,cache:'no-store'});
-  const payload=await response.json().catch(()=>null) as {Status?:number;Message?:string;Data?:{SessionId?:string|number;TransactionId?:string|number;QrImage?:string;QrString?:string;Total?:number|string;Fee?:number|string;Expired?:string}}|null;
+  const payload=await response.json().catch(()=>null) as {Status?:number;Message?:string;Data?:{SessionId?:string|number;TransactionId?:string|number;QrImage?:string;QrString?:string;Url?:string;PaymentNo?:string|number;PaymentName?:string;PaymentInstructionsDoc?:string;Total?:number|string;Fee?:number|string;Expired?:string}}|null;
   const data=payload?.Data;
   const transactionId=data?.TransactionId;
   const sessionId=data?.SessionId;
   const qrImage=data?.QrImage;
-  if(!response.ok||payload?.Status!==200||transactionId===undefined||sessionId===undefined||!qrImage)throw new Error('QRIS could not be started. Check that QRIS is enabled for this iPaymu account, then try again.');
+  const paymentNo=data?.PaymentNo===undefined?null:String(data.PaymentNo);
+  const url=typeof data?.Url==='string'?data.Url:null;
+  if(!response.ok||payload?.Status!==200||!data||transactionId===undefined||sessionId===undefined)throw new Error('This payment option could not be started. Check that it is enabled for your iPaymu account, then try again.');
   const providerTotal=Number(data.Total);
-  if(Number.isFinite(providerTotal)&&providerTotal>0&&Math.round(providerTotal)!==input.amount)throw new Error('The QRIS amount did not match this order. Please try again.');
-  const parsed=ipaymuQrImageUrl(qrImage,baseUrl.includes('sandbox')?'sandbox':'production');
-  if(!parsed)throw new Error('iPaymu returned an invalid payment address.');
+  if(input.method==='qris'&&(!qrImage||!Number.isFinite(providerTotal)||Math.round(providerTotal)!==input.amount))throw new Error('The QRIS amount did not match this order. Please try again.');
+  const parsedQr=input.method==='qris'&&qrImage?ipaymuQrImageUrl(qrImage,baseUrl.includes('sandbox')?'sandbox':'production'):null;
+  if(input.method==='qris'&&(!qrImage||!parsedQr))throw new Error('iPaymu returned an invalid payment code address.');
+  let checkoutUrl:string|null=null;
+  if(url){try{const parsedUrl=new URL(url);const allowedHosts=baseUrl==='https://sandbox.ipaymu.com'?['sandbox-payment.ipaymu.com','sandbox.ipaymu.com']:['my.ipaymu.com','payment.ipaymu.com'];if(parsedUrl.protocol!=='https:'||!allowedHosts.includes(parsedUrl.hostname))throw new Error();checkoutUrl=parsedUrl.toString()}catch{throw new Error('iPaymu returned an invalid payment address.')}}
+  if(input.method!=='qris'&&!paymentNo&&!checkoutUrl)throw new Error('iPaymu did not return payment instructions. Please choose another payment option.');
+  let instructionsUrl:string|null=null;
+  if(typeof data.PaymentInstructionsDoc==='string'){try{const parsedUrl=new URL(data.PaymentInstructionsDoc);if(parsedUrl.protocol==='https:'&&(parsedUrl.hostname==='storage.googleapis.com'||parsedUrl.hostname==='ipaymu.com'||parsedUrl.hostname.endsWith('.ipaymu.com')))instructionsUrl=parsedUrl.toString()}catch{}}
   const fee=Number(data.Fee);
   const providerExpiry=ipaymuExpiryTimestamp(data.Expired,paymentCreatedAt);
   const createdTimestamp=Date.parse(paymentCreatedAt);
   const expiresAt=providerExpiry!==null&&providerExpiry>createdTimestamp?providerExpiry:createdTimestamp+24*60*60*1000;
-  return {sessionId:String(sessionId),transactionId:String(transactionId),qrImage:parsed,qrString:typeof data.QrString==='string'?data.QrString:null,fee:Number.isFinite(fee)&&fee>=0?Math.round(fee):null,total:Number.isFinite(providerTotal)&&providerTotal>0?Math.round(providerTotal):input.amount,paymentCreatedAt,expiresAt:new Date(expiresAt).toISOString()};
+  return {sessionId:String(sessionId),transactionId:String(transactionId),paymentMethod:input.method,paymentChannel:input.channel,qrImage:parsedQr,qrString:typeof data.QrString==='string'?data.QrString:null,checkoutUrl,paymentNo,paymentName:typeof data.PaymentName==='string'?data.PaymentName:null,instructionsUrl,fee:Number.isFinite(fee)&&fee>=0?Math.round(fee):null,total:Number.isFinite(providerTotal)&&providerTotal>=input.amount?Math.round(providerTotal):input.amount,paymentCreatedAt,expiresAt:new Date(expiresAt).toISOString()};
+}
+
+export async function createIpaymuQris(input:{orderId:string;amount:number;buyer:{name:string;email:string;phone:string};returnUrl:string;notifyUrl:string}){
+  const payment=await createIpaymuDirectPayment({...input,method:'qris',channel:'mpm'});
+  if(!payment.qrImage)throw new Error('QRIS could not be started. Check that QRIS is enabled for this iPaymu account, then try again.');
+  return payment;
 }
 
 type CallbackValue=string|number|boolean|null|unknown[];

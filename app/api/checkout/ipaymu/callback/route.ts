@@ -19,7 +19,8 @@ export async function POST(request:Request){
     if(!validPaymentIds.includes(sessionId)&&!validPaymentIds.includes(transactionId))return Response.json({error:'Payment session does not match this order.'},{status:409});
     if(callbackIsSuccessful(payload)){
       const paidAmount=callbackAmount(payload);
-      if(paidAmount!==null&&paidAmount!==order.amount)return Response.json({error:'Payment amount does not match this order.'},{status:409});
+      const expectedAmounts=[order.amount,Number(details.ipaymuPaymentTotal)].filter((value,index,array)=>Number.isSafeInteger(value)&&value>0&&array.indexOf(value)===index);
+      if(paidAmount!==null&&!expectedAmounts.includes(paidAmount))return Response.json({error:'Payment amount does not match this order.'},{status:409});
       if(paidAmount===null)return Response.json({error:'Payment amount was missing.'},{status:400});
       if(order.status==='EXPIRED'){
         await database.prepare("UPDATE checkout_orders SET status='PAYMENT_REVIEW',updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='EXPIRED' AND payment_id=?").bind(orderId,order.paymentId).run();

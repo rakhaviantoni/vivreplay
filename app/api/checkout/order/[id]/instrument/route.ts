@@ -1,6 +1,6 @@
 import {db,errorResponse,user,HttpError} from '@/lib/server/store';
 import {getCurrentUser} from '@/lib/server/auth';
-import {createIpaymuQris,hasIpaymuPaymentConfig,hasMarketIpaymuPaymentConfig,ipaymuExpiryTimestamp,ipaymuQrImageUrl} from '@/lib/server/ipaymu';
+import {createIpaymuDirectPayment,hasIpaymuPaymentConfig,hasMarketIpaymuPaymentConfig,ipaymuExpiryTimestamp,ipaymuQrImageUrl} from '@/lib/server/ipaymu';
 import {sendMarketEmail} from '@/lib/server/market-notifications';
 
 type Order={id:string;kind:string;buyerId:string;sellerId:string|null;listingId:string|null;items:string;details:string;subtotal:number;amount:number;shippingFee:number;title:string|null;paymentId:string|null;status:string;expiresAt:string|null;updatedAt:string|null};
@@ -19,7 +19,7 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     if(order.status!=='PENDING_PAYMENT')throw new HttpError(409,'This checkout is no longer payable.');
     let details:Record<string,unknown>={};
     try{details=JSON.parse(order.details) as Record<string,unknown>}catch{}
-    const existingPaymentExpiry=details.ipaymuPaymentMethod==='qris'?ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt,details.ipaymuPaymentCreatedAt,order.updatedAt):null;
+    const existingPaymentExpiry=order.paymentId&&details.ipaymuPaymentMethod?ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt,details.ipaymuPaymentCreatedAt,order.updatedAt):null;
     const effectiveExpiry=existingPaymentExpiry!==null?new Date(existingPaymentExpiry).toISOString():order.expiresAt;
     if(effectiveExpiry&&new Date(`${effectiveExpiry.replace(' ','T')}Z`).getTime()<=Date.now()){
       const expirySql=existingPaymentExpiry!==null?new Date(existingPaymentExpiry).toISOString().slice(0,19).replace('T',' '):effectiveExpiry;
@@ -37,7 +37,7 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
       if(!existingQrUrl)throw new HttpError(502,'Could not load the payment code. Please try again.');
       return Response.json({paymentMethod:'qris',qrImage:`/api/checkout/order/${encodeURIComponent(order.id)}/qris`,qrString:details.ipaymuPaymentQrString??null,paymentFee:details.ipaymuPaymentFee??null,expiresAt:new Date(existingPaymentExpiry).toISOString(),reused:true});
     }
-    if(order.paymentId&&existingUrl&&details.ipaymuPaymentMethod!=='qris')return Response.json({checkoutUrl:existingUrl,paymentMethod:details.ipaymuPaymentMethod??'hosted',expiresAt:null,reused:true});
+    if(order.paymentId&&details.ipaymuPaymentMethod&&details.ipaymuPaymentMethod!=='qris')return Response.json({checkoutUrl:existingUrl,paymentMethod:details.ipaymuPaymentMethod,paymentChannel:details.ipaymuPaymentChannel??null,paymentNo:details.ipaymuPaymentNo??null,paymentName:details.ipaymuPaymentName??null,instructionsUrl:details.ipaymuPaymentInstructionsUrl??null,paymentFee:details.ipaymuPaymentFee??null,paymentTotal:details.ipaymuPaymentTotal??order.amount,expiresAt:details.ipaymuPaymentExpiresAt??order.expiresAt,reused:true});
 
     const baseUrl=process.env.VIVREPLAY_PUBLIC_URL?.trim().replace(/\/$/,'')||'https://vivreplay.com';
     const callbackOrigin=new URL(request.url).origin;
@@ -77,19 +77,28 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     const paymentClaim=`CREATING:${crypto.randomUUID()}`;
     const claimed=await database.prepare("UPDATE checkout_orders SET payment_id=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id IS NULL").bind(paymentClaim,id).run();
     if(!claimed.meta.changes)throw new HttpError(409,'This order is already being paid or has changed. Refresh to check its status.');
-    let payment: {url?:string;sessionId?:string;transactionId?:string;qrImage?:string;qrString?:string|null;fee?:number|null;paymentCreatedAt?:string;expiresAt?:string|null};
+    let payment: {checkoutUrl:string|null;sessionId:string;transactionId:string;paymentMethod:string;paymentChannel:string;paymentNo:string|null;paymentName:string|null;instructionsUrl:string|null;qrImage:string|null;qrString:string|null;fee:number|null;total:number;paymentCreatedAt:string;expiresAt:string};
     try{
-      payment=await createIpaymuQris({orderId:order.id,amount:order.amount,buyer:{name,email:account.email,phone},returnUrl:`${origin}/checkout/order/${encodeURIComponent(order.id)}`,notifyUrl});
+      const method=typeof details.ipaymuSelectedMethod==='string'?details.ipaymuSelectedMethod:'qris';
+      const channel=typeof details.ipaymuSelectedChannel==='string'?details.ipaymuSelectedChannel:'mpm';
+      if(!['va','cstore','qris','cc','paylater','ewallet'].includes(method)||!(/^[a-z0-9_]{2,24}$/.test(channel)))throw new HttpError(400,'Choose a valid payment method.');
+      payment=await createIpaymuDirectPayment({orderId:order.id,amount:order.amount,buyer:{name,email:account.email,phone},returnUrl:`${origin}/checkout/order/${encodeURIComponent(order.id)}`,notifyUrl,method:method as 'va'|'cstore'|'qris'|'cc'|'paylater'|'ewallet',channel});
     }catch(error){
       await database.prepare("UPDATE checkout_orders SET payment_id=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id=?").bind(id,paymentClaim).run();
       throw error;
     }
-    details.ipaymuPaymentMethod='qris';
+    details.ipaymuPaymentMethod=payment.paymentMethod;
+    details.ipaymuPaymentChannel=payment.paymentChannel;
+    details.ipaymuPaymentName=payment.paymentName??details.ipaymuSelectedName??payment.paymentChannel.toUpperCase();
+    details.ipaymuPaymentNo=payment.paymentNo;
+    details.ipaymuPaymentInstructionsUrl=payment.instructionsUrl;
+    details.ipaymuCheckoutUrl=payment.checkoutUrl;
     details.ipaymuPaymentQrImage=payment.qrImage;
     details.ipaymuPaymentQrString=payment.qrString;
     details.ipaymuTransactionId=payment.transactionId;
     details.ipaymuSessionId=payment.sessionId;
     details.ipaymuPaymentFee=payment.fee;
+    details.ipaymuPaymentTotal=payment.paymentMethod==='qris'?order.amount:Math.max(payment.total,order.amount+(payment.fee??0));
     details.ipaymuPaymentCreatedAt=payment.paymentCreatedAt;
     details.ipaymuPaymentExpiresAt=payment.expiresAt;
     details.ipaymuMode=process.env.IPAYMU_MODE==='sandbox'?'sandbox':'production';
@@ -105,9 +114,9 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
         if(!latestQrUrl)throw new HttpError(502,'Could not load the payment code. Please try again.');
         return Response.json({paymentMethod:'qris',qrImage:`/api/checkout/order/${encodeURIComponent(order.id)}/qris`,qrString:latestDetails.ipaymuPaymentQrString??null,paymentFee:latestDetails.ipaymuPaymentFee??null,expiresAt:latestDetails.ipaymuPaymentExpiresAt??null,reused:true});
       }
-      if(latest?.paymentId&&typeof latestDetails.ipaymuCheckoutUrl==='string')return Response.json({checkoutUrl:latestDetails.ipaymuCheckoutUrl,paymentMethod:latestDetails.ipaymuPaymentMethod??'hosted',expiresAt:latestDetails.ipaymuPaymentExpiresAt??null,reused:true});
+      if(latest?.paymentId&&typeof latestDetails.ipaymuPaymentMethod==='string')return Response.json({checkoutUrl:latestDetails.ipaymuCheckoutUrl??null,paymentMethod:latestDetails.ipaymuPaymentMethod,paymentChannel:latestDetails.ipaymuPaymentChannel??null,paymentNo:latestDetails.ipaymuPaymentNo??null,paymentName:latestDetails.ipaymuPaymentName??null,instructionsUrl:latestDetails.ipaymuPaymentInstructionsUrl??null,paymentFee:latestDetails.ipaymuPaymentFee??null,paymentTotal:latestDetails.ipaymuPaymentTotal??order.amount,expiresAt:latestDetails.ipaymuPaymentExpiresAt??null,reused:true});
       throw new HttpError(409,'This checkout has already been updated. Refresh the page.');
     }
-    return Response.json({paymentMethod:'qris',qrImage:`/api/checkout/order/${encodeURIComponent(order.id)}/qris`,qrString:payment.qrString,paymentFee:payment.fee,expiresAt:payment.expiresAt,reused:false});
+    return Response.json({paymentMethod:payment.paymentMethod,paymentChannel:payment.paymentChannel,qrImage:payment.qrImage?`/api/checkout/order/${encodeURIComponent(order.id)}/qris`:null,qrString:payment.qrString,paymentNo:payment.paymentNo,paymentName:details.ipaymuPaymentName,instructionsUrl:payment.instructionsUrl,checkoutUrl:payment.checkoutUrl,paymentFee:payment.fee,paymentTotal:details.ipaymuPaymentTotal,expiresAt:payment.expiresAt,reused:false});
   }catch(error){return errorResponse(error)}
 }
