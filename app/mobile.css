@@ -2041,7 +2041,8 @@ html:not([data-theme='dark']) .market-feed-page .market-feed-filters label { col
 html:not([data-theme='dark']) .market-feed-page .error-text,
 html:not([data-theme='dark']) .market-feed-page .error-text > span,
 html:not([data-theme='dark']) .market-feed-page .error-text > button { color: #8b2824 !important; }
-html:not([data-theme='dark']) body:has(.market-feed-page) .footer-bottom > p { color: #66645a !important; }
+/* The footer uses a dark surface in both themes, so legal copy stays light. */
+html:not([data-theme='dark']) body:has(.market-feed-page) .footer-bottom > p { color: #d2dbd3 !important; }
 html:not([data-theme='dark']) .pro-calculator-total dd.is-negative { color: #8b2824 !important; }
 
 /* Keep listing place visible, then fit age and seller together on the same line. */
