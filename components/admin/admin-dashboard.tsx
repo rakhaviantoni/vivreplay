@@ -1,20 +1,14 @@
 'use client';
 
-import Link from 'next/link';
 import {useCallback,useEffect,useMemo,useState} from 'react';
 import {
   WarningIcon as AlertTriangle,
   CheckCircleIcon as CheckCircle2,
-  ChartLineUpIcon as ChartLineUp,
   DatabaseIcon as Database,
-  EnvelopeSimpleIcon as EnvelopeSimple,
   ImageBrokenIcon as ImageOff,
   ArrowClockwiseIcon as RefreshCw,
   MagnifyingGlassIcon as Search,
   ShapesIcon as Shapes,
-  SlidersHorizontalIcon as SlidersHorizontal,
-  PulseIcon as Pulse,
-  SignOutIcon as SignOut,
 } from '@phosphor-icons/react';
 import { MarketPolicyManager } from '@/components/admin/market-policy-manager';
 import { MarketplaceManager } from '@/components/admin/marketplace-manager';
@@ -28,8 +22,9 @@ type Health={generatedAt:string;summary:{identities:number;printings:number;sets
 type CoachRequest={id:string;actor_email:string|null;actor_subject:string|null;ip_address:string|null;user_agent:string|null;locale:string;model:string;question:string;leader_code:string|null;deck_size:number;candidate_count:number;response_text:string|null;status:string;error_code:string|null;duration_ms:number;created_at:string};
 const number=new Intl.NumberFormat('en-US');
 
-export function AdminDashboard(){
-  const [section, setSection] = useState<'overview' | 'customers' | 'catalog' | 'policy' | 'marketplace' | 'feedback' | 'traffic' | 'payouts' | 'disputes'>('overview');
+type Section='overview'|'customers'|'catalog'|'policy'|'marketplace'|'feedback'|'traffic'|'payouts'|'disputes';
+export function AdminDashboard({initialSection='overview'}:{initialSection?:Section}){
+  const section=initialSection;
   const [data,setData]=useState<Health|null>(null);
   const [requests,setRequests]=useState<CoachRequest[]>([]);
   const [query,setQuery]=useState('');
@@ -38,8 +33,6 @@ export function AdminDashboard(){
   const [error,setError]=useState('');
 
   const load=useCallback(()=>{
-    setLoading(true);
-    setError('');
     Promise.all([
       fetch('/api/admin/catalog-health',{cache:'no-store'}),
       fetch('/api/admin/ai-coach',{cache:'no-store'})
@@ -77,62 +70,7 @@ export function AdminDashboard(){
           </p>
         </div>
 
-        <nav className="admin-section-nav" aria-label="Admin sections">
-          <button type="button" className="admin-refresh" onClick={()=>setSection('overview')} aria-current={section==='overview'?'page':undefined}>
-            <ChartLineUp size={15}/>Overview
-          </button>
-          <button type="button" className="admin-refresh" onClick={()=>setSection('customers')} aria-current={section==='customers'?'page':undefined}>
-            <Search size={15}/>Customers
-          </button>
-          <button
-            type="button"
-            className="admin-refresh"
-            onClick={() => setSection('catalog')}
-            style={section === 'catalog' ? { background: '#2f493d', color: '#fff9ee', borderColor: '#2f493d' } : undefined}
-          >
-            <Pulse size={15}/>Catalog
-          </button>
-          <button
-            type="button"
-            className="admin-refresh"
-            onClick={() => setSection('feedback')}
-            style={section === 'feedback' ? { background: '#2f493d', color: '#fff9ee', borderColor: '#2f493d' } : undefined}
-          >
-            <AlertTriangle size={15}/>Feedback
-          </button>
-          <button type="button" className="admin-refresh" onClick={()=>setSection('traffic')} style={section==='traffic'?{background:'#2f493d',color:'#fff9ee',borderColor:'#2f493d'}:undefined}>
-            <ChartLineUp size={15}/>Traffic
-          </button>
-          <button type="button" className="admin-refresh" onClick={()=>setSection('payouts')} style={section==='payouts'?{background:'#2f493d',color:'#fff9ee',borderColor:'#2f493d'}:undefined}>Payouts</button>
-          <button type="button" className="admin-refresh" onClick={()=>setSection('disputes')} style={section==='disputes'?{background:'#2f493d',color:'#fff9ee',borderColor:'#2f493d'}:undefined}>Order reports</button>
-          <button
-            type="button"
-            className="admin-refresh"
-            onClick={() => setSection('marketplace')}
-            style={section === 'marketplace' ? { background: '#2f493d', color: '#fff9ee', borderColor: '#2f493d' } : undefined}
-          >
-            <Database size={15}/>Listings & sellers
-          </button>
-          <button
-            type="button"
-            className="admin-refresh"
-            onClick={() => setSection('policy')}
-            style={section === 'policy' ? { background: '#2f493d', color: '#fff9ee', borderColor: '#2f493d' } : undefined}
-          >
-            <SlidersHorizontal size={15}/>Market Policy
-          </button>
-          <Link href="/admin/emails" className="admin-refresh" style={{textDecoration:'none'}}>
-            <EnvelopeSimple size={15}/>Emails
-          </Link>
-          <button type="button" className="admin-refresh" onClick={async()=>{await fetch('/api/admin/session',{method:'DELETE'});window.location.assign('/admin')}}>
-            <SignOut size={15}/>Sign out
-          </button>
-          {section === 'catalog' && (
-            <button type="button" className="admin-refresh" onClick={load} disabled={loading}>
-              <RefreshCw size={15} className={loading?'spin':''}/>Refresh
-            </button>
-          )}
-        </nav>
+        {section==='catalog'&&<button type="button" className="admin-refresh" onClick={()=>{setLoading(true);setError('');load()}} disabled={loading}><RefreshCw size={15} className={loading?'spin':''}/>Refresh</button>}
       </header>
 
       {section === 'overview' ? (

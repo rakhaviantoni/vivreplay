@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import {
   EnvelopeSimpleIcon as EnvelopeSimple,
   DeviceMobileIcon as DeviceMobile,
@@ -17,7 +16,7 @@ import {
   KeyIcon as Key,
   LockKeyOpenIcon as LockKeyOpen,
   SparkleIcon as Sparkle,
-  ArrowLeftIcon as ArrowLeft,
+  MagnifyingGlassIcon as Search,
   ArrowClockwiseIcon as Refresh,
 } from '@phosphor-icons/react';
 import type { AuthEmailAction, RenderedEmail } from '@/lib/auth-email';
@@ -26,7 +25,14 @@ import {Dialog,DialogContent,DialogHeader,DialogTitle} from '@/components/ui/dia
 
 type AdminEmailAction=AuthEmailAction|`market:${MarketEmailEvent}`;
 const authEmailActions:AuthEmailAction[]=['verify','reset','password-changed','welcome'];
-const adminEmailActions:AdminEmailAction[]=[...authEmailActions,...marketEmailEvents.map(event=>`market:${event}` as const)];
+type EmailCategory='account'|'market'|'orders'|'pro';
+const emailCategories:Array<{id:EmailCategory;label:string;actions:AdminEmailAction[]}>= [
+  {id:'account',label:'Account',actions:authEmailActions},
+  {id:'market',label:'Market',actions:marketEmailEvents.filter(event=>!event.startsWith('order-')&&!event.startsWith('pro-')).map<AdminEmailAction>(event=>`market:${event}`)},
+  {id:'orders',label:'Orders & reports',actions:marketEmailEvents.filter(event=>event.startsWith('order-')).map<AdminEmailAction>(event=>`market:${event}`)},
+  {id:'pro',label:'Market Pro',actions:marketEmailEvents.filter(event=>event.startsWith('pro-')).map<AdminEmailAction>(event=>`market:${event}`)},
+];
+function categoryForAction(action:AdminEmailAction):EmailCategory{return action.startsWith('market:')?action.slice(7).startsWith('order-')?'orders':action.slice(7).startsWith('pro-')?'pro':'market':'account'}
 const adminEmailThemeStyles=`
 .admin-emails-page{color:var(--mail-admin-ink)!important}
 .admin-emails-page>header{border-color:var(--mail-admin-border)!important}
@@ -81,6 +87,7 @@ type SentEmail={id:string;to:string[];from:string;subject:string;created_at:stri
 export function AdminEmailsDashboard() {
   const [emails, setEmails] = useState<EmailData[]>([]);
   const [selectedAction, setSelectedAction] = useState<AdminEmailAction>('verify');
+  const [selectedCategory,setSelectedCategory]=useState<EmailCategory>('account');
   const [previewLanguage,setPreviewLanguage]=useState<'en'|'id'>('en');
   const [previewTheme,setPreviewTheme]=useState<'light'|'dark'>('light');
   const [viewport, setViewport] = useState<'desktop' | 'mobile'>('desktop');
@@ -102,6 +109,8 @@ export function AdminEmailsDashboard() {
   const [sentDetailLoading,setSentDetailLoading]=useState(false);
   const [sentDetailError,setSentDetailError]=useState('');
   const [sentDetailMode,setSentDetailMode]=useState<'preview'|'text'|'html'>('preview');
+  const [sentQuery,setSentQuery]=useState('');
+  const [sentStatus,setSentStatus]=useState('all');
 
   useEffect(() => {
     fetch(`/api/admin/emails/preview?locale=${previewLanguage}&theme=${previewTheme}`)
@@ -116,6 +125,14 @@ export function AdminEmailsDashboard() {
   }, [previewLanguage,previewTheme]);
 
   const currentEmail = emails.find((e) => e.action === selectedAction) || emails[0];
+  const categoryActions=emailCategories.find(category=>category.id===selectedCategory)?.actions??[];
+  const visibleSentEmails=sentEmails.filter(email=>{
+    const query=sentQuery.trim().toLowerCase();
+    const matchesQuery=!query||`${email.to?.join(' ')??''} ${email.subject} ${email.from}`.toLowerCase().includes(query);
+    const event=(email.last_event??'sent').toLowerCase();
+    const matchesStatus=sentStatus==='all'||(sentStatus==='delivered'?event==='delivered':sentStatus==='sent'?['sent','queued'].includes(event):sentStatus==='opened'?event==='opened':sentStatus==='failed'?['bounced','complained','failed','delivery_delayed'].includes(event):true);
+    return matchesQuery&&matchesStatus;
+  });
 
   const handleCopy = (content: string) => {
     navigator.clipboard.writeText(content);
@@ -213,7 +230,7 @@ export function AdminEmailsDashboard() {
   };
 
   return (
-    <main className="page admin-emails-page" style={{ maxWidth: 1320, margin: '0 auto', padding: '40px 20px 80px' }}>
+    <main className="page admin-emails-page" style={{ padding: '40px 20px 80px' }}>
       <style>{adminEmailThemeStyles}</style>
       {/* Top Header Navigation */}
       <header
@@ -231,21 +248,6 @@ export function AdminEmailsDashboard() {
       >
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-            <Link
-              href="/admin"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                color: 'var(--mail-admin-muted)',
-                fontSize: 12,
-                fontWeight: 700,
-                textDecoration: 'none',
-              }}
-            >
-              <ArrowLeft size={14} /> Back to Catalog Admin
-            </Link>
-            <span aria-hidden="true" style={{ color: 'var(--mail-admin-muted)' }}>|</span>
             <span
               className="admin-email-verified"
               style={{
@@ -276,10 +278,10 @@ export function AdminEmailsDashboard() {
               letterSpacing: '-0.04em',
             }}
           >
-            Email Views &amp; Delivery
+            Email templates
           </h1>
           <p style={{ margin: 0, color: 'var(--mail-admin-muted)', fontSize: 14, fontFamily: "'Manrope', sans-serif" }}>
-            Preview account and Market emails, compare desktop and mobile layouts, and send test messages.
+            Browse templates, preview them, and send a test email.
           </p>
         </div>
 
@@ -324,9 +326,15 @@ export function AdminEmailsDashboard() {
               {sentDetailMode==='preview'?<iframe title="Sent email preview" sandbox="" srcDoc={selectedSentEmail.html||'<p>No HTML body was saved for this email.</p>'} style={{width:'100%',height:'min(58vh,680px)',border:'1px solid var(--mail-admin-border)',borderRadius:8,background:'#fff'}}/>:<pre className="admin-email-pre" style={{maxHeight:'58vh',overflow:'auto',whiteSpace:'pre-wrap',overflowWrap:'anywhere',padding:16,border:'1px solid var(--mail-admin-border)',borderRadius:8}}>{sentDetailMode==='html'?selectedSentEmail.html||'No HTML body was saved for this email.':selectedSentEmail.text||'No plain-text body was saved for this email.'}</pre>}
             </>}
           </div>:<div>
-            <div style={{display:'flex',justifyContent:'flex-end',marginBottom:8}}><button type="button" onClick={()=>void loadSentEmails()} disabled={sentLoading} aria-label="Refresh sent emails" title="Refresh" style={{display:'inline-flex',alignItems:'center',gap:6,padding:'7px 10px',border:'1px solid var(--mail-admin-border)',borderRadius:7,background:'var(--mail-admin-soft)',color:'var(--mail-admin-ink)',cursor:'pointer'}}><Refresh size={15}/>Refresh</button></div>
+            <div className="admin-sent-email-toolbar">
+              <label className="admin-sent-email-search"><Search size={15}/><input value={sentQuery} onChange={event=>setSentQuery(event.target.value)} placeholder="Search recipient or subject" aria-label="Search sent emails"/></label>
+              <label className="admin-sent-email-filter"><span>Status</span><select value={sentStatus} onChange={event=>setSentStatus(event.target.value)} aria-label="Filter sent emails by status"><option value="all">All</option><option value="delivered">Delivered</option><option value="sent">Sent</option><option value="opened">Opened</option><option value="failed">Needs attention</option></select></label>
+              <button type="button" onClick={()=>void loadSentEmails()} disabled={sentLoading} aria-label="Refresh sent emails" title="Refresh" className="admin-sent-email-refresh"><Refresh size={15}/>Refresh</button>
+            </div>
+            <div className="admin-sent-email-count">{visibleSentEmails.length} {visibleSentEmails.length===1?'email':'emails'}{sentQuery||sentStatus!=='all'?' match your filters':''}</div>
             {sentError?<p role="alert">{sentError}</p>:sentEmails.length===0&&!sentLoading?<p style={{color:'var(--mail-admin-muted)'}}>No sent emails found.</p>:null}
-            <div>{sentEmails.map(email=><button className="admin-sent-email-row" key={email.id} type="button" onClick={()=>void openSentEmail(email)}><strong style={{overflowWrap:'anywhere'}}>{email.to?.join(', ')||'Unknown recipient'}</strong><span style={{overflowWrap:'anywhere'}}>{email.subject}</span><small style={{color:'var(--mail-admin-muted)'}}>{email.created_at?new Date(email.created_at).toLocaleString():''}</small><span className="admin-email-category">{email.last_event||'sent'}</span></button>)}</div>
+            {sentEmails.length>0&&visibleSentEmails.length===0&&!sentLoading&&<p className="admin-sent-email-no-results">No sent emails match these filters.</p>}
+            <div>{visibleSentEmails.map(email=><button className="admin-sent-email-row" key={email.id} type="button" onClick={()=>void openSentEmail(email)}><span className="admin-sent-email-recipient"><strong>{email.to?.join(', ')||'Unknown recipient'}</strong><span>{email.subject}</span></span><small className="admin-sent-email-date">{email.created_at?new Intl.DateTimeFormat('en',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Jakarta'}).format(new Date(email.created_at))+' WIB':''}</small><span className={`admin-email-category is-status-${(email.last_event||'sent').toLowerCase().replaceAll('_','-')}`}>{(email.last_event||'sent').replaceAll('_',' ')}</span></button>)}</div>
             {sentLoading&&<p style={{padding:'12px 16px',color:'var(--mail-admin-muted)'}}>Loading emails…</p>}
             {sentHasMore&&sentCursor&&<button type="button" onClick={()=>void loadSentEmails(sentCursor,true)} disabled={sentLoading} style={{marginTop:12,padding:'8px 12px',border:'1px solid var(--mail-admin-border)',borderRadius:7,background:'var(--mail-admin-soft)',color:'var(--mail-admin-ink)',fontWeight:700,cursor:'pointer'}}>Load more</button>}
           </div>}
@@ -349,38 +357,15 @@ export function AdminEmailsDashboard() {
           marginBottom: 24,
         }}
       >
-        {/* Email Template Switcher */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          {adminEmailActions.map((action) => (
-            <button
-              key={action}
-              type="button"
-              className="admin-email-template-option"
-              aria-pressed={selectedAction===action}
-              onClick={() => setSelectedAction(action)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '8px 14px',
-                borderRadius: 8,
-                border: selectedAction === action ? '1px solid #d8a63b' : '1px solid transparent',
-                background: selectedAction === action ? 'rgba(216, 166, 59, 0.15)' : 'transparent',
-                color: selectedAction === action ? '#f5da92' : '#9cb1c0',
-                fontWeight: selectedAction === action ? 800 : 600,
-                fontSize: 13,
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              {getActionIcon(action)}
-              <span>{getActionLabel(action)}</span>
-            </button>
-          ))}
+        <div className="admin-email-template-controls">
+          <div className="admin-email-category-tabs" role="tablist" aria-label="Email template category">
+            {emailCategories.map(category=><button key={category.id} type="button" role="tab" aria-selected={selectedCategory===category.id} onClick={()=>{setSelectedCategory(category.id);setSelectedAction(category.actions[0])}}>{category.label}<span>{category.actions.length}</span></button>)}
+          </div>
+          <label className="admin-email-template-picker"><span>Template</span><i>{getActionIcon(selectedAction)}</i><select value={selectedAction} onChange={event=>{const action=event.target.value as AdminEmailAction;setSelectedAction(action);setSelectedCategory(categoryForAction(action));setSendResult(null)}}>{categoryActions.map(action=><option key={action} value={action}>{getActionLabel(action)}</option>)}</select></label>
         </div>
 
         {/* Viewport and Code Mode Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div className="admin-email-preview-controls" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div className="admin-email-segment admin-email-control-segment" style={{display:'inline-flex',gap:3,padding:3,border:'1px solid #1c3044',borderRadius:8,background:'#08121d'}} aria-label="Market email language">
             {(['en','id'] as const).map(locale=><button key={locale} type="button" className="admin-email-segment-option" aria-pressed={previewLanguage===locale} onClick={()=>setPreviewLanguage(locale)} style={{padding:'6px 10px',border:0,borderRadius:6,background:previewLanguage===locale?'#1c3349':'transparent',color:previewLanguage===locale?'#f5da92':'#8fa7b7',fontSize:11,fontWeight:700,cursor:'pointer'}}>{locale.toUpperCase()}</button>)}
           </div>
