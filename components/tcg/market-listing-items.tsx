@@ -567,14 +567,13 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
     if(!session){window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));return;}
     if(selectionInCart){window.dispatchEvent(new Event('vivreplay:open-market-cart'));return;}
     const cartKey='vivreplay-market-cart-v1';
-    let cart:{sellerId:string;lines:{listingId:string;listingTitle:string;items:{printingId:string;quantity:number}[]}[]}={sellerId:sellerId??'',lines:[]};
+    let cart:{sellerId:string;lines:{listingId:string;listingTitle:string;sellerId?:string;items:{printingId:string;quantity:number}[]}[]}={sellerId:'',lines:[]};
     try{const saved=JSON.parse(window.localStorage.getItem(cartKey)||'null');if(saved&&Array.isArray(saved.lines))cart=saved;}catch{}
-    if(cart.sellerId&&sellerId&&cart.sellerId!==sellerId){const replace=window.confirm(t('Checkout is limited to one seller at a time. Switching sellers will clear your current cart. Continue?','Checkout hanya bisa untuk satu penjual. Mengganti penjual akan menghapus isi keranjang saat ini. Lanjutkan?'));if(!replace)return;cart={sellerId,lines:[]};}
-    cart.sellerId=sellerId??cart.sellerId;
-    if(!cart.lines.some(line=>line.listingId===listingId)&&cart.lines.length>=10){toast.error(t('A cart can hold listings from up to 10 of this seller’s listings.','Keranjang dapat berisi hingga 10 listing dari penjual ini.'));return;}const incoming=items.flatMap(item=>selected[item.id]?[{printingId:item.id,quantity:Math.min(99,selected[item.id])}]:[]);
+    if(!cart.lines.some(line=>line.listingId===listingId)&&cart.lines.length>=10){toast.error(t('Your cart is full. Check out a seller’s items or remove a listing to make room.','Keranjang penuh. Checkout item penjual atau hapus listing untuk menambah item lain.'));return;}
+    const incoming=items.flatMap(item=>selected[item.id]?[{printingId:item.id,quantity:Math.min(99,selected[item.id])}]:[]);
     const current=cart.lines.find(line=>line.listingId===listingId);
-    if(current){for(const item of incoming){const existing=current.items.find(line=>line.printingId===item.printingId);const available=items.find(listingItem=>listingItem.id===item.printingId)?.quantity??item.quantity;if(existing)existing.quantity=Math.min(99,available,Math.max(existing.quantity,item.quantity));else current.items.push({...item,quantity:Math.min(99,available,item.quantity)});}}
-    else cart.lines.push({listingId,listingTitle:listingTitle??t('Card listing','Listing kartu'),items:incoming});
+    if(current){current.sellerId=sellerId??current.sellerId;for(const item of incoming){const existing=current.items.find(line=>line.printingId===item.printingId);const available=items.find(listingItem=>listingItem.id===item.printingId)?.quantity??item.quantity;if(existing)existing.quantity=Math.min(99,available,Math.max(existing.quantity,item.quantity));else current.items.push({...item,quantity:Math.min(99,available,item.quantity)});}}
+    else cart.lines.push({listingId,listingTitle:listingTitle??t('Card listing','Listing kartu'),sellerId:sellerId??undefined,items:incoming});
     window.localStorage.setItem(cartKey,JSON.stringify(cart));window.dispatchEvent(new Event('vivreplay:market-cart-updated'));
     toast.success(current?t('Cart updated','Keranjang diperbarui'):t('Added to cart','Ditambahkan ke keranjang'),{action:{label:t('View cart','Lihat keranjang'),onClick:()=>window.dispatchEvent(new Event('vivreplay:open-market-cart'))}});
   };

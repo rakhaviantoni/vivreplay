@@ -71,6 +71,7 @@ function addFeedListingToCart(listing:Listing,printingId:string,locale:'EN'|'ID'
   const cartKey='vivreplay-market-cart-v1';
   let cart:{sellerId:string;lines:{listingId:string;listingTitle:string;sellerId?:string;items:{printingId:string;quantity:number}[]}[]}={sellerId:'',lines:[]};
   try{const saved=JSON.parse(window.localStorage.getItem(cartKey)||'null');if(saved&&Array.isArray(saved.lines))cart=saved;}catch{}
+  cart.lines=cart.lines.map(line=>({...line,sellerId:(line.sellerId??cart.sellerId)||undefined}));
   if(cart.lines.some(line=>line.listingId===listing.id&&line.items.some(item=>item.printingId===printingId)))return false;
   // Keep listings from every seller in the cart; checkout chooses one seller at a time.
   cart.sellerId='';
