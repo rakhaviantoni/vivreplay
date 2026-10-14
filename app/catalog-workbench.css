@@ -1082,6 +1082,23 @@ html[data-theme=dark] .admin-workspace-collapse,html[data-theme=dark] .admin-wor
 .admin-email-preview-controls{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:7px!important;max-width:100%}
 .admin-email-preview-controls .admin-email-control-segment,.admin-email-preview-controls .admin-email-mode-segment,.admin-email-preview-controls .admin-email-viewport-segment{flex:none}
 .admin-email-category-tabs button:hover,.admin-email-template-picker select:hover{border-color:color-mix(in srgb,var(--mail-admin-accent) 45%,var(--mail-admin-border))}
+.admin-email-history-card{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:0 0 24px;padding:14px 16px;border:1px solid var(--mail-admin-border);border-radius:10px;background:var(--mail-admin-panel);color:var(--mail-admin-ink)}
+.admin-email-history-card>div{display:grid;gap:3px}
+.admin-email-history-card>div strong{font:750 13px/1.3 var(--game-font)}
+.admin-email-history-card>div span{color:var(--mail-admin-muted);font:500 11px/1.45 var(--game-font)}
+.admin-email-history-trigger{display:inline-flex;min-height:38px;align-items:center;gap:8px;padding:0 11px;border:1px solid var(--mail-admin-border);border-radius:7px;background:var(--mail-admin-soft);color:var(--mail-admin-ink);font:700 11px var(--game-font);cursor:pointer;transition:background-color .15s ease,border-color .15s ease,transform .15s ease}
+.admin-email-history-trigger:hover{border-color:var(--mail-admin-accent);background:var(--mail-admin-selected);transform:translateY(-1px)}
+.admin-email-history-trigger svg{color:var(--mail-admin-accent)}
+.admin-email-history-arrow{margin-left:4px;color:var(--mail-admin-muted);font-size:15px;transition:transform .15s ease}
+.admin-email-history-trigger:hover .admin-email-history-arrow{transform:translateX(2px)}
+.admin-email-theme-toggle{display:grid;width:34px;height:34px;flex:none;place-items:center;border:1px solid #1c3044;border-radius:7px;background:#08121d;color:#e3c779;cursor:pointer;transition:background-color .15s ease,border-color .15s ease}
+.admin-email-theme-toggle:hover{border-color:#d8a63b;background:#14263a}
+.admin-email-theme-toggle:focus-visible,.admin-sent-email-theme-toggle:focus-visible{outline:2px solid var(--mail-admin-accent,#d8a63b);outline-offset:2px}
+.admin-sent-email-theme-toggle{display:grid;width:32px;height:32px;flex:none;place-items:center;border:1px solid var(--mail-admin-border);border-radius:7px;background:var(--mail-admin-soft);color:var(--mail-admin-ink);cursor:pointer;transition:background-color .15s ease,border-color .15s ease}
+.admin-sent-email-theme-toggle:hover{border-color:var(--mail-admin-accent);background:var(--mail-admin-selected)}
+.admin-sent-email-theme-toggle[aria-pressed=true]{color:var(--mail-admin-accent-ink)}
+.admin-sent-email-viewer-left{display:flex;min-width:0;align-items:center;gap:12px}
+.admin-sent-email-viewer-left>span{color:var(--mail-admin-muted);font:600 10px var(--game-font)}
 
 /* Sent email inbox */
 .admin-sent-email-toolbar{display:flex;align-items:center;gap:8px;margin:0 0 7px}
@@ -1120,14 +1137,16 @@ html[data-theme=dark] .admin-workspace-collapse,html[data-theme=dark] .admin-wor
 .admin-sent-email-list-head{display:flex;flex:none;align-items:center;justify-content:space-between;gap:10px;margin:0;padding:8px 3px;border-bottom:1px solid var(--mail-admin-border);color:var(--mail-admin-muted);font:600 10px var(--game-font)}
 .admin-sent-email-list-head strong{color:var(--mail-admin-ink);font-weight:800}
 .admin-sent-email-list{min-height:0;flex:1;overflow-y:auto;overscroll-behavior:contain}
-.admin-emails-page .admin-sent-email-dialog .admin-sent-email-row,.admin-sent-email-dialog .admin-sent-email-row{grid-template-columns:36px minmax(0,1fr) auto auto!important;gap:12px!important;min-height:68px;padding:11px 7px!important;border-bottom:1px solid var(--mail-admin-border)!important;transition:background-color .14s ease!important}
+.admin-emails-page .admin-sent-email-dialog .admin-sent-email-row,.admin-sent-email-dialog .admin-sent-email-row{display:grid!important;width:100%;grid-template-columns:36px minmax(0,1fr) auto!important;align-items:center;gap:12px!important;min-height:66px;padding:10px 8px!important;border:0!important;border-bottom:1px solid var(--mail-admin-border)!important;border-radius:0!important;background:transparent!important;color:var(--mail-admin-ink)!important;text-align:left!important;cursor:pointer;transition:background-color .14s ease!important}
 .admin-sent-email-dialog .admin-sent-email-row:hover{background:var(--mail-admin-soft)!important}
+.admin-sent-email-dialog .admin-sent-email-row:focus-visible{outline:2px solid var(--mail-admin-accent)!important;outline-offset:-2px}
 .admin-sent-email-row-icon{display:grid;width:34px;height:34px;place-items:center;border:1px solid var(--mail-admin-border);border-radius:8px;background:var(--mail-admin-soft);color:var(--mail-admin-muted)}
-.admin-sent-email-recipient{gap:3px!important}
-.admin-sent-email-recipient strong{font-size:11px!important}
-.admin-sent-email-recipient>span{color:var(--mail-admin-ink)!important;font-size:12px!important;font-weight:700}
-.admin-sent-email-recipient small{overflow:hidden;color:var(--mail-admin-muted);font:500 10px/1.35 var(--game-font);text-overflow:ellipsis;white-space:nowrap}
-.admin-sent-email-date{color:var(--mail-admin-muted)!important;font:600 10px var(--game-font)!important}
+.admin-sent-email-row-copy{display:grid;min-width:0;gap:3px}
+.admin-sent-email-row-copy strong,.admin-sent-email-row-copy>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.admin-sent-email-row-copy strong{color:var(--mail-admin-ink);font:750 11px/1.35 var(--game-font)}
+.admin-sent-email-row-copy>span{color:var(--mail-admin-muted);font:500 10px/1.35 var(--game-font)}
+.admin-sent-email-row-meta{display:grid;justify-items:end;gap:5px}
+.admin-sent-email-date{color:var(--mail-admin-muted)!important;font:600 9px/1.2 var(--game-font)!important;white-space:nowrap}
 .admin-sent-email-pagination{display:flex;flex:none;justify-content:center;padding:12px 0 16px;border-top:1px solid var(--mail-admin-border)}
 .admin-sent-email-load-more{min-height:34px;padding:0 12px;border:1px solid var(--mail-admin-border);border-radius:6px;background:var(--mail-admin-soft);color:var(--mail-admin-ink);font:700 10px var(--game-font);cursor:pointer}
 .admin-sent-email-load-more:disabled,.admin-sent-email-refresh:disabled{opacity:.55;cursor:wait}
@@ -1150,6 +1169,7 @@ html[data-theme=dark] .admin-workspace-collapse,html[data-theme=dark] .admin-wor
 .admin-sent-email-view-tabs button{min-height:29px;padding:0 10px;border:0;border-radius:5px;background:transparent;color:var(--mail-admin-muted);font:700 10px var(--game-font);cursor:pointer}
 .admin-sent-email-view-tabs button[aria-selected=true]{background:var(--mail-admin-selected);color:var(--mail-admin-accent-ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
 .admin-sent-email-frame{display:block;width:calc(100% - 52px);height:min(48vh,500px);min-height:250px;flex:1;margin:0 26px 22px;border:1px solid var(--mail-admin-border);border-radius:8px;background:#fff}
+.admin-sent-email-frame.is-light{background:#f1eee6}.admin-sent-email-frame.is-dark{background:#10171d}
 .admin-sent-email-source{min-height:250px;max-height:min(48vh,500px);flex:1;margin:0 26px 22px!important;padding:14px!important;border:1px solid var(--mail-admin-border)!important;border-radius:8px!important;overflow:auto!important;white-space:pre-wrap!important;overflow-wrap:anywhere!important;font-size:11px!important}
 .admin-sent-email-dialog :is(button,a,input,select):focus-visible{outline:2px solid var(--mail-admin-accent)!important;outline-offset:2px!important}
 @media(max-width:640px){.admin-sent-email-dialog{width:calc(100vw - 16px)!important;max-width:none!important;max-height:calc(100dvh - 16px)!important;border-radius:11px!important}.admin-sent-email-dialog .admin-sent-email-dialog-heading{align-items:flex-start!important;padding:17px 16px 14px!important}.admin-sent-email-dialog .admin-sent-email-dialog-heading h2{font-size:17px!important}.admin-sent-email-dialog .admin-sent-email-title-wrap p{max-width:62vw;font-size:10px!important}.admin-sent-email-heading-actions{flex-direction:column;align-items:flex-end;gap:7px;padding:26px 25px 0 0}.admin-sent-email-back{min-height:29px;padding-inline:7px;font-size:9px}.admin-sent-email-inbox{padding:13px 13px 0}.admin-sent-email-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px}.admin-sent-email-search{grid-column:1/-1;min-height:38px}.admin-sent-email-filter,.admin-sent-email-refresh{min-height:36px}.admin-sent-email-filter select{max-width:unset}.admin-sent-email-dialog .admin-sent-email-row{grid-template-columns:31px minmax(0,1fr) auto!important;gap:8px!important;min-height:66px;padding:9px 3px!important}.admin-sent-email-row-icon{width:29px;height:29px}.admin-sent-email-date{grid-column:2;grid-row:2;justify-self:start}.admin-sent-email-dialog .admin-sent-email-row .admin-email-category{grid-column:3;grid-row:1/3;align-self:center}.admin-sent-email-recipient{grid-column:2!important}.admin-sent-email-recipient>span{max-width:60vw;font-size:11px!important}.admin-sent-email-recipient small{display:none}.admin-sent-email-meta{grid-template-columns:minmax(0,1fr);gap:0;padding:2px 16px 10px}.admin-sent-email-meta>div{padding:7px 0}.admin-sent-email-viewer-toolbar{align-items:flex-start;flex-direction:column;gap:7px;padding:0 16px 10px}.admin-sent-email-frame{width:calc(100% - 32px);height:42vh;min-height:200px;margin:0 16px 16px}.admin-sent-email-source{min-height:200px;max-height:42vh;margin:0 16px 16px!important}.admin-sent-email-pagination{padding-bottom:calc(10px + env(safe-area-inset-bottom))}}
@@ -1239,3 +1259,18 @@ html[data-theme=dark] .admin-customer-close{border-color:#345361;color:#dce8e1}
 .home-hero:before{content:""!important;position:absolute!important;z-index:0;inset:0!important;display:block!important;background:linear-gradient(90deg,#f7f1e5e8 0%,#eee3ccd1 45%,#d9dce49c 100%)!important;opacity:1!important;mix-blend-mode:normal!important;animation:none!important;pointer-events:none}
 html[data-theme=dark] .home-hero{background-image:none!important;background-color:#08131d!important}
 html[data-theme=dark] .home-hero:before{background:linear-gradient(90deg,#08131de0 0%,#10243cbb 50%,#08131d9c 100%)!important}
+
+@media(max-width:640px){
+  .admin-email-history-card{align-items:stretch;gap:10px;padding:12px}
+  .admin-email-history-trigger{justify-content:center}
+  .admin-sent-email-dialog .admin-sent-email-row{grid-template-columns:29px minmax(0,1fr) auto!important;gap:8px!important;min-height:62px;padding:9px 3px!important}
+  .admin-sent-email-row-icon{width:27px;height:27px}
+  .admin-sent-email-row-copy strong{font-size:10px}
+  .admin-sent-email-row-copy>span{font-size:9px}
+  .admin-sent-email-row-meta{gap:5px}
+  .admin-sent-email-dialog .admin-sent-email-row .admin-email-category{grid-column:auto;grid-row:auto;align-self:auto}
+  .admin-sent-email-row-meta .admin-email-category{min-height:20px;padding-inline:6px;font-size:8px}
+  .admin-sent-email-row-meta .admin-sent-email-date{grid-column:auto;grid-row:auto;justify-self:end;font-size:8px!important}
+  .admin-sent-email-dialog .admin-sent-email-viewer-toolbar{align-items:center;flex-direction:row;justify-content:space-between;padding:0 16px 10px}
+  .admin-sent-email-viewer-left{align-items:flex-start;flex-direction:column;gap:5px}
+}

@@ -18,6 +18,8 @@ import {
   SparkleIcon as Sparkle,
   MagnifyingGlassIcon as Search,
   ArrowClockwiseIcon as Refresh,
+  SunIcon as Sun,
+  MoonIcon as Moon,
 } from '@phosphor-icons/react';
 import type { AuthEmailAction, RenderedEmail } from '@/lib/auth-email';
 import {marketEmailEvents,marketEmailLabels,type MarketEmailEvent} from '@/lib/market/email-template-types';
@@ -55,6 +57,7 @@ const adminEmailThemeStyles=`
 .admin-emails-page .admin-email-preview-topbar span{color:var(--mail-admin-ink)!important}
 .admin-emails-page .admin-email-preview-stage{background:var(--mail-admin-canvas)!important}
 .admin-emails-page .admin-email-panel h3,.admin-emails-page .admin-email-panel h3+ p,.admin-emails-page .admin-email-panel label,.admin-emails-page .admin-email-panel span{color:var(--mail-admin-ink)!important}
+.admin-emails-page .admin-email-history-card>div span{color:var(--mail-admin-muted)!important}
 .admin-emails-page .admin-email-panel label{color:var(--mail-admin-muted)!important}
 .admin-emails-page .admin-email-panel input{background:var(--mail-admin-input)!important;border-color:var(--mail-admin-border)!important;color:var(--mail-admin-ink)!important}
 .admin-emails-page .admin-email-panel input::placeholder{color:var(--mail-admin-muted)!important}
@@ -83,6 +86,13 @@ type EmailData = RenderedEmail & {
 type SentEmail={id:string;to:string[];from:string;subject:string;created_at:string;last_event?:string;html?:string|null;text?:string|null;reply_to?:string[]|null;cc?:string[]|null;bcc?:string[]|null;message_id?:string|null};
 const sentEmailTime=(value:string)=>value?`${new Intl.DateTimeFormat('en-ID',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Jakarta'}).format(new Date(value))} WIB`:'';
 const sentEmailStatus=(value?:string)=>{const status=(value||'sent').toLowerCase().replaceAll('_',' ');return status==='delivery delayed'?'delayed':status};
+const sentEmailPreviewTheme=(html:string|undefined,theme:'light'|'dark')=>{
+  const light='.email-bg,body{background:#f1eee6!important;color:#292b27!important}.email-card{background:#fffdf8!important;border-color:#e1dbcf!important;color:#292b27!important}.email-summary,.email-items,.email-summary td,.email-items td{background:#f8f6f0!important;border-color:#e1dbcf!important;color:#292b27!important}.email-title,.email-items-heading,.email-brand-name,.email-brand{color:#272c28!important}.email-lede,.email-copy{color:#625f56!important}.email-muted{color:#777267!important}.email-listing-title{color:#292b27!important}.email-detail{background:#f7f4ec!important;border-color:#e1dbcf!important;color:#45463f!important}.email-header{background:#f5efe2!important;border-bottom-color:#c99b3c!important}.email-footer{background:#f7f4ec!important;border-color:#e7e2d7!important;color:#625f56!important}.email-link{color:#815510!important}.email-button{background:#b8791d!important;color:#fffdf7!important}.email-rule{border-color:#e7e2d7!important}';
+  const dark='.email-bg,body{background:#10171d!important;color:#e8e7e1!important}.email-card{background:#182129!important;border-color:#303b43!important;color:#e8e7e1!important}.email-summary,.email-items,.email-summary td,.email-items td{background:#182129!important;border-color:#303b43!important;color:#e8e7e1!important}.email-title,.email-items-heading,.email-brand-name,.email-brand{color:#f3f0e8!important}.email-lede,.email-copy{color:#c5c7c2!important}.email-muted{color:#a0aaa9!important}.email-listing-title{color:#e8e7e1!important}.email-detail{background:#202932!important;border-color:#34404a!important;color:#e8e7e1!important}.email-header{background:#182129!important;border-bottom-color:#d8a63b!important}.email-footer{background:#141c23!important;border-color:#303b43!important;color:#bdc4c3!important}.email-link{color:#e6bd70!important}.email-button{background:#d69b36!important;color:#171b1e!important}.email-rule{border-color:#303b43!important}';
+  const style='<style data-admin-preview-theme>:root{color-scheme:'+theme+'!important}'+(theme==='dark'?dark:light)+'</style>';
+  const source=html||'<p>No HTML body was saved for this email.</p>';
+  return /<\/head>/i.test(source)?source.replace(/<\/head>/i,style+'</head>'):style+source;
+};
 
 export function AdminEmailsDashboard() {
   const [emails, setEmails] = useState<EmailData[]>([]);
@@ -109,6 +119,7 @@ export function AdminEmailsDashboard() {
   const [sentDetailLoading,setSentDetailLoading]=useState(false);
   const [sentDetailError,setSentDetailError]=useState('');
   const [sentDetailMode,setSentDetailMode]=useState<'preview'|'text'|'html'>('preview');
+  const [sentPreviewTheme,setSentPreviewTheme]=useState<'light'|'dark'>('light');
   const [sentQuery,setSentQuery]=useState('');
   const [sentStatus,setSentStatus]=useState('all');
 
@@ -308,9 +319,9 @@ export function AdminEmailsDashboard() {
         </div>
       </header>
 
-      <section className="admin-email-panel" style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:16,flexWrap:'wrap',margin:'0 0 24px',padding:'16px 20px',border:'1px solid #22384e',borderRadius:12,background:'#0d1b2a'}}>
-        <div><strong style={{display:'block',fontSize:15}}>Sent emails</strong><span style={{color:'var(--mail-admin-muted)',fontSize:13}}>Search messages and check delivery status.</span></div>
-        <button type="button" className="admin-email-submit" onClick={()=>{setSentDialogOpen(true);void loadSentEmails()}} style={{display:'inline-flex',alignItems:'center',gap:8,padding:'9px 14px',border:0,borderRadius:8,fontWeight:700,cursor:'pointer'}}><EnvelopeSimple size={16}/>Open email history</button>
+      <section className="admin-email-panel admin-email-history-card">
+        <div><strong>Sent emails</strong><span>Search messages and check delivery status.</span></div>
+        <button type="button" className="admin-email-history-trigger" onClick={()=>{setSentDialogOpen(true);void loadSentEmails()}}><EnvelopeSimple size={16}/><span>View history</span><span className="admin-email-history-arrow" aria-hidden="true">→</span></button>
       </section>
 
       <Dialog open={sentDialogOpen} onOpenChange={open=>{setSentDialogOpen(open);if(!open){setSelectedSentEmail(null);setSentDetailError('')}}}>
@@ -331,8 +342,8 @@ export function AdminEmailsDashboard() {
                 <div><small>Reply to</small><span>{selectedSentEmail.reply_to?.join(', ')||'—'}</span></div>
                 <div className="admin-sent-email-id"><small>Message ID</small><code title={selectedSentEmail.id}>{selectedSentEmail.id||'—'}</code><button type="button" onClick={()=>handleCopy(selectedSentEmail.id)} aria-label="Copy message ID"><Copy size={14}/>{copied?'Copied':'Copy'}</button></div>
               </div>
-              <div className="admin-sent-email-viewer-toolbar"><div className="admin-sent-email-view-tabs" role="tablist" aria-label="Message format">{(['preview','text','html'] as const).map(mode=><button key={mode} type="button" role="tab" aria-selected={sentDetailMode===mode} onClick={()=>setSentDetailMode(mode)}>{mode==='text'?'Plain text':mode==='html'?'HTML':'Preview'}</button>)}</div><span>{sentDetailMode==='preview'?'Rendered message':sentDetailMode==='text'?'Plain-text version':'HTML source'}</span></div>
-              {sentDetailMode==='preview'?<iframe className="admin-sent-email-frame" title="Sent email preview" sandbox="" srcDoc={selectedSentEmail.html||'<p>No HTML body was saved for this email.</p>'}/>:<pre className="admin-email-pre admin-sent-email-source">{sentDetailMode==='html'?selectedSentEmail.html||'No HTML body was saved for this email.':selectedSentEmail.text||'No plain-text body was saved for this email.'}</pre>}
+              <div className="admin-sent-email-viewer-toolbar"><div className="admin-sent-email-viewer-left"><div className="admin-sent-email-view-tabs" role="tablist" aria-label="Message format">{(['preview','text','html'] as const).map(mode=><button key={mode} type="button" role="tab" aria-selected={sentDetailMode===mode} onClick={()=>setSentDetailMode(mode)}>{mode==='text'?'Plain text':mode==='html'?'HTML':'Preview'}</button>)}</div><span>{sentDetailMode==='preview'?'Rendered message':sentDetailMode==='text'?'Plain-text version':'HTML source'}</span></div>{sentDetailMode==='preview'&&<button type="button" className="admin-sent-email-theme-toggle" onClick={()=>setSentPreviewTheme(theme=>theme==='light'?'dark':'light')} aria-pressed={sentPreviewTheme==='dark'} aria-label={sentPreviewTheme==='dark'?'Switch email preview to light mode':'Switch email preview to dark mode'} title={sentPreviewTheme==='dark'?'Light mode':'Dark mode'}>{sentPreviewTheme==='dark'?<Sun size={16}/>:<Moon size={16}/>}</button>}</div>
+              {sentDetailMode==='preview'?<iframe className={'admin-sent-email-frame is-'+sentPreviewTheme} title="Sent email preview" sandbox="" srcDoc={sentEmailPreviewTheme(selectedSentEmail.html??undefined,sentPreviewTheme)}/>:<pre className="admin-email-pre admin-sent-email-source">{sentDetailMode==='html'?selectedSentEmail.html||'No HTML body was saved for this email.':selectedSentEmail.text||'No plain-text body was saved for this email.'}</pre>}
             </>}
           </div>:<div className="admin-sent-email-inbox">
             <div className="admin-sent-email-toolbar">
@@ -345,7 +356,7 @@ export function AdminEmailsDashboard() {
             {sentLoading&&sentEmails.length===0?<div className="admin-sent-email-state" role="status">Loading sent emails…</div>:null}
             {!sentError&&sentEmails.length===0&&!sentLoading?<div className="admin-sent-email-state"><EnvelopeSimple size={22}/><strong>No sent emails yet</strong><span>Messages will appear here after they are sent.</span></div>:null}
             {sentEmails.length>0&&visibleSentEmails.length===0&&!sentLoading&&<div className="admin-sent-email-state"><strong>No matching emails</strong><span>Change the search or status filter.</span></div>}
-            {visibleSentEmails.length>0&&<div className="admin-sent-email-list">{visibleSentEmails.map(email=><button className="admin-sent-email-row" key={email.id} type="button" onClick={()=>void openSentEmail(email)}><span className="admin-sent-email-row-icon"><EnvelopeSimple size={17}/></span><span className="admin-sent-email-recipient"><strong>{email.to?.join(', ')||'Unknown recipient'}</strong><span>{email.subject}</span><small>From {email.from||'unknown sender'}</small></span><time className="admin-sent-email-date" dateTime={email.created_at}>{sentEmailTime(email.created_at)}</time><span className={`admin-email-category is-status-${(email.last_event||'sent').toLowerCase().replaceAll('_','-')}`}>{sentEmailStatus(email.last_event)}</span></button>)}</div>}
+            {visibleSentEmails.length>0&&<div className="admin-sent-email-list">{visibleSentEmails.map(email=><button className="admin-sent-email-row" key={email.id} type="button" onClick={()=>void openSentEmail(email)}><span className="admin-sent-email-row-icon"><EnvelopeSimple size={17}/></span><span className="admin-sent-email-row-copy"><strong>{email.subject}</strong><span>{email.to?.join(', ')||'Unknown recipient'}</span></span><span className="admin-sent-email-row-meta"><span className={`admin-email-category is-status-${(email.last_event||'sent').toLowerCase().replaceAll('_','-')}`}>{sentEmailStatus(email.last_event)}</span><time className="admin-sent-email-date" dateTime={email.created_at}>{sentEmailTime(email.created_at)}</time></span></button>)}</div>}
             {sentLoading&&sentEmails.length>0&&<p className="admin-sent-email-loading-more" role="status">Loading more emails…</p>}
             {sentHasMore&&sentCursor&&<div className="admin-sent-email-pagination"><button type="button" onClick={()=>void loadSentEmails(sentCursor,true)} disabled={sentLoading} className="admin-sent-email-load-more">{sentLoading?'Loading…':'Load more emails'}</button></div>}
           </div>}
@@ -380,9 +391,7 @@ export function AdminEmailsDashboard() {
           <div className="admin-email-segment admin-email-control-segment" style={{display:'inline-flex',gap:3,padding:3,border:'1px solid #1c3044',borderRadius:8,background:'#08121d'}} aria-label="Market email language">
             {(['en','id'] as const).map(locale=><button key={locale} type="button" className="admin-email-segment-option" aria-pressed={previewLanguage===locale} onClick={()=>setPreviewLanguage(locale)} style={{padding:'6px 10px',border:0,borderRadius:6,background:previewLanguage===locale?'#1c3349':'transparent',color:previewLanguage===locale?'#f5da92':'#8fa7b7',fontSize:11,fontWeight:700,cursor:'pointer'}}>{locale.toUpperCase()}</button>)}
           </div>
-          <div className="admin-email-segment admin-email-control-segment" style={{display:'inline-flex',gap:3,padding:3,border:'1px solid #1c3044',borderRadius:8,background:'#08121d'}} aria-label="Email appearance">
-            {(['light','dark'] as const).map(theme=><button key={theme} type="button" className="admin-email-segment-option" onClick={()=>setPreviewTheme(theme)} aria-pressed={previewTheme===theme} style={{padding:'6px 10px',border:0,borderRadius:6,background:previewTheme===theme?'#1c3349':'transparent',color:previewTheme===theme?'#f5da92':'#8fa7b7',fontSize:11,fontWeight:700,cursor:'pointer'}}>{theme==='light'?'Light':'Dark'}</button>)}
-          </div>
+          <button type="button" className="admin-email-theme-toggle" onClick={()=>setPreviewTheme(theme=>theme==='light'?'dark':'light')} aria-pressed={previewTheme==='dark'} aria-label={previewTheme==='dark'?'Switch email preview to light mode':'Switch email preview to dark mode'} title={previewTheme==='dark'?'Light mode':'Dark mode'}>{previewTheme==='dark'?<Sun size={16}/>:<Moon size={16}/>}</button>
           {/* Mode toggle */}
           <div
             className="admin-email-mode-segment"
