@@ -271,20 +271,12 @@ html[data-theme='dark'] .market-account-menu [data-slot='dropdown-menu-separator
 @media(max-width:980px){.market-order-operations{grid-template-columns:repeat(2,minmax(0,1fr))}.market-order-operations>.market-order-detail-actions{grid-column:1/-1}}
 @media(max-width:620px){.market-order-operations{grid-template-columns:minmax(0,1fr);gap:10px}.market-order-operations>.market-order-detail-actions{grid-column:1;align-items:stretch}.market-order-operations>.market-order-detail-actions .button,.market-order-operations>.market-order-detail-actions>a{flex:1 1 145px;justify-content:center;min-height:42px}.market-order-operations>.market-order-qris{flex-wrap:nowrap}.market-order-source-link{min-height:28px}}
 
-/* Keep order actions as compact controls instead of stretching them into tall columns. */
-.market-order-operations{display:flex;align-items:flex-start;justify-content:flex-start;flex-wrap:wrap;gap:10px}
-.market-order-operations>.market-order-qris,
-.market-order-operations>.market-order-shipping-detail,
-.market-order-operations>.market-order-detail-actions{width:fit-content;max-width:100%;align-self:flex-start}
-.market-order-operations>.market-order-qris{min-height:0}
-.market-order-operations>.market-order-shipping-detail{flex:0 1 auto}
-.market-order-operations>.market-order-detail-actions{flex:0 1 auto;align-content:flex-start}
-@media(max-width:620px){
-  .market-order-operations{display:grid;grid-template-columns:minmax(0,1fr);gap:9px}
-  .market-order-operations>.market-order-qris,
-  .market-order-operations>.market-order-shipping-detail,
-  .market-order-operations>.market-order-detail-actions{width:100%;max-width:none}
-}
+.market-order-operations{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:10px}
+.market-order-operations>.market-order-qris,.market-order-operations>.market-order-shipping-detail{grid-column:auto;align-self:stretch;width:100%;max-width:none;min-height:0}
+.market-order-operations:not(:has(>.market-order-qris))>.market-order-shipping-detail,.market-order-operations:not(:has(>.market-order-shipping-detail))>.market-order-qris{grid-column:1/-1}
+.market-order-operations>.market-order-detail-actions{grid-column:1/-1;display:flex;align-items:center;align-self:auto;justify-content:flex-start;width:100%;max-width:none;padding:9px 0;border:0;border-top:1px solid var(--line);border-radius:0;background:transparent}
+.market-order-operations>.market-order-detail-actions .button,.market-order-operations>.market-order-detail-actions>a{flex:0 1 auto;min-height:36px}
+@media(max-width:620px){.market-order-operations{grid-template-columns:minmax(0,1fr);gap:9px}.market-order-operations>.market-order-qris,.market-order-operations>.market-order-shipping-detail{grid-column:1}.market-order-operations>.market-order-detail-actions{grid-column:1;flex-wrap:wrap}.market-order-operations>.market-order-detail-actions .button,.market-order-operations>.market-order-detail-actions>a{flex:1 1 140px;min-height:40px}}
 
 .market-quick-panel.is-wishlist{width:min(980px,calc(100vw - 28px))!important;max-width:980px!important;max-height:min(90dvh,920px)!important;overflow:hidden!important}
 .market-quick-wishlist{min-height:0;max-height:calc(90dvh - 80px);overflow:auto;overscroll-behavior:contain;padding-right:3px}
