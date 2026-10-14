@@ -48,6 +48,8 @@ export async function GET(request:Request,{params}:{params:Promise<{id:string}>}
       const signature=new Uint8Array(body,0,Math.min(8,body.byteLength));
       if(signature.length!==8||signature.some((value,index)=>value!==[137,80,78,71,13,10,26,10][index]))throw new HttpError(502,'The payment code could not be loaded.');
     }
-    return new Response(body,{status:200,headers:{'Content-Type':imageType,'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'}});
+    const headers=new Headers({'Content-Type':imageType,'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'});
+    if(new URL(request.url).searchParams.get('download')==='1')headers.set('Content-Disposition','attachment; filename="VivrePlay-QRIS.'+(imageType==='image/jpeg'?'jpg':imageType==='image/webp'?'webp':'png')+'"');
+    return new Response(body,{status:200,headers});
   }catch(error){return errorResponse(error)}
 }

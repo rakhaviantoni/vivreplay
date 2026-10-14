@@ -2805,6 +2805,9 @@ html[data-theme='dark'] .player-intro-meta{color:#a4bcc7!important}
 .checkout-qris-code img{display:block;width:min(100%,248px);height:auto;aspect-ratio:1;object-fit:contain;background:#fff}
 .checkout-qris-code a{display:inline-flex;min-height:44px;align-items:center;gap:7px;padding:0 10px;border-radius:7px;color:var(--accent,#9b6a16);font-size:12px;font-weight:700;text-decoration:none}
 .checkout-qris-code a:hover{background:color-mix(in srgb,var(--accent,#b78327) 9%,#fff)}
+.checkout-qris-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:2px 8px}
+.checkout-payment-panel>.checkout-payment-trust{width:max-content;max-width:100%;margin:16px auto 0;padding:10px 13px;border:1px solid color-mix(in srgb,#2b8a68 25%,var(--line,#dfd1b8));border-radius:9px;background:color-mix(in srgb,#2b8a68 6%,var(--surface-raised,#f8f3e9));color:var(--ink,#29251f);font-size:13px}
+.checkout-payment-panel>.checkout-payment-trust svg{color:#25815e}
 .checkout-qris-fallback{display:grid;min-height:120px;align-content:center;justify-items:center;gap:12px;color:var(--muted,#716a5e);font-size:13px}
 .checkout-qris-retry{min-height:44px;padding:0 14px;border:1px solid var(--line,#dfd1b8);border-radius:7px;background:#fff;color:var(--ink,#29251f);font:inherit;font-weight:650;cursor:pointer}
 .checkout-qris-status{margin:10px 0 0;text-align:center;color:var(--muted,#716a5e);font-size:12px}
