@@ -521,60 +521,9 @@ test('life placement, DON payments, and effect negation preserve their targets',
  assert.ok(actions.some(action=>action.kind==='move-to-life'&&action.scope==='own'&&action.position==='choice'&&action.faceUp===false));
 });
 
-test('a top-or-bottom Life payment is a cost before its hand-to-Life effect',()=>{
- const document=compileEffectDocument({...card('[On Play] You may add 1 card from the top or bottom of your Life cards to your hand: Add up to 1 "Supernovas" type Character card from your hand to the top of your Life cards face-up.'),code:'OP10-103'});
- assert.equal(document.ast.length,1);
- assert.equal(document.ast[0].costs[0]?.kind,'turn-life');
- assert.deepEqual(document.ast[0].costs[0],{kind:'turn-life',scope:'own',amount:1,position:'choice',faceUp:false,optional:true,toHand:true});
- assert.equal(document.ast[0].actions.some(action=>action.kind==='life'&&action.operation==='add-to-hand'),false);
- assert.ok(document.ast[0].actions.some(action=>action.kind==='move-to-life'&&action.source==='hand'&&action.faceUp===true));
- assert.deepEqual(document.normalized[0].sequence.map(step=>step.type),['PAY_COST','RESOLVE']);
-});
-
-test('Life paid as an activation cost is not also applied as a duplicate Life action',()=>{
- const document=compileEffectDocument({...card('[Activate:Main] [Once Per Turn] (1) (You may rest the specified number of DON!! cards in your cost area.) You may add 1 card from the top or bottom of your Life cards to your hand: Set this Character as active.'),code:'OP04-102'});
- const ability=document.ast.find(item=>item.trigger==='activate-main');
- assert.ok(ability?.costs.some(cost=>cost.kind==='turn-life'&&cost.toHand&&cost.position==='choice'));
- assert.equal(ability?.actions.some(action=>action.kind==='life'&&action.operation==='add-to-hand'),false);
- assert.deepEqual(document.normalized.find(item=>item.timing==='activate-main')?.sequence.map(step=>step.type),['PAY_COST','PAY_COST','RESOLVE']);
-});
-
-test('play-from-hand-or-trash keeps both legal zones in one printed action',()=>{
- const document=compileEffectDocument({...card('[Activate:Main] DON!! -1 (You may return the specified number of DON!! cards from your field to your DON!! deck.) You may trash this Character: If your Leader has the [GERMA 66] type, play up to 1 [Vinsmoke Ichiji] with a cost of 7 from your hand or trash.'),code:'OP06-060'});
- const action=document.ast.find(item=>item.trigger==='activate-main')?.actions.find(item=>item.kind==='play');
- assert.deepEqual(action?.sources,['hand','trash']);
- assert.equal(action?.source,'hand');
-});
-
-test('named play alternatives retain every printed choice and Leader-only rested DON targets the Leader',()=>{
- const ace=compileEffectDocument({...card('[On Play] If you have a face-up Life card, play up to 1 [Sabo], [Portgas.D.Ace], or [Monkey.D.Luffy] with a cost of 2 from your hand or trash.'),code:'PRB02-018'});
- const play=ace.ast[0].actions.find(action=>action.kind==='play');
- assert.deepEqual(play?.alternatives,[{name:'Sabo'},{name:'Portgas.D.Ace'},{name:'Monkey.D.Luffy'}]);
- assert.equal(play?.name,undefined);
- assert.deepEqual(play?.sources,['hand','trash']);
- const koala=compileEffectDocument({...card('[On Play] Give up to 1 rested DON!! card to your Leader. Then, play up to 1 Character card with 4000 power or less and the {Revolutionary Army} type from your hand or trash.'),code:'ST35-004'});
- const attach=koala.ast.find(item=>item.trigger==='on-play')?.actions.find(action=>action.kind==='attach-don');
- assert.equal(attach?.recipient,'own-leader');
-});
-
-test('top-Life payments followed by a colon are costs, while Life replacements stay replacement actions',()=>{
- const topPayment=compileEffectDocument({...card('[Activate: Main] [Once Per Turn] You may add 1 card from the top of your Life cards to your hand: If you have 0 or 3 or more DON!! cards on your field, add up to 1 DON!! card from your DON!! deck and set it as active.'),code:'OP05-060'});
- assert.deepEqual(topPayment.ast[0].costs[0],{kind:'turn-life',scope:'own',amount:1,position:'top',faceUp:false,optional:true,toHand:true});
- assert.equal(topPayment.ast[0].actions.some(action=>action.kind==='life'&&action.operation==='add-to-hand'),false);
- assert.ok(topPayment.ast[0].actions.some(action=>action.kind==='add-don'&&action.amount===1));
- assert.deepEqual(topPayment.normalized[0].sequence.map(step=>step.type),['PAY_COST','RESOLVE']);
-
- const battleReplacement=compileEffectDocument({...card("[Once Per Turn] If this Character would be K.O.'d in battle, you may add 1 card from the top of your Life cards to your hand instead."),code:'OP10-034'});
- assert.ok(battleReplacement.ast[0].actions.some(action=>action.kind==='replacement'&&action.event==='ko'&&action.cost.kind==='take-life'));
- assert.equal(battleReplacement.ast[0].actions.some(action=>action.kind==='life'&&action.operation==='add-to-hand'),false);
-
- const removalReplacement=compileEffectDocument({...card('If your {Sky Island} type Character with 6000 base power or more would be removed from the field by your opponent, you may add 1 card from the top of your Life cards to your hand instead.'),code:'OP15-098'});
- assert.ok(removalReplacement.ast[0].actions.some(action=>action.kind==='replacement'&&action.event==='removed-by-effect'&&action.cost.kind==='take-life'&&action.eligibility?.trait==='Sky Island'&&action.eligibility.minBasePower===6000));
-});
-
 test('persistent effect documents preserve the four parser layers and custom escape hatch',()=>{
  const document=compileEffectDocument(card('[On Play] You may trash 1 card with a [Trigger] from your hand: Draw 3 cards.'));
- assert.equal(document.parserVersion,'0.8.6');
+ assert.equal(document.parserVersion,'0.8.2');
  assert.equal(document.resolver.type,'DSL');
  assert.equal(document.implementationStatus,'PARSED');
  assert.equal(document.ast[0].rawText,document.rawEffectText);

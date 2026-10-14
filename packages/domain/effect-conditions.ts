@@ -5,7 +5,6 @@ export function evaluateEffectCondition(text:string,state:MatchEffectState,actor
  if(/^a card in your hand was trashed by an effect during this turn$/i.test(text))return state.turnEffects.some(effect=>effect.kind==='hand-trash-event'&&effect.owner===actor);
  const own=state.cards.filter(card=>card.owner===actor),enemy=state.cards.filter(card=>card.owner!==actor);
  const leader=own.find(card=>card.zone==='leader');
- if(/^you only have Characters without a Counter$/i.test(text))return own.filter(card=>card.zone==='character'&&card.type==='Character').every(card=>(card.counter??0)<=0);
  const currentPower=(card:(typeof state.cards)[number])=>Math.max(0,(card.power??0)+(card.powerModifier??0)+state.cards.filter(item=>item.owner===card.owner&&item.type==='DON!!'&&item.attachedTo===card.id).length*1000);
  if(/^the revealed card is an Event$/i.test(text)){const id=state.revealedCardIds?.at(-1);return id?state.cards.find(card=>card.id===id)?.type==='Event':false;}
  if(/^it is your opponent's turn$/i.test(text))return state.turn!==actor;
@@ -56,9 +55,8 @@ export function evaluateEffectCondition(text:string,state:MatchEffectState,actor
  const onlyTrait=text.match(/^you only have Characters? with a type including "([^"]+)"$/i);
  if(onlyTrait){const characters=own.filter(card=>card.zone==='character');return characters.length>0&&characters.every(card=>card.traits?.some(value=>value.toLowerCase()===onlyTrait[1].toLowerCase()));}
  if(/^you only have Characters? without a Counter$/i.test(text))return own.filter(card=>card.zone==='character').every(card=>!(card.counter??0));
- const leaderAttribute=text.match(/^your Leader has the (?:<([^>]+)>|\(([^)]+)\)|([A-Za-z]+)) attribute$/i);
- if(leaderAttribute)return Boolean(leader&&matchesCardAttribute(leader,leaderAttribute[1]??leaderAttribute[2]??leaderAttribute[3]));
- if(/^you have a face-up Life card$/i.test(text))return own.some(card=>card.zone==='life'&&card.faceUp===true);
+ const leaderAttribute=text.match(/^your Leader has the \(?(Slash|Ranged|Wisdom|Strike|Special)\)? attribute$/i);
+ if(leaderAttribute)return Boolean(leader&&matchesCardAttribute(leader,leaderAttribute[1]));
  if(/^your Leader has the attribute$/i.test(text)){
   const source=sourceCardId?state.cards.find(card=>card.id===sourceCardId):undefined;
   return Boolean(leader&&source?.attributes?.some(attribute=>matchesCardAttribute(leader,attribute)));
