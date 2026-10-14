@@ -197,7 +197,7 @@ export function MarketCheckout(){
       if(!response.ok||!result.checkoutUrl)throw new Error(result.error??t('Checkout could not be started.','Checkout tidak dapat dimulai.'));
       if(cartMode){const stored=JSON.parse(window.localStorage.getItem('vivreplay-market-cart-v1')||'{"lines":[]}') as {lines?:CartLine[]};const completedIds=new Set(activeCartLines.map(line=>line.listingId));const remaining=(stored.lines??[]).filter(line=>!completedIds.has(line.listingId));window.localStorage.setItem('vivreplay-market-cart-v1',JSON.stringify({lines:remaining}));window.sessionStorage.removeItem('vivreplay-market-checkout-listings-v1');window.dispatchEvent(new Event('vivreplay:market-cart-updated'));}
       router.push(result.checkoutUrl);
-    }catch(cause){const message=cause instanceof Error?cause.message:t('Checkout could not be started.','Checkout tidak dapat dimulai.');setError(message);toast.error(message)}finally{setSubmitting(false)}
+    }catch(cause){const message=cause instanceof Error?cause.message:t('Checkout could not be started.','Checkout tidak dapat dimulai.');setError(message);toast.error(message);setSubmitting(false)}
   };
 
   if(loading||accountLoading||(cartMode&&!cartReady))return <main className="page vivre-checkout-page"><div className="checkout-loading"><i/><span>{t('Loading your checkout…','Memuat checkout…')}</span></div></main>;

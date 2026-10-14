@@ -2843,6 +2843,7 @@ html[data-theme='dark'] .player-intro-meta{color:#a4bcc7!important}
 .checkout-instrument>strong{font-size:21px;letter-spacing:.05em}
 .checkout-instrument>small,.checkout-expiry{color:var(--muted,#716a5e);font-size:11px}
 .checkout-order-summary .checkout-payment-lines{display:grid;gap:10px;margin:16px 0}
+.checkout-order-summary>h2{margin-bottom:10px}
 .checkout-order-cards{display:grid;gap:10px;margin-bottom:16px}.checkout-order-card-line{display:grid;grid-template-columns:42px minmax(0,1fr) auto;align-items:center;gap:10px;min-width:0}.checkout-order-card-line>img,.checkout-order-card-placeholder{display:block;width:42px;height:58px;object-fit:cover;border:1px solid var(--line);border-radius:5px;background:var(--surface)}.checkout-order-card-line>div{display:grid;gap:3px;min-width:0}.checkout-order-card-line strong{overflow:hidden;color:var(--ink);font-size:12px;text-overflow:ellipsis;white-space:nowrap}.checkout-order-card-line small{color:var(--muted);font-size:10px}.checkout-order-card-line>b{font-size:11px;white-space:nowrap}.checkout-fee-note{display:block;margin-top:8px;color:var(--muted);font-size:10px}
 .checkout-payment-lines>div{display:flex;justify-content:space-between;gap:12px;font-size:12px}
 .checkout-order-summary>.checkout-grand-total{margin-top:16px}
@@ -3637,6 +3638,8 @@ html[data-theme='dark'] .market-listing-status.is-buying{color:#e6b65e!important
 .checkout-order-card-line>div{text-align:left}
 .checkout-payment-panel{padding:clamp(20px,3vw,32px)}
 .checkout-payment-panel .checkout-provider-copy{max-width:58ch;margin:8px 0 18px;color:var(--muted,#716a5e);line-height:1.5}
+.checkout-payment-trust{display:flex;align-items:center;gap:7px;margin:-8px 0 16px;color:var(--muted,#716a5e);font-size:12px;line-height:1.4}
+.checkout-payment-trust svg{flex:none;color:var(--accent,#b78327)}
 .checkout-payment-lines{display:grid;gap:9px;padding-top:12px;border-top:1px solid var(--line,#dfd1b8)}
 .checkout-payment-lines>div{display:flex;align-items:center;justify-content:space-between;gap:14px;color:var(--muted,#716a5e);font-size:13px}
 .checkout-payment-lines>div b{color:var(--ink,#29251f);font-size:13px;font-variant-numeric:tabular-nums}
