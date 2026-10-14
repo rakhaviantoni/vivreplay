@@ -33,6 +33,6 @@ export function MarketPaymentMethodPicker({locale='EN',options=defaultPaymentOpt
       </button>;
     })}</div>
     {selectedMethod!=='qris'&&<div className="checkout-payment-channel-grid" aria-label={paymentMethodLabel(selectedMethod,locale)}>{options.filter(option=>option.method===selectedMethod).map(option=><button type="button" key={`${option.method}:${option.channel}`} className={`checkout-payment-channel${selectedChannel===option.channel?' is-selected':''}`} aria-pressed={selectedChannel===option.channel} onClick={()=>onChange(option.method,option.channel)}>{option.logo?<img src={option.logo} alt="" loading="lazy"/>:null}<span>{option.name}</span></button>)}</div>}
-    {selectedMethod==='qris'?<p className="checkout-payment-estimate is-no-fee">{t('No payment fee','Tidak ada biaya pembayaran')}</p>:<p className="checkout-payment-estimate">{t(`Estimated payment fee: ${formatMoney(fee,'IDR')}. The final amount is confirmed by the payment method.`,`Perkiraan biaya pembayaran: ${formatMoney(fee,'IDR')}. Total akhir dikonfirmasi oleh metode pembayaran.`)}</p>}
+    {selectedMethod==='qris'?<p className="checkout-payment-estimate is-no-fee">{t('No extra payment fee','Tidak ada biaya pembayaran tambahan')}</p>:<p className="checkout-payment-estimate">{t(`Estimated payment fee: ${formatMoney(fee,'IDR')}. The final amount is confirmed by the payment method.`,`Perkiraan biaya pembayaran: ${formatMoney(fee,'IDR')}. Total akhir dikonfirmasi oleh metode pembayaran.`)}</p>}
   </section>;
 }
