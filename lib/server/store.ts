@@ -162,7 +162,9 @@ export async function collection(ownerId:string){
   }}) as CollectionItem[];
 }
 export async function savedDecks(ownerId:string){const rows=(await db().prepare(`SELECT d.id,d.name,d.visibility,v.id AS versionId,v.number AS version,v.leader_id AS leaderId FROM decks d JOIN deck_versions v ON v.deck_id=d.id WHERE d.owner_id=? AND d.deleted_at IS NULL AND v.number=(SELECT MAX(number) FROM deck_versions WHERE deck_id=d.id) ORDER BY d.created_at DESC`).bind(ownerId).all<Omit<SavedDeck,'cards'>>()).results;return Promise.all(rows.map(async r=>({...r,cards:(await db().prepare('SELECT card_id AS cardId,quantity FROM deck_entries WHERE version_id=?').bind(r.versionId).all<{cardId:string;quantity:number}>()).results})));}
-export async function market(viewerId?:string){
+export async function market(viewerId?:string,listingIds?:string[]){
+  const listingFilter=listingIds?.length?`AND l.id IN (${listingIds.map(()=>'?').join(',')})`:'';
+  const listingLimit=listingIds?.length??100;
   const rows = (await db().prepare(`
     SELECT
       l.id,
@@ -205,9 +207,10 @@ export async function market(viewerId?:string){
     LEFT JOIN card_identities ci ON ci.id=cp.identity_id
     LEFT JOIN seller_shipping_origins o ON o.owner_id=l.seller_id
     WHERE l.status='ACTIVE' AND (l.expires_at IS NULL OR l.expires_at > CURRENT_TIMESTAMP)
+      ${listingFilter}
     ORDER BY l.created_at DESC
-    LIMIT 100
-  `).all<{
+    LIMIT ${listingLimit}
+  `).bind(...(listingIds??[])).all<{
     id:string;
     printingId:string;
     title:string;
@@ -305,7 +308,6 @@ export async function market(viewerId?:string){
       expiresAt: r.expiresAt,
       seller: r.seller,
       sellerUsername:r.sellerUsername??undefined,
-      sellerId:r.sellerId,
       isOwner: Boolean(viewerId&&r.sellerId===viewerId),
       language: r.cardLanguage ?? 'EN',
       card,

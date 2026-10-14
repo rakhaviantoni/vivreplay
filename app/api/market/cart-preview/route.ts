@@ -12,6 +12,7 @@ export async function GET(request:Request){
       FROM listings l JOIN profiles p ON p.id=l.seller_id
       WHERE l.id IN (${ids.map(()=>'?').join(',')}) AND l.type='WTS' AND l.status='ACTIVE' AND (l.expires_at IS NULL OR l.expires_at>CURRENT_TIMESTAMP)`)
       .bind(...ids).all<ListingRow>()).results;
+    rows.sort((a,b)=>ids.indexOf(a.id)-ids.indexOf(b.id));
     const unavailableIds=ids.filter(id=>!rows.some(row=>row.id===id));
     const cardsByListing=new Map<string,BundleEntry[]>();
     const printingIds=new Set<string>();
@@ -39,7 +40,9 @@ export async function GET(request:Request){
       }
     }
     const cardByPrinting=new Map(cards.map(card=>[card.printingId,card]));
-    return Response.json({listings:rows.map(row=>{const items=cardsByListing.get(row.id)??[];return{id:row.id,sellerId:row.sellerId,title:row.title,seller:row.seller,currency:row.currency,items:items.map(item=>{const card=cardByPrinting.get(item.printingId);return{printingId:item.printingId,name:card?.name??card?.code??item.printingId,code:card?.code??item.printingId,quantity:item.quantity,unitAmount:item.unitAmount??0,condition:item.condition??row.condition,imageUrl:card?.imageUrl??null,assetPath:card?.assetPath??null,setCode:card?.setCode??null,language:card?.language??null,printingCode:card?.printingCode??null}}),subtotal:items.reduce((sum,item)=>sum+(item.unitAmount??0)*item.quantity,0)}}),unavailableIds},{headers:{'Cache-Control':'private, no-store'}});
+    const sellerGroups=new Map<string,string>();
+    const listings=rows.map(row=>{let sellerGroupId=sellerGroups.get(row.sellerId);if(!sellerGroupId){sellerGroupId=`seller-${sellerGroups.size+1}`;sellerGroups.set(row.sellerId,sellerGroupId)}const items=cardsByListing.get(row.id)??[];return{id:row.id,sellerGroupId,title:row.title,seller:row.seller,currency:row.currency,items:items.map(item=>{const card=cardByPrinting.get(item.printingId);return{printingId:item.printingId,name:card?.name??card?.code??item.printingId,code:card?.code??item.printingId,quantity:item.quantity,unitAmount:item.unitAmount??0,condition:item.condition??row.condition,imageUrl:card?.imageUrl??null,assetPath:card?.assetPath??null,setCode:card?.setCode??null,language:card?.language??null,printingCode:card?.printingCode??null}}),subtotal:items.reduce((sum,item)=>sum+(item.unitAmount??0)*item.quantity,0)}});
+    return Response.json({listings,unavailableIds},{headers:{'Cache-Control':'private, no-store'}});
   }catch(error){
     console.error('market_cart_preview_failed',error instanceof Error?error.message:'unknown error');
     return Response.json({error:'Cart details are temporarily unavailable.'},{status:503,headers:{'Cache-Control':'no-store'}});

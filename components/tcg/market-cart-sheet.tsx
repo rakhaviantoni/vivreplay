@@ -8,13 +8,13 @@ import type {Card} from '@/packages/card-data/catalog';
 import {Sheet,SheetContent,SheetHeader,SheetTitle} from '@/components/ui/sheet';
 import {CardArt} from '@/components/tcg/card-art';
 
-type CartStored={sellerId:string;lines:{listingId:string;listingTitle?:string;items:{printingId:string;quantity:number}[]}[]};
-type CartPreview={id:string;sellerId:string;title:string;seller:string;currency:string;items:{printingId:string;name:string;code:string;quantity:number;unitAmount:number;condition:string;imageUrl?:string|null;assetPath?:string|null;setCode?:string|null;language?:string|null;printingCode?:string|null}[];subtotal:number};
+type CartStored={lines:{listingId:string;listingTitle?:string;items:{printingId:string;quantity:number}[]}[]};
+type CartPreview={id:string;sellerGroupId:string;title:string;seller:string;currency:string;items:{printingId:string;name:string;code:string;quantity:number;unitAmount:number;condition:string;imageUrl?:string|null;assetPath?:string|null;setCode?:string|null;language?:string|null;printingCode?:string|null}[];subtotal:number};
 const CART_KEY='vivreplay-market-cart-v1';
-const emptyCart:CartStored={sellerId:'',lines:[]};
+const emptyCart:CartStored={lines:[]};
 
 function readCart():CartStored{
-  try{const value=JSON.parse(window.localStorage.getItem(CART_KEY)||'null') as CartStored|null;return value&&Array.isArray(value.lines)?value:emptyCart}catch{return emptyCart}
+  try{const value=JSON.parse(window.localStorage.getItem(CART_KEY)||'null') as {lines?:unknown}|null;const lines=Array.isArray(value?.lines)?value.lines.filter((line):line is {listingId:string;listingTitle?:string;items:{printingId:string;quantity:number}[]}=>Boolean(line&&typeof line==='object'&&typeof (line as {listingId?:unknown}).listingId==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String((line as {listingId:string}).listingId))&&Array.isArray((line as {items?:unknown}).items))).slice(0,10).map(line=>({listingId:line.listingId,listingTitle:typeof line.listingTitle==='string'?line.listingTitle:'',items:line.items.filter(item=>typeof item?.printingId==='string'&&Number.isInteger(item.quantity)&&item.quantity>0&&item.quantity<=99).map(item=>({printingId:item.printingId,quantity:item.quantity}))})).filter(line=>line.items.length):[];const clean={lines};if(JSON.stringify(value)!==JSON.stringify(clean))window.localStorage.setItem(CART_KEY,JSON.stringify(clean));return clean}catch{return emptyCart}
 }
 
 export function MarketCartSheet({locale='EN'}:{locale:'EN'|'ID'}){
@@ -22,7 +22,7 @@ export function MarketCartSheet({locale='EN'}:{locale:'EN'|'ID'}){
   const [open,setOpen]=useState(false);
   const [cart,setCart]=useState<CartStored>(emptyCart);
   const [listings,setListings]=useState<CartPreview[]>([]);
-  const [selectedSellerId,setSelectedSellerId]=useState('');
+  const [selectedSellerGroupId,setSelectedSellerGroupId]=useState('');
   const [unavailableIds,setUnavailableIds]=useState<string[]>([]);
   const [loading,setLoading]=useState(false);
   const [error,setError]=useState('');
@@ -30,13 +30,13 @@ export function MarketCartSheet({locale='EN'}:{locale:'EN'|'ID'}){
   const isId=locale==='ID';
   const cardCount=cart.lines.reduce((total,line)=>total+line.items.reduce((sum,item)=>sum+item.quantity,0),0);
   const subtotal=useMemo(()=>cart.lines.reduce((sum,line)=>{
-    if(selectedSellerId&&listings.find(item=>item.id===line.listingId)?.sellerId!==selectedSellerId)return sum;
+    if(selectedSellerGroupId&&listings.find(item=>item.id===line.listingId)?.sellerGroupId!==selectedSellerGroupId)return sum;
     const listing=listings.find(item=>item.id===line.listingId);
     return sum+line.items.reduce((lineSum,selected)=>lineSum+(listing?.items.find(item=>item.printingId===selected.printingId)?.unitAmount??0)*selected.quantity,0);
-  },0),[cart.lines,listings,selectedSellerId]);
+  },0),[cart.lines,listings,selectedSellerGroupId]);
   const sellerGroups=useMemo(()=>{
     const groups=new Map<string,{id:string;name:string;lines:CartStored['lines']}>();
-    for(const line of cart.lines){const listing=listings.find(item=>item.id===line.listingId);const sellerId=listing?.sellerId??`unavailable:${line.listingId}`;const group=groups.get(sellerId)??{id:sellerId,name:listing?.seller??(isId?'Penjual tidak tersedia':'Seller unavailable'),lines:[]};group.lines.push(line);groups.set(sellerId,group)}
+    for(const line of cart.lines){const listing=listings.find(item=>item.id===line.listingId);const groupId=listing?.sellerGroupId??`unavailable:${line.listingId}`;const group=groups.get(groupId)??{id:groupId,name:listing?.seller??(isId?'Penjual tidak tersedia':'Seller unavailable'),lines:[]};group.lines.push(line);groups.set(groupId,group)}
     return [...groups.values()];
   },[cart.lines,listings,isId]);
 
@@ -50,8 +50,8 @@ export function MarketCartSheet({locale='EN'}:{locale:'EN'|'ID'}){
       const data=await response.json() as {listings?:CartPreview[];unavailableIds?:string[];error?:string};
       if(!response.ok)throw new Error(data.error||'Cart details could not be loaded.');
       setListings(data.listings??[]);setUnavailableIds(data.unavailableIds??[]);
-      const groups=new Map((data.listings??[]).map(listing=>[listing.sellerId,listing.sellerId]));
-      setSelectedSellerId(current=>current&&groups.has(current)?current:[...groups.keys()][0]??'');
+      const groups=new Map((data.listings??[]).map(listing=>[listing.sellerGroupId,listing.sellerGroupId]));
+      setSelectedSellerGroupId(current=>current&&groups.has(current)?current:[...groups.keys()][0]??'');
     }catch(reason){setListings([]);setError(reason instanceof Error?reason.message:'Cart details could not be loaded.');}
     finally{setLoading(false);}
   },[]);
@@ -75,7 +75,7 @@ export function MarketCartSheet({locale='EN'}:{locale:'EN'|'ID'}){
 
   const removeListing=(listingId:string)=>{
     const lines=cart.lines.filter(line=>line.listingId!==listingId);
-    const next={...cart,lines,sellerId:lines.length?cart.sellerId:''};
+    const next={lines};
     setCart(next);window.localStorage.setItem(CART_KEY,JSON.stringify(next));window.dispatchEvent(new Event('vivreplay:market-cart-updated'));
     setListings(current=>current.filter(listing=>listing.id!==listingId));setUnavailableIds(current=>current.filter(id=>id!==listingId));
   };
@@ -83,15 +83,15 @@ export function MarketCartSheet({locale='EN'}:{locale:'EN'|'ID'}){
     const available=listings.find(listing=>listing.id===listingId)?.items.find(item=>item.printingId===printingId)?.quantity??0;
     const nextQuantity=Math.max(0,Math.min(available,99,quantity));
     const lines=cart.lines.map(line=>line.listingId===listingId?{...line,items:line.items.map(item=>item.printingId===printingId?{...item,quantity:nextQuantity}:item).filter(item=>item.quantity>0)}:line).filter(line=>line.items.length>0);
-    const next={...cart,lines,sellerId:lines.length?cart.sellerId:''};
+    const next={lines};
     setCart(next);window.localStorage.setItem(CART_KEY,JSON.stringify(next));window.dispatchEvent(new Event('vivreplay:market-cart-updated'));
   };
   const clearCart=()=>{if(!window.confirm(isId?'Kosongkan semua isi keranjang?':'Remove all items from your cart?'))return;window.localStorage.removeItem(CART_KEY);setCart(emptyCart);setListings([]);setUnavailableIds([]);window.dispatchEvent(new Event('vivreplay:market-cart-updated'))};
-  const continueToCheckout=()=>{if(!selectedSellerId||selectedSellerId.startsWith('unavailable:'))return;changeOpen(false);router.push(`/checkout/market?cart=1&seller=${encodeURIComponent(selectedSellerId)}`)};
-  const selectedLines=cart.lines.filter(line=>{const listing=listings.find(item=>item.id===line.listingId);return selectedSellerId?listing?.sellerId===selectedSellerId:cart.lines.length===1});
+  const selectedLines=cart.lines.filter(line=>{const listing=listings.find(item=>item.id===line.listingId);return selectedSellerGroupId?listing?.sellerGroupId===selectedSellerGroupId:cart.lines.length===1});
+  const continueToCheckout=()=>{if(!selectedSellerGroupId||selectedSellerGroupId.startsWith('unavailable:')||!selectedLines.length)return;changeOpen(false);const ids=selectedLines.map(line=>line.listingId).join(',');router.push(`/checkout/market?cart=1&listings=${encodeURIComponent(ids)}`)};
   const selectedUnavailableIds=unavailableIds.filter(id=>selectedLines.some(line=>line.listingId===id));
   const unavailableSelection=selectedLines.some(line=>{const listing=listings.find(item=>item.id===line.listingId);return !listing||line.items.some(selected=>{const item=listing.items.find(candidate=>candidate.printingId===selected.printingId);return !item||selected.quantity>item.quantity})});
-  const selectedListings=listings.filter(listing=>listing.sellerId===selectedSellerId);
+  const selectedListings=listings.filter(listing=>listing.sellerGroupId===selectedSellerGroupId);
   const mixedCurrencies=new Set(selectedListings.map(listing=>listing.currency)).size>1;
   const disabled=!selectedLines.length||loading||Boolean(error)||selectedUnavailableIds.length>0||unavailableSelection||mixedCurrencies;
 
@@ -103,7 +103,7 @@ export function MarketCartSheet({locale='EN'}:{locale:'EN'|'ID'}){
         {loading?<div className="market-cart-sheet-loading" role="status">{isId?'Memuat keranjang…':'Loading cart…'}</div>:error?<div className="market-cart-sheet-empty"><Cart size={24}/><p>{error}</p><button type="button" className="button secondary" onClick={()=>void sync()}>{isId?'Coba lagi':'Try again'}</button></div>:!cart.lines.length?<div className="market-cart-sheet-empty"><Cart size={24}/><strong>{isId?'Keranjang masih kosong':'Your cart is empty'}</strong><p>{isId?'Lihat listing untuk menambahkan kartu.':'Browse listings to add cards.'}</p></div>:<>
           {(unavailableIds.length>0||unavailableSelection||mixedCurrencies)&&<div className="market-cart-sheet-notice" role="status">{mixedCurrencies?(isId?'Pilih listing dengan mata uang yang sama.':'Cart listings must use the same currency.'):isId?'Beberapa kartu atau listing sudah tidak tersedia. Hapus sebelum checkout.':'Some cards or listings are no longer available. Remove them to continue.'}</div>}
           {sellerGroups.map(group=><section className="market-cart-sheet-seller-group" key={group.id}>
-          <h3>{isId?'Penjual':'Seller'}: {group.name}{group.id===selectedSellerId&&<span>{isId?'Checkout ini':'Selected for checkout'}</span>}</h3>
+          <h3>{isId?'Penjual':'Seller'}: {group.name}{group.id===selectedSellerGroupId&&<span>{isId?'Checkout ini':'Selected for checkout'}</span>}</h3>
           {group.lines.map(line=>{
             const listing=listings.find(item=>item.id===line.listingId);
             const selectedItems=line.items.map(selected=>{
@@ -129,9 +129,9 @@ export function MarketCartSheet({locale='EN'}:{locale:'EN'|'ID'}){
         </>}
       </div>
       {cart.lines.length>0&&<footer className="market-cart-sheet-footer">
-        {sellerGroups.length>1&&<label className="market-cart-sheet-seller-select"><span>{isId?'Checkout dari':'Check out with'}</span><select value={selectedSellerId} onChange={event=>setSelectedSellerId(event.target.value)}>{sellerGroups.filter(group=>!group.id.startsWith('unavailable:')).map(group=><option key={group.id} value={group.id}>{group.name}</option>)}</select></label>}
+        {sellerGroups.length>1&&<label className="market-cart-sheet-seller-select"><span>{isId?'Checkout dari':'Check out with'}</span><select value={selectedSellerGroupId} onChange={event=>setSelectedSellerGroupId(event.target.value)}>{sellerGroups.filter(group=>!group.id.startsWith('unavailable:')).map(group=><option key={group.id} value={group.id}>{group.name}</option>)}</select></label>}
         {cart.lines.length>0&&<div className="market-cart-sheet-subtotal"><span>{isId?'Subtotal kartu':'Cards subtotal'}</span><strong>{selectedListings.length?formatMoney(subtotal,selectedListings[0].currency):'—'}</strong></div>}
-        <button type="button" className="button market-cart-sheet-checkout" disabled={disabled||!selectedSellerId||selectedSellerId.startsWith('unavailable:')} onClick={continueToCheckout}>{isId?'Lanjutkan checkout':'Continue to checkout'}<ArrowRight size={17}/></button>
+        <button type="button" className="button market-cart-sheet-checkout" disabled={disabled||!selectedSellerGroupId||selectedSellerGroupId.startsWith('unavailable:')} onClick={continueToCheckout}>{isId?'Lanjutkan checkout':'Continue to checkout'}<ArrowRight size={17}/></button>
         <button type="button" className="market-cart-sheet-clear" onClick={clearCart}>{isId?'Kosongkan keranjang':'Clear cart'}</button>
       </footer>}
     </SheetContent>

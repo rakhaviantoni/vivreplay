@@ -21,15 +21,18 @@ import {MARKET_BUYER_FEE_PERCENT,MARKET_PRO_BUYER_FEE_PERCENT,MARKET_BUYER_FEE_M
 type Origin={addressLine:string;city:string;postalCode:string;areaId:string|null;recipientName:string|null;phone:string|null;latitude?:number|null;longitude?:number|null;regionNames?:{province?:string;city?:string;district?:string;subdistrict?:string}};
 type Rate={courier_name:string;courier_service_name:string;courier_code:string;courier_service_code:string;company:string;type:string;price:number;duration?:string};
 type CheckoutLine={printingId:string;quantity:number;unitAmount?:number};
-type CartLine={listingId:string;listingTitle:string;sellerId?:string;items:CheckoutLine[]};
+type CartLine={listingId:string;listingTitle:string;items:CheckoutLine[]};
 
 export function MarketCheckout(){
   const params=useSearchParams();
   const router=useRouter();
   const {data:account,loading:accountLoading,error:accountError}=useAccount();
   const cartMode=params.get('cart')==='1';
-  const requestedSellerId=params.get('seller')??'';
+  const requestedListingsParam=params.get('listings')??'';
+  const hasRequestedListings=params.has('listings');
+  const requestedListingIds=useMemo(()=>[...new Set(requestedListingsParam.split(',').filter(id=>/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)))],[requestedListingsParam]);
   const [cartLines,setCartLines]=useState<CartLine[]>([]);const [cartReady,setCartReady]=useState(!cartMode);
+  const activeCartLines=useMemo(()=>cartMode&&hasRequestedListings?cartLines.filter(line=>requestedListingIds.includes(line.listingId)):cartLines,[cartMode,hasRequestedListings,cartLines,requestedListingIds]);
   const listingId=params.get('listing')??cartLines[0]?.listingId??'';
   const offerId=params.get('offer')??'';
   const rawItems=params.get('items')??'';
@@ -75,30 +78,25 @@ export function MarketCheckout(){
   const addressReady=Boolean(origin&&origin.addressLine.trim()&&origin.city.trim()&&/^\d{5}$/.test(origin.postalCode));
 
   useEffect(()=>{const sync=()=>setLocale(window.localStorage.getItem('vivreplay-locale')==='ID'?'ID':'EN');const onLocale=(event:Event)=>setLocale((event as CustomEvent<'EN'|'ID'>).detail==='ID'?'ID':'EN');sync();window.addEventListener('vivreplay:locale',onLocale);return()=>window.removeEventListener('vivreplay:locale',onLocale)},[]);
-  useEffect(()=>{if(!cartMode)return;try{const cart=JSON.parse(window.localStorage.getItem('vivreplay-market-cart-v1')||'null');const lines=Array.isArray(cart?.lines)?cart.lines.filter((line:CartLine)=>line?.listingId&&Array.isArray(line.items)&&line.items.length).map((line:CartLine)=>({...line,sellerId:line.sellerId??cart.sellerId??''})):[];setCartLines(lines)}catch{setCartLines([])}finally{setCartReady(true)}},[cartMode]);
+  useEffect(()=>{if(!cartMode)return;try{const cart=JSON.parse(window.localStorage.getItem('vivreplay-market-cart-v1')||'null');const lines=Array.isArray(cart?.lines)?cart.lines.filter((line:CartLine)=>typeof line?.listingId==='string'&&Array.isArray(line.items)&&line.items.length).map((line:CartLine)=>({listingId:line.listingId,listingTitle:typeof line.listingTitle==='string'?line.listingTitle:'',items:line.items.filter(item=>typeof item?.printingId==='string'&&Number.isInteger(item.quantity)&&item.quantity>0).map(item=>({printingId:item.printingId,quantity:item.quantity,unitAmount:item.unitAmount}))})):[];setCartLines(lines);window.localStorage.setItem('vivreplay-market-cart-v1',JSON.stringify({lines}))}catch{setCartLines([])}finally{setCartReady(true)}},[cartMode]);
   useEffect(()=>{
-    if(accountLoading)return;
+    if(accountLoading||(cartMode&&!cartReady))return;
+    if(cartMode&&hasRequestedListings&&(requestedListingIds.length>10||requestedListingIds.length!==requestedListingsParam.split(',').length)){setDetailsError(t('The selected cart items are invalid. Return to your cart and choose again.','Item keranjang yang dipilih tidak valid. Kembali ke keranjang dan pilih lagi.'));setLoading(false);return;}
     if(!account){setLoading(false);return;}
     setLoading(true);setDetailsError('');
     let active=true;
+    const selectedCartLines=cartMode?activeCartLines:[];
+    const listingsRequest=cartMode&&!selectedCartLines.length?Promise.resolve({listings:[] as Listing[]}):api<{listings:Listing[]}>(cartMode?`/api/listings?ids=${encodeURIComponent(selectedCartLines.map(line=>line.listingId).join(','))}`:'/api/listings',undefined,'GET');
     Promise.all([
-      api<{listings:Listing[]}>('/api/listings'),
+      listingsRequest,
       api<{origin:Origin|null}>('/api/shipping/origin',undefined,'GET'),
       api<{available:boolean;sandbox?:boolean;buyerTier?:'free'|'pro';buyerFeeMinimum?:number;shippingVoucherMinSubtotal?:number;shippingVouchersRemaining?:number}>('/api/checkout/market',undefined,'GET'),
     ]).then(([market,shipping,checkout])=>{
       if(!active)return;
-      let checkoutLines=cartLines;
-      if(cartMode&&cartLines.length){
-        const firstLiveListing=market.listings.find(row=>row.id===cartLines[0].listingId);
-        const sellerId=requestedSellerId||cartLines[0].sellerId||firstLiveListing?.sellerId||'';
-        checkoutLines=cartLines.filter(line=>{
-          const liveListing=market.listings.find(row=>row.id===line.listingId);
-          return Boolean(liveListing&&(!sellerId||liveListing.sellerId===sellerId));
-        });
-      }
-      if(cartMode&&checkoutLines.length!==cartLines.length)setCartLines(checkoutLines);
+      const checkoutLines=selectedCartLines;
+      if(cartMode&&requestedListingIds.length&&checkoutLines.length!==requestedListingIds.length)throw new Error(t('The selected cart items are unavailable. Return to your cart and choose again.','Item keranjang yang dipilih tidak tersedia. Kembali ke keranjang dan pilih lagi.'));
       const selectedListings=cartMode?checkoutLines.map(line=>market.listings.find(row=>row.id===line.listingId)).filter((row):row is Listing=>Boolean(row)):[market.listings.find(row=>row.id===listingId)].filter((row):row is Listing=>Boolean(row));
-      if(cartMode&&selectedListings.length!==checkoutLines.length)throw new Error(t('A listing in your cart is no longer available. Remove it and try again.','Salah satu listing di keranjang sudah tidak tersedia. Hapus listing tersebut lalu coba lagi.'));setCartListings(selectedListings);setListing(selectedListings[0]);
+      if(cartMode&&selectedListings.length!==checkoutLines.length)throw new Error(t('A listing in your cart is no longer available. Return to your cart and remove it.','Salah satu listing di keranjang sudah tidak tersedia. Kembali ke keranjang dan hapus listing tersebut.'));setCartListings(selectedListings);setListing(selectedListings[0]);
       setOrigin(shipping.origin??undefined);
       setCheckoutAvailable(checkout.available);
       setBuyerTier(checkout.buyerTier==='pro'?'pro':'free');
@@ -107,10 +105,10 @@ export function MarketCheckout(){
       setShippingVouchersRemaining(checkout.shippingVouchersRemaining??0);
     }).catch(cause=>{if(active)setDetailsError(cause instanceof Error?cause.message:'Checkout details could not load.')}).finally(()=>{if(active)setLoading(false)});
     return()=>{active=false};
-  },[account?.profile.id,accountLoading,listingId,cartMode,cartLines,requestedSellerId]);
+  },[account?.profile.id,accountLoading,listingId,cartMode,cartReady,activeCartLines,requestedListingIds,hasRequestedListings,requestedListingsParam,locale]);
 
   const selectedCards=useMemo(()=>{
-    const sourceLines=cartMode?cartLines.map(line=>({listing:cartListings.find(row=>row.id===line.listingId),items:line.items})).filter(line=>line.listing):[{listing,items}];
+    const sourceLines=cartMode?activeCartLines.map(line=>({listing:cartListings.find(row=>row.id===line.listingId),items:line.items})).filter(line=>line.listing):[{listing,items}];
     return sourceLines.flatMap(({listing:source,items:sourceItems})=>sourceItems.map(selected=>{
       const cardItems=source?.items??[];
       const item=cardItems.find(entry=>entry.printingId===selected.printingId);
@@ -119,7 +117,7 @@ export function MarketCheckout(){
       const fallbackUnitAmount=source?Math.max(1,Math.floor(source.amount/bundleQuantity)):0;
       return {listingId:source?.id,listingTitle:source?.title,printingId:selected.printingId,quantity:selected.quantity,card,unitAmount:selected.unitAmount&&selected.unitAmount>0?selected.unitAmount:item?.unitAmount&&item.unitAmount>0?item.unitAmount:fallbackUnitAmount,condition:item?.condition??source?.condition??'NM'};
     }));
-  },[items,listing,cartMode,cartLines,cartListings]);
+  },[items,listing,cartMode,activeCartLines,cartListings]);
   const checkoutGroups=useMemo(()=>{
     const groups=new Map<string,{id:string;title:string;items:typeof selectedCards}>();
     for(const item of selectedCards){const key=item.listingId??listing?.id??'listing';const group=groups.get(key)??{id:key,title:item.listingTitle??listing?.title??'',items:[]};group.items.push(item);groups.set(key,group)}
@@ -141,14 +139,14 @@ export function MarketCheckout(){
     const controller=new AbortController();quoteRequest.current=controller;
     setQuoting(true);setQuoteError('');setRates([]);setSelectedRate('');
     try{
-      const response=await fetch('/api/shipping/quotes',{signal:controller.signal,method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({listingId:orderListingId,lines:cartMode?cartLines.map(line=>({listingId:line.listingId,items:line.items})):undefined,items,destinationAreaId:origin.areaId,destinationPostalCode:origin.postalCode,refresh:forceRefresh})});
+      const response=await fetch('/api/shipping/quotes',{signal:controller.signal,method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({listingId:orderListingId,lines:cartMode?activeCartLines.map(line=>({listingId:line.listingId,items:line.items})):undefined,items,destinationAreaId:origin.areaId,destinationPostalCode:origin.postalCode,refresh:forceRefresh})});
       const result=await response.json() as {pricing?:Rate[];error?:string};
       if(controller.signal.aborted)return;
       if(!response.ok)throw new Error(result.error??t('Shipping rates could not be loaded.','Ongkir tidak dapat dimuat.'));
       const options=result.pricing??[];setRates(options);if(options[0])setSelectedRate(`${options[0].courier_code}:${options[0].courier_service_code}`);
       if(!options.length)throw new Error(t('No delivery services are available for this address. Update the address or ask the seller for help.','Tidak ada layanan pengiriman untuk alamat ini. Perbarui alamat atau hubungi penjual.'));
     }catch(cause){if(!controller.signal.aborted)setQuoteError(cause instanceof Error?cause.message:t('Shipping rates could not be loaded.','Ongkir tidak dapat dimuat.'))}finally{if(quoteRequest.current===controller){setQuoting(false);quoteRequest.current=null;}}
-  },[listing,origin,items,selectedCards,orderListingId,locale,cartMode,cartLines]);
+  },[listing,origin,items,selectedCards,orderListingId,locale,cartMode,activeCartLines]);
 
   useEffect(()=>{
     if(!listing||!origin||!addressReady||!selectedCards.length)return;
@@ -182,17 +180,17 @@ export function MarketCheckout(){
   };
   const onAddressMapChange=useCallback((coords:{lat:number;lng:number})=>{setAddressLatitude(coords.lat);setAddressLongitude(coords.lng)},[]);
   const chooseDelivery=()=>{if(editingAddress||!addressReady){setEditingAddress(true);document.querySelector('.checkout-address-editor')?.scrollIntoView({behavior:'smooth',block:'start'});return}const panel=document.getElementById('checkout-delivery-services');panel?.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'center'});panel?.focus({preventScroll:true});};
-  const updateCartQuantity=(sourceListingId:string,printingId:string,quantity:number)=>{const source=cartListings.find(row=>row.id===sourceListingId);const cap=source?.items?.filter(item=>item.printingId===printingId).reduce((total,item)=>total+item.quantity,0)??99;quantity=Math.min(99,cap,quantity);const next=cartLines.map(line=>line.listingId===sourceListingId?{...line,items:line.items.map(item=>item.printingId===printingId?{...item,quantity}:item).filter(item=>item.quantity>0)}:line).filter(line=>line.items.length>0).map(line=>({...line,sellerId:cartListings.find(row=>row.id===line.listingId)?.sellerId??line.sellerId}));setCartLines(next);const stored=JSON.parse(window.localStorage.getItem('vivreplay-market-cart-v1')||'{"sellerId":"","lines":[]}') as {sellerId?:string;lines?:CartLine[]};const selectedIds=new Set(cartLines.map(line=>line.listingId));const selectedById=new Map(next.map(line=>[line.listingId,line]));const allLines=(stored.lines??[]).flatMap(line=>{if(!selectedIds.has(line.listingId))return[{...line,sellerId:line.sellerId??stored.sellerId}];const updated=selectedById.get(line.listingId);return updated?[updated]:[]});window.localStorage.setItem('vivreplay-market-cart-v1',JSON.stringify({sellerId:'',lines:allLines}));window.dispatchEvent(new Event('vivreplay:market-cart-updated'));autoQuoteKey.current='';};
+  const updateCartQuantity=(sourceListingId:string,printingId:string,quantity:number)=>{const source=cartListings.find(row=>row.id===sourceListingId);const cap=source?.items?.filter(item=>item.printingId===printingId).reduce((total,item)=>total+item.quantity,0)??99;quantity=Math.min(99,cap,quantity);const next=cartLines.map(line=>line.listingId===sourceListingId?{...line,items:line.items.map(item=>item.printingId===printingId?{...item,quantity}:item).filter(item=>item.quantity>0)}:line).filter(line=>line.items.length>0);setCartLines(next);let storedLines:CartLine[]=[];try{const stored=JSON.parse(window.localStorage.getItem('vivreplay-market-cart-v1')||'{"lines":[]}') as {lines?:CartLine[]};storedLines=Array.isArray(stored.lines)?stored.lines:[]}catch{}const selectedIds=new Set(cartLines.map(line=>line.listingId));const selectedById=new Map(next.map(line=>[line.listingId,line]));const allLines=storedLines.flatMap(line=>{if(!selectedIds.has(line.listingId))return[line];const updated=selectedById.get(line.listingId);return updated?[updated]:[]});window.localStorage.setItem('vivreplay-market-cart-v1',JSON.stringify({lines:allLines}));window.dispatchEvent(new Event('vivreplay:market-cart-updated'));autoQuoteKey.current='';};
 
   const startCheckout=async()=>{
     if(!currentRate)return;
     setSubmitting(true);setError('');
     try{
-      const response=await fetch('/api/checkout/market',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({listingId:orderListingId,offerId:offerId||undefined,items:cartMode?selectedCards.map(item=>({printingId:item.printingId,quantity:item.quantity,listingId:item.listingId})):items,lines:cartMode?cartLines.map(line=>({listingId:line.listingId,items:line.items})):undefined,courierName:currentRate.courier_name,courierServiceName:currentRate.courier_service_name,courierCode:currentRate.courier_code,courierServiceCode:currentRate.courier_service_code,courierType:currentRate.type,shippingFee:currentRate.price,useShippingVoucher})});
+      const response=await fetch('/api/checkout/market',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({listingId:orderListingId,offerId:offerId||undefined,items:cartMode?selectedCards.map(item=>({printingId:item.printingId,quantity:item.quantity,listingId:item.listingId})):items,lines:cartMode?activeCartLines.map(line=>({listingId:line.listingId,items:line.items})):undefined,courierName:currentRate.courier_name,courierServiceName:currentRate.courier_service_name,courierCode:currentRate.courier_code,courierServiceCode:currentRate.courier_service_code,courierType:currentRate.type,shippingFee:currentRate.price,useShippingVoucher})});
       const result=await response.json() as {checkoutUrl?:string;error?:string};
       if(response.status===409&&result.error?.includes('delivery fee changed')){await loadQuotes(true);throw new Error(t('Delivery fees changed. Review the updated options before paying.','Ongkir berubah. Periksa opsi terbaru sebelum membayar.'));}
       if(!response.ok||!result.checkoutUrl)throw new Error(result.error??t('Checkout could not be started.','Checkout tidak dapat dimulai.'));
-      if(cartMode){const stored=JSON.parse(window.localStorage.getItem('vivreplay-market-cart-v1')||'{"lines":[]}') as {lines?:CartLine[]};const completedIds=new Set(cartLines.map(line=>line.listingId));const remaining=(stored.lines??[]).filter(line=>!completedIds.has(line.listingId));window.localStorage.setItem('vivreplay-market-cart-v1',JSON.stringify({sellerId:'',lines:remaining}));window.dispatchEvent(new Event('vivreplay:market-cart-updated'));}
+      if(cartMode){const stored=JSON.parse(window.localStorage.getItem('vivreplay-market-cart-v1')||'{"lines":[]}') as {lines?:CartLine[]};const completedIds=new Set(activeCartLines.map(line=>line.listingId));const remaining=(stored.lines??[]).filter(line=>!completedIds.has(line.listingId));window.localStorage.setItem('vivreplay-market-cart-v1',JSON.stringify({lines:remaining}));window.dispatchEvent(new Event('vivreplay:market-cart-updated'));}
       router.push(result.checkoutUrl);
     }catch(cause){const message=cause instanceof Error?cause.message:t('Checkout could not be started.','Checkout tidak dapat dimulai.');setError(message);toast.error(message)}finally{setSubmitting(false)}
   };

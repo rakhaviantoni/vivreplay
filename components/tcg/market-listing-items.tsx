@@ -410,7 +410,7 @@ export function ListingArtRotator({items}:{items:MarketListingCard[]}){
   </div>;
 }
 
-export function MarketListingItems({items,currency,listingType,listingId,listingTitle,sellerId,listingInfo,negotiable=true,readOnly=false,previewOnly=false,canEditPrices=false,canManageListing=false,onItemsAdded,onPriceSaved}:{items:MarketListingCard[];currency:string;listingType:'WTS'|'WTB';listingId:string;listingTitle?:string;sellerId?:string;listingInfo?:{seller?:string;city?:string;expiresAt?:string};listingAmount?:string;negotiable?:boolean;readOnly?:boolean;previewOnly?:boolean;canEditPrices?:boolean;canManageListing?:boolean;onItemsAdded?:(cards:MarketListingCard[])=>void;onPriceSaved?:(index:number,unitAmount:number)=>void;}){
+export function MarketListingItems({items,currency,listingType,listingId,listingTitle,listingInfo,negotiable=true,readOnly=false,previewOnly=false,canEditPrices=false,canManageListing=false,onItemsAdded,onPriceSaved}:{items:MarketListingCard[];currency:string;listingType:'WTS'|'WTB';listingId:string;listingTitle?:string;listingInfo?:{seller?:string;city?:string;expiresAt?:string};listingAmount?:string;negotiable?:boolean;readOnly?:boolean;previewOnly?:boolean;canEditPrices?:boolean;canManageListing?:boolean;onItemsAdded?:(cards:MarketListingCard[])=>void;onPriceSaved?:(index:number,unitAmount:number)=>void;}){
   const router=useRouter();
   const singleCopyListing=items.length===1&&items[0].quantity===1;
   const [selected,setSelected]=useState<Record<string,number>>(()=>singleCopyListing?{[items[0].id]:1}:{});
@@ -567,13 +567,13 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
     if(!session){window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));return;}
     if(selectionInCart){window.dispatchEvent(new Event('vivreplay:open-market-cart'));return;}
     const cartKey='vivreplay-market-cart-v1';
-    let cart:{sellerId:string;lines:{listingId:string;listingTitle:string;sellerId?:string;items:{printingId:string;quantity:number}[]}[]}={sellerId:'',lines:[]};
-    try{const saved=JSON.parse(window.localStorage.getItem(cartKey)||'null');if(saved&&Array.isArray(saved.lines))cart=saved;}catch{}
+    let cart:{lines:{listingId:string;listingTitle:string;items:{printingId:string;quantity:number}[]}[]}={lines:[]};
+    try{const saved=JSON.parse(window.localStorage.getItem(cartKey)||'null');if(saved&&Array.isArray(saved.lines))cart={lines:saved.lines.filter((line:{listingId?:unknown;items?:unknown})=>typeof line.listingId==='string'&&Array.isArray(line.items)).map((line:{listingId:string;listingTitle?:string;items:{printingId:string;quantity:number}[]})=>({listingId:line.listingId,listingTitle:line.listingTitle??'',items:line.items.filter(item=>typeof item.printingId==='string'&&Number.isInteger(item.quantity)&&item.quantity>0).map(item=>({printingId:item.printingId,quantity:item.quantity}))}))};}catch{}
     if(!cart.lines.some(line=>line.listingId===listingId)&&cart.lines.length>=10){toast.error(t('Your cart is full. Check out a seller’s items or remove a listing to make room.','Keranjang penuh. Checkout item penjual atau hapus listing untuk menambah item lain.'));return;}
     const incoming=items.flatMap(item=>selected[item.id]?[{printingId:item.id,quantity:Math.min(99,selected[item.id])}]:[]);
     const current=cart.lines.find(line=>line.listingId===listingId);
-    if(current){current.sellerId=sellerId??current.sellerId;for(const item of incoming){const existing=current.items.find(line=>line.printingId===item.printingId);const available=items.find(listingItem=>listingItem.id===item.printingId)?.quantity??item.quantity;if(existing)existing.quantity=Math.min(99,available,Math.max(existing.quantity,item.quantity));else current.items.push({...item,quantity:Math.min(99,available,item.quantity)});}}
-    else cart.lines.push({listingId,listingTitle:listingTitle??t('Card listing','Listing kartu'),sellerId:sellerId??undefined,items:incoming});
+    if(current){for(const item of incoming){const existing=current.items.find(line=>line.printingId===item.printingId);const available=items.find(listingItem=>listingItem.id===item.printingId)?.quantity??item.quantity;if(existing)existing.quantity=Math.min(99,available,Math.max(existing.quantity,item.quantity));else current.items.push({...item,quantity:Math.min(99,available,item.quantity)});}}
+    else cart.lines.push({listingId,listingTitle:listingTitle??t('Card listing','Listing kartu'),items:incoming});
     window.localStorage.setItem(cartKey,JSON.stringify(cart));window.dispatchEvent(new Event('vivreplay:market-cart-updated'));
     toast.success(current?t('Cart updated','Keranjang diperbarui'):t('Added to cart','Ditambahkan ke keranjang'),{action:{label:t('View cart','Lihat keranjang'),onClick:()=>window.dispatchEvent(new Event('vivreplay:open-market-cart'))}});
   };
@@ -981,7 +981,6 @@ export function MarketListingDetailView({
               currency={listing.currency}
               listingType={listing.type === 'WTB' ? 'WTB' : 'WTS'}
               listingId={listing.id}
-              sellerId={listing.sellerId}
               listingInfo={{seller:listing.seller,city:listing.city,expiresAt:listing.expiresAt??undefined}}
               listingTitle={listingTitle}
               listingAmount={formatMoney(listingAmount, listing.currency)}

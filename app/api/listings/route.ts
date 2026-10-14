@@ -40,9 +40,15 @@ async function ensureMarketPrintings(database:ReturnType<typeof db>,printingIds:
   if((verified.results??[]).length!==printingIds.length)throw new HttpError(400,'One or more selected printings are not available in Market yet. Refresh the catalog and try again.');
 }
 
-export async function GET(){
-  try{let viewerId:string|undefined;try{viewerId=(await user()).id}catch{}return Response.json({listings:await market(viewerId)},{headers:{'Cache-Control':'private, no-store','Vary':'Cookie'}})}
-  catch(error){console.error('listings_load_failed',error);return Response.json({error:'Live listings are temporarily unavailable. Please retry.'},{status:503})}
+export async function GET(request:Request){
+  try{
+    const idsParam=new URL(request.url).searchParams.get('ids');
+    let ids:string[]|undefined;
+    if(idsParam!==null){ids=[...new Set(idsParam.split(',').filter(Boolean))];if(!ids.length||ids.length>10||ids.some(id=>!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)))throw new HttpError(400,'Choose up to 10 valid listings.')}
+    let viewerId:string|undefined;try{viewerId=(await user()).id}catch{}
+    return Response.json({listings:await market(viewerId,ids)},{headers:{'Cache-Control':'private, no-store','Vary':'Cookie'}})
+  }
+  catch(error){if(error instanceof HttpError)return errorResponse(error);console.error('listings_load_failed',error);return Response.json({error:'Live listings are temporarily unavailable. Please retry.'},{status:503})}
 }
 
 export async function POST(request:Request){
