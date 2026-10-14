@@ -433,7 +433,10 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
   const [query,setQuery]=useState('');
   const [lang,setLang]=useState<'all'|'EN'|'JP'>('all');
   const [sort,setSort]=useState<'newest'|'price_asc'|'price_desc'>('newest');
+  const feedListRef=useRef<HTMLElement|null>(null);
+  const previousFeedPositions=useRef<Map<string,{left:number;top:number}>|null>(null);
   const [tradeType,setTradeType]=useState<'all'|'WTS'|'WTB'>('all');
+  const [filterMotionKey,setFilterMotionKey]=useState<0|1|null>(null);
   const [listingView,setListingView]=useState<'list'|'grid'>('list');
   const [feedScope,setFeedScope]=useState<'listings'|'cards'>('listings');
   const [open,setOpen]=useState(()=>!modalOnly&&Boolean(searchParams.get('sell')&&searchParams.get('sell')!=='open'));
@@ -728,6 +731,40 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
     if(printingFilter)return visible.filter(listing=>listing.printingId===printingFilter||listing.items?.some(item=>item.printingId===printingFilter));
     return visible;
   },[visible,printingFilter]);
+  const captureFeedPositions=()=>{
+    const list=feedListRef.current;
+    if(list&&typeof window!=='undefined'&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+      previousFeedPositions.current=new Map(Array.from(list.querySelectorAll<HTMLElement>('[data-listing-id]')).map(row=>[row.dataset.listingId??'',{left:row.getBoundingClientRect().left,top:row.getBoundingClientRect().top}]));
+    }
+  };
+  const triggerFeedMotion=()=>setFilterMotionKey(current=>current===0?1:0);
+  const changeSort=(next:'newest'|'price_asc'|'price_desc')=>{
+    if(next===sort)return;
+    captureFeedPositions();
+    triggerFeedMotion();
+    setSort(next);
+  };
+  const changeLanguage=(next:'all'|'EN'|'JP')=>{if(next===lang)return;captureFeedPositions();triggerFeedMotion();setLang(next)};
+  const changeTradeType=(next:'all'|'WTS'|'WTB')=>{if(next===tradeType)return;captureFeedPositions();triggerFeedMotion();setTradeType(next)};
+  useEffect(()=>{
+    const previous=previousFeedPositions.current;
+    if(!previous)return;
+    previousFeedPositions.current=null;
+    const frame=window.requestAnimationFrame(()=>{
+      const list=feedListRef.current;
+      if(!list)return;
+      for(const row of list.querySelectorAll<HTMLElement>('[data-listing-id]')){
+        const before=previous.get(row.dataset.listingId??'');
+        if(!before){row.animate([{opacity:.72,transform:'translateY(4px)'},{opacity:1,transform:'translateY(0)'}],{duration:180,easing:'cubic-bezier(.2,0,0,1)'});continue;}
+        const after=row.getBoundingClientRect();
+        const x=before.left-after.left;
+        const y=before.top-after.top;
+        if(Math.abs(x)+Math.abs(y)<2)continue;
+        row.animate([{transform:`translate(${x}px, ${y}px)`},{transform:'translate(0, 0)'}],{duration:220,easing:'cubic-bezier(.2,0,0,1)'});
+      }
+    });
+    return()=>window.cancelAnimationFrame(frame);
+  },[sort,lang,tradeType]);
   const tradeCounts = useMemo(() => {
     const wts = listings.filter(l => l.type === 'WTS').length;
     const wtb = listings.filter(l => l.type === 'WTB').length;
@@ -995,7 +1032,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
               <button
                 type="button"
                 className={listingView === 'list' ? 'active' : ''}
-                onClick={() => setListingView('list')}
+                onClick={() => {if(listingView!=='list'){triggerFeedMotion();setListingView('list')}}}
                 aria-label={locale === 'ID' ? 'Tampilan daftar' : 'List view'}
               >
                 <List size={16} />
@@ -1003,7 +1040,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
               <button
                 type="button"
                 className={listingView === 'grid' ? 'active' : ''}
-                onClick={() => setListingView('grid')}
+                onClick={() => {if(listingView!=='grid'){triggerFeedMotion();setListingView('grid')}}}
                 aria-label={locale === 'ID' ? 'Tampilan kisi' : 'Grid view'}
               >
                 <Grid size={16} />
@@ -1016,7 +1053,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
                 <button
                   type="button"
                   className={`market-trade-chip ${tradeType === 'all' ? 'is-active' : ''}`}
-                  onClick={() => setTradeType('all')}
+                  onClick={() => changeTradeType('all')}
                 >
                   <span>{locale === 'ID' ? 'Semua' : 'All'}</span>
                   <small>({tradeCounts.all})</small>
@@ -1024,7 +1061,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
                 <button
                   type="button"
                   className={`market-trade-chip ${tradeType === 'WTS' ? 'is-active' : ''}`}
-                  onClick={() => setTradeType('WTS')}
+                  onClick={() => changeTradeType('WTS')}
                 >
                   <span className="market-trade-dot is-wts" aria-hidden="true" />
                   <span>{locale === 'ID' ? 'Dijual' : 'For sale'}</span>
@@ -1033,7 +1070,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
                 <button
                   type="button"
                   className={`market-trade-chip ${tradeType === 'WTB' ? 'is-active' : ''}`}
-                  onClick={() => setTradeType('WTB')}
+                  onClick={() => changeTradeType('WTB')}
                 >
                   <span className="market-trade-dot is-wtb" aria-hidden="true" />
                   <span>{locale === 'ID' ? 'Membeli' : 'Buying'}</span>
@@ -1046,7 +1083,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
                   <Picker
                     label={locale === 'ID' ? 'Bahasa listing' : 'Listing language'}
                     value={lang}
-                    onChange={v => setLang(v as typeof lang)}
+                    onChange={v => changeLanguage(v as typeof lang)}
                     options={[
                       { value: 'all', label: locale === 'ID' ? 'Semua bahasa' : 'All languages' },
                       { value: 'EN', label: 'EN' },
@@ -1059,7 +1096,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
                   <Picker
                     label={locale === 'ID' ? 'Urutan listing' : 'Sort listings'}
                     value={sort}
-                    onChange={v => setSort(v as typeof sort)}
+                    onChange={v => changeSort(v as typeof sort)}
                     options={[
                       { value: 'newest', label: locale === 'ID' ? 'Terbaru' : 'Newest' },
                       { value: 'price_asc', label: locale === 'ID' ? 'Harga: terendah' : 'Price: low to high' },
@@ -1091,7 +1128,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
           />
         ) : (
           <>
-            <section className={`market-feed-list is-${listingView}`} aria-label={locale==='ID'?'Daftar listing Market aktif':'Live Market listings'}>
+            <section ref={feedListRef} data-feed-motion={filterMotionKey??undefined} className={`market-feed-list is-${listingView}`} aria-label={locale==='ID'?'Daftar listing Market aktif':'Live Market listings'}>
               {displayListings.map(listing=>{
                 const items=listing.items?.length?listing.items:[{printingId:listing.printingId,quantity:listing.quantity}];
                 const totalCards=items.reduce((total,item)=>total+item.quantity,0);
@@ -1126,7 +1163,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
                   </>
                 );
                 const rowClass=`market-feed-row ${listing.type==='WTB'?'is-wtb':'is-wts'}${listing.isOwner?'':' has-row-action'}${!listing.isOwner&&listing.type==='WTS'&&items.length===1?' has-cart-action':''}`;
-                return <article key={listing.id} className={`${rowClass} market-feed-entry`}>
+                return <article key={listing.id} data-listing-id={listing.id} className={`${rowClass} market-feed-entry`}>
                   <div className="market-feed-row-content">{content}</div>
                   <Link href={marketListingPath(listing.title,listing.id)} className="market-feed-row-link" aria-label={locale==='ID'?`Buka ${listing.title}`:`Open ${listing.title}`}/>
                   {!listing.isOwner&&<div className="market-feed-row-actions">

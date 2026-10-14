@@ -2625,7 +2625,7 @@ html[data-theme='dark'] .market-icon-action[aria-pressed='true'] {
 
 /* Compact rows in the My Listings account popup. */
 .market-account-unified-body.is-listings .market-activity-panel{gap:9px!important}
-.market-account-unified-body.is-listings .market-activity-toolbar.is-compact{min-height:30px!important;justify-content:flex-end!important}
+.market-account-unified-body.is-listings .market-activity-toolbar.is-compact{min-height:30px!important;justify-content:space-between!important}
 .market-account-unified-body.is-listings .market-activity-toolbar.is-compact .market-activity-toolbar-actions{gap:5px!important}
 .market-account-unified-body.is-listings .market-activity-toolbar.is-compact .market-activity-primary,
 .market-account-unified-body.is-listings .market-activity-toolbar.is-compact .market-activity-refresh{min-height:30px!important}
@@ -3128,6 +3128,58 @@ html[data-theme="dark"] body :is(
   display: none !important;
 }
 
+/* Distinguish sale and buy-request cards with a quiet full-border tint. */
+.market-feed-list.is-list .market-feed-row.is-wts,
+.market-feed-list.is-grid .market-feed-row.is-wts {
+  border-color: color-mix(in srgb, #16845f 26%, var(--line)) !important;
+}
+.market-feed-list.is-list .market-feed-row.is-wtb,
+.market-feed-list.is-grid .market-feed-row.is-wtb {
+  border-color: color-mix(in srgb, #b47a1f 26%, var(--line)) !important;
+}
+.market-feed-list.is-list .market-feed-row.is-wts:hover,
+.market-feed-list.is-grid .market-feed-row.is-wts:hover,
+.market-feed-list.is-list .market-feed-row.is-wts:focus-within,
+.market-feed-list.is-grid .market-feed-row.is-wts:focus-within {
+  border-color: color-mix(in srgb, #16845f 48%, var(--line)) !important;
+}
+.market-feed-list.is-list .market-feed-row.is-wtb:hover,
+.market-feed-list.is-grid .market-feed-row.is-wtb:hover,
+.market-feed-list.is-list .market-feed-row.is-wtb:focus-within,
+.market-feed-list.is-grid .market-feed-row.is-wtb:focus-within {
+  border-color: color-mix(in srgb, #b47a1f 48%, var(--line)) !important;
+}
+
+/* Keep view changes quick and low-key. */
+.market-feed-list.is-list .market-feed-row { animation: market-feed-list-change .18s ease both; }
+.market-feed-list.is-grid .market-feed-row { animation: market-feed-grid-change .18s ease both; }
+.market-feed-list[data-feed-motion='0'] .market-feed-row { animation: market-feed-filter-a .2s ease both; }
+.market-feed-list[data-feed-motion='1'] .market-feed-row { animation: market-feed-filter-b .2s ease both; }
+.market-feed-list .market-feed-row:nth-child(2) { animation-delay: 18ms; }
+.market-feed-list .market-feed-row:nth-child(3) { animation-delay: 36ms; }
+.market-feed-list .market-feed-row:nth-child(4) { animation-delay: 54ms; }
+@keyframes market-feed-list-change { from { opacity: .82; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes market-feed-grid-change { from { opacity: .82; transform: translateY(3px) scale(.995); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes market-feed-filter-a { from { opacity: .72; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes market-feed-filter-b { from { opacity: .72; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+.market-scope-tab,
+.market-trade-chip,
+.market-view-toggle button,
+.market-feed-filters [data-slot='select-trigger'] {
+  transition: color .16s ease, background-color .16s ease, border-color .16s ease, box-shadow .16s ease, transform .16s ease !important;
+}
+.market-scope-tab:active,
+.market-trade-chip:active,
+.market-view-toggle button:active,
+.market-feed-filters [data-slot='select-trigger']:active { transform: scale(.98); }
+@media (prefers-reduced-motion: reduce) {
+  .market-feed-list .market-feed-row { animation: none !important; }
+  .market-scope-tab,
+  .market-trade-chip,
+  .market-view-toggle button,
+  .market-feed-filters [data-slot='select-trigger'] { transition-duration: .01ms !important; }
+}
+
 /* Three facts share one row on phones, so the third cell gets its divider too. */
 @media (max-width: 760px) {
   .market-listing-detail .market-listing-facts:has(> :nth-child(3):last-child) {
@@ -3143,4 +3195,72 @@ html[data-theme="dark"] body :is(
     border-left: 0 !important;
   }
   .market-seller-shipping-panel { width: min(260px, calc(100vw - 44px)); }
+}
+
+/* Keep My Listings actions compact and center their icon-only controls. */
+@media (max-width: 620px) {
+  .market-account-unified-body.is-listings .market-listing-price-terms-select {
+    height: 28px !important;
+    min-height: 28px !important;
+    padding: 0 6px !important;
+    gap: 4px !important;
+    border-radius: 4px !important;
+    font-size: 10px !important;
+  }
+  .market-account-unified-body.is-listings .market-listing-price-terms-select > svg {
+    width: 12px !important;
+    height: 12px !important;
+  }
+  .market-account-unified-body.is-listings .market-listing-price-terms-menu [data-slot='select-item'] {
+    min-height: 28px !important;
+    padding: 4px 7px !important;
+    font-size: 11px !important;
+  }
+  .market-account-unified-body.is-listings .market-listing-row:not(:has(.market-listing-inline-price-edit.is-editing)) > .market-activity-actions {
+    display: flex !important;
+    grid-column: 3 !important;
+    grid-row: 2 !important;
+    justify-self: end !important;
+    align-self: center !important;
+    width: auto !important;
+    gap: 4px !important;
+  }
+  .market-account-unified-body.is-listings .market-listing-row:not(:has(.market-listing-inline-price-edit.is-editing)) > .market-activity-actions button:not(.is-primary-action),
+  .market-account-unified-body.is-listings .market-listing-row:not(:has(.market-listing-inline-price-edit.is-editing)) > .market-activity-actions button.is-primary-action,
+  .market-account-unified-body.is-listings .market-listing-row:not(:has(.market-listing-inline-price-edit.is-editing)) > .market-activity-actions .market-activity-view-listing {
+    display: grid !important;
+    box-sizing: border-box !important;
+    place-items: center !important;
+    width: 34px !important;
+    min-width: 34px !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    padding: 0 !important;
+    justify-content: center !important;
+    gap: 0 !important;
+    font-size: 0 !important;
+    line-height: 1 !important;
+  }
+  .market-account-unified-body.is-listings .market-listing-row:not(:has(.market-listing-inline-price-edit.is-editing)) > .market-activity-actions button svg,
+  .market-account-unified-body.is-listings .market-listing-row:not(:has(.market-listing-inline-price-edit.is-editing)) > .market-activity-actions .market-activity-view-listing svg {
+    display: block !important;
+    width: 15px !important;
+    height: 15px !important;
+    margin: 0 !important;
+    justify-self: center !important;
+    align-self: center !important;
+  }
+  .market-account-unified-body.is-listings .market-listing-row:not(:has(.market-listing-inline-price-edit.is-editing)) > .market-activity-actions button:not(.is-primary-action) span,
+  .market-account-unified-body.is-listings .market-listing-row:not(:has(.market-listing-inline-price-edit.is-editing)) > .market-activity-actions button.is-primary-action span,
+  .market-account-unified-body.is-listings .market-listing-row:not(:has(.market-listing-inline-price-edit.is-editing)) > .market-activity-actions .market-activity-view-listing span {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+  }
 }

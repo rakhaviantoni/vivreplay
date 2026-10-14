@@ -142,6 +142,26 @@ test('OP12-070 scales power per five Events and can pay DON!! to replace opponen
  const removal=make(5),action:EffectAction={kind:'ko',scope:'opponent-character'};const offer=applyEffectAction(removal,'player',action,{targetId:'sanji'});assert.match(offer.requiresSelection??'',/may pay its removal replacement/);const paid=applyEffectAction(removal,'player',action,{targetId:'sanji',choice:'accept',cardIds:['don']});assert.equal(paid.state.cards.find(card=>card.id==='sanji')?.zone,'character');assert.equal(paid.state.cards.find(card=>card.id==='don')?.zone,'don-deck');
 });
 
+test('OP10-034 replaces its battle K.O. with a Life-to-hand payment once per turn',()=>{
+ const doc=compileEffectDocument({id:'OP10-034',code:'OP10-034',name:'Franky',type:'Character',color:'Blue',cost:4,power:5000,counter:0,rarity:'R',art:0,effect:"[Once Per Turn] If this Character would be K.O.'d in battle, you may add 1 card from the top of your Life cards to your hand instead."});
+ const attacker={id:'attacker',owner:'opponent' as const,zone:'character' as const,type:'Character' as const,power:7000},defender={id:'franky',owner:'player' as const,zone:'character' as const,type:'Character' as const,power:5000,effectSchema:doc},life={id:'life-top',owner:'player' as const,zone:'life' as const,type:'Character' as const};
+ const board:MatchEffectState={turn:'opponent',cards:[attacker,defender,life],turnEffects:[],restrictions:[],delayed:[]};
+ const prompt=resolveBattle(board,'attacker','franky');assert.match(prompt.requiresSelection??'',/replacement/i);
+ const accepted=resolveBattle(board,'attacker','franky',7000,5000,{choice:'accept',cardIds:['life-top']});
+ assert.equal(accepted.replacementResolved,true);assert.equal(accepted.state.cards.find(card=>card.id==='franky')?.zone,'character');assert.equal(accepted.state.cards.find(card=>card.id==='life-top')?.zone,'hand');
+ assert.equal(accepted.state.turnEffects.some(effect=>effect.kind==='replacement-used'&&effect.target==='franky'),true);
+});
+
+test('OP15-098 protects only 6000+ Sky Island Characters from opponent removal',()=>{
+ const doc=compileEffectDocument({id:'OP15-098',code:'OP15-098',name:'Monkey.D.Luffy',type:'Character',color:'Yellow',cost:5,power:6000,counter:0,rarity:'R',art:0,effect:'If your {Sky Island} type Character with 6000 base power or more would be removed from the field by your opponent, you may add 1 card from the top of your Life cards to your hand instead.'});
+ const source={id:'source',owner:'player' as const,zone:'character' as const,type:'Character' as const,power:6000,effectSchema:doc},target={id:'sky-island',owner:'player' as const,zone:'character' as const,type:'Character' as const,power:6000,traits:['Sky Island']},life={id:'life-top',owner:'player' as const,zone:'life' as const,type:'Character' as const};
+ const board:MatchEffectState={turn:'opponent',cards:[source,target,life],turnEffects:[],restrictions:[],delayed:[]},ko:EffectAction={kind:'ko',scope:'opponent-character'};
+ const prompt=applyEffectAction(board,'opponent',ko,{targetId:'sky-island'});assert.match(prompt.requiresSelection??'',/replacement/i);
+ const accepted=applyEffectAction(board,'opponent',ko,{targetId:'sky-island',choice:'accept',cardIds:['life-top']});assert.equal(accepted.state.cards.find(card=>card.id==='sky-island')?.zone,'character');assert.equal(accepted.state.cards.find(card=>card.id==='life-top')?.zone,'hand');
+ const lowTarget={...target,id:'low-sky-island',power:5000},ineligible:MatchEffectState={...board,cards:[source,lowTarget,life]};
+ const removed=applyEffectAction(ineligible,'opponent',ko,{targetId:'low-sky-island'});assert.equal(removed.state.cards.find(card=>card.id==='low-sky-island')?.zone,'trash','A Character below 6000 base power must not receive the replacement.');
+});
+
 test('OP17-095 replacement protects any own Character by bottom-decking exactly three Trash cards',()=>{
  const doc=compileEffectDocument({id:'op17-095',code:'OP17-095',name:'Roronoa Zoro',type:'Character',color:'Red',cost:6,power:7000,counter:0,rarity:'',art:0,effect:'If there is a Character with a cost of 12 or more, this Character gains +3000 power.\nIf one of your Characters would be removed from the field by your opponent’s effect, you may place 3 cards from your trash at the bottom of your deck in any order instead.'});
  const defender={id:'defender',owner:'player' as const,zone:'character' as const,type:'Character' as const,cost:4,power:5000};const protector={id:'protector',owner:'player' as const,zone:'character' as const,type:'Character' as const,effectSchema:doc};
@@ -572,6 +592,13 @@ test('Double Attack damages two Life cards while Banish trashes Life without a T
  assert.equal(hit.state.cards.find(card=>card.id==='life-1')?.zone,'trash');
  assert.equal(hit.state.cards.find(card=>card.id==='life-2')?.zone,'trash');
  assert.equal(hit.triggerAvailable,false);
+});
+
+test('top-or-bottom Life effects require an endpoint choice and move only that Life card',()=>{
+ const match:MatchEffectState={...state(),cards:[{id:'life-top',owner:'player',zone:'life',type:'Character'},{id:'life-middle',owner:'player',zone:'life',type:'Character'},{id:'life-bottom',owner:'player',zone:'life',type:'Character'}]};
+ const action:EffectAction={kind:'life',operation:'add-to-hand',amount:1,position:'choice'};
+ const prompt=applyEffectAction(match,'player',action);assert.match(prompt.requiresSelection??'',/top or bottom Life card/);
+ const moved=applyEffectAction(match,'player',action,{position:'bottom'});assert.equal(moved.state.cards.find(card=>card.id==='life-bottom')?.zone,'hand');assert.equal(moved.state.cards.find(card=>card.id==='life-top')?.zone,'life');
 });
 
 test('effect-granted K.O. protection blocks effect and battle removal until Refresh',()=>{

@@ -22,11 +22,15 @@ for(const candidate of plan.candidates){
  const write=candidate.before===null
   ?`INSERT INTO tcg_card_rule_revisions (ruleset_id,identity_id,effect_text,effect_schema,errata_reference,source_url) VALUES (${quote(rulesetId)},${quote(current.id)},${quote(candidate.effectTextAfter??candidate.printedText)},${quote(JSON.stringify(candidate.after))},NULL,'https://en.onepiece-cardgame.com/cardlist/')`
   :`UPDATE tcg_card_rule_revisions SET effect_text=${quote(candidate.effectTextAfter??candidate.printedText)},effect_schema=${quote(JSON.stringify(candidate.after))} WHERE ruleset_id=${quote(rulesetId)} AND identity_id=${quote(current.id)} AND effect_text=${quote(current.published_text)}`;
- if(process.argv.includes('--apply'))run(write);
+ const applying=process.argv.includes('--apply');
+ if(applying)run(write);
  const readback=run(`SELECT effect_text,effect_schema FROM tcg_card_rule_revisions WHERE ruleset_id=${quote(rulesetId)} AND identity_id=${quote(current.id)} LIMIT 1`)[0];
+ if(!applying&&candidate.before===null){if(readback)throw new Error(`${candidate.code}: D1 dry-run found an unexpected published revision.`);results.push({code:candidate.code,status:'INSERT_TARGET_ABSENT_VERIFIED'});continue;}
  const readSchema=typeof readback?.effect_schema==='string'?JSON.parse(readback.effect_schema):readback?.effect_schema;
- if(!readback||readback.effect_text!==(candidate.effectTextAfter??candidate.printedText)||hash(readSchema)!==candidate.afterHash)throw new Error(`${candidate.code}: D1 readback does not match the verified schema.`);
- results.push({code:candidate.code,status:process.argv.includes('--apply')?'PUBLISHED_AND_READBACK_TESTED':'DRY_RUN_READBACK_MATCHED'});
+ const expectedText=applying?(candidate.effectTextAfter??candidate.printedText):current.published_text;
+ const expectedHash=applying?candidate.afterHash:candidate.beforeHash;
+ if(!readback||readback.effect_text!==expectedText||hash(readSchema)!==expectedHash)throw new Error(`${candidate.code}: D1 ${applying?'post-publish':'dry-run'} readback does not match the expected schema.`);
+ results.push({code:candidate.code,status:applying?'PUBLISHED_AND_READBACK_TESTED':'DRY_RUN_READBACK_MATCHED'});
 }
 const outputPath=planPath.replace(/\.json$/,'')+'.d1-results.json';writeFileSync(outputPath,JSON.stringify(results,null,2));
 console.log(JSON.stringify({results:results.length,cards:results.map(item=>item.code),outputPath,apply:process.argv.includes('--apply')}));

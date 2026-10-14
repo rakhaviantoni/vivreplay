@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VivrePlay · Live catalog capture</title>
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f3f0e7;color:#1d2a25;font:15px/1.5 Arial,sans-serif}
+    header{height:54px;padding:0 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #ddd7c9;background:#f8f5ec}
+    header strong{font-size:14px}a{color:#76551e;text-decoration:none;font-weight:700}a:hover{text-decoration:underline}
+    main{height:calc(100vh - 54px);min-height:540px;display:grid;grid-template-columns:minmax(0,1fr) 280px}
+    iframe{width:100%;height:100%;border:0;background:#f8f5ec}.notes{padding:24px 20px;border-left:1px solid #ddd7c9;background:#f8f5ec}
+    h1{font-size:18px;line-height:1.25;margin:0 0 8px}.notes p{font-size:13px;color:#5e675f;margin:0 0 22px}
+    ol{list-style:none;padding:0;margin:0;counter-reset:beat}.notes li{counter-increment:beat;border-top:1px solid #e1dccf;padding:12px 0;font-size:13px}
+    .notes li::before{content:'0' counter(beat) '  ';font-weight:700;color:#b27b27}.notes li span{display:block;padding-left:30px;color:#69736c;font-size:12px}
+    @media(max-width:760px){main{height:auto;min-height:0;grid-template-columns:1fr}.notes{border:0;border-top:1px solid #ddd7c9}.notes ol{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}iframe{height:78vh;min-height:540px}}
+  </style>
+</head>
+<body>
+  <header><strong>Live VivrePlay page · screen-capture storyboard</strong><a href="https://vivreplay.com/cards" target="_blank" rel="noreferrer">Open catalog ↗</a></header>
+  <main>
+    <iframe title="Live VivrePlay card catalog" src="https://vivreplay.com/cards"></iframe>
+    <aside class="notes">
+      <h1>Use the page as it is.</h1>
+      <p>Record the live site. The four beats below are captions for the capture, not a redraw of the interface.</p>
+      <ol>
+        <li>Looking for a card?<span>Catalog heading</span></li>
+        <li>Search by name or number.<span>Enter OP01-016</span></li>
+        <li>Check available printings.<span>Open the real detail view</span></li>
+        <li>Continue in the deck builder.<span>Use Build with card</span></li>
+      </ol>
+    </aside>
+  </main>
+</body>
+</html>

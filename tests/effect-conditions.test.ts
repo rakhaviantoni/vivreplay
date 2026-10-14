@@ -19,6 +19,13 @@ test('designated-event Leader identity satisfies name, type, and attribute rules
  const ordinary={...universal,cards:universal.cards.map(card=>({...card,effectText:''}))};
  assert.equal(evaluateEffectCondition('your Leader is [Nami]',ordinary,'player'),false);
 });
+test('Wisdom attribute wrappers and face-up Life prerequisites resolve from the live board',()=>{
+ const board:MatchEffectState={turn:'player',cards:[{id:'leader',owner:'player',zone:'leader',type:'Leader',attributes:['Wisdom']},{id:'face-up-life',owner:'player',zone:'life',faceUp:true}],turnEffects:[],restrictions:[],delayed:[]};
+ assert.equal(evaluateEffectCondition('your Leader has the <Wisdom> attribute',board,'player'),true);
+ assert.equal(evaluateEffectCondition('you have a face-up Life card',board,'player'),true);
+ const faceDown={...board,cards:board.cards.map(card=>({...card,faceUp:false}))};
+ assert.equal(evaluateEffectCondition('you have a face-up Life card',faceDown,'player'),false);
+});
 test('unknown prerequisites stop resolution before moving cards',()=>{
  const result=executeEffectCommands(state,'player',[{kind:'resolve-action',conditions:['a special unimplemented prerequisite'],value:{kind:'draw',amount:1}}]);
  assert.ok(result.error);assert.deepEqual(result.state,state);
