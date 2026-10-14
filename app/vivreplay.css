@@ -3552,7 +3552,8 @@ html[data-theme='dark'] .market-feed-entry .market-feed-row-actions .button.is-i
 .market-listing-seller-toolbar .market-listing-utility-actions .market-report-link{margin:0;padding:5px 4px!important}
 .market-listing-seller-toolbar .market-listing-utility-actions .button.is-icon-only{flex:none}
 @media(max-width:430px){.market-listing-seller-toolbar{flex-wrap:wrap;gap:7px 10px}.market-listing-seller-toolbar .market-listing-seller{flex:1 1 100%}.market-listing-seller-toolbar .market-listing-utility-actions{width:100%;justify-content:flex-end}.market-listing-seller-toolbar .market-listing-utility-actions .market-report-link{margin-right:auto}}
-.checkout-seller{display:flex;align-items:center;gap:10px}
+.checkout-seller{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;min-width:0}
+.checkout-seller strong{min-width:0;overflow-wrap:anywhere}
 .checkout-seller span{color:var(--muted,#716a5e)}
 .checkout-item-copy small{display:flex;flex-wrap:wrap;gap:3px 8px}
 .checkout-rate-list label strong{display:flex;flex-wrap:wrap;gap:0 7px}

@@ -206,7 +206,7 @@ export function MarketCheckout(){
     <Link href={cartMode?'/market':marketListingPath('',listingId)} className="back-link"><ArrowLeft size={16}/>{cartMode?t('Back to Market','Kembali ke Market'):t('Back to listing','Kembali ke listing')}</Link>
     <header className="checkout-page-heading"><div><h1>{t('Review your order','Periksa pesanan')}</h1><p>{t('Check the cards, delivery address, and total before paying.','Periksa kartu, alamat pengiriman, dan total sebelum membayar.')}</p></div></header>
     <div className="checkout-layout">
-      <section className="checkout-panel checkout-order-summary"><h2>{cartMode?t(`${cartLines.length} listings from ${listing.seller}`,`${cartLines.length} listing dari ${listing.seller}`):listing.title}</h2><p className="checkout-seller"><strong>{listing.seller}</strong><span>{listing.city}</span></p>
+      <section className="checkout-panel checkout-order-summary"><h2>{cartMode?t(`${cartLines.length} ${cartLines.length===1?'listing':'listings'}`,`${cartLines.length} listing`):listing.title}</h2><p className="checkout-seller"><strong>{listing.seller}</strong><span>{listing.city}</span></p>
         <div className="checkout-items">{checkoutGroups.map(group=>{
           const stack=group.items.flatMap(item=>item.card?Array.from({length:Math.max(1,Math.min(3,item.quantity))},(_,copy)=>({card:item.card!,key:`${item.printingId}-${copy}`})):[]).slice(0,3);
           const groupCount=group.items.reduce((total,item)=>total+item.quantity,0);
