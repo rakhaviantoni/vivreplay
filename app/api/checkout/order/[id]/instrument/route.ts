@@ -77,9 +77,9 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     const paymentClaim=`CREATING:${crypto.randomUUID()}`;
     const claimed=await database.prepare("UPDATE checkout_orders SET payment_id=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id IS NULL").bind(paymentClaim,id).run();
     if(!claimed.meta.changes)throw new HttpError(409,'This order is already being paid or has changed. Refresh to check its status.');
-    let payment: {url?:string;sessionId?:string;transactionId?:string;qrImage?:string;qrString?:string|null;fee?:number|null;paymentCreatedAt?:string;expiresAt?:string|null;escrowEnabled?:boolean};
+    let payment: {url?:string;sessionId?:string;transactionId?:string;qrImage?:string;qrString?:string|null;fee?:number|null;paymentCreatedAt?:string;expiresAt?:string|null};
     try{
-      payment=await createIpaymuQris({orderId:order.id,amount:order.amount,buyer:{name,email:account.email,phone},returnUrl:`${origin}/checkout/order/${encodeURIComponent(order.id)}`,notifyUrl,escrow:order.kind==='MARKET'});
+      payment=await createIpaymuQris({orderId:order.id,amount:order.amount,buyer:{name,email:account.email,phone},returnUrl:`${origin}/checkout/order/${encodeURIComponent(order.id)}`,notifyUrl});
     }catch(error){
       await database.prepare("UPDATE checkout_orders SET payment_id=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id=?").bind(id,paymentClaim).run();
       throw error;
@@ -92,7 +92,6 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     details.ipaymuPaymentFee=payment.fee;
     details.ipaymuPaymentCreatedAt=payment.paymentCreatedAt;
     details.ipaymuPaymentExpiresAt=payment.expiresAt;
-    details.ipaymuEscrowEnabled=payment.escrowEnabled;
     details.ipaymuMode=process.env.IPAYMU_MODE==='sandbox'?'sandbox':'production';
     const paymentId=payment.sessionId;
     if(!paymentId){await database.prepare("UPDATE checkout_orders SET payment_id=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id=?").bind(id,paymentClaim).run();throw new HttpError(502,'Could not start payment. Please try again.');}

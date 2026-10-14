@@ -84,7 +84,7 @@ export async function createIpaymuRedirect(input:{orderId:string;products:Ipaymu
   return {sessionId,url:parsed.toString()};
 }
 
-export async function createIpaymuQris(input:{orderId:string;amount:number;buyer:{name:string;email:string;phone:string};returnUrl:string;notifyUrl:string;escrow?:boolean}){
+export async function createIpaymuQris(input:{orderId:string;amount:number;buyer:{name:string;email:string;phone:string};returnUrl:string;notifyUrl:string}){
   const {va,apiKey,baseUrl}=configuration();
   if(!Number.isSafeInteger(input.amount)||input.amount<1)throw new Error('This checkout has an invalid amount.');
   // The transaction stays payable until iPaymu's Expired time. The QR image
@@ -100,7 +100,6 @@ export async function createIpaymuQris(input:{orderId:string;amount:number;buyer
     paymentMethod:'qris',
     paymentChannel:'mpm',
     feeDirection:'MERCHANT',
-    ...(input.escrow?{escrow:'true'}:{}),
     successUrl:input.returnUrl,
     comments:`VivrePlay Market order ${input.orderId}`.slice(0,255),
   };
@@ -122,7 +121,7 @@ export async function createIpaymuQris(input:{orderId:string;amount:number;buyer
   const providerExpiry=ipaymuExpiryTimestamp(data.Expired,paymentCreatedAt);
   const createdTimestamp=Date.parse(paymentCreatedAt);
   const expiresAt=providerExpiry!==null&&providerExpiry>createdTimestamp?providerExpiry:createdTimestamp+24*60*60*1000;
-  return {sessionId:String(sessionId),transactionId:String(transactionId),qrImage:parsed,qrString:typeof data.QrString==='string'?data.QrString:null,fee:Number.isFinite(fee)&&fee>=0?Math.round(fee):null,total:Number.isFinite(providerTotal)&&providerTotal>0?Math.round(providerTotal):input.amount,paymentCreatedAt,expiresAt:new Date(expiresAt).toISOString(),escrowEnabled:input.escrow===true};
+  return {sessionId:String(sessionId),transactionId:String(transactionId),qrImage:parsed,qrString:typeof data.QrString==='string'?data.QrString:null,fee:Number.isFinite(fee)&&fee>=0?Math.round(fee):null,total:Number.isFinite(providerTotal)&&providerTotal>0?Math.round(providerTotal):input.amount,paymentCreatedAt,expiresAt:new Date(expiresAt).toISOString()};
 }
 
 type CallbackValue=string|number|boolean|null|unknown[];
