@@ -15,13 +15,13 @@ export async function GET(request: NextRequest) {
   const appUrl = getAppUrl();
 
   const actions: AuthEmailAction[] = ["verify", "reset", "password-changed", "welcome"];
-  const listingTitle=searchParams.get('listing')||'Edward.Newgate (001)';
+  const listingTitle=searchParams.get('listing')||'Monkey.D.Luffy (119)';
 
   const render=(action:string)=>{
     if(action.startsWith('market:')){
       const event=action.slice('market:'.length) as MarketEmailEvent;
       if(!marketEmailEvents.includes(event))return null;
-      return{action,...renderMarketEmail(event,listingTitle,'sample-market-thread',locale,to,theme,sampleNotificationDetails(event,locale)),to,name:listingTitle};
+      return{action,...renderMarketEmail(event,listingTitle,'sample-market-thread',locale,to,theme,sampleNotificationDetails(event,locale)),to,name};
     }
     if(!actions.includes(action as AuthEmailAction))return null;
     const authAction=action as AuthEmailAction;

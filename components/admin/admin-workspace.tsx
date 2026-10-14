@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import {usePathname,useRouter} from 'next/navigation';
-import {ArrowSquareOutIcon as ExternalLink,ChartLineUpIcon as Overview,UsersThreeIcon as Customers,HeartbeatIcon as Catalog,StorefrontIcon as Market,SlidersHorizontalIcon as Policy,WarningCircleIcon as Feedback,ChartLineUpIcon as Traffic,WalletIcon as Payouts,ScalesIcon as Reports,EnvelopeSimpleIcon as Emails,SignOutIcon as SignOut} from '@phosphor-icons/react';
-import type {ReactNode} from 'react';
+import {ArrowSquareOutIcon as ExternalLink,ChartLineUpIcon as Overview,UsersThreeIcon as Customers,HeartbeatIcon as Catalog,StorefrontIcon as Market,SlidersHorizontalIcon as Policy,WarningCircleIcon as Feedback,ChartLineUpIcon as Traffic,WalletIcon as Payouts,ScalesIcon as Reports,EnvelopeSimpleIcon as Emails,SignOutIcon as SignOut,MagnifyingGlassIcon as Search,SidebarSimpleIcon as SidebarToggle,XIcon as Clear} from '@phosphor-icons/react';
+import {useEffect,useMemo,useRef,useState,type ReactNode} from 'react';
+import {VivreMark} from '@/components/tcg/brand-assets';
 
 type AdminSection='overview'|'customers'|'catalog'|'marketplace'|'policy'|'feedback'|'traffic'|'payouts'|'disputes'|'emails';
 const groups=[
@@ -16,15 +17,40 @@ const labels:Record<AdminSection,string>={overview:'Overview',customers:'Custome
 export function AdminWorkspace({active,children}:{active:AdminSection;children:ReactNode}){
   const pathname=usePathname()??'/admin';
   const router=useRouter();
-  return <div className="admin-workspace-shell">
+  const [collapsed,setCollapsed]=useState(false);
+  const [query,setQuery]=useState('');
+  const searchRef=useRef<HTMLInputElement>(null);
+  useEffect(()=>{try{setCollapsed(localStorage.getItem('vivreplay-admin-sidebar')==='collapsed')}catch{}},[]);
+  useEffect(()=>{try{localStorage.setItem('vivreplay-admin-sidebar',collapsed?'collapsed':'expanded')}catch{}},[collapsed]);
+  useEffect(()=>{
+    const onKeyDown=(event:KeyboardEvent)=>{
+      if((event.metaKey||event.ctrlKey)&&event.key.toLowerCase()==='k'){
+        event.preventDefault();setCollapsed(false);requestAnimationFrame(()=>searchRef.current?.focus());
+      }else if(event.key==='/'&&!/input|textarea|select/i.test((event.target as HTMLElement|null)?.tagName??'')){
+        event.preventDefault();setCollapsed(false);requestAnimationFrame(()=>searchRef.current?.focus());
+      }
+    };
+    window.addEventListener('keydown',onKeyDown);return()=>window.removeEventListener('keydown',onKeyDown);
+  },[]);
+  const filteredGroups=useMemo(()=>{
+    const normalized=query.trim().toLowerCase();
+    if(!normalized)return groups;
+    return groups.map(group=>({...group,items:group.items.filter(item=>(item.label+' '+group.label).toLowerCase().includes(normalized))})).filter(group=>group.items.length);
+  },[query]);
+  return <div className={'admin-workspace-shell'+(collapsed?' is-collapsed':'')}>
     <aside className="admin-workspace-sidebar">
-      <Link href="/admin" className="admin-workspace-brand"><span className="admin-workspace-brand-mark">V</span><span>VivrePlay<small>ADMIN</small></span></Link>
+      <div className="admin-workspace-sidebar-heading">
+        <Link href="/admin" className="admin-workspace-brand"><VivreMark size={32} label="VivrePlay"/><span>VivrePlay<small>ADMIN</small></span></Link>
+        <button type="button" className="admin-workspace-collapse" onClick={()=>setCollapsed(value=>!value)} aria-expanded={!collapsed} aria-label={collapsed?'Expand sidebar':'Collapse sidebar'} title={collapsed?'Expand sidebar':'Collapse sidebar'}><SidebarToggle size={17}/></button>
+      </div>
+      {collapsed?<button type="button" className="admin-workspace-search-icon" onClick={()=>{setCollapsed(false);requestAnimationFrame(()=>searchRef.current?.focus())}} aria-label="Search admin" title="Search admin"><Search size={17}/></button>:<label className="admin-workspace-search"><Search size={16}/><input ref={searchRef} value={query} onChange={event=>setQuery(event.target.value)} placeholder="Search admin" aria-label="Search admin navigation"/>{query?<button type="button" onClick={()=>{setQuery('');searchRef.current?.focus()}} aria-label="Clear search"><Clear size={14}/></button>:<kbd>⌘K</kbd>}</label>}
       <nav aria-label="Admin navigation" className="admin-workspace-nav">
-        {groups.map(group=><section key={group.label} className="admin-workspace-nav-group"><h2>{group.label}</h2>{group.items.map(item=>{const Icon=item.icon;const selected=active===item.id&&(item.id!=='emails'||pathname==='/admin/emails');return <Link key={item.id} href={item.href} className="admin-workspace-nav-link" aria-current={selected?'page':undefined}><Icon size={17}/><span>{item.label}</span></Link>})}</section>)}
+        {filteredGroups.map(group=><section key={group.label} className="admin-workspace-nav-group"><h2>{group.label}</h2>{group.items.map(item=>{const Icon=item.icon;const selected=active===item.id&&(item.id!=='emails'||pathname==='/admin/emails');return <Link key={item.id} href={item.href} className="admin-workspace-nav-link" aria-current={selected?'page':undefined} title={collapsed?item.label:undefined}><Icon size={17}/><span>{item.label}</span></Link>})}</section>)}
+        {filteredGroups.length===0&&<p className="admin-workspace-search-empty">No matching pages</p>}
       </nav>
       <footer className="admin-workspace-sidebar-footer">
-        <Link href="/market" className="admin-workspace-nav-link"><ExternalLink size={17}/><span>View Market</span></Link>
-        <button type="button" className="admin-workspace-nav-link" onClick={async()=>{await fetch('/api/admin/session',{method:'DELETE'});router.push('/admin')}}><SignOut size={17}/><span>Sign out</span></button>
+        <Link href="/market" className="admin-workspace-nav-link" title={collapsed?'View Market':undefined}><ExternalLink size={17}/><span>View Market</span></Link>
+        <button type="button" className="admin-workspace-nav-link" title={collapsed?'Sign out':undefined} onClick={async()=>{await fetch('/api/admin/session',{method:'DELETE'});router.push('/admin')}}><SignOut size={17}/><span>Sign out</span></button>
       </footer>
     </aside>
     <div className="admin-workspace-main">
