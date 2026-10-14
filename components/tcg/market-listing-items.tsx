@@ -42,6 +42,7 @@ export function ShippingOptions({listingId,courierCount=0,couriers=[],items=[]}:
   const [startingFee,setStartingFee]=useState<number|null>(null);
   const [loading,setLoading]=useState(false);
   const [quoteState,setQuoteState]=useState<'idle'|'ready'|'needs-address'|'needs-sign-in'|'unavailable'|'error'>('idle');
+  const [quoteError,setQuoteError]=useState('');
   const inFlight=useRef(false);
   const quoteRequest=useRef<AbortController|null>(null);
   const autoLoaded=useRef('');
@@ -71,7 +72,7 @@ export function ShippingOptions({listingId,courierCount=0,couriers=[],items=[]}:
     const reset=()=>{
       quoteRequest.current?.abort();quoteRequest.current=null;
       inFlight.current=false;autoLoaded.current='';setQuoteExpiresAt(0);
-      setRates([]);setStartingFee(null);setLoading(false);setQuoteState('idle');
+      setRates([]);setStartingFee(null);setLoading(false);setQuoteState('idle');setQuoteError('');
     };
     reset();
     window.addEventListener('vivreplay:shipping-updated',reset);
@@ -80,6 +81,7 @@ export function ShippingOptions({listingId,courierCount=0,couriers=[],items=[]}:
 
   const loadRates=useCallback(async(cacheOnly=false,silent=false)=>{
     if(inFlight.current)return;
+    setQuoteError('');
     if(courierCount===0){setLoading(false);setQuoteState('unavailable');return;}
     inFlight.current=true;
     if(!cacheOnly){setLoading(true);setRates([]);}
@@ -101,7 +103,7 @@ export function ShippingOptions({listingId,courierCount=0,couriers=[],items=[]}:
         setQuoteState(prices.length?'ready':'unavailable');
       }
       else{setRates([]);setStartingFee(null);setQuoteState('unavailable');}
-    }catch(error){if(controller.signal.aborted||cacheOnly)return;setQuoteState('error');if(!cacheOnly&&!silent)toast.error(error instanceof Error?error.message:t('Live rates could not be loaded.','Tarif pengiriman belum dapat dimuat.'));}
+    }catch(error){if(controller.signal.aborted||cacheOnly)return;setQuoteState('error');setQuoteError(error instanceof Error?error.message:t('Live rates could not be loaded.','Tarif pengiriman belum dapat dimuat.'));if(!cacheOnly&&!silent)toast.error(error instanceof Error?error.message:t('Live rates could not be loaded.','Tarif pengiriman belum dapat dimuat.'));}
     finally{if(quoteRequest.current===controller){inFlight.current=false;setLoading(false);quoteRequest.current=null;}}
   },[courierCount,listingId,language,items]);
   const openDialog=async()=>{setOpen(true);if(!session?.user.id){setLoading(false);setQuoteState('needs-sign-in');return;}if(rates.length&&quoteExpiresAt>Date.now()){setLoading(false);return;}setLoading(true);await loadRates()};
@@ -143,7 +145,7 @@ export function ShippingOptions({listingId,courierCount=0,couriers=[],items=[]}:
   },[addressFormOpen,areaQuery]);
 
   const openAddressForm=async()=>{
-    setAddressFormOpen(true);setAddressError('');setAreaQuery('');setAreaResults([]);setAreaLoading(false);setAddressLoading(true);
+    setAddressFormOpen(true);setQuoteState('needs-address');setQuoteError('');setAddressError('');setAreaQuery('');setAreaResults([]);setAreaLoading(false);setAddressLoading(true);
     try{
       const response=await fetch('/api/shipping/origin',{cache:'no-store'});
       if(!response.ok)throw new Error('');
@@ -166,6 +168,10 @@ export function ShippingOptions({listingId,courierCount=0,couriers=[],items=[]}:
     }catch(error){setAddressError(error instanceof Error?error.message:t('Address could not be saved.','Alamat gagal disimpan.'))}
     finally{setAddressSaving(false)}
   };
+
+  const quoteErrorMessage=language==='ID'&&/postal code.*delivery area|delivery area.*postal code/i.test(quoteError)
+    ?'Kode pos belum cocok dengan wilayah pengiriman. Cari kecamatan atau kelurahan, lalu pilih hasil yang benar.'
+    :quoteError||t('Rates could not load. Check your delivery address.','Ongkir gagal dimuat. Periksa alamat pengiriman Anda.');
 
   const modal=open?(
     <div className="shipping-options-backdrop" role="presentation" onClick={e=>{e.stopPropagation();if(e.target===e.currentTarget)setOpen(false);}}>
@@ -198,10 +204,11 @@ export function ShippingOptions({listingId,courierCount=0,couriers=[],items=[]}:
             </ul>
           )}
           {!loading&&activeRates.length===0&&!(quoteState==='needs-address'&&addressFormOpen)&&<div className="shipping-options-empty">
-            <p>{quoteState==='needs-sign-in'?t('Sign in to check delivery fees for this listing.','Masuk untuk melihat ongkir listing ini.'):quoteState==='needs-address'?t('Add a delivery address to see rates for this listing.', 'Tambahkan alamat pengiriman untuk melihat ongkir listing ini.'):quoteState==='error'?t('Rates could not load. Try again.', 'Ongkir belum dapat dimuat. Coba lagi.'):courierCount>0?t('No live rates are available for this address right now.', 'Belum ada tarif untuk alamat ini.'):t('The seller has not set up shipping yet.','Penjual belum mengatur pengiriman.')}</p>
+            <p>{quoteState==='needs-sign-in'?t('Sign in to check delivery fees for this listing.','Masuk untuk melihat ongkir listing ini.'):quoteState==='needs-address'?t('Add a delivery address to see rates for this listing.', 'Tambahkan alamat pengiriman untuk melihat ongkir listing ini.'):quoteState==='error'?quoteErrorMessage:courierCount>0?t('No live rates are available for this address. Check your delivery area and saved address.', 'Tarif tidak tersedia untuk alamat ini. Periksa wilayah dan alamat pengiriman Anda.'):t('The seller has not set up shipping yet.','Penjual belum mengatur pengiriman.')}</p>
             {quoteState==='needs-sign-in'&&<button type="button" className="shipping-options-address-btn" onClick={()=>window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}))}>{t('Sign in','Masuk')}</button>}
             {quoteState==='needs-address'&&!addressFormOpen&&<button type="button" className="shipping-options-address-btn" onClick={()=>void openAddressForm()}>{t('Add delivery address','Tambahkan alamat pengiriman')}</button>}
-            {(quoteState==='error'||quoteState==='unavailable')&&courierCount>0&&<button type="button" className="shipping-options-retry" onClick={()=>void loadRates()}>{t('Retry','Coba lagi')}</button>}
+            {(quoteState==='error'||quoteState==='unavailable')&&session?.user.id&&<button type="button" className="shipping-options-address-btn" onClick={()=>void openAddressForm()}>{t('Edit delivery address','Ubah alamat pengiriman')}</button>}
+            {quoteState==='error'&&courierCount>0&&!/postal code|delivery area/i.test(quoteError)&&<button type="button" className="shipping-options-retry" onClick={()=>void loadRates()}>{t('Check again','Cek lagi')}</button>}
           </div>}
           {quoteState==='needs-address'&&addressFormOpen&&<form className="shipping-options-address-form" onSubmit={saveDeliveryAddress}>
             <div className="shipping-options-address-heading"><strong>{t('Delivery address','Alamat pengiriman')}</strong><button type="button" onClick={()=>{setAddressFormOpen(false);setAreaLoading(false)}}>{t('Cancel','Batal')}</button></div>
@@ -240,7 +247,7 @@ export function ShippingOptions({listingId,courierCount=0,couriers=[],items=[]}:
   );
 }
 
-function SellerShippingEstimate({listingId,destinationCity,items,language}:{listingId:string;destinationCity:string;items:Array<{printingId:string;quantity:number;unitAmount:number}>;language:'EN'|'ID'}){
+function WantedListingShippingOptions({listingId,destinationCity,items,language,previewOnly=false}:{listingId:string;destinationCity:string;items:Array<{printingId:string;quantity:number;unitAmount:number}>;language:'EN'|'ID';previewOnly?:boolean}){
   const {data:session}=authClient.useSession();
   const [open,setOpen]=useState(false);
   const [query,setQuery]=useState(destinationCity);
@@ -250,10 +257,12 @@ function SellerShippingEstimate({listingId,destinationCity,items,language}:{list
   const [rates,setRates]=useState<CourierRate[]>([]);
   const [destination,setDestination]=useState('');
   const [error,setError]=useState('');
+  const [selectedArea,setSelectedArea]=useState(false);
+  const dialogRef=useRef<HTMLDivElement>(null);
   const t=(en:string,id:string)=>language==='ID'?id:en;
 
   useEffect(()=>{
-    if(!open||!session?.user.id||query.trim().length<2)return;
+    if(!open||!session?.user.id||selectedArea||query.trim().length<2)return;
     let active=true;
     const timer=window.setTimeout(async()=>{
       setLoadingAreas(true);
@@ -264,32 +273,51 @@ function SellerShippingEstimate({listingId,destinationCity,items,language}:{list
       }catch{if(active)setAreas([])}finally{if(active)setLoadingAreas(false)}
     },300);
     return()=>{active=false;window.clearTimeout(timer)};
-  },[open,query,session?.user.id]);
+  },[open,query,selectedArea,session?.user.id]);
+
+  useEffect(()=>{
+    if(!open)return;
+    const close=(event:KeyboardEvent)=>{if(event.key==='Escape')setOpen(false)};
+    document.addEventListener('keydown',close);
+    return()=>document.removeEventListener('keydown',close);
+  },[open]);
 
   const chooseArea=async(area:ShippingArea)=>{
     setQuery([area.subdistrict,area.district,area.city].filter(Boolean).join(', '));
     setDestination([area.city,area.province].filter(Boolean).join(', '));
+    setSelectedArea(true);
     setAreas([]);setError('');setRates([]);setLoadingRates(true);
     try{
       const response=await fetch('/api/shipping/quotes',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({listingId,items,destinationAreaId:area.source==='biteship'?area.id:'',destinationPostalCode:area.postalCode,estimateForWantedListing:true})});
       const payload=await response.json() as {pricing?:CourierRate[];error?:string};
-      if(!response.ok){const message=payload.error||'';if(/add a shipping address/i.test(message))throw new Error(t('Add a shipping address to your profile first.','Tambahkan alamat pengiriman di profil terlebih dahulu.'));if(/choose a courier/i.test(message))throw new Error(t('Choose a courier in your profile first.','Pilih kurir di profil terlebih dahulu.'));throw new Error(message||t('Rates could not load.','Ongkir gagal dimuat.'))}
+      if(!response.ok)throw new Error(payload.error||t('Delivery fees could not load. Check your shipping details.','Ongkir belum dapat dimuat. Periksa detail pengiriman Anda.'));
       setRates(payload.pricing??[]);
-      if(!payload.pricing?.length)setError(t('No rates available. Check your shipping address and couriers.','Tarif tidak tersedia. Periksa alamat dan kurir pengiriman Anda.'));
-    }catch(reason){setError(reason instanceof Error?reason.message:t('Rates could not load.','Ongkir gagal dimuat.'))}
+      if(!payload.pricing?.length)setError(t('No delivery services are available for this area. Choose another district.','Layanan pengiriman tidak tersedia untuk wilayah ini. Pilih kecamatan lain.'));
+    }catch(reason){setError(reason instanceof Error?reason.message:t('Delivery fees could not load. Check your shipping details.','Ongkir belum dapat dimuat. Periksa detail pengiriman Anda.'))}
     finally{setLoadingRates(false)}
   };
 
-  return <div className="market-seller-shipping-estimate">
-    <button type="button" className="market-seller-shipping-trigger" aria-expanded={open} onClick={()=>setOpen(value=>!value)}>{open?t('Hide estimate','Tutup estimasi'):t('Estimate delivery','Estimasi ongkir')}</button>
-    {open&&<div className="market-seller-shipping-panel">
-      {!session?.user.id?<p>{t('Sign in to estimate delivery.','Masuk untuk menghitung ongkir.')} <Link href="/sign-in">{t('Sign in','Masuk')}</Link></p>:<label>{t('Delivery area','Area tujuan')}<input value={query} onChange={event=>{setQuery(event.target.value);setDestination('');setRates([]);setError('');if(event.target.value.trim().length<2)setAreas([])}} placeholder={t('Search city or district','Cari kota atau kecamatan')} autoComplete="off"/></label>}
-      {loadingAreas&&<small role="status">{t('Searching…','Mencari…')}</small>}
-      {areas.length>0&&<div className="market-seller-shipping-areas" role="listbox">{areas.map(area=><button type="button" role="option" key={`${area.source}:${area.id}`} onClick={()=>void chooseArea(area)}><strong>{[area.subdistrict,area.district].filter(Boolean).join(', ')||area.name}</strong><small>{[area.city,area.province,area.postalCode].filter(Boolean).join(' / ')}</small></button>)}</div>}
-      {destination&&<strong className="market-seller-shipping-destination">{destination}</strong>}
-      {loadingRates&&<small role="status">{t('Checking rates…','Memeriksa ongkir…')}</small>}
-      {error&&<small className="market-seller-shipping-error" role="status">{error}{/add a shipping address|choose a courier/i.test(error)&&<> <Link href="/profile">{t('Update shipping','Atur pengiriman')}</Link></>}</small>}
-      {!loadingRates&&rates.length>0&&<ul>{rates.slice(0,4).map(rate=><li key={`${rate.courier_code}:${rate.courier_service_code}`}><span>{COURIER_LABELS[rate.courier_code]??rate.courier_name} / {rate.courier_service_name}</span><strong>{formatMoney(rate.price,'IDR')}</strong></li>)}</ul>}
+  const searchAgain=()=>{setSelectedArea(false);setDestination('');setRates([]);setError('');setAreas([])};
+  const needsShippingSetup=/add a shipping address|choose a courier|valid 5-digit pickup postal code/i.test(error);
+
+  return <div className="market-wanted-shipping-options">
+    <button type="button" className="shipping-options-trigger" aria-haspopup="dialog" aria-expanded={open} onClick={()=>{setQuery(destinationCity);setSelectedArea(false);setOpen(true)}}>{t('Check delivery fees','Cek ongkir')}</button>
+    {open&&<div className="shipping-options-backdrop" role="presentation" onClick={event=>{if(event.target===event.currentTarget)setOpen(false)}}>
+      <div className="shipping-options-dialog market-wanted-shipping-dialog" ref={dialogRef} role="dialog" aria-modal="true" aria-label={t('Delivery fees','Ongkir')} onClick={event=>event.stopPropagation()}>
+        <header className="shipping-options-header"><strong>{t('Delivery fees','Ongkir')}</strong><button type="button" className="shipping-options-close" onClick={()=>setOpen(false)} aria-label={t('Close','Tutup')}><X size={15}/></button></header>
+        <div className="market-wanted-shipping-body">
+          {previewOnly?<div className="shipping-options-empty"><p>{t('Sellers can check delivery fees after choosing a district.','Penjual dapat melihat ongkir setelah memilih kecamatan.')}</p></div>:!session?.user.id?<div className="shipping-options-empty"><p>{t('Sign in to see delivery fees from your address to the buyer.','Masuk untuk melihat ongkir dari alamat Anda ke pembeli.')}</p><Link className="shipping-options-address-btn" href="/sign-in">{t('Sign in','Masuk')}</Link></div>:<>
+            <p className="market-wanted-shipping-route">{t('From your saved shipping address to','Dari alamat pengiriman Anda ke')} <strong>{destination||destinationCity}</strong></p>
+            <label className="market-wanted-shipping-search">{t('Choose the buyer’s district','Pilih kecamatan pembeli')}<input value={query} onChange={event=>{setQuery(event.target.value);setAreas([]);setSelectedArea(false);setDestination('');setRates([]);setError('')}} placeholder={t('Search district or village','Cari kecamatan atau kelurahan')} autoComplete="off"/></label>
+            {loadingAreas&&<small className="market-wanted-shipping-state" role="status">{t('Searching delivery areas…','Mencari wilayah pengiriman…')}</small>}
+            {!loadingAreas&&!selectedArea&&query.trim().length>=2&&areas.length===0&&<small className="market-wanted-shipping-state">{t('No matching areas. Try a district or village name.','Wilayah tidak ditemukan. Coba nama kecamatan atau kelurahan.')}</small>}
+            {areas.length>0&&!selectedArea&&<div className="shipping-options-area-results" role="listbox" aria-label={t('Delivery areas','Wilayah pengiriman')}>{areas.map(area=><button type="button" role="option" key={`${area.source}:${area.id}`} onClick={()=>void chooseArea(area)}><strong>{[area.subdistrict,area.district].filter(Boolean).join(', ')||area.name}</strong><small>{[area.city,area.province,area.postalCode].filter(Boolean).join(' / ')}</small></button>)}</div>}
+            {loadingRates&&<div className="shipping-options-loading" role="status">{t('Loading delivery fees…','Memuat ongkir…')}</div>}
+            {error&&<div className="market-wanted-shipping-error" role="alert"><p>{error}</p>{needsShippingSetup?<Link className="shipping-options-address-btn" href="/profile?tab=shipping">{t('Set up shipping','Atur pengiriman')}</Link>:<button type="button" className="shipping-options-address-btn" onClick={searchAgain}>{t('Choose another area','Pilih wilayah lain')}</button>}</div>}
+            {!loadingRates&&rates.length>0&&<ul className="shipping-options-list">{rates.map(rate=><li className="shipping-options-item" key={`${rate.courier_code}:${rate.courier_service_code}`}><span className="shipping-options-courier"><strong>{COURIER_LABELS[rate.courier_code]??rate.courier_name}</strong><small>{rate.courier_service_name}{rate.duration?` - ${rate.duration}`:''}</small></span><span className="shipping-options-rate-price">{formatMoney(rate.price,'IDR')}</span></li>)}</ul>}
+          </>}
+        </div>
+      </div>
     </div>}
   </div>;
 }
@@ -766,7 +794,7 @@ export function MarketListingDetailView({
   const [status, setStatus] = useState<string>(initialExpired ? 'EXPIRED' : 'ACTIVE');
   const [renewing, setRenewing] = useState(false);
   const [closing, setClosing] = useState(false);
-  const [buyerPreview, setBuyerPreview] = useState(false);
+  const [previewRole, setPreviewRole] = useState<'buyer'|'seller'>(listing.type==='WTB'?'buyer':'seller');
 
   useEffect(() => {
     const sync = () => setLanguage(window.localStorage.getItem('vivreplay-locale') === 'ID' ? 'ID' : 'EN');
@@ -779,11 +807,14 @@ export function MarketListingDetailView({
   const t = (en: string, idStr: string) => language === 'ID' ? idStr : en;
   const isBuying = listing.type === 'WTB';
   const canPreviewAsBuyer = isOwner || isAdmin;
-  const isBuyerPreview = buyerPreview && canPreviewAsBuyer;
-  const ownerView = isOwner && !isBuyerPreview;
+  const ownerRole = isBuying?'buyer':'seller';
+  const counterpartyPreview = canPreviewAsBuyer&&previewRole!==ownerRole;
+  const ownerView = isOwner&&previewRole===ownerRole;
   const canEditListing = canEdit && ownerView;
   const typeLabel = isBuying ? t('Buying', 'Dicari') : t('Selling', 'Dijual');
   const shippingQuoteItems=useMemo(()=>editableCards.map(item=>({printingId:item.id,quantity:item.quantity,unitAmount:item.unitAmount})),[editableCards]);
+
+  useEffect(()=>setPreviewRole(listing.type==='WTB'?'buyer':'seller'),[listing.id,listing.type]);
 
   const daysLeft = expiresAt ? getDaysUntilExpiration(expiresAt) : null;
   const isExpired = status !== 'ACTIVE' || (expiresAt ? isListingExpired(expiresAt) : false);
@@ -868,10 +899,10 @@ export function MarketListingDetailView({
             </div>}
             {isBuying ? <div>
               <dt>{t('Location', 'Lokasi')}</dt>
-              <dd>{listing.city}{!ownerView&&<SellerShippingEstimate listingId={listing.id} destinationCity={listing.city} items={shippingQuoteItems} language={language}/>}</dd>
+      <dd>{listing.city}{!ownerView&&<WantedListingShippingOptions listingId={listing.id} destinationCity={listing.city} items={shippingQuoteItems} language={language} previewOnly={counterpartyPreview}/>}</dd>
             </div> : ownerView ? <div>
               <dt>{t('Ships from', 'Dikirim dari')}</dt>
-              <dd className="market-listing-shipping-origin"><span>{listing.city}</span><ShippingCouriers couriers={listing.shippingCouriers??[]} language={language} maxVisible={3}/></dd>
+              <dd className="market-listing-shipping-origin"><span>{listing.city}</span><ShippingCouriers couriers={listing.shippingCouriers??[]} language={language} maxVisible={2}/></dd>
             </div> : <ShippingOptions listingId={listing.id} courierCount={listing.shippingOptionCount??0} couriers={listing.shippingCouriers??[]} items={shippingQuoteItems}/>}
           </dl>
 
@@ -891,8 +922,8 @@ export function MarketListingDetailView({
               </div>
             </section>
             <div className="market-listing-utility-actions">
-              {!ownerView&&<><FeedbackLaunchButton request={{initialCategory:'market-report',listingId:listing.id,cardCode:editableCards.length===1?editableCards[0].card.code:undefined,printingId:editableCards.length===1?editableCards[0].id:undefined,cardOptions:editableCards.map(item=>({cardCode:item.card.code,printingId:item.id,label:`${item.card.name} (${item.card.code})${item.card.variant?` / ${item.card.variant}`:''} / ${item.language}`}))}} className="market-report-link" disabled={isBuyerPreview}>{t('Report listing','Laporkan listing')}</FeedbackLaunchButton><SaveListingButton listingId={listing.id} language={language} iconOnly disabled={isBuyerPreview}/></>}
-              {canPreviewAsBuyer&&<button type="button" className="button secondary market-listing-view-as-toggle" aria-pressed={isBuyerPreview} onClick={()=>setBuyerPreview(value=>!value)}>{isBuyerPreview?t('Seller view','Tampilan penjual'):t('Buyer preview','Pratinjau pembeli')}</button>}
+              {!ownerView&&<><FeedbackLaunchButton request={{initialCategory:'market-report',listingId:listing.id,cardCode:editableCards.length===1?editableCards[0].card.code:undefined,printingId:editableCards.length===1?editableCards[0].id:undefined,cardOptions:editableCards.map(item=>({cardCode:item.card.code,printingId:item.id,label:`${item.card.name} (${item.card.code})${item.card.variant?` / ${item.card.variant}`:''} / ${item.language}`}))}} className="market-report-link" disabled={counterpartyPreview}>{t('Report listing','Laporkan listing')}</FeedbackLaunchButton><SaveListingButton listingId={listing.id} language={language} iconOnly disabled={counterpartyPreview}/></>}
+              {canPreviewAsBuyer&&<div className="market-listing-view-as-toggle" role="group" aria-label={t('View listing as','Lihat listing sebagai')}><button type="button" aria-pressed={previewRole==='buyer'} onClick={()=>setPreviewRole('buyer')}>{t('Buyer','Pembeli')}</button><button type="button" aria-pressed={previewRole==='seller'} onClick={()=>setPreviewRole('seller')}>{t('Seller','Penjual')}</button></div>}
             </div>
           </div>
 
@@ -908,7 +939,7 @@ export function MarketListingDetailView({
               listingAmount={formatMoney(listingAmount, listing.currency)}
               negotiable={listingNegotiable}
               readOnly={ownerView}
-              previewOnly={isBuyerPreview}
+              previewOnly={counterpartyPreview}
               canManageListing={canEditListing}
               onItemsAdded={setEditableCards}
               canEditPrices={canEditListing&&editableCards.length>1}

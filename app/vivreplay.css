@@ -3839,3 +3839,21 @@ html[data-theme='dark'] .market-listing-status.is-buying{color:#e6b65e!important
 .market-card-offer-slider [data-slot=slider-thumb]{width:14px;height:14px;border:2px solid var(--accent);background:var(--surface-raised);box-shadow:0 1px 4px rgb(0 0 0 / .16);transition:box-shadow .16s ease,transform .16s ease}
 .market-card-offer-slider [data-slot=slider-thumb]:hover{transform:scale(1.08);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 18%,transparent)}
 .market-card-offer-slider-range{display:flex;justify-content:space-between;color:var(--muted);font-size:8px;font-variant-numeric:tabular-nums}
+
+.market-listing-shipping-origin{min-width:0!important;max-width:100%}
+.market-listing-shipping-origin>.market-feed-shipping-availability{display:flex;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.market-listing-shipping-origin>.market-feed-shipping-availability>span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.market-wanted-shipping-dialog{max-width:440px}
+.market-wanted-shipping-body{display:grid;gap:11px;padding:14px 16px 16px}
+.market-wanted-shipping-route{margin:0;color:var(--muted);font-size:12px;line-height:1.45}
+.market-wanted-shipping-route strong{color:var(--ink)}
+.market-wanted-shipping-search{display:grid;gap:5px;color:var(--muted);font-size:11px;font-weight:720}
+.market-wanted-shipping-search input{box-sizing:border-box;width:100%;min-width:0;min-height:40px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface-raised);color:var(--ink);font:inherit;font-size:13px}
+.market-wanted-shipping-search input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.market-wanted-shipping-state{color:var(--muted);font-size:11px}
+.market-wanted-shipping-error{display:grid;justify-items:start;gap:8px;padding:11px;border:1px solid color-mix(in srgb,var(--danger,#b42318) 30%,var(--line));border-radius:8px;background:color-mix(in srgb,var(--danger,#b42318) 5%,var(--surface-raised))}
+.market-wanted-shipping-error p{margin:0;color:var(--ink);font-size:12px;line-height:1.45}
+.market-wanted-shipping-error .shipping-options-address-btn{width:auto;margin:0}
+html[data-theme='dark'] .market-listing-view-as-toggle{border-color:#354753;background:#12212a}
+html[data-theme='dark'] .market-listing-view-as-toggle button[aria-pressed="true"]{background:#1b3440;color:#edf5f0}
+@media(max-width:640px){.market-wanted-shipping-body{padding:12px 14px 18px}.market-wanted-shipping-dialog{border-radius:16px 16px 0 0!important}}

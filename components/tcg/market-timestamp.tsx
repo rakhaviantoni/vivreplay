@@ -8,7 +8,8 @@ export function formatDateTimeWithOffset(value:string,language:string,timeZone=I
   if(!Number.isFinite(date.getTime()))return value;
   const locale=language.toLowerCase().startsWith('id')?'id-ID':'en-US';
   const formatted=new Intl.DateTimeFormat(locale,{dateStyle:'medium',timeStyle:'short',timeZone}).format(date);
-  const offset=new Intl.DateTimeFormat('en-US',{timeZone,timeZoneName:'longOffset'}).formatToParts(date).find(part=>part.type==='timeZoneName')?.value.replace(/^GMT/,'UTC')??'UTC';
+  const rawOffset=new Intl.DateTimeFormat('en-US',{timeZone,timeZoneName:'longOffset'}).formatToParts(date).find(part=>part.type==='timeZoneName')?.value;
+  const offset=rawOffset?.replace(/^GMT/,'UTC').replace(/^UTC([+-])0(\d)/,'UTC$1$2').replace(/:00$/,'')??'UTC';
   return`${formatted} (${offset})`;
 }
 
