@@ -2909,6 +2909,16 @@ html[data-theme='dark'] .checkout-payment-countdown.is-urgent>svg,html[data-them
 .pro-purchase-fields input:focus{border-color:var(--accent,#b78327);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent,#b78327) 14%,transparent)}
 .pro-purchase-button{width:100%;min-height:46px;justify-content:center;margin-top:17px;border-radius:10px!important;font-weight:800!important}
 .pro-purchase-button:disabled{opacity:.52;cursor:not-allowed}
+.pro-purchase-panel .checkout-payment-methods{margin:14px 0 0;padding:11px;gap:8px;background:var(--surface,#f8f3e8)}
+.pro-purchase-panel .checkout-payment-method-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.pro-purchase-panel .checkout-payment-method{min-height:44px;padding:6px 8px;font-size:11px}
+.pro-purchase-panel .checkout-payment-method img{width:31px;height:21px}
+.pro-payment-total,.pro-dialog-payment-total{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:8px 0 0;color:var(--muted,#716a5e);font-size:12px}
+.pro-payment-total strong,.pro-dialog-payment-total strong{color:var(--ink,#29251f);font-size:14px}
+.market-pro-dialog .checkout-payment-methods{margin:12px 0 4px;padding:11px;gap:8px}
+.market-pro-dialog .checkout-payment-method-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.market-pro-dialog .checkout-payment-method{min-height:46px;padding:6px 8px;font-size:11px}
+.market-pro-dialog .checkout-payment-method img{width:32px;height:22px}
 .pro-coming-soon{display:grid;justify-items:start;gap:8px;margin:auto 0;padding:20px 0}
 .pro-coming-soon-mark{width:36px;height:36px;display:grid;place-items:center;border:1px solid color-mix(in srgb,var(--accent,#b78327) 30%,var(--line));border-radius:11px;color:var(--accent,#9b6a16)}
 .pro-coming-soon strong{font-size:17px;letter-spacing:-.02em}

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import {MarketPaymentPreview} from './market-payment-preview';
+import {MarketPaymentMethodPicker,estimatePaymentFee,defaultPaymentOptions,type PaymentOption} from './market-payment-method-picker';
 import {useRouter,useSearchParams} from 'next/navigation';
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {ArrowLeftIcon as ArrowLeft,MapPinIcon as MapPin,MinusIcon as Minus,PlusIcon as Plus,ShieldCheckIcon as ShieldCheck,TruckIcon as Truck,XIcon as X} from '@phosphor-icons/react';
@@ -22,7 +23,6 @@ type Origin={addressLine:string;city:string;postalCode:string;areaId:string|null
 type Rate={courier_name:string;courier_service_name:string;courier_code:string;courier_service_code:string;company:string;type:string;price:number;duration?:string};
 type CheckoutLine={printingId:string;quantity:number;unitAmount?:number};
 type CartLine={listingId:string;listingTitle:string;items:CheckoutLine[]};
-type PaymentOption={method:'va'|'cstore'|'qris'|'cc'|'paylater'|'ewallet';channel:string;name:string;logo:string;fee:number;feeType:'FLAT'|'PERCENT';additionalFee:number};
 
 export function MarketCheckout(){
   const params=useSearchParams();
@@ -49,7 +49,7 @@ export function MarketCheckout(){
   const [selectedRate,setSelectedRate]=useState('');
   const [loading,setLoading]=useState(true);
   const [checkoutAvailable,setCheckoutAvailable]=useState(false);
-  const [paymentOptions,setPaymentOptions]=useState<PaymentOption[]>([{method:'qris',channel:'mpm',name:'QRIS',logo:'',fee:0,feeType:'FLAT',additionalFee:0}]);
+  const [paymentOptions,setPaymentOptions]=useState<PaymentOption[]>(defaultPaymentOptions);
   const [selectedPaymentMethod,setSelectedPaymentMethod]=useState<PaymentOption['method']>('qris');
   const [selectedPaymentChannel,setSelectedPaymentChannel]=useState('mpm');
   const selectedPaymentChoice=useRef<{method:PaymentOption['method'];channel:string}>({method:'qris',channel:'mpm'});
@@ -109,7 +109,7 @@ export function MarketCheckout(){
       if(cartMode&&selectedListings.length!==checkoutLines.length)throw new Error(t('A listing in your cart is no longer available. Return to your cart and remove it.','Salah satu listing di keranjang sudah tidak tersedia. Kembali ke keranjang dan hapus listing tersebut.'));setCartListings(selectedListings);setListing(selectedListings[0]);
       setOrigin(shipping.origin??undefined);
       setCheckoutAvailable(checkout.available);
-      const options=Array.isArray(checkout.paymentChannels)&&checkout.paymentChannels.length?checkout.paymentChannels:[{method:'qris' as const,channel:'mpm',name:'QRIS',logo:'',fee:0,feeType:'FLAT' as const,additionalFee:0}];
+      const options=Array.isArray(checkout.paymentChannels)&&checkout.paymentChannels.length?checkout.paymentChannels:defaultPaymentOptions;
       setPaymentOptions(options);
       if(!options.some(option=>option.method===selectedPaymentChoice.current.method&&option.channel===selectedPaymentChoice.current.channel)){
         const qris=options.find(option=>option.method==='qris');
@@ -151,8 +151,7 @@ export function MarketCheckout(){
   const shippingDiscount=voucherEligible&&useShippingVoucher&&currentRate?Math.min(Math.round(currentRate.price*MARKET_PRO_SHIPPING_VOUCHER_SHARE),MARKET_PRO_SHIPPING_VOUCHER_CAP):0;
   const selectedPaymentOption=paymentOptions.find(option=>option.method===selectedPaymentMethod&&option.channel===selectedPaymentChannel)??paymentOptions.find(option=>option.method==='qris')??paymentOptions[0];
   const paymentBaseTotal=subtotal+(currentRate?.price??0)-shippingDiscount+buyerServiceFee;
-  const estimatedGatewayFee=selectedPaymentOption&&selectedPaymentOption.method!=='qris'?Math.round((selectedPaymentOption.feeType==='PERCENT'?paymentBaseTotal*selectedPaymentOption.fee/100:selectedPaymentOption.fee)+selectedPaymentOption.additionalFee):0;
-  const paymentMethodName=(method:PaymentOption['method'])=>({va:t('Bank transfer','Transfer bank'),cstore:t('Convenience store','Gerai pembayaran'),qris:'QRIS',cc:t('Credit or debit card','Kartu kredit atau debit'),paylater:t('Pay later','Bayar nanti'),ewallet:t('E-wallet','Dompet digital')}[method]);
+  const estimatedGatewayFee=estimatePaymentFee(selectedPaymentOption,paymentBaseTotal);
   const courierName=(name:string)=>({jne:'JNE Express',jnt:'J&T Express',sicepat:'SiCepat Ekspres',anteraja:'Anteraja',tiki:'TIKI',pos:'Pos Indonesia',lion:'Lion Parcel',ninja:'Ninja Xpress',wahana:'Wahana Express',grab:'GrabExpress',gojek:'GoSend'}[name]??name);
 
   const loadQuotes=useCallback(async(forceRefresh=false)=>{
@@ -273,7 +272,7 @@ export function MarketCheckout(){
           {!quoting&&rates.length>0&&<div className="checkout-rate-list">{rates.map(rate=>{const key=`${rate.courier_code}:${rate.courier_service_code}`;return <label key={key} className={selectedRate===key?'is-selected':''}><input type="radio" name="shipping-rate" value={key} checked={selectedRate===key} onChange={()=>setSelectedRate(key)}/><span><strong><span>{courierName(rate.courier_code)}</span><span>{rate.courier_service_name}</span></strong>{rate.duration&&<small>{rate.duration}</small>}</span><b>{formatMoney(rate.price,listing.currency)}</b></label>})}</div>}
           {quoteError&&<div><p className="checkout-error" role="alert">{quoteError}</p><button type="button" className="button secondary" onClick={()=>{setEditingAddress(true);setRates([]);setSelectedRate('')}}>{t('Edit delivery address','Ubah alamat pengiriman')}</button></div>}
         </>}
-        {checkoutAvailable&&<section className="checkout-payment-methods" aria-labelledby="checkout-payment-method-title"><h2 id="checkout-payment-method-title">{t('Payment method','Metode pembayaran')}</h2><div className="checkout-payment-method-grid">{[...new Set(paymentOptions.map(option=>option.method))].sort((a,b)=>a==='qris'?-1:b==='qris'?1:a.localeCompare(b)).map(method=>{const first=paymentOptions.find(option=>option.method===method)!;const selected=selectedPaymentMethod===method;return <button type="button" key={method} className={`checkout-payment-method${selected?' is-selected':''}`} aria-pressed={selected} onClick={()=>{selectedPaymentChoice.current={method,channel:first.channel};setSelectedPaymentMethod(method);setSelectedPaymentChannel(first.channel)}}>{first.logo?<img src={first.logo} alt="" loading="lazy"/>:<span className="checkout-payment-method-mark">{method==='qris'?'QR':method==='va'?'BANK':method==='cc'?'CARD':method==='ewallet'?'WALLET':method==='paylater'?'LATER':'PAY'}</span>}<span>{paymentMethodName(method)}</span></button>})}</div>{selectedPaymentMethod!=='qris'&&<div className="checkout-payment-channel-grid" aria-label={paymentMethodName(selectedPaymentMethod)}>{paymentOptions.filter(option=>option.method===selectedPaymentMethod).map(option=><button type="button" key={`${option.method}:${option.channel}`} className={`checkout-payment-channel${selectedPaymentChannel===option.channel?' is-selected':''}`} aria-pressed={selectedPaymentChannel===option.channel} onClick={()=>{selectedPaymentChoice.current={method:option.method,channel:option.channel};setSelectedPaymentChannel(option.channel)}}>{option.logo?<img src={option.logo} alt="" loading="lazy"/>:null}<span>{option.name}</span></button>)}</div>}{selectedPaymentMethod==='qris'?<p className="checkout-payment-estimate is-no-fee">{t('No payment fee','Tidak ada biaya pembayaran')}</p>:<p className="checkout-payment-estimate">{t(`Estimated payment fee: ${formatMoney(estimatedGatewayFee,'IDR')}. The final amount is confirmed by the payment method.`,`Perkiraan biaya pembayaran: ${formatMoney(estimatedGatewayFee,'IDR')}. Total akhir dikonfirmasi oleh metode pembayaran.`)}</p>}</section>}
+        {checkoutAvailable&&<MarketPaymentMethodPicker locale={locale} options={paymentOptions} amount={paymentBaseTotal} selectedMethod={selectedPaymentMethod} selectedChannel={selectedPaymentChannel} onChange={(method,channel)=>{selectedPaymentChoice.current={method,channel};setSelectedPaymentMethod(method);setSelectedPaymentChannel(channel)}}/>}
         {error&&<p className="checkout-error" role="alert">{error}</p>}
         {!checkoutAvailable&&<MarketPaymentPreview amount={subtotal+(currentRate?.price??0)-shippingDiscount+buyerServiceFee} currency={listing.currency} language={locale}/>}
         <button type="button" className="button checkout-pay-button" disabled={!currentRate||editingAddress||submitting||!checkoutAvailable||!contactComplete||quoting} onClick={startCheckout}>{submitting?t('Preparing payment…','Menyiapkan pembayaran…'):checkoutAvailable?t('Continue to payment','Lanjut ke pembayaran'):t('Payment coming soon','Pembayaran segera tersedia')}</button>

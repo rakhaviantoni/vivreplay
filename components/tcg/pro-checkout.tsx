@@ -8,8 +8,9 @@ import {calculateBuyerServiceFee,calculateSellerServiceFee,MARKET_BUYER_FEE_MINI
 import {BuyerFeeInfo,SellerFeeInfo} from '@/components/tcg/market-buyer-fee-cap-table';
 import {useAccount} from '@/lib/client';
 import {toast} from 'sonner';
+import {MarketPaymentMethodPicker,defaultPaymentOptions,estimatePaymentFee,type PaymentMethod,type PaymentOption} from '@/components/tcg/market-payment-method-picker';
 
-type Plan={available:boolean;amount:number|null;standardAmount:number|null;durationDays:number|null;introOffer:boolean;introOfferEndsAt:string|null;introOfferLimit:number|null;introOfferSpotsRemaining:number|null;maxActiveListings:number;freeMaxActiveListings:number;freeDurationDays:number;commissionPercent:number;freeCommissionPercent:number;sellerFeeMinimum:number;buyerFeePercent:number;freeBuyerFeePercent:number;buyerFeeCap:number;buyerFeeMinimum:number;shippingVouchersPerMonth:number;shippingVoucherMinSubtotal:number;shippingVoucherSharePercent:number;shippingVoucherCap:number;canAutoRenew:boolean;freeCanAutoRenew:boolean;currency:'IDR'};
+type Plan={available:boolean;paymentChannels?:PaymentOption[];amount:number|null;standardAmount:number|null;durationDays:number|null;introOffer:boolean;introOfferEndsAt:string|null;introOfferLimit:number|null;introOfferSpotsRemaining:number|null;maxActiveListings:number;freeMaxActiveListings:number;freeDurationDays:number;commissionPercent:number;freeCommissionPercent:number;sellerFeeMinimum:number;buyerFeePercent:number;freeBuyerFeePercent:number;buyerFeeCap:number;buyerFeeMinimum:number;shippingVouchersPerMonth:number;shippingVoucherMinSubtotal:number;shippingVoucherSharePercent:number;shippingVoucherCap:number;canAutoRenew:boolean;freeCanAutoRenew:boolean;currency:'IDR'};
 type MembershipOrder={id:string;status:string;amount:number;currency:string;createdAt:string;paidAt:string|null};
 
 export function ProCheckout(){
@@ -18,6 +19,7 @@ export function ProCheckout(){
   const [planLoading,setPlanLoading]=useState(true);
   const [plan,setPlan]=useState<Plan>();
   const [submitting,setSubmitting]=useState(false);
+  const [selectedPayment,setSelectedPayment]=useState<{method:PaymentMethod;channel:string}>({method:'qris',channel:'mpm'});
   const [error,setError]=useState('');
   const [membershipOrders,setMembershipOrders]=useState<MembershipOrder[]>([]);
   const [monthlySales,setMonthlySales]=useState('0');
@@ -38,7 +40,7 @@ export function ProCheckout(){
     fetch('/api/checkout/pro',{cache:'no-store'}).then(async response=>{
       if(!response.ok)throw new Error('Market Pro is temporarily unavailable.');
       const result=await response.json() as Plan;
-      if(active)setPlan(result);
+      if(active){setPlan(result);const options=result.paymentChannels?.length?result.paymentChannels:defaultPaymentOptions;const preferred=options.find(option=>option.method==='qris')??options[0];if(preferred)setSelectedPayment({method:preferred.method,channel:preferred.channel})}
     }).catch(cause=>{if(active)setError(cause instanceof Error?cause.message:'Market Pro is temporarily unavailable.')}).finally(()=>{if(active)setPlanLoading(false)});
     return()=>{active=false};
   },[accountLoading,account?.profile?.id]);
@@ -60,7 +62,7 @@ export function ProCheckout(){
     if(!hasPhone){router.push('/profile');return;}
     setError('');setSubmitting(true);
     try{
-      const response=await fetch('/api/checkout/pro',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({introOffer:Boolean(plan?.introOffer)})});
+      const response=await fetch('/api/checkout/pro',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({introOffer:Boolean(plan?.introOffer),paymentMethod:selectedPayment.method,paymentChannel:selectedPayment.channel})});
       const result=await response.json() as {checkoutUrl?:string;error?:string};
       if(!response.ok||!result.checkoutUrl)throw new Error(result.error??'Market Pro is temporarily unavailable.');
       router.push(result.checkoutUrl);
@@ -79,6 +81,10 @@ export function ProCheckout(){
     {key:'renewal',label:t('Listing auto-renewal','Perpanjangan listing otomatis'),free:plan?.freeCanAutoRenew?t('Automatic','Otomatis'):t('Manual','Manual'),pro:plan?.canAutoRenew?t('Automatic','Otomatis'):t('Manual','Manual')},
   ];
   const alreadyPro=String(account?.profile?.tier??'free').toLowerCase()==='pro';
+  const paymentOptions=plan?.paymentChannels?.length?plan.paymentChannels:defaultPaymentOptions;
+  const selectedPaymentOption=paymentOptions.find(option=>option.method===selectedPayment.method&&option.channel===selectedPayment.channel)??paymentOptions.find(option=>option.method==='qris')??paymentOptions[0];
+  const paymentFee=estimatePaymentFee(selectedPaymentOption,plan?.amount??0);
+  const paymentTotal=(plan?.amount??0)+paymentFee;
   const numberValue=(value:string)=>Math.max(0,Math.min(1_000_000_000_000,Number(value)||0));
   const saleCount=Math.max(1,Math.min(100,Math.floor(Number(monthlySaleCount)||1)));
   const averageSaleSubtotal=numberValue(monthlySales)/saleCount;
@@ -125,6 +131,7 @@ export function ProCheckout(){
       </section>
       <aside className="pro-purchase-panel" aria-label={t('Market Pro price','Harga Market Pro')}>
         {plan?.available&&plan.amount&&plan.durationDays?<><p className="pro-purchase-price">{formatMoney(plan.amount,'IDR')}<small>{t(`/ ${plan.durationDays} days`,`/ ${plan.durationDays} hari`)}</small></p>{plan.introOffer?<><p className="pro-intro-price-note">{t(`First ${plan.durationDays} days, then ${formatMoney(plan.standardAmount??24900,'IDR')} per 30 days. Renew manually.`,`${plan.durationDays} hari pertama, lalu ${formatMoney(plan.standardAmount??24900,'IDR')} per 30 hari. Perpanjang manual.`)}</p><p className="pro-intro-limit-note">{introLimit&&introEndLabel?t(`Limited to ${introLimit} checkouts until ${introEndLabel}.`,`Maksimal ${introLimit} checkout sampai ${introEndLabel}.`):introLimit?t(`Limited to ${introLimit} checkouts.`,`Maksimal ${introLimit} checkout.`):introEndLabel?t(`Available until ${introEndLabel}.`,`Berlaku sampai ${introEndLabel}.`):''}</p></>:<p className="pro-purchase-caption">{t(`30-day membership. Renew manually when you want.`,`Keanggotaan 30 hari. Perpanjang manual saat Anda mau.`)}</p>}
+          {account&&!alreadyPro&&hasPhone&&<><MarketPaymentMethodPicker locale={id?'ID':'EN'} options={paymentOptions} amount={plan.amount} selectedMethod={selectedPayment.method} selectedChannel={selectedPayment.channel} onChange={(method,channel)=>setSelectedPayment({method,channel})}/>{paymentFee>0&&<div className="pro-payment-total"><span>{t('Estimated payment fee','Perkiraan biaya pembayaran')}</span><strong>{formatMoney(paymentFee,'IDR')}</strong><span>{t('Estimated total','Perkiraan total')}</span><strong>{formatMoney(paymentTotal,'IDR')}</strong></div>}</>}
           {!account?<button className="button pro-purchase-button" onClick={()=>window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}))}>{t('Sign in to continue','Masuk untuk melanjutkan')}</button>:alreadyPro?<div className="pro-current-state"><strong>{t('You already have Pro','Akun Anda sudah Pro')}</strong><p>{t('Your Pro membership is active.','Keanggotaan Pro Anda aktif.')}</p><Link className="button secondary pro-purchase-button" href="/profile">{t('Open Profile','Buka Profil')}</Link></div>:hasPhone?<button className="button pro-purchase-button" disabled={submitting} onClick={begin}>{submitting?t('Opening payment…','Membuka pembayaran…'):t('Get Market Pro','Dapatkan Market Pro')}</button>:<div className="pro-phone-required"><p>{t('Add a phone number to your profile before checkout.','Tambahkan nomor telepon di profil sebelum checkout.')}</p><Link className="button pro-purchase-button" href="/profile">{t('Add phone number','Tambahkan nomor telepon')}</Link></div>}
           <small className="pro-payment-note">{t('Your membership starts when payment clears.','Keanggotaan Anda aktif setelah pembayaran diterima.')}</small>
         </>:<div className="pro-coming-soon"><strong>{t('Membership checkout is unavailable','Pembayaran keanggotaan tidak tersedia')}</strong><p>{t('Please try again later.','Silakan coba lagi nanti.')}</p></div>}

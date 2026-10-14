@@ -1,6 +1,6 @@
 import {db,errorResponse,guard,user,optionalUser,HttpError} from '@/lib/server/store';
 import {getCurrentUser} from '@/lib/server/auth';
-import {createIpaymuQris,hasMarketIpaymuPaymentConfig,ipaymuExpiryTimestamp} from '@/lib/server/ipaymu';
+import {createIpaymuDirectPayment,getIpaymuPaymentChannels,hasMarketIpaymuPaymentConfig,ipaymuExpiryTimestamp} from '@/lib/server/ipaymu';
 import {fetchMarketPolicies,MARKET_BUYER_FEE_PERCENT,MARKET_PRO_BUYER_FEE_PERCENT,MARKET_BUYER_FEE_CAP,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH,MARKET_PRO_SHIPPING_VOUCHER_SHARE,MARKET_PRO_SHIPPING_VOUCHER_CAP} from '@/lib/market/policy';
 import {getProPricing} from '@/lib/market/pro-pricing';
 
@@ -42,8 +42,11 @@ export async function GET(){
     const intro=await introStatus(profile?.id,false,pricing).catch(()=>({promoOpen:false,spotsRemaining:null,eligible:false,pendingOrderId:null,priorPaid:false}));
     const canBuyIntro=intro.eligible&&profile?.tier!=='pro';
     const available=hasMarketIpaymuPaymentConfig()&&Boolean(pricing.amount&&pricing.durationDays);
+    let paymentChannels=[] as Awaited<ReturnType<typeof getIpaymuPaymentChannels>>;
+    try{if(available)paymentChannels=await getIpaymuPaymentChannels()}catch{paymentChannels=[{method:'qris',channel:'mpm',name:'QRIS',logo:'',fee:0,feeType:'FLAT',additionalFee:0}]}
     return Response.json({
       available,
+      paymentChannels,
       amount:canBuyIntro?pricing.introAmount:pricing.amount,
       standardAmount:pricing.amount,
       durationDays:pricing.durationDays,
@@ -75,7 +78,7 @@ export async function GET(){
 export async function POST(request:Request){
   try{
     guard(request);
-    const body=await request.json().catch(()=>({})) as {introOffer?:boolean};
+    const body=await request.json().catch(()=>({})) as {introOffer?:boolean;paymentMethod?:string;paymentChannel?:string};
     const profile=await user();
     const account=await getCurrentUser();
     if(!account?.email)throw new HttpError(401,'Sign in with an email address to continue.');
@@ -83,6 +86,14 @@ export async function POST(request:Request){
     const amount=pricing.amount;
     const durationDays=pricing.durationDays;
     if(!hasMarketIpaymuPaymentConfig()||!amount||!durationDays)throw new HttpError(503,'Market Pro checkout is temporarily unavailable.');
+    const paymentMethod=body.paymentMethod??'qris';
+    const paymentChannel=body.paymentChannel??'mpm';
+    if(!['va','cstore','qris','cc','paylater','ewallet'].includes(paymentMethod)||!(/^[a-z0-9_]{2,24}$/.test(paymentChannel)))throw new HttpError(400,'Choose a valid payment method.');
+    if(paymentMethod==='qris'&&paymentChannel!=='mpm')throw new HttpError(400,'Choose QRIS as your payment option.');
+    if(paymentMethod!=='qris'){
+      const channels=await getIpaymuPaymentChannels().catch(()=>[]);
+      if(!channels.some(channel=>channel.method===paymentMethod&&channel.channel===paymentChannel))throw new HttpError(409,'That payment option is temporarily unavailable. Choose another method.');
+    }
     if(profile.tier==='pro')throw new HttpError(409,'Your account already has an active Pro plan.');
     const name=String(profile.display_name||account.name||account.email.split('@')[0]||'VivrePlay member').trim();
     const phone=String(profile.phone??'').replace(/[\s().-]/g,'');
@@ -96,7 +107,7 @@ export async function POST(request:Request){
     for(const pendingOrder of pendingOrders){
       let pendingDetails:Record<string,unknown>={};
       try{const parsed=JSON.parse(pendingOrder.details) as unknown;if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))pendingDetails=parsed as Record<string,unknown>}catch{}
-      const pendingPaymentExpiry=pendingDetails.ipaymuPaymentMethod==='qris'
+      const pendingPaymentExpiry=pendingDetails.ipaymuPaymentMethod
         ?ipaymuExpiryTimestamp(pendingDetails.ipaymuPaymentExpiresAt,pendingDetails.ipaymuPaymentCreatedAt,pendingOrder.updatedAt)
         :null;
       const pendingStoredExpiry=pendingOrder.expiresAt?Date.parse(`${pendingOrder.expiresAt.replace(' ','T')}Z`):null;
@@ -122,7 +133,7 @@ export async function POST(request:Request){
     const introPrice=pricing.introAmount;
     let introOffer=false;
     if(body.introOffer!==false&&intro.eligible&&introPrice&&pricing.introEndsAt){
-      const details=JSON.stringify({durationDays,customerName:name,customerPhone:phone,introOffer:true});
+      const details=JSON.stringify({durationDays,customerName:name,customerPhone:phone,introOffer:true,ipaymuSelectedMethod:paymentMethod,ipaymuSelectedChannel:paymentChannel});
       const result=await database.prepare(`INSERT INTO checkout_orders (id,kind,buyer_id,items,details,subtotal,shipping_fee,amount,currency,status,expires_at)
         SELECT ?,'PRO',?,'[]',?,?,0,?,'IDR','PENDING_PAYMENT',?
         WHERE julianday(?)>julianday('now')
@@ -144,16 +155,16 @@ export async function POST(request:Request){
     }
     const finalAmount=introOffer?introPrice!:amount;
     if(!introOffer){
-      const details=JSON.stringify({durationDays,customerName:name,customerPhone:phone,introOffer:false});
+      const details=JSON.stringify({durationDays,customerName:name,customerPhone:phone,introOffer:false,ipaymuSelectedMethod:paymentMethod,ipaymuSelectedChannel:paymentChannel});
       await database.prepare(`INSERT INTO checkout_orders (id,kind,buyer_id,items,details,subtotal,shipping_fee,amount,currency,status,expires_at) VALUES (?,'PRO',?,'[]',?,?,0,?,'IDR','PENDING_PAYMENT',?)`).bind(orderId,profile.id,details,finalAmount,finalAmount,expiresAt).run();
     }
     const baseUrl=process.env.VIVREPLAY_PUBLIC_URL?.trim().replace(/\/$/,'')||'https://vivreplay.com';
     const origin=process.env.IPAYMU_MODE==='sandbox'?new URL(request.url).origin:baseUrl;
     const notifyUrl=process.env.IPAYMU_CALLBACK_URL?.trim()||`${origin}/api/checkout/ipaymu/callback`;
     try{
-      const payment=await createIpaymuQris({orderId,amount:finalAmount,buyer:{name,email:account.email,phone},returnUrl:`${origin}/checkout/order/${encodeURIComponent(orderId)}`,notifyUrl});
+      const payment=await createIpaymuDirectPayment({orderId,amount:finalAmount,buyer:{name,email:account.email,phone},returnUrl:`${origin}/checkout/order/${encodeURIComponent(orderId)}`,notifyUrl,method:paymentMethod as 'va'|'cstore'|'qris'|'cc'|'paylater'|'ewallet',channel:paymentChannel});
       if(payment.sessionId){
-        const proDetails={durationDays,customerName:name,customerPhone:phone,introOffer,ipaymuPaymentMethod:'qris',ipaymuPaymentQrImage:payment.qrImage,ipaymuPaymentQrString:payment.qrString,ipaymuTransactionId:payment.transactionId,ipaymuSessionId:payment.sessionId,ipaymuPaymentFee:payment.fee,ipaymuPaymentCreatedAt:payment.paymentCreatedAt,ipaymuPaymentExpiresAt:payment.expiresAt,ipaymuMode:process.env.IPAYMU_MODE==='sandbox'?'sandbox':'production'};
+        const proDetails={durationDays,customerName:name,customerPhone:phone,introOffer,ipaymuSelectedMethod:paymentMethod,ipaymuSelectedChannel:paymentChannel,ipaymuPaymentMethod:payment.paymentMethod,ipaymuPaymentChannel:payment.paymentChannel,ipaymuPaymentName:payment.paymentName??paymentChannel.toUpperCase(),ipaymuPaymentNo:payment.paymentNo,ipaymuPaymentInstructionsUrl:payment.instructionsUrl,ipaymuCheckoutUrl:payment.checkoutUrl,ipaymuPaymentQrImage:payment.qrImage,ipaymuPaymentQrString:payment.qrString,ipaymuTransactionId:payment.transactionId,ipaymuSessionId:payment.sessionId,ipaymuPaymentFee:payment.fee,ipaymuPaymentTotal:payment.paymentMethod==='qris'?finalAmount:Math.max(payment.total,finalAmount+(payment.fee??0)),ipaymuPaymentCreatedAt:payment.paymentCreatedAt,ipaymuPaymentExpiresAt:payment.expiresAt,ipaymuMode:process.env.IPAYMU_MODE==='sandbox'?'sandbox':'production'};
         const paymentExpirySql=payment.expiresAt?new Date(payment.expiresAt).toISOString().slice(0,19).replace('T',' '):expiresAt;
         await database.prepare("UPDATE checkout_orders SET payment_id=?,details=?,expires_at=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(payment.sessionId,JSON.stringify(proDetails),paymentExpirySql,orderId).run();
       }

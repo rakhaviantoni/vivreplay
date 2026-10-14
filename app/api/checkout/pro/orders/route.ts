@@ -17,7 +17,7 @@ export async function GET(){
       if(order.status!=='PENDING_PAYMENT')continue;
       let details:Record<string,unknown>={};
       try{const parsed=JSON.parse(order.details) as unknown;if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))details=parsed as Record<string,unknown>}catch{}
-      const paymentExpiry=details.ipaymuPaymentMethod==='qris'
+      const paymentExpiry=details.ipaymuPaymentMethod
         ?ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt,details.ipaymuPaymentCreatedAt,order.updatedAt)
         :null;
       const storedExpiry=order.expiresAt?Date.parse(`${order.expiresAt.replace(' ','T')}Z`):null;
