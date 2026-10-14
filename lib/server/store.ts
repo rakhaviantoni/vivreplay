@@ -305,6 +305,7 @@ export async function market(viewerId?:string){
       expiresAt: r.expiresAt,
       seller: r.seller,
       sellerUsername:r.sellerUsername??undefined,
+      sellerId:r.sellerId,
       isOwner: Boolean(viewerId&&r.sellerId===viewerId),
       language: r.cardLanguage ?? 'EN',
       card,
