@@ -536,3 +536,52 @@ html[data-theme='dark'] .market-profile-quick-tabs button.is-active{background:#
   .market-account-unified-body.is-listings .market-listing-row .market-activity-actions svg,.market-account-unified-body.is-listings .market-listing-row .market-activity-view-listing svg{width:13px!important;height:13px!important}
 }
 @media(max-width:390px){.market-account-unified-body.is-listings .market-listing-row{grid-template-columns:40px minmax(0,1fr)!important;gap:5px 7px!important;padding:9px!important}.market-account-unified-body.is-listings .market-listing-row>.market-card-stack{width:39px!important}.market-account-unified-body.is-listings .market-listing-row .market-activity-row-title{gap:4px!important}.market-account-unified-body.is-listings .market-listing-type-badge,.market-account-unified-body.is-listings .market-listing-row .vault-listing-status{font-size:8px!important;padding-inline:5px!important}}
+
+/* My Listings: listing type colors the row; lifecycle state stays plain text. */
+.market-account-unified-body.is-listings .market-listing-row.is-selling{border-color:color-mix(in srgb,#318d67 24%,var(--line))!important}
+.market-account-unified-body.is-listings .market-listing-row.is-buying{border-color:color-mix(in srgb,#c18827 26%,var(--line))!important}
+.market-account-unified-body.is-listings .market-listing-state{display:inline-flex;flex:none;align-items:center;gap:4px;color:var(--muted);font-size:10px;font-weight:600;line-height:1.2;white-space:nowrap}
+.market-account-unified-body.is-listings .market-listing-state>span{width:6px;height:6px;border-radius:50%;background:currentColor}
+.market-account-unified-body.is-listings .market-listing-state.is-paused{color:#98712e}
+.market-account-unified-body.is-listings .market-listing-state.is-expired{color:#a56038}
+.market-account-unified-body.is-listings .market-listing-state.is-sold{color:#35815e}
+.market-account-unified-body.is-listings .market-listing-state.is-closed{color:var(--muted)}
+.market-account-unified-body.is-listings .market-listing-row.is-paused>.market-card-stack,
+.market-account-unified-body.is-listings .market-listing-row.is-paused>.market-activity-row-main,
+.market-account-unified-body.is-listings .market-listing-row.is-paused>.market-listing-price-cell{opacity:.52;filter:grayscale(.16);transition:opacity .18s ease,filter .18s ease}
+.market-account-unified-body.is-listings .market-listing-row.is-closed>.market-card-stack,
+.market-account-unified-body.is-listings .market-listing-row.is-closed>.market-activity-row-main,
+.market-account-unified-body.is-listings .market-listing-row.is-closed>.market-listing-price-cell,
+.market-account-unified-body.is-listings .market-listing-row.is-sold>.market-card-stack,
+.market-account-unified-body.is-listings .market-listing-row.is-sold>.market-activity-row-main,
+.market-account-unified-body.is-listings .market-listing-row.is-sold>.market-listing-price-cell{opacity:.62;filter:grayscale(.25)}
+.market-account-unified-body.is-listings .market-listing-row.is-paused .market-activity-actions .is-primary-action,
+.market-account-unified-body.is-listings .market-listing-row.is-expired .market-activity-actions .is-primary-action{border-color:color-mix(in srgb,var(--accent) 50%,var(--line));background:color-mix(in srgb,var(--accent) 7%,var(--surface-raised));color:var(--accent)}
+.market-account-unified-body.is-listings .market-listing-row.is-closed .market-activity-actions{display:none}
+@media(max-width:620px){
+  .market-account-unified-body.is-listings .market-listing-row{grid-template-columns:43px minmax(0,1fr)!important;gap:4px 9px!important;padding:10px!important}
+  .market-account-unified-body.is-listings .market-listing-row>.market-card-stack{grid-column:1!important;grid-row:1/4!important;width:42px!important;height:56px!important}
+  .market-account-unified-body.is-listings .market-listing-row>.market-activity-row-main{grid-column:2!important;grid-row:1!important}
+  .market-account-unified-body.is-listings .market-listing-row .market-activity-row-title{display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:4px 6px!important;margin:0 0 3px!important}
+  .market-account-unified-body.is-listings .market-listing-row .market-listing-type-badge{min-height:19px!important;padding:2px 5px!important;border-radius:4px!important;font-size:9px!important}
+  .market-account-unified-body.is-listings .market-listing-row .market-listing-state{font-size:10px!important}
+  .market-account-unified-body.is-listings .market-listing-row .market-listing-inline-title-edit.is-row{order:2!important;flex:1 1 100%!important;width:100%!important;min-width:0!important}
+  .market-account-unified-body.is-listings .market-listing-row .market-listing-inline-title-edit.is-row>.market-listing-inline-value{width:100%!important;min-width:0!important}
+  .market-account-unified-body.is-listings .market-listing-row h3{flex:1 1 100%!important;order:2!important;font-size:13px!important;line-height:1.28!important;white-space:normal!important;overflow-wrap:anywhere!important}
+  .market-account-unified-body.is-listings .market-listing-row .market-activity-row-main>p{display:block!important;margin:3px 0 0!important;overflow:visible!important;font-size:10px!important;line-height:1.42!important;white-space:normal!important;overflow-wrap:anywhere!important}
+  .market-account-unified-body.is-listings .market-listing-row .market-activity-row-main>p span{margin-inline:3px!important}
+  .market-account-unified-body.is-listings .market-listing-row>.market-listing-price-cell{grid-column:2!important;grid-row:2!important;justify-content:flex-start!important;padding:2px 0 0!important;border:0!important}
+  .market-account-unified-body.is-listings .market-listing-row>.market-activity-actions{grid-column:2!important;grid-row:3!important;justify-self:start!important;justify-content:flex-start!important;align-self:start!important;gap:5px!important;width:100%!important}
+  .market-account-unified-body.is-listings .market-listing-row .market-activity-actions button,
+  .market-account-unified-body.is-listings .market-listing-row .market-activity-view-listing{box-sizing:border-box!important;width:34px!important;min-width:34px!important;height:34px!important;min-height:34px!important;padding:0!important;border-radius:7px!important;font-size:0!important}
+  .market-account-unified-body.is-listings .market-listing-row .market-activity-actions button span,
+  .market-account-unified-body.is-listings .market-listing-row .market-activity-view-listing span{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+  .market-account-unified-body.is-listings .market-listing-row .market-activity-actions button.is-primary-action{width:auto!important;min-width:0!important;padding:0 9px!important;gap:5px!important;font-size:11px!important}
+  .market-account-unified-body.is-listings .market-listing-row .market-activity-actions button.is-primary-action span{position:static!important;width:auto!important;height:auto!important;margin:0!important;overflow:visible!important;clip:auto!important;white-space:nowrap!important}
+  .market-account-unified-body.is-listings .market-listing-row .market-activity-actions svg,
+  .market-account-unified-body.is-listings .market-listing-row .market-activity-view-listing svg{width:15px!important;height:15px!important}
+  .market-account-unified-body.is-listings .market-listing-row.is-closed .market-activity-actions{display:none!important}
+}
+@media(max-width:390px){.market-account-unified-body.is-listings .market-listing-row{grid-template-columns:39px minmax(0,1fr)!important;gap:4px 7px!important;padding:9px!important}.market-account-unified-body.is-listings .market-listing-row>.market-card-stack{width:38px!important;height:52px!important}.market-account-unified-body.is-listings .market-listing-row .market-card-stack>span{width:28px!important;height:40px!important}}
+html[data-theme='dark'] .market-account-unified-body.is-listings .market-listing-row.is-selling{border-color:color-mix(in srgb,#55bb8b 32%,var(--line))!important}
+html[data-theme='dark'] .market-account-unified-body.is-listings .market-listing-row.is-buying{border-color:color-mix(in srgb,#e0b15f 35%,var(--line))!important}
