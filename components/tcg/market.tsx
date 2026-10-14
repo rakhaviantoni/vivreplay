@@ -66,7 +66,7 @@ type ListingBundleCard={
   unitAmount:number;
   availableQuantity:number;
 };
-type PublishedShare={id:string;title:string;price:number;cards:ListingBundleCard[];seller?:string;city?:string;expiresAt?:string};
+type PublishedShare={id:string;title:string;price:number;cards:ListingBundleCard[];seller?:string;city?:string;expiresAt?:string;timeZone?:string};
 function addFeedListingToCart(listing:Listing,printingId:string,locale:'EN'|'ID'){
   const cartKey='vivreplay-market-cart-v1';
   let cart:{sellerId:string;lines:{listingId:string;listingTitle:string;sellerId?:string;items:{printingId:string;quantity:number}[]}[]}={sellerId:'',lines:[]};
@@ -909,7 +909,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
       await refreshAccount();
       setOpen(false);
       if(result.id){
-        setPublishedShare({id:result.id,title:listingTitle||primary.card.name,price:Number(listingPrice),cards:[...bundleCards],seller:String(data?.profile?.display_name??''),city:listingType==='WTB'?buyerCity:listingCity,expiresAt:result.expiresAt});
+        setPublishedShare({id:result.id,title:listingTitle||primary.card.name,price:Number(listingPrice),cards:[...bundleCards],seller:String(data?.profile?.display_name??''),city:listingType==='WTB'?buyerCity:listingCity,expiresAt:result.expiresAt,timeZone:typeof data?.profile?.timezone==='string'?data.profile.timezone:undefined});
         setBundleCards([]);
         toast.success(locale==='ID'?'Listing berhasil dipublikasikan':'Listing published');
       }
@@ -1127,7 +1127,8 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
                 );
                 const rowClass=`market-feed-row ${listing.type==='WTB'?'is-wtb':'is-wts'}${listing.isOwner?'':' has-row-action'}${!listing.isOwner&&listing.type==='WTS'&&items.length===1?' has-cart-action':''}`;
                 return <article key={listing.id} className={`${rowClass} market-feed-entry`}>
-                  <Link href={marketListingPath(listing.title,listing.id)} className="market-feed-row-link" aria-label={locale==='ID'?`Buka ${listing.title}`:`Open ${listing.title}`}>{content}</Link>
+                  <div className="market-feed-row-content">{content}</div>
+                  <Link href={marketListingPath(listing.title,listing.id)} className="market-feed-row-link" aria-label={locale==='ID'?`Buka ${listing.title}`:`Open ${listing.title}`}/>
                   {!listing.isOwner&&<div className="market-feed-row-actions">
                     {listing.type==='WTB'&&<Link href={marketListingPath(listing.title,listing.id)} className="button secondary is-icon-only market-icon-action market-feed-offer-cards" title={locale==='ID'?'Tawarkan kartu':'Offer cards'} aria-label={locale==='ID'?'Tawarkan kartu':'Offer cards'}><Cards size={17}/></Link>}
                     {listing.type==='WTS'&&items.length===1&&items[0].quantity>0&&<MarketFeedCartButton listing={listing} printingId={items[0].printingId} locale={locale}/>}
@@ -1638,7 +1639,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
         </DialogContent>
       </Dialog>
       {bulkListingOpen&&<BulkListingModal open={bulkListingOpen} onClose={wasPublished=>{setBulkListingOpen(false);if(!wasPublished)setOpen(true)}} language={locale} stacks={groupVaultStacks((data?.collection??[]).map(item=>enrichCollectionItem(item,new Set())))} onPublished={async()=>{await refresh();await refreshAccount()}}/>}
-      {publishedShare&&<ShareButton title={publishedShare.title} path={marketListingPath(publishedShare.title,publishedShare.id)} cards={publishedShare.cards.map(item=>({card:printingToCard(item.card,item.printing),printingId:item.printing.id,quantity:item.quantity,condition:item.condition,unitAmount:item.unitAmount}))} subtitle={locale==='ID'?`${publishedShare.cards.reduce((sum,item)=>sum+item.quantity,0)} kartu`:`${publishedShare.cards.reduce((sum,item)=>sum+item.quantity,0)} cards`} listingInfo={{seller:publishedShare.seller,city:publishedShare.city,expiresAt:publishedShare.expiresAt}} price={formatMoney(publishedShare.price,'IDR')} openOnMount hideTrigger onOpenChange={open=>{if(!open)setPublishedShare(null)}}/>}
+      {publishedShare&&<ShareButton title={publishedShare.title} path={marketListingPath(publishedShare.title,publishedShare.id)} cards={publishedShare.cards.map(item=>({card:printingToCard(item.card,item.printing),printingId:item.printing.id,quantity:item.quantity,condition:item.condition,unitAmount:item.unitAmount}))} subtitle={locale==='ID'?`${publishedShare.cards.reduce((sum,item)=>sum+item.quantity,0)} kartu`:`${publishedShare.cards.reduce((sum,item)=>sum+item.quantity,0)} cards`} listingInfo={{seller:publishedShare.seller,city:publishedShare.city,expiresAt:publishedShare.expiresAt,timeZone:publishedShare.timeZone}} price={formatMoney(publishedShare.price,'IDR')} openOnMount hideTrigger onOpenChange={open=>{if(!open)setPublishedShare(null)}}/>}
 
       {data&&<MarketQuickPanel panel={accountPanel??quickPanel} onOpenChange={open=>{if(!open){setAccountPanel(null);setQuickPanel(null)}}} onPanelChange={next=>{if(next==='listings'||next==='offers'||next==='orders'||next==='saved'){setQuickPanel(null);setAccountPanel(next)}else{setAccountPanel(null);setQuickPanel(next)}}} onCreateListing={()=>{setAccountPanel(null);setQuickPanel(null);beginListing()}} locale={locale} account={data} activityCounts={activityCounts} initialOrderId={searchParams.get('order')} initialConversationId={searchParams.get('conversation')} initialProfileTab={profileQuickTab} onRefresh={async()=>{await Promise.all([refreshAccount(),refresh()])}} onSaved={async()=>{await refreshAccount();setAccountPanel(null);setQuickPanel(null)}}/>}
       <AddEditItemModal

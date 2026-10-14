@@ -6,7 +6,7 @@ import {marketCardThumbnails} from '@/lib/server/market-card-thumbnails';
 
 type Event=MarketEmailEvent;
 type NotificationItem={name:string;code:string;language:string;variant:string;rarity?:string;condition?:string;quantity:number;unitAmount?:number};
-export type NotificationDetails={participant?:string;amount?:number;currency?:string;itemCount?:number;message?:string;photoCount?:number;orderCode?:string;items?:NotificationItem[];subtotal?:number;shippingFee?:number;courier?:string;trackingNumber?:string;trackingStatus?:string;city?:string;postalCode?:string;shippingDeadline?:string;membershipDays?:number;membershipEndsAt?:string};
+export type NotificationDetails={participant?:string;amount?:number;currency?:string;itemCount?:number;message?:string;photoCount?:number;orderCode?:string;items?:NotificationItem[];subtotal?:number;shippingFee?:number;courier?:string;trackingNumber?:string;trackingStatus?:string;city?:string;postalCode?:string;shippingDeadline?:string;membershipDays?:number;membershipEndsAt?:string;expiresAt?:string;timezone?:string;region?:string};
 
 const copy:Record<Event,{en:{subject:string;line:string;cta:string};id:{subject:string;line:string;cta:string}}>= {
   'wishlist-match':{en:{subject:'A wishlist card is listed',line:'A listing matches your saved printing and preferences',cta:'View listing'},id:{subject:'Kartu yang Anda inginkan tersedia',line:'Ada listing yang cocok dengan cetakan dan preferensi Anda',cta:'Lihat listing'}},
@@ -42,7 +42,22 @@ const trackingStatusCopy:Record<string,{en:string;id:string}>={picking_up:{en:'T
 function escapeHtml(value:string){return value.replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]??char))}
 
 function formatAmount(amount:number,currency:string,locale:string){try{return new Intl.NumberFormat(locale==='id'?'id-ID':'en-US',{style:'currency',currency:currency.toUpperCase(),maximumFractionDigits:currency.toUpperCase()==='JPY'?0:2}).format(amount)}catch{return `${currency.toUpperCase()} ${amount.toLocaleString()}`}}
-function shippingDeadlineFromPayment(value:string|null|undefined,locale:string){
+function formatDateTimeWithOffset(value:string,language:string,region='ID',timezone='Asia/Jakarta'){
+  const date=new Date(/[zZ]|[+-]\d{2}:?\d{2}$/.test(value)?value:`${value.replace(' ','T')}Z`);
+  if(Number.isNaN(date.getTime()))return value;
+  const locale=`${language.toLowerCase().startsWith('id')?'id':'en'}-${region.toUpperCase()}`;
+  let formatted:string;
+  let offset='UTC';
+  try{
+    formatted=new Intl.DateTimeFormat(locale,{timeZone:timezone,dateStyle:'medium',timeStyle:'short'}).format(date);
+    offset=new Intl.DateTimeFormat('en',{timeZone:timezone,timeZoneName:'longOffset'}).formatToParts(date).find(part=>part.type==='timeZoneName')?.value.replace(/^GMT/,'UTC')??'UTC';
+  }catch{
+    formatted=new Intl.DateTimeFormat(language.toLowerCase().startsWith('id')?'id-ID':'en-ID',{timeZone:'Asia/Jakarta',dateStyle:'medium',timeStyle:'short'}).format(date);
+    offset='UTC+07:00';
+  }
+  return`${formatted} (${offset})`;
+}
+function shippingDeadlineFromPayment(value:string|null|undefined,locale:string,timezone='Asia/Jakarta',region='ID'){
   const source=value??new Date().toISOString();
   const paidAt=new Date(/[zZ]|[+-]\d{2}:?\d{2}$/.test(source)?source:`${source.replace(' ','T')}Z`);
   if(Number.isNaN(paidAt.getTime()))return undefined;
@@ -52,8 +67,8 @@ function shippingDeadlineFromPayment(value:string|null|undefined,locale:string){
   if(!year||!month||!day)return undefined;
   const deadlineDate=new Date(Date.UTC(year,month-1,day));
   const weekday=deadlineDate.getUTCDay();deadlineDate.setUTCDate(deadlineDate.getUTCDate()+(weekday===5?3:weekday===6?2:1));
-  const formatted=new Intl.DateTimeFormat(locale.toLowerCase().startsWith('id')?'id-ID':'en-ID',{timeZone:'UTC',weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(deadlineDate);
-  return`${formatted}, ${locale.toLowerCase().startsWith('id')?'pukul':'at'} 21.00 WIB`;
+  const deadline=new Date(Date.UTC(deadlineDate.getUTCFullYear(),deadlineDate.getUTCMonth(),deadlineDate.getUTCDate(),14));
+  return formatDateTimeWithOffset(deadline.toISOString(),locale,region,timezone);
 }
 function eventDetail(event:Event,details:NotificationDetails|undefined){
   if(event.startsWith('order-'))return undefined;
@@ -176,9 +191,11 @@ export function renderMarketEmail(event:Event,listingTitle='Edward.Newgate (001)
   if(event==='pro-activated'){
     if(details?.orderCode)summaryRows.push([id?'Pembayaran':'Payment',details.orderCode]);
     if(details?.membershipDays)summaryRows.push([id?'Masa aktif':'Membership',id?`${details.membershipDays} hari`:`${details.membershipDays} days`]);
-    if(details?.membershipEndsAt)summaryRows.push([id?'Berlaku sampai':'Active until',new Intl.DateTimeFormat(id?'id-ID':'en-ID',{timeZone:'Asia/Jakarta',dateStyle:'medium'}).format(new Date(details.membershipEndsAt))]);
+    if(details?.membershipEndsAt)summaryRows.push([id?'Berlaku sampai':'Active until',formatDateTimeWithOffset(details.membershipEndsAt,locale,details.region,details.timezone)]);
     if(details?.amount!==undefined&&details.currency)summaryRows.push([id?'Dibayar':'Paid',formatAmount(details.amount,details.currency,locale)]);
   }
+  if((event==='pro-expiring'||event==='pro-expired')&&details?.membershipEndsAt)summaryRows.push([id?'Berakhir pada':'Ends at',formatDateTimeWithOffset(details.membershipEndsAt,locale,details.region,details.timezone)]);
+  if(event==='pro-payment-expired'&&details?.expiresAt)summaryRows.push([id?'Batas pembayaran':'Payment deadline',formatDateTimeWithOffset(details.expiresAt,locale,details.region,details.timezone)]);
   if(event.startsWith('order-')&&details?.orderCode){
     summaryRows.push([id?'Pesanan':'Order',details.orderCode]);
     if(details.participant)summaryRows.push([event==='order-paid'?(id?'Penjual':'Seller'):event==='order-cancelled'?(id?'Dibatalkan oleh':'Cancelled by'):(id?'Pembeli':'Buyer'),details.participant]);
@@ -189,6 +206,7 @@ export function renderMarketEmail(event:Event,listingTitle='Edward.Newgate (001)
     if(details.shippingFee!==undefined&&details.currency)summaryRows.push([id?'Ongkir':'Shipping',formatAmount(details.shippingFee,details.currency,locale)]);
     if(details.amount!==undefined&&details.currency)summaryRows.push([id?'Total dibayar':'Total paid',formatAmount(details.amount,details.currency,locale)]);
     if(details.city)summaryRows.push([id?'Kota tujuan':'Destination',`${details.city}${details.postalCode?` ${details.postalCode}`:''}`]);
+    if(event==='order-expired'&&details.expiresAt)summaryRows.push([id?'Batas pembayaran':'Payment deadline',formatDateTimeWithOffset(details.expiresAt,locale,details.region,details.timezone)]);
     if(event==='order-seller-paid')summaryRows.push([id?'Kirim paling lambat':'Ship by',details.shippingDeadline??shippingDeadlineFromPayment(undefined,locale)??'']);
   }else if(['new-offer','counteroffer','accepted','declined','offer-unavailable'].includes(event)){
     if(details?.participant)summaryRows.push([id?'Dari':'From',details.participant]);
@@ -253,20 +271,28 @@ async function notificationItems(value:string|null|undefined):Promise<Notificati
   return raw.map(item=>{const card=cards.get(item.printingId);return{name:card?.name??'Card',code:card?.code??item.printingId,language:card?.language??'',variant:card?.variant??'',rarity:card?.rarity,condition:item.condition,quantity:item.quantity,unitAmount:Number.isSafeInteger(item.unitAmount)&&Number(item.unitAmount)>0?Number(item.unitAmount):undefined}});
 }
 
-async function notificationDetails(event:Event,reference:string,locale='en'):Promise<NotificationDetails|undefined>{
+async function notificationDetails(event:Event,reference:string,locale='en',profileId?:string,timezone='Asia/Jakarta',region='ID'):Promise<NotificationDetails|undefined>{
   if(event==='pro-activated'){
     const row=await db().prepare("SELECT o.details,o.amount,o.currency,p.pro_expires_at AS membershipEndsAt FROM checkout_orders o JOIN profiles p ON p.id=o.buyer_id WHERE o.id=? AND o.kind='PRO' AND o.status IN ('PAID','COMPLETED')").bind(reference).first<{details:string|null;amount:number;currency:string;membershipEndsAt:string|null}>();
     if(!row)return undefined;
     try{return{membershipDays:Number((JSON.parse(row.details||'{}') as {durationDays?:number}).durationDays)||undefined,amount:row.amount,currency:row.currency,orderCode:`VPM-${reference.slice(0,8).toUpperCase()}`,membershipEndsAt:row.membershipEndsAt??undefined}}catch{return undefined}
   }
+  if(event==='pro-expiring'||event==='pro-expired'){
+    const row=await db().prepare('SELECT pro_expires_at AS membershipEndsAt FROM profiles WHERE id=?').bind(profileId??'').first<{membershipEndsAt:string|null}>();
+    return row?.membershipEndsAt?{membershipEndsAt:row.membershipEndsAt}:undefined;
+  }
+  if(event==='pro-payment-expired'){
+    const row=await db().prepare("SELECT expires_at AS expiresAt FROM checkout_orders WHERE id=? AND kind='PRO'").bind(reference).first<{expiresAt:string|null}>();
+    return row?.expiresAt?{expiresAt:row.expiresAt}:undefined;
+  }
   if(event==='wishlist-match'||event==='price-drop'){const row=await db().prepare('SELECT amount,currency,items,printing_id AS printingId,quantity FROM listings WHERE id=?').bind(reference).first<{amount:number;currency:string;items:string|null;printingId:string;quantity:number}>();if(row)return{amount:row.amount,currency:row.currency,items:await notificationItems(row.items||JSON.stringify([{printingId:row.printingId,quantity:row.quantity}]))};return undefined;}
   if(event.startsWith('order-')){
-    const row=await db().prepare(`SELECT o.id,o.amount,o.currency,o.items,o.details,o.subtotal,o.shipping_fee AS shippingFee,COALESCE(o.paid_at,o.fulfilled_at) AS paidAt,o.updated_at AS updatedAt,COALESCE(b.display_name,'Buyer') AS buyer,COALESCE(s.display_name,'Seller') AS seller
-      FROM checkout_orders o LEFT JOIN profiles b ON b.id=o.buyer_id LEFT JOIN profiles s ON s.id=o.seller_id WHERE o.id=?`).bind(reference).first<{id:string;amount:number;currency:string;items:string;details:string|null;subtotal:number;shippingFee:number;paidAt:string|null;updatedAt:string;buyer:string;seller:string}>();
+    const row=await db().prepare(`SELECT o.id,o.amount,o.currency,o.items,o.details,o.subtotal,o.expires_at AS expiresAt,o.shipping_fee AS shippingFee,COALESCE(o.paid_at,o.fulfilled_at) AS paidAt,o.updated_at AS updatedAt,COALESCE(b.display_name,'Buyer') AS buyer,COALESCE(s.display_name,'Seller') AS seller
+      FROM checkout_orders o LEFT JOIN profiles b ON b.id=o.buyer_id LEFT JOIN profiles s ON s.id=o.seller_id WHERE o.id=?`).bind(reference).first<{id:string;amount:number;currency:string;items:string;details:string|null;subtotal:number;expiresAt:string|null;shippingFee:number;paidAt:string|null;updatedAt:string;buyer:string;seller:string}>();
     if(!row)return undefined;
     let shipping:{courierName?:string;courierServiceName?:string;trackingNumber?:string;tracking_number?:string;waybillId?:string;waybill_id?:string;trackingStatus?:string;city?:string;postalCode?:string;cancelledByRole?:string}|undefined;try{shipping=JSON.parse(row.details||'{}') as typeof shipping}catch{}
     const cancelledBy=shipping?.cancelledByRole==='seller'?'seller':'buyer';
-    return{orderCode:`VPM-${row.id.slice(0,8).toUpperCase()}`,amount:row.amount,currency:row.currency,subtotal:row.subtotal,shippingFee:row.shippingFee,itemCount:itemCount(row.items),items:await notificationItems(row.items),participant:event==='order-paid'?row.seller:event==='order-cancelled'?(cancelledBy==='seller'?row.seller:row.buyer):event==='order-dispute-response'?row.seller:row.buyer,courier:[shipping?.courierName,shipping?.courierServiceName].filter(Boolean).join(' '),trackingNumber:shipping?.trackingNumber??shipping?.tracking_number??shipping?.waybillId??shipping?.waybill_id,trackingStatus:shipping?.trackingStatus as string|undefined,city:shipping?.city,postalCode:shipping?.postalCode,shippingDeadline:event==='order-seller-paid'?shippingDeadlineFromPayment(row.paidAt??row.updatedAt,locale):undefined};
+    return{orderCode:`VPM-${row.id.slice(0,8).toUpperCase()}`,amount:row.amount,currency:row.currency,subtotal:row.subtotal,shippingFee:row.shippingFee,itemCount:itemCount(row.items),items:await notificationItems(row.items),participant:event==='order-paid'?row.seller:event==='order-cancelled'?(cancelledBy==='seller'?row.seller:row.buyer):event==='order-dispute-response'?row.seller:row.buyer,courier:[shipping?.courierName,shipping?.courierServiceName].filter(Boolean).join(' '),trackingNumber:shipping?.trackingNumber??shipping?.tracking_number??shipping?.waybillId??shipping?.waybill_id,trackingStatus:shipping?.trackingStatus as string|undefined,city:shipping?.city,postalCode:shipping?.postalCode,expiresAt:row.expiresAt??undefined,shippingDeadline:event==='order-seller-paid'?shippingDeadlineFromPayment(row.paidAt??row.updatedAt,locale,timezone,region):undefined};
   }
   if(event==='new-offer'||event==='counteroffer'||event==='accepted'||event==='declined'||event==='offer-unavailable'){
     if(event==='accepted'||event==='declined'){
@@ -349,10 +375,11 @@ async function deliverPush(profileId:string,event:Event,listingTitle:string,thre
 
 export async function sendMarketEmail(profileId:string,event:Event,listingTitle:string,threadId:string){
   try{
-    const recipient=await db().prepare(`SELECT u.email,p.locale FROM profiles p JOIN user u ON u.id=p.auth_subject WHERE p.id=?`).bind(profileId).first<{email:string;locale:string}>();
+    const recipient=await db().prepare(`SELECT u.email,p.locale,p.region,p.timezone FROM profiles p JOIN user u ON u.id=p.auth_subject WHERE p.id=?`).bind(profileId).first<{email:string;locale:string;region:string;timezone:string}>();
     if(!recipient||!recipient.email)return false;
     let details:NotificationDetails|undefined;
-    try{details=await notificationDetails(event,threadId,recipient.locale??'en')}catch(error){console.error('market_notification_details_failed',error instanceof Error?error.message:'unknown error')}
+    try{details=await notificationDetails(event,threadId,recipient.locale??'en',profileId,recipient.timezone||'Asia/Jakarta',recipient.region||'ID')}catch(error){console.error('market_notification_details_failed',error instanceof Error?error.message:'unknown error')}
+    details={...details,region:recipient.region||'ID',timezone:recipient.timezone||'Asia/Jakarta'};
     await deliverPush(profileId,event,listingTitle,threadId,recipient.locale??'en',details);
     await sendRenderedMarketEmail(recipient.email,event,listingTitle,threadId,recipient.locale??'en',undefined,details);
     return true;

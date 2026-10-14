@@ -6,14 +6,15 @@ import {OfferConversation} from '@/components/tcg/vault/offer-conversation';
 import {MarketActivityLoading,MarketCardStack} from '@/components/tcg/vault/tabs/market-activity-state';
 import {VaultPanelEmpty} from '@/components/tcg/vault/vault-panel-empty';
 import {PushNotificationPrompt} from '@/components/tcg/push-notification-settings';
+import {formatDateTimeWithOffset} from '@/components/tcg/market-timestamp';
 
 type Offer={id:string;threadId:string;listingId:string;listingTitle:string;listingExpiresAt:string|null;offerExpiresAt:string|null;direction:'received'|'sent';counterparty:string|null;status:string;amount:number;currency:string;createdAt:string;items:Array<{printingId:string;quantity:number;card?:{name:string;code:string;imageUrl:string|null}}>};
 const money=(amount:number,currency:string)=>new Intl.NumberFormat('id-ID',{style:'currency',currency:currency||'IDR',maximumFractionDigits:0}).format(amount);
-const dateLabel=(value:string,id:boolean)=>{const time=expiryTime(value);return time===null?(id?'Tanggal tidak tersedia':'Date unavailable'):new Intl.DateTimeFormat(id?'id-ID':'en-US',{dateStyle:'medium',timeStyle:'short'}).format(time)};
+const dateLabel=(value:string,id:boolean,timeZone:string)=>{const time=expiryTime(value);return time===null?(id?'Tanggal tidak tersedia':'Date unavailable'):formatDateTimeWithOffset(new Date(time).toISOString(),id?'id':'en',timeZone)};
 const expiryTime=(value:string)=>{const raw=value.trim();const iso=/^\d{4}-\d{2}-\d{2}$/.test(raw)?`${raw}T23:59:59Z`:raw.includes('T')?raw:raw.replace(' ','T');const zoned=/([zZ]|[+-]\d{2}(?::?\d{2})?)$/.test(iso)?iso:`${iso}Z`;const parsed=Date.parse(zoned);return Number.isFinite(parsed)?parsed:null};
 const countdown=(value:string,now:number,id:boolean)=>{const time=expiryTime(value);if(time===null)return id?'Tanggal akhir tidak tersedia':'Expiry date unavailable';const minutes=Math.ceil(Math.max(0,time-now)/60_000);if(minutes<60)return id?`${minutes} mnt lagi`:`${minutes}m left`;const hours=Math.floor(minutes/60);if(hours<24)return id?`${hours} jam ${minutes%60} mnt lagi`:`${hours}h ${minutes%60}m left`;const days=Math.floor(hours/24);return id?`${days} hari ${hours%24} jam lagi`:`${days}d ${hours%24}h left`};
 
-export function OffersTab({language,initialConversationId}:{language:'EN'|'ID';initialConversationId?:string|null}){
+export function OffersTab({language,timeZone='Asia/Jakarta',initialConversationId}:{language:'EN'|'ID';timeZone?:string;initialConversationId?:string|null}){
   const id=language==='ID';
   const [offers,setOffers]=useState<Offer[]>([]);
   const [loading,setLoading]=useState(true);
@@ -55,7 +56,7 @@ export function OffersTab({language,initialConversationId}:{language:'EN'|'ID';i
       const statusLabel:Record<string,string>=id?{PENDING:'Menunggu',ACCEPTED:'Diterima',DECLINED:'Ditolak',COUNTERED:'Dibalas',EXPIRED:'Kedaluwarsa',UNAVAILABLE:'Kartu terjual'}:{PENDING:'Pending',ACCEPTED:'Accepted',DECLINED:'Declined',COUNTERED:'Countered',EXPIRED:'Expired',UNAVAILABLE:'Cards sold'};
       return <article className="market-activity-row market-offer-row" key={offer.threadId}>
       <MarketCardStack cards={offer.items}/>
-      <div className="market-activity-row-main"><div className="market-activity-row-title"><span className={`market-offer-direction is-${offer.direction}`}>{offer.direction==='received'?(id?'Diterima':'Received'):(id?'Terkirim':'Sent')}</span><span className={`vault-listing-status is-${status.toLowerCase()}`}>{statusLabel[status]??status}</span></div><h3>{offer.listingTitle}</h3><p>{offer.counterparty|| (id?'Kolektor':'Collector')}<span>|</span>{offer.items.map(item=>`${item.quantity}× ${item.card?.name||item.card?.code||item.printingId}`).join(', ')}</p><small>{id?'Dibuat ':'Created '}{dateLabel(offer.createdAt,id)}</small>{expiresAt&&offer.status==='PENDING'&&!expired&&<small>{id?'Berakhir dalam ':'Ends in '}{countdown(expiresAt,now,id)}</small>}{expired&&<small>{id?'Penawaran ini sudah kedaluwarsa':'This offer has expired'}</small>}</div>
+      <div className="market-activity-row-main"><div className="market-activity-row-title"><span className={`market-offer-direction is-${offer.direction}`}>{offer.direction==='received'?(id?'Diterima':'Received'):(id?'Terkirim':'Sent')}</span><span className={`vault-listing-status is-${status.toLowerCase()}`}>{statusLabel[status]??status}</span></div><h3>{offer.listingTitle}</h3><p>{offer.counterparty|| (id?'Kolektor':'Collector')}<span>|</span>{offer.items.map(item=>`${item.quantity}× ${item.card?.name||item.card?.code||item.printingId}`).join(', ')}</p><small>{id?'Dibuat ':'Created '}{dateLabel(offer.createdAt,id,timeZone)}</small>{expiresAt&&offer.status==='PENDING'&&!expired&&<small>{id?'Berakhir dalam ':'Ends in '}{countdown(expiresAt,now,id)} / {dateLabel(expiresAt,id,timeZone)}</small>}{expired&&<small>{id?'Penawaran ini sudah kedaluwarsa':'This offer has expired'}</small>}</div>
       <strong className="market-activity-price">{money(offer.amount,offer.currency)}</strong>
       <button type="button" className="market-activity-primary" onClick={()=>setConversationId(offer.id)}><Conversation size={16}/><span>{id?'Buka percakapan':'Open conversation'}</span></button>
     </article>})}</div>}

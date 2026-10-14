@@ -33,19 +33,20 @@ export type ShareButtonProps = {
   card?: Card;
   subtitle?: string;
   price?: string;
-  listingInfo?: {seller?:string;city?:string;expiresAt?:string};
+  listingInfo?: {seller?:string;city?:string;expiresAt?:string;timeZone?:string};
   className?: string;
   openOnMount?: boolean;
   hideTrigger?: boolean;
   onOpenChange?: (open: boolean) => void;
 };
 
-function shareExpiry(value:string,language:'EN'|'ID'){
+function shareExpiry(value:string,language:'EN'|'ID',preferredTimeZone?:string){
   const timestamp=new Date(value.includes('T')?value:`${value.replace(' ','T')}Z`);
   if(!Number.isFinite(timestamp.getTime()))return '';
   const locale=language==='ID'?'id-ID':'en-US';
-  const dateTime=new Intl.DateTimeFormat(locale,{day:'numeric',month:'short',year:'numeric',hour:'numeric',minute:'2-digit',timeZone:'Asia/Jakarta'}).format(timestamp);
-  const offset=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Jakarta',timeZoneName:'longOffset'}).formatToParts(timestamp).find(part=>part.type==='timeZoneName')?.value.replace(/^GMT/,'UTC')??'UTC+07:00';
+  const timeZone=preferredTimeZone||Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC';
+  const dateTime=new Intl.DateTimeFormat(locale,{day:'numeric',month:'short',year:'numeric',hour:'numeric',minute:'2-digit',timeZone}).format(timestamp);
+  const offset=new Intl.DateTimeFormat('en-US',{timeZone,timeZoneName:'longOffset'}).formatToParts(timestamp).find(part=>part.type==='timeZoneName')?.value.replace(/^GMT/,'UTC')??'UTC';
   return `${language==='ID'?'Berakhir':'Expires'} ${dateTime} ${offset}`;
 }
 
@@ -431,7 +432,7 @@ export function ShareButton({
 
   const url = typeof window === 'undefined' ? path : new URL(path, window.location.origin).href;
   const imageLink = `vivreplay.com${new URL(path, 'https://vivreplay.com').pathname}`;
-  const imageSubtitle=[subtitle,listingInfo?.city,listingInfo?.seller?`${language==='ID'?'oleh':'by'} ${listingInfo.seller}`:'',listingInfo?.expiresAt?shareExpiry(listingInfo.expiresAt,language):''].filter(Boolean).join(' | ');
+  const imageSubtitle=[subtitle,listingInfo?.city,listingInfo?.seller?`${language==='ID'?'oleh':'by'} ${listingInfo.seller}`:'',listingInfo?.expiresAt?shareExpiry(listingInfo.expiresAt,language,listingInfo.timeZone):''].filter(Boolean).join(' | ');
 
   useEffect(() => {
     if (!open || cardList.length === 0) return;

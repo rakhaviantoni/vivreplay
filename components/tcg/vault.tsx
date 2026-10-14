@@ -675,7 +675,7 @@ export function Vault() {
         </section>
       )}
 
-      {activeTab === 'listings' && data?.profile && <section style={{marginTop:'16px'}}><ListingsTab language={language}/></section>}
+      {activeTab === 'listings' && data?.profile && <section style={{marginTop:'16px'}}><ListingsTab language={language} timeZone={String(data.profile.timezone||'Asia/Jakarta')}/></section>}
 
       {/* Tab 2: Slabs */}
       {activeTab === 'slabs' && (

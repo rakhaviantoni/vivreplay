@@ -2,6 +2,16 @@
 
 import {useEffect,useState} from 'react';
 
+export function formatDateTimeWithOffset(value:string,language:string,timeZone=Intl.DateTimeFormat().resolvedOptions().timeZone||'UTC'){
+  const normalized=value.includes('T')?value:value.replace(' ','T');
+  const date=new Date(/[zZ]|[+-]\d{2}:?\d{2}$/.test(normalized)?normalized:`${normalized}Z`);
+  if(!Number.isFinite(date.getTime()))return value;
+  const locale=language.toLowerCase().startsWith('id')?'id-ID':'en-US';
+  const formatted=new Intl.DateTimeFormat(locale,{dateStyle:'medium',timeStyle:'short',timeZone}).format(date);
+  const offset=new Intl.DateTimeFormat('en-US',{timeZone,timeZoneName:'longOffset'}).formatToParts(date).find(part=>part.type==='timeZoneName')?.value.replace(/^GMT/,'UTC')??'UTC';
+  return`${formatted} (${offset})`;
+}
+
 function relative(value:string,locale:string){
   const diffMs=Math.max(0,Date.now()-new Date(value).getTime());
   const seconds=Math.floor(diffMs/1000);
@@ -27,7 +37,7 @@ function relative(value:string,locale:string){
   return isId?`${years} thn lalu`:`${years}y ago`;
 }
 
-export function MarketTimestamp({value,prefix=''}:{value?:string;prefix?:string}){
+export function MarketTimestamp({value,prefix='',absolute=false}:{value?:string;prefix?:string;absolute?:boolean}){
   const [locale,setLocale]=useState('en');
   const [mounted,setMounted]=useState(false);
   const [,tick]=useState(0);
@@ -40,6 +50,6 @@ export function MarketTimestamp({value,prefix=''}:{value?:string;prefix?:string}
     return()=>{window.removeEventListener('vivreplay:locale',sync);window.clearInterval(timer)};
   },[]);
   if(!value)return null;
-  const formattedTitle=mounted?new Intl.DateTimeFormat(locale,{dateStyle:'medium',timeStyle:'short'}).format(new Date(value)):undefined;
-  return <time dateTime={value} title={formattedTitle} suppressHydrationWarning>{prefix}{mounted?relative(value,locale):relative(value,'en')}</time>;
+  const formattedTitle=mounted?formatDateTimeWithOffset(value,locale):undefined;
+  return <time dateTime={value} title={formattedTitle} suppressHydrationWarning>{prefix}{mounted?(absolute?formattedTitle:relative(value,locale)):relative(value,'en')}</time>;
 }
