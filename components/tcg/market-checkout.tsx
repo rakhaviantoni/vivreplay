@@ -29,8 +29,11 @@ export function MarketCheckout(){
   const {data:account,loading:accountLoading,error:accountError}=useAccount();
   const cartMode=params.get('cart')==='1';
   const requestedListingsParam=params.get('listings')??'';
-  const hasRequestedListings=params.has('listings');
-  const requestedListingIds=useMemo(()=>[...new Set(requestedListingsParam.split(',').filter(id=>/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)))],[requestedListingsParam]);
+  const hasLegacyListingParam=params.has('listings');
+  const [storedCartSelection,setStoredCartSelection]=useState<string[]|null>(null);
+  const [cartSelectionReady,setCartSelectionReady]=useState(!cartMode);
+  const hasRequestedListings=hasLegacyListingParam||Boolean(storedCartSelection?.length);
+  const requestedListingIds=useMemo(()=>{const raw=hasLegacyListingParam?requestedListingsParam:(storedCartSelection??[]).join(',');return [...new Set(raw.split(',').filter(id=>/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)))]},[hasLegacyListingParam,requestedListingsParam,storedCartSelection]);
   const [cartLines,setCartLines]=useState<CartLine[]>([]);const [cartReady,setCartReady]=useState(!cartMode);
   const activeCartLines=useMemo(()=>cartMode&&hasRequestedListings?cartLines.filter(line=>requestedListingIds.includes(line.listingId)):cartLines,[cartMode,hasRequestedListings,cartLines,requestedListingIds]);
   const listingId=params.get('listing')??cartLines[0]?.listingId??'';
@@ -78,10 +81,12 @@ export function MarketCheckout(){
   const addressReady=Boolean(origin&&origin.addressLine.trim()&&origin.city.trim()&&/^\d{5}$/.test(origin.postalCode));
 
   useEffect(()=>{const sync=()=>setLocale(window.localStorage.getItem('vivreplay-locale')==='ID'?'ID':'EN');const onLocale=(event:Event)=>setLocale((event as CustomEvent<'EN'|'ID'>).detail==='ID'?'ID':'EN');sync();window.addEventListener('vivreplay:locale',onLocale);return()=>window.removeEventListener('vivreplay:locale',onLocale)},[]);
+  useEffect(()=>{if(!cartMode){setCartSelectionReady(true);return}try{const raw=window.sessionStorage.getItem('vivreplay-market-checkout-listings-v1');const parsed=raw?JSON.parse(raw) as unknown:[];setStoredCartSelection(Array.isArray(parsed)?[...new Set(parsed.filter((id):id is string=>typeof id==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)))].slice(0,10):[])}catch{setStoredCartSelection([])}finally{setCartSelectionReady(true)}},[cartMode]);
+  useEffect(()=>{if(!cartMode||!hasLegacyListingParam)return;const ids=[...new Set(requestedListingsParam.split(',').filter(id=>/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)))];if(!ids.length||ids.length>10||ids.length!==requestedListingsParam.split(',').length)return;try{window.sessionStorage.setItem('vivreplay-market-checkout-listings-v1',JSON.stringify(ids))}catch{}setStoredCartSelection(ids);router.replace('/checkout/market?cart=1')},[cartMode,hasLegacyListingParam,requestedListingsParam,router]);
   useEffect(()=>{if(!cartMode)return;try{const cart=JSON.parse(window.localStorage.getItem('vivreplay-market-cart-v1')||'null');const lines=Array.isArray(cart?.lines)?cart.lines.filter((line:CartLine)=>typeof line?.listingId==='string'&&Array.isArray(line.items)&&line.items.length).map((line:CartLine)=>({listingId:line.listingId,listingTitle:typeof line.listingTitle==='string'?line.listingTitle:'',items:line.items.filter(item=>typeof item?.printingId==='string'&&Number.isInteger(item.quantity)&&item.quantity>0).map(item=>({printingId:item.printingId,quantity:item.quantity,unitAmount:item.unitAmount}))})):[];setCartLines(lines);window.localStorage.setItem('vivreplay-market-cart-v1',JSON.stringify({lines}))}catch{setCartLines([])}finally{setCartReady(true)}},[cartMode]);
   useEffect(()=>{
-    if(accountLoading||(cartMode&&!cartReady))return;
-    if(cartMode&&hasRequestedListings&&(requestedListingIds.length>10||requestedListingIds.length!==requestedListingsParam.split(',').length)){setDetailsError(t('The selected cart items are invalid. Return to your cart and choose again.','Item keranjang yang dipilih tidak valid. Kembali ke keranjang dan pilih lagi.'));setLoading(false);return;}
+    if(accountLoading||(cartMode&&(!cartReady||!cartSelectionReady)))return;
+    if(cartMode&&hasLegacyListingParam&&(requestedListingIds.length>10||requestedListingIds.length!==requestedListingsParam.split(',').length)){setDetailsError(t('The selected cart items are invalid. Return to your cart and choose again.','Item keranjang yang dipilih tidak valid. Kembali ke keranjang dan pilih lagi.'));setLoading(false);return;}
     if(!account){setLoading(false);return;}
     setLoading(true);setDetailsError('');
     let active=true;
@@ -105,7 +110,7 @@ export function MarketCheckout(){
       setShippingVouchersRemaining(checkout.shippingVouchersRemaining??0);
     }).catch(cause=>{if(active)setDetailsError(cause instanceof Error?cause.message:'Checkout details could not load.')}).finally(()=>{if(active)setLoading(false)});
     return()=>{active=false};
-  },[account?.profile.id,accountLoading,listingId,cartMode,cartReady,activeCartLines,requestedListingIds,hasRequestedListings,requestedListingsParam,locale]);
+  },[account?.profile.id,accountLoading,listingId,cartMode,cartReady,cartSelectionReady,activeCartLines,requestedListingIds,hasRequestedListings,hasLegacyListingParam,requestedListingsParam,locale]);
 
   const selectedCards=useMemo(()=>{
     const sourceLines=cartMode?activeCartLines.map(line=>({listing:cartListings.find(row=>row.id===line.listingId),items:line.items})).filter(line=>line.listing):[{listing,items}];
@@ -190,7 +195,7 @@ export function MarketCheckout(){
       const result=await response.json() as {checkoutUrl?:string;error?:string};
       if(response.status===409&&result.error?.includes('delivery fee changed')){await loadQuotes(true);throw new Error(t('Delivery fees changed. Review the updated options before paying.','Ongkir berubah. Periksa opsi terbaru sebelum membayar.'));}
       if(!response.ok||!result.checkoutUrl)throw new Error(result.error??t('Checkout could not be started.','Checkout tidak dapat dimulai.'));
-      if(cartMode){const stored=JSON.parse(window.localStorage.getItem('vivreplay-market-cart-v1')||'{"lines":[]}') as {lines?:CartLine[]};const completedIds=new Set(activeCartLines.map(line=>line.listingId));const remaining=(stored.lines??[]).filter(line=>!completedIds.has(line.listingId));window.localStorage.setItem('vivreplay-market-cart-v1',JSON.stringify({lines:remaining}));window.dispatchEvent(new Event('vivreplay:market-cart-updated'));}
+      if(cartMode){const stored=JSON.parse(window.localStorage.getItem('vivreplay-market-cart-v1')||'{"lines":[]}') as {lines?:CartLine[]};const completedIds=new Set(activeCartLines.map(line=>line.listingId));const remaining=(stored.lines??[]).filter(line=>!completedIds.has(line.listingId));window.localStorage.setItem('vivreplay-market-cart-v1',JSON.stringify({lines:remaining}));window.sessionStorage.removeItem('vivreplay-market-checkout-listings-v1');window.dispatchEvent(new Event('vivreplay:market-cart-updated'));}
       router.push(result.checkoutUrl);
     }catch(cause){const message=cause instanceof Error?cause.message:t('Checkout could not be started.','Checkout tidak dapat dimulai.');setError(message);toast.error(message)}finally{setSubmitting(false)}
   };
@@ -204,10 +209,12 @@ export function MarketCheckout(){
     <Link href={cartMode?'/market':marketListingPath('',listingId)} className="back-link"><ArrowLeft size={16}/>{cartMode?t('Back to Market','Kembali ke Market'):t('Back to listing','Kembali ke listing')}</Link>
     <header className="checkout-page-heading"><div><h1>{t('Review your order','Periksa pesanan')}</h1><p>{t('Check the cards, delivery address, and total before paying.','Periksa kartu, alamat pengiriman, dan total sebelum membayar.')}</p></div></header>
     <div className="checkout-layout">
-      <section className="checkout-panel checkout-order-summary"><h2>{cartMode?t(`${cartLines.length} ${cartLines.length===1?'listing':'listings'}`,`${cartLines.length} listing`):listing.title}</h2><p className="checkout-seller"><strong>{listing.seller}</strong><span>{listing.city}</span></p>
+      <section className="checkout-panel checkout-order-summary"><h2>{cartMode?t(`${activeCartLines.length} ${activeCartLines.length===1?'listing':'listings'}`,`${activeCartLines.length} listing`):listing.title}</h2><p className="checkout-seller"><strong>{listing.seller}</strong><span>{listing.city}</span></p>
         <div className="checkout-items">{checkoutGroups.map(group=>{
-          const stack=group.items.flatMap(item=>item.card?Array.from({length:Math.max(1,Math.min(3,item.quantity))},(_,copy)=>({card:item.card!,key:`${item.printingId}-${copy}`})):[]).slice(0,3);
-          const groupCount=group.items.reduce((total,item)=>total+item.quantity,0);
+          const sourceListing=cartListings.find(row=>row.id===group.id)??listing;
+          const artworkItems=sourceListing?.items?.length?sourceListing.items.map(item=>({card:item.card??(item.printingId===sourceListing.printingId?sourceListing.card:undefined),quantity:item.quantity,printingId:item.printingId})).filter(item=>item.card):sourceListing?.card?[{card:sourceListing.card,quantity:sourceListing.quantity,printingId:sourceListing.printingId}]:[];
+          const groupCount=artworkItems.reduce((total,item)=>total+item.quantity,0);
+          const stack=artworkItems.flatMap(item=>Array.from({length:Math.max(1,Math.min(3,item.quantity))},(_,copy)=>({card:item.card!,key:`${item.printingId}-${copy}`}))).slice(0,3);
           return <section className="checkout-listing-group" key={group.id}>
             <header className="checkout-listing-group-heading">
               <div className={`market-feed-stack checkout-card-stack${groupCount===1?' is-single':''}`} style={{'--stack-last-index':Math.max(0,stack.length-1)} as React.CSSProperties}>

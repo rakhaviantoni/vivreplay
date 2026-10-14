@@ -88,7 +88,7 @@ export function MarketCartSheet({locale='EN'}:{locale:'EN'|'ID'}){
   };
   const clearCart=()=>{if(!window.confirm(isId?'Kosongkan semua isi keranjang?':'Remove all items from your cart?'))return;window.localStorage.removeItem(CART_KEY);setCart(emptyCart);setListings([]);setUnavailableIds([]);window.dispatchEvent(new Event('vivreplay:market-cart-updated'))};
   const selectedLines=cart.lines.filter(line=>{const listing=listings.find(item=>item.id===line.listingId);return selectedSellerGroupId?listing?.sellerGroupId===selectedSellerGroupId:cart.lines.length===1});
-  const continueToCheckout=()=>{if(!selectedSellerGroupId||selectedSellerGroupId.startsWith('unavailable:')||!selectedLines.length)return;changeOpen(false);const ids=selectedLines.map(line=>line.listingId).join(',');router.push(`/checkout/market?cart=1&listings=${encodeURIComponent(ids)}`)};
+  const continueToCheckout=()=>{if(!selectedSellerGroupId||selectedSellerGroupId.startsWith('unavailable:')||!selectedLines.length)return;changeOpen(false);const ids=selectedLines.map(line=>line.listingId);try{window.sessionStorage.setItem('vivreplay-market-checkout-listings-v1',JSON.stringify(ids));router.push('/checkout/market?cart=1')}catch{router.push(`/checkout/market?cart=1&listings=${encodeURIComponent(ids.join(','))}`)}};
   const selectedUnavailableIds=unavailableIds.filter(id=>selectedLines.some(line=>line.listingId===id));
   const unavailableSelection=selectedLines.some(line=>{const listing=listings.find(item=>item.id===line.listingId);return !listing||line.items.some(selected=>{const item=listing.items.find(candidate=>candidate.printingId===selected.printingId);return !item||selected.quantity>item.quantity})});
   const selectedListings=listings.filter(listing=>listing.sellerGroupId===selectedSellerGroupId);
@@ -110,15 +110,14 @@ export function MarketCartSheet({locale='EN'}:{locale:'EN'|'ID'}){
               const item=listing?.items.find(candidate=>candidate.printingId===selected.printingId);
               return item?{...item,availableQuantity:item.quantity,quantity:selected.quantity,unavailable:false}:{printingId:selected.printingId,name:selected.printingId,code:selected.printingId,quantity:selected.quantity,availableQuantity:0,unitAmount:0,condition:'',unavailable:true};
             });
-            const totalSelected=selectedItems.reduce((total,item)=>total+item.quantity,0);
-            const firstCopies=selectedItems.map(item=>({item,copyIndex:0})).slice(0,3);
-            const extraCopies=selectedItems.flatMap(item=>Array.from({length:Math.max(0,Math.min(3,item.quantity)-1)},(_,index)=>({item,copyIndex:index+1}))).slice(0,3-firstCopies.length);
-            const visibleStack=[...firstCopies,...extraCopies];
+            const listingItems=listing?.items??[];
+            const listingCardCount=listingItems.reduce((total,item)=>total+item.quantity,0);
+            const visibleStack=listingItems.flatMap(item=>Array.from({length:Math.max(1,Math.min(3,item.quantity))},(_,copyIndex)=>({item,copyIndex}))).slice(0,3);
             return <article className={`market-cart-sheet-listing${!listing?' is-unavailable':''}`} key={line.listingId}>
               <div className="market-cart-sheet-listing-top">
-                {listing&&<div className={`market-feed-stack market-cart-sheet-preview-stack${totalSelected===1?' is-single':''}`} style={{'--stack-last-index':Math.max(0,visibleStack.length-1)} as React.CSSProperties}>
+                {listing&&<div className={`market-feed-stack market-cart-sheet-preview-stack${listingCardCount===1?' is-single':''}`} style={{'--stack-last-index':Math.max(0,visibleStack.length-1)} as React.CSSProperties}>
                   {visibleStack.map(({item,copyIndex},index)=>{const card:Card={id:item.printingId,code:item.code,name:item.name,color:'Red',type:'Character',cost:0,power:0,rarity:'',art:index,effect:'',imageUrl:item.imageUrl??undefined,imageSource:'external',setCode:item.setCode??undefined,language:item.language??'EN',printingCode:item.printingCode??item.code,assetPath:item.assetPath??undefined};return <div key={`${item.printingId}-${copyIndex}`} className="market-feed-art" style={{'--stack-index':index} as React.CSSProperties}><CardArt card={card}/></div>})}
-                  {totalSelected>1&&<span className="market-feed-quantity" aria-label={`${totalSelected} ${isId?'kartu':'cards'}`}>{totalSelected}</span>}
+                  {listingCardCount>1&&<span className="market-feed-quantity" aria-label={`${listingCardCount} ${isId?'kartu':'cards'}`}>{listingCardCount}</span>}
                 </div>}
                 <header className="market-cart-sheet-listing-header"><div><strong>{listing?.title??line.listingTitle??(isId?'Listing tidak tersedia':'Listing unavailable')}</strong></div><button type="button" className="market-cart-sheet-remove" onClick={()=>removeListing(line.listingId)} aria-label={isId?'Hapus listing dari keranjang':'Remove listing from cart'}><Trash size={16}/></button></header>
               </div>
