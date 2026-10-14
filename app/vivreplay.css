@@ -878,8 +878,23 @@ html[data-theme='dark'] .market-vault-bundle-start:hover{border-color:#9d752e;ba
 .listing-benchmark-jpy{font-size:12px;color:var(--muted);font-weight:600}
 .listing-benchmark-approx{font-size:11px;color:var(--muted)}
 .listing-benchmark-idr{font-size:14px;font-weight:800;color:var(--ink)}
-.listing-benchmark-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
-.listing-benchmark-actions select{height:30px;padding:0 6px;border:1px solid var(--line);border-radius:6px;background:var(--surface-raised);color:var(--ink);font-size:11px;font-weight:700}
+.listing-benchmark-actions{display:grid;grid-template-columns:minmax(150px,1fr) auto;align-items:center;gap:12px;flex:1 1 340px;min-width:0}
+.listing-benchmark-rate{display:grid;grid-template-columns:1fr auto;align-items:center;gap:4px 10px;min-width:0}
+.listing-benchmark-rate>span{color:var(--muted);font-size:10px;font-weight:700}
+.listing-benchmark-rate output{justify-self:end;min-width:48px;padding:2px 7px;border:1px solid color-mix(in srgb,var(--accent) 30%,var(--line));border-radius:999px;background:var(--surface-raised);color:var(--ink);font-size:11px;font-weight:800;text-align:center;transition:background .16s ease,color .16s ease,transform .16s ease}
+.listing-benchmark-rate output:active{transform:scale(.96)}
+.listing-benchmark-slider{grid-column:1/-1;padding:7px 2px}
+.listing-benchmark-slider [data-slot=slider-track]{height:5px;background:var(--line)}
+.listing-benchmark-slider [data-slot=slider-range]{background:var(--accent);transition:width .12s ease}
+.listing-benchmark-slider [data-slot=slider-thumb]{width:15px;height:15px;border:2px solid var(--accent);background:var(--surface-raised);box-shadow:0 1px 4px rgb(0 0 0 / .16);transition:box-shadow .16s ease,transform .16s ease}
+.listing-benchmark-slider [data-slot=slider-thumb]:hover{transform:scale(1.08);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 18%,transparent)}
+.listing-benchmark-range{grid-column:1/-1;display:flex;justify-content:space-between;color:var(--muted);font-size:9px;font-variant-numeric:tabular-nums}
+.market-request-city-field{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:42px;padding:5px 8px 5px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface-muted);color:var(--ink)}
+.market-request-city-field>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:700}
+.market-request-city-field>span.is-empty{color:var(--muted);font-weight:500}
+.market-request-city-change{flex:0 0 auto;min-height:30px;padding:0 9px;border:1px solid var(--line);border-radius:7px;background:var(--surface-raised);color:var(--accent);font-size:11px;font-weight:750;cursor:pointer;transition:background .16s ease,border-color .16s ease,transform .16s ease}
+.market-request-city-change:hover{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--surface-raised))}
+.market-request-city-change:active{transform:scale(.97)}
 .listing-benchmark-apply-btn{display:inline-flex;align-items:center;height:30px;padding:0 10px;border:1px solid var(--accent);border-radius:6px;background:var(--accent);color:var(--accent-ink);font-size:11px;font-weight:750;cursor:pointer;transition:filter .15s ease,transform .15s ease}
 .listing-benchmark-apply-btn:hover{filter:brightness(1.08);transform:translateY(-1px)}
 
@@ -921,7 +936,7 @@ html[data-theme='dark'] .market-sell-source-toggle button.active{background:#132
 html[data-theme='dark'] .market-vault-card-item{background:#0c1e28;border-color:#294653}
 html[data-theme='dark'] .market-vault-card-item:hover{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,#0c1e28)}
 html[data-theme='dark'] .listing-benchmark-box{border-color:color-mix(in srgb,var(--accent) 35%,#294653);background:color-mix(in srgb,var(--accent) 10%,#0c1e28)}
-html[data-theme='dark'] .listing-benchmark-actions select{background:#08151f;border-color:#345363;color:#eff8f2}
+@media(max-width:520px){.listing-benchmark-actions{width:100%;grid-template-columns:minmax(0,1fr);gap:10px}.listing-benchmark-apply-btn{justify-content:center;width:100%}}
 html[data-theme='dark'] .market-sell-bundle-item{background:#0c1e28;border-color:#294653}
 html[data-theme='dark'] .market-sell-bundle-stepper{background:#08151f;border-color:#345363}
 html[data-theme='dark'] .market-sell-add-card-btn{border-color:#294653}
@@ -1876,14 +1891,14 @@ html[data-theme=dark] .live-detail-layout.is-resolving .viewer-art-skeleton{back
 .card-market-source{display:inline-flex;align-items:center;gap:5px;margin-top:10px;color:#e6ba63;font-size:11px;font-weight:800;text-decoration:none}.card-market-source:hover{text-decoration:underline}:root[data-theme='light'] .card-market-source{color:#9f6110}
 /* Preview releases announce once per browser and retain a quiet visual marker in every card surface. */
 .new-cards-backdrop{position:fixed;z-index:120;inset:0;display:grid;place-items:center;padding:20px;background:#19211ab8;backdrop-filter:blur(4px)}
-.new-cards-dialog{width:min(470px,100%);overflow:hidden;border:1px solid #e5c777;border-radius:16px;background:#fffaf1;color:#30271d;box-shadow:0 26px 84px #111a14a8;animation:new-cards-enter .24s cubic-bezier(.2,.8,.2,1) both}.new-cards-dialog>header{display:flex;align-items:center;justify-content:space-between;padding:15px 20px;background:#b9821e;color:#fffaf1;font:800 17px var(--game-font);text-transform:uppercase;letter-spacing:.04em}.new-cards-dialog>header span{display:flex;gap:9px;align-items:center}.new-cards-dialog>header button{display:grid;place-items:center;padding:4px;border:0;background:transparent;color:inherit;cursor:pointer}.new-cards-body{padding:25px}.new-cards-body .eyebrow{margin:0 0 7px;color:#9a6a18;font-weight:800;letter-spacing:.11em}.new-cards-body h2{margin:0;color:#2c2419;font:700 31px/1.06 var(--display-font)}.new-cards-body>p:not(.eyebrow){margin:11px 0 20px;color:#6e614e;font:600 15px/1.52 var(--game-font)}.new-cards-feature{display:flex;align-items:center;gap:16px;padding:12px;border:1px solid #e7d4aa;border-radius:12px;background:#fffdf8;text-decoration:none;color:inherit}.new-cards-feature .tcg-card{width:94px;flex:0 0 94px}.new-cards-feature>span{display:grid;gap:4px}.new-cards-feature small{color:#a36e16;font:800 11px var(--game-font);text-transform:uppercase;letter-spacing:.08em}.new-cards-feature strong{font:700 24px var(--display-font)}.new-cards-feature em{color:#70634f;font:600 12px/1.35 var(--game-font);font-style:normal}.new-cards-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}.new-cards-actions a{display:flex;align-items:center;gap:7px;padding:11px 15px;border:1px solid #d9c49b;border-radius:8px;color:#55472f;font:800 13px var(--game-font);text-decoration:none}.new-cards-actions .new-cards-primary{border-color:#b9821e;background:#b9821e;color:#fffaf1}@keyframes new-cards-enter{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+.new-cards-dialog{width:min(470px,100%);overflow:hidden;border:1px solid #e5c777;border-radius:16px;background:#fffaf1;color:#30271d;box-shadow:0 26px 84px #111a14a8;animation:new-cards-enter .24s cubic-bezier(.2,.8,.2,1) both}.new-cards-dialog>header{display:flex;align-items:center;justify-content:space-between;padding:15px 20px;background:#75520e;color:#fffaf1;font:800 17px var(--game-font);text-transform:uppercase;letter-spacing:.04em}.new-cards-dialog>header span{display:flex;gap:9px;align-items:center}.new-cards-dialog>header button{display:grid;place-items:center;padding:4px;border:0;background:transparent;color:inherit;cursor:pointer}.new-cards-body{padding:25px}.new-cards-body .eyebrow{margin:0 0 7px;color:#80570e;font-weight:800;letter-spacing:.11em}.new-cards-body h2{margin:0;color:#2c2419;font:700 31px/1.06 var(--display-font)}.new-cards-body>p:not(.eyebrow){margin:11px 0 20px;color:#6e614e;font:600 15px/1.52 var(--game-font)}.new-cards-feature{display:flex;align-items:center;gap:16px;padding:12px;border:1px solid #e7d4aa;border-radius:12px;background:#fffdf8;text-decoration:none;color:inherit}.new-cards-feature .tcg-card{width:94px;flex:0 0 94px}.new-cards-feature>span{display:grid;gap:4px}.new-cards-feature small{color:#a36e16;font:800 11px var(--game-font);text-transform:uppercase;letter-spacing:.08em}.new-cards-feature strong{font:700 24px var(--display-font)}.new-cards-feature em{color:#70634f;font:600 12px/1.35 var(--game-font);font-style:normal}.new-cards-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}.new-cards-actions a{display:flex;align-items:center;gap:7px;padding:11px 15px;border:1px solid #d9c49b;border-radius:8px;color:#55472f;font:800 13px var(--game-font);text-decoration:none}.new-cards-actions .new-cards-primary{border-color:#75520e;background:#75520e;color:#fffaf1}@keyframes new-cards-enter{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
 .tcg-card.is-preview-card{position:relative;isolation:isolate;border:0!important;overflow:hidden!important;box-shadow:0 0 10px 2px #d8992255,0 0 18px 4px #f0bd4a33!important;animation:preview-card-glow 2s ease-in-out infinite!important}
 .tcg-card.is-preview-card img,.tcg-card.is-preview-card .card-image-skeleton{border-radius:2px}
-.preview-card-badge{position:absolute;z-index:5!important;top:8px;left:8px;padding:3px 6px;border-radius:4px;background:#b9821e;color:#fffdf3;font:800 9px/1 var(--game-font);letter-spacing:.05em;text-transform:uppercase;box-shadow:0 2px 5px #38240966;animation:preview-badge-glow 1.7s ease-in-out infinite!important;pointer-events:none}
+.preview-card-badge{position:absolute;z-index:5!important;top:8px;left:8px;padding:3px 6px;border-radius:4px;background:#75520e;color:#fffdf3;font:800 9px/1 var(--game-font);letter-spacing:.05em;text-transform:uppercase;box-shadow:0 2px 5px #38240966;animation:preview-badge-glow 1.7s ease-in-out infinite!important;pointer-events:none}
 :is(.market-card-lookup-art,.header-search-result,.listing-search-card,.leader-summary-art,.catalog-leader,.deck-leader-art,.deck-card-stack,.player-deck-art,.deck-art-choice,.market-feed-stack,.mini-card,.deck-board.is-compact) .preview-card-badge,.tcg-card.small .preview-card-badge{top:1px!important;left:1px!important;padding:.75px 1.75px!important;border-radius:1.25px!important;font-size:2.5px!important;letter-spacing:.03em!important;box-shadow:0 1px 3px #38240955!important}
 .new-cards-feature:has(.is-preview-card){position:relative;border-color:#c89428;animation:preview-feature-glow 1.7s ease-in-out infinite}
 @keyframes preview-card-glow{0%,100%{box-shadow:0 0 8px 1px #d8992244,0 0 14px 2px #f0bd4a25}50%{box-shadow:0 0 14px 2px #d8992266,0 0 22px 4px #f0bd4a40}}
-@keyframes preview-badge-glow{50%{background:#e1a52b;box-shadow:0 1px 13px 3px #f1bd4aaa}}
+@keyframes preview-badge-glow{50%{background:#75520e;box-shadow:0 1px 13px 3px #f1bd4aaa}}
 @keyframes preview-feature-glow{50%{border-color:#f3c65c;box-shadow:0 0 0 1px #d39725,0 0 28px #e6b33d70}}
 .tcg-card.is-preview-card.printing-image::after,.tcg-card.is-preview-card.printing-image:after{content:""!important;position:absolute!important;z-index:3!important;inset:-50%!important;pointer-events:none!important;opacity:0!important;transform:translateX(-54%) rotate(20deg)!important;background:linear-gradient(105deg,transparent 40%,rgba(255,235,170,.12) 44%,rgba(255,248,220,.85) 50%,rgba(216,166,59,.22) 55%,transparent 60%)!important;transition:transform .43s ease,opacity .16s ease!important}
 :is(:hover,:focus-within,:focus-visible)>.tcg-card.is-preview-card.printing-image::after,:is(:hover,:focus-within,:focus-visible) .tcg-card.is-preview-card.printing-image::after,.tcg-card.is-preview-card.printing-image:hover::after,:is(:hover,:focus-within,:focus-visible)>.tcg-card.is-preview-card.printing-image:after,:is(:hover,:focus-within,:focus-visible) .tcg-card.is-preview-card.printing-image:after,.tcg-card.is-preview-card.printing-image:hover:after{opacity:.58!important;transform:translateX(54%) rotate(20deg)!important}
@@ -1912,7 +1927,7 @@ html[data-theme='dark'] .new-cards-release{border-color:#43505a}
 html[data-theme='dark'] .new-cards-release h3{color:#e8d8b8}
 html[data-theme='dark'] .new-cards-release>header a{color:#edbd60}
 html[data-theme='dark'] .new-cards-card{color:#eee7d8}
-html[data-theme='dark'] .new-cards-card small,.new-cards-set-empty{color:#b4aa98}
+html[data-theme='dark'] .new-cards-card small,.new-cards-set-empty{color:#766954}
 @media(max-width:640px){.new-cards-dialog{max-height:94vh}.new-cards-body{padding:19px}.new-cards-grid{grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:12px 9px}.new-cards-card strong{font-size:10px}}
 
 /* A listing is one interactive surface: its copy and card stack move on the same measured hover. */
@@ -3788,3 +3803,19 @@ html[data-theme='dark'] .market-listing-status.is-buying{color:#e6b65e!important
 .market-feed-stack>.market-feed-quantity{right:10px!important}
 .market-feed-list.is-grid .market-feed-stack>.market-feed-quantity{top:77px!important;bottom:auto!important;left:calc(50% + 10px + (var(--stack-last-index,0) * 15px))!important;right:auto!important}
 @media(max-width:760px){.market-feed-list.is-grid .market-feed-stack>.market-feed-quantity{top:59px!important;left:calc(50% + 8px + (var(--stack-last-index,0) * 12px))!important}}
+
+/* Five-point guide marks; sliders remain free to move between them. */
+.market-slider-wrap{position:relative;min-width:0}
+.market-slider-checkpoints{position:absolute;inset:0 9px;pointer-events:none}
+.market-slider-checkpoints i{position:absolute;top:50%;width:1px;height:5px;background:color-mix(in srgb,var(--muted) 70%,transparent);transform:translate(-50%,-50%)}
+.market-feed-entry .market-feed-status b{display:inline-flex!important;align-items:center;gap:4px}
+.market-feed-entry .market-feed-status b svg{flex:none;width:11px;height:11px}
+.market-card-offer-slider-wrap{display:grid;gap:2px;padding-top:1px}
+.market-card-offer-slider-label{display:flex;align-items:center;justify-content:space-between;gap:6px;color:var(--muted);font-size:9px;font-weight:700}
+.market-card-offer-slider-label output{color:var(--ink);font-size:9px;font-variant-numeric:tabular-nums}
+.market-card-offer-slider{padding:7px 2px}
+.market-card-offer-slider [data-slot=slider-track]{height:5px;background:var(--line)}
+.market-card-offer-slider [data-slot=slider-range]{background:var(--accent);transition:all .12s ease}
+.market-card-offer-slider [data-slot=slider-thumb]{width:14px;height:14px;border:2px solid var(--accent);background:var(--surface-raised);box-shadow:0 1px 4px rgb(0 0 0 / .16);transition:box-shadow .16s ease,transform .16s ease}
+.market-card-offer-slider [data-slot=slider-thumb]:hover{transform:scale(1.08);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 18%,transparent)}
+.market-card-offer-slider-range{display:flex;justify-content:space-between;color:var(--muted);font-size:8px;font-variant-numeric:tabular-nums}
