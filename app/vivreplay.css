@@ -3810,6 +3810,13 @@ html[data-theme='dark'] .market-listing-status.is-buying{color:#e6b65e!important
 .market-feed-entry.has-cart-action .market-feed-status{right:96px!important}
 @media(max-width:760px){.market-feed-entry.has-cart-action .market-feed-status{right:88px!important}}
 .market-cart-sheet-item>div{gap:5px;min-width:0}
+.market-cart-sheet-item{display:grid;grid-template-columns:44px minmax(0,1fr) auto;align-items:center;gap:10px;padding:10px 0}
+.market-cart-sheet-art{width:44px;aspect-ratio:420/580;overflow:hidden;border:1px solid var(--line,#d8cbb5);border-radius:4px;background:var(--surface-soft,#f5efe3)}
+.market-cart-sheet-art img{display:block;width:100%;height:100%;object-fit:cover}
+.market-cart-sheet-art>span{display:block;width:100%;height:100%;background:linear-gradient(145deg,var(--surface-soft,#f5efe3),var(--surface,#fffaf0))}
+.market-cart-sheet-item-copy{display:grid;gap:4px;min-width:0}
+.market-cart-sheet-item-copy>strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.market-cart-sheet-item-price{align-self:start;padding-top:2px;text-align:right;white-space:nowrap}
 .market-cart-sheet-quantity{display:inline-flex;align-items:center;gap:7px;width:max-content;margin-top:3px;padding:3px;border:1px solid var(--line,#d8cbb5);border-radius:8px;background:var(--surface-raised,#fffaf0)}
 .market-cart-sheet-quantity button{display:grid;place-items:center;width:28px;height:28px;border:0;border-radius:6px;background:var(--surface,#f7f2e8);color:var(--ink,#28251f);cursor:pointer}
 .market-cart-sheet-quantity button:hover:not(:disabled){background:color-mix(in srgb,var(--accent) 12%,var(--surface));color:var(--accent)}

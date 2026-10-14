@@ -22,9 +22,24 @@ export async function GET(request:Request){
       cardsByListing.set(row.id,entries);for(const item of entries)printingIds.add(item.printingId);
     }
     const idsToLookup=[...printingIds];
-    const cards=idsToLookup.length?(await db().prepare(`SELECT cp.id AS printingId,ci.code,ci.name FROM card_printings cp LEFT JOIN card_identities ci ON ci.id=cp.identity_id WHERE cp.id IN (${idsToLookup.map(()=>'?').join(',')})`).bind(...idsToLookup).all<{printingId:string;code:string|null;name:string|null}>()).results:[];
+    let cards: Array<{printingId:string;code:string|null;name:string|null;setCode:string|null;language:string|null;printingCode:string|null;imageUrl:string|null;assetPath:string|null}> = [];
+    if(idsToLookup.length){
+      try{cards=(await db().prepare(`SELECT p.id AS printingId,i.code,i.name,p.set_code AS setCode,p.language,p.printing_code AS printingCode,p.card_image_url AS imageUrl,a.object_key AS assetPath
+      FROM tcg_card_printings p LEFT JOIN tcg_card_identities i ON i.id=p.identity_id
+      LEFT JOIN tcg_card_assets a ON a.printing_id=p.id AND a.kind='small'
+      WHERE p.id IN (${idsToLookup.map(()=>'?').join(',')})`).bind(...idsToLookup).all<typeof cards[number]>()).results}catch{}
+      const found=new Set(cards.map(card=>card.printingId));
+      const missing=idsToLookup.filter(id=>!found.has(id));
+      if(missing.length){
+        try{const legacy=(await db().prepare(`SELECT cp.id AS printingId,ci.code,ci.name,cp.set_code AS setCode,cp.language,cp.image_url AS imageUrl
+          FROM card_printings cp LEFT JOIN card_identities ci ON ci.id=cp.identity_id
+          WHERE cp.id IN (${missing.map(()=>'?').join(',')})`).bind(...missing).all<{printingId:string;code:string|null;name:string|null;setCode:string|null;language:string|null;imageUrl:string|null}>()).results;
+          cards.push(...legacy.map(card=>({...card,printingCode:card.code,assetPath:null})))
+        }catch{}
+      }
+    }
     const cardByPrinting=new Map(cards.map(card=>[card.printingId,card]));
-    return Response.json({listings:rows.map(row=>{const items=cardsByListing.get(row.id)??[];return{id:row.id,sellerId:row.sellerId,title:row.title,seller:row.seller,currency:row.currency,items:items.map(item=>({printingId:item.printingId,name:cardByPrinting.get(item.printingId)?.name??cardByPrinting.get(item.printingId)?.code??item.printingId,code:cardByPrinting.get(item.printingId)?.code??item.printingId,quantity:item.quantity,unitAmount:item.unitAmount??0,condition:item.condition??row.condition})),subtotal:items.reduce((sum,item)=>sum+(item.unitAmount??0)*item.quantity,0)}}),unavailableIds},{headers:{'Cache-Control':'private, no-store'}});
+    return Response.json({listings:rows.map(row=>{const items=cardsByListing.get(row.id)??[];return{id:row.id,sellerId:row.sellerId,title:row.title,seller:row.seller,currency:row.currency,items:items.map(item=>{const card=cardByPrinting.get(item.printingId);return{printingId:item.printingId,name:card?.name??card?.code??item.printingId,code:card?.code??item.printingId,quantity:item.quantity,unitAmount:item.unitAmount??0,condition:item.condition??row.condition,imageUrl:card?.imageUrl??null,assetPath:card?.assetPath??null,setCode:card?.setCode??null,language:card?.language??null,printingCode:card?.printingCode??null}}),subtotal:items.reduce((sum,item)=>sum+(item.unitAmount??0)*item.quantity,0)}}),unavailableIds},{headers:{'Cache-Control':'private, no-store'}});
   }catch(error){
     console.error('market_cart_preview_failed',error instanceof Error?error.message:'unknown error');
     return Response.json({error:'Cart details are temporarily unavailable.'},{status:503,headers:{'Cache-Control':'no-store'}});
