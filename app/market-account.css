@@ -222,6 +222,18 @@ html[data-theme='dark'] .market-account-menu [data-slot='dropdown-menu-separator
 }
 
 .market-order-ledger .market-order-discount{color:#24724b!important}.market-order-ledger .market-order-discount b{color:#24724b!important}
+
+.market-order-progress{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;margin:0;padding:12px 0 16px;list-style:none}
+.market-order-progress li{position:relative;display:grid;grid-template-rows:20px auto;justify-items:center;gap:6px;min-width:0;text-align:center}
+.market-order-progress li:not(:last-child)::after{position:absolute;z-index:0;top:9px;left:calc(50% + 12px);width:calc(100% - 24px);height:2px;background:var(--line);content:""}
+.market-order-progress-marker{z-index:1;display:grid;width:20px;height:20px;place-items:center;border:1px solid var(--line);border-radius:50%;background:var(--surface);color:var(--muted);transition:background-color .18s ease,border-color .18s ease,color .18s ease,transform .18s ease}
+.market-order-progress-label{color:var(--muted);font-size:10px;font-weight:650;line-height:1.3}
+.market-order-progress li.is-complete .market-order-progress-marker{border-color:#29815a;background:#29815a;color:#fff}
+.market-order-progress li.is-complete::after{background:#63a780}
+.market-order-progress li.is-current .market-order-progress-marker{border:2px solid var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--surface));color:var(--accent);transform:scale(1.08)}
+.market-order-progress li.is-current .market-order-progress-label{color:var(--ink)}
+@media(max-width:620px){.market-order-progress{padding:8px 0 13px}.market-order-progress-label{max-width:76px;font-size:9px}}
+@media(prefers-reduced-motion:reduce){.market-order-progress-marker{transition:none}}
 .checkout-discount-line{color:#24724b!important}.checkout-discount-line b{color:#24724b!important}
 
 .market-order-filters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:end;gap:10px;padding:14px;margin:14px 0;border:1px solid var(--line);border-radius:9px;background:var(--surface)}

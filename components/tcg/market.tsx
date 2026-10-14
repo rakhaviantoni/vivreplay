@@ -532,6 +532,8 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
     window.addEventListener('vivreplay:shipping-updated',loadSavedCity);
     return()=>{active=false;window.removeEventListener('vivreplay:shipping-updated',loadSavedCity)};
   },[data?.profile?.id]);
+  const refreshFeedRef=useRef<()=>Promise<void>>(async()=>{});
+  const activityOrdersRef=useRef(activityCounts.orders);
   async function refresh(){
     if(!listings.length)setListingsLoading(true);
     try{
@@ -544,11 +546,23 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
       setError(cause instanceof Error?cause.message:(locale==='ID'?'Listing tidak dapat dimuat sementara. Silakan coba lagi.':'Live listings are temporarily unavailable. Please retry.'));
     }finally{setListingsLoading(false)}
   }
+  refreshFeedRef.current=refresh;
   useEffect(()=>{if(!modalOnly)void refresh()},[modalOnly]);
+  useEffect(()=>{
+    if(modalOnly)return;
+    let timer:number|undefined;
+    const queueRefresh=()=>{if(document.visibilityState!=='visible')return;if(timer)window.clearTimeout(timer);timer=window.setTimeout(()=>{timer=undefined;void refreshFeedRef.current()},180)};
+    const onStorage=(event:StorageEvent)=>{if(event.key==='vivreplay:market-data-updated')queueRefresh()};
+    const onVisibility=()=>{if(document.visibilityState==='visible')queueRefresh()};
+    window.addEventListener('vivreplay:market-data-updated',queueRefresh);
+    window.addEventListener('storage',onStorage);
+    document.addEventListener('visibilitychange',onVisibility);
+    return()=>{if(timer)window.clearTimeout(timer);window.removeEventListener('vivreplay:market-data-updated',queueRefresh);window.removeEventListener('storage',onStorage);document.removeEventListener('visibilitychange',onVisibility)};
+  },[modalOnly]);
   useEffect(()=>{
     if(!profileId||modalOnly)return;
     let active=true;
-    const update=async()=>{if(document.visibilityState!=='visible')return;const counts=await loadMarketActivityCounts(profileId);if(active&&counts)setActivityCounts(counts)};
+    const update=async()=>{if(document.visibilityState!=='visible')return;const counts=await loadMarketActivityCounts(profileId);if(!active||!counts)return;if(counts.orders>activityOrdersRef.current)void refreshFeedRef.current();activityOrdersRef.current=counts.orders;setActivityCounts(counts)};
     const onVisibility=()=>{if(document.visibilityState==='visible')void update()};
     void update();const timer=window.setInterval(()=>void update(),120_000);document.addEventListener('visibilitychange',onVisibility);
     return()=>{active=false;window.clearInterval(timer);document.removeEventListener('visibilitychange',onVisibility)};

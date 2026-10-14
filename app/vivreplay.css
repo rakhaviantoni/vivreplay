@@ -2843,7 +2843,21 @@ html[data-theme='dark'] .checkout-payment-countdown.is-urgent>svg,html[data-them
 .checkout-message-content p{margin:0}
 .checkout-message-content .button{justify-self:start;margin-top:2px}
 .checkout-result{max-width:600px;margin:54px auto;text-align:center}
-.checkout-result>svg{color:var(--accent,#b78327)}
+.checkout-result>svg{display:block;margin:0 auto 14px;color:var(--accent,#b78327)}
+.checkout-result>.checkout-order-breakdown{width:100%;margin:14px 0}
+.checkout-result>.button{margin-top:10px}
+.checkout-result>.button+.button{margin-left:8px}
+.checkout-result>.market-order-progress{width:100%;margin:2px 0 8px;padding-inline:4px}
+.checkout-shipping-summary{display:grid;justify-items:center;gap:5px;width:100%;margin:8px 0 12px;padding:14px;border:1px solid var(--vp-line,#dfd1b8);border-radius:10px;background:var(--vp-panel,#fffaf0);color:var(--vp-ink,#28251f);font-size:13px;line-height:1.5}
+.checkout-shipping-summary>strong{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--vp-muted,#716a5e)}
+.checkout-shipping-summary>small{margin-top:4px;color:var(--vp-muted,#716a5e);font-size:12px}
+.checkout-shipping-summary>a{display:inline-flex;align-items:center;gap:5px;color:var(--accent,#b78327);font-weight:700;text-decoration:none}
+.checkout-shipping-summary>a:hover{text-decoration:underline;text-underline-offset:2px}
+.checkout-result>.checkout-shipping-summary{margin:8px 0 14px}
+.checkout-tracking-history{display:grid;justify-items:center;gap:6px;width:100%;margin-top:8px;padding-top:10px;border-top:1px solid var(--vp-line,#dfd1b8);color:var(--vp-muted,#716a5e);font-size:12px}
+.checkout-tracking-history>strong{color:var(--vp-ink,#28251f);text-transform:capitalize}
+.checkout-tracking-history>small{text-align:center;line-height:1.45}
+.checkout-tracking-history>.button{min-height:34px;margin-top:4px}
 .checkout-message p,.checkout-result p{color:var(--muted,#716a5e);line-height:1.6}
 @media(max-width:600px){.checkout-message{margin:24px auto;padding:18px}.checkout-auth-message{grid-template-columns:24px minmax(0,1fr);gap:10px}.checkout-message-content{gap:10px}}
 .checkout-pro-benefits>svg{color:var(--accent,#b78327)}
