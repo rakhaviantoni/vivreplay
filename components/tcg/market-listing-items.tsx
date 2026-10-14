@@ -20,6 +20,8 @@ import {AddEditItemModal} from './vault/modals/add-edit-item-modal';
 import {PushNotificationPrompt} from './push-notification-settings';
 import {marketListingPath} from '@/lib/market/listing-url';
 import {PhoneInput} from '@/components/tcg/phone-input';
+import {MapPicker} from '@/components/tcg/map-picker';
+import {INDONESIAN_REGIONS,getCities,getDistricts,getSubdistricts} from '@/lib/indonesia-areas';
 import {MarketListingPriceEdit,MarketListingPriceTerms,MarketListingTitleEdit,MarketListingUnitPriceEdit} from '@/components/tcg/market-listing-inline-edit';
 import {MarketAddCardsModal} from '@/components/tcg/market-add-cards-modal';
 import {Slider} from '@/components/ui/slider';
@@ -27,6 +29,26 @@ import {Slider} from '@/components/ui/slider';
 type CourierRate={courier_code:string;courier_service_code:string;courier_name:string;courier_service_name:string;price:number;duration?:string;max_km?:number};
 type ShippingArea={id:string;name:string;province:string;city:string;district:string;subdistrict:string;postalCode:string;latitude?:number;longitude?:number;source:'biteship'|'local'};
 type DeliveryAddressDraft={recipientName:string;phone:string;addressLine:string;city:string;postalCode:string;areaId:string|null;latitude:number|null;longitude:number|null;label:string;shippingMethods:string[];regions:{province?:string;city?:string;district?:string;subdistrict?:string}};
+type DeliveryRegionOption={id:string;name:string;postalCode?:string|null;latitude?:number|null;longitude?:number|null};
+type DeliveryRegionLevel='provinces'|'regencies'|'districts'|'villages';
+type DeliveryRegionContext={province?:string;city?:string;district?:string};
+const normalizeDeliveryRegion=(value:string)=>{const name=value.toLocaleLowerCase('id').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/^(provinsi|province|kota administrasi|kabupaten administrasi|kabupaten|kota|kab\.?|kec\.?|kecamatan)\s+/,'').replace(/[^a-z0-9]+/g,' ').trim();if(name==='dki jakarta'||name==='daerah khusus ibukota jakarta')return'jakarta';if(name==='di yogyakarta'||name==='daerah istimewa yogyakarta')return'yogyakarta';return name};
+function localDeliveryRegions(level:DeliveryRegionLevel,context:DeliveryRegionContext={}):DeliveryRegionOption[]{
+  const province=INDONESIAN_REGIONS.find(item=>normalizeDeliveryRegion(item.name)===normalizeDeliveryRegion(context.province??''));
+  const city=province&&getCities(province.name).find(item=>normalizeDeliveryRegion(item.name)===normalizeDeliveryRegion(context.city??''));
+  const district=province&&city&&getDistricts(province.name,city.name).find(item=>normalizeDeliveryRegion(item.name)===normalizeDeliveryRegion(context.district??''));
+  if(level==='provinces')return INDONESIAN_REGIONS.map(item=>({id:`local:province:${item.name}`,name:item.name}));
+  if(level==='regencies'&&province)return getCities(province.name).map(item=>({id:`local:city:${province.name}:${item.name}`,name:item.name,latitude:item.latitude,longitude:item.longitude}));
+  if(level==='districts'&&province&&city)return getDistricts(province.name,city.name).map(item=>({id:`local:district:${province.name}:${city.name}:${item.name}`,name:item.name,latitude:item.latitude,longitude:item.longitude}));
+  if(level==='villages'&&province&&city&&district)return getSubdistricts(province.name,city.name,district.name).map(item=>({id:`local:village:${item.name}`,name:item.name,postalCode:item.postalCode,latitude:item.latitude,longitude:item.longitude}));
+  return[];
+}
+async function loadDeliveryRegions(level:DeliveryRegionLevel,parent:string|undefined,context:DeliveryRegionContext):Promise<DeliveryRegionOption[]>{
+  if(parent?.startsWith('local:'))return localDeliveryRegions(level,context);
+  const params=new URLSearchParams({level});if(parent)params.set('parent',parent);
+  try{const response=await fetch(`/api/shipping/regions?${params}`);const payload=await response.json() as {items?:DeliveryRegionOption[]};if(response.ok&&Array.isArray(payload.items)&&payload.items.length)return payload.items}catch{}
+  return localDeliveryRegions(level,context);
+}
 const COURIER_LABELS:Record<string,string>={'jne':'JNE Express','jnt':'J&T Express','sicepat':'SiCepat Ekspres','anteraja':'Anteraja','tiki':'TIKI','pos':'Pos Indonesia','lion':'Lion Parcel','ninja':'Ninja Xpress','wahana':'Wahana Express','grab':'GrabExpress','gojek':'GoSend','grab_instant':'Grab Instant','gojek_instant':'Gojek Instant'};
 const INSTANT_COURIERS=new Set(['grab','gojek','grab_instant','gojek_instant']);
 
@@ -54,9 +76,11 @@ export function ShippingOptions({listingId,courierCount=0,couriers=[],items=[]}:
   const [addressSaving,setAddressSaving]=useState(false);
   const [addressError,setAddressError]=useState('');
   const [addressDraft,setAddressDraft]=useState<DeliveryAddressDraft>({recipientName:'',phone:'',addressLine:'',city:'',postalCode:'',areaId:null,latitude:null,longitude:null,label:'Primary origin',shippingMethods:['jnt','jne'],regions:{}});
-  const [areaQuery,setAreaQuery]=useState('');
-  const [areaResults,setAreaResults]=useState<ShippingArea[]>([]);
-  const [areaLoading,setAreaLoading]=useState(false);
+  const [addressProvinces,setAddressProvinces]=useState<DeliveryRegionOption[]>([]);
+  const [addressCities,setAddressCities]=useState<DeliveryRegionOption[]>([]);
+  const [addressDistricts,setAddressDistricts]=useState<DeliveryRegionOption[]>([]);
+  const [addressVillages,setAddressVillages]=useState<DeliveryRegionOption[]>([]);
+  const [addressRegionsLoading,setAddressRegionsLoading]=useState({provinces:false,cities:false,districts:false,villages:false});
 
   useEffect(()=>{
     const sync=()=>setLanguage(window.localStorage.getItem('vivreplay-locale')==='ID'?'ID':'EN');
@@ -130,28 +154,48 @@ export function ShippingOptions({listingId,courierCount=0,couriers=[],items=[]}:
   const activeRates=rates;
 
   useEffect(()=>{
-    const query=areaQuery.trim();
-    if(!addressFormOpen||query.length<2)return;
-    let active=true;
-    const timer=window.setTimeout(async()=>{
-      setAreaLoading(true);
-      try{
-        const response=await fetch(`/api/shipping/areas?query=${encodeURIComponent(query)}`);
-        const payload=await response.json() as {areas?:ShippingArea[]};
-        if(active)setAreaResults((payload.areas??[]).slice(0,8));
-      }catch{if(active)setAreaResults([])}finally{if(active)setAreaLoading(false)}
-    },300);
-    return()=>{active=false;window.clearTimeout(timer)};
-  },[addressFormOpen,areaQuery]);
+    if(!addressFormOpen)return;
+    let active=true;setAddressRegionsLoading(current=>({...current,provinces:true}));
+    void loadDeliveryRegions('provinces',undefined,{}).then(options=>{if(active)setAddressProvinces(options)}).finally(()=>{if(active)setAddressRegionsLoading(current=>({...current,provinces:false}))});
+    return()=>{active=false};
+  },[addressFormOpen]);
+  useEffect(()=>{
+    if(!addressFormOpen)return;
+    const provinceName=addressDraft.regions.province??'';
+    if(!provinceName){setAddressCities([]);return}
+    let active=true;setAddressRegionsLoading(current=>({...current,cities:true}));
+    const province=addressProvinces.find(option=>normalizeDeliveryRegion(option.name)===normalizeDeliveryRegion(provinceName));
+    void loadDeliveryRegions('regencies',province?.id??`local:province:${provinceName}`,{province:provinceName}).then(options=>{if(active)setAddressCities(options)}).finally(()=>{if(active)setAddressRegionsLoading(current=>({...current,cities:false}))});
+    return()=>{active=false};
+  },[addressFormOpen,addressDraft.regions.province,addressProvinces]);
+  useEffect(()=>{
+    if(!addressFormOpen)return;
+    const {province:provinceName,city:cityName}=addressDraft.regions;
+    if(!provinceName||!cityName){setAddressDistricts([]);return}
+    let active=true;setAddressRegionsLoading(current=>({...current,districts:true}));
+    const province=addressProvinces.find(option=>normalizeDeliveryRegion(option.name)===normalizeDeliveryRegion(provinceName));
+    const city=addressCities.find(option=>normalizeDeliveryRegion(option.name)===normalizeDeliveryRegion(cityName));
+    void loadDeliveryRegions('districts',city?.id??`local:city:${cityName}`,{province:provinceName,city:cityName}).then(options=>{if(active)setAddressDistricts(options)}).finally(()=>{if(active)setAddressRegionsLoading(current=>({...current,districts:false}))});
+    return()=>{active=false};
+  },[addressFormOpen,addressDraft.regions.province,addressDraft.regions.city,addressProvinces,addressCities]);
+  useEffect(()=>{
+    if(!addressFormOpen)return;
+    const {province:provinceName,city:cityName,district:districtName}=addressDraft.regions;
+    if(!provinceName||!cityName||!districtName){setAddressVillages([]);return}
+    let active=true;setAddressRegionsLoading(current=>({...current,villages:true}));
+    const district=addressDistricts.find(option=>normalizeDeliveryRegion(option.name)===normalizeDeliveryRegion(districtName));
+    void loadDeliveryRegions('villages',district?.id??`local:district:${districtName}`,{province:provinceName,city:cityName,district:districtName}).then(options=>{if(active)setAddressVillages(options)}).finally(()=>{if(active)setAddressRegionsLoading(current=>({...current,villages:false}))});
+    return()=>{active=false};
+  },[addressFormOpen,addressDraft.regions.province,addressDraft.regions.city,addressDraft.regions.district,addressDistricts]);
 
   const openAddressForm=async()=>{
-    setAddressFormOpen(true);setQuoteState('needs-address');setQuoteError('');setAddressError('');setAreaQuery('');setAreaResults([]);setAreaLoading(false);setAddressLoading(true);
+    setAddressFormOpen(true);setQuoteState('needs-address');setQuoteError('');setAddressError('');setAddressLoading(true);
     try{
       const response=await fetch('/api/shipping/origin',{cache:'no-store'});
       if(!response.ok)throw new Error('');
       const payload=await response.json() as {origin?:(Partial<DeliveryAddressDraft>&{regionNames?:DeliveryAddressDraft['regions']})|null};
       const origin=payload.origin;
-      if(origin)setAddressDraft(current=>({...current,recipientName:origin.recipientName||session?.user.name||current.recipientName,phone:origin.phone||current.phone,addressLine:origin.addressLine||'',city:origin.city||'',postalCode:origin.postalCode||'',areaId:origin.areaId||null,latitude:typeof origin.latitude==='number'?origin.latitude:null,longitude:typeof origin.longitude==='number'?origin.longitude:null,label:origin.label||current.label,shippingMethods:origin.shippingMethods??current.shippingMethods,regions:origin.regionNames??origin.regions??{city:origin.city||''}}));
+      if(origin)setAddressDraft(current=>{const savedRegions=origin.regionNames??origin.regions??{};const city=savedRegions.city||origin.city||'';const inferredProvince=savedRegions.province||INDONESIAN_REGIONS.find(province=>getCities(province.name).some(option=>normalizeDeliveryRegion(option.name)===normalizeDeliveryRegion(city)))?.name||'';const regions={...savedRegions,province:inferredProvince,city};return{...current,recipientName:origin.recipientName||session?.user.name||current.recipientName,phone:origin.phone||current.phone,addressLine:origin.addressLine||'',city,postalCode:origin.postalCode||'',areaId:origin.areaId||null,latitude:typeof origin.latitude==='number'?origin.latitude:null,longitude:typeof origin.longitude==='number'?origin.longitude:null,label:origin.label||current.label,shippingMethods:origin.shippingMethods??current.shippingMethods,regions}});
       else setAddressDraft(current=>({...current,recipientName:session?.user.name||current.recipientName}));
     }catch{/* The form can still be completed without a saved address. */}
     finally{setAddressLoading(false)}
@@ -163,7 +207,7 @@ export function ShippingOptions({listingId,courierCount=0,couriers=[],items=[]}:
       const response=await fetch('/api/shipping/origin',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({...addressDraft,regions:{...addressDraft.regions,city:addressDraft.city}})});
       const payload=await response.json() as {error?:string};
       if(!response.ok)throw new Error(payload.error||t('Address could not be saved.','Alamat gagal disimpan.'));
-      setAddressFormOpen(false);setAreaQuery('');window.dispatchEvent(new Event('vivreplay:shipping-updated'));
+      setAddressFormOpen(false);window.dispatchEvent(new Event('vivreplay:shipping-updated'));
       await loadRates();
     }catch(error){setAddressError(error instanceof Error?error.message:t('Address could not be saved.','Alamat gagal disimpan.'))}
     finally{setAddressSaving(false)}
@@ -175,7 +219,7 @@ export function ShippingOptions({listingId,courierCount=0,couriers=[],items=[]}:
 
   const modal=open?(
     <div className="shipping-options-backdrop" role="presentation" onClick={e=>{e.stopPropagation();if(e.target===e.currentTarget)setOpen(false);}}>
-      <div className="shipping-options-dialog" ref={dialogRef} role="dialog" aria-modal="true" aria-label={t('Shipping Options','Opsi Pengiriman')} onClick={e=>e.stopPropagation()}>
+      <div className={`shipping-options-dialog${addressFormOpen?' has-address-form':''}`} ref={dialogRef} role="dialog" aria-modal="true" aria-label={t('Shipping Options','Opsi Pengiriman')} onClick={e=>e.stopPropagation()}>
         <header className="shipping-options-header">
           <strong>{t('Shipping Options','Opsi Pengiriman')}</strong>
           <button type="button" className="shipping-options-close" onClick={e=>{e.preventDefault();e.stopPropagation();setOpen(false);}} aria-label={t('Close','Tutup')}><X size={15}/></button>
@@ -211,17 +255,22 @@ export function ShippingOptions({listingId,courierCount=0,couriers=[],items=[]}:
             {quoteState==='error'&&courierCount>0&&!/postal code|delivery area/i.test(quoteError)&&<button type="button" className="shipping-options-retry" onClick={()=>void loadRates()}>{t('Check again','Cek lagi')}</button>}
           </div>}
           {quoteState==='needs-address'&&addressFormOpen&&<form className="shipping-options-address-form" onSubmit={saveDeliveryAddress}>
-            <div className="shipping-options-address-heading"><strong>{t('Delivery address','Alamat pengiriman')}</strong><button type="button" onClick={()=>{setAddressFormOpen(false);setAreaLoading(false)}}>{t('Cancel','Batal')}</button></div>
+            <div className="shipping-options-address-heading"><strong>{t('Delivery address','Alamat pengiriman')}</strong><button type="button" onClick={()=>setAddressFormOpen(false)}>{t('Cancel','Batal')}</button></div>
             {addressLoading?<div className="shipping-options-address-loading" role="status">{t('Loading saved address…','Memuat alamat tersimpan…')}</div>:<>
-              <label>{t('Recipient','Penerima')}<input required minLength={2} maxLength={100} autoComplete="name" value={addressDraft.recipientName} onChange={event=>setAddressDraft(current=>({...current,recipientName:event.target.value}))}/></label>
-              <PhoneInput required label={t('Phone number','Nomor telepon')} autoComplete="tel" value={addressDraft.phone} onChange={phone=>setAddressDraft(current=>({...current,phone}))} locale={language}/>
-              <label>{t('Street address','Alamat jalan')}<input required maxLength={260} autoComplete="street-address" value={addressDraft.addressLine} onChange={event=>setAddressDraft(current=>({...current,addressLine:event.target.value}))}/></label>
-              <label>{t('Search delivery area','Cari wilayah pengiriman')}<input autoComplete="off" value={areaQuery||[addressDraft.regions.subdistrict,addressDraft.regions.district].filter(Boolean).join(', ')} onChange={event=>{const value=event.target.value;setAreaQuery(value);setAreaResults([]);setAreaLoading(value.trim().length>=2);setAddressDraft(current=>({...current,areaId:null,postalCode:'',latitude:null,longitude:null}))}} placeholder={t('Village or district','Kelurahan atau kecamatan')}/></label>
-              {areaLoading&&<small className="shipping-options-address-hint" role="status">{t('Searching areas…','Mencari wilayah…')}</small>}
-              {areaResults.length>0&&<div className="shipping-options-area-results" role="group" aria-label={t('Delivery areas','Wilayah pengiriman')}>{areaResults.map(area=><button type="button" key={`${area.source}:${area.id}`} onClick={()=>{setAddressDraft(current=>({...current,areaId:area.source==='biteship'?area.id:null,postalCode:area.postalCode||'',latitude:area.latitude??null,longitude:area.longitude??null,city:area.city,regions:{province:area.province,city:area.city,district:area.district,subdistrict:area.subdistrict}}));setAreaQuery('');setAreaResults([]);setAreaLoading(false)}}><strong>{[area.subdistrict,area.district].filter(Boolean).join(', ')||area.name}</strong><small>{[area.city,area.province,area.postalCode].filter(Boolean).join(' · ')}</small></button>)}</div>}
-              <label>{t('City / Regency','Kota / Kabupaten')}<input required autoComplete="address-level2" value={addressDraft.city} onChange={event=>setAddressDraft(current=>({...current,city:event.target.value,regions:{...current.regions,city:event.target.value}}))}/></label>
-              {!addressDraft.areaId&&<label>{t('Postal code','Kode pos')}<input required inputMode="numeric" autoComplete="postal-code" maxLength={5} pattern="[0-9]{5}" value={addressDraft.postalCode} onChange={event=>setAddressDraft(current=>({...current,postalCode:event.target.value.replace(/\D/g,'').slice(0,5)}))}/></label>}
+              <div className="shipping-address-fields">
+                <label>{t('Recipient name','Nama penerima')}<input required minLength={2} maxLength={100} autoComplete="name" value={addressDraft.recipientName} onChange={event=>setAddressDraft(current=>({...current,recipientName:event.target.value}))}/></label>
+                <PhoneInput required label={t('Phone number','Nomor telepon')} autoComplete="tel" value={addressDraft.phone} onChange={phone=>setAddressDraft(current=>({...current,phone}))} locale={language}/>
+                <label className="shipping-address-wide">{t('Street address / Building / Landmark','Alamat jalan / Gedung / Patokan')}<input required minLength={5} maxLength={260} autoComplete="street-address" value={addressDraft.addressLine} onChange={event=>setAddressDraft(current=>({...current,addressLine:event.target.value}))}/></label>
+                <div className="shipping-cascading-grid shipping-address-wide">
+                  <label>{t('Province','Provinsi')}<select required value={addressDraft.regions.province??''} onChange={event=>{const province=event.target.value;setAddressDraft(current=>({...current,city:'',areaId:null,postalCode:'',latitude:null,longitude:null,regions:{province,city:'',district:'',subdistrict:''}}))}}><option value="">{addressRegionsLoading.provinces?t('Loading provinces…','Memuat provinsi…'):t('Select province','Pilih provinsi')}</option>{addressProvinces.map(option=><option key={option.id} value={option.name}>{option.name}</option>)}{addressDraft.regions.province&&!addressProvinces.some(option=>normalizeDeliveryRegion(option.name)===normalizeDeliveryRegion(addressDraft.regions.province??''))&&<option value={addressDraft.regions.province}>{addressDraft.regions.province}</option>}</select></label>
+                  <label>{t('City / Regency','Kota / Kabupaten')}<select required disabled={!addressDraft.regions.province||addressRegionsLoading.cities} value={addressDraft.regions.city??''} onChange={event=>{const city=addressCities.find(option=>option.name===event.target.value);setAddressDraft(current=>({...current,city:event.target.value,areaId:null,postalCode:'',latitude:city?.latitude??null,longitude:city?.longitude??null,regions:{...current.regions,city:event.target.value,district:'',subdistrict:''}}))}}><option value="">{addressRegionsLoading.cities?t('Loading cities…','Memuat kota…'):t('Select city / regency','Pilih kota / kabupaten')}</option>{addressCities.map(option=><option key={option.id} value={option.name}>{option.name}</option>)}{addressDraft.regions.city&&!addressCities.some(option=>normalizeDeliveryRegion(option.name)===normalizeDeliveryRegion(addressDraft.regions.city??''))&&<option value={addressDraft.regions.city}>{addressDraft.regions.city}</option>}</select></label>
+                  <label>{t('District','Kecamatan')}<select required disabled={!addressDraft.regions.city||addressRegionsLoading.districts} value={addressDraft.regions.district??''} onChange={event=>{const district=addressDistricts.find(option=>option.name===event.target.value);setAddressDraft(current=>({...current,areaId:null,postalCode:'',latitude:district?.latitude??current.latitude,longitude:district?.longitude??current.longitude,regions:{...current.regions,district:event.target.value,subdistrict:''}}))}}><option value="">{addressRegionsLoading.districts?t('Loading districts…','Memuat kecamatan…'):t('Select district','Pilih kecamatan')}</option>{addressDistricts.map(option=><option key={option.id} value={option.name}>{option.name}</option>)}{addressDraft.regions.district&&!addressDistricts.some(option=>normalizeDeliveryRegion(option.name)===normalizeDeliveryRegion(addressDraft.regions.district??''))&&<option value={addressDraft.regions.district}>{addressDraft.regions.district}</option>}</select></label>
+                  <label>{t('Village / Sub-district','Kelurahan / Desa')}<select required disabled={!addressDraft.regions.district||addressRegionsLoading.villages} value={addressDraft.regions.subdistrict??''} onChange={event=>{const village=addressVillages.find(option=>option.name===event.target.value);setAddressDraft(current=>({...current,areaId:null,postalCode:village?.postalCode?String(village.postalCode):'',latitude:village?.latitude??null,longitude:village?.longitude??null,regions:{...current.regions,subdistrict:event.target.value}}))}}><option value="">{addressRegionsLoading.villages?t('Loading villages…','Memuat kelurahan…'):t('Select village / sub-district','Pilih kelurahan / desa')}</option>{addressVillages.map(option=><option key={option.id} value={option.name}>{option.name}{option.postalCode?` (${option.postalCode})`:''}</option>)}{addressDraft.regions.subdistrict&&!addressVillages.some(option=>normalizeDeliveryRegion(option.name)===normalizeDeliveryRegion(addressDraft.regions.subdistrict??''))&&<option value={addressDraft.regions.subdistrict}>{addressDraft.regions.subdistrict}</option>}</select></label>
+                </div>
+                <label className="shipping-address-wide">{t('Postal code','Kode pos')}<input required={!addressDraft.areaId} inputMode="numeric" autoComplete="postal-code" maxLength={5} pattern="[0-9]{5}" value={addressDraft.postalCode} onChange={event=>setAddressDraft(current=>({...current,areaId:null,postalCode:event.target.value.replace(/\D/g,'').slice(0,5)}))}/></label>
+              </div>
               {addressError&&<p className="shipping-options-address-error" role="alert">{addressError}</p>}
+              <MapPicker latitude={addressDraft.latitude} longitude={addressDraft.longitude} onChange={coords=>setAddressDraft(current=>({...current,latitude:coords.lat,longitude:coords.lng}))} language={language} purpose="delivery" cityHint={[addressDraft.regions.subdistrict,addressDraft.regions.district,addressDraft.city].filter(Boolean).join(', ')||undefined}/>
               <button type="submit" className="shipping-options-address-submit" disabled={addressSaving}>{addressSaving?t('Saving…','Menyimpan…'):t('Save and check rates','Simpan dan lihat ongkir')}</button>
             </>}
           </form>}

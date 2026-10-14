@@ -10,6 +10,7 @@ interface MapPickerProps {
   language?: 'EN' | 'ID';
   cityHint?: string;
   focusRevision?: number;
+  purpose?: 'pickup' | 'delivery';
 }
 
 export function MapPicker({
@@ -19,6 +20,7 @@ export function MapPicker({
   language = 'EN',
   cityHint,
   focusRevision = 0,
+  purpose = 'pickup',
 }: MapPickerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -176,9 +178,9 @@ export function MapPicker({
         <div className="map-picker-heading">
           <MapPin size={17} weight="fill" className="map-pin-icon" />
           <span>
-            {language === 'ID'
-              ? 'Tentukan Titik Alamat pada Peta (Wajib untuk Kurir Instan)'
-              : 'Pinpoint Exact Address on Map (Required for Instant Couriers)'}
+            {purpose === 'delivery'
+              ? language === 'ID' ? 'Tandai lokasi alamat pengiriman' : 'Pin delivery address on the map'
+              : language === 'ID' ? 'Tentukan Titik Alamat pada Peta (Wajib untuk Kurir Instan)' : 'Pinpoint Exact Address on Map (Required for Instant Couriers)'}
           </span>
         </div>
         <button
