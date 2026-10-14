@@ -3,6 +3,7 @@ import {DEFAULT_EMAIL_FROM,DEFAULT_SUPPORT_EMAIL,getAppUrl,type RenderedEmail} f
 import {env} from 'cloudflare:workers';
 import type {MarketEmailEvent} from '@/lib/market/email-template-types';
 import {marketCardThumbnails} from '@/lib/server/market-card-thumbnails';
+import {marketShippingDeadline} from '@/lib/market/shipping-deadline';
 
 type Event=MarketEmailEvent;
 type NotificationItem={name:string;code:string;language:string;variant:string;rarity?:string;condition?:string;quantity:number;unitAmount?:number;imageUrl?:string|null};
@@ -58,17 +59,8 @@ function formatDateTimeWithOffset(value:string,language:string,region='ID',timez
   return`${formatted} (${offset})`;
 }
 function shippingDeadlineFromPayment(value:string|null|undefined,locale:string,timezone='Asia/Jakarta',region='ID'){
-  const source=value??new Date().toISOString();
-  const paidAt=new Date(/[zZ]|[+-]\d{2}:?\d{2}$/.test(source)?source:`${source.replace(' ','T')}Z`);
-  if(Number.isNaN(paidAt.getTime()))return undefined;
-  const localParts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jakarta',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(paidAt);
-  const part=(type:Intl.DateTimeFormatPartTypes)=>localParts.find(item=>item.type===type)?.value;
-  const year=Number(part('year'));const month=Number(part('month'));const day=Number(part('day'));
-  if(!year||!month||!day)return undefined;
-  const deadlineDate=new Date(Date.UTC(year,month-1,day));
-  const weekday=deadlineDate.getUTCDay();deadlineDate.setUTCDate(deadlineDate.getUTCDate()+(weekday===5?3:weekday===6?2:1));
-  const deadline=new Date(Date.UTC(deadlineDate.getUTCFullYear(),deadlineDate.getUTCMonth(),deadlineDate.getUTCDate(),14));
-  return formatDateTimeWithOffset(deadline.toISOString(),locale,region,timezone);
+  const deadline=marketShippingDeadline(value??new Date().toISOString());
+  return deadline?formatDateTimeWithOffset(deadline,locale,region,timezone):undefined;
 }
 function eventDetail(event:Event,details:NotificationDetails|undefined){
   if(event.startsWith('order-'))return undefined;

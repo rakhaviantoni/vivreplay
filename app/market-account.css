@@ -597,3 +597,16 @@ html[data-theme='dark'] .market-profile-quick-tabs button.is-active{background:#
 @media(max-width:390px){.market-account-unified-body.is-listings .market-listing-row{grid-template-columns:47px minmax(0,1fr) auto!important;gap:4px 6px!important;padding:9px!important}.market-account-unified-body.is-listings .market-listing-row>.market-card-stack{width:46px!important;height:64px!important}.market-account-unified-body.is-listings .market-listing-row .market-card-stack>span{width:36px!important;height:51px!important}}
 html[data-theme='dark'] .market-account-unified-body.is-listings .market-listing-row.is-selling{border-color:color-mix(in srgb,#55bb8b 32%,var(--line))!important}
 html[data-theme='dark'] .market-account-unified-body.is-listings .market-listing-row.is-buying{border-color:color-mix(in srgb,#e0b15f 35%,var(--line))!important}
+
+.market-shipping-deadline{display:flex;align-items:center;flex-wrap:wrap;gap:5px 7px;color:var(--muted);font-size:11px;line-height:1.4}
+.market-shipping-deadline svg{flex:none;color:var(--accent)}
+.market-shipping-deadline strong{color:var(--ink);font-weight:700}
+.market-shipping-deadline small{margin-left:auto;color:var(--accent);font-size:11px;font-weight:700;white-space:nowrap}
+.market-shipping-deadline.is-overdue small{color:#a65a35}
+.market-order-row .market-shipping-deadline{margin-top:5px}
+.checkout-result>.market-shipping-deadline{width:100%;justify-content:center;margin:0 0 8px;padding:9px 12px;border:1px solid var(--vp-line,#dfd1b8);border-radius:8px}
+.market-account-unified-body.is-vault .market-vault-quick-summary{margin-bottom:8px;padding:11px 13px}
+.market-order-controls{margin:0 0 8px;padding:7px 8px;border:1px solid var(--line);border-radius:9px;background:var(--surface)}
+@media(max-width:620px){.market-order-controls{align-items:center;flex-wrap:nowrap;gap:5px}.market-order-filter-pickers{flex:1 1 auto;min-width:0;gap:5px}.market-order-filter-select{flex:1 1 0;width:clamp(82px,27vw,140px);min-width:0}.market-order-date-trigger{width:36px;min-width:36px;justify-content:center;padding:0}.market-order-date-trigger span{display:none}.market-order-control-meta{flex:none;margin:0}.market-order-control-meta small{display:none}.market-order-refresh{width:34px;min-width:34px}}
+@media(max-width:390px){.market-order-controls{display:flex}.market-order-filter-pickers,.market-order-control-meta{grid-column:auto;grid-row:auto}.market-order-filter-select{width:clamp(80px,26vw,115px)}}
+.market-account-unified{gap:10px!important}
