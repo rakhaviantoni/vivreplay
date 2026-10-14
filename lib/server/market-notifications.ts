@@ -6,7 +6,7 @@ import {marketCardThumbnails} from '@/lib/server/market-card-thumbnails';
 
 type Event=MarketEmailEvent;
 type NotificationItem={name:string;code:string;language:string;variant:string;rarity?:string;condition?:string;quantity:number;unitAmount?:number};
-export type NotificationDetails={participant?:string;amount?:number;currency?:string;itemCount?:number;message?:string;photoCount?:number;orderCode?:string;items?:NotificationItem[];subtotal?:number;shippingFee?:number;courier?:string;trackingNumber?:string;trackingStatus?:string;city?:string;postalCode?:string;shippingDeadline?:string;membershipDays?:number};
+export type NotificationDetails={participant?:string;amount?:number;currency?:string;itemCount?:number;message?:string;photoCount?:number;orderCode?:string;items?:NotificationItem[];subtotal?:number;shippingFee?:number;courier?:string;trackingNumber?:string;trackingStatus?:string;city?:string;postalCode?:string;shippingDeadline?:string;membershipDays?:number;membershipEndsAt?:string};
 
 const copy:Record<Event,{en:{subject:string;line:string;cta:string};id:{subject:string;line:string;cta:string}}>= {
   'wishlist-match':{en:{subject:'A wishlist card is listed',line:'A listing matches your saved printing and preferences',cta:'View listing'},id:{subject:'Kartu yang Anda inginkan tersedia',line:'Ada listing yang cocok dengan cetakan dan preferensi Anda',cta:'Lihat listing'}},
@@ -30,6 +30,11 @@ const copy:Record<Event,{en:{subject:string;line:string;cta:string};id:{subject:
   'order-dispute-response':{en:{subject:'The seller responded to your order report',line:'The seller added a response to your report. VivrePlay staff will review both sides.',cta:'View order'},id:{subject:'Penjual menanggapi laporan pesanan',line:'Penjual menambahkan tanggapan. Tim VivrePlay akan memeriksa kedua sisi.',cta:'Lihat pesanan'}},
   'order-dispute-resolved':{en:{subject:'A decision was made on your order report',line:'VivrePlay staff reviewed the report and recorded a decision. Open the order for details.',cta:'View order'},id:{subject:'Keputusan laporan pesanan tersedia',line:'Tim VivrePlay telah meninjau laporan dan mencatat keputusan. Buka pesanan untuk melihat detail.',cta:'Lihat pesanan'}},
   'pro-activated':{en:{subject:'Market Pro is active',line:'Your Market Pro membership is active. Your benefits are ready to use.',cta:'View your membership'},id:{subject:'Market Pro aktif',line:'Keanggotaan Market Pro Anda sudah aktif dan manfaatnya siap digunakan.',cta:'Lihat keanggotaan'}},
+  'pro-payment-expired':{en:{subject:'Your Market Pro payment expired',line:'The payment window ended before payment was received. Your membership has not started.',cta:'View your membership'},id:{subject:'Pembayaran Market Pro kedaluwarsa',line:'Batas pembayaran berakhir sebelum pembayaran diterima. Keanggotaan Anda belum dimulai.',cta:'Lihat keanggotaan'}},
+  'pro-payment-failed':{en:{subject:'Your Market Pro payment was not completed',line:'We could not confirm your payment, so your membership has not started.',cta:'View your membership'},id:{subject:'Pembayaran Market Pro belum berhasil',line:'Pembayaran Anda belum dapat dikonfirmasi, jadi keanggotaan belum dimulai.',cta:'Lihat keanggotaan'}},
+  'pro-payment-review':{en:{subject:'We are checking your Market Pro payment',line:'Your payment arrived after the payment window. We are checking its status before activating your membership.',cta:'View payment status'},id:{subject:'Pembayaran Market Pro sedang diperiksa',line:'Pembayaran masuk setelah batas waktu. Kami sedang memeriksa statusnya sebelum mengaktifkan keanggotaan.',cta:'Lihat status pembayaran'}},
+  'pro-expiring':{en:{subject:'Market Pro ends soon',line:'Your membership ends within the next 7 days. It will not renew automatically. Renew from your profile to keep your benefits.',cta:'Manage membership'},id:{subject:'Market Pro segera berakhir',line:'Keanggotaan Anda berakhir dalam 7 hari ke depan dan tidak diperpanjang otomatis. Perpanjang dari profil untuk tetap memakai manfaatnya.',cta:'Kelola keanggotaan'}},
+  'pro-expired':{en:{subject:'Your Market Pro membership has ended',line:'Your Market Pro membership has ended. You can start it again from your profile.',cta:'View membership'},id:{subject:'Keanggotaan Market Pro Anda berakhir',line:'Keanggotaan Market Pro Anda telah berakhir. Anda dapat mengaktifkannya kembali dari profil.',cta:'Lihat keanggotaan'}},
 };
 
 const trackingStatusCopy:Record<string,{en:string;id:string}>={picking_up:{en:'The courier is on the way to collect your parcel',id:'Kurir sedang menuju lokasi penjual'},picked:{en:'Picked up by the courier',id:'Paket sudah dijemput kurir'},in_transit:{en:'In transit to you',id:'Paket sedang dalam perjalanan'},dropping_off:{en:'Out for delivery',id:'Paket sedang diantar'},delivered:{en:'Delivered',id:'Paket sudah diantar'},on_hold:{en:'Shipment is on hold',id:'Pengiriman tertahan'},rejected:{en:'Shipment was rejected',id:'Pengiriman ditolak'},cancelled:{en:'Shipment was cancelled',id:'Pengiriman dibatalkan'},return_in_transit:{en:'Returning to the seller',id:'Paket sedang dikembalikan ke penjual'},returned:{en:'Returned to the seller',id:'Paket sudah dikembalikan ke penjual'},disposed:{en:'Shipment was disposed of by the courier',id:'Paket dimusnahkan oleh kurir'},courier_not_found:{en:'No courier was assigned',id:'Kurir belum ditemukan'}};
@@ -147,6 +152,12 @@ function personalizedCopy(event:Event,details:NotificationDetails|undefined,titl
     case 'pro-activated':
       line=details?.membershipDays?(id?`Market Pro aktif selama ${details.membershipDays} hari. Manfaat keanggotaan sudah bisa digunakan.`:`Your Market Pro membership is active for ${details.membershipDays} days. Your benefits are ready to use.`):base.line;
       break;
+    case 'pro-payment-expired':
+    case 'pro-payment-failed':
+    case 'pro-payment-review':
+    case 'pro-expiring':
+    case 'pro-expired':
+      break;
   }
   return{...base,subject:subject.slice(0,150),line,cta};
 }
@@ -155,12 +166,19 @@ export function renderMarketEmail(event:Event,listingTitle='Edward.Newgate (001)
   const id=locale.toLowerCase().startsWith('id');const message=personalizedCopy(event,details,listingTitle,id,locale);
   const base=getAppUrl().replace(/\/$/,'');const isOrder=event.startsWith('order-');
   const watch=event==='wishlist-match'||event==='price-drop';
-  const url=event==='pro-activated'?`${base}/profile`:watch?`${base}/market/${encodeURIComponent(threadId)}`:`${base}/market?activity=${isOrder?'orders':'offers'}${isOrder?`&order=${encodeURIComponent(threadId)}`:`&conversation=${encodeURIComponent(threadId)}`}`;
+  const url=event.startsWith('pro-')?`${base}/profile`:watch?`${base}/market/${encodeURIComponent(threadId)}`:`${base}/market?activity=${isOrder?'orders':'offers'}${isOrder?`&order=${encodeURIComponent(threadId)}`:`&conversation=${encodeURIComponent(threadId)}`}`;
   const title=escapeHtml(listingTitle);const safeUrl=escapeHtml(url);const safeRecipient=escapeHtml(recipient);
   const detail=eventDetail(event,details);
   const safeDetail=detail?escapeHtml(detail):'';
-  const eventHeading=event==='pro-activated'?(id?'Market Pro aktif':'Market Pro is active'):watch?(event==='price-drop'?(id?'Harga turun':'Price drop'):(id?'Kartu tersedia':'Wishlist match')):event==='order-dispute-opened'?(id?'Laporan masalah pesanan':'Order problem report'):event==='order-dispute-response'?(id?'Tanggapan penjual':'Seller response'):event==='order-dispute-resolved'?(id?'Keputusan laporan':'Report decision'):event==='offer-unavailable'?(id?'Kartu terjual':'Cards sold'):event==='order-expired'?(id?'Pembayaran berakhir':'Payment expired'):event==='order-cancelled'?(id?'Pesanan dibatalkan':'Order cancelled'):event==='order-seller-paid'?(id?'Pesanan dibayar':'Order paid'):event==='order-shipped'?(id?'Pesanan dikirim':'Order shipped'):event==='order-tracking'?(id?'Status pengiriman':'Shipment status'):event==='order-paid'?(id?'Pembayaran diterima':'Payment received'):event==='order-received'?(id?'Pesanan diterima':'Delivery confirmed'):event==='new-offer'?(id?'Penawaran baru':'New offer'):event==='counteroffer'?(id?'Penawaran balik':'Counteroffer'):event==='accepted'?(id?'Penawaran diterima':'Offer accepted'):event==='declined'?(id?'Penawaran ditolak':'Offer declined'):event==='message'?(id?'Pesan baru':'New message'):event==='photo-request'?(id?'Permintaan foto':'Photo request'):(id?'Foto kartu dibagikan':'Card photos shared');
+  const proHeadings:Partial<Record<Event,{en:string;id:string}>>={'pro-activated':{en:'Market Pro is active',id:'Market Pro aktif'},'pro-payment-expired':{en:'Market Pro payment expired',id:'Pembayaran Market Pro kedaluwarsa'},'pro-payment-failed':{en:'Market Pro payment not completed',id:'Pembayaran Market Pro belum berhasil'},'pro-payment-review':{en:'Payment under review',id:'Pembayaran sedang diperiksa'},'pro-expiring':{en:'Market Pro ends soon',id:'Market Pro segera berakhir'},'pro-expired':{en:'Market Pro has ended',id:'Market Pro telah berakhir'}};
+  const eventHeading=proHeadings[event]?.[id?'id':'en']??(watch?(event==='price-drop'?(id?'Harga turun':'Price drop'):(id?'Kartu tersedia':'Wishlist match')):event==='order-dispute-opened'?(id?'Laporan masalah pesanan':'Order problem report'):event==='order-dispute-response'?(id?'Tanggapan penjual':'Seller response'):event==='order-dispute-resolved'?(id?'Keputusan laporan':'Report decision'):event==='offer-unavailable'?(id?'Kartu terjual':'Cards sold'):event==='order-expired'?(id?'Pembayaran berakhir':'Payment expired'):event==='order-cancelled'?(id?'Pesanan dibatalkan':'Order cancelled'):event==='order-seller-paid'?(id?'Pesanan dibayar':'Order paid'):event==='order-shipped'?(id?'Pesanan dikirim':'Order shipped'):event==='order-tracking'?(id?'Status pengiriman':'Shipment status'):event==='order-paid'?(id?'Pembayaran diterima':'Payment received'):event==='order-received'?(id?'Pesanan diterima':'Delivery confirmed'):event==='new-offer'?(id?'Penawaran baru':'New offer'):event==='counteroffer'?(id?'Penawaran balik':'Counteroffer'):event==='accepted'?(id?'Penawaran diterima':'Offer accepted'):event==='declined'?(id?'Penawaran ditolak':'Offer declined'):event==='message'?(id?'Pesan baru':'New message'):event==='photo-request'?(id?'Permintaan foto':'Photo request'):(id?'Foto kartu dibagikan':'Card photos shared'));
   const summaryRows:Array<[string,string]>=[];
+  if(event==='pro-activated'){
+    if(details?.orderCode)summaryRows.push([id?'Pembayaran':'Payment',details.orderCode]);
+    if(details?.membershipDays)summaryRows.push([id?'Masa aktif':'Membership',id?`${details.membershipDays} hari`:`${details.membershipDays} days`]);
+    if(details?.membershipEndsAt)summaryRows.push([id?'Berlaku sampai':'Active until',new Intl.DateTimeFormat(id?'id-ID':'en-ID',{timeZone:'Asia/Jakarta',dateStyle:'medium'}).format(new Date(details.membershipEndsAt))]);
+    if(details?.amount!==undefined&&details.currency)summaryRows.push([id?'Dibayar':'Paid',formatAmount(details.amount,details.currency,locale)]);
+  }
   if(event.startsWith('order-')&&details?.orderCode){
     summaryRows.push([id?'Pesanan':'Order',details.orderCode]);
     if(details.participant)summaryRows.push([event==='order-paid'?(id?'Penjual':'Seller'):event==='order-cancelled'?(id?'Dibatalkan oleh':'Cancelled by'):(id?'Pembeli':'Buyer'),details.participant]);
@@ -237,9 +255,9 @@ async function notificationItems(value:string|null|undefined):Promise<Notificati
 
 async function notificationDetails(event:Event,reference:string,locale='en'):Promise<NotificationDetails|undefined>{
   if(event==='pro-activated'){
-    const row=await db().prepare("SELECT details FROM checkout_orders WHERE id=? AND kind='PRO' AND status IN ('PAID','COMPLETED')").bind(reference).first<{details:string|null}>();
+    const row=await db().prepare("SELECT o.details,o.amount,o.currency,p.pro_expires_at AS membershipEndsAt FROM checkout_orders o JOIN profiles p ON p.id=o.buyer_id WHERE o.id=? AND o.kind='PRO' AND o.status IN ('PAID','COMPLETED')").bind(reference).first<{details:string|null;amount:number;currency:string;membershipEndsAt:string|null}>();
     if(!row)return undefined;
-    try{return{membershipDays:Number((JSON.parse(row.details||'{}') as {durationDays?:number}).durationDays)||undefined}}catch{return undefined}
+    try{return{membershipDays:Number((JSON.parse(row.details||'{}') as {durationDays?:number}).durationDays)||undefined,amount:row.amount,currency:row.currency,orderCode:`VPM-${reference.slice(0,8).toUpperCase()}`,membershipEndsAt:row.membershipEndsAt??undefined}}catch{return undefined}
   }
   if(event==='wishlist-match'||event==='price-drop'){const row=await db().prepare('SELECT amount,currency,items,printing_id AS printingId,quantity FROM listings WHERE id=?').bind(reference).first<{amount:number;currency:string;items:string|null;printingId:string;quantity:number}>();if(row)return{amount:row.amount,currency:row.currency,items:await notificationItems(row.items||JSON.stringify([{printingId:row.printingId,quantity:row.quantity}]))};return undefined;}
   if(event.startsWith('order-')){
@@ -310,7 +328,7 @@ async function deliverPush(profileId:string,event:Event,listingTitle:string,thre
     const isOrder=event.startsWith('order-');
     const extra=eventDetail(event,details);
     const watch=event==='wishlist-match'||event==='price-drop';
-    const payload=JSON.stringify({title:message.subject,body:[message.line,extra].filter(Boolean).join(' - ').slice(0,240),url:event==='pro-activated'?'/profile':watch?`/market/${encodeURIComponent(threadId)}`:`/market?activity=${isOrder?'orders':'offers'}${isOrder?`&order=${encodeURIComponent(threadId)}`:`&conversation=${encodeURIComponent(threadId)}`}`,tag:`market-${event}-${threadId}`});
+    const payload=JSON.stringify({title:message.subject,body:[message.line,extra].filter(Boolean).join(' - ').slice(0,240),url:event.startsWith('pro-')?'/profile':watch?`/market/${encodeURIComponent(threadId)}`:`/market?activity=${isOrder?'orders':'offers'}${isOrder?`&order=${encodeURIComponent(threadId)}`:`&conversation=${encodeURIComponent(threadId)}`}`,tag:`market-${event}-${threadId}`});
     const vapid=JSON.parse(privateJwk) as JsonWebKey;const signingKey=await crypto.subtle.importKey('jwk',vapid,{name:'ECDSA',namedCurve:'P-256'},false,['sign']);
     const authorization=async(endpoint:string)=>{
       const audience=new URL(endpoint).origin;const header=b64url(encoder.encode(JSON.stringify({typ:'JWT',alg:'ES256'})));
@@ -332,10 +350,26 @@ async function deliverPush(profileId:string,event:Event,listingTitle:string,thre
 export async function sendMarketEmail(profileId:string,event:Event,listingTitle:string,threadId:string){
   try{
     const recipient=await db().prepare(`SELECT u.email,p.locale FROM profiles p JOIN user u ON u.id=p.auth_subject WHERE p.id=?`).bind(profileId).first<{email:string;locale:string}>();
-    if(!recipient)return;
+    if(!recipient||!recipient.email)return false;
     let details:NotificationDetails|undefined;
     try{details=await notificationDetails(event,threadId,recipient.locale??'en')}catch(error){console.error('market_notification_details_failed',error instanceof Error?error.message:'unknown error')}
     await deliverPush(profileId,event,listingTitle,threadId,recipient.locale??'en',details);
-    if(recipient.email)await sendRenderedMarketEmail(recipient.email,event,listingTitle,threadId,recipient.locale??'en',undefined,details);
-  }catch(error){console.error('market_email_delivery_failed',error instanceof Error?error.message:'unknown error')}
+    await sendRenderedMarketEmail(recipient.email,event,listingTitle,threadId,recipient.locale??'en',undefined,details);
+    return true;
+  }catch(error){console.error('market_email_delivery_failed',error instanceof Error?error.message:'unknown error');return false}
+}
+
+export async function sendMarketEmailOnce(profileId:string,event:Event,listingTitle:string,reference:string,eventKey:string){
+  const database=db();
+  const prior=await database.prepare(`SELECT state,updated_at AS updatedAt FROM market_pro_email_events WHERE profile_id=? AND event_key=?`).bind(profileId,eventKey).first<{state:string;updatedAt:string}>();
+  if(prior?.state==='SENT')return false;
+  const updatedTime=prior?Date.parse(`${prior.updatedAt.replace(' ','T')}Z`):NaN;
+  const recent=Number.isFinite(updatedTime)&&updatedTime>Date.now()-10*60*1000;
+  if(recent&&(prior?.state==='SENDING'||prior?.state==='FAILED'))return false;
+  if(!prior)await database.prepare(`INSERT OR IGNORE INTO market_pro_email_events (profile_id,event_key,state) VALUES (?,?,'PENDING')`).bind(profileId,eventKey).run();
+  const claim=await database.prepare(`UPDATE market_pro_email_events SET state='SENDING',updated_at=CURRENT_TIMESTAMP WHERE profile_id=? AND event_key=? AND (state='PENDING' OR (state='FAILED' AND updated_at<datetime('now','-10 minutes')) OR (state='SENDING' AND updated_at<datetime('now','-10 minutes')))`).bind(profileId,eventKey).run();
+  if(!claim.meta.changes)return false;
+  const sent=await sendMarketEmail(profileId,event,listingTitle,reference);
+  await database.prepare(`UPDATE market_pro_email_events SET state=?,updated_at=CURRENT_TIMESTAMP WHERE profile_id=? AND event_key=? AND state='SENDING'`).bind(sent?'SENT':'FAILED',profileId,eventKey).run();
+  return sent;
 }

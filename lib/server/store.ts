@@ -187,6 +187,8 @@ export async function market(viewerId?:string){
       cp.rarity AS cardRarity,
       cp.set_code AS cardSetCode,
       cp.variant AS cardVariant,
+      tcp.printing_code AS catalogPrintingCode,
+      tca.object_key AS catalogAssetPath,
       ci.id AS cardIdentityId,
       ci.code AS cardCode,
       ci.name AS cardName,
@@ -198,6 +200,8 @@ export async function market(viewerId?:string){
     FROM listings l
     JOIN profiles p ON p.id=l.seller_id
     LEFT JOIN card_printings cp ON cp.id=l.printing_id
+    LEFT JOIN tcg_card_printings tcp ON tcp.id=l.printing_id
+    LEFT JOIN tcg_card_assets tca ON tca.printing_id=tcp.id AND tca.kind='small'
     LEFT JOIN card_identities ci ON ci.id=cp.identity_id
     LEFT JOIN seller_shipping_origins o ON o.owner_id=l.seller_id
     WHERE l.status='ACTIVE' AND (l.expires_at IS NULL OR l.expires_at > CURRENT_TIMESTAMP)
@@ -224,6 +228,8 @@ export async function market(viewerId?:string){
     cardRarity?:string;
     cardSetCode?:string;
     cardVariant?:string;
+    catalogPrintingCode?:string|null;
+    catalogAssetPath?:string|null;
     cardIdentityId?:string;
     cardCode?:string;
     cardName?:string;
@@ -245,15 +251,15 @@ export async function market(viewerId?:string){
   const bundleCards=new Map<string,Card>();
   for(let offset=0;offset<printingIds.length;offset+=80){
     const chunk=printingIds.slice(offset,offset+80);
-    const printingRows=(await db().prepare(`SELECT p.id AS printingId,p.image_url AS imageUrl,p.language,p.variant,p.printing_code AS printingCode,p.rarity,p.set_code AS setCode,i.id AS identityId,i.code,i.name,i.color,i.type,i.cost,i.power,i.effect FROM card_printings p LEFT JOIN card_identities i ON i.id=p.identity_id WHERE p.id IN (${chunk.map(()=>'?').join(',')})`).bind(...chunk).all<{printingId:string;imageUrl:string|null;language:string;variant:string|null;printingCode:string|null;rarity:string|null;setCode:string|null;identityId:string|null;code:string|null;name:string|null;color:string|null;type:string|null;cost:number|null;power:number|null;effect:string|null}>()).results;
+    const printingRows=(await db().prepare(`SELECT p.id AS printingId,p.image_url AS imageUrl,p.language,p.variant,p.printing_code AS printingCode,p.rarity,p.set_code AS setCode,i.id AS identityId,i.code,i.name,i.color,i.type,i.cost,i.power,i.effect,tcp.printing_code AS catalogPrintingCode,tca.object_key AS assetPath FROM card_printings p LEFT JOIN card_identities i ON i.id=p.identity_id LEFT JOIN tcg_card_printings tcp ON tcp.id=p.id LEFT JOIN tcg_card_assets tca ON tca.printing_id=tcp.id AND tca.kind='small' WHERE p.id IN (${chunk.map(()=>'?').join(',')})`).bind(...chunk).all<{printingId:string;imageUrl:string|null;language:string;variant:string|null;printingCode:string|null;rarity:string|null;setCode:string|null;identityId:string|null;code:string|null;name:string|null;color:string|null;type:string|null;cost:number|null;power:number|null;effect:string|null;catalogPrintingCode:string|null;assetPath:string|null}>()).results;
     for(const item of printingRows){
-      bundleCards.set(item.printingId,{id:item.identityId??item.printingId,code:item.code??item.printingCode??item.printingId,name:item.name??item.code??item.printingCode??item.printingId,color:item.color??'Red',type:(item.type as Card['type'])??'Character',cost:item.cost??0,power:item.power??0,rarity:item.rarity??'',art:0,effect:item.effect??'',imageUrl:item.imageUrl??undefined,imageSource:'external',setCode:item.setCode??undefined,language:item.language,printingCode:item.printingCode??item.code??undefined,variant:item.variant??'Standard'});
+      bundleCards.set(item.printingId,{id:item.identityId??item.printingId,code:item.code??item.printingCode??item.printingId,name:item.name??item.code??item.printingCode??item.printingId,color:item.color??'Red',type:(item.type as Card['type'])??'Character',cost:item.cost??0,power:item.power??0,rarity:item.rarity??'',art:0,effect:item.effect??'',imageUrl:item.imageUrl??undefined,imageSource:'external',setCode:item.setCode??undefined,language:item.language,printingCode:item.catalogPrintingCode??item.printingCode??item.code??undefined,assetPath:item.assetPath??undefined,variant:item.variant??'Standard'});
     }
   }
 
   return rows.map(r => {
     const filenameCode = r.cardImageUrl ? r.cardImageUrl.split('?')[0].split('#')[0].split('/').pop()?.replace(/\.[^.]+$/, '') : undefined;
-    const printingCode = filenameCode ?? r.cardCode;
+    const printingCode = r.catalogPrintingCode ?? (filenameCode&&!filenameCode.toLowerCase().startsWith('tcg-')?filenameCode:undefined) ?? r.cardCode;
 
     const card: Card | undefined = (r.cardCode || r.cardImageUrl) ? {
       id: r.cardIdentityId ?? r.printingId,
@@ -271,6 +277,7 @@ export async function market(viewerId?:string){
       setCode: r.cardSetCode,
       language: r.cardLanguage,
       printingCode,
+      assetPath:r.catalogAssetPath??undefined,
       variant: r.cardVariant,
     } : undefined;
 

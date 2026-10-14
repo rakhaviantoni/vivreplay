@@ -21,6 +21,7 @@ const localBindingConfig = {
   cache: { enabled: true },
   workers_dev: true,
   preview_urls: true,
+  triggers: { crons: ["0 2 * * *"] },
   routes: [
     { pattern: "vivreplay.com", zone_name: "vivreplay.com" },
     { pattern: "www.vivreplay.com", zone_name: "vivreplay.com" },

@@ -43,6 +43,7 @@ import {Dialog,DialogContent,DialogDescription,DialogTitle} from '@/components/u
 import {MarketPriceMode} from './market-price-mode';
 import {ShareButton} from './share';
 import {BulkListingModal} from './vault/modals/bulk-listing-modal';
+import {Slider} from '@/components/ui/slider';
 import {MarketQuickPanel} from './market-quick-panel';
 import {MarketStoreNav} from './market-store-nav';
 import {enrichCollectionItem,groupVaultStacks} from './vault/vault-utils';
@@ -477,6 +478,8 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
   const [liveSellerFeeMinimum,setLiveSellerFeeMinimum]=useState<number|null>(null);
   const [listingNegotiable,setListingNegotiable]=useState(true);
   const [listingCity,setListingCity]=useState('');
+  const [buyerCity,setBuyerCity]=useState('');
+  const [profileQuickTab,setProfileQuickTab]=useState<'account'|'delivery'>('account');
   useEffect(()=>{
     if(!open||!data?.profile?.id)return;
     let active=true;
@@ -508,21 +511,25 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
   // Prefill shipping origin city directly from signed-in seller's origin
   useEffect(()=>{
     if(!data?.profile)return;
-    api<{origin?:{city?:string}|null}>('/api/shipping/origin',undefined,'GET')
-      .then(res=>{
-        if(res?.origin?.city){
-          setListingCity(res.origin.city);
-          window.localStorage.setItem('vivreplay-seller-city',res.origin.city);
-        }else{
-          const saved=window.localStorage.getItem('vivreplay-seller-city');
-          if(saved)setListingCity(saved);
-        }
-      })
-      .catch(()=>{
-        const saved=window.localStorage.getItem('vivreplay-seller-city');
-        if(saved)setListingCity(saved);
-      });
-  },[data?.profile]);
+    let active=true;
+    const loadSavedCity=()=>{
+      void api<{origin?:{city?:string}|null}>('/api/shipping/origin',undefined,'GET')
+        .then(res=>{
+          if(!active)return;
+          const city=res?.origin?.city?.trim()??'';
+          setBuyerCity(city);
+          if(city){setListingCity(city);window.localStorage.setItem('vivreplay-seller-city',city)}
+          else{
+            const saved=window.localStorage.getItem('vivreplay-seller-city');
+            if(saved)setListingCity(saved);
+          }
+        })
+        .catch(()=>{if(active)setBuyerCity('')});
+    };
+    loadSavedCity();
+    window.addEventListener('vivreplay:shipping-updated',loadSavedCity);
+    return()=>{active=false;window.removeEventListener('vivreplay:shipping-updated',loadSavedCity)};
+  },[data?.profile?.id]);
   async function refresh(){
     if(!listings.length)setListingsLoading(true);
     try{
@@ -667,6 +674,11 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
     const yytIdr=benchmark.normalizedAmount||Math.round(benchmark.amount*110);
     setItemPrice(String(Math.round(yytIdr*benchmarkMultiplier/100)));
   },[benchmark,benchmarkMultiplier]);
+  useEffect(()=>{
+    if(!benchmark||!itemPriceEdited.current||!Number(itemPrice))return;
+    const yytIdr=benchmark.normalizedAmount||Math.round(benchmark.amount*110);
+    setBenchmarkMultiplier(Math.round(Number(itemPrice)/yytIdr*1000)/10);
+  },[benchmark,itemPrice]);
   const activeCardObj=useMemo(()=>{
     if(!configuringCard)return undefined;
     const chosen=cardPrintings.find(p=>p.id===selectedPrintingId);
@@ -736,6 +748,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
     configLoadVersion.current++;
     if(!signInToContinue())return;
     setListingType(type);
+    setProfileQuickTab('account');
     setBundleCards([]);
     setConfiguringCard(null);
     setCardSearch('');
@@ -747,7 +760,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
     setIsAddingAnother(false);
     setSearchSource('catalog');
     setBenchmarkMultiplier(100);
-    const savedCity=window.localStorage.getItem('vivreplay-seller-city')||'Jakarta';
+    const savedCity=type==='WTB'?buyerCity:(window.localStorage.getItem('vivreplay-seller-city')||'Jakarta');
     setListingCity(savedCity);
     setOpen(true);
   }
@@ -755,7 +768,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
     const openSellListing=(event:Event)=>{setAccountPanel(null);setQuickPanel(null);const type=(event as CustomEvent<'WTS'|'WTB'>).detail;beginListing(type==='WTB'?'WTB':'WTS')};
     window.addEventListener('vivreplay:open-sell-listing',openSellListing);
     return()=>window.removeEventListener('vivreplay:open-sell-listing',openSellListing);
-  },[data,accountLoading,locale]);
+  },[data,accountLoading,locale,buyerCity]);
   function sellCard(card:Card){
     if(!signInToContinue())return;
     setListingType('WTS');
@@ -858,6 +871,10 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
   const handlePublishListing=async(event:React.FormEvent)=>{
     event.preventDefault();
     if(bundleCards.length===0)return;
+    if(listingType==='WTB'&&!buyerCity){
+      setSaveError(locale==='ID'?'Tambahkan alamat pengiriman sebelum membuat permintaan beli.':'Add a delivery address before posting a buying request.');
+      return;
+    }
     setBusy(true);
     setSaveError('');
     const missingVaultItem=listingType==='WTS'?bundleCards.find(it=>!it.instanceId):undefined;
@@ -875,7 +892,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
         title:listingTitle||primary.card.name,
         amount:Number(listingPrice),
         quantity:totalQty,
-        city:listingCity||'Jakarta',
+        city:listingType==='WTB'?buyerCity:(listingCity||'Jakarta'),
         type:listingType,
         negotiable:listingNegotiable,
         items:bundleCards.map(item=>({
@@ -892,7 +909,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
       await refreshAccount();
       setOpen(false);
       if(result.id){
-        setPublishedShare({id:result.id,title:listingTitle||primary.card.name,price:Number(listingPrice),cards:[...bundleCards],seller:String(data?.profile?.display_name??''),city:listingCity,expiresAt:result.expiresAt});
+        setPublishedShare({id:result.id,title:listingTitle||primary.card.name,price:Number(listingPrice),cards:[...bundleCards],seller:String(data?.profile?.display_name??''),city:listingType==='WTB'?buyerCity:listingCity,expiresAt:result.expiresAt});
         setBundleCards([]);
         toast.success(locale==='ID'?'Listing berhasil dipublikasikan':'Listing published');
       }
@@ -922,6 +939,10 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
   const listingFeeMinimum=liveSellerFeeMinimum??MARKET_SELLER_FEE_MINIMUM;
   const enteredListingTotal=Math.max(0,Number(listingPrice)||0);
   const estimatedSellerFee=calculateSellerServiceFee(enteredListingTotal,listingFeePercent,listingFeeMinimum);
+  const benchmarkSliderMin=benchmarkMultiplier<50?Math.max(0,Math.floor(benchmarkMultiplier/50)*50):50;
+  const benchmarkSliderMax=benchmarkMultiplier>150?Math.ceil(benchmarkMultiplier/50)*50:150;
+  const benchmarkSliderStep=1;
+  const benchmarkMultiplierLabel=benchmarkMultiplier<1?`${benchmarkMultiplier.toFixed(2)}%`:`${Number(benchmarkMultiplier.toFixed(1))}%`;
   return (
     <main className={`market-feed-page${modalOnly?' market-sell-modal-host':''}`}>
       <h1 className="market-page-title">Market</h1>
@@ -1096,7 +1117,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
                     </div>
                     <div className="market-feed-trade">
                       <div className="market-feed-status">
-                        <b>{listing.type==='WTB'?(locale==='ID'?'Dicari':'Buying'):(locale==='ID'?'Dijual':'Selling')}</b>
+                        <b>{listing.type==='WTB'?<Search size={12} aria-hidden="true"/>:<Store size={12} aria-hidden="true"/>}{listing.type==='WTB'?(locale==='ID'?'Dicari':'Buying'):(locale==='ID'?'Dijual':'Selling')}</b>
                       </div>
                       <div className="market-feed-price">
                         <strong>{formatMoney(listing.amount,listing.currency)}</strong>
@@ -1277,17 +1298,23 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
                       </div>
                       {benchmark?.amount&&(
                         <div className="listing-benchmark-actions">
-                          <select
-                            value={benchmarkMultiplier}
-                            onChange={e=>setBenchmarkMultiplier(Number(e.target.value))}
-                            aria-label={locale==='ID'?'Persentase rate':'Rate percentage'}
-                          >
-                            <option value={85}>85%</option>
-                            <option value={90}>90%</option>
-                            <option value={100}>100%</option>
-                            <option value={110}>110%</option>
-                            <option value={125}>125%</option>
-                          </select>
+                          <div className="listing-benchmark-rate">
+                            <span>{locale==='ID'?'Harga dibanding tolok ukur':'Price vs benchmark'}</span>
+                            <output aria-live="polite">{benchmarkMultiplierLabel}</output>
+                            <div className="market-slider-wrap">
+                              <Slider
+                                className="listing-benchmark-slider"
+                                min={benchmarkSliderMin}
+                                max={benchmarkSliderMax}
+                                step={benchmarkSliderStep}
+                                value={[benchmarkMultiplier]}
+                                onValueChange={([value])=>value!==undefined&&setBenchmarkMultiplier(value)}
+                                aria-label={locale==='ID'?'Persentase harga dibanding tolok ukur':'Price percentage against benchmark'}
+                              />
+                              <div className="market-slider-checkpoints" aria-hidden="true">{Array.from({length:Math.floor((benchmarkSliderMax-benchmarkSliderMin)/5)+1},(_,index)=><i key={index} style={{left:`${((benchmarkSliderMin+index*5-benchmarkSliderMin)/(benchmarkSliderMax-benchmarkSliderMin))*100}%`}}/>)}</div>
+                            </div>
+                            <div className="listing-benchmark-range" aria-hidden="true"><span>{benchmarkSliderMin}%</span><span>{benchmarkSliderMax}%</span></div>
+                          </div>
                           <button
                             type="button"
                             className="listing-benchmark-apply-btn"
@@ -1367,7 +1394,13 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
                         autoComplete="off"
                         aria-describedby="market-unit-price-help"
                         value={itemPrice}
-                        onChange={e=>{itemPriceEdited.current=true;setItemPrice(e.target.value)}}
+                        onChange={e=>{
+                          const nextPrice=e.target.value;
+                          itemPriceEdited.current=true;
+                          setItemPrice(nextPrice);
+                          const yytIdr=benchmark&&(benchmark.normalizedAmount||Math.round(benchmark.amount*110));
+                          if(yytIdr&&Number(nextPrice)>0)setBenchmarkMultiplier(Math.round(Number(nextPrice)/yytIdr*1000)/10);
+                        }}
                         placeholder={locale==='ID'?'Contoh: 75000':'e.g. 75000'}
                         required
                       />
@@ -1504,23 +1537,36 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
                     </small>
                     {listingType==='WTS'&&enteredListingTotal>0&&<small className="market-sell-fee-estimate">{locale==='ID'?`Biaya penjual (${listingFeePercent}%, minimal Rp ${listingFeeMinimum.toLocaleString('id-ID')}): Rp ${estimatedSellerFee.toLocaleString('id-ID')} - perkiraan diterima Rp ${(enteredListingTotal-estimatedSellerFee).toLocaleString('id-ID')}`:`Seller fee (${listingFeePercent}%, minimum IDR ${listingFeeMinimum.toLocaleString('en-US')}): IDR ${estimatedSellerFee.toLocaleString('en-US')} - estimated payout IDR ${(enteredListingTotal-estimatedSellerFee).toLocaleString('en-US')}`}</small>}
                   </label>
-                  <label>
-                    {listingType==='WTB'?(locale==='ID'?'Kota Anda':'Your city'):(locale==='ID'?'Dikirim dari':'Ships from')}
-                    <input
-                      value={listingCity}
-                      onChange={event=>{
-                        setListingCity(event.target.value);
-                        window.localStorage.setItem('vivreplay-seller-city',event.target.value);
-                      }}
-                      placeholder="Jakarta"
-                      minLength={2}
-                      maxLength={60}
-                      required
-                    />
-                  </label>
+                  {listingType==='WTB'?(
+                    <label className="market-request-city-label">
+                      {locale==='ID'?'Kota pengiriman':'Delivery city'}
+                      <div className="market-request-city-field">
+                        <span className={buyerCity?'':'is-empty'}>{buyerCity|| (locale==='ID'?'Belum ada alamat pengiriman':'No delivery address saved')}</span>
+                        <button type="button" className="market-request-city-change" onClick={()=>{setProfileQuickTab('delivery');setQuickPanel('profile')}}>
+                          {buyerCity?(locale==='ID'?'Ubah alamat':'Change address'):(locale==='ID'?'Tambah alamat':'Add address')}
+                        </button>
+                      </div>
+                      <small>{buyerCity?(locale==='ID'?'Diambil dari alamat pengiriman Anda.':'From your saved delivery address.'):(locale==='ID'?'Tambahkan alamat untuk memilih kota.':'Add a delivery address to set your city.')}</small>
+                    </label>
+                  ):(
+                    <label>
+                      {locale==='ID'?'Dikirim dari':'Ships from'}
+                      <input
+                        value={listingCity}
+                        onChange={event=>{
+                          setListingCity(event.target.value);
+                          window.localStorage.setItem('vivreplay-seller-city',event.target.value);
+                        }}
+                        placeholder="Jakarta"
+                        minLength={2}
+                        maxLength={60}
+                        required
+                      />
+                    </label>
+                  )}
                 </div>
                 {saveError&&<p role="alert" className="error-text">{saveError}</p>}
-                <button className="market-list-button" disabled={busy||bundleCards.length===0}>
+                <button className="market-list-button" disabled={busy||bundleCards.length===0||(listingType==='WTB'&&!buyerCity)}>
                   {busy
                     ?(locale==='ID'?'Mempublikasikan...':'Publishing...')
                     :listingType==='WTS'&&bundleCards.some(it=>!it.instanceId)
@@ -1594,7 +1640,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
       {bulkListingOpen&&<BulkListingModal open={bulkListingOpen} onClose={wasPublished=>{setBulkListingOpen(false);if(!wasPublished)setOpen(true)}} language={locale} stacks={groupVaultStacks((data?.collection??[]).map(item=>enrichCollectionItem(item,new Set())))} onPublished={async()=>{await refresh();await refreshAccount()}}/>}
       {publishedShare&&<ShareButton title={publishedShare.title} path={marketListingPath(publishedShare.title,publishedShare.id)} cards={publishedShare.cards.map(item=>({card:printingToCard(item.card,item.printing),printingId:item.printing.id,quantity:item.quantity,condition:item.condition,unitAmount:item.unitAmount}))} subtitle={locale==='ID'?`${publishedShare.cards.reduce((sum,item)=>sum+item.quantity,0)} kartu`:`${publishedShare.cards.reduce((sum,item)=>sum+item.quantity,0)} cards`} listingInfo={{seller:publishedShare.seller,city:publishedShare.city,expiresAt:publishedShare.expiresAt}} price={formatMoney(publishedShare.price,'IDR')} openOnMount hideTrigger onOpenChange={open=>{if(!open)setPublishedShare(null)}}/>}
 
-      {data&&<MarketQuickPanel panel={accountPanel??quickPanel} onOpenChange={open=>{if(!open){setAccountPanel(null);setQuickPanel(null)}}} onPanelChange={next=>{if(next==='listings'||next==='offers'||next==='orders'||next==='saved'){setQuickPanel(null);setAccountPanel(next)}else{setAccountPanel(null);setQuickPanel(next)}}} onCreateListing={()=>{setAccountPanel(null);setQuickPanel(null);beginListing()}} locale={locale} account={data} activityCounts={activityCounts} initialOrderId={searchParams.get('order')} initialConversationId={searchParams.get('conversation')} initialProfileTab={searchParams.get('profile')==='delivery'?'delivery':'account'} onRefresh={async()=>{await Promise.all([refreshAccount(),refresh()])}} onSaved={async()=>{await refreshAccount();setAccountPanel(null);setQuickPanel(null)}}/>}
+      {data&&<MarketQuickPanel panel={accountPanel??quickPanel} onOpenChange={open=>{if(!open){setAccountPanel(null);setQuickPanel(null)}}} onPanelChange={next=>{if(next==='listings'||next==='offers'||next==='orders'||next==='saved'){setQuickPanel(null);setAccountPanel(next)}else{setAccountPanel(null);setQuickPanel(next)}}} onCreateListing={()=>{setAccountPanel(null);setQuickPanel(null);beginListing()}} locale={locale} account={data} activityCounts={activityCounts} initialOrderId={searchParams.get('order')} initialConversationId={searchParams.get('conversation')} initialProfileTab={profileQuickTab} onRefresh={async()=>{await Promise.all([refreshAccount(),refresh()])}} onSaved={async()=>{await refreshAccount();setAccountPanel(null);setQuickPanel(null)}}/>}
       <AddEditItemModal
         key={`${marketVaultCard?.id??'market-card'}-${marketVaultOpen?'open':'closed'}`}
         open={marketVaultOpen}

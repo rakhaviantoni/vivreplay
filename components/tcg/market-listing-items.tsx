@@ -22,6 +22,7 @@ import {marketListingPath} from '@/lib/market/listing-url';
 import {PhoneInput} from '@/components/tcg/phone-input';
 import {MarketListingPriceEdit,MarketListingPriceTerms,MarketListingTitleEdit,MarketListingUnitPriceEdit} from '@/components/tcg/market-listing-inline-edit';
 import {MarketAddCardsModal} from '@/components/tcg/market-add-cards-modal';
+import {Slider} from '@/components/ui/slider';
 
 type CourierRate={courier_code:string;courier_service_code:string;courier_name:string;courier_service_name:string;price:number;duration?:string;max_km?:number};
 type ShippingArea={id:string;name:string;province:string;city:string;district:string;subdistrict:string;postalCode:string;latitude?:number;longitude?:number;source:'biteship'|'local'};
@@ -239,6 +240,60 @@ export function ShippingOptions({listingId,courierCount=0,couriers=[],items=[]}:
   );
 }
 
+function SellerShippingEstimate({listingId,couriers,items,language}:{listingId:string;couriers:string[];items:Array<{printingId:string;quantity:number;unitAmount:number}>;language:'EN'|'ID'}){
+  const [open,setOpen]=useState(false);
+  const [query,setQuery]=useState('');
+  const [areas,setAreas]=useState<ShippingArea[]>([]);
+  const [loadingAreas,setLoadingAreas]=useState(false);
+  const [loadingRates,setLoadingRates]=useState(false);
+  const [rates,setRates]=useState<CourierRate[]>([]);
+  const [destination,setDestination]=useState('');
+  const [error,setError]=useState('');
+  const t=(en:string,id:string)=>language==='ID'?id:en;
+
+  useEffect(()=>{
+    if(!open||query.trim().length<2){setAreas([]);setLoadingAreas(false);return}
+    let active=true;
+    const timer=window.setTimeout(async()=>{
+      setLoadingAreas(true);
+      try{
+        const response=await fetch(`/api/shipping/areas?query=${encodeURIComponent(query.trim())}`);
+        const payload=await response.json() as {areas?:ShippingArea[]};
+        if(active)setAreas((payload.areas??[]).slice(0,8));
+      }catch{if(active)setAreas([])}finally{if(active)setLoadingAreas(false)}
+    },300);
+    return()=>{active=false;window.clearTimeout(timer)};
+  },[open,query]);
+
+  const chooseArea=async(area:ShippingArea)=>{
+    setQuery([area.subdistrict,area.district,area.city].filter(Boolean).join(', '));
+    setDestination([area.city,area.province].filter(Boolean).join(', '));
+    setAreas([]);setError('');setRates([]);setLoadingRates(true);
+    try{
+      const response=await fetch('/api/shipping/quotes',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({listingId,items,destinationAreaId:area.source==='biteship'?area.id:'',destinationPostalCode:area.postalCode})});
+      const payload=await response.json() as {pricing?:CourierRate[];error?:string};
+      if(!response.ok)throw new Error(payload.error||t('Rates could not load.','Ongkir gagal dimuat.'));
+      setRates(payload.pricing??[]);
+      if(!payload.pricing?.length)setError(t('No rates found for this destination.','Tarif tidak ditemukan untuk tujuan ini.'));
+    }catch(reason){setError(reason instanceof Error?reason.message:t('Rates could not load.','Ongkir gagal dimuat.'))}
+    finally{setLoadingRates(false)}
+  };
+
+  return <div className="market-seller-shipping-estimate">
+    <button type="button" className="market-seller-shipping-trigger" aria-expanded={open} onClick={()=>setOpen(value=>!value)}>{open?t('Hide estimate','Tutup estimasi'):t('Estimate delivery','Estimasi ongkir')}</button>
+    {open&&<div className="market-seller-shipping-panel">
+      <label>{t('Buyer destination','Tujuan pembeli')}<input value={query} onChange={event=>{setQuery(event.target.value);setDestination('');setRates([]);setError('')}} placeholder={t('Search city or district','Cari kota atau kecamatan')} autoComplete="off"/></label>
+      {loadingAreas&&<small role="status">{t('Searching…','Mencari…')}</small>}
+      {areas.length>0&&<div className="market-seller-shipping-areas" role="listbox">{areas.map(area=><button type="button" role="option" key={`${area.source}:${area.id}`} onClick={()=>void chooseArea(area)}><strong>{[area.subdistrict,area.district].filter(Boolean).join(', ')||area.name}</strong><small>{[area.city,area.province,area.postalCode].filter(Boolean).join(' / ')}</small></button>)}</div>}
+      {destination&&<strong className="market-seller-shipping-destination">{destination}</strong>}
+      {loadingRates&&<small role="status">{t('Checking rates…','Memeriksa ongkir…')}</small>}
+      {error&&<small className="market-seller-shipping-error" role="status">{error}</small>}
+      {!loadingRates&&rates.length>0&&<ul>{rates.slice(0,4).map(rate=><li key={`${rate.courier_code}:${rate.courier_service_code}`}><span>{COURIER_LABELS[rate.courier_code]??rate.courier_name} / {rate.courier_service_name}</span><strong>{formatMoney(rate.price,'IDR')}</strong></li>)}</ul>}
+      {!destination&&!loadingAreas&&couriers.length===0&&<small>{t('Shipping is not set up for this listing.','Pengiriman belum diatur untuk listing ini.')}</small>}
+    </div>}
+  </div>;
+}
+
 export type MarketListingCard={
   id:string;
   instanceId?:string;
@@ -359,6 +414,12 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
     const rounded=currency==='IDR'&&item.unitAmount>=10000?Math.round(raw/1000)*1000:raw;
     const finalPrice=Math.max(1,rounded);
     setCustomPrices(prev=>({...prev,[item.id]:finalPrice}));
+  };
+
+  const setPricePercent=(item:MarketListingCard,percent:number)=>{
+    const raw=Math.round(item.unitAmount*(1+percent/100));
+    const rounded=currency==='IDR'&&item.unitAmount>=10000?Math.round(raw/1000)*1000:raw;
+    setCustomPrices(prev=>({...prev,[item.id]:Math.max(1,rounded)}));
   };
 
   const resetPrice=(id:string)=>{
@@ -554,6 +615,22 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
                     aria-label={`${t('Offer price for','Tawaran harga untuk')} ${item.card.name}`}
                   />
                 </div>
+                <div className="market-card-offer-slider-wrap">
+                  <div className="market-card-offer-slider-label"><span>{t('Compared with asking price','Dibanding harga penjual')}</span><output>{diffPercent===0?t('Ask','Pas'):`${diffPercent>0?'+':''}${diffPercent}%`}</output></div>
+                  <div className="market-slider-wrap">
+                    <Slider
+                      className="market-card-offer-slider"
+                      min={-50}
+                      max={50}
+                      step={1}
+                      value={[Math.max(-50,Math.min(50,diffPercent))]}
+                      onValueChange={([value])=>value!==undefined&&setPricePercent(item,value)}
+                      aria-label={`${t('Offer price compared with asking price for','Tawaran dibanding harga penjual untuk')} ${item.card.name}`}
+                    />
+                    <div className="market-slider-checkpoints" aria-hidden="true">{Array.from({length:21},(_,index)=><i key={index} style={{left:`${index*5}%`}}/>)}</div>
+                  </div>
+                  <div className="market-card-offer-slider-range" aria-hidden="true"><span>−50%</span><span>{t('Ask','Pas')}</span><span>+50%</span></div>
+                </div>
                 <div className="market-card-offer-steppers">
                   <button
                     type="button"
@@ -640,6 +717,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
           path={marketListingPath(listingTitle??'Card listing',listingId)}
           cards={items.map(item => ({
             card: item.card,
+            printingId: item.id,
             quantity: item.quantity,
             condition: item.condition,
             unitAmount: item.unitAmount,
@@ -793,7 +871,7 @@ export function MarketListingDetailView({
               <dd>{listing.city}</dd>
             </div> : ownerView ? <div>
               <dt>{t('Ships from', 'Dikirim dari')}</dt>
-              <dd>{listing.city}</dd>
+              <dd className="market-listing-shipping-origin"><span>{listing.city}</span><ShippingCouriers couriers={listing.shippingCouriers??[]} language={language} maxVisible={3}/><SellerShippingEstimate listingId={listing.id} couriers={listing.shippingCouriers??[]} items={shippingQuoteItems} language={language}/></dd>
             </div> : <ShippingOptions listingId={listing.id} courierCount={listing.shippingOptionCount??0} couriers={listing.shippingCouriers??[]} items={shippingQuoteItems}/>}
           </dl>
 

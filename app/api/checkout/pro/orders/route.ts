@@ -1,5 +1,6 @@
 import {db,errorResponse,user} from '@/lib/server/store';
 import {ipaymuExpiryTimestamp} from '@/lib/server/ipaymu';
+import {sendMarketEmailOnce} from '@/lib/server/market-notifications';
 
 type MembershipOrder={id:string;status:string;amount:number;currency:string;createdAt:string;paidAt:string|null};
 
@@ -25,6 +26,24 @@ export async function GET(){
         const result=await database.prepare(`UPDATE checkout_orders SET status='EXPIRED',updated_at=CURRENT_TIMESTAMP
           WHERE id=? AND buyer_id=? AND kind='PRO' AND status='PENDING_PAYMENT'`).bind(order.id,profile.id).run();
         if(result.meta.changes)order.status='EXPIRED';
+      }
+    }
+    for(const order of rows){
+      if(order.status==='EXPIRED')await sendMarketEmailOnce(profile.id,'pro-payment-expired','Market Pro',order.id,`payment-expired:${order.id}`);
+      if(order.status==='FAILED')await sendMarketEmailOnce(profile.id,'pro-payment-failed','Market Pro',order.id,`payment-failed:${order.id}`);
+      if(order.status==='PAYMENT_REVIEW')await sendMarketEmailOnce(profile.id,'pro-payment-review','Market Pro',order.id,`payment-review:${order.id}`);
+    }
+    const expiryValue=String(profile.pro_expires_at??'');
+    const expiryDate=expiryValue?new Date(/[zZ]|[+-]\d{2}:?\d{2}$/.test(expiryValue)?expiryValue:`${expiryValue.replace(' ','T')}Z`):null;
+    const expiryTime=expiryDate&&!Number.isNaN(expiryDate.getTime())?expiryDate.getTime():null;
+    const hasPaidMembership=rows.some(order=>order.status==='PAID'||order.status==='COMPLETED');
+    const latestPaidMembership=rows.find(order=>order.status==='PAID'||order.status==='COMPLETED');
+    if(latestPaidMembership&&expiryTime!==null&&expiryTime>now)await sendMarketEmailOnce(profile.id,'pro-activated','Market Pro',latestPaidMembership.id,`activated:${latestPaidMembership.id}`);
+    if(hasPaidMembership&&expiryTime!==null){
+      if(expiryTime>now&&expiryTime-now<=7*24*60*60*1000){
+        await sendMarketEmailOnce(profile.id,'pro-expiring','Market Pro',expiryValue,`expiring:${expiryValue}`);
+      }else if(expiryTime<=now){
+        await sendMarketEmailOnce(profile.id,'pro-expired','Market Pro',expiryValue,`expired:${expiryValue}`);
       }
     }
     const orders=rows.map(({id,status,amount,currency,createdAt,paidAt})=>({id,status,amount,currency,createdAt,paidAt}));

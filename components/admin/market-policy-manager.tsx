@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import type { MarketPolicies } from '@/lib/market/policy';
 import { MARKET_BUYER_FEE_PERCENT, MARKET_PRO_BUYER_FEE_PERCENT, MARKET_BUYER_FEE_CAP } from '@/lib/market/policy';
 import { DEFAULT_PRO_PRICING,type ProPricing } from '@/lib/market/pro-pricing';
+import { Slider } from '@/components/ui/slider';
 
 interface PolicyResponse {
   policies: MarketPolicies;
@@ -318,16 +319,11 @@ export function MarketPolicyManager() {
               <label htmlFor="free-fee">
                 Seller fee <span>(%)</span>
               </label>
-              <input
-                id="free-fee"
-                type="number"
-                min="0"
-            max="100"
-            step="0.01"
-                value={freeFee}
-                onChange={(e) => setFreeFee(Number(e.target.value))}
-                required
-              />
+              <div className="admin-policy-percent-control">
+                <Slider className="admin-policy-percent-slider" min={0} max={5} step={0.05} value={[Math.min(5, Math.max(0, freeFee))]} onValueChange={([value]) => value !== undefined && setFreeFee(value)} aria-label="Free seller fee percentage" />
+                <input id="free-fee" type="number" min="0" max="100" step="0.01" value={freeFee} onChange={(e) => setFreeFee(Number(e.target.value))} required />
+              </div>
+              <small className="admin-policy-percent-hint">Slider: 0–5%. Enter a higher rate in the field.</small>
               <small>Deducted from seller proceeds after a completed sale.</small>
             </div>
 
@@ -395,16 +391,11 @@ export function MarketPolicyManager() {
               <label htmlFor="pro-fee">
                 Seller fee <span>(%)</span>
               </label>
-              <input
-                id="pro-fee"
-                type="number"
-                min="0"
-            max="100"
-            step="0.01"
-                value={proFee}
-                onChange={(e) => setProFee(Number(e.target.value))}
-                required
-              />
+              <div className="admin-policy-percent-control">
+                <Slider className="admin-policy-percent-slider" min={0} max={5} step={0.05} value={[Math.min(5, Math.max(0, proFee))]} onValueChange={([value]) => value !== undefined && setProFee(value)} aria-label="Pro seller fee percentage" />
+                <input id="pro-fee" type="number" min="0" max="100" step="0.01" value={proFee} onChange={(e) => setProFee(Number(e.target.value))} required />
+              </div>
+              <small className="admin-policy-percent-hint">Slider: 0–5%. Enter a higher rate in the field.</small>
               <small>Deducted from seller proceeds after a completed sale.</small>
             </div>
 

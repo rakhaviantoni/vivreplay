@@ -476,6 +476,13 @@ html[data-theme=dark] .primary-nav > a { color:#c2d2d1!important; }html[data-the
 .admin-policy-field label span { color:#7e877e; font:600 11px var(--game-font); font-weight:normal; }
 .admin-policy-field input[type=number] { height:40px; padding:0 12px; border:1px solid #d4c3a5; border-radius:8px; background:#fff; color:#25372f; font:700 13px var(--game-font); outline:none; }
 .admin-policy-field input[type=number]:focus { border-color:#44755b; box-shadow:0 0 0 2px #44755b22; }
+.admin-policy-percent-control { display:grid; grid-template-columns:minmax(0,1fr) 92px; align-items:center; gap:14px; }
+.admin-policy-percent-slider { padding:8px 2px; }
+.admin-policy-percent-slider [data-slot=slider-track] { height:5px; background:#e6ddce; }
+.admin-policy-percent-slider [data-slot=slider-range] { background:#36724c; transition:width .12s ease; }
+.admin-policy-percent-slider [data-slot=slider-thumb] { width:16px; height:16px; border:2px solid #36724c; background:#fffaf0; box-shadow:0 1px 4px #25372f24; transition:box-shadow .16s ease, transform .16s ease; }
+.admin-policy-percent-slider [data-slot=slider-thumb]:hover { transform:scale(1.08); box-shadow:0 0 0 4px #36724c1c; }
+.admin-policy-percent-hint { margin-top:-3px; }
 .admin-policy-field small { color:#768177; font:600 11px var(--game-font); }
 .admin-policy-toggle { display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid #e2d5c0; border-radius:8px; background:#fff; margin-top:4px; font:700 12px var(--game-font); color:#35493f; cursor:pointer; }
 .admin-policy-toggle input { width:16px; height:16px; accent-color:#36724c; cursor:pointer; }
@@ -499,6 +506,8 @@ html[data-theme=dark] .admin-policy-field label { color:#dbe8e2; }
 html[data-theme=dark] .admin-policy-field input[type=number],
 html[data-theme=dark] .admin-preset-btn,
 html[data-theme=dark] .admin-policy-toggle { border-color:#345361; background:#0d222c; color:#eff7f1; }
+html[data-theme=dark] .admin-policy-percent-slider [data-slot=slider-track] { background:#29434e; }
+html[data-theme=dark] .admin-policy-percent-slider [data-slot=slider-thumb] { background:#0d222c; }
 html[data-theme=dark] .admin-preset-btn:hover { background:#17323f; border-color:#e0b24e; color:#fff; }
 html[data-theme=dark] .admin-tier-badge.free { background:#122a1f; color:#78cca0; border-color:#21583e; }
 html[data-theme=dark] .admin-tier-badge.pro { background:#302511; color:#f0c56d; border-color:#634e23; }

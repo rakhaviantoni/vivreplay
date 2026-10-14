@@ -7,6 +7,39 @@ import {getDynamicListingPolicy,computeListingExpiration} from '@/lib/market/pol
 const itemSchema=z.object({instanceId:z.string().uuid().optional(),printingId:z.string(),quantity:z.number().int().positive().max(999),condition:z.string().optional(),unitAmount:z.number().int().nonnegative().optional()});
 const schema=z.object({instanceId:z.string().uuid().optional(),amount:z.number().int().positive().max(100000000000),quantity:z.number().int().positive().max(999),city:z.string().trim().min(2).max(60),title:z.string().trim().min(3).max(100),type:z.enum(['WTS','WTB']).default('WTS'),negotiable:z.boolean().default(true),items:z.array(itemSchema).min(1).max(30).optional()});
 
+async function ensureMarketPrintings(database:ReturnType<typeof db>,printingIds:string[]){
+  const placeholders=printingIds.map(()=>'?').join(',');
+  const existing=await database.prepare(`SELECT id FROM card_printings WHERE id IN (${placeholders})`).bind(...printingIds).all<{id:string}>();
+  const present=new Set((existing.results??[]).map(row=>row.id));
+  const missing=printingIds.filter(id=>!present.has(id));
+  if(!missing.length)return;
+
+  const missingPlaceholders=missing.map(()=>'?').join(',');
+  const catalog=await database.prepare(`SELECT id FROM tcg_card_printings WHERE id IN (${missingPlaceholders})`).bind(...missing).all<{id:string}>();
+  if((catalog.results??[]).length!==missing.length)throw new HttpError(400,'One or more selected printings are no longer available. Refresh the catalog and add them again.');
+
+  await database.batch([
+    database.prepare(`INSERT OR IGNORE INTO card_identities (id,game_id,code,name,color,type,cost,power,effect,implementation)
+      SELECT identity.id,game.id,identity.code,identity.name,identity.color,identity.card_type,identity.cost,identity.power,identity.effect_text,'DATA_ONLY'
+      FROM tcg_card_printings printing
+      JOIN tcg_card_identities identity ON identity.id=printing.identity_id
+      JOIN tcg_games catalog_game ON catalog_game.id=identity.game_id
+      JOIN games game ON lower(game.slug)=lower(catalog_game.slug)
+      WHERE printing.id IN (${missingPlaceholders})`).bind(...missing),
+    database.prepare(`INSERT OR IGNORE INTO card_printings (id,identity_id,language,set_code,rarity,variant,image_url,printing_code)
+      SELECT printing.id,identity.id,printing.language,printing.set_code,printing.rarity,printing.variant,printing.card_image_url,printing.printing_code
+      FROM tcg_card_printings printing
+      JOIN tcg_card_identities catalog_identity ON catalog_identity.id=printing.identity_id
+      JOIN tcg_games catalog_game ON catalog_game.id=catalog_identity.game_id
+      JOIN games game ON lower(game.slug)=lower(catalog_game.slug)
+      JOIN card_identities identity ON identity.game_id=game.id AND upper(identity.code)=upper(catalog_identity.code)
+      WHERE printing.id IN (${missingPlaceholders})`).bind(...missing),
+  ]);
+
+  const verified=await database.prepare(`SELECT id FROM card_printings WHERE id IN (${placeholders})`).bind(...printingIds).all<{id:string}>();
+  if((verified.results??[]).length!==printingIds.length)throw new HttpError(400,'One or more selected printings are not available in Market yet. Refresh the catalog and try again.');
+}
+
 export async function GET(){
   try{let viewerId:string|undefined;try{viewerId=(await user()).id}catch{}return Response.json({listings:await market(viewerId)},{headers:{'Cache-Control':'private, no-store','Vary':'Cookie'}})}
   catch(error){console.error('listings_load_failed',error);return Response.json({error:'Live listings are temporarily unavailable. Please retry.'},{status:503})}
@@ -27,19 +60,23 @@ export async function POST(request:Request){
     if(value.type==='WTB'){
       if(!bundle)throw new HttpError(400,'Add at least one card to your buying request.');
       if(value.instanceId||bundle.some(item=>item.instanceId))throw new HttpError(400,'A buying request cannot reserve a Vault item.');
+      const delivery=await database.prepare('SELECT city FROM seller_shipping_origins WHERE owner_id=?').bind(profile.id).first<{city:string}>();
+      const buyerCity=delivery?.city?.trim();
+      if(!buyerCity)throw new HttpError(400,'Add a delivery address before posting a buying request.');
       const bundleQuantity=bundle.reduce((sum,item)=>sum+item.quantity,0);
       const bundleAmount=bundle.reduce((sum,item)=>sum+(item.unitAmount??0)*item.quantity,0);
       if(bundleQuantity!==value.quantity)throw new HttpError(400,'The wanted quantity must match the combined card quantities.');
       if(bundle.some(item=>!item.unitAmount||item.unitAmount<1)||bundleAmount!==value.amount)throw new HttpError(400,'Set a price for each card and make sure the total matches.');
       const printingIds=[...new Set(bundle.map(item=>item.printingId))];
+      await ensureMarketPrintings(database,printingIds);
       const placeholders=printingIds.map(()=>'?').join(',');
       const known=await database.prepare(`SELECT id FROM card_printings WHERE id IN (${placeholders})`).bind(...printingIds).all<{id:string}>();
-      if((known.results??[]).length!==printingIds.length)throw new HttpError(400,'One or more card printings could not be found. Refresh the catalog and try again.');
+      if((known.results??[]).length!==printingIds.length)throw new HttpError(400,'One or more selected printings are not available in Market yet. Refresh the catalog and try again.');
       const id=crypto.randomUUID();
       const expiresAt=computeListingExpiration(policy.durationDays);
       const first=bundle[0];
       await database.prepare(`INSERT INTO listings (id,seller_id,printing_id,instance_id,title,amount,currency,quantity,condition,type,city,expires_at,items,negotiable)
-        VALUES (?,?,?,NULL,?,?,'IDR',?,?,?,?,?,?,?)`).bind(id,profile.id,first.printingId,value.title,value.amount,value.quantity,first.condition??'NM','WTB',value.city,expiresAt,JSON.stringify(bundle),value.negotiable?1:0).run();
+        VALUES (?,?,?,NULL,?,?,'IDR',?,?,?,?,?,?,?)`).bind(id,profile.id,first.printingId,value.title,value.amount,value.quantity,first.condition??'NM','WTB',buyerCity,expiresAt,JSON.stringify(bundle),value.negotiable?1:0).run();
       after(()=>notifyListingWatchers(id));
       return Response.json({id,expiresAt,durationDays:policy.durationDays},{status:201});
     }

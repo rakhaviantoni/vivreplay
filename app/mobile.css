@@ -11,6 +11,7 @@
   width: 100%;
   min-width: 0;
 }
+
 .library-controls .filter-workbench {
   display: grid !important;
   grid-template-columns: minmax(0, 1fr) !important;
@@ -2705,7 +2706,8 @@ html[data-theme='dark'] .market-icon-action[aria-pressed='true'] {
   .market-add-cards-choices{max-height:42dvh}
 }
 
-/* Listing facts stay readable at every width, with dividers only between cells. */
+@media (max-width: 760px) {
+/* Listing facts stay readable at mobile widths, with dividers only between cells. */
 .market-listing-detail .market-listing-facts {
   grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   gap: 0 !important;
@@ -2741,6 +2743,7 @@ html[data-theme='dark'] .market-icon-action[aria-pressed='true'] {
   .market-listing-detail .market-listing-facts > div + div {
     border-top: 1px solid color-mix(in srgb, var(--line) 72%, transparent) !important;
   }
+}
 }
 
 .market-listing-detail .market-listing-heading h1,
@@ -3124,4 +3127,21 @@ html[data-theme="dark"] body :is(
 .market-feed-list.is-grid .market-feed-row::before,
 .market-feed-list.is-grid .market-feed-row::after {
   display: none !important;
+}
+
+/* Three facts share one row on phones, so the third cell gets its divider too. */
+@media (max-width: 760px) {
+  .market-listing-detail .market-listing-facts:has(> :nth-child(3):last-child) {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+  .market-listing-detail .market-listing-facts:has(> :nth-child(3):last-child) > div:nth-child(2),
+  .market-listing-detail .market-listing-facts:has(> :nth-child(3):last-child) > div:nth-child(3) {
+    padding-left: 10px !important;
+    border-left: 1px solid var(--line) !important;
+  }
+  .market-listing-detail .market-listing-facts:has(> :nth-child(3):last-child) > div:first-child {
+    padding-left: 0 !important;
+    border-left: 0 !important;
+  }
+  .market-seller-shipping-panel { width: min(260px, calc(100vw - 44px)); }
 }

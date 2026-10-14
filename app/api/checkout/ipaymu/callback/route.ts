@@ -1,7 +1,7 @@
 import {db} from '@/lib/server/store';
 import {fulfillCheckoutOrder} from '@/lib/server/checkout-orders';
 import {callbackAmount,callbackIsSuccessful,callbackReference,callbackSessionId,callbackStatus,callbackTransactionId,parseAndVerifyIpaymuCallback} from '@/lib/server/ipaymu';
-import {sendMarketEmail} from '@/lib/server/market-notifications';
+import {sendMarketEmail,sendMarketEmailOnce} from '@/lib/server/market-notifications';
 
 export async function POST(request:Request){
   try{
@@ -24,16 +24,21 @@ export async function POST(request:Request){
       if(order.status==='EXPIRED'){
         await database.prepare("UPDATE checkout_orders SET status='PAYMENT_REVIEW',updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='EXPIRED' AND payment_id=?").bind(orderId,order.paymentId).run();
         console.error('ipaymu_paid_after_expiry_requires_review',orderId);
+        if(order.kind==='PRO')await sendMarketEmailOnce(order.buyerId,'pro-payment-review','Market Pro',order.id,`payment-review:${order.id}`);
         return Response.json({status:'payment_review'});
       }
-      if(order.status!=='PENDING_PAYMENT')return Response.json({status:'already_processed'});
+      if(order.status!=='PENDING_PAYMENT'){
+        if(order.kind==='PRO'&&(order.status==='PAID'||order.status==='COMPLETED'))await sendMarketEmailOnce(order.buyerId,'pro-activated','Market Pro',order.id,`activated:${order.id}`);
+        if(order.kind==='PRO'&&order.status==='PAYMENT_REVIEW')await sendMarketEmailOnce(order.buyerId,'pro-payment-review','Market Pro',order.id,`payment-review:${order.id}`);
+        return Response.json({status:'already_processed'});
+      }
       const fulfilled=await fulfillCheckoutOrder(database,{...order,paymentId:order.paymentId});
       if(!fulfilled)return Response.json({status:'already_processed'});
       if(order.kind==='MARKET'){
         const title=order.title||'Market order';
         await Promise.all([sendMarketEmail(order.buyerId,'order-paid',title,order.id),...(order.sellerId?[sendMarketEmail(order.sellerId,'order-seller-paid',title,order.id)]:[])]);
       }else if(order.kind==='PRO'){
-        await sendMarketEmail(order.buyerId,'pro-activated','Market Pro',order.id);
+        await sendMarketEmailOnce(order.buyerId,'pro-activated','Market Pro',order.id,`activated:${order.id}`);
       }
       return Response.json({status:'ok'});
     }
@@ -44,6 +49,9 @@ export async function POST(request:Request){
       if(updated.meta.changes&&nextStatus==='EXPIRED'&&order.kind==='MARKET'){
         const title=order.title||'Market order';
         await Promise.all([sendMarketEmail(order.buyerId,'order-expired',title,order.id),...(order.sellerId?[sendMarketEmail(order.sellerId,'order-expired',title,order.id)]:[])]);
+      }
+      if(updated.meta.changes&&order.kind==='PRO'&&(nextStatus==='EXPIRED'||nextStatus==='FAILED')){
+        await sendMarketEmailOnce(order.buyerId,nextStatus==='EXPIRED'?'pro-payment-expired':'pro-payment-failed','Market Pro',order.id,`payment-${nextStatus.toLowerCase()}:${order.id}`);
       }
     }
     return Response.json({status:'ok'});
