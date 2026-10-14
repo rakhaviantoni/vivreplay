@@ -77,9 +77,13 @@ function Footer({language}:{language:Locale}) {
   return <footer className="page-footer">
     <div className="footer-top">
       <div className="footer-intro">
-        <Link className="footer-brand" href={getHref('/')}><VivreMark size={25}/>VivrePlay</Link>
-        <p>{id?'Tempat untuk menemukan kartu, membangun deck, mengelola koleksi, dan bermain.':'Find cards, build decks, manage your collection, and play.'}</p>
-        <Link className="footer-about-link" href={getHref('/about')}>{id?'Tentang VivrePlay':'About VivrePlay'}<ChevronRight size={14}/></Link>
+        <span className="footer-kicker">{id?'KARTU / DEK / ARENA':'CARDS / DECKS / PLAY'}</span>
+        <Link className="footer-brand" href={getHref('/')}><VivreMark size={27}/>VivrePlay</Link>
+        <p>{id?'Cari kartu, susun deck, kelola koleksi, dan bermain.':'Find cards, build decks, manage your collection, and play.'}</p>
+        <div className="footer-intro-actions">
+          <Link className="footer-primary-link" href={getHref('/market')}>{id?'Jelajahi Market':'Browse the Market'}<ChevronRight size={15}/></Link>
+          <Link className="footer-secondary-link" href={getHref('/about')}>{id?'Tentang VivrePlay':'About VivrePlay'}</Link>
+        </div>
       </div>
       <nav className="footer-column" aria-label={id?'Jelajahi':'Explore'}>
         <b>{id?'Jelajahi':'Explore'}</b>
