@@ -21,13 +21,14 @@ function publicImagePath(imageUrl:string|null,setCode:string,language:string,pri
       if(source.hostname==='cards.oplaytcg.com'){
         const [,folder,lang,...parts]=source.pathname.split('/');
         const filename=parts.at(-1);
-        if(folder&&lang&&filename)return `/${encodeURIComponent(folder)}/${encodeURIComponent(lang.toLowerCase())}/${encodeURIComponent(filename)}`;
+        if(folder&&lang&&filename&&folder.toLowerCase()!=='tcg'&&!filename.toLowerCase().startsWith('tcg-'))return `/${encodeURIComponent(folder)}/${encodeURIComponent(lang.toLowerCase())}/${encodeURIComponent(filename)}`;
       }
-      if(source.protocol==='https:')return imageUrl;
+      // Source hosts are provenance only. Public card images always resolve
+      // through VivrePlay's own storage route.
     }catch{
-      if(imageUrl.startsWith('/'))return imageUrl;
+      if(imageUrl.startsWith('/')&&!imageUrl.startsWith('//'))return imageUrl;
     }
-    if(imageUrl.startsWith('/'))return imageUrl;
+    if(imageUrl.startsWith('/')&&!imageUrl.startsWith('//'))return imageUrl;
   }
   const set=setCode.replaceAll('-','');
   return set&&printingCode?`/${encodeURIComponent(set)}/${encodeURIComponent(language.toLowerCase())}/${encodeURIComponent(printingCode)}.webp`:null;

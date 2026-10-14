@@ -67,11 +67,32 @@ export async function serveCardImage(setCode:string,language:string,filename:str
 
   const origin=process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key=process.env.SUPABASE_SECRET_KEY;
-  if(!origin||!key) return new Response('Asset storage is unavailable',{status:503});
 
-  const catalogKeys=await catalogAssetKeys(origin,key,setCode,language,filename);
+  const catalogKeys=origin&&key?await catalogAssetKeys(origin,key,setCode,language,filename):[];
   const candidateKeys=[...new Set([...catalogKeys,...candidateObjectKeys(setCode,language,filename,variant)])];
   for(const objectKey of candidateKeys){
+    const stored=await env.CARD_IMAGES?.get(objectKey);
+    if(stored){
+      const bytes=await stored.arrayBuffer();
+      const headers={'Cache-Control':stored.httpMetadata?.cacheControl??'public, max-age=31536000, immutable','X-Content-Type-Options':'nosniff'};
+      let image:Response;
+      if(requestedWidth&&env.IMAGES){
+        try{
+          const imageStream=new Response(bytes).body;
+          if(!imageStream)throw new Error('Could not create image stream.');
+          const transformed=(await env.IMAGES.input(imageStream)
+            .transform({width:requestedWidth,height:Math.round(requestedWidth*580/420),fit:'scale-down'})
+            .output({format:'image/webp',quality:78})).response();
+          image=new Response(transformed.body,{status:transformed.status,statusText:transformed.statusText,headers:{...Object.fromEntries(transformed.headers),...headers,'Content-Type':transformed.headers.get('content-type')??'image/webp'}});
+        }catch{
+          image=new Response(bytes,{headers:{...headers,'Content-Type':stored.httpMetadata?.contentType??'image/webp'}});
+        }
+      }else image=new Response(bytes,{headers:{...headers,'Content-Type':stored.httpMetadata?.contentType??'image/webp'}});
+      await edgeCache?.put(cacheKey,image.clone());
+      return image;
+    }
+
+    if(!origin||!key)continue;
     const sourceUrl=`${origin}/storage/v1/object/${bucket}/${objectKey}`;
     const response=await fetch(sourceUrl,{headers:{accept:'image/avif,image/webp,image/*;q=0.8',authorization:`Bearer ${key}`,apikey:key},cf:{cacheTtl:31_536_000,cacheEverything:true}});
     if(!response.ok||!response.body) continue;
@@ -93,6 +114,7 @@ export async function serveCardImage(setCode:string,language:string,filename:str
     await edgeCache?.put(cacheKey,image.clone());
     return image;
   }
+  if(!origin||!key)return new Response('Asset storage is unavailable',{status:503});
   return new Response('Not found',{status:404});
 }
 

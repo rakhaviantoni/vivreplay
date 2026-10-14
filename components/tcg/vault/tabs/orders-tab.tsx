@@ -10,6 +10,7 @@ import {VaultPanelEmpty} from '@/components/tcg/vault/vault-panel-empty';
 import {Popover,PopoverContent,PopoverTrigger} from '@/components/ui/popover';
 import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue} from '@/components/ui/select';
 import {marketListingPath} from '@/lib/market/listing-url';
+import {cardImageUrl} from '@/components/tcg/card-art';
 
 type OrderItem={printingId:string;listingId?:string;listingTitle?:string;quantity:number;unitAmount?:number;condition?:string;card?:{name:string;code:string;language:string;variant:string;rarity:string;imageUrl:string|null}|null};
 type ShippingInfo={recipientName?:string;addressLine?:string;city?:string;postalCode?:string;phone?:string;label?:string;courierName?:string;courierServiceName?:string;waybillId?:string|null;trackingUrl?:string|null}|null;
@@ -95,7 +96,7 @@ export function OrdersTab({language,initialOrderId}:{language:'EN'|'ID';initialO
           {detailError&&<div className="market-activity-error" role="alert"><span>{detailError}</span><button type="button" onClick={()=>void loadDetails(order.id)}>{id?'Coba lagi':'Try again'}</button></div>}
           {detail&&<>
             <div className="market-order-detail-items"><h4>{id?'Kartu':'Cards'}</h4>{detail.items.map((item,index)=><div className="market-order-detail-item" key={`${item.printingId}-${index}`}>
-              {item.card?.imageUrl?<img src={item.card.imageUrl} alt=""/>:<span className="market-order-detail-placeholder"/>}
+              {item.card?.imageUrl&&cardImageUrl(item.card)?<img src={cardImageUrl(item.card)!} alt=""/>:<span className="market-order-detail-placeholder"/>}
               <div><strong>{item.card?.name??item.printingId}</strong><small>{item.card?.code??item.printingId}{item.card?.rarity?` · ${item.card.rarity}`:''}{item.card?.language?` · ${item.card.language}`:''}{item.condition?` · ${item.condition}`:''} × {item.quantity}</small>{(item.listingId||detail.listingId)&&<Link className="market-order-source-link" href={marketListingPath(item.listingTitle??'',item.listingId||detail.listingId!)} target="_blank" rel="noreferrer">{id?'Buka listing':'View listing'}<ExternalLink size={12}/></Link>}</div>
               <b>{money((item.unitAmount??0)*item.quantity,detail.currency)}</b>
             </div>)}</div>

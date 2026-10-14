@@ -6,8 +6,26 @@ import { gameId } from '@/packages/card-data/catalog';
 import { CARD_CATALOG_CACHE_REVISION } from '@/lib/card-catalog-cache';
 import { env } from 'cloudflare:workers';
 
-function publicCardPath(objectKey: string) {
-  return `/${objectKey.replace(/^one-piece\/([^/]+)\//, (_, setCode: string) => `${setCode.replaceAll('-', '')}/`)}`;
+function publicCardPath(objectKey: string, setCode = '', language = 'EN', printingCode = '') {
+  if (objectKey.startsWith('/')) return objectKey;
+  if (objectKey.startsWith('one-piece/')) {
+    const match = objectKey.match(/^one-piece\/([^/]+)\/([^/]+)\/(?:small\/|thumb\/|large\/)?(.+)$/);
+    return match ? `/${encodeURIComponent(match[1].replaceAll('-', ''))}/${encodeURIComponent(match[2].toLowerCase())}/${match[3].split('/').map(encodeURIComponent).join('/')}` : '';
+  }
+  if (objectKey.startsWith('http')) {
+    try {
+      const source = new URL(objectKey);
+      const [, folder, sourceLanguage, ...parts] = source.pathname.split('/');
+      const filename = parts.at(-1);
+      if (source.hostname === 'cards.oplaytcg.com' && folder && sourceLanguage && filename && folder.toLowerCase() !== 'tcg' && !filename.toLowerCase().startsWith('tcg-')) {
+        return `/${encodeURIComponent(folder)}/${encodeURIComponent(sourceLanguage.toLowerCase())}/${encodeURIComponent(filename)}`;
+      }
+    } catch { /* Use the catalog printing details below. */ }
+  }
+  const normalizedSet = setCode.replaceAll('-', '');
+  return normalizedSet && printingCode
+    ? `/${encodeURIComponent(normalizedSet)}/${encodeURIComponent(language.toLowerCase())}/${encodeURIComponent(printingCode)}.webp`
+    : '';
 }
 
 function parseJson(value: unknown) {
@@ -57,7 +75,7 @@ async function fromD1(language: string, identityCode?: string, setCode?: string)
     const setCode = String(row.set_code ?? '');
     if (!isPlayableSet(setCode) && !PREVIEW_CARD_CODES.has(code) && row.variant !== 'Preview') return [];
     const imageKey = String(row.image_key ?? '');
-    const imageUrl = !imageKey ? null : imageKey.startsWith('http') ? imageKey : publicCardPath(imageKey);
+    const imageUrl = !imageKey ? null : publicCardPath(imageKey, setCode, language, String(row.printing_code || identity.code || '')) || null;
     return [{
       id: row.id, rarity: row.rarity, variant: row.variant,
       set_code: row.set_code, set_name: row.set_name,
@@ -92,6 +110,14 @@ async function fromSupabase(language: string, identityCode?: string, setCode?: s
     const identity = row.tcg_card_identities as { code?: string } | null;
     const code = String(identity?.code ?? '').toUpperCase();
     return isPlayableSet(String(row.set_code ?? '')) || PREVIEW_CARD_CODES.has(code) || row.variant === 'Preview';
+  }).map(row => {
+    const identity = row.tcg_card_identities as { code?: string } | null;
+    const assets = row.tcg_card_assets as Array<{ kind?: string; object_key?: string }> | null;
+    const assetKey = assets?.find(asset => asset.kind === 'small')?.object_key;
+    const setCode = String(row.set_code ?? '');
+    const source = String(assetKey || row.card_image_url || '');
+    const imageUrl = source ? publicCardPath(source, setCode, String(row.language ?? language), String(row.printing_code || identity?.code || '')) || null : null;
+    return { ...row, card_image_url: imageUrl, tcg_card_assets: assetKey ? [{ kind: 'small', object_key: assetKey }] : [] };
   });
 }
 

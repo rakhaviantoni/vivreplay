@@ -4,19 +4,24 @@ import {useEffect, useRef, useState} from 'react';
 import {Card, colors} from '@/packages/card-data/catalog';
 import {isPreviewCard} from '@/packages/domain/release-availability';
 
-export function cardImageUrl(card:Card){
-  if(!card.imageUrl)return undefined;
-  if(!card.imageUrl.startsWith('http'))return card.imageUrl;
-  if(card.assetPath)return `/${card.assetPath.replace(/^one-piece\/([^/]+)\//,(_,setCode)=>`${setCode.replaceAll('-','')}/`)}`;
-  // Catalog rows and older seed cards can lack setCode/printingCode. Keep
-  // known source images on our image route in that case too; it resolves the
-  // image from our storage bucket and never sends the browser to the source.
+export function cardPrintingImageUrl(printing:{assetPath?:string|null;imageUrl?:string|null;setCode?:string|null;language?:string|null;printingCode?:string|null;code?:string|null}){
+  if(printing.assetPath){
+    const asset=printing.assetPath.replace(/^\/+/, '').match(/^one-piece\/([^/]+)\/([^/]+)\/(?:small\/|thumb\/|large\/)?(.+)$/);
+    if(asset)return `/${encodeURIComponent(asset[1].replaceAll('-',''))}/${encodeURIComponent(asset[2].toLowerCase())}/${asset[3].split('/').map(encodeURIComponent).join('/')}`;
+    if(!printing.assetPath.startsWith('//'))return `/${printing.assetPath.replace(/^\/+/, '')}`;
+  }
+  const imageUrl=printing.imageUrl??undefined;
+  if(!imageUrl)return undefined;
+  if(imageUrl.startsWith('/')&&!imageUrl.startsWith('//')&&!imageUrl.startsWith('/api/card-assets/'))return imageUrl;
+  if(!imageUrl.startsWith('http'))return undefined;
+  // Preserve the exact filename when the catalog has a source URL. The app
+  // route resolves that filename from VivrePlay storage.
   try {
-    const source=new URL(card.imageUrl);
+    const source=new URL(imageUrl);
     if(source.hostname==='cards.oplaytcg.com'){
       const [,folder,language,...pathParts]=source.pathname.split('/');
       const imageName=pathParts.at(-1);
-      if(folder&&language&&imageName){
+      if(folder&&language&&imageName&&folder.toLowerCase()!=='tcg'&&!imageName.toLowerCase().startsWith('tcg-')){
         // The source filename can carry the exact alt-art suffix (for example
         // OP09-119_p3). printingCode is often only the shared card number, so
         // rebuilding the filename from it silently selects the standard art.
@@ -24,18 +29,18 @@ export function cardImageUrl(card:Card){
       }
     }
   } catch { /* Invalid source URLs fall through to the existing fallback. */ }
-  // Every public card image goes through the set route, which reads the private
-  // Supabase tcg-card-images bucket. Avoid a printing-id API URL in page markup.
-  if(card.setCode)return `/${encodeURIComponent(card.setCode.replaceAll('-',''))}/${encodeURIComponent((card.language??'EN').toLowerCase())}/${encodeURIComponent(card.printingCode??card.code)}.webp`;
-  return card.imageUrl;
+  // Fall back to the selected printing's internal image route.
+  if(printing.setCode)return `/${encodeURIComponent(printing.setCode.replaceAll('-',''))}/${encodeURIComponent((printing.language??'EN').toLowerCase())}/${encodeURIComponent(printing.printingCode??printing.code??'')}.webp`;
+  return undefined;
 }
+
+export function cardImageUrl(card:Omit<Partial<Card>,'imageUrl'>&{imageUrl?:string|null}){return cardPrintingImageUrl(card)}
 
 export function CardArt({card,small=false,priority=false,imageWidth}:{card:Card;small?:boolean;priority?:boolean;imageWidth?:160|220|280|360}) {
   const preview=isPreviewCard(card.code,card.setCode,card.variant);
   const baseImage=cardImageUrl(card);
-  const storedImage=baseImage&&imageWidth?`${baseImage}?width=${imageWidth}`:baseImage;
-  let sourceFallback:string|undefined;
-  if(card.imageUrl?.startsWith('http'))try{const source=new URL(card.imageUrl);if(source.hostname==='cards.oplaytcg.com')sourceFallback=card.imageUrl;}catch{}
+  const resolvedImage=baseImage&&imageWidth?`${baseImage}?width=${imageWidth}`:baseImage;
+  const storedImage=resolvedImage;
   const [loaded,setLoaded]=useState(false);
   const [imageFailed,setImageFailed]=useState(false);
   const [imageSource,setImageSource]=useState(storedImage);
@@ -54,7 +59,7 @@ export function CardArt({card,small=false,priority=false,imageWidth}:{card:Card;
   },[storedImage]);
   if (storedImage&&!imageFailed) return <div className={`tcg-card printing-image ${small?'small':''} ${loaded?'is-loaded':'is-loading'} ${preview?'is-preview-card':''}`} aria-label={preview?"Preview of a set that hasn’t launched yet. You can play it in Casual, New Cards, and Extended, but not Ranked. Its image and text may still change.":undefined}>
     {preview&&<span className="preview-card-badge" aria-hidden="true">Preview</span>}<span className="card-image-skeleton" aria-hidden="true"/>
-    <img ref={imageRef} src={imageSource} alt={`${card.name} card printing`} draggable={false} loading={priority?"eager":"lazy"} fetchPriority={priority?"high":undefined} decoding="async" width={imageWidth??420} height={imageWidth?Math.round(imageWidth*580/420):580} onLoad={()=>setLoaded(true)} onError={()=>{if(sourceFallback&&imageSource!==sourceFallback){setImageSource(sourceFallback);return;}setImageFailed(true);setLoaded(true);}}/>
+    <img ref={imageRef} src={imageSource} alt={`${card.name} card printing`} draggable={false} loading={priority?"eager":"lazy"} fetchPriority={priority?"high":undefined} decoding="async" width={imageWidth??420} height={imageWidth?Math.round(imageWidth*580/420):580} onLoad={()=>setLoaded(true)} onError={()=>{setImageFailed(true);setLoaded(true);}}/>
   </div>;
   return <div className={`tcg-card missing-printing ${small?'small':''} ${preview?'is-preview-card':''}`} style={{'--card-color':colors[card.color]} as React.CSSProperties} aria-label={`${card.name} artwork unavailable`}>
     {preview&&<span className="preview-card-badge" aria-hidden="true">Preview</span>}

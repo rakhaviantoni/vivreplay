@@ -19,6 +19,7 @@ import type {Card} from '@/packages/card-data/catalog';
 
 export type ShareCardItem = {
   card: Card;
+  printingId?: string;
   quantity?: number;
   condition?: string;
   unitAmount?: number;
@@ -42,8 +43,10 @@ export type ShareButtonProps = {
 function shareExpiry(value:string,language:'EN'|'ID'){
   const timestamp=new Date(value.includes('T')?value:`${value.replace(' ','T')}Z`);
   if(!Number.isFinite(timestamp.getTime()))return '';
-  const date=new Intl.DateTimeFormat(language==='ID'?'id-ID':'en-US',{day:'numeric',month:'short',year:'numeric',timeZone:'Asia/Jakarta'}).format(timestamp);
-  return `${language==='ID'?'Berakhir':'Expires'} ${date}`;
+  const locale=language==='ID'?'id-ID':'en-US';
+  const dateTime=new Intl.DateTimeFormat(locale,{day:'numeric',month:'short',year:'numeric',hour:'numeric',minute:'2-digit',timeZone:'Asia/Jakarta'}).format(timestamp);
+  const offset=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Jakarta',timeZoneName:'longOffset'}).formatToParts(timestamp).find(part=>part.type==='timeZoneName')?.value.replace(/^GMT/,'UTC')??'UTC+07:00';
+  return `${language==='ID'?'Berakhir':'Expires'} ${dateTime} ${offset}`;
 }
 
 function fitCanvasText(ctx:CanvasRenderingContext2D,value:string,maxWidth:number){
@@ -85,6 +88,14 @@ function loadImg(src: string): Promise<HTMLImageElement | null> {
     img.onerror = () => resolve(null);
     img.src = src;
   });
+}
+
+function shareCardImageUrls(card:Card,printingId?:string):string[]{
+  void printingId;
+  const urls:string[]=[];
+  const resolved=cardImageUrl(card);
+  if(resolved?.startsWith('/')&&!resolved.startsWith('//'))urls.push(resolved);
+  return [...new Set(urls)];
 }
 
 async function generateListingCompositeBlob({
@@ -178,9 +189,14 @@ async function generateListingCompositeBlob({
   const [compassImg, ...loadedCardImages] = await Promise.all([
     loadImg('/brand/vivreplay-compass.png'),
     ...cards.map(async (item) => {
-      const url = cardImageUrl(item.card);
-      if (!url) return null;
-      return loadImg(url);
+      // Share previews should use the exact printing selected for the listing.
+      // Catalog URL reconstruction can point at the standard art when an
+      // alternate printing has a different image path.
+      for(const url of shareCardImageUrls(item.card,item.printingId)){
+        const image=await loadImg(url);
+        if(image)return image;
+      }
+      return null;
     }),
   ]);
 

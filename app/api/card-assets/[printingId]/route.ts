@@ -1,3 +1,4 @@
+import { env } from 'cloudflare:workers';
 import { database } from '@/lib/server/database';
 import { supabaseAdmin, TCG_STORAGE_BUCKET } from '@/lib/server/supabase-storage';
 
@@ -22,6 +23,19 @@ export async function GET(request: Request, { params }: { params: Promise<{ prin
   if (!/^[0-9a-f-]{36}$/i.test(printingId) || !allowedKinds.has(kind)) return new Response('Not found', { status: 404 });
   const objectKey = await getObjectKey(printingId, kind);
   if (!objectKey) return new Response('Not found', { status: 404 });
+
+  // Serve catalog artwork from VivrePlay's R2 bucket. Supabase remains a
+  // migration fallback for objects that have not been copied yet.
+  const stored = await env.CARD_IMAGES?.get(objectKey);
+  if (stored) {
+    return new Response(stored.body, { headers: {
+      'Content-Type': stored.httpMetadata?.contentType ?? 'image/webp',
+      'Cache-Control': stored.httpMetadata?.cacheControl ?? 'public, max-age=31536000, immutable',
+      'ETag': stored.httpEtag,
+      'X-Content-Type-Options': 'nosniff',
+    } });
+  }
+
   const supabase = supabaseAdmin();
   if (!supabase) return new Response('Asset storage is unavailable', { status: 503 });
   const { data, error } = await supabase.storage.from(TCG_STORAGE_BUCKET).download(objectKey);

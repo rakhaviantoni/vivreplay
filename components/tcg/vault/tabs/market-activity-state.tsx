@@ -3,6 +3,7 @@
 import type {ReactNode} from 'react';
 import Image from 'next/image';
 import {CardsIcon as Cards} from '@phosphor-icons/react';
+import {cardImageUrl} from '@/components/tcg/card-art';
 
 export type MarketActivityCard={printingId:string;quantity:number;card?:{name:string;code:string;imageUrl:string|null}|null};
 
@@ -12,7 +13,7 @@ export function MarketCardStack({cards}:{cards:MarketActivityCard[]}){
   if(!cards.length)return <div className="market-card-stack is-empty" aria-hidden="true"><i/></div>;
   return <div className="market-card-stack" aria-label={`${cards.length} ${cards.length===1?'card':'card types'}, ${copyCount} ${copyCount===1?'copy':'copies'}`}>
     {visible.map((item,index)=><span key={item.printingId} style={{'--stack-index':index} as React.CSSProperties} title={item.card?.name??item.card?.code??item.printingId}>
-      {item.card?.imageUrl?<Image src={item.card.imageUrl} alt="" fill sizes="42px" unoptimized/>:<b>{item.card?.code??item.printingId.slice(0,8)}</b>}
+      {item.card?.imageUrl&&cardImageUrl(item.card)?<Image src={cardImageUrl(item.card)!} alt="" fill sizes="42px" unoptimized/>:<b>{item.card?.code??item.printingId.slice(0,8)}</b>}
     </span>)}
     {cards.length>visible.length?<small>+{cards.length-visible.length}</small>:copyCount>1?<small>×{copyCount}</small>:null}
   </div>;

@@ -12,6 +12,7 @@ import {CardPreviewModal} from './card-preview-modal';
 import {isPlayableSet, PREVIEW_CARD_CODES} from '@/packages/domain/release-availability';
 import {splitArchetypeTraits} from './library-directory';
 import {versionedCardCatalogUrl} from '@/lib/card-catalog-cache';
+import {cardMatchesSearch,parseCardSearch} from '@/lib/card-search';
 
 type LibraryCard = Card & {setCode:string;setName:string;attribute:string;counter:number;block:string;keywords:string[];traits:string[];variant:string;printingCode:string};
 type FilterOption = string | {value:string;label:string};
@@ -179,6 +180,7 @@ export function Catalog({home=false,initialSet,initialArchetype,setPage=false,se
   useCatalogTools(setQuery,setColor,value=>setTypes(value==='All types'?[]:[value]));
   const [attributes,setAttributes] = useState<string[]>([]); const [counters,setCounters] = useState<string[]>([]); const [keywords,setKeywords] = useState<string[]>([]); const [traits,setTraits] = useState<string[]>(initialArchetype?[initialArchetype]:[]); const [sets,setSets] = useState<string[]>(initialSet?[normalizeSetCode(initialSet)]:[]);
   const [blocks,setBlocks] = useState<string[]>([]);
+  const cardSearch=useMemo(()=>parseCardSearch(query),[query]);
   const filtered = [...liveCards].sort((a,b)=>{
     const latestSet=setRank(b.setCode)-setRank(a.setCode);
     const leaderFirst=(a.type==='Leader'?0:1)-(b.type==='Leader'?0:1);
@@ -186,7 +188,7 @@ export function Catalog({home=false,initialSet,initialArchetype,setPage=false,se
     if(sortOrder==='leaders-latest') return leaderFirst||latestSet||a.code.localeCompare(b.code);
     if(sortOrder==='latest') return latestSet||a.code.localeCompare(b.code);
     return latestSet||leaderFirst||a.code.localeCompare(b.code);
-  }).filter(card => (card.name + card.code).toLowerCase().includes(query.toLowerCase()) && (!selectedColors.length || selectedColors.some(value=>card.color.includes(value))) && (!types.length || types.includes(card.type)) && (!rarities.length || rarities.includes(card.rarity)) && (!attributes.length || attributes.includes(card.attribute)) && (!counters.length || counters.includes(card.counter>0?`+${card.counter}`:(id?'Tanpa counter':'No counter'))) && (!keywords.length || keywords.some(value=>card.keywords.includes(value))) && (!traits.length || traits.some(value=>card.traits.includes(value))) && (!sets.length || sets.some(value=>normalizeSetCode(value)===normalizeSetCode(card.setCode))) && (!blocks.length || blocks.includes(card.block)));
+  }).filter(card => cardMatchesSearch(card,cardSearch) && (!selectedColors.length || selectedColors.some(value=>card.color.includes(value))) && (!types.length || types.includes(card.type)) && (!rarities.length || rarities.includes(card.rarity)) && (!attributes.length || attributes.includes(card.attribute)) && (!counters.length || counters.includes(card.counter>0?`+${card.counter}`:(id?'Tanpa counter':'No counter'))) && (!keywords.length || keywords.some(value=>card.keywords.includes(value))) && (!traits.length || traits.some(value=>card.traits.includes(value))) && (!sets.length || sets.some(value=>normalizeSetCode(value)===normalizeSetCode(card.setCode))) && (!blocks.length || blocks.includes(card.block)));
   const groups = Array.from(filtered.reduce((map,card)=>{const group=map.get(card.code)??[];group.push(card);map.set(card.code,group);return map},new Map<string,LibraryCard[]>()).values()).map(group=>[...new Map(group.sort((a,b)=>printingPriority(a)-printingPriority(b)||a.printingCode.localeCompare(b.printingCode)).map(card=>[card.printingCode,card])).values()]);
   const headerCards=useMemo(()=>{const scoped=setPage&&initialSet?liveCards.filter(card=>normalizeSetCode(card.setCode)===normalizeSetCode(initialSet)):liveCards;const unique=Array.from(new Map(scoped.map(card=>[card.code,card])).values());return [...unique].sort((a,b)=>cardRailRank(a.code)-cardRailRank(b.code)).slice(0,6)},[liveCards,setPage,initialSet]);
 
@@ -213,7 +215,7 @@ export function Catalog({home=false,initialSet,initialArchetype,setPage=false,se
       <div className="filter-workbench">
         <label className="search-box">
           <Search size={16}/>
-          <input placeholder={id?'Cari nama atau nomor kartu':'Search name or card number'} value={query} onChange={e=>setQuery(e.target.value)}/>
+          <input placeholder={id?'Nama, kode, set, warna, tipe, biaya…':'Name, code, set, color, type, cost…'} value={query} onChange={e=>setQuery(e.target.value)}/>
           {query&&<button type="button" className="search-clear" onClick={()=>setQuery('')} aria-label={id?'Hapus pencarian':'Clear search'}><X size={12}/></button>}
         </label>
         <div className="filter-primary">

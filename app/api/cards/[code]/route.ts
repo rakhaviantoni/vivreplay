@@ -1,7 +1,10 @@
 import { database } from '@/lib/server/database';
 import { supabaseAdmin } from '@/lib/server/supabase-storage';
 
-const publicCardPath = (key: string) => `/${key.replace(/^one-piece\/([^/]+)\//, (_, setCode: string) => `${setCode.replaceAll('-', '')}/`)}`;
+const publicCardPath = (key: string) => {
+  const match=key.replace(/^\/+/, '').match(/^one-piece\/([^/]+)\/([^/]+)\/(?:small\/|thumb\/|large\/)?(.+)$/);
+  return match?`/${encodeURIComponent(match[1].replaceAll('-',''))}/${encodeURIComponent(match[2].toLowerCase())}/${match[3].split('/').map(encodeURIComponent).join('/')}`:'';
+};
 const parseJson = (value: unknown) => {
   if (typeof value !== 'string') return value;
   try { return JSON.parse(value); } catch { return value; }

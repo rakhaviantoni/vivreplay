@@ -26,6 +26,8 @@ type RawStoredListing = Listing & {
   cardVariant?: string;
   cardIdentityId?: string;
   cardCode?: string;
+  catalogPrintingCode?:string|null;
+  catalogAssetPath?:string|null;
   cardName?: string;
   cardColor?: string;
   cardType?: string;
@@ -75,6 +77,8 @@ export default async function Page({params}:{params:Promise<{id:string}>}){
         cp.rarity AS cardRarity,
         cp.set_code AS cardSetCode,
         cp.variant AS cardVariant,
+        tcp.printing_code AS catalogPrintingCode,
+        tca.object_key AS catalogAssetPath,
         ci.id AS cardIdentityId,
         ci.code AS cardCode,
         ci.name AS cardName,
@@ -87,6 +91,8 @@ export default async function Page({params}:{params:Promise<{id:string}>}){
       FROM listings l
       JOIN profiles p ON p.id=l.seller_id
       LEFT JOIN card_printings cp ON cp.id=l.printing_id
+      LEFT JOIN tcg_card_printings tcp ON tcp.id=l.printing_id
+      LEFT JOIN tcg_card_assets tca ON tca.printing_id=tcp.id AND tca.kind='small'
       LEFT JOIN card_identities ci ON ci.id=cp.identity_id
       LEFT JOIN seller_shipping_origins o ON o.owner_id=l.seller_id
       WHERE ${where}
@@ -122,10 +128,10 @@ export default async function Page({params}:{params:Promise<{id:string}>}){
   const initialExpired = stored ? (stored.status !== 'ACTIVE' || isListingExpired(stored.expiresAt)) : false;
 
   const filenameCode = stored?.cardImageUrl ? stored.cardImageUrl.split('?')[0].split('#')[0].split('/').pop()?.replace(/\.[^.]+$/, '') : undefined;
-  const printingCode = filenameCode ?? stored?.cardCode;
+  const printingCode = stored?.catalogPrintingCode ?? (filenameCode&&!filenameCode.startsWith('tcg-')?filenameCode:undefined) ?? stored?.cardCode;
 
   const storedCard = (stored?.cardCode || stored?.cardImageUrl) ? {
-    id: stored.cardIdentityId ?? stored.printingId,
+    id: stored.printingId,
     code: stored.cardCode ?? '',
     name: stored.cardName ?? stored.title,
     color: stored.cardColor ?? 'Red',
@@ -140,18 +146,21 @@ export default async function Page({params}:{params:Promise<{id:string}>}){
     setCode: stored.cardSetCode,
     language: stored.cardLanguage,
     printingCode,
+    assetPath:stored.catalogAssetPath??undefined,
     variant: stored.cardVariant,
   } : undefined;
 
   const items=listing.items?.length?listing.items:[{instanceId:stored.instanceId??undefined,printingId:listing.printingId,quantity:listing.quantity,condition:listing.condition,unitAmount:Math.round(listing.amount/listing.quantity)}];
   const extraPrintingIds=items.map(item=>item.printingId).filter(printingId=>printingId!==stored?.printingId);
   const bundleRows=extraPrintingIds.length?await db().prepare(`
-    SELECT cp.id AS printingId,cp.image_url AS imageUrl,cp.language,cp.rarity,cp.set_code AS setCode,cp.variant,ci.id AS identityId,ci.code,ci.name,ci.color,ci.type,ci.cost,ci.power,ci.effect
+    SELECT cp.id AS printingId,cp.image_url AS imageUrl,cp.language,cp.rarity,cp.set_code AS setCode,cp.variant,ci.id AS identityId,ci.code,ci.name,ci.color,ci.type,ci.cost,ci.power,ci.effect,tcp.printing_code AS printingCode,tca.object_key AS assetPath
     FROM card_printings cp LEFT JOIN card_identities ci ON ci.id=cp.identity_id
+    LEFT JOIN tcg_card_printings tcp ON tcp.id=cp.id
+    LEFT JOIN tcg_card_assets tca ON tca.printing_id=tcp.id AND tca.kind='small'
     WHERE cp.id IN (${extraPrintingIds.map(()=>'?').join(',')})
-  `).bind(...extraPrintingIds).all<{printingId:string;imageUrl?:string;language:string;rarity?:string;setCode?:string;variant?:string;identityId?:string;code?:string;name?:string;color?:string;type?:string;cost?:number;power?:number;effect?:string}>():{results:[]};
+  `).bind(...extraPrintingIds).all<{printingId:string;imageUrl?:string;language:string;rarity?:string;setCode?:string;variant?:string;identityId?:string;code?:string;name?:string;color?:string;type?:string;cost?:number;power?:number;effect?:string;printingCode?:string|null;assetPath?:string|null}>():{results:[]};
   const bundleCards=new Map(bundleRows.results.map(row=>[row.printingId,{
-    id:row.identityId??row.printingId,code:row.code??row.printingId,name:row.name??row.code??listing.title,color:row.color??'Red',type:(row.type as Card['type']|undefined)??'Character',cost:row.cost??0,power:row.power??0,rarity:row.rarity??'',art:0,effect:row.effect??'',imageUrl:row.imageUrl,imageSource:'external' as const,setCode:row.setCode,language:row.language,printingCode:row.code,variant:row.variant,
+    id:row.printingId,code:row.code??row.printingId,name:row.name??row.code??listing.title,color:row.color??'Red',type:(row.type as Card['type']|undefined)??'Character',cost:row.cost??0,power:row.power??0,rarity:row.rarity??'',art:0,effect:row.effect??'',imageUrl:row.imageUrl,imageSource:'external' as const,setCode:row.setCode,language:row.language,printingCode:row.printingCode??row.code,variant:row.variant,assetPath:row.assetPath??undefined,
   }]));
   const bundleLanguages=new Map(bundleRows.results.map(row=>[row.printingId,row.language]));
   const listingCards:MarketListingCard[]=items.flatMap(item=>{
@@ -166,7 +175,7 @@ export default async function Page({params}:{params:Promise<{id:string}>}){
 
   return (
     <>
-      <MarketStoreNav initialQuery={primary.card.name} sellHref={`/market?sell=${encodeURIComponent(`${primary.card.printingCode??primary.card.code}--${primary.language.toLowerCase()}`)}`}/>
+      <MarketStoreNav showPromo={false} sellHref={`/market?sell=${encodeURIComponent(`${primary.card.printingCode??primary.card.code}--${primary.language.toLowerCase()}`)}`}/>
       <MarketListingDetailView
         listing={listing}
         stored={stored}
