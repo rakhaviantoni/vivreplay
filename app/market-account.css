@@ -610,3 +610,16 @@ html[data-theme='dark'] .market-account-unified-body.is-listings .market-listing
 @media(max-width:620px){.market-order-controls{align-items:center;flex-wrap:nowrap;gap:5px}.market-order-filter-pickers{flex:1 1 auto;min-width:0;gap:5px}.market-order-filter-select{flex:1 1 0;width:clamp(82px,27vw,140px);min-width:0}.market-order-date-trigger{width:36px;min-width:36px;justify-content:center;padding:0}.market-order-date-trigger span{display:none}.market-order-control-meta{flex:none;margin:0}.market-order-control-meta small{display:none}.market-order-refresh{width:34px;min-width:34px}}
 @media(max-width:390px){.market-order-controls{display:flex}.market-order-filter-pickers,.market-order-control-meta{grid-column:auto;grid-row:auto}.market-order-filter-select{width:clamp(80px,26vw,115px)}}
 .market-account-unified{gap:10px!important}
+
+/* Keep the account popup's section rhythm consistent across every tab. */
+.market-account-unified{gap:12px!important}
+.market-account-unified-body{display:grid!important;align-content:start;gap:12px!important;padding:0 2px 2px!important}
+.market-account-unified-body>.market-activity-panel{gap:12px!important}
+.market-account-unified-body.is-vault .market-vault-quick-summary{margin:0!important}
+.market-account-unified-body.is-vault .market-quick-vault-actions{margin-top:0!important}
+.market-account-unified-body.is-profile>.market-profile-quick{display:grid;align-content:start;gap:12px;min-width:0}
+.market-account-unified-body.is-profile .market-profile-quick-tabs{margin:0!important}
+.market-account-unified-body.is-orders .market-order-controls{margin:0!important}
+@media(max-width:760px){.market-account-unified{gap:12px!important}.market-account-unified-body{gap:10px!important}}
+
+.market-nav-auth-placeholder{display:inline-block;flex:none;height:38px;border:1px solid var(--line);border-radius:10px;background:linear-gradient(100deg,color-mix(in srgb,var(--line) 24%,var(--surface-raised)) 25%,color-mix(in srgb,var(--line) 56%,var(--surface-raised)) 45%,color-mix(in srgb,var(--line) 24%,var(--surface-raised)) 65%);background-size:220% 100%;animation:market-nav-shimmer 1.25s ease-in-out infinite;pointer-events:none}.market-nav-auth-placeholder.is-pro{width:94px}.market-nav-auth-placeholder.is-account{width:104px}.market-nav-auth-placeholder.is-vault{width:68px}.market-nav-auth-placeholder.is-create{width:92px;border-radius:999px}@keyframes market-nav-shimmer{to{background-position-x:-220%}}@media(max-width:700px){.market-nav-auth-placeholder{width:38px!important;height:38px!important;min-width:38px!important;border-radius:10px!important}.market-nav-auth-placeholder.is-vault{display:none!important}.market-nav-auth-placeholder.is-create{width:36px!important;min-width:36px!important;height:36px!important;min-height:36px!important;border-radius:50%!important}}@media(prefers-reduced-motion:reduce){.market-nav-auth-placeholder{animation:none}}
