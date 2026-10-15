@@ -28,7 +28,7 @@ const copy:Record<Event,{en:{subject:string;line:string;cta:string};id:{subject:
   'order-cancelled':{en:{subject:'Unpaid order cancelled',line:'The other party cancelled this unpaid order',cta:'View order'},id:{subject:'Pesanan yang belum dibayar dibatalkan',line:'Pihak lain membatalkan pesanan ini sebelum pembayaran',cta:'Lihat pesanan'}},
   'order-expired':{en:{subject:'Payment deadline passed',line:'Payment was not received before the deadline. The order is closed and the cards are available again.',cta:'View order'},id:{subject:'Batas pembayaran berakhir',line:'Pembayaran belum diterima sampai batas waktu. Pesanan ditutup dan kartu kembali tersedia.',cta:'Lihat pesanan'}},
   'order-payment-reminder':{en:{subject:'Your Market payment is still pending',line:'The payment window for this order is closing soon.',cta:'Finish payment'},id:{subject:'Pembayaran Market Anda masih tertunda',line:'Batas pembayaran pesanan ini segera berakhir.',cta:'Selesaikan pembayaran'}},
-  'order-shipping-reminder-day':{en:{subject:'This order is due to ship tomorrow',line:'Please arrange the shipment before the order’s ship-by time.',cta:'Arrange shipping'},id:{subject:'Pesanan ini perlu dikirim besok',line:'Silakan atur pengiriman sebelum batas waktu pesanan.',cta:'Atur pengiriman'}},
+  'order-shipping-reminder-day':{en:{subject:'Shipping deadline approaching',line:'Arrange shipment by the ship-by time shown below.',cta:'Arrange shipping'},id:{subject:'Batas pengiriman pesanan mendekat',line:'Atur pengiriman sebelum batas waktu yang tercantum di bawah.',cta:'Atur pengiriman'}},
   'order-shipping-reminder-soon':{en:{subject:'This order is due to ship soon',line:'The ship-by time is approaching. Arrange the shipment or contact the buyer if you need help.',cta:'Arrange shipping'},id:{subject:'Batas pengiriman pesanan segera tiba',line:'Batas waktu pengiriman sudah dekat. Atur pengiriman atau hubungi pembeli jika perlu bantuan.',cta:'Atur pengiriman'}},
   'order-dispute-opened':{en:{subject:'A buyer reported an order problem',line:'The buyer submitted a report and evidence. The order is on hold while it is reviewed.',cta:'View order'},id:{subject:'Pembeli melaporkan masalah pesanan',line:'Pembeli mengirim laporan dan bukti. Pesanan ditahan selama pemeriksaan.',cta:'Lihat pesanan'}},
   'order-dispute-response':{en:{subject:'The seller responded to your order report',line:'The seller added a response to your report. VivrePlay staff will review both sides.',cta:'View order'},id:{subject:'Penjual menanggapi laporan pesanan',line:'Penjual menambahkan tanggapan. Tim VivrePlay akan memeriksa kedua sisi.',cta:'Lihat pesanan'}},
@@ -157,10 +157,10 @@ function personalizedCopy(event:Event,details:NotificationDetails|undefined,titl
       break;
     case 'order-shipping-reminder-day':
     case 'order-shipping-reminder-soon':
-      subject=id?`Pengingat pengiriman ${details?.orderCode??title}`:`Shipping reminder for ${details?.orderCode??title}`;
-      line=event==='order-shipping-reminder-day'
-        ?(surface==='push'?(id?`Kirim pesanan paling lambat ${details?.shippingDeadline??'besok'}.`:`Ship this order by ${details?.shippingDeadline??'tomorrow'}.`):(id?'Pesanan perlu dikirim besok. Atur pengiriman sebelum batas waktu yang tercantum.':'This order is due to ship tomorrow. Arrange the shipment before the deadline below.'))
-        :(surface==='push'?(id?`Segera kirim pesanan; batasnya ${details?.shippingDeadline??'sudah dekat'}.`:`Ship this order soon; the deadline is ${details?.shippingDeadline??'approaching'}.`):(id?'Batas pengiriman pesanan sudah dekat. Atur pengiriman atau hubungi pembeli jika ada kendala.':'The ship-by time is approaching. Arrange the shipment or contact the buyer if anything is blocking it.'));
+      subject=id?`Batas pengiriman ${details?.orderCode??title}`:`Shipping deadline for ${details?.orderCode??title}`;
+      line=details?.shippingDeadline
+        ?(id?`Kirim pesanan paling lambat ${details.shippingDeadline}. ${event==='order-shipping-reminder-soon'?'Segera atur pengiriman atau hubungi pembeli jika ada kendala.':'Atur pengiriman sebelum batas waktu tersebut.'}`:`Ship this order by ${details.shippingDeadline}. ${event==='order-shipping-reminder-soon'?'Arrange shipment now or contact the buyer if anything is blocking it.':'Please arrange shipment before that time.'}`)
+        :(id?'Atur pengiriman dan periksa batas waktu terbaru pada detail pesanan.':'Arrange shipment and check the order for its current ship-by time.');
       break;
     case 'order-received':
       subject=id?`${details?.orderCode??title} sudah diterima`:`${details?.orderCode??title} was delivered`;
