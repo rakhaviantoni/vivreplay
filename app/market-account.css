@@ -292,6 +292,53 @@ html[data-theme='dark'] .market-account-menu [data-slot='dropdown-menu-separator
 @media(max-width:620px){.market-order-operations{grid-template-columns:minmax(0,1fr);gap:9px}.market-order-operations>.market-order-qris,.market-order-operations>.market-order-shipping-detail{grid-column:1}.market-order-operations>.market-order-detail-actions{grid-column:1;flex-wrap:wrap}.market-order-operations>.market-order-detail-actions .button,.market-order-operations>.market-order-detail-actions>a{flex:1 1 140px;min-height:40px}}
 .market-order-detail-actions .market-order-tracking-refresh,.checkout-tracking-history .market-checkout-tracking-refresh{display:inline-grid;width:38px;min-width:38px;height:38px;min-height:38px;flex:0 0 38px;place-items:center;padding:0}.market-order-tracking-refresh .is-spinning,.market-checkout-tracking-refresh .is-spinning{animation:market-order-refresh-spin .8s linear infinite}.market-order-detail-actions .market-order-print-label{display:inline-flex;align-items:center;justify-content:center;gap:7px;text-decoration:none}.market-order-detail-actions .market-order-print-label:hover{text-decoration:none}@keyframes market-order-refresh-spin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.market-order-tracking-refresh .is-spinning,.market-checkout-tracking-refresh .is-spinning{animation:none}}
 
+.market-order-operations>.market-order-shipping-detail{grid-column:1/-1;align-self:start;padding:0;overflow:hidden;border:1px solid var(--line);border-radius:9px;background:var(--surface-raised)}
+.market-order-shipping-detail>summary{display:grid;grid-template-columns:minmax(0,1fr) 20px;grid-template-areas:"label chevron" "courier chevron";align-items:center;gap:3px 12px;padding:12px 14px;list-style:none}
+.market-order-shipping-detail>summary::-webkit-details-marker{display:none}
+.market-order-shipping-detail>summary>span:first-child{grid-area:label;color:var(--muted);font-size:9px;font-weight:750;letter-spacing:.08em;text-transform:uppercase}
+.market-order-shipping-detail>summary>.market-order-shipping-carrier{grid-area:courier;display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 9px;min-width:0}
+.market-order-shipping-detail>summary .market-order-shipping-carrier>strong{color:var(--ink);font-size:13px;font-weight:750}
+.market-order-shipping-detail>summary .market-order-shipping-service{color:var(--muted);font-size:11px}
+.market-order-shipping-detail>summary>.market-order-shipping-chevron{grid-area:chevron;justify-self:end;color:var(--muted);transition:transform .18s ease}
+.market-order-shipping-detail[open]>summary{border-bottom:1px solid var(--line)}
+.market-order-shipping-detail[open]>summary>.market-order-shipping-chevron{transform:rotate(180deg)}
+.market-order-shipping-detail>.market-order-tracking-number,.market-order-shipping-detail>.market-order-shipping-status,.market-order-shipping-detail>strong,.market-order-shipping-detail>p{margin:0 14px;padding:10px 0;border-top:0;border-bottom:1px solid var(--line)}
+.market-order-shipping-detail>.market-order-tracking-number{display:grid;grid-template-columns:minmax(0,1fr);gap:3px}
+.market-order-shipping-detail>.market-order-tracking-number>small,.market-order-shipping-detail>.market-order-shipping-status{color:var(--muted);font-size:10px}
+.market-order-shipping-detail>.market-order-tracking-number>div{display:flex;align-items:center;gap:5px;min-width:0}
+.market-order-shipping-detail>.market-order-tracking-number>div>strong{overflow-wrap:anywhere;color:var(--ink);font-size:12px;font-variant-numeric:tabular-nums}
+.market-order-shipping-detail>.market-order-shipping-status{display:grid;gap:3px}
+.market-order-shipping-detail>.market-order-shipping-status>strong{color:var(--ink);font-size:12px;font-weight:650;text-transform:capitalize}
+.market-order-shipping-detail>strong{display:block;color:var(--muted);font-size:9px;font-weight:750;letter-spacing:.08em;text-transform:uppercase}
+.market-order-shipping-detail>p{color:var(--ink);font-size:11px;line-height:1.5}
+.market-order-shipping-detail>p:last-child{padding-bottom:12px;border-bottom:0}
+.market-order-countdown,.market-offer-countdown{display:inline-flex;align-items:center;min-height:22px;padding:2px 7px;border:1px solid color-mix(in srgb,var(--accent) 24%,var(--line));border-radius:5px;color:var(--accent);font-size:10px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2;white-space:nowrap}
+.market-offer-countdown.is-soon{border-color:color-mix(in srgb,#b54a3a 30%,var(--line));color:#a64034}
+.market-offer-context-total>time{color:var(--muted);font-size:10px;font-weight:650;font-variant-numeric:tabular-nums;white-space:nowrap}
+.market-offer-context-total>time.is-soon{color:#a64034}
+.market-offer-chat-section{display:flex;flex:1;flex-direction:column;gap:0;min-height:0}
+.market-offer-chat-section>.market-offer-messages{flex:1;min-height:140px;max-height:none}
+.market-offer-round-status,.market-offer-round-expiry{display:none!important}
+.market-offer-photo-thumb{width:auto;max-width:min(180px,42vw);margin:6px 5px 0 0;padding:0;overflow:visible;border:0;border-radius:0;background:transparent;box-shadow:none}
+.market-offer-photo-thumb img{display:block;width:auto;max-width:100%;height:auto;max-height:210px;object-fit:contain;border:0;border-radius:1px;box-shadow:none}
+.market-offer-photo-thumb:hover img,.market-offer-photo-thumb:focus-visible img{transform:translateY(-2px);filter:brightness(1.025);box-shadow:none}
+.market-offer-photo-inspector{width:auto;max-width:min(340px,calc(100vw - 24px));padding:0;overflow:hidden;border:0;border-radius:0;background:transparent;box-shadow:none}
+.market-offer-photo-inspector img{width:auto;max-width:100%;max-height:72dvh;border-radius:0;object-fit:contain}
+.market-offer-photo-inspector>button{top:5px;right:5px;border:0;background:rgb(15 20 24 / .78);color:#fff}
+.market-offer-loading-skeleton{display:flex;flex:1;flex-direction:column;gap:14px;min-height:260px;padding:4px 0}
+.market-offer-skeleton-context,.market-offer-skeleton-messages,.market-offer-skeleton-compose{position:relative;overflow:hidden;background:color-mix(in srgb,var(--line) 42%,var(--surface-raised));border-radius:6px}
+.market-offer-skeleton-context{display:grid;grid-template-columns:54px minmax(0,1fr) 110px;align-items:center;gap:10px;min-height:68px;padding:9px}
+.market-offer-skeleton-context>i,.market-offer-skeleton-context b,.market-offer-skeleton-context small,.market-offer-skeleton-context>strong,.market-offer-skeleton-messages>i,.market-offer-skeleton-compose>i,.market-offer-skeleton-compose>b{display:block;background:color-mix(in srgb,var(--line) 75%,var(--surface-raised));border-radius:4px}
+.market-offer-skeleton-context>i{width:40px;height:50px}.market-offer-skeleton-context>span{display:grid;gap:8px}.market-offer-skeleton-context b{width:70%;height:12px}.market-offer-skeleton-context small{width:42%;height:8px}.market-offer-skeleton-context>strong{width:100%;height:17px}
+.market-offer-skeleton-messages{display:grid;align-content:space-evenly;flex:1;min-height:140px;gap:12px;padding:16px;background:transparent}
+.market-offer-skeleton-messages>i{width:62%;height:52px;border-radius:8px}.market-offer-skeleton-messages>i:nth-child(2){justify-self:end;width:54%}.market-offer-skeleton-messages>i:nth-child(3){width:44%}
+.market-offer-skeleton-compose{display:grid;grid-template-columns:minmax(0,1fr) 70px;align-items:center;gap:10px;min-height:54px;padding:8px;background:transparent;border:1px solid var(--line)}.market-offer-skeleton-compose>i{height:36px}.market-offer-skeleton-compose>b{height:34px}
+.market-offer-skeleton-context,.market-offer-skeleton-messages>i,.market-offer-skeleton-compose>i,.market-offer-skeleton-compose>b{background-image:linear-gradient(100deg,transparent 20%,color-mix(in srgb,var(--surface) 70%,transparent) 48%,transparent 72%);background-size:220% 100%;animation:market-offer-skeleton-shimmer 1.5s ease-in-out infinite}
+@keyframes market-offer-skeleton-shimmer{to{background-position-x:-220%}}
+.market-offer-conversation{gap:8px!important;padding:16px!important;max-height:min(92dvh,940px)!important}
+@media(max-width:620px){.market-offer-conversation{padding:12px!important;gap:7px!important}.market-order-shipping-detail>summary{padding:11px 12px}.market-order-shipping-detail>.market-order-tracking-number,.market-order-shipping-detail>.market-order-shipping-status,.market-order-shipping-detail>strong,.market-order-shipping-detail>p{margin-inline:12px}.market-offer-skeleton-context{grid-template-columns:46px minmax(0,1fr) 82px}}
+@media(prefers-reduced-motion:reduce){.market-offer-skeleton-context,.market-offer-skeleton-messages>i,.market-offer-skeleton-compose>i,.market-offer-skeleton-compose>b{animation:none}}
+
 .market-quick-panel.is-wishlist{width:min(980px,calc(100vw - 28px))!important;max-width:980px!important;max-height:min(90dvh,920px)!important;overflow:hidden!important}
 .market-quick-wishlist{min-height:0;max-height:calc(90dvh - 80px);overflow:auto;overscroll-behavior:contain;padding-right:3px}
 .market-quick-wishlist .wishlist-tab{min-width:0}
