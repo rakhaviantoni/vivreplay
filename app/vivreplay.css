@@ -4198,4 +4198,9 @@ html[data-theme='dark'] .market-listing-view-as-toggle button[aria-pressed="true
 .checkout-delivery-address>strong.market-shipping-section-title{margin:0 0 2px;color:var(--muted,#716a5e)!important}
 .market-order-shipping-status>small.market-shipping-section-title{color:var(--muted,#716a5e)!important}
 .market-shipment-history h4.market-shipping-section-title{margin:0 0 8px!important;color:var(--muted,#716a5e)!important;font-size:10px!important;font-weight:750!important;letter-spacing:.04em!important;line-height:1.3!important;text-transform:uppercase!important}
+.checkout-shipping-summary .checkout-tracking-number.market-order-tracking-number{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,auto);align-items:center;gap:12px;width:100%}
+.checkout-shipping-summary .checkout-tracking-number.market-order-tracking-number>div{display:contents}
+.checkout-shipping-summary .checkout-tracking-number.market-order-tracking-number>div>small{grid-column:1;grid-row:1;min-width:0}
+.checkout-shipping-summary .checkout-tracking-number.market-order-tracking-number .market-order-tracking-value{grid-column:2;grid-row:1;justify-self:end;max-width:100%;text-align:right}
+.checkout-shipping-summary .checkout-tracking-number.market-order-tracking-number .market-order-tracking-value>strong{text-align:right}
 @media(max-width:620px){.market-shipping-heading{gap:8px}.market-shipping-heading .market-order-print-label{min-height:30px;padding-inline:8px;font-size:10px}}

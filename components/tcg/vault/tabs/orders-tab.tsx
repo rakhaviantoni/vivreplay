@@ -144,10 +144,10 @@ export function OrdersTab({language,initialOrderId}:{language:'EN'|'ID';initialO
               {order.role==='seller'&&status==='PAID'&&<button type="button" className="button" disabled={shipmentBusy===order.id} onClick={()=>shipmentOrder===order.id?void arrangeShipping(order.id):setShipmentOrder(order.id)}><Package size={15}/>{shipmentBusy===order.id?(id?'Menyiapkan…':'Preparing…'):shipmentOrder===order.id?(id?'Konfirmasi pengiriman':'Confirm shipment'):(id?'Atur pengiriman':'Arrange shipping')}</button>}
 
               {order.role==='buyer'&&status==='SHIPPED'&&detail?.deliveredAt&&<button type="button" className="button" disabled={confirmBusy===order.id} onClick={()=>void confirmReceived(order.id)}><CheckCircle size={15}/>{confirmBusy===order.id?(id?'Menyimpan…':'Saving…'):(id?'Konfirmasi diterima':'Confirm delivery')}</button>}
-
+              <Link className="market-order-open-link" href={`/checkout/order/${encodeURIComponent(order.id)}`} target="_blank" rel="noreferrer">{id?'Detail pesanan':'Order details'}<ExternalLink size={13}/></Link>
             </div>
             {cancelPrompt===order.id&&status==='PENDING_PAYMENT'&&<div className="market-order-cancel-confirm" role="group" aria-label={id?'Konfirmasi pembatalan':'Confirm cancellation'}><span>{id?'Batalkan pesanan yang belum dibayar ini? Kartu akan kembali tersedia.':'Cancel this unpaid order? The cards will become available again.'}</span><button type="button" className="button market-order-cancel-confirm-action" disabled={cancelBusy===order.id} onClick={()=>void cancelOrder(order.id)}>{cancelBusy===order.id?(id?'Membatalkan…':'Cancelling…'):(id?'Ya, batalkan':'Confirm cancellation')}</button><button type="button" className="button secondary" onClick={()=>setCancelPrompt('')}>{id?'Tetap lanjut':'Keep order'}</button></div>}
-            <div className="market-order-full-page-link"><Link className="market-order-open-link" href={`/checkout/order/${encodeURIComponent(order.id)}`} target="_blank" rel="noreferrer">{id?'Buka halaman pesanan':'Open full order page'}<ExternalLink size={13}/></Link></div>{order.kind==='MARKET'&&['RECEIVED','COMPLETED'].includes(status)&&<OrderReview orderId={order.id} role={order.role} language={language}/>}
+            {order.kind==='MARKET'&&['RECEIVED','COMPLETED'].includes(status)&&<OrderReview orderId={order.id} role={order.role} language={language}/>}
           </>}
         </div>}
       </article>})}</div>}

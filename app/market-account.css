@@ -795,6 +795,12 @@ html[data-theme='dark'] .market-account-unified-body.is-listings .market-listing
   .market-order-progress li:nth-child(4):hover .market-order-progress-icon{transform:translateY(-1px) rotate(8deg)}
 }
 @media(prefers-reduced-motion:reduce){.market-order-progress-icon{transition:none}}
+/* Keep progress movement on the current step's outline only. */
+.market-order-progress-marker,.market-order-progress-icon,.market-order-progress-label{animation:none!important;transition:none!important;transform:none!important;filter:none!important}
+.market-order-progress li.is-current .market-order-progress-marker{box-shadow:none!important}
+.market-order-progress li.is-current .market-order-progress-marker::before{animation:market-order-border-turn 7s linear infinite!important;opacity:.68;transition:opacity .2s ease,filter .2s ease}
+@media(hover:hover){.market-order-progress li.is-current:hover .market-order-progress-marker::before{animation-duration:2.6s!important;animation-direction:reverse!important;opacity:1;filter:saturate(1.3)}}
+@media(prefers-reduced-motion:reduce){.market-order-progress li.is-current .market-order-progress-marker::before{animation:none!important;transition:none}}
 
 /* Offer context uses a single card for one printing and a restrained fan for bundles. */
 .market-offer-conversation-panel-heading .market-offer-context{min-height:76px}
@@ -880,6 +886,9 @@ html[data-theme='dark'] .market-account-unified-body.is-listings .market-listing
 .market-order-details>.market-order-detail-actions{grid-column:1/-1;display:flex;align-items:center;justify-content:flex-end;gap:8px;width:100%;margin:0;padding:11px 0 0;border:0;border-top:1px solid var(--line);border-radius:0;background:transparent}
 .market-order-details>.market-order-detail-actions>span{margin-right:auto}
 .market-order-details>.market-order-detail-actions .button,.market-order-details>.market-order-detail-actions>a{flex:0 1 auto;min-height:36px}
+.market-order-details>.market-order-detail-actions .market-order-open-link{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:36px;margin-left:auto;padding:0 10px;border:1px solid var(--line);border-radius:7px;color:var(--ink);font-size:11px;font-weight:650;text-decoration:none;white-space:nowrap;transition:color .16s ease,border-color .16s ease,background-color .16s ease}
+.market-order-details>.market-order-detail-actions .market-order-open-link:hover{border-color:color-mix(in srgb,var(--accent) 45%,var(--line));background:color-mix(in srgb,var(--accent) 6%,var(--surface));color:var(--accent);text-decoration:none}
+.market-order-details>.market-order-detail-actions .market-order-open-link:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .market-order-shipping-detail .market-order-shipping-status{padding:0!important;border:0!important}
 .market-order-shipping-detail .checkout-delivery-address{margin:0!important;padding-top:10px!important}
 .market-order-shipping-detail .checkout-delivery-address>strong.market-shipping-section-title{margin:0 0 2px!important}
@@ -895,5 +904,10 @@ html[data-theme='dark'] .market-account-unified-body.is-listings .market-listing
   .market-order-progress li.is-current:hover .market-order-progress-marker{transform:scale(1.04);box-shadow:0 2px 5px color-mix(in srgb,var(--accent) 24%,transparent)}
 }
 .market-shipment-history h4.market-shipping-section-title{margin:0 0 8px!important;color:var(--muted)!important;font-size:10px!important;font-weight:750!important;letter-spacing:.04em!important;line-height:1.3!important;text-transform:uppercase!important}
-@media(max-width:620px){.market-order-shipping-detail{gap:10px!important;padding:10px!important}.market-order-shipping-body{gap:10px}.market-order-details>.market-order-detail-actions{justify-content:stretch;flex-wrap:wrap}.market-order-details>.market-order-detail-actions .button,.market-order-details>.market-order-detail-actions>a{flex:1 1 140px;min-height:40px}}
+.market-order-shipping-detail .checkout-tracking-number.market-order-tracking-number{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,auto);align-items:center;gap:12px;width:100%}
+.market-order-shipping-detail .checkout-tracking-number.market-order-tracking-number>div{display:contents}
+.market-order-shipping-detail .checkout-tracking-number.market-order-tracking-number>div>small{grid-column:1;grid-row:1;min-width:0}
+.market-order-shipping-detail .checkout-tracking-number.market-order-tracking-number .market-order-tracking-value{grid-column:2;grid-row:1;justify-self:end;max-width:100%;text-align:right}
+.market-order-shipping-detail .checkout-tracking-number.market-order-tracking-number .market-order-tracking-value>strong{text-align:right}
+@media(max-width:620px){.market-order-shipping-detail{gap:10px!important;padding:10px!important}.market-order-shipping-body{gap:10px}.market-order-details>.market-order-detail-actions{justify-content:stretch;flex-wrap:wrap}.market-order-details>.market-order-detail-actions .button,.market-order-details>.market-order-detail-actions>a{flex:1 1 140px;min-height:40px}.market-order-details>.market-order-detail-actions .market-order-open-link{flex-basis:100%;margin-left:0}}
 @media(prefers-reduced-motion:reduce){.market-order-progress-icon{transition:none}}
