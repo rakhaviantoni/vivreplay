@@ -34,6 +34,43 @@ jobs:
             echo "::error::Add the DEEPSEEK_API_KEY repository secret before running this scan."
             exit 1
           fi
+      - name: Verify DeepSeek API access
+        env:
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import time
+          import urllib.error
+          import urllib.request
+
+          request = urllib.request.Request(
+              "https://api.deepseek.com/chat/completions",
+              data=json.dumps({
+                  "model": "deepseek-flash",
+                  "messages": [{"role": "user", "content": "Reply with OK."}],
+                  "max_tokens": 8,
+                  "stream": False,
+              }).encode(),
+              headers={
+                  "Authorization": f"Bearer {os.environ['DEEPSEEK_API_KEY']}",
+                  "Content-Type": "application/json",
+              },
+              method="POST",
+          )
+          started = time.monotonic()
+          try:
+              with urllib.request.urlopen(request, timeout=45) as response:
+                  if response.status != 200:
+                      raise SystemExit(f"DeepSeek API returned HTTP {response.status}.")
+                  json.load(response)
+          except urllib.error.HTTPError as error:
+              raise SystemExit(f"DeepSeek API rejected the request (HTTP {error.code}).")
+          except Exception as error:
+              raise SystemExit(f"DeepSeek API check failed: {type(error).__name__}.")
+          print(f"DeepSeek API check passed in {time.monotonic() - started:.1f}s.")
+          PY
       - name: Install Strix
         run: pipx install strix-agent
       - name: Run Strix quick scan
