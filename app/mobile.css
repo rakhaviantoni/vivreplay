@@ -2034,6 +2034,11 @@ html:not([data-theme='dark']) .market-store-nav .market-store-wordmark b { color
 }
 html:not([data-theme='dark']) .market-mobile-nav > a[aria-current='page'],
 html:not([data-theme='dark']) .market-mobile-nav > button.is-sell { color: #78520e !important; }
+html:not([data-theme='dark']) .market-mobile-nav > a,
+html:not([data-theme='dark']) .market-mobile-nav > button:not(.is-sell) { color: #5e6862 !important; }
+html:not([data-theme='dark']) .market-mobile-nav > a[aria-current='page'],
+html:not([data-theme='dark']) .market-mobile-nav > button.is-sell,
+html:not([data-theme='dark']) .market-mobile-nav > button.is-sell > span { color: #78520e !important; }
 html:not([data-theme='dark']) .market-feed-page .market-scope-nav .market-scope-tab { color: #5e6862 !important; }
 html:not([data-theme='dark']) .market-feed-page .market-trade-chip.is-active,
 html:not([data-theme='dark']) .market-feed-page .market-trade-chip.is-active > * { color: #78520e !important; }

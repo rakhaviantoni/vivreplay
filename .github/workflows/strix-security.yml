@@ -39,6 +39,8 @@ jobs:
       - name: Run Strix quick scan
         env:
           STRIX_LLM: deepseek/deepseek-v4-pro
+          LLM_PREFLIGHT_TIMEOUT: "120"
+          LLM_TIMEOUT: "600"
           LLM_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
         run: strix -n --target ./ --scan-mode quick --max-budget 10
       - name: Confirm the scan completed
