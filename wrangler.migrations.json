@@ -61,7 +61,6 @@
   "flagship": [],
   "ratelimits": [],
   "worker_loaders": [],
-  "legacy_env": true,
   "main": "index.js",
   "jsx_factory": "React.createElement",
   "jsx_fragment": "React.Fragment",
