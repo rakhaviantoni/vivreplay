@@ -28,7 +28,7 @@ try {
   // Ensure Cloudflare fetch handler injects Google tag directly into <head> for crawlers and verification
   const fetchHandlerPath = fileURLToPath(new URL("../node_modules/vinext/dist/server/fetch-handler.js", import.meta.url));
   let handlerCode = readFileSync(fetchHandlerPath, "utf8");
-  if (!handlerCode.includes('VivrePlay Pro membership scheduled job')) {
+  if (!handlerCode.includes('VivrePlay Market order reminder job')) {
     handlerCode = `import handler from "virtual:vinext-worker-entry";
 
 // VivrePlay deferred home styles
@@ -99,23 +99,26 @@ var fetch_handler_default = {
     return response;
   },
   async scheduled(controller, env, ctx) {
-    // VivrePlay Pro membership scheduled job
+    // VivrePlay Market order reminder job
     const secret = env.PRO_MEMBERSHIP_CRON_SECRET;
     if (!secret) {
-      console.error("PRO_MEMBERSHIP_CRON_SECRET is not configured");
+      console.error("Scheduled Market notifications are not configured");
       return;
     }
-    const work = (async () => {
-      const request = new Request("https://vivreplay.com/api/cron/pro-membership", {
+    const scheduledAt = new Date(controller.scheduledTime);
+    const paths = ["/api/cron/market-orders"];
+    if (scheduledAt.getUTCHours() === 2 && scheduledAt.getUTCMinutes() === 0) paths.push("/api/cron/pro-membership");
+    const work = Promise.all(paths.map(async (path) => {
+      const request = new Request("https://vivreplay.com" + path, {
         method: "POST",
         headers: { authorization: "Bearer " + secret },
       });
       const response = await handler.fetch(request, env, ctx);
       if (!response.ok) {
-        console.error("Pro membership scheduled job failed", response.status, await response.text());
-        throw new Error("Pro membership scheduled job failed (" + response.status + ")");
+        console.error("Scheduled Market job failed", path, response.status, await response.text());
+        throw new Error("Scheduled Market job failed (" + response.status + ")");
       }
-    })();
+    }));
     ctx.waitUntil(work);
     await work;
   }
