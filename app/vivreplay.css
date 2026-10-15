@@ -4142,3 +4142,5 @@ html[data-theme='dark'] .market-listing-view-as-toggle button[aria-pressed="true
 .market-order-shipping-detail>p{color:var(--ink);font-size:11px;line-height:1.5}
 .market-order-shipping-detail>p:last-child{padding-bottom:10px}
 @media(max-width:620px){.checkout-market-result{margin:24px auto;padding:18px}.checkout-shipping-summary{padding:10px}.market-order-shipping-detail>summary{gap:8px;padding:10px}}
+
+.checkout-shipping-summary .market-order-tracking-copy{display:inline-grid;width:28px;min-width:28px;height:28px;place-items:center;padding:0;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);cursor:pointer}.checkout-shipping-summary .market-order-tracking-copy:hover{border-color:var(--accent);color:var(--accent)}
