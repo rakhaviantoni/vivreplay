@@ -779,6 +779,14 @@ html[data-theme='dark'] .market-account-unified-body.is-listings .market-listing
 @keyframes market-order-detail-shimmer{to{background-position-x:-240%}}
 @media(max-width:620px){.market-order-detail-skeleton{grid-template-columns:minmax(0,1fr);gap:12px}.market-offer-context{grid-template-columns:42px minmax(0,1fr);gap:7px;padding:8px}.market-offer-context-art{width:39px;height:46px}.market-offer-context-art>span,.market-offer-context-art.is-single>span{width:31px;height:43px}.market-offer-context-total{grid-column:2;display:flex;align-items:baseline;justify-items:start;gap:8px}.market-offer-context-total>strong{font-size:13px}.market-offer-context-cards{max-height:30px}.market-order-shipping-detail>summary{gap:8px;padding:10px}.market-order-shipping-body{gap:8px;padding:0 10px 10px}}
 @media(prefers-reduced-motion:reduce){.market-order-detail-skeleton i{animation:none}.market-order-shipping-chevron{transition:none}}
+.checkout-shipping-label-action{display:flex;justify-content:flex-end;margin:-4px 0 12px}
+@media(hover:hover){
+  .market-order-progress li:nth-child(1):hover .market-order-progress-icon{transform:translateY(-1px) scale(1.08) rotate(-6deg)}
+  .market-order-progress li:nth-child(2):hover .market-order-progress-icon{transform:translateY(-2px) rotate(-5deg)}
+  .market-order-progress li:nth-child(3):hover .market-order-progress-icon{transform:translate(3px,-1px) scale(1.04)}
+  .market-order-progress li:nth-child(4):hover .market-order-progress-icon{transform:translateY(-1px) rotate(8deg)}
+}
+@media(prefers-reduced-motion:reduce){.market-order-progress-icon{transition:none}}
 
 /* Offer context uses a single card for one printing and a restrained fan for bundles. */
 .market-offer-conversation-panel-heading .market-offer-context{min-height:76px}

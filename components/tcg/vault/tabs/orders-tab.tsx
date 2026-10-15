@@ -1,7 +1,7 @@
 'use client';
 
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
-import {ArrowCounterClockwiseIcon as Refresh,CaretDownIcon as CaretDown,CalendarBlankIcon as Calendar,PackageIcon as Package,PrinterIcon as Printer,CheckCircleIcon as CheckCircle,ArrowSquareOutIcon as ExternalLink,MagnifyingGlassIcon as Search,CopyIcon as Copy,CheckIcon as Check} from '@phosphor-icons/react';
+import {ArrowCounterClockwiseIcon as Refresh,CaretDownIcon as CaretDown,CalendarBlankIcon as Calendar,PackageIcon as Package,CheckCircleIcon as CheckCircle,ArrowSquareOutIcon as ExternalLink,MagnifyingGlassIcon as Search,CopyIcon as Copy,CheckIcon as Check} from '@phosphor-icons/react';
 import Link from 'next/link';
 import {OrderReview} from '@/components/tcg/market-reputation';
 import {formatMoney} from '@/packages/domain';
@@ -14,6 +14,7 @@ import {cardImageUrl} from '@/components/tcg/card-art';
 import {MarketOrderProgress} from '@/components/tcg/market-order-progress';
 import {MarketShipmentHistory} from '@/components/tcg/market-shipment-history';
 import {MarketShippingDeadline} from '@/components/tcg/market-shipping-deadline';
+import {MarketPrintLabel} from '@/components/tcg/market-print-label';
 
 type OrderItem={printingId:string;listingId?:string;listingTitle?:string;quantity:number;unitAmount?:number;condition?:string;card?:{name:string;code:string;language:string;variant:string;rarity:string;imageUrl:string|null}|null};
 type ShippingInfo={recipientName?:string;addressLine?:string;city?:string;postalCode?:string;phone?:string;label?:string;courierName?:string;courierServiceName?:string;waybillId?:string|null;trackingUrl?:string|null;trackingStatus?:string|null}|null;
@@ -142,7 +143,7 @@ export function OrdersTab({language,initialOrderId}:{language:'EN'|'ID';initialO
               {order.role==='seller'&&status==='PAID'&&<button type="button" className="button" disabled={shipmentBusy===order.id} onClick={()=>shipmentOrder===order.id?void arrangeShipping(order.id):setShipmentOrder(order.id)}><Package size={15}/>{shipmentBusy===order.id?(id?'Menyiapkan…':'Preparing…'):shipmentOrder===order.id?(id?'Konfirmasi pengiriman':'Confirm shipment'):(id?'Atur pengiriman':'Arrange shipping')}</button>}
               {(status==='SHIPPED'||order.trackingId)&&<button type="button" className="button secondary market-order-tracking-refresh" disabled={trackingBusy===order.id} aria-label={id?'Perbarui pelacakan':'Refresh tracking'} title={trackingBusy===order.id?(id?'Memperbarui pelacakan':'Refreshing tracking'):(id?'Perbarui pelacakan':'Refresh tracking')} onClick={()=>void loadTracking(order.id)}><Refresh size={17} className={trackingBusy===order.id?'is-spinning':''}/></button>}
               {order.role==='buyer'&&status==='SHIPPED'&&detail?.deliveredAt&&<button type="button" className="button" disabled={confirmBusy===order.id} onClick={()=>void confirmReceived(order.id)}><CheckCircle size={15}/>{confirmBusy===order.id?(id?'Menyimpan…':'Saving…'):(id?'Konfirmasi diterima':'Confirm delivery')}</button>}
-              {order.role==='seller'&&(status==='SHIPPED'||order.trackingId)&&<a className="button secondary market-order-print-label" href={`/api/checkout/order/${encodeURIComponent(order.id)}/label?lang=${id?'id':'en'}`} target="_blank" rel="noreferrer"><Printer size={15}/>{id?'Cetak label':'Print label'}</a>}
+              {order.role==='seller'&&status==='SHIPPED'&&<MarketPrintLabel orderId={order.id} language={language}/>}
               <Link className="market-order-open-link" href={`/checkout/order/${encodeURIComponent(order.id)}`} target="_blank" rel="noreferrer">{id?'Buka detail pesanan':'Open order details'}<ExternalLink size={14}/></Link>
             </div>
             </div>
