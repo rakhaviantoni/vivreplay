@@ -4193,6 +4193,7 @@ html[data-theme='dark'] .market-listing-view-as-toggle button[aria-pressed="true
 .checkout-shipping-summary>.market-shipping-heading{width:100%}
 .checkout-shipping-summary>.checkout-shipping-provider{padding:0!important;border:0!important}
 .checkout-shipping-summary .checkout-tracking-number.market-order-tracking-number{margin:0!important;padding:0!important;border:0!important}
+.checkout-shipping-summary .checkout-tracking-number.market-order-tracking-number{margin-top:2px!important;padding-top:12px!important;border-top:1px solid var(--line,#dfd1b8)!important}
 .checkout-shipping-summary .market-order-shipping-status{padding:0!important;border:0!important}
 .checkout-delivery-address>strong.market-shipping-section-title{margin:0 0 2px;color:var(--muted,#716a5e)!important}
 .market-order-shipping-status>small.market-shipping-section-title{color:var(--muted,#716a5e)!important}

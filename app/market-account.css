@@ -154,6 +154,14 @@ html[data-theme='dark'] .market-account-menu [data-slot='dropdown-menu-separator
    stack them naturally on narrow screens. */
 .market-order-details>.market-order-qris{grid-column:1;align-self:start;min-width:0}
 .market-order-details>.market-order-shipping-detail{grid-column:2;align-self:start;min-width:0}
+.market-order-ledger{gap:8px;padding:14px;border:1px solid var(--line);border-radius:8px;background:var(--surface-raised,var(--surface))}
+.market-order-ledger h4{margin:0 0 5px;color:var(--ink);font-size:15px;font-weight:700;letter-spacing:-.01em;line-height:1.3;text-transform:none}
+.market-order-ledger>div{align-items:center;gap:14px;color:var(--muted);font-size:12px;line-height:1.45}
+.market-order-ledger>div b{color:var(--ink);font-size:12px;font-weight:650;font-variant-numeric:tabular-nums}
+.market-order-ledger .market-order-ledger-total{margin-top:5px;padding-top:12px;border-top:1px solid var(--line);font-weight:650}
+.market-order-ledger .market-order-ledger-total>span{color:var(--muted);font-size:12px;font-weight:600}
+.market-order-ledger .market-order-ledger-total b{color:var(--ink);font-size:19px;font-weight:750;letter-spacing:-.02em}
+.market-order-ledger>p{font-size:10px;line-height:1.45}
 .market-order-detail-actions .button:not(.secondary){background:#e6a12b!important;border:1px solid #a96708!important;color:#211706!important;font-weight:750;opacity:1}
 .market-order-detail-actions .button:not(.secondary):hover{background:#d58d17!important}
 @media(max-width:620px){.market-order-details>.market-order-qris,.market-order-details>.market-order-shipping-detail{grid-column:1}.market-order-qris{flex-wrap:nowrap}.market-order-qris-code{width:76px;height:76px}.market-order-detail-actions .button:not(.secondary){min-height:44px}}
@@ -868,6 +876,10 @@ html[data-theme='dark'] .market-account-unified-body.is-listings .market-listing
 .market-order-shipping-detail>.checkout-shipping-provider{width:auto;padding:0!important;border:0!important}
 .market-order-shipping-body{display:grid;gap:12px;padding:0!important}
 .market-order-shipping-detail .checkout-tracking-number.market-order-tracking-number{margin:0!important;padding:0!important;border:0!important}
+.market-order-shipping-detail .checkout-tracking-number.market-order-tracking-number{margin-top:2px!important;padding-top:12px!important;border-top:1px solid var(--line,#dfd1b8)!important}
+.market-order-details>.market-order-detail-actions{grid-column:1/-1;display:flex;align-items:center;justify-content:flex-end;gap:8px;width:100%;margin:0;padding:11px 0 0;border:0;border-top:1px solid var(--line);border-radius:0;background:transparent}
+.market-order-details>.market-order-detail-actions>span{margin-right:auto}
+.market-order-details>.market-order-detail-actions .button,.market-order-details>.market-order-detail-actions>a{flex:0 1 auto;min-height:36px}
 .market-order-shipping-detail .market-order-shipping-status{padding:0!important;border:0!important}
 .market-order-shipping-detail .checkout-delivery-address{margin:0!important;padding-top:10px!important}
 .market-order-shipping-detail .checkout-delivery-address>strong.market-shipping-section-title{margin:0 0 2px!important}
@@ -883,5 +895,5 @@ html[data-theme='dark'] .market-account-unified-body.is-listings .market-listing
   .market-order-progress li.is-current:hover .market-order-progress-marker{transform:scale(1.04);box-shadow:0 2px 5px color-mix(in srgb,var(--accent) 24%,transparent)}
 }
 .market-shipment-history h4.market-shipping-section-title{margin:0 0 8px!important;color:var(--muted)!important;font-size:10px!important;font-weight:750!important;letter-spacing:.04em!important;line-height:1.3!important;text-transform:uppercase!important}
-@media(max-width:620px){.market-order-shipping-detail{gap:10px!important;padding:10px!important}.market-order-shipping-body{gap:10px}}
+@media(max-width:620px){.market-order-shipping-detail{gap:10px!important;padding:10px!important}.market-order-shipping-body{gap:10px}.market-order-details>.market-order-detail-actions{justify-content:stretch;flex-wrap:wrap}.market-order-details>.market-order-detail-actions .button,.market-order-details>.market-order-detail-actions>a{flex:1 1 140px;min-height:40px}}
 @media(prefers-reduced-motion:reduce){.market-order-progress-icon{transition:none}}
