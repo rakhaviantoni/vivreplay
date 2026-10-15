@@ -5,6 +5,7 @@ import Link from 'next/link';
 import {usePathname,useRouter} from 'next/navigation';
 import {FormEvent,useCallback,useEffect,useState} from 'react';
 import {ArrowLeftIcon as ArrowLeft,CardsIcon as Cards,MoonIcon as Moon,PlusIcon as Plus,MagnifyingGlassIcon as Search,SunIcon as Sun,UserIcon as UserRound,StorefrontIcon as Storefront,ShoppingCartIcon as Cart} from '@phosphor-icons/react';
+import {toast} from 'sonner';
 import {VivreMark} from './brand-assets';
 import {useAccount} from '@/lib/client';
 import {loadMarketActivityCounts} from '@/lib/market/activity-client';
@@ -95,6 +96,36 @@ export function MarketStoreNav({initialQuery='',sellHref='/market?sell=open',sho
     void update();const timer=window.setInterval(()=>void update(),120_000);document.addEventListener('visibilitychange',onVisibility);
     return()=>{active=false;window.clearInterval(timer);document.removeEventListener('visibilitychange',onVisibility)};
   },[data?.profile?.id]);
+  useEffect(()=>{
+    const profileId=data?.profile?.id;if(!profileId)return;
+    const storageKey=`vivreplay-market-offer-events:${profileId}`;
+    let seen:string[]=[];try{seen=JSON.parse(window.localStorage.getItem(storageKey)||'[]') as string[];if(!Array.isArray(seen))seen=[]}catch{seen=[]}
+    let cursor=Date.now()-20_000;let active=true;let busy=false;
+    type OfferEvent={id:string;offerId:string|null;actorName:string|null;kind:string;body:string|null;createdAt:string;amount:number|null;currency:string|null;listingTitle:string;cardCount:number;attachmentCount:number};
+    const poll=async()=>{
+      if(!active||busy||document.visibilityState!=='visible')return;busy=true;
+      try{
+        const response=await fetch(`/api/market/activity/events?since=${encodeURIComponent(new Date(cursor).toISOString())}`,{cache:'no-store'});
+        if(!response.ok)return;
+        const result=await response.json() as {events?:OfferEvent[]};const incoming=(result.events??[]).filter(event=>!seen.includes(event.id));
+        for(const event of incoming.slice(-4)){
+          const sender=event.actorName||(locale==='ID'?'Kolektor':'Collector');const target=event.listingTitle||(locale==='ID'?'penawaran ini':'this offer');
+          const total=event.amount===null?'':new Intl.NumberFormat(locale==='ID'?'id-ID':'en-US',{style:'currency',currency:event.currency||'IDR',maximumFractionDigits:0}).format(event.amount);
+          let message:string;
+          if(event.kind==='OFFER_COUNTERED'||event.kind==='OFFER_REVISED'){const count=event.cardCount||0;const cards=locale==='ID'?`${count} kartu`:`${count} ${count===1?'card':'cards'}`;message=event.kind==='OFFER_REVISED'?(locale==='ID'?`${sender} memperbarui penawaran menjadi ${total} untuk ${cards} di ${target}`:`${sender} revised the offer to ${total} for ${cards} in ${target}`):(locale==='ID'?`${sender} mengirim penawaran balik ${total} untuk ${cards} di ${target}`:`${sender} sent you a counteroffer of ${total} for ${cards} in ${target}`);}
+          else if(event.kind==='OFFER_ACCEPTED')message=locale==='ID'?`${sender} menerima penawaran ${total} untuk ${target}`:`${sender} accepted the ${total} offer for ${target}`;
+          else if(event.kind==='OFFER_DECLINED')message=locale==='ID'?`${sender} menolak penawaran ${total} untuk ${target}`:`${sender} declined the ${total} offer for ${target}`;
+          else if(event.kind==='PHOTO_REQUEST')message=locale==='ID'?`${sender} meminta foto kartu untuk ${target}`:`${sender} requested card photos for ${target}`;
+          else if(event.attachmentCount)message=locale==='ID'?`${sender} membagikan ${event.attachmentCount} foto kartu untuk ${target}`:`${sender} shared ${event.attachmentCount} card photo${event.attachmentCount===1?'':'s'} for ${target}`;
+          else{const body=event.body?.trim().replace(/\s+/g,' ')||(locale==='ID'?'Pesan baru':'New message');message=`${sender}: ${body.length>110?`${body.slice(0,107)}…`:body}`;}
+          toast.info(message,{id:event.id,action:event.offerId?{label:locale==='ID'?'Buka penawaran':'Open offer',onClick:()=>window.dispatchEvent(new CustomEvent('vivreplay:open-market-offer',{detail:event.offerId}))}:undefined});
+        }
+        seen=[...seen,...incoming.map(event=>event.id)].slice(-100);try{window.localStorage.setItem(storageKey,JSON.stringify(seen))}catch{}cursor=Date.now();
+      }catch{}finally{busy=false}
+    };
+    void poll();const timer=window.setInterval(()=>void poll(),12_000);const onVisibility=()=>{if(document.visibilityState==='visible')void poll()};document.addEventListener('visibilitychange',onVisibility);
+    return()=>{active=false;window.clearInterval(timer);document.removeEventListener('visibilitychange',onVisibility)};
+  },[data?.profile?.id,locale]);
   const openAccountPanel=useCallback((panel:'listings'|'offers'|'orders'|'saved',conversationId:string|null=null)=>{setQuickPanel(null);setSelectedConversationId(conversationId);setAccountPanel(panel);if(panel==='saved')return;setActivityCounts(current=>({...current,[panel]:0}));void fetch('/api/market/activity',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({section:panel})}).catch(()=>undefined)},[]);
   useEffect(()=>{const open=(event:Event)=>{setSelectedOrderId((event as CustomEvent<string>).detail??null);openAccountPanel('orders')};window.addEventListener('vivreplay:open-market-orders',open);return()=>window.removeEventListener('vivreplay:open-market-orders',open)},[openAccountPanel]);
   useEffect(()=>{const open=(event:Event)=>{const conversationId=(event as CustomEvent<string>).detail;if(conversationId)openAccountPanel('offers',conversationId)};window.addEventListener('vivreplay:open-market-offer',open);return()=>window.removeEventListener('vivreplay:open-market-offer',open)},[openAccountPanel]);

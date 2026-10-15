@@ -2755,7 +2755,6 @@ html[data-theme='dark'] .player-intro-meta{color:#a4bcc7!important}
 .checkout-page-heading h1{margin:5px 0 6px;font-size:clamp(30px,4vw,44px);letter-spacing:-.04em}
 .checkout-page-heading p:not(.eyebrow){margin:0;color:var(--muted,#716a5e)}
 .checkout-page-heading .eyebrow{margin:0;color:var(--accent,#b78327);font-size:11px;font-weight:800;letter-spacing:.15em}
-.checkout-delivery-wait{margin:8px 0 0;padding:12px 14px;border-left:2px solid var(--accent,#b78327);background:color-mix(in srgb,var(--accent,#b78327) 7%,var(--surface,#fffaf0));color:var(--muted,#716a5e);font-size:13px;line-height:1.5}
 .checkout-secure{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line,#dfd1b8);border-radius:999px;padding:9px 13px;color:var(--muted,#716a5e);font-size:12px;font-weight:700;white-space:nowrap}
 .checkout-layout,.checkout-pro-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(340px,.92fr);gap:20px;align-items:start}
 .checkout-pro-layout{grid-template-columns:minmax(0,1fr) minmax(340px,.82fr)}
@@ -2860,7 +2859,7 @@ html[data-theme='dark'] .checkout-payment-countdown.is-urgent>svg,html[data-them
 .checkout-tracking-history{display:grid;justify-items:center;gap:6px;width:100%;margin-top:8px;padding-top:10px;border-top:1px solid var(--vp-line,#dfd1b8);color:var(--vp-muted,#716a5e);font-size:12px}
 .checkout-tracking-history>strong{color:var(--vp-ink,#28251f);text-transform:capitalize}
 .checkout-tracking-history>small{text-align:center;line-height:1.45}
-.checkout-tracking-history>.button{min-height:34px;margin-top:4px}
+.checkout-tracking-history>.button{min-height:34px;margin-top:4px}.checkout-tracking-history>.market-checkout-tracking-refresh{display:grid;width:38px;min-width:38px;height:38px;min-height:38px;place-items:center;padding:0}
 .checkout-message p,.checkout-result p{color:var(--muted,#716a5e);line-height:1.6}
 @media(max-width:600px){.checkout-message{margin:24px auto;padding:18px}.checkout-auth-message{grid-template-columns:24px minmax(0,1fr);gap:10px}.checkout-message-content{gap:10px}}
 .checkout-pro-benefits>svg{color:var(--accent,#b78327)}
