@@ -187,6 +187,7 @@ export function MarketCheckout(){
       const samePostal=origin?.postalCode===addressDraft.postalCode;
       await api('/api/shipping/origin',{recipientName:addressDraft.recipientName,phone:addressDraft.phone,addressLine:addressDraft.addressLine,city:addressDraft.city,postalCode:addressDraft.postalCode,areaId:samePostal?origin.areaId:null,latitude:addressLatitude,longitude:addressLongitude,regions:{province:addressDraft.province,city:addressDraft.city,district:addressDraft.district,subdistrict:addressDraft.subdistrict},shippingMethods:(origin as (Origin&{shippingMethods?:string[]})|undefined)?.shippingMethods},'POST');
       setOrigin({addressLine:addressDraft.addressLine,city:addressDraft.city,postalCode:addressDraft.postalCode,areaId:samePostal?origin.areaId:null,latitude:addressLatitude,longitude:addressLongitude,recipientName:addressDraft.recipientName,phone:addressDraft.phone,regionNames:{province:addressDraft.province,city:addressDraft.city,district:addressDraft.district,subdistrict:addressDraft.subdistrict}});
+      window.dispatchEvent(new Event('vivreplay:shipping-updated'));
       setEditingAddress(false);setEditingContact(false);setRates([]);setSelectedRate('');autoQuoteKey.current='';toast.success(t('Delivery address saved','Alamat pengiriman disimpan'));
     }catch(cause){setError(cause instanceof Error?cause.message:t('Could not save the delivery address. Check the fields and try again.','Alamat pengiriman gagal disimpan. Periksa kembali isian Anda.'))}
     finally{setSavingAddress(false)}
@@ -195,7 +196,7 @@ export function MarketCheckout(){
   const contactComplete=Boolean(contactDigits.length>=8&&contactDigits.length<=16&&(origin?.recipientName?.trim()||account?.profile.display_name));
   const saveContact=async(event:React.FormEvent)=>{
     event.preventDefault();setSavingContact(true);setError('');
-    try{const saved=await api<{recipientName:string;phone:string}>('/api/shipping/origin',{recipientName:contactName,phone:contactPhone},'PATCH');setOrigin(current=>current?{...current,recipientName:saved.recipientName,phone:saved.phone}:current);setEditingContact(false);toast.success(t('Delivery contact saved','Kontak pengiriman disimpan'));}
+    try{const saved=await api<{recipientName:string;phone:string}>('/api/shipping/origin',{recipientName:contactName,phone:contactPhone},'PATCH');setOrigin(current=>current?{...current,recipientName:saved.recipientName,phone:saved.phone}:current);window.dispatchEvent(new Event('vivreplay:shipping-updated'));setEditingContact(false);toast.success(t('Delivery contact saved','Kontak pengiriman disimpan'));}
     catch{setError(t('The delivery contact could not be saved. Check the name and phone number.','Kontak pengiriman gagal disimpan. Periksa nama dan nomor telepon.'));}
     finally{setSavingContact(false);}
   };

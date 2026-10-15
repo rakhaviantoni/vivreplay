@@ -1,6 +1,6 @@
 'use client';
 
-import {useEffect,useState,type FormEvent} from 'react';
+import {useCallback,useEffect,useState,type FormEvent} from 'react';
 import Link from 'next/link';
 import {ArrowRightIcon as ArrowRight,BookmarkSimpleIcon as Bookmark,CardsIcon as VaultIcon,ChatCircleDotsIcon as OffersIcon,ClipboardTextIcon as ListingsIcon,CrownSimpleIcon as Crown,HeartIcon as Heart,MapPinIcon as MapPin,PencilSimpleIcon as Pencil,PlusIcon as Plus,ShoppingBagIcon as OrdersIcon,TruckIcon as Truck,UserIcon as User,WalletIcon as Wallet} from '@phosphor-icons/react';
 import {toast} from 'sonner';
@@ -104,6 +104,7 @@ function ProfileQuickEdit({profile,locale,onSaved,initialTab='account'}:{profile
   const [saving,setSaving]=useState(false);
   const [tab,setTab]=useState<ProfileQuickTab>(initialTab);
   const [shipping,setShipping]=useState<Record<string,unknown>|null>(null);
+  const [shippingLoadError,setShippingLoadError]=useState('');
   const [addressEditing,setAddressEditing]=useState(false);
   const [addressSaving,setAddressSaving]=useState(false);
   const [addressDraft,setAddressDraft]=useState({recipientName:String(profile.display_name??''),phone:String(profile.phone??''),addressLine:'',province:'',city:'',district:'',subdistrict:'',postalCode:''});
@@ -133,30 +134,38 @@ function ProfileQuickEdit({profile,locale,onSaved,initialTab='account'}:{profile
   const proIntroEndLabel=proPlan?.introOfferEndsAt?new Intl.DateTimeFormat(locale==='ID'?'id-ID':'en-US',{dateStyle:'medium',timeZone:'Asia/Jakarta'}).format(new Date(proPlan.introOfferEndsAt)):'';
   const proStandardPrice=new Intl.NumberFormat(locale==='ID'?'id-ID':'en-US',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(proPlan?.standardAmount??24900);
   const proIntroTerms=proPlan?.introOffer?(proPlan.introOfferLimit&&proIntroEndLabel?t(`Limited to ${proPlan.introOfferLimit} checkouts until ${proIntroEndLabel}. Then ${proStandardPrice} per 30 days. Renew manually.`,`Maksimal ${proPlan.introOfferLimit} checkout sampai ${proIntroEndLabel}. Setelah itu ${proStandardPrice} per 30 hari. Perpanjang manual.`):proPlan.introOfferLimit?t(`Limited to ${proPlan.introOfferLimit} checkouts. Then ${proStandardPrice} per 30 days. Renew manually.`,`Maksimal ${proPlan.introOfferLimit} checkout. Setelah itu ${proStandardPrice} per 30 hari. Perpanjang manual.`):proIntroEndLabel?t(`Available until ${proIntroEndLabel}. Then ${proStandardPrice} per 30 days. Renew manually.`,`Berlaku sampai ${proIntroEndLabel}. Setelah itu ${proStandardPrice} per 30 hari. Perpanjang manual.`):t(`First month ${proPrice}, then ${proStandardPrice} per 30 days. Renew manually.`,`Bulan pertama ${proPrice}, lalu ${proStandardPrice} per 30 hari. Perpanjang manual.`)):'';
-  const loadShipping=async()=>{try{const value=await api<{origin:Record<string,unknown>|null}>('/api/shipping/origin');setShipping(value.origin);if(value.origin){const regions=value.origin.regionNames&&typeof value.origin.regionNames==='object'?value.origin.regionNames as Record<string,string>:{};setAddressDraft({recipientName:String(value.origin.recipientName??''),phone:String(value.origin.phone??''),addressLine:String(value.origin.addressLine??''),province:String(regions.province??''),city:String(regions.city??value.origin.city??''),district:String(regions.district??''),subdistrict:String(regions.subdistrict??''),postalCode:String(value.origin.postalCode??'')});setShippingLatitude(typeof value.origin.latitude==='number'?value.origin.latitude:null);setShippingLongitude(typeof value.origin.longitude==='number'?value.origin.longitude:null);const couriers=enabledShippingCouriers(Array.isArray(value.origin.shippingMethods)?value.origin.shippingMethods:[]);setShippingMethods(couriers.length?couriers:['jnt','jne'])}}catch{setShipping(null)}};
+  const fetchShippingOrigin=useCallback(async()=>{
+    const response=await fetch('/api/shipping/origin',{cache:'no-store',credentials:'same-origin'});
+    const value=await response.json() as {origin:Record<string,unknown>|null;error?:string};
+    if(!response.ok)throw new Error(value.error||'Could not load the delivery address.');
+    if(value.origin&&String(value.origin.ownerId??'')!==String(profile.id??''))throw new Error('We could not verify this delivery address. Reload before editing it.');
+    return value.origin;
+  },[profile.id]);
+  const applyShippingOrigin=useCallback((origin:Record<string,unknown>|null)=>{
+    setShipping(origin);
+    if(origin){const regions=origin.regionNames&&typeof origin.regionNames==='object'?origin.regionNames as Record<string,string>:{};setAddressDraft({recipientName:String(origin.recipientName??''),phone:String(origin.phone??''),addressLine:String(origin.addressLine??''),province:String(regions.province??''),city:String(regions.city??origin.city??''),district:String(regions.district??''),subdistrict:String(regions.subdistrict??''),postalCode:String(origin.postalCode??'')});setShippingLatitude(typeof origin.latitude==='number'?origin.latitude:null);setShippingLongitude(typeof origin.longitude==='number'?origin.longitude:null);const couriers=enabledShippingCouriers(Array.isArray(origin.shippingMethods)?origin.shippingMethods:[]);setShippingMethods(couriers.length?couriers:['jnt','jne'])}
+    else{setAddressDraft({recipientName:String(profile.display_name??''),phone:String(profile.phone??''),addressLine:'',province:'',city:'',district:'',subdistrict:'',postalCode:''});setShippingLatitude(null);setShippingLongitude(null)}
+  },[profile.display_name,profile.phone]);
+  const loadShipping=async()=>{try{const origin=await fetchShippingOrigin();applyShippingOrigin(origin);setShippingLoadError('');return true}catch(error){setShipping(null);setShippingLoadError(error instanceof Error?error.message:'Could not load the delivery address.');return false}};
   const loadPayoutAccounts=async()=>{try{const value=await api<{accounts:typeof payoutAccounts}>('/api/profile/bank-accounts');setPayoutAccounts(value.accounts??[])}catch{setPayoutAccounts([])}};
   useEffect(()=>{
     let active=true;
     Promise.all([
-      api<{origin:Record<string,unknown>|null}>('/api/shipping/origin').catch(()=>({origin:null})),
+      fetchShippingOrigin().then(origin=>({origin,error:''})).catch(error=>({origin:null,error:error instanceof Error?error.message:'Could not load the delivery address.'})),
       fetch('/api/checkout/pro/orders',{cache:'no-store'}).then(response=>response.ok?response.json() as Promise<{orders?:typeof proOrders}>:{orders:[]}).catch(()=>({orders:[]})),
       api<{accounts:typeof payoutAccounts}>('/api/profile/bank-accounts').catch(()=>({accounts:[]})),
       api<typeof proPlan>('/api/checkout/pro').catch(()=>null),
     ]).then(([shippingResult,ordersResult,payoutResult,planResult])=>{
       if(!active)return;
-      setShipping(shippingResult.origin);
-      const savedRegions=shippingResult.origin?.regionNames&&typeof shippingResult.origin.regionNames==='object'?shippingResult.origin.regionNames as Record<string,string>:{};
-      setAddressDraft({recipientName:String(shippingResult.origin?.recipientName??profile.display_name??''),phone:String(shippingResult.origin?.phone??profile.phone??''),addressLine:String(shippingResult.origin?.addressLine??''),province:String(savedRegions.province??''),city:String(savedRegions.city??shippingResult.origin?.city??''),district:String(savedRegions.district??''),subdistrict:String(savedRegions.subdistrict??''),postalCode:String(shippingResult.origin?.postalCode??'')});
-      setShippingLatitude(typeof shippingResult.origin?.latitude==='number'?shippingResult.origin.latitude:null);
-      setShippingLongitude(typeof shippingResult.origin?.longitude==='number'?shippingResult.origin.longitude:null);
-      setShippingMethods(enabledShippingCouriers(Array.isArray(shippingResult.origin?.shippingMethods)?shippingResult.origin.shippingMethods:[]).length?enabledShippingCouriers(Array.isArray(shippingResult.origin?.shippingMethods)?shippingResult.origin.shippingMethods:[]):['jnt','jne']);
+      applyShippingOrigin(shippingResult.origin);
+      setShippingLoadError(shippingResult.error);
       setProOrders(Array.isArray(ordersResult.orders)?ordersResult.orders:[]);
       setPayoutAccounts(payoutResult.accounts??[]);
       setProPlan(planResult);
       const options=planResult?.paymentChannels?.length?planResult.paymentChannels:defaultPaymentOptions;const preferred=options.find(option=>option.method==='qris')??options[0];if(preferred)setProPayment({method:preferred.method,channel:preferred.channel});
     });
     return()=>{active=false};
-  },[profile.display_name,profile.phone]);
+  },[profile.id,profile.display_name,profile.phone,fetchShippingOrigin,applyShippingOrigin]);
   useEffect(()=>{let active=true;setAddressRegionLoading(current=>({...current,provinces:true}));void loadQuickRegions('provinces').then(items=>{if(active)setAddressProvinces(items)}).finally(()=>{if(active)setAddressRegionLoading(current=>({...current,provinces:false}))});return()=>{active=false}},[]);
   useEffect(()=>{if(!addressDraft.province){setAddressCities([]);setAddressRegionLoading(current=>({...current,cities:false}));return}let active=true;setAddressRegionLoading(current=>({...current,cities:true}));const parent=addressProvinces.find(item=>normalizeQuickRegion(item.name)===normalizeQuickRegion(addressDraft.province));void loadQuickRegions('regencies',parent?.id,{province:addressDraft.province}).then(items=>{if(active)setAddressCities(items)}).finally(()=>{if(active)setAddressRegionLoading(current=>({...current,cities:false}))});return()=>{active=false}},[addressDraft.province,addressProvinces]);
   useEffect(()=>{if(!addressDraft.city){setAddressDistricts([]);setAddressRegionLoading(current=>({...current,districts:false}));return}let active=true;setAddressRegionLoading(current=>({...current,districts:true}));const parent=addressCities.find(item=>normalizeQuickRegion(item.name)===normalizeQuickRegion(addressDraft.city));void loadQuickRegions('districts',parent?.id,{province:addressDraft.province,city:addressDraft.city}).then(items=>{if(active)setAddressDistricts(items)}).finally(()=>{if(active)setAddressRegionLoading(current=>({...current,districts:false}))});return()=>{active=false}},[addressDraft.province,addressDraft.city,addressCities]);
@@ -170,7 +179,7 @@ function ProfileQuickEdit({profile,locale,onSaved,initialTab='account'}:{profile
     catch(error){toast.error(error instanceof Error?error.message:(locale==='ID'?'Profil tidak dapat disimpan':'Could not save profile'))}
     finally{setSaving(false)}
   };
-  const saveAddress=async(event:FormEvent<HTMLFormElement>)=>{event.preventDefault();if(shippingMethods.some(method=>method==='grab'||method==='gojek')&&(shippingLatitude===null||shippingLongitude===null)){toast.error(t('Pin your pickup point to use instant couriers.','Tandai titik penjemputan untuk memakai kurir instan.'));return}setAddressSaving(true);const sameLocation=shipping?.postalCode===addressDraft.postalCode&&shipping?.city===addressDraft.city;try{await api('/api/shipping/origin',{...addressDraft,areaId:sameLocation?shipping?.areaId:null,latitude:shippingLatitude,longitude:shippingLongitude,shippingMethods,regions:{province:addressDraft.province,city:addressDraft.city,district:addressDraft.district,subdistrict:addressDraft.subdistrict}},'POST');await loadShipping();setAddressEditing(false);window.dispatchEvent(new Event('vivreplay:shipping-updated'));toast.success(t('Delivery settings saved','Pengaturan pengiriman disimpan'))}catch(error){toast.error(error instanceof Error?error.message:t('Could not save delivery settings','Pengaturan pengiriman tidak dapat disimpan'))}finally{setAddressSaving(false)}};
+  const saveAddress=async(event:FormEvent<HTMLFormElement>)=>{event.preventDefault();if(shippingMethods.some(method=>method==='grab'||method==='gojek')&&(shippingLatitude===null||shippingLongitude===null)){toast.error(t('Pin your pickup point to use instant couriers.','Tandai titik penjemputan untuk memakai kurir instan.'));return}setAddressSaving(true);const sameLocation=shipping?.postalCode===addressDraft.postalCode&&shipping?.city===addressDraft.city;try{await api('/api/shipping/origin',{...addressDraft,areaId:sameLocation?shipping?.areaId:null,latitude:shippingLatitude,longitude:shippingLongitude,shippingMethods,regions:{province:addressDraft.province,city:addressDraft.city,district:addressDraft.district,subdistrict:addressDraft.subdistrict}},'POST');if(!await loadShipping())throw new Error('The address was submitted but could not be reloaded. Please reload before leaving this page.');setAddressEditing(false);window.dispatchEvent(new Event('vivreplay:shipping-updated'));toast.success(t('Delivery settings saved','Pengaturan pengiriman disimpan'))}catch(error){toast.error(error instanceof Error?error.message:t('Could not save delivery settings','Pengaturan pengiriman tidak dapat disimpan'))}finally{setAddressSaving(false)}};
   const savePayout=async(event:FormEvent<HTMLFormElement>)=>{event.preventDefault();setPayoutSaving(true);try{await api('/api/profile/bank-accounts',{...(payoutDraft.id?{id:payoutDraft.id}:{}),bankName:payoutDraft.bankName,accountHolder:payoutDraft.accountHolder,...(payoutDraft.accountNumber?{accountNumber:payoutDraft.accountNumber}:{}),makeDefault:payoutDraft.makeDefault},'POST');await loadPayoutAccounts();setPayoutEditing(false);setPayoutDraft({id:'',bankName:'',accountHolder:'',accountNumber:'',makeDefault:true});toast.success(t('Payout account saved','Rekening pencairan disimpan'))}catch(error){toast.error(error instanceof Error?error.message:t('Could not save payout account','Rekening tidak dapat disimpan'))}finally{setPayoutSaving(false)}};
   const beginProCheckout=async()=>{if(!phone.trim()){setTab('account');toast.error(t('Add your phone number in Account to continue.','Tambahkan nomor telepon di bagian Akun untuk melanjutkan.'));return}setProSubmitting(true);try{const result=await api<{checkoutUrl:string}>('/api/checkout/pro',{introOffer:Boolean(proPlan?.introOffer),paymentMethod:proPayment.method,paymentChannel:proPayment.channel});window.location.assign(result.checkoutUrl)}catch(error){toast.error(error instanceof Error?error.message:t('Could not start checkout','Checkout tidak dapat dimulai'));setProSubmitting(false)}};
   return <div className="market-profile-quick">
@@ -191,13 +200,14 @@ function ProfileQuickEdit({profile,locale,onSaved,initialTab='account'}:{profile
     {tab==='delivery'&&<section className="market-profile-quick-section">
       <div className="market-profile-quick-card">
         <span className="market-profile-quick-card-icon"><MapPin size={18}/></span>
-        <div><strong>{shipping?t('Default delivery address','Alamat pengiriman utama'):t('No delivery address saved','Belum ada alamat pengiriman')}</strong>
+        <div><strong>{shipping?t('Default delivery address','Alamat pengiriman utama'):shippingLoadError?t('Address could not be verified','Alamat tidak dapat diverifikasi'):t('No delivery address saved','Belum ada alamat pengiriman')}</strong>
+          {shippingLoadError&&<p role="alert">{shippingLoadError}</p>}
           {shipping?<><p>{String(shipping.recipientName??'')}{shipping.phone?` | ${String(shipping.phone)}`:''}</p><p>{[shipping.addressLine,shipping.regionNames&&typeof shipping.regionNames==='object'?Object.values(shipping.regionNames as Record<string,string>).filter(Boolean).join(', '):'',shipping.city,shipping.postalCode].filter(Boolean).join(', ')}</p><small>{t('Used for shipping at checkout.','Digunakan untuk pengiriman saat checkout.')}</small></>:<p>{t('Add an address to get delivery rates at checkout.','Tambahkan alamat untuk melihat ongkir saat checkout.')}</p>}
           {shipping&&<div className="market-profile-courier-summary"><span>{t('Couriers','Kurir')}</span><strong>{shippingMethods.map(method=>QUICK_COURIER_NAMES[method]).filter(Boolean).join(', ')||t('None selected','Belum dipilih')}</strong></div>}
         </div>
-        <button type="button" className="market-profile-quick-edit-link" onClick={()=>setAddressEditing(value=>!value)}><Pencil size={15}/>{t(shipping?'Edit address':'Add address',shipping?'Ubah alamat':'Tambah alamat')}</button>
+        {shippingLoadError?<button type="button" className="market-profile-quick-edit-link" onClick={()=>void loadShipping()}>{t('Reload address','Muat ulang alamat')}</button>:<button type="button" className="market-profile-quick-edit-link" onClick={()=>setAddressEditing(value=>!value)}><Pencil size={15}/>{t(shipping?'Edit address':'Add address',shipping?'Ubah alamat':'Tambah alamat')}</button>}
       </div>
-      {addressEditing&&<form className="market-quick-profile-form market-quick-address-form" onSubmit={event=>void saveAddress(event)}>
+      {addressEditing&&!shippingLoadError&&<form className="market-quick-profile-form market-quick-address-form" onSubmit={event=>void saveAddress(event)}>
         <label>{t('Recipient','Penerima')}<input required minLength={2} maxLength={100} autoComplete="name" value={addressDraft.recipientName} onChange={event=>setAddressDraft({...addressDraft,recipientName:event.target.value})}/></label>
         <PhoneInput required label={t('Phone number','Nomor telepon')} autoComplete="tel" value={addressDraft.phone} onChange={value=>setAddressDraft({...addressDraft,phone:value})} locale={locale}/>
         <label className="market-quick-address-wide">{t('Street address','Alamat jalan')}<textarea required minLength={5} maxLength={260} rows={3} autoComplete="street-address" value={addressDraft.addressLine} onChange={event=>{setAddressDraft({...addressDraft,addressLine:event.target.value});if(event.target.value!==String(shipping?.addressLine??'')){setShippingLatitude(null);setShippingLongitude(null)}}}/></label>

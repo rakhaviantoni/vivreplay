@@ -18,7 +18,8 @@ export async function GET(request:Request){
       longitude: number | null;
       updatedAt: string | null;
     }>();
-    if(!origin)return Response.json({origin:null});
+    const privateHeaders={'Cache-Control':'private, no-store, max-age=0','Vary':'Cookie'};
+    if(!origin)return Response.json({origin:null},{headers:privateHeaders});
 
     let shippingMethods: string[] = [];
     let regionNames: {province?:string;city?:string;district?:string;subdistrict?:string} | undefined;
@@ -46,8 +47,8 @@ export async function GET(request:Request){
         shippingMethods,
         regionNames,
       }
-    });
-  }catch(error){return errorResponse(error)}
+    },{headers:privateHeaders});
+  }catch(error){const response=errorResponse(error);response.headers.set('Cache-Control','private, no-store, max-age=0');response.headers.set('Vary','Cookie');return response}
 }
 
 export async function POST(request:Request){
@@ -81,7 +82,7 @@ export async function POST(request:Request){
     await db().prepare(`INSERT INTO seller_shipping_origins (owner_id,label,recipient_name,phone,address_line,city,postal_code,area_id,latitude,longitude,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP) ON CONFLICT(owner_id) DO UPDATE SET label=excluded.label,recipient_name=excluded.recipient_name,phone=excluded.phone,address_line=excluded.address_line,city=excluded.city,postal_code=excluded.postal_code,area_id=excluded.area_id,latitude=excluded.latitude,longitude=excluded.longitude,updated_at=CURRENT_TIMESTAMP`).bind(profile.id,label,recipientName,phone,address,city,postalCode,areaId,latitude,longitude).run();
     const listingUpdate=await db().prepare("UPDATE listings SET city=? WHERE seller_id=? AND status='ACTIVE' AND type='WTS'").bind(city,profile.id).run();
     await db().prepare('UPDATE profiles SET phone=? WHERE id=?').bind(phone,profile.id).run();
-    return Response.json({ok:true, shippingMethods,updatedListings:listingUpdate.meta.changes});
+    return Response.json({ok:true, shippingMethods,updatedListings:listingUpdate.meta.changes},{headers:{'Cache-Control':'private, no-store, max-age=0','Vary':'Cookie'}});
   }catch(error){return errorResponse(error)}
 }
 
@@ -95,6 +96,6 @@ export async function PATCH(request:Request){
     const result=await db().prepare('UPDATE seller_shipping_origins SET recipient_name=?,phone=?,updated_at=CURRENT_TIMESTAMP WHERE owner_id=?').bind(recipientName,phone,profile.id).run();
     if(!result.meta.changes)return Response.json({error:'Save a delivery address first.'},{status:400});
     await db().prepare('UPDATE profiles SET phone=? WHERE id=?').bind(phone,profile.id).run();
-    return Response.json({ok:true,recipientName,phone},{headers:{'Cache-Control':'private, no-store'}});
+    return Response.json({ok:true,recipientName,phone},{headers:{'Cache-Control':'private, no-store, max-age=0','Vary':'Cookie'}});
   }catch(error){return errorResponse(error)}
 }

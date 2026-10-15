@@ -626,40 +626,32 @@ function ProfileForm({
   // Load saved shipping origin
   useEffect(()=>{
     let active=true;
-    api<{origin:ShippingOrigin|null}>('/api/shipping/origin',undefined,'GET')
+    const load=()=>api<{origin:ShippingOrigin|null}>('/api/shipping/origin',undefined,'GET')
       .then(res=>{
-        if(!active||!res?.origin)return;
-        setShippingOrigin(res.origin);
-        setShippingRecipient(res.origin.recipientName||profile.display_name||'');
-        setShippingPhone(res.origin.phone||profile.phone||'');
-        setShippingAddress(res.origin.addressLine||'');
-        const c = res.origin.city||'';
-        setShippingCity(res.origin.regionNames?.city||c);
-        if(res.origin.regionNames?.province)setShippingProvince(res.origin.regionNames.province);
-        if(res.origin.regionNames?.district)setShippingDistrict(res.origin.regionNames.district);
-        if(res.origin.regionNames?.subdistrict)setShippingSubdistrict(res.origin.regionNames.subdistrict);
-        setShippingPostalCode(res.origin.postalCode||'');
-        if (typeof res.origin.latitude === 'number') setShippingLatitude(res.origin.latitude);
-        if (typeof res.origin.longitude === 'number') setShippingLongitude(res.origin.longitude);
-        if (res.origin.areaId) setShippingAreaId(res.origin.areaId);
-
-        // Infer province and district if city matches known regions
-        if (c&&!res.origin.regionNames?.province) {
-          for (const prov of INDONESIAN_REGIONS) {
-            const foundCity = prov.cities.find(ct => ct.name.toLowerCase() === c.toLowerCase());
-            if (foundCity) {
-              setShippingProvince(prov.name);
-              break;
-            }
-          }
-        }
-        if(Array.isArray(res.origin.shippingMethods)){
-          setShippingMethods(normalizeCourierMethods(res.origin.shippingMethods));
-        }
-      })
-      .catch(()=>{/* no-op */});
-    return()=>{active=false};
-  },[]);
+        if(!active)return;
+        const origin=res?.origin;
+        if(origin&&String(origin.ownerId)!==String(profile.id)){setShippingOrigin(null);return}
+        setShippingOrigin(origin??null);
+        if(!origin){setShippingRecipient(profile.display_name||'');setShippingPhone(profile.phone||'');setShippingAddress('');setShippingProvince('');setShippingCity('');setShippingDistrict('');setShippingSubdistrict('');setShippingPostalCode('');setShippingAreaId(null);setShippingLatitude(null);setShippingLongitude(null);return}
+        setShippingRecipient(origin.recipientName||profile.display_name||'');
+        setShippingPhone(origin.phone||profile.phone||'');
+        setShippingAddress(origin.addressLine||'');
+        const c = origin.city||'';
+        setShippingCity(origin.regionNames?.city||c);
+        setShippingProvince(origin.regionNames?.province||'');
+        setShippingDistrict(origin.regionNames?.district||'');
+        setShippingSubdistrict(origin.regionNames?.subdistrict||'');
+        setShippingPostalCode(origin.postalCode||'');
+        setShippingLatitude(typeof origin.latitude === 'number'?origin.latitude:null);
+        setShippingLongitude(typeof origin.longitude === 'number'?origin.longitude:null);
+        setShippingAreaId(origin.areaId||null);
+        if(c&&!origin.regionNames?.province){for(const prov of INDONESIAN_REGIONS){if(prov.cities.some(ct=>ct.name.toLowerCase()===c.toLowerCase())){setShippingProvince(prov.name);break}}}
+        if(Array.isArray(origin.shippingMethods))setShippingMethods(normalizeCourierMethods(origin.shippingMethods));
+      }).catch(()=>{/* Keep the editable form available when loading fails. */});
+    void load();
+    window.addEventListener('vivreplay:shipping-updated',load);
+    return()=>{active=false;window.removeEventListener('vivreplay:shipping-updated',load)};
+  },[profile.id,profile.display_name,profile.phone]);
 
   // Fast area search effect
   useEffect(() => {
@@ -863,21 +855,21 @@ function ProfileForm({
         label: 'Primary origin',
       }, 'POST');
       if (res.ok) {
-        setShippingOrigin({
-          ownerId: profile.id,
-          label: 'Primary origin',
-          recipientName: shippingRecipient.trim(),
-          phone: shippingPhone.trim(),
-          addressLine: shippingAddress.trim(),
-          city: shippingCity.trim(),
-          regionNames:{province:shippingProvince,city:shippingCity,district:shippingDistrict,subdistrict:shippingSubdistrict},
-          postalCode: shippingPostalCode.trim(),
-          shippingMethods: activeCourierIds,
-          areaId: shippingAreaId || null,
-          latitude: shippingLatitude,
-          longitude: shippingLongitude,
-          updatedAt: new Date().toISOString(),
-        });
+        const saved=await api<{origin:ShippingOrigin|null}>('/api/shipping/origin',undefined,'GET');
+        if(!saved.origin||String(saved.origin.ownerId)!==String(profile.id))throw new Error(t('Address was saved but could not be reloaded. Please reload before leaving this page.','Alamat tersimpan tetapi tidak dapat dimuat ulang. Muat ulang halaman sebelum meninggalkan halaman ini.'));
+        setShippingOrigin(saved.origin);
+        setShippingRecipient(saved.origin.recipientName||'');
+        setShippingPhone(saved.origin.phone||'');
+        setShippingAddress(saved.origin.addressLine||'');
+        setShippingCity(saved.origin.regionNames?.city||saved.origin.city||'');
+        setShippingProvince(saved.origin.regionNames?.province||'');
+        setShippingDistrict(saved.origin.regionNames?.district||'');
+        setShippingSubdistrict(saved.origin.regionNames?.subdistrict||'');
+        setShippingPostalCode(saved.origin.postalCode||'');
+        setShippingAreaId(saved.origin.areaId||null);
+        setShippingLatitude(saved.origin.latitude??null);
+        setShippingLongitude(saved.origin.longitude??null);
+        if(Array.isArray(saved.origin.shippingMethods))setShippingMethods(normalizeCourierMethods(saved.origin.shippingMethods));
         window.dispatchEvent(new Event('vivreplay:shipping-updated'));
         toast.success(t('Shipping settings saved successfully!','Alamat & metode pengiriman berhasil disimpan!'));
       }
