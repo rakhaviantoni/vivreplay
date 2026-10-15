@@ -798,8 +798,8 @@ html[data-theme='dark'] .market-account-unified-body.is-listings .market-listing
 /* Keep progress movement on the current step's outline only. */
 .market-order-progress-marker,.market-order-progress-icon,.market-order-progress-label{animation:none!important;transition:none!important;transform:none!important;filter:none!important}
 .market-order-progress li.is-current .market-order-progress-marker{box-shadow:none!important}
-.market-order-progress li.is-current .market-order-progress-marker::before{animation:market-order-border-turn 7s linear infinite!important;opacity:.68;transition:opacity .2s ease,filter .2s ease}
-@media(hover:hover){.market-order-progress li.is-current:hover .market-order-progress-marker::before{animation-duration:2.6s!important;animation-direction:reverse!important;opacity:1;filter:saturate(1.3)}}
+.market-order-progress li.is-current .market-order-progress-marker::before{animation:market-order-border-turn 8s linear infinite!important;opacity:.62;transition:opacity .24s ease,filter .24s ease}
+@media(hover:hover){.market-order-progress li.is-current:hover .market-order-progress-marker::before{animation-duration:3.6s!important;opacity:1;filter:saturate(1.18)}}
 @media(prefers-reduced-motion:reduce){.market-order-progress li.is-current .market-order-progress-marker::before{animation:none!important;transition:none}}
 
 /* Offer context uses a single card for one printing and a restrained fan for bundles. */
