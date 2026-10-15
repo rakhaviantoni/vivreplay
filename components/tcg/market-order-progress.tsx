@@ -9,7 +9,7 @@ export function MarketOrderProgress({status,role,language}:Props){
   const labels=id?(role==='buyer'?['Pembayaran','Penjual kirim','Dalam perjalanan','Selesai']:['Pembeli bayar','Siapkan pesanan','Dalam perjalanan','Terkirim']):(role==='buyer'?['Payment','Seller ships','In transit','Complete']:['Buyer pays','Prepare order','In transit','Delivered']);
   return <ol className="market-order-progress" aria-label={id?'Progres pesanan':'Order progress'}>
     {labels.map((label,index)=><li key={label} className={index<current?'is-complete':index===current?'is-current':'is-upcoming'} aria-current={index===current?'step':undefined}>
-      <span className="market-order-progress-marker">{index<current&&<Check size={12} weight="bold"/>}</span>
+      <span className="market-order-progress-marker" aria-hidden="true">{index<current?<Check size={12} weight="bold"/>:index+1}</span>
       <span className="market-order-progress-label">{label}</span>
     </li>)}
   </ol>;
