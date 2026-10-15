@@ -2868,15 +2868,12 @@ html[data-theme='dark'] .checkout-payment-countdown.is-urgent>svg,html[data-them
 .checkout-tracking-history>strong{color:var(--vp-ink,#28251f);text-transform:capitalize}
 .checkout-tracking-history>small{text-align:center;line-height:1.45}
 .checkout-tracking-history>.button{min-height:34px;margin-top:4px}.checkout-tracking-history>.market-checkout-tracking-refresh{display:grid;width:38px;min-width:38px;height:38px;min-height:38px;place-items:center;padding:0}
-.checkout-market-result{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(300px,.9fr);gap:10px 22px;max-width:1040px;margin:24px auto;text-align:left}
-.checkout-market-result>svg,.checkout-market-result>h2,.checkout-market-result>p,.checkout-market-result>.market-order-progress,.checkout-market-result>.market-shipping-deadline,.checkout-market-result>.market-dispute-panel,.checkout-market-result>.market-dispute-error{grid-column:1/-1}
-.checkout-market-result>svg{margin:0 0 2px;color:var(--accent,#b78327)}
-.checkout-market-result>.checkout-order-breakdown{grid-column:1;grid-row:auto;grid-template-columns:minmax(0,1.08fr) minmax(220px,.92fr);align-items:start;gap:18px}
-.checkout-market-result:not(:has(>.checkout-shipping-summary))>.checkout-order-breakdown{grid-column:1/-1}
-.checkout-market-result>.checkout-order-breakdown .checkout-grand-total{grid-column:1/-1}
-.checkout-market-result>.checkout-shipping-summary{grid-column:2;grid-row:auto;align-self:start;margin:0}
-.checkout-market-result>.market-dispute-panel{grid-column:1/-1}
-@media(max-width:780px){.checkout-market-result{grid-template-columns:minmax(0,1fr);gap:12px}.checkout-market-result>.checkout-order-breakdown,.checkout-market-result>.checkout-shipping-summary{grid-column:1;grid-template-columns:minmax(0,1fr)}.checkout-market-result>.checkout-order-breakdown .checkout-grand-total{grid-column:1}}
+.checkout-market-result{max-width:600px;margin:54px auto;text-align:center}
+.checkout-market-result>svg{margin-inline:auto}
+.checkout-market-result>.checkout-order-breakdown{width:100%;margin:14px 0}
+.checkout-market-result>.checkout-shipping-summary{margin:8px 0 14px}
+.checkout-market-result>.market-dispute-panel{width:100%;margin:10px 0;text-align:left}
+@media(max-width:600px){.checkout-market-result{margin:24px auto;padding:18px}}
 .checkout-message p,.checkout-result p{color:var(--muted,#716a5e);line-height:1.6}
 @media(max-width:600px){.checkout-message{margin:24px auto;padding:18px}.checkout-auth-message{grid-template-columns:24px minmax(0,1fr);gap:10px}.checkout-message-content{gap:10px}}
 .checkout-pro-benefits>svg{color:var(--accent,#b78327)}
@@ -4114,3 +4111,34 @@ html[data-theme='dark'] .market-listing-view-as-toggle button[aria-pressed="true
   :is(.market-cart-sheet-listing,.checkout-listing-group) .market-feed-stack .market-feed-art,:is(.market-cart-sheet-listing,.checkout-listing-group) .market-feed-stack .tcg-card.printing-image::after{transition:none!important}
   :is(.market-cart-sheet-listing,.checkout-listing-group):is(:hover,:focus-within) .market-feed-stack .tcg-card.printing-image::after{opacity:0!important;transform:none!important}
 }
+
+/* Shared delivery layout for the order page and the Orders panel. */
+.checkout-shipping-summary,.market-order-shipping-detail{border:1px solid var(--line,#dfd1b8);border-radius:9px;background:var(--surface-raised,#fffaf0);color:var(--ink,#28251f);text-align:left}
+.checkout-shipping-summary{justify-items:stretch;gap:10px;padding:12px}
+.checkout-shipping-summary>strong{color:var(--muted,#716a5e);font-size:10px;letter-spacing:.04em;text-transform:uppercase}
+.checkout-shipping-provider{padding:0 0 9px;border-bottom:1px solid var(--line,#dfd1b8)}
+.checkout-shipping-provider>strong{font-size:13px}
+.checkout-shipping-provider>span{font-size:11px}
+.checkout-tracking-number.market-order-tracking-number{display:grid;grid-template-columns:1fr;justify-content:start;gap:4px;width:100%;margin:0;padding:0;border:0}
+.market-order-tracking-number>small{color:var(--muted);font-size:10px}
+.market-order-tracking-number>div{display:flex;align-items:center;gap:7px;min-width:0}
+.market-order-tracking-number>div>strong{font-size:12px}
+.market-order-tracking-copy{display:inline-grid;width:28px;min-width:28px;height:28px;min-height:28px;place-items:center;padding:0;border-radius:6px}
+.checkout-delivery-address{padding:9px 0 0;border-top:1px solid var(--line,#dfd1b8);color:var(--ink,#28251f)}
+.market-order-shipping-detail{padding:0;overflow:hidden}
+.market-order-shipping-detail>summary{display:grid;grid-template-columns:auto minmax(0,1fr) 18px;align-items:center;gap:10px;padding:11px 12px;cursor:pointer;list-style:none}
+.market-order-shipping-detail summary>span:first-child{font-size:10px}
+.market-order-shipping-carrier{display:grid;gap:2px;min-width:0}
+.market-order-shipping-carrier>strong{color:var(--ink);font-size:12px}
+.market-order-shipping-carrier>small{color:var(--muted);font-size:10px}
+.market-order-shipping-chevron{color:var(--muted);transition:transform .18s ease}
+.market-order-shipping-detail[open] .market-order-shipping-chevron{transform:rotate(180deg)}
+.market-order-shipping-detail>.market-order-tracking-number,.market-order-shipping-detail>.market-order-shipping-status,.market-order-shipping-detail>strong,.market-order-shipping-detail>p{margin:0 12px;padding:9px 0;border-top:1px solid var(--line)}
+.market-order-shipping-detail>.market-order-tracking-number{display:grid;grid-template-columns:1fr;gap:4px}
+.market-order-shipping-detail>.market-order-tracking-number>div{display:flex;align-items:center;gap:7px}
+.market-order-shipping-detail>.market-order-shipping-status{display:grid;gap:3px;color:var(--muted);font-size:10px}
+.market-order-shipping-detail>.market-order-shipping-status strong{color:var(--ink);font-size:12px;font-weight:650;text-transform:capitalize}
+.market-order-shipping-detail>strong{display:block;color:var(--muted);font-size:10px}
+.market-order-shipping-detail>p{color:var(--ink);font-size:11px;line-height:1.5}
+.market-order-shipping-detail>p:last-child{padding-bottom:10px}
+@media(max-width:620px){.checkout-market-result{margin:24px auto;padding:18px}.checkout-shipping-summary{padding:10px}.market-order-shipping-detail>summary{gap:8px;padding:10px}}

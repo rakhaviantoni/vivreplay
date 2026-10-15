@@ -652,3 +652,15 @@ html[data-theme='dark'] .market-account-unified-body.is-listings .market-listing
 @media(max-width:520px){.market-account-unified:has(.market-offer-conversation-panel){padding:10px!important}.market-offer-conversation-panel-heading .market-offer-context{grid-template-columns:46px minmax(0,1fr);}.market-offer-conversation-panel .market-offer-context-total{grid-column:2;justify-items:start}.market-offer-conversation-panel .market-offer-messages{min-height:100px}}
 
 .market-offer-message>small{display:flex;align-items:center;justify-content:space-between;gap:12px}.market-offer-message>small time{flex:none;color:var(--muted);font-size:9px;font-weight:500}.market-offer-round-bubble{display:grid;gap:5px}.market-offer-round-bubble>p+p{color:var(--muted);font-size:11px!important}.market-offer-round-bubble .market-offer-round-status{justify-self:start}.market-offer-round-expiry{color:var(--muted);font-size:9px}
+
+.market-order-progress-marker{position:relative;will-change:transform}
+.market-order-progress-label{transition:color .22s ease,transform .22s ease}
+.market-order-progress li.is-current .market-order-progress-marker::after{position:absolute;inset:-4px;border:1px solid color-mix(in srgb,var(--accent) 62%,transparent);border-radius:50%;content:"";pointer-events:none;animation:market-order-current-ring 2.4s ease-out infinite}
+.market-order-progress li.is-current .market-order-progress-label{transform:translateY(-1px);font-weight:750}
+.market-order-progress li.is-complete .market-order-progress-marker{animation:market-order-step-complete .24s ease-out both}
+.market-order-shipping-detail[open]>.market-order-tracking-number,.market-order-shipping-detail[open]>.market-order-shipping-status,.market-order-shipping-detail[open]>strong,.market-order-shipping-detail[open]>p{animation:market-order-shipping-row-in .2s ease-out both}
+@keyframes market-order-current-ring{0%{opacity:.55;transform:scale(.82)}75%,100%{opacity:0;transform:scale(1.55)}}
+@keyframes market-order-step-complete{from{transform:scale(.82)}to{transform:scale(1)}}
+@keyframes market-order-shipping-row-in{from{opacity:.65;transform:translateY(-2px)}to{opacity:1;transform:translateY(0)}}
+@media(hover:hover){.market-order-progress li.is-current:hover .market-order-progress-label{color:var(--accent);transform:translateY(-2px)}}
+@media(prefers-reduced-motion:reduce){.market-order-progress li.is-current .market-order-progress-marker::after,.market-order-progress li.is-complete .market-order-progress-marker,.market-order-shipping-detail[open]>.market-order-tracking-number,.market-order-shipping-detail[open]>.market-order-shipping-status,.market-order-shipping-detail[open]>strong,.market-order-shipping-detail[open]>p{animation:none}.market-order-progress-label,.market-order-shipping-chevron{transition:none}}
