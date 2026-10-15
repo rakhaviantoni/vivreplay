@@ -63,7 +63,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm run install:ci
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: vivreplay-worker-build
           path: dist/
