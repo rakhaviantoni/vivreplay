@@ -7,6 +7,7 @@ export function proxy(request:NextRequest){
   requestHeaders.set('x-vivreplay-path',pathname);
   if(pathname!=='/id'&&!pathname.startsWith('/id/'))return NextResponse.next({request:{headers:requestHeaders}});
 
+  requestHeaders.set('x-locale','ID');
   const targetPath=pathname.replace(/^\/id(?=\/|$)/,'')||'/';
   const response=NextResponse.rewrite(new URL(`${targetPath}${search}`,request.url),{request:{headers:requestHeaders}});
   response.cookies.set('vivreplay-locale','ID',{path:'/',maxAge:60*60*24*365,sameSite:'lax'});

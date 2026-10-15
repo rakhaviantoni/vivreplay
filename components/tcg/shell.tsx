@@ -101,6 +101,7 @@ function Footer({language}:{language:Locale}) {
       <nav className="footer-column" aria-label={id?'Market dan bantuan':'Market and help'}>
         <b>{id?'Market dan bantuan':'Market & help'}</b>
         <Link href={getHref('/market')}>Market</Link>
+        <Link href={getHref('/help')}>{id?'Pusat bantuan':'Help center'}</Link>
         <Link href={getHref('/faq')}>FAQ</Link>
         <FeedbackLaunchButton request={{initialCategory:'feedback'}} className="footer-feedback-trigger">{id?'Masukan & laporan':'Feedback & reports'}</FeedbackLaunchButton>
         <a href={`https://wa.me/6287892660993?text=${encodeURIComponent(id?'Halo VivrePlay, saya perlu bantuan tentang ':'Hi VivrePlay, I need help with ')}`} target="_blank" rel="noreferrer">WhatsApp</a>
@@ -129,7 +130,7 @@ export function Shell({children,initialPath='/'}:{children:React.ReactNode;initi
   const adminRoute=normalizedPath==='/admin'||normalizedPath.startsWith('/admin/');
   const {data}=useAccount();
   const [theme,setTheme]=useState<'light'|'dark'>('light');
-  const [language,setLanguage]=useState<Locale>('EN');
+  const [language,setLanguage]=useState<Locale>(()=>initialPath==='/id'||initialPath.startsWith('/id/')?'ID':'EN');
   const [scrolled,setScrolled]=useState(false);
   const [feedbackOpen,setFeedbackOpen]=useState(false);
   const [feedbackRequest,setFeedbackRequest]=useState<(FeedbackRequest&{key:number})|null>(null);

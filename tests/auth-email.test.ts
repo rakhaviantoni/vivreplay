@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { getAppUrl, productionEmailUrl, renderAuthEmail } from "../lib/auth-email";
+import { getAppUrl, productionEmailUrl, renderAuthEmail, supportWhatsAppUrl } from "../lib/auth-email";
 
 test("outbound email always uses the public VivrePlay domain", () => {
   const prior = process.env.BETTER_AUTH_URL;
@@ -24,4 +24,12 @@ test("outbound email always uses the public VivrePlay domain", () => {
   else process.env.BETTER_AUTH_URL = prior;
   if (priorFrom === undefined) delete process.env.VIVREPLAY_EMAIL_FROM;
   else process.env.VIVREPLAY_EMAIL_FROM = priorFrom;
+});
+
+test("support WhatsApp links include localized order complaint context", () => {
+  const english = new URL(supportWhatsAppUrl("en", "VPM-123"));
+  const indonesian = new URL(supportWhatsAppUrl("id-ID", "VPM-123"));
+  assert.equal(english.searchParams.get("text"), "Hi VivrePlay, I'd like to report an issue with order VPM-123. The issue is: ");
+  assert.equal(indonesian.searchParams.get("text"), "Halo VivrePlay, saya ingin mengajukan komplain untuk pesanan VPM-123. Kendala saya: ");
+  assert.equal(new URL(supportWhatsAppUrl("en")).searchParams.get("text"), "Hi VivrePlay, I need help with ");
 });

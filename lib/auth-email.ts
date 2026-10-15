@@ -26,6 +26,18 @@ export function getAppUrl(): string {
   return DEFAULT_APP_URL;
 }
 
+export function supportWhatsAppUrl(locale: string, orderCode?: string): string {
+  const id = locale.toLowerCase().startsWith("id");
+  const message = orderCode?.trim()
+    ? id
+      ? `Halo VivrePlay, saya ingin mengajukan komplain untuk pesanan ${orderCode}. Kendala saya: `
+      : `Hi VivrePlay, I'd like to report an issue with order ${orderCode}. The issue is: `
+    : id
+      ? "Halo VivrePlay, saya perlu bantuan tentang "
+      : "Hi VivrePlay, I need help with ";
+  return `https://wa.me/6287892660993?text=${encodeURIComponent(message)}`;
+}
+
 /** Authentication tokens keep their path and query, but email always opens the public app. */
 export function productionEmailUrl(value: string | undefined, fallback: string): string {
   const appUrl = getAppUrl();

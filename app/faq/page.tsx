@@ -58,7 +58,7 @@ export default async function FaqPage(){
   const structuredData={'@context':'https://schema.org','@type':'FAQPage',mainEntity:groups.flatMap(group=>group.items).map(item=>({'@type':'Question',name:item.question,acceptedAnswer:{'@type':'Answer',text:item.plainAnswer}}))};
   return <main className="page faq-page">
     <script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(structuredData)}}/>
-    <header className="faq-heading"><h1>{id?'Tanya jawab':'FAQ'}</h1><p>{id?'Jawaban tentang akun, koleksi, biaya Market, dan pesanan.':'Answers about accounts, your collection, Market fees, and orders.'}</p></header>
+    <header className="faq-heading"><div><h1>{id?'Tanya jawab':'FAQ'}</h1><p>{id?'Jawaban singkat tentang akun, koleksi, biaya Market, dan pesanan.':'Short answers about accounts, your collection, Market fees, and orders.'}</p></div><Link className="faq-help-link" href={id?'/id/help':'/help'}>{id?'Buka pusat bantuan':'Open Help Center'}</Link></header>
     <nav className="faq-jump-links" aria-label={id?'Topik FAQ':'FAQ topics'}>{groups.map((group,index)=><a key={group.title} href={`#faq-group-${index}`}>{group.title}</a>)}</nav>
     {groups.map((group,index)=><section className="faq-group" id={`faq-group-${index}`} key={group.title} aria-labelledby={`faq-group-heading-${index}`}>
       <h2 id={`faq-group-heading-${index}`}>{group.title}</h2>
