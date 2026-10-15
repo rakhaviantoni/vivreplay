@@ -17,7 +17,6 @@ import {toast} from 'sonner';
 import {getDaysUntilExpiration, isListingExpired} from '@/lib/market/policy';
 import {FeedbackLaunchButton} from './feedback-launch';
 import {AddEditItemModal} from './vault/modals/add-edit-item-modal';
-import {OfferConversation} from './vault/offer-conversation';
 import {PushNotificationPrompt} from './push-notification-settings';
 import {marketListingPath} from '@/lib/market/listing-url';
 import {PhoneInput} from '@/components/tcg/phone-input';
@@ -423,7 +422,6 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
   const [addCardsOpen,setAddCardsOpen]=useState(false);
   const {data:session,isPending:sessionPending}=authClient.useSession();
   const [submitting,setSubmitting]=useState(false); const [activeOffer,setActiveOffer]=useState<ActiveListingOffer|null>(null);
-  const [conversationOfferId,setConversationOfferId]=useState<string|null>(null);
   const [offerJustSent,setOfferJustSent]=useState(false);
   const [offerCheckComplete,setOfferCheckComplete]=useState(false);
   const [language,setLanguage]=useState<'EN'|'ID'>('EN');
@@ -535,7 +533,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
   const isBuying=listingType==='WTS';
   const acceptsOffers=!isBuying||negotiable;
   const actionLabel=isBuying?t('Make offer','Ajukan penawaran'):t('Offer cards','Tawarkan kartu');
-  const openOfferConversation=(offerId:string)=>setConversationOfferId(offerId);
+  const openOfferConversation=(offerId:string)=>window.dispatchEvent(new CustomEvent('vivreplay:open-market-offer',{detail:offerId}));
   useEffect(()=>{
     let active=true;
     if(sessionPending)return()=>{active=false};
@@ -808,7 +806,6 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
       </div>
       {offerJustSent&&<PushNotificationPrompt language={language} message="offer"/>}
     </footer>}
-    {conversationOfferId&&<OfferConversation key={conversationOfferId} offerId={conversationOfferId} language={language} open onOpenChange={open=>{if(!open)setConversationOfferId(null)}} onChanged={()=>router.refresh()}/>}
   </section>;
 }
 
