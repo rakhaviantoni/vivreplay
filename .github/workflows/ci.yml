@@ -68,19 +68,15 @@ jobs:
           name: vivreplay-worker-build
           path: dist/
       - name: Check Cloudflare deployment credentials
-        id: cloudflare
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
-            echo "configured=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Production deploy skipped. Add CLOUDFLARE_API_TOKEN (secret) and CLOUDFLARE_ACCOUNT_ID (repository variable) to enable it."
-          else
-            echo "configured=true" >> "$GITHUB_OUTPUT"
+            echo "::error::Configure CLOUDFLARE_API_TOKEN (repository secret) and CLOUDFLARE_ACCOUNT_ID (repository variable) to deploy production."
+            exit 1
           fi
       - name: Deploy the tested build
-        if: steps.cloudflare.outputs.configured == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
