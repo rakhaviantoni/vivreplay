@@ -41,7 +41,7 @@ export function OffersTab({language,timeZone='Asia/Jakarta',initialConversationI
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(()=>{void refresh()},[refresh]);
   useEffect(()=>{const timer=window.setInterval(()=>{if(document.visibilityState==='visible')void refresh(true)},30_000);return()=>window.clearInterval(timer)},[refresh]);
-  useEffect(()=>{const timer=window.setInterval(()=>setNow(Date.now()),60_000);return()=>window.clearInterval(timer)},[]);
+  useEffect(()=>{const timer=window.setInterval(()=>setNow(Date.now()),15_000);return()=>window.clearInterval(timer)},[]);
   if(conversationId)return <section className="market-activity-panel"><OfferConversation offerId={conversationId} language={language} open onOpenChange={open=>{if(!open)setConversationId(null)}} onChanged={()=>void refresh()} presentation="panel"/></section>;
   if(loading)return <MarketActivityLoading kind="offers" label={id?'Memuat penawaran…':'Loading your offers…'}/>;
   return <section className="market-activity-panel" aria-label={id?'Penawaran Market':'Market offers'}>
@@ -50,6 +50,8 @@ export function OffersTab({language,timeZone='Asia/Jakarta',initialConversationI
     {error&&<div className="market-activity-error" role="alert"><span>{error}</span><button type="button" onClick={()=>void refresh()}>{id?'Coba lagi':'Try again'}</button></div>}
     {!offers.length?<VaultPanelEmpty icon={<Conversation size={22}/>} title={id?'Belum ada penawaran':'No offers yet'} description={id?'Penawaran yang Anda kirim atau terima akan muncul di sini.':'Offers you send or receive will appear here.'}/>:<div className="market-activity-list">{offers.map(offer=>{
       const expiryCandidates=[offer.offerExpiresAt,offer.listingExpiresAt].filter((value):value is string=>Boolean(value)).map(expiryTime).filter((value):value is number=>value!==null);
+      const createdAt=expiryTime(offer.createdAt);
+      if(offer.status==='PENDING'&&createdAt!==null)expiryCandidates.push(createdAt+24*60*60*1000);
       const expiresAt=expiryCandidates.length?new Date(Math.min(...expiryCandidates)).toISOString():null;
       const expired=offer.status==='PENDING'&&expiresAt!==null&&new Date(expiresAt).getTime()<=now;
       const minutesLeft=expiresAt===null?null:Math.ceil(Math.max(0,new Date(expiresAt).getTime()-now)/60_000);
@@ -57,7 +59,7 @@ export function OffersTab({language,timeZone='Asia/Jakarta',initialConversationI
       const statusLabel:Record<string,string>=id?{PENDING:'Menunggu',ACCEPTED:'Diterima',DECLINED:'Ditolak',COUNTERED:'Dibalas',EXPIRED:'Kedaluwarsa',UNAVAILABLE:'Kartu terjual'}:{PENDING:'Pending',ACCEPTED:'Accepted',DECLINED:'Declined',COUNTERED:'Countered',EXPIRED:'Expired',UNAVAILABLE:'Cards sold'};
       return <article className="market-activity-row market-offer-row" key={offer.threadId}>
       <MarketCardStack cards={offer.items}/>
-      <div className="market-activity-row-main"><div className="market-activity-row-title"><span className={`market-offer-direction is-${offer.direction}`}>{offer.direction==='received'?(id?'Diterima':'Received'):(id?'Terkirim':'Sent')}</span><span className={`vault-listing-status is-${status.toLowerCase()}`}>{statusLabel[status]??status}</span>{expiresAt&&offer.status==='PENDING'&&!expired&&<time className={`market-offer-countdown${minutesLeft!==null&&minutesLeft<60?' is-soon':''}`} dateTime={expiresAt} title={`${id?'Berakhir':'Expires'} ${dateLabel(expiresAt,id,timeZone)}`}>{id?'Berakhir dalam ':'Ends in '}{countdown(expiresAt,now,id)}</time>}</div><h3>{offer.listingTitle}</h3><p>{offer.counterparty|| (id?'Kolektor':'Collector')}<span>|</span>{offer.items.map(item=>`${item.quantity}× ${item.card?.name||item.card?.code||item.printingId}`).join(', ')}</p><small>{id?'Dibuat ':'Created '}{dateLabel(offer.createdAt,id,timeZone)}</small>{expired&&<small>{id?'Penawaran ini sudah kedaluwarsa':'This offer has expired'}</small>}</div>
+      <div className="market-activity-row-main"><div className="market-activity-row-title"><span className={`market-offer-direction is-${offer.direction}`}>{offer.direction==='received'?(id?'Diterima':'Received'):(id?'Terkirim':'Sent')}</span><span className={`vault-listing-status is-${status.toLowerCase()}`}>{statusLabel[status]??status}</span>{expiresAt&&offer.status==='PENDING'&&!expired&&<time className={`market-offer-countdown${minutesLeft!==null&&minutesLeft<60?' is-soon':''}`} dateTime={expiresAt} title={`${id?'Berakhir':'Expires'} ${dateLabel(expiresAt,id,timeZone)}`}>{id?'Berakhir dalam ':'Ends in '}{countdown(expiresAt,now,id)}</time>}</div><h3>{offer.listingTitle}</h3><p className="market-offer-row-meta"><span>{offer.counterparty|| (id?'Kolektor':'Collector')}</span><span>{offer.items.map(item=>`${item.quantity}× ${item.card?.name||item.card?.code||item.printingId}`).join(', ')}</span></p><small>{id?'Dibuat ':'Created '}{dateLabel(offer.createdAt,id,timeZone)}</small>{expired&&<small>{id?'Penawaran ini sudah kedaluwarsa':'This offer has expired'}</small>}</div>
       <strong className="market-activity-price">{money(offer.amount,offer.currency)}</strong>
       <button type="button" className="market-activity-primary" onClick={()=>setConversationId(offer.id)}><Conversation size={16}/><span>{id?'Buka percakapan':'Open conversation'}</span></button>
     </article>})}</div>}
