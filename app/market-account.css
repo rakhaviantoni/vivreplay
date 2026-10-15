@@ -721,6 +721,12 @@ html[data-theme='dark'] .market-account-unified-body.is-listings .market-listing
 @keyframes market-order-step-complete{from{transform:scale(.82)}to{transform:scale(1)}}
 @media(hover:hover){.market-order-progress li.is-current .market-order-progress-marker{transition:transform .18s ease,box-shadow .18s ease}.market-order-progress li.is-current:hover .market-order-progress-marker{transform:scale(1.14);box-shadow:0 3px 9px color-mix(in srgb,var(--accent) 32%,transparent)}}
 @media(prefers-reduced-motion:reduce){.market-order-progress li.is-current .market-order-progress-marker,.market-order-progress li.is-complete .market-order-progress-marker{animation:none}.market-order-progress li:not(:last-child)::after,.market-order-progress-marker{transition:none}}
+.market-order-progress li.is-current .market-order-progress-marker{isolation:isolate}
+.market-order-progress li.is-current .market-order-progress-marker::before{position:absolute;inset:-3px;z-index:0;padding:1.5px;border-radius:50%;background:conic-gradient(from 0deg,transparent 0 56%,color-mix(in srgb,var(--accent) 30%,transparent) 73%,var(--accent) 100%);content:"";pointer-events:none;-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:market-order-border-turn 6s linear infinite}
+.market-order-progress-icon{position:relative;z-index:1;transition:transform .2s cubic-bezier(.2,.7,.25,1),filter .2s ease}
+@keyframes market-order-border-turn{to{transform:rotate(1turn)}}
+@media(hover:hover){.market-order-progress li:hover .market-order-progress-icon{transform:translateY(-1px) scale(1.12) rotate(-4deg);filter:drop-shadow(0 1px 1px color-mix(in srgb,var(--ink) 18%,transparent))}.market-order-progress li.is-current:hover .market-order-progress-marker{transform:scale(1.08);box-shadow:0 2px 5px color-mix(in srgb,var(--accent) 24%,transparent)}}
+@media(prefers-reduced-motion:reduce){.market-order-progress li.is-current .market-order-progress-marker::before{animation:none}.market-order-progress-icon{transition:none}}
 
 /* Offer context uses a single card for one printing and a restrained fan for bundles. */
 .market-offer-conversation-panel-heading .market-offer-context{min-height:76px}
