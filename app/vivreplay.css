@@ -4183,3 +4183,18 @@ html[data-theme='dark'] .market-listing-view-as-toggle button[aria-pressed="true
 .market-shipment-history h4 .market-checkout-tracking-refresh:active:not(:disabled){transform:scale(.94)}
 .market-shipment-history h4 .market-checkout-tracking-refresh:focus-visible,.market-order-tracking-copy:focus-visible{outline:2px solid var(--accent,#b78327);outline-offset:2px}
 @media(prefers-reduced-motion:reduce){.market-order-tracking-copy,.market-shipment-history h4 .market-checkout-tracking-refresh{transition:none}}
+
+/* Shared delivery headings and separators on the order page and in Market orders. */
+.market-shipping-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0}
+.market-shipping-section-title{color:var(--muted,#716a5e)!important;font-size:10px!important;font-weight:750!important;letter-spacing:.04em!important;line-height:1.3!important;text-transform:uppercase!important}
+.market-shipping-heading .market-order-print-label{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:32px;flex:none;padding:0 10px;font-size:11px;text-decoration:none}
+.market-shipping-heading .market-order-print-label:hover{text-decoration:none}
+.checkout-shipping-summary{gap:12px}
+.checkout-shipping-summary>.market-shipping-heading{width:100%}
+.checkout-shipping-summary>.checkout-shipping-provider{padding:0!important;border:0!important}
+.checkout-shipping-summary .checkout-tracking-number.market-order-tracking-number{margin:0!important;padding:0!important;border:0!important}
+.checkout-shipping-summary .market-order-shipping-status{padding:0!important;border:0!important}
+.checkout-delivery-address>strong.market-shipping-section-title{margin:0 0 2px;color:var(--muted,#716a5e)!important}
+.market-order-shipping-status>small.market-shipping-section-title{color:var(--muted,#716a5e)!important}
+.market-shipment-history h4.market-shipping-section-title{margin:0 0 8px!important;color:var(--muted,#716a5e)!important;font-size:10px!important;font-weight:750!important;letter-spacing:.04em!important;line-height:1.3!important;text-transform:uppercase!important}
+@media(max-width:620px){.market-shipping-heading{gap:8px}.market-shipping-heading .market-order-print-label{min-height:30px;padding-inline:8px;font-size:10px}}

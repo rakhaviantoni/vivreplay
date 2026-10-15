@@ -13,7 +13,7 @@ export function MarketShipmentHistory({status,history,language,timezone,headingA
   const date=(value:string)=>{const parsed=new Date(value);return Number.isNaN(parsed.getTime())?value:new Intl.DateTimeFormat(indonesian?'id-ID':'en-ID',{dateStyle:'medium',timeStyle:'short',timeZone:timezone}).format(parsed)};
   if(!status&&!scans.length&&!headingAction)return null;
   return <section className="market-shipment-history" aria-label={indonesian?'Riwayat pengiriman':'Shipment history'}>
-    <h4>{indonesian?'Riwayat pengiriman':'Shipment history'}{headingAction}</h4>
+    <h4 className="market-shipping-section-title">{indonesian?'Riwayat pengiriman':'Shipment history'}{headingAction}</h4>
     {scans.length?<ol>{scans.map((scan,index)=><li key={`${scan.updated_at??'scan'}-${index}`}><strong>{label(scan.status??status??'')}</strong>{scan.note&&<span>{scan.note}</span>}{scan.updated_at&&<time dateTime={scan.updated_at}>{date(scan.updated_at)}</time>}</li>)}</ol>:<p>{status?label(status):(indonesian?'Pembaruan kurir akan muncul di sini.':'Courier updates will appear here.')}</p>}
   </section>;
 }
