@@ -4,10 +4,11 @@ import {env} from 'cloudflare:workers';
 import type {MarketEmailEvent} from '@/lib/market/email-template-types';
 import {marketCardThumbnails} from '@/lib/server/market-card-thumbnails';
 import {marketShippingDeadline} from '@/lib/market/shipping-deadline';
+import {orderEmailPerspectiveLine} from '@/lib/market/order-email-perspective';
 
 type Event=MarketEmailEvent;
 type NotificationItem={name:string;code:string;language:string;variant:string;rarity?:string;condition?:string;quantity:number;unitAmount?:number;imageUrl?:string|null};
-export type NotificationDetails={participant?:string;participantRole?:'buyer'|'seller'|'cancelled-by';amount?:number;currency?:string;itemCount?:number;message?:string;photoCount?:number;orderCode?:string;listingTitle?:string;items?:NotificationItem[];subtotal?:number;shippingFee?:number;courier?:string;trackingNumber?:string;trackingStatus?:string;city?:string;postalCode?:string;shippingDeadline?:string;reportDeadline?:string;membershipDays?:number;membershipEndsAt?:string;expiresAt?:string;disputeDecision?:string;requestedResolution?:string;refundAmount?:number;shippingRefund?:number;decisionNote?:string;timezone?:string;region?:string};
+export type NotificationDetails={participant?:string;participantRole?:'buyer'|'seller'|'cancelled-by';recipientRole?:'buyer'|'seller';actorRole?:'buyer'|'seller';sellerPayoutAmount?:number;amount?:number;currency?:string;itemCount?:number;message?:string;reportReason?:string;photoCount?:number;orderCode?:string;listingTitle?:string;items?:NotificationItem[];subtotal?:number;shippingFee?:number;courier?:string;trackingNumber?:string;trackingStatus?:string;city?:string;postalCode?:string;shippingDeadline?:string;reportDeadline?:string;membershipDays?:number;membershipEndsAt?:string;expiresAt?:string;disputeDecision?:string;requestedResolution?:string;refundAmount?:number;shippingRefund?:number;decisionNote?:string;timezone?:string;region?:string};
 
 const copy:Record<Event,{en:{subject:string;line:string;cta:string};id:{subject:string;line:string;cta:string}}>= {
   'wishlist-match':{en:{subject:'A wishlist card is listed',line:'A listing matches your saved printing and preferences',cta:'View listing'},id:{subject:'Kartu yang Anda inginkan tersedia',line:'Ada listing yang cocok dengan cetakan dan preferensi Anda',cta:'Lihat listing'}},
@@ -44,6 +45,12 @@ const copy:Record<Event,{en:{subject:string;line:string;cta:string};id:{subject:
 
 const trackingStatusCopy:Record<string,{en:string;id:string}>={picking_up:{en:'The courier is on the way to collect your parcel',id:'Kurir sedang menuju lokasi penjual'},picked:{en:'Picked up by the courier',id:'Paket sudah dijemput kurir'},in_transit:{en:'In transit to you',id:'Paket sedang dalam perjalanan'},dropping_off:{en:'Out for delivery',id:'Paket sedang diantar'},delivered:{en:'Delivered',id:'Paket sudah diantar'},on_hold:{en:'Shipment is on hold',id:'Pengiriman tertahan'},rejected:{en:'Shipment was rejected',id:'Pengiriman ditolak'},cancelled:{en:'Shipment was cancelled',id:'Pengiriman dibatalkan'},return_in_transit:{en:'Returning to the seller',id:'Paket sedang dikembalikan ke penjual'},returned:{en:'Returned to the seller',id:'Paket sudah dikembalikan ke penjual'},disposed:{en:'Shipment was disposed of by the courier',id:'Paket dimusnahkan oleh kurir'},courier_not_found:{en:'No courier was assigned',id:'Kurir belum ditemukan'}};
 
+function trackingStatusLabel(value:string,id:boolean){
+  const known=trackingStatusCopy[value];
+  if(known)return known[id?'id':'en'];
+  return value.replace(/[_-]+/g,' ').replace(/\b\w/g,char=>char.toUpperCase());
+}
+
 function escapeHtml(value:string){return value.replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]??char))}
 
 function formatAmount(amount:number,currency:string,locale:string){try{return new Intl.NumberFormat(locale==='id'?'id-ID':'en-US',{style:'currency',currency:currency.toUpperCase(),maximumFractionDigits:currency.toUpperCase()==='JPY'?0:2}).format(amount)}catch{return `${currency.toUpperCase()} ${amount.toLocaleString()}`}}
@@ -67,6 +74,7 @@ function shippingDeadlineFromPayment(value:string|null|undefined,locale:string,t
   return deadline?formatDateTimeWithOffset(deadline,locale,region,timezone):undefined;
 }
 function eventDetail(event:Event,details:NotificationDetails|undefined){
+  if(event==='order-dispute-opened'&&details?.reportReason)return details.reportReason;
   if(event==='order-dispute-response'&&details?.message)return details.message;
   if(event==='order-dispute-resolved'&&details?.decisionNote)return details.decisionNote;
   if(event.startsWith('order-'))return undefined;
@@ -122,13 +130,8 @@ function personalizedCopy(event:Event,details:NotificationDetails|undefined,titl
       break;
     case 'order-paid':
       subject=id?`Pembayaran ${details?.orderCode??title} berhasil`:`Payment received for ${details?.orderCode??title}`;
-      if(details?.trackingNumber){
-        line=surface==='push'?(id?`Pesanan dikirim${details.courier?` via ${details.courier}`:''}, nomor resi: ${details.trackingNumber}`:`Your order shipped${details.courier?` via ${details.courier}`:''}, tracking number: ${details.trackingNumber}`):(id?'Pesanan Anda sudah dikirim, gunakan nomor resi di bawah untuk melacak paket.':'Your order has shipped, and you can track the parcel using the details below.');
-        cta=id?'Lacak pengiriman':'Track shipment';
-      }else{
-        line=id?'Pembayaran Anda sudah diterima, penjual akan menyiapkan kartu untuk dikirim.':'Your payment is confirmed, and the seller will prepare your cards for shipping.';
-        cta=id?'Lihat pesanan':'View order';
-      }
+      line=id?'Pembayaran Anda sudah diterima. Penjual akan menyiapkan pesanan untuk dikirim.':'Your payment is confirmed. The seller will prepare your order for shipping.';
+      cta=id?'Lihat pesanan':'View order';
       break;
     case 'order-seller-paid':
       subject=id?`Pesanan ${details?.orderCode??title} sudah dibayar`:`Order ${details?.orderCode??title} has been paid`;
@@ -139,13 +142,13 @@ function personalizedCopy(event:Event,details:NotificationDetails|undefined,titl
       line=id?`Paket dikirim${details?.courier?` dengan ${details.courier}`:''}${details?.trackingNumber?`, nomor resi ${details.trackingNumber}`:''}.`:`Your parcel was shipped${details?.courier?` with ${details.courier}`:''}${details?.trackingNumber?`, tracking number ${details.trackingNumber}`:''}.`;
       cta=id?'Lacak pengiriman':'Track shipment';break;
     case 'order-tracking':{
-      const status=trackingStatusCopy[details?.trackingStatus??''];
+      const status=details?.trackingStatus?trackingStatusLabel(details.trackingStatus,id):undefined;
       subject=id?`Pembaruan pengiriman ${details?.orderCode??title}`:`Shipment update for ${details?.orderCode??title}`;
       if(details?.trackingStatus==='delivered'){
         line=id?'Kurir menandai paket telah terkirim. Periksa kartu dan laporkan jika ada masalah dalam 48 jam setelah pengiriman.':'The carrier marked the parcel delivered. Check the cards and report a problem within 48 hours of delivery.';
         cta=id?'Periksa pesanan':'Review order';
       }else{
-        line=id?`${status?.id??'Status paket diperbarui'}${details?.courier?` oleh ${details.courier}`:''}${details?.trackingNumber?`, nomor resi ${details.trackingNumber}`:''}.`:`${status?.en??'Your parcel status changed'}${details?.courier?` with ${details.courier}`:''}${details?.trackingNumber?`, tracking number ${details.trackingNumber}`:''}.`;
+        line=id?`${status??'Status paket diperbarui'}${details?.courier?` oleh ${details.courier}`:''}${details?.trackingNumber?`, nomor resi ${details.trackingNumber}`:''}.`:`${status??'Your parcel status changed'}${details?.courier?` with ${details.courier}`:''}${details?.trackingNumber?`, tracking number ${details.trackingNumber}`:''}.`;
         cta=id?'Lacak pengiriman':'Track shipment';
       }
       break;
@@ -165,21 +168,19 @@ function personalizedCopy(event:Event,details:NotificationDetails|undefined,titl
       break;
     case 'order-received':
       subject=id?`${details?.orderCode??title} sudah diterima`:`${details?.orderCode??title} was delivered`;
-      line=surface==='push'?(id?`${name||'Pembeli'} mengonfirmasi ${cards?`penerimaan ${cards} dari ${title}`:`penerimaan pesanan ${title}`}, kartu sudah masuk ke koleksinya`:`${name||'The buyer'} confirmed delivery${cards?` of ${cards}`:''} from ${title}, and the cards are now in their collection`):(id?'Pembeli sudah mengonfirmasi penerimaan pesanan, kartu kini tercatat di koleksinya.':'The buyer confirmed delivery, and the cards are now saved in their collection.');
+      line=id?`${name||'Pembeli'} sudah mengonfirmasi pesanan${cards?` berisi ${cards}`:''}. Kartu telah ditambahkan ke koleksi pembeli.`:`${name||'The buyer'} confirmed the order${cards?` of ${cards}`:''}. The cards have been added to the buyer’s Vault.`;
       break;
     case 'order-auto-completed':
       subject=id?`Pesanan ${details?.orderCode??title} selesai`:`Order ${details?.orderCode??title} is complete`;
-      line=details?.participantRole==='seller'
-        ?(id?'Masa pemeriksaan 48 jam berakhir tanpa laporan. Kartu sudah masuk ke koleksi pembeli dan hasil penjualan tersedia.':'The 48-hour review period ended without a report. The cards are in the buyer’s Vault and the sale proceeds are available.')
-        :(id?'Masa pemeriksaan 48 jam berakhir tanpa laporan. Kartu dari pesanan ini sudah ditambahkan ke koleksi Anda.':'The 48-hour review period ended without a report. The cards from this order have been added to your Vault.');
+      line=orderEmailPerspectiveLine({event,locale:id?'id':'en',recipientRole:details?.recipientRole??'buyer'})??line;
       break;
     case 'order-cancelled':
       subject=id?`Pesanan ${details?.orderCode??title} dibatalkan`:`Order ${details?.orderCode??title} was cancelled`;
-      line=surface==='push'?(id?`${name||'Pihak lain'} membatalkan pesanan ${cards?`${cards} `:''}untuk ${title}${amount?`, senilai ${amount}`:''}`:`${name||'The other party'} cancelled the ${cards?`${cards} `:''}order for ${title}${amount?`, worth ${amount}`:''}`):(id?'Pesanan dibatalkan sebelum pembayaran, jadi kartu kembali tersedia.':'The order was cancelled before payment, so the cards are available again.');
+      line=orderEmailPerspectiveLine({event,locale:id?'id':'en',recipientRole:details?.recipientRole??'buyer',actorRole:details?.actorRole??(details?.recipientRole==='seller'?'buyer':'seller'),participant:name})??line;
       break;
     case 'order-expired':
       subject=id?`Pesanan ${details?.orderCode??title} berakhir`:`Order ${details?.orderCode??title} expired`;
-      line=id?'Batas pembayaran berakhir tanpa pembayaran. Pesanan ditutup dan kartu kembali tersedia.':'The payment deadline passed without payment, so the order is closed and the cards are available again.';
+      line=orderEmailPerspectiveLine({event,locale:id?'id':'en',recipientRole:details?.recipientRole??'buyer'})??line;
       break;
     case 'order-dispute-opened':
       subject=id?`Laporan masalah untuk ${details?.orderCode??title}`:`A problem was reported for ${details?.orderCode??title}`;
@@ -190,13 +191,10 @@ function personalizedCopy(event:Event,details:NotificationDetails|undefined,titl
       break;
     case 'order-dispute-resolved':{
       subject=id?`Keputusan pesanan ${details?.orderCode??title}`:`Decision for ${details?.orderCode??title}`;
-      const decision=details?.disputeDecision;
-      const decisionCopy:Record<string,{en:string;id:string}>={FULL_REFUND:{en:'full refund',id:'refund penuh'},PARTIAL_REFUND:{en:'partial refund for affected cards',id:'refund sebagian untuk kartu terdampak'},RESHIP:{en:'replacement shipment',id:'pengiriman pengganti'},NO_REFUND:{en:'no refund',id:'tanpa refund'}};
-      const result=decision?decisionCopy[decision]?.[id?'id':'en']:undefined;
-      if(result){
+      if(details?.disputeDecision){
         const refundTotal=(details?.refundAmount??0)+(details?.shippingRefund??0);
         const refund=refundTotal>0&&details?.currency?formatAmount(refundTotal,details.currency,locale):undefined;
-        line=id?`Laporan pesanan selesai dengan keputusan ${result}${refund?`. Refund yang dicatat: ${refund}`:''}. Buka pesanan untuk catatan lengkap.`:`The order report is resolved: ${result}${refund?`. Refund recorded: ${refund}`:''}. Open the order for the full decision note.`;
+        line=orderEmailPerspectiveLine({event,locale:id?'id':'en',recipientRole:details?.recipientRole??'buyer',decision:details.disputeDecision,refund})??line;
       }
       break;
     }
@@ -239,17 +237,17 @@ export function renderMarketEmail(event:Event,listingTitle='Market listing',thre
     if(details.participant){const role=details.participantRole;const label=role==='seller'?(id?'Penjual':'Seller'):role==='cancelled-by'?(id?'Dibatalkan oleh':'Cancelled by'):(id?'Pembeli':'Buyer');summaryRows.push([label,details.participant]);}
     if(details.subtotal!==undefined&&details.currency)summaryRows.push([id?'Subtotal':'Subtotal',formatAmount(details.subtotal,details.currency,locale)]);
     if(details.courier)summaryRows.push([id?'Kurir':'Courier',details.courier]);
-    if(event==='order-tracking'&&details.trackingStatus)summaryRows.push([id?'Status':'Status',trackingStatusCopy[details.trackingStatus]?.[id?'id':'en']??details.trackingStatus]);
+    if(event==='order-tracking'&&details.trackingStatus)summaryRows.push([id?'Status':'Status',trackingStatusLabel(details.trackingStatus,id)]);
     if(event==='order-tracking'&&details.trackingStatus==='delivered'&&details.reportDeadline)summaryRows.push([id?'Batas laporan':'Report by',formatDateTimeWithOffset(details.reportDeadline,locale,details.region,details.timezone)]);
-    if(event==='order-paid'&&details.trackingNumber)summaryRows.push([id?'Nomor resi':'Tracking number',details.trackingNumber]);
     if(details.shippingFee!==undefined&&details.currency)summaryRows.push([id?'Ongkir':'Shipping',formatAmount(details.shippingFee,details.currency,locale)]);
-    if(details.amount!==undefined&&details.currency)summaryRows.push([id?'Total dibayar':'Total paid',formatAmount(details.amount,details.currency,locale)]);
-    if(details.city)summaryRows.push([id?'Kota tujuan':'Destination',`${details.city}${details.postalCode?` ${details.postalCode}`:''}`]);
+    if(details.recipientRole==='seller'&&['order-seller-paid','order-received','order-auto-completed','order-dispute-resolved'].includes(event)&&details.sellerPayoutAmount!==undefined&&details.currency)summaryRows.push([id?'Hasil penjualan':'Your payout',formatAmount(details.sellerPayoutAmount,details.currency,locale)]);
+    else if(details.amount!==undefined&&details.currency){const label=event==='order-payment-reminder'?(id?'Total yang perlu dibayar':'Amount due'):['order-paid','order-shipped','order-tracking','order-received','order-auto-completed'].includes(event)?(id?'Total dibayar':'Total paid'):(id?'Total pesanan':'Order total');summaryRows.push([label,formatAmount(details.amount,details.currency,locale)]);}
+    if(details.city&&details.recipientRole==='seller')summaryRows.push([id?'Kota tujuan':'Destination',`${details.city}${details.postalCode?` ${details.postalCode}`:''}`]);
     if((event==='order-expired'||event==='order-payment-reminder')&&details.expiresAt)summaryRows.push([id?'Batas pembayaran':'Payment deadline',formatDateTimeWithOffset(details.expiresAt,locale,details.region,details.timezone)]);
     if(event==='order-seller-paid'||event==='order-shipping-reminder-day'||event==='order-shipping-reminder-soon')summaryRows.push([id?'Kirim paling lambat':'Ship by',details.shippingDeadline??shippingDeadlineFromPayment(undefined,locale)??'']);
     if(event==='order-dispute-opened'&&details.requestedResolution)summaryRows.push([id?'Solusi yang diminta':'Requested resolution',details.requestedResolution==='RESHIP'?(id?'Kirim pengganti':'Replacement shipment'):(id?'Refund':'Refund')]);
-    if(event==='order-dispute-resolved'&&details.disputeDecision)summaryRows.push([id?'Keputusan':'Decision',details.disputeDecision.replaceAll('_',' ').toLowerCase()]);
-    if(event==='order-dispute-resolved'&&(details.refundAmount||details.shippingRefund)&&details.currency)summaryRows.push([id?'Refund tercatat':'Refund recorded',formatAmount((details.refundAmount??0)+(details.shippingRefund??0),details.currency,locale)]);
+    if(event==='order-dispute-resolved'&&details.disputeDecision){const decisionLabels:Record<string,{en:string;id:string}>={FULL_REFUND:{en:'Full refund',id:'Refund penuh'},PARTIAL_REFUND:{en:'Partial refund',id:'Refund sebagian'},RESHIP:{en:'Replacement shipment',id:'Pengiriman pengganti'},NO_REFUND:{en:'No refund',id:'Tanpa refund'}};summaryRows.push([id?'Keputusan':'Decision',decisionLabels[details.disputeDecision]?.[id?'id':'en']??trackingStatusLabel(details.disputeDecision,id)]);}
+    if(event==='order-dispute-resolved'&&(details.refundAmount||details.shippingRefund)&&details.currency)summaryRows.push([details.recipientRole==='seller'?(id?'Refund pembeli':'Buyer refund'):(id?'Refund Anda':'Your refund'),formatAmount((details.refundAmount??0)+(details.shippingRefund??0),details.currency,locale)]);
   }else if(['new-offer','counteroffer','accepted','declined','offer-unavailable'].includes(event)){
     if(details?.participant)summaryRows.push([id?'Dari':'From',details.participant]);
     if(details?.amount!==undefined&&details.currency)summaryRows.push([id?'Total penawaran':'Offer total',formatAmount(details.amount,details.currency,locale)]);
@@ -286,15 +284,15 @@ async function sendRenderedMarketEmail(to:string,event:Event,listingTitle:string
   return response.json().catch(()=>({}));
 }
 
-export async function sendMarketTestEmail(to:string,event:Event,locale='en',theme?:'light'|'dark'){
-  return sendRenderedMarketEmail(to,event,'Monkey.D.Luffy (119)','sample-market-thread',locale,theme,sampleNotificationDetails(event,locale));
+export async function sendMarketTestEmail(to:string,event:Event,locale='en',theme?:'light'|'dark',recipientRole:'buyer'|'seller'='buyer'){
+  return sendRenderedMarketEmail(to,event,'Monkey.D.Luffy (119)','sample-market-thread',locale,theme,sampleNotificationDetails(event,locale,recipientRole));
 }
 
-export function sampleNotificationDetails(event:Event,locale='en'):NotificationDetails{
+export function sampleNotificationDetails(event:Event,locale='en',recipientRole:'buyer'|'seller'='buyer'):NotificationDetails{
   const id=locale.toLowerCase().startsWith('id');
   const items:NotificationItem[]=[{name:'Monkey.D.Luffy',code:'OP05-119',language:'JP',variant:'Alt art, p1',rarity:'SEC',condition:'NM',quantity:1,unitAmount:175000},{name:'Monkey.D.Luffy',code:'OP05-119',language:'EN',variant:'Standard',rarity:'SEC',condition:'NM',quantity:1,unitAmount:75000}];
   if(event==='pro-activated')return{membershipDays:30};
-  if(event.startsWith('order-'))return{orderCode:'VPM-KREH2VS2VQ',amount:285000,currency:'IDR',subtotal:250000,shippingFee:35000,courier:'J&T EZ',trackingNumber:event==='order-tracking'?'JP1234567890':undefined,trackingStatus:event==='order-tracking'?'delivered':undefined,city:'Jakarta Pusat',postalCode:'10110',shippingDeadline:['order-seller-paid','order-shipping-reminder-day','order-shipping-reminder-soon'].includes(event)?shippingDeadlineFromPayment(new Date().toISOString(),locale):undefined,reportDeadline:event==='order-tracking'?new Date(Date.now()+36*60*60*1000).toISOString():undefined,expiresAt:event==='order-payment-reminder'?new Date(Date.now()+20*60*1000).toISOString():undefined,requestedResolution:event==='order-dispute-opened'?'REFUND':undefined,disputeDecision:event==='order-dispute-resolved'?'PARTIAL_REFUND':undefined,refundAmount:event==='order-dispute-resolved'?75000:undefined,decisionNote:event==='order-dispute-resolved'?(id?'Refund sebesar jumlah kartu yang terdampak sudah dicatat.':'A refund for the affected card amount has been recorded.'):undefined,itemCount:2,items,participant:id?'Raka':'Raka Viantoni',participantRole:event==='order-paid'?'seller':event==='order-cancelled'?'cancelled-by':event==='order-dispute-response'?'seller':'buyer'};
+  if(event.startsWith('order-'))return{orderCode:'VPM-KREH2VS2VQ',amount:285000,currency:'IDR',subtotal:250000,shippingFee:35000,sellerPayoutAmount:246250,recipientRole,actorRole:event==='order-cancelled'?(recipientRole==='buyer'?'seller':'buyer'):undefined,courier:'J&T EZ',trackingNumber:event==='order-tracking'?'JP1234567890':undefined,trackingStatus:event==='order-tracking'?'delivered':undefined,city:'Jakarta Pusat',postalCode:'10110',shippingDeadline:['order-seller-paid','order-shipping-reminder-day','order-shipping-reminder-soon'].includes(event)?shippingDeadlineFromPayment(new Date().toISOString(),locale):undefined,reportDeadline:event==='order-tracking'?new Date(Date.now()+36*60*60*1000).toISOString():undefined,expiresAt:event==='order-payment-reminder'||event==='order-expired'?new Date(Date.now()+20*60*1000).toISOString():undefined,reportReason:event==='order-dispute-opened'?(id?'Satu kartu tiba dengan sudut yang rusak.':'One card arrived with a damaged corner.'):undefined,requestedResolution:event==='order-dispute-opened'?'REFUND':undefined,disputeDecision:event==='order-dispute-resolved'?'PARTIAL_REFUND':undefined,refundAmount:event==='order-dispute-resolved'?75000:undefined,decisionNote:event==='order-dispute-resolved'?(id?'Refund sebesar jumlah kartu yang terdampak sudah dicatat.':'A refund for the affected card amount has been recorded.'):undefined,itemCount:2,items,participant:id?'Raka':'Raka Viantoni',participantRole:event==='order-paid'?'seller':event==='order-cancelled'?'cancelled-by':recipientRole==='buyer'?'seller':'buyer'};
   if(event==='new-offer'||event==='counteroffer'||event==='accepted'||event==='declined'||event==='offer-unavailable')return{participant:id?'Dimas':'Dimas Pratama',amount:250000,currency:'IDR',itemCount:2,items};
   if(event==='message')return{participant:id?'Dimas':'Dimas Pratama',message:id?'Bisa kirim foto bagian belakang kartunya?':'Could you send a photo of the back of the card?',itemCount:2,items};
   if(event==='photo-request')return{participant:id?'Dimas':'Dimas Pratama',itemCount:2,items};
@@ -330,8 +328,8 @@ async function notificationDetails(event:Event,reference:string,locale='en',prof
   }
   if(event==='wishlist-match'||event==='price-drop'){const row=await db().prepare('SELECT amount,currency,items,printing_id AS printingId,quantity FROM listings WHERE id=?').bind(reference).first<{amount:number;currency:string;items:string|null;printingId:string;quantity:number}>();if(row)return{amount:row.amount,currency:row.currency,items:await notificationItems(row.items||JSON.stringify([{printingId:row.printingId,quantity:row.quantity}]))};return undefined;}
   if(event.startsWith('order-')){
-    const row=await db().prepare(`SELECT o.id,o.buyer_id AS buyerId,o.seller_id AS sellerId,o.listing_id AS listingId,o.amount,o.currency,o.items,o.details,o.subtotal,o.expires_at AS expiresAt,o.shipping_fee AS shippingFee,COALESCE(o.paid_at,o.fulfilled_at) AS paidAt,o.updated_at AS updatedAt,o.delivered_at AS deliveredAt,COALESCE(b.display_name,'Buyer') AS buyer,COALESCE(s.display_name,'Seller') AS seller,d.requested_resolution AS requestedResolution,d.decision AS disputeDecision,d.decision_note AS decisionNote,d.refund_amount AS refundAmount,d.shipping_refund AS shippingRefund
-      FROM checkout_orders o LEFT JOIN profiles b ON b.id=o.buyer_id LEFT JOIN profiles s ON s.id=o.seller_id LEFT JOIN market_disputes d ON d.order_id=o.id WHERE o.id=?`).bind(reference).first<{id:string;buyerId:string;sellerId:string|null;listingId:string|null;amount:number;currency:string;items:string;details:string|null;subtotal:number;expiresAt:string|null;shippingFee:number;paidAt:string|null;updatedAt:string;deliveredAt:string|null;buyer:string;seller:string;requestedResolution:string|null;disputeDecision:string|null;decisionNote:string|null;refundAmount:number|null;shippingRefund:number|null}>();
+    const row=await db().prepare(`SELECT o.id,o.buyer_id AS buyerId,o.seller_id AS sellerId,o.listing_id AS listingId,o.amount,o.currency,o.items,o.details,o.subtotal,o.expires_at AS expiresAt,o.shipping_fee AS shippingFee,o.seller_net_amount AS sellerPayoutAmount,COALESCE(o.paid_at,o.fulfilled_at) AS paidAt,o.updated_at AS updatedAt,o.delivered_at AS deliveredAt,COALESCE(b.display_name,'Buyer') AS buyer,COALESCE(s.display_name,'Seller') AS seller,d.reason AS reportReason,d.requested_resolution AS requestedResolution,d.decision AS disputeDecision,d.decision_note AS decisionNote,d.refund_amount AS refundAmount,d.shipping_refund AS shippingRefund
+      FROM checkout_orders o LEFT JOIN profiles b ON b.id=o.buyer_id LEFT JOIN profiles s ON s.id=o.seller_id LEFT JOIN market_disputes d ON d.order_id=o.id WHERE o.id=?`).bind(reference).first<{id:string;buyerId:string;sellerId:string|null;listingId:string|null;amount:number;currency:string;items:string;details:string|null;subtotal:number;expiresAt:string|null;shippingFee:number;sellerPayoutAmount:number|null;paidAt:string|null;updatedAt:string;deliveredAt:string|null;buyer:string;seller:string;reportReason:string|null;requestedResolution:string|null;disputeDecision:string|null;decisionNote:string|null;refundAmount:number|null;shippingRefund:number|null}>();
     if(!row)return undefined;
     let shipping:{courierName?:string;courierServiceName?:string;trackingNumber?:string;tracking_number?:string;waybillId?:string;waybill_id?:string;trackingStatus?:string;city?:string;postalCode?:string;cancelledByRole?:string}|undefined;try{shipping=JSON.parse(row.details||'{}') as typeof shipping}catch{}
     let listingTitle:string|undefined;
@@ -341,10 +339,12 @@ async function notificationDetails(event:Event,reference:string,locale='en',prof
       if(listingIds.length){const listings=(await db().prepare(`SELECT id,title FROM listings WHERE id IN (${listingIds.map(()=>'?').join(',')})`).bind(...listingIds).all<{id:string;title:string}>()).results;const titlesById=new Map(listings.map(listing=>[listing.id,listing.title]));const titles=listingIds.map(id=>titlesById.get(id)).filter((title):title is string=>Boolean(title));if(titles.length)listingTitle=titles.length>1?`${titles.slice(0,2).join(' + ')}${titles.length>2?` + ${titles.length-2} more listings`:''}`:titles[0];}
     }catch(error){console.error('market_notification_listing_title_failed',error instanceof Error?error.message:'unknown error')}
     const reportDeadline=row.deliveredAt?new Date(new Date(/[zZ]|[+-]\d{2}:?\d{2}$/.test(row.deliveredAt)?row.deliveredAt:`${row.deliveredAt.replace(' ','T')}Z`).getTime()+48*60*60*1000).toISOString():undefined;
-    const participantEvents=['order-paid','order-seller-paid','order-cancelled','order-received','order-auto-completed','order-dispute-opened','order-dispute-response','order-dispute-resolved','order-shipping-reminder-day','order-shipping-reminder-soon'];
+    const recipientRole:NotificationDetails['recipientRole']=profileId===row.buyerId?'buyer':'seller';
+    const participantEvents=['order-paid','order-seller-paid','order-cancelled','order-expired','order-received','order-auto-completed','order-dispute-opened','order-dispute-response','order-dispute-resolved','order-shipping-reminder-day','order-shipping-reminder-soon'];
     const participant=participantEvents.includes(event)?(profileId===row.buyerId?row.seller:row.buyer):undefined;
-    const participantRole:NotificationDetails['participantRole']=event==='order-paid'?'seller':event==='order-cancelled'?'cancelled-by':event==='order-payment-reminder'||event==='order-tracking'||event==='order-shipped'||event==='order-expired'?undefined:profileId===row.buyerId?'seller':'buyer';
-    return{orderCode:`VPM-${row.id.slice(0,8).toUpperCase()}`,listingTitle,amount:row.amount,currency:row.currency,subtotal:row.subtotal,shippingFee:row.shippingFee,itemCount:itemCount(row.items),items:await notificationItems(row.items),participant,participantRole,courier:[shipping?.courierName,shipping?.courierServiceName].filter(Boolean).join(' '),trackingNumber:shipping?.trackingNumber??shipping?.tracking_number??shipping?.waybillId??shipping?.waybill_id,trackingStatus:shipping?.trackingStatus as string|undefined,city:shipping?.city,postalCode:shipping?.postalCode,expiresAt:row.expiresAt??undefined,shippingDeadline:['order-seller-paid','order-shipping-reminder-day','order-shipping-reminder-soon'].includes(event)?shippingDeadlineFromPayment(row.paidAt??row.updatedAt,locale,timezone,region):undefined,reportDeadline,requestedResolution:row.requestedResolution??undefined,disputeDecision:row.disputeDecision??undefined,refundAmount:row.refundAmount??undefined,shippingRefund:row.shippingRefund??undefined,decisionNote:row.decisionNote??undefined,message:event==='order-dispute-response'?await db().prepare('SELECT seller_response AS response FROM market_disputes WHERE order_id=?').bind(reference).first<{response:string|null}>().then(response=>response?.response?.trim().slice(0,900)):undefined};
+    const participantRole:NotificationDetails['participantRole']=event==='order-cancelled'?'cancelled-by':profileId===row.buyerId?'seller':'buyer';
+    const actorRole=event==='order-cancelled'?(shipping?.cancelledByRole==='buyer'?'buyer':shipping?.cancelledByRole==='seller'?'seller':recipientRole==='buyer'?'seller':'buyer'):undefined;
+    return{orderCode:`VPM-${row.id.slice(0,8).toUpperCase()}`,listingTitle,amount:row.amount,currency:row.currency,subtotal:row.subtotal,shippingFee:row.shippingFee,sellerPayoutAmount:row.sellerPayoutAmount??undefined,recipientRole,actorRole,itemCount:itemCount(row.items),items:await notificationItems(row.items),participant,participantRole,courier:[shipping?.courierName,shipping?.courierServiceName].filter(Boolean).join(' '),trackingNumber:shipping?.trackingNumber??shipping?.tracking_number??shipping?.waybillId??shipping?.waybill_id,trackingStatus:shipping?.trackingStatus as string|undefined,city:shipping?.city,postalCode:shipping?.postalCode,expiresAt:row.expiresAt??undefined,shippingDeadline:['order-seller-paid','order-shipping-reminder-day','order-shipping-reminder-soon'].includes(event)?shippingDeadlineFromPayment(row.paidAt??row.updatedAt,locale,timezone,region):undefined,reportDeadline,reportReason:row.reportReason?.trim().slice(0,900),requestedResolution:row.requestedResolution??undefined,disputeDecision:row.disputeDecision??undefined,refundAmount:row.refundAmount??undefined,shippingRefund:row.shippingRefund??undefined,decisionNote:row.decisionNote??undefined,message:event==='order-dispute-response'?await db().prepare('SELECT seller_response AS response FROM market_disputes WHERE order_id=?').bind(reference).first<{response:string|null}>().then(response=>response?.response?.trim().slice(0,900)):undefined};
   }
   if(event==='new-offer'||event==='counteroffer'||event==='accepted'||event==='declined'||event==='offer-unavailable'){
     if(event==='accepted'||event==='declined'){

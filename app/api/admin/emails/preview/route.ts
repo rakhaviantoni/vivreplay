@@ -12,6 +12,7 @@ export async function GET(request: NextRequest) {
   const to = searchParams.get("to") || "pirate@vivreplay.com";
   const locale=searchParams.get('locale')==='id'?'id':'en';
   const theme=searchParams.get('theme')==='dark'?'dark':'light';
+  const recipientRole=searchParams.get('role')==='seller'?'seller':'buyer';
   const appUrl = getAppUrl();
 
   const actions: AuthEmailAction[] = ["verify", "reset", "password-changed", "welcome"];
@@ -21,7 +22,7 @@ export async function GET(request: NextRequest) {
     if(action.startsWith('market:')){
       const event=action.slice('market:'.length) as MarketEmailEvent;
       if(!marketEmailEvents.includes(event))return null;
-      return{action,...renderMarketEmail(event,listingTitle,'sample-market-thread',locale,to,theme,sampleNotificationDetails(event,locale)),to,name};
+      return{action,...renderMarketEmail(event,listingTitle,'sample-market-thread',locale,to,theme,sampleNotificationDetails(event,locale,recipientRole)),to,name};
     }
     if(!actions.includes(action as AuthEmailAction))return null;
     const authAction=action as AuthEmailAction;

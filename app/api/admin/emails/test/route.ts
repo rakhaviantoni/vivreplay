@@ -13,6 +13,7 @@ export async function POST(request: NextRequest) {
       name?: string;
       locale?:'en'|'id';
       theme?:'light'|'dark';
+      role?:'buyer'|'seller';
     };
 
     const to = body.to?.trim();
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
     if(action.startsWith('market:')){
       const event=action.slice('market:'.length) as MarketEmailEvent;
       if(!marketEmailEvents.includes(event))return Response.json({error:'Unknown email template.'},{status:400});
-      await sendMarketTestEmail(to,event,body.locale==='id'?'id':'en',body.theme==='dark'?'dark':'light');
+      await sendMarketTestEmail(to,event,body.locale==='id'?'id':'en',body.theme==='dark'?'dark':'light',body.role==='seller'?'seller':'buyer');
       return Response.json({success:true,message:`Test Market email sent to ${to} via Resend.`});
     }
     if(!['verify','reset','password-changed','welcome'].includes(action))return Response.json({error:'Unknown email template.'},{status:400});

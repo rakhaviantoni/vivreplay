@@ -100,6 +100,7 @@ export function AdminEmailsDashboard() {
   const [selectedCategory,setSelectedCategory]=useState<EmailCategory>('account');
   const [previewLanguage,setPreviewLanguage]=useState<'en'|'id'>('en');
   const [previewTheme,setPreviewTheme]=useState<'light'|'dark'>('light');
+  const [previewRole,setPreviewRole]=useState<'buyer'|'seller'>('buyer');
   const [viewport, setViewport] = useState<'desktop' | 'mobile'>('desktop');
   const [viewMode, setViewMode] = useState<'preview' | 'code' | 'text'>('preview');
   const [loading, setLoading] = useState(true);
@@ -124,7 +125,7 @@ export function AdminEmailsDashboard() {
   const [sentStatus,setSentStatus]=useState('all');
 
   useEffect(() => {
-    fetch(`/api/admin/emails/preview?locale=${previewLanguage}&theme=${previewTheme}`)
+    fetch(`/api/admin/emails/preview?locale=${previewLanguage}&theme=${previewTheme}&role=${previewRole}`)
       .then((res) => res.json() as Promise<{ emails: EmailData[] }>)
       .then((data) => {
         if (data?.emails) {
@@ -133,7 +134,7 @@ export function AdminEmailsDashboard() {
       })
       .catch((err) => console.error('Failed to load email previews:', err))
       .finally(() => setLoading(false));
-  }, [previewLanguage,previewTheme]);
+  }, [previewLanguage,previewTheme,previewRole]);
 
   const currentEmail = emails.find((e) => e.action === selectedAction) || emails[0];
   const categoryActions=emailCategories.find(category=>category.id===selectedCategory)?.actions??[];
@@ -168,6 +169,7 @@ export function AdminEmailsDashboard() {
           name: 'Navigator',
           locale:previewLanguage,
           theme:previewTheme,
+          role:previewRole,
         }),
       });
 
@@ -388,6 +390,9 @@ export function AdminEmailsDashboard() {
 
         {/* Viewport and Code Mode Controls */}
         <div className="admin-email-preview-controls" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {['market:order-expired','market:order-cancelled','market:order-auto-completed','market:order-dispute-resolved'].includes(selectedAction)&&<div className="admin-email-segment admin-email-control-segment" style={{display:'inline-flex',gap:3,padding:3,border:'1px solid #1c3044',borderRadius:8,background:'#08121d'}} aria-label="Order email recipient role">
+            {(['buyer','seller'] as const).map(role=><button key={role} type="button" className="admin-email-segment-option" aria-pressed={previewRole===role} onClick={()=>setPreviewRole(role)} style={{padding:'6px 10px',border:0,borderRadius:6,background:previewRole===role?'#1c3349':'transparent',color:previewRole===role?'#f5da92':'#8fa7b7',fontSize:11,fontWeight:700,cursor:'pointer'}}>{role==='buyer'?'Buyer':'Seller'}</button>)}
+          </div>}
           <div className="admin-email-segment admin-email-control-segment" style={{display:'inline-flex',gap:3,padding:3,border:'1px solid #1c3044',borderRadius:8,background:'#08121d'}} aria-label="Market email language">
             {(['en','id'] as const).map(locale=><button key={locale} type="button" className="admin-email-segment-option" aria-pressed={previewLanguage===locale} onClick={()=>setPreviewLanguage(locale)} style={{padding:'6px 10px',border:0,borderRadius:6,background:previewLanguage===locale?'#1c3349':'transparent',color:previewLanguage===locale?'#f5da92':'#8fa7b7',fontSize:11,fontWeight:700,cursor:'pointer'}}>{locale.toUpperCase()}</button>)}
           </div>
