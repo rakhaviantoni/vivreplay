@@ -2873,6 +2873,13 @@ html[data-theme='dark'] .checkout-payment-countdown.is-urgent>svg,html[data-them
 .checkout-market-result>.checkout-order-breakdown{width:100%;margin:14px 0}
 .checkout-market-result>.checkout-shipping-summary{margin:8px 0 14px}
 .checkout-market-result>.market-dispute-panel{width:100%;margin:10px 0;text-align:left}
+.market-dispute-panel{display:grid;gap:12px;padding:16px;border:1px solid var(--line,#dfd2b9);border-radius:12px;background:var(--surface-raised,#fffaf0);color:var(--ink,#29251f)}
+.market-dispute-intro{display:grid;grid-template-columns:34px minmax(0,1fr);align-items:start;gap:11px}
+.market-dispute-icon{display:grid;width:34px;height:34px;place-items:center;border-radius:9px;background:color-mix(in srgb,var(--accent,#b68120) 12%,transparent);color:var(--accent,#9a6a14)}
+.market-dispute-intro h3{margin:0 0 4px;color:var(--ink,#29251f);font-size:15px;font-weight:700;line-height:1.35}
+.market-dispute-intro p{max-width:62ch;margin:0;color:var(--muted,#716a5e);font-size:13px;line-height:1.55}
+.market-dispute-trigger{justify-self:start;min-height:38px;padding:8px 13px}
+@media(max-width:560px){.market-dispute-panel{gap:10px;padding:13px}.market-dispute-intro{grid-template-columns:30px minmax(0,1fr);gap:9px}.market-dispute-icon{width:30px;height:30px}}
 @media(max-width:600px){.checkout-market-result{margin:24px auto;padding:18px}}
 .checkout-message p,.checkout-result p{color:var(--muted,#716a5e);line-height:1.6}
 @media(max-width:600px){.checkout-message{margin:24px auto;padding:18px}.checkout-auth-message{grid-template-columns:24px minmax(0,1fr);gap:10px}.checkout-message-content{gap:10px}}
