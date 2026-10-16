@@ -8,7 +8,7 @@ import {VaultPanelEmpty} from '@/components/tcg/vault/vault-panel-empty';
 import {PushNotificationPrompt} from '@/components/tcg/push-notification-settings';
 import {formatDateTimeWithOffset} from '@/components/tcg/market-timestamp';
 
-type Offer={id:string;threadId:string;listingId:string;listingTitle:string;listingExpiresAt:string|null;offerExpiresAt:string|null;direction:'received'|'sent';counterparty:string|null;status:string;amount:number;currency:string;createdAt:string;items:Array<{printingId:string;quantity:number;card?:{name:string;code:string;imageUrl:string|null}}>};
+type Offer={roundOrder:number;id:string;threadId:string;listingId:string;listingTitle:string;listingExpiresAt:string|null;offerExpiresAt:string|null;direction:'received'|'sent';counterparty:string|null;status:string;amount:number;currency:string;createdAt:string;items:Array<{printingId:string;quantity:number;card?:{name:string;code:string;imageUrl:string|null}}>};
 const money=(amount:number,currency:string)=>new Intl.NumberFormat('id-ID',{style:'currency',currency:currency||'IDR',maximumFractionDigits:0}).format(amount);
 const dateLabel=(value:string,id:boolean,timeZone:string)=>{const time=expiryTime(value);return time===null?(id?'Tanggal tidak tersedia':'Date unavailable'):formatDateTimeWithOffset(new Date(time).toISOString(),id?'id':'en',timeZone)};
 const expiryTime=(value:string)=>{const raw=value.trim();const iso=/^\d{4}-\d{2}-\d{2}$/.test(raw)?`${raw}T23:59:59Z`:raw.includes('T')?raw:raw.replace(' ','T');const zoned=/([zZ]|[+-]\d{2}(?::?\d{2})?)$/.test(iso)?iso:`${iso}Z`;const parsed=Date.parse(zoned);return Number.isFinite(parsed)?parsed:null};
@@ -32,7 +32,7 @@ export function OffersTab({language,timeZone='Asia/Jakarta',initialConversationI
       if(sequence!==refreshSequence.current)return;
       setNow(Date.now());
       const latest=new Map<string,Offer>();
-      for(const offer of data.offers??[]){const previous=latest.get(offer.threadId);if(!previous||new Date(offer.createdAt).getTime()>new Date(previous.createdAt).getTime())latest.set(offer.threadId,offer)}
+      for(const offer of data.offers??[]){const previous=latest.get(offer.threadId);if(!previous||offer.roundOrder>previous.roundOrder)latest.set(offer.threadId,offer)}
       setOffers([...latest.values()].sort((a,b)=>new Date(b.createdAt).getTime()-new Date(a.createdAt).getTime()));
     }catch(reason){if(!silent&&sequence===refreshSequence.current)setError(reason instanceof Error?reason.message:(id?'Penawaran tidak dapat dimuat.':'Offers could not be loaded.'))}
     finally{if(sequence===refreshSequence.current)setLoading(false)}

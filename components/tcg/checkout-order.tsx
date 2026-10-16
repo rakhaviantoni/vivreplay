@@ -105,7 +105,7 @@ export function CheckoutOrder(){
     if(order?.kind!=='MARKET'||order.status!=='SHIPPED'||!(order.waybillId||order.trackingUrl))return;
     let inFlight=false;
     const poll=()=>{if(document.visibilityState!=='visible'||inFlight)return;inFlight=true;void refreshTracking().finally(()=>{inFlight=false})};
-    const timer=window.setInterval(poll,30_000);
+    const timer=window.setInterval(poll,15_000);
     document.addEventListener('visibilitychange',poll);
     return()=>{window.clearInterval(timer);document.removeEventListener('visibilitychange',poll)};
   },[order?.id,order?.kind,order?.status,order?.waybillId,order?.trackingUrl,refreshTracking]);
