@@ -4221,3 +4221,18 @@ html[data-theme='dark'] .market-listing-view-as-toggle button[aria-pressed="true
 .market-feed-art.is-sold img{filter:grayscale(.58) brightness(.72)}.market-feed-art-sold{position:absolute;z-index:3;right:2px;bottom:2px;left:2px;overflow:hidden;padding:3px 2px;border-radius:3px;background:color-mix(in srgb,var(--accent) 92%,#5c3b0d);color:#fffdf6;font-size:7px;font-weight:800;line-height:1.1;text-align:center;text-overflow:ellipsis;white-space:nowrap;pointer-events:none}
 .market-listing-card.is-unavailable .market-listing-card-stage .deck-stack-art:has(img){filter:grayscale(.52) brightness(.74)}
 .market-listing-card-sold-count{position:absolute;z-index:4;right:6px;bottom:6px;max-width:calc(100% - 12px);padding:4px 7px;border-radius:4px;background:color-mix(in srgb,var(--accent) 92%,#5c3b0d);color:#fffdf6;font-size:9px;font-weight:800;line-height:1.1;pointer-events:none}
+
+.checkout-receipt-confirm{display:grid;gap:10px;width:100%;margin:12px 0 4px;padding:13px 15px;border:1px solid color-mix(in srgb,var(--accent,#b78327) 34%,var(--line,#dfd1b8));border-radius:8px;background:color-mix(in srgb,var(--accent,#b78327) 5%,var(--surface-raised,#fffaf0));text-align:left}
+.checkout-receipt-confirm>p{margin:0;color:var(--ink,#28251f);font-size:12px;line-height:1.5}
+.checkout-receipt-confirm>div{display:flex;flex-wrap:wrap;gap:8px}
+.checkout-receipt-confirm .button{min-height:38px;margin:0;padding-inline:12px}
+.checkout-receipt-confirm .button:not(.secondary){border-color:var(--accent,#b78327);background:var(--accent,#b78327);color:#fff}
+.checkout-market-result.is-buyer .market-order-review,.checkout-market-result.is-seller .market-order-review{width:100%;max-width:480px;margin:18px auto 0;padding:15px;border:1px solid var(--line,#dfd1b8);border-radius:8px;background:var(--surface-raised,#fffaf0);text-align:left}
+.checkout-market-result .market-order-review h4{font-size:14px;font-weight:700}
+.checkout-market-result .market-order-review>div[role="group"]{justify-content:flex-start;width:max-content;gap:4px}
+.checkout-market-result .market-order-review>div[role="group"] button{display:grid;width:36px;height:36px;place-items:center;padding:0}
+.checkout-market-result .market-order-review label{gap:5px;color:var(--muted,#716a5e);font-size:11px;font-weight:650}
+.checkout-market-result .market-order-review textarea{min-height:74px;font-size:13px;line-height:1.45}
+.checkout-market-result .market-order-review>.button{justify-self:start;width:auto;min-width:142px;min-height:38px;margin:0;padding:0 14px}
+.checkout-market-result.is-buyer>.button,.checkout-market-result.is-seller>.button{min-height:40px}
+@media(max-width:600px){.checkout-receipt-confirm>div{display:grid;grid-template-columns:1fr}.checkout-receipt-confirm .button{width:100%}.checkout-market-result.is-buyer .market-order-review,.checkout-market-result.is-seller .market-order-review{padding:12px}}
