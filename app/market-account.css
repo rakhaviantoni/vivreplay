@@ -911,3 +911,5 @@ html[data-theme='dark'] .market-account-unified-body.is-listings .market-listing
 .market-order-shipping-detail .checkout-tracking-number.market-order-tracking-number .market-order-tracking-value>strong{text-align:right}
 @media(max-width:620px){.market-order-shipping-detail{gap:10px!important;padding:10px!important}.market-order-shipping-body{gap:10px}.market-order-details>.market-order-detail-actions{justify-content:stretch;flex-wrap:wrap}.market-order-details>.market-order-detail-actions .button,.market-order-details>.market-order-detail-actions>a{flex:1 1 140px;min-height:40px}.market-order-details>.market-order-detail-actions .market-order-open-link{flex-basis:100%;margin-left:0}}
 @media(prefers-reduced-motion:reduce){.market-order-progress-icon{transition:none}}
+
+.market-order-shipping-retry-note{grid-column:1/-1;margin:0;padding:8px 10px;border-left:2px solid var(--accent);background:color-mix(in srgb,var(--accent) 7%,var(--surface));color:var(--muted);font-size:11px;line-height:1.45}
