@@ -21,7 +21,7 @@ const localizedNote=(note:string,status:string,id:boolean)=>{
   if(text.includes('lost'))return 'Kurir melaporkan paket hilang.';
   if(text.includes('damaged'))return 'Kurir melaporkan paket rusak.';
   if(text.includes('reject'))return 'Penerima menolak paket.';
-  return '';
+  return note;
 };
 
 export function MarketShipmentHistory({status,history,language,timezone,headingAction,role,orderId}:Props){
