@@ -3,6 +3,7 @@ import {db} from '@/lib/server/store';
 import {sendMarketEmailOnce} from '@/lib/server/market-notifications';
 import {paymentReminderDue,shippingReminderStage} from '@/lib/market/reminder-windows';
 import {marketShippingDeadline} from '@/lib/market/shipping-deadline';
+import {completeDeliveredMarketOrder} from '@/lib/server/market-order-fulfillment';
 
 type PendingOrder={id:string;buyerId:string;expiresAt:string|null};
 type PaidOrder={id:string;sellerId:string;paidAt:string|null;updatedAt:string};
@@ -31,6 +32,11 @@ export async function POST(request:Request){
     const event=stage==='day'?'order-shipping-reminder-day':'order-shipping-reminder-soon';
     jobs.push(()=>sendMarketEmailOnce(order.sellerId,event,'Market order',order.id,`market-shipping-reminder:${stage}:${order.id}`));
   }
+  const reviewExpired=(await database.prepare(`SELECT id,buyer_id AS buyerId FROM checkout_orders
+    WHERE kind='MARKET' AND status='SHIPPED' AND delivered_at<=datetime('now','-48 hours')
+      AND NOT EXISTS(SELECT 1 FROM market_disputes WHERE order_id=checkout_orders.id AND status!='RESOLVED')
+    ORDER BY delivered_at LIMIT 500`).all<{id:string;buyerId:string}>()).results;
+  for(const order of reviewExpired)jobs.push(()=>completeDeliveredMarketOrder(order.id,order.buyerId,true));
   await deliverInBatches(jobs);
   return Response.json({processed:jobs.length},{headers:{'Cache-Control':'no-store'}});
 }

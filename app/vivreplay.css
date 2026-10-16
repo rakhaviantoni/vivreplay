@@ -2878,6 +2878,7 @@ html[data-theme='dark'] .checkout-payment-countdown.is-urgent>svg,html[data-them
 .market-dispute-icon{display:grid;width:34px;height:34px;place-items:center;border-radius:9px;background:color-mix(in srgb,var(--accent,#b68120) 12%,transparent);color:var(--accent,#9a6a14)}
 .market-dispute-intro h3{margin:0 0 4px;color:var(--ink,#29251f);font-size:15px;font-weight:700;line-height:1.35}
 .market-dispute-intro p{max-width:62ch;margin:0;color:var(--muted,#716a5e);font-size:13px;line-height:1.55}
+.market-dispute-countdown{display:block;margin-top:8px;color:var(--accent,#9a6a14);font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
 .market-dispute-trigger{justify-self:start;min-height:38px;padding:8px 13px}
 @media(max-width:560px){.market-dispute-panel{gap:10px;padding:13px}.market-dispute-intro{grid-template-columns:30px minmax(0,1fr);gap:9px}.market-dispute-icon{width:30px;height:30px}}
 @media(max-width:600px){.checkout-market-result{margin:24px auto;padding:18px}}

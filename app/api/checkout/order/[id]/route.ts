@@ -1,5 +1,6 @@
 import {db,errorResponse,user,HttpError} from '@/lib/server/store';
 import {sendMarketEmail} from '@/lib/server/market-notifications';
+import {completeDeliveredMarketOrder} from '@/lib/server/market-order-fulfillment';
 import {marketCardThumbnails} from '@/lib/server/market-card-thumbnails';
 import {ipaymuExpiryTimestamp,ipaymuQrImageUrl} from '@/lib/server/ipaymu';
 import {marketShippingDeadline} from '@/lib/market/shipping-deadline';
@@ -13,6 +14,10 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
     const database=db();
     const order=await database.prepare(`SELECT o.id,o.kind,o.buyer_id AS buyerId,o.seller_id AS sellerId,o.listing_id AS listingId,o.items,o.details,o.subtotal,o.seller_net_amount AS sellerNetAmount,o.shipping_fee AS shippingFee,o.amount,o.currency,o.payment_id AS paymentId,o.status,o.expires_at AS expiresAt,o.updated_at AS updatedAt,o.paid_at AS paidAt,o.delivered_at AS deliveredAt,(SELECT status FROM market_disputes d WHERE d.order_id=o.id) AS disputeStatus,o.shipping_waybill_id AS waybillId,o.shipping_tracking_url AS trackingUrl,l.title FROM checkout_orders o LEFT JOIN listings l ON l.id=o.listing_id WHERE o.id=?`).bind(id).first<OrderRow&{waybillId:string|null;trackingUrl:string|null}>();
     if(!order||(order.buyerId!==profile.id&&order.sellerId!==profile.id))throw new HttpError(404,'Checkout was not found.');
+    if(order.kind==='MARKET'&&order.status==='SHIPPED'&&order.deliveredAt){
+      const completed=await completeDeliveredMarketOrder(order.id,order.buyerId,true);
+      if(completed.completed)order.status=completed.status;
+    }
     const viewerRole=order.buyerId===profile.id?'buyer':'seller';
 
     let items:unknown[]=[];let details:Record<string,unknown>={};
@@ -101,43 +106,7 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
   try{
     const profile=await user();
     const {id}=await params;
-    const database=db();
-    const order=await database.prepare("SELECT o.id,o.kind,o.buyer_id AS buyerId,o.seller_id AS sellerId,o.items,o.currency,o.status,o.delivered_at AS deliveredAt,l.title FROM checkout_orders o LEFT JOIN listings l ON l.id=o.listing_id WHERE o.id=?").bind(id).first<{id:string;kind:string;buyerId:string;sellerId:string|null;items:string;currency:string;status:string;deliveredAt:string|null;title:string|null}>();
-    if(!order||order.buyerId!==profile.id)throw new HttpError(404,'Order was not found.');
-    if(order.kind!=='MARKET')throw new HttpError(400,'Only delivered Market orders can be added to your Vault.');
-    if(order.status==='RECEIVED')return Response.json({ok:true,status:'RECEIVED'});
-    if(order.status!=='SHIPPED')throw new HttpError(409,'The seller must arrange shipping before delivery can be confirmed.');
-    if(!order.deliveredAt)throw new HttpError(409,'The carrier has not marked this order as delivered yet.');
-    let items:Array<{printingId:string;quantity:number;unitAmount?:number;condition?:string}>;
-    try{items=JSON.parse(order.items) as typeof items}catch{throw new HttpError(500,'The order cards could not be loaded.');}
-    if(!items.length)throw new HttpError(400,'This order has no cards to add.');
-    const purchases=new Map<string,{printingId:string;condition:string;quantity:number;amount:number}>();
-    for(const item of items){
-      if(!item.printingId||!Number.isInteger(item.quantity)||item.quantity<1)throw new HttpError(500,'The order contains invalid card details.');
-      const condition=item.condition||'NM';
-      const key=`${item.printingId}:${condition}`;
-      const purchase=purchases.get(key)??{printingId:item.printingId,condition,quantity:0,amount:0};
-      purchase.quantity+=item.quantity;
-      purchase.amount+=Math.max(0,Math.round(item.unitAmount??0))*item.quantity;
-      purchases.set(key,purchase);
-    }
-    const statements=[];
-    for(const purchase of purchases.values()){
-      const existing=await database.prepare(`SELECT id,quantity,acquisition_amount AS acquisitionAmount FROM collectible_instances c WHERE owner_id=? AND printing_id=? AND type='RAW' AND condition=? AND currency=? AND deleted_at IS NULL AND visibility='private' AND NOT EXISTS(SELECT 1 FROM listings l WHERE l.instance_id=c.id AND l.status='ACTIVE') LIMIT 1`)
-        .bind(order.buyerId,purchase.printingId,purchase.condition,order.currency).first<{id:string;quantity:number;acquisitionAmount:number}>();
-      if(existing){
-        statements.push(database.prepare('UPDATE collectible_instances SET quantity=?,acquisition_amount=? WHERE id=? AND owner_id=?').bind(existing.quantity+purchase.quantity,existing.acquisitionAmount+purchase.amount,existing.id,order.buyerId));
-      }else{
-        statements.push(database.prepare("INSERT INTO collectible_instances (id,owner_id,printing_id,type,quantity,condition,visibility,acquisition_amount,currency,acquired_at,notes) VALUES (?,?,?,'RAW',?,?,'private',?,?,CURRENT_TIMESTAMP,NULL)")
-          .bind(crypto.randomUUID(),order.buyerId,purchase.printingId,purchase.quantity,purchase.condition,purchase.amount,order.currency));
-      }
-    }
-    statements.push(database.prepare("UPDATE checkout_orders SET status='RECEIVED',fulfilled_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=? AND buyer_id=? AND status='RECEIVING'").bind(id,profile.id));
-    const claim=await database.prepare(`UPDATE checkout_orders SET status='RECEIVING' WHERE id=? AND buyer_id=? AND status='SHIPPED' AND delivered_at IS NOT NULL AND NOT EXISTS(SELECT 1 FROM market_disputes WHERE order_id=? AND status!='RESOLVED')`).bind(id,profile.id,id).run();
-    if(!claim.meta.changes)throw new HttpError(409,'This order has an open report or was updated elsewhere. Refresh the order before continuing.');
-    try{await database.batch(statements)}catch(error){await database.prepare("UPDATE checkout_orders SET status='SHIPPED' WHERE id=? AND status='RECEIVING'").bind(id).run();throw error;}
-    if(order.sellerId)await sendMarketEmail(order.sellerId,'order-received',order.title||'Market order',order.id);
-    const updated=await database.prepare('SELECT status FROM checkout_orders WHERE id=?').bind(id).first<{status:string}>();
-    return Response.json({ok:true,status:updated?.status??'RECEIVED'});
+    const result=await completeDeliveredMarketOrder(id,profile.id);
+    return Response.json({ok:true,status:result.status});
   }catch(error){return errorResponse(error)}
 }
