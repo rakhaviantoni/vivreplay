@@ -101,6 +101,14 @@ export function CheckoutOrder(){
 
   const refreshTracking=useCallback(async()=>{if(!order)return;setTrackingBusy(true);try{const response=await fetch(`/api/checkout/order/${encodeURIComponent(order.id)}/tracking`,{cache:'no-store'});const result=await response.json() as {tracking?:{status?:string;history?:Array<{status?:string;note?:string;updated_at?:string}>};error?:string};if(!response.ok)throw new Error(result.error??(id?'Status pengiriman tidak dapat dimuat.':'Tracking could not be loaded.'));setTracking(result.tracking??{})}catch(cause){setError(cause instanceof Error?cause.message:(id?'Status pengiriman tidak dapat dimuat.':'Tracking could not be loaded.'))}finally{setTrackingBusy(false)}},[order?.id,id]);
   const copyTrackingNumber=useCallback(async(value:string)=>{if(!value)return;try{await navigator.clipboard.writeText(value);setTrackingCopied(true);window.setTimeout(()=>setTrackingCopied(false),1800)}catch{setError(id?'Nomor resi tidak dapat disalin.':'Could not copy the tracking number.')}},[id]);
+  useEffect(()=>{
+    if(order?.kind!=='MARKET'||order.status!=='SHIPPED'||!(order.waybillId||order.trackingUrl))return;
+    let inFlight=false;
+    const poll=()=>{if(document.visibilityState!=='visible'||inFlight)return;inFlight=true;void refreshTracking().finally(()=>{inFlight=false})};
+    const timer=window.setInterval(poll,30_000);
+    document.addEventListener('visibilitychange',poll);
+    return()=>{window.clearInterval(timer);document.removeEventListener('visibilitychange',poll)};
+  },[order?.id,order?.kind,order?.status,order?.waybillId,order?.trackingUrl,refreshTracking]);
   useEffect(()=>{if(order?.kind==='MARKET'&&order.status==='SHIPPED'&&(order.waybillId||order.trackingUrl))void refreshTracking()},[order?.id,order?.kind,order?.status,order?.waybillId,order?.trackingUrl,refreshTracking]);
 
   if(accountLoading)return <main className="page vivre-checkout-page"><div className="checkout-loading"><i/><span>{t('Loading payment status…','Memuat status pembayaran…')}</span></div></main>;
