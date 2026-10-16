@@ -13,7 +13,6 @@ import {
 } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import type { MarketPolicies } from '@/lib/market/policy';
-import { MARKET_BUYER_FEE_PERCENT, MARKET_PRO_BUYER_FEE_PERCENT, MARKET_BUYER_FEE_CAP } from '@/lib/market/policy';
 import { DEFAULT_PRO_PRICING,type ProPricing } from '@/lib/market/pro-pricing';
 import { Slider } from '@/components/ui/slider';
 
@@ -42,7 +41,7 @@ export function MarketPolicyManager() {
   // Form states
   const [freeDays, setFreeDays] = useState(7);
   const [freeMax, setFreeMax] = useState(25);
-  const [freeFee, setFreeFee] = useState(1.25);
+  const [freeFee, setFreeFee] = useState(1.5);
 
   const [proDays, setProDays] = useState(30);
   const [proMax, setProMax] = useState(2500);
@@ -100,7 +99,7 @@ export function MarketPolicyManager() {
     if (preset === 'recommended') {
       setFreeDays(7);
       setFreeMax(25);
-      setFreeFee(1.25);
+      setFreeFee(1.5);
       setProDays(30);
       setProMax(2500);
       setProFee(0.75);
@@ -109,7 +108,7 @@ export function MarketPolicyManager() {
     } else if (preset === 'quick-turn') {
       setFreeDays(3);
       setFreeMax(25);
-      setFreeFee(1.25);
+      setFreeFee(1.5);
       setProDays(30);
       setProMax(2500);
       setProFee(0.75);
@@ -118,7 +117,7 @@ export function MarketPolicyManager() {
     } else if (preset === 'relaxed') {
       setFreeDays(30);
       setFreeMax(25);
-      setFreeFee(1.25);
+      setFreeFee(1.5);
       setProDays(60);
       setProMax(2500);
       setProFee(0.75);
@@ -221,7 +220,7 @@ export function MarketPolicyManager() {
         <div>
           <h2>Market Retention & Limits Policy</h2>
           <p>
-            Configure listing limits and seller fees. Buyer fees are {MARKET_BUYER_FEE_PERCENT}% on Free orders and {MARKET_PRO_BUYER_FEE_PERCENT}% with Pro, subject to a minimum and subtotal-based cap up to {new Intl.NumberFormat('en-US',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(MARKET_BUYER_FEE_CAP)}.
+            Set listing limits and one service fee for both buyers and sellers. Buyer and seller minimums and buyer caps are shown separately at checkout.
           </p>
         </div>
         <div className="admin-policy-presets">
@@ -317,14 +316,14 @@ export function MarketPolicyManager() {
 
             <div className="admin-policy-field">
               <label htmlFor="free-fee">
-                Seller fee <span>(%)</span>
+                Market service fee <span>(%)</span>
               </label>
               <div className="admin-policy-percent-control">
-                <Slider className="admin-policy-percent-slider" min={0} max={5} step={0.05} value={[Math.min(5, Math.max(0, freeFee))]} onValueChange={([value]) => value !== undefined && setFreeFee(value)} aria-label="Free seller fee percentage" />
+                <Slider className="admin-policy-percent-slider" min={0} max={5} step={0.05} value={[Math.min(5, Math.max(0, freeFee))]} onValueChange={([value]) => value !== undefined && setFreeFee(value)} aria-label="Free Market service fee percentage" />
                 <input id="free-fee" type="number" min="0" max="100" step="0.01" value={freeFee} onChange={(e) => setFreeFee(Number(e.target.value))} required />
               </div>
               <small className="admin-policy-percent-hint">Slider: 0–5%. Enter a higher rate in the field.</small>
-              <small>Deducted from seller proceeds after a completed sale.</small>
+              <small>The same rate applies to buyer and seller transactions.</small>
             </div>
 
             <div className="admin-policy-field">
@@ -389,14 +388,14 @@ export function MarketPolicyManager() {
 
             <div className="admin-policy-field">
               <label htmlFor="pro-fee">
-                Seller fee <span>(%)</span>
+                Market service fee <span>(%)</span>
               </label>
               <div className="admin-policy-percent-control">
-                <Slider className="admin-policy-percent-slider" min={0} max={5} step={0.05} value={[Math.min(5, Math.max(0, proFee))]} onValueChange={([value]) => value !== undefined && setProFee(value)} aria-label="Pro seller fee percentage" />
+                <Slider className="admin-policy-percent-slider" min={0} max={5} step={0.05} value={[Math.min(5, Math.max(0, proFee))]} onValueChange={([value]) => value !== undefined && setProFee(value)} aria-label="Pro Market service fee percentage" />
                 <input id="pro-fee" type="number" min="0" max="100" step="0.01" value={proFee} onChange={(e) => setProFee(Number(e.target.value))} required />
               </div>
               <small className="admin-policy-percent-hint">Slider: 0–5%. Enter a higher rate in the field.</small>
-              <small>Deducted from seller proceeds after a completed sale.</small>
+              <small>The same rate applies to buyer and seller transactions.</small>
             </div>
 
             <div className="admin-policy-field">
@@ -430,8 +429,8 @@ export function MarketPolicyManager() {
         <span className="admin-tier-badge pro"><Tag size={13}/>Market checkout fees and vouchers</span>
         <p className="tier-desc">These values apply to new checkouts. Existing orders keep their saved totals.</p>
         <div className="admin-policy-fields">
-          <div className="admin-policy-field"><label htmlFor="buyer-fee-minimum">Minimum buyer service fee <span>(IDR)</span></label><input id="buyer-fee-minimum" type="number" min="0" max="100000" step="500" value={buyerFeeMinimum} onChange={event=>setBuyerFeeMinimum(Number(event.target.value))} required/><small>The percentage fee applies unless it is below this minimum. The subtotal cap still applies.</small></div>
-          <div className="admin-policy-field"><label htmlFor="seller-fee-minimum">Minimum seller fee <span>(IDR)</span></label><input id="seller-fee-minimum" type="number" min="0" max="100000" step="500" value={sellerFeeMinimum} onChange={event=>setSellerFeeMinimum(Number(event.target.value))} required/><small>Deducted from the card subtotal. It never exceeds the subtotal.</small></div>
+          <div className="admin-policy-field"><label htmlFor="buyer-fee-minimum">Buyer minimum service fee <span>(IDR)</span></label><input id="buyer-fee-minimum" type="number" min="0" max="100000" step="500" value={buyerFeeMinimum} onChange={event=>setBuyerFeeMinimum(Number(event.target.value))} required/><small>The percentage fee applies unless it is below this minimum. The subtotal cap still applies.</small></div>
+          <div className="admin-policy-field"><label htmlFor="seller-fee-minimum">Seller minimum service fee <span>(IDR)</span></label><input id="seller-fee-minimum" type="number" min="0" max="100000" step="500" value={sellerFeeMinimum} onChange={event=>setSellerFeeMinimum(Number(event.target.value))} required/><small>Deducted from the card subtotal. It never exceeds the subtotal.</small></div>
           <div className="admin-policy-field"><label htmlFor="voucher-minimum">Pro voucher minimum card subtotal <span>(IDR)</span></label><input id="voucher-minimum" type="number" min="0" max="100000000" step="50000" value={voucherMinimum} onChange={event=>setVoucherMinimum(Number(event.target.value))} required/><small>Pro vouchers apply only when the card subtotal reaches this amount.</small></div>
         </div>
       </section>

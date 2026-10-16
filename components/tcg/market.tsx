@@ -1144,8 +1144,11 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
             <section ref={feedListRef} data-feed-motion={filterMotionKey??undefined} className={`market-feed-list is-${listingView}`} aria-label={locale==='ID'?'Daftar listing Market aktif':'Live Market listings'}>
               {displayListings.map(listing=>{
                 const items=listing.items?.length?listing.items:[{printingId:listing.printingId,quantity:listing.quantity}];
-                const totalCards=items.reduce((total,item)=>total+item.quantity,0);
-                const stackEntries=items.filter(item=>item.quantity>0);
+                const totalCards=items.reduce((total,item)=>total+(listing.isOwner?item.quantity:(item.availableQuantity??item.quantity)),0);
+                const heldCards=items.reduce((total,item)=>total+(item.heldQuantity??0),0);
+                const fullySold=listing.type==='WTS'&&listing.status==='SOLD';
+                const fullyReserved=listing.type==='WTS'&&!fullySold&&totalCards===0;
+                const stackEntries=items.map(item=>({...item,quantity:item.sold?Math.min(3,item.quantity):listing.isOwner?item.quantity:Math.min(3,(item.availableQuantity??item.quantity)+(item.soldQuantity??0))})).filter(item=>item.sold||item.quantity>0);
                 const firstCopies=stackEntries.map((item,itemIndex)=>({item,itemIndex,copyIndex:0})).slice(0,3);
                 const extraCopies=stackEntries.flatMap((item,itemIndex)=>Array.from({length:Math.max(0,Math.min(3,item.quantity)-1)},(_,index)=>({item,itemIndex,copyIndex:index+1}))).slice(0,3-firstCopies.length);
                 const visibleStack=[...firstCopies,...extraCopies];
@@ -1154,7 +1157,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
                     <div className={`market-feed-stack ${totalCards===1?'is-single':''}`} style={{'--stack-last-index':Math.max(0,visibleStack.length-1)} as CSSProperties}>
                       {visibleStack.map(({item,itemIndex,copyIndex},index)=>{
                         const stackCard=item.card??(itemIndex===0?listing.card:undefined)??cardFor(item.printingId);
-                        return stackCard?<div key={`${item.printingId}-${itemIndex}-${copyIndex}`} className="market-feed-art" style={{'--stack-index':index} as CSSProperties}><CardArt card={stackCard}/></div>:null;
+                        return stackCard?<div key={`${item.printingId}-${itemIndex}-${copyIndex}`} className={`market-feed-art${item.sold?' is-sold':''}`} style={{'--stack-index':index} as CSSProperties}><CardArt card={stackCard}/>{(item.sold||item.soldQuantity)&&copyIndex===0&&<span className="market-feed-art-sold">{item.sold?locale==='ID'?'Baru terjual':'Just sold':locale==='ID'?`${item.soldQuantity} terjual`:`${item.soldQuantity} sold`}</span>}</div>:null;
                       })}
                       {totalCards>1&&<span className="market-feed-quantity" aria-label={`${totalCards} ${locale==='ID'?'kartu':'cards'}`}>{totalCards}</span>}
                     </div>
@@ -1167,7 +1170,8 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
                     </div>
                     <div className="market-feed-trade">
                       <div className="market-feed-status">
-                        <b>{listing.type==='WTB'?<Search size={12} aria-hidden="true"/>:<Store size={12} aria-hidden="true"/>}{listing.type==='WTB'?(locale==='ID'?'Dicari':'Buying'):(locale==='ID'?'Dijual':'Selling')}</b>
+                        <b>{fullySold||fullyReserved||listing.type==='WTS'?<Store size={12} aria-hidden="true"/>:<Search size={12} aria-hidden="true"/>}{fullySold?(locale==='ID'?'Baru terjual':'Just sold'):fullyReserved?(locale==='ID'?'Dipesan':'Reserved'):listing.type==='WTB'?(locale==='ID'?'Dicari':'Buying'):(locale==='ID'?'Dijual':'Selling')}</b>
+                        {heldCards>0&&!fullyReserved&&listing.type==='WTS'&&<span className="market-feed-held-count">{locale==='ID'?`${heldCards} kartu dipesan`:`${heldCards} ${heldCards===1?'card':'cards'} reserved`}</span>}
                       </div>
                       <div className="market-feed-price">
                         <strong>{formatMoney(listing.amount,listing.currency)}</strong>
@@ -1181,7 +1185,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
                   <Link href={marketListingPath(listing.title,listing.id)} className="market-feed-row-link" aria-label={locale==='ID'?`Buka ${listing.title}`:`Open ${listing.title}`}/>
                   {!listing.isOwner&&<div className="market-feed-row-actions">
                     {listing.type==='WTB'&&<Link href={marketListingPath(listing.title,listing.id)} className="button secondary is-icon-only market-icon-action market-feed-offer-cards" title={locale==='ID'?'Tawarkan kartu':'Offer cards'} aria-label={locale==='ID'?'Tawarkan kartu':'Offer cards'}><Cards size={17}/></Link>}
-                    {listing.type==='WTS'&&items.length===1&&items[0].quantity>0&&<MarketFeedCartButton listing={listing} printingId={items[0].printingId} locale={locale}/>}
+                    {listing.type==='WTS'&&!fullyReserved&&items.length===1&&items[0].quantity>0&&(items[0].availableQuantity??items[0].quantity)>0&&<MarketFeedCartButton listing={listing} printingId={items[0].printingId} locale={locale}/>}
                     <SaveListingButton listingId={listing.id} language={locale} iconOnly/>
                   </div>}
                 </article>;
@@ -1586,7 +1590,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
                     <small style={{fontSize:11,color:'var(--muted)',marginTop:3}}>
                       {locale==='ID'?`Total akumulasi satuan: Rp ${totalCalculatedUnitSum.toLocaleString('id-ID')}`:`Calculated sum: Rp ${totalCalculatedUnitSum.toLocaleString('id-ID')}`}
                     </small>
-                    {listingType==='WTS'&&enteredListingTotal>0&&<small className="market-sell-fee-estimate">{locale==='ID'?`Biaya penjual (${listingFeePercent}%, minimal Rp ${listingFeeMinimum.toLocaleString('id-ID')}): Rp ${estimatedSellerFee.toLocaleString('id-ID')} - perkiraan diterima Rp ${(enteredListingTotal-estimatedSellerFee).toLocaleString('id-ID')}`:`Seller fee (${listingFeePercent}%, minimum IDR ${listingFeeMinimum.toLocaleString('en-US')}): IDR ${estimatedSellerFee.toLocaleString('en-US')} - estimated payout IDR ${(enteredListingTotal-estimatedSellerFee).toLocaleString('en-US')}`}</small>}
+                    {listingType==='WTS'&&enteredListingTotal>0&&<small className="market-sell-fee-estimate">{locale==='ID'?`Biaya layanan Market (${listingFeePercent}%, minimal Rp ${listingFeeMinimum.toLocaleString('id-ID')}): Rp ${estimatedSellerFee.toLocaleString('id-ID')} - perkiraan diterima Rp ${(enteredListingTotal-estimatedSellerFee).toLocaleString('id-ID')}`:`Market service fee (${listingFeePercent}%, minimum IDR ${listingFeeMinimum.toLocaleString('en-US')}): IDR ${estimatedSellerFee.toLocaleString('en-US')} - estimated payout IDR ${(enteredListingTotal-estimatedSellerFee).toLocaleString('en-US')}`}</small>}
                   </label>
                   {listingType==='WTB'?(
                     <label className="market-request-city-label">

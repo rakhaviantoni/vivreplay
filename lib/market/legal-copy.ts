@@ -2,8 +2,6 @@ import {
   MARKET_BUYER_FEE_CAP_BANDS,
   MARKET_BUYER_FEE_MINIMUM,
   MARKET_SELLER_FEE_MINIMUM,
-  MARKET_BUYER_FEE_PERCENT,
-  MARKET_PRO_BUYER_FEE_PERCENT,
   MARKET_PRO_SHIPPING_VOUCHER_CAP,
   MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL,
   MARKET_PRO_SHIPPING_VOUCHER_SHARE,
@@ -34,8 +32,8 @@ export function marketFeeDisclosure(policies: Policies, id: boolean) {
       : `${cap} above Rp${money(previous, false)} through Rp${money(band.maxSubtotal, false)}`;
   }).join('; ');
   return id
-    ? `Biaya pembeli sebesar ${percent(MARKET_BUYER_FEE_PERCENT)}% untuk Free atau ${percent(MARKET_PRO_BUYER_FEE_PERCENT)}% untuk Pro, dengan minimum Rp${money(minimum,true)} dan batas sesuai subtotal kartu: ${caps}. Biaya penjual ${percent(policies.free.commissionPercent)}% untuk Free atau ${percent(policies.pro.commissionPercent)}% untuk Pro, minimal Rp${money(sellerMinimum,true)} dan tidak melebihi subtotal kartu. Ongkir ditampilkan terpisah sebelum pembayaran.`
-    : `Buyer fees are ${percent(MARKET_BUYER_FEE_PERCENT)}% for Free or ${percent(MARKET_PRO_BUYER_FEE_PERCENT)}% for Pro, with a Rp${money(minimum,false)} minimum and card-subtotal caps: ${caps}. Seller fees are ${percent(policies.free.commissionPercent)}% for Free or ${percent(policies.pro.commissionPercent)}% for Pro, with a Rp${money(sellerMinimum,false)} minimum that cannot exceed the card subtotal. Delivery is shown separately before payment.`;
+    ? `Biaya layanan Market adalah ${percent(policies.free.commissionPercent)}% untuk Free dan ${percent(policies.pro.commissionPercent)}% untuk Pro, baik saat membeli maupun menjual. Biaya pembeli memiliki minimum Rp${money(minimum,true)} dan batas sesuai subtotal kartu: ${caps}. Biaya penjual minimal Rp${money(sellerMinimum,true)} dan tidak melebihi subtotal kartu. Ongkir ditampilkan terpisah sebelum pembayaran.`
+    : `The Market service fee is ${percent(policies.free.commissionPercent)}% on Free and ${percent(policies.pro.commissionPercent)}% on Pro for both buying and selling. Buyer fees have a Rp${money(minimum,false)} minimum and card-subtotal caps: ${caps}. Seller fees have a Rp${money(sellerMinimum,false)} minimum and never exceed the card subtotal. Delivery is shown separately before payment.`;
 }
 
 export function marketProShippingDisclosure(id: boolean, policies?:Policies) {

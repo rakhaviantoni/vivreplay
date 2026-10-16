@@ -17,7 +17,7 @@ import {toast} from 'sonner';
 import {isBiteshipAreaId} from '@/lib/shipping/biteship-area';
 import {loadShippingRegionOptions,type ShippingRegionOption} from '@/lib/shipping/region-options';
 import {marketListingPath} from '@/lib/market/listing-url';
-import {MARKET_BUYER_FEE_PERCENT,MARKET_PRO_BUYER_FEE_PERCENT,MARKET_BUYER_FEE_MINIMUM,getMarketBuyerFeeCap,calculateBuyerServiceFee,MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL,MARKET_PRO_SHIPPING_VOUCHER_SHARE,MARKET_PRO_SHIPPING_VOUCHER_CAP} from '@/lib/market/policy';
+import {MARKET_BUYER_FEE_MINIMUM,getMarketBuyerFeeCap,calculateBuyerServiceFee,MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL,MARKET_PRO_SHIPPING_VOUCHER_SHARE,MARKET_PRO_SHIPPING_VOUCHER_CAP} from '@/lib/market/policy';
 
 type Origin={addressLine:string;city:string;postalCode:string;areaId:string|null;recipientName:string|null;phone:string|null;latitude?:number|null;longitude?:number|null;regionNames?:{province?:string;city?:string;district?:string;subdistrict?:string}};
 type Rate={courier_name:string;courier_service_name:string;courier_code:string;courier_service_code:string;company:string;type:string;price:number;duration?:string};
@@ -55,6 +55,7 @@ export function MarketCheckout(){
   const selectedPaymentChoice=useRef<{method:PaymentOption['method'];channel:string}>({method:'qris',channel:'mpm'});
   const [buyerTier,setBuyerTier]=useState<'free'|'pro'>('free');
   const [buyerFeeMinimum,setBuyerFeeMinimum]=useState(MARKET_BUYER_FEE_MINIMUM);
+  const [buyerFeePercent,setBuyerFeePercent]=useState(1.5);
   const [voucherMinimum,setVoucherMinimum]=useState(MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL);
   const [shippingVouchersRemaining,setShippingVouchersRemaining]=useState(0);
   const [useShippingVoucher,setUseShippingVoucher]=useState(true);
@@ -100,7 +101,7 @@ export function MarketCheckout(){
     Promise.all([
       listingsRequest,
       api<{origin:Origin|null}>('/api/shipping/origin',undefined,'GET'),
-      api<{available:boolean;sandbox?:boolean;paymentChannels?:PaymentOption[];buyerTier?:'free'|'pro';buyerFeeMinimum?:number;shippingVoucherMinSubtotal?:number;shippingVouchersRemaining?:number}>('/api/checkout/market',undefined,'GET'),
+      api<{available:boolean;sandbox?:boolean;paymentChannels?:PaymentOption[];buyerTier?:'free'|'pro';buyerFeeMinimum?:number;serviceFeePercent?:number;buyerFeePercent?:number;shippingVoucherMinSubtotal?:number;shippingVouchersRemaining?:number}>('/api/checkout/market',undefined,'GET'),
     ]).then(([market,shipping,checkout])=>{
       if(!active)return;
       const checkoutLines=selectedCartLines;
@@ -119,6 +120,7 @@ export function MarketCheckout(){
       }
       setBuyerTier(checkout.buyerTier==='pro'?'pro':'free');
       setBuyerFeeMinimum(checkout.buyerFeeMinimum??MARKET_BUYER_FEE_MINIMUM);
+      setBuyerFeePercent(checkout.serviceFeePercent??checkout.buyerFeePercent??1.5);
       setVoucherMinimum(checkout.shippingVoucherMinSubtotal??MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL);
       setShippingVouchersRemaining(checkout.shippingVouchersRemaining??0);
     }).catch(cause=>{if(active)setDetailsError(cause instanceof Error?cause.message:'Checkout details could not load.')}).finally(()=>{if(active)setLoading(false)});
@@ -142,7 +144,7 @@ export function MarketCheckout(){
     return [...groups.values()];
   },[selectedCards,listing?.id,listing?.title]);
   const subtotal=selectedCards.reduce((sum,item)=>sum+item.unitAmount*item.quantity,0);
-  const buyerServiceFeePercent=buyerTier==='pro'?MARKET_PRO_BUYER_FEE_PERCENT:MARKET_BUYER_FEE_PERCENT;
+  const buyerServiceFeePercent=buyerFeePercent;
   const buyerServiceFee=calculateBuyerServiceFee(subtotal,buyerServiceFeePercent,buyerFeeMinimum);
   const buyerFeeCap=getMarketBuyerFeeCap(subtotal);
   const buyerFeeLabel=t(`Market service fee (${buyerServiceFeePercent}%)`,`Biaya layanan Market (${buyerServiceFeePercent.toLocaleString('id-ID')}%)`);
@@ -244,7 +246,7 @@ export function MarketCheckout(){
           </section>;
         })}</div>
         <dl className="checkout-totals"><div><dt>{t('Cards','Kartu')}</dt><dd>{formatMoney(subtotal,listing.currency)}</dd></div><div><dt>{t('Delivery','Pengiriman')}</dt><dd><button type="button" className="checkout-delivery-action" aria-controls={addressReady&&!editingAddress?'checkout-delivery-services':undefined} onClick={chooseDelivery}>{currentRate&&addressReady&&!editingAddress?`${formatMoney(currentRate.price,listing.currency)} - ${t('Change','Ubah')}`:quoting?t('Loading rates…','Memuat ongkir…'):addressReady&&!editingAddress?t('Choose a service','Pilih layanan'):editingAddress?t('Save delivery address','Simpan alamat pengiriman'):t('Add delivery address','Tambahkan alamat pengiriman')}</button></dd></div>{voucherEligible&&addressReady&&!editingAddress&&currentRate&&<div className="checkout-pro-voucher-choice"><dt><label><input type="checkbox" checked={useShippingVoucher} onChange={event=>setUseShippingVoucher(event.target.checked)}/><span>{t('Use a Pro delivery voucher','Gunakan voucher ongkir Pro')}<small>{t(`${shippingVouchersRemaining} left this month - 50% off, up to ${formatMoney(MARKET_PRO_SHIPPING_VOUCHER_CAP,'IDR')}`,`${shippingVouchersRemaining} tersisa bulan ini - diskon 50%, maksimal ${formatMoney(MARKET_PRO_SHIPPING_VOUCHER_CAP,'IDR')}`)}</small></span></label></dt><dd>{shippingDiscount>0?`−${formatMoney(shippingDiscount,listing.currency)}`:formatMoney(0,listing.currency)}</dd></div>}<div><dt>{buyerFeeLabel}</dt><dd>{formatMoney(buyerServiceFee,listing.currency)}</dd></div>{selectedPaymentOption&&selectedPaymentOption.method!=='qris'&&<div><dt>{t('Payment fee (estimate)','Perkiraan biaya pembayaran')}</dt><dd>{formatMoney(estimatedGatewayFee,listing.currency)}</dd></div>}<div className="checkout-grand-total"><dt>{t('Total','Total')}</dt><dd>{formatMoney(paymentBaseTotal+estimatedGatewayFee,listing.currency)}</dd></div></dl>
-        <details className="checkout-fee-details"><summary>{t('How the buyer fee is calculated','Cara menghitung biaya pembeli')}</summary><p>{t(`The fee is ${buyerServiceFeePercent}% of the card subtotal, with a ${formatMoney(buyerFeeMinimum,'IDR')} minimum and a ${formatMoney(buyerFeeCap,'IDR')} cap for this subtotal.`,`Biaya sebesar ${buyerServiceFeePercent}% dari subtotal kartu, minimal ${formatMoney(buyerFeeMinimum,'IDR')} dan maksimal ${formatMoney(buyerFeeCap,'IDR')} untuk subtotal ini.`)}</p><MarketBuyerFeeCapTable locale={locale==='ID'?'id':'en'} minimumFee={buyerFeeMinimum} className="checkout-fee-cap-table"/></details>
+        <details className="checkout-fee-details"><summary>{t('How the service fee is calculated','Cara menghitung biaya layanan')}</summary><p>{t(`The fee is ${buyerServiceFeePercent}% of the card subtotal, with a ${formatMoney(buyerFeeMinimum,'IDR')} minimum and a ${formatMoney(buyerFeeCap,'IDR')} cap for this subtotal.`,`Biaya sebesar ${buyerServiceFeePercent}% dari subtotal kartu, minimal ${formatMoney(buyerFeeMinimum,'IDR')} dan maksimal ${formatMoney(buyerFeeCap,'IDR')} untuk subtotal ini.`)}</p><MarketBuyerFeeCapTable locale={locale==='ID'?'id':'en'} minimumFee={buyerFeeMinimum} className="checkout-fee-cap-table"/></details>
       </section>
       <section className="checkout-panel checkout-delivery-panel"><div className="checkout-section-title"><MapPin size={18}/><div><h2>{t('Delivery address','Alamat pengiriman')}</h2></div></div>
         {origin&&addressReady&&!editingAddress?<div className="checkout-address-card"><strong>{origin.recipientName||account.profile?.display_name}{origin.phone&&` - ${origin.phone}`}</strong><p>{origin.addressLine}<br/>{origin.regionNames?.subdistrict?`${origin.regionNames.subdistrict}, `:''}{origin.regionNames?.district?`${origin.regionNames.district}, `:''}{origin.city} {origin.postalCode}</p><button type="button" className="checkout-inline-link" onClick={()=>setEditingAddress(true)}>{t('Edit delivery details','Ubah detail pengiriman')}</button>

@@ -96,7 +96,7 @@ export function MarketCartSheet({locale='EN'}:{locale:'EN'|'ID'}){
   const disabled=!selectedLines.length||loading||Boolean(error)||selectedUnavailableIds.length>0||unavailableSelection||mixedCurrencies;
 
   return <Sheet open={open} onOpenChange={changeOpen}>
-    <button type="button" className="market-store-link market-cart-link" aria-label={isId?`Keranjang, ${cardCount} kartu`:`Cart, ${cardCount} cards`} aria-expanded={open} onClick={()=>changeOpen(true)}><Cart size={17}/><span>{isId?'Keranjang':'Cart'}</span>{cardCount>0&&<b>{cardCount}</b>}</button>
+    <button type="button" className="market-store-link market-cart-link" aria-label={isId?`Keranjang, ${cardCount} kartu`:`Cart, ${cardCount} ${cardCount===1?'card':'cards'}`} aria-expanded={open} onClick={()=>changeOpen(true)}><Cart size={17}/><span>{isId?'Keranjang':'Cart'}</span>{cardCount>0&&<b>{cardCount}</b>}</button>
     <SheetContent side="right" showCloseButton className="market-cart-sheet-content" style={{position:'fixed',inset:'0 0 0 auto',width:'min(440px, 100vw)',height:'100dvh',maxWidth:'none',maxHeight:'100dvh',boxSizing:'border-box',padding:0,gap:0,borderRadius:'16px 0 0 16px',overflow:'hidden'}}>
       <SheetHeader className="market-cart-sheet-header"><SheetTitle>{isId?'Keranjang':'Your cart'}</SheetTitle></SheetHeader>
       <div className="market-cart-sheet-body">

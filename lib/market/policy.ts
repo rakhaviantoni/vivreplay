@@ -23,7 +23,7 @@ export const LISTING_POLICIES: MarketPolicies = {
     durationDays: 7,
     maxActiveListings: 25,
     canAutoRenew: false,
-    commissionPercent: 1.25,
+    commissionPercent: 1.5,
   },
   pro: {
     tier: 'pro',
@@ -37,8 +37,8 @@ export const LISTING_POLICIES: MarketPolicies = {
   shippingVoucherMinSubtotal: 500_000,
 };
 
-export const MARKET_BUYER_FEE_PERCENT = 1.5;
-export const MARKET_PRO_BUYER_FEE_PERCENT = 0.75;
+export const MARKET_BUYER_FEE_PERCENT = LISTING_POLICIES.free.commissionPercent;
+export const MARKET_PRO_BUYER_FEE_PERCENT = LISTING_POLICIES.pro.commissionPercent;
 export const MARKET_BUYER_FEE_CAP_BANDS = [
   { maxSubtotal: 5_000_000, cap: 75_000 },
   { maxSubtotal: 10_000_000, cap: 150_000 },

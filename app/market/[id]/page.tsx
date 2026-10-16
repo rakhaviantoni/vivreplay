@@ -150,8 +150,13 @@ export default async function Page({params}:{params:Promise<{id:string}>}){
     variant: stored.cardVariant,
   } : undefined;
 
-  const items=listing.items?.length?listing.items:[{instanceId:stored.instanceId??undefined,printingId:listing.printingId,quantity:listing.quantity,condition:listing.condition,unitAmount:Math.round(listing.amount/listing.quantity)}];
-  const extraPrintingIds=items.map(item=>item.printingId).filter(printingId=>printingId!==stored?.printingId);
+  const items=listing.items?.length?listing.items:stored.status==='ACTIVE'?[{instanceId:stored.instanceId??undefined,printingId:listing.printingId,quantity:listing.quantity,condition:listing.condition,unitAmount:Math.round(listing.amount/listing.quantity)}]:[];
+  const soldRows=stored.type==='WTS'?(await db().prepare(`SELECT json_extract(j.value,'$.printingId') AS printingId,SUM(CAST(json_extract(j.value,'$.quantity') AS INTEGER)) AS quantity,MAX(CAST(json_extract(j.value,'$.unitAmount') AS INTEGER)) AS unitAmount,MAX(json_extract(j.value,'$.condition')) AS condition FROM checkout_orders o,json_each(o.items) j WHERE o.kind='MARKET' AND COALESCE(json_extract(j.value,'$.listingId'),o.listing_id)=? AND (o.status IN ('PAID','DISPUTED','RECEIVING') OR (o.status='SHIPPED' AND (o.delivered_at IS NULL OR o.delivered_at>datetime('now','-48 hours')))) GROUP BY json_extract(j.value,'$.printingId')`).bind(stored.id).all<{printingId:string;quantity:number;unitAmount:number|null;condition:string|null}>()).results:[];
+  const initialStatus=stored.status==='SOLD'&&soldRows.length?'SOLD_PENDING':stored.status;
+  const displayedSoldRows=soldRows.length?soldRows:stored.status==='SOLD'?[{printingId:stored.printingId,quantity:1,unitAmount:Math.round(listing.amount/Math.max(1,listing.quantity)),condition:listing.condition}]:[];
+  const heldRows=stored.status==='ACTIVE'&&stored.type==='WTS'?(await db().prepare(`SELECT json_extract(j.value,'$.printingId') AS printingId,SUM(CAST(json_extract(j.value,'$.quantity') AS INTEGER)) AS quantity FROM checkout_orders o,json_each(o.items) j WHERE o.kind='MARKET' AND (o.status='PROCESSING' OR (o.status='PENDING_PAYMENT' AND o.expires_at>CURRENT_TIMESTAMP)) AND (json_extract(j.value,'$.listingId')=? OR (json_extract(j.value,'$.listingId') IS NULL AND o.listing_id=?)) GROUP BY json_extract(j.value,'$.printingId')`).bind(stored.id,stored.id).all<{printingId:string;quantity:number}>()).results:[];
+  const heldByPrinting=new Map(heldRows.map(row=>[row.printingId,Number(row.quantity)||0]));
+  const extraPrintingIds=[...new Set([...items.map(item=>item.printingId),...displayedSoldRows.map(item=>item.printingId)].filter(printingId=>printingId!==stored?.printingId))];
   const bundleRows=extraPrintingIds.length?await db().prepare(`
     SELECT cp.id AS printingId,cp.image_url AS imageUrl,cp.language,cp.rarity,cp.set_code AS setCode,cp.variant,ci.id AS identityId,ci.code,ci.name,ci.color,ci.type,ci.cost,ci.power,ci.effect,tcp.printing_code AS printingCode,tca.object_key AS assetPath
     FROM card_printings cp LEFT JOIN card_identities ci ON ci.id=cp.identity_id
@@ -163,15 +168,22 @@ export default async function Page({params}:{params:Promise<{id:string}>}){
     id:row.printingId,code:row.code??row.printingId,name:row.name??row.code??listing.title,color:row.color??'Red',type:(row.type as Card['type']|undefined)??'Character',cost:row.cost??0,power:row.power??0,rarity:row.rarity??'',art:0,effect:row.effect??'',imageUrl:row.imageUrl,imageSource:'external' as const,setCode:row.setCode,language:row.language,printingCode:row.printingCode??row.code,variant:row.variant,assetPath:row.assetPath??undefined,
   }]));
   const bundleLanguages=new Map(bundleRows.results.map(row=>[row.printingId,row.language]));
-  const listingCards:MarketListingCard[]=items.flatMap(item=>{
+  const soldByPrinting=new Map(displayedSoldRows.map(item=>[item.printingId,item]));
+  const activePrintings=new Set(items.map(item=>item.printingId));
+  const soldOnlyRows=stored.status==='ACTIVE'?displayedSoldRows.filter(item=>!activePrintings.has(item.printingId)):displayedSoldRows;
+  const listingCards:MarketListingCard[]=[...items.flatMap((item,index)=>{
     const card=(item.printingId === stored?.printingId ? storedCard : undefined) ?? bundleCards.get(item.printingId) ?? cardFor(item.printingId);
     const printing=printings.find(candidate=>candidate.id===item.printingId);
     const language=item.printingId===stored?.printingId?stored?.cardLanguage??printing?.language??'EN':bundleLanguages.get(item.printingId)??printing?.language??'EN';
-    return card?[{id:item.printingId,instanceId:'instanceId'in item?item.instanceId:undefined,card,quantity:item.quantity,condition:item.condition??listing.condition,unitAmount:item.unitAmount??Math.round(listing.amount/listing.quantity),language}]:[];
-  });
+    const held=heldByPrinting.get(item.printingId)??0;
+    const sold=stored.status==='ACTIVE'&&index===items.findIndex(entry=>entry.printingId===item.printingId)?soldByPrinting.get(item.printingId):undefined;
+    return card?[{id:item.printingId,instanceId:'instanceId'in item?item.instanceId:undefined,card,quantity:item.quantity+(Number(sold?.quantity)||0),availableQuantity:Math.max(0,item.quantity-held),heldQuantity:Math.min(item.quantity,held),soldQuantity:Number(sold?.quantity)||0,condition:item.condition??listing.condition,unitAmount:item.unitAmount??Math.round(listing.amount/listing.quantity),language}]:[];
+  }),...soldOnlyRows.flatMap(item=>{const card=(item.printingId===stored.printingId?storedCard:undefined)??bundleCards.get(item.printingId)??cardFor(item.printingId);const printing=printings.find(candidate=>candidate.id===item.printingId);const language=item.printingId===stored.printingId?stored.cardLanguage??printing?.language??'EN':bundleLanguages.get(item.printingId)??printing?.language??'EN';return card?[{id:item.printingId,card,quantity:Number(item.quantity)||1,availableQuantity:0,soldQuantity:Number(item.quantity)||1,sold:true,salePending:soldRows.length>0,condition:item.condition??listing.condition,unitAmount:Number(item.unitAmount)||Math.round(listing.amount/Math.max(1,listing.quantity)),language}]:[]})];
   const primary=listingCards[0];
   if(!primary)notFound();
-  const cardCount=listingCards.reduce((total,item)=>total+item.quantity,0);
+  const cardCount=listingCards.reduce((total,item)=>total+(stored.type==='WTS'&&!isOwner?item.availableQuantity??item.quantity:item.quantity),0);
+  const reservedCount=listingCards.reduce((total,item)=>total+(item.heldQuantity??0),0);
+  if(stored.type==='WTS'&&reservedCount>0&&!isOwner){listing.quantity=cardCount;if(cardCount>0)listing.amount=listingCards.reduce((total,item)=>total+(item.availableQuantity??item.quantity)*item.unitAmount,0);}
 
   return (
     <>
@@ -186,6 +198,8 @@ export default async function Page({params}:{params:Promise<{id:string}>}){
         isAdmin={isAdmin}
         canEdit={Boolean(isOwner&&stored&&['ACTIVE','PAUSED'].includes(stored.status))}
         initialExpired={initialExpired}
+        initialStatus={initialStatus}
+        reservedCount={reservedCount}
         renewDurationDays={renewDurationDays}
       />
       <Market modalOnly/>

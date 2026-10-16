@@ -6,8 +6,8 @@ import {useEffect,useState} from 'react';
 import {CrownIcon as Crown} from '@phosphor-icons/react';
 import {formatMoney} from '@/packages/domain';
 import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle} from '@/components/ui/dialog';
-import {BuyerFeeInfo,SellerFeeInfo} from '@/components/tcg/market-buyer-fee-cap-table';
-import {MARKET_BUYER_FEE_MINIMUM,MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL} from '@/lib/market/policy';
+import {MarketServiceFeeInfo} from '@/components/tcg/market-buyer-fee-cap-table';
+import {MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL} from '@/lib/market/policy';
 import {MarketPaymentMethodPicker,defaultPaymentOptions,estimatePaymentFee,type PaymentMethod,type PaymentOption} from '@/components/tcg/market-payment-method-picker';
 
 type PlanPreview={
@@ -92,8 +92,7 @@ export function MarketProDialog({locale,member=false,profile=null,accountLoading
   const rows=[
     {key:'listings',label:t('Active listings','Listing aktif'),free:(plan?.freeMaxActiveListings??25).toLocaleString(isId?'id-ID':'en-US'),pro:(plan?.maxActiveListings??2500).toLocaleString(isId?'id-ID':'en-US')},
     {key:'period',label:t('Listing period','Masa listing'),free:`${plan?.freeDurationDays??7} ${t('days','hari')}`,pro:`${plan?.durationDays??30} ${t('days','hari')}`},
-    {key:'seller-fee',label:<span className="buyer-fee-row-label">{t('Seller fee','Biaya penjual')}<SellerFeeInfo locale={isId?'id':'en'} minimumFee={plan?.sellerFeeMinimum} freePercent={plan?.freeCommissionPercent??1.25} proPercent={plan?.commissionPercent??0.75}/></span>,free:`${plan?.freeCommissionPercent??1.25}%`,pro:`${plan?.commissionPercent??0.75}%`},
-    {key:'buyer-fee',label:<span className="buyer-fee-row-label">{t('Buyer fee','Biaya pembeli')}<BuyerFeeInfo locale={isId?'id':'en'} minimumFee={plan?.buyerFeeMinimum??MARKET_BUYER_FEE_MINIMUM}/></span>,free:`${plan?.freeBuyerFeePercent??1.5}%`,pro:`${plan?.buyerFeePercent??0.75}%`},
+    {key:'service-fee',label:<span className="buyer-fee-row-label">{t('Market service fee','Biaya layanan Market')}<MarketServiceFeeInfo locale={isId?'id':'en'} freePercent={plan?.freeCommissionPercent??1.5} proPercent={plan?.commissionPercent??0.75} buyerMinimumFee={plan?.buyerFeeMinimum} sellerMinimumFee={plan?.sellerFeeMinimum}/></span>,free:`${plan?.freeCommissionPercent??1.5}%`,pro:`${plan?.commissionPercent??0.75}%`},
     {key:'vouchers',label:t('Delivery vouchers','Voucher ongkir'),free:'—',pro:`${plan?.shippingVouchersPerMonth??2} ${t('per month','per bulan')}`},
   ];
   const amount=plan?.amount;

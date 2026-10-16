@@ -5,7 +5,7 @@ import {useRouter} from 'next/navigation';
 import {useEffect,useState} from 'react';
 import {formatMoney} from '@/packages/domain';
 import {calculateBuyerServiceFee,calculateSellerServiceFee,MARKET_BUYER_FEE_MINIMUM,MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL} from '@/lib/market/policy';
-import {BuyerFeeInfo,SellerFeeInfo} from '@/components/tcg/market-buyer-fee-cap-table';
+import {MarketServiceFeeInfo} from '@/components/tcg/market-buyer-fee-cap-table';
 import {useAccount} from '@/lib/client';
 import {toast} from 'sonner';
 import {MarketPaymentMethodPicker,defaultPaymentOptions,estimatePaymentFee,type PaymentMethod,type PaymentOption} from '@/components/tcg/market-payment-method-picker';
@@ -75,8 +75,7 @@ export function ProCheckout(){
   const rows=[
     {key:'listings',label:t('Active listings','Listing aktif'),free:(plan?.freeMaxActiveListings??25).toLocaleString(id?'id-ID':'en-US'),pro:(plan?.maxActiveListings??2500).toLocaleString(id?'id-ID':'en-US')},
     {key:'period',label:t('Listing period','Masa listing'),free:`${plan?.freeDurationDays??7} ${t('days','hari')}`,pro:`${plan?.durationDays??30} ${t('days','hari')}`},
-    {key:'seller-fee',label:<span className="buyer-fee-row-label">{t('Seller fee','Biaya penjual')}<SellerFeeInfo locale={id?'id':'en'} minimumFee={plan?.sellerFeeMinimum} freePercent={plan?.freeCommissionPercent??1.25} proPercent={plan?.commissionPercent??0.75}/></span>,free:`${plan?.freeCommissionPercent??1.25}%`,pro:`${plan?.commissionPercent??0.75}%`},
-    {key:'buyer-fee',label:<span className="buyer-fee-row-label">{t('Buyer fee','Biaya pembeli')}<BuyerFeeInfo locale={id?'id':'en'} minimumFee={plan?.buyerFeeMinimum??MARKET_BUYER_FEE_MINIMUM}/></span>,free:`${plan?.freeBuyerFeePercent??1.5}%`,pro:`${plan?.buyerFeePercent??0.75}%`},
+    {key:'service-fee',label:<span className="buyer-fee-row-label">{t('Market service fee','Biaya layanan Market')}<MarketServiceFeeInfo locale={id?'id':'en'} freePercent={plan?.freeCommissionPercent??1.5} proPercent={plan?.commissionPercent??0.75} buyerMinimumFee={plan?.buyerFeeMinimum} sellerMinimumFee={plan?.sellerFeeMinimum}/></span>,free:`${plan?.freeCommissionPercent??1.5}%`,pro:`${plan?.commissionPercent??0.75}%`},
     {key:'vouchers',label:t('Shipping vouchers','Voucher ongkir'),free:t('—','—'),pro:`${plan?.shippingVouchersPerMonth??2} ${t('per month','per bulan')}`},
     {key:'renewal',label:t('Listing auto-renewal','Perpanjangan listing otomatis'),free:plan?.freeCanAutoRenew?t('Automatic','Otomatis'):t('Manual','Manual'),pro:plan?.canAutoRenew?t('Automatic','Otomatis'):t('Manual','Manual')},
   ];
@@ -88,10 +87,10 @@ export function ProCheckout(){
   const numberValue=(value:string)=>Math.max(0,Math.min(1_000_000_000_000,Number(value)||0));
   const saleCount=Math.max(1,Math.min(100,Math.floor(Number(monthlySaleCount)||1)));
   const averageSaleSubtotal=numberValue(monthlySales)/saleCount;
-  const sellerSavings=saleCount*Math.max(0,calculateSellerServiceFee(averageSaleSubtotal,plan?.freeCommissionPercent??1.25,plan?.sellerFeeMinimum)-calculateSellerServiceFee(averageSaleSubtotal,plan?.commissionPercent??0.75,plan?.sellerFeeMinimum));
+  const sellerSavings=saleCount*Math.max(0,calculateSellerServiceFee(averageSaleSubtotal,plan?.freeCommissionPercent??1.5,plan?.sellerFeeMinimum)-calculateSellerServiceFee(averageSaleSubtotal,plan?.commissionPercent??0.75,plan?.sellerFeeMinimum));
   const purchaseCount=Math.max(1,Math.min(100,Math.floor(Number(monthlyPurchaseCount)||1)));
   const averagePurchaseSubtotal=numberValue(monthlyPurchases)/purchaseCount;
-  const buyerSavings=purchaseCount*Math.max(0,calculateBuyerServiceFee(averagePurchaseSubtotal,plan?.freeBuyerFeePercent??1.5,plan?.buyerFeeMinimum??MARKET_BUYER_FEE_MINIMUM)-calculateBuyerServiceFee(averagePurchaseSubtotal,plan?.buyerFeePercent??0.75,plan?.buyerFeeMinimum??MARKET_BUYER_FEE_MINIMUM));
+  const buyerSavings=purchaseCount*Math.max(0,calculateBuyerServiceFee(averagePurchaseSubtotal,plan?.freeCommissionPercent??1.5,plan?.buyerFeeMinimum??MARKET_BUYER_FEE_MINIMUM)-calculateBuyerServiceFee(averagePurchaseSubtotal,plan?.commissionPercent??0.75,plan?.buyerFeeMinimum??MARKET_BUYER_FEE_MINIMUM));
   const voucherSavings=Math.min(Math.max(0,Math.floor(Number(voucherCount)||0)),plan?.shippingVouchersPerMonth??2)*Math.min(Math.round(numberValue(averageDelivery)*(plan?.shippingVoucherSharePercent??100)/100),plan?.shippingVoucherCap??10000);
   const totalEstimatedSavings=sellerSavings+buyerSavings+voucherSavings;
   const estimatedAfterPlan=totalEstimatedSavings-(plan?.amount??plan?.standardAmount??0);
@@ -120,12 +119,12 @@ export function ProCheckout(){
             <label>{t('Vouchers you expect to use','Voucher yang diperkirakan dipakai')}<select value={voucherCount} onChange={event=>setVoucherCount(event.target.value)}>{Array.from({length:(plan?.shippingVouchersPerMonth??2)+1},(_,index)=><option key={index} value={index}>{index}</option>)}</select></label>
           </div>
           <dl className="pro-calculator-results">
-            <div><dt>{t('Lower seller fees','Hemat biaya penjual')}</dt><dd>{formatMoney(sellerSavings,'IDR')}</dd></div>
-            <div><dt>{t('Lower buyer fees','Hemat biaya pembeli')}</dt><dd>{formatMoney(buyerSavings,'IDR')}</dd></div>
+            <div><dt>{t('Savings on sales','Penghematan saat menjual')}</dt><dd>{formatMoney(sellerSavings,'IDR')}</dd></div>
+            <div><dt>{t('Savings on purchases','Penghematan saat membeli')}</dt><dd>{formatMoney(buyerSavings,'IDR')}</dd></div>
             <div><dt>{t('Estimated vouchers','Perkiraan voucher')}</dt><dd>{formatMoney(voucherSavings,'IDR')}</dd></div>
             <div className="pro-calculator-total"><dt>{t('After regular price','Setelah harga reguler')}</dt><dd className={estimatedAfterPlan>=0?'is-positive':'is-negative'}>{estimatedAfterPlan>=0?'+':''}{formatMoney(estimatedAfterPlan,'IDR')}</dd></div>
           </dl>
-          <small>{t('Estimate only. Buyer fee savings use your monthly card total divided across the order count. Each voucher requires a card subtotal of at least IDR 200,000.','Perkiraan saja. Penghematan biaya pembeli dihitung dari total kartu bulanan dibagi jumlah pesanan. Voucher berlaku untuk subtotal kartu minimal IDR 200.000.')}</small>
+          <small>{t('Estimate only. Savings use your monthly card totals divided across each order. Each voucher requires a card subtotal of at least IDR 200,000.','Perkiraan saja. Penghematan dihitung dari total kartu bulanan yang dibagi jumlah pesanan. Voucher berlaku untuk subtotal kartu minimal IDR 200.000.')}</small>
           {plan?.introOffer&&<small>{t(`Estimate uses the launch price of ${formatMoney(plan.amount??19900,'IDR')}.`,`Perkiraan memakai harga promo ${formatMoney(plan.amount??19900,'IDR')}.`)}</small>}
         </section>
       </section>

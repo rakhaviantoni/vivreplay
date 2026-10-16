@@ -3,7 +3,7 @@
 import {useId,useState} from 'react';
 import {InfoIcon as Info} from '@phosphor-icons/react';
 import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle} from '@/components/ui/dialog';
-import {calculateBuyerServiceFee,calculateSellerServiceFee,getMarketBuyerFeeCap,MARKET_BUYER_FEE_CAP_BANDS,MARKET_BUYER_FEE_PERCENT,MARKET_PRO_BUYER_FEE_PERCENT,MARKET_BUYER_FEE_MINIMUM,MARKET_SELLER_FEE_MINIMUM} from '@/lib/market/policy';
+import {calculateBuyerServiceFee,calculateSellerServiceFee,getMarketBuyerFeeCap,MARKET_BUYER_FEE_CAP_BANDS,MARKET_BUYER_FEE_MINIMUM,MARKET_SELLER_FEE_MINIMUM} from '@/lib/market/policy';
 
 export function MarketBuyerFeeCapTable({locale='en',className='',minimumFee=MARKET_BUYER_FEE_MINIMUM}:{locale?:'en'|'id';className?:string;minimumFee?:number}){
   const titleId=`market-buyer-fee-cap-${useId().replaceAll(':','')}`;
@@ -30,57 +30,47 @@ export function MarketBuyerFeeCapTable({locale='en',className='',minimumFee=MARK
   </section>;
 }
 
-export function BuyerFeeInfo({locale='en',minimumFee=MARKET_BUYER_FEE_MINIMUM}:{locale?:'en'|'id';minimumFee?:number}){
+export function MarketServiceFeeInfo({locale='en',defaultTab='buyer',freePercent=1.5,proPercent=0.75,buyerMinimumFee=MARKET_BUYER_FEE_MINIMUM,sellerMinimumFee=MARKET_SELLER_FEE_MINIMUM}:{locale?:'en'|'id';defaultTab?:'buyer'|'seller';freePercent?:number;proPercent?:number;buyerMinimumFee?:number;sellerMinimumFee?:number}){
   const [open,setOpen]=useState(false);
+  const [tab,setTab]=useState<'buyer'|'seller'>(defaultTab);
   const [subtotal,setSubtotal]=useState('3500000');
   const id=locale==='id';
   const amount=Math.max(0,Number(subtotal)||0);
+  const minimumFee=tab==='buyer'?buyerMinimumFee:sellerMinimumFee;
   const format=new Intl.NumberFormat(id?'id-ID':'en-US',{style:'currency',currency:'IDR',maximumFractionDigits:0});
+  const buyer=tab==='buyer';
+  const fee=(percent:number)=>buyer?calculateBuyerServiceFee(amount,percent,buyerMinimumFee):calculateSellerServiceFee(amount,percent,sellerMinimumFee);
   const feeCap=getMarketBuyerFeeCap(amount);
   return <>
-    <button type="button" className="buyer-fee-info-trigger" aria-label={id?'Info biaya pembeli':'Buyer fee information'} aria-haspopup="dialog" onClick={()=>setOpen(true)}><Info size={14}/></button>
+    <button type="button" className="buyer-fee-info-trigger" aria-label={id?'Info biaya layanan Market':'Market service fee information'} aria-haspopup="dialog" onClick={()=>{setTab(defaultTab);setOpen(true)}}><Info size={14}/></button>
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="buyer-fee-info-dialog">
         <DialogHeader>
-          <DialogTitle>{id?'Biaya pembeli':'Buyer fee'}</DialogTitle>
-          <DialogDescription>{id?`Dihitung dari subtotal kartu, minimal ${format.format(minimumFee)}. Ongkir dihitung terpisah.`:`Calculated from the card subtotal, with a ${format.format(minimumFee)} minimum. Delivery is separate.`}</DialogDescription>
+          <DialogTitle>{id?'Biaya layanan Market':'Market service fee'}</DialogTitle>
+          <DialogDescription>{buyer?(id?`Dibayar pembeli dari subtotal kartu, minimal ${format.format(buyerMinimumFee)}. Batas biaya berlaku. Ongkir dihitung terpisah.`:`Paid by the buyer on the card subtotal, with a ${format.format(buyerMinimumFee)} minimum and a fee cap. Delivery is separate.`):(id?`Dipotong dari hasil penjualan, minimal ${format.format(sellerMinimumFee)} dan tidak melebihi subtotal kartu.`:`Deducted from the seller’s proceeds, with a ${format.format(sellerMinimumFee)} minimum and never more than the card subtotal.`)}</DialogDescription>
         </DialogHeader>
+        <div className="market-fee-role-tabs" role="tablist" aria-label={id?'Jenis biaya':'Fee type'}>
+          <button type="button" role="tab" aria-selected={buyer} onClick={()=>setTab('buyer')}>{id?'Pembeli':'Buyer'}</button>
+          <button type="button" role="tab" aria-selected={!buyer} onClick={()=>setTab('seller')}>{id?'Penjual':'Seller'}</button>
+        </div>
         <label className="buyer-fee-example-input">{id?'Contoh subtotal kartu':'Example card subtotal'}
           <span><b>IDR</b><input type="number" min="0" step="100000" inputMode="numeric" value={subtotal} onChange={event=>setSubtotal(event.target.value)}/></span>
         </label>
         <dl className="buyer-fee-example-results">
-          <div><dt>Free ({MARKET_BUYER_FEE_PERCENT}%)</dt><dd>{format.format(calculateBuyerServiceFee(amount,MARKET_BUYER_FEE_PERCENT,minimumFee))}</dd></div>
-          <div><dt>Pro ({MARKET_PRO_BUYER_FEE_PERCENT}%)</dt><dd>{format.format(calculateBuyerServiceFee(amount,MARKET_PRO_BUYER_FEE_PERCENT,minimumFee))}</dd></div>
-          <small>{id?`Batas biaya untuk subtotal ini: ${format.format(feeCap)}.`:`Fee cap for this subtotal: ${format.format(feeCap)}.`}</small>
+          <div><dt>Free ({freePercent}%)</dt><dd>{format.format(fee(freePercent))}</dd></div>
+          <div><dt>Pro ({proPercent}%)</dt><dd>{format.format(fee(proPercent))}</dd></div>
+          {buyer&&<small>{id?`Batas biaya untuk subtotal ini: ${format.format(feeCap)}.`:`Fee cap for this subtotal: ${format.format(feeCap)}.`}</small>}
         </dl>
-        <MarketBuyerFeeCapTable locale={locale} minimumFee={minimumFee} className="buyer-fee-info-cap-table"/>
+        {buyer&&<MarketBuyerFeeCapTable locale={locale} minimumFee={buyerMinimumFee} className="buyer-fee-info-cap-table"/>}
       </DialogContent>
     </Dialog>
   </>;
 }
 
-export function SellerFeeInfo({locale='en',freePercent=1,proPercent=0.5,minimumFee=MARKET_SELLER_FEE_MINIMUM}:{locale?:'en'|'id';freePercent?:number;proPercent?:number;minimumFee?:number}){
-  const [open,setOpen]=useState(false);
-  const [subtotal,setSubtotal]=useState('3500000');
-  const id=locale==='id';
-  const amount=Math.max(0,Number(subtotal)||0);
-  const format=new Intl.NumberFormat(id?'id-ID':'en-US',{style:'currency',currency:'IDR',maximumFractionDigits:0});
-  return <>
-    <button type="button" className="buyer-fee-info-trigger" aria-label={id?'Info biaya penjual':'Seller fee information'} aria-haspopup="dialog" onClick={()=>setOpen(true)}><Info size={14}/></button>
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="buyer-fee-info-dialog">
-        <DialogHeader>
-          <DialogTitle>{id?'Biaya penjual':'Seller fee'}</DialogTitle>
-          <DialogDescription>{id?`Dipotong dari hasil penjualan berdasarkan subtotal kartu, minimal ${format.format(minimumFee)}. Biaya tidak melebihi subtotal.`:`Taken from your sale proceeds based on the card subtotal, with a ${format.format(minimumFee)} minimum. It cannot exceed the subtotal.`}</DialogDescription>
-        </DialogHeader>
-        <label className="buyer-fee-example-input">{id?'Contoh subtotal kartu':'Example card subtotal'}
-          <span><b>IDR</b><input type="number" min="0" step="100000" inputMode="numeric" value={subtotal} onChange={event=>setSubtotal(event.target.value)}/></span>
-        </label>
-        <dl className="buyer-fee-example-results">
-          <div><dt>Free ({freePercent}%)</dt><dd>{format.format(calculateSellerServiceFee(amount,freePercent,minimumFee))}</dd></div>
-          <div><dt>Pro ({proPercent}%)</dt><dd>{format.format(calculateSellerServiceFee(amount,proPercent,minimumFee))}</dd></div>
-        </dl>
-      </DialogContent>
-    </Dialog>
-  </>;
+export function BuyerFeeInfo({locale='en',minimumFee=MARKET_BUYER_FEE_MINIMUM}:{locale?:'en'|'id';minimumFee?:number}){
+  return <MarketServiceFeeInfo locale={locale} defaultTab="buyer" buyerMinimumFee={minimumFee}/>;
+}
+
+export function SellerFeeInfo({locale='en',freePercent=1.5,proPercent=0.75,minimumFee=MARKET_SELLER_FEE_MINIMUM}:{locale?:'en'|'id';freePercent?:number;proPercent?:number;minimumFee?:number}){
+  return <MarketServiceFeeInfo locale={locale} defaultTab="seller" freePercent={freePercent} proPercent={proPercent} sellerMinimumFee={minimumFee}/>;
 }

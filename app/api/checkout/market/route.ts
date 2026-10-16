@@ -5,7 +5,7 @@ import {getCurrentUser} from '@/lib/server/auth';
 import {getIpaymuPaymentChannels,hasMarketIpaymuPaymentConfig} from '@/lib/server/ipaymu';
 import {biteshipDestination,isBiteshipAreaId} from '@/lib/shipping/biteship-area';
 import {shippingRateOptions} from '@/lib/server/shipping-quote-cache';
-import {fetchMarketPolicies,MARKET_BUYER_FEE_PERCENT,MARKET_PRO_BUYER_FEE_PERCENT,MARKET_BUYER_FEE_CAP,calculateBuyerServiceFee,calculateSellerServiceFee,getMarketBuyerFeeCap,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH,MARKET_PRO_SHIPPING_VOUCHER_SHARE,MARKET_PRO_SHIPPING_VOUCHER_CAP} from '@/lib/market/policy';
+import {fetchMarketPolicies,MARKET_BUYER_FEE_CAP,calculateBuyerServiceFee,calculateSellerServiceFee,getMarketBuyerFeeCap,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH,MARKET_PRO_SHIPPING_VOUCHER_SHARE,MARKET_PRO_SHIPPING_VOUCHER_CAP} from '@/lib/market/policy';
 
 const schema=z.object({listingId:z.string().min(1),offerId:z.string().min(1).optional(),items:z.array(z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(99),listingId:z.string().optional()})).min(1).max(600),lines:z.array(z.object({listingId:z.string().min(1),items:z.array(z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(99)})).min(1).max(60)})).max(10).optional(),courierName:z.string().min(1),courierServiceName:z.string().min(1),courierCode:z.string().min(1),courierServiceCode:z.string().min(1),courierType:z.string().min(1),shippingFee:z.number().int().nonnegative().optional(),useShippingVoucher:z.boolean().default(true),paymentMethod:z.enum(['va','cstore','qris','cc','paylater','ewallet']).default('qris'),paymentChannel:z.string().regex(/^[a-z0-9_]{2,24}$/).default('mpm')});
 type BundleEntry={instanceId?:string;printingId:string;quantity:number;condition?:string;unitAmount:number;listingId?:string};
@@ -21,7 +21,8 @@ export async function GET(){
     const [policies,voucherUsage]=await Promise.all([fetchMarketPolicies(database),profile.tier==='pro'?database.prepare(`SELECT COUNT(*) AS total FROM checkout_orders WHERE buyer_id=? AND kind='MARKET' AND status IN ('PENDING_PAYMENT','PROCESSING','PAID','SHIPPED','RECEIVED','COMPLETED') AND json_extract(details,'$.marketProShippingVoucherMonth')=?`).bind(profile.id,voucherMonth).first<{total:number}>():Promise.resolve(null)]);
     let paymentChannels=[] as Awaited<ReturnType<typeof getIpaymuPaymentChannels>>;
     try{if(hasMarketIpaymuPaymentConfig())paymentChannels=await getIpaymuPaymentChannels()}catch{paymentChannels=[{method:'qris',channel:'mpm',name:'QRIS',logo:'',fee:0,feeType:'FLAT',additionalFee:0}]}
-    return Response.json({available,sandbox:process.env.IPAYMU_MODE==='sandbox',paymentChannels,buyerTier:profile.tier==='pro'?'pro':'free',buyerFeePercent:profile.tier==='pro'?MARKET_PRO_BUYER_FEE_PERCENT:MARKET_BUYER_FEE_PERCENT,buyerFeeMinimum:policies.buyerFeeMinimum,buyerFeeCap:MARKET_BUYER_FEE_CAP,sellerFeePercent:policies[profile.tier==='pro'?'pro':'free'].commissionPercent,sellerFeeMinimum:policies.sellerFeeMinimum,shippingVoucherMinSubtotal:policies.shippingVoucherMinSubtotal,shippingVouchersRemaining:Math.max(0,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH-(voucherUsage?.total??0))});
+    const serviceFeePercent=policies[profile.tier==='pro'?'pro':'free'].commissionPercent;
+    return Response.json({available,sandbox:process.env.IPAYMU_MODE==='sandbox',paymentChannels,buyerTier:profile.tier==='pro'?'pro':'free',buyerFeePercent:serviceFeePercent,serviceFeePercent,buyerFeeMinimum:policies.buyerFeeMinimum,buyerFeeCap:MARKET_BUYER_FEE_CAP,sellerFeePercent:serviceFeePercent,sellerFeeMinimum:policies.sellerFeeMinimum,shippingVoucherMinSubtotal:policies.shippingVoucherMinSubtotal,shippingVouchersRemaining:Math.max(0,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH-(voucherUsage?.total??0))});
   }catch(error){return errorResponse(error)}
 }
 
@@ -137,8 +138,8 @@ export async function POST(request:Request){
     const id=crypto.randomUUID();
     const buyerProfile=await database.prepare('SELECT tier FROM profiles WHERE id=?').bind(profile.id).first<{tier:string}>();
     const buyerIsPro=buyerProfile?.tier==='pro';
-    const buyerFeePercent=buyerIsPro?MARKET_PRO_BUYER_FEE_PERCENT:MARKET_BUYER_FEE_PERCENT;
     const policies=await fetchMarketPolicies(database);
+    const buyerFeePercent=policies[buyerIsPro?'pro':'free'].commissionPercent;
     const buyerServiceFeeAmount=calculateBuyerServiceFee(subtotal,buyerFeePercent,policies.buyerFeeMinimum);
     const voucherMonth=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jakarta',year:'numeric',month:'2-digit'}).format(new Date());
     const voucherEligible=buyerIsPro&&input.useShippingVoucher&&subtotal>=policies.shippingVoucherMinSubtotal&&rate.price>0;

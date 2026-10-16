@@ -376,6 +376,11 @@ export type MarketListingCard={
   instanceId?:string;
   card:Card;
   quantity:number;
+  availableQuantity?:number;
+  heldQuantity?:number;
+  sold?:boolean;
+  salePending?:boolean;
+  soldQuantity?:number;
   condition:string;
   unitAmount:number;
   language:string;
@@ -404,7 +409,7 @@ export function ListingArtRotator({items}:{items:MarketListingCard[]}){
   const visibleStackCount=Math.min(3,Math.max(1,cardCount));
   const underlays=Array.from({length:visibleStackCount-1},(_,index)=>items[(activeIndex+index+1)%items.length]??active);
 
-  return <div className={`viewer-art-stack market-listing-art-rotator ${visibleStackCount===1?'is-single':''}`} data-card-count={cardCount} aria-label={`Featured card: ${active.card.name}; ${cardCount} cards in this listing`}>
+  return <div className={`viewer-art-stack market-listing-art-rotator ${visibleStackCount===1?'is-single':''}`} data-card-count={cardCount} aria-label={`Featured card: ${active.card.name}; ${cardCount} ${cardCount===1?'card':'cards'} in this listing`}>
     {underlays.map((item,index)=><div key={`${item.id}-${index}`} className={`viewer-art-underlay viewer-art-underlay-${index}`} aria-hidden="true"><CardArt card={item.card}/></div>)}
     <div className="viewer-art-current market-listing-art-current" key={active.id}><CardArt card={active.card} priority/></div>
   </div>;
@@ -412,7 +417,8 @@ export function ListingArtRotator({items}:{items:MarketListingCard[]}){
 
 export function MarketListingItems({items,currency,listingType,listingId,listingTitle,listingInfo,negotiable=true,readOnly=false,previewOnly=false,canEditPrices=false,canManageListing=false,onItemsAdded,onPriceSaved}:{items:MarketListingCard[];currency:string;listingType:'WTS'|'WTB';listingId:string;listingTitle?:string;listingInfo?:{seller?:string;city?:string;expiresAt?:string};listingAmount?:string;negotiable?:boolean;readOnly?:boolean;previewOnly?:boolean;canEditPrices?:boolean;canManageListing?:boolean;onItemsAdded?:(cards:MarketListingCard[])=>void;onPriceSaved?:(index:number,unitAmount:number)=>void;}){
   const router=useRouter();
-  const singleCopyListing=items.length===1&&items[0].quantity===1;
+  const availableFor=(item:MarketListingCard)=>readOnly?item.quantity:(item.availableQuantity??item.quantity);
+  const singleCopyListing=items.length===1&&availableFor(items[0])===1;
   const [selected,setSelected]=useState<Record<string,number>>(()=>singleCopyListing?{[items[0].id]:1}:{});
   const [cardsView,setCardsView]=useState<'grid'|'list'>('grid');
   const [customPrices,setCustomPrices]=useState<Record<string,number>>({});
@@ -465,7 +471,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
 
   const selectedCount=useMemo(()=>Object.values(selected).reduce((total,amount)=>total+amount,0),[selected]);
   const selectionInCart=selectedCount>0&&items.every(item=>{const quantity=selected[item.id]??0;return quantity===0||(cartQuantities[item.id]??0)>=quantity});
-  const publicListingTotal=useMemo(()=>items.reduce((total,item)=>total+item.quantity*item.unitAmount,0),[items]);
+  const publicListingTotal=useMemo(()=>items.reduce((total,item)=>total+availableFor(item)*item.unitAmount,0),[items,readOnly]);
   const originalTotal=useMemo(()=>items.reduce((total,item)=>total+(selected[item.id]??0)*item.unitAmount,0),[items,selected]);
   const selectedTotal=useMemo(()=>items.reduce((total,item)=>{
     const qty=selected[item.id]??0;
@@ -517,18 +523,16 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
     [id]:Math.max(0,Math.min(maximum,count)),
   }));
 
-  const selectAll=()=>setSelected(
-    Object.fromEntries(items.map(item=>[item.id,item.quantity]))
-  );
+  const selectAll=()=>setSelected(Object.fromEntries(items.map(item=>[item.id,availableFor(item)])));
 
   const selectPlaysets=()=>setSelected(
-    Object.fromEntries(items.map(item=>[item.id,Math.min(4,item.quantity)]))
+    Object.fromEntries(items.map(item=>[item.id,Math.min(4,availableFor(item))]))
   );
 
   const clearAll=()=>setSelected({});
 
-  const totalAvailable=useMemo(()=>items.reduce((sum,item)=>sum+item.quantity,0),[items]);
-  const hasPlaysetOpportunities=useMemo(()=>items.some(item=>item.quantity>=4),[items]);
+  const totalAvailable=useMemo(()=>items.reduce((sum,item)=>sum+availableFor(item),0),[items,readOnly]);
+  const hasPlaysetOpportunities=useMemo(()=>items.some(item=>availableFor(item)>=4),[items,readOnly]);
 
   const isBuying=listingType==='WTS';
   const acceptsOffers=!isBuying||negotiable;
@@ -588,7 +592,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
           <button type="button" className={cardsView==='list'?'active':''} onClick={()=>setCardsView('list')} aria-label={t('List view','Tampilan daftar')} aria-pressed={cardsView==='list'}><List size={16}/></button>
         </div>
       </div>
-      {!readOnly&&offerCheckComplete&&!activeOffer&&!submitting&&!singleCopyListing&&<div className="market-listing-bulk-actions" role="toolbar" aria-label={t('Bulk card selection','Pilihan borongan kartu')}>
+      {!readOnly&&totalAvailable>0&&offerCheckComplete&&!activeOffer&&!submitting&&!singleCopyListing&&<div className="market-listing-bulk-actions" role="toolbar" aria-label={t('Bulk card selection','Pilihan borongan kartu')}>
         <button
           type="button"
           className={`market-bulk-btn ${selectedCount===totalAvailable?'is-active':''}`}
@@ -622,11 +626,13 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
     <div className={`market-listing-card-grid is-${cardsView}`}>
       {items.map((item,index)=>{
         const amount=selected[item.id]??0;
+        const availableQuantity=availableFor(item);
+        const stackQuantity=Math.min(4,availableQuantity+(item.soldQuantity??0))||1;
         const unitPrice=getUnitPrice(item);
         const diffPercent=item.unitAmount>0?Math.round(((unitPrice-item.unitAmount)/item.unitAmount)*100):0;
-        return <article className={`deck-card-stack market-listing-card ${item.quantity>1?'has-printing-stack':''} ${amount?'is-selected':''}`} key={item.id}>
+        return <article className={`deck-card-stack market-listing-card ${availableQuantity>1?'has-printing-stack':''} ${amount?'is-selected':''} ${availableQuantity===0?'is-unavailable':''}`} key={item.id}>
           <div className="card-stage printing-stack deck-printing-stack market-listing-card-stage">
-            {Array.from({length:Math.min(item.quantity,4)},(_,index)=>(
+            {Array.from({length:Math.min(stackQuantity,4)},(_,index)=>(
               <div className="stacked-printing" style={{'--stack-index':index} as React.CSSProperties} key={index}>
                 {index===0 ? (
                   <div
@@ -644,28 +650,30 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
                 )}
               </div>
             ))}
-            {item.quantity>1 && <b>×{item.quantity}</b>}
+            {availableQuantity>1 && <b>×{availableQuantity}</b>}
+            {item.soldQuantity&&availableQuantity>0&&<span className="market-listing-card-sold-count">{language==='ID'?`${item.soldQuantity} terjual`:`${item.soldQuantity} sold`}</span>}
             <button type="button" className="deck-info-action market-icon-action market-listing-info" onClick={()=>{setPreview(item.card);setPreviewPrintingId(item.id)}} aria-label={`View ${item.card.name} details`}><Info size={13}/></button>
             {!readOnly&&<div className="market-listing-card-utility-actions">
               {listingType==='WTS'&&<button type="button" className="button secondary is-icon-only market-icon-action market-listing-add-vault" disabled={previewOnly} onClick={()=>setVaultTarget(item)} aria-label={t('Add an owned copy to Vault','Simpan salinan milik Anda ke Koleksi')} title={t('Add an owned copy to Vault','Simpan salinan milik Anda ke Koleksi')}><Plus size={17}/></button>}
               <WishlistButton printingId={item.id} language={language} iconOnly disabled={previewOnly}/>
             </div>}
-            {!readOnly&&offerCheckComplete&&!activeOffer&&!submitting&&!singleCopyListing&&<span className="deck-stack-actions market-listing-quantity" aria-label={`Select ${item.card.name}`}>
-              <button type="button" onClick={()=>change(item.id,-1,item.quantity)} disabled={!amount} aria-label={`Remove one ${item.card.name}`}><Minus size={13}/></button>
-              <button type="button" onClick={()=>change(item.id,1,item.quantity)} disabled={amount===item.quantity} aria-label={`Add one ${item.card.name}`}><Plus size={13}/></button>
-              {item.quantity>1&&(()=>{
-                const showPlayset=item.quantity>=4&&amount<4;
-                const targetQty=showPlayset?4:(amount===item.quantity?0:item.quantity);
-                const label=showPlayset?'4×':(amount===item.quantity?'0':(item.quantity===4?'4×':t('All','Semua')));
-                const title=showPlayset?t('Take playset of 4','Ambil playset 4×'):(amount===item.quantity?t('Deselect card','Batalkan pilihan kartu'):t(`Take all ${item.quantity}`,`Ambil semua ${item.quantity}`));
-                return <button type="button" className={`market-card-quick-btn ${amount===item.quantity||(showPlayset&&amount===4)?'is-active':''}`} onClick={()=>setItemExact(item.id,targetQty,item.quantity)} title={title} aria-label={`${label} ${item.card.name}`}>{label}</button>;
+            {!readOnly&&offerCheckComplete&&!activeOffer&&!submitting&&!singleCopyListing&&availableQuantity>0&&<span className="deck-stack-actions market-listing-quantity" aria-label={`Select ${item.card.name}`}>
+              <button type="button" onClick={()=>change(item.id,-1,availableQuantity)} disabled={!amount} aria-label={`Remove one ${item.card.name}`}><Minus size={13}/></button>
+              <button type="button" onClick={()=>change(item.id,1,availableQuantity)} disabled={amount===availableQuantity} aria-label={`Add one ${item.card.name}`}><Plus size={13}/></button>
+              {availableQuantity>1&&(()=>{
+                const showPlayset=availableQuantity>=4&&amount<4;
+                const targetQty=showPlayset?4:(amount===availableQuantity?0:availableQuantity);
+                const label=showPlayset?'4×':(amount===availableQuantity?'0':(availableQuantity===4?'4×':t('All','Semua')));
+                const title=showPlayset?t('Take playset of 4','Ambil playset 4×'):(amount===availableQuantity?t('Deselect card','Batalkan pilihan kartu'):t(`Take all ${availableQuantity}`,`Ambil semua ${availableQuantity}`));
+                return <button type="button" className={`market-card-quick-btn ${amount===availableQuantity||(showPlayset&&amount===4)?'is-active':''}`} onClick={()=>setItemExact(item.id,targetQty,availableQuantity)} title={title} aria-label={`${label} ${item.card.name}`}>{label}</button>;
               })()}
             </span>}
+            {listingType==='WTS'&&(item.sold||(!readOnly&&availableQuantity===0))&&<span className="market-listing-card-unavailable">{language==='ID'?(item.sold?(item.salePending?'Baru terjual':'Terjual'):item.heldQuantity?'Dipesan':'Baru terjual'):(item.sold?(item.salePending?'Just sold':'Sold'):item.heldQuantity?'Reserved':'Just sold')}</span>}
           </div>
           <div className="market-listing-card-copy">
             <strong>{item.card.name}</strong>
             <small className="market-card-meta"><span>{item.card.code}</span><span>{item.card.rarity}</span><span>{item.language}</span></small>
-            <p className="market-listing-card-condition"><span>{item.condition}</span>{!readOnly&&!singleCopyListing&&<em>{amount}/{item.quantity} {t('selected','dipilih')}</em>}</p>
+            <p className="market-listing-card-condition"><span>{item.condition}</span>{!readOnly&&!singleCopyListing&&availableQuantity>0&&<em>{amount}/{availableQuantity} {t('selected','dipilih')}</em>}{item.heldQuantity? <em>{item.heldQuantity} {t('reserved','dipesan')}</em>:null}</p>
             <div className="market-listing-card-unit-price" aria-label={`${formatMoney(item.unitAmount,currency)} ${t('per card','per kartu')}`} title={`${formatMoney(item.unitAmount,currency)} ${t('per card','per kartu')}`}>{canEditPrices?<MarketListingUnitPriceEdit listingId={listingId} title={listingTitle||''} listingType={listingType} cards={items.map(entry=>({printingId:entry.id,name:entry.card.name,quantity:entry.quantity,unitAmount:entry.unitAmount}))} cardIndex={index} currency={currency} language={language} onSaved={unitAmount=>onPriceSaved?.(index,unitAmount)}><span>{formatMoney(item.unitAmount,currency)}</span></MarketListingUnitPriceEdit>:formatMoney(item.unitAmount,currency)}</div>
 
             {!readOnly&&acceptsOffers&&offerCheckComplete&&!activeOffer&&!submitting&&amount>0 && (
@@ -760,7 +768,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
     {canManageListing&&listingType==='WTS'&&<MarketAddCardsModal key={addCardsOpen?'open':'closed'} open={addCardsOpen} listingId={listingId} listingItems={items.map(item=>({instanceId:item.instanceId,printingId:item.id,quantity:item.quantity,condition:item.condition,unitAmount:item.unitAmount,card:item.card,language:item.language}))} currency={currency} language={language} onClose={()=>setAddCardsOpen(false)} onAdded={cards=>{onItemsAdded?.(cards);router.refresh()}}/>}
     {preview&&<CardPreviewModal card={preview} initialPrintingId={previewPrintingId} printingIds={items.map(item=>item.id)} language={preview.language==='JP'?'JP':'EN'} cards={items.map(item=>item.card)} marketActions={!readOnly&&!previewOnly} onClose={()=>{setPreview(undefined);setPreviewPrintingId(undefined)}} onNavigate={(card,index)=>{setPreview(card);setPreviewPrintingId(items[index]?.id)}}/>}
     <AddEditItemModal key={`${vaultTarget?.id??'market-listing-card'}-${Boolean(vaultTarget)}`} open={Boolean(vaultTarget)} onClose={()=>setVaultTarget(null)} onSaved={()=>router.refresh()} initialCard={vaultTarget?.card} initialPrintingId={vaultTarget?.id} isAnonymous={!session?.user} language={language}/>
-    {!readOnly&&<footer className={`market-listing-selection${offerJustSent?' has-push-prompt':''}`} aria-live="polite">
+    {!readOnly&&totalAvailable>0&&<footer className={`market-listing-selection${offerJustSent?' has-push-prompt':''}`} aria-live="polite">
       <div className="market-listing-selection-info">
         <span>{activeOffer?(activeOffer.viewerIsActor?t('Offer sent, awaiting a response.','Penawaran terkirim, menunggu tanggapan.'):t('A counteroffer is waiting for you.','Ada penawaran balik untuk Anda.')):selectedCount?(language==='ID'?`${selectedCount} kartu dipilih`:`${selectedCount} ${selectedCount===1?'card':'cards'} selected`):t('Select cards to calculate a total','Pilih kartu untuk menghitung total')}</span>
         {!activeOffer&&selectedCount>0&&acceptsOffers&&<small>{t('Offers expire after 24 hours or when the listing ends.','Penawaran berakhir setelah 24 jam atau saat listing berakhir.')}</small>}
@@ -819,6 +827,8 @@ export function MarketListingDetailView({
   isAdmin = false,
   canEdit = isOwner,
   initialExpired = false,
+  initialStatus = 'ACTIVE',
+  reservedCount = 0,
   renewDurationDays = 7,
 }: {
   listing: Listing;
@@ -830,6 +840,8 @@ export function MarketListingDetailView({
   isAdmin?: boolean;
   canEdit?: boolean;
   initialExpired?: boolean;
+  initialStatus?: string;
+  reservedCount?: number;
   renewDurationDays?: number;
 }) {
   const router=useRouter();
@@ -839,7 +851,7 @@ export function MarketListingDetailView({
   const [listingNegotiable, setListingNegotiable] = useState(listing.negotiable!==false);
   const [editableCards, setEditableCards] = useState(listingCards);
   const [expiresAt, setExpiresAt] = useState<string | undefined>(listing.expiresAt);
-  const [status, setStatus] = useState<string>(initialExpired ? 'EXPIRED' : 'ACTIVE');
+  const [status, setStatus] = useState<string>(['SOLD','SOLD_PENDING'].includes(initialStatus)?initialStatus:initialStatus==='CLOSED'?'CLOSED':initialExpired?'EXPIRED':initialStatus);
   const [renewing, setRenewing] = useState(false);
   const [closing, setClosing] = useState(false);
   const [previewRole, setPreviewRole] = useState<'buyer'|'seller'>(listing.type==='WTB'?'buyer':'seller');
@@ -920,7 +932,7 @@ export function MarketListingDetailView({
                 <p className="eyebrow market-listing-eyebrow">
                   <span>{primary.language} {t('printing', 'cetakan')}</span>
                   {listing.createdAt && <><span className="market-listing-eyebrow-separator" aria-hidden="true">/</span><span><MarketTimestamp value={listing.createdAt}/></span></>}
-                  {expiresAt && <><span className="market-listing-eyebrow-separator" aria-hidden="true">/</span><span>{isExpired?(status==='CLOSED'?t('Closed','Ditutup'):t('Expired','Kedaluwarsa')):daysLeft===null?t('Expiry date unavailable','Tanggal akhir tidak tersedia'):<>{t('Ends in','Berakhir dalam')} {daysLeft} {t('days','hari')} / <MarketTimestamp value={expiresAt} absolute/></>}</span></>}
+                  {expiresAt && <><span className="market-listing-eyebrow-separator" aria-hidden="true">/</span><span>{isExpired?(status==='CLOSED'?t('Closed','Ditutup'):status==='SOLD'?t('Sold','Terjual'):t('Expired','Kedaluwarsa')):daysLeft===null?t('Expiry date unavailable','Tanggal akhir tidak tersedia'):<>{t('Ends in','Berakhir dalam')} {daysLeft} {t('days','hari')} / <MarketTimestamp value={expiresAt} absolute/></>}</span></>}
                 </p>
                 {ownerView&&<><span className="market-listing-eyebrow-separator" aria-hidden="true">/</span><div className="market-listing-owner-actions">
                   <button type="button" className="btn-renew" disabled={renewing} onClick={handleRenew} aria-label={isExpired?t('Renew listing','Perbarui listing'):t('Extend listing','Perpanjang listing')}><Renew size={14}/><span>{renewing?t('Saving…','Menyimpan…'):isExpired?t('Renew','Perbarui'):t('Extend','Perpanjang')}</span></button>
@@ -956,10 +968,12 @@ export function MarketListingDetailView({
 
           {!ownerView && isExpired && (
             <div className="market-expired-banner">
-              <strong>{status === 'CLOSED' ? t('This listing has been closed', 'Listing ini telah ditutup') : t('This listing has expired', 'Listing ini telah kedaluwarsa')}</strong>
-              <p>{t('The seller has not renewed this listing and it is no longer accepting offers.', 'Penjual belum memperbarui listing ini dan tidak lagi menerima penawaran.')}</p>
+              <strong>{status === 'SOLD_PENDING' ? t('Just sold', 'Baru terjual') : status === 'SOLD' ? t('Sold', 'Terjual') : status === 'CLOSED' ? t('This listing has been closed', 'Listing ini telah ditutup') : t('This listing has expired', 'Listing ini telah kedaluwarsa')}</strong>
+              <p>{status === 'SOLD_PENDING' ? t('The order is on its way. This listing stays here while the buyer receives and checks the cards.', 'Pesanan sedang dikirim. Listing ini tetap ditampilkan saat pembeli menerima dan memeriksa kartu.') : status === 'SOLD' ? t('The cards are no longer available.', 'Kartu tidak lagi tersedia.') : status === 'CLOSED' ? t('This listing is no longer accepting offers.', 'Listing ini tidak lagi menerima penawaran.') : t('The seller has not renewed this listing and it is no longer accepting offers.', 'Penjual belum memperbarui listing ini dan tidak lagi menerima penawaran.')}</p>
             </div>
           )}
+
+          {!isExpired && listing.type==='WTS' && reservedCount>0 && <p className="market-listing-reserved-note" role="status">{ownerView?t(`${reservedCount} ${reservedCount===1?'copy is':'copies are'} reserved while the buyer completes checkout. They return if payment is not completed.`,`${reservedCount} kartu dipesan saat pembayaran diproses. Kartu kembali tersedia jika pembayaran tidak selesai.`):cardCount===0?t('All copies are reserved while payment is processed. They return if payment is not completed.','Semua kartu dipesan. Kartu kembali tersedia jika pembayaran tidak selesai.'):t(`${reservedCount} ${reservedCount===1?'copy is':'copies are'} reserved. Available quantities are shown below.`,`${reservedCount} kartu sedang di-checkout. Jumlah yang tersedia ditampilkan di bawah.`)}</p>}
 
           <div className="market-listing-seller-toolbar">
             <section className="market-listing-seller">
@@ -975,7 +989,7 @@ export function MarketListingDetailView({
             </div>
           </div>
 
-          {(!isExpired||ownerView)&&(
+          {(!isExpired||ownerView||status==='SOLD'||status==='SOLD_PENDING')&&(
             <MarketListingItems
               items={editableCards}
               currency={listing.currency}
@@ -985,7 +999,7 @@ export function MarketListingDetailView({
               listingTitle={listingTitle}
               listingAmount={formatMoney(listingAmount, listing.currency)}
               negotiable={listingNegotiable}
-              readOnly={ownerView}
+              readOnly={ownerView||isExpired}
               previewOnly={counterpartyPreview}
               canManageListing={canEditListing}
               onItemsAdded={setEditableCards}

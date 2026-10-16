@@ -14,7 +14,7 @@ test('listing policy defaults to free tier (7 days, 25 max listings)', () => {
   assert.equal(policy.durationDays, 7);
   assert.equal(policy.maxActiveListings, 25);
   assert.equal(policy.canAutoRenew, false);
-  assert.equal(policy.commissionPercent, 1.25);
+  assert.equal(policy.commissionPercent, 1.5);
 });
 
 test('listing policy supports pro tier (30 days, 2,500 max listings)', () => {

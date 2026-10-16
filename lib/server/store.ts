@@ -175,6 +175,7 @@ export async function market(viewerId?:string,listingIds?:string[]){
       l.quantity,
       l.condition,
       l.type,
+      l.status,
       l.negotiable,
       COALESCE(o.city,l.city) AS city,
       l.created_at AS createdAt,
@@ -206,7 +207,8 @@ export async function market(viewerId?:string,listingIds?:string[]){
     LEFT JOIN tcg_card_assets tca ON tca.printing_id=tcp.id AND tca.kind='small'
     LEFT JOIN card_identities ci ON ci.id=cp.identity_id
     LEFT JOIN seller_shipping_origins o ON o.owner_id=l.seller_id
-    WHERE l.status='ACTIVE' AND (l.expires_at IS NULL OR l.expires_at > CURRENT_TIMESTAMP)
+    WHERE (l.status='ACTIVE' AND (l.expires_at IS NULL OR l.expires_at > CURRENT_TIMESTAMP)
+      OR (l.status='SOLD' AND EXISTS(SELECT 1 FROM checkout_orders sale WHERE sale.kind='MARKET' AND (sale.listing_id=l.id OR EXISTS(SELECT 1 FROM json_each(sale.items) sale_item WHERE json_extract(sale_item.value,'$.listingId')=l.id)) AND (sale.status IN ('PAID','DISPUTED','RECEIVING') OR (sale.status='SHIPPED' AND (sale.delivered_at IS NULL OR sale.delivered_at>datetime('now','-48 hours')))))))
       ${listingFilter}
     ORDER BY l.created_at DESC
     LIMIT ${listingLimit}
@@ -219,6 +221,7 @@ export async function market(viewerId?:string,listingIds?:string[]){
     quantity:number;
     condition:string;
     type:string;
+    status:string;
     negotiable:number;
     city:string;
     createdAt:string;
@@ -245,12 +248,20 @@ export async function market(viewerId?:string,listingIds?:string[]){
     shippingOriginLabel?:string|null;
   }>()).results;
 
-  const printingIds=[...new Set(rows.flatMap(row=>{
+  const pendingSoldRows=rows.length?(await db().prepare(`SELECT COALESCE(json_extract(j.value,'$.listingId'),o.listing_id) AS listingId,json_extract(j.value,'$.printingId') AS printingId,SUM(CAST(json_extract(j.value,'$.quantity') AS INTEGER)) AS quantity,MAX(CAST(json_extract(j.value,'$.unitAmount') AS INTEGER)) AS unitAmount,MAX(json_extract(j.value,'$.condition')) AS condition FROM checkout_orders o,json_each(o.items) j WHERE o.kind='MARKET' AND (o.status IN ('PAID','DISPUTED','RECEIVING') OR (o.status='SHIPPED' AND (o.delivered_at IS NULL OR o.delivered_at>datetime('now','-48 hours')))) AND COALESCE(json_extract(j.value,'$.listingId'),o.listing_id) IN (${rows.map(()=>'?').join(',')}) GROUP BY listingId,printingId`).bind(...rows.map(row=>row.id)).all<{listingId:string;printingId:string;quantity:number;unitAmount:number|null;condition:string|null}>()).results:[];
+  const soldByListing=new Map<string,typeof pendingSoldRows>();for(const item of pendingSoldRows){const group=soldByListing.get(item.listingId)??[];group.push(item);soldByListing.set(item.listingId,group)}
+  const printingIds=[...new Set([...rows.flatMap(row=>{
     try{
       const items=JSON.parse(row.itemsJson??'[]') as unknown;
       return Array.isArray(items)?items.map(item=>item&&typeof item.printingId==='string'?item.printingId:'').filter(Boolean):[];
     }catch{return []}
-  }))];
+  }),...pendingSoldRows.map(item=>item.printingId)])];
+  const reservations=new Map<string,number>();
+  if(rows.length){
+    const ids=rows.map(row=>row.id);
+    const held=(await db().prepare(`SELECT COALESCE(json_extract(j.value,'$.listingId'),o.listing_id) AS listingId,json_extract(j.value,'$.printingId') AS printingId,SUM(CAST(json_extract(j.value,'$.quantity') AS INTEGER)) AS quantity FROM checkout_orders o,json_each(o.items) j WHERE o.kind='MARKET' AND (o.status='PROCESSING' OR (o.status='PENDING_PAYMENT' AND o.expires_at>CURRENT_TIMESTAMP)) AND (COALESCE(json_extract(j.value,'$.listingId'),o.listing_id) IN (${ids.map(()=>'?').join(',')})) GROUP BY listingId,printingId`).bind(...ids).all<{listingId:string;printingId:string;quantity:number}>()).results;
+    for(const item of held)reservations.set(`${item.listingId}:${item.printingId}`,Number(item.quantity)||0);
+  }
   const bundleCards=new Map<string,Card>();
   for(let offset=0;offset<printingIds.length;offset+=80){
     const chunk=printingIds.slice(offset,offset+80);
@@ -288,7 +299,12 @@ export async function market(viewerId?:string,listingIds?:string[]){
     const validItems=Array.isArray(parsedItems)?parsedItems.filter((item):item is {printingId:string;quantity:number;condition?:string;unitAmount?:number}=>Boolean(item&&typeof item.printingId==='string'&&Number.isInteger(item.quantity)&&item.quantity>0)):[];
     const itemQuantity=validItems.reduce((total,item)=>total+item.quantity,0)||r.quantity;
     const fallbackUnitAmount=Math.max(1,Math.floor(r.amount/Math.max(1,itemQuantity)));
-    const items=validItems.length?validItems.map(item=>({...item,condition:item.condition||r.condition,unitAmount:Number.isSafeInteger(item.unitAmount)&&Number(item.unitAmount)>0?Number(item.unitAmount):fallbackUnitAmount,card:bundleCards.get(item.printingId)})):undefined;
+    const sourceItems=validItems.length?validItems:r.status==='SOLD'?[]:[{printingId:r.printingId,quantity:r.quantity,condition:r.condition,unitAmount:fallbackUnitAmount}];
+    const listingSoldRows=soldByListing.get(r.id)??[];
+    const soldByPrinting=new Map(listingSoldRows.map(item=>[item.printingId,item]));
+    const items=[...sourceItems.map(item=>{const held=r.type==='WTS'?(reservations.get(`${r.id}:${item.printingId}`)??0):0;const soldQuantity=Number(soldByPrinting.get(item.printingId)?.quantity)||0;return {...item,quantity:item.quantity+soldQuantity,availableQuantity:Math.max(0,item.quantity-held),heldQuantity:held,soldQuantity,condition:item.condition||r.condition,unitAmount:Number.isSafeInteger(item.unitAmount)&&Number(item.unitAmount)>0?Number(item.unitAmount):fallbackUnitAmount,card:bundleCards.get(item.printingId)}}),...(r.status==='SOLD'?listingSoldRows.map(item=>({printingId:item.printingId,quantity:Number(item.quantity)||1,availableQuantity:0,heldQuantity:0,soldQuantity:Number(item.quantity)||1,sold:true,condition:item.condition||r.condition,unitAmount:Number(item.unitAmount)||fallbackUnitAmount,card:bundleCards.get(item.printingId)})):[])];
+    const availableCount=items.reduce((sum,item)=>sum+item.availableQuantity,0);
+    const availableAmount=items.reduce((sum,item)=>sum+item.availableQuantity*item.unitAmount,0);
     let methods:string[]=[];
     if(r.shippingOriginLabel){try{const parsed=JSON.parse(r.shippingOriginLabel);if(Array.isArray(parsed.methods))methods=parsed.methods.filter((value:unknown):value is string=>typeof value==='string')}catch{}}
     const couriers=new Set(enabledShippingCouriers(methods));
@@ -297,11 +313,12 @@ export async function market(viewerId?:string,listingIds?:string[]){
       id: r.id,
       printingId: r.printingId,
       title: r.title,
-      amount: r.amount,
+      amount: r.type==='WTS'&&availableCount>0&&availableCount<itemQuantity&&!(viewerId&&r.sellerId===viewerId)?availableAmount:r.amount,
       currency: r.currency,
-      quantity: r.quantity,
+      quantity: r.type==='WTS'&&!(viewerId&&r.sellerId===viewerId)?availableCount:r.quantity,
       condition: r.condition,
       type: r.type,
+      status:r.status,
       negotiable: r.negotiable !== 0,
       city: r.city,
       createdAt: r.createdAt,
