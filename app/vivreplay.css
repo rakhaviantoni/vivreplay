@@ -1843,11 +1843,27 @@ html[data-theme='dark'] .auth-error{background:rgba(239,68,68,0.12);color:#fca5a
 .auth-form-links{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:-2px;font-size:12px;font-weight:750}
 .auth-form-links a{color:var(--accent);text-decoration:none}
 .auth-form-links a:hover{text-decoration:underline}
+.auth-email-confirm{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-muted,#f4ecdc)}
+.auth-email-confirm>div{display:grid;gap:2px;min-width:0}
+.auth-email-confirm span,.auth-name-suggestion-group>span{color:var(--muted);font-size:11px}
+.auth-email-confirm strong{overflow-wrap:anywhere;color:var(--ink);font-size:13px;font-weight:650}
+.auth-email-confirm button{flex:none;padding:5px 7px;border:0;border-radius:5px;background:transparent;color:var(--accent);font:inherit;font-size:12px;font-weight:750;cursor:pointer}
+.auth-email-confirm button:hover{text-decoration:underline}
+.auth-form .auth-name-note{margin:-9px 0 0;color:var(--muted);font-size:11px;line-height:1.45}
+.auth-name-suggestion-group{display:grid;gap:7px;margin-top:-5px}
+.auth-name-suggestion-group>div{display:flex;flex-wrap:wrap;gap:7px}
+.auth-name-suggestion-group button{min-height:34px;padding:6px 10px;border:1px solid var(--line);border-radius:7px;background:var(--surface-muted,#f4ecdc);color:var(--ink);font:inherit;font-size:12px;cursor:pointer;transition:background-color .15s ease,border-color .15s ease}
+.auth-name-suggestion-group button:hover{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--surface-raised,#fffaf0))}
+.auth-name-suggestion-group button.is-selected{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.auth-email-confirm button:focus-visible,.auth-name-suggestion-group button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .auth-error-banner{display:flex;align-items:flex-start;gap:10px;padding:13px 15px;border:1px solid #e18c81;border-radius:12px;background:#fdf0ee;color:#9f2a1d;font-size:13px;line-height:1.45}
 .auth-error-banner b{font-weight:750}
 html[data-theme='dark'] .auth-card{border-color:#294653!important;background:#0b1a22!important;color:#eef7f1!important;box-shadow:0 28px 80px rgba(0,0,0,0.7)!important}
 html[data-theme='dark'] .auth-card-heading{border-color:#294653;background:linear-gradient(118deg,#122c32,#0b1a22)}
 html[data-theme='dark'] .auth-card-heading h1,html[data-theme='dark'] .auth-card-heading h2{color:#edf7f1}
+html[data-theme='dark'] .auth-email-confirm,html[data-theme='dark'] .auth-name-suggestion-group button{border-color:#345461;background:#10242d;color:#edf7f1}
+html[data-theme='dark'] .auth-email-confirm strong{color:#edf7f1}
+html[data-theme='dark'] .auth-name-suggestion-group button.is-selected{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
 html[data-theme='dark'] .auth-card-heading .auth-description{color:#a9bfbc}
 html[data-theme='dark'] .auth-error-banner{border-color:#632d27;background:#201113;color:#f87171}
 

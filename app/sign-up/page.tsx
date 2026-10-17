@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { CheckCircleIcon as CheckCircle, WarningCircleIcon as WarningCircle } from "@phosphor-icons/react";
 import { authClient } from "@/lib/auth-client";
 import { VivreMark } from "@/components/tcg/brand-assets";
@@ -12,8 +12,19 @@ function safeReturnTo(value: string | null) {
   return value?.startsWith("/") && !value.startsWith("//") ? value : "/profile";
 }
 
+function nameSuggestions(email:string){
+  const local=email.trim().split('@')[0]?.split('+')[0]??'';
+  const words=local.replace(/([a-z])([A-Z])/g,'$1 $2').split(/[._-]+/).map(word=>word.trim()).filter(Boolean);
+  const title=(value:string)=>value.slice(0,1).toUpperCase()+value.slice(1).toLowerCase();
+  const options=[words.map(title).join(' ')];
+  if(words.length>1){
+    options.push(title(words.join('')));
+    options.push(title(words[0]));
+  }
+  return [...new Map(options.filter(Boolean).map(value=>[value.toLowerCase(),value])).values()];
+}
+
 export default function SignUpPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -22,19 +33,33 @@ export default function SignUpPage() {
   const [turnstileResetKey,setTurnstileResetKey]=useState(0);
   const [googleTurnstileToken,setGoogleTurnstileToken]=useState('');
   const [googleTurnstileResetKey,setGoogleTurnstileResetKey]=useState(0);
+  const [step,setStep]=useState<'email'|'details'>('email');
+  const [email,setEmail]=useState('');
+  const [displayName,setDisplayName]=useState('');
+  const [suggestions,setSuggestions]=useState<string[]>([]);
+  const emailRef=useRef<HTMLInputElement>(null);
+  const nameRef=useRef<HTMLInputElement>(null);
+  const previousStep=useRef<'email'|'details'>('email');
   const returnTo = safeReturnTo(searchParams.get("return_to"));
+  useEffect(()=>{if(step!==previousStep.current){if(step==='details')nameRef.current?.focus();else emailRef.current?.focus();previousStep.current=step}},[step]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setBusy(true);
     setError("");
     setNotice("");
+    if(step==='email'){
+      const nextSuggestions=nameSuggestions(email);
+      setSuggestions(nextSuggestions);
+      setDisplayName(nextSuggestions[0]??'');
+      setStep('details');
+      return;
+    }
+    setBusy(true);
     if(turnstileEnabled&&!turnstileToken){setError('Complete the security check first.');setBusy(false);return;}
-    const form = new FormData(event.currentTarget);
     const { error: signUpError } = await authClient.signUp.email({
-      name: String(form.get("name")),
-      email: String(form.get("email")),
-      password: String(form.get("password")),
+      name: displayName.trim(),
+      email: email.trim(),
+      password: String(new FormData(event.currentTarget).get("password")),
       callbackURL: `${window.location.origin}/sign-in?verified=1&return_to=${encodeURIComponent(returnTo)}`,
       fetchOptions:{headers:turnstileHeaders(turnstileToken)},
     });
@@ -72,8 +97,8 @@ export default function SignUpPage() {
             <VivreMark size={28} />
           </span>
           <p className="eyebrow">VIVREPLAY ACCOUNT</p>
-          <h1>Create account</h1>
-          <p className="auth-description">Save your collection, decks, and listings in one place.</p>
+          <h1>{step==='email'?'Create your account':'Add your details'}</h1>
+          <p className="auth-description">{step==='email'?'Save your collection, decks, and listings in one place.':'Choose how your name appears on your profile.'}</p>
         </header>
 
         <div className="auth-card-body">
@@ -100,37 +125,40 @@ export default function SignUpPage() {
                 </div>
               )}
 
-              <div className="auth-action-security"><TurnstileField onToken={setGoogleTurnstileToken} resetKey={googleTurnstileResetKey}/></div>
-              <button className="auth-google" type="button" disabled={busy} onClick={signUpWithGoogle}>
-                <img src="/brand/google-g.svg" alt="" width="18" height="18" />
-                Continue with Google
-              </button>
-
-              <p className="auth-divider">
-                <span>or</span>
-              </p>
-
               <form className="auth-form" onSubmit={submit}>
-                <label>
-                  Name
-                  <input name="name" autoComplete="name" minLength={2} maxLength={80} placeholder="Your name or handle" required />
-                </label>
-
-                <label>
-                  Email
-                  <input name="email" type="email" autoComplete="email" placeholder="name@domain.com" required />
-                </label>
-
-                <label>
-                  Password
-                  <input name="password" type="password" autoComplete="new-password" minLength={8} placeholder="At least 8 characters" required />
-                </label>
-
-                <TurnstileField onToken={setTurnstileToken} resetKey={turnstileResetKey}/>
-                <button className="button" disabled={busy}>
-                  {busy ? "Creating account…" : "Create account"}
-                </button>
+                {step==='email'?<>
+                  <label>
+                    Email
+                    <input ref={emailRef} name="email" type="email" autoComplete="email" placeholder="name@domain.com" value={email} onChange={event=>setEmail(event.target.value)} required />
+                  </label>
+                  <button className="button" type="submit">Continue</button>
+                </>:<>
+                  <div className="auth-email-confirm"><div><span>Email</span><strong>{email}</strong></div><button type="button" onClick={()=>setStep('email')}>Change</button></div>
+                  <label>
+                    Name
+                    <input ref={nameRef} name="name" autoComplete="name" minLength={2} maxLength={80} placeholder="Your name" value={displayName} onChange={event=>setDisplayName(event.target.value)} required />
+                  </label>
+                  <p className="auth-name-note">Shown on your profile. You can edit your display name and username in Profile later.</p>
+                  {suggestions.length>0&&<div className="auth-name-suggestion-group" role="group" aria-label="Name suggestions"><span>{suggestions.length>1?'Choose a suggestion or edit your name':'Suggested from your email'}</span><div>{suggestions.map(suggestion=><button key={suggestion} type="button" className={displayName===suggestion?'is-selected':''} aria-pressed={displayName===suggestion} onClick={()=>setDisplayName(suggestion)}>{suggestion}</button>)}</div></div>}
+                  <label>
+                    Password
+                    <input name="password" type="password" autoComplete="new-password" minLength={8} placeholder="At least 8 characters" required />
+                  </label>
+                  <TurnstileField onToken={setTurnstileToken} resetKey={turnstileResetKey}/>
+                  <button className="button" disabled={busy}>
+                    {busy ? "Creating account…" : "Create account"}
+                  </button>
+                </>}
               </form>
+
+              {step==='email'&&<>
+                <p className="auth-divider"><span>or</span></p>
+                <div className="auth-action-security"><TurnstileField onToken={setGoogleTurnstileToken} resetKey={googleTurnstileResetKey}/></div>
+                <button className="auth-google" type="button" disabled={busy} onClick={signUpWithGoogle}>
+                  <img src="/brand/google-g.svg" alt="" width="18" height="18" />
+                  Continue with Google
+                </button>
+              </>}
 
               <p className="auth-mode-switch">
                 Already have an account? <Link href={`/sign-in?return_to=${encodeURIComponent(returnTo)}`}>Sign in</Link>
