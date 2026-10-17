@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     title: "VivrePlay Market",
     statusBarStyle: "default",
   },
-  manifest: "/market.webmanifest?v=2",
+  manifest: "/market.webmanifest?v=3",
   icons: {
     icon: [
       { url: "/brand/vivreplay-market-icon-192.png", type: "image/png", sizes: "192x192" },
