@@ -1106,9 +1106,9 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
               </div>
               <div className="market-feed-filters">
                 <label className="market-feed-filter-control">
-                  <Translate size={16} weight="regular" aria-hidden="true" />
                   <Picker
                     label={locale === 'ID' ? 'Bahasa listing' : 'Listing language'}
+                    leadingIcon={<Translate size={16} weight="regular" />}
                     value={lang}
                     onChange={v => changeLanguage(v as typeof lang)}
                     options={[
@@ -1119,9 +1119,9 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                   />
                 </label>
                 <label className="market-feed-filter-control">
-                  <ArrowsDownUp size={16} weight="regular" aria-hidden="true" />
                   <Picker
                     label={locale === 'ID' ? 'Urutan listing' : 'Sort listings'}
+                    leadingIcon={<ArrowsDownUp size={16} weight="regular" />}
                     value={sort}
                     onChange={v => changeSort(v as typeof sort)}
                     options={[

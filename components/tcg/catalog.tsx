@@ -1,6 +1,6 @@
 'use client';
 
-import {useEffect, useMemo, useRef, useState} from 'react';
+import {useEffect, useMemo, useRef, useState, type ReactNode} from 'react';
 import Link from 'next/link';
 import {ArrowUpRightIcon, MagnifyingGlassIcon as Search, CheckIcon as Check, XIcon as X, CaretDownIcon as ChevronDown, SquaresFourIcon as Grid3X3} from '@phosphor-icons/react';
 import {useCatalogTools} from './catalog-tools';
@@ -40,8 +40,8 @@ function cardKeywords(effect:string|undefined|null){
 }
 
 /** Shared compact select used by the collection, market, and deck tools. */
-export function Picker({value,onChange,options,label}:{value:string;onChange:(v:string)=>void;options:FilterOption[];label:string}) {
-  return <Select value={value} onValueChange={onChange}><SelectTrigger aria-label={label}><SelectValue/></SelectTrigger><SelectContent>{options.map(item=>{const option=typeof item==='string'?{value:item,label:item}:item;return <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>})}</SelectContent></Select>;
+export function Picker({value,onChange,options,label,leadingIcon}:{value:string;onChange:(v:string)=>void;options:FilterOption[];label:string;leadingIcon?:ReactNode}) {
+  return <Select value={value} onValueChange={onChange}><SelectTrigger aria-label={label} className={leadingIcon?'picker-trigger-with-icon':''}>{leadingIcon&&<span className="picker-leading-icon" aria-hidden="true">{leadingIcon}</span>}<SelectValue/></SelectTrigger><SelectContent>{options.map(item=>{const option=typeof item==='string'?{value:item,label:item}:item;return <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>})}</SelectContent></Select>;
 }
 
 export function MultiFilter({label,values,selected,onToggle,searchPlaceholder}:{label:string;values:FilterOption[];selected:string[];onToggle:(value:string)=>void;searchPlaceholder?:string}) {

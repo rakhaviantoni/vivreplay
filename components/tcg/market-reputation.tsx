@@ -13,18 +13,19 @@ export function MarketReputation({listingId,username,language,role='seller',prof
  const overall=useMemo(()=>{if(!data)return null;const count=data.rating.reduce((n,item)=>n+item.count,0);return count?{count,average:data.rating.reduce((n,item)=>n+item.average*item.count,0)/count}:null},[data]);
  if(!data)return null;
  const rating=data.rating.find(item=>item.role===role);const label=overall?`${overall.average.toFixed(1)} (${overall.count})`:id?'Belum ada ulasan':'No reviews yet';
+ const reviewCount=(count:number)=>`${count} ${id?(count===1?'ulasan':'ulasan'):(count===1?'review':'reviews')}`;
  return <>
    <button type="button" className={`market-reputation-inline ${rating?'has-rating':'is-new'}${profile?' is-profile':''}`} aria-label={id?`Buka ulasan: ${label}`:`Open reviews: ${label}`} onClick={()=>setOpen(true)}>
      {overall?<><Star size={13} weight="fill" aria-hidden="true"/><b>{profile?overall.average.toFixed(1):rating?.average.toFixed(1)??overall.average.toFixed(1)}</b><small>({profile?overall.count:rating?.count??overall.count})</small></>:<small>{id?'Belum ada ulasan':'No reviews yet'}</small>}
      {data.completed>0&&<i>{data.completed} {id?'pesanan selesai':'completed'}</i>}
    </button>
    <Dialog open={open} onOpenChange={setOpen}><DialogContent className="market-reputation-dialog">
-     <DialogHeader><DialogTitle>{id?'Ulasan':'Reviews'}</DialogTitle><DialogDescription>{id?'Penilaian pembeli dan penjual':'Feedback from buyers and sellers'}</DialogDescription></DialogHeader>
+     <DialogHeader><DialogTitle>{username?(id?`Ulasan Market @${username}`:`@${username}'s Market reviews`):(role==='seller'?(id?'Ulasan penjual':'Seller reviews'):(id?'Ulasan pembeli':'Buyer reviews'))}</DialogTitle><DialogDescription>{id?'Penilaian dari pesanan selesai':'Ratings from completed orders'}</DialogDescription></DialogHeader>
      <div className="market-reputation-summary">
-       <div className="market-reputation-overall"><Star size={20} weight="fill"/><strong>{overall?overall.average.toFixed(1):'—'}</strong><span>{overall?`${overall.count} ${id?'ulasan':'reviews'}`:id?'Belum ada ulasan':'No reviews yet'}</span></div>
-       {(['buyer','seller'] as const).map(kind=>{const row=data.rating.find(item=>item.role===kind);return <div className="market-reputation-role" key={kind}><span>{kind==='buyer'?(id?'Sebagai pembeli':'As buyer'):(id?'Sebagai penjual':'As seller')}</span><strong>{row?`${row.average.toFixed(1)} ★`:'—'}</strong><small>{row?`${row.count} ${id?'ulasan':'reviews'}`:id?'Belum ada':'No reviews'}</small></div>})}
+       <div className="market-reputation-overall"><Star size={20} weight="fill"/><strong>{overall?overall.average.toFixed(1):id?'Belum dinilai':'Not rated'}</strong><span>{overall?reviewCount(overall.count):id?'Belum ada ulasan':'No reviews yet'}</span></div>
+       {(['seller','buyer'] as const).map(kind=>{const row=data.rating.find(item=>item.role===kind);return <div className="market-reputation-role" key={kind}><span>{kind==='seller'?(id?'Penilaian sebagai penjual':'Seller rating'):(id?'Penilaian sebagai pembeli':'Buyer rating')}</span><strong>{row?`${row.average.toFixed(1)} ★`:id?'Belum dinilai':'Not rated'}</strong><small>{row?reviewCount(row.count):id?'Belum ada ulasan':'No reviews yet'}</small></div>})}
      </div>
-     <div className="market-reputation-review-list">{data.reviews.length?data.reviews.map((review,index)=><article key={`${review.createdAt}-${index}`}><header><strong>{review.reviewer}</strong><span>{review.role==='buyer'?(id?'Pembeli':'Buyer'):(id?'Penjual':'Seller')}</span><b><Star size={13} weight="fill"/>{review.rating}</b></header>{review.comment&&<p>{review.comment}</p>}<time dateTime={review.createdAt}>{new Intl.DateTimeFormat(id?'id-ID':'en-US',{dateStyle:'medium'}).format(new Date(review.createdAt))}</time></article>):<p className="market-reputation-empty">{id?'Belum ada ulasan untuk ditampilkan.':'No reviews to show yet.'}</p>}</div>
+     <div className="market-reputation-review-list">{data.reviews.length?data.reviews.map((review,index)=><article key={`${review.createdAt}-${index}`}><header><strong>{review.reviewer}</strong><b><Star size={13} weight="fill"/>{review.rating}</b></header>{review.comment&&<p>{review.comment}</p>}<div className="market-reputation-review-context"><span>{review.role==='seller'?(id?'Membeli dari penjual ini':'Bought from this seller'):(id?'Menjual kepada pembeli ini':'Sold to this buyer')}</span><time dateTime={review.createdAt}>{new Intl.DateTimeFormat(id?'id-ID':'en-US',{dateStyle:'medium'}).format(new Date(review.createdAt))}</time></div></article>):<p className="market-reputation-empty">{id?'Belum ada ulasan untuk ditampilkan.':'No reviews yet.'}</p>}</div>
    </DialogContent></Dialog>
  </>;
 }

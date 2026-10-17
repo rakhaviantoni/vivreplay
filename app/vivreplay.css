@@ -623,6 +623,9 @@ html[data-theme='dark'] .market-card-lookup-actions button{border-color:#315463;
 }
 .market-feed-filter-control>svg{flex:none;color:var(--accent)}
 .market-feed-filter-control .picker{min-width:0}
+.market-feed-filter-control .picker-trigger-with-icon{justify-content:flex-start!important;gap:8px!important}
+.market-feed-filter-control .picker-leading-icon{display:inline-flex;flex:none;align-items:center;color:var(--accent)}
+.market-feed-filter-control .picker-trigger-with-icon [data-slot='select-value']{flex:1;min-width:0;text-align:left}
 .market-view-toggle{
   display: inline-flex!important;
   align-items: center!important;
@@ -2781,22 +2784,26 @@ html[data-theme='dark'] .player-intro-meta{color:#a4bcc7!important}
 .market-reputation-inline:hover,.market-reputation-inline:focus-visible{background:color-mix(in srgb,var(--accent) 12%,transparent);color:var(--ink);outline:none}
 .market-reputation-inline:focus-visible{box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 60%,transparent)}
 .market-reputation-inline.is-profile{display:flex;width:max-content;margin:10px auto 0;padding:7px 10px;border:1px solid var(--line);border-radius:999px;background:var(--surface-muted);font-size:13px}
-.market-reputation-dialog{width:min(560px,calc(100vw - 24px))!important;max-width:560px!important;max-height:min(82dvh,760px)!important;gap:14px!important;padding:22px!important;border:1px solid var(--line)!important;border-radius:14px!important;background:var(--surface-raised)!important;color:var(--ink)!important}
-.market-reputation-dialog [data-slot='dialog-header']{padding-right:28px}
-.market-reputation-dialog [data-slot='dialog-title']{color:var(--ink);font-size:20px;font-weight:800}
-.market-reputation-dialog [data-slot='dialog-description']{color:var(--muted);font-size:13px}
-.market-reputation-summary{display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:8px}
-.market-reputation-overall,.market-reputation-role{display:grid;align-content:center;justify-items:start;gap:4px;min-width:0;padding:12px;border:1px solid var(--line);border-radius:9px;background:var(--surface)}
+.market-reputation-dialog{display:flex!important;flex-direction:column!important;width:min(600px,calc(100vw - 24px))!important;max-width:600px!important;max-height:min(84dvh,780px)!important;gap:16px!important;padding:24px!important;overflow:hidden!important;border:1px solid var(--line)!important;border-radius:14px!important;background:var(--surface-raised)!important;color:var(--ink)!important}
+.market-reputation-dialog [data-slot='dialog-body']{display:flex!important;flex-direction:column!important;gap:16px!important;min-height:0!important;overflow:hidden!important}
+.market-reputation-dialog [data-slot='dialog-header']{flex:none;padding-right:34px}
+.market-reputation-dialog [data-slot='dialog-title']{color:var(--ink);font-size:21px;font-weight:800;letter-spacing:-.025em}
+.market-reputation-dialog [data-slot='dialog-description']{margin-top:4px;color:var(--muted);font-size:13px}
+.market-reputation-summary{display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:0;border-block:1px solid var(--line)}
+.market-reputation-overall,.market-reputation-role{display:grid;align-content:center;justify-items:start;gap:5px;min-width:0;padding:13px 14px;background:transparent}
+.market-reputation-role+.market-reputation-role{border-left:1px solid var(--line)}
 .market-reputation-overall svg,.market-reputation-overall strong{color:var(--accent)}
 .market-reputation-overall strong{font-size:26px;line-height:1}
-.market-reputation-overall span,.market-reputation-role span,.market-reputation-role small{color:var(--muted);font-size:11px}
-.market-reputation-role strong{font-size:15px;font-variant-numeric:tabular-nums}
-.market-reputation-review-list{display:grid;gap:0;max-height:46dvh;overflow:auto;overscroll-behavior:contain}
-.market-reputation-review-list article{display:grid;gap:7px;padding:13px 2px;border-bottom:1px solid var(--line)}
+.market-reputation-overall span,.market-reputation-role span,.market-reputation-role small{color:var(--muted);font-size:11px;line-height:1.4}
+.market-reputation-role strong{font-size:16px;font-variant-numeric:tabular-nums}
+.market-reputation-review-list{display:grid;gap:0;min-height:0;max-height:48dvh;overflow:auto;overscroll-behavior:contain}
+.market-reputation-review-list article{display:grid;gap:7px;padding:14px 2px;border-bottom:1px solid var(--line)}
 .market-reputation-review-list article header{display:flex;align-items:center;gap:8px;min-width:0}
 .market-reputation-review-list article header strong{overflow:hidden;font-size:13px;text-overflow:ellipsis;white-space:nowrap}
 .market-reputation-review-list article header span{color:var(--muted);font-size:11px}
 .market-reputation-review-list article header b{display:inline-flex;align-items:center;gap:3px;margin-left:auto;color:var(--accent);font-size:12px}
+.market-reputation-review-context{display:flex;align-items:center;justify-content:space-between;gap:12px;color:var(--muted);font-size:11px;line-height:1.4}
+.market-reputation-review-context span{min-width:0}
 .market-reputation-review-list article p{margin:0;color:var(--ink);font-size:13px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
 .market-reputation-review-list article time{color:var(--muted);font-size:11px}
 .market-reputation-empty{margin:0;padding:20px 0;color:var(--muted);font-size:13px}
@@ -2805,7 +2812,7 @@ html[data-theme='dark'] .player-intro-meta{color:#a4bcc7!important}
 .player-profile-counts{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin:12px 0 4px}
 .player-profile-counts span{display:inline-flex;align-items:center;gap:4px;padding:6px 9px;border-radius:6px;background:var(--surface-muted);color:var(--muted);font-size:10px}
 .player-profile-counts b{color:var(--ink);font-size:12px;font-variant-numeric:tabular-nums}
-@media(max-width:560px){.market-reputation-dialog{padding:17px!important}.market-reputation-summary{grid-template-columns:1fr 1fr}.market-reputation-overall{grid-column:1/-1;grid-template-columns:auto auto 1fr;align-items:center}.market-reputation-overall strong{font-size:22px}.market-account-header-signout{min-height:34px;padding:0 8px;font-size:11px}.player-profile-counts{gap:5px}}
+@media(max-width:560px){.market-reputation-dialog{width:calc(100vw - 24px)!important;max-height:calc(100dvh - 32px)!important;padding:19px!important;gap:14px!important}.market-reputation-dialog [data-slot='dialog-body']{gap:14px!important}.market-reputation-summary{grid-template-columns:1fr 1fr}.market-reputation-overall{grid-column:1/-1;grid-template-columns:auto auto 1fr;align-items:center;border-bottom:1px solid var(--line)}.market-reputation-role{padding:11px 12px}.market-reputation-role+.market-reputation-role{border-left:1px solid var(--line)}.market-reputation-review-list{max-height:52dvh}.market-reputation-overall strong{font-size:22px}.market-reputation-review-context{align-items:flex-start;flex-direction:column;gap:3px}.market-account-header-signout{min-height:34px;padding:0 8px;font-size:11px}.player-profile-counts{gap:5px}}
 
 /* Keep the same real-card rail on profile banners as on the card library. */
 .profile-intro,

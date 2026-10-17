@@ -3193,7 +3193,7 @@ html[data-theme="dark"] body :is(
     color: var(--accent) !important;
   }
   .market-feed-filter-control .picker { flex: 1 1 auto !important; min-width: 0 !important; }
-  .market-feed-filter-control [data-slot='select-trigger'] { min-width: 0 !important; }
+  .market-feed-filter-control [data-slot='select-trigger'] { min-width: 0 !important; width: 100% !important; min-height: 44px !important; }
 }
 .market-listing-seller-name .market-reputation-inline{appearance:none!important;min-height:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;color:var(--muted)!important;font:inherit!important;text-align:left!important;text-decoration:none!important;cursor:pointer!important}
 .market-listing-seller-name .market-reputation-inline:hover{background:transparent!important;box-shadow:none!important;color:var(--accent)!important;text-decoration:underline!important;text-underline-offset:2px!important}
