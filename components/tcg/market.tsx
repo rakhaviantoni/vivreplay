@@ -1154,7 +1154,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
                     <div className={`market-feed-stack ${totalCards===1?'is-single':''}`} style={{'--stack-last-index':Math.max(0,visibleStack.length-1)} as CSSProperties}>
                       {visibleStack.map(({item,itemIndex,copyIndex},index)=>{
                         const stackCard=item.card??(itemIndex===0?listing.card:undefined)??cardFor(item.printingId);
-                        return stackCard?<div key={`${item.printingId}-${itemIndex}-${copyIndex}`} className={`market-feed-art${item.sold?' is-sold':''}`} style={{'--stack-index':index} as CSSProperties}><CardArt card={stackCard}/>{(item.sold||item.soldQuantity)&&copyIndex===0&&<span className="market-feed-art-sold">{item.sold?locale==='ID'?'Baru terjual':'Just sold':locale==='ID'?`${item.soldQuantity} terjual`:`${item.soldQuantity} sold`}</span>}</div>:null;
+                        return stackCard?<div key={`${item.printingId}-${itemIndex}-${copyIndex}`} className={`market-feed-art${item.sold?' is-sold':''}`} style={{'--stack-index':index} as CSSProperties}><CardArt card={stackCard}/>{(item.sold||Number(item.soldQuantity)>0)&&copyIndex===0&&<span className="market-feed-art-sold">{item.sold?locale==='ID'?'Baru terjual':'Just sold':locale==='ID'?`${Number(item.soldQuantity)} terjual`:`${Number(item.soldQuantity)} sold`}</span>}</div>:null;
                       })}
                       {totalCards>1&&<span className="market-feed-quantity" aria-label={`${totalCards} ${locale==='ID'?'kartu':'cards'}`}>{totalCards}</span>}
                     </div>
