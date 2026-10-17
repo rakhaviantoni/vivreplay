@@ -3472,6 +3472,7 @@ html body :is(.button.secondary,.btn-secondary,.vault-btn-secondary,[data-slot="
 /* FAQ, saved listings, and listing save controls */
 .faq-page{max-width:880px;padding-block:48px 88px}
 .faq-heading{padding-bottom:25px;border-bottom:1px solid var(--line)}
+.faq-heading .eyebrow{margin:0 0 9px;color:var(--accent);font-size:10px;font-weight:850;letter-spacing:.12em;text-transform:uppercase}
 .faq-heading h1{margin:0;color:var(--ink);font-size:clamp(30px,5vw,44px);letter-spacing:-.045em}
 .faq-heading p{margin:9px 0 0;color:var(--muted);font-size:15px;line-height:1.55}
 .faq-jump-links{display:flex;gap:8px;flex-wrap:wrap;padding:18px 0 4px}

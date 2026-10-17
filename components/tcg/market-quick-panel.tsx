@@ -2,7 +2,7 @@
 
 import {useCallback,useEffect,useState,type FormEvent} from 'react';
 import Link from 'next/link';
-import {ArrowRightIcon as ArrowRight,BookmarkSimpleIcon as Bookmark,CardsIcon as VaultIcon,ChatCircleDotsIcon as OffersIcon,ClipboardTextIcon as ListingsIcon,CrownSimpleIcon as Crown,HeartIcon as Heart,MapPinIcon as MapPin,PencilSimpleIcon as Pencil,PlusIcon as Plus,ShoppingBagIcon as OrdersIcon,TruckIcon as Truck,UserIcon as User,WalletIcon as Wallet} from '@phosphor-icons/react';
+import {ArrowRightIcon as ArrowRight,BookmarkSimpleIcon as Bookmark,CardsIcon as VaultIcon,ChatCircleDotsIcon as OffersIcon,ClipboardTextIcon as ListingsIcon,CrownSimpleIcon as Crown,HeartIcon as Heart,MapPinIcon as MapPin,PencilSimpleIcon as Pencil,PlusIcon as Plus,ShoppingBagIcon as OrdersIcon,SignOutIcon as SignOut,TruckIcon as Truck,UserIcon as User,WalletIcon as Wallet} from '@phosphor-icons/react';
 import {toast} from 'sonner';
 import {api,type AccountState} from '@/lib/client';
 import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle} from '@/components/ui/dialog';
@@ -208,6 +208,7 @@ function ProfileQuickEdit({profile,locale,onSaved,initialTab='account'}:{profile
       <label>{t('Language','Bahasa')}<select value={preferredLocale} onChange={event=>setPreferredLocale(event.target.value)}><option value="en">English</option><option value="id">Bahasa Indonesia</option></select></label>
       <label>{t('Currency','Mata uang')}<select value={currency} onChange={event=>setCurrency(event.target.value)}><option value="IDR">IDR</option><option value="USD">USD</option><option value="JPY">JPY</option></select></label>
       <button className="button primary" type="submit" disabled={saving}><User size={16}/>{saving?t('Saving…','Menyimpan…'):t('Save changes','Simpan perubahan')}</button>
+      <button className="market-profile-quick-signout" type="button" onClick={()=>window.dispatchEvent(new Event('vivreplay:sign-out'))}><SignOut size={16}/>{t('Sign out','Keluar')}</button>
     </form>}
     {tab==='delivery'&&<section className="market-profile-quick-section">
       <div className="market-profile-quick-card">

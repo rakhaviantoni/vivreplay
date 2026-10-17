@@ -5,6 +5,10 @@ import { sendAuthEmail } from "@/lib/auth-email";
 
 const authEnv = env as Cloudflare.Env;
 const baseURL = authEnv.BETTER_AUTH_URL || "https://vivreplay.com";
+const trustedOrigins = [new URL(baseURL).origin];
+const authHostname = new URL(baseURL).hostname;
+if (authHostname === 'vivreplay.com') trustedOrigins.push('https://www.vivreplay.com');
+if (authHostname === 'www.vivreplay.com') trustedOrigins.push('https://vivreplay.com');
 async function preferredEmailLocale(authSubject:string):Promise<'en'|'id'>{
   try{
     if(!authEnv.DB)return'en';
@@ -17,7 +21,7 @@ export const auth = betterAuth({
   database: authEnv.DB,
   secret: authEnv.BETTER_AUTH_SECRET,
   baseURL,
-  trustedOrigins: [baseURL],
+  trustedOrigins,
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,

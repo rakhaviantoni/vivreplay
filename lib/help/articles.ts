@@ -149,13 +149,13 @@ export const helpArticles: HelpArticle[] = [
       en: [
         { heading: 'Prepare the cards', paragraphs: ['Add the exact printings you own to your Vault first. For raw cards, choose the condition for each printing. For graded cards, record the slab and certification details in your collection.'] },
         { heading: 'Create the listing', steps: ['Open Market and choose Sell. Select cards from your Vault.', 'Group cards that you want to sell together into one bundle listing. Set the quantity, condition, and unit price for each card.', 'Add a clear title and notes, choose the delivery methods you support, and check the displayed total before publishing.'] },
-        { heading: 'Manage the listing', paragraphs: ['Use My Market → My listings to edit, pause, renew, or close listings. Free and Pro listing limits and durations follow the current Market policy shown in the app.'] },
+        { heading: 'Manage the listing', paragraphs: ['Use My Market → My listings to edit, pause, renew, or close listings. Your current listing limit and duration are shown in My Market before you publish or renew.'] },
         { heading: 'Keep the listing accurate', bullets: ['Use photos that show the actual card when a buyer asks for them.', 'Update quantity as your available cards change.', 'Do not list cards you cannot ship or claim a condition you have not checked.'] },
       ],
       id: [
         { heading: 'Siapkan kartu', paragraphs: ['Tambahkan cetakan yang benar ke Vault terlebih dahulu. Untuk kartu raw, pilih kondisi tiap cetakan. Untuk kartu grading, catat slab dan detail sertifikasi di koleksi.'] },
         { heading: 'Buat listing', steps: ['Buka Market dan pilih Jual. Pilih kartu dari Vault.', 'Gabungkan kartu yang ingin dijual bersama ke dalam satu listing bundle. Atur jumlah, kondisi, dan harga satuan tiap kartu.', 'Isi judul dan catatan yang jelas, pilih metode pengiriman yang tersedia, lalu periksa total sebelum menerbitkan listing.'] },
-        { heading: 'Kelola listing', paragraphs: ['Gunakan Market saya → Listing saya untuk mengedit, menjeda, memperpanjang, atau menutup listing. Batas dan durasi listing Free serta Pro mengikuti kebijakan Market yang tampil di aplikasi.'] },
+        { heading: 'Kelola listing', paragraphs: ['Gunakan Market saya → Listing saya untuk mengedit, menjeda, memperpanjang, atau menutup listing. Batas dan durasi listing Anda ditampilkan di Market saya sebelum listing diterbitkan atau diperpanjang.'] },
         { heading: 'Pastikan listing akurat', bullets: ['Gunakan foto yang memperlihatkan kartu sebenarnya saat pembeli memintanya.', 'Perbarui jumlah saat stok kartu berubah.', 'Jangan pasang kartu yang tidak dapat dikirim atau mengklaim kondisi yang belum diperiksa.'] },
       ],
     },

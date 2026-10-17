@@ -24,7 +24,7 @@ export function HelpCenter({locale}: {locale: HelpLocale}) {
 
   return <main className="page help-page">
     <header className="directory-hero page-intro-surface help-hero">
-      <p className="eyebrow">{id ? 'VIVREPLAY · PUSAT BANTUAN' : 'VIVREPLAY · HELP CENTER'}</p>
+      <p className="eyebrow">{id ? 'PUSAT BANTUAN' : 'HELP CENTER'}</p>
       <h1>{id ? 'Butuh bantuan?' : 'What do you need help with?'}</h1>
       <p>{id ? 'Cari langkah untuk pesanan, kartu, akun, dan Market.' : 'Find clear steps for orders, cards, your account, and Market.'}</p>
       <label className="help-search">
@@ -56,6 +56,6 @@ export function HelpCenter({locale}: {locale: HelpLocale}) {
       })}</div> : <div className="help-empty"><p>{id ? 'Tidak ada artikel yang cocok.' : 'No articles matched that search.'}</p><button type="button" onClick={() => {setQuery('');setCategory('all')}}>{id ? 'Tampilkan semua topik' : 'Show all topics'}</button></div>}
     </section>
 
-    <footer className="help-contact-strip"><p>{id ? 'Belum menemukan jawabannya?' : 'Still need a hand?'}</p><span>{id ? 'Kirim detail masalah agar kami tahu halaman atau pesanan yang perlu diperiksa.' : 'Send the details so we know which page or order needs attention.'}</span><Link href={localizedHref('/feedback', locale)}>{id ? 'Hubungi dukungan' : 'Contact support'}<ArrowRight size={15}/></Link></footer>
+    <footer className="help-contact-strip"><p>{id ? 'Belum menemukan jawabannya?' : 'Still need a hand?'}</p><span>{id ? 'Hubungi kami dan sertakan detail pertanyaan atau pesanan Anda.' : 'Contact us with the details of your question or order.'}</span><Link href={localizedHref('/contact', locale)}>{id ? 'Hubungi kami' : 'Contact us'}<ArrowRight size={15}/></Link></footer>
   </main>;
 }

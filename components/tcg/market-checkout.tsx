@@ -5,7 +5,7 @@ import {MarketPaymentPreview} from './market-payment-preview';
 import {MarketPaymentMethodPicker,estimatePaymentFee,defaultPaymentOptions,type PaymentOption} from './market-payment-method-picker';
 import {useRouter,useSearchParams} from 'next/navigation';
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
-import {ArrowLeftIcon as ArrowLeft,MapPinIcon as MapPin,MinusIcon as Minus,PlusIcon as Plus,ShieldCheckIcon as ShieldCheck,TruckIcon as Truck,XIcon as X} from '@phosphor-icons/react';
+import {ArrowLeftIcon as ArrowLeft,MapPinIcon as MapPin,MinusIcon as Minus,PlusIcon as Plus,ShieldCheckIcon as ShieldCheck,ShoppingCartIcon as Cart,TruckIcon as Truck,XIcon as X} from '@phosphor-icons/react';
 import {formatMoney,Listing} from '@/packages/domain';
 import {cardFor,Card} from '@/packages/card-data/catalog';
 import {api,useAccount} from '@/lib/client';
@@ -66,6 +66,7 @@ export function MarketCheckout(){
   const [error,setError]=useState('');
   const [quoteError,setQuoteError]=useState('');
   const [detailsError,setDetailsError]=useState('');
+  const [cartUnavailableError,setCartUnavailableError]=useState(false);
   const [contactName,setContactName]=useState('');
   const [contactPhone,setContactPhone]=useState('');
   const [savingContact,setSavingContact]=useState(false);
@@ -94,9 +95,9 @@ export function MarketCheckout(){
   useEffect(()=>{if(!cartMode)return;try{const cart=JSON.parse(window.localStorage.getItem('vivreplay-market-cart-v1')||'null');const lines=Array.isArray(cart?.lines)?cart.lines.filter((line:CartLine)=>typeof line?.listingId==='string'&&Array.isArray(line.items)&&line.items.length).map((line:CartLine)=>({listingId:line.listingId,listingTitle:typeof line.listingTitle==='string'?line.listingTitle:'',items:line.items.filter(item=>typeof item?.printingId==='string'&&Number.isInteger(item.quantity)&&item.quantity>0).map(item=>({printingId:item.printingId,quantity:item.quantity,unitAmount:item.unitAmount}))})):[];setCartLines(lines);window.localStorage.setItem('vivreplay-market-cart-v1',JSON.stringify({lines}))}catch{setCartLines([])}finally{setCartReady(true)}},[cartMode]);
   useEffect(()=>{
     if(accountLoading||(cartMode&&(!cartReady||!cartSelectionReady)))return;
-    if(cartMode&&hasLegacyListingParam&&(requestedListingIds.length>10||requestedListingIds.length!==requestedListingsParam.split(',').length)){setDetailsError(t('The selected cart items are invalid. Return to your cart and choose again.','Item keranjang yang dipilih tidak valid. Kembali ke keranjang dan pilih lagi.'));setLoading(false);return;}
+    if(cartMode&&hasLegacyListingParam&&(requestedListingIds.length>10||requestedListingIds.length!==requestedListingsParam.split(',').length)){setDetailsError(t('The selected cart items are invalid. Review your cart and choose again.','Item keranjang yang dipilih tidak valid. Periksa keranjang dan pilih lagi.'));setCartUnavailableError(true);setLoading(false);return;}
     if(!account){setLoading(false);return;}
-    setLoading(true);setDetailsError('');
+    setLoading(true);setDetailsError('');setCartUnavailableError(false);
     let active=true;
     const selectedCartLines=cartMode?activeCartLines:[];
     const listingsRequest=cartMode&&!selectedCartLines.length?Promise.resolve({listings:[] as Listing[]}):api<{listings:Listing[]}>(cartMode?`/api/listings?ids=${encodeURIComponent(selectedCartLines.map(line=>line.listingId).join(','))}`:'/api/listings',undefined,'GET');
@@ -107,9 +108,9 @@ export function MarketCheckout(){
     ]).then(([market,shipping,checkout])=>{
       if(!active)return;
       const checkoutLines=selectedCartLines;
-      if(cartMode&&requestedListingIds.length&&checkoutLines.length!==requestedListingIds.length)throw new Error(t('The selected cart items are unavailable. Return to your cart and choose again.','Item keranjang yang dipilih tidak tersedia. Kembali ke keranjang dan pilih lagi.'));
+      if(cartMode&&requestedListingIds.length&&checkoutLines.length!==requestedListingIds.length){setCartUnavailableError(true);throw new Error(t('A listing in your cart sold or closed before checkout. Review your cart to remove it or change the quantities.','Salah satu listing di keranjang terjual atau ditutup sebelum checkout. Periksa keranjang untuk menghapusnya atau mengubah jumlah kartu.'));}
       const selectedListings=cartMode?checkoutLines.map(line=>market.listings.find(row=>row.id===line.listingId)).filter((row):row is Listing=>Boolean(row)):[market.listings.find(row=>row.id===listingId)].filter((row):row is Listing=>Boolean(row));
-      if(cartMode&&selectedListings.length!==checkoutLines.length)throw new Error(t('A listing in your cart is no longer available. Return to your cart and remove it.','Salah satu listing di keranjang sudah tidak tersedia. Kembali ke keranjang dan hapus listing tersebut.'));setCartListings(selectedListings);setListing(selectedListings[0]);
+      if(cartMode&&selectedListings.length!==checkoutLines.length){setCartUnavailableError(true);throw new Error(t('A listing in your cart sold or closed before checkout. Review your cart to remove it or change the quantities.','Salah satu listing di keranjang terjual atau ditutup sebelum checkout. Periksa keranjang untuk menghapusnya atau mengubah jumlah kartu.'));}setCartListings(selectedListings);setListing(selectedListings[0]);
       setOrigin(shipping.origin??undefined);
       setCheckoutAvailable(checkout.available);
       const options=Array.isArray(checkout.paymentChannels)?checkout.paymentChannels:defaultPaymentOptions;
@@ -224,7 +225,7 @@ export function MarketCheckout(){
   };
 
   if(loading||accountLoading||(cartMode&&!cartReady))return <main className="page vivre-checkout-page"><div className="checkout-loading"><i/><span>{t('Loading your checkout…','Memuat checkout…')}</span></div></main>;
-  if(detailsError||accountError)return <main className="page vivre-checkout-page"><section className="checkout-message"><h1>{t('Checkout could not load','Checkout gagal dimuat')}</h1><p>{detailsError||t('Please refresh to load the listing and delivery address.','Muat ulang untuk memuat listing dan alamat pengiriman.')}</p><div className="checkout-error-actions"><button className="button" onClick={()=>window.location.reload()}>{t('Retry','Coba lagi')}</button>{cartMode&&<button className="button secondary" onClick={()=>{if(!window.confirm(t('Remove all items from your cart?','Kosongkan semua isi keranjang?')))return;window.localStorage.removeItem('vivreplay-market-cart-v1');window.dispatchEvent(new Event('vivreplay:market-cart-updated'));router.replace('/market')}}>{t('Clear cart','Kosongkan keranjang')}</button>}</div></section></main>;
+  if(detailsError||accountError)return <main className="page vivre-checkout-page"><section className="checkout-message"><h1>{cartUnavailableError?t('Your cart needs an update','Perbarui keranjang Anda'):t('Checkout could not load','Checkout gagal dimuat')}</h1><p>{detailsError||t('Please refresh to load the listing and delivery address.','Muat ulang untuk memuat listing dan alamat pengiriman.')}</p><div className="checkout-error-actions">{cartMode&&<button className="button" onClick={()=>window.dispatchEvent(new Event('vivreplay:open-market-cart'))}><Cart size={17}/>{t('Review cart','Periksa keranjang')}</button>}<button className="button secondary" onClick={()=>window.location.reload()}>{t('Try again','Coba lagi')}</button></div></section></main>;
   if(!account)return <main className="page vivre-checkout-page"><section className="checkout-message checkout-auth-message"><ShieldCheck size={24}/><div className="checkout-message-content"><h1>{t('Sign in to check out','Masuk untuk checkout')}</h1><p>{t('Your delivery address and order are tied to your VivrePlay account.','Alamat pengiriman dan pesanan terhubung dengan akun VivrePlay Anda.')}</p><button className="button" onClick={()=>window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}))}>{t('Sign in','Masuk')}</button></div></section></main>;
   if(!listing||!selectedCards.length)return <main className="page vivre-checkout-page"><section className="checkout-message"><h1>{cartMode?t('Your cart is empty','Keranjang Anda kosong'):t('Listing unavailable','Listing tidak tersedia')}</h1><p>{cartMode?t('Browse listings to add cards.','Lihat listing untuk menambahkan kartu.'):t('Browse Market for other listings.','Cari listing lain di Market.')}</p><Link className="button" href="/market"><ArrowLeft size={16}/>{t('Back to Market','Kembali ke Market')}</Link></section></main>;
 

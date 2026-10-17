@@ -930,3 +930,8 @@ html[data-theme='dark'] .market-account-unified-body.is-listings .market-listing
 @media(max-width:620px){.market-order-receipt-confirm .button{width:100%}.market-payout-request{grid-template-columns:1fr 1fr}.market-payout-request>.button{grid-column:1/-1;width:100%}}
 
 .market-order-review-panel{grid-column:1/-1;width:100%;padding:12px 14px;border-top:1px solid var(--line);background:color-mix(in srgb,var(--surface) 72%,transparent)}.market-order-review-panel .market-order-review,.market-order-review-panel .market-order-review-submitted{margin:0}.market-order-review-panel .market-order-review{max-width:520px;padding:0;border:0;background:transparent}.market-order-detail-actions .market-order-review-toggle{color:var(--ink)}
+.market-account-menu-signout{color:var(--muted)!important}
+.market-account-menu-signout svg{color:var(--muted)!important}
+.market-profile-quick-signout{display:inline-flex;min-height:38px;align-items:center;justify-self:start;gap:8px;padding:0 4px;border:0;background:transparent;color:var(--muted);font:650 12px var(--game-font);cursor:pointer;transition:color .16s ease}
+.market-profile-quick-signout:hover,.market-profile-quick-signout:focus-visible{color:var(--danger,#a83d32)}
+.market-profile-quick-signout:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
