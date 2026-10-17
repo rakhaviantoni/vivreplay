@@ -3,6 +3,7 @@
 import {formatMoney} from '@/packages/domain';
 import Image from 'next/image';
 import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue} from '@/components/ui/select';
+import {estimateIpaymuFee} from '@/lib/market/ipaymu-fees';
 import {BankIcon as Bank,CreditCardIcon as CreditCard,HourglassIcon as PayLater,QrCodeIcon as QrCode,StorefrontIcon as Storefront,WalletIcon as Wallet} from '@phosphor-icons/react';
 
 export type PaymentMethod='va'|'cstore'|'qris'|'cc'|'paylater'|'ewallet';
@@ -11,8 +12,7 @@ export type PaymentOption={method:PaymentMethod;channel:string;name:string;logo:
 export const defaultPaymentOptions:PaymentOption[]=[];
 
 export function estimatePaymentFee(option:PaymentOption|undefined,amount:number){
-  if(!option||option.method==='qris')return 0;
-  return Math.max(0,Math.round((option.feeType==='PERCENT'?amount*option.fee/100:option.fee)+option.additionalFee));
+  return estimateIpaymuFee(option,amount);
 }
 
 export function paymentMethodLabel(method:PaymentMethod,locale:'EN'|'ID'){
