@@ -44,6 +44,20 @@ export function productionEmailUrl(value: string | undefined, fallback: string):
   try {
     const source = new URL(value || fallback, appUrl);
     const destination = new URL(appUrl);
+    if (source.pathname.endsWith("/verify-email")) {
+      const callback = new URL(source.searchParams.get("callbackURL") || "/profile", appUrl);
+      const appOrigin = new URL(appUrl).origin;
+      let returnTo = "/profile";
+      if (callback.origin === appOrigin) {
+        returnTo = callback.pathname === "/sign-in" && callback.searchParams.has("return_to")
+          ? callback.searchParams.get("return_to") || "/profile"
+          : `${callback.pathname}${callback.search}${callback.hash}`;
+      }
+      if (!returnTo.startsWith("/") || returnTo.startsWith("//") || returnTo.startsWith("/api/")) returnTo = "/profile";
+      const completion = new URL("/auth/verified", appUrl);
+      completion.searchParams.set("return_to", returnTo);
+      source.searchParams.set("callbackURL", completion.toString());
+    }
     destination.pathname = source.pathname;
     destination.search = source.search;
     destination.hash = source.hash;

@@ -22,7 +22,7 @@ export default function VerifyEmailPage() {
     const email = String(new FormData(event.currentTarget).get("email"));
     const { error: verificationError } = await authClient.sendVerificationEmail({
       email,
-      callbackURL: `${window.location.origin}/sign-in?verified=1`,
+      callbackURL: `${window.location.origin}/auth/verified`,
       fetchOptions:{headers:turnstileHeaders(turnstileToken)},
     });
     setTurnstileToken('');setTurnstileResetKey(value=>value+1);

@@ -89,7 +89,7 @@ export default function SignUpPage() {
       username: username.trim(),
       email: email.trim(),
       password: String(new FormData(event.currentTarget).get("password")),
-      callbackURL: `${window.location.origin}/sign-in?verified=1&return_to=${encodeURIComponent(returnTo)}`,
+      callbackURL: `${window.location.origin}/auth/verified?return_to=${encodeURIComponent(returnTo)}`,
       fetchOptions:{headers:turnstileHeaders(turnstileToken)},
     });
     setTurnstileToken('');setTurnstileResetKey(value=>value+1);
@@ -136,14 +136,7 @@ export default function SignUpPage() {
               <div style={{ display: "flex", alignItems: "center", gap: 7, fontWeight: 800 }}>
                 <CheckCircle size={17} weight="fill" /> Verification email sent
               </div>
-              <span>{notice}</span>
-              <Link
-                href={`/sign-in?return_to=${encodeURIComponent(returnTo)}`}
-                className="button"
-                style={{ marginTop: 6, display: "inline-flex", width: "100%", justifyContent: "center" }}
-              >
-                Sign in
-              </Link>
+              <span>Open the link in your inbox to verify your email. You’ll be signed in automatically.</span>
             </div>
           ) : (
             <>
