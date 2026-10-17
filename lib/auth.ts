@@ -2,6 +2,7 @@ import { env } from "cloudflare:workers";
 import { betterAuth } from "better-auth";
 import { nextCookies } from "better-auth/next-js";
 import { sendAuthEmail } from "@/lib/auth-email";
+import { z } from "zod";
 
 const authEnv = env as Cloudflare.Env;
 const baseURL = authEnv.BETTER_AUTH_URL || "https://vivreplay.com";
@@ -22,6 +23,16 @@ export const auth = betterAuth({
   secret: authEnv.BETTER_AUTH_SECRET,
   baseURL,
   trustedOrigins,
+  user: {
+    additionalFields: {
+      username: {
+        type: "string",
+        required: false,
+        input: true,
+        validator: { input: z.string().regex(/^[a-z0-9_-]{3,30}$/) },
+      },
+    },
+  },
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,

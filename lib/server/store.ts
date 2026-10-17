@@ -48,7 +48,7 @@ async function profileFor(auth:NonNullable<Awaited<ReturnType<typeof getCurrentU
   let p=await d.prepare('SELECT * FROM profiles WHERE auth_subject=?').bind(auth.id).first<Record<string,string>>();
   if(!p){
     const id=crypto.randomUUID();
-    let username=defaultUsername(auth.email, id);
+    let username=auth.username?.toLowerCase()||defaultUsername(auth.email, id);
     const existing=await d.prepare('SELECT id FROM profiles WHERE username=?').bind(username).first();
     if(existing){
       username=`${username.slice(0, 20)}-${id.slice(0, 4)}`;

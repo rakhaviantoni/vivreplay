@@ -5,6 +5,7 @@ export type CurrentUser = {
   id: string;
   email: string;
   name: string;
+  username?: string | null;
 };
 
 export async function getCurrentUser(): Promise<CurrentUser | null> {
@@ -15,5 +16,6 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     id: session.user.id,
     email: session.user.email,
     name: session.user.name,
+    username: session.user.username,
   };
 }

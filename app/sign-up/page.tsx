@@ -24,6 +24,12 @@ function nameSuggestions(email:string){
   return [...new Map(options.filter(Boolean).map(value=>[value.toLowerCase(),value])).values()];
 }
 
+function usernameSuggestion(email:string){
+  const local=email.trim().split('@')[0]?.split('+')[0]??'';
+  const normalized=local.toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,30);
+  return normalized.length>=3?normalized:`collector${normalized}`.slice(0,30);
+}
+
 export default function SignUpPage() {
   const searchParams = useSearchParams();
   const [error, setError] = useState("");
@@ -37,11 +43,30 @@ export default function SignUpPage() {
   const [email,setEmail]=useState('');
   const [displayName,setDisplayName]=useState('');
   const [suggestions,setSuggestions]=useState<string[]>([]);
+  const [username,setUsername]=useState('');
+  const [usernameSuggestions,setUsernameSuggestions]=useState<string[]>([]);
+  const [usernameState,setUsernameState]=useState<'idle'|'checking'|'available'|'taken'|'unavailable'>('idle');
   const emailRef=useRef<HTMLInputElement>(null);
   const nameRef=useRef<HTMLInputElement>(null);
   const previousStep=useRef<'email'|'details'>('email');
   const returnTo = safeReturnTo(searchParams.get("return_to"));
+  const usernameValid=/^[a-z0-9_-]{3,30}$/.test(username);
   useEffect(()=>{if(step!==previousStep.current){if(step==='details')nameRef.current?.focus();else emailRef.current?.focus();previousStep.current=step}},[step]);
+  useEffect(()=>{
+    if(step!=='details'||!username)return;
+    if(!/^[a-z0-9_-]{3,30}$/.test(username))return;
+    const controller=new AbortController();
+    const timer=window.setTimeout(async()=>{
+      try{
+        const response=await fetch(`/api/usernames/availability?username=${encodeURIComponent(username)}`,{signal:controller.signal,cache:'no-store'});
+        const payload=await response.json() as {available?:boolean;suggestions?:string[]};
+        if(!response.ok)throw new Error('availability');
+        setUsernameState(payload.available?'available':'taken');
+        setUsernameSuggestions(payload.suggestions??[]);
+      }catch{if(!controller.signal.aborted)setUsernameState('unavailable');}
+    },350);
+    return()=>{window.clearTimeout(timer);controller.abort()};
+  },[step,username]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -51,13 +76,17 @@ export default function SignUpPage() {
       const nextSuggestions=nameSuggestions(email);
       setSuggestions(nextSuggestions);
       setDisplayName(nextSuggestions[0]??'');
+      setUsername(usernameSuggestion(email));
+      setUsernameState('checking');
       setStep('details');
       return;
     }
     setBusy(true);
     if(turnstileEnabled&&!turnstileToken){setError('Complete the security check first.');setBusy(false);return;}
+    if(usernameState!=='available'){setError(usernameState==='taken'?'Choose an available username.':'Check username availability before continuing.');setBusy(false);return;}
     const { error: signUpError } = await authClient.signUp.email({
       name: displayName.trim(),
+      username: username.trim(),
       email: email.trim(),
       password: String(new FormData(event.currentTarget).get("password")),
       callbackURL: `${window.location.origin}/sign-in?verified=1&return_to=${encodeURIComponent(returnTo)}`,
@@ -141,11 +170,19 @@ export default function SignUpPage() {
                   <p className="auth-name-note">Shown on your profile. You can edit your display name and username in Profile later.</p>
                   {suggestions.length>0&&<div className="auth-name-suggestion-group" role="group" aria-label="Name suggestions"><span>{suggestions.length>1?'Choose a suggestion or edit your name':'Suggested from your email'}</span><div>{suggestions.map(suggestion=><button key={suggestion} type="button" className={displayName===suggestion?'is-selected':''} aria-pressed={displayName===suggestion} onClick={()=>setDisplayName(suggestion)}>{suggestion}</button>)}</div></div>}
                   <label>
+                    Username
+                    <input name="username" autoComplete="username" minLength={3} maxLength={30} pattern="[a-z0-9_-]{3,30}" value={username} onChange={event=>{setUsernameState('checking');setUsername(event.target.value.toLowerCase())}} required aria-describedby="signup-username-status" />
+                  </label>
+                  <p id="signup-username-status" className={`auth-username-status is-${usernameState}`} role="status" aria-live="polite">
+                    {!usernameValid?'Use 3–30 letters, numbers, dashes, or underscores.':usernameState==='checking'?'Checking availability…':usernameState==='available'?'Username is available.':usernameState==='taken'?'That username is taken. Choose another.':usernameState==='unavailable'?'Could not check right now. Edit the username or try again.':'Checking availability…'}
+                  </p>
+                  {usernameSuggestions.length>0&&<div className="auth-name-suggestion-group" role="group" aria-label="Available usernames"><span>{usernameState==='taken'?'Available alternatives':'Suggestions'}</span><div>{usernameSuggestions.map(suggestion=><button key={suggestion} type="button" className={username===suggestion?'is-selected':''} aria-pressed={username===suggestion} onClick={()=>{setUsernameState('checking');setUsername(suggestion)}}>{suggestion}</button>)}</div></div>}
+                  <label>
                     Password
                     <input name="password" type="password" autoComplete="new-password" minLength={8} placeholder="At least 8 characters" required />
                   </label>
                   <TurnstileField onToken={setTurnstileToken} resetKey={turnstileResetKey}/>
-                  <button className="button" disabled={busy}>
+                  <button className="button" disabled={busy||!usernameValid||usernameState!=='available'}>
                     {busy ? "Creating account…" : "Create account"}
                   </button>
                 </>}
