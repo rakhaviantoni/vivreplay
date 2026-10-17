@@ -276,7 +276,7 @@ export function Shell({children,initialPath='/'}:{children:React.ReactNode;initi
     {!marketCheckout&&<NewCardsAnnouncement/>}
     {!marketCheckout&&<MiniRail language={language}/>}
     {!marketCheckout&&<nav className="mobile-nav" aria-label="Mobile navigation">
-      {mobileNav.map(item=>{const Icon=item.icon;return <Link key={item.href} href={getHref(item.href)} className={selected(item.href)?'active':''}><Icon size={20}/><span>{language==='ID'?item.labelId:item.label}</span></Link>})}
+      {mobileNav.map(item=>{const Icon=item.icon;const active=selected(item.href);return <Link key={item.href} href={getHref(item.href)} className={active?'active':''} aria-current={active?'page':undefined}><Icon size={20}/><span>{language==='ID'?item.labelId:item.label}</span></Link>})}
     </nav>}
     <Toaster theme={theme}/>
   </div>;

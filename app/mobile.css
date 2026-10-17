@@ -3124,6 +3124,38 @@ html[data-theme="dark"] body :is(
   .nav-more > div a { transition-duration: .01ms !important; }
 }
 
+/* Keep mobile navigation touchable and consistent across the main app and Market. */
+.market-listing-seller-name{display:grid!important;grid-template-columns:minmax(0,1fr)!important;justify-items:start!important;align-items:start!important;gap:3px!important}
+.market-listing-seller-name>.market-reputation-inline{justify-self:start}
+@media(max-width:900px){
+  .mobile-nav{
+    position:fixed!important;z-index:120!important;right:0!important;bottom:0!important;left:0!important;
+    display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;align-items:stretch!important;gap:4px!important;
+    min-height:calc(64px + env(safe-area-inset-bottom))!important;padding:6px 8px calc(6px + env(safe-area-inset-bottom))!important;
+    border-top:1px solid color-mix(in srgb,var(--line) 88%,transparent)!important;
+    background:color-mix(in srgb,var(--surface-raised) 94%,transparent)!important;
+    box-shadow:0 -6px 20px color-mix(in srgb,var(--ink) 9%,transparent)!important;backdrop-filter:blur(16px)!important;
+  }
+  .mobile-nav>a{
+    display:flex!important;min-width:0!important;min-height:50px!important;align-items:center!important;justify-content:center!important;gap:4px!important;
+    border-radius:12px!important;color:var(--muted)!important;font-size:10px!important;font-weight:650!important;line-height:1.1!important;
+    transition:background-color .18s ease,color .18s ease,transform .18s ease!important;
+  }
+  .mobile-nav>a svg{width:20px;height:20px;transition:transform .18s ease,color .18s ease}
+  .mobile-nav>a.active{background:color-mix(in srgb,var(--accent) 11%,var(--surface-raised))!important;color:var(--accent)!important}
+  .mobile-nav>a.active svg{color:var(--accent)}
+  .mobile-nav>a:active{transform:scale(.96)!important}
+  .mobile-nav>a:focus-visible,.market-mobile-nav>a:focus-visible,.market-mobile-nav>button:focus-visible{outline:2px solid var(--accent)!important;outline-offset:-2px!important}
+  .market-listing-detail .market-listing-seller-toolbar .market-listing-seller-name{display:grid!important;grid-template-columns:minmax(0,1fr)!important;justify-items:start!important;align-items:start!important;gap:3px!important}
+}
+@media(max-width:760px){
+  .market-mobile-nav{gap:2px!important;padding-inline:7px!important;background:color-mix(in srgb,var(--surface-raised) 96%,transparent)!important;backdrop-filter:blur(16px)!important}
+  .market-mobile-nav>a,.market-mobile-nav>button{min-height:52px!important;gap:4px!important;border-radius:12px!important;font-size:9px!important;font-weight:700!important;transition:background-color .18s ease,color .18s ease,transform .18s ease!important}
+  .market-mobile-nav>.market-mobile-search-action{color:var(--accent)!important}
+  .market-mobile-nav>button:active,.market-mobile-nav>a:active{transform:scale(.96)!important}
+}
+@media(prefers-reduced-motion:reduce){.mobile-nav>a,.mobile-nav>a svg,.market-mobile-nav>a,.market-mobile-nav>button{transition:none!important}}
+
 /* Let the WTS/WTB label carry the type; keep feed cards on one neutral edge. */
 .market-feed-list .market-feed-row,
 .market-feed-list.is-grid .market-feed-row {
