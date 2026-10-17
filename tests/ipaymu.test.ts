@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {callbackAmount,callbackIsSuccessful,callbackReference,callbackSessionId,createIpaymuRedirect,parseAndVerifyIpaymuCallback,parseIpaymuPaymentChannelSettings} from '../lib/server/ipaymu';
+import {callbackAmount,callbackIsSuccessful,callbackReference,callbackSessionId,createIpaymuRedirect,getIpaymuPaymentChannels,parseAndVerifyIpaymuCallback,parseIpaymuPaymentChannelSettings} from '../lib/server/ipaymu';
 
 const encoder=new TextEncoder();
 const hex=(data:ArrayBuffer)=>[...new Uint8Array(data)].map(byte=>byte.toString(16).padStart(2,'0')).join('');
@@ -55,6 +55,30 @@ test('iPaymu hosted checkout signs the exact JSON body sent to the gateway',asyn
     assert.equal(body.product instanceof Array,true);
     assert.equal(result.sessionId,'session-123');
     assert.equal(result.url,'https://sandbox.ipaymu.com/payment/session-123');
+  }finally{
+    globalThis.fetch=previous.fetch;
+    if(previous.mode===undefined)delete process.env.IPAYMU_MODE;else process.env.IPAYMU_MODE=previous.mode;
+    if(previous.va===undefined)delete process.env.IPAYMU_VA;else process.env.IPAYMU_VA=previous.va;
+    if(previous.key===undefined)delete process.env.IPAYMU_API_KEY;else process.env.IPAYMU_API_KEY=previous.key;
+  }
+});
+
+test('iPaymu payment-channel lookup signs an empty GET query as an empty JSON object',async()=>{
+  const previous={mode:process.env.IPAYMU_MODE,va:process.env.IPAYMU_VA,key:process.env.IPAYMU_API_KEY,fetch:globalThis.fetch};
+  process.env.IPAYMU_MODE='sandbox';process.env.IPAYMU_VA='sandbox-va';process.env.IPAYMU_API_KEY='sandbox-key';
+  let capturedSignature='';let capturedTimestamp='';let capturedUrl='';
+  globalThis.fetch=(async(input,init)=>{
+    capturedUrl=String(input);const headers=new Headers(init?.headers);capturedSignature=headers.get('signature')??'';capturedTimestamp=headers.get('timestamp')??'';
+    return Response.json({Status:200,Data:[{Code:'qris',Channels:[{Code:'mpm',Name:'QRIS',FeatureStatus:'active',HealthStatus:'online',TransactionFee:{ActualFee:0}}]}]});
+  }) as typeof fetch;
+  try{
+    const channels=await getIpaymuPaymentChannels();
+    const queryHash=hex(await crypto.subtle.digest('SHA-256',encoder.encode('{}')));
+    const expected=await signature(`GET:sandbox-va:${queryHash}:sandbox-key`,'sandbox-key');
+    assert.equal(capturedUrl,'https://sandbox.ipaymu.com/api/v2/payment-channels');
+    assert.equal(capturedSignature,expected);
+    assert.match(capturedTimestamp,/^\d{14}$/);
+    assert.deepEqual(channels.map(channel=>({method:channel.method,channel:channel.channel})),[{method:'qris',channel:'mpm'}]);
   }finally{
     globalThis.fetch=previous.fetch;
     if(previous.mode===undefined)delete process.env.IPAYMU_MODE;else process.env.IPAYMU_MODE=previous.mode;

@@ -928,3 +928,5 @@ html[data-theme='dark'] .market-account-unified-body.is-listings .market-listing
 .market-payout-request input,.market-payout-request select{width:100%;min-width:0;min-height:38px;padding:8px 10px;border:1px solid var(--line);border-radius:7px;background:var(--surface-raised);color:var(--ink);font:500 12px var(--game-font)}
 .market-payout-request>.button{min-height:38px;white-space:nowrap}
 @media(max-width:620px){.market-order-receipt-confirm .button{width:100%}.market-payout-request{grid-template-columns:1fr 1fr}.market-payout-request>.button{grid-column:1/-1;width:100%}}
+
+.market-order-review-panel{grid-column:1/-1;width:100%;padding:12px 14px;border-top:1px solid var(--line);background:color-mix(in srgb,var(--surface) 72%,transparent)}.market-order-review-panel .market-order-review,.market-order-review-panel .market-order-review-submitted{margin:0}.market-order-review-panel .market-order-review{max-width:520px;padding:0;border:0;background:transparent}.market-order-detail-actions .market-order-review-toggle{color:var(--ink)}

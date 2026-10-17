@@ -81,8 +81,10 @@ export async function getIpaymuPaymentChannels():Promise<IpaymuPaymentChannel[]>
   const {va,apiKey,baseUrl}=configuration();
   const timestampValue=new Date();
   const timestamp=`${timestampValue.getUTCFullYear()}${String(timestampValue.getUTCMonth()+1).padStart(2,'0')}${String(timestampValue.getUTCDate()).padStart(2,'0')}${String(timestampValue.getUTCHours()).padStart(2,'0')}${String(timestampValue.getUTCMinutes()).padStart(2,'0')}${String(timestampValue.getUTCSeconds()).padStart(2,'0')}`;
-  const emptyDigest=hex(await crypto.subtle.digest('SHA-256',new Uint8Array()));
-  const signature=await hmac(`GET:${va}:${emptyDigest}:${apiKey}`,apiKey);
+  // iPaymu signs GET query parameters as JSON. With no parameters, the
+  // canonical request body is an empty JSON object.
+  const queryDigest=hex(await crypto.subtle.digest('SHA-256',new TextEncoder().encode('{}')));
+  const signature=await hmac(`GET:${va}:${queryDigest}:${apiKey}`,apiKey);
   const response=await fetch(`${baseUrl}/api/v2/payment-channels`,{method:'GET',headers:{'Content-Type':'application/json',va,timestamp,signature},cache:'no-store'});
   const payload=await response.json().catch(()=>null) as {Status?:number;Data?:Array<{Code?:string;Channels?:Array<{Code?:string;Name?:string;Logo?:string;FeatureStatus?:string;HealthStatus?:string;TransactionFee?:{ActualFee?:number;ActualFeeType?:string;AdditionalFee?:number}}>} >}|null;
   if(!response.ok||payload?.Status!==200||!Array.isArray(payload.Data))throw new Error('Payment options could not be loaded.');
