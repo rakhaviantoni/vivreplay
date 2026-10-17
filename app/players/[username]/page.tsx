@@ -13,10 +13,11 @@ import {privateMetadata} from '@/lib/site-metadata';
 import {db} from '@/lib/server/store';
 import {ShareButton} from '@/components/tcg/share';
 import {formatMoney} from '@/packages/domain';
-import {cardFor} from '@/packages/card-data/catalog';
+import {cardFor,type Card} from '@/packages/card-data/catalog';
 import {CardArt} from '@/components/tcg/card-art';
 import {IntroCardRail} from '@/components/tcg/intro-card-rail';
 import {marketListingPath} from '@/lib/market/listing-url';
+import {MarketReputation} from '@/components/tcg/market-reputation';
 
 export const metadata = privateMetadata('Player profile', 'Player profiles are available by direct link only.');
 export const dynamic = 'force-dynamic';
@@ -50,7 +51,7 @@ export default async function Page({params}: {params: Promise<{username: string}
 
   if (!p) notFound();
 
-  const [listingsRes, decksRes] = await Promise.all([
+  const [listingsRes, decksRes, listingCount, deckCount] = await Promise.all([
     db().prepare(`
       SELECT
         l.id,
@@ -123,6 +124,8 @@ export default async function Page({params}: {params: Promise<{username: string}
       createdAt: string;
       leaderId: string;
     }>(),
+    db().prepare("SELECT COUNT(*) AS count FROM listings WHERE seller_id=? AND status='ACTIVE' AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)").bind(p.id).first<{count:number}>(),
+    db().prepare("SELECT COUNT(*) AS count FROM decks WHERE owner_id=? AND visibility='public' AND deleted_at IS NULL").bind(p.id).first<{count:number}>(),
   ]);
 
   const listings = listingsRes.results || [];
@@ -139,7 +142,7 @@ export default async function Page({params}: {params: Promise<{username: string}
       {/* Shared Global Intro Banner */}
       <section className="library-intro player-intro">
         <div className="library-intro-copy">
-          <p className="kicker">COLLECTOR PROFILE</p>
+          <p className="kicker">COLLECTOR</p>
           <h1>{p.display_name}</h1>
           <p className="player-intro-meta">
             @{p.username} · {regionLabel} · Member since {joinedDate}
@@ -164,12 +167,16 @@ export default async function Page({params}: {params: Promise<{username: string}
           </div>
           <h2>{p.display_name}</h2>
           <p className="profile-handle">@{p.username}</p>
-          <span className="badge">COLLECTOR</span>
+          <MarketReputation username={p.username} language="EN" profile/>
+          <div className="player-profile-counts" aria-label="Public profile activity">
+            <span><b>{listingCount?.count??0}</b> Active {(listingCount?.count??0)===1?'listing':'listings'}</span>
+            <span><b>{deckCount?.count??0}</b> Public {(deckCount?.count??0)===1?'deck':'decks'}</span>
+          </div>
 
           <div className="profile-facts">
             <span><Globe size={15}/>{regionLabel} ({p.region})</span>
             <span><Calendar size={15}/>Member since {joinedDate}</span>
-            <span><ShieldCheck size={15}/>Collection private by default</span>
+            <span><ShieldCheck size={15}/>Only shared decks and active listings appear here</span>
           </div>
 
           <div className="profile-card-actions">
@@ -202,7 +209,7 @@ export default async function Page({params}: {params: Promise<{username: string}
                     code: item.cardCode ?? '',
                     name: item.cardName ?? item.title,
                     color: item.cardColor ?? 'Red',
-                    type: (item.cardType as any) ?? 'Character',
+                    type: (item.cardType==='Leader'||item.cardType==='Event')?item.cardType as Card['type']:'Character',
                     cost: item.cardCost ?? 0,
                     power: item.cardPower ?? 0,
                     rarity: item.cardRarity ?? '',

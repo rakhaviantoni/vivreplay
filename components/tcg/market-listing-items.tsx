@@ -980,7 +980,7 @@ export function MarketListingDetailView({
               <span>{listing.seller.slice(0, 1).toUpperCase()}</span>
               <div className="market-listing-seller-copy">
                 <small>{isBuying ? t('Buyer', 'Pembeli') : t('Seller', 'Penjual')}</small>
-                <div className="market-listing-seller-name"><strong>{stored ? <Link href={`/players/${stored.username}`}>{listing.seller}</Link> : listing.seller}</strong><MarketReputation listingId={listing.id} language={language} role={isBuying?'buyer':'seller'}/></div>
+                <div className="market-listing-seller-name"><strong>{stored ? <Link href={`/players/${stored.username}`}>{listing.seller}</Link> : listing.seller}</strong><MarketReputation listingId={listing.id} username={stored?.username} language={language} role={isBuying?'buyer':'seller'}/></div>
               </div>
             </section>
             <div className="market-listing-utility-actions">

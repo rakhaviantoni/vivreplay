@@ -1,19 +1,32 @@
 'use client';
-import {useEffect,useState} from 'react';
+import {useEffect,useMemo,useState} from 'react';
 import {StarIcon as Star} from '@phosphor-icons/react';
 import {api} from '@/lib/client';
 import {toast} from 'sonner';
+import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle} from '@/components/ui/dialog';
 type Reputation={rating:Array<{role:string;count:number;average:number}>;completed:number;response:{samples:number;percent:number|null;medianHours:number|null};shipping:{samples:number;medianHours:number|null;deliverySamples:number;deliveryHours:number|null};reviews:Array<{rating:number;comment:string;role:string;reviewer:string;createdAt:string}>};
-export function MarketReputation({listingId,language,role='seller'}:{listingId:string;language:'EN'|'ID';role?:'seller'|'buyer'}){
- const [data,setData]=useState<Reputation|null>(null);const [failed,setFailed]=useState(false);const id=language==='ID';
- useEffect(()=>{let active=true;setData(null);setFailed(false);void api<Reputation>(`/api/market/reputation?listing=${encodeURIComponent(listingId)}`).then(r=>{if(active)setData(r)}).catch(()=>{if(active)setFailed(true)});return()=>{active=false}},[listingId]);
- if(failed)return null;
- if(!data)return <span className="market-reputation-inline is-loading" role="status">{id?'Memuat ulasan':'Loading rating'}</span>;
- const rating=data.rating.find(item=>item.role===role);
- return <span className={`market-reputation-inline ${rating?'has-rating':'is-new'}`} aria-label={rating?`${rating.average.toFixed(1)} out of 5, ${rating.count} ${id?'ulasan':'reviews'}`:id?'Belum ada ulasan':'No reviews yet'}>
-   {rating?<><Star size={13} weight="fill" aria-hidden="true"/><b>{rating.average.toFixed(1)}</b><small>({rating.count})</small></>:<small>{id?'Baru':'New'}</small>}
-   {data.completed>0&&<i>{data.completed} {id?'pesanan selesai':'completed'}</i>}
- </span>;
+export function MarketReputation({listingId,username,language,role='seller',profile=false}:{listingId?:string;username?:string;language:'EN'|'ID';role?:'seller'|'buyer';profile?:boolean}){
+ const [loaded,setLoaded]=useState<{query:string;data:Reputation}|null>(null);const [open,setOpen]=useState(false);const id=language==='ID';
+ const query= username?`username=${encodeURIComponent(username)}`:`listing=${encodeURIComponent(listingId??'')}`;
+ useEffect(()=>{let active=true;void api<Reputation>(`/api/market/reputation?${query}`).then(data=>{if(active)setLoaded({query,data})}).catch(()=>{});return()=>{active=false}},[query]);
+ const data=loaded?.query===query?loaded.data:null;
+ const overall=useMemo(()=>{if(!data)return null;const count=data.rating.reduce((n,item)=>n+item.count,0);return count?{count,average:data.rating.reduce((n,item)=>n+item.average*item.count,0)/count}:null},[data]);
+ if(!data)return null;
+ const rating=data.rating.find(item=>item.role===role);const label=overall?`${overall.average.toFixed(1)} (${overall.count})`:id?'Belum ada ulasan':'No reviews yet';
+ return <>
+   <button type="button" className={`market-reputation-inline ${rating?'has-rating':'is-new'}${profile?' is-profile':''}`} aria-label={id?`Buka ulasan: ${label}`:`Open reviews: ${label}`} onClick={()=>setOpen(true)}>
+     {overall?<><Star size={13} weight="fill" aria-hidden="true"/><b>{profile?overall.average.toFixed(1):rating?.average.toFixed(1)??overall.average.toFixed(1)}</b><small>({profile?overall.count:rating?.count??overall.count})</small></>:<small>{id?'Belum ada ulasan':'No reviews yet'}</small>}
+     {data.completed>0&&<i>{data.completed} {id?'pesanan selesai':'completed'}</i>}
+   </button>
+   <Dialog open={open} onOpenChange={setOpen}><DialogContent className="market-reputation-dialog">
+     <DialogHeader><DialogTitle>{id?'Ulasan':'Reviews'}</DialogTitle><DialogDescription>{id?'Penilaian pembeli dan penjual':'Feedback from buyers and sellers'}</DialogDescription></DialogHeader>
+     <div className="market-reputation-summary">
+       <div className="market-reputation-overall"><Star size={20} weight="fill"/><strong>{overall?overall.average.toFixed(1):'—'}</strong><span>{overall?`${overall.count} ${id?'ulasan':'reviews'}`:id?'Belum ada ulasan':'No reviews yet'}</span></div>
+       {(['buyer','seller'] as const).map(kind=>{const row=data.rating.find(item=>item.role===kind);return <div className="market-reputation-role" key={kind}><span>{kind==='buyer'?(id?'Sebagai pembeli':'As buyer'):(id?'Sebagai penjual':'As seller')}</span><strong>{row?`${row.average.toFixed(1)} ★`:'—'}</strong><small>{row?`${row.count} ${id?'ulasan':'reviews'}`:id?'Belum ada':'No reviews'}</small></div>})}
+     </div>
+     <div className="market-reputation-review-list">{data.reviews.length?data.reviews.map((review,index)=><article key={`${review.createdAt}-${index}`}><header><strong>{review.reviewer}</strong><span>{review.role==='buyer'?(id?'Pembeli':'Buyer'):(id?'Penjual':'Seller')}</span><b><Star size={13} weight="fill"/>{review.rating}</b></header>{review.comment&&<p>{review.comment}</p>}<time dateTime={review.createdAt}>{new Intl.DateTimeFormat(id?'id-ID':'en-US',{dateStyle:'medium'}).format(new Date(review.createdAt))}</time></article>):<p className="market-reputation-empty">{id?'Belum ada ulasan untuk ditampilkan.':'No reviews to show yet.'}</p>}</div>
+   </DialogContent></Dialog>
+ </>;
 }
 export function OrderReview({orderId,role,language}:{orderId:string;role:'buyer'|'seller';language:'EN'|'ID'}){
  const id=language==='ID';const [review,setReview]=useState<{rating:number;comment:string}|null|undefined>();const [rating,setRating]=useState(0);const [comment,setComment]=useState('');const [busy,setBusy]=useState(false);const [error,setError]=useState(false);

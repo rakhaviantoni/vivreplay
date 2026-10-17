@@ -49,6 +49,7 @@ export function MarketQuickPanel({panel,onOpenChange,onPanelChange,locale,accoun
       <div className="market-account-unified-avatar">{String(profile.display_name??profile.username??'V').slice(0,1).toUpperCase()}</div>
       <div><DialogHeader><DialogTitle>{String(profile.display_name||(locale==='ID'?'Akun':'Account'))}</DialogTitle><DialogDescription>@{String(profile.username??'')}</DialogDescription></DialogHeader></div>
       {String(profile.tier??'free').toLowerCase()==='pro'&&<span className="market-pro-user-badge"><Crown size={13} weight="fill"/>Pro</span>}
+      <button type="button" className="market-account-header-signout" onClick={()=>window.dispatchEvent(new Event('vivreplay:sign-out'))}><SignOut size={16}/>{locale==='ID'?'Keluar':'Sign out'}</button>
     </header>
     <nav className="market-account-unified-tabs" role="tablist" aria-label={locale==='ID'?'Menu akun':'Account sections'}>
       {sections.map(([key,en,id,Icon])=><button key={key} type="button" role="tab" aria-selected={panel===key} className={panel===key?'is-active':''} onClick={()=>choose(key)}><Icon size={16}/><span>{locale==='ID'?id:en}</span>{key in activityCounts&&activityCounts[key as keyof ActivityCounts]>0&&<b className="market-activity-badge">{activityCounts[key as keyof ActivityCounts]>99?'99+':activityCounts[key as keyof ActivityCounts]}</b>}</button>)}
