@@ -47,11 +47,13 @@ test('getDaysUntilExpiration computes remaining days', () => {
   assert.ok(days !== null && days >= 14 && days <= 16);
 });
 
-test('legacy flat minimums do not apply to Market service fees',()=>{
+test('Market service fee minimums apply alongside buyer caps and seller subtotal limit',()=>{
   const policies=parseMarketPolicies(JSON.stringify({buyerFeeMinimum:2000,sellerFeeMinimum:1000}));
-  assert.equal(policies.buyerFeeMinimum,0);
-  assert.equal(policies.sellerFeeMinimum,0);
-  assert.equal(calculateBuyerServiceFee(50_000,1.5,policies.buyerFeeMinimum),750);
-  assert.equal(calculateSellerServiceFee(50_000,1.5,policies.sellerFeeMinimum),750);
-  assert.equal(calculateBuyerServiceFee(100_000,1.5,policies.buyerFeeMinimum),1_500);
+  assert.equal(policies.buyerFeeMinimum,2_000);
+  assert.equal(policies.sellerFeeMinimum,1_000);
+  assert.equal(calculateBuyerServiceFee(50_000,1.5,policies.buyerFeeMinimum),2_000);
+  assert.equal(calculateSellerServiceFee(50_000,1.5,policies.sellerFeeMinimum),1_000);
+  assert.equal(calculateSellerServiceFee(500,1.5,policies.sellerFeeMinimum),500);
+  assert.equal(calculateBuyerServiceFee(100_000,1.5,policies.buyerFeeMinimum),2_000);
+  assert.equal(calculateBuyerServiceFee(5_000_000,1.5,policies.buyerFeeMinimum),75_000);
 });

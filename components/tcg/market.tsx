@@ -448,7 +448,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
   const [saveError,setSaveError]=useState('');
   const [locale,setLocale]=useState<'EN'|'ID'>('EN');
   const [accountPanel,setAccountPanel]=useState<'listings'|'offers'|'orders'|'saved'|null>(()=>{const activity=searchParams.get('activity');return activity==='offers'||activity==='orders'||activity==='listings'||activity==='saved'?activity:null});
-  const [quickPanel,setQuickPanel]=useState<'profile'|'vault'|'wishlist'|null>(()=>searchParams.get('profile')==='delivery'?'profile':null);
+  const [quickPanel,setQuickPanel]=useState<'profile'|'vault'|'wishlist'|null>(()=>['delivery','payouts'].includes(searchParams.get('profile')??'')?'profile':null);
   const [activityCounts,setActivityCounts]=useState({listings:0,offers:0,orders:0});
   const [cartCount,setCartCount]=useState(0);
   const profileId=String(data?.profile?.id??'');
@@ -456,7 +456,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
     const sync=()=>{try{const cart=JSON.parse(window.localStorage.getItem('vivreplay-market-cart-v1')||'null') as {lines?:Array<{items?:Array<{quantity?:number}>}>}|null;setCartCount((cart?.lines??[]).reduce((sum,line)=>sum+(line.items??[]).reduce((total,item)=>total+(Number(item.quantity)||0),0),0))}catch{setCartCount(0)}};
     sync();window.addEventListener('vivreplay:market-cart-updated',sync);window.addEventListener('storage',sync);return()=>{window.removeEventListener('vivreplay:market-cart-updated',sync);window.removeEventListener('storage',sync)};
   },[]);
-  useEffect(()=>{if(searchParams.get('profile')==='delivery'){setAccountPanel(null);setQuickPanel('profile')}},[searchParams]);
+  useEffect(()=>{const profileTab=searchParams.get('profile');if(profileTab==='delivery'||profileTab==='payouts'){setProfileQuickTab(profileTab);setAccountPanel(null);setQuickPanel('profile')}},[searchParams]);
   // Bundle & Card Listing Draft State
   const [bundleCards,setBundleCards]=useState<ListingBundleCard[]>([]);
   const [publishedShare,setPublishedShare]=useState<PublishedShare|null>(null);
@@ -480,7 +480,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
   const [listingNegotiable,setListingNegotiable]=useState(true);
   const [listingCity,setListingCity]=useState('');
   const [buyerCity,setBuyerCity]=useState('');
-  const [profileQuickTab,setProfileQuickTab]=useState<'account'|'delivery'>('account');
+  const [profileQuickTab,setProfileQuickTab]=useState<'account'|'delivery'|'payouts'>(()=>searchParams.get('profile')==='payouts'?'payouts':'account');
   useEffect(()=>{
     if(!open||!data?.profile?.id)return;
     let active=true;

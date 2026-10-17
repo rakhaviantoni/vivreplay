@@ -14,10 +14,8 @@ export interface MarketPolicies extends Record<AccountTier, ListingTierPolicy> {
   shippingVoucherMinSubtotal: number;
 }
 
-// Fees scale with the card subtotal. There is no flat minimum that can
-// overwhelm the percentage on lower-value orders.
-export const MARKET_BUYER_FEE_MINIMUM = 0;
-export const MARKET_SELLER_FEE_MINIMUM = 0;
+export const MARKET_BUYER_FEE_MINIMUM = 2_000;
+export const MARKET_SELLER_FEE_MINIMUM = 1_000;
 
 export const LISTING_POLICIES: MarketPolicies = {
   free: {
@@ -92,9 +90,8 @@ export function parseMarketPolicies(rawJson: string | null | undefined): MarketP
         canAutoRenew: parsed.pro?.canAutoRenew !== false,
         commissionPercent: Number.isFinite(Number(parsed.pro?.commissionPercent)) ? Math.max(0, Number(parsed.pro.commissionPercent)) : LISTING_POLICIES.pro.commissionPercent,
       },
-      // Keep old stored values from reintroducing flat fees on low-value orders.
-      buyerFeeMinimum: MARKET_BUYER_FEE_MINIMUM,
-      sellerFeeMinimum: MARKET_SELLER_FEE_MINIMUM,
+      buyerFeeMinimum: Number.isSafeInteger(parsed.buyerFeeMinimum) ? Math.max(0, Math.min(100_000, parsed.buyerFeeMinimum)) : LISTING_POLICIES.buyerFeeMinimum,
+      sellerFeeMinimum: Number.isSafeInteger(parsed.sellerFeeMinimum) ? Math.max(0, Math.min(100_000, parsed.sellerFeeMinimum)) : LISTING_POLICIES.sellerFeeMinimum,
       shippingVoucherMinSubtotal: Number.isSafeInteger(parsed.shippingVoucherMinSubtotal) ? Math.max(0, Math.min(100_000_000, parsed.shippingVoucherMinSubtotal)) : LISTING_POLICIES.shippingVoucherMinSubtotal,
     };
   } catch {

@@ -94,7 +94,7 @@ export function MarketProDialog({locale,member=false,profile=null,accountLoading
   const rows=[
     {key:'listings',label:t('Active listings','Listing aktif'),free:(plan?.freeMaxActiveListings??25).toLocaleString(isId?'id-ID':'en-US'),pro:(plan?.maxActiveListings??2500).toLocaleString(isId?'id-ID':'en-US')},
     {key:'period',label:t('Listing period','Masa listing'),free:`${plan?.freeDurationDays??7} ${t('days','hari')}`,pro:`${plan?.durationDays??30} ${t('days','hari')}`},
-    {key:'service-fee',label:<span className="buyer-fee-row-label">{t('Market service fee','Biaya layanan Market')}<MarketServiceFeeInfo locale={isId?'id':'en'} freePercent={plan?.freeCommissionPercent??1.5} proPercent={plan?.commissionPercent??0.75}/></span>,free:`${plan?.freeCommissionPercent??1.5}%`,pro:`${plan?.commissionPercent??0.75}%`},
+    {key:'service-fee',label:<span className="buyer-fee-row-label">{t('Market service fee','Biaya layanan Market')}<MarketServiceFeeInfo locale={isId?'id':'en'} freePercent={plan?.freeCommissionPercent??1.5} proPercent={plan?.commissionPercent??0.75} buyerMinimum={plan?.buyerFeeMinimum??2_000} sellerMinimum={plan?.sellerFeeMinimum??1_000}/></span>,free:`${plan?.freeCommissionPercent??1.5}%`,pro:`${plan?.commissionPercent??0.75}%`},
     {key:'vouchers',label:t('Delivery vouchers','Voucher ongkir'),free:'—',pro:`${plan?.shippingVouchersPerMonth??2} ${t('per month','per bulan')}`},
   ];
   const amount=plan?.amount;
@@ -125,7 +125,7 @@ export function MarketProDialog({locale,member=false,profile=null,accountLoading
               <strong>{formatMoney(amount,'IDR')}</strong>
               <span>{t(`/ ${plan?.durationDays??30} days`,`/ ${plan?.durationDays??30} hari`)}</span>
               {plan?.introOffer && plan.standardAmount !== null && <small>{t(`Intro price for ${plan.durationDays??30} days. Then ${formatMoney(plan.standardAmount,'IDR')} per 30 days. Renew manually.`,`Harga perkenalan berlaku ${plan.durationDays??30} hari. Setelah itu ${formatMoney(plan.standardAmount,'IDR')} per 30 hari. Perpanjangan dilakukan manual.`)}</small>}
-              {introLimit&&<MarketIntroOfferProgress limit={introLimit} remaining={plan?.introOfferSpotsRemaining} endsAt={plan?.introOfferEndsAt} locale={locale}/>}
+              {introLimit&&<MarketIntroOfferProgress compact limit={introLimit} remaining={plan?.introOfferSpotsRemaining} endsAt={plan?.introOfferEndsAt} locale={locale}/>}
             </>
           ) : (
             <span className="market-pro-dialog-plan-error" role="status">

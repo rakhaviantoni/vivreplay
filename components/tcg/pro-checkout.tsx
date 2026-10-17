@@ -75,7 +75,7 @@ export function ProCheckout(){
   const rows=[
     {key:'listings',label:t('Active listings','Listing aktif'),free:(plan?.freeMaxActiveListings??25).toLocaleString(id?'id-ID':'en-US'),pro:(plan?.maxActiveListings??2500).toLocaleString(id?'id-ID':'en-US')},
     {key:'period',label:t('Listing period','Masa listing'),free:`${plan?.freeDurationDays??7} ${t('days','hari')}`,pro:`${plan?.durationDays??30} ${t('days','hari')}`},
-    {key:'service-fee',label:<span className="buyer-fee-row-label">{t('Market service fee','Biaya layanan Market')}<MarketServiceFeeInfo locale={id?'id':'en'} freePercent={plan?.freeCommissionPercent??1.5} proPercent={plan?.commissionPercent??0.75}/></span>,free:`${plan?.freeCommissionPercent??1.5}%`,pro:`${plan?.commissionPercent??0.75}%`},
+    {key:'service-fee',label:<span className="buyer-fee-row-label">{t('Market service fee','Biaya layanan Market')}<MarketServiceFeeInfo locale={id?'id':'en'} freePercent={plan?.freeCommissionPercent??1.5} proPercent={plan?.commissionPercent??0.75} buyerMinimum={plan?.buyerFeeMinimum??2_000} sellerMinimum={plan?.sellerFeeMinimum??1_000}/></span>,free:`${plan?.freeCommissionPercent??1.5}%`,pro:`${plan?.commissionPercent??0.75}%`},
     {key:'vouchers',label:t('Shipping vouchers','Voucher ongkir'),free:t('—','—'),pro:`${plan?.shippingVouchersPerMonth??2} ${t('per month','per bulan')}`},
     {key:'renewal',label:t('Listing auto-renewal','Perpanjangan listing otomatis'),free:plan?.freeCanAutoRenew?t('Automatic','Otomatis'):t('Manual','Manual'),pro:plan?.canAutoRenew?t('Automatic','Otomatis'):t('Manual','Manual')},
   ];

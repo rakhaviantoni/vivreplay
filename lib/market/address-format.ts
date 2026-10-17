@@ -19,11 +19,12 @@ export function formatDeliveryAddress(parts: unknown[]) {
   const result:string[]=[];
   for(const raw of parts){
     if(typeof raw!=='string')continue;
-    const value=raw.trim().replace(/(?:\s*,\s*){2,}/g,', ');
-    if(!value)continue;
-    const normalized=normalizePart(value);
-    if(!normalized||result.some(existing=>normalizePart(existing)===normalized||containsPart(existing,value)))continue;
-    result.push(value);
+    const values=raw.split(',').map(value=>value.trim()).filter(Boolean);
+    for(const value of values){
+      const normalized=normalizePart(value);
+      if(!normalized||result.some(existing=>normalizePart(existing)===normalized||containsPart(existing,value)||containsPart(value,existing)))continue;
+      result.push(value);
+    }
   }
   return result.join(', ');
 }

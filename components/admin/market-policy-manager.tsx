@@ -47,6 +47,8 @@ export function MarketPolicyManager() {
   const [proMax, setProMax] = useState(2500);
   const [proFee, setProFee] = useState(0.75);
   const [proAutoRenew, setProAutoRenew] = useState(true);
+  const [buyerFeeMinimum,setBuyerFeeMinimum]=useState(2_000);
+  const [sellerFeeMinimum,setSellerFeeMinimum]=useState(1_000);
   const [voucherMinimum,setVoucherMinimum]=useState(1_000_000);
   const [proPrice,setProPrice]=useState(DEFAULT_PRO_PRICING.amount);
   const [proDuration,setProDuration]=useState(DEFAULT_PRO_PRICING.durationDays);
@@ -63,6 +65,9 @@ export function MarketPolicyManager() {
       const data = (await res.json()) as PolicyResponse;
       setStats(data.stats);
       setInitialPolicies(data.policies);
+
+      setBuyerFeeMinimum(data.policies.buyerFeeMinimum);
+      setSellerFeeMinimum(data.policies.sellerFeeMinimum);
 
       setFreeDays(data.policies.free.durationDays);
       setFreeMax(data.policies.free.maxActiveListings);
@@ -132,6 +137,8 @@ export function MarketPolicyManager() {
     setProMax(initialPolicies.pro.maxActiveListings);
     setProFee(initialPolicies.pro.commissionPercent);
     setProAutoRenew(initialPolicies.pro.canAutoRenew);
+    setBuyerFeeMinimum(initialPolicies.buyerFeeMinimum);
+    setSellerFeeMinimum(initialPolicies.sellerFeeMinimum);
     setVoucherMinimum(initialPolicies.shippingVoucherMinSubtotal);
     setProPrice(initialPricing.amount);
     setProDuration(initialPricing.durationDays);
@@ -146,8 +153,8 @@ export function MarketPolicyManager() {
     setSaving(true);
     try {
       const payload = {
-        buyerFeeMinimum: 0,
-        sellerFeeMinimum: 0,
+        buyerFeeMinimum: Math.max(0,Number(buyerFeeMinimum)),
+        sellerFeeMinimum: Math.max(0,Number(sellerFeeMinimum)),
         shippingVoucherMinSubtotal: Math.max(0,Number(voucherMinimum)),
         free: {
           durationDays: Math.max(1, Number(freeDays)),
@@ -423,7 +430,9 @@ export function MarketPolicyManager() {
         <span className="admin-tier-badge pro"><Tag size={13}/>Market checkout fees and vouchers</span>
         <p className="tier-desc">These values apply to new checkouts. Existing orders keep their saved totals.</p>
         <div className="admin-policy-fields">
-          <p className="admin-policy-field-note">Service fees scale with the card subtotal. No flat minimum applies; buyer caps and the seller subtotal limit remain in effect.</p>
+          <p className="admin-policy-field-note">Minimums apply to the Market service fee. Buyer caps and the seller subtotal limit still apply. QRIS and payment-provider charges are separate.</p>
+          <div className="admin-policy-field"><label htmlFor="buyer-fee-minimum">Buyer fee minimum <span>(IDR)</span></label><input id="buyer-fee-minimum" type="number" min="0" max="100000" step="100" value={buyerFeeMinimum} onChange={event=>setBuyerFeeMinimum(Number(event.target.value))} required/><small>Buyer caps still apply to the final fee.</small></div>
+          <div className="admin-policy-field"><label htmlFor="seller-fee-minimum">Seller fee minimum <span>(IDR)</span></label><input id="seller-fee-minimum" type="number" min="0" max="100000" step="100" value={sellerFeeMinimum} onChange={event=>setSellerFeeMinimum(Number(event.target.value))} required/><small>The fee cannot exceed the card subtotal.</small></div>
           <div className="admin-policy-field"><label htmlFor="voucher-minimum">Pro voucher minimum card subtotal <span>(IDR)</span></label><input id="voucher-minimum" type="number" min="0" max="100000000" step="50000" value={voucherMinimum} onChange={event=>setVoucherMinimum(Number(event.target.value))} required/><small>Pro vouchers apply only when the card subtotal reaches this amount.</small></div>
         </div>
       </section>
