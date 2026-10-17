@@ -150,6 +150,7 @@ export function messageFor(email: AuthEmail) {
 export function renderAuthEmail(email: AuthEmail): RenderedEmail {
   const id=email.locale==='id';
   const appUrl = getAppUrl();
+  const localeBase=id?`${appUrl}/id`:appUrl;
   const content = messageFor(email);
   const fallback = email.action === "welcome" ? `${appUrl}/cards` : `${appUrl}/sign-in`;
   const target = productionEmailUrl(email.url, fallback);
@@ -171,7 +172,7 @@ export function renderAuthEmail(email: AuthEmail): RenderedEmail {
   <style>
     :root{color-scheme:${email.theme ?? 'light dark'};supported-color-schemes:${email.theme ?? 'light dark'}}
     body,.email-bg{background:#f1eee6!important;color:#292b27!important}
-    .email-card{background:#fffdf8!important;color:#292b27!important}
+    .email-card{background:#fffdf8!important;color:#292b27!important;border:1px solid #e1dbcf!important;border-radius:10px!important}
     .email-brand,.email-title{color:#272c28!important}
     .email-copy{color:#625f56!important}
     .email-muted{color:#777267!important}
@@ -197,29 +198,32 @@ export function renderAuthEmail(email: AuthEmail): RenderedEmail {
 <body style="margin:0;padding:0;background:#f1eee6;color:#292b27;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;-webkit-text-size-adjust:100%;">
   <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;mso-hide:all;">${escapeHtml(content.copy.slice(0,140))}</div>
   <table role="presentation" class="email-bg" width="100%" cellspacing="0" cellpadding="0" style="background:#f1eee6;">
-    <tr><td class="email-wrapper" align="center" style="padding:40px 16px;">
-      <table role="presentation" class="email-card" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#fffdf8;border-radius:16px;overflow:hidden;">
-        <tr><td style="padding:24px 36px 18px;">
-          <a class="email-brand" href="${appUrl}" style="display:inline-flex;color:#272c28;text-decoration:none;font-size:20px;font-weight:750;letter-spacing:-.55px;">
+    <tr><td class="email-wrapper" align="center" style="padding:28px 14px;">
+      <table role="presentation" class="email-card" width="100%" cellspacing="0" cellpadding="0" style="max-width:620px;background:#fffdf8;border:1px solid #e1dbcf;border-radius:10px;overflow:hidden;">
+        <tr><td class="email-header" style="padding:22px 28px;background:#f5efe2;border-bottom:2px solid #c99b3c;">
+          <a class="email-brand" href="${appUrl}" style="display:inline-flex;color:#272c28;text-decoration:none;font-size:19px;font-weight:700;letter-spacing:-.5px;">
             <img src="${appUrl}/brand/vivreplay-compass.png" width="28" height="28" alt="" style="display:block;width:28px;height:28px;margin-right:9px;vertical-align:middle;border:0;" />
             <span style="line-height:28px;">VivrePlay</span>
           </a>
         </td></tr>
-        <tr><td class="email-content" style="padding:38px 48px 42px;">
-          <p class="email-muted" style="margin:0 0 12px;color:#8b6a34;font-size:11px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;">${escapeHtml(content.eyebrow)}</p>
-          <h1 class="email-title" style="margin:0 0 16px;color:#272c28;font-size:32px;line-height:1.15;font-weight:700;letter-spacing:-1px;">${escapeHtml(content.title)}</h1>
-          <p class="email-copy" style="margin:0 0 28px;color:#625f56;font-size:16px;line-height:1.65;">${escapeHtml(content.copy)}</p>
-          <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 0 26px;"><tr><td>
-            <a class="email-button" href="${safeTarget}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:13px 21px;border-radius:7px;background:#b8791d;color:#fffdf7;font-size:14px;line-height:20px;font-weight:700;text-decoration:none;">${escapeHtml(content.action)} &rarr;</a>
+        <tr><td class="email-content" style="padding:28px 30px 30px;">
+          <p class="email-muted" style="margin:0 0 10px;color:#8b6a34;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">${escapeHtml(content.eyebrow)}</p>
+          <h1 class="email-title" style="margin:0 0 10px;color:#272c28;font-size:25px;line-height:1.25;font-weight:700;letter-spacing:-.6px;">${escapeHtml(content.title)}</h1>
+          <p class="email-copy" style="margin:0 0 6px;color:#625f56;font-size:16px;line-height:1.5;">${escapeHtml(content.copy)}</p>
+          <table role="presentation" cellspacing="0" cellpadding="0" style="margin:22px 0 20px;"><tr><td>
+            <a class="email-button" href="${safeTarget}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:12px 20px;border-radius:6px;background:#b8791d;color:#fffdf7;font-size:15px;line-height:20px;font-weight:700;text-decoration:none;">${escapeHtml(content.action)}</a>
           </td></tr></table>
           ${content.showLinkFallback ? `<p class="email-muted" style="margin:0 0 6px;color:#777267;font-size:12px;line-height:1.5;">${id?'Jika tombol tidak berfungsi, buka tautan ini:':'If the button doesn’t work, open this link:'}</p><p style="margin:0 0 25px;font-size:12px;line-height:1.6;word-break:break-all;"><a class="email-link" href="${safeTarget}" style="color:#815510;text-decoration:underline;">${safeTarget}</a></p>` : ""}
           <p class="email-rule email-muted" style="margin:0;padding-top:17px;border-top:1px solid #e7e2d7;color:#777267;font-size:12px;line-height:1.6;">${escapeHtml(content.note)}</p>
         </td></tr>
-        <tr><td class="email-footer email-rule" style="padding:19px 36px;background:#f7f4ec;border-top:1px solid #e7e2d7;">
-          <p style="margin:0 0 9px;font-size:12px;line-height:1.7;">
-            <a class="email-link" href="${appUrl}/cards" style="color:#815510;text-decoration:none;">${id?'Kartu':'Cards'}</a><span class="email-muted" style="color:#aaa59a;">&nbsp; | &nbsp;</span><a class="email-link" href="${appUrl}/decks" style="color:#815510;text-decoration:none;">Deck</a><span class="email-muted" style="color:#aaa59a;">&nbsp; | &nbsp;</span><a class="email-link" href="${appUrl}/vault" style="color:#815510;text-decoration:none;">${id?'Koleksi':'Vault'}</a><span class="email-muted" style="color:#aaa59a;">&nbsp; | &nbsp;</span><a class="email-link" href="${appUrl}/market" style="color:#815510;text-decoration:none;">Market</a>
+        <tr><td class="email-footer email-rule" style="padding:18px 30px;background:#f7f4ec;border-top:1px solid #e1dbcf;">
+          <p style="margin:0 0 9px;font-size:12px;line-height:1.8;">
+            <a class="email-link" href="${appUrl}/cards" style="color:#815510;text-decoration:none;">${id?'Kartu':'Cards'}</a>&nbsp;&nbsp;<a class="email-link" href="${appUrl}/market" style="color:#815510;text-decoration:none;">Market</a>&nbsp;&nbsp;<a class="email-link" href="${localeBase}/help" style="color:#815510;text-decoration:none;">${id?'Pusat bantuan':'Help Center'}</a>&nbsp;&nbsp;<a class="email-link" href="${localeBase}/faq" style="color:#815510;text-decoration:none;">FAQ</a>
           </p>
-          <p class="email-muted" style="margin:0;color:#777267;font-size:11px;line-height:1.6;">${id?'Dikirim ke':'Sent to'} <strong>${safeTo}</strong>. ${id?'Bantuan:':'Help:'} <a class="email-link" href="mailto:${DEFAULT_SUPPORT_EMAIL}" style="color:#815510;text-decoration:none;">${DEFAULT_SUPPORT_EMAIL}</a> <span style="padding:0 5px">|</span> <a class="email-link" href="https://wa.me/6287892660993" style="color:#815510;text-decoration:none;">WhatsApp +62 878-9266-0993</a></p>
+          <p style="margin:0 0 9px;font-size:12px;line-height:1.8;">
+            <a class="email-link" href="${localeBase}/legal/terms" style="color:#815510;text-decoration:none;">${id?'Syarat':'Terms'}</a>&nbsp;&nbsp;<a class="email-link" href="${localeBase}/legal/refund" style="color:#815510;text-decoration:none;">${id?'Pengembalian dana':'Refunds'}</a>&nbsp;&nbsp;<a class="email-link" href="${localeBase}/legal/privacy" style="color:#815510;text-decoration:none;">${id?'Privasi':'Privacy'}</a>
+          </p>
+          <p class="email-muted" style="margin:0;color:#777267;font-size:11px;line-height:1.6;">${id?'Dikirim ke':'Sent to'} <strong>${safeTo}</strong>. <a class="email-link" href="mailto:${DEFAULT_SUPPORT_EMAIL}" style="color:#815510;text-decoration:none;">${DEFAULT_SUPPORT_EMAIL}</a> <a class="email-link" href="https://wa.me/6287892660993" style="color:#815510;text-decoration:none;">WhatsApp +62 878-9266-0993</a></p>
         </td></tr>
       </table>
       <p class="email-muted" style="max-width:560px;margin:14px 0 0;color:#827e74;font-size:11px;line-height:1.5;">${id?'VivrePlay | Pendamping One Piece Card Game':'VivrePlay | A companion for the One Piece Card Game'}</p>

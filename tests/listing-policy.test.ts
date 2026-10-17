@@ -5,7 +5,9 @@ import {
   computeListingExpiration,
   isListingExpired,
   getDaysUntilExpiration,
-  LISTING_POLICIES,
+  parseMarketPolicies,
+  calculateBuyerServiceFee,
+  calculateSellerServiceFee,
 } from '../lib/market/policy';
 
 test('listing policy defaults to free tier (7 days, 25 max listings)', () => {
@@ -43,4 +45,13 @@ test('getDaysUntilExpiration computes remaining days', () => {
   const future = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().replace('T', ' ').substring(0, 19);
   const days = getDaysUntilExpiration(future);
   assert.ok(days !== null && days >= 14 && days <= 16);
+});
+
+test('legacy flat minimums do not apply to Market service fees',()=>{
+  const policies=parseMarketPolicies(JSON.stringify({buyerFeeMinimum:2000,sellerFeeMinimum:1000}));
+  assert.equal(policies.buyerFeeMinimum,0);
+  assert.equal(policies.sellerFeeMinimum,0);
+  assert.equal(calculateBuyerServiceFee(50_000,1.5,policies.buyerFeeMinimum),750);
+  assert.equal(calculateSellerServiceFee(50_000,1.5,policies.sellerFeeMinimum),750);
+  assert.equal(calculateBuyerServiceFee(100_000,1.5,policies.buyerFeeMinimum),1_500);
 });

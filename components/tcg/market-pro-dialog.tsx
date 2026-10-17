@@ -9,6 +9,7 @@ import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle} from '@
 import {MarketServiceFeeInfo} from '@/components/tcg/market-buyer-fee-cap-table';
 import {MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL} from '@/lib/market/policy';
 import {MarketPaymentMethodPicker,defaultPaymentOptions,estimatePaymentFee,type PaymentMethod,type PaymentOption} from '@/components/tcg/market-payment-method-picker';
+import {MarketIntroOfferProgress} from '@/components/tcg/market-intro-offer-progress';
 
 type PlanPreview={
   available:boolean;
@@ -19,6 +20,7 @@ type PlanPreview={
   introOffer:boolean;
   introOfferEndsAt:string|null;
   introOfferLimit:number|null;
+  introOfferSpotsRemaining:number|null;
   maxActiveListings:number;
   freeMaxActiveListings:number;
   freeDurationDays:number;
@@ -92,14 +94,13 @@ export function MarketProDialog({locale,member=false,profile=null,accountLoading
   const rows=[
     {key:'listings',label:t('Active listings','Listing aktif'),free:(plan?.freeMaxActiveListings??25).toLocaleString(isId?'id-ID':'en-US'),pro:(plan?.maxActiveListings??2500).toLocaleString(isId?'id-ID':'en-US')},
     {key:'period',label:t('Listing period','Masa listing'),free:`${plan?.freeDurationDays??7} ${t('days','hari')}`,pro:`${plan?.durationDays??30} ${t('days','hari')}`},
-    {key:'service-fee',label:<span className="buyer-fee-row-label">{t('Market service fee','Biaya layanan Market')}<MarketServiceFeeInfo locale={isId?'id':'en'} freePercent={plan?.freeCommissionPercent??1.5} proPercent={plan?.commissionPercent??0.75} buyerMinimumFee={plan?.buyerFeeMinimum} sellerMinimumFee={plan?.sellerFeeMinimum}/></span>,free:`${plan?.freeCommissionPercent??1.5}%`,pro:`${plan?.commissionPercent??0.75}%`},
+    {key:'service-fee',label:<span className="buyer-fee-row-label">{t('Market service fee','Biaya layanan Market')}<MarketServiceFeeInfo locale={isId?'id':'en'} freePercent={plan?.freeCommissionPercent??1.5} proPercent={plan?.commissionPercent??0.75}/></span>,free:`${plan?.freeCommissionPercent??1.5}%`,pro:`${plan?.commissionPercent??0.75}%`},
     {key:'vouchers',label:t('Delivery vouchers','Voucher ongkir'),free:'—',pro:`${plan?.shippingVouchersPerMonth??2} ${t('per month','per bulan')}`},
   ];
   const amount=plan?.amount;
   const paymentOptions=plan?.paymentChannels?.length?plan.paymentChannels:defaultPaymentOptions;
   const selectedPaymentOption=paymentOptions.find(option=>option.method===selectedPayment.method&&option.channel===selectedPayment.channel)??paymentOptions.find(option=>option.method==='qris')??paymentOptions[0];
   const paymentFee=estimatePaymentFee(selectedPaymentOption,amount??0);
-  const introEndLabel=plan?.introOfferEndsAt?new Intl.DateTimeFormat(isId?'id-ID':'en-US',{dateStyle:'long',timeZone:'Asia/Jakarta'}).format(new Date(plan.introOfferEndsAt)):'';
   const introLimit=plan?.introOfferLimit??null;
   const phone=String(profile?.phone??'').replaceAll(' ','').replaceAll('(','').replaceAll(')','').replaceAll('.','').replaceAll('-','');
   const phoneDigits=phone.startsWith('+')?phone.slice(1):phone;
@@ -123,9 +124,8 @@ export function MarketProDialog({locale,member=false,profile=null,accountLoading
             <>
               <strong>{formatMoney(amount,'IDR')}</strong>
               <span>{t(`/ ${plan?.durationDays??30} days`,`/ ${plan?.durationDays??30} hari`)}</span>
-              {plan?.introOffer && plan.standardAmount !== null ? (
-                <><small>{t(`First ${plan.durationDays??30} days, then ${formatMoney(plan.standardAmount,'IDR')} per 30 days.`,`Harga ini berlaku ${plan.durationDays??30} hari, lalu ${formatMoney(plan.standardAmount,'IDR')} per 30 hari.`)}</small>{(introLimit||introEndLabel)&&<small>{introLimit&&introEndLabel?t(`Limited to ${introLimit} checkouts until ${introEndLabel}.`,`Maksimal ${introLimit} checkout sampai ${introEndLabel}.`):introLimit?t(`Limited to ${introLimit} checkouts.`,`Maksimal ${introLimit} checkout.`):t(`Available until ${introEndLabel}.`,`Berlaku sampai ${introEndLabel}.`)}</small>}</>
-              ) : null}
+              {plan?.introOffer && plan.standardAmount !== null && <small>{t(`Intro price for ${plan.durationDays??30} days. Then ${formatMoney(plan.standardAmount,'IDR')} per 30 days. Renew manually.`,`Harga perkenalan berlaku ${plan.durationDays??30} hari. Setelah itu ${formatMoney(plan.standardAmount,'IDR')} per 30 hari. Perpanjangan dilakukan manual.`)}</small>}
+              {introLimit&&<MarketIntroOfferProgress limit={introLimit} remaining={plan?.introOfferSpotsRemaining} endsAt={plan?.introOfferEndsAt} locale={locale}/>}
             </>
           ) : (
             <span className="market-pro-dialog-plan-error" role="status">

@@ -17,6 +17,10 @@ test("outbound email always uses the public VivrePlay domain", () => {
   assert.doesNotMatch(email.html, /localhost/);
   assert.match(email.html, /prefers-color-scheme:dark/);
   assert.match(email.html, /class="email-button"/);
+  assert.match(email.html, /max-width:620px;background:#fffdf8;border:1px solid #e1dbcf;border-radius:10px/);
+  assert.match(email.html, /background:#f5efe2;border-bottom:2px solid #c99b3c/);
+  assert.match(email.html, /vivreplay\.com\/help/);
+  assert.match(email.html, /vivreplay\.com\/legal\/refund/);
   assert.equal(email.from, "VivrePlay <noreply@vivreplay.com>");
   process.env.VIVREPLAY_EMAIL_FROM = "VivrePlay <hello@vivreplay.com>";
   assert.equal(renderAuthEmail({ action: "welcome", to: "captain@example.com" }).from, "VivrePlay <hello@vivreplay.com>");

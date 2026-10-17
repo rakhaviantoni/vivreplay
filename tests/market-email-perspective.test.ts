@@ -5,9 +5,10 @@ import {orderEmailPerspectiveLine} from '../lib/market/order-email-perspective';
 test('order completion emails use the recipient’s buyer or seller perspective',()=>{
   const buyer=orderEmailPerspectiveLine({event:'order-auto-completed',locale:'en',recipientRole:'buyer'});
   const seller=orderEmailPerspectiveLine({event:'order-auto-completed',locale:'en',recipientRole:'seller'});
+  const sellerWithAmount=orderEmailPerspectiveLine({event:'order-auto-completed',locale:'en',recipientRole:'seller',payout:'IDR 246,250'});
   assert.match(buyer??'',/added to your Vault/);
-  assert.match(seller??'',/buyer’s Vault/);
-  assert.match(seller??'',/sale proceeds/);
+  assert.match(seller??'',/Your proceeds are available to withdraw/);
+  assert.match(sellerWithAmount??'',/IDR 246,250 is available to withdraw/);
   assert.notEqual(buyer,seller);
 });
 

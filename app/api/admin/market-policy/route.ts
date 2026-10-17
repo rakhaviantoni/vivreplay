@@ -8,8 +8,8 @@ import {isCurrentUserAdmin} from '@/lib/server/admin-auth';
 import {getProPricing,type ProPricing} from '@/lib/market/pro-pricing';
 
 const policySchema = z.object({
-  buyerFeeMinimum: z.number().int().min(0).max(100_000),
-  sellerFeeMinimum: z.number().int().min(0).max(100_000),
+  buyerFeeMinimum: z.literal(0),
+  sellerFeeMinimum: z.literal(0),
   shippingVoucherMinSubtotal: z.number().int().min(0).max(100_000_000),
   free: z.object({
     durationDays: z.number().int().min(1).max(365),

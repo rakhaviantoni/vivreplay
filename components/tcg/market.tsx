@@ -37,7 +37,7 @@ import {Picker} from './catalog';
 import {CollectionForm} from './collection-form';
 import {AddEditItemModal} from './vault/modals/add-edit-item-modal';
 import {MarketTimestamp} from './market-timestamp';
-import {calculateSellerServiceFee,LISTING_POLICIES,MARKET_SELLER_FEE_MINIMUM} from '@/lib/market/policy';
+import {calculateSellerServiceFee,LISTING_POLICIES} from '@/lib/market/policy';
 import {ShippingCouriers} from './market-listing-items';
 import {Dialog,DialogContent,DialogDescription,DialogTitle} from '@/components/ui/dialog';
 import {MarketPriceMode} from './market-price-mode';
@@ -477,7 +477,6 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
   const [listingPrice,setListingPrice]=useState('');
   const [listingType,setListingType]=useState<'WTS'|'WTB'>('WTS');
   const [liveListingFeePercent,setLiveListingFeePercent]=useState<number|null>(null);
-  const [liveSellerFeeMinimum,setLiveSellerFeeMinimum]=useState<number|null>(null);
   const [listingNegotiable,setListingNegotiable]=useState(true);
   const [listingCity,setListingCity]=useState('');
   const [buyerCity,setBuyerCity]=useState('');
@@ -487,9 +486,8 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
     let active=true;
     fetch('/api/checkout/market',{cache:'no-store'}).then(async response=>{
       if(!response.ok)return;
-      const result=await response.json() as {sellerFeePercent?:number;sellerFeeMinimum?:number};
+      const result=await response.json() as {sellerFeePercent?:number};
       if(active&&Number.isFinite(result.sellerFeePercent))setLiveListingFeePercent(result.sellerFeePercent!);
-      if(active&&Number.isSafeInteger(result.sellerFeeMinimum))setLiveSellerFeeMinimum(result.sellerFeeMinimum!);
     }).catch(()=>undefined);
     return()=>{active=false};
   },[open,data?.profile?.id]);
@@ -986,9 +984,8 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
   const totalBundleQuantity=bundleCards.reduce((sum,c)=>sum+c.quantity,0);
   const totalCalculatedUnitSum=bundleCards.reduce((sum,c)=>sum+(c.unitAmount*c.quantity),0);
   const listingFeePercent=liveListingFeePercent??(String(data?.profile?.tier??'free').toLowerCase()==='pro'?LISTING_POLICIES.pro.commissionPercent:LISTING_POLICIES.free.commissionPercent);
-  const listingFeeMinimum=liveSellerFeeMinimum??MARKET_SELLER_FEE_MINIMUM;
   const enteredListingTotal=Math.max(0,Number(listingPrice)||0);
-  const estimatedSellerFee=calculateSellerServiceFee(enteredListingTotal,listingFeePercent,listingFeeMinimum);
+  const estimatedSellerFee=calculateSellerServiceFee(enteredListingTotal,listingFeePercent);
   const benchmarkSliderMin=benchmarkMultiplier<50?Math.max(0,Math.floor(benchmarkMultiplier/50)*50):50;
   const benchmarkSliderMax=benchmarkMultiplier>150?Math.ceil(benchmarkMultiplier/50)*50:150;
   const benchmarkSliderStep=1;
@@ -1590,7 +1587,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
                     <small style={{fontSize:11,color:'var(--muted)',marginTop:3}}>
                       {locale==='ID'?`Total akumulasi satuan: Rp ${totalCalculatedUnitSum.toLocaleString('id-ID')}`:`Calculated sum: Rp ${totalCalculatedUnitSum.toLocaleString('id-ID')}`}
                     </small>
-                    {listingType==='WTS'&&enteredListingTotal>0&&<small className="market-sell-fee-estimate">{locale==='ID'?`Biaya layanan Market (${listingFeePercent}%, minimal Rp ${listingFeeMinimum.toLocaleString('id-ID')}): Rp ${estimatedSellerFee.toLocaleString('id-ID')} - perkiraan diterima Rp ${(enteredListingTotal-estimatedSellerFee).toLocaleString('id-ID')}`:`Market service fee (${listingFeePercent}%, minimum IDR ${listingFeeMinimum.toLocaleString('en-US')}): IDR ${estimatedSellerFee.toLocaleString('en-US')} - estimated payout IDR ${(enteredListingTotal-estimatedSellerFee).toLocaleString('en-US')}`}</small>}
+                    {listingType==='WTS'&&enteredListingTotal>0&&<small className="market-sell-fee-estimate">{locale==='ID'?`Biaya layanan Market ${listingFeePercent}%: Rp ${estimatedSellerFee.toLocaleString('id-ID')} - perkiraan hasil penjualan Rp ${(enteredListingTotal-estimatedSellerFee).toLocaleString('id-ID')}`:`Market service fee ${listingFeePercent}%: IDR ${estimatedSellerFee.toLocaleString('en-US')} - estimated proceeds IDR ${(enteredListingTotal-estimatedSellerFee).toLocaleString('en-US')}`}</small>}
                   </label>
                   {listingType==='WTB'?(
                     <label className="market-request-city-label">

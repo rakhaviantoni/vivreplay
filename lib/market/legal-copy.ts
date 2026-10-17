@@ -1,7 +1,5 @@
 import {
   MARKET_BUYER_FEE_CAP_BANDS,
-  MARKET_BUYER_FEE_MINIMUM,
-  MARKET_SELLER_FEE_MINIMUM,
   MARKET_PRO_SHIPPING_VOUCHER_CAP,
   MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL,
   MARKET_PRO_SHIPPING_VOUCHER_SHARE,
@@ -20,8 +18,6 @@ function percent(value: number) {
 }
 
 export function marketFeeDisclosure(policies: Policies, id: boolean) {
-  const minimum=policies.buyerFeeMinimum??MARKET_BUYER_FEE_MINIMUM;
-  const sellerMinimum=policies.sellerFeeMinimum??MARKET_SELLER_FEE_MINIMUM;
   const caps = MARKET_BUYER_FEE_CAP_BANDS.map((band, index) => {
     const cap = `Rp${money(band.cap, id)}`;
     if (index === 0) return id ? `${cap} hingga Rp${money(band.maxSubtotal, true)}` : `${cap} up to Rp${money(band.maxSubtotal, false)}`;
@@ -32,8 +28,8 @@ export function marketFeeDisclosure(policies: Policies, id: boolean) {
       : `${cap} above Rp${money(previous, false)} through Rp${money(band.maxSubtotal, false)}`;
   }).join('; ');
   return id
-    ? `Biaya layanan Market adalah ${percent(policies.free.commissionPercent)}% untuk Free dan ${percent(policies.pro.commissionPercent)}% untuk Pro, baik saat membeli maupun menjual. Biaya pembeli memiliki minimum Rp${money(minimum,true)} dan batas sesuai subtotal kartu: ${caps}. Biaya penjual minimal Rp${money(sellerMinimum,true)} dan tidak melebihi subtotal kartu. Ongkir ditampilkan terpisah sebelum pembayaran.`
-    : `The Market service fee is ${percent(policies.free.commissionPercent)}% on Free and ${percent(policies.pro.commissionPercent)}% on Pro for both buying and selling. Buyer fees have a Rp${money(minimum,false)} minimum and card-subtotal caps: ${caps}. Seller fees have a Rp${money(sellerMinimum,false)} minimum and never exceed the card subtotal. Delivery is shown separately before payment.`;
+    ? `Biaya layanan Market adalah biaya VivrePlay untuk layanan Market, bukan MDR QRIS. Biaya dihitung dari subtotal kartu: ${percent(policies.free.commissionPercent)}% untuk Free dan ${percent(policies.pro.commissionPercent)}% untuk Pro, baik saat membeli maupun menjual, tanpa biaya minimum tetap. Biaya pembeli mengikuti batas subtotal berikut: ${caps}. Biaya penjual tidak melebihi subtotal kartu. Ongkir dan biaya pembayaran yang berlaku tercantum terpisah pada rincian checkout.`
+    : `The Market service fee is VivrePlay’s fee for using Market, not QRIS MDR. It is calculated from the card subtotal: ${percent(policies.free.commissionPercent)}% on Free and ${percent(policies.pro.commissionPercent)}% on Pro for both buying and selling, with no flat minimum. Buyer fees follow these subtotal caps: ${caps}. Seller fees never exceed the card subtotal. Delivery and any applicable payment charge appear separately in the checkout breakdown.`;
 }
 
 export function marketProShippingDisclosure(id: boolean, policies?:Policies) {

@@ -1,5 +1,5 @@
 export type OrderEmailPerspectiveEvent='order-auto-completed'|'order-cancelled'|'order-expired'|'order-dispute-resolved';
-export type OrderEmailPerspective={event:OrderEmailPerspectiveEvent;locale:'en'|'id';recipientRole:'buyer'|'seller';actorRole?:'buyer'|'seller';participant?:string;decision?:string;refund?:string};
+export type OrderEmailPerspective={event:OrderEmailPerspectiveEvent;locale:'en'|'id';recipientRole:'buyer'|'seller';actorRole?:'buyer'|'seller';participant?:string;decision?:string;refund?:string;payout?:string};
 
 const decisions:Record<string,{en:string;id:string}>={
   FULL_REFUND:{en:'full refund',id:'refund penuh'},
@@ -12,7 +12,7 @@ export function orderEmailPerspectiveLine(input:OrderEmailPerspective){
   const {event,locale,recipientRole,actorRole,participant}=input;
   const id=locale==='id';
   if(event==='order-auto-completed')return recipientRole==='seller'
-    ?(id?'Masa pemeriksaan 48 jam berakhir tanpa laporan. Kartu sudah masuk ke koleksi pembeli dan hasil penjualan tersedia.':'The 48-hour review period ended without a report. The cards are in the buyer’s Vault and the sale proceeds are available.')
+    ?(id?`Masa pemeriksaan 48 jam berakhir tanpa laporan. Penjualan selesai. ${input.payout??'Hasil penjualan'} siap dicairkan.`:`The 48-hour review period ended without a report. Your sale is complete. ${input.payout??'Your proceeds'} ${input.payout?'is':'are'} available to withdraw.`)
     :(id?'Masa pemeriksaan 48 jam berakhir tanpa laporan. Kartu dari pesanan ini sudah ditambahkan ke koleksi Anda.':'The 48-hour review period ended without a report. The cards from this order have been added to your Vault.');
   if(event==='order-cancelled')return actorRole==='seller'
     ?(id?`Penjual${participant?` ${participant}`:''} membatalkan pesanan sebelum pembayaran. Kartu tidak lagi dipesan untuk Anda.`:`The seller${participant?`, ${participant},`:''} cancelled the order before payment. The cards are no longer reserved for you.`)

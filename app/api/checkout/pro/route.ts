@@ -37,9 +37,7 @@ export async function GET(){
     ]);
     const policy=policies.pro;
     const freePolicy=policies.free;
-    // The plan preview is public and may be opened often. The global promo
-    // capacity check belongs at checkout creation, not on every plan request.
-    const intro=await introStatus(profile?.id,false,pricing).catch(()=>({promoOpen:false,spotsRemaining:null,eligible:false,pendingOrderId:null,priorPaid:false}));
+    const intro=await introStatus(profile?.id,true,pricing).catch(()=>({promoOpen:false,spotsRemaining:null,eligible:false,pendingOrderId:null,priorPaid:false}));
     const canBuyIntro=intro.eligible&&profile?.tier!=='pro';
     const available=hasMarketIpaymuPaymentConfig()&&Boolean(pricing.amount&&pricing.durationDays);
     let paymentChannels=[] as Awaited<ReturnType<typeof getIpaymuPaymentChannels>>;
@@ -51,9 +49,9 @@ export async function GET(){
       standardAmount:pricing.amount,
       durationDays:pricing.durationDays,
       introOffer:canBuyIntro,
-      introOfferEndsAt:canBuyIntro?pricing.introEndsAt:null,
-      introOfferLimit:canBuyIntro?pricing.introLimit:null,
-      introOfferSpotsRemaining:canBuyIntro?intro.spotsRemaining:null,
+      introOfferEndsAt:intro.promoOpen?pricing.introEndsAt:null,
+      introOfferLimit:intro.promoOpen?pricing.introLimit:null,
+      introOfferSpotsRemaining:intro.promoOpen?intro.spotsRemaining:null,
       maxActiveListings:policy.maxActiveListings,
       freeMaxActiveListings:freePolicy.maxActiveListings,
       freeDurationDays:freePolicy.durationDays,

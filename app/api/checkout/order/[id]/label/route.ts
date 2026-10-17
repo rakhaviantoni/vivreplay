@@ -1,5 +1,6 @@
 import {db,errorResponse,HttpError,user} from '@/lib/server/store';
 import {marketCardThumbnails} from '@/lib/server/market-card-thumbnails';
+import {formatDeliveryAddress} from '@/lib/market/address-format';
 
 const escape=(value:string)=>value.replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]??char));
 type Address={recipientName?:string|null;addressLine?:string;city?:string;postalCode?:string;phone?:string};
@@ -35,7 +36,7 @@ export async function GET(request:Request,{params}:{params:Promise<{id:string}>}
     const cards=await marketCardThumbnails(items.map(item=>item.printingId));
     const tracking=row.waybill||row.trackingId||'';const sender=shipping?.sender??{};const quantity=items.reduce((total,item)=>total+(Number.isSafeInteger(item.quantity)&&item.quantity>0?item.quantity:1),0);const weight=quantity*100;
     const text=(value:string|undefined|null,fallback:string)=>escape(value?.trim()||fallback);
-    const address=(details:Address)=>[details.addressLine,details.city,details.postalCode].filter((part):part is string=>Boolean(part)).map(part=>escape(part)).join(', ');
+    const address=(details:Address)=>escape(formatDeliveryAddress([details.addressLine,details.city,details.postalCode]));
     const contents=items.map(item=>{const card=cards.get(item.printingId);const title=item.listingTitle|| (item.listingId?listingTitles.get(item.listingId):null)|| (listingIds.length===0?row.title:null)||[card?.name,card?.code?`(${card.code})`:null].filter(Boolean).join(' ')|| (isID?'Kartu koleksi':'Trading card');return `<li><span>${escape(title)}</span><b>×${Number.isSafeInteger(item.quantity)&&item.quantity>0?item.quantity:1}</b></li>`}).join('');
     const notes=shipping?.specialInstructions?.trim()||shipping?.notes?.trim()||'';
     const courierName=shipping?.courierName?.trim()||'';
