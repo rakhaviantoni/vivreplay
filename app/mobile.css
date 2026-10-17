@@ -3364,13 +3364,18 @@ html[data-theme="dark"] body :is(
 }
 
 @media (min-width: 761px) {
-  .market-feed-tabs-sub {
+  .market-feed-tabs {
     position: sticky !important;
     top: 64px !important;
     z-index: 55 !important;
-    padding-block: 6px !important;
-    border-bottom: 1px solid var(--line) !important;
     background: var(--page-bg) !important;
+  }
+
+  .market-feed-tabs-sub {
+    position: static !important;
+    padding-block: 0 !important;
+    border-bottom: 0 !important;
+    background: transparent !important;
   }
 }
 
