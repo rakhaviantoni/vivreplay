@@ -2,17 +2,17 @@
 
 import Link from 'next/link';
 import {usePathname,useRouter} from 'next/navigation';
-import {ArrowSquareOutIcon as ExternalLink,ChartLineUpIcon as Overview,UsersThreeIcon as Customers,HeartbeatIcon as Catalog,StorefrontIcon as Market,SlidersHorizontalIcon as Policy,WarningCircleIcon as Feedback,ChartLineUpIcon as Traffic,WalletIcon as Payouts,ScalesIcon as Reports,EnvelopeSimpleIcon as Emails,SignOutIcon as SignOut,MagnifyingGlassIcon as Search,SidebarSimpleIcon as SidebarToggle,XIcon as Clear} from '@phosphor-icons/react';
+import {ArrowSquareOutIcon as ExternalLink,ChartLineUpIcon as Overview,UsersThreeIcon as Customers,HeartbeatIcon as Catalog,StorefrontIcon as Market,SlidersHorizontalIcon as Policy,CreditCardIcon as PaymentMethods,WarningCircleIcon as Feedback,ChartLineUpIcon as Traffic,WalletIcon as Payouts,ScalesIcon as Reports,EnvelopeSimpleIcon as Emails,SignOutIcon as SignOut,MagnifyingGlassIcon as Search,SidebarSimpleIcon as SidebarToggle,XIcon as Clear} from '@phosphor-icons/react';
 import {useEffect,useMemo,useRef,useState,type ReactNode} from 'react';
 import {VivreMark} from '@/components/tcg/brand-assets';
 
-type AdminSection='overview'|'customers'|'catalog'|'marketplace'|'policy'|'feedback'|'traffic'|'payouts'|'disputes'|'emails';
+type AdminSection='overview'|'customers'|'catalog'|'marketplace'|'policy'|'payments'|'feedback'|'traffic'|'payouts'|'disputes'|'emails';
 const groups=[
   {label:'Workspace',items:[{id:'overview',label:'Overview',href:'/admin?section=overview',icon:Overview},{id:'customers',label:'Customers',href:'/admin?section=customers',icon:Customers}]},
-  {label:'Market',items:[{id:'marketplace',label:'Listings & sellers',href:'/admin?section=marketplace',icon:Market},{id:'disputes',label:'Order reports',href:'/admin?section=disputes',icon:Reports},{id:'payouts',label:'Payouts',href:'/admin?section=payouts',icon:Payouts},{id:'policy',label:'Market policy',href:'/admin?section=policy',icon:Policy}]},
+  {label:'Market',items:[{id:'marketplace',label:'Listings & sellers',href:'/admin?section=marketplace',icon:Market},{id:'disputes',label:'Order reports',href:'/admin?section=disputes',icon:Reports},{id:'payouts',label:'Payouts',href:'/admin?section=payouts',icon:Payouts},{id:'policy',label:'Market policy',href:'/admin?section=policy',icon:Policy},{id:'payments',label:'Payment methods',href:'/admin?section=payments',icon:PaymentMethods}]},
   {label:'Tools',items:[{id:'catalog',label:'Catalog health',href:'/admin?section=catalog',icon:Catalog},{id:'feedback',label:'Feedback',href:'/admin?section=feedback',icon:Feedback},{id:'traffic',label:'Traffic',href:'/admin?section=traffic',icon:Traffic},{id:'emails',label:'Emails',href:'/admin/emails',icon:Emails}]},
 ] as const;
-const labels:Record<AdminSection,string>={overview:'Overview',customers:'Customers',catalog:'Catalog health',marketplace:'Listings & sellers',policy:'Market policy',feedback:'Feedback',traffic:'Traffic',payouts:'Payouts',disputes:'Order reports',emails:'Emails'};
+const labels:Record<AdminSection,string>={overview:'Overview',customers:'Customers',catalog:'Catalog health',marketplace:'Listings & sellers',policy:'Market policy',payments:'Payment methods',feedback:'Feedback',traffic:'Traffic',payouts:'Payouts',disputes:'Order reports',emails:'Emails'};
 
 export function AdminWorkspace({active,children}:{active:AdminSection;children:ReactNode}){
   const pathname=usePathname()??'/admin';

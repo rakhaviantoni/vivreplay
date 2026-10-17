@@ -1,10 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {callbackAmount,callbackIsSuccessful,callbackReference,callbackSessionId,createIpaymuRedirect,parseAndVerifyIpaymuCallback} from '../lib/server/ipaymu';
+import {callbackAmount,callbackIsSuccessful,callbackReference,callbackSessionId,createIpaymuRedirect,parseAndVerifyIpaymuCallback,parseIpaymuPaymentChannelSettings} from '../lib/server/ipaymu';
 
 const encoder=new TextEncoder();
 const hex=(data:ArrayBuffer)=>[...new Uint8Array(data)].map(byte=>byte.toString(16).padStart(2,'0')).join('');
 async function signature(text:string,key:string){const cryptoKey=await crypto.subtle.importKey('raw',encoder.encode(key),{name:'HMAC',hash:'SHA-256'},false,['sign']);return hex(await crypto.subtle.sign('HMAC',cryptoKey,encoder.encode(text)))}
+
+test('iPaymu payment settings keep only valid and unique disabled channel keys',()=>{
+  assert.deepEqual(parseIpaymuPaymentChannelSettings(JSON.stringify({disabledChannels:['qris:mpm','va:bca','qris:mpm','invalid:channel','cc:!']})),{disabledChannels:['qris:mpm','va:bca']});
+  assert.deepEqual(parseIpaymuPaymentChannelSettings('{bad json'),{disabledChannels:[]});
+});
 
 test('iPaymu callback verification normalizes documented numeric fields and defaults additional_info',async()=>{
   const previous=process.env.IPAYMU_VA;

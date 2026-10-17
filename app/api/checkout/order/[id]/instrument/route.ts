@@ -1,6 +1,6 @@
 import {db,errorResponse,user,HttpError} from '@/lib/server/store';
 import {getCurrentUser} from '@/lib/server/auth';
-import {createIpaymuDirectPayment,hasIpaymuPaymentConfig,hasMarketIpaymuPaymentConfig,ipaymuExpiryTimestamp,ipaymuQrImageUrl} from '@/lib/server/ipaymu';
+import {createIpaymuDirectPayment,getEnabledIpaymuPaymentChannels,hasIpaymuPaymentConfig,hasMarketIpaymuPaymentConfig,ipaymuExpiryTimestamp,ipaymuQrImageUrl} from '@/lib/server/ipaymu';
 import {sendMarketEmail} from '@/lib/server/market-notifications';
 
 type Order={id:string;kind:string;buyerId:string;sellerId:string|null;listingId:string|null;items:string;details:string;subtotal:number;amount:number;shippingFee:number;title:string|null;paymentId:string|null;status:string;expiresAt:string|null;updatedAt:string|null};
@@ -72,6 +72,11 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
       ?order.subtotal+order.shippingFee-(Number.isSafeInteger(details.marketProShippingDiscount)?Number(details.marketProShippingDiscount):0)+buyerServiceFee
       :productLines.reduce((sum,item)=>sum+item.quantity*item.unitPrice,0);
     if(total!==order.amount)throw new HttpError(409,'This order needs to be refreshed before payment.');
+    const method=typeof details.ipaymuSelectedMethod==='string'?details.ipaymuSelectedMethod:'qris';
+    const channel=typeof details.ipaymuSelectedChannel==='string'?details.ipaymuSelectedChannel:'mpm';
+    if(!['va','cstore','qris','cc','paylater','ewallet'].includes(method)||!(/^[a-z0-9_]{2,24}$/.test(channel)))throw new HttpError(400,'Choose a valid payment method.');
+    const availableChannels=await getEnabledIpaymuPaymentChannels(database).catch(()=>[]);
+    if(!availableChannels.some(option=>option.method===method&&option.channel===channel))throw new HttpError(409,'This payment method is no longer available. Choose an active option at checkout.');
     const name=typeof details.customerName==='string'?details.customerName:typeof details.recipientName==='string'?details.recipientName:profile.display_name||'VivrePlay customer';
     const phone=typeof details.customerPhone==='string'?details.customerPhone:typeof details.phone==='string'?details.phone:'';
     const paymentClaim=`CREATING:${crypto.randomUUID()}`;
@@ -79,9 +84,6 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     if(!claimed.meta.changes)throw new HttpError(409,'This order is already being paid or has changed. Refresh to check its status.');
     let payment: {checkoutUrl:string|null;sessionId:string;transactionId:string;paymentMethod:string;paymentChannel:string;paymentNo:string|null;paymentName:string|null;instructionsUrl:string|null;qrImage:string|null;qrString:string|null;fee:number|null;total:number;paymentCreatedAt:string;expiresAt:string};
     try{
-      const method=typeof details.ipaymuSelectedMethod==='string'?details.ipaymuSelectedMethod:'qris';
-      const channel=typeof details.ipaymuSelectedChannel==='string'?details.ipaymuSelectedChannel:'mpm';
-      if(!['va','cstore','qris','cc','paylater','ewallet'].includes(method)||!(/^[a-z0-9_]{2,24}$/.test(channel)))throw new HttpError(400,'Choose a valid payment method.');
       payment=await createIpaymuDirectPayment({orderId:order.id,amount:order.amount,buyer:{name,email:account.email,phone},returnUrl:`${origin}/checkout/order/${encodeURIComponent(order.id)}`,notifyUrl,method:method as 'va'|'cstore'|'qris'|'cc'|'paylater'|'ewallet',channel});
     }catch(error){
       await database.prepare("UPDATE checkout_orders SET payment_id=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id=?").bind(id,paymentClaim).run();

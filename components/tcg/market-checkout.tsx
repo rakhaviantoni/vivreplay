@@ -111,9 +111,9 @@ export function MarketCheckout(){
       if(cartMode&&selectedListings.length!==checkoutLines.length)throw new Error(t('A listing in your cart is no longer available. Return to your cart and remove it.','Salah satu listing di keranjang sudah tidak tersedia. Kembali ke keranjang dan hapus listing tersebut.'));setCartListings(selectedListings);setListing(selectedListings[0]);
       setOrigin(shipping.origin??undefined);
       setCheckoutAvailable(checkout.available);
-      const options=Array.isArray(checkout.paymentChannels)&&checkout.paymentChannels.length?checkout.paymentChannels:defaultPaymentOptions;
+      const options=Array.isArray(checkout.paymentChannels)?checkout.paymentChannels:defaultPaymentOptions;
       setPaymentOptions(options);
-      if(!options.some(option=>option.method===selectedPaymentChoice.current.method&&option.channel===selectedPaymentChoice.current.channel)){
+      if(options.length&&!options.some(option=>option.method===selectedPaymentChoice.current.method&&option.channel===selectedPaymentChoice.current.channel)){
         const qris=options.find(option=>option.method==='qris');
         const first=qris??options[0];
         selectedPaymentChoice.current={method:first.method,channel:first.channel};
@@ -152,7 +152,7 @@ export function MarketCheckout(){
   const currentRate=rates.find(rate=>`${rate.courier_code}:${rate.courier_service_code}`===selectedRate);
   const voucherEligible=buyerTier==='pro'&&shippingVouchersRemaining>0&&subtotal>=voucherMinimum;
   const shippingDiscount=voucherEligible&&useShippingVoucher&&currentRate?Math.min(Math.round(currentRate.price*MARKET_PRO_SHIPPING_VOUCHER_SHARE),MARKET_PRO_SHIPPING_VOUCHER_CAP):0;
-  const selectedPaymentOption=paymentOptions.find(option=>option.method===selectedPaymentMethod&&option.channel===selectedPaymentChannel)??paymentOptions.find(option=>option.method==='qris')??paymentOptions[0];
+  const selectedPaymentOption=paymentOptions.find(option=>option.method===selectedPaymentMethod&&option.channel===selectedPaymentChannel);
   const paymentBaseTotal=subtotal+(currentRate?.price??0)-shippingDiscount+buyerServiceFee;
   const estimatedGatewayFee=estimatePaymentFee(selectedPaymentOption,paymentBaseTotal);
   const courierName=(name:string)=>({jne:'JNE Express',jnt:'J&T Express',sicepat:'SiCepat Ekspres',anteraja:'Anteraja',tiki:'TIKI',pos:'Pos Indonesia',lion:'Lion Parcel',ninja:'Ninja Xpress',wahana:'Wahana Express',grab:'GrabExpress',gojek:'GoSend'}[name]??name);
@@ -209,9 +209,10 @@ export function MarketCheckout(){
 
   const startCheckout=async()=>{
     if(!currentRate)return;
+    if(!selectedPaymentOption){setError(t('Choose an available payment method to continue.','Pilih metode pembayaran yang tersedia untuk melanjutkan.'));return;}
     setSubmitting(true);setError('');
     try{
-      const response=await fetch('/api/checkout/market',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({listingId:orderListingId,offerId:offerId||undefined,items:cartMode?selectedCards.map(item=>({printingId:item.printingId,quantity:item.quantity,listingId:item.listingId})):items,lines:cartMode?activeCartLines.map(line=>({listingId:line.listingId,items:line.items})):undefined,courierName:currentRate.courier_name,courierServiceName:currentRate.courier_service_name,courierCode:currentRate.courier_code,courierServiceCode:currentRate.courier_service_code,courierType:currentRate.type,shippingFee:currentRate.price,useShippingVoucher,paymentMethod:selectedPaymentOption?.method??'qris',paymentChannel:selectedPaymentOption?.channel??'mpm'})});
+      const response=await fetch('/api/checkout/market',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({listingId:orderListingId,offerId:offerId||undefined,items:cartMode?selectedCards.map(item=>({printingId:item.printingId,quantity:item.quantity,listingId:item.listingId})):items,lines:cartMode?activeCartLines.map(line=>({listingId:line.listingId,items:line.items})):undefined,courierName:currentRate.courier_name,courierServiceName:currentRate.courier_service_name,courierCode:currentRate.courier_code,courierServiceCode:currentRate.courier_service_code,courierType:currentRate.type,shippingFee:currentRate.price,useShippingVoucher,paymentMethod:selectedPaymentOption.method,paymentChannel:selectedPaymentOption.channel})});
       const result=await response.json() as {checkoutUrl?:string;error?:string};
       if(response.status===409&&result.error?.includes('delivery fee changed')){await loadQuotes(true);throw new Error(t('Delivery fees changed. Review the updated options before paying.','Ongkir berubah. Periksa opsi terbaru sebelum membayar.'));}
       if(!response.ok||!result.checkoutUrl)throw new Error(result.error??t('Checkout could not be started.','Checkout tidak dapat dimulai.'));
@@ -279,7 +280,7 @@ export function MarketCheckout(){
         {checkoutAvailable&&<MarketPaymentMethodPicker locale={locale} options={paymentOptions} amount={paymentBaseTotal} selectedMethod={selectedPaymentMethod} selectedChannel={selectedPaymentChannel} onChange={(method,channel)=>{selectedPaymentChoice.current={method,channel};setSelectedPaymentMethod(method);setSelectedPaymentChannel(channel)}}/>}
         {error&&<p className="checkout-error" role="alert">{error}</p>}
         {!checkoutAvailable&&<MarketPaymentPreview amount={subtotal+(currentRate?.price??0)-shippingDiscount+buyerServiceFee} currency={listing.currency} language={locale}/>}
-        <button type="button" className="button checkout-pay-button" disabled={!currentRate||editingAddress||submitting||!checkoutAvailable||!contactComplete||quoting} onClick={startCheckout}>{submitting?t('Preparing payment…','Menyiapkan pembayaran…'):checkoutAvailable?t('Continue to payment','Lanjut ke pembayaran'):t('Payment coming soon','Pembayaran segera tersedia')}</button>
+        <button type="button" className="button checkout-pay-button" disabled={!currentRate||editingAddress||submitting||!checkoutAvailable||!selectedPaymentOption||!contactComplete||quoting} onClick={startCheckout}>{submitting?t('Preparing payment…','Menyiapkan pembayaran…'):checkoutAvailable?t('Continue to payment','Lanjut ke pembayaran'):t('Payment coming soon','Pembayaran segera tersedia')}</button>
       </section>
     </div>
   </main>

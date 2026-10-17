@@ -56,6 +56,26 @@ type PaymentMethodCode='va'|'cstore'|'qris'|'cc'|'paylater'|'ewallet';
 export type IpaymuPaymentChannel={method:PaymentMethodCode;channel:string;name:string;logo:string;fee:number;feeType:'FLAT'|'PERCENT';additionalFee:number};
 let paymentChannelsCache:{expiresAt:number;channels:IpaymuPaymentChannel[]}|null=null;
 
+type PaymentSettingsDatabase={prepare:(query:string)=>{bind:(...values:unknown[])=>{first:<T>()=>Promise<T|null>}}};
+export type IpaymuPaymentChannelSettings={disabledChannels:string[]};
+const PAYMENT_CHANNEL_SETTINGS_KEY='ipaymu_payment_channels';
+
+function paymentChannelKey(method:string,channel:string){return `${method}:${channel}`}
+
+export function parseIpaymuPaymentChannelSettings(value:unknown):IpaymuPaymentChannelSettings{
+  try{
+    const parsed=typeof value==='string'?JSON.parse(value) as unknown:value;
+    if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))return {disabledChannels:[]};
+    const disabledChannels=Array.isArray((parsed as {disabledChannels?:unknown}).disabledChannels)?(parsed as {disabledChannels:unknown[]}).disabledChannels.filter((item):item is string=>typeof item==='string'&&/^(va|cstore|qris|cc|paylater|ewallet):[a-z0-9_]{2,24}$/.test(item)):[];
+    return {disabledChannels:[...new Set(disabledChannels)].slice(0,300)};
+  }catch{return {disabledChannels:[]}}
+}
+
+export async function getIpaymuPaymentChannelSettings(database:PaymentSettingsDatabase):Promise<IpaymuPaymentChannelSettings>{
+  const row=await database.prepare('SELECT value FROM app_settings WHERE key=?').bind(PAYMENT_CHANNEL_SETTINGS_KEY).first<{value:string}>();
+  return parseIpaymuPaymentChannelSettings(row?.value);
+}
+
 export async function getIpaymuPaymentChannels():Promise<IpaymuPaymentChannel[]>{
   if(paymentChannelsCache&&paymentChannelsCache.expiresAt>Date.now())return paymentChannelsCache.channels;
   const {va,apiKey,baseUrl}=configuration();
@@ -84,6 +104,12 @@ export async function getIpaymuPaymentChannels():Promise<IpaymuPaymentChannel[]>
   });
   paymentChannelsCache={channels,expiresAt:Date.now()+5*60*1000};
   return channels;
+}
+
+export async function getEnabledIpaymuPaymentChannels(database:PaymentSettingsDatabase):Promise<IpaymuPaymentChannel[]>{
+  const [channels,settings]=await Promise.all([getIpaymuPaymentChannels(),getIpaymuPaymentChannelSettings(database)]);
+  const disabled=new Set(settings.disabledChannels);
+  return channels.filter(channel=>!disabled.has(paymentChannelKey(channel.method,channel.channel)));
 }
 
 export async function createIpaymuRedirect(input:{orderId:string;products:IpaymuProduct[];buyer:{name:string;email:string;phone:string};returnUrl:string;cancelUrl:string;notifyUrl:string}){

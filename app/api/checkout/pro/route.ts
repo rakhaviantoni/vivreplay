@@ -1,6 +1,6 @@
 import {db,errorResponse,guard,user,optionalUser,HttpError} from '@/lib/server/store';
 import {getCurrentUser} from '@/lib/server/auth';
-import {createIpaymuDirectPayment,getIpaymuPaymentChannels,hasMarketIpaymuPaymentConfig,ipaymuExpiryTimestamp} from '@/lib/server/ipaymu';
+import {createIpaymuDirectPayment,getEnabledIpaymuPaymentChannels,hasMarketIpaymuPaymentConfig,ipaymuExpiryTimestamp} from '@/lib/server/ipaymu';
 import {fetchMarketPolicies,MARKET_BUYER_FEE_CAP,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH,MARKET_PRO_SHIPPING_VOUCHER_SHARE,MARKET_PRO_SHIPPING_VOUCHER_CAP} from '@/lib/market/policy';
 import {getProPricing} from '@/lib/market/pro-pricing';
 
@@ -40,8 +40,8 @@ export async function GET(){
     const intro=await introStatus(profile?.id,true,pricing).catch(()=>({promoOpen:false,spotsRemaining:null,eligible:false,pendingOrderId:null,priorPaid:false}));
     const canBuyIntro=intro.eligible&&profile?.tier!=='pro';
     const available=hasMarketIpaymuPaymentConfig()&&Boolean(pricing.amount&&pricing.durationDays);
-    let paymentChannels=[] as Awaited<ReturnType<typeof getIpaymuPaymentChannels>>;
-    try{if(available)paymentChannels=await getIpaymuPaymentChannels()}catch{paymentChannels=[{method:'qris',channel:'mpm',name:'QRIS',logo:'',fee:0,feeType:'FLAT',additionalFee:0}]}
+    let paymentChannels=[] as Awaited<ReturnType<typeof getEnabledIpaymuPaymentChannels>>;
+    try{if(available)paymentChannels=await getEnabledIpaymuPaymentChannels(database)}catch{paymentChannels=[]}
     return Response.json({
       available,
       paymentChannels,
@@ -87,11 +87,8 @@ export async function POST(request:Request){
     const paymentMethod=body.paymentMethod??'qris';
     const paymentChannel=body.paymentChannel??'mpm';
     if(!['va','cstore','qris','cc','paylater','ewallet'].includes(paymentMethod)||!(/^[a-z0-9_]{2,24}$/.test(paymentChannel)))throw new HttpError(400,'Choose a valid payment method.');
-    if(paymentMethod==='qris'&&paymentChannel!=='mpm')throw new HttpError(400,'Choose QRIS as your payment option.');
-    if(paymentMethod!=='qris'){
-      const channels=await getIpaymuPaymentChannels().catch(()=>[]);
-      if(!channels.some(channel=>channel.method===paymentMethod&&channel.channel===paymentChannel))throw new HttpError(409,'That payment option is temporarily unavailable. Choose another method.');
-    }
+    const channels=await getEnabledIpaymuPaymentChannels(db()).catch(()=>[]);
+    if(!channels.some(channel=>channel.method===paymentMethod&&channel.channel===paymentChannel))throw new HttpError(409,'That payment option is temporarily unavailable. Choose another method.');
     if(profile.tier==='pro')throw new HttpError(409,'Your account already has an active Pro plan.');
     const name=String(profile.display_name||account.name||account.email.split('@')[0]||'VivrePlay member').trim();
     const phone=String(profile.phone??'').replace(/[\s().-]/g,'');

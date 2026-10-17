@@ -2,14 +2,13 @@ import {enabledShippingCouriers} from '@/lib/shipping/couriers';
 import {z} from 'zod';
 import {db,errorResponse,guard,user,HttpError} from '@/lib/server/store';
 import {getCurrentUser} from '@/lib/server/auth';
-import {getIpaymuPaymentChannels,hasMarketIpaymuPaymentConfig} from '@/lib/server/ipaymu';
+import {getEnabledIpaymuPaymentChannels,hasMarketIpaymuPaymentConfig} from '@/lib/server/ipaymu';
 import {biteshipDestination,isBiteshipAreaId} from '@/lib/shipping/biteship-area';
 import {shippingRateOptions} from '@/lib/server/shipping-quote-cache';
 import {fetchMarketPolicies,MARKET_BUYER_FEE_CAP,calculateBuyerServiceFee,calculateSellerServiceFee,getMarketBuyerFeeCap,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH,MARKET_PRO_SHIPPING_VOUCHER_SHARE,MARKET_PRO_SHIPPING_VOUCHER_CAP} from '@/lib/market/policy';
 
 const schema=z.object({listingId:z.string().min(1),offerId:z.string().min(1).optional(),items:z.array(z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(99),listingId:z.string().optional()})).min(1).max(600),lines:z.array(z.object({listingId:z.string().min(1),items:z.array(z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(99)})).min(1).max(60)})).max(10).optional(),courierName:z.string().min(1),courierServiceName:z.string().min(1),courierCode:z.string().min(1),courierServiceCode:z.string().min(1),courierType:z.string().min(1),shippingFee:z.number().int().nonnegative().optional(),useShippingVoucher:z.boolean().default(true),paymentMethod:z.enum(['va','cstore','qris','cc','paylater','ewallet']).default('qris'),paymentChannel:z.string().regex(/^[a-z0-9_]{2,24}$/).default('mpm')});
 type BundleEntry={instanceId?:string;printingId:string;quantity:number;condition?:string;unitAmount:number;listingId?:string};
-type Rate={courier_name:string;courier_service_name:string;courier_code:string;courier_service_code:string;company:string;type:string;price:number};
 type AcceptedOffer={id:string;actorId:string;buyerId:string;listingId:string;status:string;amount:number;items:string};
 
 export async function GET(){
@@ -19,10 +18,10 @@ export async function GET(){
     const database=db();
     const voucherMonth=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jakarta',year:'numeric',month:'2-digit'}).format(new Date());
     const [policies,voucherUsage]=await Promise.all([fetchMarketPolicies(database),profile.tier==='pro'?database.prepare(`SELECT COUNT(*) AS total FROM checkout_orders WHERE buyer_id=? AND kind='MARKET' AND status IN ('PENDING_PAYMENT','PROCESSING','PAID','SHIPPED','RECEIVED','COMPLETED') AND json_extract(details,'$.marketProShippingVoucherMonth')=?`).bind(profile.id,voucherMonth).first<{total:number}>():Promise.resolve(null)]);
-    let paymentChannels=[] as Awaited<ReturnType<typeof getIpaymuPaymentChannels>>;
-    try{if(hasMarketIpaymuPaymentConfig())paymentChannels=await getIpaymuPaymentChannels()}catch{paymentChannels=[{method:'qris',channel:'mpm',name:'QRIS',logo:'',fee:0,feeType:'FLAT',additionalFee:0}]}
+    let paymentChannels=[] as Awaited<ReturnType<typeof getEnabledIpaymuPaymentChannels>>;
+    try{if(hasMarketIpaymuPaymentConfig())paymentChannels=await getEnabledIpaymuPaymentChannels(database)}catch{paymentChannels=[]}
     const serviceFeePercent=policies[profile.tier==='pro'?'pro':'free'].commissionPercent;
-    return Response.json({available,sandbox:process.env.IPAYMU_MODE==='sandbox',paymentChannels,buyerTier:profile.tier==='pro'?'pro':'free',buyerFeePercent:serviceFeePercent,serviceFeePercent,buyerFeeMinimum:policies.buyerFeeMinimum,buyerFeeCap:MARKET_BUYER_FEE_CAP,sellerFeePercent:serviceFeePercent,sellerFeeMinimum:policies.sellerFeeMinimum,shippingVoucherMinSubtotal:policies.shippingVoucherMinSubtotal,shippingVouchersRemaining:Math.max(0,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH-(voucherUsage?.total??0))});
+    return Response.json({available,sandbox:process.env.IPAYMU_MODE==='sandbox',paymentChannels,buyerTier:profile.tier==='pro'?'pro':'free',buyerFeePercent:serviceFeePercent,serviceFeePercent,buyerFeeMinimum:policies.buyerFeeMinimum,buyerFeeCap:MARKET_BUYER_FEE_CAP,sellerFeePercent:serviceFeePercent,sellerFeeMinimum:policies.sellerFeeMinimum,shippingVoucherMinSubtotal:policies.shippingVoucherMinSubtotal,shippingVouchersRemaining:Math.max(0,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH-(voucherUsage?.total??0))},{headers:{'Cache-Control':'private, no-store, max-age=0','Vary':'Cookie'}});
   }catch(error){return errorResponse(error)}
 }
 
@@ -37,10 +36,9 @@ export async function POST(request:Request){
     const input=schema.parse(await request.json());
     const paymentMethod=input.paymentMethod;
     const paymentChannel=input.paymentChannel;
-    if(paymentMethod==='qris'&&paymentChannel!=='mpm')throw new HttpError(400,'Choose QRIS as your payment option.');
-    const availablePaymentChannels=paymentMethod==='qris'?null:await getIpaymuPaymentChannels().catch(()=>[]);
-    const selectedPaymentChannel=paymentMethod==='qris'?null:availablePaymentChannels?.find(channel=>channel.method===paymentMethod&&channel.channel===paymentChannel);
-    if(paymentMethod!=='qris'&&!selectedPaymentChannel)throw new HttpError(409,'That payment option is temporarily unavailable. Choose another method.');
+    const availablePaymentChannels=await getEnabledIpaymuPaymentChannels(db()).catch(()=>[]);
+    const selectedPaymentChannel=availablePaymentChannels.find(channel=>channel.method===paymentMethod&&channel.channel===paymentChannel);
+    if(!selectedPaymentChannel)throw new HttpError(409,'That payment option is temporarily unavailable. Choose another method.');
     const database=db();
     const listing=await database.prepare(`SELECT l.id,l.seller_id AS sellerId,l.printing_id AS printingId,l.title,l.amount,l.currency,l.quantity,l.type,l.status,l.items,l.expires_at AS expiresAt,o.area_id AS originAreaId,o.postal_code AS originPostalCode,o.label AS originLabel FROM listings l JOIN seller_shipping_origins o ON o.owner_id=l.seller_id WHERE l.id=?`).bind(input.listingId).first<{id:string;sellerId:string;printingId:string;title:string;amount:number;currency:string;quantity:number;type:string;status:string;items:string|null;expiresAt:string|null;originAreaId:string|null;originPostalCode:string;originLabel:string|null}>();
     if(!listing||listing.status!=='ACTIVE'||(listing.expiresAt&&new Date(`${listing.expiresAt.replace(' ','T')}Z`).getTime()<=Date.now()))throw new HttpError(404,'This listing is no longer available.');

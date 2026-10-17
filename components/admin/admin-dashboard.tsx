@@ -11,6 +11,7 @@ import {
   ShapesIcon as Shapes,
 } from '@phosphor-icons/react';
 import { MarketPolicyManager } from '@/components/admin/market-policy-manager';
+import { PaymentMethodsManager } from '@/components/admin/payment-methods-manager';
 import { MarketplaceManager } from '@/components/admin/marketplace-manager';
 import { FeedbackInbox } from '@/components/admin/feedback-inbox';
 import { TrafficAttribution } from '@/components/admin/traffic-attribution';
@@ -22,7 +23,7 @@ type Health={generatedAt:string;summary:{identities:number;printings:number;sets
 type CoachRequest={id:string;actor_email:string|null;actor_subject:string|null;ip_address:string|null;user_agent:string|null;locale:string;model:string;question:string;leader_code:string|null;deck_size:number;candidate_count:number;response_text:string|null;status:string;error_code:string|null;duration_ms:number;created_at:string};
 const number=new Intl.NumberFormat('en-US');
 
-type Section='overview'|'customers'|'catalog'|'policy'|'marketplace'|'feedback'|'traffic'|'payouts'|'disputes';
+type Section='overview'|'customers'|'catalog'|'policy'|'payments'|'marketplace'|'feedback'|'traffic'|'payouts'|'disputes';
 export function AdminDashboard({initialSection='overview'}:{initialSection?:Section}){
   const section=initialSection;
   const [data,setData]=useState<Health|null>(null);
@@ -59,14 +60,14 @@ export function AdminDashboard({initialSection='overview'}:{initialSection?:Sect
       <header className="admin-health-heading">
         <div>
           <p className="eyebrow">OPERATIONS & CONTROL</p>
-          <h1>{section === 'overview' ? 'Dashboard' : section === 'customers' ? 'Customers' : section === 'catalog' ? 'Catalog health' : section === 'policy' ? 'Market Policy' : section === 'marketplace' ? 'Listings & sellers' : section === 'traffic' ? 'Campaign attribution' : section==='payouts'?'Payouts':section==='disputes'?'Order reports':'Feedback inbox'}</h1>
+          <h1>{section === 'overview' ? 'Dashboard' : section === 'customers' ? 'Customers' : section === 'catalog' ? 'Catalog health' : section === 'policy' ? 'Market Policy' : section === 'payments' ? 'Payment methods' : section === 'marketplace' ? 'Listings & sellers' : section === 'traffic' ? 'Campaign attribution' : section==='payouts'?'Payouts':section==='disputes'?'Order reports':'Feedback inbox'}</h1>
           <p>
             {section === 'overview'
               ? 'Accounts, paid orders, and sales activity.'
               : section === 'customers' ? 'Search accounts and check membership details.'
               : section === 'catalog'
               ? 'Storage coverage and import gaps across the live One Piece catalog.'
-              : section === 'policy' ? 'Dynamic listing lifespans, seller quotas, and retention rules.' : section === 'marketplace' ? 'Recent Market listings and the sellers behind them.' : section === 'traffic' ? 'UTM campaigns, landing pages, and referrals to VivrePlay.' : section==='payouts'?'Review seller withdrawal requests and record transfers.':section==='disputes'?'Review buyer evidence, seller responses, and order outcomes.':'Card data reports, product feedback, and bug reports.'}
+              : section === 'policy' ? 'Dynamic listing lifespans, seller quotas, and retention rules.' : section === 'payments' ? 'Choose which iPaymu payment channels buyers can use for Market orders and Pro.' : section === 'marketplace' ? 'Recent Market listings and the sellers behind them.' : section === 'traffic' ? 'UTM campaigns, landing pages, and referrals to VivrePlay.' : section==='payouts'?'Review seller withdrawal requests and record transfers.':section==='disputes'?'Review buyer evidence, seller responses, and order outcomes.':'Card data reports, product feedback, and bug reports.'}
           </p>
         </div>
 
@@ -79,6 +80,8 @@ export function AdminDashboard({initialSection='overview'}:{initialSection?:Sect
         <AdminCustomerManager />
       ) : section === 'policy' ? (
         <MarketPolicyManager />
+      ) : section === 'payments' ? (
+        <PaymentMethodsManager />
       ) : section === 'marketplace' ? (
         <MarketplaceManager />
       ) : section === 'feedback' ? (
