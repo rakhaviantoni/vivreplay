@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  manifest: "/market.webmanifest",
+  applicationName: "VivrePlay Market",
+  appleWebApp: {
+    capable: true,
+    title: "VivrePlay Market",
+    statusBarStyle: "default",
+  },
+  manifest: "/market.webmanifest?v=2",
   icons: {
     icon: [
       { url: "/brand/vivreplay-market-icon-192.png", type: "image/png", sizes: "192x192" },
