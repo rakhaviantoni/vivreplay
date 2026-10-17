@@ -17,7 +17,7 @@ export const metadata:Metadata={
   description,
   applicationName:siteName,
   keywords:['VivrePlay','One Piece Card Game','OPTCG','TCG cards','deck builder','card collection'],
-  icons:{icon:[{url:'/brand/vivreplay-icon-192.png',type:'image/png',sizes:'192x192'},{url:'/brand/vivreplay-compass-96.webp',type:'image/webp',sizes:'96x96'}],apple:[{url:'/brand/vivreplay-icon-192.png',sizes:'192x192',type:'image/png'}]},
+  icons:{icon:[{url:'/brand/vivreplay-icon-192.png',type:'image/png',sizes:'192x192'},{url:'/brand/vivreplay-icon-512.png',type:'image/png',sizes:'512x512'},{url:'/brand/vivreplay-map-icon.svg',type:'image/svg+xml',sizes:'any'}],apple:[{url:'/brand/vivreplay-icon-192.png',sizes:'192x192',type:'image/png'}]},
   manifest:'/manifest.webmanifest',
   openGraph:{type:'website',siteName,title:siteName,description,images:[{url:'/brand/vivreplay-og.png',width:1200,height:630,alt:'VivrePlay'}]},
   twitter:{card:'summary_large_image',title:siteName,description,images:['/brand/vivreplay-og.png']},

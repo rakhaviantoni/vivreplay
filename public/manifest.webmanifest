@@ -1,12 +1,22 @@
 {
-  "name": "VivrePlay One Piece Card Game companion",
+  "id": "/",
+  "name": "VivrePlay",
   "short_name": "VivrePlay",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#fffaf0",
   "theme_color": "#fffaf0",
   "icons": [
     {"src":"/brand/vivreplay-icon-192.png","sizes":"192x192","type":"image/png","purpose":"any"},
-    {"src":"/brand/vivreplay-icon-512.png","sizes":"512x512","type":"image/png","purpose":"any"}
-  ]
+    {"src":"/brand/vivreplay-icon-512.png","sizes":"512x512","type":"image/png","purpose":"any"},
+    {"src":"/brand/vivreplay-map-icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any"}
+  ],
+  "shortcuts": [{
+    "name": "Market",
+    "short_name": "Market",
+    "description": "Browse cards for sale",
+    "url": "/market",
+    "icons": [{"src":"/brand/vivreplay-market-icon-192.png","sizes":"192x192","type":"image/png"}]
+  }]
 }
