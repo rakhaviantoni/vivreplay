@@ -616,6 +616,13 @@ html[data-theme='dark'] .market-card-lookup-actions button{border-color:#315463;
   font-weight: 750!important;
   margin: 0!important;
 }
+.market-feed-filters .market-feed-filter-control{
+  gap:7px!important;
+  color:var(--muted)!important;
+  font-size:12px!important;
+}
+.market-feed-filter-control>svg{flex:none;color:var(--accent)}
+.market-feed-filter-control .picker{min-width:0}
 .market-view-toggle{
   display: inline-flex!important;
   align-items: center!important;

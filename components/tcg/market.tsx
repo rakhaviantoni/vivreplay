@@ -7,6 +7,7 @@ import {useSearchParams} from 'next/navigation';
 import {
   ArrowLeftIcon as ArrowLeft,
   ArrowRightIcon as ArrowRight,
+  ArrowsDownUpIcon as ArrowsDownUp,
   CheckIcon as Check,
   CardsIcon as Cards,
   CardsIcon as VaultIcon,
@@ -21,6 +22,7 @@ import {
   ShoppingCartIcon as Cart,
   StorefrontIcon as Store,
   TrashIcon as Trash,
+  TranslateIcon as Translate,
   WalletIcon as WalletCards,
   XIcon as X,
 } from '@phosphor-icons/react';
@@ -1103,8 +1105,8 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                 </button>
               </div>
               <div className="market-feed-filters">
-                <label>
-                  {locale === 'ID' ? 'Bahasa:' : 'Language:'}
+                <label className="market-feed-filter-control">
+                  <Translate size={16} weight="regular" aria-hidden="true" />
                   <Picker
                     label={locale === 'ID' ? 'Bahasa listing' : 'Listing language'}
                     value={lang}
@@ -1116,8 +1118,8 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                     ]}
                   />
                 </label>
-                <label>
-                  {locale === 'ID' ? 'Urutan:' : 'Sort:'}
+                <label className="market-feed-filter-control">
+                  <ArrowsDownUp size={16} weight="regular" aria-hidden="true" />
                   <Picker
                     label={locale === 'ID' ? 'Urutan listing' : 'Sort listings'}
                     value={sort}
