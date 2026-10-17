@@ -9,6 +9,7 @@ import {CollectionForm} from './collection-form';
 import {ShareButton} from './share';
 import {Tabs,TabsList,TabsTrigger} from '@/components/ui/tabs';
 import {useAccount,api} from '@/lib/client';
+import {MarketSellAction} from './market-sell-action';
 export function CardDetail({card,initialLanguage}:{card:Card;initialLanguage:string}) {
   const [lang,setLang]=useState(initialLanguage);
   const [open,setOpen]=useState(false);
@@ -33,7 +34,7 @@ export function CardDetail({card,initialLanguage}:{card:Card;initialLanguage:str
           <button className="button secondary" aria-label={wished?'Remove from wishlist':'Add to wishlist'} onClick={async()=>{try { await api('/api/wishlist',{printingId:printing.id,saved:!wished}); await refresh(); toast.success(wished?'Removed from wishlist':'Saved to wishlist'); } catch(error) { toast.error((error as Error).message); }}}><Heart size={18} fill={wished?'currentColor':'none'}/></button>
           <ShareButton title={card.name} path={`/cards/${card.code}?lang=${lang}`}/>
         </div>
-        <div className="detail-links"><Link href={`/decks/builder?card=${card.id}`}><Layers3 size={18}/>Build with this card <ArrowUpRightIcon aria-hidden="true" size={14}/></Link><Link href={`/market?sell=${printing.id}`}><Store size={18}/>Sell this card <ArrowUpRightIcon aria-hidden="true" size={14}/></Link></div>
+        <div className="detail-links"><Link href={`/decks/builder?card=${card.id}`}><Layers3 size={18}/>Build with this card <ArrowUpRightIcon aria-hidden="true" size={14}/></Link><MarketSellAction printingId={printing.id}><Store size={18}/>Sell this card</MarketSellAction></div>
         <div className="provenance"><ShieldCheck size={17}/><div><strong>Card image source</strong><p>This card uses its official One Piece Card Game printing. Card language and printing remain independent fields.</p></div></div>
       </div>
     </div>

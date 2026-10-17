@@ -70,11 +70,9 @@ export function MarketStoreNav({initialQuery='',sellHref='/market?sell=open',sho
   const search=(event:FormEvent)=>{event.preventDefault();if(onSearchSubmit){onSearchSubmit(currentQuery);return}router.push(`/market${currentQuery.trim()?`?card=${encodeURIComponent(currentQuery.trim())}`:''}`)};
   const onSell=()=>{
     if(data){
-      if(pathname.includes('/market/')){
-        const printingId=new URL(sellHref,window.location.origin).searchParams.get('sell');
-        if(printingId){window.dispatchEvent(new CustomEvent('vivreplay:open-sell-printing',{detail:printingId}));return;}
-      }
-      router.push(sellHref);
+      const printingId=new URL(sellHref,window.location.origin).searchParams.get('sell');
+      if(printingId&&printingId!=='open')window.dispatchEvent(new CustomEvent('vivreplay:open-sell-printing',{detail:printingId}));
+      else window.dispatchEvent(new CustomEvent('vivreplay:open-sell-listing',{detail:'WTS'}));
     }else{
       window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));
     }

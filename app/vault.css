@@ -754,7 +754,7 @@
 .vault-bulk-listing-fields input{width:100%;min-width:0;height:38px;padding:0 10px;border:1px solid var(--vault-slot-border);border-radius:5px;background:transparent;color:inherit;font:inherit;font-weight:400}
 .vault-bulk-listing-fields input[readonly]{background:color-mix(in srgb,var(--vault-slot-bg) 70%,transparent);color:var(--vault-ink-muted)}
 .vault-bulk-listing-fields label>small{font-size:10px;font-weight:500}
-.vault-bulk-listing-fields label>small a{color:var(--vault-brass);text-decoration:underline;text-underline-offset:2px}
+.vault-bulk-listing-fields label>small a,.vault-bulk-listing-fields label>small button{padding:0;border:0;background:none;color:var(--vault-brass);font:inherit;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
 .vault-bulk-listing-modal form>.market-price-mode{margin-top:15px}
 .vault-bulk-listing-summary{display:flex;justify-content:space-between;gap:10px;margin-top:12px;padding:10px 0;border-top:1px solid var(--vault-slot-border);color:var(--vault-ink-muted);font-size:12px}
 .vault-bulk-listing-summary>span{display:grid;gap:4px}

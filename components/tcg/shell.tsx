@@ -18,6 +18,7 @@ import {FeedbackForm} from './feedback-form';
 import {FeedbackLaunchButton,type FeedbackRequest} from './feedback-launch';
 import {AnalyticsConsent} from './analytics-consent';
 import {MarketStoreNav} from './market-store-nav';
+import {MarketDialogHost} from './market-dialog-host';
 
 type Locale='EN'|'ID';
 type NavItem={href:string;label:string;labelId:string;icon:typeof Home};
@@ -127,6 +128,7 @@ export function Shell({children,initialPath='/'}:{children:React.ReactNode;initi
   const isIdPath=path==='/id'||path.startsWith('/id/');
   const normalizedPath=isIdPath?(path.replace(/^\/id/,'')||'/'):path;
   const marketCheckout=normalizedPath==='/checkout/market'||normalizedPath==='/checkout/pro'||normalizedPath.startsWith('/checkout/order/');
+  const marketRoute=normalizedPath==='/market'||normalizedPath.startsWith('/market/');
   const adminRoute=normalizedPath==='/admin'||normalizedPath.startsWith('/admin/');
   const {data}=useAccount();
   const [theme,setTheme]=useState<'light'|'dark'>('light');
@@ -270,6 +272,7 @@ export function Shell({children,initialPath='/'}:{children:React.ReactNode;initi
     </Dialog>
     <CookieNotice language={language}/>
     <AnalyticsConsent/>
+    {!adminRoute&&!marketRoute&&<MarketDialogHost accountActions={!marketCheckout}/>}
     {!marketCheckout&&<NewCardsAnnouncement/>}
     {!marketCheckout&&<MiniRail language={language}/>}
     {!marketCheckout&&<nav className="mobile-nav" aria-label="Mobile navigation">

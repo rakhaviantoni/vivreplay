@@ -423,7 +423,7 @@ function MarketCardLookup({
     </section>
   );
 }
-export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[];modalOnly?:boolean}) {
+export function Market({initialCards=[],modalOnly=false,initialSellPrinting,initialSellType}:{initialCards?:string[];modalOnly?:boolean;initialSellPrinting?:string;initialSellType?:'WTS'|'WTB'}) {
   const {data,loading:accountLoading,refresh:refreshAccount}=useAccount();
   const searchParams=useSearchParams();
   const [listings,setListings]=useState<Listing[]>([]);
@@ -441,14 +441,15 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
   const [open,setOpen]=useState(()=>!modalOnly&&Boolean(searchParams.get('sell')&&searchParams.get('sell')!=='open'));
   const [directSellLoading,setDirectSellLoading]=useState(()=>!modalOnly&&Boolean(searchParams.get('sell')&&searchParams.get('sell')!=='open'));
   const queuedSellPrinting=useRef('');
+  const initialSellHandled=useRef(false);
   const [bulkListingOpen,setBulkListingOpen]=useState(false);
   const directSellSearchHandled=useRef(false);
   const configLoadVersion=useRef(0);
   const [busy,setBusy]=useState(false);
   const [saveError,setSaveError]=useState('');
   const [locale,setLocale]=useState<'EN'|'ID'>('EN');
-  const [accountPanel,setAccountPanel]=useState<'listings'|'offers'|'orders'|'saved'|null>(()=>{const activity=searchParams.get('activity');return activity==='offers'||activity==='orders'||activity==='listings'||activity==='saved'?activity:null});
-  const [quickPanel,setQuickPanel]=useState<'profile'|'vault'|'wishlist'|null>(()=>['delivery','payouts'].includes(searchParams.get('profile')??'')?'profile':null);
+  const [accountPanel,setAccountPanel]=useState<'listings'|'offers'|'orders'|'saved'|null>(()=>{if(modalOnly)return null;const activity=searchParams.get('activity');return activity==='offers'||activity==='orders'||activity==='listings'||activity==='saved'?activity:null});
+  const [quickPanel,setQuickPanel]=useState<'profile'|'vault'|'wishlist'|null>(()=>!modalOnly&&['delivery','payouts'].includes(searchParams.get('profile')??'')?'profile':null);
   const [activityCounts,setActivityCounts]=useState({listings:0,offers:0,orders:0});
   const [cartCount,setCartCount]=useState(0);
   const profileId=String(data?.profile?.id??'');
@@ -456,7 +457,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
     const sync=()=>{try{const cart=JSON.parse(window.localStorage.getItem('vivreplay-market-cart-v1')||'null') as {lines?:Array<{items?:Array<{quantity?:number}>}>}|null;setCartCount((cart?.lines??[]).reduce((sum,line)=>sum+(line.items??[]).reduce((total,item)=>total+(Number(item.quantity)||0),0),0))}catch{setCartCount(0)}};
     sync();window.addEventListener('vivreplay:market-cart-updated',sync);window.addEventListener('storage',sync);return()=>{window.removeEventListener('vivreplay:market-cart-updated',sync);window.removeEventListener('storage',sync)};
   },[]);
-  useEffect(()=>{const profileTab=searchParams.get('profile');if(profileTab==='delivery'||profileTab==='payouts'){setProfileQuickTab(profileTab);setAccountPanel(null);setQuickPanel('profile')}},[searchParams]);
+  useEffect(()=>{if(modalOnly)return;const profileTab=searchParams.get('profile');if(profileTab==='delivery'||profileTab==='payouts'){setProfileQuickTab(profileTab);setAccountPanel(null);setQuickPanel('profile')}},[searchParams,modalOnly]);
   // Bundle & Card Listing Draft State
   const [bundleCards,setBundleCards]=useState<ListingBundleCard[]>([]);
   const [publishedShare,setPublishedShare]=useState<PublishedShare|null>(null);
@@ -480,7 +481,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
   const [listingNegotiable,setListingNegotiable]=useState(true);
   const [listingCity,setListingCity]=useState('');
   const [buyerCity,setBuyerCity]=useState('');
-  const [profileQuickTab,setProfileQuickTab]=useState<'account'|'delivery'|'payouts'>(()=>searchParams.get('profile')==='payouts'?'payouts':'account');
+  const [profileQuickTab,setProfileQuickTab]=useState<'account'|'delivery'|'payouts'>(()=>!modalOnly&&searchParams.get('profile')==='payouts'?'payouts':'account');
   useEffect(()=>{
     if(!open||!data?.profile?.id)return;
     let active=true;
@@ -637,6 +638,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
   };
   // Direct sell URL support (e.g. ?sell=<id>)
   useEffect(()=>{
+    if(modalOnly)return;
     const sell=searchParams.get('sell');
     if(!sell)return;
     if(accountLoading)return;
@@ -661,7 +663,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
       sellCard(cardObj);
     })();
     return()=>{active=false};
-  },[searchParams,accountLoading,data]);
+  },[searchParams,accountLoading,data,modalOnly]);
   // Fetch benchmark whenever selected printing changes
   useEffect(()=>{
     if(!selectedPrintingId){
@@ -864,6 +866,19 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
     window.addEventListener('vivreplay:open-sell-listing',onCreate);
     return()=>{window.removeEventListener('vivreplay:open-sell-printing',onSell);window.removeEventListener('vivreplay:open-sell-listing',onCreate)};
   },[modalOnly,accountLoading,beginListing,sellPrinting]);
+  useEffect(()=>{
+    if(!modalOnly||initialSellHandled.current)return;
+    if(initialSellPrinting){
+      initialSellHandled.current=true;
+      if(accountLoading)queuedSellPrinting.current=initialSellPrinting;
+      else void sellPrinting(initialSellPrinting);
+      return;
+    }
+    if(initialSellType&&!accountLoading){
+      initialSellHandled.current=true;
+      beginListing(initialSellType);
+    }
+  },[modalOnly,initialSellPrinting,initialSellType,accountLoading,beginListing,sellPrinting]);
   useEffect(()=>{
     if(!modalOnly||!queuedSellPrinting.current||accountLoading)return;
     const printingId=queuedSellPrinting.current;
@@ -1692,7 +1707,7 @@ export function Market({initialCards=[],modalOnly=false}:{initialCards?:string[]
       {bulkListingOpen&&<BulkListingModal open={bulkListingOpen} onClose={wasPublished=>{setBulkListingOpen(false);if(!wasPublished)setOpen(true)}} language={locale} stacks={groupVaultStacks((data?.collection??[]).map(item=>enrichCollectionItem(item,new Set())))} onPublished={async()=>{await refresh();await refreshAccount()}}/>}
       {publishedShare&&<ShareButton title={publishedShare.title} path={marketListingPath(publishedShare.title,publishedShare.id)} cards={publishedShare.cards.map(item=>({card:printingToCard(item.card,item.printing),printingId:item.printing.id,quantity:item.quantity,condition:item.condition,unitAmount:item.unitAmount}))} subtitle={locale==='ID'?`${publishedShare.cards.reduce((sum,item)=>sum+item.quantity,0)} kartu`:`${publishedShare.cards.reduce((sum,item)=>sum+item.quantity,0)} cards`} listingInfo={{seller:publishedShare.seller,city:publishedShare.city,expiresAt:publishedShare.expiresAt,timeZone:publishedShare.timeZone}} price={formatMoney(publishedShare.price,'IDR')} openOnMount hideTrigger onOpenChange={open=>{if(!open)setPublishedShare(null)}}/>}
 
-      {data&&<MarketQuickPanel panel={accountPanel??quickPanel} onOpenChange={open=>{if(!open){setAccountPanel(null);setQuickPanel(null)}}} onPanelChange={next=>{if(next==='listings'||next==='offers'||next==='orders'||next==='saved'){setQuickPanel(null);setAccountPanel(next)}else{setAccountPanel(null);setQuickPanel(next)}}} onCreateListing={()=>{setAccountPanel(null);setQuickPanel(null);beginListing()}} locale={locale} account={data} activityCounts={activityCounts} initialOrderId={searchParams.get('order')} initialConversationId={searchParams.get('conversation')} initialProfileTab={profileQuickTab} onRefresh={async()=>{await Promise.all([refreshAccount(),refresh()])}} onSaved={async()=>{await refreshAccount();setAccountPanel(null);setQuickPanel(null)}}/>}
+      {data&&<MarketQuickPanel panel={accountPanel??quickPanel} onOpenChange={open=>{if(!open){setAccountPanel(null);setQuickPanel(null)}}} onPanelChange={next=>{if(next==='listings'||next==='offers'||next==='orders'||next==='saved'){setQuickPanel(null);setAccountPanel(next)}else{setAccountPanel(null);setQuickPanel(next)}}} onCreateListing={()=>{setAccountPanel(null);setQuickPanel(null);beginListing()}} locale={locale} account={data} activityCounts={activityCounts} initialOrderId={modalOnly?null:searchParams.get('order')} initialConversationId={modalOnly?null:searchParams.get('conversation')} initialProfileTab={profileQuickTab} onRefresh={async()=>{await Promise.all([refreshAccount(),refresh()])}} onSaved={async()=>{await refreshAccount();setAccountPanel(null);setQuickPanel(null)}}/>}
       <AddEditItemModal
         key={`${marketVaultCard?.id??'market-card'}-${marketVaultOpen?'open':'closed'}`}
         open={marketVaultOpen}

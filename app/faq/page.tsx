@@ -8,6 +8,7 @@ import {marketFeeDisclosure,marketProShippingDisclosure} from '@/lib/market/lega
 
 type FaqItem={question:string;answer:ReactNode;plainAnswer:string};
 type FaqGroup={title:string;items:FaqItem[]};
+const faqGroupId=(title:string)=>title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/&/g,'and').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 
 export async function generateMetadata():Promise<Metadata>{
   const id=await isIndonesianRequest();
@@ -61,12 +62,13 @@ export default async function FaqPage(){
   return <main className="page faq-page">
     <script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(structuredData)}}/>
     <header className="faq-heading"><div><h1>{id?'Tanya jawab':'FAQ'}</h1><p>{id?'Jawaban singkat tentang akun, koleksi, biaya Market, dan pesanan.':'Short answers about accounts, your collection, Market fees, and orders.'}</p></div><Link className="faq-help-link" href={id?'/id/help':'/help'}>{id?'Buka pusat bantuan':'Open Help Center'}</Link></header>
-    <nav className="faq-jump-links" aria-label={id?'Topik FAQ':'FAQ topics'}>{groups.map((group,index)=><a key={group.title} href={`#faq-group-${index}`}>{group.title}</a>)}</nav>
-    {groups.map((group,index)=><section className="faq-group" id={`faq-group-${index}`} key={group.title} aria-labelledby={`faq-group-heading-${index}`}>
-      <h2 id={`faq-group-heading-${index}`}>{group.title}</h2>
+    <nav className="faq-jump-links" aria-label={id?'Topik FAQ':'FAQ topics'}>{groups.map(group=><a key={group.title} href={`#${faqGroupId(group.title)}`}>{group.title}</a>)}</nav>
+    {groups.map((group,index)=>{const sectionId=faqGroupId(group.title);return <section className="faq-group" id={sectionId} key={group.title} aria-labelledby={`${sectionId}-heading`}>
+      <span className="faq-anchor-alias" id={`faq-group-${index}`} aria-hidden="true"/>
+      <h2 id={`${sectionId}-heading`}>{group.title}</h2>
       <div className="faq-accordion">{group.items.map(item=><details className="faq-item" key={item.question}>
         <summary>{item.question}<span aria-hidden="true" className="faq-chevron"/></summary><div className="faq-answer"><p>{item.answer}</p></div>
       </details>)}</div>
-    </section>)}
+    </section>})}
   </main>;
 }

@@ -3,12 +3,12 @@ import {db} from '@/lib/server/store';
 import {helpArticles} from '@/lib/help/articles';
 
 const base='https://vivreplay.com';
-const corePaths=['/','/about','/cards','/cards/index','/archetypes','/sets','/market','/meta','/play','/play/tutorial','/decks','/legal/terms','/legal/privacy','/legal/refund','/faq','/help'];
+const corePaths=['/','/about','/cards','/cards/index','/archetypes','/sets','/market','/meta','/play','/play/tutorial','/decks','/legal/terms','/legal/privacy','/legal/refund','/faq','/help','/contact'];
 
 export default async function sitemap():Promise<MetadataRoute.Sitemap>{
   const now=new Date();
   const entries:MetadataRoute.Sitemap=corePaths.map(path=>({url:`${base}${path}`,lastModified:now,changeFrequency:path==='/cards'||path==='/market'?'daily':'weekly',priority:path==='/'?1:(path==='/cards'||path==='/market'?0.9:0.65)}));
-  for(const path of ['/legal/terms','/legal/privacy','/legal/refund','/faq','/help'])entries.push({url:`${base}/id${path}`,lastModified:now,changeFrequency:'weekly',priority:.6});
+  for(const path of ['/legal/terms','/legal/privacy','/legal/refund','/faq','/help','/contact'])entries.push({url:`${base}/id${path}`,lastModified:now,changeFrequency:'weekly',priority:.6});
   for(const article of helpArticles){
     const path=`/help/${article.slug}`;
     entries.push({url:`${base}${path}`,lastModified:now,changeFrequency:'monthly',priority:.55});

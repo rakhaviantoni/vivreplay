@@ -330,7 +330,7 @@ export function Vault() {
   };
 
   const handleSell = (item: EnrichedCollectionItem) => {
-    router.push(`/market?sell=${item.printingId}`);
+    window.dispatchEvent(new CustomEvent('vivreplay:open-sell-printing',{detail:item.printingId}));
   };
 
   const handleFindListings = (code: string) => {

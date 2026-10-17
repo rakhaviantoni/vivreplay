@@ -6,6 +6,7 @@ import { cardFor, printings } from '@/packages/card-data/catalog';
 import { formatCompactMoney, formatMoney, GRADING_PROVIDERS } from '@/packages/domain';
 import { CardArt } from '@/components/tcg/card-art';
 import { SlabPhotos } from '@/components/tcg/slab-photos';
+import { MarketSellAction } from '@/components/tcg/market-sell-action';
 import { ShareButton } from '@/components/tcg/share';
 import { ArrowLeftIcon as ArrowLeft, ShieldCheckIcon as ShieldCheck, CheckCircleIcon as CheckCircle, StorefrontIcon as Store } from '@phosphor-icons/react/dist/ssr';
 
@@ -264,10 +265,10 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
               privateEntity={row.visibility !== 'public'}
             />
             {isOwner && (
-              <Link href={`/market?sell=${row.printing_id}`} className="vault-btn vault-btn-secondary" style={{ textDecoration: 'none' }}>
+              <MarketSellAction printingId={row.printing_id} className="vault-btn vault-btn-secondary" style={{ textDecoration: 'none' }}>
                 <Store size={15} />
                 List for Sale
-              </Link>
+              </MarketSellAction>
             )}
           </div>
         </div>
