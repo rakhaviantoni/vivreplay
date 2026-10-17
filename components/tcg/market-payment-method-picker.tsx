@@ -16,7 +16,7 @@ export function estimatePaymentFee(option:PaymentOption|undefined,amount:number)
 }
 
 export function paymentMethodLabel(method:PaymentMethod,locale:'EN'|'ID'){
-  const labels:{[key in PaymentMethod]:string}={va:locale==='ID'?'Transfer bank':'Bank transfer',cstore:locale==='ID'?'Gerai pembayaran':'Convenience store',qris:'QRIS',cc:locale==='ID'?'Kartu kredit atau debit':'Credit or debit card',paylater:locale==='ID'?'Bayar nanti':'Pay later',ewallet:locale==='ID'?'Dompet digital':'E-wallet'};
+  const labels:{[key in PaymentMethod]:string}={va:'Virtual account',cstore:locale==='ID'?'Gerai pembayaran':'Convenience store',qris:'QRIS',cc:locale==='ID'?'Kartu kredit atau debit':'Credit or debit card',paylater:locale==='ID'?'Bayar nanti':'Pay later',ewallet:locale==='ID'?'Dompet digital':'E-wallet'};
   return labels[method];
 }
 

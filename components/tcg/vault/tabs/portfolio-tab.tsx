@@ -95,10 +95,10 @@ export function PortfolioTab({
               {t('Estimated collection value','Perkiraan nilai koleksi')}
             </span>
             <div style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '32px', fontWeight: 600, color: 'var(--vault-ink)', margin: '4px 0' }}>
-              {hideValues ? 'Rp ••••••••' : isPricingLoading ? 'Loading…' : stats.marketPricedCount ? formatCompactMoney(stats.estimatedValue, 'IDR') : '-'}
+              {hideValues ? 'Rp ••••••••' : isPricingLoading ? <span className="vault-value-skeleton" role="status" aria-label={t('Loading portfolio value','Memuat nilai koleksi')}/> : stats.marketPricedCount ? formatCompactMoney(stats.estimatedValue, 'IDR') : '-'}
             </div>
             <span style={{ fontSize: '11.5px', color: 'var(--vault-ink-secondary)' }}>
-              {hideValues ? t('Hidden','Disembunyikan') : isPricingLoading ? t('Checking saved Yuyutei prices…','Memeriksa harga Yuyutei…') : stats.marketPricedCount ? `${t('Priced copies only:','Nilai kartu dengan data harga:')} ${formatMoney(stats.estimatedValue, 'IDR')}` : t('No exact printing prices available','Harga untuk cetakan ini belum tersedia')}
+              {hideValues ? t('Hidden','Disembunyikan') : isPricingLoading ? <span className="vault-value-caption-skeleton" role="status" aria-label={t('Checking saved prices','Memeriksa harga tersimpan')}/> : stats.marketPricedCount ? `${t('Priced copies only:','Nilai kartu dengan data harga:')} ${formatMoney(stats.estimatedValue, 'IDR')}` : t('No exact printing prices available','Harga untuk cetakan ini belum tersedia')}
             </span>
           </div>
 

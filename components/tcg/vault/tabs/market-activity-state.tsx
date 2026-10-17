@@ -28,7 +28,7 @@ export function MarketCardStack({cards}:{cards:MarketActivityCard[]}){
 
 export function MarketActivityLoading({label,kind}:{label:string;kind:'listings'|'offers'|'orders'}){
   return <section className={`market-activity-loading is-${kind}`} aria-busy="true" aria-label={label}>
-    <p>{label}</p>
+    <span className="sr-only" role="status">{label}</span>
     <div className="market-activity-skeleton-list" aria-hidden="true">
       {Array.from({length:3},(_,index)=><div className="market-activity-skeleton-row" key={index}>
         {kind==='offers'&&<i className="market-activity-skeleton-art"/>}

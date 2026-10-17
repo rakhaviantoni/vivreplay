@@ -663,7 +663,7 @@ export function AddEditItemModal({
             </div>
             <div className="vault-market-reference" aria-live="polite">
               <span className="vault-market-reference-label">{language === 'ID' ? 'Estimasi pasar (IDR)' : 'Market estimate (IDR)'}</span>
-              <strong>{!hasMarketReference ? (language === 'ID' ? 'Belum tersedia untuk cetakan EN' : 'Not available for EN printings') : marketEstimateLoading ? (language === 'ID' ? 'Memuat…' : 'Loading…') : marketEstimateIdr !== null ? `Rp ${marketEstimateIdr.toLocaleString('id-ID')}` : (language === 'ID' ? 'Harga cetakan ini belum ditemukan' : 'No price found for this printing')}</strong>
+              <strong>{!hasMarketReference ? (language === 'ID' ? 'Belum tersedia untuk cetakan EN' : 'Not available for EN printings') : marketEstimateLoading ? <span className="vault-value-skeleton" role="status" aria-label={language==='ID'?'Memuat estimasi pasar':'Loading market estimate'}/> : marketEstimateIdr !== null ? `Rp ${marketEstimateIdr.toLocaleString('id-ID')}` : (language === 'ID' ? 'Harga cetakan ini belum ditemukan' : 'No price found for this printing')}</strong>
               <small>{!hasMarketReference ? (language === 'ID' ? 'Harga kartu bahasa Inggris belum tersedia.' : 'English pricing is not in the current dataset.') : marketEstimateIdr !== null ? (language === 'ID' ? 'Harga referensi untuk cetakan terpilih.' : 'Reference price for the selected printing.') : (language === 'ID' ? 'Menggunakan data Yuyutei untuk cetakan persis ini.' : 'Uses the exact printing’s saved Yuyutei observations.')}</small>
             </div>
           </div>
