@@ -245,7 +245,7 @@ export function Shell({children,initialPath='/'}:{children:React.ReactNode;initi
   const crumb=normalizedPath==='/'?(language==='ID'?'Beranda':'Home'):normalizedPath.split('/')[1].replace(/^./,char=>char.toUpperCase());
   const getHref=(href:string)=>language==='ID'?(href==='/'?'/id':`/id${href}`):href;
 
-  if(adminRoute)return <div className="admin-shell"><div className="admin-shell-content">{children}</div><Toaster richColors theme={theme}/></div>;
+  if(adminRoute)return <div className="admin-shell"><div className="admin-shell-content">{children}</div><Toaster theme={theme}/></div>;
 
   return <div className={`site-shell${marketCheckout?' market-checkout-shell':''}`}>
     {marketCheckout?<><MarketStoreNav showPromo={false}/>{!data&&<AuthDialog language={language} showTrigger={false}/>}</>:<header className={`masthead ${scrolled?'is-scrolled':''} ${theme==='dark'?'theme-dark':''}`}>
@@ -278,6 +278,6 @@ export function Shell({children,initialPath='/'}:{children:React.ReactNode;initi
     {!marketCheckout&&<nav className="mobile-nav" aria-label="Mobile navigation">
       {mobileNav.map(item=>{const Icon=item.icon;return <Link key={item.href} href={getHref(item.href)} className={selected(item.href)?'active':''}><Icon size={20}/><span>{language==='ID'?item.labelId:item.label}</span></Link>})}
     </nav>}
-    <Toaster richColors theme={theme}/>
+    <Toaster theme={theme}/>
   </div>;
 }

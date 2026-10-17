@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { CheckCircleIcon as CheckCircle } from "@phosphor-icons/react";
 
 export function VerifiedCompletion({ returnTo, signedIn, isIndonesian }: { returnTo: string; signedIn: boolean; isIndonesian: boolean }) {
   const router = useRouter();
@@ -12,8 +13,11 @@ export function VerifiedCompletion({ returnTo, signedIn, isIndonesian }: { retur
   useEffect(() => {
     toast.success(signedIn
       ? (isIndonesian ? "Email terverifikasi. Anda sudah masuk." : "Email verified. You’re signed in.")
-      : (isIndonesian ? "Email terverifikasi. Silakan masuk untuk melanjutkan." : "Email verified. Sign in to continue."));
-    const timer = window.setTimeout(() => router.replace(signedIn ? returnTo : signInHref), 1500);
+      : (isIndonesian ? "Email terverifikasi. Silakan masuk untuk melanjutkan." : "Email verified. Sign in to continue."), {
+        id: "email-verification-complete",
+        duration: 4500,
+      });
+    const timer = window.setTimeout(() => router.replace(signedIn ? returnTo : signInHref), 2800);
     return () => window.clearTimeout(timer);
   }, [isIndonesian, returnTo, router, signInHref, signedIn]);
 
@@ -21,6 +25,7 @@ export function VerifiedCompletion({ returnTo, signedIn, isIndonesian }: { retur
     <div className="auth-card-body">
       <div className="auth-success" role="status">
         <div style={{ display: "flex", alignItems: "center", gap: 7, fontWeight: 800 }}>
+          <CheckCircle size={19} weight="fill" aria-hidden="true" />
           {isIndonesian ? "Verifikasi berhasil" : "Verification complete"}
         </div>
         <span>

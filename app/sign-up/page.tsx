@@ -157,10 +157,10 @@ export default function SignUpPage() {
                 </>:<>
                   <div className="auth-email-confirm"><div><span>Email</span><strong>{email}</strong></div><button type="button" onClick={()=>setStep('email')}>Change</button></div>
                   <label>
-                    Name
+                    Display name
                     <input ref={nameRef} name="name" autoComplete="name" minLength={2} maxLength={80} placeholder="Your name" value={displayName} onChange={event=>setDisplayName(event.target.value)} required />
                   </label>
-                  <p className="auth-name-note">Shown on your profile. You can edit your display name and username in Profile later.</p>
+                  <p className="auth-name-note">Shown on your profile and listings. Your unique username is your @handle and profile link. You can change both in Profile.</p>
                   {suggestions.length>0&&<div className="auth-name-suggestion-group" role="group" aria-label="Name suggestions"><span>{suggestions.length>1?'Choose a suggestion or edit your name':'Suggested from your email'}</span><div>{suggestions.map(suggestion=><button key={suggestion} type="button" className={displayName===suggestion?'is-selected':''} aria-pressed={displayName===suggestion} onClick={()=>setDisplayName(suggestion)}>{suggestion}</button>)}</div></div>}
                   <label>
                     Username
