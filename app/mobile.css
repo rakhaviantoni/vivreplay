@@ -3156,6 +3156,19 @@ html[data-theme="dark"] body :is(
 }
 @media(prefers-reduced-motion:reduce){.mobile-nav>a,.mobile-nav>a svg,.market-mobile-nav>a,.market-mobile-nav>button{transition:none!important}}
 
+/* Keep the card picker centered in the visual viewport on narrow screens. */
+@media(max-width:760px){
+  [data-slot='dialog-content'].market-sell-dialog{
+    position:fixed!important;inset:auto!important;top:50%!important;left:50%!important;right:auto!important;bottom:auto!important;
+    width:min(760px,calc(100vw - 20px))!important;height:calc(100dvh - 20px)!important;min-height:0!important;max-width:none!important;max-height:calc(100dvh - 20px)!important;
+    margin:0!important;transform:translate(-50%,-50%)!important;translate:none!important;
+    border:1px solid var(--line)!important;border-radius:16px!important;
+  }
+}
+.market-listing-seller-name .market-reputation-inline{appearance:none!important;min-height:0!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;color:var(--muted)!important;font:inherit!important;text-align:left!important;text-decoration:none!important;cursor:pointer!important}
+.market-listing-seller-name .market-reputation-inline:hover{background:transparent!important;box-shadow:none!important;color:var(--accent)!important;text-decoration:underline!important;text-underline-offset:2px!important}
+.market-listing-seller-name .market-reputation-inline:focus-visible{outline:2px solid color-mix(in srgb,var(--accent) 70%,transparent)!important;outline-offset:3px!important;background:transparent!important;box-shadow:none!important}
+
 /* Let the WTS/WTB label carry the type; keep feed cards on one neutral edge. */
 .market-feed-list .market-feed-row,
 .market-feed-list.is-grid .market-feed-row {
