@@ -51,6 +51,7 @@ export function MarketCheckout(){
   const [loading,setLoading]=useState(true);
   const [checkoutAvailable,setCheckoutAvailable]=useState(false);
   const [paymentOptions,setPaymentOptions]=useState<PaymentOption[]>(defaultPaymentOptions);
+  const [paymentChannelStatus,setPaymentChannelStatus]=useState<'not_configured'|'provider_unavailable'|'settings_unavailable'|'no_active_channels'|'all_disabled'|'ready'>('not_configured');
   const [selectedPaymentMethod,setSelectedPaymentMethod]=useState<PaymentOption['method']>('qris');
   const [selectedPaymentChannel,setSelectedPaymentChannel]=useState('mpm');
   const selectedPaymentChoice=useRef<{method:PaymentOption['method'];channel:string}>({method:'qris',channel:'mpm'});
@@ -102,7 +103,7 @@ export function MarketCheckout(){
     Promise.all([
       listingsRequest,
       api<{origin:Origin|null}>('/api/shipping/origin',undefined,'GET'),
-      api<{available:boolean;sandbox?:boolean;paymentChannels?:PaymentOption[];buyerTier?:'free'|'pro';buyerFeeMinimum?:number;serviceFeePercent?:number;buyerFeePercent?:number;shippingVoucherMinSubtotal?:number;shippingVouchersRemaining?:number}>('/api/checkout/market',undefined,'GET'),
+      api<{available:boolean;sandbox?:boolean;paymentChannels?:PaymentOption[];paymentChannelStatus?:typeof paymentChannelStatus;buyerTier?:'free'|'pro';buyerFeeMinimum?:number;serviceFeePercent?:number;buyerFeePercent?:number;shippingVoucherMinSubtotal?:number;shippingVouchersRemaining?:number}>('/api/checkout/market',undefined,'GET'),
     ]).then(([market,shipping,checkout])=>{
       if(!active)return;
       const checkoutLines=selectedCartLines;
@@ -113,6 +114,7 @@ export function MarketCheckout(){
       setCheckoutAvailable(checkout.available);
       const options=Array.isArray(checkout.paymentChannels)?checkout.paymentChannels:defaultPaymentOptions;
       setPaymentOptions(options);
+      setPaymentChannelStatus(checkout.paymentChannelStatus??(options.length?'ready':'provider_unavailable'));
       if(options.length&&!options.some(option=>option.method===selectedPaymentChoice.current.method&&option.channel===selectedPaymentChoice.current.channel)){
         const qris=options.find(option=>option.method==='qris');
         const first=qris??options[0];
@@ -277,7 +279,7 @@ export function MarketCheckout(){
           {!quoting&&rates.length>0&&<div className="checkout-rate-list">{rates.map(rate=>{const key=`${rate.courier_code}:${rate.courier_service_code}`;return <label key={key} className={selectedRate===key?'is-selected':''}><input type="radio" name="shipping-rate" value={key} checked={selectedRate===key} onChange={()=>setSelectedRate(key)}/><span><strong><span>{courierName(rate.courier_code)}</span><span>{rate.courier_service_name}</span></strong>{rate.duration&&<small>{rate.duration}</small>}</span><b>{formatMoney(rate.price,listing.currency)}</b></label>})}</div>}
           {quoteError&&<div><p className="checkout-error" role="alert">{quoteError}</p><button type="button" className="button secondary" onClick={()=>{setEditingAddress(true);setRates([]);setSelectedRate('')}}>{t('Edit delivery address','Ubah alamat pengiriman')}</button></div>}
         </>}
-        {checkoutAvailable&&<MarketPaymentMethodPicker locale={locale} options={paymentOptions} amount={paymentBaseTotal} selectedMethod={selectedPaymentMethod} selectedChannel={selectedPaymentChannel} onChange={(method,channel)=>{selectedPaymentChoice.current={method,channel};setSelectedPaymentMethod(method);setSelectedPaymentChannel(channel)}}/>}
+        {checkoutAvailable&&<MarketPaymentMethodPicker locale={locale} options={paymentOptions} amount={paymentBaseTotal} selectedMethod={selectedPaymentMethod} selectedChannel={selectedPaymentChannel} unavailableReason={paymentChannelStatus} onChange={(method,channel)=>{selectedPaymentChoice.current={method,channel};setSelectedPaymentMethod(method);setSelectedPaymentChannel(channel)}}/>}
         {error&&<p className="checkout-error" role="alert">{error}</p>}
         {!checkoutAvailable&&<MarketPaymentPreview amount={subtotal+(currentRate?.price??0)-shippingDiscount+buyerServiceFee} currency={listing.currency} language={locale}/>}
         <button type="button" className="button checkout-pay-button" disabled={!currentRate||editingAddress||submitting||!checkoutAvailable||!selectedPaymentOption||!contactComplete||quoting} onClick={startCheckout}>{submitting?t('Preparing payment…','Menyiapkan pembayaran…'):checkoutAvailable?t('Continue to payment','Lanjut ke pembayaran'):t('Payment coming soon','Pembayaran segera tersedia')}</button>

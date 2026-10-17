@@ -38,7 +38,7 @@ function MethodMarks({method,options}:{method:PaymentMethod;options:PaymentOptio
   </span>;
 }
 
-export function MarketPaymentMethodPicker({locale='EN',options=defaultPaymentOptions,amount,selectedMethod,selectedChannel,onChange}:{locale?:'EN'|'ID';options?:PaymentOption[];amount:number;selectedMethod:PaymentMethod;selectedChannel:string;onChange:(method:PaymentMethod,channel:string)=>void}){
+export function MarketPaymentMethodPicker({locale='EN',options=defaultPaymentOptions,amount,selectedMethod,selectedChannel,onChange,unavailableReason}:{locale?:'EN'|'ID';options?:PaymentOption[];amount:number;selectedMethod:PaymentMethod;selectedChannel:string;onChange:(method:PaymentMethod,channel:string)=>void;unavailableReason?:'not_configured'|'provider_unavailable'|'settings_unavailable'|'no_active_channels'|'all_disabled'|'ready'}){
   const t=(en:string,id:string)=>locale==='ID'?id:en;
   const methodOrder:PaymentMethod[]=['qris','va','ewallet','cc','paylater','cstore'];
   const orderedMethods=[...new Set(options.map(option=>option.method))].sort((a,b)=>methodOrder.indexOf(a)-methodOrder.indexOf(b));
@@ -46,7 +46,7 @@ export function MarketPaymentMethodPicker({locale='EN',options=defaultPaymentOpt
   const fee=estimatePaymentFee(selectedOption,amount);
   return <section className="checkout-payment-methods" aria-labelledby="checkout-payment-method-title">
     <h2 id="checkout-payment-method-title">{t('Payment method','Metode pembayaran')}</h2>
-    {orderedMethods.length===0?<p className="checkout-payment-method-empty" role="status">{t('Payment methods are unavailable right now. Please try again shortly.','Metode pembayaran belum tersedia. Silakan coba lagi sebentar.')}</p>:<div className="checkout-payment-method-grid">{orderedMethods.map(method=>{
+    {orderedMethods.length===0?<p className="checkout-payment-method-empty" role="status">{unavailableReason==='provider_unavailable'||unavailableReason==='settings_unavailable'?t('Payment options could not be loaded. Please try again later.','Opsi pembayaran tidak dapat dimuat. Silakan coba lagi nanti.'):unavailableReason==='all_disabled'?t('Payment methods are turned off right now. Please try again later.','Metode pembayaran sedang dinonaktifkan. Silakan coba lagi nanti.'):unavailableReason==='no_active_channels'?t('No payment methods are available for this checkout right now.','Belum ada metode pembayaran untuk checkout ini.'):t('Payment methods are unavailable right now. Please try again shortly.','Metode pembayaran belum tersedia. Silakan coba lagi sebentar.')}</p>:<div className="checkout-payment-method-grid">{orderedMethods.map(method=>{
       const methodOptions=options.filter(option=>option.method===method);
       const first=options.find(option=>option.method===method)!;
       const selected=selectedMethod===method;

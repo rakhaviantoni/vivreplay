@@ -2,7 +2,7 @@ import {enabledShippingCouriers} from '@/lib/shipping/couriers';
 import {z} from 'zod';
 import {db,errorResponse,guard,user,HttpError} from '@/lib/server/store';
 import {getCurrentUser} from '@/lib/server/auth';
-import {getEnabledIpaymuPaymentChannels,hasMarketIpaymuPaymentConfig} from '@/lib/server/ipaymu';
+import {getEnabledIpaymuPaymentChannels,getIpaymuPaymentChannels,hasMarketIpaymuPaymentConfig} from '@/lib/server/ipaymu';
 import {biteshipDestination,isBiteshipAreaId} from '@/lib/shipping/biteship-area';
 import {shippingRateOptions} from '@/lib/server/shipping-quote-cache';
 import {fetchMarketPolicies,MARKET_BUYER_FEE_CAP,calculateBuyerServiceFee,calculateSellerServiceFee,getMarketBuyerFeeCap,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH,MARKET_PRO_SHIPPING_VOUCHER_SHARE,MARKET_PRO_SHIPPING_VOUCHER_CAP} from '@/lib/market/policy';
@@ -19,9 +19,15 @@ export async function GET(){
     const voucherMonth=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jakarta',year:'numeric',month:'2-digit'}).format(new Date());
     const [policies,voucherUsage]=await Promise.all([fetchMarketPolicies(database),profile.tier==='pro'?database.prepare(`SELECT COUNT(*) AS total FROM checkout_orders WHERE buyer_id=? AND kind='MARKET' AND status IN ('PENDING_PAYMENT','PROCESSING','PAID','SHIPPED','RECEIVED','COMPLETED') AND json_extract(details,'$.marketProShippingVoucherMonth')=?`).bind(profile.id,voucherMonth).first<{total:number}>():Promise.resolve(null)]);
     let paymentChannels=[] as Awaited<ReturnType<typeof getEnabledIpaymuPaymentChannels>>;
-    try{if(hasMarketIpaymuPaymentConfig())paymentChannels=await getEnabledIpaymuPaymentChannels(database)}catch{paymentChannels=[]}
+    let paymentChannelStatus:'not_configured'|'provider_unavailable'|'settings_unavailable'|'no_active_channels'|'all_disabled'|'ready'='not_configured';
+    if(hasMarketIpaymuPaymentConfig()){
+      let reportedChannels:Awaited<ReturnType<typeof getIpaymuPaymentChannels>>=[];
+      try{reportedChannels=await getIpaymuPaymentChannels()}catch{paymentChannelStatus='provider_unavailable'}
+      if(reportedChannels.length){try{paymentChannels=await getEnabledIpaymuPaymentChannels(database);paymentChannelStatus=paymentChannels.length?'ready':'all_disabled'}catch{paymentChannelStatus='settings_unavailable'}}
+      else if(paymentChannelStatus!=='provider_unavailable')paymentChannelStatus='no_active_channels';
+    }
     const serviceFeePercent=policies[profile.tier==='pro'?'pro':'free'].commissionPercent;
-    return Response.json({available,sandbox:process.env.IPAYMU_MODE==='sandbox',paymentChannels,buyerTier:profile.tier==='pro'?'pro':'free',buyerFeePercent:serviceFeePercent,serviceFeePercent,buyerFeeMinimum:policies.buyerFeeMinimum,buyerFeeCap:MARKET_BUYER_FEE_CAP,sellerFeePercent:serviceFeePercent,sellerFeeMinimum:policies.sellerFeeMinimum,shippingVoucherMinSubtotal:policies.shippingVoucherMinSubtotal,shippingVouchersRemaining:Math.max(0,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH-(voucherUsage?.total??0))},{headers:{'Cache-Control':'private, no-store, max-age=0','Vary':'Cookie'}});
+    return Response.json({available,sandbox:process.env.IPAYMU_MODE==='sandbox',paymentChannels,paymentChannelStatus,buyerTier:profile.tier==='pro'?'pro':'free',buyerFeePercent:serviceFeePercent,serviceFeePercent,buyerFeeMinimum:policies.buyerFeeMinimum,buyerFeeCap:MARKET_BUYER_FEE_CAP,sellerFeePercent:serviceFeePercent,sellerFeeMinimum:policies.sellerFeeMinimum,shippingVoucherMinSubtotal:policies.shippingVoucherMinSubtotal,shippingVouchersRemaining:Math.max(0,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH-(voucherUsage?.total??0))},{headers:{'Cache-Control':'private, no-store, max-age=0','Vary':'Cookie'}});
   }catch(error){return errorResponse(error)}
 }
 
