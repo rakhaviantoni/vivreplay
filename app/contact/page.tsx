@@ -20,10 +20,10 @@ export default async function ContactPage(){
     <header className="legal-hero">
       <p>{id?'BANTUAN VIVREPLAY':'VIVREPLAY SUPPORT'}</p>
       <h1>{id?'Kontak':'Contact'}</h1>
-      <span>{id?'Hubungi kami untuk pertanyaan tentang akun, kartu, pembayaran, atau pesanan Market.':'Contact us about your account, cards, payments, or a Market order.'}</span>
+      <span>{id?'Hubungi kami tentang akun, kartu, pembayaran, atau pesanan Market.':'Get in touch about an account, card, payment, or Market order.'}</span>
     </header>
     <div className="legal-content contact-content">
-      <p className="legal-lead">{id?'Untuk bantuan pesanan, sertakan nomor pesanan agar kami dapat memeriksanya.':'For order help, include your order number so we can look into it.'}</p>
+      <p className="legal-lead">{id?'Untuk pertanyaan pesanan, sertakan nomor pesanan.':'For an order question, include the order number.'}</p>
       <section>
         <h2>{id?'Email':'Email'}</h2>
         <p><a href="mailto:support@vivreplay.com">support@vivreplay.com</a></p>
@@ -34,11 +34,7 @@ export default async function ContactPage(){
       </section>
       <section>
         <h2>{id?'Alamat usaha':'Business address'}</h2>
-        <p>{id?'VivrePlay beroperasi secara online dan tidak menerima kunjungan langsung. Kami belum mencantumkan alamat usaha pada halaman ini.':'VivrePlay operates online and does not receive walk-in visits. A business address is not listed on this page.'}</p>
-      </section>
-      <section>
-        <h2>{id?'Waktu layanan':'Service hours'}</h2>
-        <p>{id?'Dukungan ditangani secara online. Waktu balasan dapat berbeda menurut jumlah permintaan.':'Support is handled online. Reply times may vary with request volume.'}</p>
+        <p>WeWork, Sinarmas Land Plaza<br />Jl. Jend. Sudirman Kav. 21, RT 010/RW 001, Karet, Setiabudi<br />Jakarta Selatan 12920, Indonesia</p>
       </section>
     </div>
   </main>;

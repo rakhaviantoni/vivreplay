@@ -4,8 +4,8 @@ export type LegalSection={title:string;body:React.ReactNode};
 
 export function LegalDocument({id,title,description,lead,sections,updated}:{id:boolean;title:string;description:string;lead:string;sections:LegalSection[];updated:string}){
   return <main className="legal-page page">
-    <header className="legal-hero"><p>VivrePlay · {id?'Informasi hukum':'Legal'}</p><h1>{title}</h1><span>{description}</span></header>
-    <article className="legal-content"><p className="legal-lead">{lead}</p><p className="legal-updated">{id?'Terakhir diperbarui':'Last updated'} · {updated}</p>
+    <header className="legal-hero"><p>{id?'Dokumen hukum VivrePlay':'VivrePlay legal documents'}</p><h1>{title}</h1><span>{description}</span></header>
+    <article className="legal-content"><p className="legal-lead">{lead}</p><p className="legal-updated">{id?`Terakhir diperbarui ${updated}`:`Last updated ${updated}`}</p>
       {sections.map(section=><section key={section.title}><h2>{section.title}</h2><div className="legal-section-copy">{section.body}</div></section>)}
       <p className="legal-contact">{id?'Pertanyaan? Hubungi':'Questions? Contact'} <a href="mailto:support@vivreplay.com">support@vivreplay.com</a> {id?'atau WhatsApp':'or WhatsApp'} <a href="https://wa.me/6287892660993">+62 878-9266-0993</a>.</p>
       <nav className="legal-related" aria-label={id?'Dokumen terkait':'Related documents'}>
