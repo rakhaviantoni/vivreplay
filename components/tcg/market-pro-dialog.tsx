@@ -114,8 +114,11 @@ export function MarketProDialog({locale,member=false,profile=null,accountLoading
       <DialogContent className="market-pro-dialog">
         <DialogHeader className="market-pro-dialog-heading">
           <span className="market-pro-dialog-mark"><Crown size={19}/></span>
-          <DialogTitle>Market Pro</DialogTitle>
-          <DialogDescription>{t('Lower fees, more listings, and delivery vouchers.','Biaya lebih rendah, lebih banyak listing, dan voucher ongkir.')}</DialogDescription>
+          <div className="market-pro-dialog-heading-copy">
+            <span className="market-pro-dialog-kicker">{t('Membership','Keanggotaan')}</span>
+            <DialogTitle>Market Pro</DialogTitle>
+            <DialogDescription>{t('Lower fees, higher listing limits, and delivery vouchers.','Biaya lebih rendah, batas listing lebih tinggi, dan voucher ongkir.')}</DialogDescription>
+          </div>
         </DialogHeader>
         <div className="market-pro-dialog-price" aria-busy={loading}>
           {loading ? (

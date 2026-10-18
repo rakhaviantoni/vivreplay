@@ -2215,7 +2215,7 @@ html:not([data-theme='dark']) .pro-calculator-total dd.is-negative { color: #8b2
   }
 }
 
-@media (min-width: 761px) {
+@media (min-width: 1025px) {
   .market-feed-page .market-mobile-nav { display: none !important; }
 }
 
@@ -3601,4 +3601,168 @@ html[data-theme='dark'] .market-listing-detail > .market-listing-back-link {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Keep Market navigation and feed controls usable through tablet widths. */
+@media (min-width: 761px) and (max-width: 1024px) {
+  .market-store-nav:has(+ .market-mobile-nav) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 42px 42px 42px !important;
+    grid-template-rows: 44px 44px !important;
+    grid-template-areas: "brand pro locale theme" "search search search search" !important;
+    align-items: center !important;
+    gap: 8px 10px !important;
+    height: auto !important;
+    padding: 10px clamp(20px, 3vw, 32px) 12px !important;
+    background: var(--page-bg) !important;
+    backdrop-filter: none !important;
+  }
+  .market-store-nav:has(+ .market-mobile-nav) .market-store-actions { display: contents !important; }
+  .market-store-nav:has(+ .market-mobile-nav) .market-back-link {
+    grid-area: brand !important;
+    display: inline-flex !important;
+    justify-content: flex-start !important;
+    width: auto !important;
+    min-width: 0 !important;
+    height: 44px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+  }
+  .market-store-nav:has(+ .market-mobile-nav) .market-back-link > svg:first-child,
+  .market-store-nav:has(+ .market-mobile-nav) .market-back-link > img { display: none !important; }
+  .market-store-nav:has(+ .market-mobile-nav) .market-back-link > span { display: inline !important; font-size: 17px !important; font-weight: 800 !important; }
+  .market-store-nav:has(+ .market-mobile-nav) .market-nav-divider,
+  .market-store-nav:has(+ .market-mobile-nav) .market-store-wordmark,
+  .market-store-nav:has(+ .market-mobile-nav) .market-cart-link,
+  .market-store-nav:has(+ .market-mobile-nav) .market-account-trigger,
+  .market-store-nav:has(+ .market-mobile-nav) .market-store-link,
+  .market-store-nav:has(+ .market-mobile-nav) .market-list-button.join-link { display: none !important; }
+  .market-store-nav:has(+ .market-mobile-nav) .market-store-search {
+    grid-area: search !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: 44px !important;
+    min-height: 44px !important;
+  }
+  .market-store-nav:has(+ .market-mobile-nav) .market-store-locale,
+  .market-store-nav:has(+ .market-mobile-nav) .market-store-theme,
+  .market-store-nav:has(+ .market-mobile-nav) .market-pro-nav-link {
+    position: relative !important;
+    display: inline-flex !important;
+    grid-area: auto !important;
+    width: 42px !important;
+    min-width: 42px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    padding: 0 !important;
+    border-radius: 12px !important;
+  }
+  .market-store-nav:has(+ .market-mobile-nav) .market-store-locale { grid-area: locale !important; }
+  .market-store-nav:has(+ .market-mobile-nav) .market-store-theme { grid-area: theme !important; }
+  .market-store-nav:has(+ .market-mobile-nav) .market-pro-nav-link { grid-area: pro !important; }
+  .market-store-nav:has(+ .market-mobile-nav) .market-pro-nav-long,
+  .market-store-nav:has(+ .market-mobile-nav) .market-pro-nav-short { display: none !important; }
+  .market-store-nav:has(+ .market-mobile-nav) .market-pro-nav-link svg { display: block !important; }
+
+  .market-mobile-nav {
+    position: fixed !important;
+    z-index: 120 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    min-height: calc(68px + env(safe-area-inset-bottom)) !important;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom)) !important;
+    border-top: 1px solid var(--line) !important;
+    background: var(--surface-raised) !important;
+  }
+  .market-mobile-nav > a,
+  .market-mobile-nav > button {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    min-width: 0 !important;
+    min-height: 54px !important;
+    padding: 4px 3px !important;
+    border: 0 !important;
+    border-radius: 10px !important;
+    background: transparent !important;
+    color: var(--muted) !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    line-height: 1.1 !important;
+    text-decoration: none !important;
+    white-space: nowrap !important;
+  }
+  .market-mobile-nav > button.is-sell { color: var(--accent) !important; }
+  .market-mobile-nav > button:active,
+  .market-mobile-nav > a:active { background: color-mix(in srgb, var(--accent) 10%, transparent) !important; }
+  body:has(.market-feed-page) .market-feed-page { padding-bottom: calc(104px + env(safe-area-inset-bottom)) !important; }
+  body:has(.market-listing-detail) .market-listing-detail { padding-bottom: calc(120px + env(safe-area-inset-bottom)) !important; }
+
+  .market-feed-tabs { gap: 10px !important; }
+  .market-feed-tabs-main {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+    flex-wrap: nowrap !important;
+  }
+  .market-scope-nav { width: auto !important; flex: 0 0 auto !important; }
+  .market-feed-tabs-sub {
+    display: grid !important;
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr) !important;
+    align-items: center !important;
+    gap: 12px !important;
+    min-height: 0 !important;
+  }
+  .market-trade-chips { min-width: 0 !important; flex-wrap: nowrap !important; gap: 6px !important; }
+  .market-trade-chip { min-height: 40px !important; padding-inline: 10px !important; }
+  .market-feed-filters { min-width: 0 !important; width: 100% !important; margin-left: 0 !important; justify-content: flex-end !important; flex-wrap: nowrap !important; gap: 8px !important; }
+  .market-feed-filters > label { min-width: 0 !important; flex: 1 1 0 !important; }
+  .market-feed-filters .picker { width: 100% !important; min-width: 0 !important; }
+  .market-feed-filters .picker button { width: 100% !important; max-width: none !important; min-width: 0 !important; }
+  .market-view-toggle { display: inline-flex !important; flex: 0 0 auto !important; }
+}
+
+@media (max-width: 760px) {
+  .market-feed-tabs {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    grid-template-rows: auto auto auto !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+  .market-feed-tabs-main,
+  .market-feed-tabs-sub { display: contents !important; }
+  .market-feed-tabs:not(:has(.market-feed-filters)) .market-scope-nav { grid-column: 1 !important; grid-row: 1 !important; }
+  .market-feed-tabs:not(:has(.market-feed-filters)) .market-view-toggle { grid-column: 2 !important; grid-row: 1 !important; }
+  .market-feed-tabs:has(.market-feed-filters) .market-scope-nav { grid-column: 1 / -1 !important; grid-row: 1 !important; }
+  .market-feed-filters { grid-column: 1 !important; grid-row: 2 !important; }
+  .market-view-toggle { display: inline-flex !important; grid-column: 2 !important; grid-row: 2 !important; align-self: end !important; }
+  .market-trade-chips { grid-column: 1 / -1 !important; grid-row: 3 !important; }
+}
+
+/* Detail pages need one clear return path, not a second Market label beside it. */
+@media (min-width: 1025px) {
+  .market-store-nav:has(.market-back-link.is-market-return) .market-nav-divider,
+  .market-store-nav:has(.market-back-link.is-market-return) .market-store-wordmark { display: none !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .market-mobile-nav,
+  .market-store-nav,
+  .market-feed-tabs,
+  .market-feed-filters,
+  .market-view-toggle { scroll-behavior: auto !important; }
+}
+
+@media (max-width: 760px) {
+  .market-store-nav .market-back-link.is-market-return > svg:first-child,
+  .market-store-nav .market-back-link.is-market-return > span { display: inline-flex !important; }
 }
