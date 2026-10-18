@@ -11,6 +11,7 @@ import {isListingExpired} from '@/lib/market/policy';
 import {getDynamicListingPolicy} from '@/lib/market/policy';
 import {listingIdFromMarketPath,marketListingPath,marketListingSelectorFromPath} from '@/lib/market/listing-url';
 import {isCurrentUserAdmin} from '@/lib/server/admin-auth';
+import {normalizeListingItemPrices} from '@/lib/market/normalize-listing-prices';
 
 export const dynamic='force-dynamic';
 
@@ -112,8 +113,12 @@ export default async function Page({params}:{params:Promise<{id:string}>}){
   if(stored?.itemsJson){
     try{
       const parsed=JSON.parse(stored.itemsJson);
-      if(Array.isArray(parsed))listing.items=parsed.filter(item=>item&&typeof item.printingId==='string'&&Number.isInteger(item.quantity)&&item.quantity>0);
+      if(Array.isArray(parsed))listing.items=normalizeListingItemPrices(parsed.filter(item=>item&&typeof item.printingId==='string'&&Number.isInteger(item.quantity)&&item.quantity>0),Math.max(0,Number(listing.amount)||0)) as Listing['items'];
     }catch{}
+  }
+  if(listing.amount<=0&&listing.items?.length){
+    const recoveredTotal=listing.items.reduce((sum,item)=>sum+(Number(item.unitAmount)>0?Number(item.unitAmount):0)*item.quantity,0);
+    if(recoveredTotal>0)listing.amount=recoveredTotal;
   }
   if(stored){
     let methods:string[]=[];

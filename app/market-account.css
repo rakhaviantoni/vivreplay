@@ -940,3 +940,14 @@ html[data-theme='dark'] .market-account-unified-body.is-listings .market-listing
 .market-profile-quick-signout{display:inline-flex;min-height:38px;align-items:center;justify-self:start;gap:8px;padding:0 4px;border:0;background:transparent;color:var(--muted);font:650 12px var(--game-font);cursor:pointer;transition:color .16s ease}
 .market-profile-quick-signout:hover,.market-profile-quick-signout:focus-visible{color:var(--danger,#a83d32)}
 .market-profile-quick-signout:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
+
+.market-listing-art-state{top:auto;left:14px;bottom:14px;transform:none;min-width:0;max-width:calc(100% - 28px);padding:8px 11px;border:1px solid color-mix(in srgb,var(--accent) 38%,var(--line));border-radius:4px;background:var(--surface-raised);box-shadow:0 3px 10px #17140e20;color:var(--ink);font-size:11px;line-height:1.15;letter-spacing:.045em}
+.market-listing-art-state.is-sold-pending,.market-listing-art-state.is-sold{background:var(--accent);border-color:var(--accent);color:var(--surface-raised)}
+.market-listing-art-state.is-closed,.market-listing-art-state.is-expired{background:var(--surface-raised);color:var(--muted)}
+
+.market-membership-compare-wide{overflow-x:auto;border:1px solid var(--line);border-radius:9px;background:var(--surface)}
+.market-membership-compare-wide .market-pro-dialog-table{min-width:600px}
+.market-membership-compare-wide .market-pro-dialog-table th:first-child{min-width:150px}
+.market-membership-compare-wide .market-pro-dialog-table td{white-space:normal}
+.market-membership-compare-wide .market-pro-dialog-table tbody td:nth-child(3){color:var(--muted);font-weight:650}
+.market-membership-compare-wide .market-pro-dialog-table tbody td:last-child{color:var(--accent);font-weight:800}

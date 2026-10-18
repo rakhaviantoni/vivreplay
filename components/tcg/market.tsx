@@ -1207,7 +1207,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                         {heldCards>0&&!fullyReserved&&listing.type==='WTS'&&<span className="market-feed-held-count">{locale==='ID'?`${heldCards} kartu dipesan`:`${heldCards} ${heldCards===1?'card':'cards'} reserved`}</span>}
                       </div>
                       <div className="market-feed-price">
-                        <strong>{formatMoney(listing.amount,listing.currency)}</strong>
+                        <strong>{listing.amount>0?formatMoney(listing.amount,listing.currency):(locale==='ID'?'Harga belum diatur':'Price not set')}</strong>
                       </div>
                     </div>
                   </>

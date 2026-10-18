@@ -6,10 +6,10 @@ import {useEffect,useState} from 'react';
 import {CrownIcon as Crown} from '@phosphor-icons/react';
 import {formatMoney} from '@/packages/domain';
 import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle} from '@/components/ui/dialog';
-import {MarketServiceFeeInfo} from '@/components/tcg/market-buyer-fee-cap-table';
 import {MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL} from '@/lib/market/policy';
 import {MarketPaymentMethodPicker,defaultPaymentOptions,estimatePaymentFee,type PaymentMethod,type PaymentOption} from '@/components/tcg/market-payment-method-picker';
 import {MarketIntroOfferProgress} from '@/components/tcg/market-intro-offer-progress';
+import {MarketMembershipComparison} from '@/components/tcg/market-membership-comparison';
 
 type PlanPreview={
   available:boolean;
@@ -92,12 +92,6 @@ export function MarketProDialog({locale,member=false,profile=null,accountLoading
     return()=>{active=false};
   },[open,loaded]);
 
-  const rows=[
-    {key:'listings',label:t('Active listings','Listing aktif'),free:(plan?.freeMaxActiveListings??25).toLocaleString(isId?'id-ID':'en-US'),pro:(plan?.maxActiveListings??2500).toLocaleString(isId?'id-ID':'en-US')},
-    {key:'period',label:t('Listing period','Masa listing'),free:`${plan?.freeDurationDays??7} ${t('days','hari')}`,pro:`${plan?.durationDays??30} ${t('days','hari')}`},
-    {key:'service-fee',label:<span className="buyer-fee-row-label">{t('Market service fee','Biaya layanan Market')}<MarketServiceFeeInfo locale={isId?'id':'en'} freePercent={plan?.freeCommissionPercent??1.5} proPercent={plan?.commissionPercent??0.75} buyerMinimum={plan?.buyerFeeMinimum??2_000} sellerMinimum={plan?.sellerFeeMinimum??1_000}/></span>,free:`${plan?.freeCommissionPercent??1.5}%`,pro:`${plan?.commissionPercent??0.75}%`},
-    {key:'vouchers',label:t('Delivery vouchers','Voucher ongkir'),free:'—',pro:billingPeriod==='yearly'?`${plan?.shippingVouchersPerYear??24} ${t('during the year','selama setahun')}`:`${plan?.shippingVouchersPerMonth??2} ${t('per month','per bulan')}`},
-  ];
   const amount=billingPeriod==='yearly'?plan?.annualAmount:plan?.amount;
   const periodDays=billingPeriod==='yearly'?plan?.annualDurationDays:plan?.durationDays;
   const paymentOptions=Array.isArray(plan?.paymentChannels)?plan.paymentChannels:defaultPaymentOptions;
@@ -134,7 +128,7 @@ export function MarketProDialog({locale,member=false,profile=null,accountLoading
               </div>
               <strong>{formatMoney(amount,'IDR')}</strong>
               <span>{t(`/ ${periodDays??30} days`,`/ ${periodDays??30} hari`)}</span>
-              {billingPeriod==='yearly'?<small>{t(`One payment for 365 days. The launch price applies to monthly Pro only. Use all ${plan?.shippingVouchersPerYear??24} vouchers any time before the membership ends. Unused vouchers expire with the plan.${Math.max(0,(plan?.standardAmount??0)*12-(plan?.annualAmount??0))>0?` Save ${formatMoney((plan?.standardAmount??0)*12-(plan?.annualAmount??0),'IDR')} compared with monthly billing.`:''}`,`Satu pembayaran untuk 365 hari. Harga promo hanya berlaku untuk Pro bulanan. Gunakan ${plan?.shippingVouchersPerYear??24} voucher kapan saja sebelum masa aktif berakhir. Sisa voucher kedaluwarsa bersama paket.${Math.max(0,(plan?.standardAmount??0)*12-(plan?.annualAmount??0))>0?` Hemat ${formatMoney((plan?.standardAmount??0)*12-(plan?.annualAmount??0),'IDR')} dibandingkan pembayaran bulanan.`:''}`)}</small>:plan?.introOffer && plan.standardAmount !== null ? <small>{t(`Intro price for ${plan.durationDays??30} days. Then ${formatMoney(plan.standardAmount,'IDR')} per 30 days. Renew manually.`,`Harga perkenalan berlaku ${plan.durationDays??30} hari. Setelah itu ${formatMoney(plan.standardAmount,'IDR')} per 30 hari. Perpanjangan dilakukan manual.`)}</small>:null}
+              {billingPeriod==='yearly'?<small>{t(`Pay once for the year. Use your ${plan?.shippingVouchersPerYear??24} delivery vouchers any time before Pro+ expires; unused vouchers expire then.${Math.max(0,(plan?.standardAmount??0)*12-(plan?.annualAmount??0))>0?` That is ${formatMoney((plan?.standardAmount??0)*12-(plan?.annualAmount??0),'IDR')} less than 12 regular monthly payments.`:''} The monthly intro offer does not apply.`,`Bayar sekali untuk setahun. Gunakan ${plan?.shippingVouchersPerYear??24} voucher ongkir kapan saja sebelum Pro+ berakhir; sisa voucher hangus saat itu.${Math.max(0,(plan?.standardAmount??0)*12-(plan?.annualAmount??0))>0?` Hemat ${formatMoney((plan?.standardAmount??0)*12-(plan?.annualAmount??0),'IDR')} dibandingkan 12 pembayaran bulanan reguler.`:''} Harga promo bulanan tidak berlaku.`)}</small>:plan?.introOffer && plan.standardAmount !== null ? <small>{t(`Intro price for ${plan.durationDays??30} days. Then ${formatMoney(plan.standardAmount,'IDR')} per 30 days. Renew manually.`,`Harga perkenalan berlaku ${plan.durationDays??30} hari. Setelah itu ${formatMoney(plan.standardAmount,'IDR')} per 30 hari. Perpanjangan dilakukan manual.`)}</small>:null}
               {billingPeriod==='monthly'&&introLimit&&<MarketIntroOfferProgress compact limit={introLimit} remaining={plan?.introOfferSpotsRemaining} endsAt={plan?.introOfferEndsAt} locale={locale}/>}
             </>
           ) : (
@@ -148,7 +142,7 @@ export function MarketProDialog({locale,member=false,profile=null,accountLoading
             </span>
           )}
         </div>
-        <div className="market-pro-dialog-table-wrap" aria-busy={loading}><table className="market-pro-dialog-table"><thead><tr><th>{t('Benefit','Manfaat')}</th><th>{t('Free','Gratis')}</th><th>Pro</th></tr></thead><tbody>{rows.map(row=><tr key={row.key}><th scope="row">{row.label}</th><td>{loading?<i className="market-pro-cell-skeleton" aria-hidden="true"/>:row.free}</td><td>{loading?<i className="market-pro-cell-skeleton is-pro" aria-hidden="true"/>:row.pro}</td></tr>)}</tbody></table></div>
+        <div className="market-pro-dialog-table-wrap"><MarketMembershipComparison locale={locale} freeListings={plan?.freeMaxActiveListings??25} proListings={plan?.maxActiveListings??2500} freeDays={plan?.freeDurationDays??7} proDays={plan?.durationDays??30} freeFee={plan?.freeCommissionPercent??1.5} proFee={plan?.commissionPercent??0.75} buyerMinimum={plan?.buyerFeeMinimum??2_000} sellerMinimum={plan?.sellerFeeMinimum??1_000} monthlyVouchers={plan?.shippingVouchersPerMonth??2} annualVouchers={plan?.shippingVouchersPerYear??24} loading={loading}/></div>
         {loading?<div className="market-pro-note-skeleton" aria-hidden="true"><i/><i/></div>:<p className="market-pro-dialog-note">{t(`Each voucher takes ${plan?.shippingVoucherSharePercent??50}% off delivery, up to ${formatMoney(plan?.shippingVoucherCap??5000,'IDR')}, on card orders of ${formatMoney(plan?.shippingVoucherMinSubtotal??MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL,'IDR')} or more.`,`Setiap voucher memotong ${plan?.shippingVoucherSharePercent??50}% ongkir, maksimal ${formatMoney(plan?.shippingVoucherCap??5000,'IDR')}, untuk pesanan kartu minimal ${formatMoney(plan?.shippingVoucherMinSubtotal??MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL,'IDR')}.`)}</p>}
         {profile&&hasValidPhone&&amount!=null&&<><MarketPaymentMethodPicker layout="compact" locale={locale} options={paymentOptions} amount={amount} selectedMethod={selectedPayment.method} selectedChannel={selectedPayment.channel} onChange={(method,channel)=>setSelectedPayment({method,channel})}/>{paymentFee>0&&<p className="pro-dialog-payment-total">{t('Estimated total','Perkiraan total')}: <strong>{formatMoney(amount+paymentFee,'IDR')}</strong></p>}</>}
         {error&&<p className="checkout-error" role="alert">{error}</p>}

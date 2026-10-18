@@ -10,7 +10,7 @@ test("outbound email always uses the public VivrePlay domain", () => {
   assert.equal(getAppUrl(), "https://vivreplay.com");
   assert.equal(
     productionEmailUrl("http://localhost:5173/api/auth/verify-email?token=secure", "https://vivreplay.com/sign-in"),
-    "https://vivreplay.com/api/auth/verify-email?token=secure",
+    "https://vivreplay.com/api/auth/verify-email?token=secure&callbackURL=https%3A%2F%2Fvivreplay.com%2Fauth%2Fverified%3Freturn_to%3D%252Fprofile",
   );
   const email = renderAuthEmail({ action: "verify", to: "captain@example.com", url: "http://localhost:5173/api/auth/verify-email?token=secure" });
   assert.match(email.html, /https:\/\/vivreplay\.com\/api\/auth\/verify-email\?token=secure/);

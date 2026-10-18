@@ -4,6 +4,7 @@ import {getCurrentUser} from '@/lib/server/auth';
 import type {Card} from '@/packages/card-data/catalog';
 import type {CollectionItem,SavedDeck,Listing} from '@/packages/domain';
 import {supabaseAdmin} from '@/lib/server/supabase-storage';
+import {normalizeListingItemPrices} from '@/lib/market/normalize-listing-prices';
 type CatalogPrintingOption={id:string;language:string;variant:string;printing_code?:string;card_image_url?:string|null;rarity?:string;set_code?:string};
 const catalogPrintingCache=new Map<string,{expiresAt:number;printings:CatalogPrintingOption[]}>();
 async function catalogPrintingsFromSupabase(codes:string[]){
@@ -298,13 +299,15 @@ export async function market(viewerId?:string,listingIds?:string[]){
     const parsedItems = r.itemsJson ? (()=>{try{return JSON.parse(r.itemsJson);}catch{return undefined;}})() : undefined;
     const validItems=Array.isArray(parsedItems)?parsedItems.filter((item):item is {printingId:string;quantity:number;condition?:string;unitAmount?:number}=>Boolean(item&&typeof item.printingId==='string'&&Number.isInteger(item.quantity)&&item.quantity>0)):[];
     const itemQuantity=validItems.reduce((total,item)=>total+item.quantity,0)||r.quantity;
-    const fallbackUnitAmount=Math.max(1,Math.floor(r.amount/Math.max(1,itemQuantity)));
-    const sourceItems=validItems.length?validItems:r.status==='SOLD'?[]:[{printingId:r.printingId,quantity:r.quantity,condition:r.condition,unitAmount:fallbackUnitAmount}];
+    const fallbackUnitAmount=r.amount>0?Math.max(1,Math.floor(r.amount/Math.max(1,itemQuantity))):0;
+    const rawItems=validItems.length?validItems:r.status==='SOLD'?[]:[{printingId:r.printingId,quantity:r.quantity,condition:r.condition,unitAmount:fallbackUnitAmount}];
+    const sourceItems=normalizeListingItemPrices(rawItems,r.amount);
     const listingSoldRows=soldByListing.get(r.id)??[];
     const soldByPrinting=new Map(listingSoldRows.map(item=>[item.printingId,item]));
     const items=[...sourceItems.map(item=>{const held=r.type==='WTS'?(reservations.get(`${r.id}:${item.printingId}`)??0):0;const soldQuantity=Number(soldByPrinting.get(item.printingId)?.quantity)||0;return {...item,quantity:item.quantity+soldQuantity,availableQuantity:Math.max(0,item.quantity-held),heldQuantity:held,soldQuantity,condition:item.condition||r.condition,unitAmount:Number.isSafeInteger(item.unitAmount)&&Number(item.unitAmount)>0?Number(item.unitAmount):fallbackUnitAmount,card:bundleCards.get(item.printingId)}}),...(r.status==='SOLD'?listingSoldRows.map(item=>({printingId:item.printingId,quantity:Number(item.quantity)||1,availableQuantity:0,heldQuantity:0,soldQuantity:Number(item.quantity)||1,sold:true,condition:item.condition||r.condition,unitAmount:Number(item.unitAmount)||fallbackUnitAmount,card:bundleCards.get(item.printingId)})):[])];
     const availableCount=items.reduce((sum,item)=>sum+item.availableQuantity,0);
     const availableAmount=items.reduce((sum,item)=>sum+item.availableQuantity*item.unitAmount,0);
+    const storedAmount=r.amount>0?r.amount:items.reduce((sum,item)=>sum+item.quantity*item.unitAmount,0);
     let methods:string[]=[];
     if(r.shippingOriginLabel){try{const parsed=JSON.parse(r.shippingOriginLabel);if(Array.isArray(parsed.methods))methods=parsed.methods.filter((value:unknown):value is string=>typeof value==='string')}catch{}}
     const couriers=new Set(enabledShippingCouriers(methods));
@@ -313,7 +316,7 @@ export async function market(viewerId?:string,listingIds?:string[]){
       id: r.id,
       printingId: r.printingId,
       title: r.title,
-      amount: r.type==='WTS'&&availableCount>0&&availableCount<itemQuantity&&!(viewerId&&r.sellerId===viewerId)?availableAmount:r.amount,
+      amount: r.type==='WTS'&&availableCount>0&&availableCount<itemQuantity&&!(viewerId&&r.sellerId===viewerId)?availableAmount:storedAmount,
       currency: r.currency,
       quantity: r.type==='WTS'&&!(viewerId&&r.sellerId===viewerId)?availableCount:r.quantity,
       condition: r.condition,
