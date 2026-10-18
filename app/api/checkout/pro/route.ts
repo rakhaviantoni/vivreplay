@@ -1,7 +1,7 @@
 import {db,errorResponse,guard,user,optionalUser,HttpError} from '@/lib/server/store';
 import {getCurrentUser} from '@/lib/server/auth';
 import {createIpaymuDirectPayment,getEnabledIpaymuPaymentChannels,getIpaymuPaymentChannels,hasMarketIpaymuPaymentConfig,ipaymuExpiryTimestamp} from '@/lib/server/ipaymu';
-import {fetchMarketPolicies,MARKET_BUYER_FEE_CAP,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH,MARKET_PRO_SHIPPING_VOUCHER_SHARE,MARKET_PRO_SHIPPING_VOUCHER_CAP} from '@/lib/market/policy';
+import {fetchMarketPolicies,MARKET_BUYER_FEE_CAP,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH,MARKET_PRO_SHIPPING_VOUCHERS_PER_YEAR,MARKET_PRO_SHIPPING_VOUCHER_SHARE,MARKET_PRO_SHIPPING_VOUCHER_CAP} from '@/lib/market/policy';
 import {getProPricing} from '@/lib/market/pro-pricing';
 
 const PAID_INTRO_STATUSES="'PROCESSING','PAID','COMPLETED'";
@@ -72,6 +72,7 @@ export async function GET(){
       buyerFeeCap:MARKET_BUYER_FEE_CAP,
       buyerFeeMinimum:policies.buyerFeeMinimum,
       shippingVouchersPerMonth:MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH,
+      shippingVouchersPerYear:MARKET_PRO_SHIPPING_VOUCHERS_PER_YEAR,
       shippingVoucherMinSubtotal:policies.shippingVoucherMinSubtotal,
       shippingVoucherSharePercent:MARKET_PRO_SHIPPING_VOUCHER_SHARE*100,
       shippingVoucherCap:MARKET_PRO_SHIPPING_VOUCHER_CAP,

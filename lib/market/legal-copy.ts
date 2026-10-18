@@ -4,6 +4,7 @@ import {
   MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL,
   MARKET_PRO_SHIPPING_VOUCHER_SHARE,
   MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH,
+  MARKET_PRO_SHIPPING_VOUCHERS_PER_YEAR,
   type ListingTierPolicy,
 } from './policy';
 
@@ -33,11 +34,12 @@ export function marketFeeDisclosure(policies: Policies, id: boolean) {
 }
 
 export function marketProShippingDisclosure(id: boolean, policies?:Policies) {
-  const count = MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH;
+  const monthlyCount = MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH;
+  const annualCount = MARKET_PRO_SHIPPING_VOUCHERS_PER_YEAR;
   const cap = `Rp${money(MARKET_PRO_SHIPPING_VOUCHER_CAP, id)}`;
   const minimum = `Rp${money(policies?.shippingVoucherMinSubtotal??MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL, id)}`;
   const share = `${Math.round(MARKET_PRO_SHIPPING_VOUCHER_SHARE * 100)}%`;
   return id
-    ? `Satu langganan Market Pro berlaku untuk aktivitas membeli dan menjual pada akun yang sama. Harga dan masa aktif ditampilkan saat checkout. Manfaat saat ini mencakup biaya layanan yang lebih rendah, batas listing lebih tinggi, masa listing lebih panjang, dan ${count} voucher ongkir per bulan. Setiap voucher memotong ${share} ongkir, maksimal ${cap}, untuk pesanan dengan subtotal kartu minimal ${minimum}. Voucher yang tidak dipakai tidak dibawa ke bulan berikutnya.`
-    : `One Market Pro membership covers buying and selling on the same account. The price and term appear at checkout. Current benefits include lower service fees, higher listing limits, longer listing periods, and ${count} monthly shipping vouchers. Each voucher takes ${share} off delivery, up to ${cap}, on orders with a card subtotal of at least ${minimum}. Unused vouchers do not roll over.`;
+    ? `Satu paket Market Pro berlaku untuk aktivitas membeli dan menjual. Paket bulanan mendapat ${monthlyCount} voucher ongkir setiap bulan; voucher bulanan yang tidak dipakai akan kedaluwarsa pada akhir bulan. Pro+ tahunan mendapat ${annualCount} voucher untuk masa aktif 365 hari. Voucher tahunan dapat dipakai kapan saja selama masa aktif dan sisanya kedaluwarsa saat masa aktif berakhir. Setiap voucher memotong ${share} ongkir, maksimal ${cap}, untuk pesanan dengan subtotal kartu minimal ${minimum}.`
+    : `One Market Pro plan covers both buying and selling. Monthly Pro includes ${monthlyCount} delivery vouchers each calendar month; unused monthly vouchers expire at month end. Annual Pro+ includes ${annualCount} vouchers for its 365-day term. Use them at any time during the term; unused vouchers expire when the membership ends. Each voucher takes ${share} off delivery, up to ${cap}, on orders with a card subtotal of at least ${minimum}.`;
 }

@@ -5,7 +5,7 @@ import {getCurrentUser} from '@/lib/server/auth';
 import {getEnabledIpaymuPaymentChannels,getIpaymuPaymentChannels,hasMarketIpaymuPaymentConfig} from '@/lib/server/ipaymu';
 import {biteshipDestination,isBiteshipAreaId} from '@/lib/shipping/biteship-area';
 import {shippingRateOptions} from '@/lib/server/shipping-quote-cache';
-import {fetchMarketPolicies,MARKET_BUYER_FEE_CAP,calculateBuyerServiceFee,calculateSellerServiceFee,getMarketBuyerFeeCap,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH,MARKET_PRO_SHIPPING_VOUCHER_SHARE,MARKET_PRO_SHIPPING_VOUCHER_CAP} from '@/lib/market/policy';
+import {fetchMarketPolicies,MARKET_BUYER_FEE_CAP,calculateBuyerServiceFee,calculateSellerServiceFee,getMarketBuyerFeeCap,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH,MARKET_PRO_SHIPPING_VOUCHERS_PER_YEAR,MARKET_PRO_SHIPPING_VOUCHER_SHARE,MARKET_PRO_SHIPPING_VOUCHER_CAP} from '@/lib/market/policy';
 
 const schema=z.object({listingId:z.string().min(1),offerId:z.string().min(1).optional(),items:z.array(z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(99),listingId:z.string().optional()})).min(1).max(600),lines:z.array(z.object({listingId:z.string().min(1),items:z.array(z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(99)})).min(1).max(60)})).max(10).optional(),courierName:z.string().min(1),courierServiceName:z.string().min(1),courierCode:z.string().min(1),courierServiceCode:z.string().min(1),courierType:z.string().min(1),shippingFee:z.number().int().nonnegative().optional(),useShippingVoucher:z.boolean().default(true),paymentMethod:z.enum(['va','cstore','qris','cc','paylater','ewallet']).default('qris'),paymentChannel:z.string().regex(/^[a-z0-9_]{2,24}$/).default('mpm')});
 type BundleEntry={instanceId?:string;printingId:string;quantity:number;condition?:string;unitAmount:number;listingId?:string};
@@ -17,7 +17,19 @@ export async function GET(){
     const profile=await user();
     const database=db();
     const voucherMonth=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jakarta',year:'numeric',month:'2-digit'}).format(new Date());
-    const [policies,voucherUsage]=await Promise.all([fetchMarketPolicies(database),profile.tier==='pro'?database.prepare(`SELECT COUNT(*) AS total FROM checkout_orders WHERE buyer_id=? AND kind='MARKET' AND status IN ('PENDING_PAYMENT','PROCESSING','PAID','SHIPPED','RECEIVED','COMPLETED') AND json_extract(details,'$.marketProShippingVoucherMonth')=?`).bind(profile.id,voucherMonth).first<{total:number}>():Promise.resolve(null)]);
+    const policies=await fetchMarketPolicies(database);
+    let shippingVouchersRemaining=0;
+    let shippingVoucherPeriod:'annual'|'monthly'|'none'='none';
+    if(profile.tier==='pro'){
+      const annualGrant=await database.prepare(`SELECT id,voucher_total AS voucherTotal,expires_at AS expiresAt FROM market_pro_voucher_grants WHERE owner_id=? AND starts_at<=CURRENT_TIMESTAMP AND expires_at>CURRENT_TIMESTAMP ORDER BY starts_at DESC LIMIT 1`).bind(profile.id).first<{id:string;voucherTotal:number;expiresAt:string}>().catch(()=>null);
+      if(annualGrant){
+        const usage=await database.prepare(`SELECT COUNT(*) AS total FROM checkout_orders WHERE buyer_id=? AND kind='MARKET' AND status IN ('PENDING_PAYMENT','PROCESSING','PAID','SHIPPED','RECEIVED','COMPLETED') AND json_extract(details,'$.marketProShippingVoucherGrantId')=?`).bind(profile.id,annualGrant.id).first<{total:number}>();
+        shippingVoucherPeriod='annual';shippingVouchersRemaining=Math.max(0,annualGrant.voucherTotal-(usage?.total??0));
+      }else{
+        const usage=await database.prepare(`SELECT COUNT(*) AS total FROM checkout_orders WHERE buyer_id=? AND kind='MARKET' AND status IN ('PENDING_PAYMENT','PROCESSING','PAID','SHIPPED','RECEIVED','COMPLETED') AND json_extract(details,'$.marketProShippingVoucherMonth')=?`).bind(profile.id,voucherMonth).first<{total:number}>();
+        shippingVoucherPeriod='monthly';shippingVouchersRemaining=Math.max(0,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH-(usage?.total??0));
+      }
+    }
     let paymentChannels=[] as Awaited<ReturnType<typeof getEnabledIpaymuPaymentChannels>>;
     let paymentChannelStatus:'not_configured'|'provider_unavailable'|'settings_unavailable'|'no_active_channels'|'all_disabled'|'ready'='not_configured';
     if(hasMarketIpaymuPaymentConfig()){
@@ -27,7 +39,7 @@ export async function GET(){
       else if(paymentChannelStatus!=='provider_unavailable')paymentChannelStatus='no_active_channels';
     }
     const serviceFeePercent=policies[profile.tier==='pro'?'pro':'free'].commissionPercent;
-    return Response.json({available,sandbox:process.env.IPAYMU_MODE==='sandbox',paymentChannels,paymentChannelStatus,buyerTier:profile.tier==='pro'?'pro':'free',buyerFeePercent:serviceFeePercent,serviceFeePercent,buyerFeeMinimum:policies.buyerFeeMinimum,buyerFeeCap:MARKET_BUYER_FEE_CAP,sellerFeePercent:serviceFeePercent,sellerFeeMinimum:policies.sellerFeeMinimum,shippingVoucherMinSubtotal:policies.shippingVoucherMinSubtotal,shippingVouchersRemaining:Math.max(0,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH-(voucherUsage?.total??0))},{headers:{'Cache-Control':'private, no-store, max-age=0','Vary':'Cookie'}});
+    return Response.json({available,sandbox:process.env.IPAYMU_MODE==='sandbox',paymentChannels,paymentChannelStatus,buyerTier:profile.tier==='pro'?'pro':'free',buyerFeePercent:serviceFeePercent,serviceFeePercent,buyerFeeMinimum:policies.buyerFeeMinimum,buyerFeeCap:MARKET_BUYER_FEE_CAP,sellerFeePercent:serviceFeePercent,sellerFeeMinimum:policies.sellerFeeMinimum,shippingVoucherMinSubtotal:policies.shippingVoucherMinSubtotal,shippingVouchersRemaining,shippingVoucherPeriod},{headers:{'Cache-Control':'private, no-store, max-age=0','Vary':'Cookie'}});
   }catch(error){return errorResponse(error)}
 }
 
@@ -147,8 +159,11 @@ export async function POST(request:Request){
     const buyerServiceFeeAmount=calculateBuyerServiceFee(subtotal,buyerFeePercent,policies.buyerFeeMinimum);
     const voucherMonth=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jakarta',year:'numeric',month:'2-digit'}).format(new Date());
     const voucherEligible=buyerIsPro&&input.useShippingVoucher&&subtotal>=policies.shippingVoucherMinSubtotal&&rate.price>0;
-    const voucherUsage=voucherEligible?await database.prepare(`SELECT COUNT(*) AS total FROM checkout_orders WHERE buyer_id=? AND kind='MARKET' AND status IN ('PENDING_PAYMENT','PROCESSING','PAID','SHIPPED','RECEIVED','COMPLETED') AND json_extract(details,'$.marketProShippingVoucherMonth')=?`).bind(profile.id,voucherMonth).first<{total:number}>():null;
-    const voucherAvailable=voucherEligible&&(voucherUsage?.total??0)<MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH;
+    const annualGrant=buyerIsPro?await database.prepare(`SELECT id,voucher_total AS voucherTotal FROM market_pro_voucher_grants WHERE owner_id=? AND starts_at<=CURRENT_TIMESTAMP AND expires_at>CURRENT_TIMESTAMP ORDER BY starts_at DESC LIMIT 1`).bind(profile.id).first<{id:string;voucherTotal:number}>().catch(()=>null):null;
+    const voucherUsage=voucherEligible?annualGrant
+      ?await database.prepare(`SELECT COUNT(*) AS total FROM checkout_orders WHERE buyer_id=? AND kind='MARKET' AND status IN ('PENDING_PAYMENT','PROCESSING','PAID','SHIPPED','RECEIVED','COMPLETED') AND json_extract(details,'$.marketProShippingVoucherGrantId')=?`).bind(profile.id,annualGrant.id).first<{total:number}>()
+      :await database.prepare(`SELECT COUNT(*) AS total FROM checkout_orders WHERE buyer_id=? AND kind='MARKET' AND status IN ('PENDING_PAYMENT','PROCESSING','PAID','SHIPPED','RECEIVED','COMPLETED') AND json_extract(details,'$.marketProShippingVoucherMonth')=?`).bind(profile.id,voucherMonth).first<{total:number}>():null;
+    const voucherAvailable=voucherEligible&&(voucherUsage?.total??0)<(annualGrant?.voucherTotal??MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH);
     const shippingDiscount=voucherAvailable?Math.min(Math.round(rate.price*MARKET_PRO_SHIPPING_VOUCHER_SHARE),MARKET_PRO_SHIPPING_VOUCHER_CAP):0;
     const amount=subtotal+rate.price-shippingDiscount+buyerServiceFeeAmount;
     const expiresAt=new Date(Date.now()+24*60*60*1000).toISOString().replace('T',' ').slice(0,19);
@@ -158,7 +173,7 @@ export async function POST(request:Request){
     const standardPolicy=policies.free;
     const sellerFeeAmount=calculateSellerServiceFee(subtotal,sellerPolicy.commissionPercent,policies.sellerFeeMinimum);
     const sellerNetAmount=Math.max(0,subtotal-sellerFeeAmount);
-    const shipping={recipientName:address.recipientName,addressLine:address.addressLine,city:address.city,postalCode:address.postalCode,areaId:dropoff.areaId,latitude:address.latitude,longitude:address.longitude,phone:address.phone,courierName:rate.courier_name,courierServiceName:rate.courier_service_name,courierCode:rate.courier_code,courierServiceCode:rate.courier_service_code,courierCompany:rate.company,courierType:rate.type,sender:{recipientName:seller.recipientName,addressLine:seller.addressLine,city:seller.city,postalCode:seller.postalCode,areaId:pickup.areaId,latitude:seller.latitude,longitude:seller.longitude,phone:seller.phone},shippingLabel:address.label,marketFeePercent:sellerPolicy.commissionPercent,marketSellerFeeMinimum:policies.sellerFeeMinimum,marketSellerFeeAmount:sellerFeeAmount,marketSellerTier:sellerProfile?.tier==='pro'?'pro':'free',marketStandardFeePercent:standardPolicy.commissionPercent,marketBuyerFeePercent:buyerFeePercent,marketBuyerFeeAmount:buyerServiceFeeAmount,marketBuyerFeeCap:getMarketBuyerFeeCap(subtotal),marketBuyerTier:buyerIsPro?'pro':'free',marketProShippingDiscount:shippingDiscount,marketProShippingVoucherMonth:voucherAvailable?voucherMonth:null};
+    const shipping={recipientName:address.recipientName,addressLine:address.addressLine,city:address.city,postalCode:address.postalCode,areaId:dropoff.areaId,latitude:address.latitude,longitude:address.longitude,phone:address.phone,courierName:rate.courier_name,courierServiceName:rate.courier_service_name,courierCode:rate.courier_code,courierServiceCode:rate.courier_service_code,courierCompany:rate.company,courierType:rate.type,sender:{recipientName:seller.recipientName,addressLine:seller.addressLine,city:seller.city,postalCode:seller.postalCode,areaId:pickup.areaId,latitude:seller.latitude,longitude:seller.longitude,phone:seller.phone},shippingLabel:address.label,marketFeePercent:sellerPolicy.commissionPercent,marketSellerFeeMinimum:policies.sellerFeeMinimum,marketSellerFeeAmount:sellerFeeAmount,marketSellerTier:sellerProfile?.tier==='pro'?'pro':'free',marketStandardFeePercent:standardPolicy.commissionPercent,marketBuyerFeePercent:buyerFeePercent,marketBuyerFeeAmount:buyerServiceFeeAmount,marketBuyerFeeCap:getMarketBuyerFeeCap(subtotal),marketBuyerTier:buyerIsPro?'pro':'free',marketProShippingDiscount:shippingDiscount,marketProShippingVoucherMonth:voucherAvailable&&!annualGrant?voucherMonth:null,marketProShippingVoucherGrantId:voucherAvailable?annualGrant?.id??null:null};
     const requested=new Map<string,{listingId:string;instanceId:string|null;printingId:string;quantity:number;capacity:number}>();
     for(const item of orderItems){const sourceListingId=item.listingId||listing.id;const key=`${sourceListingId}:${item.instanceId?`instance:${item.instanceId}`:`printing:${item.printingId}`}`;const entry=requested.get(key)??{listingId:sourceListingId,instanceId:item.instanceId??null,printingId:item.printingId,quantity:0,capacity:0};entry.quantity+=item.quantity;requested.set(key,entry);}
     for(const [sourceListingId,bundle] of bundleByListing){for(const item of bundle){const key=`${sourceListingId}:${item.instanceId?`instance:${item.instanceId}`:`printing:${item.printingId}`}`;const requestedEntry=requested.get(key);if(requestedEntry)requestedEntry.capacity+=item.quantity;}}
@@ -176,8 +191,8 @@ export async function POST(request:Request){
       ${listingGuards}
       ${offerGuard}
       AND ${reservationChecks}
-      AND (?=0 OR (SELECT COUNT(*) FROM checkout_orders prior WHERE prior.buyer_id=? AND prior.kind='MARKET' AND prior.status IN ('PENDING_PAYMENT','PROCESSING','PAID','SHIPPED','RECEIVED','COMPLETED') AND json_extract(prior.details,'$.marketProShippingVoucherMonth')=?)<${MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH})`)
-      .bind(id,profile.id,listing.sellerId,listing.id,acceptedOffer?.id??null,JSON.stringify(orderItems),JSON.stringify(orderDetails),subtotal,sellerNetAmount,rate.price,amount,'IDR',expiresAt,listing.id,listing.amount,listing.quantity,listing.items,...listingGuardBindings,...offerBindings,JSON.stringify([...requested.values()]),voucherAvailable?1:0,profile.id,voucherMonth).run();
+      AND (?=0 OR ((? IS NOT NULL AND EXISTS(SELECT 1 FROM market_pro_voucher_grants g WHERE g.id=? AND g.owner_id=? AND g.starts_at<=CURRENT_TIMESTAMP AND g.expires_at>CURRENT_TIMESTAMP) AND (SELECT COUNT(*) FROM checkout_orders prior WHERE prior.buyer_id=? AND prior.kind='MARKET' AND prior.status IN ('PENDING_PAYMENT','PROCESSING','PAID','SHIPPED','RECEIVED','COMPLETED') AND json_extract(prior.details,'$.marketProShippingVoucherGrantId')=?)<${MARKET_PRO_SHIPPING_VOUCHERS_PER_YEAR}) OR (? IS NULL AND (SELECT COUNT(*) FROM checkout_orders prior WHERE prior.buyer_id=? AND prior.kind='MARKET' AND prior.status IN ('PENDING_PAYMENT','PROCESSING','PAID','SHIPPED','RECEIVED','COMPLETED') AND json_extract(prior.details,'$.marketProShippingVoucherMonth')=?)<${MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH})))`)
+      .bind(id,profile.id,listing.sellerId,listing.id,acceptedOffer?.id??null,JSON.stringify(orderItems),JSON.stringify(orderDetails),subtotal,sellerNetAmount,rate.price,amount,'IDR',expiresAt,listing.id,listing.amount,listing.quantity,listing.items,...listingGuardBindings,...offerBindings,JSON.stringify([...requested.values()]),voucherAvailable?1:0,annualGrant?.id??null,annualGrant?.id??null,profile.id,profile.id,annualGrant?.id??null,annualGrant?.id??null,profile.id,voucherMonth).run();
     if(!inserted.meta.changes)throw new HttpError(409,voucherAvailable?'Your monthly shipping benefit was just used. Refresh checkout to continue.':'This listing changed or the selected cards were reserved by another checkout. Refresh and try again.');
     return Response.json({id,checkoutUrl:`/checkout/order/${id}`,subtotal,shippingFee:rate.price,shippingDiscount,buyerServiceFeeAmount,total:amount},{status:201});
   }catch(error){return errorResponse(error)}

@@ -122,6 +122,22 @@ function Footer({language}:{language:Locale}) {
   </footer>;
 }
 
+function MarketFooter({language}:{language:Locale}) {
+  const id=language==='ID';
+  const getHref=(href:string)=>id?(href==='/'?'/id':`/id${href}`):href;
+  return <footer className="market-footer">
+    <div className="market-footer-main">
+      <Link className="market-footer-brand" href={getHref('/market')}><VivreMark size={24}/><span>VivrePlay <b>Market</b></span></Link>
+      <p>{id?'Beli dan jual kartu dengan aman di VivrePlay Market.':'Buy and sell cards on VivrePlay Market.'}</p>
+      <nav aria-label={id?'Jelajahi Market':'Market'}><Link href={getHref('/market')}>{id?'Semua listing':'All listings'}</Link><Link href={getHref('/market?tab=selling')}>{id?'Jual kartu':'Sell cards'}</Link><Link href={getHref('/market?tab=buying')}>{id?'Cari kartu':'Find cards'}</Link></nav>
+    </div>
+    <div className="market-footer-side">
+      <nav aria-label={id?'Bantuan dan kebijakan':'Help and policies'}><Link href={getHref('/help')}>{id?'Pusat bantuan':'Help center'}</Link><Link href={getHref('/faq')}>FAQ</Link><Link href={getHref('/contact')}>{id?'Kontak':'Contact'}</Link><Link href={getHref('/legal/terms')}>{id?'Syarat & Ketentuan':'Terms'}</Link><Link href={getHref('/legal/refund')}>{id?'Kebijakan pengembalian dana':'Refund policy'}</Link><Link href={getHref('/legal/privacy')}>{id?'Privasi':'Privacy'}</Link></nav>
+      <small>Unofficial fan-made project. One Piece Card Game and all card artwork belong to their respective owners.</small>
+    </div>
+  </footer>;
+}
+
 export function Shell({children,initialPath='/'}:{children:React.ReactNode;initialPath?:string}) {
   const router=useRouter();
   const path=usePathname()??initialPath;
@@ -260,7 +276,7 @@ export function Shell({children,initialPath='/'}:{children:React.ReactNode;initi
     </header>}
     {!marketCheckout&&<div className="context-row"><span>VivrePlay</span><span aria-hidden="true">/</span><strong>{crumb}</strong></div>}
     {children}
-    {!marketCheckout&&<Footer language={language}/>}
+    {!marketCheckout&&(marketRoute?<MarketFooter language={language}/>:<Footer language={language}/>)}
     <Dialog open={feedbackOpen} onOpenChange={setFeedbackOpen}>
       <DialogContent className="feedback-dialog">
         <DialogHeader>

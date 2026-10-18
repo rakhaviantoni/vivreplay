@@ -848,7 +848,8 @@ export function MarketListingDetailView({
   const pathname=usePathname();
   const [language, setLanguage] = useState<'EN' | 'ID'>('EN');
   const [listingTitle, setListingTitle] = useState(listing.title);
-  const [listingAmount, setListingAmount] = useState(listing.amount);
+  const recoveredPrice=listingCards.reduce((sum,item)=>sum+Math.max(0,item.unitAmount)*Math.max(0,item.quantity),0);
+  const [listingAmount, setListingAmount] = useState(listing.amount>0?listing.amount:recoveredPrice);
   const [listingNegotiable, setListingNegotiable] = useState(listing.negotiable!==false);
   const [editableCards, setEditableCards] = useState(listingCards);
   const [expiresAt, setExpiresAt] = useState<string | undefined>(listing.expiresAt);
@@ -917,13 +918,14 @@ export function MarketListingDetailView({
   };
 
   return (
-    <main className="page live-card-detail market-listing-detail">
+    <main className={`page live-card-detail market-listing-detail${isExpired&&!ownerView?' is-unavailable':''}`}>
       <Link className="back-link market-listing-back-link" href={pathname.startsWith('/id')?'/id/market':'/market'}>
         <ArrowLeftIcon aria-hidden="true" size={16}/>{t('Back to Market', 'Kembali ke Market')}
       </Link>
       <article className="live-detail-layout market-listing-layout">
         <aside className="live-detail-art viewer-primary-art market-listing-primary">
           <ListingArtRotator items={editableCards}/>
+          {!ownerView&&isExpired&&<span className={`market-listing-art-state is-${status.toLowerCase().replaceAll('_','-')}`}>{status==='SOLD_PENDING'?t('Just sold','Baru terjual'):status==='SOLD'?t('Sold','Terjual'):status==='CLOSED'?t('Closed','Ditutup'):t('Expired','Kedaluwarsa')}</span>}
         </aside>
 
         <section className="live-detail-copy market-listing-copy">
@@ -948,7 +950,7 @@ export function MarketListingDetailView({
           <dl className="market-listing-facts">
             <div>
               <dt>{t('Price', 'Harga')}</dt>
-              <dd className="market-listing-price-value">{canEditListing?<MarketListingPriceEdit listingId={listing.id} title={listingTitle} listingType={listing.type==='WTB'?'WTB':'WTS'} amount={listingAmount} currency={listing.currency} cards={editableCards.map(item=>({printingId:item.id,name:item.card.name,quantity:item.quantity,unitAmount:item.unitAmount}))} language={language} onSaved={updated=>{setListingAmount(updated.amount);setEditableCards(current=>current.map((item,index)=>({...item,unitAmount:updated.prices[index]??item.unitAmount})))}}><span>{formatMoney(listingAmount, listing.currency)}</span></MarketListingPriceEdit>:<span>{formatMoney(listingAmount, listing.currency)}</span>}</dd>
+              <dd className="market-listing-price-value">{canEditListing?<MarketListingPriceEdit listingId={listing.id} title={listingTitle} listingType={listing.type==='WTB'?'WTB':'WTS'} amount={listingAmount} currency={listing.currency} cards={editableCards.map(item=>({printingId:item.id,name:item.card.name,quantity:item.quantity,unitAmount:item.unitAmount}))} language={language} onSaved={updated=>{setListingAmount(updated.amount);setEditableCards(current=>current.map((item,index)=>({...item,unitAmount:updated.prices[index]??item.unitAmount})))}}><span>{formatMoney(listingAmount, listing.currency)}</span></MarketListingPriceEdit>:listingAmount>0?<span>{formatMoney(listingAmount, listing.currency)}</span>:<span>{t('Price unavailable','Harga tidak tersedia')}</span>}</dd>
             </div>
             {cardCount>1&&<div>
               <dt>{t('Cards', 'Kartu')}</dt>
@@ -990,8 +992,7 @@ export function MarketListingDetailView({
             </div>
           </div>
 
-          {(!isExpired||ownerView||status==='SOLD'||status==='SOLD_PENDING')&&(
-            <MarketListingItems
+          <MarketListingItems
               items={editableCards}
               currency={listing.currency}
               listingType={listing.type === 'WTB' ? 'WTB' : 'WTS'}
@@ -1007,7 +1008,6 @@ export function MarketListingDetailView({
               canEditPrices={canEditListing&&editableCards.length>1}
               onPriceSaved={(index,unitAmount)=>{setEditableCards(current=>current.map((item,currentIndex)=>currentIndex===index?{...item,unitAmount}:item));setListingAmount(current=>current+(unitAmount-editableCards[index].unitAmount)*editableCards[index].quantity)}}
             />
-          )}
         </section>
       </article>
     </main>

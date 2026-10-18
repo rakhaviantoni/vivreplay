@@ -34,6 +34,7 @@ type PlanPreview={
   buyerFeeMinimum:number;
   sellerFeeMinimum:number;
   shippingVouchersPerMonth:number;
+  shippingVouchersPerYear:number;
   shippingVoucherMinSubtotal:number;
   shippingVoucherSharePercent:number;
   shippingVoucherCap:number;
@@ -95,7 +96,7 @@ export function MarketProDialog({locale,member=false,profile=null,accountLoading
     {key:'listings',label:t('Active listings','Listing aktif'),free:(plan?.freeMaxActiveListings??25).toLocaleString(isId?'id-ID':'en-US'),pro:(plan?.maxActiveListings??2500).toLocaleString(isId?'id-ID':'en-US')},
     {key:'period',label:t('Listing period','Masa listing'),free:`${plan?.freeDurationDays??7} ${t('days','hari')}`,pro:`${plan?.durationDays??30} ${t('days','hari')}`},
     {key:'service-fee',label:<span className="buyer-fee-row-label">{t('Market service fee','Biaya layanan Market')}<MarketServiceFeeInfo locale={isId?'id':'en'} freePercent={plan?.freeCommissionPercent??1.5} proPercent={plan?.commissionPercent??0.75} buyerMinimum={plan?.buyerFeeMinimum??2_000} sellerMinimum={plan?.sellerFeeMinimum??1_000}/></span>,free:`${plan?.freeCommissionPercent??1.5}%`,pro:`${plan?.commissionPercent??0.75}%`},
-    {key:'vouchers',label:t('Delivery vouchers','Voucher ongkir'),free:'—',pro:`${plan?.shippingVouchersPerMonth??2} ${t('per month','per bulan')}`},
+    {key:'vouchers',label:t('Delivery vouchers','Voucher ongkir'),free:'—',pro:billingPeriod==='yearly'?`${plan?.shippingVouchersPerYear??24} ${t('during the year','selama setahun')}`:`${plan?.shippingVouchersPerMonth??2} ${t('per month','per bulan')}`},
   ];
   const amount=billingPeriod==='yearly'?plan?.annualAmount:plan?.amount;
   const periodDays=billingPeriod==='yearly'?plan?.annualDurationDays:plan?.durationDays;
@@ -130,7 +131,7 @@ export function MarketProDialog({locale,member=false,profile=null,accountLoading
               </div>
               <strong>{formatMoney(amount,'IDR')}</strong>
               <span>{t(`/ ${periodDays??30} days`,`/ ${periodDays??30} hari`)}</span>
-              {billingPeriod==='yearly'?<small>{t(`Billed once a year. Your ${plan?.shippingVouchersPerMonth??2} delivery vouchers renew each month.${Math.max(0,(plan?.standardAmount??0)*12-(plan?.annualAmount??0))>0?` Save ${formatMoney((plan?.standardAmount??0)*12-(plan?.annualAmount??0),'IDR')} compared with monthly billing.`:''}`,`Ditagihkan setahun sekali. ${plan?.shippingVouchersPerMonth??2} voucher ongkir diperbarui setiap bulan.${Math.max(0,(plan?.standardAmount??0)*12-(plan?.annualAmount??0))>0?` Hemat ${formatMoney((plan?.standardAmount??0)*12-(plan?.annualAmount??0),'IDR')} dibandingkan pembayaran bulanan.`:''}`)}</small>:plan?.introOffer && plan.standardAmount !== null ? <small>{t(`Intro price for ${plan.durationDays??30} days. Then ${formatMoney(plan.standardAmount,'IDR')} per 30 days. Renew manually.`,`Harga perkenalan berlaku ${plan.durationDays??30} hari. Setelah itu ${formatMoney(plan.standardAmount,'IDR')} per 30 hari. Perpanjangan dilakukan manual.`)}</small>:null}
+              {billingPeriod==='yearly'?<small>{t(`One payment for 365 days. The launch price applies to monthly Pro only. Use all ${plan?.shippingVouchersPerYear??24} vouchers any time before the membership ends. Unused vouchers expire with the plan.${Math.max(0,(plan?.standardAmount??0)*12-(plan?.annualAmount??0))>0?` Save ${formatMoney((plan?.standardAmount??0)*12-(plan?.annualAmount??0),'IDR')} compared with monthly billing.`:''}`,`Satu pembayaran untuk 365 hari. Harga promo hanya berlaku untuk Pro bulanan. Gunakan ${plan?.shippingVouchersPerYear??24} voucher kapan saja sebelum masa aktif berakhir. Sisa voucher kedaluwarsa bersama paket.${Math.max(0,(plan?.standardAmount??0)*12-(plan?.annualAmount??0))>0?` Hemat ${formatMoney((plan?.standardAmount??0)*12-(plan?.annualAmount??0),'IDR')} dibandingkan pembayaran bulanan.`:''}`)}</small>:plan?.introOffer && plan.standardAmount !== null ? <small>{t(`Intro price for ${plan.durationDays??30} days. Then ${formatMoney(plan.standardAmount,'IDR')} per 30 days. Renew manually.`,`Harga perkenalan berlaku ${plan.durationDays??30} hari. Setelah itu ${formatMoney(plan.standardAmount,'IDR')} per 30 hari. Perpanjangan dilakukan manual.`)}</small>:null}
               {billingPeriod==='monthly'&&introLimit&&<MarketIntroOfferProgress compact limit={introLimit} remaining={plan?.introOfferSpotsRemaining} endsAt={plan?.introOfferEndsAt} locale={locale}/>}
             </>
           ) : (

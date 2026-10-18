@@ -150,7 +150,7 @@ export default async function Page({params}:{params:Promise<{id:string}>}){
     variant: stored.cardVariant,
   } : undefined;
 
-  const items=listing.items?.length?listing.items:stored.status==='ACTIVE'?[{instanceId:stored.instanceId??undefined,printingId:listing.printingId,quantity:listing.quantity,condition:listing.condition,unitAmount:Math.round(listing.amount/listing.quantity)}]:[];
+  const items=listing.items?.length?listing.items:!['SOLD','SOLD_PENDING'].includes(stored.status)?[{instanceId:stored.instanceId??undefined,printingId:listing.printingId,quantity:listing.quantity,condition:listing.condition,unitAmount:Math.round(listing.amount/Math.max(1,listing.quantity))}]:[];
   const soldRows=stored.type==='WTS'?(await db().prepare(`SELECT json_extract(j.value,'$.printingId') AS printingId,SUM(CAST(json_extract(j.value,'$.quantity') AS INTEGER)) AS quantity,MAX(CAST(json_extract(j.value,'$.unitAmount') AS INTEGER)) AS unitAmount,MAX(json_extract(j.value,'$.condition')) AS condition FROM checkout_orders o,json_each(o.items) j WHERE o.kind='MARKET' AND COALESCE(json_extract(j.value,'$.listingId'),o.listing_id)=? AND (o.status IN ('PAID','DISPUTED','RECEIVING') OR (o.status='SHIPPED' AND (o.delivered_at IS NULL OR o.delivered_at>datetime('now','-48 hours')))) GROUP BY json_extract(j.value,'$.printingId')`).bind(stored.id).all<{printingId:string;quantity:number;unitAmount:number|null;condition:string|null}>()).results:[];
   const initialStatus=stored.status==='SOLD'&&soldRows.length?'SOLD_PENDING':stored.status;
   const displayedSoldRows=soldRows.length?soldRows:stored.status==='SOLD'?[{printingId:stored.printingId,quantity:1,unitAmount:Math.round(listing.amount/Math.max(1,listing.quantity)),condition:listing.condition}]:[];
