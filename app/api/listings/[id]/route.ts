@@ -3,8 +3,10 @@ import {notifyListingWatchers} from '@/lib/server/market-watch-alerts';
 import {user,db,errorResponse,guard,HttpError} from '@/lib/server/store';
 import {getDynamicListingPolicy,computeListingExpiration} from '@/lib/market/policy';
 import {z} from 'zod';
+import {MARKET_MAX_COPIES_PER_CARD,MARKET_MAX_LISTING_COPIES} from '@/lib/market/listing-limits';
+import {enforceMarketListingLimits} from '@/lib/server/market-listing-limits';
 
-const addItemsSchema=z.object({action:z.literal('add-items'),items:z.array(z.object({instanceId:z.string().uuid(),printingId:z.string().min(1),quantity:z.number().int().min(1).max(999),unitAmount:z.number().int().min(1).max(100000000000)})).min(1).max(30)});
+const addItemsSchema=z.object({action:z.literal('add-items'),items:z.array(z.object({instanceId:z.string().uuid(),printingId:z.string().min(1),quantity:z.number().int().min(1).max(MARKET_MAX_COPIES_PER_CARD),unitAmount:z.number().int().min(1).max(100000000000)})).min(1).max(MARKET_MAX_LISTING_COPIES)});
 
 export async function DELETE(req:Request,{params}:{params:Promise<{id:string}>}){
   try{
@@ -58,10 +60,10 @@ export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}){
           existing.quantity+=addition.quantity;
         }else entries.push({instanceId,printingId:addition.printingId,quantity:addition.quantity,condition:addition.condition,unitAmount:addition.unitAmount});
       }
-      if(entries.length>30)throw new HttpError(400,'A listing can contain up to 30 card entries.');
+      await enforceMarketListingLimits(d,entries);
       const quantity=entries.reduce((sum,entry)=>sum+entry.quantity,0);
       const amount=entries.reduce((sum,entry)=>sum+entry.quantity*entry.unitAmount,0);
-      if(quantity>999)throw new HttpError(400,'A listing can contain up to 999 cards.');
+      if(quantity>MARKET_MAX_LISTING_COPIES)throw new HttpError(400,`A listing can include up to ${MARKET_MAX_LISTING_COPIES} cards.`);
       if(!Number.isSafeInteger(amount)||amount<1||amount>100000000000)throw new HttpError(400,'The listing total is over the price limit.');
       const itemsJson=JSON.stringify(entries);
       const changed=await d.prepare(`UPDATE listings SET items=?,quantity=?,amount=?

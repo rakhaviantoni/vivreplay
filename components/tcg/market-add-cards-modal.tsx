@@ -6,6 +6,7 @@ import {CheckIcon as Check,SpinnerGapIcon as Spinner,XIcon as Close} from '@phos
 import {toast} from 'sonner';
 import type {Card} from '@/packages/card-data/catalog';
 import {CardArt} from './card-art';
+import {MARKET_MAX_COPIES_PER_CARD,MARKET_MAX_LISTING_COPIES,listingLimitMessage,listingLimitViolation} from '@/lib/market/listing-limits';
 
 type VaultChoice={id:string;printingId:string;type:'RAW'|'GRADED';quantity:number;condition:string;listedQuantity?:number;card?:Card;language?:string;variant?:string;printingCode?:string};
 type ListingLine={instanceId?:string;printingId:string;quantity:number;condition?:string;unitAmount:number;card?:Card;language?:string};
@@ -49,17 +50,29 @@ export function MarketAddCardsModal({open,listingId,listingItems,currency,langua
   const available=(item:VaultChoice)=>Math.max(0,item.quantity-(item.listedQuantity??0));
   const selectedCards=Object.entries(selected).filter(([,quantity])=>quantity>0);
   const totalAdded=selectedCards.reduce((sum,[,quantity])=>sum+quantity,0);
-  const nextEntryCount=listingItems.length+selectedCards.filter(([instanceId])=>!listingItems.some(line=>line.instanceId===instanceId)).length;
   const totalAfter=listingItems.reduce((sum,item)=>sum+item.quantity,0)+totalAdded;
+  const identityByPrinting=new Map<string,string>();
+  for(const item of listingItems)identityByPrinting.set(item.printingId,item.card?.code??item.printingId);
+  for(const item of choices)identityByPrinting.set(item.printingId,item.card?.code??item.printingId);
+  for(const item of choiceCache.values())identityByPrinting.set(item.printingId,item.card?.code??item.printingId);
+  const resultingItems=[...listingItems.map(item=>({printingId:item.printingId,quantity:item.quantity})),...selectedCards.flatMap(([instanceId,quantity])=>{const item=choiceCache.get(instanceId);return item?[{printingId:item.printingId,quantity}]:[]})];
+  const limitViolation=listingLimitViolation(resultingItems,identityByPrinting);
+  const identityFor=(printingId:string)=>identityByPrinting.get(printingId)??printingId;
+  const maxQuantityFor=(item:VaultChoice)=>{
+    const identity=identityFor(item.printingId);
+    const alreadyListed=listingItems.filter(line=>identityFor(line.printingId)===identity).reduce((sum,line)=>sum+line.quantity,0);
+    const selectedElsewhere=selectedCards.reduce((sum,[instanceId,quantity])=>{const selectedItem=choiceCache.get(instanceId);return selectedItem&&instanceId!==item.id&&identityFor(selectedItem.printingId)===identity?sum+quantity:sum},0);
+    return Math.max(0,Math.min(available(item),MARKET_MAX_COPIES_PER_CARD-alreadyListed-selectedElsewhere,MARKET_MAX_LISTING_COPIES-totalAfter+(selected[item.id]??0)));
+  };
   const totalAfterAmount=listingItems.reduce((sum,item)=>sum+item.quantity*item.unitAmount,0)+selectedCards.reduce((sum,[instanceId,quantity])=>{const item=choiceCache.get(instanceId);if(!item)return sum;const existing=listingItems.find(line=>line.printingId===item.printingId&&line.condition===item.condition);return sum+quantity*(existing?.unitAmount??(Number(prices[instanceId])||0))},0);
   const pricesReady=selectedCards.every(([instanceId])=>{const item=choiceCache.get(instanceId);if(!item)return false;const existing=listingItems.find(line=>line.printingId===item.printingId&&line.condition===item.condition);return Boolean(existing?.unitAmount)||Number.isSafeInteger(Number(prices[instanceId]))&&Number(prices[instanceId])>0});
-  const setQuantity=(item:VaultChoice,raw:number)=>setSelected(previous=>({...previous,[item.id]:Math.max(0,Math.min(available(item),Math.floor(raw)||0))}));
+  const setQuantity=(item:VaultChoice,raw:number)=>setSelected(previous=>({...previous,[item.id]:Math.max(0,Math.min(maxQuantityFor(item),Math.floor(raw)||0))}));
   const submit=async(event:React.FormEvent)=>{
     event.preventDefault();if(busy)return;setError('');
     const additions=selectedCards.flatMap(([instanceId,quantity])=>{const item=choiceCache.get(instanceId);if(!item)return[];const existing=listingItems.find(line=>line.printingId===item.printingId&&line.condition===item.condition);const unitAmount=existing?.unitAmount??Number(prices[instanceId]);return[{instanceId,printingId:item.printingId,quantity,unitAmount}]});
     if(!additions.length){setError(id?'Pilih kartu yang ingin ditambahkan.':'Select cards to add.');return}
     if(additions.some(item=>!Number.isSafeInteger(item.unitAmount)||item.unitAmount<1)){setError(id?'Masukkan harga per kartu.':'Enter a price per card.');return}
-    if(nextEntryCount>30||totalAfter>999){setError(id?'Batas listing adalah 30 entri dan 999 kartu.':'A listing can contain up to 30 entries and 999 cards.');return}
+    if(limitViolation){setError(listingLimitMessage(limitViolation,id?'ID':'EN'));return}
     setBusy(true);
     try{
       const response=await fetch(`/api/listings/${encodeURIComponent(listingId)}`,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({action:'add-items',items:additions})});
@@ -77,15 +90,15 @@ export function MarketAddCardsModal({open,listingId,listingItems,currency,langua
       <div className="vault-bulk-listing-search"><input type="search" value={query} onChange={event=>setQuery(event.target.value)} placeholder={id?'Cari nama atau kode kartu':'Search by card name or code'} aria-label={id?'Cari kartu di Vault':'Search Vault cards'}/><span>{filtered.length.toLocaleString(id?'id-ID':'en-US')}</span></div>
       <div className="vault-bulk-listing-choices market-add-cards-choices" role="group" aria-label={id?'Kartu tersedia':'Available cards'}>
         {loading&&<p className="vault-bulk-empty">{id?'Memuat Vault…':'Loading your Vault…'}</p>}
-        {!loading&&filtered.map(item=>{const picked=selected[item.id]??0;const availableCount=available(item);const existing=listingItems.find(line=>line.printingId===item.printingId&&line.condition===item.condition);return <div key={item.id} className={`vault-bulk-listing-choice ${picked?'is-selected':''}`}>
-          <button type="button" className="vault-bulk-listing-select" aria-pressed={picked>0} onClick={()=>setQuantity(item,picked?0:1)}><span className="vault-bulk-listing-art"><CardArt card={item.card!} small/></span><span className="vault-bulk-listing-copy"><strong>{item.card?.name}</strong><small>{item.card?.code} / {item.variant??item.card?.variant??'Standard'} / {id?'tersedia':'available'} {availableCount}</small></span><span className="vault-bulk-listing-check">{picked>0&&<Check size={14}/>}</span></button>
-          {picked>0&&<div className="vault-bulk-listing-controls"><label className="vault-bulk-listing-price">{existing?(id?'Harga / kartu':'Price per card'):(id?'Harga / kartu':'Price per card')}<input aria-label={`${id?'Harga per kartu':'Price per card'}: ${item.card?.name}`} value={existing?String(existing.unitAmount):(prices[item.id]??'')} readOnly={Boolean(existing)} onChange={event=>setPrices(previous=>({...previous,[item.id]:event.target.value.replace(/\D/g,'')}))} inputMode="numeric" placeholder="0"/></label><label className="vault-bulk-listing-quantity">{id?'Jumlah':'Quantity'}<input type="number" min={0} max={availableCount} step={1} value={picked} onChange={event=>setQuantity(item,Number(event.target.value))}/><small>{id?`dari ${availableCount}`:`of ${availableCount}`}</small></label></div>}
+        {!loading&&filtered.map(item=>{const picked=selected[item.id]??0;const availableCount=available(item);const max=maxQuantityFor(item);const existing=listingItems.find(line=>line.printingId===item.printingId&&line.condition===item.condition);return <div key={item.id} className={`vault-bulk-listing-choice ${picked?'is-selected':''}`}>
+          <button type="button" className="vault-bulk-listing-select" aria-pressed={picked>0} disabled={!picked&&max<1} onClick={()=>setQuantity(item,picked?0:1)}><span className="vault-bulk-listing-art"><CardArt card={item.card!} small/></span><span className="vault-bulk-listing-copy"><strong>{item.card?.name}</strong><small>{item.card?.code} / {item.variant??item.card?.variant??'Standard'} / {id?'tersedia':'available'} {availableCount}</small></span><span className="vault-bulk-listing-check">{picked>0&&<Check size={14}/>}</span></button>
+          {picked>0&&<div className="vault-bulk-listing-controls"><label className="vault-bulk-listing-price">{id?'Harga / kartu':'Price per card'}<input aria-label={`${id?'Harga per kartu':'Price per card'}: ${item.card?.name}`} value={existing?String(existing.unitAmount):(prices[item.id]??'')} readOnly={Boolean(existing)} onChange={event=>setPrices(previous=>({...previous,[item.id]:event.target.value.replace(/\D/g,'')}))} inputMode="numeric" placeholder="0"/></label><label className="vault-bulk-listing-quantity">{id?'Jumlah':'Quantity'}<input type="number" min={0} max={max} step={1} value={picked} onChange={event=>setQuantity(item,Number(event.target.value))}/><small>{id?`Maks. ${max}`:`Max ${max}`}</small></label></div>}
         </div>})}
         {!loading&&!filtered.length&&<p className="vault-bulk-empty">{query.trim()?(id?'Kartu tidak ditemukan.':'No matching cards.'):(id?'Tidak ada kartu tersedia di Vault.':'No available cards in your Vault.')}</p>}
       </div>
-      <div className="vault-bulk-listing-summary"><span>{id?`${totalAdded} kartu ditambahkan`:`${totalAdded} cards added`}<small>{id?`Listing setelah ditambahkan: ${totalAfter} kartu`:`Listing after update: ${totalAfter} cards`}</small></span><strong>{new Intl.NumberFormat(id?'id-ID':'en-US',{style:'currency',currency:currency||'IDR',maximumFractionDigits:0}).format(totalAfterAmount)}</strong></div>
+      <div className="vault-bulk-listing-summary"><span>{id?`${totalAdded} kartu ditambahkan`:`${totalAdded} cards added`}<small>{id?`Listing: ${totalAfter} dari ${MARKET_MAX_LISTING_COPIES} kartu maksimal`:`Listing: ${totalAfter} of ${MARKET_MAX_LISTING_COPIES} cards max`}</small></span><strong>{new Intl.NumberFormat(id?'id-ID':'en-US',{style:'currency',currency:currency||'IDR',maximumFractionDigits:0}).format(totalAfterAmount)}</strong></div>
       {error&&<p className="vault-bulk-listing-error" role="alert">{error}</p>}
-      <footer><button type="button" className="vault-btn vault-btn-secondary" onClick={onClose} disabled={busy}>{id?'Batal':'Cancel'}</button><button type="submit" className="vault-btn vault-btn-primary" disabled={busy||loading||!totalAdded||!pricesReady||nextEntryCount>30||totalAfter>999}>{busy?<Spinner className="is-spinning" size={16}/>:<Check size={16}/>} {busy?(id?'Menyimpan…':'Saving…'):(id?'Tambahkan':'Add to listing')}</button></footer>
+      <footer><button type="button" className="vault-btn vault-btn-secondary" onClick={onClose} disabled={busy}>{id?'Batal':'Cancel'}</button><button type="submit" className="vault-btn vault-btn-primary" disabled={busy||loading||!totalAdded||!pricesReady||Boolean(limitViolation)}>{busy?<Spinner className="is-spinning" size={16}/>:<Check size={16}/>} {busy?(id?'Menyimpan…':'Saving…'):(id?'Tambahkan':'Add to listing')}</button></footer>
     </form>
   </section></div>,document.body);
 }

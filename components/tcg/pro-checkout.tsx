@@ -10,7 +10,7 @@ import {useAccount} from '@/lib/client';
 import {toast} from 'sonner';
 import {MarketPaymentMethodPicker,defaultPaymentOptions,estimatePaymentFee,type PaymentMethod,type PaymentOption} from '@/components/tcg/market-payment-method-picker';
 
-type Plan={available:boolean;paymentChannels?:PaymentOption[];amount:number|null;standardAmount:number|null;durationDays:number|null;introOffer:boolean;introOfferEndsAt:string|null;introOfferLimit:number|null;introOfferSpotsRemaining:number|null;maxActiveListings:number;freeMaxActiveListings:number;freeDurationDays:number;commissionPercent:number;freeCommissionPercent:number;sellerFeeMinimum:number;buyerFeePercent:number;freeBuyerFeePercent:number;buyerFeeCap:number;buyerFeeMinimum:number;shippingVouchersPerMonth:number;shippingVoucherMinSubtotal:number;shippingVoucherSharePercent:number;shippingVoucherCap:number;canAutoRenew:boolean;freeCanAutoRenew:boolean;currency:'IDR'};
+type Plan={available:boolean;paymentChannels?:PaymentOption[];amount:number|null;standardAmount:number|null;durationDays:number|null;annualAmount:number;annualDurationDays:number;introOffer:boolean;introOfferEndsAt:string|null;introOfferLimit:number|null;introOfferSpotsRemaining:number|null;maxActiveListings:number;freeMaxActiveListings:number;freeDurationDays:number;commissionPercent:number;freeCommissionPercent:number;sellerFeeMinimum:number;buyerFeePercent:number;freeBuyerFeePercent:number;buyerFeeCap:number;buyerFeeMinimum:number;shippingVouchersPerMonth:number;shippingVoucherMinSubtotal:number;shippingVoucherSharePercent:number;shippingVoucherCap:number;canAutoRenew:boolean;freeCanAutoRenew:boolean;currency:'IDR'};
 type MembershipOrder={id:string;status:string;amount:number;currency:string;createdAt:string;paidAt:string|null};
 
 export function ProCheckout(){
@@ -20,6 +20,7 @@ export function ProCheckout(){
   const [plan,setPlan]=useState<Plan>();
   const [submitting,setSubmitting]=useState(false);
   const [selectedPayment,setSelectedPayment]=useState<{method:PaymentMethod;channel:string}>({method:'qris',channel:'mpm'});
+  const [billingPeriod,setBillingPeriod]=useState<'monthly'|'yearly'>('monthly');
   const [error,setError]=useState('');
   const [membershipOrders,setMembershipOrders]=useState<MembershipOrder[]>([]);
   const [monthlySales,setMonthlySales]=useState('0');
@@ -36,11 +37,10 @@ export function ProCheckout(){
   useEffect(()=>{
     if(accountLoading)return;
     let active=true;
-    setPlanLoading(true);
     fetch('/api/checkout/pro',{cache:'no-store'}).then(async response=>{
       if(!response.ok)throw new Error('Market Pro is temporarily unavailable.');
       const result=await response.json() as Plan;
-      if(active){setPlan(result);const options=Array.isArray(result.paymentChannels)?result.paymentChannels:defaultPaymentOptions;const preferred=options.find(option=>option.method==='qris')??options[0];if(preferred)setSelectedPayment({method:preferred.method,channel:preferred.channel})}
+      if(active){setPlan(result);if(String(account?.profile?.tier??'free').toLowerCase()==='pro')setBillingPeriod('yearly');const options=Array.isArray(result.paymentChannels)?result.paymentChannels:defaultPaymentOptions;const preferred=options.find(option=>option.method==='qris')??options[0];if(preferred)setSelectedPayment({method:preferred.method,channel:preferred.channel})}
     }).catch(cause=>{if(active)setError(cause instanceof Error?cause.message:'Market Pro is temporarily unavailable.')}).finally(()=>{if(active)setPlanLoading(false)});
     return()=>{active=false};
   },[accountLoading,account?.profile?.id]);
@@ -60,10 +60,11 @@ export function ProCheckout(){
   const hasPhone=/^\+?[0-9]{8,16}$/.test(phone);
   const begin=async()=>{
     if(!hasPhone){router.push('/profile');return;}
+    if(alreadyPro&&billingPeriod!=='yearly'){setError(t('Choose Pro+ yearly to extend your current membership.','Pilih Pro+ tahunan untuk memperpanjang keanggotaan Anda.'));return;}
     if(!selectedPaymentOption){setError(t('Choose an available payment method to continue.','Pilih metode pembayaran yang tersedia untuk melanjutkan.'));return;}
     setError('');setSubmitting(true);
     try{
-      const response=await fetch('/api/checkout/pro',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({introOffer:Boolean(plan?.introOffer),paymentMethod:selectedPayment.method,paymentChannel:selectedPayment.channel})});
+      const response=await fetch('/api/checkout/pro',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({billingPeriod,introOffer:billingPeriod==='monthly'&&Boolean(plan?.introOffer),paymentMethod:selectedPayment.method,paymentChannel:selectedPayment.channel})});
       const result=await response.json() as {checkoutUrl?:string;error?:string};
       if(!response.ok||!result.checkoutUrl)throw new Error(result.error??'Market Pro is temporarily unavailable.');
       router.push(result.checkoutUrl);
@@ -81,10 +82,13 @@ export function ProCheckout(){
     {key:'renewal',label:t('Listing auto-renewal','Perpanjangan listing otomatis'),free:plan?.freeCanAutoRenew?t('Automatic','Otomatis'):t('Manual','Manual'),pro:plan?.canAutoRenew?t('Automatic','Otomatis'):t('Manual','Manual')},
   ];
   const alreadyPro=String(account?.profile?.tier??'free').toLowerCase()==='pro';
+  const selectedAmount=billingPeriod==='yearly'?(plan?.annualAmount??null):plan?.amount;
+  const selectedDuration=billingPeriod==='yearly'?(plan?.annualDurationDays??365):plan?.durationDays;
+  const selectedIntro=billingPeriod==='monthly'&&Boolean(plan?.introOffer);
   const paymentOptions=Array.isArray(plan?.paymentChannels)?plan.paymentChannels:defaultPaymentOptions;
   const selectedPaymentOption=paymentOptions.find(option=>option.method===selectedPayment.method&&option.channel===selectedPayment.channel);
-  const paymentFee=estimatePaymentFee(selectedPaymentOption,plan?.amount??0);
-  const paymentTotal=(plan?.amount??0)+paymentFee;
+  const paymentFee=estimatePaymentFee(selectedPaymentOption,selectedAmount??0);
+  const paymentTotal=(selectedAmount??0)+paymentFee;
   const numberValue=(value:string)=>Math.max(0,Math.min(1_000_000_000_000,Number(value)||0));
   const saleCount=Math.max(1,Math.min(100,Math.floor(Number(monthlySaleCount)||1)));
   const averageSaleSubtotal=numberValue(monthlySales)/saleCount;
@@ -94,7 +98,7 @@ export function ProCheckout(){
   const buyerSavings=purchaseCount*Math.max(0,calculateBuyerServiceFee(averagePurchaseSubtotal,plan?.freeCommissionPercent??1.5,plan?.buyerFeeMinimum??MARKET_BUYER_FEE_MINIMUM)-calculateBuyerServiceFee(averagePurchaseSubtotal,plan?.commissionPercent??0.75,plan?.buyerFeeMinimum??MARKET_BUYER_FEE_MINIMUM));
   const voucherSavings=Math.min(Math.max(0,Math.floor(Number(voucherCount)||0)),plan?.shippingVouchersPerMonth??2)*Math.min(Math.round(numberValue(averageDelivery)*(plan?.shippingVoucherSharePercent??100)/100),plan?.shippingVoucherCap??10000);
   const totalEstimatedSavings=sellerSavings+buyerSavings+voucherSavings;
-  const estimatedAfterPlan=totalEstimatedSavings-(plan?.amount??plan?.standardAmount??0);
+  const estimatedAfterPlan=totalEstimatedSavings-(billingPeriod==='yearly'?(plan?.annualAmount??0)/12:(plan?.amount??plan?.standardAmount??0));
   const introEndLabel=plan?.introOfferEndsAt?new Intl.DateTimeFormat(id?'id-ID':'en-US',{dateStyle:'long',timeZone:'Asia/Jakarta'}).format(new Date(plan.introOfferEndsAt)):'';
   const introLimit=plan?.introOfferLimit??null;
   const introSpotsRemaining=plan?.introOfferSpotsRemaining??null;
@@ -132,9 +136,9 @@ export function ProCheckout(){
         </section>
       </section>
       <aside className="pro-purchase-panel" aria-label={t('Market Pro price','Harga Market Pro')}>
-        {plan?.available&&plan.amount&&plan.durationDays?<><p className="pro-purchase-price">{formatMoney(plan.amount,'IDR')}<small>{t(`/ ${plan.durationDays} days`,`/ ${plan.durationDays} hari`)}</small></p>{plan.introOffer?<><p className="pro-intro-price-note">{t(`Intro price for ${plan.durationDays} days. Then ${formatMoney(plan.standardAmount??24900,'IDR')} per 30 days. Renew manually.`,`Harga perkenalan berlaku ${plan.durationDays} hari. Setelah itu ${formatMoney(plan.standardAmount??24900,'IDR')} per 30 hari. Perpanjangan dilakukan manual.`)}</p>{introLimit&&<div className="pro-intro-limit-note"><div><span>{t(`${introClaimed} of ${introLimit} intro memberships claimed`,`${introClaimed} dari ${introLimit} keanggotaan harga perkenalan terpakai`)}</span>{introSpotsRemaining!==null&&<strong>{t(`${introSpotsRemaining} left`,`tersisa ${introSpotsRemaining}`)}</strong>}</div><progress max={introLimit} value={introClaimed} aria-label={t(`${introClaimed} of ${introLimit} intro memberships claimed`,`${introClaimed} dari ${introLimit} keanggotaan harga perkenalan terpakai`)}/>{introEndLabel&&<small>{t(`Offer ends ${introEndLabel}`,`Promo berakhir ${introEndLabel}`)}</small>}</div>}{!introLimit&&introEndLabel&&<p className="pro-intro-limit-note">{t(`Offer ends ${introEndLabel}.`,`Promo berakhir ${introEndLabel}.`)}</p>}</>:<p className="pro-purchase-caption">{t(`${plan.durationDays}-day membership. Renew manually when you want.`,`Keanggotaan ${plan.durationDays} hari. Perpanjangan dilakukan manual.`)}</p>}
-          {account&&!alreadyPro&&hasPhone&&<><MarketPaymentMethodPicker locale={id?'ID':'EN'} options={paymentOptions} amount={plan.amount} selectedMethod={selectedPayment.method} selectedChannel={selectedPayment.channel} onChange={(method,channel)=>setSelectedPayment({method,channel})}/>{paymentFee>0&&<div className="pro-payment-total"><span>{t('Estimated payment fee','Perkiraan biaya pembayaran')}</span><strong>{formatMoney(paymentFee,'IDR')}</strong><span>{t('Estimated total','Perkiraan total')}</span><strong>{formatMoney(paymentTotal,'IDR')}</strong></div>}</>}
-          {!account?<button className="button pro-purchase-button" onClick={()=>window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}))}>{t('Sign in to continue','Masuk untuk melanjutkan')}</button>:alreadyPro?<div className="pro-current-state"><strong>{t('You already have Pro','Akun Anda sudah Pro')}</strong><p>{t('Your Pro membership is active.','Keanggotaan Pro Anda aktif.')}</p><Link className="button secondary pro-purchase-button" href="/profile">{t('Open Profile','Buka Profil')}</Link></div>:hasPhone?<button className="button pro-purchase-button" disabled={submitting||!selectedPaymentOption} onClick={begin}>{submitting?t('Opening payment…','Membuka pembayaran…'):t('Get Market Pro','Dapatkan Market Pro')}</button>:<div className="pro-phone-required"><p>{t('Add a phone number to your profile before checkout.','Tambahkan nomor telepon di profil sebelum checkout.')}</p><Link className="button pro-purchase-button" href="/profile">{t('Add phone number','Tambahkan nomor telepon')}</Link></div>}
+        {plan?.available&&selectedAmount&&selectedDuration?<><div className="market-pro-billing-toggle" role="group" aria-label={t('Membership period','Masa keanggotaan')}><button type="button" aria-pressed={billingPeriod==='monthly'} disabled={alreadyPro} onClick={()=>setBillingPeriod('monthly')}>{t('Monthly','Bulanan')}</button><button type="button" aria-pressed={billingPeriod==='yearly'} onClick={()=>setBillingPeriod('yearly')}>{alreadyPro?t('Extend for a year','Perpanjang setahun'):t('Pro+ yearly','Pro+ tahunan')}</button></div><p className="pro-purchase-price">{formatMoney(selectedIntro?plan.amount??selectedAmount:selectedAmount,'IDR')}<small>{t(`/ ${selectedDuration} days`,`/ ${selectedDuration} hari`)}</small></p>{billingPeriod==='yearly'?<p className="pro-purchase-caption">{t(`Paid once for the year. Your ${plan.shippingVouchersPerMonth} delivery vouchers renew each month.`,`Dibayar sekali untuk setahun. ${plan.shippingVouchersPerMonth} voucher ongkir diperbarui setiap bulan.`)}{Math.max(0,(plan.standardAmount??plan.amount??0)*12-(plan.annualAmount??0))>0?` ${t(`Save ${formatMoney((plan.standardAmount??plan.amount??0)*12-(plan.annualAmount??0),'IDR')} compared with monthly billing.`,`Hemat ${formatMoney((plan.standardAmount??plan.amount??0)*12-(plan.annualAmount??0),'IDR')} dibandingkan pembayaran bulanan.`)}`:''}</p>:selectedIntro?<><p className="pro-intro-price-note">{t(`Intro price for ${plan.durationDays} days. Then ${formatMoney(plan.standardAmount??24900,'IDR')} per 30 days. Renew manually.`,`Harga perkenalan berlaku ${plan.durationDays} hari. Setelah itu ${formatMoney(plan.standardAmount??24900,'IDR')} per 30 hari. Perpanjangan dilakukan manual.`)}</p>{introLimit&&<div className="pro-intro-limit-note"><div><span>{t(`${introClaimed} of ${introLimit} intro memberships claimed`,`${introClaimed} dari ${introLimit} keanggotaan harga perkenalan terpakai`)}</span>{introSpotsRemaining!==null&&<strong>{t(`${introSpotsRemaining} left`,`tersisa ${introSpotsRemaining}`)}</strong>}</div><progress max={introLimit} value={introClaimed} aria-label={t(`${introClaimed} of ${introLimit} intro memberships claimed`,`${introClaimed} dari ${introLimit} keanggotaan harga perkenalan terpakai`)}/>{introEndLabel&&<small>{t(`Offer ends ${introEndLabel}`,`Promo berakhir ${introEndLabel}`)}</small>}</div>}{!introLimit&&introEndLabel&&<p className="pro-intro-limit-note">{t(`Offer ends ${introEndLabel}.`,`Promo berakhir ${introEndLabel}.`)}</p>}</>:<p className="pro-purchase-caption">{t(`${selectedDuration}-day membership. Renew manually when you want.`,`Keanggotaan ${selectedDuration} hari. Perpanjangan dilakukan manual.`)}</p>}
+          {account&&(!alreadyPro||billingPeriod==='yearly')&&hasPhone&&<><MarketPaymentMethodPicker locale={id?'ID':'EN'} options={paymentOptions} amount={selectedAmount} selectedMethod={selectedPayment.method} selectedChannel={selectedPayment.channel} onChange={(method,channel)=>setSelectedPayment({method,channel})}/>{paymentFee>0&&<div className="pro-payment-total"><span>{t('Estimated payment fee','Perkiraan biaya pembayaran')}</span><strong>{formatMoney(paymentFee,'IDR')}</strong><span>{t('Estimated total','Perkiraan total')}</span><strong>{formatMoney(paymentTotal,'IDR')}</strong></div>}</>}
+          {!account?<button className="button pro-purchase-button" onClick={()=>window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}))}>{t('Sign in to continue','Masuk untuk melanjutkan')}</button>:alreadyPro?<div className="pro-current-state"><strong>{t('You already have Pro','Akun Anda sudah Pro')}</strong><p>{t('Your current membership stays active. The annual term starts after it ends.','Keanggotaan saat ini tetap aktif. Masa tahunan dimulai setelah masa tersebut berakhir.')}</p>{hasPhone&&<button className="button pro-purchase-button" disabled={submitting||!selectedPaymentOption} onClick={begin}>{submitting?t('Opening payment…','Membuka pembayaran…'):t('Extend with Pro+ yearly','Perpanjang dengan Pro+ tahunan')}</button>}</div>:hasPhone?<button className="button pro-purchase-button" disabled={submitting||!selectedPaymentOption} onClick={begin}>{submitting?t('Opening payment…','Membuka pembayaran…'):billingPeriod==='yearly'?t('Get Pro+ yearly','Pilih Pro+ tahunan'):t('Get Market Pro','Dapatkan Market Pro')}</button>:<div className="pro-phone-required"><p>{t('Add a phone number to your profile before checkout.','Tambahkan nomor telepon di profil sebelum checkout.')}</p><Link className="button pro-purchase-button" href="/profile">{t('Add phone number','Tambahkan nomor telepon')}</Link></div>}
           <small className="pro-payment-note">{t('Your membership starts when payment clears.','Keanggotaan Anda aktif setelah pembayaran diterima.')}</small>
         </>:<div className="pro-coming-soon"><strong>{t('Membership checkout is unavailable','Pembayaran keanggotaan tidak tersedia')}</strong><p>{t('Please try again later.','Silakan coba lagi nanti.')}</p></div>}
         {error&&<p className="checkout-error" role="alert">{error}</p>}

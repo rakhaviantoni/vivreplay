@@ -1,9 +1,10 @@
 import {db,HttpError} from '@/lib/server/store';
 import {sendMarketEmailOnce} from '@/lib/server/market-notifications';
 import {MARKET_REVIEW_WINDOW_MS} from '@/lib/market/review-window';
+import {sellerVaultDebits} from '@/lib/market/order-transfer';
 
 type Order={id:string;kind:string;buyerId:string;sellerId:string|null;items:string;currency:string;status:string;deliveredAt:string|null;title:string|null};
-type Item={printingId:string;quantity:number;unitAmount?:number;condition?:string};
+type Item={printingId:string;quantity:number;unitAmount?:number;condition?:string;instanceId?:string;listingId?:string};
 
 export async function completeDeliveredMarketOrder(orderId:string,buyerId:string,automatic=false){
   const database=db();
@@ -44,8 +45,17 @@ export async function completeDeliveredMarketOrder(orderId:string,buyerId:string
     const purchase=purchases.get(key)??{printingId:item.printingId,condition,quantity:0,amount:0};
     purchase.quantity+=item.quantity;purchase.amount+=Math.max(0,Math.round(item.unitAmount??0))*item.quantity;purchases.set(key,purchase);
   }
+  const sellerDebits=sellerVaultDebits(items);
   const statements=[];
   try{
+    if(sellerDebits.size&&order.sellerId){
+      for(const [instanceId,quantity] of sellerDebits){
+        const sellerItem=await database.prepare(`SELECT quantity FROM collectible_instances WHERE id=? AND owner_id=? AND deleted_at IS NULL`).bind(instanceId,order.sellerId).first<{quantity:number}>();
+        if(!sellerItem||sellerItem.quantity<quantity)throw new HttpError(409,'The seller’s Vault quantity no longer matches this order. Contact support before completing it.');
+        statements.push(database.prepare(`UPDATE collectible_instances SET deleted_at=CASE WHEN quantity<=? THEN CURRENT_TIMESTAMP ELSE deleted_at END,acquisition_amount=CASE WHEN quantity<=? THEN acquisition_amount ELSE MAX(0,acquisition_amount-ROUND(acquisition_amount*?*1.0/quantity)) END,quantity=CASE WHEN quantity<=? THEN quantity ELSE quantity-? END WHERE id=? AND owner_id=? AND deleted_at IS NULL AND quantity>=?`)
+          .bind(quantity,quantity,quantity,quantity,quantity,instanceId,order.sellerId,quantity));
+      }
+    }
     for(const purchase of purchases.values()){
       const existing=await database.prepare(`SELECT id,quantity,acquisition_amount AS acquisitionAmount FROM collectible_instances c
         WHERE owner_id=? AND printing_id=? AND type='RAW' AND condition=? AND currency=? AND deleted_at IS NULL AND visibility='private'

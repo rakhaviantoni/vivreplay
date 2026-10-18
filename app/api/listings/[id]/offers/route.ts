@@ -2,8 +2,10 @@ import {z} from 'zod';
 import {db,errorResponse,guard,HttpError,user} from '@/lib/server/store';
 import {computeOfferExpiration} from '@/lib/server/market-offers';
 import {sendMarketEmail} from '@/lib/server/market-notifications';
+import {MARKET_MAX_CARD_TYPES,MARKET_MAX_COPIES_PER_CARD} from '@/lib/market/listing-limits';
+import {enforceMarketListingLimits} from '@/lib/server/market-listing-limits';
 
-const schema=z.object({type:z.enum(['BUY','SELL']),items:z.array(z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(99),unitAmount:z.number().int().positive().optional()})).min(1).max(30),amount:z.number().int().positive(),currency:z.string().length(3)});
+const schema=z.object({type:z.enum(['BUY','SELL']),items:z.array(z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(MARKET_MAX_COPIES_PER_CARD),unitAmount:z.number().int().positive().optional()})).min(1).max(MARKET_MAX_CARD_TYPES),amount:z.number().int().positive(),currency:z.string().length(3)});
 
 export async function GET(_request:Request,{params}:{params:Promise<{id:string}>}){try{
   const actor=await user();const {id}=await params;
@@ -33,6 +35,8 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
   if(listing.type==='WTS'&&value.type!=='BUY')throw new HttpError(400,'Use a purchase offer for a selling listing.');
   if(listing.type==='WTB'&&value.type!=='SELL')throw new HttpError(400,'Use a sell offer for a wanted listing.');
   const count=value.items.reduce((total,item)=>total+item.quantity,0);
+  await enforceMarketListingLimits(db(),value.items);
+  if(count>listing.quantity)throw new HttpError(400,'Select no more cards than this listing requests.');
   if(listing.type==='WTS'){
     let available:Map<string,number>;
     try{
@@ -49,7 +53,7 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     }catch{available=new Map([[listing.printing_id,listing.quantity]])}
     const requested=new Map<string,number>();
     for(const item of value.items)requested.set(item.printingId,(requested.get(item.printingId)??0)+item.quantity);
-    if(count>listing.quantity||Array.from(requested).some(([printingId,quantity])=>quantity>(available.get(printingId)??0)))throw new HttpError(400,'Select only the available cards in this bundle.');
+    if(Array.from(requested).some(([printingId,quantity])=>quantity>(available.get(printingId)??0)))throw new HttpError(400,'Select only the available cards in this bundle.');
   }
   if(listing.type==='WTB')for(const item of value.items){const owned=await db().prepare('SELECT COALESCE(SUM(quantity),0) AS quantity FROM collectible_instances WHERE owner_id=? AND printing_id=? AND deleted_at IS NULL').bind(actor.id,item.printingId).first<{quantity:number}>();if((owned?.quantity??0)<item.quantity)throw new HttpError(400,'Add the offered cards to your Vault before submitting.');}
   const offerId=crypto.randomUUID();const expiresAt=computeOfferExpiration(listing.expires_at);

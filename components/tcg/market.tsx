@@ -52,6 +52,7 @@ import {enrichCollectionItem,groupVaultStacks} from './vault/vault-utils';
 import {isPlayableSet} from '@/packages/domain/release-availability';
 import {uniquePrintingIds,matchingPrintingCopies,selectedPrintingCopy} from '@/lib/market/printing-selection';
 import {marketListingPath} from '@/lib/market/listing-url';
+import {MARKET_MAX_CARD_TYPES,MARKET_MAX_COPIES_PER_CARD,MARKET_MAX_LISTING_COPIES,listingLimitMessage,listingLimitViolation} from '@/lib/market/listing-limits';
 import '@/app/market-account.css';
 type MarketBenchmark={amount:number;currency:string;url:string|null;observedAt:string;confidence:string;normalizedAmount:number|null;normalizedCurrency:string|null};
 type CardPrintingItem={id:string;language:string;variant:string|null;printing_code:string|null;card_image_url:string|null;rarity?:string|null;set_code?:string;tcg_card_assets?:Array<{kind:string;object_key:string}>};
@@ -108,6 +109,10 @@ function printingToCard(baseCard:Card,p:CardPrintingItem):Card{
 }
 function uniqueCardPrintings(items:CardPrintingItem[]):CardPrintingItem[]{
   return uniquePrintingIds(items);
+}
+function marketListingLimit(items:ListingBundleCard[]){
+  const identities=new Map(items.map(item=>[item.printing.id,item.card.code]));
+  return listingLimitViolation(items.map(item=>({printingId:item.printing.id,quantity:item.quantity})),identities);
 }
 function searchedCard(identity:SearchIdentity):MarketCard|undefined {
   const printingsList=(identity.tcg_card_printings??[]).filter(item=>(item.card_image_url||item.tcg_card_assets?.some(asset=>asset.kind==='small'&&asset.object_key))&&isPlayableSet(item.set_code));
@@ -240,7 +245,7 @@ function CardSearch({value,onChange,onSelect,onAddToVault,locale='EN',wanted=fal
                   </div>
                   <div className="market-sell-card-actions">
                     <button type="button" className="market-sell-card-select-btn" onClick={()=>onSelect(card)}>
-                      <span>{locale==='ID'?'Pilih':'Select'}</span><ArrowRight size={14}/>
+                      <span>{wanted?(locale==='ID'?'Pilih kartu':'Choose card'):(locale==='ID'?'Pilih':'Select')}</span><ArrowRight size={14}/>
                     </button>
                     {!wanted&&<button type="button" className="market-sell-card-vault-btn" onClick={()=>onAddToVault(card)}>
                       {locale==='ID'?'Tambah ke Vault':'Add to Vault'}
@@ -261,7 +266,8 @@ function CardSearch({value,onChange,onSelect,onAddToVault,locale='EN',wanted=fal
 }
 function VaultCardPicker({items,onSelect,locale='EN'}:{items:CollectionItem[];onSelect:(card:MarketCard,instanceId:string,quantity:number,condition:string)=>void;locale?:'EN'|'ID'}) {
   const [query,setQuery]=useState('');
-  const filtered=items.filter(item=>{
+  const availableItems=items.filter(item=>item.quantity>0);
+  const filtered=availableItems.filter(item=>{
     const card=(item.card as MarketCard|undefined)??cardFor(item.printingId);
     if(!card)return false;
     const term=query.trim().toLocaleLowerCase();
@@ -270,6 +276,7 @@ function VaultCardPicker({items,onSelect,locale='EN'}:{items:CollectionItem[];on
   return (
     <div className="market-vault-picker">
       <label className="market-vault-picker-search"><Search size={16}/><input value={query} onChange={event=>setQuery(event.target.value)} placeholder={locale==='ID'?'Cari di Vault':'Search your Vault'} aria-label={locale==='ID'?'Cari kartu di Vault':'Search cards in your Vault'}/>{query&&<button type="button" onClick={()=>setQuery('')} aria-label={locale==='ID'?'Hapus pencarian':'Clear search'}><X size={14}/></button>}</label>
+      <div className="market-vault-picker-heading"><strong>{locale==='ID'?'Kartu di Vault':'Available in your Vault'}</strong><span>{filtered.length} {locale==='ID'?'kartu':filtered.length===1?'card':'cards'}</span></div>
       <div className="market-vault-picker-grid">
       {filtered.map(item=>{
         const card=(item.card as MarketCard|undefined)??cardFor(item.printingId);
@@ -287,13 +294,14 @@ function VaultCardPicker({items,onSelect,locale='EN'}:{items:CollectionItem[];on
             </div>
             <div className="market-vault-card-info">
               <strong>{card.name}</strong>
-              <small className="market-vault-card-meta"><span>{card.code}</span><span>{item.condition}</span><span>{item.quantity} {locale==='ID'?'di koleksi':'in Vault'}</span></small>
+              <small className="market-vault-card-meta"><span>{card.code}</span><span>{item.language??card.language??'EN'}</span><span>{item.condition||'NM'}</span></small>
+              <small className="market-vault-card-available">{item.quantity} {locale==='ID'?(item.quantity===1?'salinan tersedia':'salinan tersedia'):(item.quantity===1?'copy available':'copies available')}</small>
               {item.quantity<=0&&<small>{locale==='ID'?'Sudah terpakai di listing':'Reserved by a listing'}</small>}
             </div>
           </button>
         );
       })}
-      {!filtered.length&&<p className="market-vault-picker-empty">{locale==='ID'?'Tidak ada kartu yang cocok.':'No Vault cards match this search.'}</p>}
+      {!filtered.length&&<p className="market-vault-picker-empty">{query.trim()?(locale==='ID'?'Tidak ada kartu yang cocok.':'No cards match this search.'):(availableItems.length===0?(locale==='ID'?'Tidak ada salinan Vault lain yang bisa ditambahkan.':'No more Vault copies are available to add.'):(locale==='ID'?'Tidak ada kartu yang cocok.':'No cards match this search.'))}</p>}
       </div>
     </div>
   );
@@ -580,12 +588,16 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
   },[searchParams]);
   // Load printings and benchmark whenever a card is opened for configuration
   const loadCardForConfig=async(card:Card,presetInstanceId?:string,presetQty=1,presetCondition='NM')=>{
+    const sameCardCopies=bundleCards.filter(item=>item.card.code===card.code).reduce((sum,item)=>sum+item.quantity,0);
+    const cardTypes=new Set(bundleCards.map(item=>item.card.code));
+    if(sameCardCopies>=MARKET_MAX_COPIES_PER_CARD){toast.error(listingLimitMessage('too-many-copies-of-card',locale));return;}
+    if(!cardTypes.has(card.code)&&cardTypes.size>=MARKET_MAX_CARD_TYPES){toast.error(listingLimitMessage('too-many-types',locale));return;}
     const loadVersion=++configLoadVersion.current;
     const requestedPrintingId=data?.collection.find(item=>item.id===presetInstanceId)?.printingId??card.id;
     setConfiguringCard(card as MarketCard);
     setCardPrintings([]);
     setSelectedPrintingId('');
-    setItemQuantity(presetQty);
+    setItemQuantity(Math.max(1,Math.min(presetQty,MARKET_MAX_COPIES_PER_CARD-sameCardCopies,MARKET_MAX_LISTING_COPIES-bundleCards.reduce((sum,item)=>sum+item.quantity,0))));
     setItemCondition(presetCondition);
     setItemInstance(presetInstanceId||'');
     setItemPrice('');
@@ -894,7 +906,12 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
   };
   const addConfiguredCardToBundle=()=>{
     if(!activeCardObj||!selectedPrintingId)return;
-    if(bundleCards.reduce((sum,item)=>sum+item.quantity,0)+itemQuantity>999){toast.error(locale==='ID'?'Listing dibatasi hingga 999 kartu.':'A listing can include up to 999 cards.');return;}
+    const alreadySelected=bundleCards.filter(item=>item.card.code===activeCardObj.code).reduce((sum,item)=>sum+item.quantity,0);
+    const cardTypeCount=new Set(bundleCards.map(item=>item.card.code)).size;
+    if(alreadySelected>=MARKET_MAX_COPIES_PER_CARD){toast.error(listingLimitMessage('too-many-copies-of-card',locale));return;}
+    if(!bundleCards.some(item=>item.card.code===activeCardObj.code)&&cardTypeCount>=MARKET_MAX_CARD_TYPES){toast.error(listingLimitMessage('too-many-types',locale));return;}
+    const remaining=Math.min(MARKET_MAX_COPIES_PER_CARD-alreadySelected,MARKET_MAX_LISTING_COPIES-bundleCards.reduce((sum,item)=>sum+item.quantity,0));
+    if(remaining<1){toast.error(listingLimitMessage('too-many-copies',locale));return;}
     const chosenPrinting=cardPrintings.find(p=>p.id===selectedPrintingId)||{
       id:activeCardObj.id,
       language:activeCardObj.language??'EN',
@@ -914,10 +931,10 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
       card:activeCardObj,
       printing:chosenPrinting,
       instanceId:listingType==='WTS'?matchedInstance:undefined,
-      quantity:matchedCopy?Math.min(itemQuantity,matchedCopy.quantity):itemQuantity,
+      quantity:matchedCopy?Math.min(itemQuantity,matchedCopy.quantity,remaining):Math.min(itemQuantity,remaining),
       condition:listingType==='WTS'?(matchedCopy?.condition??itemCondition):itemCondition,
       unitAmount:Number(itemPrice)||0,
-      availableQuantity:listingType==='WTS'?(matchedCopy?.quantity||4):99,
+      availableQuantity:listingType==='WTS'?(matchedCopy?.quantity||MARKET_MAX_COPIES_PER_CARD):MARKET_MAX_COPIES_PER_CARD,
     };
     setBundleCards(prev=>{
       const next=[...prev,newItem];
@@ -936,6 +953,8 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
   const handlePublishListing=async(event:React.FormEvent)=>{
     event.preventDefault();
     if(bundleCards.length===0)return;
+    const limitViolation=marketListingLimit(bundleCards);
+    if(limitViolation){setSaveError(listingLimitMessage(limitViolation,locale));return;}
     if(listingType==='WTB'&&!buyerCity){
       setSaveError(locale==='ID'?'Tambahkan alamat pengiriman sebelum membuat permintaan beli.':'Add a delivery address before posting a buying request.');
       return;
@@ -1235,12 +1254,12 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
       </div>
       {/* Create Listing Modal Dialog */}
       <Dialog open={open} onOpenChange={next=>{if(!next&&(marketVaultOpen||bulkListingOpen))return;if(!next)configLoadVersion.current++;setOpen(next)}}>
-        <DialogContent className="listing-dialog market-sell-dialog">
+        <DialogContent className={`listing-dialog market-sell-dialog ${listingType==='WTB'?'is-buying-request':'is-selling-listing'}`}>
           <div className="market-sell-heading">
             <div className="market-sell-heading-actions"><span>{listingType==='WTB'?(locale==='ID'?'PERMINTAAN BELI':'BUYING REQUEST'):(locale==='ID'?'BUAT LISTING':'CREATE LISTING')}</span><button type="button" className="market-sell-manage-listings" onClick={()=>{setOpen(false);setQuickPanel(null);setAccountPanel('listings')}}><ClipboardText size={15}/>{locale==='ID'?'Listing saya':'My listings'}</button></div>
             <DialogTitle>
               {configuringCard
-                ? (locale==='ID'?'Konfigurasi kartu.':'Configure card.')
+                ? (listingType==='WTB'?(locale==='ID'?'Atur permintaan kartu.':'Set your card request.'):(locale==='ID'?'Atur kartu untuk dijual.':'Set up your card for sale.'))
                 : bundleCards.length>0
                   ? (listingType==='WTB'?(locale==='ID'?'Rincian permintaan beli.':'Buying request details.'):(locale==='ID'?'Rincian listing paket.':'Bundle listing details.'))
                   : listingType==='WTB'?(locale==='ID'?'Pilih kartu yang ingin Anda beli.':'Choose cards you’re looking to buy.'):(locale==='ID'?'Pilih kartu untuk dijual.':'Select cards to sell.')
@@ -1248,7 +1267,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
             </DialogTitle>
             <DialogDescription>
               {configuringCard
-                ? (locale==='ID'?'Pilih versi cetak, jumlah, dan harga per kartu.':'Select printing, quantity, and unit price.')
+                ? (listingType==='WTB'?(locale==='ID'?'Pilih versi cetak, kondisi, jumlah, dan harga yang Anda tawarkan.':'Choose the printing, condition, copies, and offer per card.'):(locale==='ID'?'Pilih versi cetak, kondisi, jumlah, dan harga per kartu.':'Choose the printing, condition, quantity, and price per card.'))
                 : bundleCards.length>0
                   ? (listingType==='WTB'?(locale==='ID'?'Atur kartu dan anggaran yang Anda tawarkan.':'Review the cards and budget you are offering.'):(locale==='ID'?'Atur rincian listing dan harga total paket.':'Review bundle cards and set overall price.'))
                   : listingType==='WTB'?(locale==='ID'?'Tambahkan kartu, kondisi, jumlah, dan harga yang Anda cari.':'Add the cards, condition, quantity, and price you want.'):(locale==='ID'?'Cari kartu dari katalog atau pilih dari koleksi Anda.':'Search the catalog or choose cards from your Vault.')
@@ -1282,7 +1301,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                 </div>
                 <div className="listing-selection-right">
                   <div className="listing-selection-header">
-                    <p className="eyebrow">{locale==='ID'?'KARTU TERPILIH':'SELECTED CARD'}</p>
+                    <p className="eyebrow">{listingType==='WTB'?(locale==='ID'?'KARTU YANG DICARI':'CARD YOU WANT'):(locale==='ID'?'KARTU UNTUK DIJUAL':'CARD FOR SALE')}</p>
                     <h3>{activeCardObj.name}</h3>
                     <p className="listing-card-sub">
                       <span className="market-sell-code">{activeCardObj.code}</span>
@@ -1409,8 +1428,8 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                   ):(
                     <div className="form-row">
                       <fieldset className="market-condition-field">
-                        <legend>{locale==='ID'?'Kondisi kartu':'Card condition'}</legend>
-                        <div className="market-condition-options" role="radiogroup" aria-label={locale==='ID'?'Kondisi kartu':'Card condition'}>
+                        <legend>{listingType==='WTB'?(locale==='ID'?'Kondisi yang dicari':'Condition wanted'):(locale==='ID'?'Kondisi kartu':'Card condition')}</legend>
+                        <div className="market-condition-options" role="radiogroup" aria-label={listingType==='WTB'?(locale==='ID'?'Kondisi yang dicari':'Condition wanted'):(locale==='ID'?'Kondisi kartu':'Card condition')}>
                           {[
                             {code:'NM',name:locale==='ID'?'Hampir baru':'Near Mint',hint:locale==='ID'?'Seperti baru':'Like new'},
                             {code:'LP',name:locale==='ID'?'Sedikit dimainkan':'Lightly Played',hint:locale==='ID'?'Sedikit bekas':'Minor wear'},
@@ -1427,7 +1446,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                   {/* Quantity and Price Row */}
                   <div className="form-row">
                     <label>
-                      {locale==='ID'?'Jumlah':'Quantity'}
+                      {listingType==='WTB'?(locale==='ID'?'Jumlah yang dicari':'Copies wanted'):(locale==='ID'?'Jumlah':'Quantity')}
                       <div className="market-sell-stepper-wrap">
                         <div className="market-sell-bundle-stepper">
                           <button
@@ -1442,10 +1461,11 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                           <button
                             type="button"
                             onClick={()=>{
-                              const max=listingType==='WTS'&&ownedCopiesForConfig.length>0?(ownedCopiesForConfig.find(c=>c.id===itemInstance)?.quantity||1):99;
+                              const used=bundleCards.filter(card=>card.card.code===activeCardObj.code).reduce((sum,card)=>sum+card.quantity,0);
+                              const max=Math.min(MARKET_MAX_COPIES_PER_CARD-used,MARKET_MAX_LISTING_COPIES-bundleCards.reduce((sum,card)=>sum+card.quantity,0),listingType==='WTS'&&ownedCopiesForConfig.length>0?(ownedCopiesForConfig.find(c=>c.id===itemInstance)?.quantity||1):MARKET_MAX_COPIES_PER_CARD);
                               setItemQuantity(q=>Math.min(max,q+1));
                             }}
-                            disabled={listingType==='WTS'&&ownedCopiesForConfig.length>0?itemQuantity>=(ownedCopiesForConfig.find(c=>c.id===itemInstance)?.quantity||1):false}
+                            disabled={itemQuantity>=Math.min(MARKET_MAX_COPIES_PER_CARD-bundleCards.filter(card=>card.card.code===activeCardObj.code).reduce((sum,card)=>sum+card.quantity,0),MARKET_MAX_LISTING_COPIES-bundleCards.reduce((sum,card)=>sum+card.quantity,0),listingType==='WTS'&&ownedCopiesForConfig.length>0?(ownedCopiesForConfig.find(c=>c.id===itemInstance)?.quantity||1):MARKET_MAX_COPIES_PER_CARD)}
                             aria-label={locale==='ID'?'Tambah jumlah':'Increase quantity'}
                           >
                             <Plus size={13}/>
@@ -1454,7 +1474,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                       </div>
                     </label>
                     <label>
-                      {locale==='ID'?'Harga per kartu (IDR)':'Price per card (IDR)'}
+                      {listingType==='WTB'?(locale==='ID'?'Tawaran per kartu (IDR)':'Your offer per card (IDR)'):(locale==='ID'?'Harga per kartu (IDR)':'Price per card (IDR)')}
                       <input
                         type="number"
                         min="1"
@@ -1483,8 +1503,8 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                     onClick={addConfiguredCardToBundle}
                   >
                     {bundleCards.length===0
-                      ? (locale==='ID'?'Lanjut ke rincian listing':'Continue to listing details')
-                      : (locale==='ID'?'+ Tambahkan ke paket':'+ Add to bundle')
+                      ? (listingType==='WTB'?(locale==='ID'?'Lanjutkan permintaan beli':'Continue with buy request'):(locale==='ID'?'Lanjut ke rincian listing':'Continue to listing details'))
+                      : (listingType==='WTB'?(locale==='ID'?'+ Tambahkan ke permintaan':'+ Add to request'):(locale==='ID'?'+ Tambahkan ke paket':'+ Add to bundle'))
                     }
                   </button>
                 </div>
@@ -1535,13 +1555,16 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                             <button
                               type="button"
                               onClick={()=>{
-                                setBundleCards(prev=>prev.map(c=>{
-                                  if(c.id!==item.id)return c;
-                                  const max=c.instanceId?c.availableQuantity:99;
-                                  return {...c,quantity:Math.min(max,c.quantity+1)};
-                                }));
+                                setBundleCards(prev=>{
+                                  const current=prev.find(card=>card.id===item.id);
+                                  if(!current)return prev;
+                                  const sameIdentity=prev.filter(card=>card.card.code===current.card.code).reduce((sum,card)=>sum+card.quantity,0);
+                                  const total=prev.reduce((sum,card)=>sum+card.quantity,0);
+                                  const maximum=Math.min(current.instanceId?current.availableQuantity:MARKET_MAX_COPIES_PER_CARD,MARKET_MAX_COPIES_PER_CARD-(sameIdentity-current.quantity),MARKET_MAX_LISTING_COPIES-(total-current.quantity));
+                                  return prev.map(card=>card.id===item.id?{...card,quantity:Math.min(maximum,card.quantity+1)}:card);
+                                });
                               }}
-                              disabled={item.instanceId?item.quantity>=item.availableQuantity:false}
+                              disabled={item.quantity>=Math.min(item.instanceId?item.availableQuantity:MARKET_MAX_COPIES_PER_CARD,MARKET_MAX_COPIES_PER_CARD-(bundleCards.filter(card=>card.card.code===item.card.code).reduce((sum,card)=>sum+card.quantity,0)-item.quantity),MARKET_MAX_LISTING_COPIES-(totalBundleQuantity-item.quantity))}
                               aria-label={locale==='ID'?'Tambah jumlah':'Increase quantity'}
                             >
                               <Plus size={12}/>
@@ -1565,6 +1588,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                       );
                     })}
                   </div>
+                  <p className="market-bundle-limit-note">{locale==='ID'?`Maksimal ${MARKET_MAX_LISTING_COPIES} kartu dalam satu listing, maksimal ${MARKET_MAX_COPIES_PER_CARD} salinan untuk kartu yang sama.`:`Up to ${MARKET_MAX_LISTING_COPIES} cards in one listing, with no more than ${MARKET_MAX_COPIES_PER_CARD} copies of the same card.`}</p>
                   <button
                     type="button"
                     className="market-sell-add-card-btn"
@@ -1677,13 +1701,13 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                       aria-pressed={searchSource==='vault'}
                     >
                       <WalletCards size={14}/>
-                      <span>{locale==='ID'?`Dari koleksi saya (${data!.collection.length})`:`From My Vault (${data!.collection.length})`}</span>
+                      <span>{locale==='ID'?'Dari Vault':'From My Vault'}</span>
                     </button>
-                    {bundleCards.length===0&&<button type="button" className="market-sell-bundle-trigger" onClick={()=>{configLoadVersion.current++;setOpen(false);window.setTimeout(()=>setBulkListingOpen(true),0)}} aria-haspopup="dialog">
-                      <Cards size={14}/><span>{locale==='ID'?'Listing bundle':'Bundle listing'}</span>
-                    </button>}
                   </div>
                 )}
+                {listingType==='WTS'&&bundleCards.length===0&&(data?.collection?.length??0)>0&&<button type="button" className="market-sell-bundle-trigger" onClick={()=>{configLoadVersion.current++;setOpen(false);window.setTimeout(()=>setBulkListingOpen(true),0)}} aria-haspopup="dialog">
+                  <Cards size={16}/><span>{locale==='ID'?'Buat listing dari Vault':'Build a listing from Vault'}</span><small>{locale==='ID'?'Pilih beberapa kartu sekaligus':'Select several cards at once'}</small><ArrowRight size={16}/>
+                </button>}
                 {searchSource==='vault'&&(data?.collection?.length??0)>0?(
                   <VaultCardPicker
                     items={data!.collection.map(copy=>({...copy,quantity:Math.max(0,copy.quantity-(copy.listedQuantity??0)-bundleCards.filter(item=>item.instanceId===copy.id).reduce((sum,item)=>sum+item.quantity,0))})).filter(copy=>copy.type==='RAW')}

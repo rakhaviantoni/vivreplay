@@ -1,6 +1,8 @@
 export interface ProPricing {
   amount: number;
   durationDays: number;
+  annualAmount: number;
+  annualDurationDays: number;
   introAmount: number | null;
   introEndsAt: string | null;
   introLimit: number;
@@ -9,6 +11,8 @@ export interface ProPricing {
 export const DEFAULT_PRO_PRICING: ProPricing = {
   amount: 24_900,
   durationDays: 30,
+  annualAmount: 249_000,
+  annualDurationDays: 365,
   introAmount: 19_900,
   introEndsAt: '2026-11-19T16:59:59.000Z',
   introLimit: 100,
@@ -26,6 +30,8 @@ export async function getProPricing(database: SettingsDatabase): Promise<ProPric
     return {
       amount: Number.isSafeInteger(value.amount) && Number(value.amount) > 0 ? Number(value.amount) : DEFAULT_PRO_PRICING.amount,
       durationDays: Number.isInteger(value.durationDays) && Number(value.durationDays) > 0 ? Number(value.durationDays) : DEFAULT_PRO_PRICING.durationDays,
+      annualAmount: Number.isSafeInteger(value.annualAmount) && Number(value.annualAmount) > 0 ? Number(value.annualAmount) : DEFAULT_PRO_PRICING.annualAmount,
+      annualDurationDays: Number.isInteger(value.annualDurationDays) && Number(value.annualDurationDays) > 0 ? Number(value.annualDurationDays) : DEFAULT_PRO_PRICING.annualDurationDays,
       introAmount: value.introAmount === null ? null : Number.isSafeInteger(value.introAmount) && Number(value.introAmount) > 0 ? Number(value.introAmount) : DEFAULT_PRO_PRICING.introAmount,
       introEndsAt: value.introEndsAt && Number.isFinite(Date.parse(value.introEndsAt)) ? new Date(value.introEndsAt).toISOString() : null,
       introLimit: Number.isSafeInteger(value.introLimit) && Number(value.introLimit) >= 0 ? Number(value.introLimit) : DEFAULT_PRO_PRICING.introLimit,

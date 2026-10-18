@@ -3,9 +3,11 @@ import {notifyListingWatchers} from '@/lib/server/market-watch-alerts';
 import {z} from 'zod';
 import {user,db,errorResponse,guard,market,HttpError} from '@/lib/server/store';
 import {getDynamicListingPolicy,computeListingExpiration} from '@/lib/market/policy';
+import {MARKET_MAX_COPIES_PER_CARD,MARKET_MAX_LISTING_COPIES,listingLimitMessage} from '@/lib/market/listing-limits';
+import {enforceMarketListingLimits} from '@/lib/server/market-listing-limits';
 
-const itemSchema=z.object({instanceId:z.string().uuid().optional(),printingId:z.string(),quantity:z.number().int().positive().max(999),condition:z.string().optional(),unitAmount:z.number().int().nonnegative().optional()});
-const schema=z.object({instanceId:z.string().uuid().optional(),amount:z.number().int().positive().max(100000000000),quantity:z.number().int().positive().max(999),city:z.string().trim().min(2).max(60),title:z.string().trim().min(3).max(100),type:z.enum(['WTS','WTB']).default('WTS'),negotiable:z.boolean().default(true),items:z.array(itemSchema).min(1).max(30).optional()});
+const itemSchema=z.object({instanceId:z.string().uuid().optional(),printingId:z.string(),quantity:z.number().int().positive().max(MARKET_MAX_COPIES_PER_CARD),condition:z.string().optional(),unitAmount:z.number().int().nonnegative().optional()});
+const schema=z.object({instanceId:z.string().uuid().optional(),amount:z.number().int().positive().max(100000000000),quantity:z.number().int().positive().max(MARKET_MAX_LISTING_COPIES),city:z.string().trim().min(2).max(60),title:z.string().trim().min(3).max(100),type:z.enum(['WTS','WTB']).default('WTS'),negotiable:z.boolean().default(true),items:z.array(itemSchema).min(1).max(MARKET_MAX_LISTING_COPIES).optional()});
 
 async function ensureMarketPrintings(database:ReturnType<typeof db>,printingIds:string[]){
   const placeholders=printingIds.map(()=>'?').join(',');
@@ -75,6 +77,7 @@ export async function POST(request:Request){
       if(bundle.some(item=>!item.unitAmount||item.unitAmount<1)||bundleAmount!==value.amount)throw new HttpError(400,'Set a price for each card and make sure the total matches.');
       const printingIds=[...new Set(bundle.map(item=>item.printingId))];
       await ensureMarketPrintings(database,printingIds);
+      await enforceMarketListingLimits(database,bundle);
       const placeholders=printingIds.map(()=>'?').join(',');
       const known=await database.prepare(`SELECT id FROM card_printings WHERE id IN (${placeholders})`).bind(...printingIds).all<{id:string}>();
       if((known.results??[]).length!==printingIds.length)throw new HttpError(400,'One or more selected printings are not available in Market yet. Refresh the catalog and try again.');
@@ -86,11 +89,15 @@ export async function POST(request:Request){
       after(()=>notifyListingWatchers(id));
       return Response.json({id,expiresAt,durationDays:policy.durationDays},{status:201});
     }
+    if(!bundle&&value.quantity>MARKET_MAX_COPIES_PER_CARD){
+      throw new HttpError(400,listingLimitMessage('too-many-copies-of-card'));
+    }
     if(!value.instanceId)throw new HttpError(400,'Choose an owned item and available quantity.');
     const primary=await database.prepare('SELECT printing_id,quantity,condition FROM collectible_instances WHERE id=? AND owner_id=? AND deleted_at IS NULL').bind(value.instanceId,profile.id).first<{printing_id:string;quantity:number;condition:string}>();
     if(!primary)throw new HttpError(400,'Choose an owned item and available quantity.');
 
     if(bundle){
+      await enforceMarketListingLimits(database,bundle);
       if(bundle[0].instanceId!==value.instanceId||bundle[0].printingId!==primary.printing_id)throw new HttpError(400,'The first bundle card must match the selected Vault item.');
       const bundleQuantity=bundle.reduce((sum,item)=>sum+item.quantity,0);
       if(bundleQuantity!==value.quantity)throw new HttpError(400,'The listing quantity must match the combined bundle quantity.');

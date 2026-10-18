@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import {SaveListingButton,WishlistButton} from './market-saved';
 import {MarketReputation} from './market-reputation';
-import {useRouter} from 'next/navigation';
+import {usePathname,useRouter} from 'next/navigation';
 import {useCallback,useEffect,useMemo,useRef,useState,type FormEvent} from 'react';
 import {ArrowClockwiseIcon as Renew,ArrowLeftIcon, CheckIcon as Check, InfoIcon as Info, ListIcon as List, MinusIcon as Minus, PlusIcon as Plus, ShoppingCartIcon as Cart, SquaresFourIcon as Grid, TruckIcon as Truck, XIcon as X} from '@phosphor-icons/react';
 import type {Card} from '@/packages/card-data/catalog';
@@ -845,6 +845,7 @@ export function MarketListingDetailView({
   renewDurationDays?: number;
 }) {
   const router=useRouter();
+  const pathname=usePathname();
   const [language, setLanguage] = useState<'EN' | 'ID'>('EN');
   const [listingTitle, setListingTitle] = useState(listing.title);
   const [listingAmount, setListingAmount] = useState(listing.amount);
@@ -917,7 +918,7 @@ export function MarketListingDetailView({
 
   return (
     <main className="page live-card-detail market-listing-detail">
-      <Link className="back-link" href="/market">
+      <Link className="back-link market-listing-back-link" href={pathname.startsWith('/id')?'/id/market':'/market'}>
         <ArrowLeftIcon aria-hidden="true" size={16}/>{t('Back to Market', 'Kembali ke Market')}
       </Link>
       <article className="live-detail-layout market-listing-layout">

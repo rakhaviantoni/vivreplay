@@ -55,6 +55,8 @@ export async function GET(){
       amount:canBuyIntro?pricing.introAmount:pricing.amount,
       standardAmount:pricing.amount,
       durationDays:pricing.durationDays,
+      annualAmount:pricing.annualAmount,
+      annualDurationDays:pricing.annualDurationDays,
       introOffer:canBuyIntro,
       introOfferEndsAt:intro.promoOpen?pricing.introEndsAt:null,
       introOfferLimit:intro.promoOpen?pricing.introLimit:null,
@@ -83,20 +85,21 @@ export async function GET(){
 export async function POST(request:Request){
   try{
     guard(request);
-    const body=await request.json().catch(()=>({})) as {introOffer?:boolean;paymentMethod?:string;paymentChannel?:string};
+    const body=await request.json().catch(()=>({})) as {introOffer?:boolean;paymentMethod?:string;paymentChannel?:string;billingPeriod?:'monthly'|'yearly'};
     const profile=await user();
     const account=await getCurrentUser();
     if(!account?.email)throw new HttpError(401,'Sign in with an email address to continue.');
     const pricing=await getProPricing(db());
-    const amount=pricing.amount;
-    const durationDays=pricing.durationDays;
+    const billingPeriod=body.billingPeriod==='yearly'?'yearly':'monthly';
+    const amount=billingPeriod==='yearly'?pricing.annualAmount:pricing.amount;
+    const durationDays=billingPeriod==='yearly'?pricing.annualDurationDays:pricing.durationDays;
     if(!hasMarketIpaymuPaymentConfig()||!amount||!durationDays)throw new HttpError(503,'Market Pro checkout is temporarily unavailable.');
     const paymentMethod=body.paymentMethod??'qris';
     const paymentChannel=body.paymentChannel??'mpm';
     if(!['va','cstore','qris','cc','paylater','ewallet'].includes(paymentMethod)||!(/^[a-z0-9_]{2,24}$/.test(paymentChannel)))throw new HttpError(400,'Choose a valid payment method.');
     const channels=await getEnabledIpaymuPaymentChannels(db()).catch(()=>[]);
     if(!channels.some(channel=>channel.method===paymentMethod&&channel.channel===paymentChannel))throw new HttpError(409,'That payment option is temporarily unavailable. Choose another method.');
-    if(profile.tier==='pro')throw new HttpError(409,'Your account already has an active Pro plan.');
+    if(profile.tier==='pro'&&billingPeriod!=='yearly')throw new HttpError(409,'Your Pro membership is already active. Choose the annual plan to extend it.');
     const name=String(profile.display_name||account.name||account.email.split('@')[0]||'VivrePlay member').trim();
     const phone=String(profile.phone??'').replace(/[\s().-]/g,'');
     if(!/^\+?[0-9]{8,16}$/.test(phone))throw new HttpError(400,'Add a valid phone number to your profile before continuing.');
@@ -114,6 +117,8 @@ export async function POST(request:Request){
         :null;
       const pendingStoredExpiry=pendingOrder.expiresAt?Date.parse(`${pendingOrder.expiresAt.replace(' ','T')}Z`):null;
       const pendingExpiry=pendingPaymentExpiry??(pendingStoredExpiry!==null&&Number.isFinite(pendingStoredExpiry)?pendingStoredExpiry:null);
+      const pendingPeriod=pendingDetails.billingPeriod==='yearly'?'yearly':'monthly';
+      if(pendingPeriod!==billingPeriod)continue;
       if(pendingExpiry===null||pendingExpiry>Date.now()){
         resumableOrder={id:pendingOrder.id,details:pendingOrder.details};
         break;
@@ -127,15 +132,15 @@ export async function POST(request:Request){
       return Response.json({id:resumableOrder.id,checkoutUrl:`/checkout/order/${encodeURIComponent(resumableOrder.id)}`,introOffer:Boolean(pendingDetails.introOffer)},{status:200});
     }
     const intro=await introStatus(profile.id,true,pricing);
-    if(intro.pendingOrderId)return Response.json({id:intro.pendingOrderId,checkoutUrl:`/checkout/order/${encodeURIComponent(intro.pendingOrderId)}`,introOffer:true},{status:200});
-    if(body.introOffer===true&&!intro.eligible)throw new HttpError(409,'The launch offer is no longer available. Refresh the page to see the current price.');
+    if(billingPeriod==='monthly'&&intro.pendingOrderId)return Response.json({id:intro.pendingOrderId,checkoutUrl:`/checkout/order/${encodeURIComponent(intro.pendingOrderId)}`,introOffer:true,billingPeriod},{status:200});
+    if(billingPeriod==='monthly'&&body.introOffer===true&&!intro.eligible)throw new HttpError(409,'The launch offer is no longer available. Refresh the page to see the current price.');
 
     const orderId=crypto.randomUUID();
     const expiresAt=new Date(Date.now()+24*60*60*1000).toISOString().replace('T',' ').slice(0,19);
     const introPrice=pricing.introAmount;
     let introOffer=false;
-    if(body.introOffer!==false&&intro.eligible&&introPrice&&pricing.introEndsAt){
-      const details=JSON.stringify({durationDays,customerName:name,customerPhone:phone,introOffer:true,ipaymuSelectedMethod:paymentMethod,ipaymuSelectedChannel:paymentChannel});
+    if(billingPeriod==='monthly'&&body.introOffer!==false&&intro.eligible&&introPrice&&pricing.introEndsAt){
+      const details=JSON.stringify({durationDays,billingPeriod,customerName:name,customerPhone:phone,introOffer:true,ipaymuSelectedMethod:paymentMethod,ipaymuSelectedChannel:paymentChannel});
       const result=await database.prepare(`INSERT INTO checkout_orders (id,kind,buyer_id,items,details,subtotal,shipping_fee,amount,currency,status,expires_at)
         SELECT ?,'PRO',?,'[]',?,?,0,?,'IDR','PENDING_PAYMENT',?
         WHERE julianday(?)>julianday('now')
@@ -157,7 +162,7 @@ export async function POST(request:Request){
     }
     const finalAmount=introOffer?introPrice!:amount;
     if(!introOffer){
-      const details=JSON.stringify({durationDays,customerName:name,customerPhone:phone,introOffer:false,ipaymuSelectedMethod:paymentMethod,ipaymuSelectedChannel:paymentChannel});
+      const details=JSON.stringify({durationDays,billingPeriod,customerName:name,customerPhone:phone,introOffer:false,ipaymuSelectedMethod:paymentMethod,ipaymuSelectedChannel:paymentChannel});
       await database.prepare(`INSERT INTO checkout_orders (id,kind,buyer_id,items,details,subtotal,shipping_fee,amount,currency,status,expires_at) VALUES (?,'PRO',?,'[]',?,?,0,?,'IDR','PENDING_PAYMENT',?)`).bind(orderId,profile.id,details,finalAmount,finalAmount,expiresAt).run();
     }
     const baseUrl=process.env.VIVREPLAY_PUBLIC_URL?.trim().replace(/\/$/,'')||'https://vivreplay.com';
@@ -166,11 +171,11 @@ export async function POST(request:Request){
     try{
       const payment=await createIpaymuDirectPayment({orderId,amount:finalAmount,buyer:{name,email:account.email,phone},returnUrl:`${origin}/checkout/order/${encodeURIComponent(orderId)}`,notifyUrl,method:paymentMethod as 'va'|'cstore'|'qris'|'cc'|'paylater'|'ewallet',channel:paymentChannel});
       if(payment.sessionId){
-        const proDetails={durationDays,customerName:name,customerPhone:phone,introOffer,ipaymuSelectedMethod:paymentMethod,ipaymuSelectedChannel:paymentChannel,ipaymuPaymentMethod:payment.paymentMethod,ipaymuPaymentChannel:payment.paymentChannel,ipaymuPaymentName:payment.paymentName??paymentChannel.toUpperCase(),ipaymuPaymentNo:payment.paymentNo,ipaymuPaymentInstructionsUrl:payment.instructionsUrl,ipaymuCheckoutUrl:payment.checkoutUrl,ipaymuPaymentQrImage:payment.qrImage,ipaymuPaymentQrString:payment.qrString,ipaymuTransactionId:payment.transactionId,ipaymuSessionId:payment.sessionId,ipaymuPaymentFee:payment.fee,ipaymuPaymentTotal:payment.paymentMethod==='qris'?finalAmount:Math.max(payment.total,finalAmount+(payment.fee??0)),ipaymuPaymentCreatedAt:payment.paymentCreatedAt,ipaymuPaymentExpiresAt:payment.expiresAt,ipaymuMode:process.env.IPAYMU_MODE==='sandbox'?'sandbox':'production'};
+        const proDetails={durationDays,billingPeriod,customerName:name,customerPhone:phone,introOffer,ipaymuSelectedMethod:paymentMethod,ipaymuSelectedChannel:paymentChannel,ipaymuPaymentMethod:payment.paymentMethod,ipaymuPaymentChannel:payment.paymentChannel,ipaymuPaymentName:payment.paymentName??paymentChannel.toUpperCase(),ipaymuPaymentNo:payment.paymentNo,ipaymuPaymentInstructionsUrl:payment.instructionsUrl,ipaymuCheckoutUrl:payment.checkoutUrl,ipaymuPaymentQrImage:payment.qrImage,ipaymuPaymentQrString:payment.qrString,ipaymuTransactionId:payment.transactionId,ipaymuSessionId:payment.sessionId,ipaymuPaymentFee:payment.fee,ipaymuPaymentTotal:payment.paymentMethod==='qris'?finalAmount:Math.max(payment.total,finalAmount+(payment.fee??0)),ipaymuPaymentCreatedAt:payment.paymentCreatedAt,ipaymuPaymentExpiresAt:payment.expiresAt,ipaymuMode:process.env.IPAYMU_MODE==='sandbox'?'sandbox':'production'};
         const paymentExpirySql=payment.expiresAt?new Date(payment.expiresAt).toISOString().slice(0,19).replace('T',' '):expiresAt;
         await database.prepare("UPDATE checkout_orders SET payment_id=?,details=?,expires_at=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(payment.sessionId,JSON.stringify(proDetails),paymentExpirySql,orderId).run();
       }
     }catch{}
-    return Response.json({id:orderId,checkoutUrl:`/checkout/order/${orderId}`,introOffer,amount:finalAmount},{status:201});
+    return Response.json({id:orderId,checkoutUrl:`/checkout/order/${orderId}`,introOffer,amount:finalAmount,billingPeriod},{status:201});
   }catch(error){return errorResponse(error)}
 }

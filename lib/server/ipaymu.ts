@@ -21,6 +21,19 @@ export function hasIpaymuPaymentConfig(){
   try{configuration();return true}catch{return false}
 }
 
+export async function getIpaymuMerchantBalance(){
+  const {va,apiKey,baseUrl}=configuration();
+  const body=JSON.stringify({account:va});
+  const now=new Date();
+  const timestamp=`${now.getUTCFullYear()}${String(now.getUTCMonth()+1).padStart(2,'0')}${String(now.getUTCDate()).padStart(2,'0')}${String(now.getUTCHours()).padStart(2,'0')}${String(now.getUTCMinutes()).padStart(2,'0')}${String(now.getUTCSeconds()).padStart(2,'0')}`;
+  const response=await fetch(`${baseUrl}/api/v2/balance`,{method:'POST',headers:{'Content-Type':'application/json',va,timestamp,signature:await requestSignature(body,va,apiKey)},body,cache:'no-store',signal:AbortSignal.timeout(12_000)});
+  const payload=await response.json().catch(()=>null) as {Status?:number;Data?:{MerchantBalance?:string|number;MemberBalance?:string|number};Message?:string}|null;
+  const merchantBalance=Number(payload?.Data?.MerchantBalance);
+  const memberBalance=Number(payload?.Data?.MemberBalance??0);
+  if(!response.ok||payload?.Status!==200||!Number.isFinite(merchantBalance)||merchantBalance<0)throw new Error('iPaymu balance could not be checked.');
+  return {merchantBalance:Math.round(merchantBalance),memberBalance:Number.isFinite(memberBalance)?Math.round(memberBalance):0,mode:baseUrl.includes('sandbox')?'sandbox':'production',checkedAt:new Date().toISOString()};
+}
+
 export function hasMarketIpaymuPaymentConfig(){
   return hasIpaymuPaymentConfig()&&((process.env.IPAYMU_MODE??'production').trim().toLowerCase()==='sandbox'||process.env.VIVREPLAY_MARKET_LIVE_PAYMENTS_ENABLED==='true');
 }

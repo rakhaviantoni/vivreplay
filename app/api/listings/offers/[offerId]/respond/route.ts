@@ -2,12 +2,13 @@ import {z} from 'zod';
 import {db,errorResponse,guard,HttpError,user} from '@/lib/server/store';
 import {computeOfferExpiration,isOfferExpired,offerContext,parseOfferItems,priceOfferItems,validateListingOfferItems} from '@/lib/server/market-offers';
 import {sendMarketEmail} from '@/lib/server/market-notifications';
+import {MARKET_MAX_CARD_TYPES,MARKET_MAX_COPIES_PER_CARD} from '@/lib/market/listing-limits';
 
 const schema=z.discriminatedUnion('action',[
   z.object({action:z.literal('accept')}),
   z.object({action:z.literal('decline')}),
-  z.object({action:z.literal('counter'),amount:z.number().int().positive(),currency:z.string().length(3).optional(),items:z.array(z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(99),unitAmount:z.number().int().positive().optional()})).min(1).max(30).optional()}),
-  z.object({action:z.literal('revise'),amount:z.number().int().positive(),items:z.array(z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(99),unitAmount:z.number().int().positive()})).min(1).max(30)}),
+  z.object({action:z.literal('counter'),amount:z.number().int().positive(),currency:z.string().length(3).optional(),items:z.array(z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(MARKET_MAX_COPIES_PER_CARD),unitAmount:z.number().int().positive().optional()})).min(1).max(MARKET_MAX_CARD_TYPES).optional()}),
+  z.object({action:z.literal('revise'),amount:z.number().int().positive(),items:z.array(z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(MARKET_MAX_COPIES_PER_CARD),unitAmount:z.number().int().positive()})).min(1).max(MARKET_MAX_CARD_TYPES)}),
 ]);
 
 export async function POST(request:Request,{params}:{params:Promise<{offerId:string}>}){

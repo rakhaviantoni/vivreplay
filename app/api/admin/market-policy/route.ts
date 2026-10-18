@@ -27,6 +27,8 @@ const policySchema = z.object({
 const pricingSchema=z.object({
   amount:z.number().int().min(1000).max(100_000_000),
   durationDays:z.number().int().min(1).max(365),
+  annualAmount:z.number().int().min(1000).max(1_000_000_000),
+  annualDurationDays:z.number().int().min(1).max(365),
   introAmount:z.number().int().min(1000).max(100_000_000).nullable(),
   introEndsAt:z.string().datetime().nullable(),
   introLimit:z.number().int().min(0).max(1_000_000),

@@ -52,6 +52,8 @@ export function MarketPolicyManager() {
   const [voucherMinimum,setVoucherMinimum]=useState(1_000_000);
   const [proPrice,setProPrice]=useState(DEFAULT_PRO_PRICING.amount);
   const [proDuration,setProDuration]=useState(DEFAULT_PRO_PRICING.durationDays);
+  const [proAnnualPrice,setProAnnualPrice]=useState(DEFAULT_PRO_PRICING.annualAmount);
+  const [proAnnualDuration,setProAnnualDuration]=useState(DEFAULT_PRO_PRICING.annualDurationDays);
   const [proIntroPrice,setProIntroPrice]=useState<number|null>(DEFAULT_PRO_PRICING.introAmount);
   const [proIntroEndDate,setProIntroEndDate]=useState(dateForInput(DEFAULT_PRO_PRICING.introEndsAt));
   const [proIntroLimit,setProIntroLimit]=useState(DEFAULT_PRO_PRICING.introLimit);
@@ -80,6 +82,8 @@ export function MarketPolicyManager() {
       setVoucherMinimum(data.policies.shippingVoucherMinSubtotal);
       setProPrice(data.proPricing.amount);
       setProDuration(data.proPricing.durationDays);
+      setProAnnualPrice(data.proPricing.annualAmount);
+      setProAnnualDuration(data.proPricing.annualDurationDays);
       setProIntroPrice(data.proPricing.introAmount);
       setProIntroEndDate(dateForInput(data.proPricing.introEndsAt));
       setProIntroLimit(data.proPricing.introLimit);
@@ -142,6 +146,8 @@ export function MarketPolicyManager() {
     setVoucherMinimum(initialPolicies.shippingVoucherMinSubtotal);
     setProPrice(initialPricing.amount);
     setProDuration(initialPricing.durationDays);
+    setProAnnualPrice(initialPricing.annualAmount);
+    setProAnnualDuration(initialPricing.annualDurationDays);
     setProIntroPrice(initialPricing.introAmount);
     setProIntroEndDate(dateForInput(initialPricing.introEndsAt));
     setProIntroLimit(initialPricing.introLimit);
@@ -171,6 +177,8 @@ export function MarketPolicyManager() {
         proPricing:{
           amount:Number(proPrice),
           durationDays:Number(proDuration),
+          annualAmount:Number(proAnnualPrice),
+          annualDurationDays:Number(proAnnualDuration),
           introAmount:proIntroPrice===null?null:Number(proIntroPrice),
           introEndsAt:proIntroEndDate?new Date(`${proIntroEndDate}T23:59:59+07:00`).toISOString():null,
           introLimit:Number(proIntroLimit),
@@ -282,7 +290,7 @@ export function MarketPolicyManager() {
           <h3>Standard Account</h3>
           <p className="tier-desc">Default tier assigned to all registered collectors and local players.</p>
 
-          <div className="admin-policy-fields">
+      <div className="admin-policy-fields">
             <div className="admin-policy-field">
               <label htmlFor="free-days">
                 Listing Expiration Duration <span>(Retention Hook)</span>
@@ -418,8 +426,10 @@ export function MarketPolicyManager() {
         <span className="admin-tier-badge pro"><Sparkle size={13}/>Market Pro pricing</span>
         <p className="tier-desc">Changes apply to new checkouts. Existing orders keep their original total and membership term.</p>
         <div className="admin-policy-fields">
-          <div className="admin-policy-field"><label htmlFor="pro-price">Regular price <span>(IDR)</span></label><input id="pro-price" type="number" min="1000" step="100" value={proPrice} onChange={event=>setProPrice(Number(event.target.value))} required/><small>Charged for each membership period.</small></div>
+          <div className="admin-policy-field"><label htmlFor="pro-price">Monthly price <span>(IDR)</span></label><input id="pro-price" type="number" min="1000" step="100" value={proPrice} onChange={event=>setProPrice(Number(event.target.value))} required/><small>Charged for 30 days of Pro.</small></div>
           <div className="admin-policy-field"><label htmlFor="pro-duration">Membership length <span>(days)</span></label><input id="pro-duration" type="number" min="1" max="365" value={proDuration} onChange={event=>setProDuration(Number(event.target.value))} required/><small>How long Pro benefits remain active after payment.</small></div>
+          <div className="admin-policy-field"><label htmlFor="pro-annual-price">Annual price <span>(IDR)</span></label><input id="pro-annual-price" type="number" min="1000" step="100" value={proAnnualPrice} onChange={event=>setProAnnualPrice(Number(event.target.value))} required/><small>Charged once for the annual membership.</small></div>
+          <div className="admin-policy-field"><label htmlFor="pro-annual-duration">Annual membership length <span>(days)</span></label><input id="pro-annual-duration" type="number" min="1" max="365" value={proAnnualDuration} onChange={event=>setProAnnualDuration(Number(event.target.value))} required/><small>Annual benefits and monthly voucher eligibility run for this period.</small></div>
           <div className="admin-policy-field"><label htmlFor="pro-intro-price">Launch price <span>(IDR, optional)</span></label><input id="pro-intro-price" type="number" min="1000" step="100" value={proIntroPrice??''} onChange={event=>setProIntroPrice(event.target.value?Number(event.target.value):null)} placeholder="Off"/><small>Must be lower than the regular price.</small></div>
           <div className="admin-policy-field"><label htmlFor="pro-intro-date">Launch offer ends <span>(Jakarta time)</span></label><input id="pro-intro-date" type="date" value={proIntroEndDate} onChange={event=>setProIntroEndDate(event.target.value)} disabled={proIntroPrice===null}/><small>Leave blank to turn off the launch offer.</small></div>
           <div className="admin-policy-field"><label htmlFor="pro-intro-limit">Launch offer account limit</label><input id="pro-intro-limit" type="number" min="0" step="1" value={proIntroLimit} onChange={event=>setProIntroLimit(Number(event.target.value))} disabled={proIntroPrice===null} required/><small>Set to 0 for no account limit.</small></div>

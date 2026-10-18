@@ -3124,6 +3124,39 @@ html[data-theme="dark"] body :is(
   .nav-more > div a { transition-duration: .01ms !important; }
 }
 
+@media (max-width: 760px) {
+  .market-listing-detail > .market-listing-back-link {
+    display: inline-flex !important;
+    width: fit-content !important;
+    max-width: 100%;
+    min-height: 44px !important;
+    margin: 0 0 14px !important;
+    padding: 0 14px !important;
+    border-radius: 999px !important;
+    background: var(--surface-raised) !important;
+    color: var(--ink) !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  .market-listing-detail .market-listing-add-cards.button.secondary {
+    min-height: 40px !important;
+    padding-inline: 12px !important;
+    border-color: var(--line) !important;
+    background: var(--surface-raised) !important;
+    color: var(--ink) !important;
+    font-size: 12px !important;
+  }
+  .market-store-nav .market-back-link.is-market-return > span { display: none !important; }
+}
+
+html[data-theme='dark'] .market-listing-detail > .market-listing-back-link {
+  border-color: var(--line, #34434b) !important;
+  background: var(--surface-raised, #17232b) !important;
+  color: var(--ink, #edf3ed) !important;
+}
+
 /* Keep mobile navigation touchable and consistent across the main app and Market. */
 .market-listing-seller-name{display:grid!important;grid-template-columns:minmax(0,1fr)!important;justify-items:start!important;align-items:start!important;gap:3px!important}
 .market-listing-seller-name>.market-reputation-inline{justify-self:start}
@@ -3344,6 +3377,60 @@ html[data-theme="dark"] body :is(
     white-space: nowrap !important;
     border: 0 !important;
   }
+}
+
+/* Phone layout for selling and buying requests. */
+@media(max-width:760px){
+  .market-sell-dialog .market-sell-body{padding:14px 16px calc(22px + env(safe-area-inset-bottom))!important;gap:12px!important}
+  .market-sell-dialog .market-sell-source-toggle{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:5px!important;margin-bottom:10px!important}
+  .market-sell-dialog .market-sell-source-toggle button{min-height:46px!important;height:auto!important;gap:6px!important;padding:7px 5px!important;font-size:11px!important;line-height:1.2!important}
+  .market-sell-dialog .market-sell-bundle-trigger{min-height:58px!important;margin-bottom:12px!important;padding:10px!important}
+  .market-sell-dialog .market-vault-picker{gap:10px!important}
+  .market-sell-dialog .market-vault-picker-search{min-height:46px!important}
+  .market-sell-dialog .market-vault-picker-heading{min-height:24px;font-size:12px!important}
+  .market-sell-dialog .market-vault-picker-grid{grid-template-columns:minmax(0,1fr)!important;gap:8px!important;max-height:min(48dvh,440px)!important;padding:2px 2px 6px!important;overscroll-behavior:contain!important}
+  .market-sell-dialog .market-vault-card-item{min-height:82px!important;gap:11px!important;padding:8px 10px!important;border-radius:10px!important}
+  .market-sell-dialog .market-vault-card-thumb{width:48px!important;height:67px!important}
+  .market-sell-dialog .market-vault-card-info strong{font-size:12px!important;line-height:1.25!important}
+  .market-sell-dialog .market-vault-card-info .market-vault-card-meta,.market-sell-dialog .market-vault-card-available{font-size:10px!important;line-height:1.35!important}
+  .market-sell-dialog .listing-selection{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:12px!important;padding:12px!important;border-radius:12px!important}
+  .market-sell-dialog .listing-selection-left{display:grid!important;grid-template-columns:58px minmax(0,1fr)!important;gap:10px!important;align-items:center!important;justify-items:start!important}
+  .market-sell-dialog .listing-selection-card-preview,.market-sell-dialog .listing-selection-card-preview .tcg-card{width:58px!important;height:81px!important}
+  .market-sell-dialog .listing-change-card-btn{width:max-content!important;min-width:112px!important;min-height:44px!important;height:auto!important;padding:0 12px!important;font-size:11px!important}
+  .market-sell-dialog .listing-selection-right{display:grid!important;gap:12px!important}
+  .market-sell-dialog .listing-selection-header h3{font-size:17px!important;line-height:1.25!important}
+  .market-sell-dialog .listing-card-sub{gap:5px!important;font-size:11px!important}
+  .market-sell-dialog .listing-printings-section{padding:9px!important}
+  .market-sell-dialog .listing-printings-strip{margin-inline:-2px}
+  .market-sell-dialog .market-owned-copy-picker>div[role='radiogroup']{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important}
+  .market-sell-dialog .market-owned-copy-picker>div[role='radiogroup'] button{min-height:60px!important;padding:8px!important}
+  .market-sell-dialog .market-condition-options{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important}
+  .market-sell-dialog .market-condition-option{min-height:62px!important;padding:8px!important}
+  .market-sell-dialog .market-condition-option:last-child:nth-child(odd){grid-column:1/-1}
+  .market-sell-dialog .form-row{grid-template-columns:minmax(0,1fr)!important;gap:10px!important}
+  .market-sell-dialog .form-row>label{margin:0!important}
+  .market-sell-dialog .market-sell-stepper-wrap{width:100%!important;min-height:46px!important}
+  .market-sell-dialog .market-sell-bundle-stepper{min-height:44px!important}
+  .market-sell-dialog .market-sell-bundle-stepper button{width:44px!important;min-width:44px!important;height:44px!important;min-height:44px!important}
+  .market-sell-dialog .market-sell-bundle-stepper>span{min-width:48px!important;font-size:14px!important}
+  .market-sell-dialog .market-list-button{width:100%!important;min-height:48px!important;white-space:normal!important;line-height:1.2!important}
+  .market-sell-dialog .market-sell-bundle-item{display:grid!important;grid-template-columns:48px minmax(0,1fr) 40px!important;grid-template-rows:auto auto auto;gap:6px 8px!important;padding:9px!important}
+  .market-sell-dialog .market-sell-bundle-thumb{width:48px!important;height:67px!important}
+  .market-sell-dialog .market-sell-bundle-thumb{grid-column:1;grid-row:1/span 3}
+  .market-sell-dialog .market-sell-bundle-details{grid-column:2;grid-row:1;align-self:center}
+  .market-sell-dialog .market-sell-bundle-stepper{grid-column:2;grid-row:2;align-self:center;justify-self:start}
+  .market-sell-dialog .market-sell-bundle-stepper button{width:36px!important;min-width:36px!important;height:36px!important;min-height:36px!important}
+  .market-sell-dialog .market-sell-bundle-stepper>span{min-width:36px!important}
+  .market-sell-dialog .market-sell-bundle-pricing{grid-column:2;grid-row:3;align-items:flex-start}
+  .market-sell-dialog .market-sell-bundle-remove{grid-column:3;grid-row:1;justify-self:end;width:40px!important;min-width:40px!important;height:40px!important;min-height:40px!important}
+  .market-sell-dialog .market-bundle-limit-note{font-size:10px!important}
+}
+@media(min-width:761px) and (max-width:1024px){
+  .market-sell-dialog{width:min(760px,calc(100vw - 36px))!important}
+  .market-sell-dialog .market-sell-body{padding:20px 22px 24px!important}
+  .market-sell-dialog .listing-selection{grid-template-columns:82px minmax(0,1fr)!important;gap:13px!important;padding:13px!important}
+  .market-sell-dialog .listing-selection-card-preview,.market-sell-dialog .listing-selection-card-preview .tcg-card{width:82px!important;height:115px!important}
+  .market-sell-dialog .market-vault-picker-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;max-height:42vh!important}
 }
 
 @media(max-width:760px){.market-mobile-nav>.market-mobile-nav-auth-placeholder{opacity:1!important;color:transparent!important}.market-mobile-nav-auth-placeholder i{display:block;width:19px;height:19px;border-radius:5px;background:linear-gradient(100deg,color-mix(in srgb,var(--line) 24%,var(--surface-raised)) 25%,color-mix(in srgb,var(--line) 58%,var(--surface-raised)) 45%,color-mix(in srgb,var(--line) 24%,var(--surface-raised)) 65%);background-size:220% 100%;animation:market-nav-shimmer 1.25s ease-in-out infinite}.market-mobile-nav-auth-placeholder:after{width:38px;height:5px;margin-top:3px;border-radius:4px;background:color-mix(in srgb,var(--line) 48%,var(--surface-raised));content:"";animation:market-nav-shimmer 1.25s ease-in-out infinite;background-size:220% 100%}}@media(prefers-reduced-motion:reduce){.market-mobile-nav-auth-placeholder i,.market-mobile-nav-auth-placeholder:after{animation:none}}

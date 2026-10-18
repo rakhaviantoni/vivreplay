@@ -5,7 +5,7 @@ import {isCurrentUserAdmin} from '@/lib/server/admin-auth';
 
 export const dynamic='force-dynamic';
 
-const sections=['overview','customers','catalog','policy','payments','marketplace','feedback','traffic','payouts','disputes'] as const;
+const sections=['overview','customers','catalog','policy','payments','marketplace','feedback','traffic','payouts','disputes','operations'] as const;
 type Section=typeof sections[number];
 
 export default async function AdminPage({searchParams}:{searchParams:Promise<{section?:string|string[]}>}){

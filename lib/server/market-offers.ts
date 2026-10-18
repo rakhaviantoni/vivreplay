@@ -1,4 +1,6 @@
 import {db,HttpError} from '@/lib/server/store';
+import {MARKET_MAX_CARD_TYPES} from '@/lib/market/listing-limits';
+import {enforceMarketListingLimits} from '@/lib/server/market-listing-limits';
 
 export type OfferContext={id:string;threadId:string;parentOfferId:string|null;listingId:string;listingTitle:string;actorId:string;type:string;items:string;amount:number;currency:string;status:string;sellerId:string;listingStatus:string;listingType:string;negotiable:number;quantity:number;printingId:string;listingItems:string|null;expiresAt:string|null;listingExpiresAt:string|null;initialActorId:string;buyerId:string;supplierId:string};
 
@@ -56,7 +58,9 @@ export function parseOfferItems(raw:string){
 }
 
 export async function validateListingOfferItems(offer:OfferContext,actorId:string,items:Array<{printingId:string;quantity:number;unitAmount?:number}>){
-  if(items.length<1||items.length>30)throw new HttpError(400,'Choose at least one card.');
+  if(items.length<1||items.length>MARKET_MAX_CARD_TYPES)throw new HttpError(400,'Choose at least one card.');
+  await enforceMarketListingLimits(db(),items);
+  if(items.reduce((sum,item)=>sum+item.quantity,0)>offer.quantity)throw new HttpError(400,'Select no more cards than this listing requests.');
   if(offer.listingType==='WTS'){
     let available=new Map<string,number>([[offer.printingId,offer.quantity]]);
     try{
