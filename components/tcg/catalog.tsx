@@ -253,6 +253,7 @@ export function Catalog({home=false,initialSet,initialArchetype,setPage=false,se
         </div>
       </div>
     </section>
+    {sets.length>0&&<p className="catalog-result-count" role="status">{groups.length} {id?'kartu':'cards'}</p>}
     <div className="card-grid" style={{'--catalog-grid-mode':gridColumns==='auto'?'auto-fit':gridColumns} as React.CSSProperties}>
       {groups.slice(0,(catalogPage+1)*240).map(variants=><CatalogTile key={variants[0].id} primary={variants[0]} variants={variants} language={language} onOpen={(card,origin)=>{setPreviewOrigin(origin);setPreview(card)}}/>)}
     </div>

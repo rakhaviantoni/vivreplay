@@ -73,9 +73,9 @@ function PrimaryNav({language,selected,game}:{language:Locale;selected:(url:stri
 }
 
 function GameModeSwitch({language,game}:{language:Locale;game:'one-piece'|'pokemon'}) {
-  const options=[{id:'one-piece' as const,href:'/cards',en:'One Piece',idLabel:'One Piece',mark:'OP'},{id:'pokemon' as const,href:'/pokemon',en:'Pokémon',idLabel:'Pokémon',mark:'P'}];
+  const options=[{id:'one-piece' as const,href:'/cards',label:'One Piece',logo:'/assets/one-piece-card-game-logo.png'},{id:'pokemon' as const,href:'/pokemon',label:'Pokémon',logo:'https://upload.wikimedia.org/wikipedia/commons/1/1a/Pok%C3%A9mon_Trading_Card_Game_logo.svg'}];
   const localize=(href:string)=>language==='ID'?`/id${href}`:href;
-  return <nav className="game-mode-switch" aria-label={language==='ID'?'Pilih katalog kartu':'Choose a card catalog'}>{options.map(option=><Link key={option.id} href={localize(option.href)} aria-current={game===option.id?'page':undefined} className={game===option.id?'is-active':''}><span className={`game-mode-mark game-mode-mark-${option.id}`} aria-hidden="true">{option.mark}</span><strong>{language==='ID'?option.idLabel:option.en}</strong></Link>)}</nav>;
+  return <nav className="game-mode-switch" aria-label={language==='ID'?'Pilih katalog kartu':'Choose a card catalog'}>{options.map(option=><Link key={option.id} href={localize(option.href)} aria-label={option.label} title={option.label} aria-current={game===option.id?'page':undefined} className={`${game===option.id?'is-active ':''}game-mode-${option.id}`}><img src={option.logo} alt="" aria-hidden="true"/><span className="sr-only">{option.label}</span></Link>)}</nav>;
 }
 
 function Footer({language,game}:{language:Locale;game:'one-piece'|'pokemon'}) {
