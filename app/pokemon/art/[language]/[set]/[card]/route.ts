@@ -14,16 +14,36 @@ export async function GET(_request: Request, { params }: { params: Promise<{ lan
 
   try {
     const row = await database().prepare(`
-      SELECT p.card_image_url AS imageUrl
+      SELECT p.card_image_url AS imageUrl,p.source_payload AS sourcePayload
       FROM tcg_card_printings p
       JOIN tcg_card_identities i ON i.id=p.identity_id
       JOIN tcg_games g ON g.id=i.game_id
       WHERE g.slug='pokemon' AND p.language=?
         AND UPPER(p.set_code)=UPPER(?) AND UPPER(p.printing_code)=UPPER(?)
       LIMIT 1
-    `).bind(language, setCode, cardCode).first<{ imageUrl: string | null }>();
-    if (!row?.imageUrl) return new Response('Not found', { status: 404 });
-    return tcgdexArtResponse(row.imageUrl);
+    `).bind(language, setCode, cardCode).first<{ imageUrl: string | null; sourcePayload: string }>();
+    if (!row) return new Response('Not found', { status: 404 });
+    let payload: Record<string, unknown> = {};
+    try { payload = JSON.parse(row.sourcePayload) as Record<string, unknown>; } catch { /* Try the catalog path only. */ }
+    const set = payload.set && typeof payload.set === 'object' ? payload.set as Record<string, unknown> : {};
+    const serie = set.serie && typeof set.serie === 'object' ? set.serie as Record<string, unknown> : {};
+    const sourceSet = String(set.id ?? setCode);
+    const serieId = String(serie.id ?? '');
+    const localId = String(payload.localId ?? cardCode);
+    const sourceLanguage = language === 'JP' ? 'ja' : language.toLowerCase();
+    const candidates: string[] = [];
+    if (row.imageUrl) {
+      const imageUrl = row.imageUrl.replace(/\/$/, '');
+      if (/\.(?:png|webp|jpe?g)$/i.test(imageUrl)) candidates.push(imageUrl);
+      else candidates.push(`${imageUrl}/high.webp`, `${imageUrl}/low.webp`);
+    }
+    for (const lang of language === 'JP' ? ['ja', 'jp'] : [sourceLanguage]) {
+      for (const directory of [serieId ? `${lang}/${serieId}/${sourceSet}` : '', `${lang}/${sourceSet}`].filter(Boolean)) {
+        candidates.push(`https://assets.tcgdex.net/${directory}/${encodeURIComponent(localId)}/high.webp`);
+        candidates.push(`https://assets.tcgdex.net/${directory}/${encodeURIComponent(localId)}/low.webp`);
+      }
+    }
+    return tcgdexArtResponse(candidates);
   } catch {
     return new Response('Image unavailable', { status: 503 });
   }

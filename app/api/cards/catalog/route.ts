@@ -13,13 +13,16 @@ function publicCardPath(objectKey: string, setCode = '', language = 'EN', printi
   if (objectKey.startsWith('http')) {
     try {
       const source = new URL(objectKey);
-      const [folder, sourceLanguage, ...parts] = source.pathname.split('/').filter(Boolean);
+      const segments = source.pathname.split('/').filter(Boolean);
+      const [folder, sourceLanguage, ...parts] = segments;
       const filename = parts.at(-1);
       if (source.hostname === 'assets.tcgdex.net' && source.protocol === 'https:' && source.pathname.startsWith('/')) {
-        const setCode = parts.at(-3)?.replace(/\.(?:webp|png|jpe?g)$/i, '');
-        const cardCode = parts.at(-2)?.replace(/\.(?:webp|png|jpe?g)$/i, '');
-        const sourceLanguageCode = folder?.toLowerCase();
+        const sourceLanguageCode = segments[0]?.toLowerCase();
         const languageCode = sourceLanguageCode === 'id' ? 'id' : sourceLanguageCode === 'jp' || sourceLanguageCode === 'ja' ? 'jp' : sourceLanguageCode === 'en' ? 'en' : '';
+        const assetParts = segments.slice(1);
+        if (/^(?:high|low|small|large)\.(?:webp|png|jpe?g)$/i.test(assetParts.at(-1) ?? '')) assetParts.pop();
+        const setCode = assetParts.at(-2)?.replace(/\.(?:webp|png|jpe?g)$/i, '');
+        const cardCode = assetParts.at(-1)?.replace(/\.(?:webp|png|jpe?g)$/i, '');
         if (languageCode && setCode && cardCode) {
           return `/pokemon/art/${languageCode}/${encodeURIComponent(setCode)}/${encodeURIComponent(cardCode)}`;
         }
@@ -41,7 +44,7 @@ function parseJson(value: unknown) {
   try { return JSON.parse(value); } catch { return value; }
 }
 
-async function fromD1(gameSlug: string, language: string, identityCode?: string, setCodes: string[] = [], limit?: number, offset = 0, printingIds?: string[],identityCodes?:string[],identityIds?:string[],query?:string,rarities:string[] = [],illustrators:string[] = []) {
+async function fromD1(gameSlug: string, language: string, identityCode?: string, setCodes: string[] = [], limit?: number, offset = 0, printingIds?: string[],identityCodes?:string[],identityIds?:string[],query?:string,rarities:string[] = [],illustrators:string[] = [],types:string[] = [],categories:string[] = [],stages:string[] = [],sort='latest') {
   const db = database();
   const selectedGame = await db.prepare('SELECT id FROM tcg_games WHERE slug=? LIMIT 1').bind(gameSlug).first<{ id: string }>();
   if (!selectedGame) return [];
@@ -76,8 +79,20 @@ async function fromD1(gameSlug: string, language: string, identityCode?: string,
   }
   if (rarities.length) { predicates.push(`LOWER(p.rarity) IN (${rarities.map(()=>'?').join(',')})`); values.push(...rarities.map(value=>value.toLocaleLowerCase())); }
   if (illustrators.length) { predicates.push(`(${illustrators.map(()=>`LOWER(COALESCE(p.source_payload,'')) LIKE ?`).join(' OR ')})`); values.push(...illustrators.map(value=>`%${value.toLocaleLowerCase()}%`)); }
+  if (types.length) { predicates.push(`EXISTS (SELECT 1 FROM json_each(p.source_payload, '$.types') pokemon_type WHERE LOWER(pokemon_type.value) IN (${types.map(()=>'?').join(',')}))`); values.push(...types.map(value=>value.toLocaleLowerCase())); }
+  if (categories.length) { predicates.push(`LOWER(json_extract(p.source_payload, '$.category')) IN (${categories.map(()=>'?').join(',')})`); values.push(...categories.map(value=>value.toLocaleLowerCase())); }
+  if (stages.length) { predicates.push(`LOWER(json_extract(p.source_payload, '$.stage')) IN (${stages.map(()=>'?').join(',')})`); values.push(...stages.map(value=>value.toLocaleLowerCase())); }
   const pagination = limit ? 'LIMIT ? OFFSET ?' : '';
   if (limit) values.push(limit, offset);
+  const orderBy = sort === 'name'
+    ? `COALESCE(l.name,i.name) COLLATE NOCASE,p.set_code,p.printing_code,p.id`
+    : sort === 'rarity'
+      ? `CASE LOWER(p.rarity) WHEN 'hyper rare' THEN 120 WHEN 'special illustration rare' THEN 110 WHEN 'ace spec rare' THEN 105 WHEN 'illustration rare' THEN 100 WHEN 'ultra rare' THEN 90 WHEN 'amazing rare' THEN 80 WHEN 'radiant rare' THEN 78 WHEN 'double rare' THEN 70 WHEN 'rare holo' THEN 60 WHEN 'rare holo ex' THEN 58 WHEN 'rare' THEN 50 WHEN 'uncommon' THEN 30 WHEN 'common' THEN 10 ELSE 0 END DESC,COALESCE(s.release_date,'') DESC,p.set_code,p.printing_code,p.id`
+      : sort === 'hp'
+        ? `COALESCE(CAST(json_extract(p.source_payload, '$.hp') AS INTEGER),0) DESC,COALESCE(s.release_date,'') DESC,p.set_code,p.printing_code,p.id`
+        : sort === 'number'
+          ? `COALESCE(s.release_date,'') DESC,p.set_code,CAST(p.printing_code AS INTEGER),p.printing_code,p.id`
+          : `COALESCE(s.release_date,'') DESC,p.set_code DESC,p.printing_code,p.id`;
   const { results } = await db.prepare(`
     SELECT p.id,p.rarity,p.variant,p.set_code,p.set_name,p.printing_code,p.language,
       p.attribute,p.counter_amount,p.sub_types,p.source_payload,
@@ -92,7 +107,7 @@ async function fromD1(gameSlug: string, language: string, identityCode?: string,
     LEFT JOIN tcg_card_assets a ON a.printing_id=p.id AND a.kind='small'
     LEFT JOIN tcg_sets s ON s.id=p.set_id
     WHERE ${predicates.join(' AND ')}
-    ORDER BY COALESCE(s.release_date,'') DESC,p.set_code DESC,p.printing_code,p.id
+    ORDER BY ${orderBy}
     ${pagination}
   `).bind(...values).all<Record<string, unknown>>();
   return results.flatMap(row => {
@@ -107,7 +122,10 @@ async function fromD1(gameSlug: string, language: string, identityCode?: string,
     const setCode = String(row.set_code ?? '');
     if (gameSlug === 'one-piece' && !isPlayableSet(setCode) && !PREVIEW_CARD_CODES.has(code) && row.variant !== 'Preview') return [];
     const imageKey = String(row.image_key ?? '');
-    const imageUrl = !imageKey ? null : publicCardPath(imageKey, setCode, language, String(row.printing_code || identity.code || '')) || null;
+    const printingCode = String(row.printing_code || identity.code || '');
+    const imageUrl = !imageKey
+      ? gameSlug === 'pokemon' ? `/pokemon/art/${language.toLowerCase()}/${encodeURIComponent(setCode)}/${encodeURIComponent(printingCode)}` : null
+      : publicCardPath(imageKey, setCode, language, printingCode) || null;
     return [{
       id: row.id,identity_id:row.identity_id, rarity: row.rarity, variant: row.variant,
       set_code: row.set_code, set_name: row.set_name,
@@ -153,8 +171,13 @@ export async function GET(request: Request) {
   if(rarities.length>30)return Response.json({error:'Choose up to 30 rarities.'},{status:400});
   const illustrators = [...new Set(params.getAll('illustrator').map(value=>value.trim().slice(0,80)).filter(value=>/^[\p{L}\p{N} .,'&()_-]+$/u.test(value)))];
   if(illustrators.length>50)return Response.json({error:'Choose up to 50 illustrators.'},{status:400});
+  const types = [...new Set(params.getAll('type').map(value=>value.trim().slice(0,30)).filter(value=>/^[\p{L}\p{N} .'-]+$/u.test(value)))];
+  const categories = [...new Set(params.getAll('category').map(value=>value.trim().slice(0,30)).filter(value=>/^[\p{L}\p{N} .'-]+$/u.test(value)))];
+  const stages = [...new Set(params.getAll('stage').map(value=>value.trim().slice(0,30)).filter(value=>/^[\p{L}\p{N} .'-]+$/u.test(value)))];
+  const requestedSort = params.get('sort') ?? 'latest';
+  const sort = ['latest','name','number','rarity','hp'].includes(requestedSort) ? requestedSort : 'latest';
   const snapshotKey = `catalog-snapshots/cards-${gameSlug}-${language.toLowerCase()}-${CARD_CATALOG_CACHE_REVISION}.json`;
-  const snapshotEligible = !printingIds && !identityCodes && !identityIds && !identityCode && !setCodes.length && !query && !rarities.length && !illustrators.length && !limit && offset === 0;
+  const snapshotEligible = !printingIds && !identityCodes && !identityIds && !identityCode && !setCodes.length && !query && !rarities.length && !illustrators.length && !types.length && !categories.length && !stages.length && sort === 'latest' && !limit && offset === 0;
   if (snapshotEligible) {
     try {
       const snapshot = await env.CARD_IMAGES?.get(snapshotKey);
@@ -170,7 +193,7 @@ export async function GET(request: Request) {
     }
   }
   let cards: Record<string, unknown>[];
-  try { cards = await fromD1(gameSlug, language, identityCode, setCodes, printingIds||identityCodes||identityIds?undefined:limit, offset, printingIds,identityCodes,identityIds,query,rarities,illustrators); }
+  try { cards = await fromD1(gameSlug, language, identityCode, setCodes, printingIds||identityCodes||identityIds?undefined:limit, offset, printingIds,identityCodes,identityIds,query,rarities,illustrators,types,categories,stages,sort); }
   catch { return Response.json({ error: 'Catalog is temporarily unavailable.' }, { status: 503 }); }
   const response = Response.json({ cards }, {
     headers: {

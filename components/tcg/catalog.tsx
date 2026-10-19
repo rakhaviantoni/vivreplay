@@ -60,7 +60,7 @@ export function Picker({value,onChange,options,label,leadingIcon}:{value:string;
 }
 
 export function MultiFilter({label,values,selected,onToggle,searchPlaceholder}:{label:string;values:FilterOption[];selected:string[];onToggle:(value:string)=>void;searchPlaceholder?:string}) {
-  const [open,setOpen]=useState(false); const [query,setQuery]=useState(''); const ref=useRef<HTMLDivElement>(null); const colour=label==='Colour'||label==='Warna'; const searchable=['Set','Archetype','Arketipe','Illustrator','Ilustrator','Rarity','Kelangkaan'].includes(label);
+  const [open,setOpen]=useState(false); const [query,setQuery]=useState(''); const ref=useRef<HTMLDivElement>(null); const colour=label==='Colour'||label==='Warna'; const searchable=['Set','Archetype','Arketipe','Illustrator','Ilustrator','Rarity','Kelangkaan','Type','Tipe','Stage','Tahap'].includes(label);
   const matches=values.filter(item=>{const option=typeof item==='string'?{value:item,label:item}:item;return option.label.toLowerCase().includes(query.toLowerCase())||option.value.toLowerCase().includes(query.toLowerCase())});
   useEffect(()=>{const close=(event:PointerEvent)=>{if(!ref.current?.contains(event.target as Node))setOpen(false)};const escape=(event:KeyboardEvent)=>{if(event.key==='Escape')setOpen(false)};document.addEventListener('pointerdown',close);document.addEventListener('keydown',escape);return()=>{document.removeEventListener('pointerdown',close);document.removeEventListener('keydown',escape)}},[]);
   return <div ref={ref} className={`filter-menu ${open?'is-open':''} ${selected.length?'has-selection':''} ${colour?'colour-menu':''} ${label==='Set'?'set-menu':''}`}>

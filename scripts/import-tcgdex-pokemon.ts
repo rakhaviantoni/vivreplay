@@ -81,6 +81,10 @@ function imageUrl(image?: string) {
     return `${url.toString().replace(/\/$/, '')}/high.webp`;
   } catch { return null; }
 }
+function rarityValue(value?: string) {
+  const rarity = value?.trim();
+  return rarity && !['unknown', 'none', 'null'].includes(rarity.toLowerCase()) ? rarity : '';
+}
 const startedAt = new Date().toISOString();
 const fetched: Array<{ language: TcgLanguage; set: ApiSet; card: ApiCard }> = [];
 const setNames = new Map<string, { id: string; name: string; releaseDate: string | null; logo: string | null }>();
@@ -186,7 +190,7 @@ const languageSummary = Object.fromEntries(langs.map(language => {
   return [languageCode(language), {
     setsWithCards: sets.size,
     cards: cards.length,
-    rarities: [...new Set(cards.map(item => item.card.rarity).filter((value): value is string => Boolean(value)))].sort((a, b) => a.localeCompare(b)),
+    rarities: [...new Set(cards.map(item => rarityValue(item.card.rarity)).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
     illustrators: new Set(cards.map(item => item.card.illustrator).filter((value): value is string => typeof value === 'string' && Boolean(value.trim()))).size,
     cardsWithIllustrator: cards.filter(item => typeof item.card.illustrator === 'string' && Boolean(item.card.illustrator.trim())).length,
     cardsWithImages: cards.filter(item => Boolean(imageUrl(item.card.image))).length,
@@ -245,7 +249,7 @@ for (const item of uniqueCards.values()) {
   localizedRows.push({ identity_id: identityId, language: lang, name: card.name ?? card.id, effect_text: effect, traits_text: traits.join(' · '), updated_at: startedAt });
   const image = imageUrl(card.image);
   const printingId = stableId(`printing:${lang}:${card.id}`);
-  printingRows.push({ id: printingId, identity_id: identityId, language: lang, set_id: setIds.get(setId) ?? stableId(`set:${setId}`), set_code: setId, set_name: card.set?.name ?? item.set.name ?? setId, rarity: card.rarity ?? 'Unknown', variant: 'Standard', source_kind: 'tcgdex', created_at: startedAt, sub_types: JSON.stringify(traits), counter_amount: 0, attribute: type, card_image_url: image, source_payload: JSON.stringify(card), printing_code: card.localId ?? card.id, release_date: item.set.releaseDate ?? null });
+  printingRows.push({ id: printingId, identity_id: identityId, language: lang, set_id: setIds.get(setId) ?? stableId(`set:${setId}`), set_code: setId, set_name: card.set?.name ?? item.set.name ?? setId, rarity: rarityValue(card.rarity), variant: 'Standard', source_kind: 'tcgdex', created_at: startedAt, sub_types: JSON.stringify(traits), counter_amount: 0, attribute: type, card_image_url: image, source_payload: JSON.stringify(card), printing_code: card.localId ?? card.id, release_date: item.set.releaseDate ?? null });
   ruleRows.push({ identity_id: identityId, colors: JSON.stringify(types), card_type: type, cost: 0, power: Number.parseInt(String(card.hp ?? 0), 10) || 0, counter_amount: 0, attributes: JSON.stringify([type, ...types]), traits: JSON.stringify(traits), rules_revision: 'tcgdex-v1', updated_at: startedAt });
   if (image) assetSourceRows.push({ id: stableId(`asset:${lang}:${card.id}`), printing_id: printingId, source_type: 'tcgdex', source_url: image, rights_status: 'source_attribution_pending_review', observed_at: startedAt, approved_for_display: false, approved_for_storage: false, created_at: startedAt, storage_variants: '{}' });
 }

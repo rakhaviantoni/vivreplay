@@ -23,12 +23,13 @@ export async function GET(request: Request) {
   try {
     const db = database();
     const game = await db.prepare('SELECT id FROM tcg_games WHERE slug=? LIMIT 1').bind(gameSlug).first<{ id: string }>();
-    if (!game) return Response.json({ rarities: [] }, { headers: responseHeaders });
+    if (!game) return Response.json({ rarities: [], illustrators: [], types: [], categories: [], stages: [] }, { headers: responseHeaders });
     const { results } = await db.prepare(`
       SELECT DISTINCT p.rarity
       FROM tcg_card_printings p
       JOIN tcg_card_identities i ON i.id=p.identity_id
-      WHERE i.game_id=? AND p.language=? AND p.rarity IS NOT NULL AND p.rarity!=''
+      WHERE i.game_id=? AND p.language=? AND p.rarity IS NOT NULL AND trim(p.rarity)!=''
+        AND LOWER(trim(p.rarity)) NOT IN ('unknown','none','null')
       ORDER BY p.rarity COLLATE NOCASE
     `).bind(game.id, language).all<{ rarity: string }>();
     const illustrators = await db.prepare(`
@@ -40,7 +41,41 @@ export async function GET(request: Request) {
         AND trim(json_extract(p.source_payload, '$.illustrator'))!=''
       ORDER BY illustrator COLLATE NOCASE
     `).bind(game.id, language).all<{ illustrator: string }>();
-    const body = { rarities: results.map(row => row.rarity), illustrators: illustrators.results.map(row => row.illustrator) };
+    const types = await db.prepare(`
+      SELECT DISTINCT trim(t.value) AS type
+      FROM tcg_card_printings p
+      JOIN tcg_card_identities i ON i.id=p.identity_id
+      JOIN json_each(p.source_payload, '$.types') t
+      WHERE i.game_id=? AND p.language=? AND json_valid(p.source_payload)
+        AND json_type(p.source_payload, '$.types')='array'
+        AND trim(t.value)!=''
+      ORDER BY type COLLATE NOCASE
+    `).bind(game.id, language).all<{ type: string }>();
+    const categories = await db.prepare(`
+      SELECT DISTINCT trim(json_extract(p.source_payload, '$.category')) AS category
+      FROM tcg_card_printings p
+      JOIN tcg_card_identities i ON i.id=p.identity_id
+      WHERE i.game_id=? AND p.language=? AND json_valid(p.source_payload)
+        AND json_type(p.source_payload, '$.category')='text'
+        AND trim(json_extract(p.source_payload, '$.category'))!=''
+      ORDER BY category COLLATE NOCASE
+    `).bind(game.id, language).all<{ category: string }>();
+    const stages = await db.prepare(`
+      SELECT DISTINCT trim(json_extract(p.source_payload, '$.stage')) AS stage
+      FROM tcg_card_printings p
+      JOIN tcg_card_identities i ON i.id=p.identity_id
+      WHERE i.game_id=? AND p.language=? AND json_valid(p.source_payload)
+        AND json_type(p.source_payload, '$.stage')='text'
+        AND trim(json_extract(p.source_payload, '$.stage'))!=''
+      ORDER BY stage COLLATE NOCASE
+    `).bind(game.id, language).all<{ stage: string }>();
+    const body = {
+      rarities: results.map(row => row.rarity),
+      illustrators: illustrators.results.map(row => row.illustrator),
+      types: types.results.map(row => row.type),
+      categories: categories.results.map(row => row.category),
+      stages: stages.results.map(row => row.stage),
+    };
     try { await env.CARD_IMAGES?.put(key, JSON.stringify(body), { httpMetadata: { contentType: 'application/json; charset=utf-8', cacheControl: 'public, max-age=86400' } }); }
     catch { /* Keep the facet list available when snapshots cannot be written. */ }
     return storePublicEdgeCache(request, Response.json(body, { headers: responseHeaders }));

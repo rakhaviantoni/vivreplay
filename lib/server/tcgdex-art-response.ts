@@ -6,13 +6,13 @@ const cacheHeaders = {
   'X-Content-Type-Options': 'nosniff',
 };
 
-export async function tcgdexArtResponse(value: string) {
+export async function tcgdexArtResponse(values: string | string[]) {
+  const candidates = Array.isArray(values) ? values : [values];
+  for (const value of candidates) {
   let source: URL;
   try { source = new URL(value); }
-  catch { return new Response('Not found', { status: 404 }); }
-  if (source.protocol !== 'https:' || source.hostname !== 'assets.tcgdex.net' || !/^\/[a-z0-9._/-]+\.(?:png|webp|jpe?g)$/i.test(source.pathname) || source.pathname.split('/').some(part => part === '.' || part === '..')) {
-    return new Response('Not found', { status: 404 });
-  }
+  catch { continue; }
+  if (source.protocol !== 'https:' || source.hostname !== 'assets.tcgdex.net' || !/^\/[a-z0-9._/-]+\.(?:png|webp|jpe?g)$/i.test(source.pathname) || source.pathname.split('/').some(part => part === '.' || part === '..')) continue;
 
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(source.toString()));
   const cacheKey = `catalog-images/pokemon/${Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')}`;
@@ -23,9 +23,9 @@ export async function tcgdexArtResponse(value: string) {
 
   let upstream: Response;
   try { upstream = await fetch(source, { headers: { Accept: 'image/avif,image/webp,image/png,image/*' } }); }
-  catch { return new Response('Image unavailable', { status: 502 }); }
+  catch { continue; }
   const contentType = upstream.headers.get('content-type')?.split(';')[0].toLowerCase() ?? '';
-  if (!upstream.ok || !contentType.startsWith('image/')) return new Response('Image unavailable', { status: upstream.ok ? 502 : upstream.status });
+  if (!upstream.ok || !contentType.startsWith('image/')) continue;
 
   const headers = new Headers({ ...cacheHeaders, 'Content-Type': contentType });
   const length = upstream.headers.get('content-length');
@@ -36,4 +36,6 @@ export async function tcgdexArtResponse(value: string) {
   try { await env.CARD_IMAGES.put(cacheKey, body, { httpMetadata: { contentType, cacheControl: cacheHeaders['Cache-Control'] } }); }
   catch { /* Keep serving the image if R2 is unavailable. */ }
   return new Response(body, { status: 200, headers });
+  }
+  return new Response('Image unavailable', { status: 404 });
 }
