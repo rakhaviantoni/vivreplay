@@ -44,7 +44,7 @@ function parseJson(value: unknown) {
   try { return JSON.parse(value); } catch { return value; }
 }
 
-async function fromD1(gameSlug: string, language: string, identityCode?: string, setCodes: string[] = [], limit?: number, offset = 0, printingIds?: string[],identityCodes?:string[],identityIds?:string[],query?:string,rarities:string[] = [],illustrators:string[] = [],types:string[] = [],categories:string[] = [],stages:string[] = [],sort='latest') {
+async function fromD1(gameSlug: string, language: string, identityCode?: string, setCodes: string[] = [], limit?: number, offset = 0, printingIds?: string[],identityCodes?:string[],identityIds?:string[],query?:string,rarities:string[] = [],illustrators:string[] = [],types:string[] = [],categories:string[] = [],stages:string[] = [],sort='latest',missingImages=false) {
   const db = database();
   const selectedGame = await db.prepare('SELECT id FROM tcg_games WHERE slug=? LIMIT 1').bind(gameSlug).first<{ id: string }>();
   if (!selectedGame) return [];
@@ -82,6 +82,7 @@ async function fromD1(gameSlug: string, language: string, identityCode?: string,
   if (types.length) { predicates.push(`EXISTS (SELECT 1 FROM json_each(p.source_payload, '$.types') pokemon_type WHERE LOWER(pokemon_type.value) IN (${types.map(()=>'?').join(',')}))`); values.push(...types.map(value=>value.toLocaleLowerCase())); }
   if (categories.length) { predicates.push(`LOWER(json_extract(p.source_payload, '$.category')) IN (${categories.map(()=>'?').join(',')})`); values.push(...categories.map(value=>value.toLocaleLowerCase())); }
   if (stages.length) { predicates.push(`LOWER(json_extract(p.source_payload, '$.stage')) IN (${stages.map(()=>'?').join(',')})`); values.push(...stages.map(value=>value.toLocaleLowerCase())); }
+  if (missingImages) predicates.push("NULLIF(p.card_image_url,'') IS NULL AND NULLIF(a.object_key,'') IS NULL");
   const pagination = limit ? 'LIMIT ? OFFSET ?' : '';
   if (limit) values.push(limit, offset);
   const orderBy = sort === 'name'
@@ -176,8 +177,10 @@ export async function GET(request: Request) {
   const stages = [...new Set(params.getAll('stage').map(value=>value.trim().slice(0,30)).filter(value=>/^[\p{L}\p{N} .'-]+$/u.test(value)))];
   const requestedSort = params.get('sort') ?? 'latest';
   const sort = ['latest','name','number','rarity','hp'].includes(requestedSort) ? requestedSort : 'latest';
+  const missingImages = params.get('missingImages') === '1' && gameSlug === 'pokemon' && ['ID','JP'].includes(language);
+  const resultLimit = missingImages ? Math.min(limit ?? 250, 250) : limit;
   const snapshotKey = `catalog-snapshots/cards-${gameSlug}-${language.toLowerCase()}-${CARD_CATALOG_CACHE_REVISION}.json`;
-  const snapshotEligible = !printingIds && !identityCodes && !identityIds && !identityCode && !setCodes.length && !query && !rarities.length && !illustrators.length && !types.length && !categories.length && !stages.length && sort === 'latest' && !limit && offset === 0;
+  const snapshotEligible = !missingImages && !printingIds && !identityCodes && !identityIds && !identityCode && !setCodes.length && !query && !rarities.length && !illustrators.length && !types.length && !categories.length && !stages.length && sort === 'latest' && !limit && offset === 0;
   if (snapshotEligible) {
     try {
       const snapshot = await env.CARD_IMAGES?.get(snapshotKey);
@@ -193,7 +196,7 @@ export async function GET(request: Request) {
     }
   }
   let cards: Record<string, unknown>[];
-  try { cards = await fromD1(gameSlug, language, identityCode, setCodes, printingIds||identityCodes||identityIds?undefined:limit, offset, printingIds,identityCodes,identityIds,query,rarities,illustrators,types,categories,stages,sort); }
+  try { cards = await fromD1(gameSlug, language, identityCode, setCodes, printingIds||identityCodes||identityIds?undefined:resultLimit, offset, printingIds,identityCodes,identityIds,query,rarities,illustrators,types,categories,stages,sort,missingImages); }
   catch { return Response.json({ error: 'Catalog is temporarily unavailable.' }, { status: 503 }); }
   const response = Response.json({ cards }, {
     headers: {

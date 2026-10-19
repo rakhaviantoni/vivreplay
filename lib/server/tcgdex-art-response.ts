@@ -12,7 +12,11 @@ export async function tcgdexArtResponse(values: string | string[]) {
   let source: URL;
   try { source = new URL(value); }
   catch { continue; }
-  if (source.protocol !== 'https:' || source.hostname !== 'assets.tcgdex.net' || !/^\/[a-z0-9._/-]+\.(?:png|webp|jpe?g)$/i.test(source.pathname) || source.pathname.split('/').some(part => part === '.' || part === '..')) continue;
+  const validTcgDex = source.hostname === 'assets.tcgdex.net'
+    && /^\/[a-z0-9._/-]+\.(?:png|webp|jpe?g)$/i.test(source.pathname);
+  const validPokepedia = source.hostname === 'cdn.pokepedia.id'
+    && /^\/(?:jp\/)?[a-z0-9_-]{1,40}\/[a-z0-9._-]{1,80}\.webp$/i.test(source.pathname);
+  if (source.protocol !== 'https:' || (!validTcgDex && !validPokepedia) || source.pathname.split('/').some(part => part === '.' || part === '..')) continue;
 
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(source.toString()));
   const cacheKey = `catalog-images/pokemon/${Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')}`;
@@ -26,6 +30,8 @@ export async function tcgdexArtResponse(values: string | string[]) {
   catch { continue; }
   const contentType = upstream.headers.get('content-type')?.split(';')[0].toLowerCase() ?? '';
   if (!upstream.ok || !contentType.startsWith('image/')) continue;
+  const declaredLength = Number(upstream.headers.get('content-length') ?? 0);
+  if (declaredLength > 12 * 1024 * 1024) continue;
 
   const headers = new Headers({ ...cacheHeaders, 'Content-Type': contentType });
   const length = upstream.headers.get('content-length');
@@ -33,6 +39,7 @@ export async function tcgdexArtResponse(values: string | string[]) {
   if (!env.CARD_IMAGES) return new Response(upstream.body, { status: 200, headers });
 
   const body = await upstream.arrayBuffer();
+  if (!body.byteLength || body.byteLength > 12 * 1024 * 1024) continue;
   try { await env.CARD_IMAGES.put(cacheKey, body, { httpMetadata: { contentType, cacheControl: cacheHeaders['Cache-Control'] } }); }
   catch { /* Keep serving the image if R2 is unavailable. */ }
   return new Response(body, { status: 200, headers });

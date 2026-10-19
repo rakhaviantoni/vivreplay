@@ -31,6 +31,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ lan
     const serieId = String(serie.id ?? '');
     const localId = String(payload.localId ?? cardCode);
     const sourceLanguage = language === 'JP' ? 'ja' : language.toLowerCase();
+    const cardCount = set.cardCount && typeof set.cardCount === 'object' ? set.cardCount as Record<string, unknown> : {};
+    const officialCountRaw = String(cardCount.official ?? '');
+    const officialCount = /^[0-9]{1,4}$/.test(officialCountRaw) ? officialCountRaw.padStart(3, '0') : '';
     const candidates: string[] = [];
     if (row.imageUrl) {
       const imageUrl = row.imageUrl.replace(/\/$/, '');
@@ -41,6 +44,16 @@ export async function GET(_request: Request, { params }: { params: Promise<{ lan
       for (const directory of [serieId ? `${lang}/${serieId}/${sourceSet}` : '', `${lang}/${sourceSet}`].filter(Boolean)) {
         candidates.push(`https://assets.tcgdex.net/${directory}/${encodeURIComponent(localId)}/high.webp`);
         candidates.push(`https://assets.tcgdex.net/${directory}/${encodeURIComponent(localId)}/low.webp`);
+      }
+    }
+    if (language === 'ID' || language === 'JP') {
+      const safeSetCodes = [...new Set([sourceSet, sourceSet.toUpperCase(), sourceSet.toLowerCase()])]
+        .filter(value => /^[a-z0-9_-]{1,40}$/i.test(value));
+      const safeNumber = /^[a-z0-9._-]{1,32}$/i.test(localId) ? localId : '';
+      const safeTotal = /^[0-9]{1,4}$/.test(officialCount) ? officialCount : '';
+      if (safeNumber && safeTotal) {
+        const prefix = language === 'JP' ? 'jp/' : '';
+        for (const code of safeSetCodes) candidates.push(`https://cdn.pokepedia.id/${prefix}${encodeURIComponent(code)}/${encodeURIComponent(`${safeNumber}_${safeTotal}.webp`)}`);
       }
     }
     return tcgdexArtResponse(candidates);
