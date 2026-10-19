@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 
 type TcgLanguage = 'en' | 'id' | 'ja';
 type ApiCard = {
@@ -25,6 +25,7 @@ const local = process.argv.includes('--local') || process.env.TCGDEX_TARGET === 
 const d1Name = process.env.TCGDEX_D1_NAME ?? 'vivreplay';
 const d1Config = process.env.TCGDEX_D1_CONFIG ?? (local ? 'wrangler.migrations.json' : 'dist/server/wrangler.json');
 const cacheDir = process.env.TCGDEX_CACHE_DIR ?? join(tmpdir(), 'vivreplay-tcgdex-cache');
+const offline = process.env.TCGDEX_OFFLINE === '1';
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 async function getJson<T>(url: string): Promise<T> {
@@ -84,13 +85,36 @@ const startedAt = new Date().toISOString();
 const fetched: Array<{ language: TcgLanguage; set: ApiSet; card: ApiCard }> = [];
 const setNames = new Map<string, { id: string; name: string; releaseDate: string | null; logo: string | null }>();
 const failedCards: string[] = [];
+const skippedCacheSets: string[] = [];
 mkdirSync(cacheDir, { recursive: true });
 function setCachePath(language: TcgLanguage, setId: string) {
   const safe = setId.replace(/[^A-Za-z0-9_-]/g, '_');
   return join(cacheDir, `${language}-${safe}.json`);
 }
 
-for (const language of langs) {
+if (offline) {
+  for (const language of langs) {
+    const files = readdirSync(cacheDir).filter(file => file.startsWith(`${language}-`) && file.endsWith('.json'));
+    let languageCount = 0;
+    for (const file of files) {
+      try {
+        const cached = JSON.parse(readFileSync(join(cacheDir, file), 'utf8')) as Array<{ language: TcgLanguage; set: ApiSet; card: ApiCard }>;
+        const set = cached[0]?.set;
+        if (!Array.isArray(cached) || !set || cached.length !== (set.cards ?? []).length || cached.some(item => item.language !== language)) {
+          skippedCacheSets.push(`${language}/${file.replace(`${language}-`, '').replace(/\.json$/, '')}`);
+          continue;
+        }
+        fetched.push(...cached);
+        languageCount += cached.length;
+        const previous = setNames.get(set.id);
+        if (!previous || language === 'en') setNames.set(set.id, { id: set.id, name: set.name ?? set.id, releaseDate: typeof set.releaseDate === 'string' ? set.releaseDate : null, logo: set.logo ?? null });
+      } catch {
+        skippedCacheSets.push(`${language}/${file.replace(`${language}-`, '').replace(/\.json$/, '')} (invalid cache)`);
+      }
+    }
+    console.log(`${language}: loaded ${languageCount.toLocaleString()} records from ${files.length} cached sets.`);
+  }
+} else for (const language of langs) {
   const sets = await getJson<ApiSet[]>(`${api}/${language}/sets`);
   const ordered = [...sets].reverse().sort((a, b) => {
     const aAnniversary = /30th|30.{0,8}anniversary|anniversary.{0,8}30/i.test(`${a.id} ${a.name ?? ''}`);
@@ -173,6 +197,8 @@ const summary = {
   byLanguage: languageSummary,
   cardsWithImages: [...uniqueCards.values()].filter(item => Boolean(imageUrl(item.card.image))).length,
   cardsWithoutImages: [...uniqueCards.values()].filter(item => !imageUrl(item.card.image)).length,
+  skippedIncompleteCacheSets: skippedCacheSets.length,
+  skippedCacheExamples: skippedCacheSets.slice(0, 20),
   sourceFailures: failedCards.length,
   sourceFailureExamples: failedCards.slice(0, 20),
   latestSet: [...setNames.values()].sort((a, b) => String(b.releaseDate).localeCompare(String(a.releaseDate)))[0]?.name ?? null,

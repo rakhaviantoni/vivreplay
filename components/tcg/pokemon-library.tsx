@@ -6,7 +6,8 @@ import { usePathname } from 'next/navigation';
 import { MagnifyingGlassIcon as Search, ArrowUpRightIcon } from '@phosphor-icons/react';
 import { CardArt } from '@/components/tcg/card-art';
 import { PokemonCardText } from '@/components/tcg/pokemon-card-text';
-import { Picker } from '@/components/tcg/catalog';
+import { MultiFilter } from '@/components/tcg/catalog';
+import { versionedCardCatalogUrl } from '@/lib/card-catalog-cache';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 type GameCard = {
@@ -37,25 +38,25 @@ export function PokemonLibrary({ initialSet, initialQuery }: { initialSet?: stri
   const [hasMore, setHasMore] = useState(false);
   const [query, setQuery] = useState(initialQuery ?? '');
   const [searchQuery, setSearchQuery] = useState(initialQuery ?? '');
-  const [setFilter, setSetFilter] = useState(initialSet ?? 'all');
-  const [rarityFilter, setRarityFilter] = useState('all');
-  const [illustratorFilter, setIllustratorFilter] = useState('');
+  const [setFilters, setSetFilters] = useState<string[]>(() => initialSet ? [initialSet] : []);
+  const [rarityFilters, setRarityFilters] = useState<string[]>([]);
+  const [illustratorFilters, setIllustratorFilters] = useState<string[]>([]);
   const [selected, setSelected] = useState<GameCard | null>(null);
 
   useEffect(() => { setQuery(initialQuery ?? ''); setSearchQuery(initialQuery ?? ''); }, [initialQuery]);
-  useEffect(() => { setSetFilter(initialSet ?? 'all'); }, [initialSet]);
+  useEffect(() => { setSetFilters(initialSet ? [initialSet] : []); }, [initialSet]);
   useEffect(() => { const timer = window.setTimeout(() => setSearchQuery(query.trim()), 250); return () => window.clearTimeout(timer); }, [query]);
 
   useEffect(() => {
     const controller = new AbortController();
     const params = new URLSearchParams({ game: 'pokemon', language, limit: '240', offset: '0' });
-    if (setFilter !== 'all') params.set('set', setFilter);
+    setFilters.forEach(value => params.append('set', value));
     if (searchQuery) params.set('q', searchQuery);
-    if (rarityFilter !== 'all') params.set('rarity', rarityFilter);
-    if (illustratorFilter.trim()) params.set('illustrator', illustratorFilter.trim());
+    rarityFilters.forEach(value => params.append('rarity', value));
+    illustratorFilters.forEach(value => params.append('illustrator', value));
     setLoading(true);
     setLoadError(false);
-    fetch(`/api/cards/catalog?${params}`, { signal: controller.signal })
+    fetch(versionedCardCatalogUrl(`/api/cards/catalog?${params}`), { signal: controller.signal })
       .then(async response => {
         if (!response.ok) throw new Error('Catalog unavailable');
         const result = await response.json() as { cards?: GameCard[] };
@@ -64,27 +65,27 @@ export function PokemonLibrary({ initialSet, initialQuery }: { initialSet?: stri
       })
       .catch(error => { if (error.name !== 'AbortError') { setCards([]); setLoadError(true); setHasMore(false); } })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
-    fetch(`/api/cards/sets?game=pokemon&language=${language}`, { signal: controller.signal })
+    fetch(versionedCardCatalogUrl(`/api/cards/sets?game=pokemon&language=${language}`), { signal: controller.signal })
       .then(async response => response.ok ? response.json() as Promise<{ sets?: SetRecord[] }> : { sets: [] })
       .then(result => setSets(result.sets ?? []))
       .catch(error => { if (error.name !== 'AbortError') setSets([]); });
-    fetch(`/api/cards/catalog/facets?game=pokemon&language=${language}`, { signal: controller.signal })
+    fetch(versionedCardCatalogUrl(`/api/cards/catalog/facets?game=pokemon&language=${language}`), { signal: controller.signal })
       .then(async response => response.ok ? response.json() as Promise<{ rarities?: string[]; illustrators?: string[] }> : { rarities: [], illustrators: [] })
       .then(result => { setRarities(result.rarities ?? []); setIllustrators(result.illustrators ?? []); })
       .catch(error => { if (error.name !== 'AbortError') { setRarities([]); setIllustrators([]); } });
     return () => controller.abort();
-  }, [language, setFilter, searchQuery, rarityFilter, illustratorFilter, retryVersion]);
+  }, [language, setFilters, searchQuery, rarityFilters, illustratorFilters, retryVersion]);
 
   const loadMore = async () => {
     if (loadingMore || !hasMore) return;
     setLoadingMore(true);
     try {
       const params = new URLSearchParams({ game: 'pokemon', language, limit: '240', offset: String(cards.length) });
-      if (setFilter !== 'all') params.set('set', setFilter);
+      setFilters.forEach(value => params.append('set', value));
       if (searchQuery) params.set('q', searchQuery);
-      if (rarityFilter !== 'all') params.set('rarity', rarityFilter);
-      if (illustratorFilter.trim()) params.set('illustrator', illustratorFilter.trim());
-      const response = await fetch(`/api/cards/catalog?${params}`);
+      rarityFilters.forEach(value => params.append('rarity', value));
+      illustratorFilters.forEach(value => params.append('illustrator', value));
+      const response = await fetch(versionedCardCatalogUrl(`/api/cards/catalog?${params}`));
       if (!response.ok) throw new Error('Catalog unavailable');
       const result = await response.json() as { cards?: GameCard[] };
       const next = result.cards ?? [];
@@ -110,8 +111,8 @@ export function PokemonLibrary({ initialSet, initialQuery }: { initialSet?: stri
     printingCode: card.printing_code,
     variant: card.variant,
   });
-  const hasFilters = Boolean(query.trim() || setFilter !== 'all' || rarityFilter !== 'all' || illustratorFilter.trim());
-  const clearFilters = () => { setQuery(''); setSearchQuery(''); setSetFilter('all'); setRarityFilter('all'); setIllustratorFilter(''); };
+  const hasFilters = Boolean(query.trim() || setFilters.length || rarityFilters.length || illustratorFilters.length);
+  const clearFilters = () => { setQuery(''); setSearchQuery(''); setSetFilters([]); setRarityFilters([]); setIllustratorFilters([]); };
 
   return <main className="page catalog-page pokemon-catalog-page">
     <section className="library-intro">
@@ -126,9 +127,9 @@ export function PokemonLibrary({ initialSet, initialQuery }: { initialSet?: stri
       <label className="search-box"><Search size={16}/><input value={query} onChange={event => setQuery(event.target.value)} placeholder={id ? 'Nama, nomor kartu, rarity, atau set' : 'Name, card number, rarity, or set'}/></label>
       <div className="pokemon-library-filterbar">
         <div className="pokemon-library-filters">
-          <div className="pokemon-set-filter"><span>Set</span><Picker value={setFilter} onChange={setSetFilter} label={id ? 'Filter berdasarkan set' : 'Filter by set'} options={[{value:'all',label:id?'Semua set':'All sets'},...sets.map(set=>({value:set.code,label:`${set.name} (${set.code})`}))]}/></div>
-          <div className="pokemon-set-filter"><span>{id?'Kelangkaan':'Rarity'}</span><Picker value={rarityFilter} onChange={setRarityFilter} label={id ? 'Filter berdasarkan kelangkaan' : 'Filter by rarity'} options={[{value:'all',label:id?'Semua kelangkaan':'All rarities'},...rarities]}/></div>
-          <div className="pokemon-set-filter pokemon-illustrator-filter"><span>{id ? 'Ilustrator' : 'Illustrator'}</span><Picker value={illustratorFilter||'all'} onChange={value=>setIllustratorFilter(value==='all'?'':value)} label={id ? 'Filter berdasarkan ilustrator' : 'Filter by illustrator'} options={[{value:'all',label:id?'Semua ilustrator':'All illustrators'},...illustrators]}/></div>
+          <MultiFilter label="Set" values={sets.map(set=>({value:set.code,label:`${set.name} (${set.code})`}))} selected={setFilters} onToggle={value=>setSetFilters(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])} searchPlaceholder={id ? 'Cari set' : 'Find a set'}/>
+          <MultiFilter label={id?'Kelangkaan':'Rarity'} values={rarities} selected={rarityFilters} onToggle={value=>setRarityFilters(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])} searchPlaceholder={id ? 'Cari kelangkaan' : 'Find a rarity'}/>
+          <MultiFilter label={id ? 'Ilustrator' : 'Illustrator'} values={illustrators} selected={illustratorFilters} onToggle={value=>setIllustratorFilters(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])} searchPlaceholder={id ? 'Cari ilustrator' : 'Find an illustrator'}/>
           {hasFilters&&<button type="button" className="pokemon-clear-filters" onClick={clearFilters}>{id?'Hapus filter':'Clear filters'}</button>}
         </div>
         <div className="pokemon-library-language"><span>{id?'Bahasa kartu':'Card language'}</span><div className="language-switch" aria-label={id?'Bahasa kartu':'Card language'}>{languages.map(option => <button type="button" key={option} aria-pressed={language === option} onClick={() => { setLoading(true); setLanguage(option); }}>{option}</button>)}</div></div>
@@ -141,7 +142,7 @@ export function PokemonLibrary({ initialSet, initialQuery }: { initialSet?: stri
         <CardArt card={display}/>
         <span><strong>{display.name}</strong><small>{card.printing_code} <i/> {card.rarity}</small>{card.source_payload?.illustrator&&<small className="pokemon-card-illustrator">{card.source_payload.illustrator}</small>}</span>
       </button>;
-    })}</div> : <section className="empty-state pokemon-empty"><h2>{searchQuery||setFilter!=='all'||rarityFilter!=='all'||illustratorFilter?(id?'Tidak ada kartu yang cocok dengan filter ini.':'No cards match these filters.'):(id?'Belum ada kartu Pokémon untuk bahasa ini.':'No Pokémon cards are available in this language yet.')}</h2>{(searchQuery||setFilter!=='all'||rarityFilter!=='all'||illustratorFilter)&&<p>{id?'Coba set, rarity, ilustrator, atau nama kartu lain.':'Try another set, rarity, illustrator, or card name.'}</p>}</section>}
+    })}</div> : <section className="empty-state pokemon-empty"><h2>{searchQuery||hasFilters?(id?'Tidak ada kartu yang cocok dengan filter ini.':'No cards match these filters.'):(id?'Belum ada kartu Pokémon untuk bahasa ini.':'No Pokémon cards are available in this language yet.')}</h2>{(searchQuery||hasFilters)&&<p>{id?'Coba set, rarity, ilustrator, atau nama kartu lain.':'Try another set, rarity, illustrator, or card name.'}</p>}</section>}
     {!loading && loadError && cards.length > 0 && <p className="pokemon-load-error" role="status">{id?'Kartu lainnya gagal dimuat.':'More cards could not be loaded.'} <button type="button" onClick={() => setRetryVersion(value => value + 1)}>{id?'Coba lagi':'Try again'}</button></p>}
     {!loading && hasMore && <button type="button" className="pokemon-load-more" onClick={() => void loadMore()} disabled={loadingMore} aria-busy={loadingMore}>{loadingMore ? ' ' : id?'Muat kartu lainnya':'Load more cards'}</button>}
     <nav className="pokemon-library-links" aria-label={id?'Bagian katalog Pokémon':'Pokémon catalog sections'}><Link href={localize('/pokemon/sets')}>{id?'Jelajahi set':'Browse sets'} <ArrowUpRightIcon size={15}/></Link><a href="https://github.com/tcgdex/cards-database" target="_blank" rel="noreferrer">{id?'Sumber data kartu: TCGdex':'Card data from TCGdex'} <ArrowUpRightIcon size={15}/></a></nav>
