@@ -1,6 +1,6 @@
 'use client';
 
-const ruleWindows=new Set(['rush','blocker','when-attacking','on-play','on-k-o','on-your-opponent-s-attack','activate-main','main','once-per-turn','trigger','your-turn','opponent-s-turn','end-of-your-turn','counter','don']);
+const ruleWindows=new Set(['rush','blocker','banish','double-attack','when-attacking','on-play','on-k-o','on-your-opponent-s-attack','activate-main','main','once-per-turn','trigger','your-turn','opponent-s-turn','end-of-your-turn','counter','don']);
 
 function effectWindow(value:string) {
   if (/^don!!\s*x\s*\d+/i.test(value)) return 'don';

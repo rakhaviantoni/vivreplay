@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 
 type TcgLanguage = 'en' | 'id' | 'ja';
 type ApiCard = {
@@ -17,17 +17,19 @@ type ApiSet = { id: string; name?: string; releaseDate?: string; logo?: string; 
 
 const api = 'https://api.tcgdex.net/v2';
 const langs: TcgLanguage[] = ['id', 'en', 'ja'];
-const concurrency = Math.max(1, Math.min(5, Number(process.env.TCGDEX_CONCURRENCY ?? 4) || 4));
-const delayMs = Math.max(100, Number(process.env.TCGDEX_DELAY_MS ?? 180) || 180);
+const concurrency = Math.max(1, Math.min(5, Number(process.env.TCGDEX_CONCURRENCY ?? 3) || 3));
+const delayMs = Math.max(150, Number(process.env.TCGDEX_DELAY_MS ?? 300) || 300);
 const maxSets = Number(process.env.TCGDEX_MAX_SETS ?? 0) || 0;
 const apply = process.argv.includes('--apply');
+const local = process.argv.includes('--local') || process.env.TCGDEX_TARGET === 'local';
 const d1Name = process.env.TCGDEX_D1_NAME ?? 'vivreplay';
-const d1Config = process.env.TCGDEX_D1_CONFIG ?? 'dist/server/wrangler.json';
+const d1Config = process.env.TCGDEX_D1_CONFIG ?? (local ? 'wrangler.migrations.json' : 'dist/server/wrangler.json');
+const cacheDir = process.env.TCGDEX_CACHE_DIR ?? join(tmpdir(), 'vivreplay-tcgdex-cache');
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 async function getJson<T>(url: string): Promise<T> {
   let last: unknown;
-  for (let attempt = 0; attempt < 5; attempt++) {
+  for (let attempt = 0; attempt < 7; attempt++) {
     await sleep(delayMs);
     try {
       const response = await fetch(url, { headers: { accept: 'application/json', 'user-agent': 'VivrePlayCatalog/1.0 (catalog import)' } });
@@ -37,7 +39,7 @@ async function getJson<T>(url: string): Promise<T> {
     } catch (error) {
       if ((error as { notFound?: boolean }).notFound) throw error;
       last = error;
-      if (attempt < 4) await sleep(500 * (attempt + 1));
+      if (attempt < 6) await sleep(900 * (attempt + 1));
     }
   }
   throw last instanceof Error ? last : new Error('TCGdex request failed.');
@@ -67,7 +69,7 @@ function stableId(key: string) {
 function languageCode(language: TcgLanguage) { return language === 'ja' ? 'JP' : language.toUpperCase(); }
 function safeCode(value: string) { return `PK-${value.toUpperCase().replace(/[^A-Z0-9_-]/g, '-')}`; }
 function effectText(card: ApiCard) {
-  const parts = [card.description, ...(card.abilities ?? []).map(item => [item.name, item.effect].filter(Boolean).join(': ')), ...(card.attacks ?? []).map(item => [item.name, item.cost?.length ? `[${item.cost.join(', ')}]` : '', item.damage ? `(${item.damage})` : '', item.effect].filter(Boolean).join(' '))].filter(Boolean);
+  const parts = [...(card.abilities ?? []).map(item => [item.type, item.name, item.effect].filter(Boolean).join(': ')), ...(card.attacks ?? []).map(item => [item.cost?.length ? `[${item.cost.join(', ')}]` : '', item.name, item.damage ? `(${item.damage})` : '', item.effect].filter(Boolean).join(' ')), card.effect].filter(Boolean);
   return parts.join('\n');
 }
 function imageUrl(image?: string) {
@@ -81,6 +83,12 @@ function imageUrl(image?: string) {
 const startedAt = new Date().toISOString();
 const fetched: Array<{ language: TcgLanguage; set: ApiSet; card: ApiCard }> = [];
 const setNames = new Map<string, { id: string; name: string; releaseDate: string | null; logo: string | null }>();
+const failedCards: string[] = [];
+mkdirSync(cacheDir, { recursive: true });
+function setCachePath(language: TcgLanguage, setId: string) {
+  const safe = setId.replace(/[^A-Za-z0-9_-]/g, '_');
+  return join(cacheDir, `${language}-${safe}.json`);
+}
 
 for (const language of langs) {
   const sets = await getJson<ApiSet[]>(`${api}/${language}/sets`);
@@ -100,41 +108,87 @@ for (const language of langs) {
   });
   const selected = maxSets ? ordered.slice(0, maxSets) : ordered;
   console.log(`${language}: ${selected.length} sets queued (${ordered[0]?.name ?? 'latest set'} first).`);
-  const details = await pool(selected, concurrency, set => getJson<ApiSet>(`${api}/${language}/sets/${encodeURIComponent(set.id)}`));
-  const cards = details.flatMap(set => (set.cards ?? []).map(card => ({ set, card })));
-  const fullCards = await pool(cards, concurrency, async ({ set, card }) => {
-    try { return { language, set, card: await getJson<ApiCard>(`${api}/${language}/cards/${encodeURIComponent(card.id)}`) }; }
-    catch (error) {
-      console.warn(`Skipped ${language}/${card.id}: ${error instanceof Error ? error.message : 'request failed'}`);
-      return null;
+  let languageCount = 0;
+  for (const setStub of selected) {
+    const file = setCachePath(language, setStub.id);
+    let set: ApiSet | undefined;
+    let fullCards: Array<{ language: TcgLanguage; set: ApiSet; card: ApiCard }> | undefined;
+    if (existsSync(file) && process.env.TCGDEX_REFRESH_CACHE !== '1') {
+      try {
+        const cached = JSON.parse(readFileSync(file, 'utf8')) as typeof fullCards;
+        const cachedSet = cached?.[0]?.set;
+        if (Array.isArray(cached) && cachedSet && cached.length === (cachedSet.cards ?? []).length) {
+          fullCards = cached;
+          set = cachedSet;
+        }
+      }
+      catch { fullCards = undefined; }
     }
-  });
-  for (const result of fullCards) {
-    if (!result) continue;
-    fetched.push(result);
-    const key = result.set.id;
+    if (!set) {
+      try { set = await getJson<ApiSet>(`${api}/${language}/sets/${encodeURIComponent(setStub.id)}`); }
+      catch (error) { failedCards.push(`${language}/${setStub.id} (set: ${error instanceof Error ? error.message : 'request failed'})`); continue; }
+    }
+    if (!fullCards) {
+      const cards = set.cards ?? [];
+      const fetchedCards = await pool(cards, concurrency, async card => {
+        try { return { language, set, card: await getJson<ApiCard>(`${api}/${language}/cards/${encodeURIComponent(card.id)}`) }; }
+        catch (error) {
+          const message = error instanceof Error ? error.message : 'request failed';
+          failedCards.push(`${language}/${card.id} (${message})`);
+          console.warn(`Could not fetch ${language}/${card.id}: ${message}`);
+          return null;
+        }
+      });
+      fullCards = fetchedCards.filter((item): item is { language: TcgLanguage; set: ApiSet; card: ApiCard } => Boolean(item));
+      if (fullCards.length === cards.length) writeFileSync(file, JSON.stringify(fullCards));
+    }
+    for (const result of fullCards) {
+      fetched.push(result);
+      languageCount++;
+    }
+    const key = set.id;
     const previous = setNames.get(key);
-    if (!previous || language === 'en') setNames.set(key, { id: key, name: result.set.name ?? key, releaseDate: result.set.releaseDate ?? null, logo: result.set.logo ?? null });
+    if (!previous || language === 'en') setNames.set(key, { id: key, name: set.name ?? key, releaseDate: typeof set.releaseDate === 'string' ? set.releaseDate : null, logo: set.logo ?? null });
+    console.log(`${language}: ${set.id}, ${languageCount.toLocaleString()} records so far.`);
   }
-  console.log(`${language}: fetched ${fullCards.filter(Boolean).length} card records.`);
+  console.log(`${language}: fetched ${languageCount.toLocaleString()} card records.`);
 }
 
 const uniqueCards = new Map<string, typeof fetched[number]>();
 for (const item of fetched) uniqueCards.set(`${item.language}:${item.card.id}`, item);
+const languageSummary = Object.fromEntries(langs.map(language => {
+  const cards = [...uniqueCards.values()].filter(item => item.language === language);
+  const sets = new Set(cards.map(item => item.set.id));
+  return [languageCode(language), {
+    setsWithCards: sets.size,
+    cards: cards.length,
+    rarities: [...new Set(cards.map(item => item.card.rarity).filter((value): value is string => Boolean(value)))].sort((a, b) => a.localeCompare(b)),
+    illustrators: new Set(cards.map(item => item.card.illustrator).filter((value): value is string => typeof value === 'string' && Boolean(value.trim()))).size,
+    cardsWithIllustrator: cards.filter(item => typeof item.card.illustrator === 'string' && Boolean(item.card.illustrator.trim())).length,
+    cardsWithImages: cards.filter(item => Boolean(imageUrl(item.card.image))).length,
+  }];
+}));
 const summary = {
   source: 'tcgdex', languages: langs.map(languageCode), sets: setNames.size, cards: uniqueCards.size,
+  byLanguage: languageSummary,
   cardsWithImages: [...uniqueCards.values()].filter(item => Boolean(imageUrl(item.card.image))).length,
   cardsWithoutImages: [...uniqueCards.values()].filter(item => !imageUrl(item.card.image)).length,
+  sourceFailures: failedCards.length,
+  sourceFailureExamples: failedCards.slice(0, 20),
   latestSet: [...setNames.values()].sort((a, b) => String(b.releaseDate).localeCompare(String(a.releaseDate)))[0]?.name ?? null,
 };
 console.log(JSON.stringify(summary, null, 2));
+if (failedCards.length) {
+  console.error(`Import stopped: ${failedCards.length} source records or sets could not be fetched. Fix or confirm these before applying.`);
+  process.exit(2);
+}
 if (!apply) {
   console.log('Preview only. Run with --apply to write the normalized catalog to Cloudflare D1.');
   process.exit(0);
 }
 
 let gameId = stableId('game:pokemon');
-if (apply) {
+if (apply && !local) {
   const existing = execFileSync('node_modules/.bin/wrangler', [
     'd1', 'execute', d1Name, '--remote', '--config', d1Config, '--json',
     '--command', "SELECT id FROM tcg_games WHERE slug='pokemon' LIMIT 1",
@@ -202,8 +256,8 @@ insert('tcg_card_asset_sources', assetSourceRows);
 const sqlPath = join(tmpdir(), `vivreplay-tcgdex-pokemon-${Date.now()}.sql`);
 writeFileSync(sqlPath, batches.join('\n'), { mode: 0o600 });
 try {
-  execFileSync('node_modules/.bin/wrangler', ['d1', 'execute', d1Name, '--remote', '--config', d1Config, '--file', sqlPath], {
+  execFileSync('node_modules/.bin/wrangler', ['d1', 'execute', d1Name, ...(local ? ['--local', '--persist-to', '.wrangler/state'] : ['--remote']), '--config', d1Config, '--file', sqlPath, ...(local ? ['--yes'] : [])], {
     stdio: 'inherit', env: { ...process.env, WRANGLER_LOG_PATH: join(tmpdir(), 'vivreplay-tcgdex-import.log') },
   });
 } finally { rmSync(sqlPath, { force: true }); }
-console.log(`Imported ${summary.sets} sets and ${summary.cards} localized printings into D1. Images remain on TCGdex and are served through VivrePlay's cache proxy.`);
+console.log(`Imported ${summary.sets} sets and ${summary.cards} localized printings into ${local ? 'local' : 'production'} D1. Images are served through VivrePlay's R2-backed cache proxy.`);

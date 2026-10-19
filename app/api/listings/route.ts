@@ -41,6 +41,11 @@ async function ensureMarketPrintings(database:ReturnType<typeof db>,printingIds:
   const verified=await database.prepare(`SELECT id FROM card_printings WHERE id IN (${placeholders})`).bind(...printingIds).all<{id:string}>();
   if((verified.results??[]).length!==printingIds.length)throw new HttpError(400,'One or more selected printings are not available in Market yet. Refresh the catalog and try again.');
 }
+async function ensureSingleGameBundle(database:ReturnType<typeof db>,printingIds:string[]){
+  if(!printingIds.length)return;
+  const {results}=await database.prepare(`SELECT DISTINCT g.slug FROM card_printings p JOIN card_identities i ON i.id=p.identity_id JOIN games g ON g.id=i.game_id WHERE p.id IN (${printingIds.map(()=>'?').join(',')})`).bind(...printingIds).all<{slug:string}>();
+  if(results.length!==1)throw new HttpError(400,'Keep each listing within one card game.');
+}
 
 export async function GET(request:Request){
   try{
@@ -48,7 +53,9 @@ export async function GET(request:Request){
     let ids:string[]|undefined;
     if(idsParam!==null){ids=[...new Set(idsParam.split(',').filter(Boolean))];if(!ids.length||ids.length>10||ids.some(id=>!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)))throw new HttpError(400,'Choose up to 10 valid listings.')}
     let viewerId:string|undefined;try{viewerId=(await user()).id}catch{}
-    return Response.json({listings:await market(viewerId,ids)},{headers:{'Cache-Control':'private, no-store','Vary':'Cookie'}})
+    const requestedGame=new URL(request.url).searchParams.get('game');
+    const game=requestedGame==='pokemon'?'pokemon':requestedGame==='one-piece'?'one-piece':undefined;
+    return Response.json({listings:await market(viewerId,ids,game)},{headers:{'Cache-Control':'private, no-store','Vary':'Cookie'}})
   }
   catch(error){if(error instanceof HttpError)return errorResponse(error);console.error('listings_load_failed',error);return Response.json({error:'Live listings are temporarily unavailable. Please retry.'},{status:503})}
 }
@@ -77,6 +84,7 @@ export async function POST(request:Request){
       if(bundle.some(item=>!item.unitAmount||item.unitAmount<1)||bundleAmount!==value.amount)throw new HttpError(400,'Set a price for each card and make sure the total matches.');
       const printingIds=[...new Set(bundle.map(item=>item.printingId))];
       await ensureMarketPrintings(database,printingIds);
+      await ensureSingleGameBundle(database,printingIds);
       await enforceMarketListingLimits(database,bundle);
       const placeholders=printingIds.map(()=>'?').join(',');
       const known=await database.prepare(`SELECT id FROM card_printings WHERE id IN (${placeholders})`).bind(...printingIds).all<{id:string}>();
@@ -97,6 +105,7 @@ export async function POST(request:Request){
     if(!primary)throw new HttpError(400,'Choose an owned item and available quantity.');
 
     if(bundle){
+      await ensureSingleGameBundle(database,[...new Set(bundle.map(item=>item.printingId))]);
       await enforceMarketListingLimits(database,bundle);
       if(bundle[0].instanceId!==value.instanceId||bundle[0].printingId!==primary.printing_id)throw new HttpError(400,'The first bundle card must match the selected Vault item.');
       const bundleQuantity=bundle.reduce((sum,item)=>sum+item.quantity,0);

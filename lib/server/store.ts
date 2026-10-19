@@ -75,14 +75,15 @@ export async function collection(ownerId:string){
       COALESCE((SELECT SUM(CASE WHEN l.items IS NULL THEN l.quantity ELSE 0 END) FROM listings l WHERE l.instance_id=c.id AND l.status='ACTIVE' AND (l.expires_at IS NULL OR l.expires_at>CURRENT_TIMESTAMP)),0)+COALESCE((SELECT SUM(CAST(json_extract(entry.value,'$.quantity') AS INTEGER)) FROM listings l,json_each(l.items) entry WHERE json_extract(entry.value,'$.instanceId')=c.id AND l.status='ACTIVE' AND (l.expires_at IS NULL OR l.expires_at>CURRENT_TIMESTAMP)),0) AS listedQuantity,
       COALESCE((SELECT l.id FROM listings l WHERE l.instance_id=c.id AND l.status='ACTIVE' AND (l.expires_at IS NULL OR l.expires_at>CURRENT_TIMESTAMP) ORDER BY l.created_at DESC LIMIT 1),(SELECT l.id FROM listings l,json_each(l.items) entry WHERE json_extract(entry.value,'$.instanceId')=c.id AND l.status='ACTIVE' AND (l.expires_at IS NULL OR l.expires_at>CURRENT_TIMESTAMP) ORDER BY l.created_at DESC LIMIT 1)) AS activeListingId,
       cp.language,cp.variant,cp.printing_code AS printingCode,cp.image_url AS imageUrl,cp.set_code AS setCode,cp.rarity,
-      ci.id AS identityId,ci.code,ci.name AS cardName,ci.color,ci.type AS cardType,ci.cost,ci.power,ci.effect
+      ci.id AS identityId,ci.code,ci.name AS cardName,ci.color,ci.type AS cardType,ci.cost,ci.power,ci.effect,game.slug AS gameSlug
     FROM collectible_instances c
     LEFT JOIN graded_cards g ON g.instance_id=c.id
     LEFT JOIN grading_providers p ON p.id=g.provider_id
     LEFT JOIN card_printings cp ON cp.id=c.printing_id
     LEFT JOIN card_identities ci ON ci.id=cp.identity_id
+    LEFT JOIN games game ON game.id=ci.game_id
     WHERE c.owner_id=? AND c.deleted_at IS NULL ORDER BY c.created_at DESC
-  `).bind(ownerId).all<CollectionItem & {subgrades?:string|Record<string,unknown>;population?:string|Record<string,unknown>;language?:string;variant?:string;printingCode?:string;imageUrl?:string;setCode?:string;rarity?:string;identityId?:string;code?:string;cardName?:string;color?:string;cardType?:string;cost?:number;power?:number;effect?:string}>()).results;
+  `).bind(ownerId).all<CollectionItem & {subgrades?:string|Record<string,unknown>;population?:string|Record<string,unknown>;language?:string;variant?:string;printingCode?:string;imageUrl?:string;setCode?:string;rarity?:string;identityId?:string;code?:string;cardName?:string;color?:string;cardType?:string;cost?:number;power?:number;effect?:string;gameSlug?:string}>()).results;
   const identityIds=[...new Set(rows.map(row=>(row as typeof row & {identityId?:string}).identityId).filter((id):id is string=>Boolean(id)))];
   const printingMap=new Map<string,Array<{id:string;language:string;variant:string;printing_code?:string;card_image_url?:string|null;rarity?:string;set_code?:string}>>();
   for(let offset=0;offset<identityIds.length;offset+=100){
@@ -119,13 +120,14 @@ export async function collection(ownerId:string){
     population:typeof row.population==='string'?JSON.parse(row.population):row.population,
     card:row.code?{
       id:row.identityId??row.printingId,code:row.code,name:row.cardName??row.code,color:row.color??'Red',type:row.cardType??'Character',cost:row.cost??0,power:row.power??0,rarity:row.rarity??'',effect:row.effect??'',imageUrl:row.imageUrl,imageSource:'external',setCode:row.setCode,language:row.language,printingCode:row.printingCode??row.code,variant:row.variant,
-      availablePrintings,
+      availablePrintings,gameSlug:row.gameSlug??'one-piece',
     }:undefined,
   }}) as CollectionItem[];
 }
 export async function savedDecks(ownerId:string){const rows=(await db().prepare(`SELECT d.id,d.name,d.visibility,v.id AS versionId,v.number AS version,v.leader_id AS leaderId FROM decks d JOIN deck_versions v ON v.deck_id=d.id WHERE d.owner_id=? AND d.deleted_at IS NULL AND v.number=(SELECT MAX(number) FROM deck_versions WHERE deck_id=d.id) ORDER BY d.created_at DESC`).bind(ownerId).all<Omit<SavedDeck,'cards'>>()).results;return Promise.all(rows.map(async r=>({...r,cards:(await db().prepare('SELECT card_id AS cardId,quantity FROM deck_entries WHERE version_id=?').bind(r.versionId).all<{cardId:string;quantity:number}>()).results})));}
-export async function market(viewerId?:string,listingIds?:string[]){
+export async function market(viewerId?:string,listingIds?:string[],gameSlug?:'one-piece'|'pokemon'){
   const listingFilter=listingIds?.length?`AND l.id IN (${listingIds.map(()=>'?').join(',')})`:'';
+  const gameFilter=gameSlug?`AND EXISTS(SELECT 1 FROM card_printings fp JOIN card_identities fi ON fi.id=fp.identity_id JOIN games fg ON fg.id=fi.game_id WHERE fp.id=l.printing_id AND fg.slug=?)`:'';
   const listingLimit=listingIds?.length??100;
   const rows = (await db().prepare(`
     SELECT
@@ -161,20 +163,23 @@ export async function market(viewerId?:string,listingIds?:string[]){
       ci.type AS cardType,
       ci.cost AS cardCost,
       ci.power AS cardPower,
-      ci.effect AS cardEffect
+      ci.effect AS cardEffect,
+      cg.slug AS cardGameSlug
     FROM listings l
     JOIN profiles p ON p.id=l.seller_id
     LEFT JOIN card_printings cp ON cp.id=l.printing_id
     LEFT JOIN tcg_card_printings tcp ON tcp.id=l.printing_id
     LEFT JOIN tcg_card_assets tca ON tca.printing_id=tcp.id AND tca.kind='small'
     LEFT JOIN card_identities ci ON ci.id=cp.identity_id
+    LEFT JOIN games cg ON cg.id=ci.game_id
     LEFT JOIN seller_shipping_origins o ON o.owner_id=l.seller_id
     WHERE (l.status='ACTIVE' AND (l.expires_at IS NULL OR l.expires_at > CURRENT_TIMESTAMP)
       OR (l.status='SOLD' AND EXISTS(SELECT 1 FROM checkout_orders sale WHERE sale.kind='MARKET' AND (sale.listing_id=l.id OR EXISTS(SELECT 1 FROM json_each(sale.items) sale_item WHERE json_extract(sale_item.value,'$.listingId')=l.id)) AND (sale.status IN ('PAID','DISPUTED','RECEIVING') OR (sale.status='SHIPPED' AND (sale.delivered_at IS NULL OR sale.delivered_at>datetime('now','-48 hours')))))))
       ${listingFilter}
+      ${gameFilter}
     ORDER BY l.created_at DESC
     LIMIT ${listingLimit}
-  `).bind(...(listingIds??[])).all<{
+  `).bind(...(listingIds??[]),...(gameSlug?[gameSlug]:[])).all<{
     id:string;
     printingId:string;
     title:string;
@@ -206,6 +211,7 @@ export async function market(viewerId?:string,listingIds?:string[]){
     cardCost?:number;
     cardPower?:number;
     cardEffect?:string;
+    cardGameSlug?:string;
     itemsJson?:string;
     shippingOriginLabel?:string|null;
   }>()).results;
@@ -227,9 +233,9 @@ export async function market(viewerId?:string,listingIds?:string[]){
   const bundleCards=new Map<string,Card>();
   for(let offset=0;offset<printingIds.length;offset+=80){
     const chunk=printingIds.slice(offset,offset+80);
-    const printingRows=(await db().prepare(`SELECT p.id AS printingId,p.image_url AS imageUrl,p.language,p.variant,p.printing_code AS printingCode,p.rarity,p.set_code AS setCode,i.id AS identityId,i.code,i.name,i.color,i.type,i.cost,i.power,i.effect,tcp.printing_code AS catalogPrintingCode,tca.object_key AS assetPath FROM card_printings p LEFT JOIN card_identities i ON i.id=p.identity_id LEFT JOIN tcg_card_printings tcp ON tcp.id=p.id LEFT JOIN tcg_card_assets tca ON tca.printing_id=tcp.id AND tca.kind='small' WHERE p.id IN (${chunk.map(()=>'?').join(',')})`).bind(...chunk).all<{printingId:string;imageUrl:string|null;language:string;variant:string|null;printingCode:string|null;rarity:string|null;setCode:string|null;identityId:string|null;code:string|null;name:string|null;color:string|null;type:string|null;cost:number|null;power:number|null;effect:string|null;catalogPrintingCode:string|null;assetPath:string|null}>()).results;
+    const printingRows=(await db().prepare(`SELECT p.id AS printingId,p.image_url AS imageUrl,p.language,p.variant,p.printing_code AS printingCode,p.rarity,p.set_code AS setCode,i.id AS identityId,i.code,i.name,i.color,i.type,i.cost,i.power,i.effect,g.slug AS gameSlug,tcp.printing_code AS catalogPrintingCode,tca.object_key AS assetPath FROM card_printings p LEFT JOIN card_identities i ON i.id=p.identity_id LEFT JOIN games g ON g.id=i.game_id LEFT JOIN tcg_card_printings tcp ON tcp.id=p.id LEFT JOIN tcg_card_assets tca ON tca.printing_id=tcp.id AND tca.kind='small' WHERE p.id IN (${chunk.map(()=>'?').join(',')})`).bind(...chunk).all<{printingId:string;imageUrl:string|null;language:string;variant:string|null;printingCode:string|null;rarity:string|null;setCode:string|null;identityId:string|null;code:string|null;name:string|null;color:string|null;type:string|null;cost:number|null;power:number|null;effect:string|null;gameSlug:string|null;catalogPrintingCode:string|null;assetPath:string|null}>()).results;
     for(const item of printingRows){
-      bundleCards.set(item.printingId,{id:item.identityId??item.printingId,code:item.code??item.printingCode??item.printingId,name:item.name??item.code??item.printingCode??item.printingId,color:item.color??'Red',type:(item.type as Card['type'])??'Character',cost:item.cost??0,power:item.power??0,rarity:item.rarity??'',art:0,effect:item.effect??'',imageUrl:item.imageUrl??undefined,imageSource:'external',setCode:item.setCode??undefined,language:item.language,printingCode:item.catalogPrintingCode??item.printingCode??item.code??undefined,assetPath:item.assetPath??undefined,variant:item.variant??'Standard'});
+      bundleCards.set(item.printingId,{id:item.identityId??item.printingId,code:item.code??item.printingCode??item.printingId,name:item.name??item.code??item.printingCode??item.printingId,color:item.color??'Red',type:(item.type as Card['type'])??'Character',cost:item.cost??0,power:item.power??0,rarity:item.rarity??'',art:0,effect:item.effect??'',imageUrl:item.imageUrl??undefined,imageSource:'external',setCode:item.setCode??undefined,language:item.language,printingCode:item.catalogPrintingCode??item.printingCode??item.code??undefined,assetPath:item.assetPath??undefined,variant:item.variant??'Standard',gameSlug:item.gameSlug??'one-piece'} as Card);
     }
   }
 
@@ -237,7 +243,7 @@ export async function market(viewerId?:string,listingIds?:string[]){
     const filenameCode = r.cardImageUrl ? r.cardImageUrl.split('?')[0].split('#')[0].split('/').pop()?.replace(/\.[^.]+$/, '') : undefined;
     const printingCode = r.catalogPrintingCode ?? (filenameCode&&!filenameCode.toLowerCase().startsWith('tcg-')?filenameCode:undefined) ?? r.cardCode;
 
-    const card: Card | undefined = (r.cardCode || r.cardImageUrl) ? {
+    const card: (Card&{gameSlug?:string}) | undefined = (r.cardCode || r.cardImageUrl) ? {
       id: r.cardIdentityId ?? r.printingId,
       code: r.cardCode ?? '',
       name: r.cardName ?? r.title,
@@ -255,6 +261,7 @@ export async function market(viewerId?:string,listingIds?:string[]){
       printingCode,
       assetPath:r.catalogAssetPath??undefined,
       variant: r.cardVariant,
+      gameSlug:r.cardGameSlug??'one-piece',
     } : undefined;
 
     const parsedItems = r.itemsJson ? (()=>{try{return JSON.parse(r.itemsJson);}catch{return undefined;}})() : undefined;

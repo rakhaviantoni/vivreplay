@@ -8,15 +8,18 @@ async function ensureCatalogPrinting(input:Awaited<ReturnType<typeof collectionI
   const card=input.catalogCard;
   if(!card)throw new HttpError(400,'This card is not available for Vault yet.');
   const d=db();
-  const identity=await d.prepare('SELECT id FROM card_identities WHERE game_id=? AND code=?').bind(gameId,card.code).first<{id:string}>();
+  const slug=card.gameSlug??'one-piece';
+  const savedGame=await d.prepare('SELECT id FROM games WHERE slug=?').bind(slug).first<{id:string}>();
+  const selectedGameId=savedGame?.id??(slug==='one-piece'?gameId:crypto.randomUUID());
+  const identity=await d.prepare('SELECT id FROM card_identities WHERE game_id=? AND code=?').bind(selectedGameId,card.code).first<{id:string}>();
   const requestedIdentityId=identity?.id??crypto.randomUUID();
   const assetUrl=card.imageUrl??`catalog://${card.code}`;
   await d.batch([
-    d.prepare('INSERT OR IGNORE INTO games (id,slug,name) VALUES (?,?,?)').bind(gameId,'one-piece','One Piece Card Game'),
+    d.prepare('INSERT OR IGNORE INTO games (id,slug,name) VALUES (?,?,?)').bind(selectedGameId,slug,slug==='pokemon'?'Pokémon TCG':'One Piece Card Game'),
     d.prepare('INSERT OR IGNORE INTO card_asset_sources (id,source_type,source_url,rights_status,hash,approved_for_display,approved_for_storage) VALUES (?,?,?,?,?,?,?)').bind(liveAssetSourceId,'catalog','catalog://supabase','catalog-import','catalog-live',1,0),
-    d.prepare('INSERT OR IGNORE INTO card_identities (id,game_id,code,name,color,type,cost,power,effect) VALUES (?,?,?,?,?,?,?,?,?)').bind(requestedIdentityId,gameId,card.code,card.name,card.color,card.type,card.cost,card.power,card.effect),
+    d.prepare('INSERT OR IGNORE INTO card_identities (id,game_id,code,name,color,type,cost,power,effect) VALUES (?,?,?,?,?,?,?,?,?)').bind(requestedIdentityId,selectedGameId,card.code,card.name,card.color,card.type,card.cost,card.power,card.effect),
   ]);
-  const savedIdentity=await d.prepare('SELECT id FROM card_identities WHERE game_id=? AND code=?').bind(gameId,card.code).first<{id:string}>();
+  const savedIdentity=await d.prepare('SELECT id FROM card_identities WHERE game_id=? AND code=?').bind(selectedGameId,card.code).first<{id:string}>();
   if(!savedIdentity)throw new HttpError(400,'This card could not be prepared for Vault.');
   await d.prepare('UPDATE card_identities SET name=?,color=?,type=?,cost=?,power=?,effect=? WHERE id=?').bind(card.name,card.color,card.type,card.cost,card.power,card.effect,savedIdentity.id).run();
   const language=card.language??'EN';

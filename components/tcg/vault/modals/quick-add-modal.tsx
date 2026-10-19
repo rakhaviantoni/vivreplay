@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   XIcon as X, 
@@ -20,7 +20,9 @@ interface QuickAddModalProps {
   onItemAdded: () => Promise<void> | void;
   isAnonymous?: boolean;
   language?: 'EN' | 'ID';
+  gameSlug?: 'one-piece' | 'pokemon';
 }
+type PokemonCatalogPrinting={id:string;rarity:string;variant:string;set_code:string;set_name:string;printing_code:string;language:string;card_image_url?:string|null;tcg_card_identities?:{code:string;name:string;color:string;card_type:string;cost:number;power:number;effect_text:string};source_payload?:Record<string,unknown>};
 
 export function QuickAddModal({
   open,
@@ -28,9 +30,24 @@ export function QuickAddModal({
   onItemAdded,
   isAnonymous = false,
   language = 'EN',
+  gameSlug = 'one-piece',
 }: QuickAddModalProps) {
   const [query, setQuery] = useState('');
   const [busy, setBusy] = useState(false);
+  const [pokemonCards,setPokemonCards]=useState<PokemonCatalogPrinting[]>([]);
+  const [searching,setSearching]=useState(false);
+
+  useEffect(()=>{
+    if(!open||gameSlug!=='pokemon'||query.trim().length<2){setPokemonCards([]);setSearching(false);return}
+    const controller=new AbortController();const timer=window.setTimeout(()=>{
+      setSearching(true);
+      void fetch(`/api/cards/catalog?game=pokemon&language=${language}&q=${encodeURIComponent(query.trim())}&limit=20`,{signal:controller.signal})
+        .then(async response=>response.ok?response.json() as Promise<{cards?:PokemonCatalogPrinting[]}>:Promise.reject(new Error('Catalog unavailable')))
+        .then(result=>setPokemonCards(result.cards??[])).catch(error=>{if(error.name!=='AbortError')setPokemonCards([])})
+        .finally(()=>{if(!controller.signal.aborted)setSearching(false)});
+    },180);
+    return()=>{window.clearTimeout(timer);controller.abort()};
+  },[open,gameSlug,language,query]);
 
   if (!open || typeof document === 'undefined') return null;
 
@@ -95,6 +112,20 @@ export function QuickAddModal({
     }
   };
 
+  const handlePokemonQuickAdd=async(printing:PokemonCatalogPrinting)=>{
+    const identity=printing.tcg_card_identities;if(!identity)return;
+    const card:Card={id:identity.code,code:identity.code,name:identity.name,color:identity.color||'Colorless',type:'Character',cost:identity.cost||0,power:identity.power||0,rarity:printing.rarity,art:0,effect:identity.effect_text||'',imageUrl:printing.card_image_url??undefined,setCode:printing.set_code,language:printing.language,printingCode:printing.printing_code,variant:printing.variant};
+    const catalogCard={gameSlug:'pokemon' as const,code:identity.code,name:identity.name,color:identity.color||'Colorless',type:identity.card_type||'Pokémon',cost:identity.cost||0,power:identity.power||0,rarity:printing.rarity,effect:identity.effect_text||'',setCode:printing.set_code,language:printing.language as 'EN'|'ID'|'JP',variant:printing.variant,printingCode:printing.printing_code,imageUrl:printing.card_image_url??undefined};
+    setBusy(true);
+    try{
+      if(isAnonymous){addLocalVaultItem({printingId:printing.id,card:{...card,gameSlug:'pokemon'} as Card,type:'RAW',quantity:1,condition:'NM',visibility:'private',acquisitionAmount:0,currency:'IDR',acquiredAt:new Date().toISOString(),notes:null,provider:null,grade:null,certification:null});}
+      else await api('/api/collection',{printingId:printing.id,catalogCard,type:'RAW',quantity:1,condition:'NM',visibility:'private',acquisitionAmount:0,currency:'IDR',acquiredAt:new Date().toISOString(),notes:null},'POST');
+      toast.success(language==='ID'?`${identity.name} ditambahkan ke Vault`:`${identity.name} added to Vault`);
+      await onItemAdded();onClose();
+    }catch(error){toast.error(error instanceof Error?error.message:'Unable to add this card.')}
+    finally{setBusy(false)}
+  };
+
   return createPortal((
     <div style={{
       position: 'fixed',
@@ -144,14 +175,18 @@ export function QuickAddModal({
             type="text"
             value={query}
             onChange={e => setQuery(e.target.value)}
-              placeholder="Search card name or code (e.g. OP05-119, Zoro)..."
+              placeholder={gameSlug==='pokemon'?'Search Pokémon name or card number':'Search card name or code (e.g. OP05-119, Zoro)'}
               aria-label="Search card name or code"
           />
         </div>
 
         {/* Results List */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '340px', overflowY: 'auto' }}>
-          {!query.trim().length || query.trim().length<2 ? <p className="vault-quick-add-hint">Search by card name or code. Quick Add uses the catalog’s English default printing and adds one raw NM copy.</p> : filteredCards.length===0 ? <p className="vault-quick-add-hint">No catalog cards matched that search.</p> : filteredCards.map(card => (
+          {!query.trim().length || query.trim().length<2 ? <p className="vault-quick-add-hint">{gameSlug==='pokemon'?'Search by Pokémon name or card number. Each result is a specific printing.':'Search by card name or code. Quick Add uses the English default printing.'}</p> : gameSlug==='pokemon' ? searching ? <p className="vault-quick-add-hint">Searching…</p> : pokemonCards.length===0 ? <p className="vault-quick-add-hint">No Pokémon printings matched that search.</p> : pokemonCards.map(printing=>{
+            const identity=printing.tcg_card_identities;if(!identity)return null;
+            const art:Card={id:identity.code,code:identity.code,name:identity.name,color:identity.color||'Colorless',type:'Character',cost:identity.cost||0,power:identity.power||0,rarity:printing.rarity,art:0,effect:identity.effect_text||'',imageUrl:printing.card_image_url??undefined,setCode:printing.set_code,language:printing.language,printingCode:printing.printing_code,variant:printing.variant};
+            return <div key={printing.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 12px',borderRadius:'10px',background:'var(--vault-slot-bg)',border:'1px solid var(--vault-border)',gap:'12px'}}><div style={{display:'flex',alignItems:'center',gap:'10px',minWidth:0}}><div style={{width:'36px',aspectRatio:'420/580',borderRadius:'4px',overflow:'hidden',flexShrink:0}}><CardArt card={art} small/></div><div style={{minWidth:0}}><h4 style={{margin:0,fontSize:'13px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{identity.name}</h4><span style={{fontSize:'10.5px',color:'var(--vault-ink-muted)'}}>{printing.set_code}, {printing.printing_code}, {printing.language}, {printing.rarity}</span></div></div><button type="button" className="vault-btn vault-btn-primary" style={{height:'32px',fontSize:'11px',flexShrink:0}} disabled={busy} onClick={()=>void handlePokemonQuickAdd(printing)}><Zap size={13} weight="fill"/>{language==='ID'?'Tambah 1':'Add 1'}</button></div>
+          }) : filteredCards.length===0 ? <p className="vault-quick-add-hint">No catalog cards matched that search.</p> : filteredCards.map(card => (
             <div
               key={card.id}
               style={{

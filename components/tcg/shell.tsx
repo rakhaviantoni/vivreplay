@@ -68,8 +68,10 @@ function PrimaryNav({language,selected,game}:{language:Locale;selected:(url:stri
   const libraryItems:NavItem[]=game==='pokemon'
     ?[{href:'/pokemon',label:'Cards',labelId:'Kartu',icon:Layers3},{href:'/pokemon/sets',label:'Sets',labelId:'Set',icon:Library}]
     :[{href:'/cards',label:'Cards',labelId:'Kartu',icon:Layers3},{href:'/cards/index',label:'Card index',labelId:'Indeks kartu',icon:Library},{href:'/archetypes',label:'Archetypes',labelId:'Arketipe',icon:Layers3},{href:'/sets',label:'Sets',labelId:'Set',icon:Library},{href:'/meta',label:'Meta stats',labelId:'Meta permainan',icon:ChartNoAxesCombined}];
-  const menus=[{label:'Library',labelId:'Katalog',items:libraryItems},collectionMenu,arenaMenu];
-  return <nav ref={root} aria-label="Primary navigation" className="primary-nav">{menus.map(menu=><details key={menu.label} className="nav-more" onPointerEnter={event=>openMenu(event.currentTarget)} onPointerLeave={event=>event.currentTarget.removeAttribute('open')} onToggle={event=>{if(!event.currentTarget.open)return;root.current?.querySelectorAll('details[open]').forEach(item=>{if(item!==event.currentTarget)item.removeAttribute('open')})}}><summary className={menu.items.some(item=>selected(item.href))?'active':''}>{language==='ID'?menu.labelId:menu.label}<ChevronDown size={13}/></summary><div>{menu.items.map(item=>{const Icon=item.icon;return <Link key={item.href} href={getHref(item.href)} onClick={closeAll} className={selected(item.href)?'active':''}><Icon size={14}/>{language==='ID'?item.labelId:item.label}</Link>})}</div></details>)}<Link href={getHref(market.href)} onClick={closeAll} className={selected(market.href)?'active market-nav':''}><Store size={14}/>{language==='ID'?market.labelId:market.label}</Link></nav>;
+  const menus=game==='pokemon'
+    ?[{label:'Library',labelId:'Katalog',items:libraryItems},{label:'Collection',labelId:'Koleksi',items:[collectionMenu.items[0]]}]
+    :[{label:'Library',labelId:'Katalog',items:libraryItems},collectionMenu,arenaMenu];
+  return <nav ref={root} aria-label="Primary navigation" className="primary-nav">{menus.map(menu=><details key={menu.label} className="nav-more" onPointerEnter={event=>openMenu(event.currentTarget)} onPointerLeave={event=>event.currentTarget.removeAttribute('open')} onToggle={event=>{if(!event.currentTarget.open)return;root.current?.querySelectorAll('details[open]').forEach(item=>{if(item!==event.currentTarget)item.removeAttribute('open')})}}><summary className={menu.items.some(item=>selected(item.href))?'active':''}>{language==='ID'?menu.labelId:menu.label}<ChevronDown size={13}/></summary><div>{menu.items.map(item=>{const Icon=item.icon;const href=game==='pokemon'&&item.href==='/vault'?'/vault?game=pokemon':item.href;return <Link key={item.href} href={getHref(href)} onClick={closeAll} className={selected(item.href)?'active':''}><Icon size={14}/>{language==='ID'?item.labelId:item.label}</Link>})}</div></details>)}<Link href={getHref(game==='pokemon'?'/market?game=pokemon':market.href)} onClick={closeAll} className={selected(market.href)?'active market-nav':''}><Store size={14}/>{language==='ID'?market.labelId:market.label}</Link></nav>;
 }
 
 function GameModeSwitch({language,game}:{language:Locale;game:'one-piece'|'pokemon'}) {
@@ -96,13 +98,11 @@ function Footer({language,game}:{language:Locale;game:'one-piece'|'pokemon'}) {
       <nav className="footer-column" aria-label={id?'Jelajahi':'Explore'}>
         <b>{id?'Jelajahi':'Explore'}</b>
         <Link href={getHref(game==='pokemon'?'/pokemon':'/cards')}>{id?'Katalog kartu':'Cards'}</Link>
-        {game==='pokemon'?<Link href={getHref('/pokemon/sets')}>{id?'Set Pokémon':'Sets'}</Link>:<><Link href={getHref('/cards/index')}>{id?'Indeks kartu':'Card index'}</Link><Link href={getHref('/archetypes')}>{id?'Arketipe':'Archetypes'}</Link><Link href={getHref('/sets')}>{id?'Arsip set':'Sets'}</Link></>}
+        {game==='pokemon'?<><Link href={getHref('/pokemon/sets')}>{id?'Set Pokémon':'Sets'}</Link><Link href={getHref('/vault?game=pokemon')}>{id?'Vault Pokémon':'Pokémon Vault'}</Link></>:<><Link href={getHref('/cards/index')}>{id?'Indeks kartu':'Card index'}</Link><Link href={getHref('/archetypes')}>{id?'Arketipe':'Archetypes'}</Link><Link href={getHref('/sets')}>{id?'Arsip set':'Sets'}</Link></>}
       </nav>
-      <nav className="footer-column" aria-label={id?'Deck dan permainan':'Decks and play'}>
-        <b>{id?'Deck dan permainan':'Decks & play'}</b>
-        <Link href={getHref('/decks')}>{id?'Deck':'Decks'}</Link>
-        <Link href={getHref('/decks/builder')}>{id?'Pembuat deck':'Deck builder'}</Link>
-        <Link href={getHref('/play')}>Arena</Link>
+      <nav className="footer-column" aria-label={id?(game==='pokemon'?'Koleksi':'Deck dan permainan'):(game==='pokemon'?'Collection':'Decks and play')}>
+        <b>{id?(game==='pokemon'?'Koleksi':'Deck dan permainan'):(game==='pokemon'?'Collection':'Decks & play')}</b>
+        {game==='pokemon'?<Link href={getHref('/vault?game=pokemon')}>{id?'Vault Pokémon':'Pokémon Vault'}</Link>:<><Link href={getHref('/decks')}>{id?'Deck':'Decks'}</Link><Link href={getHref('/decks/builder')}>{id?'Pembuat deck':'Deck builder'}</Link><Link href={getHref('/play')}>Arena</Link></>}
       </nav>
       <nav className="footer-column" aria-label={id?'Market dan bantuan':'Market and help'}>
         <b>{id?'Market dan bantuan':'Market & help'}</b>
@@ -299,7 +299,7 @@ export function Shell({children,initialPath='/'}:{children:React.ReactNode;initi
     {!marketCheckout&&<NewCardsAnnouncement/>}
     {!marketCheckout&&<MiniRail language={language}/>}
     {!marketCheckout&&<nav className="mobile-nav" aria-label="Mobile navigation">
-      {mobileNav.map(item=>{const Icon=item.icon;const href=item.label==='Cards'&&game==='pokemon'?'/pokemon':item.href;const active=selected(href);return <Link key={item.href} href={getHref(href)} className={active?'active':''} aria-current={active?'page':undefined}><Icon size={20}/><span>{language==='ID'?item.labelId:item.label}</span></Link>})}
+      {(game==='pokemon'?mobileNav.filter(item=>item.label!=='Arena'):mobileNav).map(item=>{const Icon=item.icon;const href=item.label==='Cards'&&game==='pokemon'?'/pokemon':game==='pokemon'&&item.label==='Vault'?'/vault?game=pokemon':game==='pokemon'&&item.label==='Market'?'/market?game=pokemon':item.href;const active=selected(item.label==='Vault'?'/vault':item.label==='Market'?'/market':href);return <Link key={item.href} href={getHref(href)} className={active?'active':''} aria-current={active?'page':undefined}><Icon size={20}/><span>{language==='ID'?item.labelId:item.label}</span></Link>})}
     </nav>}
     <Toaster theme={theme}/>
   </div>;

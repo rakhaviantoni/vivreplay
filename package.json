@@ -20,6 +20,7 @@
     "catalog:import-sealed": "node --env-file=.env.local --import tsx scripts/import-sealed-products.ts",
     "catalog:import-pokemon": "node --import tsx scripts/import-tcgdex-pokemon.ts",
     "catalog:reconcile-r2": "node --env-file=.env.local scripts/reconcile-missing-r2-card-images.mjs",
+    "play-assets:migrate-r2": "node --env-file=.env.local scripts/migrate-play-assets-to-r2.mjs",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test tests/*.test.ts",
     "effects:verify": "EFFECT_AUDIT_SOURCE=report node --import tsx scripts/verify-effect-pipeline.ts",

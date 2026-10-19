@@ -29,6 +29,7 @@ interface AddEditItemModalProps {
   initialPrintingId?: string;
   isAnonymous?: boolean;
   language?: 'EN' | 'ID';
+  gameSlug?: 'one-piece' | 'pokemon';
 }
 
 function normalizedProvider(value?:string|null){
@@ -71,6 +72,7 @@ export function AddEditItemModal({
   initialPrintingId,
   isAnonymous = false,
   language = 'EN',
+  gameSlug = 'one-piece',
 }: AddEditItemModalProps) {
   const isEditing = Boolean(editingItem);
 
@@ -86,7 +88,7 @@ export function AddEditItemModal({
   const [itemType, setItemType] = useState<'RAW' | 'GRADED'>(
     editingItem ? editingItem.type : 'RAW'
   );
-  const [cardLanguage, setCardLanguage] = useState<'EN' | 'JP'>((editingItem?.card.language as 'EN'|'JP') || editingItem?.language as 'EN'|'JP' || 'EN');
+  const [cardLanguage, setCardLanguage] = useState<'EN' | 'JP' | 'ID'>((editingItem?.card.language as 'EN'|'JP'|'ID') || editingItem?.language as 'EN'|'JP'|'ID' || (gameSlug==='pokemon'?'ID':'EN'));
   const [selectedPrintingId, setSelectedPrintingId] = useState(editingItem?.printingId ?? '');
   const [condition, setCondition] = useState(editingItem?.condition || 'NM');
   const [quantity, setQuantity] = useState(editingItem ? editingItem.quantity : 1);
@@ -141,7 +143,7 @@ export function AddEditItemModal({
     setIdentityConfirmed(Boolean(editingItem || initialCard));
     setSelectedIdentity(editingItem?.card ?? initialCard ?? null);
     setItemType(editingItem?.type ?? 'RAW');
-    setCardLanguage((editingItem?.card.language as 'EN'|'JP') || (editingItem?.language as 'EN'|'JP') || 'EN');
+    setCardLanguage((editingItem?.card.language as 'EN'|'JP'|'ID') || (editingItem?.language as 'EN'|'JP'|'ID') || (gameSlug==='pokemon'?'ID':'EN'));
     setSelectedPrintingId(editingItem?.printingId ?? initialPrintingId ?? '');
     setCondition(editingItem?.condition || 'NM');
     setQuantity(editingItem?.quantity ?? 1);
@@ -167,14 +169,14 @@ export function AddEditItemModal({
     const controller=new AbortController();
     const timer=window.setTimeout(()=>{
       setIdentitySearchLoading(true);
-      void fetch(versionedCardCatalogUrl(`/api/cards/identities?q=${encodeURIComponent(query)}`),{signal:controller.signal})
+      void fetch(versionedCardCatalogUrl(`/api/cards/identities?game=${gameSlug}&q=${encodeURIComponent(query)}`),{signal:controller.signal})
         .then(async response=>{if(!response.ok)throw new Error('Card search is unavailable.');return await response.json() as {cards?:Array<{id:string;code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number;effect_text:string;rarity:string|null;imageUrl?:string}>};})
         .then(result=>{if(active)setIdentityResults((result.cards??[]).map(card=>({id:card.id,code:card.code,name:card.name,color:card.color,type:card.card_type,cost:card.cost,power:card.power,effect:card.effect_text,rarity:card.rarity??'',art:0,imageSource:'external',imageUrl:card.imageUrl})));})
         .catch(()=>{if(active)setIdentityResults([]);})
         .finally(()=>{if(active)setIdentitySearchLoading(false);});
     },220);
     return()=>{active=false;window.clearTimeout(timer);controller.abort();};
-  },[open,identityPickerOpen,cardQuery]);
+  },[open,identityPickerOpen,cardQuery,gameSlug]);
 
   useEffect(() => {
     const identityCode=editingItem?.card.code??(identityConfirmed?(selectedIdentity?.code??selectedCardCode):'');
@@ -182,8 +184,9 @@ export function AddEditItemModal({
     let active = true;
     const controller = new AbortController();
     setCatalogLoading(true);
-    void Promise.all((['EN', 'JP'] as const).map(async language => {
-      const response = await fetch(versionedCardCatalogUrl(`/api/cards/catalog?language=${language}&code=${encodeURIComponent(identityCode)}`), {signal: controller.signal});
+    const languages=gameSlug==='pokemon'?(['ID','EN','JP'] as const):(['EN','JP'] as const);
+    void Promise.all(languages.map(async language => {
+      const response = await fetch(versionedCardCatalogUrl(`/api/cards/catalog?game=${gameSlug}&language=${language}&code=${encodeURIComponent(identityCode)}`), {signal: controller.signal});
       if (!response.ok) return [];
       const payload = await response.json() as {cards?:Array<{id:string;language:string;variant:string|null;printing_code:string|null;card_image_url:string|null;set_code:string|null;rarity:string|null}>};
       return (payload.cards ?? []).map(printing => ({
@@ -192,11 +195,11 @@ export function AddEditItemModal({
       } satisfies VaultPrinting));
     })).then(results => {if(active)setCatalogPrintings(results.flat());}).catch(() => {if(active)setCatalogPrintings([]);}).finally(() => {if(active)setCatalogLoading(false);});
     return () => {active = false;controller.abort();};
-  }, [open, editingItem?.card.code, selectedIdentity?.code, selectedCardCode, identityConfirmed]);
+  }, [open, editingItem?.card.code, selectedIdentity?.code, selectedCardCode, identityConfirmed,gameSlug]);
 
   useEffect(() => {
     if (!open || !catalogPrintings.length || catalogPrintings.some(printing=>printing.language===cardLanguage)) return;
-    setCardLanguage(catalogPrintings[0].language as 'EN'|'JP');
+    setCardLanguage(catalogPrintings[0].language as 'EN'|'JP'|'ID');
   }, [open,catalogPrintings,cardLanguage]);
 
   useEffect(()=>{
@@ -224,10 +227,10 @@ export function AddEditItemModal({
   const uniquePrintingOptions=uniquePrintings(sourcePrintingOptions,editingItem?.printingId);
   const targetPrinting = uniquePrintingOptions.find(p => p.id === selectedPrintingId)
     || (isEditing && editingItem && selectedPrintingId === editingItem.printingId && (editingItem.language??editingItem.card.language??cardLanguage)===cardLanguage ? {id:editingItem.printingId,language:editingItem.language??editingItem.card.language??cardLanguage,variant:editingItem.variant??currentCard.variant??'Standard',printing_code:editingItem.printingCode??currentCard.printingCode??currentCard.code,set_code:editingItem.setCode??currentCard.setCode} : undefined);
-  const targetLanguage = (targetPrinting?.language ?? cardLanguage) as 'EN'|'JP';
-  const hasMarketReference = targetLanguage === 'JP';
+  const targetLanguage = (targetPrinting?.language ?? cardLanguage) as 'EN'|'JP'|'ID';
+  const hasMarketReference = gameSlug==='one-piece'&&targetLanguage === 'JP';
   const selectedCardArt:Card = targetPrinting ? {...currentCard,id:targetPrinting.id,language:targetLanguage,variant:targetPrinting.variant??'Standard',setCode:targetPrinting.set_code??currentCard.setCode,printingCode:targetPrinting.printing_code??currentCard.printingCode,imageUrl:targetPrinting.card_image_url??currentCard.imageUrl} : currentCard;
-  const availableLanguages = [...new Set(uniquePrintingOptions.map(printing => printing.language as 'EN'|'JP'))];
+  const availableLanguages = [...new Set(uniquePrintingOptions.map(printing => printing.language as 'EN'|'JP'|'ID'))];
   const languagePrintings = uniquePrintingOptions.filter(printing => printing.language === cardLanguage);
   const selectedPrinting=uniquePrintingOptions.find(printing=>printing.id===targetPrinting?.id)??targetPrinting;
   const quantityValid = Number.isInteger(quantity) && quantity >= 1 && quantity <= 999;
@@ -449,16 +452,16 @@ export function AddEditItemModal({
             <div className="vault-printing-heading-row"><div><label id="vault-printing-heading">Printing &amp; language</label><p>Choose the exact artwork and language you own.</p></div><span>{hasSelectedIdentity?`${languagePrintings.length} ${languagePrintings.length === 1 ? 'printing' : 'printings'}`:''}</span></div>
             {!hasSelectedIdentity ? <p className="vault-printing-empty">Choose a card to see its available printings.</p> : <>
             {availableLanguages.length > 0 && <div className="vault-language-options" role="group" aria-label="Card language">
-              {availableLanguages.map(lang => <button type="button" key={lang} className={cardLanguage === lang ? 'active' : ''} onClick={() => {setCardLanguage(lang);const next=uniquePrintingOptions.find(printing=>printing.language===lang);setSelectedPrintingId(next?.id??'');}}>{lang === 'JP' ? '日本語 / JP' : 'English / EN'}</button>)}
+              {availableLanguages.map(lang => <button type="button" key={lang} className={cardLanguage === lang ? 'active' : ''} onClick={() => {setCardLanguage(lang);const next=uniquePrintingOptions.find(printing=>printing.language===lang);setSelectedPrintingId(next?.id??'');}}>{lang === 'JP' ? '日本語 / JP' : lang==='ID'?'Bahasa Indonesia / ID':'English / EN'}</button>)}
             </div>}
                 {selectedPrinting&&selectedPrinting.language===cardLanguage&&<p className="vault-printing-current-selection">{language==='ID'?'Cetakan terpilih:':'Selected printing:'} <strong>{selectedPrinting.language} / {printingTitle(selectedPrinting)}</strong>{selectedPrinting.printing_code&&<span> / {selectedPrinting.printing_code}</span>}</p>}
             <div className="vault-printing-options">
               {languagePrintings.map(printing => {
-                const printingCard: Card = {...currentCard,id:printing.id,language:printing.language as 'EN'|'JP',variant:printing.variant??'Standard',setCode:printing.set_code??currentCard.setCode,printingCode:printing.printing_code??currentCard.printingCode,imageUrl:printing.card_image_url??currentCard.imageUrl};
+                const printingCard: Card = {...currentCard,id:printing.id,language:printing.language as 'EN'|'JP'|'ID',variant:printing.variant??'Standard',setCode:printing.set_code??currentCard.setCode,printingCode:printing.printing_code??currentCard.printingCode,imageUrl:printing.card_image_url??currentCard.imageUrl};
                 const selected = printing.id === targetPrinting?.id;
                 const printNumber=printing.printing_code?.match(/(?:[_-]p)(\d+)$/i)?.[1];
                 const detail=[currentCard.code,printing.set_code,printNumber?`p${printNumber}`:printing.printing_code!==currentCard.code?printing.printing_code:null].filter(Boolean).join(' / ');
-                return <button type="button" key={printing.id} className={`vault-printing-option ${selected ? 'selected' : ''}`} aria-pressed={selected} onClick={() => {setSelectedIdentity(currentCard);setSelectedCardCode(currentCard.code);setIdentityConfirmed(true);setSelectedPrintingId(printing.id);setCardLanguage(printing.language as 'EN'|'JP');}}>
+                return <button type="button" key={printing.id} className={`vault-printing-option ${selected ? 'selected' : ''}`} aria-pressed={selected} onClick={() => {setSelectedIdentity(currentCard);setSelectedCardCode(currentCard.code);setIdentityConfirmed(true);setSelectedPrintingId(printing.id);setCardLanguage(printing.language as 'EN'|'JP'|'ID');}}>
                   <span className="vault-printing-option-art"><CardArt card={printingCard} small /></span><span className="vault-printing-option-copy"><b>{printingTitle(printing)}</b><small>{detail || printing.printing_code || 'Standard printing'}</small></span>{selected && <span className="vault-printing-selected-mark">{language==='ID'?'Dipilih':'Selected'}</span>}
                 </button>;
               })}

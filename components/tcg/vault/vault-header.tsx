@@ -22,6 +22,7 @@ interface VaultHeaderProps {
   hideValues: boolean;
   isPricingLoading?: boolean;
   language?: 'EN' | 'ID';
+  gameSlug?: 'one-piece' | 'pokemon';
   onToggleHideValues: () => void;
   onOpenQuickAdd: () => void;
   onOpenFullAdd: () => void;
@@ -37,6 +38,7 @@ export function VaultHeader({
   hideValues,
   isPricingLoading = false,
   language = 'EN',
+  gameSlug = 'one-piece',
   onToggleHideValues,
   onOpenQuickAdd,
   onOpenFullAdd,

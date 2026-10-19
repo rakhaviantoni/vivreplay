@@ -9,7 +9,7 @@ import {
   XIcon as X,
   StarIcon as Star,
 } from '@phosphor-icons/react';
-import { SETS_CATALOG, colors, cards } from '@/packages/card-data/catalog';
+import type { Card } from '@/packages/card-data/catalog';
 import { GRADING_PROVIDERS } from '@/packages/domain';
 import type { VaultFilterState, VaultViewMode } from './types';
 import { MultiFilter, Picker } from '../catalog';
@@ -21,6 +21,8 @@ interface VaultFiltersProps {
   onChangeViewMode: (mode: VaultViewMode) => void;
   totalFilteredCount: number;
   language?: 'EN' | 'ID';
+  cardsInVault?: Card[];
+  gameSlug?: 'one-piece' | 'pokemon';
 }
 
 export function VaultFilters({
@@ -30,8 +32,14 @@ export function VaultFilters({
   onChangeViewMode,
   totalFilteredCount,
   language = 'EN',
+  cardsInVault = [],
+  gameSlug = 'one-piece',
 }: VaultFiltersProps) {
   const t = (en: string, idStr: string) => language === 'ID' ? idStr : en;
+  const sets = [...new Set(cardsInVault.map(card => card.setCode).filter((code):code is string=>Boolean(code)))].sort();
+  const rarities = [...new Set(cardsInVault.map(card => card.rarity).filter(Boolean))].sort();
+  const colorsInVault = [...new Set(cardsInVault.flatMap(card => card.color.split(/\s*(?:\/|&|,)\s*|\s+/)).filter(Boolean))].sort();
+  const cardTypes = [...new Set(cardsInVault.map(card => card.type).filter(Boolean))].sort();
   const hasActiveFilters = Boolean(
     filters.search ||
     filters.setCode !== 'all' ||
@@ -88,10 +96,10 @@ export function VaultFilters({
       {/* Filter Dropdowns */}
       <div className="vault-toolbar-filters">
         {/* Set Filter */}
-        <MultiFilter label="Set" values={SETS_CATALOG.map(set=>({value:set.code,label:`${set.code} · ${set.name}`}))} selected={filters.setCode==='all'?[]:[filters.setCode]} onToggle={value=>onChangeFilters(prev=>({...prev,setCode:prev.setCode===value?'all':value}))} searchPlaceholder={t('Find a set','Cari set')} />
+        <MultiFilter label="Set" values={sets.map(code=>({value:code,label:code}))} selected={filters.setCode==='all'?[]:[filters.setCode]} onToggle={value=>onChangeFilters(prev=>({...prev,setCode:prev.setCode===value?'all':value}))} searchPlaceholder={t('Find a set','Cari set')} />
 
         {/* Language Filter */}
-        <Picker value={filters.language} onChange={value => onChangeFilters(prev => ({ ...prev, language: value }))} label={t('Filter by language','Filter berdasarkan bahasa')} options={[{value:'all',label:t('All Languages','Semua Bahasa')},{value:'JP',label:'Japanese (JP)'},{value:'EN',label:'English (EN)'}]} />
+        <Picker value={filters.language} onChange={value => onChangeFilters(prev => ({ ...prev, language: value }))} label={t('Filter by language','Filter berdasarkan bahasa')} options={[{value:'all',label:t('All Languages','Semua Bahasa')},{value:'JP',label:'Japanese (JP)'},{value:'EN',label:'English (EN)'},...(gameSlug==='pokemon'?[{value:'ID',label:'Bahasa Indonesia (ID)'}]:[])]} />
 
         {/* Type Filter: Raw vs Slabs */}
         <Picker value={filters.typeFilter} onChange={value => onChangeFilters(prev => ({ ...prev, typeFilter: value as VaultFilterState['typeFilter'] }))} label={t('Filter by raw or slab','Filter kartu reguler atau slab')} options={[{value:'all',label:t('Raw & Slabs','Reguler & Slab')},{value:'raw',label:t('Raw Only','Hanya Reguler')},{value:'graded',label:t('Slabs Only','Hanya Slab')}]} />
@@ -102,10 +110,10 @@ export function VaultFilters({
         )}
 
         {/* Rarity Filter */}
-        <Picker value={filters.rarity} onChange={value => onChangeFilters(prev => ({ ...prev, rarity: value }))} label={t('Filter by rarity','Filter berdasarkan kelangkaan')} options={[{value:'all',label:t('All Rarities','Semua Kelangkaan')},...[...new Set(cards.map(card=>card.rarity).filter(Boolean))].sort().map(rarity=>({value:rarity,label:rarity}))]} />
+        <Picker value={filters.rarity} onChange={value => onChangeFilters(prev => ({ ...prev, rarity: value }))} label={t('Filter by rarity','Filter berdasarkan kelangkaan')} options={[{value:'all',label:t('All Rarities','Semua Kelangkaan')},...rarities.map(rarity=>({value:rarity,label:rarity}))]} />
 
-        <Picker value={filters.color} onChange={value => onChangeFilters(prev => ({ ...prev, color: value }))} label={t('Filter by color','Filter berdasarkan warna')} options={[{value:'all',label:t('All Colors','Semua Warna')},...Object.keys(colors).map(color=>({value:color,label:color}))]} />
-        <Picker value={filters.cardType} onChange={value => onChangeFilters(prev => ({ ...prev, cardType: value }))} label={t('Filter by card type','Filter berdasarkan jenis kartu')} options={[{value:'all',label:t('All Card Types','Semua Jenis Kartu')},...[...new Set(cards.map(card=>card.type))].sort().map(type=>({value:type,label:type}))]} />
+        <Picker value={filters.color} onChange={value => onChangeFilters(prev => ({ ...prev, color: value }))} label={t('Filter by color','Filter berdasarkan warna')} options={[{value:'all',label:t('All Colors','Semua Warna')},...colorsInVault.map(color=>({value:color,label:color}))]} />
+        <Picker value={filters.cardType} onChange={value => onChangeFilters(prev => ({ ...prev, cardType: value }))} label={t('Filter by card type','Filter berdasarkan jenis kartu')} options={[{value:'all',label:t('All Card Types','Semua Jenis Kartu')},...cardTypes.map(type=>({value:type,label:type}))]} />
         {filters.typeFilter === 'graded' && <Picker value={filters.grade} onChange={value => onChangeFilters(prev => ({ ...prev, grade: value }))} label={t('Filter by grade','Filter berdasarkan grade')} options={[{value:'all',label:t('All Grades','Semua Grade')},...['10','9.5','9','8.5','8','7','6','5'].map(grade=>({value:grade,label:grade}))]} />}
 
         {/* Showcase / Favorites Toggle */}

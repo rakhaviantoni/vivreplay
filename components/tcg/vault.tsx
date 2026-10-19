@@ -44,6 +44,7 @@ import { ActivityTab } from './vault/tabs/activity-tab';
 import { VaultPanelEmpty } from './vault/vault-panel-empty';
 import { ListingsTab } from './vault/tabs/listings-tab';
 import { VivreMark } from './brand-assets';
+import { Picker } from './catalog';
 
 // Vault Modals
 import { QuickAddModal } from './vault/modals/quick-add-modal';
@@ -78,6 +79,7 @@ export function Vault() {
 
   // Active Tab & View Mode State
   const [activeTab, setActiveTab] = useState<VaultTab>(searchParams.get('tab')==='wishlist'?'wishlist':searchParams.get('tab')==='portfolio'?'portfolio':'collection');
+  const [gameSlug,setGameSlug]=useState<'one-piece'|'pokemon'>(searchParams.get('game')==='pokemon'?'pokemon':'one-piece');
   const [viewMode, setViewMode] = useState<VaultViewMode>('binder');
   const binderOrderStorageKey=`vivreplay-vault-binder-order:${String(data?.profile?.id??'guest')}`;
   const [binderOrder,setBinderOrder]=useState<string[]>([]);
@@ -230,8 +232,9 @@ export function Vault() {
   // Determine collection items: use user collection if populated, or provide local vault collection
   const collectionItems = useMemo(() => {
     if (loading) return [];
-    return data?.collection ?? localVaultItems;
-  }, [data, localVaultItems, loading]);
+    const rows=data?.collection ?? localVaultItems;
+    return rows.filter(item=>(item.card as (typeof item.card&{gameSlug?:string})|undefined)?.gameSlug===gameSlug || (gameSlug==='one-piece'&&!(item.card as (typeof item.card&{gameSlug?:string})|undefined)?.gameSlug));
+  }, [data, localVaultItems, loading, gameSlug]);
 
   const pricingPrintingIds=useMemo(()=>[...new Set(collectionItems.map(item=>item.printingId))].sort(),[collectionItems]);
   const pricingRequestKey=pricingPrintingIds.join(',');
@@ -543,6 +546,7 @@ export function Vault() {
         hideValues={hideValues}
         isPricingLoading={vaultMarketPricesLoading}
         language={language}
+        gameSlug={gameSlug}
         onToggleHideValues={handleToggleHideValues}
         onOpenQuickAdd={() => setQuickAddOpen(true)}
         onOpenFullAdd={() => { setEditingItem(null); setFullAddOpen(true); }}
@@ -550,6 +554,8 @@ export function Vault() {
         onOpenShareModal={() => setShareModalOpen(true)}
         onOpenImportExport={() => setImportExportOpen(true)}
       />
+
+      <div className="vault-game-picker"><Picker value={gameSlug} onChange={value=>{const next=value as 'one-piece'|'pokemon';setGameSlug(next);if(next==='pokemon'&&activeTab==='sets')setActiveTab('collection');const params=new URLSearchParams(window.location.search);if(next==='pokemon')params.set('game','pokemon');else params.delete('game');router.replace(`${window.location.pathname}${params.size?`?${params}`:''}`,{scroll:false})}} label={t('Choose card game','Pilih permainan kartu')} options={[{value:'one-piece',label:'One Piece Card Game'},{value:'pokemon',label:'Pokémon TCG'}]}/></div>
 
       {/* Vault Navigation Tabs */}
       <nav className="vault-nav-tabs" aria-label={t('Vault tabs','Tab koleksi')}>
@@ -582,7 +588,7 @@ export function Vault() {
           <span className="vault-tab-count">{slabsList.length}</span>
         </button>
 
-        <button
+        {gameSlug !== 'pokemon' && <button
           type="button"
           className={`vault-tab-btn ${activeTab === 'sets' ? 'is-active' : ''}`}
           onClick={() => setActiveTab('sets')}
@@ -590,7 +596,7 @@ export function Vault() {
           <Layers3 size={16} />
           {t('Sets','Set')}
           <span className="vault-tab-count">{setProgressList.length}</span>
-        </button>
+        </button>}
 
         <button
           type="button"
@@ -632,6 +638,8 @@ export function Vault() {
             onChangeViewMode={handleViewModeChange}
             totalFilteredCount={filteredStackCount}
             language={language}
+            gameSlug={gameSlug}
+            cardsInVault={enrichedItems.map(item=>item.card)}
           />
 
           {filteredCollectionItems.length === 0 ? (
@@ -754,6 +762,7 @@ export function Vault() {
         onItemAdded={refresh}
         isAnonymous={!data}
         language={language}
+        gameSlug={gameSlug}
       />
 
       <AddEditItemModal

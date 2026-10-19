@@ -118,7 +118,7 @@ body { font-family:var(--game-font); }
 .card-viewer-backdrop.is-flying .viewer-nav { opacity:0; pointer-events:none; }
 .card-viewer.is-flying { opacity:0; pointer-events:none; animation:none; }
 .effect-keyword { display:inline-block; margin:0 .15em 0 0; padding:.08em .42em .12em; border-radius:.28em; background:#5f6d7c; box-shadow:inset 0 -1px #384653; color:#fff; font:800 .83em/1.1 var(--game-font,Arial,sans-serif); letter-spacing:.01em; vertical-align:baseline; }
-.effect-keyword-rush,.effect-keyword-blocker { padding-right:.66em; padding-left:.66em; border-radius:0; background:#e58322; box-shadow:inset 0 -1px #94430b; clip-path:polygon(.38em 0,calc(100% - .38em) 0,100% 50%,calc(100% - .38em) 100%,.38em 100%,0 50%); }
+.effect-keyword-rush,.effect-keyword-blocker,.effect-keyword-banish,.effect-keyword-double-attack { padding-right:.66em; padding-left:.66em; border-radius:0; background:#e58322; box-shadow:inset 0 -1px #94430b; clip-path:polygon(.38em 0,calc(100% - .38em) 0,100% 50%,calc(100% - .38em) 100%,.38em 100%,0 50%); }
 .effect-keyword-when-attacking,.effect-keyword-on-play,.effect-keyword-on-k-o,.effect-keyword-on-your-opponent-s-attack,.effect-keyword-your-turn,.effect-keyword-opponent-s-turn,.effect-keyword-end-of-your-turn,.effect-keyword-activate-main { background:#147aae; box-shadow:0 0 0 1px #fff,inset 0 -1px #0b4d72; }
 .effect-keyword-activate-main { background:#147aae; box-shadow:0 0 0 1px #fff,inset 0 -1px #0b4d72; }
 .effect-keyword-once-per-turn { background:#ce3a49; box-shadow:0 0 0 1px #fff,inset 0 -1px #82202d; }
