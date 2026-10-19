@@ -26,7 +26,7 @@ export async function tcgdexArtResponse(values: string | string[]) {
   } catch { /* Use the source if the cache is unavailable. */ }
 
   let upstream: Response;
-  try { upstream = await fetch(source, { headers: { Accept: 'image/avif,image/webp,image/png,image/*' } }); }
+  try { upstream = await fetch(source, { headers: { Accept: 'image/avif,image/webp,image/png,image/*' }, signal: AbortSignal.timeout(10_000) }); }
   catch { continue; }
   const contentType = upstream.headers.get('content-type')?.split(';')[0].toLowerCase() ?? '';
   if (!upstream.ok || !contentType.startsWith('image/')) continue;

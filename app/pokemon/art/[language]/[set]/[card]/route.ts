@@ -40,12 +40,6 @@ export async function GET(_request: Request, { params }: { params: Promise<{ lan
       if (/\.(?:png|webp|jpe?g)$/i.test(imageUrl)) candidates.push(imageUrl);
       else candidates.push(`${imageUrl}/high.webp`, `${imageUrl}/low.webp`);
     }
-    for (const lang of language === 'JP' ? ['ja', 'jp'] : [sourceLanguage]) {
-      for (const directory of [serieId ? `${lang}/${serieId}/${sourceSet}` : '', `${lang}/${sourceSet}`].filter(Boolean)) {
-        candidates.push(`https://assets.tcgdex.net/${directory}/${encodeURIComponent(localId)}/high.webp`);
-        candidates.push(`https://assets.tcgdex.net/${directory}/${encodeURIComponent(localId)}/low.webp`);
-      }
-    }
     if (language === 'ID' || language === 'JP') {
       const safeSetCodes = [...new Set([sourceSet, sourceSet.toUpperCase(), sourceSet.toLowerCase()])]
         .filter(value => /^[a-z0-9_-]{1,40}$/i.test(value));
@@ -54,6 +48,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ lan
       if (safeNumber && safeTotal) {
         const prefix = language === 'JP' ? 'jp/' : '';
         for (const code of safeSetCodes) candidates.push(`https://cdn.pokepedia.id/${prefix}${encodeURIComponent(code)}/${encodeURIComponent(`${safeNumber}_${safeTotal}.webp`)}`);
+      }
+    }
+    for (const lang of language === 'JP' ? ['ja', 'jp'] : [sourceLanguage]) {
+      for (const directory of [serieId ? `${lang}/${serieId}/${sourceSet}` : '', `${lang}/${sourceSet}`].filter(Boolean)) {
+        candidates.push(`https://assets.tcgdex.net/${directory}/${encodeURIComponent(localId)}/high.webp`);
+        candidates.push(`https://assets.tcgdex.net/${directory}/${encodeURIComponent(localId)}/low.webp`);
       }
     }
     return tcgdexArtResponse(candidates);

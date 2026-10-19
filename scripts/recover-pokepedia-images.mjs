@@ -12,7 +12,7 @@ if (!languages.length) throw new Error('Choose ID and/or JP in POKEPEDIA_RECOVER
 const jobs = [];
 for (const language of languages) {
   for (let offset = 0; ; offset += pageSize) {
-    const params = new URLSearchParams({ game: 'pokemon', language, missingImages: '1', limit: String(pageSize), offset: String(offset), sort: 'number' });
+    const params = new URLSearchParams({ game: 'pokemon', language, missingImages: '1', limit: String(pageSize), offset: String(offset), sort: 'latest' });
     const response = await fetch(`${origin}/api/cards/catalog?${params}`, { headers: { accept: 'application/json' } });
     if (!response.ok) throw new Error(`Could not read ${language} catalog page at offset ${offset} (${response.status}).`);
     const body = await response.json();
@@ -57,7 +57,7 @@ await Promise.all(Array.from({ length: Math.min(concurrency, selected.length) },
     try { await recover(job); }
     catch (error) { failed++; failures.push({ language: job.language, set: job.set, number: job.number, reason: error instanceof Error ? error.message : 'Request failed' }); }
     const completed = recovered + unavailable + failed;
-    if (completed % 100 === 0 || completed === selected.length) console.log(JSON.stringify({ completed, total: selected.length, recovered, unavailable, failed }));
+    if (completed % 25 === 0 || completed === selected.length) console.log(JSON.stringify({ completed, total: selected.length, recovered, unavailable, failed }));
   }
 }));
 console.log(JSON.stringify({ recovered, unavailable, failed, examples: failures.slice(0, 20) }));
