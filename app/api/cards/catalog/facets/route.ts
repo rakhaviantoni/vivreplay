@@ -23,7 +23,7 @@ export async function GET(request: Request) {
   try {
     const db = database();
     const game = await db.prepare('SELECT id FROM tcg_games WHERE slug=? LIMIT 1').bind(gameSlug).first<{ id: string }>();
-    if (!game) return Response.json({ rarities: [], illustrators: [], types: [], categories: [], stages: [] }, { headers: responseHeaders });
+    if (!game) return Response.json({ rarities: [], illustrators: [], types: [], categories: [], stages: [], attackEnergies: [], regulations: [], retreats: [], weaknesses: [], resistances: [] }, { headers: responseHeaders });
     const { results } = await db.prepare(`
       SELECT DISTINCT p.rarity
       FROM tcg_card_printings p
@@ -69,12 +69,52 @@ export async function GET(request: Request) {
         AND trim(json_extract(p.source_payload, '$.stage'))!=''
       ORDER BY stage COLLATE NOCASE
     `).bind(game.id, language).all<{ stage: string }>();
+    const attackEnergies = await db.prepare(`
+      SELECT DISTINCT trim(energy.value) AS energy
+      FROM tcg_card_printings p JOIN tcg_card_identities i ON i.id=p.identity_id
+      JOIN json_each(p.source_payload, '$.attacks') attack JOIN json_each(attack.value, '$.cost') energy
+      WHERE i.game_id=? AND p.language=? AND json_valid(p.source_payload)
+      ORDER BY energy COLLATE NOCASE
+    `).bind(game.id, language).all<{ energy: string }>();
+    const regulations = await db.prepare(`
+      SELECT DISTINCT trim(json_extract(p.source_payload, '$.regulationMark')) AS regulation
+      FROM tcg_card_printings p JOIN tcg_card_identities i ON i.id=p.identity_id
+      WHERE i.game_id=? AND p.language=? AND json_valid(p.source_payload)
+        AND json_type(p.source_payload, '$.regulationMark')='text'
+      ORDER BY regulation COLLATE NOCASE
+    `).bind(game.id, language).all<{ regulation: string }>();
+    const retreats = await db.prepare(`
+      SELECT DISTINCT CAST(json_extract(p.source_payload, '$.retreat') AS INTEGER) AS retreat
+      FROM tcg_card_printings p JOIN tcg_card_identities i ON i.id=p.identity_id
+      WHERE i.game_id=? AND p.language=? AND json_valid(p.source_payload)
+        AND json_type(p.source_payload, '$.retreat') IN ('integer','real')
+      ORDER BY retreat
+    `).bind(game.id, language).all<{ retreat: number }>();
+    const weaknesses = await db.prepare(`
+      SELECT DISTINCT trim(json_extract(weakness.value, '$.type')) AS type
+      FROM tcg_card_printings p JOIN tcg_card_identities i ON i.id=p.identity_id
+      JOIN json_each(p.source_payload, '$.weaknesses') weakness
+      WHERE i.game_id=? AND p.language=? AND json_valid(p.source_payload)
+      ORDER BY type COLLATE NOCASE
+    `).bind(game.id, language).all<{ type: string }>();
+    const resistances = await db.prepare(`
+      SELECT DISTINCT trim(json_extract(resistance.value, '$.type')) AS type
+      FROM tcg_card_printings p JOIN tcg_card_identities i ON i.id=p.identity_id
+      JOIN json_each(p.source_payload, '$.resistances') resistance
+      WHERE i.game_id=? AND p.language=? AND json_valid(p.source_payload)
+      ORDER BY type COLLATE NOCASE
+    `).bind(game.id, language).all<{ type: string }>();
     const body = {
       rarities: results.map(row => row.rarity),
       illustrators: illustrators.results.map(row => row.illustrator),
       types: types.results.map(row => row.type),
       categories: categories.results.map(row => row.category),
       stages: stages.results.map(row => row.stage),
+      attackEnergies: attackEnergies.results.map(row => row.energy),
+      regulations: regulations.results.map(row => row.regulation),
+      retreats: retreats.results.map(row => String(row.retreat)),
+      weaknesses: weaknesses.results.map(row => row.type),
+      resistances: resistances.results.map(row => row.type),
     };
     try { await env.CARD_IMAGES?.put(key, JSON.stringify(body), { httpMetadata: { contentType: 'application/json; charset=utf-8', cacheControl: 'public, max-age=86400' } }); }
     catch { /* Keep the facet list available when snapshots cannot be written. */ }

@@ -5,7 +5,7 @@ import {SaveListingButton,WishlistButton} from './market-saved';
 import {MarketReputation} from './market-reputation';
 import {usePathname,useRouter} from 'next/navigation';
 import {useCallback,useEffect,useMemo,useRef,useState,type FormEvent} from 'react';
-import {ArrowClockwiseIcon as Renew,ArrowLeftIcon, CheckIcon as Check, InfoIcon as Info, ListIcon as List, MinusIcon as Minus, PlusIcon as Plus, ShoppingCartIcon as Cart, SquaresFourIcon as Grid, TruckIcon as Truck, XIcon as X} from '@phosphor-icons/react';
+import {ArrowClockwiseIcon as Renew,ArrowLeftIcon, ArrowUpIcon, ArrowDownIcon, DotsSixVerticalIcon, CheckIcon as Check, InfoIcon as Info, ListIcon as List, MinusIcon as Minus, PlusIcon as Plus, ShoppingCartIcon as Cart, SquaresFourIcon as Grid, TruckIcon as Truck, XIcon as X} from '@phosphor-icons/react';
 import type {Card} from '@/packages/card-data/catalog';
 import {formatMoney,Listing} from '@/packages/domain';
 import {CardArt} from './card-art';
@@ -418,12 +418,13 @@ export function ListingArtRotator({items}:{items:MarketListingCard[]}){
   </div>;
 }
 
-export function MarketListingItems({items,currency,listingType,listingId,listingTitle,listingInfo,negotiable=true,readOnly=false,previewOnly=false,canEditPrices=false,canManageListing=false,onItemsAdded,onPriceSaved}:{items:MarketListingCard[];currency:string;listingType:'WTS'|'WTB';listingId:string;listingTitle?:string;listingInfo?:{seller?:string;city?:string;expiresAt?:string};listingAmount?:string;negotiable?:boolean;readOnly?:boolean;previewOnly?:boolean;canEditPrices?:boolean;canManageListing?:boolean;onItemsAdded?:(cards:MarketListingCard[])=>void;onPriceSaved?:(index:number,unitAmount:number)=>void;}){
+export function MarketListingItems({items,currency,listingType,listingId,listingTitle,listingInfo,negotiable=true,readOnly=false,previewOnly=false,canEditPrices=false,canManageListing=false,reordering=false,onItemsAdded,onPriceSaved,onReorder}:{items:MarketListingCard[];currency:string;listingType:'WTS'|'WTB';listingId:string;listingTitle?:string;listingInfo?:{seller?:string;city?:string;expiresAt?:string};listingAmount?:string;negotiable?:boolean;readOnly?:boolean;previewOnly?:boolean;canEditPrices?:boolean;canManageListing?:boolean;reordering?:boolean;onItemsAdded?:(cards:MarketListingCard[])=>void;onPriceSaved?:(index:number,unitAmount:number)=>void;onReorder?:(cards:MarketListingCard[])=>void;}){
   const router=useRouter();
   const availableFor=(item:MarketListingCard)=>readOnly?item.quantity:(item.availableQuantity??item.quantity);
   const singleCopyListing=items.length===1&&availableFor(items[0])===1;
   const [selected,setSelected]=useState<Record<string,number>>(()=>singleCopyListing?{[items[0].id]:1}:{});
   const [cardsView,setCardsView]=useState<'grid'|'list'>('grid');
+  const [draggingIndex,setDraggingIndex]=useState<number|null>(null);
   const [customPrices,setCustomPrices]=useState<Record<string,number>>({});
   const [preview,setPreview]=useState<Card>();
   const [previewPrintingId,setPreviewPrintingId]=useState<string>();
@@ -633,7 +634,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
         const stackQuantity=Math.min(4,Math.max(1,Math.min(item.quantity,availableQuantity+(item.heldQuantity??0))));
         const unitPrice=getUnitPrice(item);
         const diffPercent=item.unitAmount>0?Math.round(((unitPrice-item.unitAmount)/item.unitAmount)*100):0;
-        return <article className={`deck-card-stack market-listing-card ${availableQuantity>1?'has-printing-stack':''} ${amount?'is-selected':''} ${availableQuantity===0?'is-unavailable':''}`} key={item.id}>
+        return <article className={`deck-card-stack market-listing-card ${availableQuantity>1?'has-printing-stack':''} ${amount?'is-selected':''} ${availableQuantity===0?'is-unavailable':''} ${draggingIndex===index?'is-reordering':''}`} key={`${item.instanceId??item.id}-${index}`} onDragOver={event=>{if(canManageListing&&listingType==='WTS'&&draggingIndex!==null)event.preventDefault()}} onDrop={event=>{if(!canManageListing||listingType!=='WTS'||draggingIndex===null)return;event.preventDefault();const next=[...items];const [moved]=next.splice(draggingIndex,1);next.splice(index,0,moved);setDraggingIndex(null);if(next.some((entry,position)=>entry!==items[position]))onReorder?.(next)}}>
           <div className="card-stage printing-stack deck-printing-stack market-listing-card-stage">
             {Array.from({length:Math.min(stackQuantity,4)},(_,index)=>(
               <div className="stacked-printing" style={{'--stack-index':index} as React.CSSProperties} key={index}>
@@ -675,6 +676,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
           </div>
           <div className="market-listing-card-copy">
             <strong>{item.card.name}</strong>
+            {canManageListing&&listingType==='WTS'&&items.length>1&&<div className="market-listing-order-tools" aria-label={language==='ID'?'Urutan kartu listing':'Listing card order'} aria-busy={reordering}><button type="button" className="market-listing-drag-handle" draggable={!reordering} disabled={reordering} aria-label={language==='ID'?`Pindahkan ${item.card.name}`:`Reorder ${item.card.name}`} title={language==='ID'?'Seret untuk mengubah urutan':'Drag to reorder'} onDragStart={event=>{event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('text/plain',String(index));setDraggingIndex(index)}} onDragEnd={()=>setDraggingIndex(null)}><DotsSixVerticalIcon size={16}/></button><button type="button" aria-label={language==='ID'?`Pindahkan ${item.card.name} ke atas`:`Move ${item.card.name} up`} title={language==='ID'?'Pindah ke atas':'Move up'} disabled={reordering||index===0} onClick={()=>{const next=[...items];next.splice(index-1,0,next.splice(index,1)[0]);onReorder?.(next)}}><ArrowUpIcon size={14}/></button><button type="button" aria-label={language==='ID'?`Pindahkan ${item.card.name} ke bawah`:`Move ${item.card.name} down`} title={language==='ID'?'Pindah ke bawah':'Move down'} disabled={reordering||index===items.length-1} onClick={()=>{const next=[...items];next.splice(index+1,0,next.splice(index,1)[0]);onReorder?.(next)}}><ArrowDownIcon size={14}/></button></div>}
             <small className="market-card-meta"><span>{item.card.code}</span><span>{item.card.rarity}</span><span>{item.language}</span></small>
             <p className="market-listing-card-condition"><span>{item.condition}</span>{!readOnly&&!singleCopyListing&&availableQuantity>0&&<em>{amount}/{availableQuantity} {t('selected','dipilih')}</em>}{item.heldQuantity? <em>{item.heldQuantity} {t('reserved','dipesan')}</em>:null}</p>
             <div className="market-listing-card-unit-price" aria-label={item.unitAmount>0?`${formatMoney(item.unitAmount,currency)} ${t('per card','per kartu')}: ${item.card.name}`:t('Price not set','Harga belum diatur')} title={item.unitAmount>0?`${formatMoney(item.unitAmount,currency)} ${t('per card','per kartu')}`:t('Price not set','Harga belum diatur')}>{canEditPrices?<MarketListingUnitPriceEdit listingId={listingId} title={listingTitle||''} listingType={listingType} cards={items.map(entry=>({printingId:entry.id,name:entry.card.name,quantity:entry.quantity,unitAmount:entry.unitAmount}))} cardIndex={index} currency={currency} language={language} onSaved={unitAmount=>onPriceSaved?.(index,unitAmount)}><span>{item.unitAmount>0?formatMoney(item.unitAmount,currency):t('Set price','Atur harga')}</span></MarketListingUnitPriceEdit>:item.unitAmount>0?formatMoney(item.unitAmount,currency):t('Price not set','Harga belum diatur')}</div>
@@ -859,6 +861,7 @@ export function MarketListingDetailView({
   const [status, setStatus] = useState<string>(['SOLD','SOLD_PENDING'].includes(initialStatus)?initialStatus:initialStatus==='CLOSED'?'CLOSED':initialExpired?'EXPIRED':initialStatus);
   const [renewing, setRenewing] = useState(false);
   const [closing, setClosing] = useState(false);
+  const [reorderingCards, setReorderingCards] = useState(false);
   const [previewRole, setPreviewRole] = useState<'buyer'|'seller'>(listing.type==='WTB'?'buyer':'seller');
 
   useEffect(() => {
@@ -870,6 +873,20 @@ export function MarketListingDetailView({
   }, []);
 
   const t = (en: string, idStr: string) => language === 'ID' ? idStr : en;
+  const saveCardOrder=async(nextCards:MarketListingCard[])=>{
+    if(reorderingCards)return;
+    const order=nextCards.map(card=>editableCards.indexOf(card));
+    if(order.some(index=>index<0)||new Set(order).size!==editableCards.length)return;
+    setReorderingCards(true);
+    try{
+      const response=await fetch(`/api/listings/${encodeURIComponent(listing.id)}`,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({action:'reorder-items',order})});
+      const result=await response.json() as {error?:string};
+      if(!response.ok)throw new Error(result.error||t('Card order could not be saved.','Urutan kartu tidak dapat disimpan.'));
+      setEditableCards(nextCards);
+      toast.success(t('Card order saved.','Urutan kartu disimpan.'));
+    }catch(error){toast.error(error instanceof Error?error.message:t('Card order could not be saved.','Urutan kartu tidak dapat disimpan.'))}
+    finally{setReorderingCards(false)}
+  };
   const isBuying = listing.type === 'WTB';
   const canPreviewAsBuyer = isOwner || isAdmin;
   const ownerRole = isBuying?'buyer':'seller';
@@ -1007,7 +1024,9 @@ export function MarketListingDetailView({
               readOnly={ownerView||isExpired}
               previewOnly={counterpartyPreview}
               canManageListing={canEditListing}
+              reordering={reorderingCards}
               onItemsAdded={setEditableCards}
+              onReorder={next=>void saveCardOrder(next)}
               canEditPrices={canEditListing&&editableCards.length>1}
               onPriceSaved={(index,unitAmount)=>{setEditableCards(current=>current.map((item,currentIndex)=>currentIndex===index?{...item,unitAmount}:item));setListingAmount(current=>current+(unitAmount-editableCards[index].unitAmount)*editableCards[index].quantity)}}
             />

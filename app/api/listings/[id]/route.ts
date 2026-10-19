@@ -34,6 +34,23 @@ export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}){
     const p=await user();
     const {id}=await params;
     const body=await req.json() as {action?:unknown;amount?:unknown;prices?:unknown;title?:unknown;negotiable?:unknown};
+    if(body.action==='reorder-items'){
+      const input=z.object({action:z.literal('reorder-items'),order:z.array(z.number().int().min(0).max(MARKET_MAX_LISTING_COPIES-1)).min(2).max(MARKET_MAX_LISTING_COPIES)}).parse(body);
+      const d=db();
+      const listing=await d.prepare("SELECT items FROM listings WHERE id=? AND seller_id=? AND type='WTS' AND status IN ('ACTIVE','PAUSED')").bind(id,p.id).first<{items:string|null}>();
+      if(!listing)throw new HttpError(404,'Listing not found or unavailable to edit.');
+      let entries:Array<Record<string,unknown>>=[];
+      try{const parsed=JSON.parse(listing.items||'[]') as unknown;if(Array.isArray(parsed))entries=parsed as Array<Record<string,unknown>>}catch{}
+      if(entries.length!==input.order.length||new Set(input.order).size!==entries.length||input.order.some(index=>index>=entries.length))throw new HttpError(409,'The listing cards changed. Refresh and try again.');
+      const openCheckout=await d.prepare(`SELECT 1 AS found FROM checkout_orders o,json_each(o.items) j WHERE (json_extract(j.value,'$.listingId')=? OR (json_extract(j.value,'$.listingId') IS NULL AND o.listing_id=?)) AND o.status IN ('PENDING_PAYMENT','PROCESSING') AND (o.expires_at IS NULL OR o.expires_at>CURRENT_TIMESTAMP) LIMIT 1`).bind(id,id).first<{found:number}>();
+      if(openCheckout)throw new HttpError(409,'Cards cannot be reordered while a buyer is checking out. Try again after checkout closes.');
+      const reordered=JSON.stringify(input.order.map(index=>entries[index]));
+      const changed=await d.prepare(`UPDATE listings SET items=? WHERE id=? AND seller_id=? AND type='WTS' AND status IN ('ACTIVE','PAUSED') AND (items=? OR (items IS NULL AND ? IS NULL))
+        AND NOT EXISTS(SELECT 1 FROM checkout_orders o,json_each(o.items) j WHERE (json_extract(j.value,'$.listingId')=? OR (json_extract(j.value,'$.listingId') IS NULL AND o.listing_id=?)) AND o.status IN ('PENDING_PAYMENT','PROCESSING') AND (o.expires_at IS NULL OR o.expires_at>CURRENT_TIMESTAMP))`).bind(reordered,id,p.id,listing.items,listing.items,id,id).run();
+      if(!changed.meta.changes)throw new HttpError(409,'The listing changed. Refresh and try again.');
+      after(()=>notifyListingWatchers(id));
+      return Response.json({ok:true,id});
+    }
     if(body.action==='add-items'){
       const input=addItemsSchema.parse(body);
       const d=db();

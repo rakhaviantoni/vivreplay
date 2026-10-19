@@ -39,13 +39,14 @@ let recovered = 0;
 let unavailable = 0;
 let failed = 0;
 const failures = [];
+const unavailableCards = [];
 async function recover(job) {
   const wait = Math.max(0, nextStartAt - Date.now());
   nextStartAt = Math.max(nextStartAt, Date.now()) + delayMs;
   if (wait) await new Promise(resolve => setTimeout(resolve, wait));
   const response = await fetch(job.url, { headers: { accept: 'image/webp,image/*;q=0.8' }, signal: AbortSignal.timeout(45_000) });
   const contentType = response.headers.get('content-type')?.split(';')[0].toLowerCase() ?? '';
-  if (response.status === 404) { unavailable++; return; }
+  if (response.status === 404) { unavailable++; unavailableCards.push({ language: job.language, set: job.set, number: job.number, id: job.id }); return; }
   if (!response.ok || !contentType.startsWith('image/')) throw new Error(`Proxy returned ${response.status} (${contentType || 'no image content type'}).`);
   await response.arrayBuffer();
   recovered++;
@@ -55,10 +56,10 @@ await Promise.all(Array.from({ length: Math.min(concurrency, selected.length) },
   while (cursor < selected.length) {
     const job = selected[cursor++];
     try { await recover(job); }
-    catch (error) { failed++; failures.push({ language: job.language, set: job.set, number: job.number, reason: error instanceof Error ? error.message : 'Request failed' }); }
+    catch (error) { failed++; failures.push({ language: job.language, set: job.set, number: job.number, id: job.id, reason: error instanceof Error ? error.message : 'Request failed' }); }
     const completed = recovered + unavailable + failed;
     if (completed % 25 === 0 || completed === selected.length) console.log(JSON.stringify({ completed, total: selected.length, recovered, unavailable, failed }));
   }
 }));
-console.log(JSON.stringify({ recovered, unavailable, failed, examples: failures.slice(0, 20) }));
+console.log(JSON.stringify({ recovered, unavailable, failed, unavailableCards, failures }));
 if (failed) process.exitCode = 1;

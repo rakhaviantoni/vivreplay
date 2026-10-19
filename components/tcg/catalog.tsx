@@ -15,7 +15,7 @@ import {versionedCardCatalogUrl} from '@/lib/card-catalog-cache';
 import {cardMatchesSearch,parseCardSearch} from '@/lib/card-search';
 
 type LibraryCard = Card & {setCode:string;setName:string;attribute:string;counter:number;block:string;keywords:string[];traits:string[];variant:string;printingCode:string};
-type FilterOption = string | {value:string;label:string};
+type FilterOption = string | {value:string;label:string;image?:string;group?:string};
 export type CatalogSetInfo={name?:string;set_kind?:string;release_date?:string|null;description?:string|null;official_url?:string|null;product_image_url?:string|null};
 
 export function normalizeSetCode(code:string){return code.trim().toUpperCase().replace(/[-_\s]/g,'')}
@@ -60,12 +60,13 @@ export function Picker({value,onChange,options,label,leadingIcon}:{value:string;
 }
 
 export function MultiFilter({label,values,selected,onToggle,searchPlaceholder}:{label:string;values:FilterOption[];selected:string[];onToggle:(value:string)=>void;searchPlaceholder?:string}) {
-  const [open,setOpen]=useState(false); const [query,setQuery]=useState(''); const ref=useRef<HTMLDivElement>(null); const colour=label==='Colour'||label==='Warna'; const searchable=['Set','Archetype','Arketipe','Illustrator','Ilustrator','Rarity','Kelangkaan','Type','Tipe','Stage','Tahap'].includes(label);
+  const [open,setOpen]=useState(false); const [query,setQuery]=useState(''); const ref=useRef<HTMLDivElement>(null); const colour=label==='Colour'||label==='Warna'; const searchable=['Set','Archetype','Arketipe','Illustrator','Ilustrator','Rarity','Kelangkaan','Type','Tipe','Stage','Tahap','Attack energy','Energi serangan','Weakness','Kelemahan','Resistance','Resistansi'].includes(label);
   const matches=values.filter(item=>{const option=typeof item==='string'?{value:item,label:item}:item;return option.label.toLowerCase().includes(query.toLowerCase())||option.value.toLowerCase().includes(query.toLowerCase())});
+  const matchGroups=new Map<string,FilterOption[]>();matches.forEach(item=>{const option=typeof item==='string'?{value:item,label:item}:item;const group=option.group??'';matchGroups.set(group,[...(matchGroups.get(group)??[]),item])});
   useEffect(()=>{const close=(event:PointerEvent)=>{if(!ref.current?.contains(event.target as Node))setOpen(false)};const escape=(event:KeyboardEvent)=>{if(event.key==='Escape')setOpen(false)};document.addEventListener('pointerdown',close);document.addEventListener('keydown',escape);return()=>{document.removeEventListener('pointerdown',close);document.removeEventListener('keydown',escape)}},[]);
   return <div ref={ref} className={`filter-menu ${open?'is-open':''} ${selected.length?'has-selection':''} ${colour?'colour-menu':''} ${label==='Set'?'set-menu':''}`}>
     <button type="button" className="filter-trigger" aria-expanded={open} onClick={()=>setOpen(value=>!value)}>{label}{selected.length>0&&<b>{selected.length}</b>}<ChevronDown size={14}/></button>
-    {open&&<div className="filter-options">{searchable&&<label className="filter-option-search"><Search size={14}/><input value={query} onChange={event=>setQuery(event.target.value)} placeholder={searchPlaceholder??`Find an ${label.toLowerCase()}`} autoFocus/></label>}{matches.map(item=>{const option=typeof item==='string'?{value:item,label:item}:item;return <button type="button" key={option.value} onClick={()=>onToggle(option.value)} aria-pressed={selected.includes(option.value)}>{!colour&&selected.includes(option.value)&&<Check size={14}/>} {colour&&<i className="filter-colour" style={{background:colors[option.value]}}/>}<span>{option.label}</span></button>})}</div>}
+    {open&&<div className="filter-options">{searchable&&<label className="filter-option-search"><Search size={14}/><input value={query} onChange={event=>setQuery(event.target.value)} placeholder={searchPlaceholder??`Find an ${label.toLowerCase()}`} autoFocus/></label>}{[...matchGroups].map(([group,items])=><div className="filter-option-group" key={group||'ungrouped'}>{group&&<strong>{group}</strong>}{items.map(item=>{const option=typeof item==='string'?{value:item,label:item}:item;return <button type="button" key={option.value} onClick={()=>onToggle(option.value)} aria-pressed={selected.includes(option.value)}>{option.image&&<img className="filter-option-image" src={option.image} alt="" loading="lazy" onError={event=>{event.currentTarget.hidden=true}}/>}{!colour&&selected.includes(option.value)&&<Check size={14}/>} {colour&&<i className="filter-colour" style={{background:colors[option.value]}}/>}<span>{option.label}</span></button>})}</div>)}</div>}
   </div>;
 }
 

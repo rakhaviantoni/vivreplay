@@ -44,7 +44,7 @@ function parseJson(value: unknown) {
   try { return JSON.parse(value); } catch { return value; }
 }
 
-async function fromD1(gameSlug: string, language: string, identityCode?: string, setCodes: string[] = [], limit?: number, offset = 0, printingIds?: string[],identityCodes?:string[],identityIds?:string[],query?:string,rarities:string[] = [],illustrators:string[] = [],types:string[] = [],categories:string[] = [],stages:string[] = [],sort='latest',missingImages=false) {
+async function fromD1(gameSlug: string, language: string, identityCode?: string, setCodes: string[] = [], limit?: number, offset = 0, printingIds?: string[],identityCodes?:string[],identityIds?:string[],query?:string,rarities:string[] = [],illustrators:string[] = [],types:string[] = [],categories:string[] = [],stages:string[] = [],sort='latest',missingImages=false,attackEnergies:string[]=[],regulations:string[]=[],minHp?:number,maxHp?:number,retreats:string[]=[],weaknesses:string[]=[],resistances:string[]=[],illustratorQuery?:string) {
   const db = database();
   const selectedGame = await db.prepare('SELECT id FROM tcg_games WHERE slug=? LIMIT 1').bind(gameSlug).first<{ id: string }>();
   if (!selectedGame) return [];
@@ -79,9 +79,17 @@ async function fromD1(gameSlug: string, language: string, identityCode?: string,
   }
   if (rarities.length) { predicates.push(`LOWER(p.rarity) IN (${rarities.map(()=>'?').join(',')})`); values.push(...rarities.map(value=>value.toLocaleLowerCase())); }
   if (illustrators.length) { predicates.push(`(${illustrators.map(()=>`LOWER(COALESCE(p.source_payload,'')) LIKE ?`).join(' OR ')})`); values.push(...illustrators.map(value=>`%${value.toLocaleLowerCase()}%`)); }
+  if (illustratorQuery) { predicates.push("LOWER(COALESCE(json_extract(p.source_payload, '$.illustrator'),'')) LIKE ?"); values.push(`%${illustratorQuery.toLocaleLowerCase()}%`); }
   if (types.length) { predicates.push(`EXISTS (SELECT 1 FROM json_each(p.source_payload, '$.types') pokemon_type WHERE LOWER(pokemon_type.value) IN (${types.map(()=>'?').join(',')}))`); values.push(...types.map(value=>value.toLocaleLowerCase())); }
   if (categories.length) { predicates.push(`LOWER(json_extract(p.source_payload, '$.category')) IN (${categories.map(()=>'?').join(',')})`); values.push(...categories.map(value=>value.toLocaleLowerCase())); }
   if (stages.length) { predicates.push(`LOWER(json_extract(p.source_payload, '$.stage')) IN (${stages.map(()=>'?').join(',')})`); values.push(...stages.map(value=>value.toLocaleLowerCase())); }
+  if (attackEnergies.length) { predicates.push(`EXISTS (SELECT 1 FROM json_each(p.source_payload, '$.attacks') attack JOIN json_each(attack.value, '$.cost') energy WHERE LOWER(energy.value) IN (${attackEnergies.map(()=>'?').join(',')}))`); values.push(...attackEnergies.map(value=>value.toLocaleLowerCase())); }
+  if (regulations.length) { predicates.push(`UPPER(json_extract(p.source_payload, '$.regulationMark')) IN (${regulations.map(()=>'?').join(',')})`); values.push(...regulations.map(value=>value.toUpperCase())); }
+  if (minHp !== undefined) { predicates.push('CAST(json_extract(p.source_payload, \'$.hp\') AS INTEGER)>=?'); values.push(minHp); }
+  if (maxHp !== undefined) { predicates.push('CAST(json_extract(p.source_payload, \'$.hp\') AS INTEGER)<=?'); values.push(maxHp); }
+  if (retreats.length) { predicates.push(`CAST(json_extract(p.source_payload, '$.retreat') AS INTEGER) IN (${retreats.map(()=>'?').join(',')})`); values.push(...retreats.map(Number)); }
+  if (weaknesses.length) { predicates.push(`EXISTS (SELECT 1 FROM json_each(p.source_payload, '$.weaknesses') weakness WHERE UPPER(json_extract(weakness.value, '$.type')) IN (${weaknesses.map(()=>'?').join(',')}))`); values.push(...weaknesses.map(value=>value.toUpperCase())); }
+  if (resistances.length) { predicates.push(`EXISTS (SELECT 1 FROM json_each(p.source_payload, '$.resistances') resistance WHERE UPPER(json_extract(resistance.value, '$.type')) IN (${resistances.map(()=>'?').join(',')}))`); values.push(...resistances.map(value=>value.toUpperCase())); }
   if (missingImages) predicates.push("NULLIF(p.card_image_url,'') IS NULL AND NULLIF(a.object_key,'') IS NULL");
   const pagination = limit ? 'LIMIT ? OFFSET ?' : '';
   if (limit) values.push(limit, offset);
@@ -175,12 +183,21 @@ export async function GET(request: Request) {
   const types = [...new Set(params.getAll('type').map(value=>value.trim().slice(0,30)).filter(value=>/^[\p{L}\p{N} .'-]+$/u.test(value)))];
   const categories = [...new Set(params.getAll('category').map(value=>value.trim().slice(0,30)).filter(value=>/^[\p{L}\p{N} .'-]+$/u.test(value)))];
   const stages = [...new Set(params.getAll('stage').map(value=>value.trim().slice(0,30)).filter(value=>/^[\p{L}\p{N} .'-]+$/u.test(value)))];
+  const attackEnergies = [...new Set(params.getAll('attackEnergy').map(value=>value.trim().slice(0,20)).filter(value=>/^[\p{L} -]+$/u.test(value)))];
+  const regulations = [...new Set(params.getAll('regulation').map(value=>value.trim().slice(0,4).toUpperCase()).filter(value=>/^[A-Z]$/.test(value)))];
+  const rangeValue=(key:string)=>{const value=Number(params.get(key));return Number.isFinite(value)&&value>=0&&value<=999?Math.floor(value):undefined};
+  const minHp=rangeValue('minHp'),maxHp=rangeValue('maxHp');
+  const retreats = [...new Set(params.getAll('retreat').map(value=>value.trim()).filter(value=>/^[0-6]$/.test(value)))];
+  const weaknesses = [...new Set(params.getAll('weakness').map(value=>value.trim().slice(0,20)).filter(value=>/^[\p{L} -]+$/u.test(value)))];
+  const resistances = [...new Set(params.getAll('resistance').map(value=>value.trim().slice(0,20)).filter(value=>/^[\p{L} -]+$/u.test(value)))];
+  const illustratorQueryRaw=params.get('illustratorQ')?.trim().slice(0,80);
+  const illustratorQuery=illustratorQueryRaw&&illustratorQueryRaw.length>=2?illustratorQueryRaw:undefined;
   const requestedSort = params.get('sort') ?? 'latest';
   const sort = ['latest','name','number','rarity','hp'].includes(requestedSort) ? requestedSort : 'latest';
   const missingImages = params.get('missingImages') === '1' && gameSlug === 'pokemon' && ['ID','JP'].includes(language);
   const resultLimit = missingImages ? Math.min(limit ?? 250, 250) : limit;
   const snapshotKey = `catalog-snapshots/cards-${gameSlug}-${language.toLowerCase()}-${CARD_CATALOG_CACHE_REVISION}.json`;
-  const snapshotEligible = !missingImages && !printingIds && !identityCodes && !identityIds && !identityCode && !setCodes.length && !query && !rarities.length && !illustrators.length && !types.length && !categories.length && !stages.length && sort === 'latest' && !limit && offset === 0;
+  const snapshotEligible = !missingImages && !printingIds && !identityCodes && !identityIds && !identityCode && !setCodes.length && !query && !illustratorQuery && !rarities.length && !illustrators.length && !types.length && !categories.length && !stages.length && !attackEnergies.length && !regulations.length && minHp===undefined && maxHp===undefined && !retreats.length && !weaknesses.length && !resistances.length && sort === 'latest' && !limit && offset === 0;
   if (snapshotEligible) {
     try {
       const snapshot = await env.CARD_IMAGES?.get(snapshotKey);
@@ -196,7 +213,7 @@ export async function GET(request: Request) {
     }
   }
   let cards: Record<string, unknown>[];
-  try { cards = await fromD1(gameSlug, language, identityCode, setCodes, printingIds||identityCodes||identityIds?undefined:resultLimit, offset, printingIds,identityCodes,identityIds,query,rarities,illustrators,types,categories,stages,sort,missingImages); }
+  try { cards = await fromD1(gameSlug, language, identityCode, setCodes, printingIds||identityCodes||identityIds?undefined:resultLimit, offset, printingIds,identityCodes,identityIds,query,rarities,illustrators,types,categories,stages,sort,missingImages,attackEnergies,regulations,minHp,maxHp,retreats,weaknesses,resistances,illustratorQuery); }
   catch { return Response.json({ error: 'Catalog is temporarily unavailable.' }, { status: 503 }); }
   const response = Response.json({ cards }, {
     headers: {

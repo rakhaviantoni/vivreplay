@@ -5,11 +5,11 @@ import { isPlayableSet } from '@/packages/domain/release-availability';
 import { CARD_CATALOG_CACHE_REVISION } from '@/lib/card-catalog-cache';
 import { env } from 'cloudflare:workers';
 
-type Row = { set_code: string | null; set_name: string | null; identity_id: string | null; variant: string | null; release_date?: string | null;description?:string|null;official_url?:string|null;product_image_url?:string|null };
-type SetSummary = { code: string; name: string; releaseYear: number; releaseDate?: string; mainSetTotal: number; parallelsTotal: number;description?:string;officialUrl?:string;productImageUrl?:string };
+type Row = { set_code: string | null; set_name: string | null; identity_id: string | null; variant: string | null; release_date?: string | null;description?:string|null;official_url?:string|null;product_image_url?:string|null;series?:string|null };
+type SetSummary = { code: string; name: string; releaseYear: number; releaseDate?: string; mainSetTotal: number; parallelsTotal: number;description?:string;officialUrl?:string;productImageUrl?:string;series?:string };
 
 function summarize(rows: Row[], gameSlug: string): SetSummary[] {
-  const sets = new Map<string, { code: string; name: string; releaseDate?: string;description?:string;officialUrl?:string;productImageUrl?:string; main: Set<string>; parallel: Set<string> }>();
+  const sets = new Map<string, { code: string; name: string; releaseDate?: string;description?:string;officialUrl?:string;productImageUrl?:string;series?:string; main: Set<string>; parallel: Set<string> }>();
   for (const row of rows) {
     const rawCode = String(row.set_code ?? '').trim();
     const code = rawCode.toUpperCase().replace(/[-_\s]/g, '')==='OP15'?'OP15-EB04':rawCode;
@@ -18,7 +18,7 @@ function summarize(rows: Row[], gameSlug: string): SetSummary[] {
     const key = code.toUpperCase().replace(/[-_\s]/g, '');
     let entry = sets.get(key);
     if (!entry) {
-      entry = { code, name: rawCode.toUpperCase().replace(/[-_\s]/g, '')==='OP15'?"Adventure on Kami's Island":String(row.set_name ?? code), releaseDate: row.release_date ?? undefined,description:row.description??undefined,officialUrl:row.official_url??undefined,productImageUrl:row.product_image_url??undefined, main: new Set(), parallel: new Set() };
+      entry = { code, name: rawCode.toUpperCase().replace(/[-_\s]/g, '')==='OP15'?"Adventure on Kami's Island":String(row.set_name ?? code), releaseDate: row.release_date ?? undefined,description:row.description??undefined,officialUrl:row.official_url??undefined,productImageUrl:row.product_image_url??undefined,series:row.series??undefined, main: new Set(), parallel: new Set() };
       sets.set(key, entry);
     }
     if(rawCode.toUpperCase().replace(/[-_\s]/g, '')==='OP15')entry.name="Adventure on Kami's Island";
@@ -29,7 +29,7 @@ function summarize(rows: Row[], gameSlug: string): SetSummary[] {
   const known = new Map(SETS_CATALOG.map(set => [set.code.toUpperCase().replace(/[-_\s]/g, ''), set]));
   return [...sets.values()].map(set => {
     const old = known.get(set.code.toUpperCase().replace(/[-_\s]/g, ''));
-    return { code: set.code, name: old?.name ?? set.name, releaseYear: old?.releaseYear ?? (Number(set.releaseDate?.slice(0, 4)) || 0), ...(set.releaseDate ? { releaseDate: set.releaseDate } : {}), mainSetTotal: set.main.size, parallelsTotal: set.parallel.size,...(set.description?{description:set.description}:{}),...(set.officialUrl?{officialUrl:set.officialUrl}:{}),...(set.productImageUrl?{productImageUrl:set.productImageUrl}:{}) };
+    return { code: set.code, name: old?.name ?? set.name, releaseYear: old?.releaseYear ?? (Number(set.releaseDate?.slice(0, 4)) || 0), ...(set.releaseDate ? { releaseDate: set.releaseDate } : {}), mainSetTotal: set.main.size, parallelsTotal: set.parallel.size,...(set.description?{description:set.description}:{}),...(set.officialUrl?{officialUrl:set.officialUrl}:{}),...(set.productImageUrl?{productImageUrl:set.productImageUrl}:{}),...(set.series?{series:set.series}:{}) };
   }).sort((a, b) => (b.releaseDate ?? '').localeCompare(a.releaseDate ?? '') || b.code.localeCompare(a.code, undefined, { numeric: true }));
 }
 
@@ -56,7 +56,8 @@ export async function GET(request: Request) {
     if (!game) return Response.json({ sets: [] }, { headers: publicHeaders });
     const rows = (await db.prepare(`
         SELECT p.set_code,p.set_name,p.identity_id,p.variant,s.release_date
-          ,s.description,s.official_url,s.product_image_url
+          ,s.description,s.official_url,s.product_image_url,
+          CASE WHEN json_valid(p.source_payload) THEN json_extract(p.source_payload,'$.set.serie.name') ELSE NULL END AS series
         FROM tcg_card_printings p
         JOIN tcg_card_identities i ON i.id=p.identity_id
         LEFT JOIN tcg_sets s ON s.id=p.set_id
