@@ -1,6 +1,5 @@
 import {database} from '@/lib/server/database';
 import {readPublicEdgeCache,storePublicEdgeCache} from '@/lib/server/public-edge-cache';
-import {supabaseAdmin} from '@/lib/server/supabase-storage';
 import {isPlayableSet,PREVIEW_CARD_CODES} from '@/packages/domain/release-availability';
 import {CARD_CATALOG_CACHE_REVISION} from '@/lib/card-catalog-cache';
 import {env} from 'cloudflare:workers';
@@ -105,35 +104,6 @@ async function fromD1(filters:SearchFilters){
   return results;
 }
 
-async function fromSupabase(filters:SearchFilters){
-  const db=supabaseAdmin();if(!db)throw new Error('Card catalog is unavailable.');
-  let matchedIds:Set<string>|null=null;
-  const setPattern=filters.setCode?.replace(/^([A-Z]+)(\d+)$/,'$1%$2');
-  const patterns=[...filters.terms.map(term=>`%${term}%`),...(filters.code?[`%${filters.code}%`]:[]),...(setPattern?[`%${setPattern}%`]:[]),...(filters.rarity?[`%${filters.rarity}%`]:[])];
-  for(const token of patterns){
-    const [identities,printings]=await Promise.all([
-      db.from('tcg_card_identities').select('id').or(`code.ilike.${token},name.ilike.${token}`).limit(250),
-      db.from('tcg_card_printings').select('identity_id').or(`set_code.ilike.${token},rarity.ilike.${token}`).limit(1000),
-    ]);
-    if(identities.error)throw identities.error;if(printings.error)throw printings.error;
-    const tokenIds=new Set<string>([...((identities.data??[]) as Array<{id:string}>).map(row=>row.id),...((printings.data??[]) as Array<{identity_id:string}>).map(row=>row.identity_id)]);
-    if(matchedIds===null)matchedIds=tokenIds;else{const intersection=new Set<string>();for(const id of matchedIds)if(tokenIds.has(id))intersection.add(id);matchedIds=intersection}
-    if(!matchedIds.size)return [];
-  }
-  const ids=[...(matchedIds??[])].slice(0,100);if(!ids.length)return [];
-  let query=db.from('tcg_card_identities').select('id,code,name,color,card_type,cost,power,effect_text,tcg_card_printings(id,printing_code,language,rarity,set_code,card_image_url,tcg_card_assets(kind,object_key))').in('id',ids).limit(100);
-  if(filters.cardType)query=query.eq('card_type',filters.cardType);
-  if(filters.cost!==undefined)query=query.eq('cost',filters.cost);
-  if(filters.code)query=query.eq('code',filters.code);
-  if(filters.color)query=query.ilike('color',`%${filters.color}%`);
-  const {data,error}=await query;if(error)throw error;
-  const normalize=(value:string)=>value.replace(/[^a-z0-9]/gi,'').toUpperCase();
-  return ((data??[]) as unknown as IdentityRow[]).filter(row=>{
-    const printings=row.tcg_card_printings??[];
-    return (!filters.setCode||printings.some(item=>normalize(item.set_code??'')===normalize(filters.setCode!)))&&(!filters.rarity||printings.some(item=>item.rarity===filters.rarity));
-  }).map(row=>{const printings=row.tcg_card_printings??[];const wantedSet=normalize(filters.setCode??'');const printing=printings.find(item=>(!filters.setCode||normalize(item.set_code??'')===wantedSet)&&(!filters.rarity||item.rarity===filters.rarity)&&item.language==='EN')??printings.find(item=>(!filters.setCode||normalize(item.set_code??'')===wantedSet)&&(!filters.rarity||item.rarity===filters.rarity))??printings.find(item=>item.language==='EN')??printings[0];const imageKey=printing?.tcg_card_assets?.find(asset=>asset.kind==='small')?.object_key??printing?.card_image_url??'';return{...row,printingId:printing?.id,printingCode:printing?.printing_code??row.code,language:printing?.language??'EN',rarity:printing?.rarity??null,set_code:printing?.set_code??null,imageUrl:internalImageUrl(imageKey,printing?.set_code??'',printing?.language??'EN',printing?.printing_code??row.code)}});
-}
-
 export async function GET(request:Request){
   const raw=new URL(request.url).searchParams.get('q')?.trim()??'';
   const query=raw.replace(/[^\p{L}\p{N}\s-]/gu,' ').replace(/\s+/g,' ').trim();
@@ -149,7 +119,7 @@ export async function GET(request:Request){
   let cards:IdentityRow[];
   const index=await readSearchIndex(request);
   if(index)cards=filterIndex(index,filters);
-  else try{cards=await fromD1(filters)}catch{try{cards=await fromSupabase(filters)}catch{return Response.json({error:'Card catalog is temporarily unavailable.'},{status:503})}}
+  else try{cards=await fromD1(filters)}catch{return Response.json({error:'Card catalog is temporarily unavailable.'},{status:503})}
   cards=cards.filter(card=>isPlayableSet(card.set_code??'')||PREVIEW_CARD_CODES.has(card.code.toUpperCase()));
   return storePublicEdgeCache(cacheRequest,Response.json({cards:cards.map(card=>({...card,printingId:card.printingId??card.id,imageUrl:internalImageUrl(card.imageUrl,card.set_code??'',card.language??'EN',card.printingCode??card.code)}))},{headers:{'Cache-Control':'public, max-age=300, stale-while-revalidate=86400','Cloudflare-CDN-Cache-Control':'public, max-age=86400'}}));
 }

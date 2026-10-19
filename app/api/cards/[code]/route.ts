@@ -1,5 +1,4 @@
 import { database } from '@/lib/server/database';
-import { supabaseAdmin } from '@/lib/server/supabase-storage';
 
 const publicCardPath = (key: string) => {
   const match=key.replace(/^\/+/, '').match(/^one-piece\/([^/]+)\/([^/]+)\/(?:small\/|thumb\/|large\/)?(.+)$/);
@@ -45,21 +44,6 @@ async function fromD1(code: string) {
   return { identity, printings: [...byPrinting.values()], rulings: rulingResult.results };
 }
 
-async function fromSupabase(code: string) {
-  const supabase = supabaseAdmin();
-  if (!supabase) throw new Error('Supabase card fallback is unavailable.');
-  const { data: identity, error: identityError } = await supabase.from('tcg_card_identities')
-    .select('id,code,name,color,card_type,cost,power,effect_text').ilike('code', code).maybeSingle();
-  if (identityError) throw identityError;
-  if (!identity) return null;
-  const [{ data: printings, error: printingsError }, { data: rulings, error: rulingsError }] = await Promise.all([
-    supabase.from('tcg_card_printings').select('id,language,variant,rarity,set_code,set_name,printing_code,card_image_url,counter_amount,attribute,life,sub_types,source_payload,tcg_card_assets(kind,object_key)').eq('identity_id', identity.id).order('language').order('variant'),
-    supabase.from('tcg_card_rulings').select('id,printing_id,language,question,answer,source_url,source_reference,published_at').eq('identity_id', identity.id).order('published_at', { ascending: false }),
-  ]);
-  if (printingsError || rulingsError) throw printingsError ?? rulingsError;
-  return { identity, printings: printings ?? [], rulings: rulings ?? [] };
-}
-
 export async function GET(_request: Request, { params }: { params: Promise<{ code: string }> }) {
   const { code: rawCode } = await params;
   const code = decodeURIComponent(rawCode).trim().toUpperCase();
@@ -68,11 +52,5 @@ export async function GET(_request: Request, { params }: { params: Promise<{ cod
     const card = await fromD1(code);
     if (!card) return Response.json({ error: 'Card not found.' }, { status: 404 });
     return Response.json(card, { headers: { 'Cache-Control': 'public, max-age=300, stale-while-revalidate=86400', 'Cloudflare-CDN-Cache-Control': 'public, max-age=31536000, immutable' } });
-  } catch {
-    try {
-      const card = await fromSupabase(code);
-      if (!card) return Response.json({ error: 'Card not found.' }, { status: 404 });
-      return Response.json(card, { headers: { 'Cache-Control': 'public, max-age=300, stale-while-revalidate=86400', 'Cloudflare-CDN-Cache-Control': 'public, max-age=31536000, immutable' } });
-    } catch { return Response.json({ error: 'Card details are temporarily unavailable.' }, { status: 503 }); }
-  }
+  } catch { return Response.json({ error: 'Card details are temporarily unavailable.' }, { status: 503 }); }
 }

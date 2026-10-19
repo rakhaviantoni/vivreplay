@@ -405,7 +405,10 @@ export function ListingArtRotator({items}:{items:MarketListingCard[]}){
   },[items.length]);
   const active=items[activeIndex]??items[0];
   if(!active)return null;
-  const cardCount=items.reduce((total,item)=>total+Math.max(0,item.quantity||0),0);
+  // available and held are two views of the same listed copies. Clamp their sum
+  // to the listing's actual quantity so stale/overlapping reservations cannot
+  // make a single copy render as a stack.
+  const cardCount=items.reduce((total,item)=>total+(item.sold?0:Math.min(Math.max(0,item.quantity),Math.max(0,(item.availableQuantity??item.quantity)+(item.heldQuantity??0)))),0);
   const visibleStackCount=Math.min(3,Math.max(1,cardCount));
   const underlays=Array.from({length:visibleStackCount-1},(_,index)=>items[(activeIndex+index+1)%items.length]??active);
 
@@ -627,7 +630,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
       {items.map((item,index)=>{
         const amount=selected[item.id]??0;
         const availableQuantity=availableFor(item);
-        const stackQuantity=Math.min(4,availableQuantity+(item.soldQuantity??0))||1;
+        const stackQuantity=Math.min(4,Math.max(1,Math.min(item.quantity,availableQuantity+(item.heldQuantity??0))));
         const unitPrice=getUnitPrice(item);
         const diffPercent=item.unitAmount>0?Math.round(((unitPrice-item.unitAmount)/item.unitAmount)*100):0;
         return <article className={`deck-card-stack market-listing-card ${availableQuantity>1?'has-printing-stack':''} ${amount?'is-selected':''} ${availableQuantity===0?'is-unavailable':''}`} key={item.id}>

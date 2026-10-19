@@ -2,11 +2,11 @@
 
 import {useEffect,useState} from 'react';
 import Link from 'next/link';
-import {createClient} from '@/utils/supabase/client';
 import {Catalog,normalizeSetCode,type CatalogSetInfo} from './catalog';
 import {isPlayableSet} from '@/packages/domain/release-availability';
 
-type SetRow=CatalogSetInfo&{external_set_id:string};
+type SetRow=CatalogSetInfo&{code:string};
+type SetApiRow={code:string;name:string;releaseDate?:string;description?:string;officialUrl?:string;productImageUrl?:string};
 
 export function SetDetail({code}:{code:string}){
   const [set,setSet]=useState<SetRow>();
@@ -25,11 +25,10 @@ export function SetDetail({code}:{code:string}){
   useEffect(()=>{
     if(!isPlayableSet(normalizedCode))return;
     let live=true;
-    const client=createClient();
-    client.from('tcg_sets').select('external_set_id,name,set_kind,release_date,description,official_url,product_image_url').then(({data})=>{
+    fetch('/api/cards/sets?language=EN',{cache:'force-cache'}).then(response=>response.ok?response.json() as Promise<{sets:SetApiRow[]}>:{sets:[]}).then(({sets})=>{
       if(!live)return;
-      const match=(data??[]).find(row=>normalizeSetCode(row.external_set_id)===normalizedCode);
-      setSet(match as SetRow|undefined);
+      const match=sets.find(row=>normalizeSetCode(row.code)===normalizedCode);
+      setSet(match?{code:match.code,name:match.name,set_kind:'booster',release_date:match.releaseDate??null,description:match.description??null,official_url:match.officialUrl??null,product_image_url:match.productImageUrl??null}:undefined);
     });
     return()=>{live=false};
   },[normalizedCode]);

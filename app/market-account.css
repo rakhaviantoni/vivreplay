@@ -44,6 +44,44 @@ html[data-theme='dark'] .market-quick-profile-form input,html[data-theme='dark']
 .market-pro-dialog-table-wrap{overflow-x:auto}.market-pro-dialog-table{width:100%;border-collapse:collapse;text-align:left}.market-pro-dialog-table th,.market-pro-dialog-table td{padding:9px 7px;border-bottom:1px solid var(--line);font-size:12px}.market-pro-dialog-table thead th{color:var(--muted);font-size:10px;font-weight:750}.market-pro-dialog-table thead th:not(:first-child),.market-pro-dialog-table td{text-align:center}.market-pro-dialog-table tbody th{font-weight:650}.market-pro-dialog-table td{color:var(--muted);font-variant-numeric:tabular-nums}.market-pro-dialog-table td:last-child{color:var(--ink);font-weight:780}.market-pro-dialog-table tr:last-child th,.market-pro-dialog-table tr:last-child td{border-bottom:0}
 .market-pro-dialog-note{margin:0;color:var(--muted);font-size:11px;line-height:1.5}.market-pro-dialog-join{min-height:46px;justify-content:center;border-radius:10px!important;font-size:14px;font-weight:800;text-decoration:none}
 @media(max-width:520px){.market-pro-dialog{padding:19px!important}.market-pro-dialog-heading{margin:-19px -19px 7px!important;padding:18px 50px 15px 19px!important}.market-pro-dialog [data-slot='dialog-body']{gap:4px!important}.market-pro-dialog-table th,.market-pro-dialog-table td{padding:8px 5px;font-size:11px}}
+
+/* Keep the plan choice and benefits visible without a tall promotional header. */
+.market-pro-dialog{width:min(500px,calc(100vw - 24px))!important;max-width:500px!important;max-height:min(88dvh,680px)!important;padding:18px!important;border-radius:14px!important}
+.market-pro-dialog-heading{min-height:0!important;align-items:center!important;margin:-18px -18px 2px!important;padding:13px 48px 12px 18px!important;border-radius:14px 14px 0 0!important;background:var(--surface-raised)!important}
+.market-pro-dialog-heading-copy{gap:3px!important;padding:0!important}
+.market-pro-dialog [data-slot='dialog-title']{font-size:20px!important;letter-spacing:-.025em!important}
+.market-pro-dialog [data-slot='dialog-description']{margin:0!important;font-size:11px!important;line-height:1.3!important}
+.market-pro-dialog-price{gap:4px 7px!important;padding:9px 11px!important;border-radius:9px!important;font-size:11px!important}
+.market-pro-dialog-price strong{font-size:21px!important}
+.market-pro-dialog-price small{font-size:10px!important;line-height:1.35!important}
+.market-pro-dialog-table th,.market-pro-dialog-table td{padding:6px 5px!important;font-size:11px!important}
+.market-pro-dialog-table thead th{font-size:9px!important}
+.market-pro-dialog-note{font-size:10px!important;line-height:1.35!important}
+.market-pro-dialog-join{min-height:42px!important;font-size:13px!important}
+.market-pro-dialog .checkout-payment-methods.is-compact{margin-top:3px!important}
+.market-pro-dialog .checkout-payment-methods.is-compact h2{font-size:10px!important}
+.market-pro-dialog .checkout-payment-compact-trigger{height:36px!important;min-height:36px!important;font-size:11px!important}
+.market-pro-dialog .market-pro-dialog-table-wrap{max-width:100%;overflow-x:auto;overscroll-behavior-x:contain}
+@media(max-width:520px){.market-pro-dialog{padding:15px!important}.market-pro-dialog-heading{margin:-15px -15px 2px!important;padding:12px 46px 11px 15px!important}}
+
+html[data-theme='dark'] .checkout-payment-compact-options [data-slot='select-item'],
+html[data-theme='dark'] .checkout-payment-compact-options [data-slot='select-item'] .checkout-payment-compact-option,
+html[data-theme='dark'] .checkout-payment-compact-options [data-slot='select-item'] strong{color:#eef4ed!important}
+html[data-theme='dark'] .checkout-payment-compact-options [data-slot='select-item'] small{color:#b6c4bf!important}
+html[data-theme='dark'] .checkout-payment-compact-options [data-slot='select-item'][data-highlighted],
+html[data-theme='dark'] .checkout-payment-compact-options [data-slot='select-item'][data-highlighted] .checkout-payment-compact-option,
+html[data-theme='dark'] .checkout-payment-compact-options [data-slot='select-item'][data-highlighted] strong{background:#263a3c!important;color:#fffaf0!important}
+html[data-theme='dark'] .checkout-payment-compact-options [data-slot='select-item'][data-highlighted] small{color:#d9e2dc!important}
+html[data-theme='dark'] .checkout-payment-compact-options [data-slot='select-item'][data-highlighted] *{color:#fffaf0!important}
+html[data-theme='dark'] .checkout-payment-compact-options [data-slot='select-item'] .checkout-payment-compact-option>span{color:#eef4ed!important}
+html[data-theme='dark'] .checkout-payment-compact-options [data-slot='select-item'][data-highlighted] .checkout-payment-compact-option>span{color:#fffaf0!important}
+.market-pro-dialog .market-membership-compare-wide{overflow:visible!important;border:0!important;background:transparent!important}
+.market-pro-dialog .market-membership-compare-wide .market-pro-dialog-table{min-width:0!important;table-layout:fixed}
+.market-pro-dialog .market-membership-compare-wide .market-pro-dialog-table th:first-child{width:34%;min-width:0!important}
+.market-pro-dialog .market-membership-compare-wide .market-pro-dialog-table thead th:not(:first-child){width:22%}
+.market-pro-dialog .market-membership-compare-wide .market-pro-dialog-table th,.market-pro-dialog .market-membership-compare-wide .market-pro-dialog-table td{padding:5px 3px!important;font-size:10px!important;line-height:1.25}
+.market-pro-dialog .market-membership-compare-wide .market-pro-dialog-table thead th{font-size:9px!important}
+@media(max-width:390px){.market-pro-dialog .market-membership-compare-wide .market-pro-dialog-table th,.market-pro-dialog .market-membership-compare-wide .market-pro-dialog-table td{font-size:9px!important}.market-pro-dialog .market-membership-compare-wide .market-pro-dialog-table th:first-child{width:36%}.market-pro-dialog .market-membership-compare-wide .market-pro-dialog-table thead th:not(:first-child){width:21.33%}}
 .market-activity-empty-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:10px}.market-activity-secondary-action{display:inline-flex;min-height:36px;align-items:center;justify-content:center;gap:7px;padding:0 11px;border:1px solid var(--line);border-radius:7px;background:var(--surface-raised);color:var(--ink);font:700 11px var(--game-font);text-decoration:none;white-space:nowrap}
 .market-offer-conversation.market-offer-conversation-panel{display:grid;width:100%!important;max-width:none!important;max-height:none!important;gap:14px!important;padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}.market-offer-conversation-panel-heading{display:flex;align-items:center;gap:12px;padding-bottom:12px;border-bottom:1px solid var(--line)}.market-offer-conversation-panel-heading button{display:inline-flex;min-height:34px;flex:none;align-items:center;gap:6px;padding:0 9px;border:1px solid var(--line);border-radius:7px;background:var(--surface-raised);color:var(--ink);font:700 11px var(--game-font);cursor:pointer}.market-offer-conversation-panel-heading h2{margin:0;color:var(--ink);font-size:18px;font-weight:800}.market-offer-conversation-panel-heading p{margin:3px 0 0;color:var(--muted);font-size:11px;line-height:1.45}.market-offer-photo-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.market-offer-photo-actions>button,.market-offer-photo-actions>.market-offer-upload{display:inline-flex;min-height:36px;align-items:center;justify-content:center;gap:7px;padding:0 11px;border:1px solid var(--line);border-radius:8px;background:var(--surface-raised);color:var(--ink);font:700 12px var(--game-font);cursor:pointer}.market-offer-photo-actions small{color:var(--muted);font-size:11px}.market-offer-conversation-panel .market-offer-messages{max-height:min(38dvh,320px)}
 html[data-theme='dark'] .market-offer-conversation.market-offer-conversation-panel{background:transparent!important;color:var(--ink)!important}
@@ -941,9 +979,11 @@ html[data-theme='dark'] .market-account-unified-body.is-listings .market-listing
 .market-profile-quick-signout:hover,.market-profile-quick-signout:focus-visible{color:var(--danger,#a83d32)}
 .market-profile-quick-signout:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
 
-.market-listing-art-state{top:auto;left:14px;bottom:14px;transform:none;min-width:0;max-width:calc(100% - 28px);padding:8px 11px;border:1px solid color-mix(in srgb,var(--accent) 38%,var(--line));border-radius:4px;background:var(--surface-raised);box-shadow:0 3px 10px #17140e20;color:var(--ink);font-size:11px;line-height:1.15;letter-spacing:.045em}
-.market-listing-art-state.is-sold-pending,.market-listing-art-state.is-sold{background:var(--accent);border-color:var(--accent);color:var(--surface-raised)}
-.market-listing-art-state.is-closed,.market-listing-art-state.is-expired{background:var(--surface-raised);color:var(--muted)}
+.market-listing-art-state{left:14px;top:auto;bottom:14px;transform:none;min-width:0;max-width:calc(100% - 28px);padding:8px 11px;border:1px solid color-mix(in srgb,var(--accent) 40%,var(--line));border-radius:5px;background:color-mix(in srgb,var(--surface-raised) 96%,transparent);box-shadow:0 3px 12px color-mix(in srgb,var(--ink) 18%,transparent);color:var(--ink);font-size:11px;font-weight:800;line-height:1.15;letter-spacing:.035em;text-align:left;text-shadow:none}
+.market-listing-art-state.is-sold-pending,.market-listing-art-state.is-sold{border-color:var(--accent);background:var(--accent);color:var(--surface-raised)}
+.market-listing-art-state.is-closed,.market-listing-art-state.is-expired{border-color:var(--line);background:var(--surface-raised);color:var(--muted)}
+html[data-theme='dark'] .market-listing-art-state{background:color-mix(in srgb,var(--surface-raised) 94%,transparent);color:var(--ink)}
+html[data-theme='dark'] .market-listing-art-state.is-sold-pending,html[data-theme='dark'] .market-listing-art-state.is-sold{background:var(--accent);color:#fffaf0}
 
 .market-membership-compare-wide{overflow-x:auto;border:1px solid var(--line);border-radius:9px;background:var(--surface)}
 .market-membership-compare-wide .market-pro-dialog-table{min-width:600px}

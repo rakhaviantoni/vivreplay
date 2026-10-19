@@ -3,7 +3,7 @@ import {db} from '@/lib/server/store';
 import {helpArticles} from '@/lib/help/articles';
 
 const base='https://vivreplay.com';
-const corePaths=['/','/about','/cards','/cards/index','/archetypes','/sets','/market','/meta','/play','/play/tutorial','/decks','/legal/terms','/legal/privacy','/legal/refund','/faq','/help','/contact'];
+const corePaths=['/','/about','/cards','/cards/index','/archetypes','/sets','/pokemon','/pokemon/sets','/market','/meta','/play','/play/tutorial','/decks','/legal/terms','/legal/privacy','/legal/refund','/faq','/help','/contact'];
 
 export default async function sitemap():Promise<MetadataRoute.Sitemap>{
   const now=new Date();

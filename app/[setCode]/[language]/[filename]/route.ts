@@ -1,7 +1,7 @@
 import {env} from 'cloudflare:workers';
+import {database} from '@/lib/server/database';
 
 const filenamePattern=/^[A-Za-z0-9_-]+\.webp$/;
-const bucket='tcg-card-images';
 
 function candidateObjectKeys(setCode:string,language:string,filename:string,variant:string){
   const normalizedSet=setCode.toUpperCase().replaceAll('-','');
@@ -34,25 +34,48 @@ function setCodeAliases(setCode:string){
     aliases.add(`OP${combined[1]}-EB${combined[2]}`);
     aliases.add(`OP-${combined[1]}EB${combined[2]}`);
     aliases.add(`EB-${combined[2]}`);
+    aliases.add(`OP${combined[1]}`);
+    aliases.add(`OP-${combined[1]}`);
   }
+  const opSet=normalized.match(/^OP(\d{2})$/);
+  if(opSet)aliases.add(`OP${opSet[1]}EB04`);
   return [...aliases];
 }
 
-async function catalogAssetKeys(origin:string,key:string,setCode:string,language:string,filename:string){
+async function catalogAssetKeys(setCode:string,language:string,filename:string){
   const printingCode=filename.replace(/\.webp$/i,'');
-  const query=new URLSearchParams({
-    select:'tcg_card_assets(object_key,kind)',
-    printing_code:`eq.${printingCode}`,
-    language:`eq.${language.toUpperCase()}`,
-    set_code:`in.(${setCodeAliases(setCode).map(value=>`"${value}"`).join(',')})`,
-  });
-  const response=await fetch(`${origin}/rest/v1/tcg_card_printings?${query}`,{headers:{authorization:`Bearer ${key}`,apikey:key}});
-  if(!response.ok) return [];
-  const rows=await response.json() as Array<{tcg_card_assets?:Array<{object_key?:string;kind?:string}>}>;
-  return rows.flatMap(row=>row.tcg_card_assets??[])
-    .sort((left,right)=>(left.kind==='small'?0:1)-(right.kind==='small'?0:1))
-    .map(asset=>asset.object_key)
-    .filter((objectKey):objectKey is string=>Boolean(objectKey));
+  const aliases=[...new Set(setCodeAliases(setCode).map(value=>value.toUpperCase().replace(/[^A-Z0-9]/g,'')))];
+  const rows=(await database().prepare(`SELECT a.object_key AS objectKey,a.kind,p.card_image_url AS sourceUrl FROM tcg_card_printings p LEFT JOIN tcg_card_assets a ON a.printing_id=p.id WHERE upper(p.printing_code)=upper(?) AND upper(p.language)=upper(?) AND upper(replace(replace(replace(p.set_code,'-',''),'_',''),' ','')) IN (${aliases.map(()=>'?').join(',')}) ORDER BY CASE WHEN a.kind='small' THEN 0 ELSE 1 END`).bind(printingCode,language,...aliases).all<{objectKey:string|null;kind:string|null;sourceUrl:string|null}>()).results;
+  return rows;
+}
+
+const approvedImageHosts=new Set(['cards.oplaytcg.com','assets.tcgdex.net']);
+async function restoreMissingImage(setCode:string,language:string,filename:string){
+  if(!/^(en|jp|id)$/i.test(language))return null;
+  const rows=await catalogAssetKeys(setCode,language,filename);
+  for(const row of rows){
+    if(row.objectKey){const existing=await env.CARD_IMAGES?.get(row.objectKey);if(existing)return {object:existing,key:row.objectKey};}
+    if(!row.sourceUrl)continue;
+    let source:URL;
+    try{source=new URL(row.sourceUrl)}catch{continue}
+    // Only restore the exact requested art. In particular, never use an alt
+    // image to fill a missing base printing (or vice versa).
+    if(source.protocol!=='https:'||!approvedImageHosts.has(source.hostname)||decodeURIComponent(source.pathname.split('/').at(-1)??'').toLowerCase()!==filename.toLowerCase())continue;
+    try{
+      const response=await fetch(source,{headers:{accept:'image/webp,image/*;q=0.8'},signal:AbortSignal.timeout(8_000)});
+      const contentType=response.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase()??'';
+      if(!response.ok||!contentType.startsWith('image/'))continue;
+      const declaredSize=Number(response.headers.get('content-length')??0);
+      if(declaredSize>12*1024*1024)continue;
+      const bytes=await response.arrayBuffer();
+      if(!bytes.byteLength||bytes.byteLength>12*1024*1024)continue;
+      const canonicalKey=`one-piece/${setCode.toUpperCase().replace(/[^A-Z0-9]/g,'')}/${language.toLowerCase()}/${filename}`;
+      await env.CARD_IMAGES?.put(canonicalKey,bytes,{httpMetadata:{contentType,cacheControl:'public, max-age=31536000, immutable'}});
+      const restored=await env.CARD_IMAGES?.get(canonicalKey);
+      if(restored)return {object:restored,key:canonicalKey};
+    }catch{/* Keep trying known stored-key variants. */}
+  }
+  return null;
 }
 
 export async function serveCardImage(setCode:string,language:string,filename:string,variant='small',requestedWidth?:number){
@@ -65,11 +88,9 @@ export async function serveCardImage(setCode:string,language:string,filename:str
   // Response so framework adapters can safely add their own headers.
   if(cached) return new Response(cached.body,{status:cached.status,statusText:cached.statusText,headers:new Headers(cached.headers)});
 
-  const origin=process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key=process.env.SUPABASE_SECRET_KEY;
-
-  const catalogKeys=origin&&key?await catalogAssetKeys(origin,key,setCode,language,filename):[];
-  const candidateKeys=[...new Set([...catalogKeys,...candidateObjectKeys(setCode,language,filename,variant)])];
+  let catalogRows:Awaited<ReturnType<typeof catalogAssetKeys>>=[];
+  try{catalogRows=await catalogAssetKeys(setCode,language,filename)}catch{catalogRows=[]}
+  const candidateKeys=[...new Set([...catalogRows.map(row=>row.objectKey).filter((key):key is string=>Boolean(key)),...candidateObjectKeys(setCode,language,filename,variant)])];
   for(const objectKey of candidateKeys){
     const stored=await env.CARD_IMAGES?.get(objectKey);
     if(stored){
@@ -92,29 +113,17 @@ export async function serveCardImage(setCode:string,language:string,filename:str
       return image;
     }
 
-    if(!origin||!key)continue;
-    const sourceUrl=`${origin}/storage/v1/object/${bucket}/${objectKey}`;
-    const response=await fetch(sourceUrl,{headers:{accept:'image/avif,image/webp,image/*;q=0.8',authorization:`Bearer ${key}`,apikey:key},cf:{cacheTtl:31_536_000,cacheEverything:true}});
-    if(!response.ok||!response.body) continue;
-    const headers={'Cache-Control':'public, max-age=31536000, immutable','X-Content-Type-Options':'nosniff'};
-    const bytes=await response.arrayBuffer();
-    let image:Response;
-    if(requestedWidth&&env.IMAGES){
-      try{
-        const imageStream=new Response(bytes).body;
-        if(!imageStream)throw new Error('Could not create image stream.');
-        const transformed=(await env.IMAGES.input(imageStream)
-          .transform({width:requestedWidth,height:Math.round(requestedWidth*580/420),fit:'scale-down'})
-          .output({format:'image/webp',quality:78})).response();
-        image=new Response(transformed.body,{status:transformed.status,statusText:transformed.statusText,headers:{...Object.fromEntries(transformed.headers),...headers,'Content-Type':transformed.headers.get('content-type')??'image/webp'}});
-      }catch{
-        image=new Response(bytes,{headers:{...headers,'Content-Type':response.headers.get('content-type')||'image/webp'}});
-      }
-    }else image=new Response(bytes,{headers:{...headers,'Content-Type':response.headers.get('content-type')||'image/webp'}});
-    await edgeCache?.put(cacheKey,image.clone());
-    return image;
   }
-  if(!origin||!key)return new Response('Asset storage is unavailable',{status:503});
+
+  try{
+    const restored=await restoreMissingImage(setCode,language,filename);
+    if(restored){
+      const bytes=await restored.object.arrayBuffer();
+      const image=new Response(bytes,{headers:{'Content-Type':restored.object.httpMetadata?.contentType??'image/webp','Cache-Control':'public, max-age=31536000, immutable','X-Content-Type-Options':'nosniff'}});
+      await edgeCache?.put(cacheKey,image.clone());
+      return image;
+    }
+  }catch{/* A missing source should remain a normal 404. */}
   return new Response('Not found',{status:404});
 }
 

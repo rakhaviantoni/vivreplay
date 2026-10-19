@@ -1,39 +1,37 @@
 import {publishedActionScenarios,scenarios} from './card-effect-scenarios';
 import {createClient} from '@supabase/supabase-js';
 import {mkdirSync,readFileSync,writeFileSync} from 'node:fs';
-import {execFileSync} from 'node:child_process';
 import {compileEffectDocument,type EffectDocument,type EffectTrigger} from '../packages/domain/effect-rules';
 import {resolveEffectTiming} from '../packages/domain/effect-runtime';
 import {beginEffectExecution,advanceEffectExecution} from '../packages/domain/effect-controller';
 import type {MatchEffectState} from '../packages/domain/match-effect-state';
 import {familyScenarios} from './effect-family-scenarios';
+import {readD1AuditPages,runD1AuditQuery} from './d1-audit-reader';
 
 type Identity={id:string;code:string;name:string;color:string;card_type:'Character'|'Leader'|'Event'|'Stage';cost:number;power:number;effect_text:string;};
 type Revision={identity_id:string;effect_text:string;effect_schema:EffectDocument};
-const auditSource=process.env.EFFECT_AUDIT_SOURCE??'supabase';
+const auditSource=process.env.EFFECT_AUDIT_SOURCE??'report';
 let ruleset:{id:string;code:string;effective_from:string};
+let sourceSnapshotAt:string|undefined;
 let identities:Identity[];
 let revisions:Revision[];
 if(auditSource==='report'){
  // Reuse the last captured database snapshot when network access is unavailable.
  // This refreshes local parser/scenario results without presenting the old DB
  // values as a fresh live audit.
- const snapshot=JSON.parse(readFileSync('reports/effects/per-card.json','utf8')) as {summary:{ruleset:{id:string;code:string;effective_from:string}};cards:Array<{code:string;name:string;color:string;cardType:Identity['card_type'];cost:number;power:number;printedText:string;publishedText:string|null;databaseSchema:EffectDocument|null}>};
+ const snapshot=JSON.parse(readFileSync('reports/effects/per-card-d1.json','utf8')) as {generatedAt:string;summary:{ruleset:{id:string;code:string;effective_from:string}};cards:Array<{code:string;name:string;color:string;cardType:Identity['card_type'];cost:number;power:number;printedText:string;publishedText:string|null;databaseSchema:EffectDocument|null}>};
  ruleset=snapshot.summary.ruleset;
+ sourceSnapshotAt=snapshot.generatedAt;
  identities=snapshot.cards.map(row=>({id:row.code,code:row.code,name:row.name,color:row.color,card_type:row.cardType,cost:row.cost,power:row.power,effect_text:row.printedText}));
  revisions=snapshot.cards.flatMap(row=>row.databaseSchema?[{identity_id:row.code,effect_text:row.publishedText??'',effect_schema:row.databaseSchema}]:[]);
 }else if(auditSource==='d1'){
- const runD1=(sql:string)=>{
-  const output=execFileSync('node_modules/.bin/wrangler',['d1','execute','vivreplay','--remote','--config','dist/server/wrangler.json','--json','--command',sql],{encoding:'utf8',maxBuffer:96*1024*1024});
-  const envelope=JSON.parse(output.trimStart()) as Array<{results?:unknown[];success?:boolean;error?:{text?:string}}>;
-  if(!envelope[0]?.success)throw new Error(envelope[0]?.error?.text??'Cloudflare D1 query failed.');
-  return envelope[0].results??[];
- };
- const active=runD1("SELECT id,code,effective_from FROM tcg_rulesets WHERE status='published' AND effective_from<=date('now') ORDER BY effective_from DESC LIMIT 1")[0] as typeof ruleset|undefined;
+ const active=runD1AuditQuery<typeof ruleset>("SELECT id,code,effective_from FROM tcg_rulesets WHERE status='published' AND effective_from<=date('now') ORDER BY effective_from DESC LIMIT 1")[0];
  if(!active)throw new Error('D1 has no active published ruleset.');
  ruleset=active;
- const identityRows=runD1('SELECT id,code,name,color,card_type,cost,power,effect_text FROM tcg_card_identities ORDER BY code') as Identity[];
- const revisionRows=runD1(`SELECT identity_id,effect_text,effect_schema FROM tcg_card_rule_revisions WHERE ruleset_id='${ruleset.id.replaceAll("'","''")}' ORDER BY identity_id`) as Array<{identity_id:string;effect_text:string;effect_schema:EffectDocument|string}>;
+ const [identityRows,revisionRows]=await Promise.all([
+  readD1AuditPages<Identity>({select:'id,code,name,color,card_type,cost,power,effect_text',from:'tcg_card_identities',key:'id'}),
+  readD1AuditPages<{identity_id:string;effect_text:string;effect_schema:EffectDocument|string}>({select:'identity_id,effect_text,effect_schema',from:'tcg_card_rule_revisions',key:'identity_id',where:`ruleset_id='${ruleset.id.replaceAll("'","''")}'`}),
+ ]);
  identities=identityRows;
  revisions=revisionRows.map(row=>({...row,effect_schema:typeof row.effect_schema==='string'?JSON.parse(row.effect_schema):row.effect_schema}));
 }else{
@@ -77,9 +75,9 @@ const cards=identities.filter(row=>! /^(?:OP19|EB06)-/.test(row.code)).map(row=>
  const localTextMatches=clean(local.rawEffectText)===clean(row.effect_text),publishedTextMatches=!published||(clean(published.effect_text)===clean(row.effect_text)&&clean(published.effect_schema?.rawEffectText)===clean(row.effect_text));
  return {code:row.code,name:row.name,color:row.color,cardType:row.card_type,cost:row.cost,power:row.power,printedText:row.effect_text,publishedText:published?.effect_text??null,published:!!published,localTextMatches,publishedTextMatches,textMatches:localTextMatches&&publishedTextMatches,schemaMatches:!!published&&canonical(local.normalized)===canonical(published.effect_schema?.normalized),localScenarios:run(local),databaseScenarios:runDatabase(published?.effect_schema),gameplayScenarioCount:gameplayScenarios.length,standaloneActionComplete:standalone,actionExecutionScenarioCount:actionExecutionScenarios.length,publishedActionExecutionScenarioCount:publishedActions.length,coverage:gameplayScenarios.length?'BOUNDED_ENGINE_SCENARIO':standalone?'COMPLETE_SINGLE_ACTION_SCENARIOS':actionExecutionScenarios.length?'ACTION_EXECUTION_ONLY':'NOT_GAMEPLAY_VERIFIED',databaseCoverage:!published?'NOT_PUBLISHED':cases.some(scenario=>!scenario.name.startsWith('engine-action '))?'BOUNDED_ENGINE_SCENARIO':standalone?'COMPLETE_SINGLE_ACTION_SCENARIOS':databaseCases.length?'ACTION_EXECUTION_ONLY':'NOT_GAMEPLAY_VERIFIED',browserVerified:false,localSchema:local,databaseSchema:published?.effect_schema??null};
 });
-const summary={source:auditSource,ruleset,cards:cards.length,missingPublished:cards.filter(c=>!c.published).length,textMismatches:cards.filter(c=>!c.textMatches).length,publishedTextMismatches:cards.filter(c=>c.published&&!c.publishedTextMatches).length,localTextMismatches:cards.filter(c=>!c.localTextMatches).length,schemaMismatches:cards.filter(c=>c.published&&!c.schemaMatches).length,scenarioCards:cards.filter(c=>c.localScenarios.length).length,gameplayScenarioCards:cards.filter(c=>c.gameplayScenarioCount>0).length,standaloneActionCompleteCards:cards.filter(c=>c.standaloneActionComplete).length,actionOnlyCards:cards.filter(c=>c.actionExecutionScenarioCount>0&&!c.gameplayScenarioCount&&!c.standaloneActionComplete).length,publishedScenarioCards:cards.filter(c=>c.databaseScenarios.length).length,publishedGameplayScenarioCards:cards.filter(c=>c.databaseCoverage==='BOUNDED_ENGINE_SCENARIO').length,publishedStandaloneActionCompleteCards:cards.filter(c=>c.databaseCoverage==='COMPLETE_SINGLE_ACTION_SCENARIOS').length,publishedActionOnlyCards:cards.filter(c=>c.databaseCoverage==='ACTION_EXECUTION_ONLY').length,publishedActionScenarios:cards.reduce((n,c)=>n+c.publishedActionExecutionScenarioCount,0),localFailures:cards.flatMap(c=>c.localScenarios).filter(s=>s.status==='FAIL').length,databaseFailures:cards.flatMap(c=>c.databaseScenarios).filter(s=>s.status==='FAIL').length,untestedCards:cards.filter(c=>!c.localScenarios.length).length,publishedUntestedCards:cards.filter(c=>c.published&&!c.databaseScenarios.length).length,databaseWrites:0};
+const summary={source:auditSource,sourceSnapshotAt,ruleset,cards:cards.length,missingPublished:cards.filter(c=>!c.published).length,textMismatches:cards.filter(c=>!c.textMatches).length,publishedTextMismatches:cards.filter(c=>c.published&&!c.publishedTextMatches).length,localTextMismatches:cards.filter(c=>!c.localTextMatches).length,schemaMismatches:cards.filter(c=>c.published&&!c.schemaMatches).length,scenarioCards:cards.filter(c=>c.localScenarios.length).length,gameplayScenarioCards:cards.filter(c=>c.gameplayScenarioCount>0).length,standaloneActionCompleteCards:cards.filter(c=>c.standaloneActionComplete).length,actionOnlyCards:cards.filter(c=>c.actionExecutionScenarioCount>0&&!c.gameplayScenarioCount&&!c.standaloneActionComplete).length,publishedScenarioCards:cards.filter(c=>c.databaseScenarios.length).length,publishedGameplayScenarioCards:cards.filter(c=>c.databaseCoverage==='BOUNDED_ENGINE_SCENARIO').length,publishedStandaloneActionCompleteCards:cards.filter(c=>c.databaseCoverage==='COMPLETE_SINGLE_ACTION_SCENARIOS').length,publishedActionOnlyCards:cards.filter(c=>c.databaseCoverage==='ACTION_EXECUTION_ONLY').length,publishedActionScenarios:cards.reduce((n,c)=>n+c.publishedActionExecutionScenarioCount,0),localFailures:cards.flatMap(c=>c.localScenarios).filter(s=>s.status==='FAIL').length,databaseFailures:cards.flatMap(c=>c.databaseScenarios).filter(s=>s.status==='FAIL').length,untestedCards:cards.filter(c=>!c.localScenarios.length).length,publishedUntestedCards:cards.filter(c=>c.published&&!c.databaseScenarios.length).length,databaseWrites:0};
 mkdirSync('reports/effects',{recursive:true});
 writeFileSync('reports/effects/per-card.json',JSON.stringify({generatedAt:new Date().toISOString(),summary,cards},null,2));
-writeFileSync('reports/effects/per-card.md',['# Per-card local and published schema audit','', 'Read-only database snapshot. Schema equality is not gameplay verification. Card-specific scenarios cover only the named engine situations; action-only checks confirm execution of one parsed action and do not verify the complete printed effect. Browser integration and other situations remain unverified. OP18 and EB05 are included because they are available in current play queues; only explicitly deferred OP19 and EB06 releases are excluded.','', '```json',JSON.stringify(summary,null,2),'```','','| Card | Printed text matches DB | Schema matches DB | Coverage | Local scenarios | DB scenarios |','| --- | --- | --- | --- | --- | --- |',...cards.map(c=>`| ${c.code} | ${c.textMatches} | ${c.schemaMatches} | ${c.coverage} | ${c.localScenarios.map(s=>s.status).join(', ')||'Untested'} | ${c.databaseScenarios.map(s=>s.status).join(', ')||'Untested'} |`)].join('\n')+'\n');
+writeFileSync('reports/effects/per-card.md',['# Per-card local and published schema audit','', `Read-only D1 snapshot captured ${sourceSnapshotAt??'at the live audit time'}. Schema equality is not gameplay verification. Card-specific scenarios cover only the named engine situations; action-only checks confirm execution of one parsed action and do not verify the complete printed effect. Browser integration and other situations remain unverified. OP18 and EB05 are included because they are available in current play queues; only explicitly deferred OP19 and EB06 releases are excluded.`,'', '```json',JSON.stringify(summary,null,2),'```','','| Card | Printed text matches DB | Schema matches DB | Coverage | Local scenarios | DB scenarios |','| --- | --- | --- | --- | --- | --- |',...cards.map(c=>`| ${c.code} | ${c.textMatches} | ${c.schemaMatches} | ${c.coverage} | ${c.localScenarios.map(s=>s.status).join(', ')||'Untested'} | ${c.databaseScenarios.map(s=>s.status).join(', ')||'Untested'} |`)].join('\n')+'\n');
 console.log(JSON.stringify(summary,null,2));
 if(summary.localFailures||summary.databaseFailures||summary.missingPublished||summary.textMismatches||summary.schemaMismatches)process.exitCode=1;

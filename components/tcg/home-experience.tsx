@@ -3,11 +3,9 @@
 import Link from 'next/link';
 import {useEffect, useRef, useState} from 'react';
 import {ArrowUpRightIcon as ArrowUpRight, SealCheckIcon as BadgeCheck, PlayCircleIcon as CirclePlay, StackIcon as Layers3, BooksIcon as Library, PauseIcon as Pause, PlayIcon as Play, ShoppingBagIcon as ShoppingBag, SwordIcon as Swords} from '@phosphor-icons/react';
-import {createClient} from '@/utils/supabase/client';
 import {CardArt} from './card-art';
 import {SetsExperience} from './sets-experience';
 import type {Card} from '@/packages/card-data/catalog';
-import {isPlayableSet} from '@/packages/domain/release-availability';
 
 type Identity = {id:string;code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number;effect_text?:string};
 type Row = {id:string;card_image_url:string|null;rarity:string|null;set_code:string;language:string;printing_code:string|null;tcg_card_assets?:Array<{kind:string;object_key:string}>;tcg_card_identities:Identity};
@@ -27,12 +25,12 @@ export function HomeExperience(){
   const [motionPaused,setMotionPaused]=useState(false);
   const [language,setLanguage]=useState<'EN'|'ID'>('EN');
   const heroRef=useRef<HTMLElement>(null);
-  useEffect(()=>{const client=createClient();let active=true;
+  useEffect(()=>{let active=true;
     Promise.all([
-      client.from('tcg_card_printings').select('id,card_image_url,rarity,set_code,language,printing_code,tcg_card_assets(kind,object_key),tcg_card_identities!inner(id,code,name,color,card_type,cost,power)').eq('language','EN').not('card_image_url','is',null).order('created_at',{ascending:false}).limit(36),
-      client.from('tcg_card_printings').select('id,card_image_url,rarity,set_code,language,printing_code,tcg_card_assets(kind,object_key),tcg_card_identities!inner(id,code,name,color,card_type,cost,power)').eq('language','EN').in('tcg_card_identities.code',metaLeaderCodes).not('card_image_url','is',null).order('created_at',{ascending:false}).limit(12),
-    ]).then(([featured,meta])=>{if(!active)return;const sorted=((featured.data??[]) as unknown as Row[]).filter(row=>isPlayableSet(row.set_code)).sort((a,b)=>setRank(b.set_code)-setRank(a.set_code)||(a.tcg_card_identities.card_type==='Leader'?0:1)-(b.tcg_card_identities.card_type==='Leader'?0:1)||a.tcg_card_identities.code.localeCompare(b.tcg_card_identities.code));const liveMeta=new Map<string,Row>();for(const row of (meta.data??[]) as unknown as Row[]){if(metaLeaderCodes.includes(row.tcg_card_identities.code)&&(!liveMeta.has(row.tcg_card_identities.code)||setRank(row.set_code)>setRank(liveMeta.get(row.tcg_card_identities.code)!.set_code)))liveMeta.set(row.tcg_card_identities.code,row)}setCards(sorted.slice(0,12).map(asCard));setLeaders((liveMeta.size?metaLeaderCodes.map(code=>liveMeta.get(code)).filter((row):row is Row=>Boolean(row)):sorted.filter(row=>row.tcg_card_identities.card_type==='Leader').slice(0,4)).map(asCard));});
-    const loadCounts=()=>{void Promise.all([client.from('tcg_card_identities').select('id',{count:'exact',head:true}),client.from('tcg_card_printings').select('id',{count:'exact',head:true})]).then(([identities,printings])=>{if(active)setCounts({identities:identities.count??0,printings:printings.count??0})})};
+      fetch('/api/cards/catalog?language=EN&limit=500',{cache:'force-cache'}).then(async response=>response.ok?(await response.json() as {cards:Row[]}).cards:[]),
+      fetch(`/api/cards/catalog?language=EN&codes=${encodeURIComponent(metaLeaderCodes.join(','))}`,{cache:'force-cache'}).then(async response=>response.ok?(await response.json() as {cards:Row[]}).cards:[]),
+    ]).then(([featured,meta])=>{if(!active)return;const sorted=featured.sort((a,b)=>setRank(b.set_code)-setRank(a.set_code)||(a.tcg_card_identities.card_type==='Leader'?0:1)-(b.tcg_card_identities.card_type==='Leader'?0:1)||a.tcg_card_identities.code.localeCompare(b.tcg_card_identities.code));const liveMeta=new Map<string,Row>();for(const row of meta){if(metaLeaderCodes.includes(row.tcg_card_identities.code)&&(!liveMeta.has(row.tcg_card_identities.code)||setRank(row.set_code)>setRank(liveMeta.get(row.tcg_card_identities.code)!.set_code)))liveMeta.set(row.tcg_card_identities.code,row)}setCards(sorted.slice(0,12).map(asCard));setLeaders((liveMeta.size?metaLeaderCodes.map(code=>liveMeta.get(code)).filter((row):row is Row=>Boolean(row)):sorted.filter(row=>row.tcg_card_identities.card_type==='Leader').slice(0,4)).map(asCard));});
+    const loadCounts=()=>{void fetch('/api/cards/summary',{cache:'force-cache'}).then(response=>response.ok?response.json() as Promise<{identities:number;printings:number}>:null).then(value=>{if(active&&value)setCounts(value)})};
     const idleWindow=window as Window&{requestIdleCallback?:(callback:()=>void,options?:IdleRequestOptions)=>number;cancelIdleCallback?:(handle:number)=>void};
     if(typeof idleWindow.requestIdleCallback==='function'){const idle=idleWindow.requestIdleCallback(loadCounts,{timeout:5000});return()=>{active=false;idleWindow.cancelIdleCallback?.(idle)}}
     const timer=window.setTimeout(loadCounts,2500);

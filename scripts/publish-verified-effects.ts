@@ -222,7 +222,7 @@ for(const card of snapshot.cards){
    const prior=after.ast.filter(item=>item.rawText.trim()===ability.rawText.trim());
    if(prior.length!==1){block('hand-counter-aura-published-window-not-unique');break;}
    const priorTiming=prior[0].trigger;removed.add(ability.rawText.trim());after.ast=after.ast.filter(item=>item!==prior[0]);
-   const normalizedIndex=after.normalized.findIndex(item=>item.timing===priorTiming&&item.sequence.some(step=>step.type==='RESOLVE'&&String(step.action.kind)==='grant-counter'));
+   const normalizedIndex=after.normalized.findIndex(item=>item.timing===priorTiming&&item.sequence.some(step=>step.type==='RESOLVE'&&['grant-counter','hand-counter'].includes(String(step.action.kind))));
    if(normalizedIndex<0){block('hand-counter-aura-published-sequence-missing');break;}
    after.normalized.splice(normalizedIndex,1);
   }

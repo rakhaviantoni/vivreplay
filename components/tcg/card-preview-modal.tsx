@@ -7,7 +7,6 @@ import {WishlistButton} from './market-saved';
 import {CaretLeftIcon as ChevronLeft, CaretRightIcon as ChevronRight, ArrowSquareOutIcon as ExternalLink, PlusIcon as Plus, StorefrontIcon as Store, XIcon as X} from '@phosphor-icons/react';
 import type {Card} from '@/packages/card-data/catalog';
 import {CardArt} from './card-art';
-import {createClient} from '@/utils/supabase/client';
 import {CardMarketPanel} from './card-market-panel';
 import {CardPrintingSelector,orderPrintings,type CardPrinting} from './card-printing-selector';
 import {CardDetailContent, cardIdentityBackground} from './card-detail-content';
@@ -17,7 +16,6 @@ export {EffectText} from './effect-text';
 
 type Printing = CardPrinting & {rarity:string|null;set_code:string|null;set_name:string|null;counter_amount:number|null;life:number|null;attribute:string|null;source_payload?:{block?:string|number;block_value?:string|number}|null;tcg_card_assets?:Array<{kind:string;object_key:string}>};
 type IdentityRecord={id:string;code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number;effect_text:string|null};
-type PrintingLookup={identity_id:string;tcg_card_identities:IdentityRecord|IdentityRecord[]|null};
 
 
 function blockForSet(code:string,payload?:{block?:string|number;block_value?:string|number}|null){
@@ -62,16 +60,7 @@ export function CardPreviewModal({card, origin, language, cards, printingIds, in
   },[]);
   const id=locale==='ID';
   const hasFlown=useRef(false);const [phase,setPhase]=useState<'flight'|'landed'|'shell'>(origin&&origin.width>=60?'flight':'shell');const [flightStyle,setFlightStyle]=useState<CSSProperties>();const [landingStyle,setLandingStyle]=useState<CSSProperties>();
-  useEffect(()=>{setSelected(initialPrintingId??card.id);setPrintings([]);setResolvedCard(card);setDetailsLoading(true);let active=true;const client=createClient();void (async()=>{try{
-    // Market fixtures and imported listings may only retain a printing code. The
-    // library supplies a printing UUID, so support both inputs in this shared viewer.
-    let {data:lookup}=await client.from('tcg_card_printings').select('identity_id,tcg_card_identities(id,code,name,color,card_type,cost,power,effect_text)').eq('id',card.id).maybeSingle<PrintingLookup>();
-    if(!lookup){const code=card.printingCode??card.code;const result=await client.from('tcg_card_printings').select('identity_id,tcg_card_identities(id,code,name,color,card_type,cost,power,effect_text)').eq('language',card.language??language).ilike('printing_code',code).limit(1).maybeSingle<PrintingLookup>();lookup=result.data;}
-    if(!lookup||!active)return;
-    const identity=Array.isArray(lookup.tcg_card_identities)?lookup.tcg_card_identities[0]:lookup.tcg_card_identities;
-    if(identity) setResolvedCard(current=>({...current,id:identity.id,code:identity.code,name:identity.name,color:identity.color,type:identity.card_type,cost:identity.cost,power:identity.power,effect:identity.effect_text??''}));
-    const {data:rows}=await client.from('tcg_card_printings').select('id,language,variant,rarity,set_code,set_name,printing_code,card_image_url,counter_amount,life,attribute,source_payload,tcg_card_assets(kind,object_key)').eq('identity_id',lookup.identity_id).order('language').order('variant');if(active)setPrintings((rows??[]) as Printing[]);
-  }finally{if(active)setDetailsLoading(false)}})();return()=>{active=false};},[card,initialPrintingId,language]);
+  useEffect(()=>{setSelected(initialPrintingId??card.id);setPrintings([]);setResolvedCard(card);setDetailsLoading(true);let active=true;void fetch(`/api/cards/${encodeURIComponent(card.code)}`,{cache:'force-cache'}).then(async response=>{if(!response.ok)throw new Error('Card details unavailable');return response.json() as Promise<{identity:IdentityRecord;printings:Printing[]}>}).then(payload=>{if(!active)return;const identity=payload.identity;if(identity)setResolvedCard(current=>({...current,id:identity.id,code:identity.code,name:identity.name,color:identity.color,type:identity.card_type,cost:identity.cost,power:identity.power,effect:identity.effect_text??''}));setPrintings(payload.printings??[])}).catch(()=>{if(active)setPrintings([])}).finally(()=>{if(active)setDetailsLoading(false)});return()=>{active=false}},[card,initialPrintingId]);
   const orderedPrintings=useMemo(()=>orderPrintings(printings),[printings]);
   const availablePrintings=useMemo<Printing[]>(()=>orderedPrintings.length?orderedPrintings:[{id:card.id,language:card.language??language,variant:'Standard',printing_code:card.printingCode??card.code,card_image_url:card.imageUrl??null,rarity:card.rarity,set_code:card.setCode??null,set_name:null,counter_amount:null,life:null,attribute:null}], [card,language,orderedPrintings]);
   const exactCode=card.printingCode?.toLowerCase();

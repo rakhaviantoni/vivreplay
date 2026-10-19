@@ -1,8 +1,6 @@
 import { database } from '@/lib/server/database';
 import { readPublicEdgeCache, storePublicEdgeCache } from '@/lib/server/public-edge-cache';
-import { supabaseAdmin } from '@/lib/server/supabase-storage';
 import { isPlayableSet, PREVIEW_CARD_CODES } from '@/packages/domain/release-availability';
-import { gameId } from '@/packages/card-data/catalog';
 import { CARD_CATALOG_CACHE_REVISION } from '@/lib/card-catalog-cache';
 import { env } from 'cloudflare:workers';
 
@@ -17,6 +15,9 @@ function publicCardPath(objectKey: string, setCode = '', language = 'EN', printi
       const source = new URL(objectKey);
       const [, folder, sourceLanguage, ...parts] = source.pathname.split('/');
       const filename = parts.at(-1);
+      if (source.hostname === 'assets.tcgdex.net' && source.protocol === 'https:' && source.pathname.startsWith('/')) {
+        return `/api/card-art?url=${encodeURIComponent(source.toString())}`;
+      }
       if (source.hostname === 'cards.oplaytcg.com' && folder && sourceLanguage && filename && folder.toLowerCase() !== 'tcg' && !filename.toLowerCase().startsWith('tcg-')) {
         return `/${encodeURIComponent(folder)}/${encodeURIComponent(sourceLanguage.toLowerCase())}/${encodeURIComponent(filename)}`;
       }
@@ -33,21 +34,33 @@ function parseJson(value: unknown) {
   try { return JSON.parse(value); } catch { return value; }
 }
 
-async function fromD1(language: string, identityCode?: string, setCode?: string) {
+async function fromD1(gameSlug: string, language: string, identityCode?: string, setCode?: string, limit?: number, offset = 0, printingIds?: string[],identityCodes?:string[],identityIds?:string[]) {
   const db = database();
-  const predicates = ['p.language=?'];
-  const values: (string | number)[] = [language];
+  const selectedGame = await db.prepare('SELECT id FROM tcg_games WHERE slug=? LIMIT 1').bind(gameSlug).first<{ id: string }>();
+  if (!selectedGame) return [];
+  const predicates = ['i.game_id=?'];
+  const values: (string | number)[] = [selectedGame.id];
+  if (!printingIds?.length) { predicates.push('p.language=?'); values.push(language); }
+  if (printingIds?.length) { predicates.push(`p.id IN (${printingIds.map(()=>'?').join(',')})`); values.push(...printingIds); }
+  if(identityCodes?.length){predicates.push(`i.code IN (${identityCodes.map(()=>'?').join(',')})`);values.push(...identityCodes)}
+  if(identityIds?.length){predicates.push(`i.id IN (${identityIds.map(()=>'?').join(',')})`);values.push(...identityIds)}
   if (identityCode) {
     const identity = await db.prepare('SELECT id FROM tcg_card_identities WHERE game_id=? AND code=? LIMIT 1')
-      .bind(gameId, identityCode).first<{ id: string }>();
+      .bind(selectedGame.id, identityCode).first<{ id: string }>();
     if (!identity) return [];
     predicates.push('p.identity_id=?');
     values.push(identity.id);
   }
   if (setCode) {
-    predicates.push('p.set_code=?');
-    values.push(setCode);
+    // Set codes have historically been imported as both OP15 and OP-15 (and
+    // EB01 / EB-01). Match their canonical form so a route or deep link never
+    // loses cards just because one import used punctuation.
+    const normalizedSet=setCode.toUpperCase().replace(/[-_\s]/g, '');
+    predicates.push("(UPPER(REPLACE(REPLACE(REPLACE(p.set_code,'-',''),'_',''),' ',''))=? OR (? LIKE 'OP%' AND UPPER(REPLACE(REPLACE(REPLACE(p.set_code,'-',''),'_',''),' ','')) LIKE ? || 'EB%'))");
+    values.push(normalizedSet,normalizedSet,normalizedSet);
   }
+  const pagination = limit ? 'LIMIT ? OFFSET ?' : '';
+  if (limit) values.push(limit, offset);
   const { results } = await db.prepare(`
     SELECT p.id,p.rarity,p.variant,p.set_code,p.set_name,p.printing_code,p.language,
       p.attribute,p.counter_amount,p.sub_types,p.source_payload,
@@ -60,8 +73,10 @@ async function fromD1(language: string, identityCode?: string, setCode?: string)
     JOIN tcg_card_identities i ON i.id=p.identity_id
     LEFT JOIN tcg_card_localizations l ON l.identity_id=i.id AND l.language=p.language
     LEFT JOIN tcg_card_assets a ON a.printing_id=p.id AND a.kind='small'
+    LEFT JOIN tcg_sets s ON s.id=p.set_id
     WHERE ${predicates.join(' AND ')}
-    ${identityCode || setCode ? '' : 'ORDER BY p.set_code,p.id'}
+    ORDER BY COALESCE(s.release_date,'') DESC,p.set_code DESC,p.printing_code,p.id
+    ${pagination}
   `).bind(...values).all<Record<string, unknown>>();
   return results.flatMap(row => {
     const identity = {
@@ -73,11 +88,11 @@ async function fromD1(language: string, identityCode?: string, setCode?: string)
     };
     const code = String(identity.code ?? '').toUpperCase();
     const setCode = String(row.set_code ?? '');
-    if (!isPlayableSet(setCode) && !PREVIEW_CARD_CODES.has(code) && row.variant !== 'Preview') return [];
+    if (gameSlug === 'one-piece' && !isPlayableSet(setCode) && !PREVIEW_CARD_CODES.has(code) && row.variant !== 'Preview') return [];
     const imageKey = String(row.image_key ?? '');
     const imageUrl = !imageKey ? null : publicCardPath(imageKey, setCode, language, String(row.printing_code || identity.code || '')) || null;
     return [{
-      id: row.id, rarity: row.rarity, variant: row.variant,
+      id: row.id,identity_id:row.identity_id, rarity: row.rarity, variant: row.variant,
       set_code: row.set_code, set_name: row.set_name,
       printing_code: row.printing_code || identity.code,
       language: row.language, attribute: row.attribute,
@@ -91,47 +106,33 @@ async function fromD1(language: string, identityCode?: string, setCode?: string)
   });
 }
 
-async function fromSupabase(language: string, identityCode?: string, setCode?: string) {
-  const supabase = supabaseAdmin();
-  if (!supabase) throw new Error('Supabase catalog fallback is unavailable.');
-  const rows: Record<string, unknown>[] = [];
-  for (let from = 0; ; from += 1000) {
-    let query = supabase.from('tcg_card_printings')
-      .select('id,rarity,variant,set_code,set_name,printing_code,language,attribute,counter_amount,sub_types,source_payload,card_image_url,tcg_card_assets(kind,object_key),tcg_card_identities!inner(id,code,name,color,card_type,cost,power,effect_text)')
-      .eq('language', language);
-    if (identityCode) query = query.eq('tcg_card_identities.code', identityCode);
-    if (setCode) query = query.eq('set_code', setCode);
-    const { data, error } = await query.range(from, from + 999);
-    if (error) throw error;
-    rows.push(...((data ?? []) as unknown as Record<string, unknown>[]));
-    if ((data ?? []).length < 1000) break;
-  }
-  return rows.filter(row => {
-    const identity = row.tcg_card_identities as { code?: string } | null;
-    const code = String(identity?.code ?? '').toUpperCase();
-    return isPlayableSet(String(row.set_code ?? '')) || PREVIEW_CARD_CODES.has(code) || row.variant === 'Preview';
-  }).map(row => {
-    const identity = row.tcg_card_identities as { code?: string } | null;
-    const assets = row.tcg_card_assets as Array<{ kind?: string; object_key?: string }> | null;
-    const assetKey = assets?.find(asset => asset.kind === 'small')?.object_key;
-    const setCode = String(row.set_code ?? '');
-    const source = String(assetKey || row.card_image_url || '');
-    const imageUrl = source ? publicCardPath(source, setCode, String(row.language ?? language), String(row.printing_code || identity?.code || '')) || null : null;
-    return { ...row, card_image_url: imageUrl, tcg_card_assets: assetKey ? [{ kind: 'small', object_key: assetKey }] : [] };
-  });
-}
-
 export async function GET(request: Request) {
   const cached = await readPublicEdgeCache(request);
   if (cached) return cached;
   const params = new URL(request.url).searchParams;
-  const language = params.get('language')?.toUpperCase() === 'JP' ? 'JP' : 'EN';
+  const rawIds=params.get('ids');
+  const printingIds=rawIds===null?undefined:[...new Set(rawIds.split(',').map(value=>value.trim()).filter(Boolean))];
+  if(printingIds?.length===0||printingIds&&printingIds.length>500)return Response.json({error:'Choose up to 500 printings.'},{status:400});
+  const rawCodes=params.get('codes');
+  const identityCodes=rawCodes===null?undefined:[...new Set(rawCodes.split(',').map(value=>value.trim().toUpperCase()).filter(value=>/^[A-Z0-9_-]{2,40}$/.test(value)))];
+  if(identityCodes?.length===0||identityCodes&&identityCodes.length>100)return Response.json({error:'Choose up to 100 card codes.'},{status:400});
+  const rawIdentityIds=params.get('identityIds');
+  const identityIds=rawIdentityIds===null?undefined:[...new Set(rawIdentityIds.split(',').map(value=>value.trim()).filter(Boolean))];
+  if(identityIds?.length===0||identityIds&&identityIds.length>100)return Response.json({error:'Choose up to 100 card identities.'},{status:400});
+  const gameSlug = params.get('game')?.toLowerCase() === 'pokemon' ? 'pokemon' : 'one-piece';
+  const requestedLanguage = params.get('language')?.toUpperCase();
+  const language = requestedLanguage === 'JP' || requestedLanguage === 'JA' ? 'JP' : requestedLanguage === 'ID' ? 'ID' : 'EN';
   const rawCode = params.get('code')?.trim().toUpperCase();
   const identityCode = rawCode && /^[A-Z0-9-]{1,32}$/.test(rawCode) ? rawCode : undefined;
-  const rawSet = params.get('set')?.trim().toUpperCase();
-  const setCode = rawSet && /^[A-Z0-9_-]{1,24}$/.test(rawSet) ? rawSet : undefined;
-  const snapshotKey = `catalog-snapshots/cards-${language.toLowerCase()}-${CARD_CATALOG_CACHE_REVISION}.json`;
-  if (!identityCode && !setCode) {
+  const rawSet = params.get('set')?.trim();
+  const setCode = rawSet && /^[A-Za-z0-9_-]{1,24}$/.test(rawSet) ? (gameSlug === 'pokemon' ? rawSet : rawSet.toUpperCase()) : undefined;
+  const rawLimit = Number(params.get('limit'));
+  const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(500, Math.floor(rawLimit)) : undefined;
+  const rawOffset = Number(params.get('offset'));
+  const offset = Number.isFinite(rawOffset) && rawOffset > 0 ? Math.min(100_000, Math.floor(rawOffset)) : 0;
+  const snapshotKey = `catalog-snapshots/cards-${gameSlug}-${language.toLowerCase()}-${CARD_CATALOG_CACHE_REVISION}.json`;
+  const snapshotEligible = !printingIds && !identityCodes && !identityIds && !identityCode && !setCode && !limit && offset === 0;
+  if (snapshotEligible) {
     try {
       const snapshot = await env.CARD_IMAGES?.get(snapshotKey);
       if (snapshot) {
@@ -146,19 +147,15 @@ export async function GET(request: Request) {
     }
   }
   let cards: Record<string, unknown>[];
-  try { cards = await fromD1(language, identityCode, setCode); }
-  catch { cards = []; }
-  if (!cards.length) {
-    try { cards = await fromSupabase(language, identityCode, setCode); }
-    catch { return Response.json({ error: 'Catalog is temporarily unavailable.' }, { status: 503 }); }
-  }
+  try { cards = await fromD1(gameSlug, language, identityCode, setCode, printingIds||identityCodes||identityIds?undefined:limit, offset, printingIds,identityCodes,identityIds); }
+  catch { return Response.json({ error: 'Catalog is temporarily unavailable.' }, { status: 503 }); }
   const response = Response.json({ cards }, {
     headers: {
       'Cache-Control': 'public, max-age=300, stale-while-revalidate=86400',
       'Cloudflare-CDN-Cache-Control': 'public, max-age=31536000, immutable',
     },
   });
-  if (!identityCode && !setCode) {
+  if (snapshotEligible) {
     try {
       await env.CARD_IMAGES?.put(snapshotKey, JSON.stringify({ cards }), {
         httpMetadata: { contentType: 'application/json; charset=utf-8', cacheControl: 'public, max-age=86400' },

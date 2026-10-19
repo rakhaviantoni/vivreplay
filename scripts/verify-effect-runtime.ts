@@ -1,24 +1,25 @@
 import {createClient} from '@supabase/supabase-js';
-import {mkdirSync,writeFileSync} from 'node:fs';
-import {execFileSync} from 'node:child_process';
+import {mkdirSync,readFileSync,writeFileSync} from 'node:fs';
 import {compileEffectDocument} from '../packages/domain/effect-rules';
 import {resolveEffectTiming} from '../packages/domain/effect-runtime';
 import {customEffectBranch,customEffectDefinition,hasCustomBoardExecutor} from '../packages/domain/custom-effect-resolvers';
+import {readD1AuditPages} from './d1-audit-reader';
 
-const auditSource=process.env.EFFECT_AUDIT_SOURCE??'supabase';
+const auditSource=process.env.EFFECT_AUDIT_SOURCE??'report';
 const url=process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key=process.env.SUPABASE_SECRET_KEY;
 let db:ReturnType<typeof createClient>|undefined;
-if(auditSource!=='d1'){
+if(auditSource!=='d1'&&auditSource!=='report'){
  if(!url||!key)throw new Error('NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SECRET_KEY are required.');
  db=createClient(url,key,{auth:{persistSession:false,autoRefreshToken:false}});
 }
 const rows:Array<{id:string;code:string;name:string;color:string;card_type:string;cost:number;power:number;effect_text:string}>=[];
-if(auditSource==='d1'){
- const output=execFileSync('node_modules/.bin/wrangler',['d1','execute','vivreplay','--remote','--config','dist/server/wrangler.json','--json','--command',"SELECT id,code,name,color,card_type,cost,power,effect_text FROM tcg_card_identities ORDER BY code"],{encoding:'utf8',maxBuffer:32*1024*1024});
- const envelope=JSON.parse(output.trimStart()) as Array<{results?:typeof rows;success?:boolean;error?:{text?:string}}>;
- if(!envelope[0]?.success)throw new Error(envelope[0]?.error?.text??'Cloudflare D1 query failed.');
- rows.push(...(envelope[0].results??[]));
+let sourceSnapshotAt:string|undefined;
+if(auditSource==='d1')rows.push(...await readD1AuditPages<typeof rows[number]>({select:'id,code,name,color,card_type,cost,power,effect_text',from:'tcg_card_identities',key:'id'}));
+else if(auditSource==='report'){
+ const snapshot=JSON.parse(readFileSync('reports/effects/per-card-d1.json','utf8')) as {generatedAt:string;cards:Array<{code:string;name:string;color:string;cardType:string;cost:number;power:number;printedText:string}>};
+ sourceSnapshotAt=snapshot.generatedAt;
+ rows.push(...snapshot.cards.map(card=>({id:card.code,code:card.code,name:card.name,color:card.color,card_type:card.cardType,cost:card.cost,power:card.power,effect_text:card.printedText})));
 }else for(let from=0;;from+=1000){const {data,error}=await db!.from('tcg_card_identities').select('id,code,name,color,card_type,cost,power,effect_text').range(from,from+999);if(error)throw error;rows.push(...(data??[]) as typeof rows);if((data??[]).length<1000)break;}
 const supported=rows.filter(row=>! /^(?:OP-?18|EB-?05)-/i.test(row.code));
 function expectedCommands(document:ReturnType<typeof compileEffectDocument>,timing:Parameters<typeof resolveEffectTiming>[1],visited:typeof timing[]=[]):number{
@@ -59,7 +60,7 @@ for(const row of supported){
   executed++;
  }
 }
-const report={source:auditSource,cards:supported.length,excludedUnsupportedReleaseCards:rows.length-supported.length,dslTimingWindows:executed,customInstructionPlans,blockedCustomCount:blockedCustom.length,blockedCustom,unhandledCustomCount:unhandledCustom.length,unhandledCustom,issueCount:issues.length,issues,verified:issues.length===0&&blockedCustom.length===0&&unhandledCustom.length===0};
+const report={source:auditSource,sourceSnapshotAt,cards:supported.length,excludedUnsupportedReleaseCards:rows.length-supported.length,dslTimingWindows:executed,customInstructionPlans,blockedCustomCount:blockedCustom.length,blockedCustom,unhandledCustomCount:unhandledCustom.length,unhandledCustom,issueCount:issues.length,issues,verified:issues.length===0&&blockedCustom.length===0&&unhandledCustom.length===0};
 mkdirSync('reports/effects',{recursive:true});writeFileSync('reports/effects/runtime-audit.json',JSON.stringify(report,null,2));
 console.log(JSON.stringify({...report,blockedCustom:blockedCustom.slice(0,20),issues:issues.slice(0,20),detailsInReport:'reports/effects/runtime-audit.json'},null,2));
 if(issues.length||blockedCustom.length)process.exitCode=1;

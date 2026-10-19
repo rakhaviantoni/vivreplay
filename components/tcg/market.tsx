@@ -28,7 +28,6 @@ import {
 } from '@phosphor-icons/react';
 import {toast} from 'sonner';
 import {Card,cardFor,cards,printings} from '@/packages/card-data/catalog';
-import {createClient} from '@/utils/supabase/client';
 import {displayCardName} from './card-name';
 import {printingLabel} from './card-printing-selector';
 import {CollectionItem,Listing,formatMoney} from '@/packages/domain';
@@ -148,16 +147,16 @@ function matchesCardSearch(card:Card,filters:CardSearchFilters){
   return (!filters.code||code===normalize(filters.code))&&(!filters.setCode||normalize(card.setCode??'').startsWith(normalize(filters.setCode))||code.startsWith(normalize(filters.setCode)))&&(!filters.cardType||card.type.toLowerCase()===filters.cardType.toLowerCase())&&(!filters.rarities.length||filters.rarities.includes(card.rarity.toUpperCase()))&&(!filters.color||card.color.toLowerCase().includes(filters.color.toLowerCase()))&&(filters.cost===null||card.cost===filters.cost)&&filters.nameTerms.every(term=>full.includes(term));
 }
 async function searchMarketCards(value:string,limit:number):Promise<MarketCard[]>{
-  const filters=parseCardSearch(value);const client=createClient();let query=client.from('tcg_card_identities').select('id,code,name,color,card_type,cost,power,effect_text,tcg_card_printings!inner(id,card_image_url,rarity,set_code,language,variant,printing_code,tcg_card_assets(kind,object_key))');
-  if(filters.code)query=query.eq('code',filters.code);else for(const term of filters.nameTerms)query=query.ilike('name',`%${term}%`);
-  if(filters.setCode){const match=filters.setCode.match(/^(OP|EB|ST|PRB|DON|P)(\d+)$/);query=query.ilike('tcg_card_printings.set_code',match?`${match[1]}%${match[2]}`:`%${filters.setCode}%`);}
-  if(filters.cardType)query=query.ilike('card_type',filters.cardType);
-  if(filters.rarities.length)query=query.in('tcg_card_printings.rarity',filters.rarities);
-  if(filters.color)query=query.ilike('color',`%${filters.color}%`);
-  if(filters.cost!==null)query=query.eq('cost',filters.cost);
-  const {data,error}=await query.limit(limit);
-  if(!error){const live=((data??[]) as SearchIdentity[]).map(searchedCard).filter((card):card is MarketCard=>Boolean(card));if(live.length)return live;}
-  return cards.filter(card=>matchesCardSearch(card,filters)).slice(0,limit);
+  const response=await fetch(`/api/cards/identities?q=${encodeURIComponent(value)}`,{cache:'no-store'});
+  if(!response.ok)throw new Error('Card catalog is unavailable.');
+  const payload=await response.json() as {cards?:Array<{id:string;code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number;effect_text:string}>};
+  const identities=(payload.cards??[]).slice(0,limit);
+  return (await Promise.all(identities.map(async identity=>{
+    const detailResponse=await fetch(`/api/cards/${encodeURIComponent(identity.code)}`,{cache:'force-cache'});
+    if(!detailResponse.ok)return undefined;
+    const detail=await detailResponse.json() as {printings?:Array<{id:string;language:string;variant:string|null;rarity:string|null;set_code:string|null;printing_code:string|null;card_image_url:string|null;tcg_card_assets?:Array<{kind:string;object_key:string}>}>};
+    return searchedCard({...identity,tcg_card_printings:(detail.printings??[]).map(item=>({...item,set_code:item.set_code??'',card_image_url:item.card_image_url}))});
+  }))).filter((card):card is MarketCard=>Boolean(card)).slice(0,limit);
 }
 function CardSearch({value,onChange,onSelect,onAddToVault,locale='EN',wanted=false}:{value:string;onChange:(value:string)=>void;onSelect:(card:MarketCard)=>void;onAddToVault:(card:MarketCard)=>void;locale?:'EN'|'ID';wanted?:boolean}) {
   const [results,setResults]=useState<MarketCard[]>([]);
@@ -614,27 +613,16 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
       }
     }
     try{
-      const client=createClient();
-      let {data:lookup}=await client.from('tcg_card_printings').select('identity_id').eq('id',card.id).maybeSingle();
+      const response=await fetch(`/api/cards/${encodeURIComponent(card.code)}`,{cache:'force-cache'});
+      const payload=await response.json() as {printings?:Array<{id:string;language:string;variant:string|null;rarity:string|null;set_code:string|null;printing_code:string|null;card_image_url:string|null;tcg_card_assets?:Array<{kind:string;object_key:string}>}>};
       if(loadVersion!==configLoadVersion.current)return;
-      if(!lookup){
-        const {data:byCode}=await client.from('tcg_card_identities').select('id').ilike('code',card.code).maybeSingle();
-        if(byCode)lookup={identity_id:byCode.id};
-        if(loadVersion!==configLoadVersion.current)return;
-      }
-      if(lookup?.identity_id){
-        const {data:rows}=await client.from('tcg_card_printings').select('id,language,variant,rarity,set_code,printing_code,card_image_url,tcg_card_assets(kind,object_key)').eq('identity_id',lookup.identity_id).order('language').order('variant');
-        if(loadVersion!==configLoadVersion.current)return;
-        if(rows&&rows.length>0){
-          const list=uniqueCardPrintings(rows as CardPrintingItem[]);
-          if(list.length){
-            setCardPrintings(list);
-            const chosen=list.find(p=>p.id===requestedPrintingId)||list.find(p=>p.language===card.language)||list[0];
-            setConfiguringCard(prev=>prev?{...prev,availablePrintings:list}:prev);
-            setSelectedPrintingId(chosen.id);
-            return;
-          }
-        }
+      const list=uniqueCardPrintings((payload.printings??[]) as CardPrintingItem[]);
+      if(response.ok&&list.length){
+        setCardPrintings(list);
+        const chosen=list.find(p=>p.id===requestedPrintingId)||list.find(p=>p.language===card.language)||list[0];
+        setConfiguringCard(prev=>prev?{...prev,availablePrintings:list}:prev);
+        setSelectedPrintingId(chosen.id);
+        return;
       }
     }catch{}
     if(loadVersion!==configLoadVersion.current)return;
@@ -667,13 +655,11 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
     }
     let active=true;
     void (async()=>{
-      const client=createClient();
-      const {data}=await client.from('tcg_card_printings').select('id,card_image_url,rarity,set_code,language,tcg_card_identities!inner(code,name,color,card_type,cost,power,effect_text)').eq('id',sell).maybeSingle();
+      const response=await fetch(`/api/cards/printing/${encodeURIComponent(sell)}`,{cache:'no-store'});
       if(!active)return;
-      if(!data){setDirectSellLoading(false);return;}
-      const row=data as unknown as {id:string;card_image_url:string|null;rarity:string|null;set_code:string|null;language:string;tcg_card_identities:{code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number;effect_text:string}};
-      const identity=row.tcg_card_identities;
-      const cardObj:Card={id:row.id,code:identity.code,name:displayCardName(identity.name,identity.code),color:identity.color,type:identity.card_type,cost:identity.cost,power:identity.power,rarity:row.rarity??'',art:0,effect:identity.effect_text,imageUrl:row.card_image_url??undefined,imageSource:'external',setCode:row.set_code??undefined,language:row.language};
+      const row=await response.json() as {id:string;code:string;name:string;color:string;cardType:Card['type'];cost:number;power:number;effect:string;imageUrl:string|null;rarity:string|null;setCode:string|null;language:string;printingCode?:string|null;variant?:string|null;objectKey?:string|null};
+      if(!response.ok){setDirectSellLoading(false);return;}
+      const cardObj:Card={id:row.id,code:row.code,name:displayCardName(row.name,row.code),color:row.color,type:row.cardType,cost:row.cost,power:row.power,rarity:row.rarity??'',art:0,effect:row.effect,imageUrl:row.imageUrl??undefined,imageSource:'external',setCode:row.setCode??undefined,language:row.language,printingCode:row.printingCode??undefined,variant:row.variant??undefined,assetPath:row.objectKey??undefined};
       sellCard(cardObj);
     })();
     return()=>{active=false};
@@ -857,15 +843,10 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
     setDirectSellLoading(true);
     setOpen(true);
     try{
-      const client=createClient();
-      let query=client.from('tcg_card_printings').select('id,card_image_url,rarity,set_code,language,printing_code,variant,tcg_card_assets(kind,object_key),tcg_card_identities!inner(code,name,color,card_type,cost,power,effect_text)');
-      if(readablePrinting)query=query.eq('printing_code',readablePrinting[1]).eq('language',readablePrinting[2].toUpperCase());
-      else query=query.eq('id',printingId);
-      const {data:row}=await query.maybeSingle();
-      if(!row){setDirectSellLoading(false);toast.error(locale==='ID'?'Cetakan kartu tidak ditemukan.':'Card printing could not be found.');return;}
-      const printing=row as unknown as {id:string;card_image_url:string|null;rarity:string|null;set_code:string|null;language:string;printing_code:string|null;variant:string|null;tcg_card_assets?:Array<{kind:string;object_key:string}>;tcg_card_identities:{code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number;effect_text:string}};
-      const identity=printing.tcg_card_identities;
-      const cardObj:Card={id:printing.id,code:identity.code,name:displayCardName(identity.name,identity.code),color:identity.color,type:identity.card_type,cost:identity.cost,power:identity.power,rarity:printing.rarity??'',art:0,effect:identity.effect_text,imageUrl:printing.card_image_url??undefined,imageSource:'external',setCode:printing.set_code??undefined,language:printing.language,printingCode:printing.printing_code??undefined,variant:printing.variant??undefined,assetPath:printing.tcg_card_assets?.find(asset=>asset.kind==='small')?.object_key};
+      const response=await fetch(`/api/cards/printing/${encodeURIComponent(readablePrinting?`${readablePrinting[1]}--${readablePrinting[2]}`:printingId)}`,{cache:'no-store'});
+      const printing=await response.json() as {id:string;code:string;name:string;color:string;cardType:Card['type'];cost:number;power:number;effect:string;imageUrl:string|null;rarity:string|null;setCode:string|null;language:string;printingCode?:string|null;variant?:string|null;objectKey?:string|null};
+      if(!response.ok){setDirectSellLoading(false);toast.error(locale==='ID'?'Cetakan kartu tidak ditemukan.':'Card printing could not be found.');return;}
+      const cardObj:Card={id:printing.id,code:printing.code,name:displayCardName(printing.name,printing.code),color:printing.color,type:printing.cardType,cost:printing.cost,power:printing.power,rarity:printing.rarity??'',art:0,effect:printing.effect,imageUrl:printing.imageUrl??undefined,imageSource:'external',setCode:printing.setCode??undefined,language:printing.language,printingCode:printing.printingCode??undefined,variant:printing.variant??undefined,assetPath:printing.objectKey??undefined};
       sellCard(cardObj);
     }catch{
       setDirectSellLoading(false);
@@ -875,11 +856,9 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
   useEffect(()=>{
     if(!modalOnly)return;
     const onSell=(event:Event)=>{const printingId=(event as CustomEvent<string>).detail;if(printingId){if(accountLoading)queuedSellPrinting.current=printingId;else void sellPrinting(printingId)}};
-    const onCreate=()=>beginListing();
     window.addEventListener('vivreplay:open-sell-printing',onSell);
-    window.addEventListener('vivreplay:open-sell-listing',onCreate);
-    return()=>{window.removeEventListener('vivreplay:open-sell-printing',onSell);window.removeEventListener('vivreplay:open-sell-listing',onCreate)};
-  },[modalOnly,accountLoading,beginListing,sellPrinting]);
+    return()=>window.removeEventListener('vivreplay:open-sell-printing',onSell);
+  },[modalOnly,accountLoading,sellPrinting]);
   useEffect(()=>{
     if(!modalOnly||initialSellHandled.current)return;
     if(initialSellPrinting){

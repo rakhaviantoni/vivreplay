@@ -25,8 +25,11 @@ for(const candidate of plan.candidates){
  if(process.argv.includes('--apply'))run(write);
  const readback=run(`SELECT effect_text,effect_schema FROM tcg_card_rule_revisions WHERE ruleset_id=${quote(rulesetId)} AND identity_id=${quote(current.id)} LIMIT 1`)[0];
  const readSchema=typeof readback?.effect_schema==='string'?JSON.parse(readback.effect_schema):readback?.effect_schema;
- if(!readback||readback.effect_text!==(candidate.effectTextAfter??candidate.printedText)||hash(readSchema)!==candidate.afterHash)throw new Error(`${candidate.code}: D1 readback does not match the verified schema.`);
- results.push({code:candidate.code,status:process.argv.includes('--apply')?'PUBLISHED_AND_READBACK_TESTED':'DRY_RUN_READBACK_MATCHED'});
+ const applying=process.argv.includes('--apply');
+ const expectedText=applying?(candidate.effectTextAfter??candidate.printedText):current.published_text;
+ const expectedHash=applying?candidate.afterHash:candidate.beforeHash;
+ if(!readback||readback.effect_text!==expectedText||hash(readSchema)!==expectedHash)throw new Error(`${candidate.code}: D1 readback does not match the ${applying?'published':'pre-write'} schema.`);
+ results.push({code:candidate.code,status:applying?'PUBLISHED_AND_READBACK_TESTED':'CURRENT_ROW_MATCHED_PLAN_READY'});
 }
 const outputPath=planPath.replace(/\.json$/,'')+'.d1-results.json';writeFileSync(outputPath,JSON.stringify(results,null,2));
 console.log(JSON.stringify({results:results.length,cards:results.map(item=>item.code),outputPath,apply:process.argv.includes('--apply')}));

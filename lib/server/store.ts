@@ -3,37 +3,7 @@ import {env} from 'cloudflare:workers';
 import {getCurrentUser} from '@/lib/server/auth';
 import type {Card} from '@/packages/card-data/catalog';
 import type {CollectionItem,SavedDeck,Listing} from '@/packages/domain';
-import {supabaseAdmin} from '@/lib/server/supabase-storage';
 import {normalizeListingItemPrices} from '@/lib/market/normalize-listing-prices';
-type CatalogPrintingOption={id:string;language:string;variant:string;printing_code?:string;card_image_url?:string|null;rarity?:string;set_code?:string};
-const catalogPrintingCache=new Map<string,{expiresAt:number;printings:CatalogPrintingOption[]}>();
-async function catalogPrintingsFromSupabase(codes:string[]){
-  const result=new Map<string,CatalogPrintingOption[]>();
-  const missing=codes.filter(code=>{const cached=catalogPrintingCache.get(code);if(cached&&cached.expiresAt>Date.now()){result.set(code,cached.printings);return false;}return true;});
-  const supabase=missing.length?supabaseAdmin():null;
-  if(!supabase)return result;
-  for(let offset=0;offset<missing.length;offset+=40){
-    const chunk=missing.slice(offset,offset+40);
-    const {data,error}=await supabase.from('tcg_card_printings').select('id,language,variant,printing_code,rarity,set_code,card_image_url,tcg_card_assets(kind,object_key),tcg_card_identities!inner(code)').in('tcg_card_identities.code',chunk);
-    if(error)throw error;
-    for(const row of (data??[]) as unknown as Array<Record<string,unknown>>){
-      const identityValue=row.tcg_card_identities as {code?:string}|Array<{code?:string}>|null;
-      const code=String(Array.isArray(identityValue)?identityValue[0]?.code:identityValue?.code??'').toUpperCase();
-      const rawAssets=row.tcg_card_assets as Array<{kind?:string;object_key?:string}>|null;
-      const objectKey=rawAssets?.find(asset=>asset.kind==='small')?.object_key;
-      const setCode=String(row.set_code??'');
-      const language=String(row.language??'EN');
-      const printingCode=String(row.printing_code??code);
-      const imageUrl=objectKey?`/${objectKey.replace(/^one-piece\/([^/]+)\//,(_match,set:string)=>`${set.replaceAll('-','')}/`)}`:String(row.card_image_url??`/${setCode.replaceAll('-','')}/${language.toLowerCase()}/${printingCode}.webp`);
-      const values=result.get(code)??[];
-      values.push({id:String(row.id),language,variant:String(row.variant??'Standard'),printing_code:printingCode,card_image_url:imageUrl,rarity:String(row.rarity??''),set_code:setCode});
-      result.set(code,values);
-    }
-  }
-  for(const code of missing){const values=result.get(code)??[];catalogPrintingCache.set(code,{expiresAt:Date.now()+10*60*1000,printings:values});}
-  for(const code of codes){const cached=catalogPrintingCache.get(code);if(cached&&cached.expiresAt>Date.now())result.set(code,cached.printings);}
-  return result;
-}
 export function db(){if(!env.DB)throw new Error('Persistent storage is unavailable. Please retry shortly.');return env.DB;}
 function defaultUsername(email: string | undefined, id: string): string {
   if (!email) return `player-${id.slice(0, 8)}`;
@@ -141,15 +111,6 @@ export async function collection(ownerId:string){
       }
     }
   }catch{tcgPrintingMap.clear();}
-  if(codes.length){
-    try{
-      const fallback=await catalogPrintingsFromSupabase(codes);
-      for(const [code,values] of fallback){
-        const combined=[...(tcgPrintingMap.get(code)??[]),...values];
-        tcgPrintingMap.set(code,combined.filter((printing,index,all)=>all.findIndex(candidate=>`${candidate.language}|${candidate.set_code}|${candidate.variant}|${candidate.printing_code}`===`${printing.language}|${printing.set_code}|${printing.variant}|${printing.printing_code}`)===index));
-      }
-    }catch{}
-  }
   return rows.map(row=>{
     const availablePrintings=[...(printingMap.get(row.identityId??'')??[]),...(tcgPrintingMap.get(row.code?.toUpperCase()??'')??[])].filter((printing,index,all)=>all.findIndex(candidate=>`${candidate.language}|${candidate.set_code}|${candidate.variant}|${candidate.printing_code}`===`${printing.language}|${printing.set_code}|${printing.variant}|${printing.printing_code}`)===index);
     if(!availablePrintings.length&&row.code)availablePrintings.push({id:row.printingId,language:row.language??'EN',variant:row.variant??'Standard',printing_code:row.printingCode??row.code,card_image_url:row.imageUrl,rarity:row.rarity,set_code:row.setCode});
