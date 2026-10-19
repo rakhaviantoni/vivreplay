@@ -196,8 +196,8 @@ html[data-theme='dark'] .sets-empty button{color:#edbd63}
 html[data-theme='dark'] .mini-rail-collapsed,html[data-theme='dark'] .mini-rail-reopen,html[data-theme='dark'] .mini-rail.is-expanded{background:#0b1720!important;border-color:#314b58!important;color:#eaf1ed!important}
 
 /* Compact game switch for the two card libraries. */
-.game-mode-switch{display:flex;align-items:center;gap:2px;flex:0 0 auto;width:174px;padding:3px;border:1px solid #3a3e47;border-radius:10px;background:#101318;color:#b8bdc5}
-.game-mode-switch a{display:flex;align-items:center;justify-content:center;gap:5px;flex:1;min-width:0;min-height:32px;padding:0 6px;border:1px solid transparent;border-radius:7px;color:inherit;text-decoration:none;font:650 10px/1 var(--game-font,Arial,sans-serif);white-space:nowrap;transition:background-color .16s ease,border-color .16s ease,color .16s ease}
+.game-mode-switch{display:flex;align-self:center;align-items:center;gap:2px;flex:0 0 auto;width:174px;height:36px;box-sizing:border-box;padding:2px;border:1px solid #3a3e47;border-radius:10px;background:#101318;color:#b8bdc5}
+.game-mode-switch a{display:flex;align-items:center;justify-content:center;gap:5px;flex:1;min-width:0;min-height:0;height:30px;padding:0 6px;border:1px solid transparent;border-radius:7px;color:inherit;text-decoration:none;font:650 10px/1 var(--game-font,Arial,sans-serif);white-space:nowrap;transition:background-color .16s ease,border-color .16s ease,color .16s ease}
 .game-mode-switch a:hover{border-color:#4b5058;background:#20252a;color:#fff}
 .game-mode-switch a.is-active{border-color:#e5a334;background:#e5a334;color:#191710}
 .game-mode-mark{display:grid;place-items:center;flex:0 0 18px;width:18px;height:18px;border:1px solid currentColor;border-radius:6px;font:800 8px/1 var(--display-font,Arial,sans-serif);letter-spacing:-.04em}
@@ -209,8 +209,8 @@ html[data-theme='dark'] .mini-rail-collapsed,html[data-theme='dark'] .mini-rail-
 .browse-all-wrap{display:flex;justify-content:center;width:100%;padding:0 0 8px}
 .browse-all-wrap .browse-all{margin:26px 0 0!important}
 @media(max-width:1100px){.game-mode-switch{width:164px}.game-mode-switch a{gap:4px;padding-inline:4px;font-size:9px}}
-@media(max-width:900px){.masthead{height:auto!important;min-height:58px;flex-wrap:wrap;row-gap:0!important;padding-top:7px!important}.masthead .primary-nav{display:none!important}.masthead .game-mode-switch{order:3;flex:0 0 auto;width:174px;margin:8px auto 10px}.masthead-actions{margin-left:auto}}
-@media(max-width:620px){.masthead{min-height:58px!important;padding-inline:14px!important}.game-mode-switch a{min-height:34px}.game-mode-mark{flex-basis:18px;width:18px;height:18px}.browse-all-wrap .browse-all{width:min(100%,320px);margin-top:22px!important}}
+@media(max-width:900px){.masthead{height:auto!important;min-height:58px;flex-wrap:wrap;row-gap:0!important;padding-top:7px!important}.masthead .primary-nav{display:none!important}.masthead .game-mode-switch{order:3;align-self:center;flex:0 0 auto;width:174px;height:40px;margin:8px auto 10px}.masthead-actions{margin-left:auto}}
+@media(max-width:620px){.masthead{min-height:58px!important;padding-inline:14px!important}.masthead .game-mode-switch{height:40px}.game-mode-switch a{height:34px}.game-mode-mark{flex-basis:18px;width:18px;height:18px}.browse-all-wrap .browse-all{width:min(100%,320px);margin-top:22px!important}}
 
 .market-feed-page{min-height:calc(100vh - 64px);padding:clamp(24px,5vw,64px) 18px 96px;background:var(--page-bg)}
 .market-feed-shell{width:min(100%,920px);margin:0 auto;border-inline:1px solid color-mix(in srgb,var(--line) 80%,transparent);padding-inline:clamp(16px,3vw,34px)}
