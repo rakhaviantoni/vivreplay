@@ -4427,3 +4427,10 @@ html[data-theme='dark'] .market-pro-billing-toggle button[aria-pressed='true']{b
 @media(prefers-reduced-motion:reduce){.market-pro-billing-toggle button{transition:none}}
 .checkout-payment-compact-logo{display:grid;width:40px;height:30px;flex:none;place-items:center;padding:3px;overflow:hidden;border:1px solid #e3ddcf;border-radius:6px;background:#fff;color:#182125}.checkout-payment-compact-logo img{display:block;width:100%;height:100%;object-fit:contain}.checkout-payment-compact-option>span:last-child{display:grid;min-width:0;gap:2px}
 html[data-theme='dark'] .checkout-payment-compact-logo{border-color:#e3ddcf;background:#fff;color:#182125}
+
+/* A compact, clear affordance for the desktop quick-actions rail. */
+.mini-rail-collapsed{min-height:42px;padding-inline:14px 12px;border-radius:999px;gap:9px;transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease;}
+.mini-rail-collapsed>svg:first-child{color:var(--accent);}
+.mini-rail-collapsed:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--accent) 56%,var(--line));box-shadow:0 13px 30px color-mix(in srgb,var(--ink) 19%,transparent);}
+.mini-rail-collapsed:focus-visible,.mini-rail-reopen:focus-visible{outline:2px solid var(--accent);outline-offset:3px;}
+@media(prefers-reduced-motion:reduce){.mini-rail-collapsed{transition:none}.mini-rail-collapsed:hover{transform:none}}

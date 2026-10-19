@@ -114,7 +114,7 @@ export function QuickAddModal({
 
   const handlePokemonQuickAdd=async(printing:PokemonCatalogPrinting)=>{
     const identity=printing.tcg_card_identities;if(!identity)return;
-    const card:Card={id:identity.code,code:identity.code,name:identity.name,color:identity.color||'Colorless',type:'Character',cost:identity.cost||0,power:identity.power||0,rarity:printing.rarity,art:0,effect:identity.effect_text||'',imageUrl:printing.card_image_url??undefined,setCode:printing.set_code,language:printing.language,printingCode:printing.printing_code,variant:printing.variant};
+    const card:Card={id:identity.code,code:identity.code,name:identity.name,color:identity.color||'Colorless',type:identity.card_type as Card['type'],cost:identity.cost||0,power:identity.power||0,rarity:printing.rarity,art:0,effect:identity.effect_text||'',imageUrl:printing.card_image_url??undefined,setCode:printing.set_code,language:printing.language,printingCode:printing.printing_code,variant:printing.variant,gameSlug:'pokemon'} as Card;
     const catalogCard={gameSlug:'pokemon' as const,code:identity.code,name:identity.name,color:identity.color||'Colorless',type:identity.card_type||'Pokémon',cost:identity.cost||0,power:identity.power||0,rarity:printing.rarity,effect:identity.effect_text||'',setCode:printing.set_code,language:printing.language as 'EN'|'ID'|'JP',variant:printing.variant,printingCode:printing.printing_code,imageUrl:printing.card_image_url??undefined};
     setBusy(true);
     try{

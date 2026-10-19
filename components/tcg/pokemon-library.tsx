@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { MagnifyingGlassIcon as Search, ArrowUpRightIcon } from '@phosphor-icons/react';
 import { CardArt } from '@/components/tcg/card-art';
 import { PokemonCardText } from '@/components/tcg/pokemon-card-text';
@@ -21,6 +22,9 @@ const languages = ['ID', 'EN', 'JP'] as const;
 type Language = typeof languages[number];
 
 export function PokemonLibrary({ initialSet, initialQuery }: { initialSet?: string; initialQuery?: string }) {
+  const pathname = usePathname();
+  const id = pathname === '/id' || pathname.startsWith('/id/');
+  const localize = (href: string) => id ? `/id${href}` : href;
   const [language, setLanguage] = useState<Language>('ID');
   const [cards, setCards] = useState<GameCard[]>([]);
   const [sets, setSets] = useState<SetRecord[]>([]);
@@ -113,34 +117,34 @@ export function PokemonLibrary({ initialSet, initialQuery }: { initialSet?: stri
     <section className="library-intro">
       <div className="library-intro-copy">
         <p className="kicker">POKÉMON TCG</p>
-        <h1>Explore the card library.</h1>
-        <p>Browse sets and printings in Indonesian, English, and Japanese.</p>
+        <h1>{id ? 'Jelajahi katalog kartu.' : 'Explore the card library.'}</h1>
+        <p>{id ? 'Telusuri set dan cetakan kartu dalam bahasa Indonesia, Inggris, dan Jepang.' : 'Browse sets and printings in Indonesian, English, and Japanese.'}</p>
       </div>
       <div className="pokemon-intro-mark" aria-hidden="true"><span>Pokémon</span><b>TCG</b></div>
     </section>
-    <section className="library-controls pokemon-library-controls" aria-label="Pokémon card filters">
-      <label className="search-box"><Search size={16}/><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Name, card number, rarity, or set"/></label>
+    <section className="library-controls pokemon-library-controls" aria-label={id ? 'Filter kartu Pokémon' : 'Pokémon card filters'}>
+      <label className="search-box"><Search size={16}/><input value={query} onChange={event => setQuery(event.target.value)} placeholder={id ? 'Nama, nomor kartu, rarity, atau set' : 'Name, card number, rarity, or set'}/></label>
       <div className="pokemon-library-filterbar">
         <div className="pokemon-library-filters">
-          <div className="pokemon-set-filter"><span>Set</span><Picker value={setFilter} onChange={setSetFilter} label="Filter by set" options={[{value:'all',label:'All sets'},...sets.map(set=>({value:set.code,label:`${set.name} (${set.code})`}))]}/></div>
-          <div className="pokemon-set-filter"><span>Rarity</span><Picker value={rarityFilter} onChange={setRarityFilter} label="Filter by rarity" options={[{value:'all',label:'All rarities'},...rarities]}/></div>
-          <div className="pokemon-set-filter pokemon-illustrator-filter"><span>Illustrator</span><Picker value={illustratorFilter||'all'} onChange={value=>setIllustratorFilter(value==='all'?'':value)} label="Filter by illustrator" options={[{value:'all',label:'All illustrators'},...illustrators]}/></div>
-          {hasFilters&&<button type="button" className="pokemon-clear-filters" onClick={clearFilters}>Clear filters</button>}
+          <div className="pokemon-set-filter"><span>Set</span><Picker value={setFilter} onChange={setSetFilter} label={id ? 'Filter berdasarkan set' : 'Filter by set'} options={[{value:'all',label:id?'Semua set':'All sets'},...sets.map(set=>({value:set.code,label:`${set.name} (${set.code})`}))]}/></div>
+          <div className="pokemon-set-filter"><span>{id?'Kelangkaan':'Rarity'}</span><Picker value={rarityFilter} onChange={setRarityFilter} label={id ? 'Filter berdasarkan kelangkaan' : 'Filter by rarity'} options={[{value:'all',label:id?'Semua kelangkaan':'All rarities'},...rarities]}/></div>
+          <div className="pokemon-set-filter pokemon-illustrator-filter"><span>{id ? 'Ilustrator' : 'Illustrator'}</span><Picker value={illustratorFilter||'all'} onChange={value=>setIllustratorFilter(value==='all'?'':value)} label={id ? 'Filter berdasarkan ilustrator' : 'Filter by illustrator'} options={[{value:'all',label:id?'Semua ilustrator':'All illustrators'},...illustrators]}/></div>
+          {hasFilters&&<button type="button" className="pokemon-clear-filters" onClick={clearFilters}>{id?'Hapus filter':'Clear filters'}</button>}
         </div>
-        <div className="pokemon-library-language"><span>Language</span><div className="language-switch" aria-label="Card language">{languages.map(option => <button type="button" key={option} aria-pressed={language === option} onClick={() => { setLoading(true); setLanguage(option); }}>{option}</button>)}</div></div>
+        <div className="pokemon-library-language"><span>{id?'Bahasa kartu':'Card language'}</span><div className="language-switch" aria-label={id?'Bahasa kartu':'Card language'}>{languages.map(option => <button type="button" key={option} aria-pressed={language === option} onClick={() => { setLoading(true); setLanguage(option); }}>{option}</button>)}</div></div>
       </div>
     </section>
-    <div className="pokemon-library-count" aria-live="polite">{loading ? ' ' : `${cards.length.toLocaleString()} ${cards.length === 1 ? 'card' : 'cards'}${hasMore ? ' loaded' : ''}`}</div>
-    {loading ? <div className="pokemon-card-grid" aria-label="Loading Pokémon cards">{Array.from({ length: 12 }, (_, index) => <i key={index}/>)}</div> : loadError && !cards.length ? <section className="empty-state pokemon-empty"><h2>Cards could not be loaded.</h2><p>Check your connection and try again.</p><button type="button" className="button secondary" onClick={() => setRetryVersion(value => value + 1)}>Try again</button></section> : cards.length ? <div className="pokemon-card-grid">{cards.map(card => {
+    <div className="pokemon-library-count" aria-live="polite">{loading ? ' ' : `${cards.length.toLocaleString(id?'id-ID':'en-US')} ${id?(cards.length===1?'kartu':'kartu'):(cards.length===1?'card':'cards')}${hasMore ? (id?' dimuat':' loaded') : ''}`}</div>
+    {loading ? <div className="pokemon-card-grid" aria-label={id?'Memuat kartu Pokémon':'Loading Pokémon cards'}>{Array.from({ length: 12 }, (_, index) => <i key={index}/>)}</div> : loadError && !cards.length ? <section className="empty-state pokemon-empty"><h2>{id?'Kartu tidak dapat dimuat.':'Cards could not be loaded.'}</h2><p>{id?'Periksa koneksi Anda, lalu coba lagi.':'Check your connection and try again.'}</p><button type="button" className="button secondary" onClick={() => setRetryVersion(value => value + 1)}>{id?'Coba lagi':'Try again'}</button></section> : cards.length ? <div className="pokemon-card-grid">{cards.map(card => {
       const display = displayCard(card);
       return <button type="button" className="pokemon-card-tile" key={`${card.id}:${card.language}`} onClick={() => setSelected(card)}>
         <CardArt card={display}/>
         <span><strong>{display.name}</strong><small>{card.printing_code} <i/> {card.rarity}</small>{card.source_payload?.illustrator&&<small className="pokemon-card-illustrator">{card.source_payload.illustrator}</small>}</span>
       </button>;
-    })}</div> : <section className="empty-state pokemon-empty"><h2>{searchQuery||setFilter!=='all'||rarityFilter!=='all'||illustratorFilter?'No cards match these filters.':'No Pokémon cards are available in this language yet.'}</h2>{(searchQuery||setFilter!=='all'||rarityFilter!=='all'||illustratorFilter)&&<p>Try another set, rarity, illustrator, or card name.</p>}</section>}
-    {!loading && loadError && cards.length > 0 && <p className="pokemon-load-error" role="status">More cards could not be loaded. <button type="button" onClick={() => setRetryVersion(value => value + 1)}>Try again</button></p>}
-    {!loading && hasMore && <button type="button" className="pokemon-load-more" onClick={() => void loadMore()} disabled={loadingMore} aria-busy={loadingMore}>{loadingMore ? ' ' : 'Load more cards'}</button>}
-    <nav className="pokemon-library-links" aria-label="Pokémon catalog sections"><Link href="/pokemon/sets">Browse sets <ArrowUpRightIcon size={15}/></Link><a href="https://github.com/tcgdex/cards-database" target="_blank" rel="noreferrer">Card data from TCGdex <ArrowUpRightIcon size={15}/></a></nav>
+    })}</div> : <section className="empty-state pokemon-empty"><h2>{searchQuery||setFilter!=='all'||rarityFilter!=='all'||illustratorFilter?(id?'Tidak ada kartu yang cocok dengan filter ini.':'No cards match these filters.'):(id?'Belum ada kartu Pokémon untuk bahasa ini.':'No Pokémon cards are available in this language yet.')}</h2>{(searchQuery||setFilter!=='all'||rarityFilter!=='all'||illustratorFilter)&&<p>{id?'Coba set, rarity, ilustrator, atau nama kartu lain.':'Try another set, rarity, illustrator, or card name.'}</p>}</section>}
+    {!loading && loadError && cards.length > 0 && <p className="pokemon-load-error" role="status">{id?'Kartu lainnya gagal dimuat.':'More cards could not be loaded.'} <button type="button" onClick={() => setRetryVersion(value => value + 1)}>{id?'Coba lagi':'Try again'}</button></p>}
+    {!loading && hasMore && <button type="button" className="pokemon-load-more" onClick={() => void loadMore()} disabled={loadingMore} aria-busy={loadingMore}>{loadingMore ? ' ' : id?'Muat kartu lainnya':'Load more cards'}</button>}
+    <nav className="pokemon-library-links" aria-label={id?'Bagian katalog Pokémon':'Pokémon catalog sections'}><Link href={localize('/pokemon/sets')}>{id?'Jelajahi set':'Browse sets'} <ArrowUpRightIcon size={15}/></Link><a href="https://github.com/tcgdex/cards-database" target="_blank" rel="noreferrer">{id?'Sumber data kartu: TCGdex':'Card data from TCGdex'} <ArrowUpRightIcon size={15}/></a></nav>
     <Dialog open={Boolean(selected)} onOpenChange={open => { if (!open) setSelected(null); }}>
       <DialogContent className="pokemon-card-dialog">
         {selected && <div className="pokemon-card-dialog-layout"><CardArt card={displayCard(selected)} priority/><div><DialogHeader><p className="kicker">{selected.set_name}</p><DialogTitle>{selected.tcg_card_identities?.name ?? selected.printing_code}</DialogTitle><DialogDescription>{selected.printing_code} · {selected.language} · {selected.rarity}{selected.source_payload?.illustrator?` · ${selected.source_payload.illustrator}`:''}</DialogDescription></DialogHeader><PokemonCardText language={selected.language} source={selected.source_payload}/></div></div>}

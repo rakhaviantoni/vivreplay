@@ -81,6 +81,7 @@ export function Vault() {
   const [activeTab, setActiveTab] = useState<VaultTab>(searchParams.get('tab')==='wishlist'?'wishlist':searchParams.get('tab')==='portfolio'?'portfolio':'collection');
   const [gameSlug,setGameSlug]=useState<'one-piece'|'pokemon'>(searchParams.get('game')==='pokemon'?'pokemon':'one-piece');
   const [viewMode, setViewMode] = useState<VaultViewMode>('binder');
+  useEffect(()=>{const next=searchParams.get('game')==='pokemon'?'pokemon':'one-piece';setGameSlug(next);if(next==='pokemon'&&activeTab==='sets')setActiveTab('collection')},[searchParams,activeTab]);
   const binderOrderStorageKey=`vivreplay-vault-binder-order:${String(data?.profile?.id??'guest')}`;
   const [binderOrder,setBinderOrder]=useState<string[]>([]);
 
@@ -683,7 +684,7 @@ export function Vault() {
         </section>
       )}
 
-      {activeTab === 'listings' && data?.profile && <section style={{marginTop:'16px'}}><ListingsTab language={language} timeZone={String(data.profile.timezone||'Asia/Jakarta')}/></section>}
+      {activeTab === 'listings' && data?.profile && <section style={{marginTop:'16px'}}><ListingsTab language={language} gameSlug={gameSlug} timeZone={String(data.profile.timezone||'Asia/Jakarta')}/></section>}
 
       {/* Tab 2: Slabs */}
       {activeTab === 'slabs' && (
