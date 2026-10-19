@@ -184,17 +184,15 @@ export function PokemonLibrary({ initialSet, initialQuery }: { initialSet?: stri
           <MultiFilter label={id?'Kelangkaan':'Rarity'} values={rarities} selected={rarityFilters} onToggle={value=>toggle(rarityFilters,setRarityFilters,value)} searchPlaceholder={id ? 'Cari rarity' : 'Find a rarity'}/>
           <MultiFilter label={id?'Jenis kartu':'Card type'} values={categoryOptions.map(value=>({value,label:categoryLabel(value,id)}))} selected={categoryFilters} onToggle={value=>toggle(categoryFilters,setCategoryFilters,value)}/>
           <button type="button" className={`pokemon-more-filters-trigger ${moreFiltersOpen?'is-open':''}`} aria-expanded={moreFiltersOpen} onClick={()=>setMoreFiltersOpen(value=>!value)}><SlidersHorizontal size={15}/>{id?'Lainnya':'More'}{advancedFilterCount>0&&<b>{advancedFilterCount}</b>}<ChevronDown size={14}/></button>
-          {hasFilters&&<button type="button" className="pokemon-clear-filters" onClick={clearFilters}>{id?'Hapus':'Clear'}</button>}
-        </div>
-        <div className="pokemon-library-actions">
-          <Picker label={id?'Urutkan kartu':'Sort cards'} value={sort} onChange={value=>setSort(value as SortOrder)} leadingIcon={<SlidersHorizontal size={15}/>} options={[
+          <div className="pokemon-sort-picker"><Picker label={id?'Urutkan kartu':'Sort cards'} value={sort} onChange={value=>setSort(value as SortOrder)} leadingIcon={<SlidersHorizontal size={15}/>} options={[
             {value:'latest',label:id?'Rilisan terbaru':'Newest'},
             {value:'number',label:id?'Nomor kartu':'Set and number'},
             {value:'name',label:id?'Nama A–Z':'Name A–Z'},
             {value:'rarity',label:id?'Kelangkaan: tinggi ke rendah':'Rarity: high to low'},
             {value:'hp',label:'HP'},
-          ]}/>
+          ]}/></div>
           <div className="pokemon-library-language"><div className="language-switch" aria-label={id?'Bahasa kartu':'Card language'}>{languages.map(option => <button type="button" key={option} aria-pressed={language === option} onClick={() => { setLoading(true); setLanguage(option); }}>{option}</button>)}</div></div>
+          {hasFilters&&<button type="button" className="pokemon-clear-filters" onClick={clearFilters}>{id?'Hapus':'Clear'}</button>}
         </div>
       </div>
       {moreFiltersOpen&&<div className="pokemon-library-more-filters">
@@ -216,7 +214,7 @@ export function PokemonLibrary({ initialSet, initialQuery }: { initialSet?: stri
       const cardNumber = formatPokemonNumber(localNumber, setTotal);
       return <button type="button" className="pokemon-card-tile" key={`${card.id}:${card.language}`} onClick={() => setSelected(card)}>
         <CardArt card={display}/>
-        <span><strong>{display.name}</strong><small className="pokemon-card-number-row"><span>{card.set_code} {cardNumber}</span>{display.rarity&&<b title={display.rarity} aria-label={display.rarity}>{shortRarity(display.rarity)}</b>}</small></span>
+        <span><span className="pokemon-card-name-row"><strong>{display.name}</strong>{cardNumber&&<small>{cardNumber}</small>}</span><small className="pokemon-card-set-code">{card.set_code}</small></span>
       </button>;
     })}</div> : <section className="empty-state pokemon-empty"><h2>{searchQuery||hasFilters?(id?'Tidak ada kartu yang cocok dengan filter ini.':'No cards match these filters.'):(id?'Belum ada kartu Pokémon untuk bahasa ini.':'No Pokémon cards are available in this language yet.')}</h2>{(searchQuery||hasFilters)&&<p>{id?'Coba set, rarity, ilustrator, atau nama kartu lain.':'Try another set, rarity, illustrator, or card name.'}</p>}</section>}
     {!loading && loadError && cards.length > 0 && <p className="pokemon-load-error" role="status">{id?'Kartu lainnya gagal dimuat.':'More cards could not be loaded.'} <button type="button" onClick={() => setRetryVersion(value => value + 1)}>{id?'Coba lagi':'Try again'}</button></p>}
@@ -239,17 +237,6 @@ function formatPokemonNumber(value: string | undefined, total: number | undefine
   if (!number) return '';
   if (number.includes('/')) return number;
   return /^\d+$/.test(number) && Number.isFinite(total) && Number(total) > 0 ? `${number}/${total}` : number;
-}
-
-function shortRarity(value: string) {
-  const normalized = value.trim().toLowerCase().replace(/[._-]+/g, ' ').replace(/\s+/g, ' ');
-  const labels: Record<string, string> = {
-    common: 'C', uncommon: 'U', rare: 'R', 'double rare': 'RR', 'triple rare': 'TR',
-    'ultra rare': 'UR', 'illustration rare': 'IR', 'special illustration rare': 'SIR',
-    'hyper rare': 'HR', 'shiny rare': 'S', 'shiny super rare': 'SSR', 'amazing rare': 'AR',
-    'radiant rare': 'R', 'ace spec rare': 'ACE', 'promo': 'P',
-  };
-  return labels[normalized] ?? value.trim().split(/\s+/).map(part => part[0]).join('').toUpperCase();
 }
 
 function categoryLabel(value: string, id: boolean) {
