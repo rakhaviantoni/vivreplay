@@ -17,16 +17,18 @@ type DisplayCard = { id: string; code: string; name: string; color: string; type
 const languages = ['ID', 'EN', 'JP'] as const;
 type Language = typeof languages[number];
 
-export function PokemonLibrary({ initialSet }: { initialSet?: string }) {
+export function PokemonLibrary({ initialSet, initialQuery }: { initialSet?: string; initialQuery?: string }) {
   const [language, setLanguage] = useState<Language>('ID');
   const [cards, setCards] = useState<GameCard[]>([]);
   const [sets, setSets] = useState<SetRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(initialQuery ?? '');
   const [setFilter, setSetFilter] = useState(initialSet ?? 'all');
   const [selected, setSelected] = useState<GameCard | null>(null);
+
+  useEffect(() => { setQuery(initialQuery ?? ''); }, [initialQuery]);
 
   useEffect(() => {
     const controller = new AbortController();

@@ -24,12 +24,8 @@ type NavItem={href:string;label:string;labelId:string;icon:typeof Home};
 type SearchIdentity={id:string;printingId?:string;printingCode?:string|null;language?:string|null;set_code?:string|null;imageUrl?:string;rarity?:string|null;code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number;effect_text:string};
 type SearchSet={code:string;name:string;setKind?:string};
 
-const menus:Array<{label:string;labelId:string;items:NavItem[]}>= [
-  {label:'Card games',labelId:'Permainan kartu',items:[{href:'/cards',label:'One Piece TCG',labelId:'One Piece TCG',icon:Layers3},{href:'/pokemon',label:'Pokémon TCG',labelId:'Pokémon TCG',icon:Layers3},{href:'/pokemon/sets',label:'Pokémon sets',labelId:'Set Pokémon',icon:Library}]},
-  {label:'Library',labelId:'Katalog',items:[{href:'/cards/index',label:'Card index',labelId:'Indeks kartu',icon:Library},{href:'/archetypes',label:'Archetypes',labelId:'Arketipe',icon:Layers3},{href:'/sets',label:'Set archive',labelId:'Arsip set',icon:Layers3},{href:'/meta',label:'Meta stats',labelId:'Meta permainan',icon:ChartNoAxesCombined}]},
-  {label:'Collection',labelId:'Koleksi',items:[{href:'/vault',label:'Vault',labelId:'Koleksi',icon:ShieldCheck},{href:'/decks',label:'Decks',labelId:'Deck',icon:Library},{href:'/decks/builder',label:'Deck builder',labelId:'Pembuat deck',icon:Library}]},
-  {label:'Arena',labelId:'Arena',items:[{href:'/play',label:'Arena lobby',labelId:'Lobi arena',icon:Gamepad2},{href:'/play/tutorial',label:'Learn to play',labelId:'Belajar bermain',icon:Gamepad2},{href:'/events',label:'Events',labelId:'Acara',icon:Trophy}]},
-];
+const collectionMenu={label:'Collection',labelId:'Koleksi',items:[{href:'/vault',label:'Vault',labelId:'Koleksi',icon:ShieldCheck},{href:'/decks',label:'Decks',labelId:'Deck',icon:Library},{href:'/decks/builder',label:'Deck builder',labelId:'Pembuat deck',icon:Library}]} satisfies {label:string;labelId:string;items:NavItem[]};
+const arenaMenu={label:'Arena',labelId:'Arena',items:[{href:'/play',label:'Arena lobby',labelId:'Lobi arena',icon:Gamepad2},{href:'/play/tutorial',label:'Learn to play',labelId:'Belajar bermain',icon:Gamepad2},{href:'/events',label:'Events',labelId:'Acara',icon:Trophy}]} satisfies {label:string;labelId:string;items:NavItem[]};
 const market:NavItem={href:'/market',label:'Market',labelId:'Market',icon:Store};
 const mobileNav:NavItem[]=[{href:'/',label:'Home',labelId:'Beranda',icon:Home},{href:'/cards',label:'Cards',labelId:'Kartu',icon:Layers3},{href:'/vault',label:'Vault',labelId:'Koleksi',icon:ShieldCheck},market,{href:'/play',label:'Arena',labelId:'Arena',icon:Gamepad2}];
 const rail=[
@@ -55,23 +51,34 @@ function MiniRail({language}:{language:Locale}) {
 }
 
 function cardFrom(identity:SearchIdentity):Card|undefined { if(!identity.imageUrl)return undefined;return {id:identity.printingId??identity.id,code:identity.code,name:displayCardName(identity.name,identity.code),color:identity.color,type:identity.card_type,cost:identity.cost,power:identity.power,rarity:identity.rarity??'',art:0,effect:identity.effect_text,imageUrl:identity.imageUrl,setCode:identity.set_code??undefined,language:identity.language??'EN',printingCode:identity.printingCode??identity.code,imageSource:'external'}; }
-function HeaderSearch({language}:{language:Locale}) {
+function HeaderSearch({language,game}:{language:Locale;game:'one-piece'|'pokemon'}) {
   const [open,setOpen]=useState(false);const [query,setQuery]=useState('');const [results,setResults]=useState<Card[]>([]);const [setMatches,setSetMatches]=useState<SearchSet[]>([]);const [loading,setLoading]=useState(false);
-  useEffect(()=>{if(!open||query.trim().length<2){setResults([]);setSetMatches([]);setLoading(false);return}let live=true;const timer=window.setTimeout(async()=>{setLoading(true);const term=query.trim().replaceAll(',',' ');try{const [cards,sets]=await Promise.all([fetch(`/api/cards/identities?q=${encodeURIComponent(term)}`,{cache:'force-cache'}).then(async response=>response.ok?response.json() as Promise<{cards:SearchIdentity[]}>:{cards:[]}),fetch('/api/cards/sets?language=EN',{cache:'force-cache'}).then(async response=>response.ok?response.json() as Promise<{sets:SearchSet[]}>:{sets:[]})]);if(live){setResults(cards.cards.map(cardFrom).filter((card):card is Card=>Boolean(card)));setSetMatches(sets.sets.filter(set=>`${set.code} ${set.name}`.toLowerCase().includes(term.toLowerCase())).slice(0,4));setLoading(false)}}catch{if(live){setResults([]);setSetMatches([]);setLoading(false)}}},170);return()=>{live=false;window.clearTimeout(timer)}},[open,query]);
-  const copy=language==='ID'?{button:'Cari',title:'Temukan kartu atau set',hint:'Cari nama, set, warna, tipe, biaya, atau rarity. Contoh: OP17 leader, 5c Luffy.',empty:'Cari kartu atau set dengan nama atau kode.',none:'Tidak ada kartu atau set yang cocok.',cards:'Kartu',sets:'Set'}:{button:'Find',title:'Find cards or sets',hint:'Search name, set, color, type, cost, or rarity. Try OP17 leader or 5c Luffy.',empty:'Search a card or set by name or code.',none:'No cards or sets matched that search.',cards:'Cards',sets:'Sets'};
+  useEffect(()=>{if(game==='pokemon'||!open||query.trim().length<2){setResults([]);setSetMatches([]);setLoading(false);return}let live=true;const timer=window.setTimeout(async()=>{setLoading(true);const term=query.trim().replaceAll(',',' ');try{const [cards,sets]=await Promise.all([fetch(`/api/cards/identities?q=${encodeURIComponent(term)}`,{cache:'force-cache'}).then(async response=>response.ok?response.json() as Promise<{cards:SearchIdentity[]}>:{cards:[]}),fetch('/api/cards/sets?language=EN',{cache:'force-cache'}).then(async response=>response.ok?response.json() as Promise<{sets:SearchSet[]}>:{sets:[]})]);if(live){setResults(cards.cards.map(cardFrom).filter((card):card is Card=>Boolean(card)));setSetMatches(sets.sets.filter(set=>`${set.code} ${set.name}`.toLowerCase().includes(term.toLowerCase())).slice(0,4));setLoading(false)}}catch{if(live){setResults([]);setSetMatches([]);setLoading(false)}}},170);return()=>{live=false;window.clearTimeout(timer)}},[open,query,game]);
+  const copy=language==='ID'?{button:'Cari',title:game==='pokemon'?'Cari kartu Pokémon':'Temukan kartu atau set',hint:game==='pokemon'?'Cari nama, nomor kartu, rarity, atau set.':'Cari nama, set, warna, tipe, biaya, atau rarity. Contoh: OP17 leader, 5c Luffy.',empty:'Cari kartu atau set dengan nama atau kode.',none:'Tidak ada kartu atau set yang cocok.',cards:'Kartu',sets:'Set'}:{button:'Find',title:game==='pokemon'?'Search Pokémon cards':'Find cards or sets',hint:game==='pokemon'?'Search by name, card number, rarity, or set.':'Search name, set, color, type, cost, or rarity. Try OP17 leader or 5c Luffy.',empty:'Search a card or set by name or code.',none:'No cards or sets matched that search.',cards:'Cards',sets:'Sets'};
   const getHref=(href:string)=>language==='ID'?(href==='/'?'/id':`/id${href}`):href;
-  return <Dialog open={open} onOpenChange={setOpen}><button type="button" aria-label={copy.button} className="search-link" onClick={()=>setOpen(true)}><Search size={16}/><span>{copy.button}</span><kbd>⌘ K</kbd></button><DialogContent className="header-search-dialog"><DialogHeader><DialogTitle>{copy.title}</DialogTitle><DialogDescription>{copy.hint}</DialogDescription></DialogHeader><div className="header-search-input"><Search size={18}/><input autoFocus value={query} onChange={event=>setQuery(event.target.value)} placeholder={copy.hint}/><kbd>ESC</kbd></div><div className="header-search-results" aria-live="polite">{loading&&Array.from({length:4}).map((_,i)=><i key={i} className="header-search-skeleton"/>)}{!loading&&query.trim().length<2&&<p>{copy.empty}</p>}{!loading&&query.trim().length>=2&&!results.length&&!setMatches.length&&<p>{copy.none}</p>}{!loading&&Boolean(setMatches.length)&&<><small className="header-search-group">{copy.sets}</small>{setMatches.map(set=><Link href={getHref(`/cards?set=${encodeURIComponent(set.code)}`)} onClick={()=>setOpen(false)} key={set.code} className="header-search-result header-search-set"><Layers3 size={18}/><span><b>{set.name}</b><small>{set.code}{set.setKind?` · ${set.setKind}`:''}</small></span><ChevronRight size={16}/></Link>)}</>}{!loading&&Boolean(results.length)&&<><small className="header-search-group">{copy.cards}</small>{results.map(card=><Link href={getHref(`/cards/${card.code}`)} onClick={()=>setOpen(false)} key={card.id} className="header-search-result"><CardArt card={card}/><span><b>{card.name}</b><small>{card.code} · {card.type}</small></span><ChevronRight size={16}/></Link>)}</>}</div></DialogContent></Dialog>;
+  const pokemonSearchHref=getHref(`/pokemon?q=${encodeURIComponent(query.trim())}`);
+  return <Dialog open={open} onOpenChange={setOpen}><button type="button" aria-label={copy.button} className="search-link" onClick={()=>setOpen(true)}><Search size={16}/><span>{copy.button}</span><kbd>⌘ K</kbd></button><DialogContent className="header-search-dialog"><DialogHeader><DialogTitle>{copy.title}</DialogTitle><DialogDescription>{copy.hint}</DialogDescription></DialogHeader><div className="header-search-input"><Search size={18}/><input autoFocus value={query} onChange={event=>setQuery(event.target.value)} placeholder={copy.hint}/><kbd>ESC</kbd></div><div className="header-search-results" aria-live="polite">{game==='pokemon'&&query.trim().length>=2&&<Link href={pokemonSearchHref} onClick={()=>setOpen(false)} className="header-search-result header-search-set"><Search size={18}/><span><b>{language==='ID'?'Cari di katalog Pokémon':'Search Pokémon catalog'}</b><small>{query.trim()}</small></span><ChevronRight size={16}/></Link>}{loading&&Array.from({length:4}).map((_,i)=><i key={i} className="header-search-skeleton"/>)}{!loading&&query.trim().length<2&&<p>{copy.empty}</p>}{game!=='pokemon'&&!loading&&query.trim().length>=2&&!results.length&&!setMatches.length&&<p>{copy.none}</p>}{!loading&&Boolean(setMatches.length)&&<><small className="header-search-group">{copy.sets}</small>{setMatches.map(set=><Link href={getHref(`/cards?set=${encodeURIComponent(set.code)}`)} onClick={()=>setOpen(false)} key={set.code} className="header-search-result header-search-set"><Layers3 size={18}/><span><b>{set.name}</b><small>{set.code}{set.setKind?` · ${set.setKind}`:''}</small></span><ChevronRight size={16}/></Link>)}</>}{!loading&&Boolean(results.length)&&<><small className="header-search-group">{copy.cards}</small>{results.map(card=><Link href={getHref(`/cards/${card.code}`)} onClick={()=>setOpen(false)} key={card.id} className="header-search-result"><CardArt card={card}/><span><b>{card.name}</b><small>{card.code} · {card.type}</small></span><ChevronRight size={16}/></Link>)}</>}</div></DialogContent></Dialog>;
 }
-function PrimaryNav({language,selected}:{language:Locale;selected:(url:string)=>boolean}) {
+function PrimaryNav({language,selected,game}:{language:Locale;selected:(url:string)=>boolean;game:'one-piece'|'pokemon'}) {
   const root=useRef<HTMLElement>(null);
   const getHref=(href:string)=>language==='ID'?(href==='/'?'/id':`/id${href}`):href;
   const closeAll=()=>root.current?.querySelectorAll('details[open]').forEach(item=>item.removeAttribute('open'));
   useEffect(()=>{const outside=(event:PointerEvent)=>{if(!root.current?.contains(event.target as Node))closeAll()};const escape=(event:KeyboardEvent)=>{if(event.key==='Escape')closeAll()};document.addEventListener('pointerdown',outside);document.addEventListener('keydown',escape);return()=>{document.removeEventListener('pointerdown',outside);document.removeEventListener('keydown',escape)}},[]);
   const openMenu=(menu:HTMLDetailsElement)=>{root.current?.querySelectorAll('details[open]').forEach(item=>{if(item!==menu)item.removeAttribute('open')});menu.open=true};
+  const libraryItems:NavItem[]=game==='pokemon'
+    ?[{href:'/pokemon',label:'Cards',labelId:'Kartu',icon:Layers3},{href:'/pokemon/sets',label:'Sets',labelId:'Set',icon:Library}]
+    :[{href:'/cards',label:'Cards',labelId:'Kartu',icon:Layers3},{href:'/cards/index',label:'Card index',labelId:'Indeks kartu',icon:Library},{href:'/archetypes',label:'Archetypes',labelId:'Arketipe',icon:Layers3},{href:'/sets',label:'Sets',labelId:'Set',icon:Library},{href:'/meta',label:'Meta stats',labelId:'Meta permainan',icon:ChartNoAxesCombined}];
+  const menus=[{label:'Library',labelId:'Katalog',items:libraryItems},collectionMenu,arenaMenu];
   return <nav ref={root} aria-label="Primary navigation" className="primary-nav">{menus.map(menu=><details key={menu.label} className="nav-more" onPointerEnter={event=>openMenu(event.currentTarget)} onPointerLeave={event=>event.currentTarget.removeAttribute('open')} onToggle={event=>{if(!event.currentTarget.open)return;root.current?.querySelectorAll('details[open]').forEach(item=>{if(item!==event.currentTarget)item.removeAttribute('open')})}}><summary className={menu.items.some(item=>selected(item.href))?'active':''}>{language==='ID'?menu.labelId:menu.label}<ChevronDown size={13}/></summary><div>{menu.items.map(item=>{const Icon=item.icon;return <Link key={item.href} href={getHref(item.href)} onClick={closeAll} className={selected(item.href)?'active':''}><Icon size={14}/>{language==='ID'?item.labelId:item.label}</Link>})}</div></details>)}<Link href={getHref(market.href)} onClick={closeAll} className={selected(market.href)?'active market-nav':''}><Store size={14}/>{language==='ID'?market.labelId:market.label}</Link></nav>;
 }
 
-function Footer({language}:{language:Locale}) {
+function GameModeSwitch({language,game}:{language:Locale;game:'one-piece'|'pokemon'}) {
+  const options=[{id:'one-piece' as const,href:'/cards',en:'One Piece',idLabel:'One Piece'},{id:'pokemon' as const,href:'/pokemon',en:'Pokémon',idLabel:'Pokémon'}];
+  const localize=(href:string)=>language==='ID'?`/id${href}`:href;
+  return <nav className="game-mode-switch" aria-label={language==='ID'?'Pilih permainan kartu':'Choose a card game'}>{options.map(option=><Link key={option.id} href={localize(option.href)} aria-current={game===option.id?'page':undefined} className={game===option.id?'is-active':''}>{language==='ID'?option.idLabel:option.en}</Link>)}</nav>;
+}
+
+function Footer({language,game}:{language:Locale;game:'one-piece'|'pokemon'}) {
   const id=language==='ID';
   const getHref=(href:string)=>id?(href==='/'?'/id':`/id${href}`):href;
   const reopenCookies=()=>{window.localStorage.removeItem('vivreplay-cookies');window.dispatchEvent(new Event('vivreplay:cookie-preferences'))};
@@ -88,10 +95,8 @@ function Footer({language}:{language:Locale}) {
       </div>
       <nav className="footer-column" aria-label={id?'Jelajahi':'Explore'}>
         <b>{id?'Jelajahi':'Explore'}</b>
-        <Link href={getHref('/cards')}>{id?'Katalog kartu':'Card library'}</Link>
-        <Link href={getHref('/cards/index')}>{id?'Indeks kartu':'Card index'}</Link>
-        <Link href={getHref('/archetypes')}>{id?'Arketipe':'Archetypes'}</Link>
-        <Link href={getHref('/sets')}>{id?'Arsip set':'Sets'}</Link>
+        <Link href={getHref(game==='pokemon'?'/pokemon':'/cards')}>{id?'Katalog kartu':'Cards'}</Link>
+        {game==='pokemon'?<Link href={getHref('/pokemon/sets')}>{id?'Set Pokémon':'Sets'}</Link>:<><Link href={getHref('/cards/index')}>{id?'Indeks kartu':'Card index'}</Link><Link href={getHref('/archetypes')}>{id?'Arketipe':'Archetypes'}</Link><Link href={getHref('/sets')}>{id?'Arsip set':'Sets'}</Link></>}
       </nav>
       <nav className="footer-column" aria-label={id?'Deck dan permainan':'Decks and play'}>
         <b>{id?'Deck dan permainan':'Decks & play'}</b>
@@ -143,6 +148,7 @@ export function Shell({children,initialPath='/'}:{children:React.ReactNode;initi
   const path=usePathname()??initialPath;
   const isIdPath=path==='/id'||path.startsWith('/id/');
   const normalizedPath=isIdPath?(path.replace(/^\/id/,'')||'/'):path;
+  const game:'one-piece'|'pokemon'=normalizedPath==='/pokemon'||normalizedPath.startsWith('/pokemon/')?'pokemon':'one-piece';
   const marketCheckout=normalizedPath==='/checkout/market'||normalizedPath==='/checkout/pro'||normalizedPath.startsWith('/checkout/order/');
   const marketRoute=normalizedPath==='/market'||normalizedPath.startsWith('/market/');
   const adminRoute=normalizedPath==='/admin'||normalizedPath.startsWith('/admin/');
@@ -266,9 +272,10 @@ export function Shell({children,initialPath='/'}:{children:React.ReactNode;initi
   return <div className={`site-shell${marketCheckout?' market-checkout-shell':''}`}>
     {marketCheckout?<><MarketStoreNav showPromo={false}/>{!data&&<AuthDialog language={language} showTrigger={false}/>}</>:<header className={`masthead ${scrolled?'is-scrolled':''} ${theme==='dark'?'theme-dark':''}`}>
       <Link className="wordmark" href={getHref('/')}><VivreMark size={28}/><span>VivrePlay</span></Link>
-      <PrimaryNav language={language} selected={selected}/>
+      <GameModeSwitch language={language} game={game}/>
+      <PrimaryNav language={language} selected={selected} game={game}/>
       <div className="masthead-actions">
-        <HeaderSearch language={language}/>
+        <HeaderSearch language={language} game={game}/>
         <button className="locale-toggle" type="button" onClick={toggleLanguage} aria-label="Switch language">{language}</button>
         <button className="theme-toggle" type="button" onClick={toggleTheme} aria-label={`Use ${theme==='light'?'dark':'light'} mode`}>{theme==='light'?<Moon size={16}/>:<Sun size={16}/>}</button>
         {data?<Link href={getHref('/profile')} aria-label="Open your profile" className="profile-mark"><UserRound size={17}/></Link>:<AuthDialog language={language}/>}
@@ -276,7 +283,7 @@ export function Shell({children,initialPath='/'}:{children:React.ReactNode;initi
     </header>}
     {!marketCheckout&&<div className="context-row"><span>VivrePlay</span><span aria-hidden="true">/</span><strong>{crumb}</strong></div>}
     {children}
-    {!marketCheckout&&(marketRoute?<MarketFooter language={language}/>:<Footer language={language}/>)}
+    {!marketCheckout&&(marketRoute?<MarketFooter language={language}/>:<Footer language={language} game={game}/>)}
     <Dialog open={feedbackOpen} onOpenChange={setFeedbackOpen}>
       <DialogContent className="feedback-dialog">
         <DialogHeader>
@@ -292,7 +299,7 @@ export function Shell({children,initialPath='/'}:{children:React.ReactNode;initi
     {!marketCheckout&&<NewCardsAnnouncement/>}
     {!marketCheckout&&<MiniRail language={language}/>}
     {!marketCheckout&&<nav className="mobile-nav" aria-label="Mobile navigation">
-      {mobileNav.map(item=>{const Icon=item.icon;const active=selected(item.href);return <Link key={item.href} href={getHref(item.href)} className={active?'active':''} aria-current={active?'page':undefined}><Icon size={20}/><span>{language==='ID'?item.labelId:item.label}</span></Link>})}
+      {mobileNav.map(item=>{const Icon=item.icon;const href=item.label==='Cards'&&game==='pokemon'?'/pokemon':item.href;const active=selected(href);return <Link key={item.href} href={getHref(href)} className={active?'active':''} aria-current={active?'page':undefined}><Icon size={20}/><span>{language==='ID'?item.labelId:item.label}</span></Link>})}
     </nav>}
     <Toaster theme={theme}/>
   </div>;

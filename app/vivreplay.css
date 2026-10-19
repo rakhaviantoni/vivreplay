@@ -195,6 +195,20 @@ html[data-theme='dark'] .sets-empty button{color:#edbd63}
 .mini-rail-collapsed,.mini-rail-reopen,.mini-rail.is-expanded{opacity:1!important;backdrop-filter:none!important;background:#fffaf0!important}
 html[data-theme='dark'] .mini-rail-collapsed,html[data-theme='dark'] .mini-rail-reopen,html[data-theme='dark'] .mini-rail.is-expanded{background:#0b1720!important;border-color:#314b58!important;color:#eaf1ed!important}
 
+/* Game selection is a top-level library mode; the Library menu follows it. */
+.game-mode-switch{display:flex;align-items:center;gap:2px;flex:0 0 auto;padding:3px;border:1px solid #3a3e47;border-radius:10px;background:#101318;color:#b8bdc5}
+.game-mode-switch a{display:inline-flex;align-items:center;justify-content:center;min-height:30px;padding:0 10px;border-radius:7px;color:inherit;font:650 10px/1 var(--game-font,Arial,sans-serif);white-space:nowrap;transition:background-color .16s ease,color .16s ease}
+.game-mode-switch a:hover{color:#fff;background:#252a31}
+.game-mode-switch a.is-active{background:#e5a334;color:#191710}
+.masthead.theme-dark .game-mode-switch{border-color:#365866;background:#081720;color:#b9ceca}
+.masthead.theme-dark .game-mode-switch a:hover{background:#17333e;color:#f5fbf7}
+.masthead.theme-dark .game-mode-switch a.is-active{background:#d5a348;color:#11191a}
+.primary-nav .nav-more>div a{white-space:nowrap}
+.browse-all-wrap{display:flex;justify-content:center;width:100%;padding:0 0 8px}
+.browse-all-wrap .browse-all{margin:26px 0 0!important}
+@media(max-width:900px){.masthead{height:auto!important;min-height:58px;flex-wrap:wrap;row-gap:0!important;padding-top:7px!important}.masthead .primary-nav{display:none!important}.masthead .game-mode-switch{order:3;flex:0 0 100%;justify-content:center;margin:0 0 8px}.masthead-actions{margin-left:auto}.game-mode-switch a{min-width:92px}}
+@media(max-width:620px){.masthead{min-height:58px!important;padding-inline:14px!important}.masthead .game-mode-switch{min-height:34px}.game-mode-switch a{min-width:112px;min-height:28px;font-size:11px}.browse-all-wrap .browse-all{width:min(100%,320px);margin-top:22px!important}}
+
 .market-feed-page{min-height:calc(100vh - 64px);padding:clamp(24px,5vw,64px) 18px 96px;background:var(--page-bg)}
 .market-feed-shell{width:min(100%,920px);margin:0 auto;border-inline:1px solid color-mix(in srgb,var(--line) 80%,transparent);padding-inline:clamp(16px,3vw,34px)}
 .market-feed-header{display:grid;grid-template-columns:auto minmax(180px,1fr) auto;gap:14px;align-items:center;padding:0 0 18px;border-bottom:1px solid var(--line)}
