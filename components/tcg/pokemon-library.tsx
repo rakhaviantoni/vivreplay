@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 type GameCard = {
   id: string; rarity: string; variant: string; set_code: string; set_name: string; printing_code: string;
   language: string; attribute?: string; card_image_url?: string | null;
-  source_payload?: { illustrator?: string; [key: string]: unknown };
+  source_payload?: { illustrator?: string; localId?: string; set?: { cardCount?: { total?: number } }; [key: string]: unknown };
   tcg_card_identities?: { code: string; name: string; color: string; card_type: string; cost: number; power: number; effect_text: string };
 };
 type SetRecord = { code: string; name: string; productImageUrl?: string; series?: string; releaseYear?: number };
@@ -162,7 +162,7 @@ export function PokemonLibrary({ initialSet, initialQuery }: { initialSet?: stri
     variant: card.variant,
   });
   const hasFilters = Boolean(query.trim() || illustratorSearch.trim() || setFilters.length || rarityFilters.length || typeFilters.length || categoryFilters.length || stageFilters.length || energyFilters.length || regulationFilters.length || retreatFilters.length || weaknessFilters.length || resistanceFilters.length || hpMin || hpMax || sort !== 'latest');
-  const advancedFilterCount = stageFilters.length + energyFilters.length + regulationFilters.length + retreatFilters.length + weaknessFilters.length + resistanceFilters.length + (hpMin||hpMax?1:0);
+  const advancedFilterCount = stageFilters.length + energyFilters.length + regulationFilters.length + retreatFilters.length + weaknessFilters.length + resistanceFilters.length + (hpMin||hpMax?1:0) + (illustratorSearch.trim()?1:0);
   const clearFilters = () => { setQuery(''); setSearchQuery(''); setIllustratorSearch(''); setSetFilters([]); setRarityFilters([]); setTypeFilters([]); setCategoryFilters([]); setStageFilters([]); setEnergyFilters([]); setRegulationFilters([]); setRetreatFilters([]); setWeaknessFilters([]); setResistanceFilters([]); setHpMin(''); setHpMax(''); setSort('latest'); };
   const toggle = (current: string[], setState: (value: string[] | ((previous: string[]) => string[])) => void, value: string) => setState(previous => previous.includes(value) ? previous.filter(item => item !== value) : [...previous, value]);
 
@@ -176,13 +176,17 @@ export function PokemonLibrary({ initialSet, initialQuery }: { initialSet?: stri
       <div className="pokemon-intro-mark"><img src="https://upload.wikimedia.org/wikipedia/commons/1/1a/Pok%C3%A9mon_Trading_Card_Game_logo.svg" alt="Pokémon Trading Card Game"/><Link href={localize('/pokemon/sets')}>{id?'Lihat semua set':'Browse sets'} <ArrowUpRightIcon size={15}/></Link></div>
     </section>
     <section className="library-controls pokemon-library-controls" aria-label={id ? 'Filter kartu Pokémon' : 'Pokémon card filters'}>
-      <div className="pokemon-library-searches"><label className="search-box"><Search size={16}/><input value={query} onChange={event => setQuery(event.target.value)} placeholder={id ? 'Cari nama atau nomor kartu' : 'Search card name or number'}/></label><label className="search-box"><Pencil size={16}/><input value={illustratorSearch} onChange={event=>setIllustratorSearch(event.target.value)} placeholder={id?'Cari ilustrator':'Search illustrator'}/></label></div>
+      <div className="pokemon-library-searches"><label className="search-box"><Search size={16}/><input value={query} onChange={event => setQuery(event.target.value)} placeholder={id ? 'Cari nama atau nomor kartu' : 'Search name or card number'}/></label></div>
       <div className="pokemon-library-filterbar">
         <div className="pokemon-library-filters">
           <MultiFilter label="Set" values={sets.map(set=>({value:set.code,label:`${set.name} (${set.code})`,image:pokemonExpansionArt(set.name,set.code)??set.productImageUrl,group:set.series||(set.releaseYear?String(set.releaseYear):id?'Set lainnya':'Other sets')}))} selected={setFilters} onToggle={value=>setSetFilters(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])} searchPlaceholder={id ? 'Cari set' : 'Find a set'}/>
           <MultiFilter label={id?'Tipe':'Type'} values={typeOptions} selected={typeFilters} onToggle={value=>toggle(typeFilters,setTypeFilters,value)} searchPlaceholder={id?'Cari tipe Pokémon':'Find a Pokémon type'}/>
           <MultiFilter label={id?'Kelangkaan':'Rarity'} values={rarities} selected={rarityFilters} onToggle={value=>toggle(rarityFilters,setRarityFilters,value)} searchPlaceholder={id ? 'Cari rarity' : 'Find a rarity'}/>
           <MultiFilter label={id?'Jenis kartu':'Card type'} values={categoryOptions.map(value=>({value,label:categoryLabel(value,id)}))} selected={categoryFilters} onToggle={value=>toggle(categoryFilters,setCategoryFilters,value)}/>
+          <button type="button" className={`pokemon-more-filters-trigger ${moreFiltersOpen?'is-open':''}`} aria-expanded={moreFiltersOpen} onClick={()=>setMoreFiltersOpen(value=>!value)}><SlidersHorizontal size={15}/>{id?'Lainnya':'More'}{advancedFilterCount>0&&<b>{advancedFilterCount}</b>}<ChevronDown size={14}/></button>
+          {hasFilters&&<button type="button" className="pokemon-clear-filters" onClick={clearFilters}>{id?'Hapus':'Clear'}</button>}
+        </div>
+        <div className="pokemon-library-actions">
           <Picker label={id?'Urutkan kartu':'Sort cards'} value={sort} onChange={value=>setSort(value as SortOrder)} leadingIcon={<SlidersHorizontal size={15}/>} options={[
             {value:'latest',label:id?'Rilisan terbaru':'Newest'},
             {value:'number',label:id?'Nomor kartu':'Set and number'},
@@ -190,12 +194,11 @@ export function PokemonLibrary({ initialSet, initialQuery }: { initialSet?: stri
             {value:'rarity',label:id?'Kelangkaan: tinggi ke rendah':'Rarity: high to low'},
             {value:'hp',label:'HP'},
           ]}/>
-          <button type="button" className={`pokemon-more-filters-trigger ${moreFiltersOpen?'is-open':''}`} aria-expanded={moreFiltersOpen} onClick={()=>setMoreFiltersOpen(value=>!value)}><SlidersHorizontal size={15}/>{id?'Lainnya':'More'}{advancedFilterCount>0&&<b>{advancedFilterCount}</b>}<ChevronDown size={14}/></button>
-          {hasFilters&&<button type="button" className="pokemon-clear-filters" onClick={clearFilters}>{id?'Hapus filter':'Clear filters'}</button>}
+          <div className="pokemon-library-language"><div className="language-switch" aria-label={id?'Bahasa kartu':'Card language'}>{languages.map(option => <button type="button" key={option} aria-pressed={language === option} onClick={() => { setLoading(true); setLanguage(option); }}>{option}</button>)}</div></div>
         </div>
-        <div className="pokemon-library-language"><span>{id?'Bahasa':'Language'}</span><div className="language-switch" aria-label={id?'Bahasa kartu':'Card language'}>{languages.map(option => <button type="button" key={option} aria-pressed={language === option} onClick={() => { setLoading(true); setLanguage(option); }}>{option}</button>)}</div></div>
       </div>
       {moreFiltersOpen&&<div className="pokemon-library-more-filters">
+        <label className="search-box pokemon-illustrator-search"><Pencil size={16}/><input value={illustratorSearch} onChange={event=>setIllustratorSearch(event.target.value)} placeholder={id?'Cari ilustrator':'Search illustrator'}/></label>
         <MultiFilter label={id?'Tahap':'Stage'} values={stageOptions} selected={stageFilters} onToggle={value=>toggle(stageFilters,setStageFilters,value)} searchPlaceholder={id?'Cari tahap':'Find a stage'}/>
         <MultiFilter label={id?'Energi serangan':'Attack energy'} values={energyOptions} selected={energyFilters} onToggle={value=>toggle(energyFilters,setEnergyFilters,value)} searchPlaceholder={id?'Cari energi':'Find an energy type'}/>
         <MultiFilter label="Regulation" values={regulationOptions} selected={regulationFilters} onToggle={value=>toggle(regulationFilters,setRegulationFilters,value)}/>
@@ -208,12 +211,12 @@ export function PokemonLibrary({ initialSet, initialQuery }: { initialSet?: stri
     <div className="pokemon-library-count" aria-live="polite">{loading ? ' ' : `${cards.length.toLocaleString(id?'id-ID':'en-US')} ${id?(cards.length===1?'kartu':'kartu'):(cards.length===1?'card':'cards')}${hasMore ? (id?' dimuat':' loaded') : ''}`}</div>
     {loading ? <div className="pokemon-card-grid" aria-label={id?'Memuat kartu Pokémon':'Loading Pokémon cards'}>{Array.from({ length: 12 }, (_, index) => <i key={index}/>)}</div> : loadError && !cards.length ? <section className="empty-state pokemon-empty"><h2>{id?'Kartu tidak dapat dimuat.':'Cards could not be loaded.'}</h2><p>{id?'Periksa koneksi Anda, lalu coba lagi.':'Check your connection and try again.'}</p><button type="button" className="button secondary" onClick={() => setRetryVersion(value => value + 1)}>{id?'Coba lagi':'Try again'}</button></section> : cards.length ? <div className="pokemon-card-grid">{cards.map(card => {
       const display = displayCard(card);
-      const pokemonTypes = Array.isArray(card.source_payload?.types) ? card.source_payload.types.filter((value): value is string => typeof value === 'string') : [];
-      const stage = typeof card.source_payload?.stage === 'string' ? card.source_payload.stage : '';
-      const hp = typeof card.source_payload?.hp === 'string' || typeof card.source_payload?.hp === 'number' ? `${card.source_payload.hp} HP` : '';
+      const localNumber = card.source_payload?.localId ?? card.printing_code;
+      const setTotal = card.source_payload?.set?.cardCount?.total;
+      const cardNumber = formatPokemonNumber(localNumber, setTotal);
       return <button type="button" className="pokemon-card-tile" key={`${card.id}:${card.language}`} onClick={() => setSelected(card)}>
         <CardArt card={display}/>
-        <span><strong>{display.name}</strong><small>{card.printing_code}{display.rarity&&<> <i/> {display.rarity}</>}</small>{(pokemonTypes.length>0||hp||stage)&&<small className="pokemon-card-vitals">{[...pokemonTypes,stage,hp].filter(Boolean).join(' · ')}</small>}{typeof card.source_payload?.illustrator === 'string'&&card.source_payload.illustrator&&<small className="pokemon-card-illustrator">{card.source_payload.illustrator}</small>}</span>
+        <span><strong>{display.name}</strong><small className="pokemon-card-number-row"><span>{card.set_code} {cardNumber}</span>{display.rarity&&<b title={display.rarity} aria-label={display.rarity}>{shortRarity(display.rarity)}</b>}</small></span>
       </button>;
     })}</div> : <section className="empty-state pokemon-empty"><h2>{searchQuery||hasFilters?(id?'Tidak ada kartu yang cocok dengan filter ini.':'No cards match these filters.'):(id?'Belum ada kartu Pokémon untuk bahasa ini.':'No Pokémon cards are available in this language yet.')}</h2>{(searchQuery||hasFilters)&&<p>{id?'Coba set, rarity, ilustrator, atau nama kartu lain.':'Try another set, rarity, illustrator, or card name.'}</p>}</section>}
     {!loading && loadError && cards.length > 0 && <p className="pokemon-load-error" role="status">{id?'Kartu lainnya gagal dimuat.':'More cards could not be loaded.'} <button type="button" onClick={() => setRetryVersion(value => value + 1)}>{id?'Coba lagi':'Try again'}</button></p>}
@@ -229,6 +232,24 @@ export function PokemonLibrary({ initialSet, initialQuery }: { initialSet?: stri
 function cleanRarity(value?: string | null) {
   const rarity = value?.trim();
   return rarity && !['unknown','none','null'].includes(rarity.toLowerCase()) ? rarity : '';
+}
+
+function formatPokemonNumber(value: string | undefined, total: number | undefined) {
+  const number = value?.trim() ?? '';
+  if (!number) return '';
+  if (number.includes('/')) return number;
+  return /^\d+$/.test(number) && Number.isFinite(total) && Number(total) > 0 ? `${number}/${total}` : number;
+}
+
+function shortRarity(value: string) {
+  const normalized = value.trim().toLowerCase().replace(/[._-]+/g, ' ').replace(/\s+/g, ' ');
+  const labels: Record<string, string> = {
+    common: 'C', uncommon: 'U', rare: 'R', 'double rare': 'RR', 'triple rare': 'TR',
+    'ultra rare': 'UR', 'illustration rare': 'IR', 'special illustration rare': 'SIR',
+    'hyper rare': 'HR', 'shiny rare': 'S', 'shiny super rare': 'SSR', 'amazing rare': 'AR',
+    'radiant rare': 'R', 'ace spec rare': 'ACE', 'promo': 'P',
+  };
+  return labels[normalized] ?? value.trim().split(/\s+/).map(part => part[0]).join('').toUpperCase();
 }
 
 function categoryLabel(value: string, id: boolean) {
