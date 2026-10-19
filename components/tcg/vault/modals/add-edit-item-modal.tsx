@@ -171,7 +171,7 @@ export function AddEditItemModal({
       setIdentitySearchLoading(true);
       void fetch(versionedCardCatalogUrl(`/api/cards/identities?game=${gameSlug}&q=${encodeURIComponent(query)}`),{signal:controller.signal})
         .then(async response=>{if(!response.ok)throw new Error('Card search is unavailable.');return await response.json() as {cards?:Array<{id:string;code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number;effect_text:string;rarity:string|null;imageUrl?:string}>};})
-        .then(result=>{if(active)setIdentityResults((result.cards??[]).map(card=>({id:card.id,code:card.code,name:card.name,color:card.color,type:card.card_type,cost:card.cost,power:card.power,effect:card.effect_text,rarity:card.rarity??'',art:0,imageSource:'external',imageUrl:card.imageUrl})));})
+        .then(result=>{if(active)setIdentityResults((result.cards??[]).map(card=>({id:card.id,code:card.code,name:card.name,color:card.color,type:card.card_type,cost:card.cost,power:card.power,effect:card.effect_text,rarity:card.rarity??'',art:0,imageSource:'external',imageUrl:card.imageUrl,gameSlug} as Card)));})
         .catch(()=>{if(active)setIdentityResults([]);})
         .finally(()=>{if(active)setIdentitySearchLoading(false);});
     },220);
@@ -301,7 +301,7 @@ export function AddEditItemModal({
       const payload = {
         id: editingItem?.id,
         printingId: targetPrinting.id,
-        catalogCard: { ...currentCard, language:targetLanguage, variant:targetPrinting.variant??'Standard', printingCode:targetPrinting.printing_code??currentCard.code, setCode:targetPrinting.set_code??currentCard.setCode, imageUrl:targetPrinting.card_image_url??currentCard.imageUrl },
+        catalogCard: { ...currentCard, gameSlug, language:targetLanguage, variant:targetPrinting.variant??'Standard', printingCode:targetPrinting.printing_code??currentCard.code, setCode:targetPrinting.set_code??currentCard.setCode, imageUrl:targetPrinting.card_image_url??currentCard.imageUrl },
         type: itemType,
         quantity: itemType === 'GRADED' ? 1 : Number(quantity),
         condition: itemType === 'GRADED' ? 'NM' : condition,

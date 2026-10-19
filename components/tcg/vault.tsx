@@ -773,6 +773,7 @@ export function Vault() {
         editingItem={editingItem}
         isAnonymous={!data}
         language={language}
+        gameSlug={gameSlug}
       />
 
       <RawDetailModal
