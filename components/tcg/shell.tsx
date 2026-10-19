@@ -73,9 +73,9 @@ function PrimaryNav({language,selected,game}:{language:Locale;selected:(url:stri
 }
 
 function GameModeSwitch({language,game}:{language:Locale;game:'one-piece'|'pokemon'}) {
-  const options=[{id:'one-piece' as const,href:'/cards',en:'One Piece',idLabel:'One Piece'},{id:'pokemon' as const,href:'/pokemon',en:'Pokémon',idLabel:'Pokémon'}];
+  const options=[{id:'one-piece' as const,href:'/cards',en:'One Piece',idLabel:'One Piece',mark:'OP'},{id:'pokemon' as const,href:'/pokemon',en:'Pokémon',idLabel:'Pokémon',mark:'P'}];
   const localize=(href:string)=>language==='ID'?`/id${href}`:href;
-  return <nav className="game-mode-switch" aria-label={language==='ID'?'Pilih permainan kartu':'Choose a card game'}>{options.map(option=><Link key={option.id} href={localize(option.href)} aria-current={game===option.id?'page':undefined} className={game===option.id?'is-active':''}>{language==='ID'?option.idLabel:option.en}</Link>)}</nav>;
+  return <nav className="game-mode-switch" aria-label={language==='ID'?'Pilih katalog kartu':'Choose a card catalog'}>{options.map(option=><Link key={option.id} href={localize(option.href)} aria-current={game===option.id?'page':undefined} className={game===option.id?'is-active':''}><span className={`game-mode-mark game-mode-mark-${option.id}`} aria-hidden="true">{option.mark}</span><strong>{language==='ID'?option.idLabel:option.en}</strong></Link>)}</nav>;
 }
 
 function Footer({language,game}:{language:Locale;game:'one-piece'|'pokemon'}) {

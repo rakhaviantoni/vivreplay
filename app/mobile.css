@@ -3838,6 +3838,12 @@ html[data-theme='dark'] .market-listing-detail > .market-listing-back-link {
 .pokemon-card-effect h3 { margin: 0 0 7px; font-size: 12px; }
 .pokemon-card-effect p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.55; white-space: pre-line; }
 .pokemon-empty { margin-top: 12px; }
+.catalog-page .empty-state h2,.pokemon-empty h2 { color:var(--ink,#28251f)!important;font:700 clamp(20px,2.5vw,26px)/1.18 var(--display-font,'Plus Jakarta Sans',Arial,sans-serif)!important;letter-spacing:-.035em!important; }
+.pokemon-empty { padding:clamp(22px,4vw,36px)!important;border-color:var(--line,#dfd1b8)!important;border-radius:12px!important;background:var(--surface-raised,#fffaf0)!important;color:var(--ink,#28251f)!important; }
+.pokemon-empty p { margin-top:8px;color:var(--muted,#716a5e);font:500 13px/1.55 var(--game-font,Arial,sans-serif); }
+html[data-theme='dark'] .pokemon-empty { border-color:var(--line,#314b58)!important;background:var(--surface-raised,#0b1720)!important;color:var(--ink,#eef6f2)!important; }
+html[data-theme='dark'] .catalog-page .empty-state h2,html[data-theme='dark'] .pokemon-empty h2 { color:var(--ink,#eef6f2)!important; }
+html[data-theme='dark'] .pokemon-empty p { color:var(--muted,#abc0bc)!important; }
 html[data-theme='dark'] .pokemon-set-filter select { border-color: var(--line); background: var(--surface-raised); color: var(--ink); }
 @media (max-width: 760px) {
   .pokemon-library-controls { grid-template-columns: minmax(0, 1fr) !important; }

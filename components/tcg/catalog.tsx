@@ -20,6 +20,21 @@ export type CatalogSetInfo={name?:string;set_kind?:string;release_date?:string|n
 
 export function normalizeSetCode(code:string){return code.trim().toUpperCase().replace(/[-_\s]/g,'')}
 
+function canonicalSetCode(code:string){
+  const normalized=normalizeSetCode(code);
+  return normalized==='OP15'?'OP15-EB04':code.trim().toUpperCase();
+}
+
+function canonicalSetName(code:string,name:string){
+  return normalizeSetCode(code)==='OP15'?'Adventure on Kami\'s Island':name;
+}
+
+function cardBelongsToSet(card:Pick<LibraryCard,'setCode'|'code'>,selectedSet:string){
+  const selected=normalizeSetCode(canonicalSetCode(selectedSet));
+  const cardSet=normalizeSetCode(canonicalSetCode(card.setCode));
+  return Boolean(selected)&&(cardSet===selected||(selected==='OP15EB04'&&normalizeSetCode(card.code).startsWith('OP15')));
+}
+
 const keywordAliases=new Map([
   ['rush','Rush'],['blocker','Blocker'],['when attacking','When Attacking'],['on play','On Play'],['on k.o.','On K.O.'],
   ["on your opponent's attack","On Your Opponent's Attack"],['activate: main','Activate: Main'],['once per turn','Once Per Turn'],
@@ -188,9 +203,9 @@ export function Catalog({home=false,initialSet,initialArchetype,setPage=false,se
     if(sortOrder==='leaders-latest') return leaderFirst||latestSet||a.code.localeCompare(b.code);
     if(sortOrder==='latest') return latestSet||a.code.localeCompare(b.code);
     return latestSet||leaderFirst||a.code.localeCompare(b.code);
-  }).filter(card => cardMatchesSearch(card,cardSearch) && (!selectedColors.length || selectedColors.some(value=>card.color.includes(value))) && (!types.length || types.includes(card.type)) && (!rarities.length || rarities.includes(card.rarity)) && (!attributes.length || attributes.includes(card.attribute)) && (!counters.length || counters.includes(card.counter>0?`+${card.counter}`:(id?'Tanpa counter':'No counter'))) && (!keywords.length || keywords.some(value=>card.keywords.includes(value))) && (!traits.length || traits.some(value=>card.traits.includes(value))) && (!sets.length || sets.some(value=>normalizeSetCode(value)===normalizeSetCode(card.setCode))) && (!blocks.length || blocks.includes(card.block)));
+  }).filter(card => cardMatchesSearch(card,cardSearch) && (!selectedColors.length || selectedColors.some(value=>card.color.includes(value))) && (!types.length || types.includes(card.type)) && (!rarities.length || rarities.includes(card.rarity)) && (!attributes.length || attributes.includes(card.attribute)) && (!counters.length || counters.includes(card.counter>0?`+${card.counter}`:(id?'Tanpa counter':'No counter'))) && (!keywords.length || keywords.some(value=>card.keywords.includes(value))) && (!traits.length || traits.some(value=>card.traits.includes(value))) && (!sets.length || sets.some(value=>cardBelongsToSet(card,value))) && (!blocks.length || blocks.includes(card.block)));
   const groups = Array.from(filtered.reduce((map,card)=>{const group=map.get(card.code)??[];group.push(card);map.set(card.code,group);return map},new Map<string,LibraryCard[]>()).values()).map(group=>[...new Map(group.sort((a,b)=>printingPriority(a)-printingPriority(b)||a.printingCode.localeCompare(b.printingCode)).map(card=>[card.printingCode,card])).values()]);
-  const headerCards=useMemo(()=>{const scoped=setPage&&initialSet?liveCards.filter(card=>normalizeSetCode(card.setCode)===normalizeSetCode(initialSet)):liveCards;const unique=Array.from(new Map(scoped.map(card=>[card.code,card])).values());return [...unique].sort((a,b)=>cardRailRank(a.code)-cardRailRank(b.code)).slice(0,6)},[liveCards,setPage,initialSet]);
+  const headerCards=useMemo(()=>{const scoped=setPage&&initialSet?liveCards.filter(card=>cardBelongsToSet(card,initialSet)):liveCards;const unique=Array.from(new Map(scoped.map(card=>[card.code,card])).values());return [...unique].sort((a,b)=>cardRailRank(a.code)-cardRailRank(b.code)).slice(0,6)},[liveCards,setPage,initialSet]);
 
   const typeOptions:FilterOption[] = [
     'Leader',
@@ -228,7 +243,7 @@ export function Catalog({home=false,initialSet,initialArchetype,setPage=false,se
           <MultiFilter label="Counter" values={[...new Set(liveCards.map(card=>card.counter>0?`+${card.counter}`:(id?'Tanpa counter':'No counter')))].sort()} selected={counters} onToggle={value=>setCounters(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])}/>
           <MultiFilter label={id?'Kata Kunci':'Keyword'} values={[...new Set(liveCards.flatMap(card=>card.keywords))].sort()} selected={keywords} onToggle={value=>setKeywords(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])}/>
           <MultiFilter label={id?'Blok':'Block'} values={['1','2','3','4','5','X']} selected={blocks} onToggle={value=>setBlocks(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])}/>
-          {!setPage&&<MultiFilter label="Set" searchPlaceholder={id?'Cari set':'Find a set'} values={[...new Map(liveCards.map(card=>[card.setCode,{value:card.setCode,label:`${card.setCode} · ${card.setName}`}])).values()]} selected={sets} onToggle={value=>setSets(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])}/>}
+          {!setPage&&<MultiFilter label={id?'Set':'Set'} searchPlaceholder={id?'Cari set':'Find a set'} values={[...new Map(liveCards.map(card=>{const code=canonicalSetCode(card.setCode);return [code,{value:code,label:`${code} · ${canonicalSetName(card.setCode,card.setName)}`}] as const})).values()]} selected={sets.map(canonicalSetCode)} onToggle={value=>setSets(current=>{const canonical=canonicalSetCode(value);return current.some(item=>canonicalSetCode(item)===canonical)?current.filter(item=>canonicalSetCode(item)!==canonical):[...current,canonical]})}/>}
         </div>
         <div className="filter-secondary">
           <SortOrderPicker value={sortOrder} onChange={setSortOrder} locale={locale}/>

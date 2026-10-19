@@ -11,15 +11,17 @@ type SetSummary = { code: string; name: string; releaseYear: number; releaseDate
 function summarize(rows: Row[], gameSlug: string): SetSummary[] {
   const sets = new Map<string, { code: string; name: string; releaseDate?: string;description?:string;officialUrl?:string;productImageUrl?:string; main: Set<string>; parallel: Set<string> }>();
   for (const row of rows) {
-    const code = String(row.set_code ?? '').trim();
+    const rawCode = String(row.set_code ?? '').trim();
+    const code = rawCode.toUpperCase().replace(/[-_\s]/g, '')==='OP15'?'OP15-EB04':rawCode;
     const identity = String(row.identity_id ?? '');
     if (!code || !identity || (gameSlug === 'one-piece' && !isPlayableSet(code))) continue;
     const key = code.toUpperCase().replace(/[-_\s]/g, '');
     let entry = sets.get(key);
     if (!entry) {
-      entry = { code, name: String(row.set_name ?? code), releaseDate: row.release_date ?? undefined,description:row.description??undefined,officialUrl:row.official_url??undefined,productImageUrl:row.product_image_url??undefined, main: new Set(), parallel: new Set() };
+      entry = { code, name: rawCode.toUpperCase().replace(/[-_\s]/g, '')==='OP15'?"Adventure on Kami's Island":String(row.set_name ?? code), releaseDate: row.release_date ?? undefined,description:row.description??undefined,officialUrl:row.official_url??undefined,productImageUrl:row.product_image_url??undefined, main: new Set(), parallel: new Set() };
       sets.set(key, entry);
     }
+    if(rawCode.toUpperCase().replace(/[-_\s]/g, '')==='OP15')entry.name="Adventure on Kami's Island";
     if (!entry.releaseDate && row.release_date) entry.releaseDate = row.release_date;
     const isParallel = /parallel|manga|alt/i.test(String(row.variant ?? ''));
     (isParallel ? entry.parallel : entry.main).add(identity);

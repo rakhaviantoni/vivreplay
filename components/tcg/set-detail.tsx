@@ -27,7 +27,7 @@ export function SetDetail({code}:{code:string}){
     let live=true;
     fetch('/api/cards/sets?language=EN',{cache:'force-cache'}).then(response=>response.ok?response.json() as Promise<{sets:SetApiRow[]}>:{sets:[]}).then(({sets})=>{
       if(!live)return;
-      const match=sets.find(row=>normalizeSetCode(row.code)===normalizedCode);
+      const match=sets.find(row=>normalizeSetCode(row.code)===normalizedCode||row.code.split(/[-_]/).some(part=>normalizeSetCode(part)===normalizedCode));
       setSet(match?{code:match.code,name:match.name,set_kind:'booster',release_date:match.releaseDate??null,description:match.description??null,official_url:match.officialUrl??null,product_image_url:match.productImageUrl??null}:undefined);
     });
     return()=>{live=false};
