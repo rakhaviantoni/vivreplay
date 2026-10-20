@@ -130,8 +130,7 @@ function RuleCopy({ text }: { text?: string }) {
     if (mark) { rendered.push(formatInline(<span className={`pokemon-rule-mark pokemon-rule-mark-${mark.toLowerCase().replace(/[^a-z]+/g,'-')}`}>{mark.toUpperCase()}</span>, emphasis, bold, index)); return; }
     if (/^\[[^\]]+\]$/.test(part)) {
       const label = part.slice(1, -1);
-      const slug = label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'rule';
-      rendered.push(formatInline(<span className={`effect-keyword effect-keyword-${slug}`} aria-label={label}>{label}</span>, emphasis, bold, index));
+      rendered.push(formatInline(label, Math.max(1, emphasis), bold, index));
       return;
     }
     const energyName = /^\{([^}]+)\}$/.exec(part)?.[1];
