@@ -1,13 +1,15 @@
 import { spawn, spawnSync } from "node:child_process";
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const wrangler = path.join(root, "node_modules/wrangler/bin/wrangler.js");
 const state = path.join(root, ".wrangler/production-view");
-const marketSnapshot = path.join(root, ".wrangler/production-market.sql");
-const catalogSnapshot = path.join(root, ".wrangler/production-catalog.sql");
+const stagingState = path.join(root, ".wrangler/production-view-staging");
+const backupState = path.join(root, ".wrangler/production-view-backup");
+const syncLock = path.join(root, ".wrangler/production-view-sync.lock");
+const catalogSnapshot = path.join(root, `.wrangler/production-catalog-${process.pid}.sql`);
 const publicCatalogTables = [
   "tcg_games",
   "tcg_sets",
@@ -110,73 +112,87 @@ async function writeCatalogSnapshot() {
   return counts;
 }
 
-function localTableCount(table) {
+function localTableCount(table, persistTo = state) {
   if (!publicCatalogTables.includes(table)) throw new Error(`Refusing to verify non-public table ${table}.`);
   const rows = runWrangler([
     "d1", "execute", "DB", "--local", "--config", "wrangler.migrations.json",
-    "--persist-to", state, "--json", "--command", `SELECT COUNT(*) AS row_count FROM \`${table}\``,
+    "--persist-to", persistTo, "--json", "--command", `SELECT COUNT(*) AS row_count FROM \`${table}\``,
   ], { json: true });
   return Number(rows[0]?.row_count ?? 0);
 }
 
+async function pathExists(target) {
+  try { await access(target); return true; }
+  catch { return false; }
+}
+
+async function acquireSyncLock() {
+  try {
+    await writeFile(syncLock, String(process.pid), { flag: "wx" });
+  } catch (error) {
+    if (error?.code !== "EEXIST") throw error;
+    const owner = Number((await readFile(syncLock, "utf8").catch(() => "")).trim());
+    if (Number.isInteger(owner) && owner > 0) {
+      try { process.kill(owner, 0); }
+      catch (probeError) {
+        if (probeError?.code === "ESRCH") {
+          await rm(syncLock, { force: true });
+          return acquireSyncLock();
+        }
+      }
+    }
+    throw new Error(`A production-data mirror is already running${owner ? ` (PID ${owner})` : ""}. Wait for it to finish, then restart dev.`);
+  }
+  return () => rm(syncLock, { force: true });
+}
+
+await mkdir(path.dirname(state), { recursive: true });
+const releaseSyncLock = await acquireSyncLock();
 try {
-  await mkdir(path.dirname(state), { recursive: true });
-  // Copy only public Market data. Never copy phone numbers, addresses, auth
-  // sessions, payments, private collections, or seller-owned Vault instances.
-  const profiles = remoteRows(`SELECT DISTINCT p.id,'local-preview-'||p.id AS auth_subject,p.username,p.display_name,p.region,p.locale,p.currency,p.timezone,p.favorite_leader,p.public_collection,p.created_at,p.updated_at,p.tier,p.pro_expires_at,NULL AS phone FROM profiles p JOIN listings l ON l.seller_id=p.id`);
-  const origins = remoteRows(`SELECT o.owner_id,o.city,COALESCE(json_extract(o.label,'$.methods'),'[]') AS methods,o.created_at,o.updated_at FROM seller_shipping_origins o WHERE o.owner_id IN (SELECT seller_id FROM listings)`);
-  const games = remoteRows(`SELECT DISTINCT g.id,g.slug,g.name FROM games g JOIN card_identities i ON i.game_id=g.id JOIN card_printings cp ON cp.identity_id=i.id WHERE cp.id IN (SELECT printing_id FROM listings UNION SELECT json_extract(item.value,'$.printingId') FROM listings l,json_each(CASE WHEN json_valid(l.items) THEN l.items ELSE '[]' END) item)`);
-  const identities = remoteRows(`SELECT DISTINCT i.id,i.game_id,i.code,i.name,i.color,i.type,i.cost,i.power,i.effect,i.implementation,i.created_at,i.deleted_at FROM card_identities i JOIN card_printings cp ON cp.identity_id=i.id WHERE cp.id IN (SELECT printing_id FROM listings UNION SELECT json_extract(item.value,'$.printingId') FROM listings l,json_each(CASE WHEN json_valid(l.items) THEN l.items ELSE '[]' END) item)`);
-  const printings = remoteRows(`SELECT DISTINCT cp.id,cp.identity_id,cp.language,cp.set_code,cp.rarity,cp.variant,NULL AS asset_source_id,cp.image_url,cp.created_at,cp.printing_code FROM card_printings cp WHERE cp.id IN (SELECT printing_id FROM listings UNION SELECT json_extract(item.value,'$.printingId') FROM listings l,json_each(CASE WHEN json_valid(l.items) THEN l.items ELSE '[]' END) item)`);
-  const listings = remoteRows(`SELECT l.id,l.seller_id,l.printing_id,NULL AS instance_id,l.title,l.amount,l.currency,l.quantity,l.condition,l.type,l.city,l.status,l.demo,l.created_at,l.expires_at,l.items,l.negotiable FROM listings l`);
-
-  const sql = [
-    insert("profiles", ["id","auth_subject","username","display_name","region","locale","currency","timezone","favorite_leader","public_collection","created_at","updated_at","tier","pro_expires_at","phone"], profiles),
-    insert("games", ["id","slug","name"], games),
-    insert("card_identities", ["id","game_id","code","name","color","type","cost","power","effect","implementation","created_at","deleted_at"], identities),
-    insert("card_printings", ["id","identity_id","language","set_code","rarity","variant","asset_source_id","image_url","created_at","printing_code"], printings),
-    insert("seller_shipping_origins", ["owner_id","label","recipient_name","phone","address_line","city","postal_code","area_id","latitude","longitude","created_at","updated_at"], origins, (row) => [row.owner_id,JSON.stringify({methods:typeof row.methods==='string'?JSON.parse(row.methods):row.methods}),null,null,"",row.city,"",null,null,null,row.created_at,row.updated_at]),
-    insert("listings", ["id","seller_id","printing_id","instance_id","title","amount","currency","quantity","condition","type","city","status","demo","created_at","expires_at","items","negotiable"], listings, (row) => {
-      let items = row.items;
-      try {
-        if (typeof items === "string") items = JSON.stringify(JSON.parse(items).map(({ instanceId: _instanceId, ...item }) => item));
-      } catch { items = null; }
-      return [row.id,row.seller_id,row.printing_id,null,row.title,row.amount,row.currency,row.quantity,row.condition,row.type,row.city,row.status,row.demo,row.created_at,row.expires_at,items,row.negotiable];
-    }),
-  ].join("\n");
-
-  await writeFile(marketSnapshot, sql, "utf8");
+  // Recover a previously interrupted publish before starting another mirror.
+  if (await pathExists(backupState)) {
+    if (await pathExists(state)) await rm(backupState, { recursive: true, force: true });
+    else await rename(backupState, state);
+  }
+  await rm(stagingState, { recursive: true, force: true });
+  // Mirror catalog tables only. The production account and seller data used by
+  // Market is intentionally excluded from local development snapshots.
   const catalogCounts = await writeCatalogSnapshot();
 
-  // Replace only the dedicated mirror after every production read succeeds.
-  // The normal local D1 state is separate and remains untouched.
-  await rm(state, { recursive: true, force: true });
+  // Build and verify in isolation so a failed refresh never erases the last
+  // working local catalog. The normal local D1 state remains untouched.
   runWrangler([
     "d1", "migrations", "apply", "DB", "--local", "--config", "wrangler.migrations.json",
-    "--persist-to", state,
+    "--persist-to", stagingState,
   ], { quiet: true });
   runWrangler([
     "d1", "execute", "DB", "--local", "--config", "wrangler.migrations.json",
-    "--persist-to", state, "--command", "ALTER TABLE listings ADD COLUMN items TEXT;", "--yes",
+    "--persist-to", stagingState, "--command", "ALTER TABLE listings ADD COLUMN items TEXT;", "--yes",
   ], { quiet: true });
   runWrangler([
     "d1", "execute", "DB", "--local", "--config", "wrangler.migrations.json",
-    "--persist-to", state, "--json", "--file", marketSnapshot, "--yes",
-  ], { json: true });
-  runWrangler([
-    "d1", "execute", "DB", "--local", "--config", "wrangler.migrations.json",
-    "--persist-to", state, "--json", "--file", catalogSnapshot, "--yes",
+    "--persist-to", stagingState, "--json", "--file", catalogSnapshot, "--yes",
   ], { json: true });
   for (const [table, expected] of Object.entries(catalogCounts)) {
-    const actual = localTableCount(table);
+    const actual = localTableCount(table, stagingState);
     if (actual !== expected) {
-      throw new Error(`Local ${table} count is ${actual}; production has ${expected}.`);
+      throw new Error(`Staged ${table} count is ${actual}; production has ${expected}.`);
     }
   }
   console.log("Local catalog row counts match production.");
+
+  if (await pathExists(state)) await rename(state, backupState);
+  try { await rename(stagingState, state); }
+  catch (error) {
+    if (await pathExists(backupState)) await rename(backupState, state);
+    throw error;
+  }
+  await rm(backupState, { recursive: true, force: true });
 } finally {
-  await rm(marketSnapshot, { force: true });
   await rm(catalogSnapshot, { force: true });
+  await rm(stagingState, { recursive: true, force: true });
+  if (await pathExists(backupState) && !(await pathExists(state))) await rename(backupState, state);
+  await releaseSyncLock();
 }
 
 if (process.argv.includes("--sync-only")) process.exit(0);

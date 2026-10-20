@@ -4244,3 +4244,37 @@ html[data-theme='dark'] .site-shell.game-pokemon > .mobile-nav {
 }
 html[data-theme='dark'] .site-shell.game-pokemon > .mobile-nav a { color:#bdcbd0!important; }
 html[data-theme='dark'] .site-shell.game-pokemon > .mobile-nav a.active { color:#f1c94c!important; }
+
+/* Keep the brand, game switcher, and account actions on one compact row. */
+@media(max-width:900px) {
+  .site-shell > .masthead {
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) minmax(120px,154px) auto!important;
+    align-items:center!important;
+    flex-wrap:nowrap!important;
+    height:60px!important;
+    min-height:60px!important;
+    gap:8px!important;
+    padding:0 12px!important;
+  }
+  .site-shell > .masthead > .wordmark { grid-column:1; min-width:0!important; padding:0!important; }
+  .site-shell > .masthead > .game-mode-switch { grid-column:2; order:0!important; justify-self:center; width:100%!important; max-width:154px; height:34px!important; margin:0!important; }
+  .site-shell > .masthead > .primary-nav { display:none!important; }
+  .site-shell > .masthead > .masthead-actions { grid-column:3; gap:5px!important; margin:0!important; }
+}
+@media(max-width:620px) {
+  .site-shell > .masthead { grid-template-columns:minmax(0,1fr) 112px auto!important; gap:6px!important; }
+  .site-shell > .masthead > .wordmark { gap:4px!important; }
+  .site-shell > .masthead > .wordmark > span:last-child { font-size:15px!important; }
+  .site-shell > .masthead > .game-mode-switch { width:112px!important; }
+  .site-shell > .masthead > .masthead-actions > :is(.search-link,.theme-toggle,.join-link,.profile-mark) {
+    width:36px!important; min-width:36px!important; height:36px!important; min-height:36px!important; padding:0!important;
+  }
+  .site-shell > .masthead > .masthead-actions > .join-link span { display:none!important; }
+}
+@media(max-width:390px) {
+  .site-shell > .masthead { grid-template-columns:28px 108px auto!important; padding-inline:10px!important; }
+  .site-shell > .masthead > .wordmark > span:last-child { display:none!important; }
+  .site-shell > .masthead > .game-mode-switch { width:108px!important; }
+  .site-shell > .masthead > .game-mode-switch .game-mode-logo-pad { min-width:0!important; padding-inline:2px!important; }
+}
