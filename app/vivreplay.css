@@ -3164,6 +3164,8 @@ html[data-theme='dark'] .card-viewer .printing-strip .printing-choice{background
 .viewer-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:25px}
 .viewer-actions .button{width:100%;min-width:0;min-height:42px;justify-content:center;padding:0 12px;border-radius:8px}
 .viewer-actions .button.secondary{background:var(--surface-muted);border-color:var(--line);color:var(--ink)}
+.viewer-actions .viewer-wide-action,.viewer-market-actions{grid-column:1/-1}
+.viewer-market-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;min-width:0}
 .card-viewer .viewer-actions .button.secondary{background:#242c38;border-color:#3d4758;color:#e3e8ed}
 @media(max-width:700px){.viewer-actions{grid-template-columns:minmax(0,1fr)}.viewer-actions .button{flex:initial}}
 

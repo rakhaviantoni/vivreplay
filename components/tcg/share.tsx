@@ -38,6 +38,7 @@ export type ShareButtonProps = {
   openOnMount?: boolean;
   hideTrigger?: boolean;
   onOpenChange?: (open: boolean) => void;
+  entityType?: 'listing' | 'card';
 };
 
 function shareExpiry(value:string,language:'EN'|'ID',preferredTimeZone?:string){
@@ -411,6 +412,7 @@ export function ShareButton({
   openOnMount = false,
   hideTrigger = false,
   onOpenChange,
+  entityType = 'listing',
 }: ShareButtonProps) {
   const [open, setOpen] = useState(openOnMount);
   const [copied, setCopied] = useState(false);
@@ -433,6 +435,8 @@ export function ShareButton({
   const url = typeof window === 'undefined' ? path : new URL(path, window.location.origin).href;
   const imageLink = `vivreplay.com${new URL(path, 'https://vivreplay.com').pathname}`;
   const imageSubtitle=[subtitle,listingInfo?.city,listingInfo?.seller?`${language==='ID'?'oleh':'by'} ${listingInfo.seller}`:'',listingInfo?.expiresAt?shareExpiry(listingInfo.expiresAt,language,listingInfo.timeZone):''].filter(Boolean).join(' | ');
+  const entityLabel = entityType === 'card' ? (language === 'ID' ? 'kartu' : 'card') : 'listing';
+  const imageFileLabel = entityType === 'card' ? 'card' : 'listing';
 
   useEffect(() => {
     if (!open || cardList.length === 0) return;
@@ -478,14 +482,18 @@ export function ShareButton({
       const objectUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = objectUrl;
-      link.download = `${title.replaceAll(/[^a-zA-Z0-9_-]/g, '_')}_listing.png`;
+      link.download = `${title.replaceAll(/[^a-zA-Z0-9_-]/g, '_')}_${imageFileLabel}.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(objectUrl);
-      toast.success(language === 'ID' ? 'Gambar listing tersimpan' : 'Listing image saved');
+      toast.success(entityType === 'card'
+        ? (language === 'ID' ? 'Gambar kartu tersimpan' : 'Card image saved')
+        : (language === 'ID' ? 'Gambar listing tersimpan' : 'Listing image saved'));
     } catch {
-      toast.error(language === 'ID' ? 'Gagal membuat gambar listing' : 'Could not generate listing image');
+      toast.error(entityType === 'card'
+        ? (language === 'ID' ? 'Gagal membuat gambar kartu' : 'Could not generate card image')
+        : (language === 'ID' ? 'Gagal membuat gambar listing' : 'Could not generate listing image'));
     } finally {
       setDownloading(false);
     }
@@ -498,7 +506,7 @@ export function ShareButton({
       try {
         if (imagePreview) {
           const response = await fetch(imagePreview);
-          const file = new File([await response.blob()], `${title.replaceAll(/[^a-zA-Z0-9_-]/g, '_')}_listing.png`, {type: 'image/png'});
+          const file = new File([await response.blob()], `${title.replaceAll(/[^a-zA-Z0-9_-]/g, '_')}_${imageFileLabel}.png`, {type: 'image/png'});
           if (navigator.canShare?.({files: [file]})) { await navigator.share({title, text: subtitle, url, files: [file]}); return; }
         }
         await navigator.share({title, text: subtitle, url});
@@ -529,9 +537,13 @@ export function ShareButton({
               <i>|</i>
               <b>Market</b>
             </div>
-            <DialogTitle>{language === 'ID' ? 'Bagikan listing' : 'Share listing'}</DialogTitle>
+            <DialogTitle>{entityType === 'card'
+              ? (language === 'ID' ? 'Bagikan kartu' : 'Share card')
+              : (language === 'ID' ? 'Bagikan listing' : 'Share listing')}</DialogTitle>
             <DialogDescription>
-              {privateEntity
+              {entityType === 'card'
+                ? (language === 'ID' ? 'Bagikan kartu lewat tautan atau gambar.' : 'Share this card with a link or image.')
+                : privateEntity
                 ? (language === 'ID' ? 'Listing ini bersifat privat. Hanya Anda yang dapat membuka tautan ini.' : 'This listing is private. Only you can open this link.')
                 : (language === 'ID' ? 'Bagikan listing lewat tautan atau gambar.' : 'Share this listing with a link or image.')}
             </DialogDescription>
@@ -554,7 +566,7 @@ export function ShareButton({
                   </button>
                 </div>
                 {previewLoading && <div className="share-listing-image-loading" aria-label={language === 'ID' ? 'Memuat pratinjau' : 'Loading preview'} />}
-                {!previewLoading && imagePreview && <img className="share-listing-image-preview" src={imagePreview} alt={language === 'ID' ? `Gambar listing ${title}` : `Listing image for ${title}`} />}
+                {!previewLoading && imagePreview && <img className="share-listing-image-preview" src={imagePreview} alt={language === 'ID' ? `Gambar ${entityLabel} ${title}` : `${entityLabel[0].toUpperCase()}${entityLabel.slice(1)} image for ${title}`} />}
                 {!previewLoading && !imagePreview && <p className="share-preview-error" role="status">{language === 'ID' ? 'Pratinjau gambar tidak tersedia.' : 'Image preview is unavailable.'}</p>}
               </div>
               <button
@@ -564,7 +576,9 @@ export function ShareButton({
                 disabled={downloading}
               >
                 <DownloadSimple size={15} />
-                <span>{downloading ? (language === 'ID' ? 'Membuat gambar...' : 'Creating image...') : (language === 'ID' ? 'Simpan gambar listing' : 'Save listing image')}</span>
+                <span>{downloading ? (language === 'ID' ? 'Membuat gambar...' : 'Creating image...') : entityType === 'card'
+                  ? (language === 'ID' ? 'Simpan gambar kartu' : 'Save card image')
+                  : (language === 'ID' ? 'Simpan gambar listing' : 'Save listing image')}</span>
               </button>
             </div>
           )}
@@ -576,7 +590,7 @@ export function ShareButton({
               value={url}
               className="share-link-input"
               onFocus={(e) => e.target.select()}
-              aria-label={language === 'ID' ? 'Tautan listing' : 'Listing share link'}
+              aria-label={language === 'ID' ? `Tautan ${entityLabel}` : `${entityLabel[0].toUpperCase()}${entityLabel.slice(1)} share link`}
             />
             <button
               type="button"

@@ -428,7 +428,9 @@ function MarketCardLookup({
         </div>
       ) : (
         <div className="market-feed-empty" style={{ minHeight: 180, padding: '28px 18px' }}>
-          <p>{locale === 'ID' ? 'Cari nama, nomor kartu, set, tipe, rarity, atau biaya (contoh: OP17 Leader, SEC Luffy, 3c Robin).' : 'Search by name, card number, set, type, rarity, or cost (e.g. OP17 Leader, SEC Luffy, 3c Robin).'}</p>
+          <p>{gameSlug==='pokemon'
+            ? (locale==='ID'?'Cari nama, nomor kartu, set, tipe, rarity, atau HP (contoh: Charizard, 001/030, 30th-c).':'Search by name, card number, set, type, rarity, or HP (e.g. Charizard, 001/030, 30th-c).')
+            : (locale==='ID'?'Cari nama, nomor kartu, set, tipe, rarity, atau biaya (contoh: OP17 Leader, SEC Luffy, 3c Robin).':'Search by name, card number, set, type, rarity, or cost (e.g. OP17 Leader, SEC Luffy, 3c Robin).')}</p>
         </div>
       )}
     </section>
@@ -1032,7 +1034,6 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
         onCreateListing={type=>beginListing(type)}
       />}
       <div className="market-feed-shell">
-        {!modalOnly&&<nav className="market-game-switch" aria-label={locale==='ID'?'Pilih permainan kartu':'Choose a card game'}><button type="button" aria-label="One Piece Card Game" title="One Piece Card Game" className={gameSlug==='one-piece'?'is-active':''} aria-current={gameSlug==='one-piece'?'page':undefined} onClick={()=>changeGame('one-piece')}><span className="market-game-logo-pad"><img src="/assets/one-piece-card-game-logo.png" alt=""/></span><span className="sr-only">One Piece</span></button><button type="button" aria-label="Pokémon Trading Card Game" title="Pokémon Trading Card Game" className={gameSlug==='pokemon'?'is-active':''} aria-current={gameSlug==='pokemon'?'page':undefined} onClick={()=>changeGame('pokemon')}><span className="market-game-logo-pad"><img src="https://upload.wikimedia.org/wikipedia/commons/1/1a/Pok%C3%A9mon_Trading_Card_Game_logo.svg" alt=""/></span><span className="sr-only">Pokémon</span></button></nav>}
         {printingFilter&&<div className="market-feed-note">{locale==='ID'?'Menampilkan cetakan yang dipilih':'Showing the selected printing'} <Link href="/market">{locale==='ID'?'Lihat semua listing':'View all listings'}</Link></div>}
         {initialCards.length>0&&(
           <div className="market-feed-note">
@@ -1042,7 +1043,9 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
         )}
         <div className="market-feed-tabs">
           <div className="market-feed-tabs-main">
-            <nav className="market-scope-nav" aria-label={locale === 'ID' ? 'Pilihan feed market' : 'Market feed view'}>
+            <div className="market-game-feed-controls">
+              {!modalOnly&&<nav className="market-game-switch" aria-label={locale==='ID'?'Pilih permainan kartu':'Choose a card game'}><button type="button" aria-label="One Piece Card Game" title="One Piece Card Game" className={gameSlug==='one-piece'?'is-active':''} aria-current={gameSlug==='one-piece'?'page':undefined} onClick={()=>changeGame('one-piece')}><span className="market-game-logo-pad"><img src="/assets/one-piece-card-game-logo.png" alt=""/></span><span className="sr-only">One Piece</span></button><button type="button" aria-label="Pokémon Trading Card Game" title="Pokémon Trading Card Game" className={gameSlug==='pokemon'?'is-active':''} aria-current={gameSlug==='pokemon'?'page':undefined} onClick={()=>changeGame('pokemon')}><span className="market-game-logo-pad"><img src="https://upload.wikimedia.org/wikipedia/commons/1/1a/Pok%C3%A9mon_Trading_Card_Game_logo.svg" alt=""/></span><span className="sr-only">Pokémon</span></button></nav>}
+              <nav className="market-scope-nav" aria-label={locale === 'ID' ? 'Pilihan feed market' : 'Market feed view'}>
               <button
                 type="button"
                 className={`market-scope-tab ${feedScope === 'listings' ? 'is-active' : ''}`}
@@ -1060,7 +1063,8 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                 <Cards size={16} />
                 <span>{locale === 'ID' ? 'Kartu' : 'Cards'}</span>
               </button>
-            </nav>
+              </nav>
+            </div>
             {/* <div className="market-feed-tabs-meta">
               <span className="market-feed-tabs-caption">
                 {feedScope === 'listings'

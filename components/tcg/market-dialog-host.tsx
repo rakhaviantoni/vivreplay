@@ -33,14 +33,16 @@ export function MarketDialogHost({accountActions=true}:{accountActions?:boolean}
     };
     const payouts=()=>open({panel:'profile',profileTab:'payouts'});
     const delivery=()=>open({panel:'profile',profileTab:'delivery'});
+    const profile=()=>open({panel:'profile'});
     const orders=(event:Event)=>open({panel:'orders',orderId:(event as CustomEvent<string>).detail});
     const offer=(event:Event)=>open({panel:'offers',conversationId:(event as CustomEvent<string>).detail});
     if(!accountActions)return;
     window.addEventListener('vivreplay:open-market-payouts',payouts);
     window.addEventListener('vivreplay:open-market-delivery',delivery);
+    window.addEventListener('vivreplay:open-public-profile',profile);
     window.addEventListener('vivreplay:open-market-orders',orders);
     window.addEventListener('vivreplay:open-market-offer',offer);
-    return()=>{window.removeEventListener('vivreplay:open-market-payouts',payouts);window.removeEventListener('vivreplay:open-market-delivery',delivery);window.removeEventListener('vivreplay:open-market-orders',orders);window.removeEventListener('vivreplay:open-market-offer',offer)};
+    return()=>{window.removeEventListener('vivreplay:open-market-payouts',payouts);window.removeEventListener('vivreplay:open-market-delivery',delivery);window.removeEventListener('vivreplay:open-public-profile',profile);window.removeEventListener('vivreplay:open-market-orders',orders);window.removeEventListener('vivreplay:open-market-offer',offer)};
   },[data,loading,accountActions]);
 
   useEffect(()=>{

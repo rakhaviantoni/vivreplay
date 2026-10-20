@@ -24,6 +24,11 @@ type NavItem={href:string;label:string;labelId:string;icon:typeof Home};
 type SearchIdentity={id:string;printingId?:string;printingCode?:string|null;language?:string|null;set_code?:string|null;imageUrl?:string;rarity?:string|null;code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number;effect_text:string};
 type SearchSet={code:string;name:string;setKind?:string};
 
+const pokemonDisclaimer={
+  EN:'VivrePlay is an independent fan project and is not affiliated with or endorsed by Nintendo, The Pokémon Company, Game Freak, or Creatures Inc. Pokémon, Pokémon TCG, and related card artwork are the property of their respective rights holders.',
+  ID:'VivrePlay adalah proyek penggemar independen dan tidak berafiliasi dengan atau didukung oleh Nintendo, The Pokémon Company, Game Freak, maupun Creatures Inc. Pokémon, Pokémon TCG, dan ilustrasi kartu terkait adalah milik pemegang hak masing-masing.',
+} as const;
+
 const collectionMenu={label:'Collection',labelId:'Koleksi',items:[{href:'/vault',label:'Vault',labelId:'Koleksi',icon:ShieldCheck},{href:'/decks',label:'Decks',labelId:'Deck',icon:Library},{href:'/decks/builder',label:'Deck builder',labelId:'Pembuat deck',icon:Library}]} satisfies {label:string;labelId:string;items:NavItem[]};
 const arenaMenu={label:'Arena',labelId:'Arena',items:[{href:'/play',label:'Arena lobby',labelId:'Lobi arena',icon:Gamepad2},{href:'/play/tutorial',label:'Learn to play',labelId:'Belajar bermain',icon:Gamepad2},{href:'/events',label:'Events',labelId:'Acara',icon:Trophy}]} satisfies {label:string;labelId:string;items:NavItem[]};
 const market:NavItem={href:'/market',label:'Market',labelId:'Market',icon:Store};
@@ -121,7 +126,7 @@ function Footer({language,game}:{language:Locale;game:'one-piece'|'pokemon'}) {
       </nav>
     </div>
     <div className="footer-bottom">
-      <p>{game==='pokemon'?(id?'VivrePlay adalah katalog buatan penggemar dan tidak berafiliasi dengan atau didukung oleh pemilik Pokémon atau Pokémon TCG. Nama dan gambar kartu adalah milik pemegang hak masing-masing. Data katalog bersumber dari TCGdex.':'VivrePlay is an independent fan-made catalog, not affiliated with or endorsed by the owners of Pokémon or the Pokémon TCG. Card names and images belong to their respective rights holders. Catalog data is sourced from TCGdex.'):(id?'VivrePlay adalah proyek buatan penggemar dan tidak berafiliasi dengan atau didukung oleh Bandai. “One Piece Card Game” © Bandai Co., Ltd. “One Piece” © Eiichiro Oda / Shueisha, Toei Animation. Merek dagang, gambar kartu, dan konten permainan adalah milik pemegang hak masing-masing.':'Unofficial fan-made project, not affiliated with or endorsed by Bandai. “One Piece Card Game” © Bandai Co., Ltd. “One Piece” © Eiichiro Oda / Shueisha, Toei Animation. All trademarks, card images and game content belong to their respective owners and are used for informational and community purposes.')}</p>
+      <p>{game==='pokemon'?(id?pokemonDisclaimer.ID:pokemonDisclaimer.EN):(id?'VivrePlay adalah proyek buatan penggemar dan tidak berafiliasi dengan atau didukung oleh Bandai. “One Piece Card Game” © Bandai Co., Ltd. “One Piece” © Eiichiro Oda / Shueisha, Toei Animation. Merek dagang, gambar kartu, dan konten permainan adalah milik pemegang hak masing-masing.':'Unofficial fan-made project, not affiliated with or endorsed by Bandai. “One Piece Card Game” © Bandai Co., Ltd. “One Piece” © Eiichiro Oda / Shueisha, Toei Animation. All trademarks, card images and game content belong to their respective owners and are used for informational and community purposes.')}</p>
       <div className="footer-bottom-side">
         <nav className="footer-legal" aria-label={id?'Legal':'Legal'}>
           <Link href={getHref('/legal/terms')}>{id?'Syarat & Ketentuan':'Terms'}</Link>
@@ -145,7 +150,7 @@ function MarketFooter({language,game}:{language:Locale;game:'one-piece'|'pokemon
     </div>
     <div className="market-footer-side">
       <nav aria-label={id?'Bantuan dan kebijakan':'Help and policies'}><Link href={getHref('/help')}>{id?'Pusat bantuan':'Help center'}</Link><Link href={getHref('/faq')}>FAQ</Link><Link href={getHref('/contact')}>{id?'Kontak':'Contact'}</Link><Link href={getHref('/legal/terms')}>{id?'Syarat & Ketentuan':'Terms'}</Link><Link href={getHref('/legal/refund')}>{id?'Kebijakan pengembalian dana':'Refund policy'}</Link><Link href={getHref('/legal/privacy')}>{id?'Privasi':'Privacy'}</Link></nav>
-      <small>{game==='pokemon'?(id?'Katalog buatan penggemar, tidak berafiliasi dengan atau didukung oleh pemilik Pokémon TCG. Nama dan gambar kartu adalah milik pemegang hak masing-masing. Data katalog bersumber dari TCGdex.':'Fan-made catalog, not affiliated with or endorsed by the owners of the Pokémon TCG. Card names and images belong to their respective rights holders. Catalog data is sourced from TCGdex.'):(id?'Proyek buatan penggemar, tidak berafiliasi dengan atau didukung oleh Bandai. One Piece Card Game dan seluruh gambar kartu adalah milik pemegang hak masing-masing.':'Unofficial fan-made project, not affiliated with or endorsed by Bandai. One Piece Card Game and all card artwork belong to their respective owners.')}</small>
+      <small>{game==='pokemon'?(id?pokemonDisclaimer.ID:pokemonDisclaimer.EN):(id?'Proyek buatan penggemar, tidak berafiliasi dengan atau didukung oleh Bandai. One Piece Card Game dan seluruh gambar kartu adalah milik pemegang hak masing-masing.':'Unofficial fan-made project, not affiliated with or endorsed by Bandai. One Piece Card Game and all card artwork belong to their respective owners.')}</small>
     </div>
   </footer>;
 }
@@ -286,7 +291,7 @@ export function Shell({children,initialPath='/'}:{children:React.ReactNode;initi
         <HeaderSearch language={language} game={game}/>
         <button className="locale-toggle" type="button" onClick={toggleLanguage} aria-label="Switch language">{language}</button>
         <button className="theme-toggle" type="button" onClick={toggleTheme} aria-label={`Use ${theme==='light'?'dark':'light'} mode`}>{theme==='light'?<Moon size={16}/>:<Sun size={16}/>}</button>
-        {data?<Link href={getHref('/profile')} aria-label="Open your profile" className="profile-mark"><UserRound size={17}/></Link>:<AuthDialog language={language}/>}
+        {data?<button type="button" aria-label={language==='ID'?'Buka profil':'Open your profile'} className="profile-mark" onClick={()=>window.dispatchEvent(new Event('vivreplay:open-public-profile'))}><UserRound size={17}/></button>:<AuthDialog language={language}/>}
       </div>
     </header>}
     {!marketCheckout&&<div className="context-row"><span>VivrePlay</span><span aria-hidden="true">/</span><strong>{crumb}</strong></div>}
