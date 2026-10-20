@@ -4,7 +4,7 @@ import Link from 'next/link';
 import {useCallback,useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {ArrowLeftIcon,PauseIcon,PlayIcon,SkipBackIcon,SkipForwardIcon,ArrowsDownUpIcon,SpeakerHighIcon,SpeakerSlashIcon} from '@phosphor-icons/react';
 import {CardArt} from './card-art';
-import {Back,BattleTableFrame,CostArea,PlayCard,ZoneArtwork,matMarks,matTones,Dice,ShowdownEffect,showdownDieValue} from './play-tutorial';
+import {Back,BattleTableFrame,CostArea,PlayCard,TurnAnnouncement,ZoneArtwork,matMarks,matTones,Dice,ShowdownEffect,showdownDieValue} from './play-tutorial';
 import {CardPreviewModal} from './card-preview-modal';
 import {playReplayCue,setReplayMatchActive,setReplayShowdownActive,setReplaySoundEnabled} from '@/lib/replay-audio';
 import type {Card} from '@/packages/card-data/catalog';
@@ -79,7 +79,7 @@ function replayLeaderRested(replay:Replay,step:number,owner:'player'|'opponent')
  return false;
 }
 export function TournamentReplayTable({matchId}:{matchId:string}){
- const [replay,setReplay]=useState<Replay>();const [cards,setCards]=useState<Map<string,Card>>(new Map());const [step,setStep]=useState(0);const [playing,setPlaying]=useState(false);const [error,setError]=useState('');const [playmatScene]=useState<'onigashima'|'elbaph'>('onigashima');const [inspected,setInspected]=useState<Card>();const [preview,setPreview]=useState<{card:Card;origin?:DOMRect}>();const [showIntro,setShowIntro]=useState(false);const [showStartingRoll,setShowStartingRoll]=useState(false);const [hasIntroRun,setHasIntroRun]=useState(false);const [soundEnabled,setSoundEnabled]=useState(false);const [dealFlights,setDealFlights]=useState<MotionFlight[]>([]);const [actionFlights,setActionFlights]=useState<Array<MotionFlight&{kind:'play'|'attack'|'block'|'counter'|'life'|'draw'|'don'|'return'|'trash'|'attach'|'bottom';side:'player'|'opponent'}>>([]);const [hiddenDealTargets,setHiddenDealTargets]=useState<string[]>([]);
+ const [replay,setReplay]=useState<Replay>();const [cards,setCards]=useState<Map<string,Card>>(new Map());const [step,setStep]=useState(0);const [turnCallout,setTurnCallout]=useState(false);const turnCalloutTimer=useRef<number|undefined>(undefined);const [playing,setPlaying]=useState(false);const [error,setError]=useState('');const [playmatScene]=useState<'onigashima'|'elbaph'>('onigashima');const [inspected,setInspected]=useState<Card>();const [preview,setPreview]=useState<{card:Card;origin?:DOMRect}>();const [showIntro,setShowIntro]=useState(false);const [showStartingRoll,setShowStartingRoll]=useState(false);const [hasIntroRun,setHasIntroRun]=useState(false);const [soundEnabled,setSoundEnabled]=useState(false);const [dealFlights,setDealFlights]=useState<MotionFlight[]>([]);const [actionFlights,setActionFlights]=useState<Array<MotionFlight&{kind:'play'|'attack'|'block'|'counter'|'life'|'draw'|'don'|'return'|'trash'|'attach'|'bottom';side:'player'|'opponent'}>>([]);const [hiddenDealTargets,setHiddenDealTargets]=useState<string[]>([]);
  const toggleSound=()=>setSoundEnabled(current=>{const next=!current;setReplaySoundEnabled(next);return next});
  const soundButton=()=><button type="button" className="replay-sound-toggle" onClick={toggleSound} aria-pressed={soundEnabled} aria-label={soundEnabled?'Turn replay sound off':'Turn replay sound on'} title={soundEnabled?'Turn replay sound off':'Turn replay sound on'}>{soundEnabled?<SpeakerHighIcon size={16}/>:<SpeakerSlashIcon size={16}/>}<span>Sound {soundEnabled?'on':'off'}</span></button>;
  useEffect(()=>{setReplaySoundEnabled(soundEnabled)},[soundEnabled]);
@@ -350,6 +350,7 @@ export function TournamentReplayTable({matchId}:{matchId:string}){
  const playerDie=firstPlayer==='player'?firstDie:secondDie;
  const opponentDie=firstPlayer==='opponent'?firstDie:secondDie;
  const face=(code:string)=>cards.get(code);const seatName=(owner:'player'|'opponent')=>replay?.reconstruction.deckLists[owner].player?.trim()||face(replay?.reconstruction.deckLists[owner].leader??'')?.name||'Unknown player';const donCard=face('DON_8');const life=(owner:'player'|'opponent')=>turn?.life[owner]??5;
+ useEffect(()=>{if(!turn||!replay||showIntro||showStartingRoll)return;setTurnCallout(true);window.clearTimeout(turnCalloutTimer.current);turnCalloutTimer.current=window.setTimeout(()=>setTurnCallout(false),2200);return()=>window.clearTimeout(turnCalloutTimer.current)},[step,turn?.turn,turn?.player,showIntro,showStartingRoll,replay]);
  const inspectCard=(card?:Card)=>setInspected(card);const openPreview=(card:Card)=>{const source=document.querySelector<HTMLElement>(`.play-card[data-card-code="${CSS.escape(card.code)}"]`);setPreview({card,origin:source?.getBoundingClientRect()})};
  const renderSide=(owner:'player'|'opponent',side:Side)=>{
   const opposing=owner==='opponent';
@@ -374,6 +375,7 @@ export function TournamentReplayTable({matchId}:{matchId:string}){
 
  return <main className="play-fullscreen tournament-replay-screen">
   <header className="match-bar"><Link href="/meta?view=events" className="match-exit"><ArrowLeftIcon size={16}/><span>Back to tournament results</span></Link><span className="match-seat opponent"><i/>RECONSTRUCTED MATCH</span>{soundButton()}</header>
+  {turnCallout&&turn&&<TurnAnnouncement title={`${seatName(turn.player)}’s Turn`} detail={`Turn ${turn.turn} · Refresh phase`}/>}
   {error?<div className="replay-loading" role="alert">{error}</div>:!replay||!turn||!player||!opponent?<div className="replay-loading" role="status">Loading match simulation…</div>:<>
    <BattleTableFrame label="Reconstructed One Piece Card Game match">
     {renderSide('opponent',opponent)}<div className="turn-line"><span>Turn {turn.turn}</span></div>{renderSide('player',player)}

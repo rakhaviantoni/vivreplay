@@ -9109,3 +9109,25 @@ html[data-theme='dark'] .arena-lobby,html[data-theme='dark'] .arena-tutorial-ind
   .tournament-replay-screen .replay-sound-toggle,.play-fullscreen .replay-sound-toggle {width:36px;padding:0}
   .tournament-replay-screen .replay-leader-showdown > .replay-sound-toggle {top:10px;right:10px}
 }
+
+.turn-announcement {
+  position:fixed;z-index:80;top:50%;left:50%;display:flex;flex-direction:column;align-items:center;gap:5px;
+  width:max-content;max-width:min(88vw,620px);padding:16px 30px 17px;border:1px solid rgb(239 196 92 / .72);
+  border-radius:12px;background:linear-gradient(105deg,rgb(13 22 30 / .96),rgb(34 29 21 / .96),rgb(13 22 30 / .96));
+  box-shadow:0 14px 52px rgb(0 0 0 / .46),inset 0 1px rgb(255 255 255 / .12);color:#fff4dc;text-align:center;
+  pointer-events:none;animation:turn-announcement-in 2.15s cubic-bezier(.2,.75,.25,1) both;
+}
+.turn-announcement strong {font:800 clamp(25px,4.4vw,42px)/1.05 var(--game-font);letter-spacing:.015em;text-wrap:balance}
+.turn-announcement span {color:#e1c27d;font:650 12px/1.35 var(--game-font);letter-spacing:.09em;text-transform:uppercase}
+@keyframes turn-announcement-in {
+  0% {opacity:0;transform:translate(-50%,-44%) scale(.94)}
+  13%,73% {opacity:1;transform:translate(-50%,-50%) scale(1)}
+  100% {opacity:0;transform:translate(-50%,-54%) scale(1.015)}
+}
+@media(max-width:560px) {
+  .turn-announcement {padding:13px 18px 14px}
+  .turn-announcement span {font-size:10px}
+}
+@media(prefers-reduced-motion:reduce) {
+  .turn-announcement {animation:none;opacity:1}
+}
