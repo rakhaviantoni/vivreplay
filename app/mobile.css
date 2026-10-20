@@ -4181,6 +4181,7 @@ html[data-theme='dark'] .market-footer-pokemon { border-color:#42658a!important;
 }
 .site-shell.game-pokemon > .mobile-nav a { color:#52615d!important; }
 .site-shell.game-pokemon > .mobile-nav a.active { color:#20558a!important; }
+html[data-theme='dark'] .game-mode-switch a.game-mode-one-piece img { filter:brightness(0) invert(1); }
 
 html[data-theme='dark'] .site-shell.game-pokemon > .masthead {
   background-color:#0b1823!important;
@@ -4218,7 +4219,7 @@ html[data-theme='dark'] .site-shell.game-pokemon .page-footer,
 html[data-theme='dark'] .site-shell.game-pokemon .footer-top {
   background-color:#0b1b29!important;
   background-image:linear-gradient(90deg,#0b1b29b8,#0b1b2999),url('https://asia.pokemon-card.com/sg/wp-content/uploads/sites/6/2022/08/EG_news_zoombg_02_1920.jpeg')!important;
-  background-position:center 100%!important;
+  background-position:center 50%!important;
   border-color:#29475f!important;
 }
 html[data-theme='dark'] .site-shell.game-pokemon .footer-kicker,
