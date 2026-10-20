@@ -13,7 +13,6 @@ import {
   CoinsIcon as Coins,
   CompassIcon as Compass,
   ScalesIcon as Scales,
-  ShieldCheckIcon as ShieldCheck,
   SparkleIcon as Sparkle,
   StackIcon as Stack,
   StorefrontIcon as Storefront,
@@ -49,39 +48,39 @@ export function AboutExperience() {
 
   const stats = [
     {
-      value: 'Browse',
-      label: isId ? 'Katalog Kartu' : 'Card Library',
-      sub: isId ? 'Cari kartu dan cetakannya' : 'Search cards and printings',
+      value: 'One Piece',
+      label: isId ? 'Katalog kartu' : 'Card library',
+      sub: isId ? 'Kartu, cetakan, dan set' : 'Cards, printings, and sets',
       icon: Cards,
     },
     {
-      value: 'JP + EN',
-      label: isId ? 'Bahasa Kartu' : 'Card Languages',
-      sub: isId ? 'Jelajahi data kartu JP dan EN' : 'Explore JP and EN card data',
-      icon: Scales,
+      value: 'Pokémon',
+      label: isId ? 'Katalog kartu' : 'Card library',
+      sub: isId ? 'Katalog terus dikembangkan' : 'Catalog and tools in progress',
+      icon: Compass,
     },
     {
-      value: 'Build',
-      label: isId ? 'Deck dan Koleksi' : 'Decks and Collections',
-      sub: isId ? 'Atur deck dan koleksi kartu' : 'Organize decks and card vault',
+      value: isId ? 'Koleksi' : 'Collection',
+      label: isId ? 'Vault pribadi' : 'Personal Vault',
+      sub: isId ? 'Catat kartu dari kedua permainan' : 'Track cards from either game',
       icon: Coins,
     },
     {
-      value: 'Play',
-      label: isId ? 'Arena Online' : 'Online Arena',
-      sub: isId ? 'Latihan permainan di browser' : 'Practice games in your browser',
-      icon: ShieldCheck,
+      value: 'Market',
+      label: isId ? 'Listing komunitas' : 'Community listings',
+      sub: isId ? 'Listing One Piece' : 'Listings for One Piece',
+      icon: Storefront,
     },
   ];
 
   const pillars = [
     {
       num: '01',
-      title: isId ? 'Katalog Kartu & Registri Varian' : 'Card Database & Printings',
-      tag: isId ? 'Data kartu JP & EN' : 'JP & EN card data',
+      title: isId ? 'Katalog One Piece' : 'One Piece card library',
+      tag: isId ? 'Kartu dan cetakan' : 'Cards and printings',
       desc: isId
-        ? 'Cari kartu dan cetakannya berdasarkan nama, nomor, set, warna, atau tipe. Periksa detail yang tersedia dan bandingkan data versi Jepang dan Inggris.'
-        : 'Search cards and printings by name, number, set, color, or type. Explore available card details and compare Japanese and English data.',
+        ? 'Cari kartu One Piece berdasarkan nama, nomor, set, warna, atau tipe dan lihat detail cetakan yang tersedia.'
+        : 'Search One Piece cards by name, number, set, color, or type and explore available printing details.',
       link: '/cards',
       linkText: isId ? 'Buka katalog kartu' : 'Browse card library',
       icon: Cards,
@@ -89,7 +88,7 @@ export function AboutExperience() {
     {
       num: '02',
       title: isId ? 'Pembuat Deck' : 'Deck Builder',
-      tag: isId ? 'Kurva Don!! · Sinergi Kartu' : 'Cost Curves · Synergy Stats',
+      tag: isId ? 'Susun dan simpan deck' : 'Build and save decks',
       desc: isId
         ? 'Susun deck dengan pilihan filter kartu, lihat ringkasan komposisi, lalu simpan dan bagikan deck.'
         : 'Build decklists with card filters, review deck composition, then save and share your deck.',
@@ -99,17 +98,28 @@ export function AboutExperience() {
     },
     {
       num: '03',
-      title: isId ? 'Market & Koleksi' : 'Market & Collection Vault',
-      tag: isId ? 'Market dan koleksi kartu' : 'Market and Card Vault',
+      title: 'Vault & Market',
+      tag: isId ? 'Koleksi dua permainan' : 'Collection tools for both games',
       desc: isId
-        ? 'Kelola kartu dalam koleksi pribadi dan telusuri listing Market yang tersedia.'
-        : 'Manage cards in your personal collection and browse available Market listings.',
-      link: '/market',
-      linkText: isId ? 'Buka Market & Koleksi' : 'Browse Market & Vault',
+        ? 'Catat kartu Pokémon dan One Piece di Vault. Listing Market komunitas saat ini tersedia untuk One Piece.'
+        : 'Track Pokémon and One Piece cards in your Vault. Community Market listings currently support One Piece.',
+      link: '/vault',
+      linkText: isId ? 'Buka Vault' : 'Open your Vault',
       icon: Storefront,
     },
     {
       num: '04',
+      title: isId ? 'Katalog Pokémon' : 'Pokémon card library',
+      tag: isId ? 'Sedang dikembangkan' : 'Still in progress',
+      desc: isId
+        ? 'Jelajahi kartu dan set Pokémon yang tersedia. Cakupan data dan fitur terus bertambah; tidak semua alat One Piece tersedia untuk Pokémon.'
+        : 'Browse Pokémon cards and sets currently in the catalog. Coverage and tools are still growing; not every One Piece feature is available for Pokémon.',
+      link: '/pokemon',
+      linkText: isId ? 'Jelajahi Pokémon' : 'Browse Pokémon cards',
+      icon: Cards,
+    },
+    {
+      num: '05',
       title: isId ? 'Arena Simulasi Aturan' : 'Rules & Practice Arena',
       tag: isId ? 'Arena latihan di browser' : 'Browser-based practice arena',
       desc: isId
@@ -131,10 +141,10 @@ export function AboutExperience() {
     },
     {
       icon: Scales,
-      title: isId ? 'Dukungan Setara JP & EN' : 'First-Class JP & EN Support',
+      title: isId ? 'Data cetakan yang tersedia' : 'Available printings',
       desc: isId
-        ? 'Perhatian penuh untuk rilisan asli Jepang maupun cetakan bahasa Inggris, dengan verifikasi nomor kartu dan tanggal rilis.'
-        : 'Explore Japanese and English card data where available.',
+        ? 'Jelajahi versi bahasa Jepang dan Inggris jika tersedia untuk kartu tersebut.'
+        : 'Explore Japanese and English versions where they are available.',
     },
     {
       icon: Sparkle,
@@ -162,20 +172,20 @@ export function AboutExperience() {
     {
       q: isId ? 'Bagaimana kartu versi Jepang (JP) dan Inggris (EN) ditampilkan?' : 'How are Japanese (JP) and English (EN) cards displayed?',
       a: isId
-        ? 'Setiap kartu terhubung ke data cetakan bahasa Jepang dan bahasa Inggris. Anda dapat beralih bahasa di setiap kartu untuk memeriksa perbedaan teks efek, varian kelangkaan, dan tanggal rilis.'
-        : 'Every card entry links its Japanese and English printings. You can switch languages on any card page to compare effect texts, rarity variants, and regional release dates.',
+        ? 'Halaman kartu One Piece menampilkan cetakan bahasa Jepang dan Inggris jika tersedia. Cakupan katalog Pokémon berbeda untuk setiap kartu dan set.'
+        : 'One Piece card pages show Japanese and English printings where available. Pokémon catalog coverage varies by card and set.',
     },
     {
       q: isId ? 'Bagaimana informasi Market ditampilkan?' : 'How is Market information displayed?',
       a: isId
-        ? 'Market menampilkan listing komunitas yang tersedia. Harga dan ketersediaan dapat berubah; periksa detail pada setiap listing.'
-        : 'Market displays available community listings. Prices and availability can change; check each listing for details.',
+              ? 'Listing komunitas saat ini tersedia untuk One Piece. Harga dan ketersediaan dapat berubah; periksa detail setiap listing.'
+              : 'Community listings currently support One Piece. Prices and availability can change; check each listing for details.',
     },
     {
       q: isId ? 'Bisakah saya mencatat kartu slab gradasi di koleksi?' : 'Can I track graded slabs in my collection?',
       a: isId
         ? 'Koleksi tersedia setelah masuk ke akun. Pilihan pencatatan yang didukung dapat dilihat di halaman koleksi.'
-        : 'Vault is available after signing in. Check the Vault for currently supported collection details.',
+        : 'The Vault can track One Piece and Pokémon cards. Market price estimates are currently limited to supported One Piece cards.',
     },
     {
       q: isId ? 'Bagaimana ralat teks kartu dan aturan resmi diperbarui?' : 'How are card erratas and rules maintained?',
@@ -198,28 +208,28 @@ export function AboutExperience() {
         <div className="about-hero-content">
           <div className="about-hero-eyebrow">
             <Compass size={18} weight="bold" />
-            <span>{isId ? 'TENTANG VIVREPLAY · PENDAMPING ONE PIECE TCG' : 'ABOUT VIVREPLAY · ONE PIECE CARD GAME COMPANION'}</span>
+            <span>{isId ? 'KATALOG DAN KOLEKSI KARTU' : 'CARD LIBRARIES AND COLLECTIONS'}</span>
             <span className="about-hero-badge">{isId ? 'Karya Komunitas' : 'Community Project'}</span>
           </div>
 
           <h1 className="about-hero-title">
             {isId ? (
               <>
-                Aplikasi pendamping terbuka untuk <br />
-                <span className="accent-highlight">One Piece Card Game.</span>
+                Alat kartu untuk <br />
+                <span className="accent-highlight">One Piece dan Pokémon.</span>
               </>
             ) : (
               <>
-                A fast, open companion for the <br />
-                <span className="accent-highlight">One Piece Card Game.</span>
+                Card tools for <br />
+                <span className="accent-highlight">One Piece and Pokémon.</span>
               </>
             )}
           </h1>
 
           <p className="about-hero-lead">
             {isId
-              ? 'VivrePlay menyediakan katalog kartu, pembuat deck, koleksi kartu, listing Market komunitas, dan arena latihan sebagai proyek penggemar independen.'
-              : 'VivrePlay offers a card catalog, deck builder, collection vault, community Market listings, and practice arena as an independent fan project.'}
+              ? 'Jelajahi kartu One Piece dan Pokémon, catat koleksi pribadi, dan temukan listing komunitas One Piece. Fitur Pokémon masih terus dikembangkan.'
+              : 'Browse One Piece and Pokémon cards, keep a personal collection, and explore community listings for One Piece. Pokémon features are still being built.'}
           </p>
 
           <div className="about-hero-actions">
@@ -235,6 +245,10 @@ export function AboutExperience() {
             <Link className="button secondary about-secondary-action" href="/market">
               <Storefront size={17} />
               <span>{isId ? 'Market & Koleksi' : 'Market & Vault'}</span>
+            </Link>
+            <Link className="button secondary about-secondary-action" href="/pokemon">
+              <Cards size={17} />
+              <span>{isId ? 'Kartu Pokémon' : 'Pokémon cards'}</span>
             </Link>
           </div>
         </div>
@@ -289,39 +303,39 @@ export function AboutExperience() {
             <div className="about-lore-prose">
               <p>
                 {isId
-                  ? 'Kami membuat VivrePlay karena mencari informasi One Piece Card Game sering kali melelahkan. Catatan ralat teks dan klarifikasi juri tercecer di berbagai forum lama, daftar deck tersimpan di tangkapan layar buram, jadwal rilis kartu Jepang dan Inggris membingungkan, serta diskusi harga kerap tertutup spekulasi.'
-                  : 'We built VivrePlay because keeping up with the One Piece Card Game was unnecessarily fragmented. Errata notices and ruling updates were buried in old forum posts, deck lists lived in blurry screenshots, Japanese and English release dates were hard to compare, and market discussions were obscured by speculation.'}
+                  ? 'VivrePlay bermula sebagai kumpulan alat untuk pemain One Piece Card Game: katalog kartu, pembuat deck, pencatatan koleksi, dan listing komunitas. Kini katalog dan pencatatan koleksi Pokémon juga tersedia, sementara cakupan data serta fiturnya terus bertambah.'
+                  : 'VivrePlay began as a set of tools for One Piece Card Game players: a card library, deck tools, collection tracking, and community listings. Pokémon is now part of the site too, with card browsing and collection tracking available while its catalog and features continue to grow.'}
               </p>
               <p>
                 {isId
-                  ? 'VivrePlay menggabungkan pencarian kartu, detail cetakan yang tersedia, pembuat deck, pengelolaan koleksi, listing komunitas, dan arena latihan.'
-              : 'VivrePlay brings card lookup, printing details, deck building, collection management, community listings, and browser-based practice into one place.'}
+                  ? 'Fitur kedua permainan belum sama. Pembuat deck, latihan aturan, dan listing Market saat ini berfokus pada One Piece; kartu Pokémon dapat dijelajahi dan dicatat di Vault.'
+                  : 'The two games do not share every tool. Deck building, rules practice, and Market listings currently focus on One Piece; Pokémon support is available in the library and Vault.'}
               </p>
               <p className="about-lore-conclusion">
                 <strong>
-                  {isId ? 'Satu meja kerja yang bersih dan terbuka.' : 'A clean, open workspace.'}
+                  {isId ? 'Dibuat untuk kebutuhan kolektor.' : 'Built around the cards you collect.'}
                 </strong>{' '}
                 {isId
-                  ? 'Tempat setiap versi cetak kartu, aturan permainan, dan ide susunan deck dapat ditelusuri dengan nyaman oleh seluruh komunitas.'
-                  : 'Where every card printing, ruling clarification, and deck idea is easy to explore for everyone in the community.'}
+                  ? 'Lihat fitur yang tersedia sekarang, sementara cakupan Pokémon terus dikembangkan.'
+                  : 'See what is supported today, with more Pokémon coverage being added over time.'}
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 3. FOUR CORE CAPABILITIES */}
+      {/* Features available across the site */}
       <section className="about-pillars-section" aria-label="Core Capabilities">
         <div className="about-pillars-header">
           <span className="about-section-kicker">
             <BookOpen size={14} weight="bold" />
-            {isId ? 'FITUR UTAMA' : 'FEATURES'}
+            {isId ? 'FITUR' : 'FEATURES'}
           </span>
           <h2>{isId ? 'Fitur yang dirancang untuk pemain dan kolektor.' : 'Features built for players and collectors.'}</h2>
           <p>
             {isId
               ? 'Jelajahi cetakan yang tersedia, susun deck, catat koleksi, dan berlatih interaksi kartu.'
-              : 'Explore available printings, shape a deck, track a collection, and practice card interactions.'}
+              : 'Browse the card libraries, build One Piece decks, and keep a personal collection for either game.'}
           </p>
         </div>
 
@@ -446,8 +460,8 @@ export function AboutExperience() {
           </p>
           <p>
             {isId
-              ? 'One Piece beserta seluruh karakter dan elemen cerita adalah hak cipta © Eiichiro Oda / Shueisha, Toei Animation. One Piece Card Game beserta gambar kartu, nama, logo, simbol, dan teks aturan adalah milik © Bandai Co., Ltd. Seluruh merek dagang ditampilkan di sini semata-mata untuk tujuan informasi, referensi edukasi, dan apresiasi komunitas pemain.'
-              : 'One Piece and all related characters are © Eiichiro Oda / Shueisha, Toei Animation. One Piece Card Game and all card illustrations, names, logos, symbols, and game text are © Bandai Co., Ltd. All trademarks and copyrights belong to their respective owners and appear here strictly for informational, educational, and community reference purposes.'}
+              ? 'One Piece dan karakter terkait adalah hak cipta © Eiichiro Oda / Shueisha, Toei Animation. One Piece Card Game adalah milik © Bandai Co., Ltd. Pokémon dan karakter terkait adalah hak cipta © Nintendo, Creatures Inc., GAME FREAK inc., dan The Pokémon Company. VivrePlay adalah proyek penggemar independen dan tidak berafiliasi dengan pemilik hak tersebut.'
+              : 'One Piece and related characters are © Eiichiro Oda / Shueisha, Toei Animation; One Piece Card Game materials are © Bandai Co., Ltd. Pokémon and related names, characters, and artwork are © Nintendo, Creatures Inc., GAME FREAK inc., and The Pokémon Company. All trademarks and copyrights belong to their respective owners. VivrePlay is an independent fan project and is not affiliated with these companies.'}
           </p>
         </div>
 

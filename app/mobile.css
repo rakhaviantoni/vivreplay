@@ -324,14 +324,16 @@
   .deck-library-actions > * { justify-content: center; }
 
   .vault-page { padding: 22px var(--mobile-gutter) 88px !important; }
-  .vault-header-top,
+  .vault-header-top { display: flex !important; align-items: stretch !important; flex-direction: column !important; }
   .vault-toolbar { align-items: stretch !important; flex-direction: column !important; }
-  .vault-actions-group,
+  .vault-actions-group { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
   .vault-toolbar-filters { width: 100%; }
   .vault-actions-group > *,
   .vault-toolbar-filters > * { flex: 1 1 0; }
-  .vault-metrics-card { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .vault-metric-item { min-width: 0; padding: 13px 10px !important; }
+  .vault-metrics-card { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 16px 0 !important; gap: 16px 0 !important; }
+  .vault-metric-item { min-width: 0; padding: 0 12px !important; }
+  .vault-metric-item:nth-child(odd) { padding-left: 0 !important; }
+  .vault-metric-item:nth-child(even) { padding-right: 0 !important; }
   .vault-binder-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 12px !important; }
   .vault-slabs-grid,
   .vault-wishlist-grid,
@@ -804,6 +806,8 @@
   .live-builder-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
   .vault-metrics-card,
   .market-listing-facts { grid-template-columns: 1fr !important; }
+  .vault-metric-item:not(:first-child)::before { display: none !important; }
+  .vault-metric-item + .vault-metric-item { padding-top: 12px !important; border-top: 1px solid var(--vault-border-light); }
   .market-listing-facts > div { padding-inline: 0 !important; border-left: 0 !important; }
   .market-listing-facts > div + div { border-top: 1px solid var(--line); }
   .site-shell .footer-top { grid-template-columns: 1fr !important; }
@@ -4218,8 +4222,6 @@ html[data-theme='dark'] .pokemon-empty { border-top-color: color-mix(in srgb,#e6
   .pokemon-card-illustrator-inline > small { display:none; }
 }
 @media (prefers-reduced-motion: reduce) { .pokemon-card-grid > i,.pokemon-set-grid > i { animation: none; } .pokemon-card-tile > .tcg-card,.pokemon-related-printing > .tcg-card,.pokemon-set-card { transition-duration: .01ms; } .pokemon-card-tile:hover > .tcg-card::after,.pokemon-card-tile:focus-visible > .tcg-card::after,.pokemon-related-printing:hover > .tcg-card::after,.pokemon-related-printing:focus-visible > .tcg-card::after { animation: none; } }
-.vault-game-picker { display:flex; justify-content:flex-end; margin:0 0 14px; }
-.vault-game-picker [data-slot='select-trigger'] { min-width:210px; }
 .market-game-switch { display:inline-flex; align-items:center; gap:3px; width:max-content; margin:4px 0 14px; padding:3px; border:1px solid var(--line); border-radius:9px; background:var(--surface-muted); }
 .market-game-switch button { display:grid; min-width:70px; min-height:34px; place-items:center; padding:2px 9px; border:1px solid transparent; border-radius:6px; background:transparent; color:var(--muted); cursor:pointer; }
 .market-game-logo-pad { display:grid; min-width:48px; height:25px; place-items:center; padding:0; border-radius:0; background:transparent!important; }
@@ -4230,7 +4232,6 @@ html[data-theme='dark'] .pokemon-empty { border-top-color: color-mix(in srgb,#e6
 .market-game-switch button.is-active { border-color:var(--accent); background:color-mix(in srgb,var(--accent) 13%,var(--surface-raised)); color:var(--ink); }
 html[data-theme='dark'] .market-game-switch { border-color:var(--line); background:var(--surface-muted); }
 html[data-theme='dark'] .market-game-switch button.is-active { border-color:var(--accent); background:color-mix(in srgb,var(--accent) 18%,var(--surface-raised)); color:var(--ink); }
-@media(max-width:760px) { .vault-game-picker { justify-content:stretch; } .vault-game-picker [data-slot='select-trigger'] { width:100%; } }
 
 /* Keep the Market game choice beside the feed view controls on every screen. */
 .market-game-feed-controls { display:flex; align-items:center; gap:12px; min-width:0; }

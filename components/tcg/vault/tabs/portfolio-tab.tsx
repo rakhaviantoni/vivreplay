@@ -10,6 +10,7 @@ import type { VaultStats, EnrichedCollectionItem } from '../types';
 
 interface PortfolioTabProps {
   language: 'EN'|'ID';
+  gameSlug?: 'one-piece'|'pokemon';
   stats: VaultStats;
   items: EnrichedCollectionItem[];
   hideValues: boolean;
@@ -18,6 +19,7 @@ interface PortfolioTabProps {
 
 export function PortfolioTab({
   language,
+  gameSlug = 'one-piece',
   stats,
   items,
   hideValues,
@@ -25,6 +27,22 @@ export function PortfolioTab({
 }: PortfolioTabProps) {
   const id=language==='ID';
   const t=(en:string,indo:string)=>id?indo:en;
+
+  if(gameSlug==='pokemon'){
+    const copies=items.reduce((sum,item)=>sum+item.quantity,0);
+    const uniqueCards=new Set(items.map(item=>item.printingId)).size;
+    const setCount=new Set(items.map(item=>item.card.setCode).filter(Boolean)).size;
+    return <div className="vault-portfolio-container">
+      <section className="vault-chart-card" style={{padding:'24px',gridColumn:'1 / -1'}}>
+        <span style={{fontSize:'11px',fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:'var(--vault-gold)'}}>{t('Pokémon collection','Koleksi Pokémon')}</span>
+        <h2 style={{fontFamily:'var(--display-font, var(--font-sans))',fontSize:'28px',fontWeight:600,margin:'4px 0 0'}}>{t('Your collection at a glance','Ringkasan koleksi Anda')}</h2>
+        <p style={{fontSize:'14px',lineHeight:1.6,color:'var(--vault-ink-secondary)',margin:'8px 0 0'}}>{t('Collection value estimates and price history are not available for Pokémon cards yet. Your card counts and purchase records are still here.','Estimasi nilai koleksi dan riwayat harga belum tersedia untuk kartu Pokémon. Jumlah kartu dan catatan pembelian Anda tetap tersimpan.')}</p>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(170px,1fr))',gap:16,marginTop:24,paddingTop:20,borderTop:'1px solid var(--vault-border-light)'}}>
+          {[[t('Different printings','Cetakan berbeda'),String(uniqueCards)],[t('Copies owned','Jumlah kartu'),String(copies)],[t('Sets represented','Set dalam koleksi'),String(setCount)],[t('Purchase costs recorded','Total pembelian tercatat'),hideValues?'••••••':formatMoney(stats.totalAcquisitionCost,'IDR')]].map(([label,value])=><div key={label}><span style={{fontSize:11,color:'var(--vault-ink-muted)',textTransform:'uppercase',letterSpacing:'.07em',fontWeight:700}}>{label}</span><strong style={{display:'block',fontSize:26,fontWeight:600,marginTop:5,color:'var(--vault-ink)'}}>{value}</strong></div>)}
+        </div>
+      </section>
+    </div>;
+  }
 
   // Breakdown calculations
   // 1. By Set
@@ -76,7 +94,7 @@ export function PortfolioTab({
 
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <span className="vault-confidence-badge" style={{ padding: '4px 10px', fontSize: '11px' }}>
-              YUYUTEI · {stats.marketPricedCount} {t('PRINTINGS WITH PRICES','CETAKAN DENGAN DATA HARGA')}
+              {stats.marketPricedCount} {t('CARDS WITH PRICES','KARTU DENGAN HARGA')}
             </span>
           </div>
         </div>
@@ -98,25 +116,25 @@ export function PortfolioTab({
               {hideValues ? 'Rp ••••••••' : isPricingLoading ? <span className="vault-value-skeleton" role="status" aria-label={t('Loading portfolio value','Memuat nilai koleksi')}/> : stats.marketPricedCount ? formatCompactMoney(stats.estimatedValue, 'IDR') : '-'}
             </div>
             <span style={{ fontSize: '11.5px', color: 'var(--vault-ink-secondary)' }}>
-              {hideValues ? t('Hidden','Disembunyikan') : isPricingLoading ? <span className="vault-value-caption-skeleton" role="status" aria-label={t('Checking saved prices','Memeriksa harga tersimpan')}/> : stats.marketPricedCount ? `${t('Priced copies only:','Nilai kartu dengan data harga:')} ${formatMoney(stats.estimatedValue, 'IDR')}` : t('No exact printing prices available','Harga untuk cetakan ini belum tersedia')}
+              {hideValues ? t('Hidden','Disembunyikan') : isPricingLoading ? <span className="vault-value-caption-skeleton" role="status" aria-label={t('Checking card prices','Memeriksa harga kartu')}/> : stats.marketPricedCount ? `${t('Cards with prices:','Kartu dengan harga:')} ${formatMoney(stats.estimatedValue, 'IDR')}` : t('No price data available yet','Belum ada data harga')}
             </span>
           </div>
 
           <div>
             <span style={{ fontSize: '11px', color: 'var(--vault-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>
-              {t('Acquisition cost of priced copies','Biaya perolehan cetakan dengan data harga')}
+              {t('Purchase cost of priced cards','Harga beli kartu dengan data harga')}
             </span>
             <div style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '32px', fontWeight: 600, color: 'var(--vault-ink)', margin: '4px 0' }}>
               {hideValues ? 'Rp ••••••••' : formatCompactMoney(stats.valuedAcquisitionCost, 'IDR')}
             </div>
             <span style={{ fontSize: '11.5px', color: 'var(--vault-ink-secondary)' }}>
-              {hideValues ? t('Hidden','Disembunyikan') : t('Cards with an exact current Yuyutei price','Kartu dengan harga Yuyutei terkini untuk cetakan yang sama')}
+              {hideValues ? t('Hidden','Disembunyikan') : t('Cards with available price data','Kartu dengan data harga')}
             </span>
           </div>
 
           <div>
             <span style={{ fontSize: '11px', color: 'var(--vault-ink-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>
-              {t('Unrealized difference','Selisih nilai saat ini')}
+              {t('Change in value','Perubahan nilai')}
             </span>
             <div style={{
               fontFamily: 'var(--display-font, var(--font-sans))',
@@ -137,7 +155,7 @@ export function PortfolioTab({
               )}
             </div>
             <span style={{ fontSize: '11.5px', color: stats.unrealizedChangePercent === null ? 'var(--vault-ink-muted)' : stats.unrealizedChangeAmount >= 0 ? '#2e8b57' : '#c0392b', fontWeight: 600 }}>
-              {hideValues ? t('Hidden','Disembunyikan') : stats.unrealizedChangePercent === null ? t('Add acquisition costs for comparison','Tambahkan biaya perolehan untuk melihat selisih') : `${stats.unrealizedChangePercent >= 0 ? '+' : ''}${stats.unrealizedChangePercent.toFixed(1)}% ${t('vs cost of priced copies','dari biaya cetakan dengan data harga')}`}
+              {hideValues ? t('Hidden','Disembunyikan') : stats.unrealizedChangePercent === null ? t('Add purchase prices to compare','Tambahkan harga beli untuk melihat perubahan') : `${stats.unrealizedChangePercent >= 0 ? '+' : ''}${stats.unrealizedChangePercent.toFixed(1)}% ${t('compared with purchase price','dibandingkan dengan harga beli')}`}
             </span>
           </div>
         </div>
@@ -157,7 +175,7 @@ export function PortfolioTab({
         }}>
           <Info size={18} color="var(--vault-gold)" style={{ flexShrink: 0 }} />
           <div>
-            <strong>Data source:</strong> Latest scraped Yuyutei listing prices for exact Japanese printings. {stats.observationCount} stored observations across {stats.marketPricedCount} printings; English and graded cards are excluded. {stats.lastUpdated ? `Latest observation: ${new Date(stats.lastUpdated).toLocaleString()}.` : 'No current observations are available.'}
+            <strong>{t('Price notes:','Catatan harga:')}</strong> {t('Estimates use recent Yuyutei listings for matching Japanese cards. English and graded cards are not included.','Estimasi memakai listing Yuyutei terbaru untuk kartu Jepang yang cocok. Kartu bahasa Inggris dan kartu dengan grading belum termasuk.')} {stats.lastUpdated ? `${t('Updated','Diperbarui')} ${new Date(stats.lastUpdated).toLocaleString()}.` : t('Prices are not available yet.','Harga belum tersedia.')}
           </div>
         </div>
       </div>
@@ -276,9 +294,9 @@ export function PortfolioTab({
       <div className="vault-chart-card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
           <div>
-            <h3 style={{ margin: 0 }}>{t('Yuyutei price change over 30 days','Perubahan harga Yuyutei dalam 30 hari')}</h3>
+            <h3 style={{ margin: 0 }}>{t('Price history','Riwayat harga')}</h3>
             <span style={{ fontSize: '11px', color: 'var(--vault-ink-secondary)' }}>
-              {t('Saved Yuyutei listing data, with a 30-day comparison when history is available.','Data listing Yuyutei tersimpan, dengan perbandingan 30 hari jika riwayat tersedia.')}
+              {t('Compare recent prices with prices from 30 days ago when enough history is available.','Bandingkan harga terbaru dengan harga 30 hari lalu jika riwayatnya cukup.')}
             </span>
           </div>
 
@@ -301,7 +319,7 @@ export function PortfolioTab({
             <strong style={{ display: 'block', color: stats.change30DayPercent === null ? 'var(--vault-ink-muted)' : 'var(--vault-ink)', fontSize: 24 }}>
               {hideValues ? '••••••' : stats.change30DayPercent === null ? '-' : `${stats.change30DayPercent >= 0 ? '+' : ''}${stats.change30DayPercent.toFixed(1)}%`}
             </strong>
-            <span>{stats.change30DayPercent===null?t('Not enough saved prices from 30 days ago to compare.','Data harga dari 30 hari lalu belum cukup untuk dibandingkan.'):`${t('Based on','Berdasarkan')} ${stats.change30DayCount} ${t('printings with comparable history','cetakan dengan riwayat harga yang sebanding')}`}</span>
+            <span>{stats.change30DayPercent===null?t('Not enough price history to compare yet.','Riwayat harga belum cukup untuk dibandingkan.'):`${t('Based on','Berdasarkan')} ${stats.change30DayCount} ${t('cards with price history','kartu dengan riwayat harga')}`}</span>
           </div>
         </div>
       </div>

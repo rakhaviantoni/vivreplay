@@ -4,7 +4,6 @@ import React from 'react';
 import { 
   EyeIcon as Eye, 
   EyeSlashIcon as EyeOff, 
-  ShieldCheckIcon as ShieldCheck, 
   PlusIcon as Plus, 
   LightningIcon as Zap, 
   LockKeyIcon as Lock, 
@@ -17,12 +16,11 @@ import type { VaultStats, PrivacySettings } from './types';
 
 interface VaultHeaderProps {
   stats: VaultStats;
-  username: string;
   privacy: PrivacySettings;
   hideValues: boolean;
   isPricingLoading?: boolean;
   language?: 'EN' | 'ID';
-  gameSlug?: 'one-piece' | 'pokemon';
+  gameSlug?: 'one-piece'|'pokemon';
   onToggleHideValues: () => void;
   onOpenQuickAdd: () => void;
   onOpenFullAdd: () => void;
@@ -33,7 +31,6 @@ interface VaultHeaderProps {
 
 export function VaultHeader({
   stats,
-  username,
   privacy,
   hideValues,
   isPricingLoading = false,
@@ -46,24 +43,18 @@ export function VaultHeader({
   onOpenShareModal,
   onOpenImportExport,
 }: VaultHeaderProps) {
-  const isPrivate = privacy.collection === 'private' || privacy.portfolioValue === 'private';
   const t = (en: string, idStr: string) => language === 'ID' ? idStr : en;
 
   return (
     <header className="vault-header">
       <div className="vault-header-top">
         <div className="vault-title-group">
-          <p className="vault-eyebrow">
-            <ShieldCheck size={14} weight="bold" />
-            {t('Archive & Portfolio · VivrePlay Vault','Arsip & Portofolio · Koleksi VivrePlay')}
-          </p>
+          <p className="vault-eyebrow">{t('Card collection','Koleksi kartu')}</p>
           <h1>{t('Your Vault','Koleksi Anda')}</h1>
           <p className="vault-subtitle">
-            <span>{language === 'ID' ? `Arsip digital @${username}` : `@${username}'s digital archive`}</span>
-            <span> | </span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
               <Lock size={12} />
-              {privacy.collection === 'public' ? t('Public Collection','Koleksi Publik') : t('Private Collection','Koleksi Privat')}
+              {privacy.collection === 'public' ? t('Visible to others','Terlihat oleh orang lain') : t('Only you can see this','Hanya Anda yang dapat melihat')}
             </span>
           </p>
         </div>
@@ -73,7 +64,7 @@ export function VaultHeader({
             type="button" 
             className="vault-btn vault-btn-secondary" 
             onClick={onOpenQuickAdd}
-            title={t('Fast 1-click add raw NM card','Tambah cepat kartu reguler NM')}
+            title={t('Add a card quickly','Tambah kartu dengan cepat')}
           >
             <Zap size={15} weight="fill" color="#c68a2c" />
             {t('Quick Add','Tambah Cepat')}
@@ -90,7 +81,7 @@ export function VaultHeader({
             type="button" 
             className="vault-btn vault-btn-secondary" 
             onClick={onOpenPrivacyModal}
-            title={t('Configure Vault and portfolio privacy','Atur privasi koleksi dan portofolio')}
+            title={t('Choose who can see your collection','Atur siapa yang dapat melihat koleksi')}
           >
             <Lock size={14} />
             {t('Privacy','Privasi')}
@@ -99,7 +90,7 @@ export function VaultHeader({
             type="button" 
             className="vault-btn vault-btn-secondary" 
             onClick={onOpenShareModal}
-            title={t('Generate Top 9 binder, slab, or set progress share card','Buat kartu showcase binder, slab, atau set')}
+            title={t('Share your collection','Bagikan koleksi')}
           >
             <Share2 size={14} />
             {t('Share','Bagikan')}
@@ -125,7 +116,7 @@ export function VaultHeader({
             {stats.totalCards} <small style={{ fontSize: '13px', fontWeight: 500, color: 'var(--vault-ink-muted)' }}>{t('Cards','Kartu')}</small>
           </div>
           <span className="vault-metric-sub">
-            <b>{stats.uniqueIdentities}</b> {t('unique identities','kartu unik')}
+            <b>{stats.uniqueIdentities}</b> {t('different cards','kartu berbeda')}
           </span>
         </div>
 
@@ -136,14 +127,14 @@ export function VaultHeader({
             {stats.slabsCount} <small style={{ fontSize: '13px', fontWeight: 500, color: 'var(--vault-ink-muted)' }}>{t('Slabs','Slab')}</small>
           </div>
           <span className="vault-metric-sub">
-            {stats.rawCount} {t('raw binder copies','kartu reguler di binder')}
+            {stats.rawCount} {t('ungraded cards','kartu tanpa grading')}
           </span>
         </div>
 
         {/* Estimated Value with Privacy Toggle & Confidence Badge */}
         <div className="vault-metric-item">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="vault-metric-label">{t('Estimated Value','Estimasi Nilai')}</span>
+            <span className="vault-metric-label">{gameSlug==='pokemon'?t('Purchase costs recorded','Total pembelian tercatat'):t('Estimated Value','Estimasi Nilai')}</span>
             <button
               type="button"
               className="vault-privacy-toggle"
@@ -159,9 +150,9 @@ export function VaultHeader({
               <span style={{ letterSpacing: '0.15em', color: 'var(--vault-ink-muted)' }}>Rp ••••••••</span>
             ) : (
               <>
-                <span>{isPricingLoading ? '…' : stats.marketPricedCount ? formatCompactMoney(stats.estimatedValue, 'IDR') : '-'}</span>
-                {stats.marketPricedCount > 0 && <span className="vault-confidence-badge" title={language === 'ID' ? 'Data listing Yuyutei untuk cetakan Jepang yang cocok' : 'Yuyutei listing data for exact Japanese printings'}>
-                  {stats.marketPricedCount} {t('printings with prices','cetakan dengan data harga')}
+                <span>{gameSlug==='pokemon'?formatCompactMoney(stats.totalAcquisitionCost,'IDR'):isPricingLoading ? '…' : stats.marketPricedCount ? formatCompactMoney(stats.estimatedValue, 'IDR') : '-'}</span>
+                {gameSlug!=='pokemon'&&stats.marketPricedCount > 0 && <span className="vault-confidence-badge">
+                  {stats.marketPricedCount} {t('priced cards','kartu dengan harga')}
                 </span>}
               </>
             )}
@@ -169,19 +160,21 @@ export function VaultHeader({
           <span className="vault-metric-sub">
             {hideValues ? (
               t('Value masked for privacy','Nilai disamarkan untuk privasi')
+            ) : gameSlug==='pokemon' ? (
+              t('Based on purchase prices you entered','Berdasarkan harga pembelian yang Anda catat')
             ) : isPricingLoading ? (
-              t('Checking saved Yuyutei prices…','Memeriksa harga Yuyutei tersimpan…')
+              t('Checking card prices…','Memeriksa harga kartu…')
             ) : (
               <>
-                <span>{isPricingLoading ? t('Checking saved Yuyutei prices…','Memeriksa harga Yuyutei…') : stats.marketPricedCount ? `${t('Value of priced cards:','Nilai kartu dengan data harga:')} ${formatMoney(stats.estimatedValue, 'IDR')}` : t('No exact printing prices available','Harga untuk cetakan ini belum tersedia')}</span>
+                <span>{isPricingLoading ? t('Checking card prices…','Memeriksa harga kartu…') : stats.marketPricedCount ? `${t('Based on priced cards:','Berdasarkan kartu dengan harga:')} ${formatMoney(stats.estimatedValue, 'IDR')}` : t('No price data yet','Belum ada data harga')}</span>
               </>
             )}
           </span>
         </div>
 
         {/* Acquisition Cost & Unrealized Difference */}
-        <div className="vault-metric-item">
-          <span className="vault-metric-label">{t('Acquisition Cost · All Copies','Biaya Akuisisi · Semua Kartu')}</span>
+        {gameSlug!=='pokemon'&&<div className="vault-metric-item">
+          <span className="vault-metric-label">{t('Total paid','Total pembelian')}</span>
           <div className="vault-metric-value">
             {hideValues ? 'Rp ••••••••' : formatCompactMoney(stats.totalAcquisitionCost, 'IDR')}
           </div>
@@ -190,24 +183,24 @@ export function VaultHeader({
               t('Hidden','Tersembunyi')
             ) : (
                 stats.unrealizedChangePercent === null
-                ? t('Add costs to compare priced copies','Tambahkan biaya untuk membandingkan kartu berharga')
-                : <><TrendingUp size={12} />{t('Priced copies:','Kartu berharga:')} {stats.unrealizedChangeAmount >= 0 ? '+' : ''}{formatCompactMoney(stats.unrealizedChangeAmount, 'IDR')} ({stats.unrealizedChangePercent >= 0 ? '+' : ''}{stats.unrealizedChangePercent.toFixed(1)}%)</>
+                ? t('Add purchase prices to track changes','Tambahkan harga beli untuk melihat perubahan')
+                : <><TrendingUp size={12} />{t('Change in value:','Perubahan nilai:')} {stats.unrealizedChangeAmount >= 0 ? '+' : ''}{formatCompactMoney(stats.unrealizedChangeAmount, 'IDR')} ({stats.unrealizedChangePercent >= 0 ? '+' : ''}{stats.unrealizedChangePercent.toFixed(1)}%)</>
             )}
           </span>
-        </div>
+        </div>}
 
-        {/* 30-day change based on actual Yuyutei observations */}
-        <div className="vault-metric-item">
-          <span className="vault-metric-label">{t('30-Day Yuyutei change','Perubahan Yuyutei 30 Hari')}</span>
+        {/* 30-day price change */}
+        {gameSlug!=='pokemon'&&<div className="vault-metric-item">
+          <span className="vault-metric-label">{t('Price change over 30 days','Perubahan harga selama 30 hari')}</span>
           <div className="vault-metric-value" style={{ color: stats.change30DayPercent === null ? 'var(--vault-ink-muted)' : stats.change30DayPercent >= 0 ? '#2e8b57' : '#c0392b' }}>
             {stats.change30DayPercent === null ? '-' : `${stats.change30DayPercent >= 0 ? '+' : ''}${stats.change30DayPercent.toFixed(1)}%`}
           </div>
           <span className="vault-metric-sub">
             {stats.change30DayPercent === null
-              ? t('Insufficient matched history','Riwayat pembanding belum cukup')
-              : t(`From ${stats.change30DayCount} printings with prices`, `Dari ${stats.change30DayCount} cetakan dengan data harga`)}
+              ? t('Not enough price history','Riwayat harga belum cukup')
+              : t(`Based on ${stats.change30DayCount} cards`, `Berdasarkan ${stats.change30DayCount} kartu`)}
           </span>
-        </div>
+        </div>}
       </div>
     </header>
   );

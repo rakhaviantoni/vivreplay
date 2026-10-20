@@ -667,7 +667,7 @@ export function AddEditItemModal({
             <div className="vault-market-reference" aria-live="polite">
               <span className="vault-market-reference-label">{language === 'ID' ? 'Estimasi pasar (IDR)' : 'Market estimate (IDR)'}</span>
               <strong>{!hasMarketReference ? (language === 'ID' ? 'Belum tersedia untuk cetakan EN' : 'Not available for EN printings') : marketEstimateLoading ? <span className="vault-value-skeleton" role="status" aria-label={language==='ID'?'Memuat estimasi pasar':'Loading market estimate'}/> : marketEstimateIdr !== null ? `Rp ${marketEstimateIdr.toLocaleString('id-ID')}` : (language === 'ID' ? 'Harga cetakan ini belum ditemukan' : 'No price found for this printing')}</strong>
-              <small>{!hasMarketReference ? (language === 'ID' ? 'Harga kartu bahasa Inggris belum tersedia.' : 'English pricing is not in the current dataset.') : marketEstimateIdr !== null ? (language === 'ID' ? 'Harga referensi untuk cetakan terpilih.' : 'Reference price for the selected printing.') : (language === 'ID' ? 'Menggunakan data Yuyutei untuk cetakan persis ini.' : 'Uses the exact printing’s saved Yuyutei observations.')}</small>
+              <small>{!hasMarketReference ? (language === 'ID' ? 'Data harga untuk kartu bahasa Inggris belum tersedia.' : 'Price data is not available for English cards yet.') : marketEstimateIdr !== null ? (language === 'ID' ? 'Perkiraan untuk kartu yang dipilih.' : 'Estimate for the selected card.') : (language === 'ID' ? 'Harga referensi untuk kartu Jepang ini belum ditemukan.' : 'No reference price found for this Japanese card yet.')}</small>
             </div>
           </div>
           <div>

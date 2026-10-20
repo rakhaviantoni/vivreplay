@@ -45,8 +45,7 @@ export function VaultFilters({
     filters.setCode !== 'all' ||
     filters.language !== 'all' ||
     filters.rarity !== 'all' ||
-    filters.cardType !== 'all' ||
-    filters.color !== 'all' ||
+    (gameSlug==='one-piece'&&(filters.cardType !== 'all' || filters.color !== 'all')) ||
     filters.typeFilter !== 'all' ||
     filters.gradingProvider !== 'all' ||
     filters.grade !== 'all' ||
@@ -78,7 +77,7 @@ export function VaultFilters({
           type="text"
           value={filters.search}
           onChange={e => onChangeFilters(prev => ({ ...prev, search: e.target.value }))}
-          placeholder={t('Search card name, code (e.g. OP05-119), or set...','Cari nama kartu, kode (mis. OP05-119), atau set...')}
+          placeholder={gameSlug==='pokemon'?t('Search Pokémon, card number, or set...','Cari Pokémon, nomor kartu, atau set...'):t('Search card name, code (e.g. OP05-119), or set...','Cari nama kartu, kode (mis. OP05-119), atau set...')}
         />
         {filters.search && (
           <button
@@ -112,8 +111,10 @@ export function VaultFilters({
         {/* Rarity Filter */}
         <Picker value={filters.rarity} onChange={value => onChangeFilters(prev => ({ ...prev, rarity: value }))} label={t('Filter by rarity','Filter berdasarkan kelangkaan')} options={[{value:'all',label:t('All Rarities','Semua Kelangkaan')},...rarities.map(rarity=>({value:rarity,label:rarity}))]} />
 
-        <Picker value={filters.color} onChange={value => onChangeFilters(prev => ({ ...prev, color: value }))} label={t('Filter by color','Filter berdasarkan warna')} options={[{value:'all',label:t('All Colors','Semua Warna')},...colorsInVault.map(color=>({value:color,label:color}))]} />
-        <Picker value={filters.cardType} onChange={value => onChangeFilters(prev => ({ ...prev, cardType: value }))} label={t('Filter by card type','Filter berdasarkan jenis kartu')} options={[{value:'all',label:t('All Card Types','Semua Jenis Kartu')},...cardTypes.map(type=>({value:type,label:type}))]} />
+        {gameSlug==='one-piece'&&<>
+          <Picker value={filters.color} onChange={value => onChangeFilters(prev => ({ ...prev, color: value }))} label={t('Filter by color','Filter berdasarkan warna')} options={[{value:'all',label:t('All Colors','Semua Warna')},...colorsInVault.map(color=>({value:color,label:color}))]} />
+          <Picker value={filters.cardType} onChange={value => onChangeFilters(prev => ({ ...prev, cardType: value }))} label={t('Filter by card type','Filter berdasarkan jenis kartu')} options={[{value:'all',label:t('All Card Types','Semua Jenis Kartu')},...cardTypes.map(type=>({value:type,label:type}))]} />
+        </>}
         {filters.typeFilter === 'graded' && <Picker value={filters.grade} onChange={value => onChangeFilters(prev => ({ ...prev, grade: value }))} label={t('Filter by grade','Filter berdasarkan grade')} options={[{value:'all',label:t('All Grades','Semua Grade')},...['10','9.5','9','8.5','8','7','6','5'].map(grade=>({value:grade,label:grade}))]} />}
 
         {/* Showcase / Favorites Toggle */}
@@ -136,7 +137,7 @@ export function VaultFilters({
 
         {/* Sort Dropdown */}
         <Picker value={filters.sort} onChange={value => onChangeFilters(prev => ({ ...prev, sort: value as VaultFilterState['sort'] }))} label={t('Sort collection','Urutkan koleksi')} options={[
-          {value:'recently_added',label:t('Recently Added','Baru Ditambahkan')},{value:'set_order',label:t('Set Order','Urutan Set')},{value:'value_high',label:t('Market price: High to Low','Harga pasar: Tertinggi')},{value:'value_low',label:t('Market price: Low to High','Harga pasar: Terendah')},{value:'name',label:t('Name (A-Z)','Nama (A-Z)')},{value:'grade',label:t('Grade (10 - 1)','Grade (10 - 1)')}
+          {value:'recently_added',label:t('Recently Added','Baru Ditambahkan')},{value:'set_order',label:t('Set Order','Urutan Set')},...(gameSlug==='pokemon'?[]:[{value:'value_high' as const,label:t('Market price: High to Low','Harga pasar: Tertinggi')},{value:'value_low' as const,label:t('Market price: Low to High','Harga pasar: Terendah')}]),{value:'name',label:t('Name (A-Z)','Nama (A-Z)')},{value:'grade',label:t('Grade (10 - 1)','Grade (10 - 1)')}
         ]} />
 
         {/* Reset Filter Button if active */}

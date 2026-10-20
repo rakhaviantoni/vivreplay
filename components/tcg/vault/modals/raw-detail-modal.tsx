@@ -177,7 +177,7 @@ export function RawDetailModal({
                   {item.marketPriceUrl && <a href={item.marketPriceUrl} target="_blank" rel="noopener noreferrer"> View source</a>}
                 </small>
               )}
-              {!hideValues && item.marketPriceSource === 'yuyutei' && <small style={{ display: 'block', marginTop: 4, color: 'var(--vault-ink-muted)' }}>Yuyutei · exact printing</small>}
+              {!hideValues && item.marketPriceSource === 'yuyutei' && <small style={{ display: 'block', marginTop: 4, color: 'var(--vault-ink-muted)' }}>Yuyutei price for this Japanese card</small>}
             </div>
           </div>
 

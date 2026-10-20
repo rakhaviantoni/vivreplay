@@ -44,7 +44,6 @@ import { ActivityTab } from './vault/tabs/activity-tab';
 import { VaultPanelEmpty } from './vault/vault-panel-empty';
 import { ListingsTab } from './vault/tabs/listings-tab';
 import { VivreMark } from './brand-assets';
-import { Picker } from './catalog';
 
 // Vault Modals
 import { QuickAddModal } from './vault/modals/quick-add-modal';
@@ -240,6 +239,7 @@ export function Vault() {
   const pricingPrintingIds=useMemo(()=>[...new Set(collectionItems.map(item=>item.printingId))].sort(),[collectionItems]);
   const pricingRequestKey=pricingPrintingIds.join(',');
   useEffect(()=>{
+    if(gameSlug!=='one-piece'){setVaultMarketPrices({});setVaultMarketPricesLoading(false);return}
     if(!pricingPrintingIds.length){setVaultMarketPrices({});setVaultMarketPricesLoading(false);return}
     const controller=new AbortController();
     setVaultMarketPrices({});setVaultMarketPricesLoading(true);
@@ -249,7 +249,7 @@ export function Vault() {
       .catch(error=>{if(!(error instanceof DOMException&&error.name==='AbortError'))setVaultMarketPrices({})})
       .finally(()=>{if(!controller.signal.aborted)setVaultMarketPricesLoading(false)});
     return()=>controller.abort();
-  },[pricingRequestKey]);
+  },[gameSlug,pricingRequestKey]);
 
   // Enrich collection items with card art, estimates, gain/loss, and favorite state
   const enrichedItems: EnrichedCollectionItem[] = useMemo(() => {
@@ -297,9 +297,9 @@ export function Vault() {
       // Rarity
       if (filters.rarity !== 'all' && item.card.rarity !== filters.rarity) return false;
       // Color
-      if (filters.color !== 'all' && !item.card.color.split(/\s*(?:\/|&|,|·)\s*|\s+/).includes(filters.color)) return false;
+      if (gameSlug==='one-piece'&&filters.color !== 'all' && !item.card.color.split(/\s*(?:\/|&|,|·)\s*|\s+/).includes(filters.color)) return false;
       // Card type
-      if (filters.cardType !== 'all' && item.card.type !== filters.cardType) return false;
+      if (gameSlug==='one-piece'&&filters.cardType !== 'all' && item.card.type !== filters.cardType) return false;
       // Favorites / Showcase
       if (filters.favoritesOnly && !item.isFavorite) return false;
 
@@ -307,13 +307,13 @@ export function Vault() {
     }).sort((a, b) => {
       if (filters.sort === 'recently_added') return 0; // Natural order
       if (filters.sort === 'set_order') return a.card.code.localeCompare(b.card.code);
-      if (filters.sort === 'value_high') return b.estimatedValue - a.estimatedValue;
-      if (filters.sort === 'value_low') return a.estimatedValue - b.estimatedValue;
+      if (gameSlug==='one-piece'&&filters.sort === 'value_high') return b.estimatedValue - a.estimatedValue;
+      if (gameSlug==='one-piece'&&filters.sort === 'value_low') return a.estimatedValue - b.estimatedValue;
       if (filters.sort === 'name') return a.card.name.localeCompare(b.card.name);
       if (filters.sort === 'grade') return (parseFloat(b.grade || '0') || 0) - (parseFloat(a.grade || '0') || 0);
       return 0;
     });
-  }, [enrichedItems, filters]);
+  }, [enrichedItems, filters, gameSlug]);
   const filteredStackCount=useMemo(()=>groupVaultStacks(filteredCollectionItems).length,[filteredCollectionItems]);
 
   // Slabs list
@@ -542,7 +542,6 @@ export function Vault() {
       {/* Vault Header & Key Metrics Bar */}
       <VaultHeader
         stats={stats}
-        username={username}
         privacy={privacy}
         hideValues={hideValues}
         isPricingLoading={vaultMarketPricesLoading}
@@ -555,8 +554,6 @@ export function Vault() {
         onOpenShareModal={() => setShareModalOpen(true)}
         onOpenImportExport={() => setImportExportOpen(true)}
       />
-
-      <div className="vault-game-picker"><Picker value={gameSlug} onChange={value=>{const next=value as 'one-piece'|'pokemon';setGameSlug(next);if(next==='pokemon'&&activeTab==='sets')setActiveTab('collection');const params=new URLSearchParams(window.location.search);if(next==='pokemon')params.set('game','pokemon');else params.delete('game');router.replace(`${window.location.pathname}${params.size?`?${params}`:''}`,{scroll:false})}} label={t('Choose card game','Pilih permainan kartu')} options={[{value:'one-piece',label:'One Piece Card Game'},{value:'pokemon',label:'Pokémon TCG'}]}/></div>
 
       {/* Vault Navigation Tabs */}
       <nav className="vault-nav-tabs" aria-label={t('Vault tabs','Tab koleksi')}>
@@ -741,6 +738,7 @@ export function Vault() {
         <section style={{ marginTop: '24px' }}>
           <PortfolioTab
             language={language}
+            gameSlug={gameSlug}
             stats={stats}
             items={enrichedItems}
             hideValues={hideValues}
@@ -752,7 +750,7 @@ export function Vault() {
       {/* Tab 6: Activity */}
       {activeTab === 'activity' && (
         <section style={{ marginTop: '24px' }}>
-          <ActivityTab language={language} />
+          <ActivityTab language={language} signedIn={Boolean(data?.profile)} />
         </section>
       )}
 

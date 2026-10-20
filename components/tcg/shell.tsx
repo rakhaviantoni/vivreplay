@@ -86,10 +86,16 @@ function PrimaryNav({language,selected,game}:{language:Locale;selected:(url:stri
   return <nav ref={root} aria-label="Primary navigation" className="primary-nav">{menus.map(menu=><details key={menu.label} className="nav-more" onPointerEnter={event=>openMenu(event.currentTarget)} onPointerLeave={event=>event.currentTarget.removeAttribute('open')} onToggle={event=>{if(!event.currentTarget.open)return;root.current?.querySelectorAll('details[open]').forEach(item=>{if(item!==event.currentTarget)item.removeAttribute('open')})}}><summary className={menu.items.some(item=>selected(item.href))?'active':''}>{language==='ID'?menu.labelId:menu.label}<ChevronDown size={13}/></summary><div>{menu.items.map(item=>{const Icon=item.icon;return <Link key={item.href} href={getHref(item.href)} onClick={closeAll} className={selected(item.href)?'active':''}><Icon size={14}/>{language==='ID'?item.labelId:item.label}</Link>})}</div></details>)}{game==='pokemon'&&<Link href={getHref('/vault?game=pokemon')} onClick={closeAll} className={selected('/vault')?'active market-nav':''}><ShieldCheck size={14}/>{language==='ID'?'Vault':'Vault'}</Link>}<Link href={getHref(game==='pokemon'?'/market?game=pokemon':market.href)} onClick={closeAll} className={selected(market.href)?'active market-nav':''}><Store size={14}/>{language==='ID'?market.labelId:market.label}</Link></nav>;
 }
 
-function GameModeSwitch({language,game}:{language:Locale;game:'one-piece'|'pokemon'}) {
+function GameModeSwitch({language,game,path,search}:{language:Locale;game:'one-piece'|'pokemon';path:string;search:string}) {
   const options=[{id:'one-piece' as const,href:'/cards',label:'One Piece',logo:'/assets/one-piece-card-game-logo.png'},{id:'pokemon' as const,href:'/pokemon',label:'Pokémon',logo:'https://upload.wikimedia.org/wikipedia/commons/1/1a/Pok%C3%A9mon_Trading_Card_Game_logo.svg'}];
   const localize=(href:string)=>language==='ID'?`/id${href}`:href;
-  return <nav className="game-mode-switch" aria-label={language==='ID'?'Pilih katalog kartu':'Choose a card catalog'}>{options.map(option=><Link key={option.id} href={localize(option.href)} aria-label={option.label} title={option.label} aria-current={game===option.id?'page':undefined} className={`${game===option.id?'is-active ':''}game-mode-${option.id}`}><span className="game-mode-logo-pad"><img src={option.logo} alt="" aria-hidden="true"/></span><span className="sr-only">{option.label}</span></Link>)}</nav>;
+  const hrefFor=(option:typeof options[number])=>{
+    if(path!=='/vault')return localize(option.href);
+    const params=new URLSearchParams(search);
+    if(option.id==='pokemon')params.set('game','pokemon');else params.delete('game');
+    return localize(`/vault${params.size?`?${params.toString()}`:''}`);
+  };
+  return <nav className="game-mode-switch" aria-label={language==='ID'?'Pilih katalog kartu':'Choose a card catalog'}>{options.map(option=><Link key={option.id} href={hrefFor(option)} aria-label={option.label} title={option.label} aria-current={game===option.id?'page':undefined} className={`${game===option.id?'is-active ':''}game-mode-${option.id}`}><span className="game-mode-logo-pad"><img src={option.logo} alt="" aria-hidden="true"/></span><span className="sr-only">{option.label}</span></Link>)}</nav>;
 }
 
 function Footer({language,game}:{language:Locale;game:'one-piece'|'pokemon'}) {
@@ -285,7 +291,7 @@ export function Shell({children,initialPath='/'}:{children:React.ReactNode;initi
   return <div className={`site-shell${game==='pokemon'?' game-pokemon':''}${marketCheckout?' market-checkout-shell':''}`}>
     {marketCheckout?<><MarketStoreNav showPromo={false}/>{!data&&<AuthDialog language={language} showTrigger={false}/>}</>:<header className={`masthead ${scrolled?'is-scrolled':''} ${theme==='dark'?'theme-dark':''}`}>
       <Link className="wordmark" href={getHref('/')}><VivreMark size={28}/><span>VivrePlay</span></Link>
-      <GameModeSwitch language={language} game={game}/>
+      <GameModeSwitch language={language} game={game} path={normalizedPath} search={searchParams.toString()}/>
       <PrimaryNav language={language} selected={selected} game={game}/>
       <div className="masthead-actions">
         <HeaderSearch language={language} game={game}/>
