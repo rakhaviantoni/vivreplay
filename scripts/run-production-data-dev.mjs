@@ -6,7 +6,22 @@ import { fileURLToPath } from "node:url";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const wrangler = path.join(root, "node_modules/wrangler/bin/wrangler.js");
 const state = path.join(root, ".wrangler/production-view");
-const snapshot = path.join(root, ".wrangler/production-market.sql");
+const marketSnapshot = path.join(root, ".wrangler/production-market.sql");
+const catalogSnapshot = path.join(root, ".wrangler/production-catalog.sql");
+const publicCatalogTables = [
+  "tcg_games",
+  "tcg_sets",
+  "tcg_card_identities",
+  "tcg_card_localizations",
+  "tcg_card_rules",
+  "tcg_card_printings",
+  "tcg_card_asset_sources",
+  "tcg_card_assets",
+  "tcg_card_rulings",
+  "tcg_rulesets",
+  "tcg_card_rule_revisions",
+  "tcg_sealed_products",
+];
 const env = {
   ...process.env,
   CLOUDFLARE_CF_FETCH_ENABLED: "false",
@@ -34,6 +49,9 @@ function runWrangler(args, { json = false, quiet = false } = {}) {
   }
   if (!json) return;
   const resultSets = JSON.parse(result.stdout);
+  if (resultSets.some((set) => set.success === false)) {
+    throw new Error("Wrangler reported a failed D1 statement.");
+  }
   return resultSets.flatMap((set) => set.results ?? []);
 }
 
@@ -42,6 +60,11 @@ function remoteRows(sql) {
     "d1", "execute", "DB", "--remote", "--config", "wrangler.migrations.json",
     "--json", "--command", sql,
   ], { json: true });
+}
+
+function remoteCatalogPage(table, offset, limit = 1000) {
+  if (!publicCatalogTables.includes(table)) throw new Error(`Refusing to mirror non-public table ${table}.`);
+  return remoteRows(`SELECT * FROM \`${table}\` LIMIT ${limit} OFFSET ${offset}`);
 }
 
 function literal(value) {
@@ -62,19 +85,42 @@ function insert(table, columns, rows, map = (row) => row) {
   return `INSERT OR REPLACE INTO \`${table}\` (${names}) VALUES\n${values};\n`;
 }
 
+async function writeCatalogSnapshot() {
+  await writeFile(catalogSnapshot, "", "utf8");
+  const counts = {};
+  for (const table of publicCatalogTables) {
+    let offset = 0;
+    let copied = 0;
+    while (true) {
+      const rows = remoteCatalogPage(table, offset);
+      if (!rows.length) break;
+      const columns = Object.keys(rows[0]);
+      const chunks = [];
+      for (let index = 0; index < rows.length; index += 10) {
+        chunks.push(insert(table, columns, rows.slice(index, index + 10)));
+      }
+      await writeFile(catalogSnapshot, chunks.join("\n"), { encoding: "utf8", flag: "a" });
+      copied += rows.length;
+      offset += rows.length;
+      if (rows.length < 1000) break;
+    }
+    counts[table] = copied;
+    console.log(`Mirrored ${copied.toLocaleString()} ${table} rows.`);
+  }
+  return counts;
+}
+
+function localTableCount(table) {
+  if (!publicCatalogTables.includes(table)) throw new Error(`Refusing to verify non-public table ${table}.`);
+  const rows = runWrangler([
+    "d1", "execute", "DB", "--local", "--config", "wrangler.migrations.json",
+    "--persist-to", state, "--json", "--command", `SELECT COUNT(*) AS row_count FROM \`${table}\``,
+  ], { json: true });
+  return Number(rows[0]?.row_count ?? 0);
+}
+
 try {
   await mkdir(path.dirname(state), { recursive: true });
-  // This dedicated directory is replaced on every sync; normal local D1 is untouched.
-  await rm(state, { recursive: true, force: true });
-  runWrangler([
-    "d1", "migrations", "apply", "DB", "--local", "--config", "wrangler.migrations.json",
-    "--persist-to", state,
-  ], { quiet: true });
-  runWrangler([
-    "d1", "execute", "DB", "--local", "--config", "wrangler.migrations.json",
-    "--persist-to", state, "--command", "ALTER TABLE listings ADD COLUMN items TEXT;", "--yes",
-  ], { quiet: true });
-
   // Copy only public Market data. Never copy phone numbers, addresses, auth
   // sessions, payments, private collections, or seller-owned Vault instances.
   const profiles = remoteRows(`SELECT DISTINCT p.id,'local-preview-'||p.id AS auth_subject,p.username,p.display_name,p.region,p.locale,p.currency,p.timezone,p.favorite_leader,p.public_collection,p.created_at,p.updated_at,p.tier,p.pro_expires_at,NULL AS phone FROM profiles p JOIN listings l ON l.seller_id=p.id`);
@@ -99,13 +145,38 @@ try {
     }),
   ].join("\n");
 
-  await writeFile(snapshot, sql, "utf8");
+  await writeFile(marketSnapshot, sql, "utf8");
+  const catalogCounts = await writeCatalogSnapshot();
+
+  // Replace only the dedicated mirror after every production read succeeds.
+  // The normal local D1 state is separate and remains untouched.
+  await rm(state, { recursive: true, force: true });
+  runWrangler([
+    "d1", "migrations", "apply", "DB", "--local", "--config", "wrangler.migrations.json",
+    "--persist-to", state,
+  ], { quiet: true });
   runWrangler([
     "d1", "execute", "DB", "--local", "--config", "wrangler.migrations.json",
-    "--persist-to", state, "--file", snapshot, "--yes",
-  ]);
+    "--persist-to", state, "--command", "ALTER TABLE listings ADD COLUMN items TEXT;", "--yes",
+  ], { quiet: true });
+  runWrangler([
+    "d1", "execute", "DB", "--local", "--config", "wrangler.migrations.json",
+    "--persist-to", state, "--json", "--file", marketSnapshot, "--yes",
+  ], { json: true });
+  runWrangler([
+    "d1", "execute", "DB", "--local", "--config", "wrangler.migrations.json",
+    "--persist-to", state, "--json", "--file", catalogSnapshot, "--yes",
+  ], { json: true });
+  for (const [table, expected] of Object.entries(catalogCounts)) {
+    const actual = localTableCount(table);
+    if (actual !== expected) {
+      throw new Error(`Local ${table} count is ${actual}; production has ${expected}.`);
+    }
+  }
+  console.log("Local catalog row counts match production.");
 } finally {
-  await rm(snapshot, { force: true });
+  await rm(marketSnapshot, { force: true });
+  await rm(catalogSnapshot, { force: true });
 }
 
 if (process.argv.includes("--sync-only")) process.exit(0);

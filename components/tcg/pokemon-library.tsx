@@ -1,9 +1,9 @@
 'use client';
 
-import { useDeferredValue, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { MagnifyingGlassIcon as Search, PencilSimpleIcon as Pencil, ArrowUpRightIcon, CaretDownIcon as ChevronDown, SlidersHorizontalIcon as SlidersHorizontal } from '@phosphor-icons/react';
+import { MagnifyingGlassIcon as Search, ArrowUpRightIcon, CaretDownIcon as ChevronDown, SlidersHorizontalIcon as SlidersHorizontal } from '@phosphor-icons/react';
 import { CardArt } from '@/components/tcg/card-art';
 import { PokemonCardText } from '@/components/tcg/pokemon-card-text';
 import { pokemonExpansionArt } from '@/components/tcg/pokemon-expansion-art';
@@ -33,6 +33,7 @@ export function PokemonLibrary({ initialSet, initialQuery }: { initialSet?: stri
   const [cards, setCards] = useState<GameCard[]>([]);
   const [sets, setSets] = useState<SetRecord[]>([]);
   const [rarities, setRarities] = useState<string[]>([]);
+  const [illustratorOptions, setIllustratorOptions] = useState<string[]>([]);
   const [typeOptions, setTypeOptions] = useState<string[]>([]);
   const [categoryOptions, setCategoryOptions] = useState<string[]>([]);
   const [stageOptions, setStageOptions] = useState<string[]>([]);
@@ -62,8 +63,7 @@ export function PokemonLibrary({ initialSet, initialQuery }: { initialSet?: stri
   const [searchQuery, setSearchQuery] = useState(initialQuery ?? '');
   const [setFilters, setSetFilters] = useState<string[]>(() => initialSet ? [initialSet] : []);
   const [rarityFilters, setRarityFilters] = useState<string[]>([]);
-  const [illustratorSearch, setIllustratorSearch] = useState('');
-  const illustratorQuery = useDeferredValue(illustratorSearch).trim();
+  const [illustratorFilters, setIllustratorFilters] = useState<string[]>([]);
   const [selected, setSelected] = useState<GameCard | null>(null);
 
   useEffect(() => { setQuery(initialQuery ?? ''); setSearchQuery(initialQuery ?? ''); }, [initialQuery]);
@@ -76,7 +76,7 @@ export function PokemonLibrary({ initialSet, initialQuery }: { initialSet?: stri
     setFilters.forEach(value => params.append('set', value));
     if (searchQuery) params.set('q', searchQuery);
     rarityFilters.forEach(value => params.append('rarity', value));
-    if(illustratorQuery) params.set('illustratorQ',illustratorQuery);
+    illustratorFilters.forEach(value => params.append('illustrator', value));
     typeFilters.forEach(value => params.append('type', value));
     categoryFilters.forEach(value => params.append('category', value));
     stageFilters.forEach(value => params.append('stage', value));
@@ -100,7 +100,7 @@ export function PokemonLibrary({ initialSet, initialQuery }: { initialSet?: stri
       .catch(error => { if (error.name !== 'AbortError') { setCards([]); setLoadError(true); setHasMore(false); } })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
-  }, [language, setFilters, searchQuery, illustratorQuery, rarityFilters, typeFilters, categoryFilters, stageFilters, energyFilters, regulationFilters, retreatFilters, weaknessFilters, resistanceFilters, hpMin, hpMax, sort, retryVersion]);
+  }, [language, setFilters, searchQuery, rarityFilters, illustratorFilters, typeFilters, categoryFilters, stageFilters, energyFilters, regulationFilters, retreatFilters, weaknessFilters, resistanceFilters, hpMin, hpMax, sort, retryVersion]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -110,8 +110,8 @@ export function PokemonLibrary({ initialSet, initialQuery }: { initialSet?: stri
       .catch(error => { if (error.name !== 'AbortError') setSets([]); });
     fetch(versionedCardCatalogUrl(`/api/cards/catalog/facets?game=pokemon&language=${language}`), { signal: controller.signal })
       .then(async response => response.ok ? response.json() as Promise<PokemonFacets> : {} as PokemonFacets)
-      .then(result => { setRarities(result.rarities ?? []); setTypeOptions(result.types ?? []); setCategoryOptions(result.categories ?? []); setStageOptions(result.stages ?? []); setEnergyOptions(result.attackEnergies ?? []); setRegulationOptions(result.regulations ?? []); setRetreatOptions(result.retreats ?? []); setWeaknessOptions(result.weaknesses ?? []); setResistanceOptions(result.resistances ?? []); })
-      .catch(error => { if (error.name !== 'AbortError') { setRarities([]); setTypeOptions([]); setCategoryOptions([]); setStageOptions([]); setEnergyOptions([]); setRegulationOptions([]); setRetreatOptions([]); setWeaknessOptions([]); setResistanceOptions([]); } });
+      .then(result => { setRarities(result.rarities ?? []); setIllustratorOptions(result.illustrators ?? []); setTypeOptions(result.types ?? []); setCategoryOptions(result.categories ?? []); setStageOptions(result.stages ?? []); setEnergyOptions(result.attackEnergies ?? []); setRegulationOptions(result.regulations ?? []); setRetreatOptions(result.retreats ?? []); setWeaknessOptions(result.weaknesses ?? []); setResistanceOptions(result.resistances ?? []); })
+      .catch(error => { if (error.name !== 'AbortError') { setRarities([]); setIllustratorOptions([]); setTypeOptions([]); setCategoryOptions([]); setStageOptions([]); setEnergyOptions([]); setRegulationOptions([]); setRetreatOptions([]); setWeaknessOptions([]); setResistanceOptions([]); } });
     return () => controller.abort();
   }, [language, retryVersion]);
 
@@ -123,7 +123,7 @@ export function PokemonLibrary({ initialSet, initialQuery }: { initialSet?: stri
       setFilters.forEach(value => params.append('set', value));
       if (searchQuery) params.set('q', searchQuery);
       rarityFilters.forEach(value => params.append('rarity', value));
-      if(illustratorQuery) params.set('illustratorQ',illustratorQuery);
+      illustratorFilters.forEach(value => params.append('illustrator', value));
       typeFilters.forEach(value => params.append('type', value));
       categoryFilters.forEach(value => params.append('category', value));
       stageFilters.forEach(value => params.append('stage', value));
@@ -161,9 +161,9 @@ export function PokemonLibrary({ initialSet, initialQuery }: { initialSet?: stri
     printingCode: card.printing_code,
     variant: card.variant,
   });
-  const hasFilters = Boolean(query.trim() || illustratorSearch.trim() || setFilters.length || rarityFilters.length || typeFilters.length || categoryFilters.length || stageFilters.length || energyFilters.length || regulationFilters.length || retreatFilters.length || weaknessFilters.length || resistanceFilters.length || hpMin || hpMax || sort !== 'latest');
-  const advancedFilterCount = stageFilters.length + energyFilters.length + regulationFilters.length + retreatFilters.length + weaknessFilters.length + resistanceFilters.length + (hpMin||hpMax?1:0) + (illustratorSearch.trim()?1:0);
-  const clearFilters = () => { setQuery(''); setSearchQuery(''); setIllustratorSearch(''); setSetFilters([]); setRarityFilters([]); setTypeFilters([]); setCategoryFilters([]); setStageFilters([]); setEnergyFilters([]); setRegulationFilters([]); setRetreatFilters([]); setWeaknessFilters([]); setResistanceFilters([]); setHpMin(''); setHpMax(''); setSort('latest'); };
+  const hasFilters = Boolean(query.trim() || setFilters.length || rarityFilters.length || illustratorFilters.length || typeFilters.length || categoryFilters.length || stageFilters.length || energyFilters.length || regulationFilters.length || retreatFilters.length || weaknessFilters.length || resistanceFilters.length || hpMin || hpMax || sort !== 'latest');
+  const advancedFilterCount = stageFilters.length + energyFilters.length + regulationFilters.length + retreatFilters.length + weaknessFilters.length + resistanceFilters.length + (hpMin||hpMax?1:0);
+  const clearFilters = () => { setQuery(''); setSearchQuery(''); setSetFilters([]); setRarityFilters([]); setIllustratorFilters([]); setTypeFilters([]); setCategoryFilters([]); setStageFilters([]); setEnergyFilters([]); setRegulationFilters([]); setRetreatFilters([]); setWeaknessFilters([]); setResistanceFilters([]); setHpMin(''); setHpMax(''); setSort('latest'); };
   const toggle = (current: string[], setState: (value: string[] | ((previous: string[]) => string[])) => void, value: string) => setState(previous => previous.includes(value) ? previous.filter(item => item !== value) : [...previous, value]);
 
   return <main className="page catalog-page pokemon-catalog-page">
@@ -179,10 +179,14 @@ export function PokemonLibrary({ initialSet, initialQuery }: { initialSet?: stri
       <div className="pokemon-library-searches"><label className="search-box"><Search size={16}/><input value={query} onChange={event => setQuery(event.target.value)} placeholder={id ? 'Cari nama atau nomor kartu' : 'Search name or card number'}/></label></div>
       <div className="pokemon-library-filterbar">
         <div className="pokemon-library-filters">
+          <div className="pokemon-primary-filters">
           <MultiFilter label="Set" values={sets.map(set=>({value:set.code,label:`${set.name} (${set.code})`,image:pokemonExpansionArt(set.name,set.code)??set.productImageUrl,group:set.series||(set.releaseYear?String(set.releaseYear):id?'Set lainnya':'Other sets')}))} selected={setFilters} onToggle={value=>setSetFilters(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])} searchPlaceholder={id ? 'Cari set' : 'Find a set'}/>
           <MultiFilter label={id?'Tipe':'Type'} values={typeOptions} selected={typeFilters} onToggle={value=>toggle(typeFilters,setTypeFilters,value)} searchPlaceholder={id?'Cari tipe Pokémon':'Find a Pokémon type'}/>
           <MultiFilter label={id?'Kelangkaan':'Rarity'} values={rarities} selected={rarityFilters} onToggle={value=>toggle(rarityFilters,setRarityFilters,value)} searchPlaceholder={id ? 'Cari rarity' : 'Find a rarity'}/>
           <MultiFilter label={id?'Jenis kartu':'Card type'} values={categoryOptions.map(value=>({value,label:categoryLabel(value,id)}))} selected={categoryFilters} onToggle={value=>toggle(categoryFilters,setCategoryFilters,value)}/>
+          <MultiFilter label={id?'Ilustrator':'Illustrator'} values={illustratorOptions} selected={illustratorFilters} onToggle={value=>toggle(illustratorFilters,setIllustratorFilters,value)} searchPlaceholder={id?'Cari ilustrator':'Find an illustrator'}/>
+          </div>
+          <div className="pokemon-filter-actions">
           <button type="button" className={`pokemon-more-filters-trigger ${moreFiltersOpen?'is-open':''}`} aria-expanded={moreFiltersOpen} onClick={()=>setMoreFiltersOpen(value=>!value)}><SlidersHorizontal size={15}/>{id?'Lainnya':'More'}{advancedFilterCount>0&&<b>{advancedFilterCount}</b>}<ChevronDown size={14}/></button>
           <div className="pokemon-sort-picker"><Picker label={id?'Urutkan kartu':'Sort cards'} value={sort} onChange={value=>setSort(value as SortOrder)} leadingIcon={<SlidersHorizontal size={15}/>} options={[
             {value:'latest',label:id?'Rilisan terbaru':'Newest'},
@@ -193,10 +197,10 @@ export function PokemonLibrary({ initialSet, initialQuery }: { initialSet?: stri
           ]}/></div>
           <div className="pokemon-library-language"><div className="language-switch" aria-label={id?'Bahasa kartu':'Card language'}>{languages.map(option => <button type="button" key={option} aria-pressed={language === option} onClick={() => { setLoading(true); setLanguage(option); }}>{option}</button>)}</div></div>
           {hasFilters&&<button type="button" className="pokemon-clear-filters" onClick={clearFilters}>{id?'Hapus':'Clear'}</button>}
+          </div>
         </div>
       </div>
-      {moreFiltersOpen&&<div className="pokemon-library-more-filters">
-        <label className="search-box pokemon-illustrator-search"><Pencil size={16}/><input value={illustratorSearch} onChange={event=>setIllustratorSearch(event.target.value)} placeholder={id?'Cari ilustrator':'Search illustrator'}/></label>
+      {moreFiltersOpen&&<div className="pokemon-library-more-filters" aria-label={id?'Filter kartu lainnya':'More card filters'}>
         <MultiFilter label={id?'Tahap':'Stage'} values={stageOptions} selected={stageFilters} onToggle={value=>toggle(stageFilters,setStageFilters,value)} searchPlaceholder={id?'Cari tahap':'Find a stage'}/>
         <MultiFilter label={id?'Energi serangan':'Attack energy'} values={energyOptions} selected={energyFilters} onToggle={value=>toggle(energyFilters,setEnergyFilters,value)} searchPlaceholder={id?'Cari energi':'Find an energy type'}/>
         <MultiFilter label="Regulation" values={regulationOptions} selected={regulationFilters} onToggle={value=>toggle(regulationFilters,setRegulationFilters,value)}/>
@@ -216,12 +220,12 @@ export function PokemonLibrary({ initialSet, initialQuery }: { initialSet?: stri
         <CardArt card={display}/>
         <span><span className="pokemon-card-name-row"><strong>{display.name}</strong>{cardNumber&&<small>{cardNumber}</small>}</span><small className="pokemon-card-set-code">{card.set_code}</small></span>
       </button>;
-    })}</div> : <section className="empty-state pokemon-empty"><h2>{searchQuery||hasFilters?(id?'Tidak ada kartu yang cocok dengan filter ini.':'No cards match these filters.'):(id?'Belum ada kartu Pokémon untuk bahasa ini.':'No Pokémon cards are available in this language yet.')}</h2>{(searchQuery||hasFilters)&&<p>{id?'Coba set, rarity, ilustrator, atau nama kartu lain.':'Try another set, rarity, illustrator, or card name.'}</p>}</section>}
+    })}</div> : <section className="empty-state pokemon-empty"><h2>{searchQuery||hasFilters?(id?'Tidak ada kartu yang cocok dengan filter ini.':'No cards match these filters.'):(id?'Belum ada kartu Pokémon untuk bahasa ini.':'No Pokémon cards are available in this language yet.')}</h2>{(searchQuery||hasFilters)&&<p>{id?'Ubah pencarian atau hapus salah satu filter.':'Change your search or clear a filter.'}</p>}</section>}
     {!loading && loadError && cards.length > 0 && <p className="pokemon-load-error" role="status">{id?'Kartu lainnya gagal dimuat.':'More cards could not be loaded.'} <button type="button" onClick={() => setRetryVersion(value => value + 1)}>{id?'Coba lagi':'Try again'}</button></p>}
     {!loading && hasMore && <button type="button" className="pokemon-load-more" onClick={() => void loadMore()} disabled={loadingMore} aria-busy={loadingMore}>{loadingMore ? ' ' : id?'Muat kartu lainnya':'Load more cards'}</button>}
     <Dialog open={Boolean(selected)} onOpenChange={open => { if (!open) setSelected(null); }}>
       <DialogContent className="pokemon-card-dialog">
-        {selected && <div className="pokemon-card-dialog-layout"><CardArt card={displayCard(selected)} priority/><div><DialogHeader><p className="kicker">{selected.set_name}</p><DialogTitle>{selected.tcg_card_identities?.name ?? selected.printing_code}</DialogTitle><DialogDescription className="pokemon-dialog-meta">{[selected.printing_code,selected.language,cleanRarity(selected.rarity),typeof selected.source_payload?.illustrator==='string'?selected.source_payload.illustrator:''].filter(Boolean).map((value,index)=><span key={`${index}-${value}`}>{value}</span>)}</DialogDescription></DialogHeader><PokemonCardText language={selected.language} source={selected.source_payload}/></div></div>}
+        {selected && <div className="pokemon-card-dialog-layout"><CardArt card={displayCard(selected)} priority/><div><DialogHeader><p className="kicker">{selected.set_name}</p><DialogTitle>{selected.tcg_card_identities?.name ?? selected.printing_code}</DialogTitle><DialogDescription className="pokemon-dialog-meta">{[selected.printing_code,selected.language,cleanRarity(selected.rarity)].filter(Boolean).map((value,index)=><span key={`${index}-${value}`}>{value}</span>)}</DialogDescription></DialogHeader><PokemonCardText language={selected.language} source={selected.source_payload}/></div></div>}
       </DialogContent>
     </Dialog>
   </main>;

@@ -29,6 +29,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ lan
     const serie = set.serie && typeof set.serie === 'object' ? set.serie as Record<string, unknown> : {};
     const sourceSet = String(set.id ?? setCode);
     const serieId = String(serie.id ?? '');
+    const sourceSetDirectories = sourceSet.toLowerCase() === '30th-c'
+      ? ['me/30th', '30th', sourceSet]
+      : [serieId ? `${serieId}/${sourceSet}` : sourceSet];
     const localId = String(payload.localId ?? cardCode);
     const sourceLanguage = language === 'JP' ? 'ja' : language.toLowerCase();
     const cardCount = set.cardCount && typeof set.cardCount === 'object' ? set.cardCount as Record<string, unknown> : {};
@@ -51,7 +54,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ lan
       }
     }
     for (const lang of language === 'JP' ? ['ja', 'jp'] : [sourceLanguage]) {
-      for (const directory of [serieId ? `${lang}/${serieId}/${sourceSet}` : '', `${lang}/${sourceSet}`].filter(Boolean)) {
+      for (const candidateSetPath of sourceSetDirectories.filter(value => /^[a-z0-9._/-]{1,80}$/i.test(value) && !value.split('/').some(part => part === '.' || part === '..'))) {
+        const directory = `${lang}/${candidateSetPath}`;
         candidates.push(`https://assets.tcgdex.net/${directory}/${encodeURIComponent(localId)}/high.webp`);
         candidates.push(`https://assets.tcgdex.net/${directory}/${encodeURIComponent(localId)}/low.webp`);
       }

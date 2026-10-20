@@ -33,7 +33,7 @@ export async function GET(request: Request) {
       ORDER BY p.rarity COLLATE NOCASE
     `).bind(game.id, language).all<{ rarity: string }>();
     const illustrators = await db.prepare(`
-      SELECT DISTINCT json_extract(p.source_payload, '$.illustrator') AS illustrator
+      SELECT DISTINCT trim(json_extract(p.source_payload, '$.illustrator')) AS illustrator
       FROM tcg_card_printings p
       JOIN tcg_card_identities i ON i.id=p.identity_id
       WHERE i.game_id=? AND p.language=? AND json_valid(p.source_payload)

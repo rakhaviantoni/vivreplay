@@ -2,6 +2,7 @@ import { database } from '@/lib/server/database';
 import { readPublicEdgeCache, storePublicEdgeCache } from '@/lib/server/public-edge-cache';
 import { isPlayableSet, PREVIEW_CARD_CODES } from '@/packages/domain/release-availability';
 import { CARD_CATALOG_CACHE_REVISION } from '@/lib/card-catalog-cache';
+import { parseCatalogRange } from '@/lib/card-catalog-query';
 import { env } from 'cloudflare:workers';
 
 function publicCardPath(objectKey: string, setCode = '', language = 'EN', printingCode = '') {
@@ -78,7 +79,7 @@ async function fromD1(gameSlug: string, language: string, identityCode?: string,
     values.push(needle,needle,needle,needle,needle,needle,needle,needle);
   }
   if (rarities.length) { predicates.push(`LOWER(p.rarity) IN (${rarities.map(()=>'?').join(',')})`); values.push(...rarities.map(value=>value.toLocaleLowerCase())); }
-  if (illustrators.length) { predicates.push(`(${illustrators.map(()=>`LOWER(COALESCE(p.source_payload,'')) LIKE ?`).join(' OR ')})`); values.push(...illustrators.map(value=>`%${value.toLocaleLowerCase()}%`)); }
+  if (illustrators.length) { predicates.push(`LOWER(trim(json_extract(p.source_payload, '$.illustrator'))) IN (${illustrators.map(()=>'?').join(',')})`); values.push(...illustrators.map(value=>value.toLocaleLowerCase())); }
   if (illustratorQuery) { predicates.push("LOWER(COALESCE(json_extract(p.source_payload, '$.illustrator'),'')) LIKE ?"); values.push(`%${illustratorQuery.toLocaleLowerCase()}%`); }
   if (types.length) { predicates.push(`EXISTS (SELECT 1 FROM json_each(p.source_payload, '$.types') pokemon_type WHERE LOWER(pokemon_type.value) IN (${types.map(()=>'?').join(',')}))`); values.push(...types.map(value=>value.toLocaleLowerCase())); }
   if (categories.length) { predicates.push(`LOWER(json_extract(p.source_payload, '$.category')) IN (${categories.map(()=>'?').join(',')})`); values.push(...categories.map(value=>value.toLocaleLowerCase())); }
@@ -151,9 +152,9 @@ async function fromD1(gameSlug: string, language: string, identityCode?: string,
 }
 
 export async function GET(request: Request) {
+  const params = new URL(request.url).searchParams;
   const cached = await readPublicEdgeCache(request);
   if (cached) return cached;
-  const params = new URL(request.url).searchParams;
   const rawIds=params.get('ids');
   const printingIds=rawIds===null?undefined:[...new Set(rawIds.split(',').map(value=>value.trim()).filter(Boolean))];
   if(printingIds?.length===0||printingIds&&printingIds.length>500)return Response.json({error:'Choose up to 500 printings.'},{status:400});
@@ -185,7 +186,7 @@ export async function GET(request: Request) {
   const stages = [...new Set(params.getAll('stage').map(value=>value.trim().slice(0,30)).filter(value=>/^[\p{L}\p{N} .'-]+$/u.test(value)))];
   const attackEnergies = [...new Set(params.getAll('attackEnergy').map(value=>value.trim().slice(0,20)).filter(value=>/^[\p{L} -]+$/u.test(value)))];
   const regulations = [...new Set(params.getAll('regulation').map(value=>value.trim().slice(0,4).toUpperCase()).filter(value=>/^[A-Z]$/.test(value)))];
-  const rangeValue=(key:string)=>{const value=Number(params.get(key));return Number.isFinite(value)&&value>=0&&value<=999?Math.floor(value):undefined};
+  const rangeValue=(key:string)=>parseCatalogRange(params.get(key));
   const minHp=rangeValue('minHp'),maxHp=rangeValue('maxHp');
   const retreats = [...new Set(params.getAll('retreat').map(value=>value.trim()).filter(value=>/^[0-6]$/.test(value)))];
   const weaknesses = [...new Set(params.getAll('weakness').map(value=>value.trim().slice(0,20)).filter(value=>/^[\p{L} -]+$/u.test(value)))];

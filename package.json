@@ -7,7 +7,8 @@
   },
   "scripts": {
     "install:ci": "node scripts/install-ci.mjs",
-    "dev": "node scripts/run-framework.mjs dev",
+    "dev": "node scripts/run-production-data-dev.mjs",
+    "dev:local": "node scripts/run-framework.mjs dev",
     "dev:production-data": "node scripts/run-production-data-dev.mjs",
     "build": "node scripts/run-framework.mjs build",
     "a11y": "playwright test --config=playwright.config.ts",
