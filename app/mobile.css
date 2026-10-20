@@ -3931,6 +3931,11 @@ html[data-theme='dark'] .pokemon-library-intro::before { background: linear-grad
 .pokemon-card-facts dl > div { min-width: 0; }
 .pokemon-card-facts dt { color: var(--muted); font-size: 10px; }
 .pokemon-card-facts dd { margin: 2px 0 0; color: var(--ink); font-size: 12px; overflow-wrap: anywhere; }
+.pokemon-card-facts dd { display: flex; min-height: 18px; align-items: center; }
+.pokemon-fact-energy-list { display: inline-flex; align-items: center; gap: 8px; }
+.pokemon-fact-energy { display: inline-flex; align-items: center; gap: 4px; }
+.pokemon-fact-energy > small { color: var(--ink); font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.pokemon-card-facts .pokemon-energy-symbol { width: 17px; height: 17px; }
 .pokemon-card-text-missing { color: var(--muted); font-size: 12px; }
 .pokemon-empty { margin-top: 12px; }
 html[data-theme='dark'] .pokemon-empty { border-top-color: color-mix(in srgb,#e6b834 45%,var(--line)); }

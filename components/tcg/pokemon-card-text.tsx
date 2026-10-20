@@ -1,6 +1,7 @@
 'use client';
 
 import { Circle, Drop, Eye, Flame, GearSix, HandFist, Leaf, Lightning, Moon, Star, Sun } from '@phosphor-icons/react';
+import type { ReactNode } from 'react';
 
 type PokemonText = {
   language: string;
@@ -40,18 +41,47 @@ type EnergyType = keyof typeof energySymbols;
 function EnergyCost({ cost, language }: { cost?: string[]; language: string }) {
   if (!cost?.length) return null;
   return <span className="pokemon-energy-cost" aria-label={`${cost.length} ${language === 'ID' ? 'energi' : 'energy'}: ${cost.join(', ')}`}>
-    {cost.map((type, index) => {
-      const energy = energySymbols[type as EnergyType];
-      if (!energy) return <span className="pokemon-energy-unknown" key={`${type}-${index}`} title={type}>{type.slice(0, 1)}</span>;
-      const { Icon } = energy;
-      return <span className="pokemon-energy-symbol" key={`${type}-${index}`} title={type} style={{ '--energy-color': energy.color } as React.CSSProperties}><Icon className="pokemon-energy-fallback" size={12} weight="fill" aria-hidden="true"/><img src={`/pokemon/energy/${encodeURIComponent(type)}`} alt={`${type} energy`} loading="lazy" onLoad={event=>{event.currentTarget.parentElement?.classList.add('has-provider-icon')}} onError={event=>{event.currentTarget.remove()}}/></span>;
-    })}
+    {cost.map((type, index) => <EnergySymbol type={type} key={`${type}-${index}`}/>) }
   </span>;
 }
 
-function RuleCopy({ text }: { text?: string }) {
+function EnergySymbol({ type }: { type: string }) {
+  const normalizedType = energyTypeFromName(type);
+  if (!normalizedType) return null;
+  const energy = energySymbols[normalizedType];
+  const { Icon } = energy;
+  return <span className="pokemon-energy-symbol" role="img" title={type} aria-label={`${normalizedType} Energy`} style={{ '--energy-color': energy.color } as React.CSSProperties}>
+    <Icon className="pokemon-energy-fallback" size={12} weight="fill" aria-hidden="true"/>
+    <img src={`/pokemon/energy/${encodeURIComponent(normalizedType)}`} alt="" loading="lazy" onLoad={event=>{event.currentTarget.parentElement?.classList.add('has-provider-icon')}} onError={event=>{event.currentTarget.remove()}}/>
+  </span>;
+}
+
+function energyTypeFromName(value: string): EnergyType | undefined {
+  const key = value.trim().toLocaleLowerCase().replace(/[\s_-]+/g, '');
+  const localized: Record<string, EnergyType> = {
+    colorless: 'Colorless', normal: 'Colorless', 無色: 'Colorless',
+    grass: 'Grass', daun: 'Grass', 草: 'Grass',
+    fire: 'Fire', api: 'Fire', 炎: 'Fire',
+    water: 'Water', air: 'Water', 水: 'Water',
+    lightning: 'Lightning', electric: 'Lightning', listrik: 'Lightning', 雷: 'Lightning',
+    psychic: 'Psychic', psikis: 'Psychic', 超: 'Psychic',
+    fighting: 'Fighting', petarung: 'Fighting', 闘: 'Fighting',
+    darkness: 'Darkness', dark: 'Darkness', kegelapan: 'Darkness', 悪: 'Darkness',
+    metal: 'Metal', steel: 'Metal', logam: 'Metal', 鋼: 'Metal',
+    dragon: 'Dragon', naga: 'Dragon', 竜: 'Dragon',
+    fairy: 'Fairy', peri: 'Fairy', フェアリー: 'Fairy',
+  };
+  return localized[key];
+}
+
+function RuleCopy({ text, language }: { text?: string; language: string }) {
   if (!text?.trim()) return null;
-  return <span className="pokemon-rule-copy">{text.split(/(\[[^\]]+\])/g).map((part, index) => /^\[[^\]]+\]$/.test(part) ? <em key={index}>{part}</em> : <span key={index}>{part}</span>)}</span>;
+  return <span className="pokemon-rule-copy">{text.split(/(\[[^\]]+\]|\{[^}]+\})/g).map((part, index) => {
+    if (/^\[[^\]]+\]$/.test(part)) return <em key={index}>{part}</em>;
+    const energyName = /^\{([^}]+)\}$/.exec(part)?.[1];
+    if (energyName && energyTypeFromName(energyName)) return <EnergySymbol type={energyName} key={index}/>;
+    return <span key={index}>{part}</span>;
+  })}</span>;
 }
 
 const textByLanguage = {
@@ -65,22 +95,21 @@ export function PokemonCardText({ language, source }: PokemonText) {
   const lang = (language === 'ID' || language === 'JP' ? language : 'EN') as keyof typeof textByLanguage;
   const copy = textByLanguage[lang];
   const hasCardText = Boolean(source.attacks?.length || source.abilities?.length || source.effect?.trim());
-  const facts = [
-    source.hp !== undefined && [copy.hp, String(source.hp)],
-    source.stage && [copy.stage, source.stage],
-    source.evolveFrom && [copy.evolves, source.evolveFrom],
-    source.types?.length && [copy.type, source.types.join(', ')],
-    source.weaknesses?.length && [copy.weakness, source.weaknesses.map(item => `${item.type ?? ''}${item.value ? ` ${item.value}` : ''}`).join(', ')],
-    source.resistances?.length && [copy.resistance, source.resistances.map(item => `${item.type ?? ''}${item.value ? ` ${item.value}` : ''}`).join(', ')],
-    source.retreat !== undefined && [copy.retreat, String(source.retreat)],
-  ].filter((item): item is [string, string] => Boolean(item));
+  const facts: Array<{ label: string; value: ReactNode }> = [];
+  if (source.hp !== undefined) facts.push({ label: copy.hp, value: String(source.hp) });
+  if (source.stage) facts.push({ label: copy.stage, value: source.stage });
+  if (source.evolveFrom) facts.push({ label: copy.evolves, value: source.evolveFrom });
+  if (source.types?.length) facts.push({ label: copy.type, value: <EnergyCost cost={source.types} language={lang}/> });
+  if (source.weaknesses?.length) facts.push({ label: copy.weakness, value: <span className="pokemon-fact-energy-list">{source.weaknesses.map((item,index) => <span className="pokemon-fact-energy" key={`${item.type}-${index}`}><EnergySymbol type={item.type ?? ''}/>{item.value && <small>{item.value}</small>}</span>)}</span> });
+  if (source.resistances?.length) facts.push({ label: copy.resistance, value: <span className="pokemon-fact-energy-list">{source.resistances.map((item,index) => <span className="pokemon-fact-energy" key={`${item.type}-${index}`}><EnergySymbol type={item.type ?? ''}/>{item.value && <small>{item.value}</small>}</span>)}</span> });
+  if (source.retreat !== undefined && source.retreat > 0) facts.push({ label: copy.retreat, value: <EnergyCost cost={Array.from({ length: Math.min(source.retreat, 10) }, () => 'Colorless')} language={lang}/> });
 
   return <div className="pokemon-card-text">
     {source.description?.trim() && <section className="pokemon-card-description"><h3>{copy.description}</h3><p>{source.description}</p></section>}
-    {source.abilities?.length ? <section className="pokemon-card-rules"><h3>{copy.abilities}</h3>{source.abilities.map((ability, index) => <article className="pokemon-card-ability" key={`${ability.name ?? 'ability'}-${index}`}><p>{ability.type && <small>{ability.type}</small>}<strong>{ability.name}</strong></p><RuleCopy text={ability.effect}/></article>)}</section> : null}
-    {source.attacks?.length ? <section className="pokemon-card-rules"><h3>{copy.attacks}</h3>{source.attacks.map((attack, index) => <article className="pokemon-card-attack" key={`${attack.name ?? 'attack'}-${index}`}><header><EnergyCost cost={attack.cost} language={lang}/><strong>{attack.name}</strong>{attack.damage !== undefined && attack.damage !== '' && <b>{attack.damage}</b>}</header><RuleCopy text={attack.effect}/></article>)}</section> : null}
-    {source.effect?.trim() && !source.attacks?.length && !source.abilities?.length ? <section className="pokemon-card-rules"><h3>{source.trainerType ?? copy.trainer}</h3><RuleCopy text={source.effect}/></section> : null}
-    {facts.length > 0 && <section className="pokemon-card-facts"><h3>{copy.details}</h3><dl>{facts.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></section>}
+    {source.abilities?.length ? <section className="pokemon-card-rules"><h3>{copy.abilities}</h3>{source.abilities.map((ability, index) => <article className="pokemon-card-ability" key={`${ability.name ?? 'ability'}-${index}`}><p>{ability.type && <small>{ability.type}</small>}<strong>{ability.name}</strong></p><RuleCopy text={ability.effect} language={lang}/></article>)}</section> : null}
+    {source.attacks?.length ? <section className="pokemon-card-rules"><h3>{copy.attacks}</h3>{source.attacks.map((attack, index) => <article className="pokemon-card-attack" key={`${attack.name ?? 'attack'}-${index}`}><header><EnergyCost cost={attack.cost} language={lang}/><strong>{attack.name}</strong>{attack.damage !== undefined && attack.damage !== '' && <b>{attack.damage}</b>}</header><RuleCopy text={attack.effect} language={lang}/></article>)}</section> : null}
+    {source.effect?.trim() && !source.attacks?.length && !source.abilities?.length ? <section className="pokemon-card-rules"><h3>{source.trainerType ?? copy.trainer}</h3><RuleCopy text={source.effect} language={lang}/></section> : null}
+    {facts.length > 0 && <section className="pokemon-card-facts"><h3>{copy.details}</h3><dl>{facts.map(({label, value}) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl></section>}
     {!hasCardText && !source.description?.trim() && <p className="pokemon-card-text-missing">{lang === 'ID' ? 'Teks kartu belum tersedia.' : lang === 'JP' ? 'カードテキストはありません。' : 'Card text is not available.'}</p>}
   </div>;
 }
