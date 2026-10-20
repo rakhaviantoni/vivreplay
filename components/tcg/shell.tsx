@@ -28,6 +28,7 @@ const collectionMenu={label:'Collection',labelId:'Koleksi',items:[{href:'/vault'
 const arenaMenu={label:'Arena',labelId:'Arena',items:[{href:'/play',label:'Arena lobby',labelId:'Lobi arena',icon:Gamepad2},{href:'/play/tutorial',label:'Learn to play',labelId:'Belajar bermain',icon:Gamepad2},{href:'/events',label:'Events',labelId:'Acara',icon:Trophy}]} satisfies {label:string;labelId:string;items:NavItem[]};
 const market:NavItem={href:'/market',label:'Market',labelId:'Market',icon:Store};
 const mobileNav:NavItem[]=[{href:'/',label:'Home',labelId:'Beranda',icon:Home},{href:'/cards',label:'Cards',labelId:'Kartu',icon:Layers3},{href:'/vault',label:'Vault',labelId:'Koleksi',icon:ShieldCheck},market,{href:'/play',label:'Arena',labelId:'Arena',icon:Gamepad2}];
+const pokemonMobileNav:NavItem[]=[{href:'/',label:'Home',labelId:'Beranda',icon:Home},{href:'/pokemon',label:'Cards',labelId:'Kartu',icon:Layers3},{href:'/pokemon/sets',label:'Sets',labelId:'Set',icon:Library},{href:'/vault',label:'Vault',labelId:'Koleksi',icon:ShieldCheck},market];
 const rail=[
   {title:'Build a deck',titleId:'Susun deck',body:'Choose a leader, then tune the curve with live cards.',bodyId:'Pilih leader, lalu atur kurva dengan kartu langsung.',action:'Open builder',actionId:'Buka pembuat deck',href:'/decks/builder'},
   {title:'Curate your vault',titleId:'Atur koleksi',body:'Keep the exact art and language you own together.',bodyId:'Simpan art dan bahasa cetakan yang Anda miliki.',action:'Open vault',actionId:'Buka koleksi',href:'/vault'},
@@ -306,7 +307,7 @@ export function Shell({children,initialPath='/'}:{children:React.ReactNode;initi
     {!marketCheckout&&<NewCardsAnnouncement/>}
     {!marketCheckout&&<MiniRail language={language} game={game}/>}
     {!marketCheckout&&<nav className="mobile-nav" aria-label="Mobile navigation">
-      {(game==='pokemon'?mobileNav.filter(item=>item.label!=='Arena'):mobileNav).map(item=>{const Icon=item.icon;const href=item.label==='Cards'&&game==='pokemon'?'/pokemon':game==='pokemon'&&item.label==='Vault'?'/vault?game=pokemon':game==='pokemon'&&item.label==='Market'?'/market?game=pokemon':item.href;const active=selected(item.label==='Vault'?'/vault':item.label==='Market'?'/market':href);return <Link key={item.href} href={getHref(href)} className={active?'active':''} aria-current={active?'page':undefined}><Icon size={20}/><span>{language==='ID'?item.labelId:item.label}</span></Link>})}
+      {(game==='pokemon'?pokemonMobileNav:mobileNav).map(item=>{const Icon=item.icon;const href=item.label==='Cards'&&game==='pokemon'?'/pokemon':game==='pokemon'&&item.label==='Vault'?'/vault?game=pokemon':game==='pokemon'&&item.label==='Market'?'/market?game=pokemon':item.href;const active=game==='pokemon'&&item.label==='Cards'?normalizedPath==='/pokemon':selected(item.label==='Vault'?'/vault':item.label==='Market'?'/market':href);return <Link key={item.href} href={getHref(href)} className={active?'active':''} aria-current={active?'page':undefined}><Icon size={20}/><span>{language==='ID'?item.labelId:item.label}</span></Link>})}
     </nav>}
     <Toaster theme={theme}/>
   </div>;
