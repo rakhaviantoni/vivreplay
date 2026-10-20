@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { MagnifyingGlassIcon as Search, ArrowUpRightIcon, CaretDownIcon as ChevronDown, SlidersHorizontalIcon as SlidersHorizontal } from '@phosphor-icons/react';
+import { MagnifyingGlassIcon as Search, ArrowUpRightIcon, CaretDownIcon as ChevronDown, SlidersHorizontalIcon as SlidersHorizontal, SortAscendingIcon as SortAscending } from '@phosphor-icons/react';
 import { CardArt } from '@/components/tcg/card-art';
 import { PokemonCardText } from '@/components/tcg/pokemon-card-text';
 import { pokemonExpansionArt } from '@/components/tcg/pokemon-expansion-art';
@@ -188,7 +188,7 @@ export function PokemonLibrary({ initialSet, initialQuery }: { initialSet?: stri
           </div>
           <div className="pokemon-filter-actions">
           <button type="button" className={`pokemon-more-filters-trigger ${moreFiltersOpen?'is-open':''}`} aria-expanded={moreFiltersOpen} onClick={()=>setMoreFiltersOpen(value=>!value)}><SlidersHorizontal size={15}/>{id?'Lainnya':'More'}{advancedFilterCount>0&&<b>{advancedFilterCount}</b>}<ChevronDown size={14}/></button>
-          <div className="pokemon-sort-picker"><Picker label={id?'Urutkan kartu':'Sort cards'} value={sort} onChange={value=>setSort(value as SortOrder)} leadingIcon={<SlidersHorizontal size={15}/>} options={[
+          <div className="pokemon-sort-picker"><Picker label={id?'Urutkan kartu':'Sort cards'} value={sort} onChange={value=>setSort(value as SortOrder)} leadingIcon={<SortAscending size={15}/>} options={[
             {value:'latest',label:id?'Rilisan terbaru':'Newest'},
             {value:'number',label:id?'Nomor kartu':'Set and number'},
             {value:'name',label:id?'Nama A–Z':'Name A–Z'},
