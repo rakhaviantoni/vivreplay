@@ -4186,11 +4186,13 @@ html[data-theme='dark'] .game-mode-switch a.game-mode-one-piece img { filter:bri
 html[data-theme='dark'] .site-shell.game-pokemon > .masthead {
   background-color:#0b1823!important;
   background-image:linear-gradient(90deg,#0b1823c7 0%,#10263ba6 68%,#0b182399 100%),url('https://asia.pokemon-card.com/sg/wp-content/uploads/sites/6/2022/08/EG_news_zoombg_02_1920.jpeg')!important;
+  background-position:center 50%!important;
   border-bottom-color:#355b7b!important;
 }
 html[data-theme='dark'] .site-shell.game-pokemon .context-row {
   background-color:#101f2b!important;
   background-image:linear-gradient(90deg,#101f2bcc,#101f2ba8),url('https://asia.pokemon-card.com/sg/wp-content/uploads/sites/6/2022/08/EG_news_zoombg_02_1920.jpeg')!important;
+  background-position:center 50%!important;
   border-color:#29475f!important;
   color:#c1d0d2!important;
 }
@@ -4209,6 +4211,7 @@ html[data-theme='dark'] .site-shell.game-pokemon .masthead-actions .join-link { 
 html[data-theme='dark'] .site-shell.game-pokemon .pokemon-library-intro {
   background-color:#0b1823!important;
   background-image:url('https://asia.pokemon-card.com/sg/wp-content/uploads/sites/6/2022/08/EG_news_zoombg_02_1920.jpeg')!important;
+  background-position:center 50%!important;
   border-color:#355b7b!important;
 }
 html[data-theme='dark'] .site-shell.game-pokemon .pokemon-library-intro:before { background:linear-gradient(90deg,#081725b8 0%,#0b1d2b99 50%,#0b1d2b4d 100%)!important; }
