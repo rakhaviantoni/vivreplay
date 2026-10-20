@@ -136,7 +136,7 @@ function Footer({language,game}:{language:Locale;game:'one-piece'|'pokemon'}) {
 function MarketFooter({language,game}:{language:Locale;game:'one-piece'|'pokemon'}) {
   const id=language==='ID';
   const getHref=(href:string)=>id?(href==='/'?'/id':`/id${href}`):href;
-  return <footer className="market-footer">
+  return <footer className={`market-footer${game==='pokemon'?' market-footer-pokemon':''}`}>
     <div className="market-footer-main">
       <Link className="market-footer-brand" href={getHref('/market')}><VivreMark size={24}/><span>VivrePlay <b>Market</b></span></Link>
       <p>{id?'Beli dan jual kartu dengan aman di VivrePlay Market.':'Buy and sell cards on VivrePlay Market.'}</p>
@@ -276,7 +276,7 @@ export function Shell({children,initialPath='/'}:{children:React.ReactNode;initi
 
   if(adminRoute)return <div className="admin-shell"><div className="admin-shell-content">{children}</div><Toaster theme={theme}/></div>;
 
-  return <div className={`site-shell${marketCheckout?' market-checkout-shell':''}`}>
+  return <div className={`site-shell${game==='pokemon'?' game-pokemon':''}${marketCheckout?' market-checkout-shell':''}`}>
     {marketCheckout?<><MarketStoreNav showPromo={false}/>{!data&&<AuthDialog language={language} showTrigger={false}/>}</>:<header className={`masthead ${scrolled?'is-scrolled':''} ${theme==='dark'?'theme-dark':''}`}>
       <Link className="wordmark" href={getHref('/')}><VivreMark size={28}/><span>VivrePlay</span></Link>
       <GameModeSwitch language={language} game={game}/>
