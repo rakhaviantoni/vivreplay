@@ -3843,7 +3843,7 @@ html[data-theme='dark'] .pokemon-library-intro::before { background: linear-grad
 .filter-options .filter-option-image { width: 30px; height: 22px; margin: -2px 2px -2px 0; object-fit: contain; }
 .pokemon-energy-symbol { position: relative; }
 .pokemon-energy-symbol > .pokemon-energy-fallback { grid-area: 1 / 1; transition: opacity .15s ease; }
-.pokemon-energy-symbol.has-provider-icon > .pokemon-energy-fallback { opacity: 0; }
+.pokemon-energy-symbol.has-energy-image > .pokemon-energy-fallback { opacity: 0; }
 .pokemon-energy-symbol > img { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%; object-fit: contain; }
 .pokemon-set-card > img { display: block; width: 100%; height: 58px; object-fit: contain; object-position: left center; margin-bottom: 2px; }
 .pokemon-clear-filters { min-height: 40px; padding: 0 11px; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: var(--muted); font: 700 11px var(--game-font); cursor: pointer; }

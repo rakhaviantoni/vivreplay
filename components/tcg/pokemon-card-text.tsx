@@ -23,17 +23,17 @@ type PokemonText = {
 };
 
 const energySymbols = {
-  Colorless: { Icon: Circle, color: '#898b91' },
-  Grass: { Icon: Leaf, color: '#4d9b55' },
-  Fire: { Icon: Flame, color: '#dc5a37' },
-  Water: { Icon: Drop, color: '#3988c9' },
-  Lightning: { Icon: Lightning, color: '#c89c21' },
-  Psychic: { Icon: Eye, color: '#a45ba8' },
-  Fighting: { Icon: HandFist, color: '#a46d3e' },
-  Darkness: { Icon: Moon, color: '#565260' },
-  Metal: { Icon: GearSix, color: '#718c9c' },
-  Dragon: { Icon: Sun, color: '#b87834' },
-  Fairy: { Icon: Star, color: '#ce77ae' },
+  Colorless: { Icon: Circle, color: '#898b91', asset: 'colorless' },
+  Grass: { Icon: Leaf, color: '#4d9b55', asset: 'grass' },
+  Fire: { Icon: Flame, color: '#dc5a37', asset: 'fire' },
+  Water: { Icon: Drop, color: '#3988c9', asset: 'water' },
+  Lightning: { Icon: Lightning, color: '#c89c21', asset: 'lightning' },
+  Psychic: { Icon: Eye, color: '#a45ba8', asset: 'psychic' },
+  Fighting: { Icon: HandFist, color: '#a46d3e', asset: 'fighting' },
+  Darkness: { Icon: Moon, color: '#565260', asset: 'darkness' },
+  Metal: { Icon: GearSix, color: '#718c9c', asset: 'metal' },
+  Dragon: { Icon: Sun, color: '#b87834', asset: 'dragon' },
+  Fairy: { Icon: Star, color: '#ce77ae', asset: 'fairy' },
 } as const;
 
 type EnergyType = keyof typeof energySymbols;
@@ -52,7 +52,7 @@ function EnergySymbol({ type }: { type: string }) {
   const { Icon } = energy;
   return <span className="pokemon-energy-symbol" role="img" title={type} aria-label={`${normalizedType} Energy`} style={{ '--energy-color': energy.color } as React.CSSProperties}>
     <Icon className="pokemon-energy-fallback" size={12} weight="fill" aria-hidden="true"/>
-    <img src={`/pokemon/energy/${encodeURIComponent(normalizedType)}`} alt="" loading="lazy" onLoad={event=>{event.currentTarget.parentElement?.classList.add('has-provider-icon')}} onError={event=>{event.currentTarget.remove()}}/>
+    <img src={`/assets/pokemon/energy/${energy.asset}.png`} alt="" loading="lazy" onLoad={event=>{event.currentTarget.parentElement?.classList.add('has-energy-image')}} onError={event=>{event.currentTarget.remove()}}/>
   </span>;
 }
 
