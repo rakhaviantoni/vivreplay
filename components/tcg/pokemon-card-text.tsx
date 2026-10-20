@@ -1,6 +1,6 @@
 'use client';
 
-import { Circle, Drop, Eye, Flame, GearSix, HandFist, Leaf, Lightning, Moon, Star, Sun } from '@phosphor-icons/react';
+import { CaretDown, CaretUp, Circle, Drop, Eye, Flame, GearSix, HandFist, Leaf, Lightning, Moon, Star, Sun } from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { versionedCardCatalogUrl } from '@/lib/card-catalog-cache';
@@ -238,6 +238,7 @@ function formatStage(stage: string, language: keyof typeof textByLanguage) {
 
 export function PokemonCardText({ code, name, language, source, onEvolutionSelect }: PokemonText & { onEvolutionSelect?: (code: string) => void }) {
   const [evolution, setEvolution] = useState<EvolutionNode | null>(null);
+  const [evolutionVariants, setEvolutionVariants] = useState<Record<string, number>>({});
   useEffect(() => {
     if (!code) { setEvolution(null); return; }
     const controller = new AbortController();
@@ -280,6 +281,12 @@ export function PokemonCardText({ code, name, language, source, onEvolutionSelec
     }));
     return [...groups.values()];
   })() : fallbackStage ? [[{ code: code ?? '', name: name ?? '', spriteName: name ?? '', stage: fallbackStage, children: [] }]] : [];
+  const stageColumns = stageNodes.map(nodes => {
+    const longestName = Math.max(8, ...nodes.map(node => (node.name?.trim() || node.spriteName?.trim() || '').length));
+    const controlSpace = nodes.length > 1 ? 10 : 5;
+    const weight = Math.min(32, longestName + controlSpace);
+    return `minmax(max-content,${weight}fr)`;
+  }).join(' ');
   const stageNames = (stage: string, depth: number) => {
     if (!stage && depth === 0) return lang === 'ID' ? 'Dasar' : lang === 'JP' ? 'たね' : 'Basic';
     return stage ? formatStage(stage, lang) : lang === 'ID' ? `Tahap ${depth}` : lang === 'JP' ? `Stage ${depth}` : `Stage ${depth}`;
@@ -294,12 +301,33 @@ export function PokemonCardText({ code, name, language, source, onEvolutionSelec
     {hasFacts && <section className="pokemon-card-facts">
       {stageNodes.length > 0 && <section className={`pokemon-evolution${stageNodes.length === 1 ? ' is-single' : ''}`} aria-label={lang === 'ID' ? 'Evolusi' : lang === 'JP' ? '進化' : 'Evolution'}>
         <h4>{lang === 'ID' ? 'Evolusi' : lang === 'JP' ? '進化' : 'Evolution'}</h4>
-        <div className="pokemon-evolution-track" style={{ '--pokemon-evolution-stage-count': stageNodes.length } as CSSProperties}>{stageNodes.map((nodes, depth) => <div className="pokemon-evolution-group" key={`step-${depth}`}>
+        <div className="pokemon-evolution-track" style={{ '--pokemon-evolution-stage-count': stageNodes.length, '--pokemon-evolution-stage-columns': stageColumns } as CSSProperties}>{stageNodes.map((nodes, depth) => <div className="pokemon-evolution-group" key={`step-${depth}`}>
           {depth > 0 && <span className="pokemon-evolution-arrow" aria-hidden="true"/>}
           <div className="pokemon-evolution-step">
             <small>{stageNames(nodes[0]?.stage ?? '', depth)}</small>
-            <div>{nodes.slice(0, 8).map((node, index) => {
-              const displayName = node.name || source.evolvesFrom || source.evolveFrom || (lang === 'ID' ? 'Dasar' : 'Basic');
+            <div>{nodes.length > 1 ? (() => {
+              const variantKey = `${depth}:${nodes.map(node => node.code).join(',')}`;
+              const currentIndex = nodes.findIndex(node => node.code === code);
+              const selectedIndex = Math.min(evolutionVariants[variantKey] ?? Math.max(currentIndex, 0), nodes.length - 1);
+              const node = nodes[selectedIndex];
+              const displayName = node.name?.trim() || node.spriteName?.trim() || source.evolvesFrom || source.evolveFrom || (lang === 'ID' ? 'Dasar' : 'Basic');
+              const isCurrent = node.code === code;
+              const dexId = node.dexIds?.find(value => /^\d+$/.test(value));
+              const spriteUrl = dexId ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${dexId}.png` : undefined;
+              const selectVariant = (nextIndex: number) => setEvolutionVariants(current => ({ ...current, [variantKey]: nextIndex }));
+              return <div className="pokemon-evolution-variants" key={variantKey}>
+                <button type="button" className={`pokemon-evolution-node${isCurrent ? ' is-current' : ''}`} aria-current={isCurrent ? 'step' : undefined} aria-label={`${stageNames(node.stage, depth)}: ${displayName}`} disabled={!node.code || isCurrent || !onEvolutionSelect} onClick={() => node.code && onEvolutionSelect?.(node.code)}>
+                  <span className="pokemon-evolution-sprite" aria-hidden="true"><span>{displayName.slice(0,1)}</span>{spriteUrl&&<img src={spriteUrl} alt="" loading="lazy" onError={event=>{event.currentTarget.style.display='none';}}/>}</span>
+                  <b>{displayName}</b>
+                  <small className="pokemon-evolution-variant-count">{selectedIndex + 1}/{nodes.length}</small>
+                </button>
+                <span className="pokemon-evolution-variant-controls">
+                  <button type="button" className="pokemon-evolution-variant-nav" aria-label={lang === 'ID' ? 'Form sebelumnya' : 'Previous form'} disabled={selectedIndex === 0} onClick={() => selectVariant(selectedIndex - 1)}><CaretUp size={13} weight="bold"/></button>
+                  <button type="button" className="pokemon-evolution-variant-nav" aria-label={lang === 'ID' ? 'Form berikutnya' : 'Next form'} disabled={selectedIndex === nodes.length - 1} onClick={() => selectVariant(selectedIndex + 1)}><CaretDown size={13} weight="bold"/></button>
+                </span>
+              </div>;
+            })() : nodes.slice(0, 8).map((node, index) => {
+              const displayName = node.name?.trim() || node.spriteName?.trim() || source.evolvesFrom || source.evolveFrom || (lang === 'ID' ? 'Dasar' : 'Basic');
               const isCurrent = node.code === code;
               const dexId = node.dexIds?.find(value => /^\d+$/.test(value));
               const spriteUrl = dexId ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${dexId}.png` : undefined;

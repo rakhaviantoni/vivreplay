@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { MagnifyingGlassIcon as Search, ArrowUpRightIcon, CaretDownIcon as ChevronDown, CaretLeftIcon, CaretRightIcon, SlidersHorizontalIcon as SlidersHorizontal, SortAscendingIcon as SortAscending, ArrowSquareOutIcon, StorefrontIcon } from '@phosphor-icons/react';
@@ -71,26 +71,129 @@ export function PokemonLibrary({ initialSet, initialQuery, initialIllustrator }:
   const [rarityFilters, setRarityFilters] = useState<string[]>([]);
   const [illustratorFilters, setIllustratorFilters] = useState<string[]>(() => initialIllustrator?.trim() ? [initialIllustrator.trim()] : []);
   const [selected, setSelected] = useState<GameCard | null>(null);
+  const [relatedPrintings, setRelatedPrintings] = useState<GameCard[]>([]);
+  const [relatedPrintingsLoading, setRelatedPrintingsLoading] = useState(false);
+  const relatedPrintingsTrack = useRef<HTMLDivElement>(null);
+  const relatedDrag = useRef({ pointerId: -1, startX: 0, startScrollLeft: 0, moved: false });
+  const [relatedDragging, setRelatedDragging] = useState(false);
+  const [relatedScrollState, setRelatedScrollState] = useState({ left: false, right: false });
+  const [detailLoading, setDetailLoading] = useState(false);
+  const detailTransitionId = useRef(0);
+  const detailLoadingTimer = useRef<number | null>(null);
+  const evolutionCardRequest = useRef<AbortController | null>(null);
+  const beginDetailTransition = () => {
+    evolutionCardRequest.current?.abort();
+    if (detailLoadingTimer.current !== null) window.clearTimeout(detailLoadingTimer.current);
+    detailLoadingTimer.current = null;
+    detailTransitionId.current += 1;
+    setDetailLoading(true);
+    return { id: detailTransitionId.current, startedAt: Date.now() };
+  };
+  const finishDetailTransition = (transition: { id: number; startedAt: number }) => {
+    if (transition.id !== detailTransitionId.current) return;
+    const delay = Math.max(0, 150 - (Date.now() - transition.startedAt));
+    detailLoadingTimer.current = window.setTimeout(() => {
+      if (transition.id === detailTransitionId.current) setDetailLoading(false);
+      detailLoadingTimer.current = null;
+    }, delay);
+  };
+  const selectDetailCard = (card: GameCard) => {
+    const transition = beginDetailTransition();
+    setSelected(card);
+    finishDetailTransition(transition);
+  };
   const selectedIndex = selected ? cards.findIndex(card => card.id === selected.id) : -1;
   const navigateSelected = (step: number) => {
     if (cards.length < 2) return;
     const index = selectedIndex < 0 ? 0 : (selectedIndex + step + cards.length) % cards.length;
-    setSelected(cards[index] ?? null);
+    const card = cards[index];
+    if (card) selectDetailCard(card);
   };
+  const startRelatedDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType !== 'mouse' || event.button !== 0) return;
+    relatedDrag.current = { pointerId: event.pointerId, startX: event.clientX, startScrollLeft: event.currentTarget.scrollLeft, moved: false };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+  const moveRelatedDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    const drag = relatedDrag.current;
+    if (drag.pointerId !== event.pointerId) return;
+    const delta = event.clientX - drag.startX;
+    if (Math.abs(delta) > 5) {
+      drag.moved = true;
+      setRelatedDragging(true);
+      event.currentTarget.scrollLeft = drag.startScrollLeft - delta;
+    }
+  };
+  const finishRelatedDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (relatedDrag.current.pointerId !== event.pointerId) return;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    relatedDrag.current.pointerId = -1;
+    setRelatedDragging(false);
+  };
+  const updateRelatedScrollState = () => {
+    const track = relatedPrintingsTrack.current;
+    if (!track) return;
+    const maxScroll = track.scrollWidth - track.clientWidth;
+    setRelatedScrollState({ left: track.scrollLeft > 2, right: maxScroll - track.scrollLeft > 2 });
+  };
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(updateRelatedScrollState);
+    window.addEventListener('resize', updateRelatedScrollState);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener('resize', updateRelatedScrollState);
+    };
+  }, [relatedPrintings, relatedPrintingsLoading]);
   const openEvolutionCard = async (code: string) => {
+    const transition = beginDetailTransition();
     const loadedCard = cards.find(card => card.tcg_card_identities?.code === code);
-    if (loadedCard) { setSelected(loadedCard); return; }
+    if (loadedCard) { setSelected(loadedCard); finishDetailTransition(transition); return; }
+    const controller = new AbortController();
+    evolutionCardRequest.current = controller;
     try {
       for (const cardLanguage of language === 'EN' ? ['EN'] : [language, 'EN']) {
         const params = new URLSearchParams({ game: 'pokemon', language: cardLanguage, codes: code });
-        const response = await fetch(versionedCardCatalogUrl(`/api/cards/catalog?${params}`));
+        const response = await fetch(versionedCardCatalogUrl(`/api/cards/catalog?${params}`), { signal: controller.signal });
         if (!response.ok) continue;
         const result = await response.json() as { cards?: GameCard[] };
         const card = result.cards?.find(candidate => candidate.tcg_card_identities?.code === code);
-        if (card) { setSelected(card); return; }
+        if (card && transition.id === detailTransitionId.current) { setSelected(card); break; }
       }
     } catch { /* Keep the current detail open if the related card cannot load. */ }
+    finally { finishDetailTransition(transition); }
   };
+
+  useEffect(() => () => {
+    if (detailLoadingTimer.current !== null) window.clearTimeout(detailLoadingTimer.current);
+    evolutionCardRequest.current?.abort();
+  }, []);
+
+  const selectedCardName = selected?.tcg_card_identities?.name;
+  const selectedLanguage = selected?.language;
+  useEffect(() => {
+    if (!selectedCardName || !selectedLanguage) {
+      setRelatedPrintings([]);
+      setRelatedPrintingsLoading(false);
+      return;
+    }
+    const controller = new AbortController();
+    setRelatedPrintings([]);
+    setRelatedPrintingsLoading(true);
+    // Pokémon reprints can be stored under different identity codes. Search by
+    // card name, then keep exact name matches so every set printing is included.
+    const normalizeCardName = (value: string) => value.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+    const normalizedName = normalizeCardName(selectedCardName);
+    const params = new URLSearchParams({ game: 'pokemon', language: selectedLanguage, q: selectedCardName, limit: '500' });
+    fetch(versionedCardCatalogUrl(`/api/cards/catalog?${params}`), { signal: controller.signal })
+      .then(async response => {
+        if (!response.ok) throw new Error('Related printings unavailable');
+        const result = await response.json() as { cards?: GameCard[] };
+        if (!controller.signal.aborted) setRelatedPrintings((result.cards ?? []).filter(card => normalizeCardName(card.tcg_card_identities?.name ?? '') === normalizedName));
+      })
+      .catch(() => { if (!controller.signal.aborted) setRelatedPrintings([]); })
+      .finally(() => { if (!controller.signal.aborted) setRelatedPrintingsLoading(false); });
+    return () => controller.abort();
+  }, [selectedCardName, selectedLanguage]);
 
   useEffect(() => {
     if (!selected) return;
@@ -100,7 +203,8 @@ export function PokemonLibrary({ initialSet, initialQuery, initialIllustrator }:
       event.preventDefault();
       if (cards.length < 2) return;
       const nextIndex = selectedIndex < 0 ? 0 : (selectedIndex + (event.key === 'ArrowLeft' ? -1 : 1) + cards.length) % cards.length;
-      setSelected(cards[nextIndex] ?? null);
+      const nextCard = cards[nextIndex];
+      if (nextCard) selectDetailCard(nextCard);
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
@@ -262,22 +366,45 @@ export function PokemonLibrary({ initialSet, initialQuery, initialIllustrator }:
     {loading && !cards.length ? <div className="pokemon-card-grid" aria-label={id?'Memuat kartu Pokémon':'Loading Pokémon cards'}>{Array.from({ length: 12 }, (_, index) => <i key={index}/>)}</div> : loadError && !cards.length ? <section className="empty-state pokemon-empty"><h2>{id?'Kartu tidak dapat dimuat.':'Cards could not be loaded.'}</h2><p>{id?'Periksa koneksi Anda, lalu coba lagi.':'Check your connection and try again.'}</p><button type="button" className="button secondary" onClick={() => setRetryVersion(value => value + 1)}>{id?'Coba lagi':'Try again'}</button></section> : cards.length ? <div className="pokemon-card-grid" aria-busy={loading}>{cards.map(card => {
       const display = displayCard(card);
       const metadata = pokemonCardMetadata(card);
-      return <button type="button" className="pokemon-card-tile" key={`${card.id}:${card.language}`} onClick={() => setSelected(card)}>
+      return <button type="button" className="pokemon-card-tile" key={`${card.id}:${card.language}`} onClick={() => selectDetailCard(card)}>
         <CardArt card={display}/>
         <span className="pokemon-card-caption"><strong>{display.name}</strong><PokemonCardMetadata metadata={metadata}/></span>
       </button>;
     })}</div> : <section className="empty-state pokemon-empty"><h2>{searchQuery||hasFilters?(id?'Tidak ada kartu yang cocok dengan filter ini.':'No cards match these filters.'):(id?'Belum ada kartu Pokémon untuk bahasa ini.':'No Pokémon cards are available in this language yet.')}</h2>{(searchQuery||hasFilters)&&<p>{id?'Ubah pencarian atau hapus salah satu filter.':'Change your search or clear a filter.'}</p>}</section>}
     {!loading && loadError && cards.length > 0 && <p className="pokemon-load-error" role="status">{id?'Kartu lainnya gagal dimuat.':'More cards could not be loaded.'} <button type="button" onClick={() => setRetryVersion(value => value + 1)}>{id?'Coba lagi':'Try again'}</button></p>}
     {!loading && hasMore && <button type="button" className="pokemon-load-more" onClick={() => void loadMore()} disabled={loadingMore} aria-busy={loadingMore}>{loadingMore ? ' ' : id?'Muat kartu lainnya':'Load more cards'}</button>}
-    <Dialog open={Boolean(selected)} onOpenChange={open => { if (!open) setSelected(null); }}>
-      <DialogContent className="pokemon-card-dialog">
-        {selected && <>
+    <Dialog open={Boolean(selected)} onOpenChange={open => { if (!open) { detailTransitionId.current += 1; if (detailLoadingTimer.current !== null) window.clearTimeout(detailLoadingTimer.current); evolutionCardRequest.current?.abort(); setDetailLoading(false); setSelected(null); } }}>
+      <DialogContent className="pokemon-card-dialog" aria-busy={detailLoading}>
+        {selected && detailLoading ? <PokemonDetailSkeleton id={id}/> : selected && <>
           <div className="pokemon-card-dialog-layout"><div className="pokemon-card-dialog-art-column"><CardArt card={displayCard(selected)} priority/></div><div className="pokemon-card-dialog-details"><DialogHeader><div className="pokemon-dialog-title-row"><DialogTitle><PokemonMechanicText text={selected.tcg_card_identities?.name ?? selected.printing_code}/></DialogTitle><PokemonCardVitals source={selected.source_payload} language={selected.language}/></div><DialogDescription asChild><div className="pokemon-dialog-meta"><PokemonCardMetadata metadata={pokemonCardMetadata(selected)} setName={selected.set_name} illustrator={selected.source_payload?.illustrator} illustratorLabel="Illus."/></div></DialogDescription></DialogHeader><PokemonCardText code={selected.tcg_card_identities?.code} name={selected.tcg_card_identities?.name} language={selected.language} source={selected.source_payload} onEvolutionSelect={openEvolutionCard}/><div className="pokemon-dialog-actions"><WishlistButton printingId={selected.id} language={id ? 'ID' : 'EN'}/><ShareButton title={selected.tcg_card_identities?.name ?? selected.printing_code} path={localize(`/pokemon?q=${encodeURIComponent(selected.tcg_card_identities?.name ?? selected.printing_code)}`)} card={displayCard(selected)} entityType="card"/>{pathname !== '/pokemon' && pathname !== '/id/pokemon' && <Link className="button secondary" href={localize(`/pokemon?q=${encodeURIComponent(selected.tcg_card_identities?.name ?? selected.printing_code)}`)}><ArrowSquareOutIcon size={16}/>{id ? 'Buka di katalog' : 'Open in library'}</Link>}<div className="pokemon-dialog-market-actions"><Link className="button secondary" href={`/market?game=pokemon&printing=${encodeURIComponent(selected.id)}`}><StorefrontIcon size={16}/>{id ? 'Beli kartu' : 'Buy a copy'}</Link><MarketSellAction className="button secondary" printingId={selected.id}><StorefrontIcon size={16}/>{id ? 'Jual kartu ini' : 'Sell a copy'}</MarketSellAction></div></div></div><div className="pokemon-dialog-market-data"><PokemonPriceGuide source={selected.source_payload}/><CardMarketPanel game="pokemon" printingId={selected.id} printing={{language:'EN',setCode:selected.set_code,printingCode:selected.printing_code,variant:selected.variant}} disableExternalPrice/></div></div>
+          {(relatedPrintingsLoading || relatedPrintings.some(printing => printing.id !== selected.id)) && <section className="pokemon-related-printings" aria-label={id ? 'Kartu terkait' : 'Related cards'}>
+            <header><h3>{id ? 'Kartu terkait' : 'Related cards'}</h3><div className="pokemon-related-printings-controls"><button type="button" aria-label={id ? 'Gulir ke kiri' : 'Scroll left'} disabled={!relatedScrollState.left} onClick={() => relatedPrintingsTrack.current?.scrollBy({ left: -360, behavior: 'smooth' })}><CaretLeftIcon size={18}/></button><button type="button" aria-label={id ? 'Gulir ke kanan' : 'Scroll right'} disabled={!relatedScrollState.right} onClick={() => relatedPrintingsTrack.current?.scrollBy({ left: 360, behavior: 'smooth' })}><CaretRightIcon size={18}/></button></div></header>
+            <div className={`pokemon-related-printings-track${relatedDragging ? ' is-dragging' : ''}`} ref={relatedPrintingsTrack} aria-busy={relatedPrintingsLoading} onScroll={updateRelatedScrollState} onLoad={updateRelatedScrollState} onPointerDown={startRelatedDrag} onPointerMove={moveRelatedDrag} onPointerUp={finishRelatedDrag} onPointerCancel={finishRelatedDrag} onClickCapture={event => { if (relatedDrag.current.moved) { event.preventDefault(); event.stopPropagation(); relatedDrag.current.moved = false; } }}>
+              {relatedPrintingsLoading ? Array.from({ length: 4 }, (_, index) => <i className="pokemon-related-printing-skeleton" key={index}/>) : relatedPrintings.filter((printing, index, all) => printing.id !== selected.id && all.findIndex(item => item.id === printing.id) === index).map(printing => <button type="button" className="pokemon-related-printing" key={printing.id} onClick={() => selectDetailCard(printing)}><CardArt card={displayCard(printing)} imageWidth={220}/><span className="pokemon-card-caption"><strong>{printing.tcg_card_identities?.name ?? printing.printing_code}</strong><PokemonCardMetadata metadata={pokemonCardMetadata(printing)}/></span></button>)}
+            </div>
+          </section>}
         </>}
       </DialogContent>
       {selected && cards.length > 1 && <DialogPortal><button type="button" className="pokemon-dialog-nav pokemon-dialog-prev" aria-label={id ? 'Kartu sebelumnya' : 'Previous card'} onClick={() => navigateSelected(-1)}><CaretLeftIcon size={22}/></button><button type="button" className="pokemon-dialog-nav pokemon-dialog-next" aria-label={id ? 'Kartu berikutnya' : 'Next card'} onClick={() => navigateSelected(1)}><CaretRightIcon size={22}/></button></DialogPortal>}
     </Dialog>
   </main>;
+}
+
+function PokemonDetailSkeleton({ id }: { id: boolean }) {
+  const loadingLabel = id ? 'Memuat detail kartu Pokémon' : 'Loading Pokémon card details';
+  return <>
+    <div className="pokemon-card-dialog-layout pokemon-dialog-skeleton-layout" role="status" aria-label={loadingLabel}>
+      <div className="pokemon-card-dialog-art-column"><div className="pokemon-dialog-skeleton-art"/></div>
+      <div className="pokemon-card-dialog-details pokemon-dialog-skeleton-details">
+        <i className="pokemon-dialog-skeleton-title"/><i className="pokemon-dialog-skeleton-meta"/>
+        <i className="pokemon-dialog-skeleton-heading"/><i className="pokemon-dialog-skeleton-copy"/><i className="pokemon-dialog-skeleton-copy is-short"/>
+        <i className="pokemon-dialog-skeleton-heading"/><i className="pokemon-dialog-skeleton-copy"/><i className="pokemon-dialog-skeleton-copy is-medium"/>
+        <i className="pokemon-dialog-skeleton-facts"/>
+      </div>
+      <div className="pokemon-dialog-market-data pokemon-dialog-skeleton-market"><i/><i/></div>
+    </div>
+    <span className="sr-only" aria-live="polite">{loadingLabel}</span>
+  </>;
 }
 
 type PokemonPriceSource = { pricing?: unknown };
