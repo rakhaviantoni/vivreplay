@@ -4280,8 +4280,8 @@ html[data-theme='dark'] .market-game-switch button.is-active { border-color:#587
 .site-shell.game-pokemon > .masthead { border-bottom-color:#d6b753!important; }
 .site-shell.game-pokemon .game-mode-switch a.game-mode-pokemon.is-active { border-color:#244f87!important; background:#f4c542!important; }
 .site-shell.game-pokemon .primary-nav > a:hover,.site-shell.game-pokemon .nav-more summary:hover,
-.site-shell.game-pokemon .primary-nav > a.active,.site-shell.game-pokemon .nav-more summary.active { background:#eaf1f8!important; color:#214f85!important; }
-.site-shell.game-pokemon .primary-nav > a.market-nav:hover,.site-shell.game-pokemon .primary-nav > a.market-nav.active { background:#eaf1f8!important; }
+.site-shell.game-pokemon .primary-nav > a.active,.site-shell.game-pokemon .nav-more summary.active { background:#f4e7c2!important; color:#214f85!important; }
+.site-shell.game-pokemon .primary-nav > a.market-nav:hover,.site-shell.game-pokemon .primary-nav > a.market-nav.active { background:#f4e7c2!important; }
 .site-shell.game-pokemon > .mobile-nav a.active { color:#245c98!important; }
 .site-shell.game-pokemon .context-row { border-color:#e7d9b2!important; }
 .pokemon-library-intro { border-color:#e0bd5d!important; background-position:center!important; }
@@ -4818,4 +4818,25 @@ html[data-theme='dark'] .site-shell.game-pokemon .market-footer-pokemon { backgr
   .site-shell .catalog-page > .library-intro > :is(.library-intro-browse-rail,.pokemon-intro-rail) { min-height:128px!important; }
   .site-shell .catalog-page > .library-intro > :is(.library-intro-browse-rail,.pokemon-intro-rail) > .library-intro-rail-cards { width:74%!important; }
   .site-shell .catalog-page > .library-intro > :is(.library-intro-browse-rail,.pokemon-intro-rail) .library-intro-browse { font-size:11px!important; }
+}
+
+/* A quiet neutral light shell keeps the Pokémon blue controls distinct. */
+html:not([data-theme='dark']) .site-shell.game-pokemon > .masthead,
+html:not([data-theme='dark']) .site-shell.game-pokemon > .mobile-nav,
+html:not([data-theme='dark']) .site-shell.game-pokemon .market-store-nav {
+  background-color:#f1f0eb!important;
+  background-image:none!important;
+  backdrop-filter:none!important;
+}
+html:not([data-theme='dark']) .site-shell.game-pokemon > .masthead { border-bottom-color:#d8d5cc!important; }
+html:not([data-theme='dark']) .site-shell.game-pokemon > .masthead:before { opacity:0!important; }
+html:not([data-theme='dark']) .site-shell.game-pokemon .page-footer,
+html:not([data-theme='dark']) .site-shell.game-pokemon .footer-top {
+  background-color:#eeede8!important;
+  background-image:none!important;
+}
+html:not([data-theme='dark']) .site-shell.game-pokemon .footer-bottom { background:#e4e2db!important; border-color:#d4d1c8!important; }
+html:not([data-theme='dark']) .site-shell.game-pokemon .market-footer-pokemon {
+  background-color:#eeede8!important;
+  background-image:linear-gradient(90deg,#d93442 0 33.33%,#efc536 33.33% 66.66%,#3474b9 66.66%)!important;
 }
