@@ -44,7 +44,7 @@ function EnergyCost({ cost, language }: { cost?: string[]; language: string }) {
       const energy = energySymbols[type as EnergyType];
       if (!energy) return <span className="pokemon-energy-unknown" key={`${type}-${index}`} title={type}>{type.slice(0, 1)}</span>;
       const { Icon } = energy;
-      return <span className="pokemon-energy-symbol" key={`${type}-${index}`} title={type} style={{ '--energy-color': energy.color } as React.CSSProperties}><Icon size={12} weight="fill" aria-hidden="true"/><img src={`/pokemon/energy/${encodeURIComponent(type)}`} alt="" loading="lazy" onError={event=>{event.currentTarget.hidden=true}}/></span>;
+      return <span className="pokemon-energy-symbol" key={`${type}-${index}`} title={type} style={{ '--energy-color': energy.color } as React.CSSProperties}><Icon className="pokemon-energy-fallback" size={12} weight="fill" aria-hidden="true"/><img src={`/pokemon/energy/${encodeURIComponent(type)}`} alt={`${type} energy`} loading="lazy" onLoad={event=>{event.currentTarget.parentElement?.classList.add('has-provider-icon')}} onError={event=>{event.currentTarget.remove()}}/></span>;
     })}
   </span>;
 }

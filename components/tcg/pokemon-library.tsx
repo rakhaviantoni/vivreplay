@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 type GameCard = {
   id: string; rarity: string; variant: string; set_code: string; set_name: string; printing_code: string;
   language: string; attribute?: string; card_image_url?: string | null;
-  source_payload?: { illustrator?: string; localId?: string; set?: { cardCount?: { total?: number } }; [key: string]: unknown };
+  source_payload?: { illustrator?: string; localId?: string; rarity?: string; set?: { cardCount?: { official?: number; total?: number } }; [key: string]: unknown };
   tcg_card_identities?: { code: string; name: string; color: string; card_type: string; cost: number; power: number; effect_text: string };
 };
 type SetRecord = { code: string; name: string; productImageUrl?: string; series?: string; releaseYear?: number };
@@ -213,19 +213,17 @@ export function PokemonLibrary({ initialSet, initialQuery }: { initialSet?: stri
     <div className="pokemon-library-count" aria-live="polite">{loading ? ' ' : `${cards.length.toLocaleString(id?'id-ID':'en-US')} ${id?(cards.length===1?'kartu':'kartu'):(cards.length===1?'card':'cards')}${hasMore ? (id?' dimuat':' loaded') : ''}`}</div>
     {loading ? <div className="pokemon-card-grid" aria-label={id?'Memuat kartu Pokémon':'Loading Pokémon cards'}>{Array.from({ length: 12 }, (_, index) => <i key={index}/>)}</div> : loadError && !cards.length ? <section className="empty-state pokemon-empty"><h2>{id?'Kartu tidak dapat dimuat.':'Cards could not be loaded.'}</h2><p>{id?'Periksa koneksi Anda, lalu coba lagi.':'Check your connection and try again.'}</p><button type="button" className="button secondary" onClick={() => setRetryVersion(value => value + 1)}>{id?'Coba lagi':'Try again'}</button></section> : cards.length ? <div className="pokemon-card-grid">{cards.map(card => {
       const display = displayCard(card);
-      const localNumber = card.source_payload?.localId ?? card.printing_code;
-      const setTotal = card.source_payload?.set?.cardCount?.total;
-      const cardNumber = formatPokemonNumber(localNumber, setTotal);
+      const metadata = pokemonCardMetadata(card);
       return <button type="button" className="pokemon-card-tile" key={`${card.id}:${card.language}`} onClick={() => setSelected(card)}>
         <CardArt card={display}/>
-        <span><span className="pokemon-card-name-row"><strong>{display.name}</strong>{cardNumber&&<small>{cardNumber}</small>}</span><small className="pokemon-card-set-code">{card.set_code}</small></span>
+        <span className="pokemon-card-caption"><strong>{display.name}</strong><PokemonCardMetadata metadata={metadata}/></span>
       </button>;
     })}</div> : <section className="empty-state pokemon-empty"><h2>{searchQuery||hasFilters?(id?'Tidak ada kartu yang cocok dengan filter ini.':'No cards match these filters.'):(id?'Belum ada kartu Pokémon untuk bahasa ini.':'No Pokémon cards are available in this language yet.')}</h2>{(searchQuery||hasFilters)&&<p>{id?'Ubah pencarian atau hapus salah satu filter.':'Change your search or clear a filter.'}</p>}</section>}
     {!loading && loadError && cards.length > 0 && <p className="pokemon-load-error" role="status">{id?'Kartu lainnya gagal dimuat.':'More cards could not be loaded.'} <button type="button" onClick={() => setRetryVersion(value => value + 1)}>{id?'Coba lagi':'Try again'}</button></p>}
     {!loading && hasMore && <button type="button" className="pokemon-load-more" onClick={() => void loadMore()} disabled={loadingMore} aria-busy={loadingMore}>{loadingMore ? ' ' : id?'Muat kartu lainnya':'Load more cards'}</button>}
     <Dialog open={Boolean(selected)} onOpenChange={open => { if (!open) setSelected(null); }}>
       <DialogContent className="pokemon-card-dialog">
-        {selected && <div className="pokemon-card-dialog-layout"><CardArt card={displayCard(selected)} priority/><div><DialogHeader><p className="kicker">{selected.set_name}</p><DialogTitle>{selected.tcg_card_identities?.name ?? selected.printing_code}</DialogTitle><DialogDescription className="pokemon-dialog-meta">{[selected.printing_code,selected.language,cleanRarity(selected.rarity)].filter(Boolean).map((value,index)=><span key={`${index}-${value}`}>{value}</span>)}</DialogDescription></DialogHeader><PokemonCardText language={selected.language} source={selected.source_payload}/></div></div>}
+        {selected && <div className="pokemon-card-dialog-layout"><CardArt card={displayCard(selected)} priority/><div><DialogHeader><p className="kicker">{selected.set_name}</p><DialogTitle>{selected.tcg_card_identities?.name ?? selected.printing_code}</DialogTitle><DialogDescription asChild><div><PokemonCardMetadata metadata={pokemonCardMetadata(selected)}/></div></DialogDescription></DialogHeader><PokemonCardText language={selected.language} source={selected.source_payload}/></div></div>}
       </DialogContent>
     </Dialog>
   </main>;
@@ -234,6 +232,38 @@ export function PokemonLibrary({ initialSet, initialQuery }: { initialSet?: stri
 function cleanRarity(value?: string | null) {
   const rarity = value?.trim();
   return rarity && !['unknown','none','null'].includes(rarity.toLowerCase()) ? rarity : '';
+}
+
+function pokemonCardMetadata(card: GameCard) {
+  const count = card.source_payload?.set?.cardCount;
+  return {
+    set: card.set_code.trim().toLowerCase(),
+    number: formatPokemonNumber(card.source_payload?.localId ?? card.printing_code, count?.official ?? count?.total),
+    rarity: pokemonRarityCode(cleanRarity(card.rarity) || card.source_payload?.rarity),
+  };
+}
+
+function pokemonRarityCode(value?: string | null) {
+  const rarity = cleanRarity(value);
+  if (!rarity) return '';
+  const normalized = rarity.toLowerCase().replace(/[^a-z]/g, '');
+  const codes: Record<string, string> = {
+    common: 'C', uncommon: 'U', rare: 'R', rareholo: 'R', rareholov: 'RR',
+    rareholoex: 'RR', doublerare: 'RR', triplerare: 'RRR', ultrarare: 'UR',
+    illustrationrare: 'AR', specialillustrationrare: 'SAR', hyperrare: 'UR',
+    acespecrare: 'ACE', amazingrare: 'A', radiantrare: 'K',
+    shinyrare: 'S', shinyultrarare: 'SSR',
+  };
+  return codes[normalized] ?? rarity;
+}
+
+function PokemonCardMetadata({ metadata }: { metadata: ReturnType<typeof pokemonCardMetadata> }) {
+  return <span className="pokemon-card-meta-row" aria-label={[metadata.set, metadata.number, metadata.rarity].filter(Boolean).join(' ')}>
+    {metadata.set && <small className="pokemon-card-set-badge">{metadata.set}</small>}
+    {metadata.set && metadata.number && <span className="pokemon-card-meta-divider" aria-hidden="true"/>}
+    {metadata.number && <small className="pokemon-card-number">{metadata.number}</small>}
+    {metadata.rarity && <small className="pokemon-card-rarity">{metadata.rarity}</small>}
+  </span>;
 }
 
 function formatPokemonNumber(value: string | undefined, total: number | undefined) {
