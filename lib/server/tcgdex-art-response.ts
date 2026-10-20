@@ -16,7 +16,9 @@ export async function tcgdexArtResponse(values: string | string[]) {
     && /^\/[a-z0-9._/-]+\.(?:png|webp|jpe?g)$/i.test(source.pathname);
   const validPokepedia = source.hostname === 'cdn.pokepedia.id'
     && /^\/(?:jp\/)?[a-z0-9_-]{1,40}\/[a-z0-9._-]{1,80}\.webp$/i.test(source.pathname);
-  if (source.protocol !== 'https:' || (!validTcgDex && !validPokepedia) || source.pathname.split('/').some(part => part === '.' || part === '..')) continue;
+  const validClassicCollection = source.hostname === 'static.pokemoncardlist.net'
+    && /^\/images\/cards\/30th-c-[0-9]{3}\.avif$/i.test(source.pathname);
+  if (source.protocol !== 'https:' || (!validTcgDex && !validPokepedia && !validClassicCollection) || source.pathname.split('/').some(part => part === '.' || part === '..')) continue;
 
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(source.toString()));
   const cacheKey = `catalog-images/pokemon/${Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')}`;

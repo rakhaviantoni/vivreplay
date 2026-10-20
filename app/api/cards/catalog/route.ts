@@ -134,7 +134,9 @@ async function fromD1(gameSlug: string, language: string, identityCode?: string,
     const imageKey = String(row.image_key ?? '');
     const printingCode = String(row.printing_code || identity.code || '');
     const imageUrl = !imageKey
-      ? gameSlug === 'pokemon' ? `/pokemon/art/${language.toLowerCase()}/${encodeURIComponent(setCode)}/${encodeURIComponent(printingCode)}` : null
+      ? gameSlug === 'pokemon'
+        ? `/pokemon/art/${language.toLowerCase()}/${encodeURIComponent(setCode)}/${encodeURIComponent(printingCode)}${setCode.toLowerCase() === '30th-c' ? '?artRevision=2' : ''}`
+        : null
       : publicCardPath(imageKey, setCode, language, printingCode) || null;
     return [{
       id: row.id,identity_id:row.identity_id, rarity: row.rarity, variant: row.variant,

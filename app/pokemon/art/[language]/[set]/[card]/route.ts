@@ -29,9 +29,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ lan
     const serie = set.serie && typeof set.serie === 'object' ? set.serie as Record<string, unknown> : {};
     const sourceSet = String(set.id ?? setCode);
     const serieId = String(serie.id ?? '');
-    const sourceSetDirectories = sourceSet.toLowerCase() === '30th-c'
-      ? ['me/30th', '30th', sourceSet]
-      : [serieId ? `${serieId}/${sourceSet}` : sourceSet];
+    const sourceSetDirectories = [serieId ? `${serieId}/${sourceSet}` : sourceSet];
     const localId = String(payload.localId ?? cardCode);
     const sourceLanguage = language === 'JP' ? 'ja' : language.toLowerCase();
     const cardCount = set.cardCount && typeof set.cardCount === 'object' ? set.cardCount as Record<string, unknown> : {};
@@ -42,6 +40,11 @@ export async function GET(_request: Request, { params }: { params: Promise<{ lan
       const imageUrl = row.imageUrl.replace(/\/$/, '');
       if (/\.(?:png|webp|jpe?g)$/i.test(imageUrl)) candidates.push(imageUrl);
       else candidates.push(`${imageUrl}/high.webp`, `${imageUrl}/low.webp`);
+    }
+    // TCGdex has card data for this set but no card image URLs. Do not use
+    // `me/30th` as a substitute: that is the separate 30th Celebration set.
+    if (sourceSet.toLowerCase() === '30th-c' && /^[0-9]{3}$/.test(localId)) {
+      candidates.unshift(`https://static.pokemoncardlist.net/images/cards/30th-c-${localId}.avif`);
     }
     if (language === 'ID' || language === 'JP') {
       const safeSetCodes = [...new Set([sourceSet, sourceSet.toUpperCase(), sourceSet.toLowerCase()])]
