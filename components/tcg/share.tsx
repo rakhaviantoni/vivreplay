@@ -108,6 +108,7 @@ async function generateListingCompositeBlob({
   link,
   language = 'EN',
   style = 'light',
+  entityType = 'listing',
 }: {
   title: string;
   price?: string;
@@ -116,6 +117,7 @@ async function generateListingCompositeBlob({
   link: string;
   language?: 'EN' | 'ID';
   style?: 'light' | 'dark';
+  entityType?: 'listing' | 'card';
 }): Promise<Blob | null> {
   const canvasWidth = 1200;
   const paddingX = 54;
@@ -202,7 +204,7 @@ async function generateListingCompositeBlob({
     }),
   ]);
 
-  // VivrePlay | Market navbar-style header brand lockup
+  // Keep card shares associated with the library; listings belong to Market.
   const brandY = 56;
   let brandX = paddingX;
 
@@ -217,14 +219,16 @@ async function generateListingCompositeBlob({
   const vpWidth = ctx.measureText('VivrePlay').width;
   brandX += vpWidth + 8;
 
-  ctx.font = '400 14px "Plus Jakarta Sans", sans-serif';
-  ctx.fillStyle = palette.muted;
-  ctx.fillText('|', brandX, brandY - 3);
-  brandX += 14;
+  if (entityType === 'listing') {
+    ctx.font = '400 14px "Plus Jakarta Sans", sans-serif';
+    ctx.fillStyle = palette.muted;
+    ctx.fillText('|', brandX, brandY - 3);
+    brandX += 14;
 
-  ctx.font = '800 16px "Plus Jakarta Sans", sans-serif';
-  ctx.fillStyle = palette.accent;
-  ctx.fillText('Market', brandX, brandY - 2);
+    ctx.font = '800 16px "Plus Jakarta Sans", sans-serif';
+    ctx.fillStyle = palette.accent;
+    ctx.fillText('Market', brandX, brandY - 2);
+  }
 
   // Price badge on the right
   if (price) {
@@ -443,12 +447,12 @@ export function ShareButton({
     let active = true;
     setPreviewLoading(true);
     setImagePreview('');
-    void generateListingCompositeBlob({title,price,subtitle:imageSubtitle,cards:cardList,link:imageLink,language,style:shareStyle}).then(blob => {
+    void generateListingCompositeBlob({title,price,subtitle:imageSubtitle,cards:cardList,link:imageLink,language,style:shareStyle,entityType}).then(blob => {
       if (!active || !blob) return;
       setImagePreview(URL.createObjectURL(blob));
     }).catch(() => {}).finally(() => { if (active) setPreviewLoading(false); });
     return () => { active = false; };
-  }, [open,cardList,title,price,imageSubtitle,imageLink,listingInfo,language,shareStyle]);
+  }, [open,cardList,title,price,imageSubtitle,imageLink,listingInfo,language,shareStyle,entityType]);
 
   const handleCopy = async () => {
     try {
@@ -473,6 +477,7 @@ export function ShareButton({
         link: imageLink,
         language,
         style: shareStyle,
+        entityType,
       });
       if (!blob) throw new Error('Image generation failed');
 
@@ -531,11 +536,10 @@ export function ShareButton({
       <Dialog open={open} onOpenChange={(next) => { setOpen(next); onOpenChange?.(next); }}>
         <DialogContent className="share-dialog-content">
           <DialogHeader className="share-dialog-header">
-            <div className="share-brand-lockup">
+            <div className={`share-brand-lockup${entityType === 'card' ? ' is-library-share' : ''}`}>
               <VivreMark size={20} />
               <span>VivrePlay</span>
-              <i>|</i>
-              <b>Market</b>
+              {entityType !== 'card' && <><i>|</i><b>Market</b></>}
             </div>
             <DialogTitle>{entityType === 'card'
               ? (language === 'ID' ? 'Bagikan kartu' : 'Share card')

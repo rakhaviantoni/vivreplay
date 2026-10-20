@@ -40,7 +40,7 @@ type PokemonText = {
   };
 };
 
-type EvolutionNode = { code: string; name: string; spriteName: string; stage: string; children: EvolutionNode[] };
+type EvolutionNode = { code: string; name: string; spriteName: string; stage: string; dexIds?: string[]; children: EvolutionNode[] };
 
 const energySymbols = {
   Colorless: { Icon: Circle, color: '#898b91', asset: 'colorless' },
@@ -302,7 +302,10 @@ export function PokemonCardText({ code, name, language, source, onEvolutionSelec
             <div>{nodes.slice(0, 8).map((node, index) => {
               const displayName = node.name || source.evolvesFrom || source.evolveFrom || (lang === 'ID' ? 'Dasar' : 'Basic');
               const isCurrent = node.code === code;
+              const dexId = node.dexIds?.find(value => /^\d+$/.test(value));
+              const spriteUrl = dexId ? `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${dexId}.png` : undefined;
               return <button type="button" className={`pokemon-evolution-node${isCurrent ? ' is-current' : ''}`} key={`${node.code}-${index}`} aria-current={isCurrent ? 'step' : undefined} aria-label={`${stageNames(node.stage, depth)}: ${displayName}`} disabled={!node.code || isCurrent || !onEvolutionSelect} onClick={() => node.code && onEvolutionSelect?.(node.code)}>
+                <span className="pokemon-evolution-sprite" aria-hidden="true"><span>{displayName.slice(0,1)}</span>{spriteUrl&&<img src={spriteUrl} alt="" loading="lazy" onError={event=>{event.currentTarget.style.display='none';}}/>}</span>
                 <b>{displayName}</b>
               </button>;
             })}{nodes.length > 8 && <span className="pokemon-evolution-more">+{nodes.length - 8}</span>}</div>
