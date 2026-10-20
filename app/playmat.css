@@ -9091,19 +9091,21 @@ html[data-theme='dark'] .arena-lobby,html[data-theme='dark'] .arena-tutorial-ind
 /* Keep the opponent identity badge clear of the Back and fullscreen controls. */
 .play-fullscreen .opponent-side .board-side-meta {top:76px!important}
 
-.tournament-replay-screen .replay-sound-toggle {
+.tournament-replay-screen .replay-sound-toggle,
+.play-fullscreen .replay-sound-toggle {
   display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:34px;padding:0 11px;
   border:1px solid rgb(255 255 255 / .22);border-radius:7px;background:rgb(7 14 20 / .78);color:#f4eee2;
   font:700 11px var(--game-font);cursor:pointer;transition:background-color .16s ease,border-color .16s ease,color .16s ease;
 }
-.tournament-replay-screen .replay-sound-toggle:hover {border-color:#d8a63b;background:#251e12;color:#f5d58b}
-.tournament-replay-screen .replay-sound-toggle:focus-visible {outline:2px solid #f0cb72;outline-offset:3px}
+.tournament-replay-screen .replay-sound-toggle:hover,.play-fullscreen .replay-sound-toggle:hover {border-color:#d8a63b;background:#251e12;color:#f5d58b}
+.tournament-replay-screen .replay-sound-toggle:focus-visible,.play-fullscreen .replay-sound-toggle:focus-visible {outline:2px solid #f0cb72;outline-offset:3px}
 .tournament-replay-screen .match-bar .replay-sound-toggle {margin-left:auto}
+.play-fullscreen .match-bar .replay-sound-toggle {margin-left:auto}
 .tournament-replay-screen .replay-leader-showdown > .replay-sound-toggle {position:absolute;top:20px;right:22px;z-index:8}
 .tournament-replay-screen .replay-starting-roll-panel {position:relative}
 .tournament-replay-screen .replay-starting-roll-panel > .replay-sound-toggle {position:absolute;top:14px;right:14px}
 @media(max-width:560px) {
-  .tournament-replay-screen .replay-sound-toggle span {display:none}
-  .tournament-replay-screen .replay-sound-toggle {width:36px;padding:0}
+  .tournament-replay-screen .replay-sound-toggle span,.play-fullscreen .replay-sound-toggle span {display:none}
+  .tournament-replay-screen .replay-sound-toggle,.play-fullscreen .replay-sound-toggle {width:36px;padding:0}
   .tournament-replay-screen .replay-leader-showdown > .replay-sound-toggle {top:10px;right:10px}
 }

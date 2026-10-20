@@ -6,7 +6,7 @@ import {ArrowLeftIcon,PauseIcon,PlayIcon,SkipBackIcon,SkipForwardIcon,ArrowsDown
 import {CardArt} from './card-art';
 import {Back,BattleTableFrame,CostArea,PlayCard,ZoneArtwork,matMarks,matTones,Dice,ShowdownEffect,showdownDieValue} from './play-tutorial';
 import {CardPreviewModal} from './card-preview-modal';
-import {playReplayCue,setReplayShowdownActive,setReplaySoundEnabled} from '@/lib/replay-audio';
+import {playReplayCue,setReplayMatchActive,setReplayShowdownActive,setReplaySoundEnabled} from '@/lib/replay-audio';
 import type {Card} from '@/packages/card-data/catalog';
 import '@/app/playmat.css';
 
@@ -84,6 +84,10 @@ export function TournamentReplayTable({matchId}:{matchId:string}){
  const soundButton=()=><button type="button" className="replay-sound-toggle" onClick={toggleSound} aria-pressed={soundEnabled} aria-label={soundEnabled?'Turn replay sound off':'Turn replay sound on'} title={soundEnabled?'Turn replay sound off':'Turn replay sound on'}>{soundEnabled?<SpeakerHighIcon size={16}/>:<SpeakerSlashIcon size={16}/>}<span>Sound {soundEnabled?'on':'off'}</span></button>;
  useEffect(()=>{setReplaySoundEnabled(soundEnabled)},[soundEnabled]);
  useEffect(()=>{setReplayShowdownActive(showIntro);return()=>setReplayShowdownActive(false)},[showIntro]);
+ useEffect(()=>{setReplayMatchActive(soundEnabled&&playing&&!showIntro&&!showStartingRoll)},[soundEnabled,playing,showIntro,showStartingRoll]);
+ useEffect(()=>()=>setReplayMatchActive(false),[]);
+ const lastSoundStep=useRef(step);
+ useEffect(()=>{if(soundEnabled&&step!==lastSoundStep.current)playReplayCue('turn');lastSoundStep.current=step},[step,soundEnabled]);
  useEffect(()=>()=>setReplaySoundEnabled(false),[]);
  useEffect(()=>{if(showIntro&&soundEnabled)playReplayCue('reveal')},[showIntro,soundEnabled]);
  useEffect(()=>{if(showStartingRoll)playReplayCue('dice')},[showStartingRoll]);

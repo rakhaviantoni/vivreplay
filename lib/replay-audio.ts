@@ -1,8 +1,9 @@
-type ReplayCue='deal'|'draw'|'life'|'reveal'|'don'|'play'|'attack'|'block'|'counter'|'attach'|'return'|'trash'|'bottom'|'dice';
+type ReplayCue='deal'|'draw'|'life'|'reveal'|'turn'|'don'|'play'|'attack'|'block'|'counter'|'attach'|'return'|'trash'|'bottom'|'dice';
 
 let context:AudioContext|undefined;
 let enabled=false;
 let showdownActive=false;
+let matchActive=false;
 let musicNodes:OscillatorNode[]=[];
 let musicGains:GainNode[]=[];
 let musicTimer:number|undefined;
@@ -42,9 +43,9 @@ function stopMusic(){
 }
 
 function startMusic(){
- const audio=audioContext();if(!enabled||!showdownActive||!audio||musicNodes.length)return;
+ const audio=audioContext();if(!enabled||(!showdownActive&&!matchActive)||!audio||musicNodes.length)return;
  void audio.resume();
- const notes:[[number,number,number],[number,number,number],[number,number,number],[number,number,number]]=[[110,164.81,220],[98,146.83,196],[130.81,164.81,196],[110,146.83,220]];
+ const notes:[[number,number,number],[number,number,number],[number,number,number],[number,number,number]]=showdownActive?[[110,164.81,220],[98,146.83,196],[130.81,164.81,196],[110,146.83,220]]:[[82.41,123.47,164.81],[73.42,110,146.83],[87.31,130.81,174.61],[65.41,98,146.83]];
  const now=audio.currentTime;
  for(const frequency of notes[0]){
   const oscillator=audio.createOscillator(),gain=audio.createGain();oscillator.type='sine';oscillator.frequency.value=frequency;
@@ -53,7 +54,7 @@ function startMusic(){
  }
  let chord=1;
  const change=()=>{
-  if(!enabled||!showdownActive||!audioContext())return;
+  if(!enabled||(!showdownActive&&!matchActive)||!audioContext())return;
   const time=audio.currentTime;
   musicNodes.forEach((oscillator,index)=>oscillator.frequency.setTargetAtTime(notes[chord][index],time,.45));
   chord=(chord+1)%notes.length;musicTimer=window.setTimeout(change,1900);
@@ -70,7 +71,12 @@ export function setReplaySoundEnabled(value:boolean){
 
 export function setReplayShowdownActive(value:boolean){
  showdownActive=value;
- if(value)startMusic();else stopMusic();
+ if(value){matchActive=false;stopMusic();startMusic()}else{stopMusic();if(matchActive)startMusic()}
+}
+
+export function setReplayMatchActive(value:boolean){
+ matchActive=value;
+ if(value){showdownActive=false;stopMusic();startMusic()}else{stopMusic();if(showdownActive)startMusic()}
 }
 
 export function playReplayCue(cue:ReplayCue,index=0){
@@ -79,6 +85,7 @@ export function playReplayCue(cue:ReplayCue,index=0){
  switch(cue){
   case 'dice':noise(.34,.085,1500);tone(170,.42,.05,'triangle',54);tone(92,.16,.028,'sine',48);break;
   case 'reveal':tone(220,.46,.027,'triangle',330);tone(330,.52,.02,'sine',495);tone(440,.58,.014,'sine',660);break;
+  case 'turn':tone(392,.32,.018,'sine',523.25);tone(587.33,.42,.012,'sine',440);break;
   case 'deal':noise(.09,.018,2600);tone(680+index%5*28,.11,.012,'sine',420);break;
   case 'draw':case 'life':noise(.12,.032,2200);tone(cue==='life'?620:520,.2,.025,'triangle',cue==='life'?920:380);break;
   case 'don':tone(620+offset*700,.18,.024,'sine',840);break;
