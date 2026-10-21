@@ -10,22 +10,43 @@ import {
   calculateSellerServiceFee,
 } from '../lib/market/policy';
 
-test('listing policy defaults to free tier (7 days, 25 max listings)', () => {
+test('free listing policy allows a 51-card deck bundle', () => {
   const policy = getListingPolicy(null);
   assert.equal(policy.tier, 'free');
   assert.equal(policy.durationDays, 7);
-  assert.equal(policy.maxActiveListings, 25);
+  assert.equal(policy.maxActiveListings, 10);
+  assert.equal(policy.maxListingCopies, 51);
+  assert.equal(policy.maxCopiesPerCard, 4);
+  assert.equal(policy.maxCardTypes, 51);
   assert.equal(policy.canAutoRenew, false);
   assert.equal(policy.commissionPercent, 1.5);
 });
 
-test('listing policy supports pro tier (30 days, 2,500 max listings)', () => {
+test('monthly Pro allows 500 active listings and 75-card bundles', () => {
   const policy = getListingPolicy('pro');
   assert.equal(policy.tier, 'pro');
   assert.equal(policy.durationDays, 30);
-  assert.equal(policy.maxActiveListings, 2500);
+  assert.equal(policy.maxActiveListings, 500);
+  assert.equal(policy.maxListingCopies, 75);
+  assert.equal(policy.maxCardTypes, 75);
+  assert.equal(policy.maxCopiesPerCard, 10);
   assert.equal(policy.canAutoRenew, true);
   assert.equal(policy.commissionPercent, 0.75);
+});
+
+test('annual Pro allows 1,000 active listings and 100-card bundles',()=>{
+  const policy=getListingPolicy('pro','yearly');
+  assert.equal(policy.maxActiveListings,1_000);
+  assert.equal(policy.maxListingCopies,100);
+  assert.equal(policy.maxCopiesPerCard,20);
+  assert.equal(policy.maxCardTypes,100);
+});
+
+test('saved policy values cannot exceed the listing request limits',()=>{
+  const policy=parseMarketPolicies(JSON.stringify({proAnnual:{maxListingCopies:250,maxCopiesPerCard:8,maxCardTypes:250}})).proAnnual;
+  assert.equal(policy.maxListingCopies,100);
+  assert.equal(policy.maxCopiesPerCard,8);
+  assert.equal(policy.maxCardTypes,100);
 });
 
 test('computeListingExpiration computes correct date offset', () => {

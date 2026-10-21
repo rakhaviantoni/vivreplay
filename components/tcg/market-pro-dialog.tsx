@@ -25,7 +25,12 @@ type PlanPreview={
   introOfferSpotsRemaining:number|null;
   maxActiveListings:number;
   freeMaxActiveListings:number;
+  annualMaxActiveListings:number;
   freeDurationDays:number;
+  annualDurationDaysForListings:number;
+  freeListingLimits:{maxListingCopies:number;maxCopiesPerCard:number;maxCardTypes:number};
+  monthlyListingLimits:{maxListingCopies:number;maxCopiesPerCard:number;maxCardTypes:number};
+  annualListingLimits:{maxListingCopies:number;maxCopiesPerCard:number;maxCardTypes:number};
   commissionPercent:number;
   freeCommissionPercent:number;
   buyerFeePercent:number;
@@ -93,7 +98,9 @@ export function MarketProDialog({locale,member=false,profile=null,accountLoading
   },[open,loaded]);
 
   const amount=billingPeriod==='yearly'?plan?.annualAmount:plan?.amount;
-  const periodDays=billingPeriod==='yearly'?plan?.annualDurationDays:plan?.durationDays;
+  const annualSavings=Math.max(0,(plan?.standardAmount??plan?.amount??24900)*12-(plan?.annualAmount??249000));
+  const monthlyStandardAmount=plan?.standardAmount??plan?.amount??24900;
+  const annualSavingsPercent=monthlyStandardAmount>0?Math.round(annualSavings/(monthlyStandardAmount*12)*100):0;
   const paymentOptions=Array.isArray(plan?.paymentChannels)?plan.paymentChannels:defaultPaymentOptions;
   const selectedPaymentOption=paymentOptions.find(option=>option.method===selectedPayment.method&&option.channel===selectedPayment.channel);
   const paymentFee=estimatePaymentFee(selectedPaymentOption,amount??0);
@@ -124,8 +131,8 @@ export function MarketProDialog({locale,member=false,profile=null,accountLoading
                 <button type="button" aria-pressed={billingPeriod==='yearly'} onClick={()=>setBillingPeriod('yearly')}>{member?t('Extend for a year','Perpanjang setahun'):t('Annual','Tahunan')}</button>
               </div>
               <strong>{formatMoney(amount,'IDR')}</strong>
-              <span>{t(`/ ${periodDays??30} days`,`/ ${periodDays??30} hari`)}</span>
-              {billingPeriod==='yearly'?<small>{t(`One payment covers the year. Use ${plan?.shippingVouchersPerYear??24} delivery vouchers any time before the membership ends; unused vouchers expire then.`,`Satu pembayaran mencakup setahun. Gunakan ${plan?.shippingVouchersPerYear??24} voucher ongkir kapan saja sebelum masa aktif berakhir; sisa voucher kedaluwarsa saat itu.`)}</small>:plan?.introOffer && plan.standardAmount !== null ? <small>{t(`Intro price for ${plan.durationDays??30} days, then ${formatMoney(plan.standardAmount,'IDR')} every 30 days. Renew manually.`,`Harga promo ${plan.durationDays??30} hari, lalu ${formatMoney(plan.standardAmount,'IDR')} tiap 30 hari. Perpanjang manual.`)}</small>:null}
+              <span>{billingPeriod==='yearly'?t('/ year','/ tahun'):t('/ month','/ bulan')}</span>
+              {billingPeriod==='yearly'?<small><s>{formatMoney(monthlyStandardAmount*12,'IDR')}</s> <b className="market-membership-savings">{t(`Save ${formatMoney(annualSavings,'IDR')} (${annualSavingsPercent}%) vs 12 monthly payments`,`Hemat ${formatMoney(annualSavings,'IDR')} (${annualSavingsPercent}%) dibandingkan 12 pembayaran bulanan`)}</b>{t(`. Use ${plan?.shippingVouchersPerYear??24} vouchers any time during the year; unused vouchers expire when membership ends.`,`. Gunakan ${plan?.shippingVouchersPerYear??24} voucher kapan saja selama setahun; sisa voucher kedaluwarsa saat masa aktif berakhir.`)}</small>:plan?.introOffer && plan.standardAmount !== null ? <small>{t(`Intro price for ${plan.durationDays??30} days, then ${formatMoney(plan.standardAmount,'IDR')} every 30 days. Renew manually.`,`Harga promo ${plan.durationDays??30} hari, lalu ${formatMoney(plan.standardAmount,'IDR')} tiap 30 hari. Perpanjang manual.`)}</small>:null}
               {billingPeriod==='monthly'&&introLimit&&<MarketIntroOfferProgress compact limit={introLimit} remaining={plan?.introOfferSpotsRemaining} endsAt={plan?.introOfferEndsAt} locale={locale}/>}
             </>
           ) : (
@@ -139,7 +146,7 @@ export function MarketProDialog({locale,member=false,profile=null,accountLoading
             </span>
           )}
         </div>
-        <div className="market-pro-dialog-table-wrap"><MarketMembershipComparison locale={locale} period={billingPeriod} freeListings={plan?.freeMaxActiveListings??25} proListings={plan?.maxActiveListings??2500} freeDays={plan?.freeDurationDays??7} proDays={plan?.durationDays??30} freeFee={plan?.freeCommissionPercent??1.5} proFee={plan?.commissionPercent??0.75} buyerMinimum={plan?.buyerFeeMinimum??2_000} sellerMinimum={plan?.sellerFeeMinimum??1_000} monthlyVouchers={plan?.shippingVouchersPerMonth??2} annualVouchers={plan?.shippingVouchersPerYear??24} loading={loading}/></div>
+        <div className="market-pro-dialog-table-wrap"><MarketMembershipComparison locale={locale} selectedPeriod={billingPeriod} freeListings={plan?.freeMaxActiveListings??10} monthlyListings={plan?.maxActiveListings??500} annualListings={plan?.annualMaxActiveListings??1000} freeDays={plan?.freeDurationDays??7} proDays={plan?.durationDays??30} freeBundle={plan?.freeListingLimits??{maxListingCopies:51,maxCopiesPerCard:4,maxCardTypes:51}} monthlyBundle={plan?.monthlyListingLimits??{maxListingCopies:75,maxCopiesPerCard:10,maxCardTypes:75}} annualBundle={plan?.annualListingLimits??{maxListingCopies:100,maxCopiesPerCard:20,maxCardTypes:100}} freeFee={plan?.freeCommissionPercent??1.5} proFee={plan?.commissionPercent??0.75} buyerMinimum={plan?.buyerFeeMinimum??2_000} sellerMinimum={plan?.sellerFeeMinimum??1_000} monthlyVouchers={plan?.shippingVouchersPerMonth??2} annualVouchers={plan?.shippingVouchersPerYear??24} loading={loading}/></div>
         {loading?<div className="market-pro-note-skeleton" aria-hidden="true"><i/><i/></div>:<p className="market-pro-dialog-note">{t(`${plan?.shippingVoucherSharePercent??50}% off delivery, up to ${formatMoney(plan?.shippingVoucherCap??5000,'IDR')} per voucher on card orders of ${formatMoney(plan?.shippingVoucherMinSubtotal??MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL,'IDR')} or more.`,`Diskon ongkir ${plan?.shippingVoucherSharePercent??50}%, maksimal ${formatMoney(plan?.shippingVoucherCap??5000,'IDR')} per voucher untuk pesanan kartu minimal ${formatMoney(plan?.shippingVoucherMinSubtotal??MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL,'IDR')}.`)}</p>}
         {profile&&hasValidPhone&&amount!=null&&<><MarketPaymentMethodPicker layout="compact" locale={locale} options={paymentOptions} amount={amount} selectedMethod={selectedPayment.method} selectedChannel={selectedPayment.channel} onChange={(method,channel)=>setSelectedPayment({method,channel})}/>{paymentFee>0&&<p className="pro-dialog-payment-total">{t('Estimated total','Perkiraan total')}: <strong>{formatMoney(amount+paymentFee,'IDR')}</strong></p>}</>}
         {error&&<p className="checkout-error" role="alert">{error}</p>}

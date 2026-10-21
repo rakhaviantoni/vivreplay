@@ -9,10 +9,10 @@ const parseJson = (value: unknown) => {
   try { return JSON.parse(value); } catch { return value; }
 };
 
-async function fromD1(code: string) {
+async function fromD1(code: string, gameSlug: 'one-piece'|'pokemon') {
   const db = database();
-  const identity = await db.prepare(`SELECT id,code,name,color,card_type,cost,power,effect_text FROM tcg_card_identities WHERE code=? LIMIT 1`)
-    .bind(code).first<Record<string, unknown>>();
+  const identity = await db.prepare(`SELECT id,code,name,color,card_type,cost,power,effect_text FROM tcg_card_identities WHERE code=? AND game_id=(SELECT id FROM tcg_games WHERE slug=?) LIMIT 1`)
+    .bind(code,gameSlug).first<Record<string, unknown>>();
   if (!identity) return null;
   const identityId = String(identity.id);
   const [printingResult, rulingResult] = await Promise.all([
@@ -44,12 +44,13 @@ async function fromD1(code: string) {
   return { identity, printings: [...byPrinting.values()], rulings: rulingResult.results };
 }
 
-export async function GET(_request: Request, { params }: { params: Promise<{ code: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ code: string }> }) {
   const { code: rawCode } = await params;
   const code = decodeURIComponent(rawCode).trim().toUpperCase();
   if (!/^[A-Z0-9][A-Z0-9_-]{1,39}$/.test(code)) return Response.json({ error: 'Invalid card code.' }, { status: 400 });
   try {
-    const card = await fromD1(code);
+    const gameSlug=new URL(request.url).searchParams.get('game')?.toLowerCase()==='pokemon'?'pokemon':'one-piece';
+    const card = await fromD1(code,gameSlug);
     if (!card) return Response.json({ error: 'Card not found.' }, { status: 404 });
     return Response.json(card, { headers: { 'Cache-Control': 'public, max-age=300, stale-while-revalidate=86400', 'Cloudflare-CDN-Cache-Control': 'public, max-age=31536000, immutable' } });
   } catch { return Response.json({ error: 'Card details are temporarily unavailable.' }, { status: 503 }); }

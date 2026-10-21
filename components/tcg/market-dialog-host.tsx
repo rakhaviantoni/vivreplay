@@ -7,7 +7,7 @@ import type {MarketAccountPanel} from './market-quick-panel';
 const MarketSellDialog=lazy(()=>import('./market').then(module=>({default:module.Market})));
 const MarketAccountDialog=lazy(()=>import('./market-quick-panel').then(module=>({default:module.MarketQuickPanel})));
 
-type SellRequest={key:number;printingId?:string;type?:'WTS'|'WTB'};
+type SellRequest={key:number;printingId?:string;type?:'WTS'|'WTB';gameSlug:'one-piece'|'pokemon'};
 type AccountRequest={key:number;panel:MarketAccountPanel;profileTab?:'account'|'delivery'|'payouts';orderId?:string;conversationId?:string};
 
 export function MarketDialogHost({accountActions=true}:{accountActions?:boolean}){
@@ -18,8 +18,20 @@ export function MarketDialogHost({accountActions=true}:{accountActions?:boolean}
   const [accountRequest,setAccountRequest]=useState<AccountRequest|null>(null);
 
   useEffect(()=>{
-    const openPrinting=(event:Event)=>{const printingId=(event as CustomEvent<string>).detail;if(printingId)setSellRequest({key:++sequence.current,printingId})};
-    const openListing=(event:Event)=>{const type=(event as CustomEvent<'WTS'|'WTB'>).detail;setSellRequest({key:++sequence.current,type:type==='WTB'?'WTB':'WTS'})};
+    const currentGame=()=>{
+      const params=new URLSearchParams(window.location.search);
+      return params.get('game')==='pokemon'||/^\/(?:id\/)?pokemon(?:\/|$)/.test(window.location.pathname)?'pokemon':'one-piece';
+    };
+    const openPrinting=(event:Event)=>{
+      const detail=(event as CustomEvent<string|{printingId?:string;gameSlug?:'one-piece'|'pokemon'}>).detail;
+      const printingId=typeof detail==='string'?detail:detail?.printingId;
+      if(printingId)setSellRequest({key:++sequence.current,printingId,gameSlug:typeof detail==='string'?currentGame():detail.gameSlug??currentGame()});
+    };
+    const openListing=(event:Event)=>{
+      const detail=(event as CustomEvent<'WTS'|'WTB'|{type?:'WTS'|'WTB';gameSlug?:'one-piece'|'pokemon'}>).detail;
+      const type=typeof detail==='string'?detail:detail?.type;
+      setSellRequest({key:++sequence.current,type:type==='WTB'?'WTB':'WTS',gameSlug:typeof detail==='string'?currentGame():detail?.gameSlug??currentGame()});
+    };
     window.addEventListener('vivreplay:open-sell-printing',openPrinting);
     window.addEventListener('vivreplay:open-sell-listing',openListing);
     return()=>{window.removeEventListener('vivreplay:open-sell-printing',openPrinting);window.removeEventListener('vivreplay:open-sell-listing',openListing)};
@@ -55,7 +67,7 @@ export function MarketDialogHost({accountActions=true}:{accountActions?:boolean}
 
   const locale=typeof document!=='undefined'&&document.documentElement.lang.toLowerCase().startsWith('id')?'ID':'EN';
   return <>
-    {sellRequest&&<Suspense fallback={null}><MarketSellDialog key={sellRequest.key} modalOnly initialSellPrinting={sellRequest.printingId} initialSellType={sellRequest.type}/></Suspense>}
+    {sellRequest&&<Suspense fallback={null}><MarketSellDialog key={sellRequest.key} modalOnly initialSellPrinting={sellRequest.printingId} initialSellType={sellRequest.type} initialGameSlug={sellRequest.gameSlug}/></Suspense>}
     {data&&accountRequest&&<Suspense fallback={null}><MarketAccountDialog key={accountRequest.key} panel={accountRequest.panel} onOpenChange={open=>{if(!open)setAccountRequest(null)}} onPanelChange={panel=>setAccountRequest(current=>current?{...current,panel}:null)} locale={locale} account={data} activityCounts={{listings:0,offers:0,orders:0}} onCreateListing={()=>{setAccountRequest(null);window.dispatchEvent(new CustomEvent('vivreplay:open-sell-listing',{detail:'WTS'}))}} initialOrderId={accountRequest.orderId} initialConversationId={accountRequest.conversationId} initialProfileTab={accountRequest.profileTab} onRefresh={refresh} onSaved={async()=>{await refresh();setAccountRequest(null)}}/></Suspense>}
   </>;
 }

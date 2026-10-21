@@ -89,7 +89,7 @@ export function groupVaultStacks(items:EnrichedCollectionItem[]):VaultStackGroup
     const item=stack[0];
     const languages=[...new Set(stack.map(copy=>copy.language??copy.card.language??'EN'))];
     const conditions=[...new Set(stack.map(copy=>copy.condition||'NM'))];
-    const printLabels=[...new Set(stack.map(copy=>`${copy.language??copy.card.language??'EN'} · ${copy.variant??'Standard'}`))];
+    const printLabels=[...new Set(stack.map(copy=>`${copy.language??copy.card.language??'EN'} / ${copy.variant??'Standard'}`))];
     return {
       item,
       items:stack,

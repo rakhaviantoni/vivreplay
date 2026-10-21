@@ -18,7 +18,7 @@ export async function fulfillCheckoutOrder(database:ReturnType<typeof db>,order:
       FROM checkout_orders o JOIN profiles p ON p.id=o.buyer_id
       WHERE o.id=? AND o.status='PROCESSING' AND json_extract(o.details,'$.fulfillmentClaim')=?`).bind(crypto.randomUUID(),MARKET_PRO_SHIPPING_VOUCHERS_PER_YEAR,durationDays,order.id,claim));
     statements.push(
-      database.prepare(`UPDATE profiles SET tier='pro',pro_expires_at=datetime(max(COALESCE(pro_expires_at,CURRENT_TIMESTAMP),CURRENT_TIMESTAMP), '+' || ? || ' days') WHERE id=(SELECT buyer_id FROM checkout_orders WHERE id=? AND status='PROCESSING' AND json_extract(details,'$.fulfillmentClaim')=?)`).bind(durationDays,order.id,claim),
+      database.prepare(`UPDATE profiles SET tier='pro',pro_billing_period=?,pro_expires_at=datetime(max(COALESCE(pro_expires_at,CURRENT_TIMESTAMP),CURRENT_TIMESTAMP), '+' || ? || ' days') WHERE id=(SELECT buyer_id FROM checkout_orders WHERE id=? AND status='PROCESSING' AND json_extract(details,'$.fulfillmentClaim')=?)`).bind(billingPeriod,durationDays,order.id,claim),
       database.prepare("UPDATE checkout_orders SET status='PAID',details=json_remove(details,'$.fulfillmentClaim'),paid_at=COALESCE(paid_at,CURRENT_TIMESTAMP),fulfilled_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PROCESSING' AND json_extract(details,'$.fulfillmentClaim')=?").bind(order.id,claim),
     );
     const results=await database.batch(statements);

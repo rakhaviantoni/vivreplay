@@ -334,7 +334,7 @@ export function Vault() {
   };
 
   const handleSell = (item: EnrichedCollectionItem) => {
-    window.dispatchEvent(new CustomEvent('vivreplay:open-sell-printing',{detail:item.printingId}));
+    window.dispatchEvent(new CustomEvent('vivreplay:open-sell-printing',{detail:{printingId:item.printingId,gameSlug}}));
   };
 
   const handleFindListings = (code: string) => {
@@ -628,7 +628,7 @@ export function Vault() {
       {/* Tab 1: Collection */}
       {activeTab === 'collection' && (
         <section style={{ marginTop: '16px' }}>
-          {data?.profile && <div className="vault-bulk-listing-launch-row"><p>{t('Combine selected Vault cards into one Market listing.','Gabungkan beberapa kartu koleksi menjadi satu listing Market.')}</p><button type="button" className="vault-btn vault-btn-secondary" onClick={()=>setBulkListingOpen(true)}><Storefront size={16}/>{t('Create bundle listing','Buat listing bundle')}</button></div>}
+          {data?.profile && <div className="vault-bulk-listing-launch-row"><p>{t('Select cards to list together.','Pilih beberapa kartu untuk dijual bersama.')}</p><button type="button" className="vault-btn vault-btn-secondary" onClick={()=>setBulkListingOpen(true)}><Storefront size={16}/>{t('Create bundle listing','Buat listing bundle')}</button></div>}
           <VaultFilters
             filters={filters}
             onChangeFilters={setFilters}

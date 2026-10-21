@@ -3,12 +3,12 @@ import {sendMarketEmailOnce} from '@/lib/server/market-notifications';
 import {MARKET_REVIEW_WINDOW_MS} from '@/lib/market/review-window';
 import {sellerVaultDebits} from '@/lib/market/order-transfer';
 
-type Order={id:string;kind:string;buyerId:string;sellerId:string|null;items:string;currency:string;status:string;deliveredAt:string|null;title:string|null};
+type Order={id:string;kind:string;buyerId:string;sellerId:string|null;items:string;details:string|null;currency:string;status:string;deliveredAt:string|null;title:string|null};
 type Item={printingId:string;quantity:number;unitAmount?:number;condition?:string;instanceId?:string;listingId?:string};
 
 export async function completeDeliveredMarketOrder(orderId:string,buyerId:string,automatic=false){
   const database=db();
-  const order=await database.prepare(`SELECT o.id,o.kind,o.buyer_id AS buyerId,o.seller_id AS sellerId,o.items,o.currency,o.status,o.delivered_at AS deliveredAt,l.title
+  const order=await database.prepare(`SELECT o.id,o.kind,o.buyer_id AS buyerId,o.seller_id AS sellerId,o.items,o.details,o.currency,o.status,o.delivered_at AS deliveredAt,l.title
     FROM checkout_orders o LEFT JOIN listings l ON l.id=o.listing_id WHERE o.id=?`).bind(orderId).first<Order>();
   if(!order||order.buyerId!==buyerId)throw new HttpError(404,'Order was not found.');
   if(order.kind!=='MARKET')throw new HttpError(400,'Only Market orders can be added to your Vault.');
@@ -17,11 +17,13 @@ export async function completeDeliveredMarketOrder(orderId:string,buyerId:string
     if(automatic)return{completed:false,status:order.status};
     throw new HttpError(409,'The seller must arrange shipping before delivery can be confirmed.');
   }
-  if(!order.deliveredAt){
+  let shippingMethod='biteship';try{shippingMethod=JSON.parse(order.details||'{}').shippingMethod==='manual'?'manual':'biteship'}catch{}
+  if(automatic&&(!order.deliveredAt||shippingMethod==='manual'))return{completed:false,status:order.status};
+  if(!order.deliveredAt&&shippingMethod!=='manual'){
     if(automatic)return{completed:false,status:order.status};
     throw new HttpError(409,'The carrier has not marked this order as delivered yet.');
   }
-  if(automatic){
+  if(automatic&&order.deliveredAt){
     const delivered=Date.parse(/[zZ]|[+-]\d{2}:?\d{2}$/.test(order.deliveredAt)?order.deliveredAt:`${order.deliveredAt.replace(' ','T')}Z`);
     if(!Number.isFinite(delivered)||Date.now()-delivered<MARKET_REVIEW_WINDOW_MS)return{completed:false,status:order.status};
   }

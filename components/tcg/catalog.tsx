@@ -2,7 +2,7 @@
 
 import {useEffect, useMemo, useRef, useState, type ReactNode} from 'react';
 import Link from 'next/link';
-import {ArrowUpRightIcon, MagnifyingGlassIcon as Search, CheckIcon as Check, XIcon as X, CaretDownIcon as ChevronDown, SquaresFourIcon as Grid3X3} from '@phosphor-icons/react';
+import {ArrowUpRightIcon, MagnifyingGlassIcon as Search, CheckIcon as Check, XIcon as X, CaretDownIcon as ChevronDown, SquaresFourIcon as Grid3X3, SlidersHorizontalIcon as SlidersHorizontal} from '@phosphor-icons/react';
 import {useCatalogTools} from './catalog-tools';
 import {colors, type Card} from '@/packages/card-data/catalog';
 import {CardArt} from './card-art';
@@ -13,6 +13,7 @@ import {isPlayableSet, PREVIEW_CARD_CODES} from '@/packages/domain/release-avail
 import {splitArchetypeTraits} from './library-directory';
 import {versionedCardCatalogUrl} from '@/lib/card-catalog-cache';
 import {cardMatchesSearch,parseCardSearch} from '@/lib/card-search';
+import {Popover,PopoverContent,PopoverTrigger} from '@/components/ui/popover';
 
 type LibraryCard = Card & {setCode:string;setName:string;attribute:string;counter:number;block:string;keywords:string[];traits:string[];variant:string;printingCode:string};
 type FilterOption = string | {value:string;label:string;image?:string;group?:string};
@@ -59,16 +60,17 @@ export function Picker({value,onChange,options,label,leadingIcon}:{value:string;
   return <Select value={value} onValueChange={onChange}><SelectTrigger aria-label={label} className={leadingIcon?'picker-trigger-with-icon':''}>{leadingIcon&&<span className="picker-leading-icon" aria-hidden="true">{leadingIcon}</span>}<SelectValue/></SelectTrigger><SelectContent>{options.map(item=>{const option=typeof item==='string'?{value:item,label:item}:item;return <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>})}</SelectContent></Select>;
 }
 
-export function MultiFilter({label,values,selected,onToggle,searchPlaceholder}:{label:string;values:FilterOption[];selected:string[];onToggle:(value:string)=>void;searchPlaceholder?:string}) {
+export function MultiFilter({label,values,selected,onToggle,searchPlaceholder,portal=false}:{label:string;values:FilterOption[];selected:string[];onToggle:(value:string)=>void;searchPlaceholder?:string;portal?:boolean}) {
   const [open,setOpen]=useState(false); const [query,setQuery]=useState(''); const ref=useRef<HTMLDivElement>(null); const colour=label==='Colour'||label==='Warna'; const searchable=['Set','Archetype','Arketipe','Illustrator','Ilustrator','Rarity','Kelangkaan','Type','Tipe','Stage','Tahap','Attack energy','Energi serangan','Weakness','Kelemahan','Resistance','Resistansi'].includes(label);
   const matches=values.filter(item=>{const option=typeof item==='string'?{value:item,label:item}:item;return option.label.toLowerCase().includes(query.toLowerCase())||option.value.toLowerCase().includes(query.toLowerCase())});
   const hasGroups=values.some(item=>typeof item!=='string'&&Boolean(item.group));
   const matchGroups=new Map<string,FilterOption[]>();matches.forEach(item=>{const option=typeof item==='string'?{value:item,label:item}:item;const group=option.group??'';matchGroups.set(group,[...(matchGroups.get(group)??[]),item])});
   const renderOption=(item:FilterOption)=>{const option=typeof item==='string'?{value:item,label:item}:item;return <button type="button" key={option.value} onClick={()=>onToggle(option.value)} aria-pressed={selected.includes(option.value)}>{option.image&&<img className="filter-option-image" src={option.image} alt="" loading="lazy" onError={event=>{event.currentTarget.hidden=true}}/>}{!colour&&selected.includes(option.value)&&<Check size={14}/>} {colour&&<i className="filter-colour" style={{background:colors[option.value]}}/>}<span>{option.label}</span></button>};
-  useEffect(()=>{const close=(event:PointerEvent)=>{if(!ref.current?.contains(event.target as Node))setOpen(false)};const escape=(event:KeyboardEvent)=>{if(event.key==='Escape')setOpen(false)};document.addEventListener('pointerdown',close);document.addEventListener('keydown',escape);return()=>{document.removeEventListener('pointerdown',close);document.removeEventListener('keydown',escape)}},[]);
+  useEffect(()=>{if(portal)return;const close=(event:PointerEvent)=>{if(!ref.current?.contains(event.target as Node))setOpen(false)};const escape=(event:KeyboardEvent)=>{if(event.key==='Escape')setOpen(false)};document.addEventListener('pointerdown',close);document.addEventListener('keydown',escape);return()=>{document.removeEventListener('pointerdown',close);document.removeEventListener('keydown',escape)}},[portal]);
+  const options=<>{searchable&&<label className="filter-option-search"><Search size={14}/><input value={query} onChange={event=>setQuery(event.target.value)} placeholder={searchPlaceholder??`Find an ${label.toLowerCase()}`} autoFocus/></label>}{hasGroups?[...matchGroups].map(([group,items])=><div className="filter-option-group" key={group||'ungrouped'}>{group&&<strong>{group}</strong>}{items.map(renderOption)}</div>):matches.map(renderOption)}</>;
+  const trigger=<button type="button" className="filter-trigger" aria-expanded={open} onClick={()=>setOpen(value=>!value)}>{label}{selected.length>0&&<b>{selected.length}</b>}<ChevronDown size={14}/></button>;
   return <div ref={ref} className={`filter-menu ${open?'is-open':''} ${selected.length?'has-selection':''} ${colour?'colour-menu':''} ${label==='Set'?'set-menu':''}`}>
-    <button type="button" className="filter-trigger" aria-expanded={open} onClick={()=>setOpen(value=>!value)}>{label}{selected.length>0&&<b>{selected.length}</b>}<ChevronDown size={14}/></button>
-    {open&&<div className="filter-options">{searchable&&<label className="filter-option-search"><Search size={14}/><input value={query} onChange={event=>setQuery(event.target.value)} placeholder={searchPlaceholder??`Find an ${label.toLowerCase()}`} autoFocus/></label>}{hasGroups?[...matchGroups].map(([group,items])=><div className="filter-option-group" key={group||'ungrouped'}>{group&&<strong>{group}</strong>}{items.map(renderOption)}</div>):matches.map(renderOption)}</div>}
+    {portal?<Popover open={open} onOpenChange={setOpen}><PopoverTrigger asChild>{trigger}</PopoverTrigger><PopoverContent align="start" sideOffset={5} collisionPadding={12} className={`filter-options market-filter-popover${colour?' colour-menu':''}${label==='Set'?' set-menu':''}`}>{options}</PopoverContent></Popover>:<>{trigger}{open&&<div className="filter-options">{options}</div>}</>}
   </div>;
 }
 
@@ -154,6 +156,7 @@ export function Catalog({home=false,initialSet,initialArchetype,setPage=false,se
   const [locale,setLocale] = useState<'EN'|'ID'>('EN');
   const [gridColumns,setGridColumns] = useState('5');
   const [sortOrder,setSortOrder] = useState<SortOrder>('leaders-latest');
+  const [mobileFiltersOpen,setMobileFiltersOpen] = useState(false);
   const [preview,setPreview] = useState<Card>();
   const [previewOrigin,setPreviewOrigin] = useState<DOMRect>();
   const [liveCards,setLiveCards] = useState<LibraryCard[]>([]);
@@ -209,6 +212,7 @@ export function Catalog({home=false,initialSet,initialArchetype,setPage=false,se
   }).filter(card => cardMatchesSearch(card,cardSearch) && (!selectedColors.length || selectedColors.some(value=>card.color.includes(value))) && (!types.length || types.includes(card.type)) && (!rarities.length || rarities.includes(card.rarity)) && (!attributes.length || attributes.includes(card.attribute)) && (!counters.length || counters.includes(card.counter>0?`+${card.counter}`:(id?'Tanpa counter':'No counter'))) && (!keywords.length || keywords.some(value=>card.keywords.includes(value))) && (!traits.length || traits.some(value=>card.traits.includes(value))) && (!sets.length || sets.some(value=>cardBelongsToSet(card,value))) && (!blocks.length || blocks.includes(card.block)));
   const groups = Array.from(filtered.reduce((map,card)=>{const group=map.get(card.code)??[];group.push(card);map.set(card.code,group);return map},new Map<string,LibraryCard[]>()).values()).map(group=>[...new Map(group.sort((a,b)=>printingPriority(a)-printingPriority(b)||a.printingCode.localeCompare(b.printingCode)).map(card=>[card.printingCode,card])).values()]);
   const headerCards=useMemo(()=>{const scoped=setPage&&initialSet?liveCards.filter(card=>cardBelongsToSet(card,initialSet)):liveCards;const unique=Array.from(new Map(scoped.map(card=>[card.code,card])).values());return [...unique].sort((a,b)=>cardRailRank(a.code)-cardRailRank(b.code)).slice(0,6)},[liveCards,setPage,initialSet]);
+  const activeFilterCount=types.length+selectedColors.length+rarities.length+attributes.length+counters.length+keywords.length+traits.length+blocks.length+(!setPage?sets.length:0)+(color!=='All colors'?1:0);
 
   const typeOptions:FilterOption[] = [
     'Leader',
@@ -229,14 +233,15 @@ export function Catalog({home=false,initialSet,initialArchetype,setPage=false,se
       </div>
       <div className="library-intro-rail library-intro-random-rail library-intro-browse-rail"><div className="library-intro-rail-cards" aria-hidden="true">{headerCards.map((card,index)=><div className={`library-intro-rail-card rail-card-${index}`} key={card.id}><CardArt card={card}/></div>)}{!headerCards.length&&Array.from({length:6},(_,index)=><i className={`library-intro-rail-skeleton rail-card-${index}`} key={index}/>)}</div>{!setPage&&<Link className="library-intro-browse" href="/sets">{id?'Jelajahi set':'Browse sets'} <ArrowUpRightIcon size={15}/></Link>}</div>
     </section>
-    <section className="library-controls" aria-label={id?'Kontrol katalog kartu':'Card library controls'}>
+    <section className={`library-controls${mobileFiltersOpen?' mobile-filters-open':''}`} aria-label={id?'Kontrol katalog kartu':'Card library controls'}>
       <div className="filter-workbench">
         <label className="search-box">
           <Search size={16}/>
           <input placeholder={id?'Nama, kode, set, warna, tipe, biaya…':'Name, code, set, color, type, cost…'} value={query} onChange={e=>setQuery(e.target.value)}/>
           {query&&<button type="button" className="search-clear" onClick={()=>setQuery('')} aria-label={id?'Hapus pencarian':'Clear search'}><X size={12}/></button>}
         </label>
-        <div className="filter-primary">
+        <button type="button" className={`library-mobile-filter-toggle${mobileFiltersOpen?' is-open':''}`} aria-expanded={mobileFiltersOpen} aria-controls="opcg-library-facets" onClick={()=>setMobileFiltersOpen(value=>!value)}><SlidersHorizontal size={15}/><span>{id?'Filter':'Filters'}</span>{activeFilterCount>0&&<b>{activeFilterCount}</b>}<ChevronDown size={14}/></button>
+        <div className="filter-primary" id="opcg-library-facets">
           <MultiFilter label={id?'Tipe':'Type'} values={typeOptions} selected={types} onToggle={value=>setTypes(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])}/>
           <MultiFilter label={id?'Warna':'Colour'} values={Object.keys(colors)} selected={selectedColors} onToggle={value=>setSelectedColors(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])}/>
           <MultiFilter label={id?'Arketipe':'Archetype'} searchPlaceholder={id?'Cari arketipe':'Find an archetype'} values={[...new Set(liveCards.flatMap(card=>card.traits))].sort()} selected={traits} onToggle={value=>setTraits(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])}/>

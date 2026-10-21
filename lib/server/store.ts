@@ -127,7 +127,11 @@ export async function collection(ownerId:string){
 export async function savedDecks(ownerId:string){const rows=(await db().prepare(`SELECT d.id,d.name,d.visibility,v.id AS versionId,v.number AS version,v.leader_id AS leaderId FROM decks d JOIN deck_versions v ON v.deck_id=d.id WHERE d.owner_id=? AND d.deleted_at IS NULL AND v.number=(SELECT MAX(number) FROM deck_versions WHERE deck_id=d.id) ORDER BY d.created_at DESC`).bind(ownerId).all<Omit<SavedDeck,'cards'>>()).results;return Promise.all(rows.map(async r=>({...r,cards:(await db().prepare('SELECT card_id AS cardId,quantity FROM deck_entries WHERE version_id=?').bind(r.versionId).all<{cardId:string;quantity:number}>()).results})));}
 export async function market(viewerId?:string,listingIds?:string[],gameSlug?:'one-piece'|'pokemon'){
   const listingFilter=listingIds?.length?`AND l.id IN (${listingIds.map(()=>'?').join(',')})`:'';
-  const gameFilter=gameSlug?`AND EXISTS(SELECT 1 FROM card_printings fp JOIN card_identities fi ON fi.id=fp.identity_id JOIN games fg ON fg.id=fi.game_id WHERE fp.id=l.printing_id AND fg.slug=?)`:'';
+  const gameFilter=gameSlug?`AND ? IN (
+    SELECT fg.slug FROM card_printings fp JOIN card_identities fi ON fi.id=fp.identity_id JOIN games fg ON fg.id=fi.game_id WHERE fp.id=l.printing_id
+    UNION
+    SELECT bg.slug FROM json_each(l.items) entry JOIN card_printings bp ON bp.id=json_extract(entry.value,'$.printingId') JOIN card_identities bi ON bi.id=bp.identity_id JOIN games bg ON bg.id=bi.game_id
+  )`:'';
   const listingLimit=listingIds?.length??100;
   const rows = (await db().prepare(`
     SELECT
@@ -151,7 +155,7 @@ export async function market(viewerId?:string,listingIds?:string[],gameSlug?:'on
       l.seller_id AS sellerId,
       cp.image_url AS cardImageUrl,
       cp.language AS cardLanguage,
-      cp.rarity AS cardRarity,
+      COALESCE(cp.rarity,tcp.rarity) AS cardRarity,
       cp.set_code AS cardSetCode,
       cp.variant AS cardVariant,
       tcp.printing_code AS catalogPrintingCode,
@@ -233,7 +237,7 @@ export async function market(viewerId?:string,listingIds?:string[],gameSlug?:'on
   const bundleCards=new Map<string,Card>();
   for(let offset=0;offset<printingIds.length;offset+=80){
     const chunk=printingIds.slice(offset,offset+80);
-    const printingRows=(await db().prepare(`SELECT p.id AS printingId,p.image_url AS imageUrl,p.language,p.variant,p.printing_code AS printingCode,p.rarity,p.set_code AS setCode,i.id AS identityId,i.code,i.name,i.color,i.type,i.cost,i.power,i.effect,g.slug AS gameSlug,tcp.printing_code AS catalogPrintingCode,tca.object_key AS assetPath FROM card_printings p LEFT JOIN card_identities i ON i.id=p.identity_id LEFT JOIN games g ON g.id=i.game_id LEFT JOIN tcg_card_printings tcp ON tcp.id=p.id LEFT JOIN tcg_card_assets tca ON tca.printing_id=tcp.id AND tca.kind='small' WHERE p.id IN (${chunk.map(()=>'?').join(',')})`).bind(...chunk).all<{printingId:string;imageUrl:string|null;language:string;variant:string|null;printingCode:string|null;rarity:string|null;setCode:string|null;identityId:string|null;code:string|null;name:string|null;color:string|null;type:string|null;cost:number|null;power:number|null;effect:string|null;gameSlug:string|null;catalogPrintingCode:string|null;assetPath:string|null}>()).results;
+    const printingRows=(await db().prepare(`SELECT p.id AS printingId,p.image_url AS imageUrl,p.language,p.variant,p.printing_code AS printingCode,COALESCE(p.rarity,tcp.rarity) AS rarity,p.set_code AS setCode,i.id AS identityId,i.code,i.name,i.color,i.type,i.cost,i.power,i.effect,g.slug AS gameSlug,tcp.printing_code AS catalogPrintingCode,tca.object_key AS assetPath FROM card_printings p LEFT JOIN card_identities i ON i.id=p.identity_id LEFT JOIN games g ON g.id=i.game_id LEFT JOIN tcg_card_printings tcp ON tcp.id=p.id LEFT JOIN tcg_card_assets tca ON tca.printing_id=tcp.id AND tca.kind='small' WHERE p.id IN (${chunk.map(()=>'?').join(',')})`).bind(...chunk).all<{printingId:string;imageUrl:string|null;language:string;variant:string|null;printingCode:string|null;rarity:string|null;setCode:string|null;identityId:string|null;code:string|null;name:string|null;color:string|null;type:string|null;cost:number|null;power:number|null;effect:string|null;gameSlug:string|null;catalogPrintingCode:string|null;assetPath:string|null}>()).results;
     for(const item of printingRows){
       bundleCards.set(item.printingId,{id:item.identityId??item.printingId,code:item.code??item.printingCode??item.printingId,name:item.name??item.code??item.printingCode??item.printingId,color:item.color??'Red',type:(item.type as Card['type'])??'Character',cost:item.cost??0,power:item.power??0,rarity:item.rarity??'',art:0,effect:item.effect??'',imageUrl:item.imageUrl??undefined,imageSource:'external',setCode:item.setCode??undefined,language:item.language,printingCode:item.catalogPrintingCode??item.printingCode??item.code??undefined,assetPath:item.assetPath??undefined,variant:item.variant??'Standard',gameSlug:item.gameSlug??'one-piece'} as Card);
     }

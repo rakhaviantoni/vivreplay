@@ -1,7 +1,7 @@
 'use client';
 
 import { CaretDown, CaretUp, Circle, Drop, Eye, Flame, GearSix, HandFist, Leaf, Lightning, Moon, Star, Sun } from '@phosphor-icons/react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CSSProperties, ReactNode } from 'react';
 import { versionedCardCatalogUrl } from '@/lib/card-catalog-cache';
 
@@ -65,7 +65,7 @@ function EnergyCost({ cost, language }: { cost?: string[]; language: string }) {
   </span>;
 }
 
-function EnergySymbol({ type }: { type: string }) {
+export function EnergySymbol({ type }: { type: string }) {
   const normalizedType = energyTypeFromName(type);
   if (!normalizedType) return null;
   const energy = energySymbols[normalizedType];
@@ -76,20 +76,20 @@ function EnergySymbol({ type }: { type: string }) {
   </span>;
 }
 
-function energyTypeFromName(value: string): EnergyType | undefined {
-  const key = value.trim().toLocaleLowerCase().replace(/[\s_-]+/g, '');
+export function energyTypeFromName(value: string): EnergyType | undefined {
+  const key = value.trim().toLocaleLowerCase().replace(/[\s_-]+/g, '').replace(/^(?:basic|basicenergy|energy|energid?asar|energi)/, '').replace(/^(?:基本)/, '').replace(/(?:energy|エネルギー)$/, '');
   const localized: Record<string, EnergyType> = {
-    colorless: 'Colorless', normal: 'Colorless', 無色: 'Colorless',
-    grass: 'Grass', daun: 'Grass', 草: 'Grass',
-    fire: 'Fire', api: 'Fire', 炎: 'Fire',
-    water: 'Water', air: 'Water', 水: 'Water',
-    lightning: 'Lightning', electric: 'Lightning', listrik: 'Lightning', 雷: 'Lightning',
-    psychic: 'Psychic', psikis: 'Psychic', 超: 'Psychic',
-    fighting: 'Fighting', petarung: 'Fighting', 闘: 'Fighting',
-    darkness: 'Darkness', dark: 'Darkness', kegelapan: 'Darkness', 悪: 'Darkness',
-    metal: 'Metal', steel: 'Metal', logam: 'Metal', 鋼: 'Metal',
-    dragon: 'Dragon', naga: 'Dragon', 竜: 'Dragon',
-    fairy: 'Fairy', peri: 'Fairy', フェアリー: 'Fairy',
+    colorless: 'Colorless', normal: 'Colorless', 無色: 'Colorless', 無色エネルギー: 'Colorless',
+    grass: 'Grass', daun: 'Grass', 草: 'Grass', 草エネルギー: 'Grass',
+    fire: 'Fire', api: 'Fire', 炎: 'Fire', 炎エネルギー: 'Fire',
+    water: 'Water', air: 'Water', 水: 'Water', 水エネルギー: 'Water',
+    lightning: 'Lightning', electric: 'Lightning', listrik: 'Lightning', 雷: 'Lightning', 雷エネルギー: 'Lightning',
+    psychic: 'Psychic', psikis: 'Psychic', 超: 'Psychic', 超エネルギー: 'Psychic',
+    fighting: 'Fighting', petarung: 'Fighting', 闘: 'Fighting', 闘エネルギー: 'Fighting',
+    darkness: 'Darkness', dark: 'Darkness', kegelapan: 'Darkness', 悪: 'Darkness', 悪エネルギー: 'Darkness',
+    metal: 'Metal', steel: 'Metal', logam: 'Metal', 鋼: 'Metal', 鋼エネルギー: 'Metal',
+    dragon: 'Dragon', naga: 'Dragon', 竜: 'Dragon', 竜エネルギー: 'Dragon',
+    fairy: 'Fairy', peri: 'Fairy', フェアリー: 'Fairy', フェアリーエネルギー: 'Fairy',
   };
   return localized[key];
 }
@@ -238,19 +238,48 @@ function formatStage(stage: string, language: keyof typeof textByLanguage) {
 
 export function PokemonCardText({ code, name, language, source, onEvolutionSelect }: PokemonText & { onEvolutionSelect?: (code: string) => void }) {
   const [evolution, setEvolution] = useState<EvolutionNode | null>(null);
+  const [evolutionLoadedKey, setEvolutionLoadedKey] = useState('');
   const [evolutionVariants, setEvolutionVariants] = useState<Record<string, number>>({});
+  const evolutionTrackRef = useRef<HTMLDivElement>(null);
+  const [evolutionEdges, setEvolutionEdges] = useState({ left: false, right: false });
+  const predecessor = source?.evolvesFrom ?? source?.evolveFrom;
+  const evolutionRequestKey = `${code ?? ''}|${language}|${typeof predecessor === 'string' ? predecessor.trim() : ''}`;
+  const evolutionLoading = Boolean(code) && evolutionLoadedKey !== evolutionRequestKey;
   useEffect(() => {
-    if (!code) { setEvolution(null); return; }
+    if (!code) { setEvolution(null); setEvolutionLoadedKey(evolutionRequestKey); return; }
     const controller = new AbortController();
     const params = new URLSearchParams({ code, language });
-    const predecessor = source?.evolvesFrom ?? source?.evolveFrom;
     if (typeof predecessor === 'string' && predecessor.trim()) params.set('evolveFrom', predecessor.trim());
     fetch(versionedCardCatalogUrl(`/api/cards/catalog/evolution?${params}`), { signal: controller.signal })
       .then(async response => response.ok ? response.json() as Promise<{ evolution?: EvolutionNode | null }> : { evolution: null })
-      .then(result => setEvolution(result.evolution ?? null))
-      .catch(error => { if (error.name !== 'AbortError') setEvolution(null); });
+      .then(result => { setEvolution(result.evolution ?? null); setEvolutionLoadedKey(evolutionRequestKey); })
+      .catch(error => { if (error.name !== 'AbortError') { setEvolution(null); setEvolutionLoadedKey(evolutionRequestKey); } });
     return () => controller.abort();
-  }, [code, language, source?.evolvesFrom, source?.evolveFrom]);
+  }, [code, language, predecessor, evolutionRequestKey]);
+  const updateEvolutionEdges = useCallback(() => {
+    const track = evolutionTrackRef.current;
+    if (!track) return;
+    const maxScroll = Math.max(0, track.scrollWidth - track.clientWidth);
+    const left = track.scrollLeft > 2;
+    const right = maxScroll - track.scrollLeft > 2;
+    setEvolutionEdges(current => current.left === left && current.right === right ? current : { left, right });
+  }, []);
+  useEffect(() => {
+    const track = evolutionTrackRef.current;
+    if (!track) return;
+    const frame = requestAnimationFrame(updateEvolutionEdges);
+    const observer = new ResizeObserver(updateEvolutionEdges);
+    observer.observe(track);
+    if (track.firstElementChild) observer.observe(track.firstElementChild);
+    track.addEventListener('scroll', updateEvolutionEdges, { passive: true });
+    window.addEventListener('resize', updateEvolutionEdges);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+      track.removeEventListener('scroll', updateEvolutionEdges);
+      window.removeEventListener('resize', updateEvolutionEdges);
+    };
+  }, [code, evolution, updateEvolutionEdges]);
   if (!source) return null;
   const lang = (language === 'ID' || language === 'JP' ? language : 'EN') as keyof typeof textByLanguage;
   const copy = textByLanguage[lang];
@@ -258,8 +287,9 @@ export function PokemonCardText({ code, name, language, source, onEvolutionSelec
   const trainerEffect = trainerEffectText(source);
   const hasCardText = Boolean(source.attacks?.length || abilities.length || trainerEffect);
   const evolutionLevels = (() => {
-    if (!evolution) return [] as EvolutionNode[][];
-    const levels: EvolutionNode[][] = [[evolution]];
+    const currentEvolution = evolutionLoadedKey === evolutionRequestKey ? evolution : null;
+    if (!currentEvolution) return [] as EvolutionNode[][];
+    const levels: EvolutionNode[][] = [[currentEvolution]];
     for (let depth = 0; depth < 3; depth++) {
       const next = levels[depth].flatMap(node => node.children ?? []);
       if (!next.length) break;
@@ -267,10 +297,10 @@ export function PokemonCardText({ code, name, language, source, onEvolutionSelec
     }
     return levels;
   })();
-  const hasFacts = Boolean(source.stage || source.evolvesFrom || source.evolveFrom || source.weaknesses?.length || source.resistances?.length || source.retreat !== undefined);
+  const hasFacts = Boolean(evolutionLoading || source.stage || source.evolvesFrom || source.evolveFrom || source.weaknesses?.length || source.resistances?.length || source.retreat !== undefined);
   const currentName = name ?? '';
   const fallbackStage = /\s+VSTAR$/i.test(currentName) ? 'VSTAR' : /\s+VMAX$/i.test(currentName) ? 'VMAX' : source.stage ?? '';
-  const stageNodes = evolutionLevels.length ? (() => {
+  const stageNodes = evolutionLoading ? [] : evolutionLevels.length ? (() => {
     const groups = new Map<string, EvolutionNode[]>();
     evolutionLevels.forEach((level, depth) => level.forEach(node => {
       const normalized = node.code === code && !node.stage ? { ...node, stage: source.stage ?? '' } : node;
@@ -299,9 +329,8 @@ export function PokemonCardText({ code, name, language, source, onEvolutionSelec
     {source.attacks?.length ? <section className="pokemon-card-rules" aria-label={copy.attacks}>{source.attacks.map((attack, index) => <article className="pokemon-card-attack" key={`${attack.name ?? 'attack'}-${index}`}><header><EnergyCost cost={attack.cost} language={lang}/><strong><PokemonMechanicText text={attack.name}/></strong>{attack.damage !== undefined && attack.damage !== '' && <b>{attack.damage}</b>}</header><RuleCopy text={attack.effect}/></article>)}</section> : null}
     {trainerEffect && !source.attacks?.length && !abilities.length ? <section className="pokemon-card-rules"><h3>{typeof source.trainerType === 'string' && source.trainerType.trim() ? source.trainerType : copy.trainer}</h3><RuleCopy text={trainerEffect}/></section> : null}
     {hasFacts && <section className="pokemon-card-facts">
-      {stageNodes.length > 0 && <section className={`pokemon-evolution${stageNodes.length === 1 ? ' is-single' : ''}`} aria-label={lang === 'ID' ? 'Evolusi' : lang === 'JP' ? '進化' : 'Evolution'}>
-        <h4>{lang === 'ID' ? 'Evolusi' : lang === 'JP' ? '進化' : 'Evolution'}</h4>
-        <div className="pokemon-evolution-track" style={{ '--pokemon-evolution-stage-count': stageNodes.length, '--pokemon-evolution-stage-columns': stageColumns } as CSSProperties}>{stageNodes.map((nodes, depth) => <div className="pokemon-evolution-group" key={`step-${depth}`}>
+      {stageNodes.length > 0 && <section className={`pokemon-evolution${stageNodes.length === 1 ? ' is-single' : ''}${evolutionEdges.left ? ' has-left-overflow' : ''}${evolutionEdges.right ? ' has-right-overflow' : ''}`} aria-label={lang === 'ID' ? 'Evolusi' : lang === 'JP' ? '進化' : 'Evolution'}>
+        <div ref={evolutionTrackRef} className="pokemon-evolution-track" style={{ '--pokemon-evolution-stage-count': stageNodes.length, '--pokemon-evolution-stage-columns': stageColumns } as CSSProperties}>{stageNodes.map((nodes, depth) => <div className="pokemon-evolution-group" key={`step-${depth}`}>
           {depth > 0 && <span className="pokemon-evolution-arrow" aria-hidden="true"/>}
           <div className="pokemon-evolution-step">
             <small>{stageNames(nodes[0]?.stage ?? '', depth)}</small>
@@ -338,6 +367,9 @@ export function PokemonCardText({ code, name, language, source, onEvolutionSelec
             })}{nodes.length > 8 && <span className="pokemon-evolution-more">+{nodes.length - 8}</span>}</div>
           </div>
         </div>)}</div>
+      </section>}
+      {!stageNodes.length && evolutionLoading && <section className="pokemon-evolution pokemon-evolution-loading" role="status" aria-label={lang === 'ID' ? 'Memuat evolusi' : lang === 'JP' ? '進化を読み込み中' : 'Loading evolution'}>
+        <div className="pokemon-evolution-track" aria-hidden="true"><div className="pokemon-evolution-skeleton-step"><i/><b/><i/></div><span className="pokemon-evolution-skeleton-arrow"/><div className="pokemon-evolution-skeleton-step"><i/><b/><i/></div></div>
       </section>}
       {(source.weaknesses?.length || source.resistances?.length || source.retreat !== undefined) && <dl className="pokemon-fact-combat"><div><dt>{copy.weakness}</dt><dd>{energyValues(source.weaknesses)}</dd></div><div><dt>{copy.resistance}</dt><dd>{energyValues(source.resistances)}</dd></div><div><dt>{copy.retreat}</dt><dd>{source.retreat !== undefined && source.retreat > 0 ? <EnergyCost cost={Array.from({ length: Math.min(source.retreat, 10) }, () => 'Colorless')} language={lang}/> : <span className="pokemon-fact-dash">—</span>}</dd></div></dl>}
     </section>}

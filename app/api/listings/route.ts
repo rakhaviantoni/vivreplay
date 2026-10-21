@@ -3,11 +3,11 @@ import {notifyListingWatchers} from '@/lib/server/market-watch-alerts';
 import {z} from 'zod';
 import {user,db,errorResponse,guard,market,HttpError} from '@/lib/server/store';
 import {getDynamicListingPolicy,computeListingExpiration} from '@/lib/market/policy';
-import {MARKET_MAX_COPIES_PER_CARD,MARKET_MAX_LISTING_COPIES,listingLimitMessage} from '@/lib/market/listing-limits';
+import {MARKET_MAX_COPIES_PER_CARD,MARKET_ABSOLUTE_MAX_LISTING_COPIES,listingLimitMessage} from '@/lib/market/listing-limits';
 import {enforceMarketListingLimits} from '@/lib/server/market-listing-limits';
 
 const itemSchema=z.object({instanceId:z.string().uuid().optional(),printingId:z.string(),quantity:z.number().int().positive().max(MARKET_MAX_COPIES_PER_CARD),condition:z.string().optional(),unitAmount:z.number().int().nonnegative().optional()});
-const schema=z.object({instanceId:z.string().uuid().optional(),amount:z.number().int().positive().max(100000000000),quantity:z.number().int().positive().max(MARKET_MAX_LISTING_COPIES),city:z.string().trim().min(2).max(60),title:z.string().trim().min(3).max(100),type:z.enum(['WTS','WTB']).default('WTS'),negotiable:z.boolean().default(true),items:z.array(itemSchema).min(1).max(MARKET_MAX_LISTING_COPIES).optional()});
+const schema=z.object({instanceId:z.string().uuid().optional(),amount:z.number().int().positive().max(100000000000),quantity:z.number().int().positive().max(MARKET_ABSOLUTE_MAX_LISTING_COPIES),city:z.string().trim().min(2).max(60),title:z.string().trim().min(3).max(100),type:z.enum(['WTS','WTB']).default('WTS'),negotiable:z.boolean().default(true),items:z.array(itemSchema).min(1).max(MARKET_ABSOLUTE_MAX_LISTING_COPIES).optional()});
 
 async function ensureMarketPrintings(database:ReturnType<typeof db>,printingIds:string[]){
   const placeholders=printingIds.map(()=>'?').join(',');
@@ -41,12 +41,6 @@ async function ensureMarketPrintings(database:ReturnType<typeof db>,printingIds:
   const verified=await database.prepare(`SELECT id FROM card_printings WHERE id IN (${placeholders})`).bind(...printingIds).all<{id:string}>();
   if((verified.results??[]).length!==printingIds.length)throw new HttpError(400,'One or more selected printings are not available in Market yet. Refresh the catalog and try again.');
 }
-async function ensureSingleGameBundle(database:ReturnType<typeof db>,printingIds:string[]){
-  if(!printingIds.length)return;
-  const {results}=await database.prepare(`SELECT DISTINCT g.slug FROM card_printings p JOIN card_identities i ON i.id=p.identity_id JOIN games g ON g.id=i.game_id WHERE p.id IN (${printingIds.map(()=>'?').join(',')})`).bind(...printingIds).all<{slug:string}>();
-  if(results.length!==1)throw new HttpError(400,'Keep each listing within one card game.');
-}
-
 export async function GET(request:Request){
   try{
     const idsParam=new URL(request.url).searchParams.get('ids');
@@ -66,7 +60,7 @@ export async function POST(request:Request){
     const profile=await user();
     if(profile.region!=='ID')throw new HttpError(403,'Seller listings currently require an Indonesian profile. Global collection and deck access remain available.');
     const database=db();
-    const policy=await getDynamicListingPolicy(profile.tier,database);
+    const policy=await getDynamicListingPolicy(profile.tier,database,profile.pro_billing_period);
     const activeCount=await database.prepare("SELECT COUNT(*) AS total FROM listings WHERE seller_id=? AND status='ACTIVE' AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)").bind(profile.id).first<{total:number}>();
     if((activeCount?.total??0)>=policy.maxActiveListings)throw new HttpError(400,`You have reached the limit of ${policy.maxActiveListings} active listings for your account.`);
 
@@ -84,8 +78,7 @@ export async function POST(request:Request){
       if(bundle.some(item=>!item.unitAmount||item.unitAmount<1)||bundleAmount!==value.amount)throw new HttpError(400,'Set a price for each card and make sure the total matches.');
       const printingIds=[...new Set(bundle.map(item=>item.printingId))];
       await ensureMarketPrintings(database,printingIds);
-      await ensureSingleGameBundle(database,printingIds);
-      await enforceMarketListingLimits(database,bundle);
+      await enforceMarketListingLimits(database,bundle,policy);
       const placeholders=printingIds.map(()=>'?').join(',');
       const known=await database.prepare(`SELECT id FROM card_printings WHERE id IN (${placeholders})`).bind(...printingIds).all<{id:string}>();
       if((known.results??[]).length!==printingIds.length)throw new HttpError(400,'One or more selected printings are not available in Market yet. Refresh the catalog and try again.');
@@ -97,16 +90,15 @@ export async function POST(request:Request){
       after(()=>notifyListingWatchers(id));
       return Response.json({id,expiresAt,durationDays:policy.durationDays},{status:201});
     }
-    if(!bundle&&value.quantity>MARKET_MAX_COPIES_PER_CARD){
-      throw new HttpError(400,listingLimitMessage('too-many-copies-of-card'));
+    if(!bundle&&value.quantity>policy.maxCopiesPerCard){
+      throw new HttpError(400,listingLimitMessage('too-many-copies-of-card','EN',policy));
     }
     if(!value.instanceId)throw new HttpError(400,'Choose an owned item and available quantity.');
     const primary=await database.prepare('SELECT printing_id,quantity,condition FROM collectible_instances WHERE id=? AND owner_id=? AND deleted_at IS NULL').bind(value.instanceId,profile.id).first<{printing_id:string;quantity:number;condition:string}>();
     if(!primary)throw new HttpError(400,'Choose an owned item and available quantity.');
 
     if(bundle){
-      await ensureSingleGameBundle(database,[...new Set(bundle.map(item=>item.printingId))]);
-      await enforceMarketListingLimits(database,bundle);
+      await enforceMarketListingLimits(database,bundle,policy);
       if(bundle[0].instanceId!==value.instanceId||bundle[0].printingId!==primary.printing_id)throw new HttpError(400,'The first bundle card must match the selected Vault item.');
       const bundleQuantity=bundle.reduce((sum,item)=>sum+item.quantity,0);
       if(bundleQuantity!==value.quantity)throw new HttpError(400,'The listing quantity must match the combined bundle quantity.');

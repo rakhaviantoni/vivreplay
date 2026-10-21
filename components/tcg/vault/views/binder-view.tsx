@@ -13,6 +13,7 @@ import type { EnrichedCollectionItem } from '../types';
 import { CardArt } from '../card-art';
 import { CardStackControls } from './card-stack-controls';
 import { groupVaultStacks } from '../vault-utils';
+import {VaultSlotSlabPlate} from './vault-slot-slab-plate';
 
 interface BinderViewProps {
   items: EnrichedCollectionItem[];
@@ -104,9 +105,9 @@ export function BinderView({
       {/* Binder Page Archival Header */}
       <div className="vault-binder-page-header">
         <div className="vault-binder-page-title">
-          <span>Digital Binder Archive</span>
-          <span style={{ margin: '0 8px', opacity: 0.5 }}>·</span>
-          <span>{stacks.length} cards catalogued · drag to reorder</span>
+          <strong>Binder</strong>
+          <span className="vault-binder-card-count">{stacks.length} cards</span>
+          <span className="vault-binder-reorder-hint">Drag cards to reorder</span>
         </div>
 
         {/* Page Turnover Pagination */}
@@ -168,15 +169,14 @@ export function BinderView({
               onKeyDown={e => { if(e.altKey&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();const index=stacks.findIndex(stack=>stack.item.id===item.id);const delta=e.key==='ArrowLeft'||e.key==='ArrowUp'?-1:1;const target=stacks[index+delta];if(target)reorder(item.id,target.item.id);}else if (e.key === 'Enter') onSelectItem(item); }}
             >
               {/* Card Art Stage with depth and soft shadow */}
-              <div className="vault-slot-card-stage">
+              {isGraded&&<VaultSlotSlabPlate item={item}/>}
+              <div className={`vault-slot-card-stage${item.card.gameSlug==='pokemon'?' is-pokemon':''}`}>
                 <CardArt card={item.card} />
 
                 {/* Badges Overlay */}
                 <div className="vault-slot-badges-top">
                   <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                    <span className="vault-badge-qty">
-                      {isGraded ? 'SLAB' : `x${stack.quantity}`}
-                    </span>
+                    {!isGraded&&<span className="vault-badge-qty">x{stack.quantity}</span>}
                     <span className="vault-badge-lang">{lang}</span>
                   </div>
 
@@ -193,11 +193,7 @@ export function BinderView({
 
                 {/* Grade or Condition pill on bottom of card */}
                 <div className="vault-slot-badge-bottom">
-                  {isGraded ? (
-                    <span className="vault-grade-pill">
-                      <b>{item.provider || 'PSA'}</b> {item.grade || '10'}
-                    </span>
-                  ) : (
+                  {!isGraded&&(
                     <span className="vault-raw-pill">
                       {stack.conditionLabel}
                     </span>
@@ -209,7 +205,7 @@ export function BinderView({
               <div className="vault-slot-info">
                 <h4 className="vault-slot-name">{item.card.name}</h4>
                 <div className="vault-slot-meta-row">
-                  <span>{item.card.code} · {stack.printingLabel}</span>
+                  <span className="vault-slot-meta-identity"><b>{item.card.code}</b><span>{stack.printingLabel}</span></span>
                   {!hideValues && (
                     <span className="vault-slot-value">
                     {stack.item.hasMarketEstimate ? formatCompactMoney(stack.estimatedValue, 'IDR') : '-'}

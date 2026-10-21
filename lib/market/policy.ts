@@ -4,11 +4,15 @@ export interface ListingTierPolicy {
   tier: AccountTier;
   durationDays: number;
   maxActiveListings: number;
+  maxListingCopies: number;
+  maxCopiesPerCard: number;
+  maxCardTypes: number;
   canAutoRenew: boolean;
   commissionPercent: number;
 }
 
 export interface MarketPolicies extends Record<AccountTier, ListingTierPolicy> {
+  proAnnual: ListingTierPolicy;
   buyerFeeMinimum: number;
   sellerFeeMinimum: number;
   shippingVoucherMinSubtotal: number;
@@ -21,14 +25,30 @@ export const LISTING_POLICIES: MarketPolicies = {
   free: {
     tier: 'free',
     durationDays: 7,
-    maxActiveListings: 25,
+    maxActiveListings: 10,
+    maxListingCopies: 51,
+    maxCopiesPerCard: 4,
+    maxCardTypes: 51,
     canAutoRenew: false,
     commissionPercent: 1.5,
   },
   pro: {
     tier: 'pro',
     durationDays: 30,
-    maxActiveListings: 2500,
+    maxActiveListings: 500,
+    maxListingCopies: 75,
+    maxCopiesPerCard: 10,
+    maxCardTypes: 75,
+    canAutoRenew: true,
+    commissionPercent: 0.75,
+  },
+  proAnnual: {
+    tier: 'pro',
+    durationDays: 30,
+    maxActiveListings: 1000,
+    maxListingCopies: 100,
+    maxCopiesPerCard: 20,
+    maxCardTypes: 100,
     canAutoRenew: true,
     commissionPercent: 0.75,
   },
@@ -36,6 +56,10 @@ export const LISTING_POLICIES: MarketPolicies = {
   sellerFeeMinimum: MARKET_SELLER_FEE_MINIMUM,
   shippingVoucherMinSubtotal: 500_000,
 };
+
+function positiveLimit(value:unknown,fallback:number,max:number){
+  return Math.min(max,Math.max(1,Number(value)||fallback));
+}
 
 export const MARKET_BUYER_FEE_PERCENT = LISTING_POLICIES.free.commissionPercent;
 export const MARKET_PRO_BUYER_FEE_PERCENT = LISTING_POLICIES.pro.commissionPercent;
@@ -81,6 +105,9 @@ export function parseMarketPolicies(rawJson: string | null | undefined): MarketP
         tier: 'free',
         durationDays: Math.max(1, Number(parsed.free?.durationDays) || LISTING_POLICIES.free.durationDays),
         maxActiveListings: Math.max(1, Number(parsed.free?.maxActiveListings) || LISTING_POLICIES.free.maxActiveListings),
+        maxListingCopies: positiveLimit(parsed.free?.maxListingCopies,LISTING_POLICIES.free.maxListingCopies,100),
+        maxCopiesPerCard: positiveLimit(parsed.free?.maxCopiesPerCard,LISTING_POLICIES.free.maxCopiesPerCard,20),
+        maxCardTypes: positiveLimit(parsed.free?.maxCardTypes,LISTING_POLICIES.free.maxCardTypes,100),
         canAutoRenew: Boolean(parsed.free?.canAutoRenew),
         commissionPercent: Number.isFinite(Number(parsed.free?.commissionPercent)) ? Math.max(0, Number(parsed.free.commissionPercent)) : LISTING_POLICIES.free.commissionPercent,
       },
@@ -88,8 +115,21 @@ export function parseMarketPolicies(rawJson: string | null | undefined): MarketP
         tier: 'pro',
         durationDays: Math.max(1, Number(parsed.pro?.durationDays) || LISTING_POLICIES.pro.durationDays),
         maxActiveListings: Math.max(1, Number(parsed.pro?.maxActiveListings) || LISTING_POLICIES.pro.maxActiveListings),
+        maxListingCopies: positiveLimit(parsed.pro?.maxListingCopies,LISTING_POLICIES.pro.maxListingCopies,100),
+        maxCopiesPerCard: positiveLimit(parsed.pro?.maxCopiesPerCard,LISTING_POLICIES.pro.maxCopiesPerCard,20),
+        maxCardTypes: positiveLimit(parsed.pro?.maxCardTypes,LISTING_POLICIES.pro.maxCardTypes,100),
         canAutoRenew: parsed.pro?.canAutoRenew !== false,
         commissionPercent: Number.isFinite(Number(parsed.pro?.commissionPercent)) ? Math.max(0, Number(parsed.pro.commissionPercent)) : LISTING_POLICIES.pro.commissionPercent,
+      },
+      proAnnual: {
+        tier: 'pro',
+        durationDays: Math.max(1, Number(parsed.proAnnual?.durationDays) || LISTING_POLICIES.proAnnual.durationDays),
+        maxActiveListings: Math.max(1, Number(parsed.proAnnual?.maxActiveListings) || LISTING_POLICIES.proAnnual.maxActiveListings),
+        maxListingCopies: positiveLimit(parsed.proAnnual?.maxListingCopies,LISTING_POLICIES.proAnnual.maxListingCopies,100),
+        maxCopiesPerCard: positiveLimit(parsed.proAnnual?.maxCopiesPerCard,LISTING_POLICIES.proAnnual.maxCopiesPerCard,20),
+        maxCardTypes: positiveLimit(parsed.proAnnual?.maxCardTypes,LISTING_POLICIES.proAnnual.maxCardTypes,100),
+        canAutoRenew: parsed.proAnnual?.canAutoRenew !== false,
+        commissionPercent: Number.isFinite(Number(parsed.proAnnual?.commissionPercent)) ? Math.max(0, Number(parsed.proAnnual.commissionPercent)) : LISTING_POLICIES.proAnnual.commissionPercent,
       },
       buyerFeeMinimum: Number.isSafeInteger(parsed.buyerFeeMinimum) ? Math.max(0, Math.min(100_000, parsed.buyerFeeMinimum)) : LISTING_POLICIES.buyerFeeMinimum,
       sellerFeeMinimum: Number.isSafeInteger(parsed.sellerFeeMinimum) ? Math.max(0, Math.min(100_000, parsed.sellerFeeMinimum)) : LISTING_POLICIES.sellerFeeMinimum,
@@ -109,16 +149,16 @@ export async function fetchMarketPolicies(db: any): Promise<MarketPolicies> {
   }
 }
 
-export async function getDynamicListingPolicy(tier: string | null | undefined, db: any): Promise<ListingTierPolicy> {
+export async function getDynamicListingPolicy(tier: string | null | undefined, db: any, billingPeriod: string | null | undefined = 'monthly'): Promise<ListingTierPolicy> {
   const policies = await fetchMarketPolicies(db);
   const normalized = (tier ?? '').trim().toLowerCase();
-  if (normalized === 'pro') return policies.pro;
+  if (normalized === 'pro') return billingPeriod === 'yearly' ? policies.proAnnual : policies.pro;
   return policies.free;
 }
 
-export function getListingPolicy(tier?: string | null): ListingTierPolicy {
+export function getListingPolicy(tier?: string | null, billingPeriod?: string | null): ListingTierPolicy {
   const normalized = (tier ?? '').trim().toLowerCase();
-  if (normalized === 'pro') return LISTING_POLICIES.pro;
+  if (normalized === 'pro') return billingPeriod === 'yearly' ? LISTING_POLICIES.proAnnual : LISTING_POLICIES.pro;
   return LISTING_POLICIES.free;
 }
 

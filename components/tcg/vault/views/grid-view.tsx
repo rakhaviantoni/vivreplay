@@ -8,6 +8,7 @@ import type { EnrichedCollectionItem } from '../types';
 import { CardStackControls } from './card-stack-controls';
 import { VaultStackArt } from './vault-stack-art';
 import { groupVaultStacks } from '../vault-utils';
+import {VaultSlotSlabPlate} from './vault-slot-slab-plate';
 
 interface GridViewProps {
   items: EnrichedCollectionItem[];
@@ -49,14 +50,13 @@ export function GridView({
             tabIndex={0}
             onKeyDown={e => { if (e.key === 'Enter') onSelectItem(item); }}
           >
-            <div className="vault-slot-card-stage">
+            {isGraded&&<VaultSlotSlabPlate item={item}/>}
+            <div className={`vault-slot-card-stage${item.card.gameSlug==='pokemon'?' is-pokemon':''}`}>
               <VaultStackArt items={stack.items} quantity={stack.quantity}/>
 
               <div className="vault-slot-badges-top">
                 <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                  <span className="vault-badge-qty">
-                    {isGraded ? 'SLAB' : `x${stack.quantity}`}
-                  </span>
+                  {!isGraded&&<span className="vault-badge-qty">x{stack.quantity}</span>}
                   <span className="vault-badge-lang">{lang}</span>
                 </div>
 
@@ -71,11 +71,7 @@ export function GridView({
               </div>
 
               <div className="vault-slot-badge-bottom">
-                {isGraded ? (
-                  <span className="vault-grade-pill">
-                    <b>{item.provider || 'PSA'}</b> {item.grade || '10'}
-                  </span>
-                ) : (
+                {!isGraded&&(
                     <span className="vault-raw-pill">
                     {stack.conditionLabel}
                   </span>
@@ -86,7 +82,7 @@ export function GridView({
               <div className="vault-slot-info">
               <h4 className="vault-slot-name">{item.card.name}</h4>
               <div className="vault-slot-meta-row">
-                <span>{item.card.code} · {stack.printingLabel}</span>
+                <span className="vault-slot-meta-identity"><b>{item.card.code}</b><span>{stack.printingLabel}</span></span>
                 {!hideValues && (
                   <span className="vault-slot-value">
                     {stack.item.hasMarketEstimate ? formatCompactMoney(stack.estimatedValue, 'IDR') : '-'}

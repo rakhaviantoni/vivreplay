@@ -382,6 +382,7 @@ export function AddEditItemModal({
       position: 'fixed',
       inset: 0,
       zIndex: 700,
+      pointerEvents: 'auto',
       background: 'rgba(10, 12, 16, 0.75)',
       backdropFilter: 'blur(7px)',
       display: 'flex',
@@ -448,9 +449,8 @@ export function AddEditItemModal({
             </div>}
           </div>
 
-          <section className="vault-printing-picker" aria-labelledby="vault-printing-heading">
-            <div className="vault-printing-heading-row"><div><label id="vault-printing-heading">Printing &amp; language</label><p>Choose the exact artwork and language you own.</p></div><span>{hasSelectedIdentity?`${languagePrintings.length} ${languagePrintings.length === 1 ? 'printing' : 'printings'}`:''}</span></div>
-            {!hasSelectedIdentity ? <p className="vault-printing-empty">Choose a card to see its available printings.</p> : <>
+          {hasSelectedIdentity&&<section className="vault-printing-picker" aria-labelledby="vault-printing-heading">
+            <div className="vault-printing-heading-row"><div><label id="vault-printing-heading">Printing &amp; language</label><p>Choose the exact set and language you own.</p></div><span>{`${languagePrintings.length} ${languagePrintings.length === 1 ? 'printing' : 'printings'}`}</span></div>
             {availableLanguages.length > 0 && <div className="vault-language-options" role="group" aria-label="Card language">
               {availableLanguages.map(lang => <button type="button" key={lang} className={cardLanguage === lang ? 'active' : ''} onClick={() => {setCardLanguage(lang);const next=uniquePrintingOptions.find(printing=>printing.language===lang);setSelectedPrintingId(next?.id??'');}}>{lang === 'JP' ? '日本語 / JP' : lang==='ID'?'Bahasa Indonesia / ID':'English / EN'}</button>)}
             </div>}
@@ -468,8 +468,7 @@ export function AddEditItemModal({
               {!languagePrintings.length && <p className="vault-printing-empty">{catalogLoading ? 'Loading available printings…' : 'No printings are listed for this language.'}</p>}
             </div>
             {targetLanguage === 'JP' && targetPrinting && <div className="vault-yuyutei-pricing"><p>Japanese market reference</p><CardMarketPanel printingId={targetPrinting.id} printing={{language:targetPrinting.language,setCode:targetPrinting.set_code,printingCode:targetPrinting.printing_code,variant:targetPrinting.variant}} onMarketPrice={onMarketPrice}/></div>}
-            </>}
-          </section>
+          </section>}
 
           {/* Format Selector: Raw Card vs Graded Slab */}
           <div>

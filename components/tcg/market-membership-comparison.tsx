@@ -1,19 +1,26 @@
 'use client';
 
 import {MarketServiceFeeInfo} from '@/components/tcg/market-buyer-fee-cap-table';
-import {MARKET_MAX_COPIES_PER_CARD,MARKET_MAX_LISTING_COPIES} from '@/lib/market/listing-limits';
 
-export function MarketMembershipComparison({locale,period,freeListings,proListings,freeDays,proDays,freeFee,proFee,buyerMinimum,sellerMinimum,monthlyVouchers,annualVouchers,loading=false}:{locale:'EN'|'ID';period:'monthly'|'yearly';freeListings:number;proListings:number;freeDays:number;proDays:number;freeFee:number;proFee:number;buyerMinimum:number;sellerMinimum:number;monthlyVouchers:number;annualVouchers:number;loading?:boolean}){
+type BundleLimits={maxListingCopies:number;maxCopiesPerCard:number;maxCardTypes:number};
+export function MarketMembershipComparison({locale,selectedPeriod,freeListings,monthlyListings,annualListings,freeDays,proDays,freeBundle,monthlyBundle,annualBundle,freeFee,proFee,buyerMinimum,sellerMinimum,monthlyVouchers,annualVouchers,loading=false}:{locale:'EN'|'ID';selectedPeriod:'monthly'|'yearly';freeListings:number;monthlyListings:number;annualListings:number;freeDays:number;proDays:number;freeBundle:BundleLimits;monthlyBundle:BundleLimits;annualBundle:BundleLimits;freeFee:number;proFee:number;buyerMinimum:number;sellerMinimum:number;monthlyVouchers:number;annualVouchers:number;loading?:boolean}){
   const id=locale==='ID';
   const t=(en:string,ind:string)=>id?ind:en;
+  const format=(value:number)=>value.toLocaleString(id?'id-ID':'en-US');
+  const bundleLabel=(limits:BundleLimits)=>`${format(limits.maxListingCopies)} ${t('total','total')}, ${format(limits.maxCopiesPerCard)} ${t('per card','per kartu')}`;
+  const selectedIsAnnual=selectedPeriod==='yearly';
+  const proLabel=selectedIsAnnual?t('Pro annual','Pro tahunan'):t('Pro monthly','Pro bulanan');
+  const selectedListings=selectedIsAnnual?annualListings:monthlyListings;
+  const selectedBundle=selectedIsAnnual?annualBundle:monthlyBundle;
+  const selectedVoucher=selectedIsAnnual?`${annualVouchers} / ${t('year, use any time','tahun, bebas digunakan')}`:`${monthlyVouchers} / ${t('month','bulan')}`;
   const rows=[
-    [t('Active listings','Listing aktif'),freeListings.toLocaleString(id?'id-ID':'en-US'),proListings.toLocaleString(id?'id-ID':'en-US')],
+    [t('Active listings','Listing aktif'),format(freeListings),format(selectedListings)],
+    [t('Cards per listing','Kartu per listing'),bundleLabel(freeBundle),bundleLabel(selectedBundle)],
     [t('Listing period','Masa tayang'),`${freeDays} ${t('days','hari')}`,`${proDays} ${t('days','hari')}`],
-    [t('Cards per listing','Kartu per listing'),`${MARKET_MAX_LISTING_COPIES} ${t('total','total')}, ${MARKET_MAX_COPIES_PER_CARD} ${t('per card','per kartu')}`,`${MARKET_MAX_LISTING_COPIES} ${t('total','total')}, ${MARKET_MAX_COPIES_PER_CARD} ${t('per card','per kartu')}`],
     [t('Market service fee','Biaya layanan Market'),`${freeFee}%`,`${proFee}%`],
-    [t('Delivery vouchers','Voucher ongkir'),t('None','Tidak ada'),period==='yearly'?`${annualVouchers} / ${t('year, use any time','tahun, bebas digunakan')}`:`${monthlyVouchers} / ${t('month','bulan')}`],
+    [t('Delivery vouchers','Voucher ongkir'),t('None','Tidak ada'),selectedVoucher],
   ];
   return <div className="market-membership-compare market-membership-compare-wide" aria-label={t('Free and Market Pro comparison','Perbandingan Free dan Market Pro')}>
-    <table className="market-pro-dialog-table" aria-busy={loading}><thead><tr><th>{t('Benefit','Manfaat')}</th><th>Free</th><th>{period==='yearly'?t('Market Pro Annual','Market Pro Tahunan'):'Market Pro'}</th></tr></thead><tbody>{rows.map(([label,free,pro])=><tr key={label}><th scope="row">{label==='Market service fee'?<span className="buyer-fee-row-label">{label}<MarketServiceFeeInfo locale={id?'id':'en'} freePercent={freeFee} proPercent={proFee} buyerMinimum={buyerMinimum} sellerMinimum={sellerMinimum}/></span>:label}</th>{[free,pro].map((value,index)=><td key={index}>{loading?<i className={`market-pro-cell-skeleton${index===1?' is-pro':''}`} aria-hidden="true"/>:value}</td>)}</tr>)}</tbody></table>
+    <table className="market-pro-dialog-table" aria-busy={loading}><thead><tr><th>{t('Benefit','Manfaat')}</th><th>Free</th><th>{proLabel}</th></tr></thead><tbody>{rows.map(([label,free,selected])=><tr key={label}><th scope="row">{label==='Market service fee'?<span className="buyer-fee-row-label">{label}<MarketServiceFeeInfo locale={id?'id':'en'} freePercent={freeFee} proPercent={proFee} buyerMinimum={buyerMinimum} sellerMinimum={sellerMinimum}/></span>:label}</th><td>{loading?<i className="market-pro-cell-skeleton" aria-hidden="true"/>:free}</td><td>{loading?<i className="market-pro-cell-skeleton is-pro" aria-hidden="true"/>:selected}</td></tr>)}</tbody></table>
   </div>;
 }

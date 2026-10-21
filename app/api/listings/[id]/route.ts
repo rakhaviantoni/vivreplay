@@ -3,10 +3,10 @@ import {notifyListingWatchers} from '@/lib/server/market-watch-alerts';
 import {user,db,errorResponse,guard,HttpError} from '@/lib/server/store';
 import {getDynamicListingPolicy,computeListingExpiration} from '@/lib/market/policy';
 import {z} from 'zod';
-import {MARKET_MAX_COPIES_PER_CARD,MARKET_MAX_LISTING_COPIES} from '@/lib/market/listing-limits';
+import {MARKET_MAX_COPIES_PER_CARD,MARKET_ABSOLUTE_MAX_LISTING_COPIES} from '@/lib/market/listing-limits';
 import {enforceMarketListingLimits} from '@/lib/server/market-listing-limits';
 
-const addItemsSchema=z.object({action:z.literal('add-items'),items:z.array(z.object({instanceId:z.string().uuid(),printingId:z.string().min(1),quantity:z.number().int().min(1).max(MARKET_MAX_COPIES_PER_CARD),unitAmount:z.number().int().min(1).max(100000000000)})).min(1).max(MARKET_MAX_LISTING_COPIES)});
+const addItemsSchema=z.object({action:z.literal('add-items'),items:z.array(z.object({instanceId:z.string().uuid(),printingId:z.string().min(1),quantity:z.number().int().min(1).max(MARKET_MAX_COPIES_PER_CARD),unitAmount:z.number().int().min(1).max(100000000000)})).min(1).max(MARKET_ABSOLUTE_MAX_LISTING_COPIES)});
 
 export async function DELETE(req:Request,{params}:{params:Promise<{id:string}>}){
   try{
@@ -35,7 +35,7 @@ export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}){
     const {id}=await params;
     const body=await req.json() as {action?:unknown;amount?:unknown;prices?:unknown;title?:unknown;negotiable?:unknown};
     if(body.action==='reorder-items'){
-      const input=z.object({action:z.literal('reorder-items'),order:z.array(z.number().int().min(0).max(MARKET_MAX_LISTING_COPIES-1)).min(2).max(MARKET_MAX_LISTING_COPIES)}).parse(body);
+      const input=z.object({action:z.literal('reorder-items'),order:z.array(z.number().int().min(0).max(MARKET_ABSOLUTE_MAX_LISTING_COPIES-1)).min(2).max(MARKET_ABSOLUTE_MAX_LISTING_COPIES)}).parse(body);
       const d=db();
       const listing=await d.prepare("SELECT items FROM listings WHERE id=? AND seller_id=? AND type='WTS' AND status IN ('ACTIVE','PAUSED')").bind(id,p.id).first<{items:string|null}>();
       if(!listing)throw new HttpError(404,'Listing not found or unavailable to edit.');
@@ -77,10 +77,11 @@ export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}){
           existing.quantity+=addition.quantity;
         }else entries.push({instanceId,printingId:addition.printingId,quantity:addition.quantity,condition:addition.condition,unitAmount:addition.unitAmount});
       }
-      await enforceMarketListingLimits(d,entries);
+      const policy=await getDynamicListingPolicy(p.tier,d,p.pro_billing_period);
+      await enforceMarketListingLimits(d,entries,policy);
       const quantity=entries.reduce((sum,entry)=>sum+entry.quantity,0);
       const amount=entries.reduce((sum,entry)=>sum+entry.quantity*entry.unitAmount,0);
-      if(quantity>MARKET_MAX_LISTING_COPIES)throw new HttpError(400,`A listing can include up to ${MARKET_MAX_LISTING_COPIES} cards.`);
+      if(quantity>policy.maxListingCopies)throw new HttpError(400,`A listing can include up to ${policy.maxListingCopies} cards.`);
       if(!Number.isSafeInteger(amount)||amount<1||amount>100000000000)throw new HttpError(400,'The listing total is over the price limit.');
       const itemsJson=JSON.stringify(entries);
       const changed=await d.prepare(`UPDATE listings SET items=?,quantity=?,amount=?
@@ -155,7 +156,7 @@ export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}){
     }
     if(body.action!=='pause'&&body.action!=='resume')throw new HttpError(400,'Choose pause or resume.');
     const d=db();
-    const listing=await d.prepare('SELECT id,status,expires_at,instance_id AS instanceId,quantity,items FROM listings WHERE id=? AND seller_id=?').bind(id,p.id).first<{id:string;status:string;expires_at:string|null;instanceId:string;quantity:number;items:string|null}>();
+    const listing=await d.prepare('SELECT id,status,expires_at,printing_id AS printingId,instance_id AS instanceId,quantity,items FROM listings WHERE id=? AND seller_id=?').bind(id,p.id).first<{id:string;status:string;expires_at:string|null;printingId:string;instanceId:string;quantity:number;items:string|null}>();
     if(!listing)throw new HttpError(404,'Listing not found or you do not have permission to manage it.');
     if(body.action==='pause'){
       if(listing.status!=='ACTIVE')throw new HttpError(400,'Only active listings can be paused.');
@@ -164,7 +165,12 @@ export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}){
       return Response.json({ok:true,id,status:'PAUSED'});
     }
     if(listing.status!=='PAUSED'&&listing.status!=='CLOSED')throw new HttpError(400,'Only paused or closed listings can be resumed.');
+    const policy=await getDynamicListingPolicy(p.tier,d,p.pro_billing_period);
+    const activeCount=await d.prepare("SELECT COUNT(*) AS total FROM listings WHERE seller_id=? AND status='ACTIVE' AND (expires_at IS NULL OR expires_at>CURRENT_TIMESTAMP) AND id<>?").bind(p.id,id).first<{total:number}>();
+    if((activeCount?.total??0)>=policy.maxActiveListings)throw new HttpError(400,`You have reached the limit of ${policy.maxActiveListings} active listings for your account.`);
     const entries=listing.items?JSON.parse(listing.items) as {instanceId?:string;quantity?:number}[]:[];
+    if(entries.length)await enforceMarketListingLimits(d,entries as {printingId:string;quantity:number}[],policy);
+    else if(listing.quantity>policy.maxCopiesPerCard)throw new HttpError(400,`A listing can include up to ${policy.maxCopiesPerCard} copy of this card.`);
     const needed=new Map<string,number>();
     for(const entry of entries){if(entry.instanceId&&entry.quantity)needed.set(entry.instanceId,(needed.get(entry.instanceId)??0)+entry.quantity)}
     if(!needed.size)needed.set(listing.instanceId,listing.quantity);
@@ -177,7 +183,6 @@ export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}){
         + COALESCE((SELECT SUM(CAST(json_extract(entry.value,'$.quantity') AS INTEGER)) FROM checkout_orders o,json_each(o.items) entry WHERE json_extract(entry.value,'$.instanceId')=? AND o.kind='MARKET' AND (o.status='PROCESSING' OR (o.status='PENDING_PAYMENT' AND o.expires_at>CURRENT_TIMESTAMP))),0) AS quantity`).bind(instanceId,id,instanceId,id,instanceId).first<{quantity:number}>();
       if(quantity+(reserved?.quantity??0)>owned.quantity)throw new HttpError(409,'Some copies are already reserved by another active listing.');
     }
-    const policy=await getDynamicListingPolicy(p.tier,d);
     const expiresAt=listing.expires_at&&new Date(`${listing.expires_at.replace(' ','T')}Z`).getTime()>Date.now()?listing.expires_at:computeListingExpiration(policy.durationDays);
     const requested=JSON.stringify([...needed].map(([instanceId,quantity])=>({instanceId,quantity})));
     const changed=await d.prepare(`UPDATE listings SET status='ACTIVE',expires_at=?

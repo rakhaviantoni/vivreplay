@@ -73,10 +73,13 @@ async function fromD1(gameSlug: string, language: string, identityCode?: string,
     });
     predicates.push(`(${setPredicates.join(' OR ')})`);
   }
-  if (query) {
-    const needle = `%${query.toLocaleLowerCase()}%`;
-    predicates.push(`(LOWER(COALESCE(i.name,'')) LIKE ? OR LOWER(COALESCE(l.name,'')) LIKE ? OR LOWER(COALESCE(i.code,'')) LIKE ? OR LOWER(COALESCE(p.printing_code,'')) LIKE ? OR LOWER(COALESCE(p.set_code,'')) LIKE ? OR LOWER(COALESCE(p.set_name,'')) LIKE ? OR LOWER(COALESCE(p.rarity,'')) LIKE ? OR LOWER(COALESCE(p.source_payload,'')) LIKE ?)`);
-    values.push(needle,needle,needle,needle,needle,needle,needle,needle);
+  const queryTerms = query ? [...new Set(query.split(/\s+/).map(term=>term.trim()).filter(Boolean))] : [];
+  if (queryTerms.length) {
+    const searchableFields = ["LOWER(COALESCE(i.name,''))", "LOWER(COALESCE(l.name,''))", "LOWER(COALESCE(i.code,''))", "LOWER(COALESCE(p.printing_code,''))", "LOWER(COALESCE(p.set_code,''))", "LOWER(COALESCE(p.set_name,''))", "LOWER(COALESCE(p.rarity,''))", "LOWER(COALESCE(p.source_payload,''))", "LOWER(COALESCE(i.card_type,''))", "LOWER(COALESCE(i.color,''))", "LOWER(COALESCE(i.effect_text,''))", "CAST(COALESCE(i.cost,0) AS TEXT)", "CAST(COALESCE(i.power,0) AS TEXT)"];
+    for (const term of queryTerms) {
+      predicates.push(`(${searchableFields.map(field=>`${field} LIKE ?`).join(' OR ')})`);
+      values.push(...searchableFields.map(()=>`%${term}%`));
+    }
   }
   if (rarities.length) { predicates.push(`LOWER(p.rarity) IN (${rarities.map(()=>'?').join(',')})`); values.push(...rarities.map(value=>value.toLocaleLowerCase())); }
   if (illustrators.length) { predicates.push(`LOWER(trim(json_extract(p.source_payload, '$.illustrator'))) IN (${illustrators.map(()=>'?').join(',')})`); values.push(...illustrators.map(value=>value.toLocaleLowerCase())); }
@@ -93,7 +96,7 @@ async function fromD1(gameSlug: string, language: string, identityCode?: string,
   if (resistances.length) { predicates.push(`EXISTS (SELECT 1 FROM json_each(p.source_payload, '$.resistances') resistance WHERE UPPER(json_extract(resistance.value, '$.type')) IN (${resistances.map(()=>'?').join(',')}))`); values.push(...resistances.map(value=>value.toUpperCase())); }
   if (missingImages) predicates.push("NULLIF(p.card_image_url,'') IS NULL AND NULLIF(a.object_key,'') IS NULL");
   const pagination = limit ? 'LIMIT ? OFFSET ?' : '';
-  if (limit) values.push(limit, offset);
+  const relevance = queryTerms.length ? queryTerms.map(()=>"CASE WHEN LOWER(COALESCE(l.name,i.name,'')) LIKE ? THEN 0 ELSE 1 END").join('+') : '';
   const orderBy = sort === 'name'
     ? `COALESCE(l.name,i.name) COLLATE NOCASE,p.set_code,p.printing_code,p.id`
     : sort === 'rarity'
@@ -103,6 +106,9 @@ async function fromD1(gameSlug: string, language: string, identityCode?: string,
         : sort === 'number'
           ? `COALESCE(s.release_date,'') DESC,p.set_code,CAST(p.printing_code AS INTEGER),p.printing_code,p.id`
           : `COALESCE(s.release_date,'') DESC,p.set_code DESC,p.printing_code,p.id`;
+  const rankedOrderBy = relevance ? `${relevance},${orderBy}` : orderBy;
+  if (queryTerms.length) values.push(...queryTerms.map(term=>`%${term}%`));
+  if (limit) values.push(limit, offset);
   const { results } = await db.prepare(`
     SELECT p.id,p.rarity,p.variant,p.set_code,p.set_name,p.printing_code,p.language,
       p.attribute,p.counter_amount,p.sub_types,p.source_payload,
@@ -117,7 +123,7 @@ async function fromD1(gameSlug: string, language: string, identityCode?: string,
     LEFT JOIN tcg_card_assets a ON a.printing_id=p.id AND a.kind='small'
     LEFT JOIN tcg_sets s ON s.id=p.set_id
     WHERE ${predicates.join(' AND ')}
-    ORDER BY ${orderBy}
+    ORDER BY ${rankedOrderBy}
     ${pagination}
   `).bind(...values).all<Record<string, unknown>>();
   return results.flatMap(row => {

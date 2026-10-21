@@ -13,7 +13,7 @@ type ApiCard = {
   weaknesses?: unknown[]; resistances?: unknown[]; retreat?: number; set?: { id?: string; name?: string; cardCount?: { total?: number } };
   [key: string]: unknown;
 };
-type ApiSet = { id: string; name?: string; releaseDate?: string; logo?: string; cardCount?: { total?: number }; cards?: Array<{ id: string }>; serie?: { name?: string } };
+type ApiSet = { id: string; name?: string; releaseDate?: string; logo?: string; cardCount?: { total?: number; official?: number }; cards?: Array<{ id: string }>; serie?: { name?: string } };
 
 const api = 'https://api.tcgdex.net/v2';
 const langs: TcgLanguage[] = ['id', 'en', 'ja'];
@@ -88,32 +88,53 @@ function rarityValue(value?: string) {
 const startedAt = new Date().toISOString();
 const fetched: Array<{ language: TcgLanguage; set: ApiSet; card: ApiCard }> = [];
 const setNames = new Map<string, { id: string; name: string; releaseDate: string | null; logo: string | null }>();
+const setCoverage: Array<{ language: TcgLanguage; setId: string; total: number | null; official: number | null; listed: number; fetched: number }> = [];
 const failedCards: string[] = [];
 const skippedCacheSets: string[] = [];
+const emptyCacheSets: string[] = [];
 mkdirSync(cacheDir, { recursive: true });
 function setCachePath(language: TcgLanguage, setId: string) {
   const safe = setId.replace(/[^A-Za-z0-9_-]/g, '_');
   return join(cacheDir, `${language}-${safe}.json`);
 }
+function setMetadataCachePath(language: TcgLanguage, setId: string) {
+  const safe = setId.replace(/[^A-Za-z0-9_-]/g, '_');
+  return join(cacheDir, `${language}-${safe}.meta.json`);
+}
 
 if (offline) {
   for (const language of langs) {
-    const files = readdirSync(cacheDir).filter(file => file.startsWith(`${language}-`) && file.endsWith('.json'));
+    const files = readdirSync(cacheDir).filter(file => file.startsWith(`${language}-`) && file.endsWith('.json') && !file.endsWith('.meta.json'));
     let languageCount = 0;
     for (const file of files) {
       try {
         const cached = JSON.parse(readFileSync(join(cacheDir, file), 'utf8')) as Array<{ language: TcgLanguage; set: ApiSet; card: ApiCard }>;
         const set = cached[0]?.set;
+        if (Array.isArray(cached) && cached.length === 0 && existsSync(setMetadataCachePath(language, file.slice(`${language}-`.length).replace(/\.json$/, '')))) continue;
         if (!Array.isArray(cached) || !set || cached.length !== (set.cards ?? []).length || cached.some(item => item.language !== language)) {
           skippedCacheSets.push(`${language}/${file.replace(`${language}-`, '').replace(/\.json$/, '')}`);
+          if (Array.isArray(cached) && cached.length === 0) emptyCacheSets.push(`${language}/${file.replace(`${language}-`, '').replace(/\.json$/, '')}`);
           continue;
         }
         fetched.push(...cached);
+        setCoverage.push({ language, setId: set.id, total: Number.isFinite(set.cardCount?.total) ? set.cardCount!.total! : null, official: Number.isFinite(set.cardCount?.official) ? set.cardCount!.official! : null, listed: set.cards?.length ?? 0, fetched: cached.length });
         languageCount += cached.length;
         const previous = setNames.get(set.id);
         if (!previous || language === 'en') setNames.set(set.id, { id: set.id, name: set.name ?? set.id, releaseDate: typeof set.releaseDate === 'string' ? set.releaseDate : null, logo: set.logo ?? null });
       } catch {
         skippedCacheSets.push(`${language}/${file.replace(`${language}-`, '').replace(/\.json$/, '')} (invalid cache)`);
+      }
+    }
+    const metadataFiles = readdirSync(cacheDir).filter(file => file.startsWith(`${language}-`) && file.endsWith('.meta.json'));
+    for (const file of metadataFiles) {
+      try {
+        const set = JSON.parse(readFileSync(join(cacheDir, file), 'utf8')) as ApiSet;
+        if (!set?.id) { skippedCacheSets.push(`${language}/${file} (invalid set metadata)`); continue; }
+        setCoverage.push({ language, setId: set.id, total: Number.isFinite(set.cardCount?.total) ? set.cardCount!.total! : null, official: Number.isFinite(set.cardCount?.official) ? set.cardCount!.official! : null, listed: set.cards?.length ?? 0, fetched: 0 });
+        const previous = setNames.get(set.id);
+        if (!previous || language === 'en') setNames.set(set.id, { id: set.id, name: set.name ?? set.id, releaseDate: typeof set.releaseDate === 'string' ? set.releaseDate : null, logo: set.logo ?? null });
+      } catch {
+        skippedCacheSets.push(`${language}/${file} (invalid set metadata)`);
       }
     }
     console.log(`${language}: loaded ${languageCount.toLocaleString()} records from ${files.length} cached sets.`);
@@ -156,9 +177,9 @@ if (offline) {
       try { set = await getJson<ApiSet>(`${api}/${language}/sets/${encodeURIComponent(setStub.id)}`); }
       catch (error) { failedCards.push(`${language}/${setStub.id} (set: ${error instanceof Error ? error.message : 'request failed'})`); continue; }
     }
+    const listedCards = set.cards ?? [];
     if (!fullCards) {
-      const cards = set.cards ?? [];
-      const fetchedCards = await pool(cards, concurrency, async card => {
+      const fetchedCards = await pool(listedCards, concurrency, async card => {
         try { return { language, set, card: await getJson<ApiCard>(`${api}/${language}/cards/${encodeURIComponent(card.id)}`) }; }
         catch (error) {
           const message = error instanceof Error ? error.message : 'request failed';
@@ -168,8 +189,12 @@ if (offline) {
         }
       });
       fullCards = fetchedCards.filter((item): item is { language: TcgLanguage; set: ApiSet; card: ApiCard } => Boolean(item));
-      if (fullCards.length === cards.length) writeFileSync(file, JSON.stringify(fullCards));
+      if (fullCards.length === listedCards.length) {
+        if (listedCards.length) writeFileSync(file, JSON.stringify(fullCards));
+        else writeFileSync(setMetadataCachePath(language, set.id), JSON.stringify(set));
+      }
     }
+    setCoverage.push({ language, setId: set.id, total: Number.isFinite(set.cardCount?.total ?? setStub.cardCount?.total) ? (set.cardCount?.total ?? setStub.cardCount?.total ?? null) : null, official: Number.isFinite(set.cardCount?.official ?? setStub.cardCount?.official) ? (set.cardCount?.official ?? setStub.cardCount?.official ?? null) : null, listed: listedCards.length, fetched: fullCards.length });
     for (const result of fullCards) {
       fetched.push(result);
       languageCount++;
@@ -193,16 +218,36 @@ const languageSummary = Object.fromEntries(langs.map(language => {
     rarities: [...new Set(cards.map(item => rarityValue(item.card.rarity)).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
     illustrators: new Set(cards.map(item => item.card.illustrator).filter((value): value is string => typeof value === 'string' && Boolean(value.trim()))).size,
     cardsWithIllustrator: cards.filter(item => typeof item.card.illustrator === 'string' && Boolean(item.card.illustrator.trim())).length,
-    cardsWithImages: cards.filter(item => Boolean(imageUrl(item.card.image))).length,
+    cardsWithImageUrls: cards.filter(item => Boolean(imageUrl(item.card.image))).length,
   }];
 }));
 const summary = {
   source: 'tcgdex', languages: langs.map(languageCode), sets: setNames.size, cards: uniqueCards.size,
   byLanguage: languageSummary,
-  cardsWithImages: [...uniqueCards.values()].filter(item => Boolean(imageUrl(item.card.image))).length,
-  cardsWithoutImages: [...uniqueCards.values()].filter(item => !imageUrl(item.card.image)).length,
+  sourceCoverageByLanguage: Object.fromEntries(langs.map(language => {
+    const sets = setCoverage.filter(item => item.language === language);
+    return [languageCode(language), {
+      sets: sets.length,
+      reportedTotal: sets.reduce((sum, item) => sum + (item.total ?? 0), 0),
+      reportedOfficial: sets.reduce((sum, item) => sum + (item.official ?? 0), 0),
+      listedCardIds: sets.reduce((sum, item) => sum + item.listed, 0),
+      fetchedCardDetails: sets.reduce((sum, item) => sum + item.fetched, 0),
+      setsWhereListedDiffersFromReportedTotal: sets.filter(item => item.total !== null && item.listed !== item.total).length,
+      listedCardIdsMissingDetails: sets.reduce((sum, item) => sum + Math.max(0, item.listed - item.fetched), 0),
+    }];
+  })),
+  perSetCounts: setCoverage.map(item => ({ language: languageCode(item.language), set: item.setId, reportedTotal: item.total, official: item.official, listedCardIds: item.listed, fetchedCardDetails: item.fetched })),
+  sourceCountMeaning: 'TCGdex total includes hidden cards; official is the number printed on the set cards. Neither is a count of image files.',
+  sourceCountDiscrepancyExamples: setCoverage.filter(item => item.total !== null && item.listed !== item.total).slice(0, 30).map(item => ({ language: languageCode(item.language), set: item.setId, reportedTotal: item.total, official: item.official, listed: item.listed })),
+  cardImageUrlCoverage: {
+    cardsWithImageUrl: [...uniqueCards.values()].filter(item => Boolean(imageUrl(item.card.image))).length,
+    cardsWithoutImageUrl: [...uniqueCards.values()].filter(item => !imageUrl(item.card.image)).length,
+  },
+  sourceCoverageScope: offline ? 'Cached sets only. Empty cache files and sets without cached metadata are excluded; run online preview for a full source audit.' : 'Every set returned by the language set lists, unless source requests failed.',
   skippedIncompleteCacheSets: skippedCacheSets.length,
   skippedCacheExamples: skippedCacheSets.slice(0, 20),
+  emptyCacheSetsRequiringSourceCheck: emptyCacheSets.length,
+  emptyCacheSetExamples: emptyCacheSets.slice(0, 20),
   sourceFailures: failedCards.length,
   sourceFailureExamples: failedCards.slice(0, 20),
   latestSet: [...setNames.values()].sort((a, b) => String(b.releaseDate).localeCompare(String(a.releaseDate)))[0]?.name ?? null,

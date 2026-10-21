@@ -32,6 +32,14 @@ function dateForInput(value:string|null){
   return new Date(date.getTime()-date.getTimezoneOffset()*60_000).toISOString().slice(0,10);
 }
 
+function ListingBundleFields({prefix,limits,onChange}:{prefix:string;limits:{maxListingCopies:number;maxCopiesPerCard:number;maxCardTypes:number};onChange:(value:{maxListingCopies:number;maxCopiesPerCard:number;maxCardTypes:number})=>void}){
+  return <>
+    <div className="admin-policy-field"><label htmlFor={`${prefix}-bundle-total`}>Cards per listing <span>(total)</span></label><input id={`${prefix}-bundle-total`} type="number" min="1" max="100" value={limits.maxListingCopies} onChange={event=>onChange({...limits,maxListingCopies:Number(event.target.value)})} required/><small>Maximum cards grouped in one listing.</small></div>
+    <div className="admin-policy-field"><label htmlFor={`${prefix}-bundle-copy`}>Copies per card</label><input id={`${prefix}-bundle-copy`} type="number" min="1" max="20" value={limits.maxCopiesPerCard} onChange={event=>onChange({...limits,maxCopiesPerCard:Number(event.target.value)})} required/><small>Maximum copies of one card identity.</small></div>
+    <div className="admin-policy-field"><label htmlFor={`${prefix}-bundle-types`}>Card types per listing</label><input id={`${prefix}-bundle-types`} type="number" min="1" max="100" value={limits.maxCardTypes} onChange={event=>onChange({...limits,maxCardTypes:Number(event.target.value)})} required/><small>Maximum different cards in one bundle.</small></div>
+  </>;
+}
+
 export function MarketPolicyManager() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -40,11 +48,15 @@ export function MarketPolicyManager() {
 
   // Form states
   const [freeDays, setFreeDays] = useState(7);
-  const [freeMax, setFreeMax] = useState(25);
+  const [freeMax, setFreeMax] = useState(10);
+  const [freeBundle,setFreeBundle]=useState({maxListingCopies:51,maxCopiesPerCard:4,maxCardTypes:51});
   const [freeFee, setFreeFee] = useState(1.5);
 
   const [proDays, setProDays] = useState(30);
-  const [proMax, setProMax] = useState(2500);
+  const [proMax, setProMax] = useState(500);
+  const [proBundle,setProBundle]=useState({maxListingCopies:75,maxCopiesPerCard:10,maxCardTypes:75});
+  const [annualMax,setAnnualMax]=useState(1000);
+  const [annualBundle,setAnnualBundle]=useState({maxListingCopies:100,maxCopiesPerCard:20,maxCardTypes:100});
   const [proFee, setProFee] = useState(0.75);
   const [proAutoRenew, setProAutoRenew] = useState(true);
   const [buyerFeeMinimum,setBuyerFeeMinimum]=useState(2_000);
@@ -73,10 +85,14 @@ export function MarketPolicyManager() {
 
       setFreeDays(data.policies.free.durationDays);
       setFreeMax(data.policies.free.maxActiveListings);
+      setFreeBundle({maxListingCopies:data.policies.free.maxListingCopies,maxCopiesPerCard:data.policies.free.maxCopiesPerCard,maxCardTypes:data.policies.free.maxCardTypes});
       setFreeFee(data.policies.free.commissionPercent);
 
       setProDays(data.policies.pro.durationDays);
       setProMax(data.policies.pro.maxActiveListings);
+      setProBundle({maxListingCopies:data.policies.pro.maxListingCopies,maxCopiesPerCard:data.policies.pro.maxCopiesPerCard,maxCardTypes:data.policies.pro.maxCardTypes});
+      setAnnualMax(data.policies.proAnnual.maxActiveListings);
+      setAnnualBundle({maxListingCopies:data.policies.proAnnual.maxListingCopies,maxCopiesPerCard:data.policies.proAnnual.maxCopiesPerCard,maxCardTypes:data.policies.proAnnual.maxCardTypes});
       setProFee(data.policies.pro.commissionPercent);
       setProAutoRenew(data.policies.pro.canAutoRenew);
       setVoucherMinimum(data.policies.shippingVoucherMinSubtotal);
@@ -103,31 +119,31 @@ export function MarketPolicyManager() {
   const applyPreset = (preset: 'recommended' | 'quick-turn' | 'relaxed') => {
     if (preset === 'recommended') {
       setFreeDays(7);
-      setFreeMax(25);
+      setFreeMax(10);
       setFreeFee(1.5);
       setProDays(30);
-      setProMax(2500);
+      setProMax(500);
       setProFee(0.75);
       setProAutoRenew(true);
-      toast.info('Applied "Recommended (7d / 25 listings)" preset. Click Save to apply.');
+      toast.info('Applied "Recommended (7d / 10 listings)" preset. Click Save to apply.');
     } else if (preset === 'quick-turn') {
       setFreeDays(3);
-      setFreeMax(25);
+      setFreeMax(10);
       setFreeFee(1.5);
       setProDays(30);
-      setProMax(2500);
+      setProMax(500);
       setProFee(0.75);
       setProAutoRenew(true);
-      toast.info('Applied "Quick-turn listings (3d / 25 listings)" preset. Click Save to apply.');
+      toast.info('Applied "Quick-turn listings (3d / 10 listings)" preset. Click Save to apply.');
     } else if (preset === 'relaxed') {
       setFreeDays(30);
-      setFreeMax(25);
+      setFreeMax(10);
       setFreeFee(1.5);
       setProDays(60);
-      setProMax(2500);
+      setProMax(500);
       setProFee(0.75);
       setProAutoRenew(true);
-      toast.info('Applied "Relaxed (30d / 25 listings)" preset. Click Save to apply.');
+      toast.info('Applied "Relaxed (30d / 10 listings)" preset. Click Save to apply.');
     }
   };
 
@@ -135,10 +151,14 @@ export function MarketPolicyManager() {
     if (!initialPolicies) return;
     setFreeDays(initialPolicies.free.durationDays);
     setFreeMax(initialPolicies.free.maxActiveListings);
+    setFreeBundle({maxListingCopies:initialPolicies.free.maxListingCopies,maxCopiesPerCard:initialPolicies.free.maxCopiesPerCard,maxCardTypes:initialPolicies.free.maxCardTypes});
     setFreeFee(initialPolicies.free.commissionPercent);
 
     setProDays(initialPolicies.pro.durationDays);
     setProMax(initialPolicies.pro.maxActiveListings);
+    setProBundle({maxListingCopies:initialPolicies.pro.maxListingCopies,maxCopiesPerCard:initialPolicies.pro.maxCopiesPerCard,maxCardTypes:initialPolicies.pro.maxCardTypes});
+    setAnnualMax(initialPolicies.proAnnual.maxActiveListings);
+    setAnnualBundle({maxListingCopies:initialPolicies.proAnnual.maxListingCopies,maxCopiesPerCard:initialPolicies.proAnnual.maxCopiesPerCard,maxCardTypes:initialPolicies.proAnnual.maxCardTypes});
     setProFee(initialPolicies.pro.commissionPercent);
     setProAutoRenew(initialPolicies.pro.canAutoRenew);
     setBuyerFeeMinimum(initialPolicies.buyerFeeMinimum);
@@ -165,14 +185,23 @@ export function MarketPolicyManager() {
         free: {
           durationDays: Math.max(1, Number(freeDays)),
           maxActiveListings: Math.max(1, Number(freeMax)),
+          ...freeBundle,
           commissionPercent: Math.max(0, Number(freeFee)),
           canAutoRenew: false,
         },
         pro: {
           durationDays: Math.max(1, Number(proDays)),
           maxActiveListings: Math.max(1, Number(proMax)),
+          ...proBundle,
           commissionPercent: Math.max(0, Number(proFee)),
           canAutoRenew: proAutoRenew,
+        },
+        proAnnual:{
+          durationDays:Math.max(1,Number(proDays)),
+          maxActiveListings:Math.max(1,Number(annualMax)),
+          ...annualBundle,
+          commissionPercent:Math.max(0,Number(proFee)),
+          canAutoRenew:proAutoRenew,
         },
         proPricing:{
           amount:Number(proPrice),
@@ -196,14 +225,9 @@ export function MarketPolicyManager() {
         throw new Error(err?.error || 'Failed to update policy');
       }
 
-      setInitialPolicies({
-        buyerFeeMinimum: payload.buyerFeeMinimum,
-        sellerFeeMinimum: payload.sellerFeeMinimum,
-        shippingVoucherMinSubtotal: payload.shippingVoucherMinSubtotal,
-        free: { ...payload.free, tier: 'free' },
-        pro: { ...payload.pro, tier: 'pro' },
-      });
-      setInitialPricing(payload.proPricing);
+      const saved=await res.json() as {policies:MarketPolicies;proPricing:ProPricing};
+      setInitialPolicies(saved.policies);
+      setInitialPricing(saved.proPricing);
       toast.success('Market policies updated live in D1 storage!');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to save policies');
@@ -239,21 +263,21 @@ export function MarketPolicyManager() {
             className="admin-preset-btn"
             onClick={() => applyPreset('recommended')}
           >
-            Recommended (7d / 25)
+            Recommended (7d / 10 listings)
           </button>
           <button
             type="button"
             className="admin-preset-btn"
             onClick={() => applyPreset('quick-turn')}
           >
-            Quick-turn (3d / 25)
+            Quick-turn (3d / 10 listings)
           </button>
           <button
             type="button"
             className="admin-preset-btn"
             onClick={() => applyPreset('relaxed')}
           >
-            Relaxed (30d / 25)
+            Relaxed (30d / 10 listings)
           </button>
         </div>
       </header>
@@ -322,6 +346,7 @@ export function MarketPolicyManager() {
               />
               <small>Cap on active WTS/WTB listings. Prevents spam while giving casuals enough room.</small>
             </div>
+            <ListingBundleFields prefix="free" limits={freeBundle} onChange={setFreeBundle}/>
 
             <div className="admin-policy-field">
               <label htmlFor="free-fee">
@@ -394,6 +419,9 @@ export function MarketPolicyManager() {
               />
               <small>Maximum simultaneous listings allowed for Pro stores.</small>
             </div>
+            <ListingBundleFields prefix="pro" limits={proBundle} onChange={setProBundle}/>
+            <div className="admin-policy-field"><label htmlFor="pro-annual-max">Annual Pro active listings</label><input id="pro-annual-max" type="number" min="1" max="100000" value={annualMax} onChange={event=>setAnnualMax(Number(event.target.value))} required/><small>Annual Pro has a separate inventory cap.</small></div>
+            <ListingBundleFields prefix="pro-annual" limits={annualBundle} onChange={setAnnualBundle}/>
 
             <div className="admin-policy-field">
               <label htmlFor="pro-fee">

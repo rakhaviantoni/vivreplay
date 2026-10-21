@@ -832,6 +832,7 @@ html[data-theme='dark']{--surface-raised:#10212a;--surface-muted:#0b1820;--surfa
 .market-sell-card-meta{display:flex;flex-direction:column;gap:3px;flex:1 1 auto;min-width:0}
 .market-sell-card-meta strong{font-size:13px;font-weight:750;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .market-sell-card-sub{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);flex-wrap:wrap}
+.market-sell-card-sub>.pokemon-card-meta-row{width:100%;min-width:0}
 .market-sell-code{font-weight:750;color:var(--ink)}
 .market-sell-rarity{font-weight:700;color:var(--accent)}
 .market-sell-dot{color:var(--line)}
@@ -3047,6 +3048,7 @@ html[data-theme='dark'] .checkout-payment-countdown.is-urgent>svg,html[data-them
 .pro-purchase-price{margin:25px 0 0;font-size:clamp(28px,3vw,38px);font-weight:850;letter-spacing:-.05em}
 .pro-purchase-price small{margin-left:6px;color:var(--muted,#716a5e);font-size:12px;font-weight:650;letter-spacing:0}
 .pro-purchase-caption{margin:5px 0 18px;color:var(--muted,#716a5e);font-size:11px;line-height:1.5}
+.pro-purchase-caption s{margin-right:6px;color:var(--muted,#716a5e);font-variant-numeric:tabular-nums}
 .pro-purchase-fields{display:grid;gap:12px}
 .pro-purchase-fields label{display:grid;gap:6px;font-size:11px;font-weight:750}
 .pro-purchase-fields input{height:43px;min-width:0;padding:0 12px;border:1px solid var(--line,#dfd1b8);border-radius:9px;background:var(--surface,#f8f3e8);color:var(--ink,#29251f);font:inherit;font-size:13px;outline:none}
@@ -3100,14 +3102,15 @@ html[data-theme='dark'] .admin-access-card{border-color:#294653;background:#0f21
 .pro-panel-heading h2{margin:0;font-size:20px}
 .pro-panel-heading p{margin:5px 0 0;color:var(--muted);font-size:13px}
 .pro-comparison-wrap{margin-top:18px;overflow-x:auto}
-.pro-comparison-table{width:100%;border-collapse:collapse;table-layout:fixed;text-align:left}
+.pro-comparison-table{width:100%;min-width:0;border-collapse:collapse;table-layout:fixed;text-align:left}
 .pro-comparison-table th,.pro-comparison-table td{padding:13px 10px;border-bottom:1px solid var(--line);font-size:13px;overflow-wrap:anywhere}
 .pro-comparison-table thead th{color:var(--muted);font-size:11px;font-weight:750}
-.pro-comparison-table thead th:first-child{width:44%}
-.pro-comparison-table thead th:nth-child(2),.pro-comparison-table thead th:nth-child(3){width:28%;text-align:center}
+.pro-comparison-table thead th:first-child{width:42%}
+.pro-comparison-table thead th:nth-child(2),.pro-comparison-table thead th:nth-child(3){width:29%;text-align:center}
 .pro-comparison-table tbody th{font-weight:650}
 .pro-comparison-table tbody td{text-align:center;color:var(--muted);font-variant-numeric:tabular-nums}
-.pro-comparison-table tbody td:last-child{color:var(--ink);font-weight:750}
+.pro-comparison-table tbody td:nth-child(2){color:var(--muted)}
+.pro-comparison-table tbody td:last-child{color:var(--accent);font-weight:800}
 .pro-comparison-table tbody tr:last-child th,.pro-comparison-table tbody tr:last-child td{border-bottom:0}
 .pro-voucher-note{margin:16px 0 0;padding:13px 14px;border-radius:10px;background:var(--surface);color:var(--muted);font-size:12px;line-height:1.55}
 .market-buyer-fee-cap{min-width:0;margin:16px 0 0}.market-buyer-fee-cap h3{margin:0 0 8px;font-size:13px;font-weight:750}.market-buyer-fee-cap-note{margin:0 0 9px;color:var(--muted);font-size:12px;font-weight:400;line-height:1.45}.market-buyer-fee-cap-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:9px;background:var(--surface)}.market-buyer-fee-cap table{width:100%;border-collapse:collapse;font-size:11px}.market-buyer-fee-cap th,.market-buyer-fee-cap td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}.market-buyer-fee-cap thead th{color:var(--muted);font-size:10px;font-weight:700}.market-buyer-fee-cap tbody th{font-weight:600}.market-buyer-fee-cap td{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}.market-buyer-fee-cap tbody tr:last-child th,.market-buyer-fee-cap tbody tr:last-child td{border-bottom:0}.market-pro-dialog-fee-cap{margin-top:12px}.pro-fee-cap-table{max-width:620px}.pro-fee-cap-table .market-buyer-fee-cap-scroll{background:var(--surface-raised)}
@@ -3242,7 +3245,7 @@ html[data-theme='dark'] .footer-powered-by>a{color:#eef7f2}
 .vault-printing-trigger>svg{flex:none;color:var(--vault-gold)}
 .vault-printing-trigger>span:nth-child(2){display:grid;min-width:0;gap:1px}
 .vault-printing-trigger small{color:var(--vault-ink-muted);font-size:8px;font-weight:750;line-height:1.1}
-.vault-printing-trigger b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;line-height:1.2}
+.vault-printing-trigger b{display:flex;gap:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;line-height:1.2}.vault-printing-trigger b>span{padding:1px 4px;border-radius:3px;background:var(--vault-surface-warm);color:var(--vault-ink-muted);font-weight:650}
 .vault-printing-trigger-change{margin-left:auto;color:var(--vault-ink-muted);font-size:9px;font-weight:700}
 .vault-printing-trigger:disabled{opacity:.55;cursor:wait}
 .vault-printing-panel{position:absolute;left:0;bottom:calc(100% + 7px);z-index:20;width:min(310px,calc(100vw - 48px));padding:10px;border:1px solid var(--vault-border);border-radius:4px;background:var(--vault-panel);color:var(--vault-ink);box-shadow:0 12px 32px rgb(0 0 0 / .24);text-align:left}

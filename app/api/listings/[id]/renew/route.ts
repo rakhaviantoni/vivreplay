@@ -1,5 +1,7 @@
 import {user,db,errorResponse,guard,HttpError} from '@/lib/server/store';
 import {getDynamicListingPolicy,computeListingExpiration} from '@/lib/market/policy';
+import {listingLimitMessage} from '@/lib/market/listing-limits';
+import {enforceMarketListingLimits} from '@/lib/server/market-listing-limits';
 
 export async function POST(req:Request,{params}:{params:Promise<{id:string}>}){
   try{
@@ -7,7 +9,7 @@ export async function POST(req:Request,{params}:{params:Promise<{id:string}>}){
     const p=await user();
     const {id}=await params;
     const d=db();
-    const policy=await getDynamicListingPolicy(p.tier,d);
+    const policy=await getDynamicListingPolicy(p.tier,d,p.pro_billing_period);
 
     const listing=await d.prepare(
       'SELECT id,seller_id,status,expires_at,instance_id AS instanceId,quantity,items FROM listings WHERE id=? AND seller_id=?'
@@ -21,7 +23,12 @@ export async function POST(req:Request,{params}:{params:Promise<{id:string}>}){
       throw new HttpError(400,'Sold listings cannot be renewed.');
     }
 
+    const activeCount=await d.prepare("SELECT COUNT(*) AS total FROM listings WHERE seller_id=? AND status='ACTIVE' AND (expires_at IS NULL OR expires_at>CURRENT_TIMESTAMP) AND id<>?").bind(p.id,id).first<{total:number}>();
+    if((activeCount?.total??0)>=policy.maxActiveListings)throw new HttpError(400,`You have reached the limit of ${policy.maxActiveListings} active listings for your account.`);
+
     const entries=listing.items?JSON.parse(listing.items) as {instanceId?:string;quantity?:number}[]:[];
+    if(entries.length)await enforceMarketListingLimits(d,entries as {printingId:string;quantity:number}[],policy);
+    else if(listing.quantity>policy.maxCopiesPerCard)throw new HttpError(400,listingLimitMessage('too-many-copies-of-card','EN',policy));
     const needed=new Map<string,number>();
     for(const entry of entries){if(entry.instanceId&&entry.quantity)needed.set(entry.instanceId,(needed.get(entry.instanceId)??0)+entry.quantity)}
     if(!needed.size)needed.set(listing.instanceId,listing.quantity);
