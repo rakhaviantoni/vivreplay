@@ -557,6 +557,7 @@ export function Vault() {
 
       {/* Vault Navigation Tabs */}
       <nav className="vault-nav-tabs" aria-label={t('Vault tabs','Tab koleksi')}>
+        <div className="vault-nav-tabs-list">
         <button
           type="button"
           className={`vault-tab-btn ${activeTab === 'collection' ? 'is-active' : ''}`}
@@ -623,12 +624,13 @@ export function Vault() {
           <Clock size={16} />
           {t('Activity','Aktivitas')}
         </button>
+        </div>
+        {data?.profile && <div className="vault-bulk-listing-launch-row"><button type="button" className="vault-btn vault-btn-secondary" onClick={()=>setBulkListingOpen(true)}><Storefront size={16}/>{t('Create bundle listing','Buat listing bundle')}</button></div>}
       </nav>
 
       {/* Tab 1: Collection */}
       {activeTab === 'collection' && (
         <section style={{ marginTop: '16px' }}>
-          {data?.profile && <div className="vault-bulk-listing-launch-row"><p>{t('Select cards to list together.','Pilih beberapa kartu untuk dijual bersama.')}</p><button type="button" className="vault-btn vault-btn-secondary" onClick={()=>setBulkListingOpen(true)}><Storefront size={16}/>{t('Create bundle listing','Buat listing bundle')}</button></div>}
           <VaultFilters
             filters={filters}
             onChangeFilters={setFilters}

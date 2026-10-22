@@ -108,7 +108,7 @@ export function VaultHeader({
       </div>
 
       {/* Primary Key Metrics Overview Bar */}
-      <div className="vault-metrics-card">
+      <div className={`vault-metrics-card${gameSlug === 'pokemon' ? ' is-pokemon' : ''}`}>
         {/* Total & Unique Cards */}
         <div className="vault-metric-item">
           <span className="vault-metric-label">{t('Collection Size','Ukuran Koleksi')}</span>

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import {SaveListingButton,WishlistButton} from './market-saved';
 import {MarketReputation} from './market-reputation';
 import {usePathname,useRouter} from 'next/navigation';
-import {useCallback,useEffect,useMemo,useRef,useState,type FormEvent} from 'react';
+import {useCallback,useEffect,useMemo,useRef,useState,type FormEvent,type ReactNode} from 'react';
 import {ArrowClockwiseIcon as Renew,ArrowLeftIcon, ArrowUpIcon, ArrowDownIcon, DotsSixVerticalIcon, CheckIcon as Check, InfoIcon as Info, ListIcon as List, MinusIcon as Minus, PlusIcon as Plus, ShoppingCartIcon as Cart, SquaresFourIcon as Grid, TruckIcon as Truck, XIcon as X} from '@phosphor-icons/react';
 import type {Card} from '@/packages/card-data/catalog';
 import {formatMoney,Listing} from '@/packages/domain';
@@ -396,7 +396,7 @@ type ActiveListingOffer={
   expiresAt:string|null;
 };
 
-export function ListingArtRotator({items}:{items:MarketListingCard[]}){
+export function ListingArtRotator({items, badge}:{items:MarketListingCard[]; badge?:ReactNode}){
   const [activeIndex,setActiveIndex]=useState(0);
   useEffect(()=>{
     if(items.length<2)return;
@@ -415,6 +415,7 @@ export function ListingArtRotator({items}:{items:MarketListingCard[]}){
   return <div className={`viewer-art-stack market-listing-art-rotator ${visibleStackCount===1?'is-single':''}`} data-card-count={cardCount} aria-label={`Featured card: ${active.card.name}; ${cardCount} ${cardCount===1?'card':'cards'} in this listing`}>
     {underlays.map((item,index)=><div key={`${item.id}-${index}`} className={`viewer-art-underlay viewer-art-underlay-${index}`} aria-hidden="true"><CardArt card={item.card}/></div>)}
     <div className="viewer-art-current market-listing-art-current" key={active.id}><CardArt card={active.card} priority/></div>
+    {badge}
   </div>;
 }
 
@@ -937,15 +938,23 @@ export function MarketListingDetailView({
     }
   };
 
+  const isUnavailable = isExpired && (!ownerView || status === 'SOLD' || status === 'SOLD_PENDING');
+
   return (
-    <main className={`page live-card-detail market-listing-detail${isExpired&&!ownerView?' is-unavailable':''}`}>
+    <main className={`page live-card-detail market-listing-detail${isUnavailable?' is-unavailable':''}`}>
       <Link className="back-link market-listing-back-link" href={pathname.startsWith('/id')?'/id/market':'/market'}>
         <ArrowLeftIcon aria-hidden="true" size={16}/>{t('Back to Market', 'Kembali ke Market')}
       </Link>
       <article className="live-detail-layout market-listing-layout">
         <aside className="live-detail-art viewer-primary-art market-listing-primary">
-          <ListingArtRotator items={editableCards}/>
-          {!ownerView&&isExpired&&<span className={`market-listing-art-state is-${status.toLowerCase().replaceAll('_','-')}`}>{status==='SOLD_PENDING'?t('Just sold','Baru terjual'):status==='SOLD'?t('Sold','Terjual'):status==='CLOSED'?t('Closed','Ditutup'):t('Expired','Kedaluwarsa')}</span>}
+          <ListingArtRotator
+            items={editableCards}
+            badge={isUnavailable ? (
+              <span className={`market-listing-art-state is-${status.toLowerCase().replaceAll('_','-')}`}>
+                {status==='SOLD_PENDING'?t('Just sold','Baru terjual'):status==='SOLD'?t('Sold','Terjual'):status==='CLOSED'?t('Closed','Ditutup'):t('Expired','Kedaluwarsa')}
+              </span>
+            ) : null}
+          />
         </aside>
 
         <section className="live-detail-copy market-listing-copy">

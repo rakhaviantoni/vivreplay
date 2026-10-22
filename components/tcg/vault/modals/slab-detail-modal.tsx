@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   XIcon as X, 
   ShieldCheckIcon as ShieldCheck, 
@@ -16,6 +17,8 @@ import {
   MagnifyingGlassPlusIcon as ZoomIn
 } from '@phosphor-icons/react';
 import { CardArt } from '../card-art';
+import { VaultSlotSlabPlate } from '../views/vault-slot-slab-plate';
+import { VaultSlotMetaIdentity } from '../views/vault-slot-meta-identity';
 import { EffectText } from '../../effect-text';
 import { printings } from '@/packages/card-data/catalog';
 import { formatCompactMoney, GRADING_PROVIDERS } from '@/packages/domain';
@@ -48,22 +51,23 @@ export function SlabDetailModal({
   const [activeTab, setActiveTab] = useState<'overview' | 'price_history' | 'population' | 'activity'>('overview');
   const [activePhotoRole, setActivePhotoRole] = useState<'front' | 'back' | 'label' | 'extra'>('front');
   const [isZoomed, setIsZoomed] = useState(false);
-  const [slabPhotos,setSlabPhotos]=useState<Array<{id:string;role:string}>>([]);
+  const [slabPhotoData,setSlabPhotoData]=useState<{instanceId:string;photos:Array<{id:string;role:string}>}|null>(null);
   const [photoBusy,setPhotoBusy]=useState(false);
+  const portalTarget=typeof document==='undefined'?null:document.body;
 
   useEffect(()=>{
     if(!open||!slab||!canManagePhotos)return;
     const controller=new AbortController();
-    setSlabPhotos([]);
     void fetch(`/api/photos?instanceId=${encodeURIComponent(slab.id)}`,{signal:controller.signal})
       .then(async response=>{if(!response.ok)throw new Error('Could not load slab photos.');return await response.json() as {photos?:Array<{id:string;role:string}>}})
-      .then(result=>{if(!controller.signal.aborted)setSlabPhotos(result.photos??[]);})
-      .catch(error=>{if(!(error instanceof DOMException&&error.name==='AbortError'))setSlabPhotos([]);});
+      .then(result=>{if(!controller.signal.aborted)setSlabPhotoData({instanceId:slab.id,photos:result.photos??[]});})
+      .catch(error=>{if(!(error instanceof DOMException&&error.name==='AbortError'))setSlabPhotoData({instanceId:slab.id,photos:[]});});
     return()=>controller.abort();
   },[open,slab?.id,canManagePhotos]);
 
-  if (!open || !slab) return null;
+  if (!open || !slab || !portalTarget) return null;
 
+  const slabPhotos=slabPhotoData?.instanceId===slab.id?slabPhotoData.photos:[];
   const selectedPhotoRole=activePhotoRole==='extra'?'additional':activePhotoRole;
   const activePhoto=slabPhotos.find(photo=>photo.role===selectedPhotoRole);
   const uploadSlabPhoto=async(event:React.ChangeEvent<HTMLInputElement>)=>{
@@ -76,7 +80,7 @@ export function SlabDetailModal({
       const response=await fetch('/api/photos',{method:'POST',body:form});
       const result=await response.json() as {id?:string;error?:string};
       if(!response.ok||!result.id)throw new Error(result.error??'Could not upload slab photo.');
-      setSlabPhotos(current=>[...current,{id:result.id!,role:selectedPhotoRole}]);
+      setSlabPhotoData(current=>({instanceId:slab.id,photos:[...(current?.instanceId===slab.id?current.photos:[]),{id:result.id!,role:selectedPhotoRole}]}));
       toast.success(`${activePhotoRole==='extra'?'Additional':activePhotoRole[0].toUpperCase()+activePhotoRole.slice(1)} slab photo uploaded`);
     }catch(error){toast.error(error instanceof Error?error.message:'Could not upload slab photo.');}
     finally{setPhotoBusy(false);}
@@ -84,7 +88,8 @@ export function SlabDetailModal({
 
   const printing = printings.find(p => p.id === slab.printingId);
   const lang = slab.language || slab.card.language || printing?.language || 'EN';
-  const variant = slab.variant || slab.card.variant || printing?.variant || 'Standard';
+  const variant = slab.variant || slab.card.variant || printing?.variant || '';
+  const isPokemon=slab.card.gameSlug==='pokemon'||/^PK-/i.test(slab.card.code);
   const subgrades = slab.subgrades;
   const storedProvider=String(slab.provider??'').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
   const providerDef = GRADING_PROVIDERS.find(p => [p.id,p.shortName,p.name].some(value=>value.toLowerCase().replace(/[^a-z0-9]/g,'')===storedProvider)||storedProvider==='beckett'&&p.id==='BGS');
@@ -111,11 +116,11 @@ export function SlabDetailModal({
   const vBadge = getVerificationBadge();
   const VIcon = vBadge.icon;
 
-  return (
+  return createPortal((
     <div className="vault-slab-detail-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }} style={{
       position: 'fixed',
       inset: 0,
-      zIndex: 150,
+      zIndex: 1200,
       background: 'var(--vault-modal-overlay)',
       backdropFilter: 'blur(8px)',
       display: 'flex',
@@ -144,7 +149,7 @@ export function SlabDetailModal({
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.12em', color: 'var(--vault-gold)' }}>
-                {slab.provider || 'PSA'} {slab.grade || '10'} · AUTHENTICATED SLAB
+                {slab.provider || 'PSA'} {slab.grade || '10'}
               </span>
               <span style={{
                 display: 'inline-flex',
@@ -165,8 +170,15 @@ export function SlabDetailModal({
             <h2 style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '28px', fontWeight: 600, margin: '4px 0 0', color: 'var(--vault-ink)' }}>
               {slab.card.name}
             </h2>
-            <div style={{ fontSize: '12px', color: 'var(--vault-ink-muted)', marginTop: '2px' }}>
-              {slab.card.code} · {lang} · {variant} · {slab.card.rarity}
+            <div className="vault-slab-detail-card-meta">
+              {isPokemon
+                ? <VaultSlotMetaIdentity item={slab} printingLabel="" />
+                : <span className="vault-slot-meta-identity">
+                    <b>{slab.card.code}</b>
+                    <span>{lang}</span>
+                    {variant && variant.toLowerCase() !== 'standard' && <span>{variant}</span>}
+                    <span>{slab.card.rarity}</span>
+                  </span>}
             </div>
           </div>
 
@@ -193,48 +205,11 @@ export function SlabDetailModal({
         }}>
           {/* Left: Slab Presentation Stage & Photo Gallery */}
           <div>
-            <div className="vault-slab-case" style={{
-              position: 'relative',
-              borderRadius: '14px',
-              background: 'var(--vault-surface-warm)',
-              border: '2px solid var(--vault-border)',
-              boxShadow: 'var(--vault-case-shadow)',
-              padding: '12px',
-              display: 'flex',
-              flexDirection: 'column',
-            }}>
-              {/* Slab Label Plate */}
-              <div className="vault-slab-case-plate" style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '10px 14px',
-                borderRadius: '8px',
-                background: 'var(--vault-panel)',
-                border: '1px solid var(--vault-border)',
-                marginBottom: '10px',
-              }}>
-                <div>
-                  <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--vault-gold)', letterSpacing: '0.08em' }}>
-                    {slab.provider || 'PSA'}
-                  </span>
-                  <div style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '18px', fontWeight: 700, color: 'var(--vault-ink)' }}>
-                    {slab.grade || '10'}
-                  </div>
-                </div>
-
-                <div style={{ textAlign: 'right' }}>
-                  <span style={{ fontSize: '9px', color: 'var(--vault-ink-muted)', display: 'block', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                    Certification
-                  </span>
-                  <span style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: '11px', color: 'var(--vault-ink-secondary)', fontWeight: 600 }}>
-                    #{slab.certification || '84920194'}
-                  </span>
-                </div>
-              </div>
+            <div className="vault-slab-case">
+              {!activePhoto&&<VaultSlotSlabPlate item={slab} />}
 
               {/* Artwork Viewport with Zoom Option */}
-              <div className="vault-detail-art" style={{ position: 'relative', aspectRatio: '420 / 580', borderRadius: '8px', overflow: 'hidden', cursor: 'zoom-in', background: 'var(--vault-surface-warm)' }} onClick={() => setIsZoomed(!isZoomed)}>
+              <div className="vault-detail-art" style={{ position: 'relative', aspectRatio: '420 / 580', borderRadius: '17px', overflow: 'hidden', cursor: 'zoom-in', background: 'var(--vault-surface-warm)' }} onClick={() => setIsZoomed(!isZoomed)}>
                 {activePhoto?<img src={`/api/photos/${activePhoto.id}`} alt={`${activePhotoRole} photo for ${slab.card.name} slab`} style={{width:'100%',height:'100%',objectFit:'contain'}}/>:activePhotoRole==='front'?<CardArt card={slab.card}/>:<div className="vault-slab-photo-empty">{photoBusy?'Uploading photo…':`No ${activePhotoRole} photo attached yet`}</div>}
                 <button
                   type="button"
@@ -248,7 +223,7 @@ export function SlabDetailModal({
             </div>
 
             {/* Slab Multi-Photo Switcher (Front, Back, Label, Extra) */}
-            <div className="vault-slab-photo-switch" style={{
+            <div className="vault-slab-photo-switch" role="group" aria-label="Slab photos" style={{
               display: 'flex',
               gap: '6px',
               marginTop: '12px',
@@ -259,9 +234,11 @@ export function SlabDetailModal({
                   key={role}
                   type="button"
                   onClick={() => setActivePhotoRole(role)}
+                  aria-pressed={activePhotoRole===role}
                   className={`vault-slab-photo-role${activePhotoRole===role?' is-active':''}`}
                 >
-                  {role}{slabPhotos.some(photo=>photo.role===(role==='extra'?'additional':role))?' · ✓':''}
+                  <span>{role==='extra'?'Extra':role[0].toUpperCase()+role.slice(1)}</span>
+                  {slabPhotos.some(photo=>photo.role===(role==='extra'?'additional':role))&&<CheckCircle size={14} weight="fill" aria-label="Photo added"/>}
                 </button>
               ))}
             </div>
@@ -374,36 +351,53 @@ export function SlabDetailModal({
             )}
 
             {/* Tabs Selector: Overview | Price History | Population | Activity */}
-            <div className="vault-slab-tabs">
+            <div className="vault-slab-tabs" role="tablist" aria-label="Slab details">
               {(['overview', 'price_history', 'population', 'activity'] as const).map(tab => (
                 <button
                   key={tab}
                   type="button"
                   onClick={() => setActiveTab(tab)}
+                  id={`vault-slab-tab-${tab}`}
+                  role="tab"
+                  aria-selected={activeTab===tab}
+                  aria-controls={`vault-slab-panel-${tab}`}
+                  tabIndex={activeTab===tab?0:-1}
+                  onKeyDown={event=>{
+                    if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+                    event.preventDefault();
+                    const tabs=Array.from(event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="tab"]')??[]);
+                    const current=tabs.indexOf(event.currentTarget);
+                    const next=event.key==='Home'?0:event.key==='End'?tabs.length-1:(current+(event.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;
+                    const nextTab=tabs[next];
+                    nextTab?.focus();
+                    const tabName=nextTab?.id.replace('vault-slab-tab-','') as typeof activeTab|undefined;
+                    if(tabName)setActiveTab(tabName);
+                  }}
                   className={`vault-slab-tab${activeTab===tab?' is-active':''}`}
                 >
-                  {tab.replace('_', ' ')}
+                  {tab==='price_history'?'Price history':tab==='population'?'Population':tab==='activity'?'Activity':'Overview'}
                 </button>
               ))}
             </div>
 
             {/* Tab Contents */}
             {activeTab === 'overview' && (
-              <div style={{ fontSize: '12px', color: 'var(--vault-ink-secondary)', lineHeight: 1.6 }}>
-                <p style={{ margin: '0 0 10px' }}>
-                  <strong>Card Effect:</strong> {slab.card.effect ? <EffectText text={slab.card.effect}/> : 'No effect text available.'}
-                </p>
+              <div className="vault-slab-panel" id="vault-slab-panel-overview" role="tabpanel" aria-labelledby="vault-slab-tab-overview" tabIndex={0}>
+                <div className="vault-slab-panel-section">
+                  <h3>Card effect</h3>
+                  <p>{slab.card.effect ? <EffectText text={slab.card.effect}/> : 'No effect text available.'}</p>
+                </div>
                 {slab.notes && (
-                  <p style={{ margin: '0 0 10px', fontStyle: 'italic', color: 'var(--vault-ink-muted)' }}>
-                    <strong>Collector Notes:</strong> &ldquo;{slab.notes}&rdquo;
-                  </p>
+                  <div className="vault-slab-panel-section">
+                    <h3>Your notes</h3>
+                    <p>{slab.notes}</p>
+                  </div>
                 )}
                 {certificationUrl && slab.certification && (
-                  <a
+                  <a className="vault-slab-panel-link"
                     href={certificationUrl}
                     target="_blank"
                     rel="noreferrer"
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--vault-gold)', fontSize: '11.5px', textDecoration: 'none', fontWeight: 600 }}
                   >
                     {providerDef?.id==='PSA'?'View PSA certificate, sales & population':'Open grading company site'} <ExternalLink size={13} />
                   </a>
@@ -412,26 +406,28 @@ export function SlabDetailModal({
             )}
 
             {activeTab === 'price_history' && (
-              <div style={{ fontSize: '12px', color: 'var(--vault-ink-secondary)' }}>
-                <strong>No graded sales history in Vault yet.</strong>
-                {providerDef?.id==='PSA'&&certificationUrl&&<p><a href={certificationUrl} target="_blank" rel="noreferrer" style={{color:'var(--vault-gold)'}}>View PSA sales for this certificate <ExternalLink size={13}/></a></p>}
-                <p style={{ color: 'var(--vault-ink-muted)' }}>Raw card prices are not used to estimate graded cards.</p>
+              <div className="vault-slab-panel" id="vault-slab-panel-price_history" role="tabpanel" aria-labelledby="vault-slab-tab-price_history" tabIndex={0}>
+                <div className="vault-slab-panel-section"><h3>Sales history</h3><p>No graded sales recorded in Vault.</p></div>
+                {providerDef?.id==='PSA'&&certificationUrl&&<a className="vault-slab-panel-link" href={certificationUrl} target="_blank" rel="noreferrer">View PSA sales for this certificate <ExternalLink size={13}/></a>}
+                <p className="vault-slab-panel-note">Raw card prices are not used to estimate graded cards.</p>
               </div>
             )}
 
             {activeTab === 'population' && (
-              <div style={{ fontSize: '12px', color: 'var(--vault-ink-secondary)' }}>
-                <span style={{ fontSize: '11px', color: 'var(--vault-ink-muted)', display: 'block', marginBottom: '8px' }}>
-                  Population report
-                </span>
-                {providerDef?.id==='PSA'&&certificationUrl?<p><a href={certificationUrl} target="_blank" rel="noreferrer" style={{color:'var(--vault-gold)'}}>View PSA population for this certificate <ExternalLink size={13}/></a></p>:<p style={{ color: 'var(--vault-ink-muted)' }}>Open the grading company’s certificate page to check its current population data.</p>}
+              <div className="vault-slab-panel" id="vault-slab-panel-population" role="tabpanel" aria-labelledby="vault-slab-tab-population" tabIndex={0}>
+                <div className="vault-slab-panel-section"><h3>Population</h3>
+                  {providerDef?.id==='PSA'&&certificationUrl?<p>See the grading company’s report for this card.</p>:<p>Check the grading company’s certificate page for current population data.</p>}
+                </div>
+                {providerDef?.id==='PSA'&&certificationUrl&&<a className="vault-slab-panel-link" href={certificationUrl} target="_blank" rel="noreferrer">View PSA population for this certificate <ExternalLink size={13}/></a>}
               </div>
             )}
 
             {activeTab === 'activity' && (
-              <div style={{ fontSize: '11.5px', color: 'var(--vault-ink-secondary)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div>{slab.acquiredAt ? `Added to Vault on ${new Date(slab.acquiredAt).toLocaleDateString()}.` : 'Added date is not recorded.'}</div>
-                {slab.certification && providerDef?.website && <div>Certification: {slab.certification}</div>}
+              <div className="vault-slab-panel" id="vault-slab-panel-activity" role="tabpanel" aria-labelledby="vault-slab-tab-activity" tabIndex={0}>
+                <div className="vault-slab-panel-section"><h3>Vault activity</h3>
+                  <p>{slab.acquiredAt ? `Added ${new Date(slab.acquiredAt).toLocaleDateString()}.` : 'Added date not recorded.'}</p>
+                </div>
+                {slab.certification && providerDef?.website && <p>Certificate {slab.certification}</p>}
                 {slab.notes && <div>{slab.notes}</div>}
               </div>
             )}
@@ -471,5 +467,5 @@ export function SlabDetailModal({
       </div>
       </div>
     </div>
-  );
+  ),portalTarget);
 }

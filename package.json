@@ -20,6 +20,7 @@
     "db:mirror-supabase": "node --env-file=.env.local scripts/mirror-supabase-catalog-to-d1.mjs",
     "catalog:import-sealed": "node --env-file=.env.local --import tsx scripts/import-sealed-products.ts",
     "catalog:import-pokemon": "node --import tsx scripts/import-tcgdex-pokemon.ts",
+    "catalog:refresh-set-dates": "node --env-file=.env.local --import tsx scripts/refresh-tcg-set-release-dates.ts",
     "catalog:recover-pokemon-images": "node scripts/recover-pokepedia-images.mjs",
     "catalog:reconcile-r2": "node --env-file=.env.local scripts/reconcile-missing-r2-card-images.mjs",
     "play-assets:migrate-r2": "node --env-file=.env.local scripts/migrate-play-assets-to-r2.mjs",

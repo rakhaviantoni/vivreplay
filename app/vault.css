@@ -420,6 +420,12 @@
 .vault-selected-card-copy{display:grid;min-width:0;gap:3px;flex:1}
 .vault-selected-card-copy span,.vault-printing-heading-row label{color:var(--vault-ink-secondary);font-size:10px;font-weight:800;letter-spacing:.07em;text-transform:uppercase}
 .vault-selected-card-copy strong{overflow:hidden;color:var(--vault-ink);font-size:12px;text-overflow:ellipsis;white-space:nowrap}
+.vault-selected-card-copy>.pokemon-card-meta-row{gap:4px;min-height:16px;font-size:10px;transition:none}
+.vault-selected-card-copy .pokemon-card-set-name,.vault-selected-card-copy .pokemon-card-number{color:var(--vault-ink-muted);font-size:9px!important}
+.vault-selected-card-copy .pokemon-card-set-badge{border-color:var(--vault-border);color:var(--vault-ink-secondary)}
+.vault-selected-card-copy .pokemon-card-rarity{background:var(--vault-surface-warm);color:var(--vault-ink)!important}
+.vault-selected-card-copy .pokemon-card-illustrator-inline>small{color:var(--vault-ink-muted);font-size:9px!important}
+.vault-selected-card-copy .pokemon-card-illustrator-inline>strong{color:var(--vault-ink);font-size:9px;line-height:1.3}
 .vault-selected-card-copy small,.vault-identity-results small,.vault-printing-option-copy small{color:var(--vault-ink-muted);font-size:10px}
 .vault-identity-search-panel{display:grid;gap:8px}
 .vault-identity-search{display:flex;align-items:center;gap:8px;height:40px;padding:0 11px;border:1px solid var(--vault-border);border-radius:8px;background:var(--vault-panel);color:var(--vault-ink-muted)}
@@ -436,7 +442,6 @@
 .vault-printing-heading-row>div{display:grid;gap:3px}
 .vault-printing-heading-row p{margin:0;color:var(--vault-ink-muted);font-size:10px}
 .vault-printing-heading-row>span{flex:none;color:var(--vault-ink-muted);font-size:10px}
-.vault-printing-current-selection{margin:0;padding:8px 10px;border:1px solid var(--vault-border);border-radius:5px;background:var(--vault-slot-bg);color:var(--vault-ink-secondary);font-size:10px;line-height:1.5}.vault-printing-current-selection strong{color:var(--vault-ink)}.vault-printing-current-selection small{display:block;color:var(--vault-ink-muted)}
 .vault-language-options{display:flex;gap:6px;flex-wrap:wrap}
 .vault-language-options button{padding:7px 10px;border:1px solid var(--vault-border);border-radius:7px;background:var(--vault-panel);color:var(--vault-ink-secondary);font-size:10px;font-weight:700;cursor:pointer}
 .vault-language-options button.active{border-color:var(--vault-gold);background:var(--vault-slot-bg);color:var(--vault-ink)}
@@ -445,6 +450,15 @@
 .vault-printing-option:hover,.vault-printing-option.selected{border-color:var(--vault-gold);box-shadow:0 0 0 1px color-mix(in srgb,var(--vault-gold) 26%,transparent)}
 .vault-printing-option-art{width:38px;aspect-ratio:420/580;overflow:hidden;flex:none;border-radius:2px}
 .vault-printing-option-copy{display:grid;align-content:center;min-width:0;gap:4px;padding:0 0 8px}
+.vault-printing-option-copy.is-pokemon{display:flex;align-items:center;min-width:0;padding:0}
+.vault-printing-option-copy.is-pokemon>.pokemon-card-meta-row{flex-wrap:wrap;gap:3px 4px;font-size:9px;transition:none}
+.vault-printing-option-copy.is-pokemon .pokemon-card-set-name{max-width:100%;color:var(--vault-ink-muted);font-size:9px!important}
+.vault-printing-option-copy.is-pokemon .pokemon-card-set-badge{border-color:var(--vault-border);font-size:8px!important}
+.vault-printing-option-copy.is-pokemon .pokemon-card-number{font-size:9px!important}
+.vault-printing-option-copy.is-pokemon .pokemon-card-rarity{margin-left:0;background:var(--vault-surface-warm);font-size:8px!important}
+.vault-printing-option-copy.is-pokemon .pokemon-card-illustrator-inline{margin-left:0}
+.vault-printing-option-copy.is-pokemon .pokemon-card-illustrator-inline>small{font-size:8px!important}
+.vault-printing-option-copy.is-pokemon .pokemon-card-illustrator-inline>strong{font-size:9px}
 .vault-printing-option-copy b{display:-webkit-box;overflow:hidden;font-size:10px;line-height:1.25;text-overflow:ellipsis;white-space:normal;-webkit-box-orient:vertical;-webkit-line-clamp:2}
 .vault-printing-option-copy small{display:-webkit-box;overflow:hidden;line-height:1.25;text-overflow:ellipsis;white-space:normal;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow-wrap:anywhere}
 .vault-printing-selected-mark{position:absolute;right:5px;bottom:4px;color:var(--vault-gold-deep);font-size:8px;font-weight:800;text-transform:uppercase}
@@ -624,6 +638,7 @@
 /* 3x3 Desktop Grid Presentation (or 4x3 on extra wide) */
 .vault-binder-grid {
   display: grid;
+  align-items: start;
   width: 100%;
   min-width: 0;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -673,6 +688,36 @@
   flex-direction: column;
   transition: transform 0.22s cubic-bezier(0.2, 0.75, 0.25, 1), box-shadow 0.22s ease, border-color 0.22s ease;
   cursor: pointer;
+}
+
+.vault-slot.is-slab,
+.vault-slab-case {
+  --vault-slot-bg: color-mix(in srgb, #eae8e0 72%, transparent);
+  --vault-slot-border: color-mix(in srgb, #cbc8bf 58%, transparent);
+  --vault-ink: #252722;
+  --vault-ink-secondary: #62655f;
+  --vault-ink-muted: #747871;
+}
+
+.vault-slot.is-slab {
+  background: var(--vault-slot-bg);
+  border-color: var(--vault-slot-border);
+  box-shadow: 0 2px 9px rgba(24, 28, 24, .045);
+}
+
+:root[data-theme='dark'] .vault-slot.is-slab,
+:root[data-theme='dark'] .vault-slab-case {
+  --vault-slot-bg: color-mix(in srgb, #242830 78%, transparent);
+  --vault-slot-border: color-mix(in srgb, #59616f 54%, transparent);
+  --vault-ink: #f5f3ee;
+  --vault-ink-secondary: #c2c8d2;
+  --vault-ink-muted: #939ba8;
+}
+
+:root[data-theme='dark'] .vault-slot.is-slab {
+  background: var(--vault-slot-bg);
+  border-color: var(--vault-slot-border);
+  box-shadow: 0 2px 9px rgba(0, 0, 0, .11);
 }
 
 .vault-slot:hover {
@@ -803,13 +848,65 @@
   border-radius: inherit;
 }
 
+.vault-slot-card-stage:not(:has(.vault-stack-art))::after,
+.vault-stack-art::after,
+.vault-slot-slab-plate::after {
+  position: absolute;
+  z-index: 5;
+  top: -55%;
+  bottom: -55%;
+  left: -85%;
+  width: 52%;
+  content: '';
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(-150%) rotate(18deg);
+  background: linear-gradient(100deg, transparent 18%, color-mix(in srgb, #fff 7%, transparent) 34%, color-mix(in srgb, #fff 48%, transparent) 48%, color-mix(in srgb, #fff 22%, transparent) 58%, transparent 78%);
+}
+
+.vault-slot-slab-plate::after {
+  inset: 0;
+  left: 0;
+  width: 100%;
+  border-radius: inherit;
+  background: linear-gradient(105deg,transparent 28%,#ffffff04 39%,#fff3 47%,#fff8 50%,#fff3 53%,#ffffff04 61%,transparent 72%);
+  background-size: 220% 100%;
+  background-position: 100% 0;
+  transform: none;
+}
+.vault-slot-slab-plate > * { position: relative; z-index: 5; }
+.vault-slot-slab-plate .vault-slot-psa-label { position: relative; }
+.vault-slot-slab-plate .vault-slot-psa-stamp { z-index: 7; }
+
+.vault-slot:hover .vault-slot-card-stage:not(:has(.vault-stack-art))::after,
+.vault-slot:hover .vault-stack-art::after,
+.vault-slot:hover .vault-slot-slab-plate::after,
+.vault-slot:focus-within .vault-slot-card-stage:not(:has(.vault-stack-art))::after,
+.vault-slot:focus-within .vault-stack-art::after,
+.vault-slot:focus-within .vault-slot-slab-plate::after {
+  opacity: .6;
+  animation: vault-card-library-shine .94s cubic-bezier(.22,.7,.22,1);
+}
+
+.vault-slot:hover .vault-slot-slab-plate::after,
+.vault-slot:focus-within .vault-slot-slab-plate::after {
+  animation: vault-slab-library-shine .94s cubic-bezier(.22,.7,.22,1);
+}
+
+@keyframes vault-card-library-shine { to { transform: translateX(430%) rotate(18deg); } }
+@keyframes vault-slab-library-shine { to { background-position: -120% 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .vault-slot-card-stage::after,
+  .vault-stack-art::after,
+  .vault-slot-slab-plate::after { animation: none !important; opacity: 0 !important; }
+}
+
 .vault-stack-art{position:absolute;inset:0;z-index:1;overflow:hidden;border-radius:inherit;isolation:isolate}
 .vault-stack-art-card{position:absolute;inset:0;z-index:calc(var(--stack-index) + 1);transform:translate(var(--stack-x),0) rotate(var(--stack-rotate));transform-origin:50% 80%;transition:transform .24s cubic-bezier(.2,.75,.25,1),filter .24s ease}
 .vault-stack-art-card .tcg-card{width:100%;height:100%;border-radius:inherit}
-.vault-stack-art::after{content:"";position:absolute;z-index:5;inset:-45% -65%;pointer-events:none;opacity:0;transform:translateX(-70%) rotate(15deg);transition:transform .65s cubic-bezier(.16,1,.3,1),opacity .12s ease;background:linear-gradient(105deg,transparent 43%,rgb(255 255 255 / .04) 47%,rgb(255 255 255 / .78) 50%,rgb(255 255 255 / .08) 53%,transparent 58%)}
 .vault-slot:hover .vault-stack-art-card{filter:brightness(1.045) saturate(1.045);transform:translate(var(--stack-x),-3px) rotate(var(--stack-rotate))}
-.vault-slot:hover .vault-stack-art::after{opacity:.75;transform:translateX(70%) rotate(15deg)}
-@media(prefers-reduced-motion:reduce){.vault-stack-art-card,.vault-stack-art::after{transition:none!important}.vault-slot:hover .vault-stack-art::after{opacity:0}}
+@media(prefers-reduced-motion:reduce){.vault-stack-art-card{transition:none!important}}
 
 /* Badges positioned over the card stage */
 .vault-slot-badges-top {
@@ -919,7 +1016,10 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  container-type: inline-size;
 }
+
+.vault-slot-heading-row { display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:8px;min-width:0; }
 
 .vault-slot-name {
   font-family: var(--display-font, var(--font-sans));
@@ -934,12 +1034,26 @@
 
 .vault-slot-meta-row {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  min-width: 0;
   font-size: 10.5px;
   color: var(--vault-ink-muted);
 }
 .vault-slot-meta-identity{display:flex;align-items:center;gap:7px;min-width:0}.vault-slot-meta-identity>b{color:var(--vault-ink);font-weight:750}.vault-slot-meta-identity>span{color:var(--vault-ink-muted);white-space:nowrap}
+.vault-slot-meta-op { width:auto;max-width:100%;flex-wrap:wrap;justify-content:flex-end;gap:3px 8px; }
+.vault-slot-meta-op > small { color:var(--vault-ink-muted);font-size:10px;font-weight:550;line-height:1.25;white-space:nowrap; }
+.vault-slot-meta-op > b { white-space:nowrap; }
+.vault-slot-meta-row .pokemon-card-meta-row { flex:1 1 auto;width:auto;max-width:100%; }
+.vault-slot-meta-row .pokemon-card-meta-row.has-illustrator .pokemon-card-illustrator-inline { margin-left:auto; }
+.vault-slot-heading-row .vault-slot-value { white-space:nowrap; }
+
+@container (max-width: 360px) {
+  .vault-slot-meta-row { justify-content:flex-start; }
+  .vault-slot-meta-op { justify-content:flex-start; }
+}
 
 .vault-slot-value {
   font-family: inherit;
@@ -1014,7 +1128,7 @@
   background: var(--vault-surface-warm);
   border: 1px solid var(--vault-border-light);
 }
-.vault-slab-plate.vault-slot-slab-plate{min-height:32px;padding:4px 8px;margin:0 0 6px;border-radius:6px}.vault-slot-slab-plate .vault-slab-provider{font-size:9px}.vault-slot-slab-plate .vault-slab-grade-num{font-size:13px}.vault-slot-slab-plate .vault-slab-cert-pill{font-size:8px}.vault-slot-slab-plate.is-psa{display:block;width:100%;box-sizing:border-box;padding:4px 7px 3px;border:2px solid #d31f35;border-radius:2px;background:repeating-linear-gradient(0deg,#fbfcff 0 3px,#eaf0fa 4px,#fbfcff 6px);color:#202832;box-shadow:none;pointer-events:none}.vault-slot-psa-label{display:grid;gap:2px;min-width:0;font-family:Arial,sans-serif;text-transform:uppercase}.vault-slot-psa-top,.vault-slot-psa-name{display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0}.vault-slot-psa-top{font-size:8px;letter-spacing:.04em}.vault-slot-psa-top span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.vault-slot-psa-top>b{flex:none;font-size:9px}.vault-slot-psa-name>strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;letter-spacing:.01em}.vault-slot-psa-name>b{flex:none;font-size:12px}.vault-slot-psa-cert{display:grid;justify-items:center;gap:1px;padding-top:2px;border-top:1px solid #cdd5e1;font-size:7px;letter-spacing:.05em}.vault-slot-psa-cert>span{display:flex;align-items:center;gap:3px}.vault-slot-psa-cert>span>b{color:#064e9a;font-size:10px;letter-spacing:-.06em}.vault-slot-psa-cert>span>b>span{color:#e52d41}.vault-slot-psa-cert>strong{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:8px}
+.vault-slab-plate.vault-slot-slab-plate{min-height:32px;padding:4px 8px;margin:0 0 6px;border-radius:6px}.vault-slot-slab-plate .vault-slab-provider{font-size:9px}.vault-slot-slab-plate .vault-slab-grade-num{font-size:13px}.vault-slot-slab-plate .vault-slab-cert-pill{font-size:8px}.vault-slot-slab-plate.is-psa{display:block;width:100%;box-sizing:border-box;padding:4px 7px 3px;border:2px solid #d31f35;border-radius:2px;background:repeating-linear-gradient(0deg,#fbfcff 0 3px,#eaf0fa 4px,#fbfcff 6px);color:#202832;box-shadow:none;pointer-events:none}
 
 .vault-slab-plate-left {
   display: flex;
@@ -1106,16 +1220,31 @@
 .vault-slab-detail-modal h3,
 .vault-slab-detail-modal h4 { color: var(--vault-ink) !important; }
 .vault-slab-detail-backdrop { background: var(--vault-modal-overlay); }
-.vault-slab-case { border-color: var(--vault-border); box-shadow: var(--vault-case-shadow); }
-.vault-slab-case-plate { background: var(--vault-panel); border-color: var(--vault-border); }
+.vault-slab-detail-layout .vault-detail-art > .tcg-card { border-radius:17px!important; }
+.vault-slab-case { position:relative;box-sizing:border-box;display:flex;flex-direction:column;padding:10px;border:1px solid var(--vault-slot-border);border-radius:12px;background:var(--vault-slot-bg);box-shadow:0 2px 9px rgba(24,28,24,.045); }
+:root[data-theme='dark'] .vault-slab-case { box-shadow:0 2px 9px rgba(0,0,0,.11); }
+.vault-slab-case .vault-slab-plate.vault-slot-slab-plate { margin:0 0 8px; }
 .vault-slab-zoom-button { display:grid;place-items:center;width:30px;height:30px;padding:0;border:1px solid var(--vault-border);border-radius:50%;background:var(--vault-panel);color:var(--vault-ink);cursor:pointer;box-shadow:0 2px 8px rgba(20,20,20,.14); }
 .vault-slab-photo-switch { flex-wrap:wrap; }
-.vault-slab-photo-role { padding:5px 10px;border:1px solid var(--vault-border);border-radius:5px;background:var(--vault-panel);color:var(--vault-ink-secondary);font-size:10px;font-weight:700;text-transform:uppercase;cursor:pointer; }
+.vault-slab-photo-role { display:inline-flex;min-height:36px;align-items:center;justify-content:center;gap:6px;padding:7px 12px;border:1px solid var(--vault-border);border-radius:8px;background:var(--vault-panel);color:var(--vault-ink-secondary);font-size:12px;font-weight:650;line-height:1;cursor:pointer;transition:border-color .16s ease,background-color .16s ease,color .16s ease; }
+.vault-slab-photo-role:hover { border-color:var(--vault-gold);color:var(--vault-ink); }
+.vault-slab-photo-role:focus-visible { outline:2px solid var(--vault-gold);outline-offset:2px; }
 .vault-slab-photo-role.is-active { border-color:var(--vault-gold);background:var(--vault-gold-soft);color:var(--vault-gold-deep); }
+.vault-slab-photo-role > svg { color:var(--vault-gold-deep); }
 .vault-slab-photo-help { display:block;margin-top:5px;color:var(--vault-ink-muted); }
-.vault-slab-tabs { display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--vault-border);padding-bottom:2px; }
-.vault-slab-tab { flex:none;padding:8px 12px;border:0;border-bottom:2px solid transparent;background:transparent;color:var(--vault-ink-secondary);font-size:12px;font-weight:600;text-transform:capitalize;cursor:pointer; }
-.vault-slab-tab.is-active { border-bottom-color:var(--vault-gold);color:var(--vault-ink); }
+.vault-slab-tabs { display:flex;gap:4px;overflow-x:auto;padding:4px;border:1px solid var(--vault-border);border-radius:10px;background:var(--vault-surface-warm);scrollbar-width:thin; }
+.vault-slab-tab { flex:1 0 auto;min-height:36px;padding:8px 12px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--vault-ink-secondary);font-size:12px;font-weight:650;white-space:nowrap;cursor:pointer;transition:border-color .16s ease,background-color .16s ease,color .16s ease; }
+.vault-slab-tab:hover { color:var(--vault-ink); }
+.vault-slab-tab:focus-visible { outline:2px solid var(--vault-gold);outline-offset:1px; }
+.vault-slab-tab.is-active { border-color:var(--vault-border);background:var(--vault-panel);color:var(--vault-ink); }
+.vault-slab-panel { min-width:0;padding:16px;border:1px solid var(--vault-border);border-radius:12px;background:var(--vault-panel);color:var(--vault-ink-secondary);font-size:13px;line-height:1.65; }
+.vault-slab-panel:focus-visible { outline:2px solid var(--vault-gold);outline-offset:2px; }
+.vault-slab-panel-section + .vault-slab-panel-section { margin-top:16px; }
+.vault-slab-panel-section h3 { margin:0 0 6px;color:var(--vault-ink);font-size:14px;font-weight:700;line-height:1.35; }
+.vault-slab-panel-section p,.vault-slab-panel-note { margin:0;color:var(--vault-ink-secondary); }
+.vault-slab-panel-link { display:inline-flex;align-items:center;gap:5px;margin-top:12px;color:var(--vault-gold-deep);font-size:12px;font-weight:650;text-decoration:none; }
+.vault-slab-panel-link:hover { text-decoration:underline;text-underline-offset:3px; }
+.vault-slab-panel-note { margin-top:10px;color:var(--vault-ink-muted);font-size:12px; }
 
 .vault-slab-est-value {
   font-size: 12px;
@@ -1589,6 +1718,7 @@
   background: transparent;
   box-shadow: none;
 }
+.vault-metrics-card.is-pokemon { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .vault-metric-item { min-width: 0; padding: 0 18px; }
 .vault-metric-item:first-child { padding-left: 0; }
 .vault-metric-item:last-child { padding-right: 0; }
@@ -1607,10 +1737,34 @@
   text-transform: none;
 }
 .vault-nav-tabs {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
   gap: 8px;
   margin-top: 20px;
   border-color: var(--vault-border);
+  overflow: visible;
 }
+.vault-nav-tabs-list {
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.vault-nav-tabs-list::-webkit-scrollbar { display: none; }
+.vault-bulk-listing-launch-row {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  margin: 0 0 0 auto;
+  padding: 0 0 0 12px;
+  border-left: 1px solid var(--vault-border-light);
+  border-radius: 0;
+  background: transparent;
+}
+.vault-bulk-listing-launch-row .vault-btn { white-space: nowrap; }
 .vault-tab-btn { padding: 12px 14px; font-size: 13px; }
 .vault-tab-btn.is-active::after { left: 10px; right: 10px; height: 2px; }
 .vault-toolbar {
@@ -1622,7 +1776,20 @@
 
 @media (max-width: 980px) {
   .vault-metrics-card { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 18px; }
+  .vault-metrics-card.is-pokemon { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .vault-metric-item:nth-child(4) { padding-left: 0; }
+}
+
+@media (max-width: 900px) {
+  .vault-nav-tabs { flex-wrap: wrap; gap: 0; border-bottom: 0; }
+  .vault-nav-tabs-list { flex: 1 1 100%; width: 100%; gap: 0; border-bottom: 1px solid var(--vault-border); }
+  .vault-bulk-listing-launch-row {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+    margin: 0;
+    padding: 10px 0 0;
+    border: 0;
+  }
 }
 
 @media (max-width: 768px) {
@@ -1636,7 +1803,15 @@
   .vault-metric-item:nth-child(odd) { padding-left: 0; }
   .vault-metric-item:nth-child(even) { padding-right: 0; }
   .vault-metric-item:nth-child(4) { padding-left: 12px; }
-  .vault-nav-tabs { gap: 0; }
+  .vault-nav-tabs { flex-wrap: wrap; gap: 0; }
+  .vault-nav-tabs-list { flex: 1 1 100%; width: 100%; gap: 0; }
+  .vault-bulk-listing-launch-row {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+    margin-left: 0;
+    padding: 10px 0 0;
+    border-left: 0;
+  }
   .vault-tab-btn { padding: 11px 10px; }
 }
 
@@ -1647,4 +1822,43 @@
   .vault-metric-item:nth-child(4) { padding: 0; }
   .vault-metric-item:not(:first-child)::before { display: none; }
   .vault-metric-item + .vault-metric-item { padding-top: 12px; border-top: 1px solid var(--vault-border-light); }
+}
+
+.vault-slot-slab-plate.is-psa{position:relative;overflow:visible;padding:2px 4px;border:9px solid #ed1c2e;border-radius:2px;background:repeating-linear-gradient(0deg,#fbfcff 0 3px,#eaf0fa 4px,#fbfcff 6px);box-shadow:none}
+.vault-slot-psa-label{position:static;display:grid;grid-template-columns:minmax(0,1fr) minmax(68px,28%);grid-template-rows:auto minmax(0,1fr);gap:2px 6px;min-width:0;min-height:68px;color:#17202b;font-family:Arial,sans-serif;font-size:13px;font-weight:800;line-height:1.15;text-transform:uppercase}
+.vault-slot-psa-left{display:grid;grid-column:1;grid-row:2;grid-template-rows:auto auto 1fr;align-content:stretch;gap:2px;min-width:0;padding-bottom:0}
+.vault-slot-psa-top{display:flex;grid-column:1/-1;grid-row:1;align-items:center;justify-content:flex-start;gap:6px;min-width:0;font-size:inherit;font-weight:inherit;letter-spacing:.025em;line-height:inherit}
+.vault-slot-psa-top>span{overflow:hidden;min-width:0;text-overflow:ellipsis;white-space:nowrap}
+.vault-slot-psa-top>b{flex:none;font-size:inherit;font-weight:inherit;white-space:nowrap}
+.vault-slot-psa-name{display:block;overflow:hidden;font-size:inherit;font-weight:inherit;letter-spacing:.005em;line-height:inherit;text-overflow:ellipsis;white-space:nowrap}
+.vault-slot-psa-rarity{display:block;overflow:hidden;color:#202832;font-size:inherit;font-weight:inherit;letter-spacing:.015em;line-height:inherit;text-overflow:ellipsis;white-space:nowrap}
+.vault-slot-psa-barcode{display:block;align-self:end;width:78px;max-width:72%;height:12px;margin-top:1px;background:repeating-linear-gradient(90deg,#18202a 0 1px,transparent 1px 2px,#18202a 2px 4px,transparent 4px 5px,#18202a 5px 6px,transparent 6px 8px);opacity:.96}
+.vault-slot-psa-right{display:grid;grid-column:2;grid-row:2;grid-template-rows:auto auto auto 1fr;align-items:start;justify-items:end;gap:2px;min-width:0;padding-bottom:0;text-align:right}
+.vault-slot-psa-number{max-width:100%;overflow:hidden;font-size:inherit;font-weight:inherit;line-height:inherit;text-overflow:ellipsis;white-space:nowrap}
+.vault-slot-psa-grade-label{max-width:100%;overflow:hidden;font-size:inherit;font-weight:inherit;line-height:inherit;text-overflow:ellipsis;white-space:nowrap}
+.vault-slot-psa-grade-score{font-size:inherit;font-weight:inherit;line-height:inherit}
+.vault-slot-psa-cert-number{align-self:end;max-width:100%;overflow:hidden;font-size:inherit;font-weight:inherit;line-height:inherit;text-overflow:ellipsis;white-space:nowrap}
+.vault-slot-psa-stamp{position:absolute;z-index:2;bottom:-9px;left:50%;display:grid;width:36px;height:21px;place-items:center;transform:translateX(-50%);border:1px solid #65758a;background:linear-gradient(135deg,#e1e5e9,#cbd2d9);box-shadow:inset 0 0 0 1px #f7f9fb,0 0 0 1px #fff;color:#064e9a}
+.vault-slot-psa-stamp>b{font-size:14px;font-style:italic;font-weight:900;letter-spacing:-.11em;line-height:1}
+.vault-slot-psa-stamp>b>span{color:#e52d41}
+
+.vault-slot-info .vault-slot-heading-row { grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px; }
+.vault-slot-info .vault-slot-heading-row>.vault-stack-control-wrap { grid-column:2;min-width:0;max-width:100%;margin:0; }
+.vault-slot-info .vault-stack-controls { justify-content:flex-end;gap:4px; }
+.vault-slot-info .vault-slot-meta-row { justify-content:space-between;align-items:flex-start;margin-top:2px; }
+.vault-slot-info.is-one-piece .vault-slot-heading-row { grid-template-columns:minmax(0,1fr) auto; }
+.vault-slot-info.is-one-piece .vault-slot-heading-row>.vault-slot-meta-row { grid-column:2;grid-row:1;justify-content:flex-end;align-items:center;flex-wrap:nowrap;margin:0; }
+.vault-slot-info.is-one-piece>.vault-stack-control-wrap { margin-top:6px; }
+.vault-slot-info.is-one-piece>.vault-stack-control-wrap { width:100%; }
+.vault-slot-info.is-one-piece>.vault-stack-control-wrap .vault-stack-controls { width:100%;justify-content:space-between; }
+@container (max-width: 260px) {
+  .vault-slot-info .vault-slot-heading-row>.vault-stack-control-wrap .vault-printing-trigger { width:30px;min-width:30px;max-width:30px;justify-content:center;padding-inline:0; }
+  .vault-slot-info .vault-slot-heading-row>.vault-stack-control-wrap .vault-printing-trigger>span:nth-child(2),
+  .vault-slot-info .vault-slot-heading-row>.vault-stack-control-wrap .vault-printing-trigger-change { display:none; }
+}
+@container (max-width: 190px) {
+  .vault-slot-info .vault-slot-heading-row { grid-template-columns:minmax(0,1fr); }
+  .vault-slot-info .vault-slot-heading-row>.vault-stack-control-wrap { grid-column:1;justify-self:end; }
+  .vault-slot-info.is-one-piece .vault-slot-heading-row { grid-template-columns:minmax(0,1fr); }
+  .vault-slot-info.is-one-piece .vault-slot-heading-row>.vault-slot-meta-row { grid-column:1;grid-row:2;justify-content:flex-start; }
 }

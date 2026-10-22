@@ -9,6 +9,10 @@ test('Pokemon rarity labels use the same short forms across library and market',
   assert.equal(pokemonRarityLabel('Special Illustration Rare','JP'),'SAR');
   assert.equal(pokemonRarityLabel('Illustration rare','EN'),'IR');
   assert.equal(pokemonRarityLabel('Illustration rare','JP'),'AR');
+  assert.equal(pokemonRarityLabel('One Star','EN'),'IR');
+  assert.equal(pokemonRarityLabel('One Star','JP'),'AR');
+  assert.equal(pokemonRarityLabel('Two Star','EN'),'SIR');
+  assert.equal(pokemonRarityLabel('Double Star','JP'),'SAR');
   assert.equal(pokemonRarityLabel('Hyper Rare'),'HR');
 });
 

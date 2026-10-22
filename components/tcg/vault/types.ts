@@ -5,7 +5,7 @@ export type VaultViewMode = 'binder' | 'grid' | 'list';
 
 export type VaultTab = 'collection' | 'listings' | 'slabs' | 'sets' | 'wishlist' | 'portfolio' | 'activity';
 
-export type VaultPrinting = {id:string;language:string;variant:string;printing_code?:string;card_image_url?:string|null;rarity?:string;set_code?:string};
+export type VaultPrinting = {id:string;language:string;variant:string;printing_code?:string;card_image_url?:string|null;rarity?:string;set_code?:string;set_name?:string;illustrator?:string};
 export type VaultCard = Card & {availablePrintings?:VaultPrinting[];gameSlug?:'one-piece'|'pokemon'};
 export type VaultMarketPrice={amount:number;currency:string;observedAt:string;observationCount:number;previousAmount:number|null;previousCurrency:string|null;previousObservedAt:string|null;source?:'yuyutei'|'pricecharting';sourceUrl?:string};
 

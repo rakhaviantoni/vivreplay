@@ -14,6 +14,7 @@ import { CardArt } from '../card-art';
 import { CardStackControls } from './card-stack-controls';
 import { groupVaultStacks } from '../vault-utils';
 import {VaultSlotSlabPlate} from './vault-slot-slab-plate';
+import {VaultSlotMetaIdentity} from './vault-slot-meta-identity';
 
 interface BinderViewProps {
   items: EnrichedCollectionItem[];
@@ -148,6 +149,7 @@ export function BinderView({
           const printing = printings.find(p => p.id === item.printingId);
           const lang = stack.languageLabel || item.language || item.card.language || printing?.language || 'EN';
           const isGraded = item.type === 'GRADED';
+        const isOnePiece = item.card.gameSlug === 'one-piece';
           const isFavorite=stack.items.some(copy=>copy.isFavorite);
 
           return (
@@ -155,7 +157,7 @@ export function BinderView({
               key={item.id}
               data-binder-item-id={item.id}
               draggable
-              className={`vault-slot ${draggingId===item.id?'is-reordering':''} ${dropTargetId===item.id?'is-drop-target':''}`}
+              className={`vault-slot${isGraded?' is-slab':''} ${draggingId===item.id?'is-reordering':''} ${dropTargetId===item.id?'is-drop-target':''}`}
               onDragStart={event=>{if((event.target as HTMLElement).closest('button')){event.preventDefault();return;}draggedId.current=item.id;setDraggingId(item.id);setDropTargetId(null);suppressClick.current=true;event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('text/plain',item.id);}}
               onDragEnd={()=>{draggedId.current=null;setDraggingId(null);setDropTargetId(null);window.setTimeout(()=>{suppressClick.current=false;},0);}}
               onDragOver={event=>{if(!draggedId.current)return;event.preventDefault();event.dataTransfer.dropEffect='move';setDropTargetId(item.id);}}
@@ -177,7 +179,7 @@ export function BinderView({
                 <div className="vault-slot-badges-top">
                   <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
                     {!isGraded&&<span className="vault-badge-qty">x{stack.quantity}</span>}
-                    <span className="vault-badge-lang">{lang}</span>
+                    {!isGraded&&<span className="vault-badge-lang">{lang}</span>}
                   </div>
 
                   <button
@@ -202,18 +204,25 @@ export function BinderView({
               </div>
 
               {/* Slot Meta Information */}
-              <div className="vault-slot-info">
-                <h4 className="vault-slot-name">{item.card.name}</h4>
-                <div className="vault-slot-meta-row">
-                  <span className="vault-slot-meta-identity"><b>{item.card.code}</b><span>{stack.printingLabel}</span></span>
-                  {!hideValues && (
+              {!isGraded&&<div className={`vault-slot-info${isOnePiece?' is-one-piece':''}`}>
+                <div className="vault-slot-heading-row">
+                  <h4 className="vault-slot-name">{item.card.name}</h4>
+                  {isOnePiece&&<div className="vault-slot-meta-row">
+                    <VaultSlotMetaIdentity item={item} printingLabel={stack.printingLabel}/>
+                    {!hideValues && stack.item.hasMarketEstimate && <span className="vault-slot-value">{formatCompactMoney(stack.estimatedValue, 'IDR')}</span>}
+                  </div>}
+                  {!isOnePiece&&<CardStackControls item={item} stackItems={stack.items} quantity={stack.quantity} isAnonymous={isAnonymous} onSaved={onSaved} />}
+                </div>
+                {isOnePiece&&<CardStackControls item={item} stackItems={stack.items} quantity={stack.quantity} isAnonymous={isAnonymous} onSaved={onSaved} />}
+                {!isOnePiece&&<div className="vault-slot-meta-row">
+                  <VaultSlotMetaIdentity item={item} printingLabel={stack.printingLabel}/>
+                  {!hideValues && stack.item.hasMarketEstimate && (
                     <span className="vault-slot-value">
-                    {stack.item.hasMarketEstimate ? formatCompactMoney(stack.estimatedValue, 'IDR') : '-'}
+                      {formatCompactMoney(stack.estimatedValue, 'IDR')}
                     </span>
                   )}
-                </div>
-                <CardStackControls item={item} stackItems={stack.items} quantity={stack.quantity} isAnonymous={isAnonymous} onSaved={onSaved} />
-              </div>
+                </div>}
+              </div>}
             </div>
           );
         })}

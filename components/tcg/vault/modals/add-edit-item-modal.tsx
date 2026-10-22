@@ -14,6 +14,7 @@ import { cards, printings, Card } from '@/packages/card-data/catalog';
 import { GRADING_PROVIDERS } from '@/packages/domain';
 import { CardArt } from '../card-art';
 import { CardMarketPanel } from '../../card-market-panel';
+import { pokemonRarityLabel } from '@/lib/pokemon-rarity';
 import { api } from '@/lib/client';
 import {versionedCardCatalogUrl} from '@/lib/card-catalog-cache';
 import { addLocalVaultItem, deleteLocalVaultItem, getLocalVaultItems, updateLocalVaultItem } from '../local-vault';
@@ -59,6 +60,24 @@ function printingTitle(printing:VaultPrinting){
   const set=printing.set_code?.trim();
   const variant=(printing.variant??'Standard').trim();
   return set?`${variant} / ${set}`:variant;
+}
+
+function PokemonPrintingMeta({printing,language,fallbackRarity}:{printing:VaultPrinting;language:string;fallbackRarity?:string}){
+  const setName=printing.set_name?.trim();
+  const setCode=printing.set_code?.trim();
+  const visibleSetCode=setCode&&!/^PK-/i.test(setCode)?setCode.toLowerCase():'';
+  const rawNumber=printing.printing_code?.trim()??'';
+  const number=rawNumber.includes('/')?rawNumber:rawNumber.split('-').filter(Boolean).at(-1)??'';
+  const rarity=pokemonRarityLabel(printing.rarity??fallbackRarity,language);
+  const illustrator=printing.illustrator?.trim();
+  return <span className={`pokemon-card-meta-row${illustrator?' has-illustrator':''}`} aria-label={[setName,visibleSetCode,number,rarity,illustrator&&`Illustrator ${illustrator}`].filter(Boolean).join(' ')}>
+    {setName&&<small className="pokemon-card-set-name" title={setName}>{setName}</small>}
+    {visibleSetCode&&<small className="pokemon-card-set-badge">{visibleSetCode}</small>}
+    {visibleSetCode&&number&&<span className="pokemon-card-meta-divider" aria-hidden="true"/>}
+    {number&&<small className="pokemon-card-number">{number}</small>}
+    {rarity&&<small className="pokemon-card-rarity">{rarity}</small>}
+    {illustrator&&<span className="pokemon-card-illustrator-inline"><small>Illus.</small><strong>{illustrator}</strong></span>}
+  </span>;
 }
 
 const EMPTY_CARD: Card = {id:'',code:'',name:'',color:'',type:'Character',cost:0,power:0,rarity:'',art:0,effect:''};
@@ -232,7 +251,6 @@ export function AddEditItemModal({
   const selectedCardArt:Card = targetPrinting ? {...currentCard,id:targetPrinting.id,language:targetLanguage,variant:targetPrinting.variant??'Standard',setCode:targetPrinting.set_code??currentCard.setCode,printingCode:targetPrinting.printing_code??currentCard.printingCode,imageUrl:targetPrinting.card_image_url??currentCard.imageUrl} : currentCard;
   const availableLanguages = [...new Set(uniquePrintingOptions.map(printing => printing.language as 'EN'|'JP'|'ID'))];
   const languagePrintings = uniquePrintingOptions.filter(printing => printing.language === cardLanguage);
-  const selectedPrinting=uniquePrintingOptions.find(printing=>printing.id===targetPrinting?.id)??targetPrinting;
   const quantityValid = Number.isInteger(quantity) && quantity >= 1 && quantity <= 999;
   const formIssues = [
     !hasSelectedIdentity ? 'Search for and select a card identity.' : '',
@@ -430,8 +448,8 @@ export function AddEditItemModal({
               <div className={`vault-selected-card-art${hasSelectedIdentity?'':' is-empty'}`}>{hasSelectedIdentity?<CardArt card={selectedCardArt} small/>:<Search size={18}/>}</div>
               <div className="vault-selected-card-copy">
                 <span>Card identity</span>
-                <strong>{hasSelectedIdentity ? `${currentCard.code} — ${currentCard.name}` : (language==='ID'?'Pilih kartu':'Choose a card')}</strong>
-                <small>{hasSelectedIdentity ? `${currentCard.rarity || 'Card'} / ${language==='ID'?'pilih cetakan yang tepat':'choose the exact printing'}` : (language==='ID'?'Cari nama atau kode kartu untuk memilih.':'Search by card name or code to select it.')}</small>
+                <strong>{hasSelectedIdentity ? currentCard.name : (language==='ID'?'Pilih kartu':'Choose a card')}</strong>
+                {!hasSelectedIdentity&&<small>{language==='ID'?'Cari nama atau kode kartu untuk memilih.':'Search by name or code to select it.'}</small>}
               </div>
               {!isEditing && <button type="button" className="vault-btn vault-btn-secondary" onClick={() => setIdentityPickerOpen(open => !open)}>
                 {identityPickerOpen ? 'Close' : 'Change'}
@@ -454,7 +472,6 @@ export function AddEditItemModal({
             {availableLanguages.length > 0 && <div className="vault-language-options" role="group" aria-label="Card language">
               {availableLanguages.map(lang => <button type="button" key={lang} className={cardLanguage === lang ? 'active' : ''} onClick={() => {setCardLanguage(lang);const next=uniquePrintingOptions.find(printing=>printing.language===lang);setSelectedPrintingId(next?.id??'');}}>{lang === 'JP' ? '日本語 / JP' : lang==='ID'?'Bahasa Indonesia / ID':'English / EN'}</button>)}
             </div>}
-                {selectedPrinting&&selectedPrinting.language===cardLanguage&&<p className="vault-printing-current-selection">{language==='ID'?'Cetakan terpilih:':'Selected printing:'} <strong>{selectedPrinting.language} / {printingTitle(selectedPrinting)}</strong>{selectedPrinting.printing_code&&<span> / {selectedPrinting.printing_code}</span>}</p>}
             <div className="vault-printing-options">
               {languagePrintings.map(printing => {
                 const printingCard: Card = {...currentCard,id:printing.id,language:printing.language as 'EN'|'JP'|'ID',variant:printing.variant??'Standard',setCode:printing.set_code??currentCard.setCode,printingCode:printing.printing_code??currentCard.printingCode,imageUrl:printing.card_image_url??currentCard.imageUrl};
@@ -462,7 +479,7 @@ export function AddEditItemModal({
                 const printNumber=printing.printing_code?.match(/(?:[_-]p)(\d+)$/i)?.[1];
                 const detail=[currentCard.code,printing.set_code,printNumber?`p${printNumber}`:printing.printing_code!==currentCard.code?printing.printing_code:null].filter(Boolean).join(' / ');
                 return <button type="button" key={printing.id} className={`vault-printing-option ${selected ? 'selected' : ''}`} aria-pressed={selected} onClick={() => {setSelectedIdentity(currentCard);setSelectedCardCode(currentCard.code);setIdentityConfirmed(true);setSelectedPrintingId(printing.id);setCardLanguage(printing.language as 'EN'|'JP'|'ID');}}>
-                  <span className="vault-printing-option-art"><CardArt card={printingCard} small /></span><span className="vault-printing-option-copy"><b>{printingTitle(printing)}</b><small>{detail || printing.printing_code || 'Standard printing'}</small></span>{selected && <span className="vault-printing-selected-mark">{language==='ID'?'Dipilih':'Selected'}</span>}
+                  <span className="vault-printing-option-art"><CardArt card={printingCard} small /></span><span className={`vault-printing-option-copy${gameSlug==='pokemon'?' is-pokemon':''}`}>{gameSlug==='pokemon'?<PokemonPrintingMeta printing={printing} language={printing.language} fallbackRarity={currentCard.rarity}/>:<><b>{printingTitle(printing)}</b><small>{detail || printing.printing_code || 'Standard printing'}</small></>}</span>{selected && <span className="vault-printing-selected-mark">{language==='ID'?'Dipilih':'Selected'}</span>}
                 </button>;
               })}
               {!languagePrintings.length && <p className="vault-printing-empty">{catalogLoading ? 'Loading available printings…' : 'No printings are listed for this language.'}</p>}

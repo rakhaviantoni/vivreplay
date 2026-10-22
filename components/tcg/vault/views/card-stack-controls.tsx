@@ -7,6 +7,7 @@ import { printings } from '@/packages/card-data/catalog';
 import { api } from '@/lib/client';
 import { CardArt } from '../../card-art';
 import type { EnrichedCollectionItem, VaultPrinting } from '../types';
+import {onePieceVariantLabel} from './printing-labels';
 
 type Props = {
   item: EnrichedCollectionItem;
@@ -22,11 +23,16 @@ export function CardStackControls({ item, stackItems, quantity, isAnonymous, onS
     : printings.filter(printing => printing.cardId === item.card.id).map(printing => ({id:printing.id,language:printing.language,variant:printing.variant,set_code:printing.set})), [item.card.availablePrintings,item.card.id]);
   const [busy, setBusy] = useState(false);
   const [pickerOpen,setPickerOpen]=useState(false);
+  const isPokemonCard=item.card.gameSlug==='pokemon'||/^PK-/i.test(item.card.code);
   // The collection record is the source of truth; local selection state can leak
   // when React reuses this control for another card in a mapped Vault list.
   const currentPrintingId=String(item.printingId);
   const chosen = options.find(printing => String(printing.id) === currentPrintingId);
   const chosenLanguage=chosen?.language??item.language??'EN';
+  const rawVariant=chosen?.variant??item.variant??'Standard';
+  const chosenVariant=isPokemonCard
+    ? rawVariant
+    : onePieceVariantLabel(rawVariant,chosen?.set_code??item.setCode??item.card.setCode,chosen?.printing_code??item.printingCode??item.card.printingCode)||'Standard';
   const languages=[...new Set(options.map(option=>option.language||'EN'))];
   const [pickerLanguage,setPickerLanguage]=useState(chosen?.language??item.language??'EN');
   useEffect(()=>{setPickerLanguage(chosen?.language??item.language??'EN')},[currentPrintingId,item.language]);
@@ -47,10 +53,11 @@ export function CardStackControls({ item, stackItems, quantity, isAnonymous, onS
           if(hasActiveListing)throw new Error('Remove the active listing before changing this printing.');
           const targetOption=options.find(option=>option.id===changes.printingId)??chosen;
           if(!targetOption)throw new Error('That printing is not available.');
+          const targetVariant=isPokemonCard?targetOption.variant:onePieceVariantLabel(targetOption.variant,targetOption.set_code,targetOption.printing_code);
           const ids=stackItems.map(source=>source.id);
           const source=stackItems[0];
           updateLocalVaultItems(ids,{printingId:targetOption.id,language:targetOption.language,variant:targetOption.variant,setCode:targetOption.set_code,printingCode:targetOption.printing_code,card:{...source.card,language:targetOption.language,variant:targetOption.variant,setCode:targetOption.set_code,printingCode:targetOption.printing_code,imageUrl:targetOption.card_image_url||source.card.imageUrl}});
-          toast.success(`Updated ${stackItems.length} printing${stackItems.length===1?'':'s'} to ${targetOption.language} · ${targetOption.variant}`);
+          toast.success(`Updated ${stackItems.length} printing${stackItems.length===1?'':'s'} to ${targetOption.language}${targetVariant?` ${targetVariant}`:''}`);
         }else if(changes.quantity!==undefined){
           if(changes.quantity===0){
             const source=unlistedItems.at(-1);
@@ -121,7 +128,7 @@ export function CardStackControls({ item, stackItems, quantity, isAnonymous, onS
   return (
     <div className="vault-stack-control-wrap" onClick={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()}>
       <div className="vault-stack-controls">
-        {options.length > 1 && <button type="button" className="vault-printing-trigger" aria-expanded={pickerOpen} aria-haspopup="dialog" title={hasActiveListing?'Remove the active listing before changing printing':'Change card printing'} disabled={busy||hasActiveListing} onClick={()=>setPickerOpen(value=>!value)}><Translate size={13}/><span><small>Printing</small><b><span>{chosen?.language??item.language??'EN'}</span><span>{chosen?.variant??item.variant??'Standard'}</span></b></span><span className="vault-printing-trigger-change">{hasActiveListing?'Listed':'Change'}</span></button>}
+        {options.length > 1 && <button type="button" className="vault-printing-trigger" aria-label={hasActiveListing?'Remove the active listing before changing printing':'Change card printing'} aria-expanded={pickerOpen} aria-haspopup="dialog" title={hasActiveListing?'Remove the active listing before changing printing':'Change card printing'} disabled={busy||hasActiveListing} onClick={()=>setPickerOpen(value=>!value)}><Translate size={13}/><span><small>Printing</small><b><span>{chosenLanguage}</span><span>{chosenVariant}</span></b></span><span className="vault-printing-trigger-change">{hasActiveListing?'Listed':'Change'}</span></button>}
       <div className="vault-quantity-stepper" aria-label={`Quantity, ${quantity} copies`}>
         <button type="button" aria-label={removableQuantity===1?`Delete ${item.card.name} from Vault`:`Remove one ${item.card.name}`} title={removableQuantity===0?'All copies are listed':removableQuantity===1?'Delete unlisted copy from Vault':'Remove one unlisted copy'} disabled={busy||removableQuantity===0} onClick={() => {
           if(removableQuantity===1){if(window.confirm(`Remove ${item.card.name} from your Vault?`))void update({quantity:0});}

@@ -8,8 +8,6 @@ const INSTANT_RATE_TTL_MS=3*60_000;
 const isInstant=(code:string)=>['grab','gojek'].includes(code);
 function freshRates(quote:Quote,now:number){return quote.pricing.filter(rate=>((isInstant(rate.courier_code)?quote.instantExpiresAt:quote.regularExpiresAt)??0)>now);}
 function requestedRatesFresh(quote:Quote,couriers:string[],now:number){return couriers.every(code=>((isInstant(code)?quote.instantExpiresAt:quote.regularExpiresAt)??0)>now);}
-const pending=new Map<string,Promise<Quote>>();
-
 function canonical(value:unknown):unknown{
   if(Array.isArray(value))return value.map(canonical);
   if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).filter(([,v])=>v!==undefined).sort(([a],[b])=>a.localeCompare(b)).map(([k,v])=>[k,canonical(v)]));
@@ -37,8 +35,6 @@ export async function cachedShippingRates(buyerId:string|null,listingId:string,p
     const pricing=quote?freshRates(quote,Date.now()):[];
     return pricing.length?{pricing}:{pricing:[],cacheMiss:true};
   }
-  const pendingKey=`${key}:${refresh?'fresh':'cached'}`;
-  const existing=pending.get(pendingKey);if(existing)return existing;
   const work=(async()=>{
     const database=db();
     for(let attempt=0;attempt<80;attempt++){
@@ -66,8 +62,7 @@ export async function cachedShippingRates(buyerId:string|null,listingId:string,p
     }
     throw new HttpError(503,'Shipping rates are being refreshed. Please try again.');
   })();
-  pending.set(pendingKey,work);
-  try{return await work;}finally{pending.delete(pendingKey);}
+  return work;
 }
 
 export async function shippingRateOptions(buyerId:string|null,listingId:string,options:{couriers:string[];origin:{areaId?:string;postalCode?:number};destination:{areaId?:string;postalCode?:number};originLatitude:number|null;originLongitude:number|null;destinationLatitude:number|null;destinationLongitude:number|null;items:unknown[];cacheOnly?:boolean;refresh?:boolean}){

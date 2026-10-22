@@ -9,6 +9,7 @@ import { CardStackControls } from './card-stack-controls';
 import { VaultStackArt } from './vault-stack-art';
 import { groupVaultStacks } from '../vault-utils';
 import {VaultSlotSlabPlate} from './vault-slot-slab-plate';
+import {VaultSlotMetaIdentity} from './vault-slot-meta-identity';
 
 interface GridViewProps {
   items: EnrichedCollectionItem[];
@@ -30,6 +31,7 @@ export function GridView({
   return (
     <div style={{
       display: 'grid',
+      alignItems: 'start',
       gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
       gap: '20px 15px',
       padding: '10px 0'
@@ -39,12 +41,13 @@ export function GridView({
         const printing = printings.find(p => p.id === item.printingId);
         const lang = stack.languageLabel || item.language || item.card.language || printing?.language || 'EN';
         const isGraded = item.type === 'GRADED';
+        const isOnePiece = item.card.gameSlug === 'one-piece';
         const isFavorite=stack.items.some(copy=>copy.isFavorite);
 
         return (
           <div
             key={item.id}
-            className="vault-slot"
+            className={`vault-slot${isGraded?' is-slab':''}`}
             onClick={() => onSelectItem(item)}
             role="button"
             tabIndex={0}
@@ -57,7 +60,7 @@ export function GridView({
               <div className="vault-slot-badges-top">
                 <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
                   {!isGraded&&<span className="vault-badge-qty">x{stack.quantity}</span>}
-                  <span className="vault-badge-lang">{lang}</span>
+                  {!isGraded&&<span className="vault-badge-lang">{lang}</span>}
                 </div>
 
                 <button
@@ -79,18 +82,25 @@ export function GridView({
               </div>
             </div>
 
-              <div className="vault-slot-info">
-              <h4 className="vault-slot-name">{item.card.name}</h4>
-              <div className="vault-slot-meta-row">
-                <span className="vault-slot-meta-identity"><b>{item.card.code}</b><span>{stack.printingLabel}</span></span>
-                {!hideValues && (
-                  <span className="vault-slot-value">
-                    {stack.item.hasMarketEstimate ? formatCompactMoney(stack.estimatedValue, 'IDR') : '-'}
-                  </span>
-                )}
+              {!isGraded&&<div className={`vault-slot-info${isOnePiece?' is-one-piece':''}`}>
+                <div className="vault-slot-heading-row">
+                  <h4 className="vault-slot-name">{item.card.name}</h4>
+                  {isOnePiece&&<div className="vault-slot-meta-row">
+                    <VaultSlotMetaIdentity item={item} printingLabel={stack.printingLabel}/>
+                    {!hideValues && stack.item.hasMarketEstimate && <span className="vault-slot-value">{formatCompactMoney(stack.estimatedValue, 'IDR')}</span>}
+                  </div>}
+                  {!isOnePiece&&<CardStackControls item={item} stackItems={stack.items} quantity={stack.quantity} isAnonymous={isAnonymous} onSaved={onSaved} />}
                 </div>
-                <CardStackControls item={item} stackItems={stack.items} quantity={stack.quantity} isAnonymous={isAnonymous} onSaved={onSaved} />
-              </div>
+                {isOnePiece&&<CardStackControls item={item} stackItems={stack.items} quantity={stack.quantity} isAnonymous={isAnonymous} onSaved={onSaved} />}
+                {!isOnePiece&&<div className="vault-slot-meta-row">
+                  <VaultSlotMetaIdentity item={item} printingLabel={stack.printingLabel}/>
+                  {!hideValues && stack.item.hasMarketEstimate && (
+                    <span className="vault-slot-value">
+                      {formatCompactMoney(stack.estimatedValue, 'IDR')}
+                    </span>
+                  )}
+                </div>}
+              </div>}
           </div>
         );
       })}

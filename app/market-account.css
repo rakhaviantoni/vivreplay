@@ -855,7 +855,7 @@ html[data-theme='dark'] .market-account-unified-body.is-listings .market-listing
 .market-offer-context-art{isolation:isolate}
 .market-offer-context-art>span{z-index:calc(3 - var(--offer-card-index));transform:rotate(calc((var(--offer-card-index) - 1) * 5deg));transform-origin:50% 90%;transition:transform .24s cubic-bezier(.2,.7,.25,1),box-shadow .24s ease,filter .24s ease}
 .market-offer-context-art.is-single>span{left:5px;width:40px;height:56px;transform:rotate(0) translateY(0)}
-.market-offer-context-art>span::after{position:absolute;inset:-1px;z-index:2;background:linear-gradient(115deg,transparent 25%,rgb(255 255 255 / .05) 38%,rgb(255 255 255 / .58) 50%,rgb(255 255 255 / .12) 60%,transparent 72%);content:"";opacity:0;transform:translateX(-125%);pointer-events:none}
+.market-offer-context-art>span::after{position:absolute;inset:-1px;z-index:2;background:linear-gradient(115deg,transparent 25%,rgb(255 255 255 / .025) 36%,rgb(255 255 255 / .2) 47%,rgb(255 255 255 / .36) 51%,rgb(255 255 255 / .12) 59%,rgb(255 255 255 / .02) 68%,transparent 78%);content:"";opacity:0;transform:translateX(-125%);pointer-events:none}
 .market-offer-context-art-more{position:absolute;right:-1px;bottom:-1px;z-index:5;display:grid;min-width:22px;height:22px;place-items:center;padding:0 4px;border:1px solid var(--surface);border-radius:99px;background:var(--ink);color:var(--surface-raised);font-size:10px;line-height:1}
 .market-offer-context-copy>strong{font-size:13px}
 .market-offer-context-cards{display:grid;gap:3px;min-width:0;max-height:63px;overflow:auto}
@@ -863,7 +863,7 @@ html[data-theme='dark'] .market-account-unified-body.is-listings .market-listing
 .market-offer-context-cards b{overflow:hidden;color:var(--ink);font-size:10px;font-weight:700;text-overflow:ellipsis;white-space:nowrap}
 .market-offer-context-cards small,.market-offer-context-more{color:var(--muted);font-size:9px;white-space:nowrap}
 .market-offer-context-total>span{color:var(--muted);font-size:10px}
-@media(hover:hover){.market-offer-context-art:hover>span{box-shadow:0 7px 15px color-mix(in srgb,var(--ink) 25%,transparent);filter:saturate(1.08)}.market-offer-context-art:hover>span::after{opacity:1;animation:market-offer-card-shine .7s ease-out}.market-offer-context-art:not(.is-single):hover>span{transform:translateY(-3px) rotate(calc((var(--offer-card-index) - 1) * 7deg))}.market-offer-context-art.is-single:hover>span{transform:translateY(-4px) rotate(-1deg)}}
+@media(hover:hover){.market-offer-context-art:hover>span{box-shadow:0 7px 15px color-mix(in srgb,var(--ink) 25%,transparent);filter:saturate(1.08)}.market-offer-context-art:hover>span::after{opacity:.72;animation:market-offer-card-shine .92s cubic-bezier(.22,.7,.22,1)}.market-offer-context-art:not(.is-single):hover>span{transform:translateY(-3px) rotate(calc((var(--offer-card-index) - 1) * 7deg))}.market-offer-context-art.is-single:hover>span{transform:translateY(-4px) rotate(-1deg)}}
 @keyframes market-offer-card-shine{to{transform:translateX(125%)}}
 
 /* Keep the two participants easy to distinguish while preserving the chat chronology. */
@@ -983,11 +983,6 @@ html[data-theme='dark'] .market-account-unified-body.is-listings .market-listing
 .market-profile-quick-signout:hover,.market-profile-quick-signout:focus-visible{color:var(--danger,#a83d32)}
 .market-profile-quick-signout:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
 
-.market-listing-art-state{left:14px;top:auto;bottom:14px;transform:none;min-width:0;max-width:calc(100% - 28px);padding:8px 11px;border:1px solid color-mix(in srgb,var(--accent) 40%,var(--line));border-radius:5px;background:color-mix(in srgb,var(--surface-raised) 96%,transparent);box-shadow:0 3px 12px color-mix(in srgb,var(--ink) 18%,transparent);color:var(--ink);font-size:11px;font-weight:800;line-height:1.15;letter-spacing:.035em;text-align:left;text-shadow:none}
-.market-listing-art-state.is-sold-pending,.market-listing-art-state.is-sold{border-color:var(--accent);background:var(--accent);color:var(--surface-raised)}
-.market-listing-art-state.is-closed,.market-listing-art-state.is-expired{border-color:var(--line);background:var(--surface-raised);color:var(--muted)}
-html[data-theme='dark'] .market-listing-art-state{background:color-mix(in srgb,var(--surface-raised) 94%,transparent);color:var(--ink)}
-html[data-theme='dark'] .market-listing-art-state.is-sold-pending,html[data-theme='dark'] .market-listing-art-state.is-sold{background:var(--accent);color:#fffaf0}
 
 .market-membership-compare-wide{overflow-x:auto;border:1px solid var(--line);border-radius:9px;background:var(--surface)}
 .market-membership-compare-wide .market-pro-dialog-table{min-width:0}
@@ -1011,3 +1006,11 @@ html[data-theme='dark'] .market-listing-art-state.is-sold-pending,html[data-them
 .market-popup-search-filters .market-pokemon-search-filter-row>.filter-menu .filter-trigger{height:36px;min-height:36px;padding-inline:9px;border-radius:8px;font:600 11px/1 var(--game-font)}
 .market-popup-search-filters .market-pokemon-search-filter-row .language-switch{min-height:36px}
 .market-popup-search-filters .market-pokemon-search-filter-row.is-advanced{padding-top:0}
+.market-listing-game-scope{display:flex;align-items:center;flex-wrap:wrap;gap:5px;margin:0 0 12px;padding:0 1px;color:var(--muted);font-size:11px;font-weight:700}
+.market-listing-game-scope>span{margin-right:3px}
+.market-listing-game-scope button{min-height:30px;padding:4px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface-raised);color:var(--muted);font:inherit;font-weight:700;cursor:pointer}
+.market-listing-game-scope button.active{border-color:var(--market-create-accent,var(--accent));background:color-mix(in srgb,var(--market-create-accent,var(--accent)) 9%,var(--surface-raised));color:var(--ink)}
+.market-sell-game-badge{align-self:center;padding:2px 6px;border:1px solid var(--line);border-radius:5px;color:var(--muted);font-size:9px;font-weight:750;line-height:1.2;white-space:nowrap}
+.market-listing-search-language{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin:0 0 10px;color:var(--muted);font-size:10px;font-weight:700}
+.market-listing-search-language .language-switch{min-height:30px;padding:2px}
+.market-listing-search-language .language-switch button{min-width:34px;min-height:26px;padding:0 6px;font-size:10px}

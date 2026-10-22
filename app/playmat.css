@@ -2119,8 +2119,8 @@ html[data-theme='dark'] .arena-lobby,html[data-theme='dark'] .arena-tutorial-ind
   pointer-events: none !important;
   opacity: 0 !important;
   transform: translateX(-54%) rotate(20deg) !important;
-  background: linear-gradient(105deg, transparent 42%, rgb(255 255 255 / .06) 45%, rgb(255 255 255 / .72) 50%, rgb(255 255 255 / .08) 54%, transparent 59%) !important;
-  transition: transform .43s ease, opacity .16s ease !important;
+  background: linear-gradient(105deg, transparent 28%, rgb(255 255 255 / .025) 39%, rgb(255 255 255 / .24) 47%, rgb(255 255 255 / .42) 50%, rgb(255 255 255 / .16) 56%, rgb(255 255 255 / .02) 63%, transparent 72%) !important;
+  transition: transform .88s cubic-bezier(.22,.7,.22,1), opacity .3s ease !important;
 }
 .play-fullscreen .play-card:hover .tcg-card.printing-image::after,
 .play-fullscreen .play-card:focus-visible .tcg-card.printing-image::after,
@@ -2128,7 +2128,7 @@ html[data-theme='dark'] .arena-lobby,html[data-theme='dark'] .arena-tutorial-ind
 .play-fullscreen .player-hand .hand-cards > button:focus-visible .tcg-card.printing-image::after,
 .play-fullscreen .opponent-hand > button:hover .tcg-card.printing-image::after,
 .play-fullscreen .opponent-hand > button:focus-visible .tcg-card.printing-image::after {
-  opacity: .62 !important;
+  opacity: .5 !important;
   transform: translateX(54%) rotate(20deg) !important;
 }
 .play-fullscreen .play-card:hover,
@@ -8453,7 +8453,7 @@ html[data-theme='dark'] .arena-lobby,html[data-theme='dark'] .arena-tutorial-ind
 .play-fullscreen .trash-inspector>div>button::after{display:none!important}
 .play-fullscreen .trash-inspector>div>button:hover .tcg-card,.play-fullscreen .trash-inspector>div>button:focus-visible .tcg-card{transform:translateY(-7px) scale(1.03)!important;filter:drop-shadow(0 8px 9px rgb(56 37 15 / .24))!important}
 .play-fullscreen .trash-inspector .tcg-card.printing-image{position:relative;overflow:hidden}
-.play-fullscreen .trash-inspector .tcg-card.printing-image::after{content:'';position:absolute;inset:-8% -45%;pointer-events:none;background:linear-gradient(112deg,transparent 42%,rgb(255 249 220 / .45) 50%,transparent 58%);transform:translateX(-56%) rotate(18deg);transition:transform .43s ease,opacity .16s ease;opacity:0}
+.play-fullscreen .trash-inspector .tcg-card.printing-image::after{content:'';position:absolute;inset:-8% -45%;pointer-events:none;background:linear-gradient(112deg,transparent 28%,rgb(255 249 220 / .04) 39%,rgb(255 249 220 / .2) 48%,rgb(255 252 238 / .34) 51%,rgb(255 249 220 / .12) 59%,transparent 72%);transform:translateX(-56%) rotate(18deg);transition:transform .88s cubic-bezier(.22,.7,.22,1),opacity .3s ease;opacity:0}
 .play-fullscreen .trash-inspector>div>button:hover .tcg-card.printing-image::after,.play-fullscreen .trash-inspector>div>button:focus-visible .tcg-card.printing-image::after{opacity:1;transform:translateX(54%) rotate(18deg)}
 
 .deck-leader-art > .tcg-card.printing-image { border-radius: 4px; }
@@ -8906,10 +8906,10 @@ html[data-theme='dark'] .arena-lobby,html[data-theme='dark'] .arena-tutorial-ind
 .play-fullscreen .board-side .don-cost>button.is-don-selected .tcg-card {box-shadow:0 4px 8px rgb(51 37 20 / .24)!important}
 .play-fullscreen .board-side .don-cost>button:not(:disabled):hover .tcg-card.printing-image::after,
 .play-fullscreen .board-side .don-cost>button:not(:disabled):focus-visible .tcg-card.printing-image::after,
-.play-fullscreen .board-side .don-cost>button.is-don-selected .tcg-card.printing-image::after {animation:don-cost-card-shine 520ms ease-out both!important}
+.play-fullscreen .board-side .don-cost>button.is-don-selected .tcg-card.printing-image::after {animation:don-cost-card-shine 820ms cubic-bezier(.22,.7,.22,1) both!important}
 @keyframes don-cost-card-shine {
   0% {opacity:0;transform:translateX(-72%) rotate(18deg)}
-  24% {opacity:.62}
+  24% {opacity:.48}
   100% {opacity:0;transform:translateX(72%) rotate(18deg)}
 }
 

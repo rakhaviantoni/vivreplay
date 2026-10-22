@@ -55,7 +55,7 @@ export async function GET(request: Request) {
     const game = await db.prepare('SELECT id FROM tcg_games WHERE slug=? LIMIT 1').bind(gameSlug).first<{ id: string }>();
     if (!game) return Response.json({ sets: [] }, { headers: publicHeaders });
     const rows = (await db.prepare(`
-        SELECT p.set_code,p.set_name,p.identity_id,p.variant,s.release_date
+        SELECT p.set_code,p.set_name,p.identity_id,p.variant,COALESCE(s.release_date,p.release_date) AS release_date
           ,s.description,s.official_url,s.product_image_url,
           CASE WHEN json_valid(p.source_payload) THEN json_extract(p.source_payload,'$.set.serie.name') ELSE NULL END AS series
         FROM tcg_card_printings p
