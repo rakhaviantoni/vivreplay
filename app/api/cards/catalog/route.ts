@@ -3,6 +3,8 @@ import { readPublicEdgeCache, storePublicEdgeCache } from '@/lib/server/public-e
 import { isPlayableSet, PREVIEW_CARD_CODES } from '@/packages/domain/release-availability';
 import { CARD_CATALOG_CACHE_REVISION } from '@/lib/card-catalog-cache';
 import { parseCatalogRange } from '@/lib/card-catalog-query';
+import { pokemonPrintingRarity } from '@/lib/pokemon-rarity';
+import { pokemonArtRoute } from '@/lib/pokemon-art-route';
 import { env } from 'cloudflare:workers';
 
 function publicCardPath(objectKey: string, setCode = '', language = 'EN', printingCode = '') {
@@ -18,16 +20,7 @@ function publicCardPath(objectKey: string, setCode = '', language = 'EN', printi
       const [folder, sourceLanguage, ...parts] = segments;
       const filename = parts.at(-1);
       if (source.hostname === 'assets.tcgdex.net' && source.protocol === 'https:' && source.pathname.startsWith('/')) {
-        const sourceLanguageCode = segments[0]?.toLowerCase();
-        const languageCode = sourceLanguageCode === 'id' ? 'id' : sourceLanguageCode === 'jp' || sourceLanguageCode === 'ja' ? 'jp' : sourceLanguageCode === 'en' ? 'en' : '';
-        const assetParts = segments.slice(1);
-        if (/^(?:high|low|small|large)\.(?:webp|png|jpe?g)$/i.test(assetParts.at(-1) ?? '')) assetParts.pop();
-        const setCode = assetParts.at(-2)?.replace(/\.(?:webp|png|jpe?g)$/i, '');
-        const cardCode = assetParts.at(-1)?.replace(/\.(?:webp|png|jpe?g)$/i, '');
-        if (languageCode && setCode && cardCode) {
-          return `/pokemon/art/${languageCode}/${encodeURIComponent(setCode)}/${encodeURIComponent(cardCode)}`;
-        }
-        return '';
+        return pokemonArtRoute(language, setCode, printingCode);
       }
       if (source.hostname === 'cards.oplaytcg.com' && folder && sourceLanguage && filename && folder.toLowerCase() !== 'tcg' && !filename.toLowerCase().startsWith('tcg-')) {
         return `/${encodeURIComponent(folder)}/${encodeURIComponent(sourceLanguage.toLowerCase())}/${encodeURIComponent(filename)}`;
@@ -110,7 +103,23 @@ async function fromD1(gameSlug: string, language: string, identityCode?: string,
   if (queryTerms.length) values.push(...queryTerms.map(term=>`%${term}%`));
   if (limit) values.push(limit, offset);
   const { results } = await db.prepare(`
-    SELECT p.id,p.rarity,p.variant,p.set_code,p.set_name,p.printing_code,p.language,
+    SELECT p.id,
+      CASE
+        WHEN NULLIF(trim(p.rarity),'') IS NOT NULL AND lower(trim(p.rarity)) NOT IN ('unknown','none','null') THEN p.rarity
+        ELSE (
+          SELECT NULLIF(trim(other.rarity),'')
+          FROM tcg_card_printings other
+          WHERE other.identity_id=p.identity_id
+            AND other.set_id=p.set_id
+            AND other.printing_code=p.printing_code
+            AND other.variant=p.variant
+            AND NULLIF(trim(other.rarity),'') IS NOT NULL
+            AND lower(trim(other.rarity)) NOT IN ('unknown','none','null')
+          ORDER BY CASE other.language WHEN 'JP' THEN 0 WHEN 'EN' THEN 1 ELSE 2 END
+          LIMIT 1
+        )
+      END AS rarity,
+      p.variant,p.set_code,p.set_name,p.printing_code,p.language,
       p.attribute,p.counter_amount,p.sub_types,p.source_payload,
       COALESCE(NULLIF(a.object_key,''), NULLIF(p.card_image_url,'')) AS image_key,
       i.id AS identity_id,i.code AS identity_code,i.name AS identity_name,
@@ -144,8 +153,11 @@ async function fromD1(gameSlug: string, language: string, identityCode?: string,
         ? `/pokemon/art/${language.toLowerCase()}/${encodeURIComponent(setCode)}/${encodeURIComponent(printingCode)}${setCode.toLowerCase() === '30th-c' ? '?artRevision=2' : ''}`
         : null
       : publicCardPath(imageKey, setCode, language, printingCode) || null;
+    const rarity = gameSlug === 'pokemon'
+      ? pokemonPrintingRarity(String(row.rarity ?? ''), String(row.language ?? language), setCode, printingCode)
+      : row.rarity;
     return [{
-      id: row.id,identity_id:row.identity_id, rarity: row.rarity, variant: row.variant,
+      id: row.id,identity_id:row.identity_id, rarity, variant: row.variant,
       set_code: row.set_code, set_name: row.set_name,
       printing_code: row.printing_code || identity.code,
       language: row.language, attribute: row.attribute,

@@ -94,6 +94,11 @@ export function energyTypeFromName(value: string): EnergyType | undefined {
   return localized[key];
 }
 
+export function energyAssetFromName(value: string): string | undefined {
+  const type = energyTypeFromName(value);
+  return type ? energySymbols[type].asset : undefined;
+}
+
 function RuleCopy({ text }: { text?: string }) {
   if (!text?.trim()) return null;
   text = text.replace(/\\(?=<\/?(?:span|em|i|strong|b)\b)/gi, '').replace(/\s+/g, ' ').replace(/\bto\s+(\d+)\s+of\b/gi, 'to $1 of');
@@ -175,7 +180,7 @@ function formatInline(content: ReactNode, emphasis: number, bold: number, key: n
   return <span key={key}>{bold > 0 ? <strong>{emphasis > 0 ? <em>{content}</em> : content}</strong> : emphasis > 0 ? <em>{content}</em> : content}</span>;
 }
 
-function trainerEffectText(source: NonNullable<PokemonText['source']>) {
+export function trainerEffectText(source: NonNullable<PokemonText['source']>) {
   const isTrainer = [source.category, source.trainerType].some(value => typeof value === 'string' && /trainer|supporter|item|stadium/i.test(value));
   const candidates = [source.effect, source.trainerEffect, source.trainerText, source.cardEffect, source.effectText, source.text, source.rules, isTrainer ? source.description : undefined];
   for (const value of candidates) {
@@ -192,8 +197,8 @@ function trainerEffectText(source: NonNullable<PokemonText['source']>) {
   return undefined;
 }
 
-type PokemonRuleAbility = { type?: string; name: string; effect?: string };
-function pokemonRuleAbilities(source: NonNullable<PokemonText['source']>): PokemonRuleAbility[] {
+export type PokemonRuleAbility = { type?: string; name: string; effect?: string };
+export function pokemonRuleAbilities(source: NonNullable<PokemonText['source']>): PokemonRuleAbility[] {
   const keys = ['abilities','ability','powers','power','pokePower','pokePowers','pokemonPower','pokemonPowers','pokeBody','pokeBodies','ancientTrait'];
   const entries: PokemonRuleAbility[] = [];
   for (const key of keys) {

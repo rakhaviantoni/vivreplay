@@ -1,5 +1,6 @@
 import {useEffect,useState} from 'react';
 import {versionedCardCatalogUrl} from '@/lib/card-catalog-cache';
+import {pokemonPrintingRarity} from '@/lib/pokemon-rarity';
 import type {EnrichedCollectionItem} from '../types';
 
 type PsaGrade={label:string;score:string};
@@ -67,22 +68,25 @@ function selectedVaultPrinting(item:EnrichedCollectionItem){
 function fullRarity(item:EnrichedCollectionItem,game:'one-piece'|'pokemon'){
   const selectedPrinting=selectedVaultPrinting(item);
   const value=String(selectedPrinting?.rarity||item.rarity||item.card.rarity||'').trim();
+  if(game==='pokemon'){
+    const resolved=pokemonPrintingRarity(
+      value,
+      selectedPrinting?.language??item.language??item.card.language,
+      selectedPrinting?.set_code??item.setCode??item.card.setCode,
+      selectedPrinting?.printing_code??item.printingCode??item.card.printingCode,
+    );
+    const normalized=resolved.toLowerCase().replace(/[^a-z]/g,'');
+    if(normalized==='sar'||normalized==='sir')return 'SPECIAL ART RARE';
+    if(normalized==='ar'||normalized==='ir')return 'ART RARE';
+    const labels:Record<string,string>={
+      c:'COMMON',u:'UNCOMMON',r:'RARE',rr:'DOUBLE RARE',rrr:'TRIPLE RARE',ur:'ULTRA RARE',hr:'HYPER RARE',
+      ace:'ACE SPEC RARE',ssr:'SHINY ULTRA RARE',sr:'SECRET RARE',promo:'PROMO',
+    };
+    return labels[normalized]??resolved.toUpperCase();
+  }
   if(!value)return value;
   const normalized=value.toLowerCase().replace(/[^a-z]/g,'');
-  if(game==='one-piece')return normalized==='sr'?'SPECIAL ART RARE':value.toUpperCase();
-  const names:Record<string,string>={
-    c:'COMMON',common:'COMMON',u:'UNCOMMON',uncommon:'UNCOMMON',r:'RARE',rare:'RARE',
-    rr:'DOUBLE RARE',doublerare:'DOUBLE RARE',rrr:'TRIPLE RARE',triplerare:'TRIPLE RARE',
-    ur:'ULTRA RARE',ultrarare:'ULTRA RARE',hr:'HYPER RARE',hyperrare:'HYPER RARE',
-    ir:'ART RARE',ar:'ART RARE',artrare:'ART RARE',illustrationrare:'ART RARE',
-    sir:'SPECIAL ART RARE',sar:'SPECIAL ART RARE',
-    specialartrare:'SPECIAL ART RARE',specialillustrationrare:'SPECIAL ART RARE',
-    ace:'ACE SPEC RARE',acespec:'ACE SPEC RARE',acespecrare:'ACE SPEC RARE',
-    a:'AMAZING RARE',amazingrare:'AMAZING RARE',k:'RADIANT RARE',radiantrare:'RADIANT RARE',
-    s:'SHINY RARE',shinyrare:'SHINY RARE',ssr:'SHINY ULTRA RARE',shinyultrarare:'SHINY ULTRA RARE',
-    sr:'SECRET RARE',secretrare:'SECRET RARE',raresecret:'SECRET RARE',promo:'PROMO',promotional:'PROMO',
-  };
-  return names[normalized]??value.toUpperCase();
+  return normalized==='sr'?'SPECIAL ART RARE':value.toUpperCase();
 }
 
 function psaBarcodeBackground(certificate:string){

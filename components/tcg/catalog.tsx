@@ -146,19 +146,20 @@ function printingPriority(card:LibraryCard) {
   return 1;
 }
 
-export function Catalog({home=false,initialSet,initialArchetype,setPage=false,setInfo}:{home?:boolean;initialSet?:string;initialArchetype?:string;setPage?:boolean;setInfo?:CatalogSetInfo}) {
+export function Catalog({home=false,initialSet,initialArchetype,initialCard,initialPrinting,initialLanguage,setPage=false,setInfo}:{home?:boolean;initialSet?:string;initialArchetype?:string;initialCard?:string;initialPrinting?:string;initialLanguage?:string;setPage?:boolean;setInfo?:CatalogSetInfo}) {
   const [query,setQuery] = useState('');
   const [color,setColor] = useState('All colors');
   const [types,setTypes] = useState<string[]>([]);
   const [selectedColors,setSelectedColors] = useState<string[]>([]);
   const [rarities,setRarities] = useState<string[]>([]);
-  const [language,setLanguage] = useState('EN');
+  const [language,setLanguage] = useState(initialLanguage === 'JP' ? 'JP' : 'EN');
   const [locale,setLocale] = useState<'EN'|'ID'>('EN');
   const [gridColumns,setGridColumns] = useState('5');
   const [sortOrder,setSortOrder] = useState<SortOrder>('leaders-latest');
   const [mobileFiltersOpen,setMobileFiltersOpen] = useState(false);
   const [preview,setPreview] = useState<Card>();
   const [previewOrigin,setPreviewOrigin] = useState<DOMRect>();
+  const openedCardQuery = useRef('');
   const [liveCards,setLiveCards] = useState<LibraryCard[]>([]);
   const [catalogPage,setCatalogPage] = useState(0);
   const [catalogLoading,setCatalogLoading] = useState(true);
@@ -198,6 +199,32 @@ export function Catalog({home=false,initialSet,initialArchetype,setPage=false,se
     }
     loadCatalog().catch(()=>{if(active)setCatalogLoading(false)});return()=>{active=false;controller.abort()};
   },[language]);
+  useEffect(()=>{
+    if(catalogLoading||(!initialCard&&!initialPrinting))return;
+    const queryKey=`${initialCard??''}:${initialPrinting??''}:${language}`;
+    if(openedCardQuery.current===queryKey)return;
+    openedCardQuery.current=queryKey;
+    const match=liveCards.find(card=>(initialPrinting&&card.id===initialPrinting)||(initialCard&&card.code.toUpperCase()===initialCard.toUpperCase()));
+    if(match){setPreviewOrigin(undefined);setPreview(match);return;}
+    const controller=new AbortController();
+    const params=new URLSearchParams({language});
+    if(initialPrinting)params.set('ids',initialPrinting);
+    else if(initialCard)params.set('code',initialCard);
+    void fetch(versionedCardCatalogUrl(`/api/cards/catalog?${params}`),{signal:controller.signal})
+      .then(async response=>response.ok?response.json() as Promise<{cards?:Record<string,unknown>[]} >:{cards:[]})
+      .then(payload=>{
+        const row=payload.cards?.[0];
+        const identity=row?.tcg_card_identities as {code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number;effect_text:string}|undefined;
+        if(!row||!identity||controller.signal.aborted)return;
+        const setCode=String(row.set_code??'');
+        const assets=(row.tcg_card_assets??[]) as Array<{kind:string;object_key:string}>;
+        const fallback:LibraryCard={id:String(row.id),code:identity.code,name:displayCardName(identity.name,identity.code),color:identity.color,type:identity.card_type,cost:identity.cost,power:identity.power,rarity:String(row.rarity??''),art:0,effect:identity.effect_text,imageUrl:String(row.card_image_url||'')||undefined,imageSource:'external',setCode,setName:String(row.set_name??setCode),language:String(row.language??language),attribute:String(row.attribute??''),counter:Number(row.counter_amount??0),block:blockForSet(setCode,row.source_payload as {block?:string|number;block_value?:string|number}|null),keywords:cardKeywords(identity.effect_text),traits:splitArchetypeTraits(row.sub_types as string[]|string|null),variant:String(row.variant??''),printingCode:String(row.printing_code??identity.code),assetPath:assets.find(asset=>asset.kind==='small')?.object_key};
+        setPreviewOrigin(undefined);
+        setPreview(fallback);
+      })
+      .catch(()=>{});
+    return()=>controller.abort();
+  },[catalogLoading,initialCard,initialPrinting,language,liveCards]);
   useCatalogTools(setQuery,setColor,value=>setTypes(value==='All types'?[]:[value]));
   const [attributes,setAttributes] = useState<string[]>([]); const [counters,setCounters] = useState<string[]>([]); const [keywords,setKeywords] = useState<string[]>([]); const [traits,setTraits] = useState<string[]>(initialArchetype?[initialArchetype]:[]); const [sets,setSets] = useState<string[]>(initialSet?[normalizeSetCode(initialSet)]:[]);
   const [blocks,setBlocks] = useState<string[]>([]);

@@ -39,7 +39,14 @@ export async function GET(_request: Request, { params }: { params: Promise<{ lan
     if (row.imageUrl) {
       const imageUrl = row.imageUrl.replace(/\/$/, '');
       if (/\.(?:png|webp|jpe?g)$/i.test(imageUrl)) candidates.push(imageUrl);
-      else candidates.push(`${imageUrl}/high.webp`, `${imageUrl}/low.webp`);
+      if (/assets\.tcgdex\.net\//i.test(imageUrl)) {
+        const base = imageUrl.replace(/\/(?:high|low)\.(?:png|webp|jpe?g)$/i, '');
+        for (const quality of ['high', 'low']) {
+          for (const extension of ['webp', 'png', 'jpg']) candidates.push(`${base}/${quality}.${extension}`);
+        }
+      } else if (!/\.(?:png|webp|jpe?g)$/i.test(imageUrl)) {
+        candidates.push(`${imageUrl}/high.webp`, `${imageUrl}/low.webp`);
+      }
     }
     // TCGdex has card data for this set but no card image URLs. Do not use
     // `me/30th` as a substitute: that is the separate 30th Celebration set.
@@ -59,8 +66,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ lan
     for (const lang of language === 'JP' ? ['ja', 'jp'] : [sourceLanguage]) {
       for (const candidateSetPath of sourceSetDirectories.filter(value => /^[a-z0-9._/-]{1,80}$/i.test(value) && !value.split('/').some(part => part === '.' || part === '..'))) {
         const directory = `${lang}/${candidateSetPath}`;
-        candidates.push(`https://assets.tcgdex.net/${directory}/${encodeURIComponent(localId)}/high.webp`);
-        candidates.push(`https://assets.tcgdex.net/${directory}/${encodeURIComponent(localId)}/low.webp`);
+        for (const quality of ['high', 'low']) {
+          for (const extension of ['webp', 'png', 'jpg']) candidates.push(`https://assets.tcgdex.net/${directory}/${encodeURIComponent(localId)}/${quality}.${extension}`);
+        }
       }
     }
     return tcgdexArtResponse(candidates);

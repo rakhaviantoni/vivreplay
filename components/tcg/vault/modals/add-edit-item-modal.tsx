@@ -14,7 +14,7 @@ import { cards, printings, Card } from '@/packages/card-data/catalog';
 import { GRADING_PROVIDERS } from '@/packages/domain';
 import { CardArt } from '../card-art';
 import { CardMarketPanel } from '../../card-market-panel';
-import { pokemonRarityLabel } from '@/lib/pokemon-rarity';
+import { pokemonPrintingRarity } from '@/lib/pokemon-rarity';
 import { api } from '@/lib/client';
 import {versionedCardCatalogUrl} from '@/lib/card-catalog-cache';
 import { addLocalVaultItem, deleteLocalVaultItem, getLocalVaultItems, updateLocalVaultItem } from '../local-vault';
@@ -68,7 +68,7 @@ function PokemonPrintingMeta({printing,language,fallbackRarity}:{printing:VaultP
   const visibleSetCode=setCode&&!/^PK-/i.test(setCode)?setCode.toLowerCase():'';
   const rawNumber=printing.printing_code?.trim()??'';
   const number=rawNumber.includes('/')?rawNumber:rawNumber.split('-').filter(Boolean).at(-1)??'';
-  const rarity=pokemonRarityLabel(printing.rarity??fallbackRarity,language);
+  const rarity=pokemonPrintingRarity(printing.rarity?.trim()||fallbackRarity,language,setCode,rawNumber);
   const illustrator=printing.illustrator?.trim();
   return <span className={`pokemon-card-meta-row${illustrator?' has-illustrator':''}`} aria-label={[setName,visibleSetCode,number,rarity,illustrator&&`Illustrator ${illustrator}`].filter(Boolean).join(' ')}>
     {setName&&<small className="pokemon-card-set-name" title={setName}>{setName}</small>}
@@ -263,7 +263,7 @@ export function AddEditItemModal({
   useEffect(()=>{
     const estimatePrintingId=targetPrinting?.id;
     if(!open||!hasSelectedIdentity||!estimatePrintingId)return;
-    if(targetLanguage!=='JP'){
+    if(gameSlug!=='one-piece'||targetLanguage!=='JP'){
       setMarketEstimateIdr(null);
       setMarketEstimateLoading(false);
       return;
@@ -294,7 +294,7 @@ export function AddEditItemModal({
       }catch(error){if(error instanceof DOMException&&error.name==='AbortError')return;}
     })().finally(()=>{if(active)setMarketEstimateLoading(false);});
     return()=>{active=false;controller.abort();};
-  },[open,hasSelectedIdentity,targetLanguage,targetPrinting?.id]);
+  },[open,hasSelectedIdentity,gameSlug,targetLanguage,targetPrinting?.id]);
 
   if (!open || typeof document === 'undefined') return null;
 
@@ -409,7 +409,7 @@ export function AddEditItemModal({
       overflowY: 'auto',
       padding: 'max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom))',
     }}>
-      <div className="vault-item-modal" role="dialog" aria-modal="true" aria-labelledby="vault-item-dialog-title" tabIndex={-1} style={{
+      <div className={`vault-item-modal vault-dialog${gameSlug==='pokemon'?' is-pokemon':''}`} role="dialog" aria-modal="true" aria-labelledby="vault-item-dialog-title" tabIndex={-1} style={{
         width: '100%',
         maxWidth: '680px',
         maxHeight: 'calc(100dvh - 32px)',
@@ -423,10 +423,10 @@ export function AddEditItemModal({
         boxShadow: '0 28px 70px rgba(0, 0, 0, 0.3)',
         padding: '28px',
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+        <div className="vault-item-modal-heading vault-dialog-heading" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
           <div>
             <span style={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '0.12em', color: 'var(--vault-gold)', textTransform: 'uppercase' }}>
-              VAULT
+              {gameSlug==='pokemon'?'Pokémon Vault':'Vault'}
             </span>
             <h2 id="vault-item-dialog-title" style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '24px', fontWeight: 600, margin: '2px 0 0' }}>
               {isEditing ? `Edit ${editingItem?.card.name}` : 'Add to Vault'}
@@ -441,22 +441,25 @@ export function AddEditItemModal({
           </button>
         </div>
 
-        <form noValidate onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+        <form className="form-stack vault-item-form" noValidate onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
           {/* Top Card Preview & Selection */}
           <div className="vault-identity-picker">
-            <div className="vault-selected-card">
-              <div className={`vault-selected-card-art${hasSelectedIdentity?'':' is-empty'}`}>{hasSelectedIdentity?<CardArt card={selectedCardArt} small/>:<Search size={18}/>}</div>
+            {(!identityPickerOpen || hasSelectedIdentity) && <div className="vault-selected-card">
+              {hasSelectedIdentity && <div className="vault-selected-card-art"><CardArt card={selectedCardArt} small/></div>}
               <div className="vault-selected-card-copy">
-                <span>Card identity</span>
+                {hasSelectedIdentity && <span>{language==='ID'?'Kartu dipilih':'Selected card'}</span>}
                 <strong>{hasSelectedIdentity ? currentCard.name : (language==='ID'?'Pilih kartu':'Choose a card')}</strong>
-                {!hasSelectedIdentity&&<small>{language==='ID'?'Cari nama atau kode kartu untuk memilih.':'Search by name or code to select it.'}</small>}
               </div>
               {!isEditing && <button type="button" className="vault-btn vault-btn-secondary" onClick={() => setIdentityPickerOpen(open => !open)}>
-                {identityPickerOpen ? 'Close' : 'Change'}
+                {identityPickerOpen ? (language==='ID'?'Tutup':'Close') : (language==='ID'?'Pilih':'Choose')}
               </button>}
-            </div>
+            </div>}
             {identityPickerOpen && !isEditing && <div className="vault-identity-search-panel">
-              <label className="vault-identity-search"><Search size={16}/><input autoFocus value={cardQuery} onChange={event => setCardQuery(event.target.value)} placeholder="Search by card name or code" /></label>
+              {!hasSelectedIdentity && <div className="vault-identity-search-heading">
+                <strong>{language==='ID'?'Pilih kartu':'Choose a card'}</strong>
+                <button type="button" onClick={() => setIdentityPickerOpen(false)}>{language==='ID'?'Tutup':'Close'}</button>
+              </div>}
+              <label className="vault-identity-search"><Search size={16}/><input type="text" name="vault-card-search" autoFocus autoComplete="off" autoCorrect="off" autoCapitalize="none" spellCheck={false} aria-label={language==='ID'?'Cari kartu':'Search cards'} value={cardQuery} onChange={event => setCardQuery(event.target.value)} placeholder={language==='ID'?'Nama, nomor, set, rarity, bahasa':'Name, number, set, rarity, language'} /></label>
               {cardQuery.trim().length >= 2 && <div className="vault-identity-results" role="listbox" aria-label="Card identities">
                 {identitySearchLoading && <p>Searching cards…</p>}
                 {!identitySearchLoading && identityResults.map(card => <button type="button" role="option" aria-selected={hasSelectedIdentity && card.code === selectedCardCode} key={card.id} className={hasSelectedIdentity && card.code === selectedCardCode ? 'selected' : ''} onClick={() => {setSelectedCardCode(card.code);setSelectedIdentity(card);setSelectedPrintingId('');setIdentityConfirmed(true);setIdentityPickerOpen(false);setCardQuery('');}}>
@@ -490,7 +493,7 @@ export function AddEditItemModal({
           {/* Format Selector: Raw Card vs Graded Slab */}
           <div>
             <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--vault-ink-secondary)', display: 'block', marginBottom: '6px' }}>
-              Format & Grading Type:
+              Card type
             </label>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               <button
@@ -534,7 +537,7 @@ export function AddEditItemModal({
               </fieldset>
               <div className="vault-quantity-field">
                 <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--vault-ink-secondary)', display: 'block', marginBottom: '4px' }}>
-                  Quantity:
+                  Quantity
                 </label>
                 <input
                   type="number"
@@ -555,7 +558,7 @@ export function AddEditItemModal({
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--vault-ink-secondary)', display: 'block', marginBottom: '4px' }}>
-                    Grading Provider:
+                    Grading provider
                   </label>
                   <select
                     className="vault-select-compact"
@@ -572,7 +575,7 @@ export function AddEditItemModal({
                 </div>
                 <div>
                   <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--vault-ink-secondary)', display: 'block', marginBottom: '4px' }}>
-                    Grade:
+                    Grade
                   </label>
                   <input
                     type="text"
@@ -591,7 +594,7 @@ export function AddEditItemModal({
 
               <div>
                 <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--vault-ink-secondary)', display: 'block', marginBottom: '4px' }}>
-                  Certification Number:
+                  Certification number
                 </label>
                 <input
                   type="text"
@@ -609,7 +612,7 @@ export function AddEditItemModal({
               </div>
 
               <div>
-                <label style={{display:'inline-flex',alignItems:'center',gap:8,fontSize:12,fontWeight:650,color:'var(--vault-ink-secondary)',cursor:'pointer',marginBottom:showSubgrades?10:0}}>
+                <label className="vault-subgrades-toggle" style={{display:'inline-flex',alignItems:'center',gap:8,fontSize:12,fontWeight:650,color:'var(--vault-ink-secondary)',cursor:'pointer',marginBottom:showSubgrades?10:0}}>
                   <input type="checkbox" checked={showSubgrades} onChange={event=>setShowSubgrades(event.target.checked)}/>
                   Add subgrades
                 </label>
@@ -665,7 +668,7 @@ export function AddEditItemModal({
           <div className="vault-cost-market-grid">
             <div className="vault-cost-field">
               <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--vault-ink-secondary)', display: 'block', marginBottom: '4px' }}>
-                {language === 'ID' ? 'Biaya perolehan (IDR)' : 'Acquisition cost (IDR)'}
+                {language === 'ID' ? 'Biaya perolehan (opsional)' : 'Acquisition cost (optional)'}
               </label>
               <input
                 type="number"
@@ -680,15 +683,24 @@ export function AddEditItemModal({
               />
               <span style={{ fontSize: '10px', color: 'var(--vault-ink-muted)' }}>{language === 'ID' ? 'Harga pembelian Anda; hanya terlihat oleh Anda.' : 'Your purchase cost; private to you.'}</span>
             </div>
-            <div className="vault-market-reference" aria-live="polite">
-              <span className="vault-market-reference-label">{language === 'ID' ? 'Estimasi pasar (IDR)' : 'Market estimate (IDR)'}</span>
-              <strong>{!hasMarketReference ? (language === 'ID' ? 'Belum tersedia untuk cetakan EN' : 'Not available for EN printings') : marketEstimateLoading ? <span className="vault-value-skeleton" role="status" aria-label={language==='ID'?'Memuat estimasi pasar':'Loading market estimate'}/> : marketEstimateIdr !== null ? `Rp ${marketEstimateIdr.toLocaleString('id-ID')}` : (language === 'ID' ? 'Harga cetakan ini belum ditemukan' : 'No price found for this printing')}</strong>
-              <small>{!hasMarketReference ? (language === 'ID' ? 'Data harga untuk kartu bahasa Inggris belum tersedia.' : 'Price data is not available for English cards yet.') : marketEstimateIdr !== null ? (language === 'ID' ? 'Perkiraan untuk kartu yang dipilih.' : 'Estimate for the selected card.') : (language === 'ID' ? 'Harga referensi untuk kartu Jepang ini belum ditemukan.' : 'No reference price found for this Japanese card yet.')}</small>
+            <div className="vault-market-field">
+              <label className="vault-market-reference-label">{language === 'ID' ? 'Estimasi pasar (IDR)' : 'Market estimate (IDR)'}</label>
+              <div className="vault-market-reference" aria-live="polite">
+                <strong className={marketEstimateIdr !== null ? 'has-estimate' : 'no-estimate'}>
+                  {!hasMarketReference
+                    ? (gameSlug==='pokemon' ? (language==='ID'?'Belum ada data harga':'No price data') : (language === 'ID' ? 'Khusus cetakan Jepang' : 'Japanese printings only'))
+                    : marketEstimateLoading
+                      ? <span className="vault-value-skeleton" role="status" aria-label={language==='ID'?'Memuat estimasi pasar':'Loading market estimate'}/>
+                      : marketEstimateIdr !== null
+                        ? `Rp ${marketEstimateIdr.toLocaleString('id-ID')}`
+                        : (language === 'ID' ? 'Belum ada estimasi' : 'No estimate')}
+                </strong>
+              </div>
             </div>
           </div>
           <div>
             <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--vault-ink-secondary)', display: 'block', marginBottom: '4px' }}>
-              Acquisition Date:
+              {language === 'ID' ? 'Tanggal perolehan' : 'Acquisition date'}
             </label>
             <input
               type="date"
@@ -702,7 +714,7 @@ export function AddEditItemModal({
           {/* Visibility & Notes */}
           <div>
             <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--vault-ink-secondary)', display: 'block', marginBottom: '4px' }}>
-              Item Visibility:
+              {language === 'ID' ? 'Visibilitas koleksi' : 'Collection visibility'}
             </label>
             <div className="vault-visibility-options" role="group" aria-label="Item visibility">
               <button type="button" className={`vault-visibility-option ${visibility === 'private' ? 'selected' : ''}`} aria-pressed={visibility === 'private'} onClick={() => setVisibility('private')}>
@@ -716,7 +728,7 @@ export function AddEditItemModal({
 
           <div>
             <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--vault-ink-secondary)', display: 'block', marginBottom: '4px' }}>
-              Collector Notes:
+              {language === 'ID' ? 'Catatan kolektor' : 'Collector notes'}
             </label>
             <textarea
               rows={2}

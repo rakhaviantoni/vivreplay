@@ -58,6 +58,6 @@ export function CardDetail({card,initialLanguage}:{card:Card;initialLanguage:str
         <div className="provenance"><ShieldCheck size={17}/><div><strong>Card image source</strong><p>This card uses its official One Piece Card Game printing. Card language and printing remain independent fields.</p></div></div>
       </div>
     </div>
-    <CollectionForm key={printing.id} printingId={printing.id} name={`${card.name} · ${lang}`} open={open} onClose={()=>setOpen(false)} onSaved={refresh}/>
+    <CollectionForm key={printing.id} printingId={printing.id} name={`${card.name} · ${lang}`} previewCard={card} open={open} onClose={()=>setOpen(false)} onSaved={refresh}/>
   </main>;
 }

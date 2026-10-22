@@ -3,7 +3,7 @@ export function pokemonRarityLabel(value?: string | null, language?: string | nu
   if (!rarity || ['unknown', 'none', 'null'].includes(rarity.toLowerCase())) return '';
 
   const normalized = rarity.toLowerCase().replace(/[^a-z]/g, '');
-  const japanese = language?.toUpperCase() === 'JP';
+  const japanese = ['JP', 'ID'].includes(language?.toUpperCase() ?? '');
   const labels: Record<string, string> = {
     cc: 'CC', classiccollection: 'CC',
     c: 'C', common: 'C',
@@ -35,4 +35,33 @@ export function pokemonRarityLabel(value?: string | null, language?: string | nu
     promo: 'Promo', promotional: 'Promo',
   };
   return labels[normalized] ?? rarity;
+}
+
+export function pokemonPrintingRarity(
+  value?: string | null,
+  language?: string | null,
+  setCode?: string | null,
+  printingCode?: string | null,
+) {
+  const normalizedSet = setCode?.trim().toLowerCase().replace(/[^a-z0-9]/g, '') ?? '';
+  const rawCode = printingCode?.trim().toLowerCase() ?? '';
+  const cardNumber = rawCode.match(/(?:^|[-_])([0-9]+)(?:\/[0-9]+)?$/)?.[1]
+    ?? rawCode.match(/^([0-9]+)(?:\/[0-9]+)?$/)?.[1]
+    ?? '';
+  const knownPrintings: Record<string, string> = {
+    'sv8a:217': 'SAR',
+    'sv4a:347': 'SAR',
+    'sv4a:327': 'SSR',
+    'sv2a:331': 'SSR',
+    'sv4a:349': 'SAR',
+    'sv3s:098': 'RR',
+    'sv3s:203': 'SR',
+    'sv3s:220': 'SAR',
+    'sv5s:088': 'RR',
+    'sv5s:175': 'SR',
+    'sv3s:101': 'U',
+    'sv3s:105': 'U',
+  };
+  const printingRarity = knownPrintings[`${normalizedSet}:${cardNumber}`];
+  return printingRarity ? pokemonRarityLabel(printingRarity, language) : pokemonRarityLabel(value, language);
 }

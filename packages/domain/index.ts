@@ -41,6 +41,10 @@ export type ListingItem={
   sold?:boolean;
   /** Condition and price belong to an individual card line in a multi-card listing. */
   condition?:string;
+  productType?:'RAW'|'GRADED';
+  gradingCompany?:string;
+  grade?:string;
+  certification?:string;
   unitAmount?:number;
   card?:Card;
 };

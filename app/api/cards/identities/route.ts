@@ -7,7 +7,7 @@ import {parseCardSearch,type ParsedCardSearch} from '@/lib/card-search';
 
 type IdentityRow={id:string;printingId?:string;printingCode?:string|null;language?:string|null;code:string;name:string;color:string;card_type:string;cost:number;power:number;effect_text:string;rarity?:string|null;imageUrl?:string;set_code?:string|null;tcg_card_printings?:Array<{id:string;printing_code?:string|null;language:string;rarity:string|null;set_code:string|null;card_image_url:string|null;tcg_card_assets?:Array<{kind:string;object_key:string}>}>};
 type SearchFilters=ParsedCardSearch;
-type SearchIndexCard=IdentityRow&{setCodes:string[];rarities:string[];searchTokens:string[]};
+type SearchIndexCard=IdentityRow&{setCodes:string[];rarities:string[];searchTokens:string[];printingSearchText?:string};
 
 const searchToken=(value:string)=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().match(/[\p{L}\p{N}]+/gu)??[];
 
@@ -34,7 +34,7 @@ function internalImageUrl(value:string|undefined|null,setCode:string,language:st
 
 function filterIndex(index:SearchIndexCard[],filters:SearchFilters){
   const normalize=(value:string)=>value.replace(/[^a-z0-9]/gi,'').toUpperCase();
-  return index.filter(card=>(!filters.terms.length||filters.terms.every(term=>card.searchTokens.some(token=>token.startsWith(term))))&&(!filters.code||normalize(card.code)===normalize(filters.code))&&(!filters.setCode||card.setCodes.some(code=>normalize(code)===normalize(filters.setCode!)))&&(!filters.rarity||card.rarities.includes(filters.rarity))&&(!filters.cardType||(filters.cardType==='DON!!'?['DON','DON!!'].includes(card.card_type.toUpperCase()):card.card_type===filters.cardType))&&(!filters.color||card.color.toLowerCase().includes(filters.color.toLowerCase()))&&(filters.cost===undefined||card.cost===filters.cost)).slice(0,30).map(({setCodes:_setCodes,rarities:_rarities,searchTokens:_searchTokens,...card})=>card);
+  return index.filter(card=>(!filters.terms.length||filters.terms.every(term=>card.searchTokens.some(token=>token.startsWith(term))))&&(!filters.code||normalize(card.code)===normalize(filters.code))&&(!filters.setCode||card.setCodes.some(code=>normalize(code)===normalize(filters.setCode!)))&&(!filters.rarity||card.rarities.includes(filters.rarity))&&(!filters.cardType||(filters.cardType==='DON!!'?['DON','DON!!'].includes(card.card_type.toUpperCase()):card.card_type===filters.cardType))&&(!filters.color||card.color.toLowerCase().includes(filters.color.toLowerCase()))&&(filters.cost===undefined||card.cost===filters.cost)).slice(0,30).map(({setCodes:_setCodes,rarities:_rarities,searchTokens:_searchTokens,printingSearchText:_printingSearchText,...card})=>card);
 }
 
 async function buildSearchIndex(gameSlug:'one-piece'|'pokemon'):Promise<SearchIndexCard[]>{
@@ -47,15 +47,16 @@ async function buildSearchIndex(gameSlug:'one-piece'|'pokemon'):Promise<SearchIn
       (SELECT p.set_code FROM tcg_card_printings p WHERE p.identity_id=i.id ORDER BY CASE WHEN p.language='EN' THEN 0 ELSE 1 END,p.set_code,p.id LIMIT 1) AS set_code,
       (SELECT COALESCE(NULLIF(a.object_key,''),NULLIF(p.card_image_url,'')) FROM tcg_card_printings p LEFT JOIN tcg_card_assets a ON a.printing_id=p.id AND a.kind='small' WHERE p.identity_id=i.id ORDER BY CASE WHEN p.language='EN' THEN 0 ELSE 1 END,p.set_code,p.id LIMIT 1) AS imageUrl,
       (SELECT json_group_array(DISTINCT p.set_code) FROM tcg_card_printings p WHERE p.identity_id=i.id AND p.set_code IS NOT NULL) AS setCodes,
-      (SELECT json_group_array(DISTINCT p.rarity) FROM tcg_card_printings p WHERE p.identity_id=i.id AND p.rarity IS NOT NULL) AS rarities
+      (SELECT json_group_array(DISTINCT p.rarity) FROM tcg_card_printings p WHERE p.identity_id=i.id AND p.rarity IS NOT NULL) AS rarities,
+      (SELECT group_concat(COALESCE(p.set_code,'')||' '||COALESCE(p.set_name,'')||' '||COALESCE(p.printing_code,'')||' '||COALESCE(p.variant,'')||' '||COALESCE(p.rarity,'')||' '||COALESCE(p.language,'')||CASE p.language WHEN 'ID' THEN ' Indonesian Indonesia Indo Bahasa' WHEN 'JP' THEN ' Japanese Japan' WHEN 'EN' THEN ' English' ELSE '' END,' ') FROM tcg_card_printings p WHERE p.identity_id=i.id) AS printingSearchText
     FROM tcg_card_identities i WHERE i.game_id=(SELECT id FROM tcg_games WHERE slug=?) ORDER BY i.code
-  `).bind(gameSlug).all<IdentityRow&{setCodes:string;rarities:string}>();
+  `).bind(gameSlug).all<IdentityRow&{setCodes:string;rarities:string;printingSearchText?:string}>();
   return results.flatMap(row=>{
     const setCodes=JSON.parse(row.setCodes||'[]') as string[],rarities=JSON.parse(row.rarities||'[]') as string[];
     const code=row.code.toUpperCase(),setCode=row.set_code??'';
     if(gameSlug==='one-piece'&&!isPlayableSet(setCode)&&!PREVIEW_CARD_CODES.has(code))return [];
     const imageUrl=internalImageUrl(row.imageUrl,setCode,'EN',row.code);
-    return [{...row,setCodes,rarities,searchTokens:searchToken(`${row.code} ${row.name} ${row.color} ${row.card_type}`),imageUrl}];
+    return [{...row,setCodes,rarities,searchTokens:searchToken(`${row.code} ${row.name} ${row.color} ${row.card_type} ${row.printingSearchText??''}`),imageUrl}];
   });
 }
 
@@ -87,8 +88,18 @@ async function fromD1(filters:SearchFilters,gameSlug:'one-piece'|'pokemon'){
   const values:(string|number)[]=[gameSlug];
   if(filters.code){where.push('UPPER(i.code)=?');values.push(filters.code)}
   if(filters.terms.length){
-    where.push('i.id IN (SELECT identity_id FROM tcg_card_identity_search WHERE tcg_card_identity_search MATCH ?)');
-    values.push(filters.terms.map(term=>`${term}*`).join(' AND '));
+    if(gameSlug==='pokemon'){
+      for(const term of filters.terms){
+        where.push(`(i.id IN (SELECT identity_id FROM tcg_card_identity_search WHERE tcg_card_identity_search MATCH ?) OR i.id IN (
+          SELECT p.identity_id FROM tcg_card_printings p
+          WHERE LOWER(COALESCE(p.set_code,'')||' '||COALESCE(p.set_name,'')||' '||COALESCE(p.printing_code,'')||' '||COALESCE(p.variant,'')||' '||COALESCE(p.rarity,'')||' '||COALESCE(p.language,'')||CASE p.language WHEN 'ID' THEN ' indonesian indonesia indo bahasa' WHEN 'JP' THEN ' japanese japan' WHEN 'EN' THEN ' english' ELSE '' END) LIKE ?
+        ))`);
+        values.push(`${term}*`,`%${term.toLowerCase()}%`);
+      }
+    }else{
+      where.push('i.id IN (SELECT identity_id FROM tcg_card_identity_search WHERE tcg_card_identity_search MATCH ?)');
+      values.push(filters.terms.map(term=>`${term}*`).join(' AND '));
+    }
   }
   if(filters.setCode){where.push('i.id IN (SELECT identity_id FROM tcg_card_printings WHERE UPPER(REPLACE(set_code,\'-\',\'\'))=?)');values.push(filters.setCode)}
   if(filters.rarity){where.push('i.id IN (SELECT identity_id FROM tcg_card_printings WHERE rarity=?)');values.push(filters.rarity)}

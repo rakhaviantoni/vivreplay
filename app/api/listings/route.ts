@@ -6,7 +6,7 @@ import {getDynamicListingPolicy,computeListingExpiration} from '@/lib/market/pol
 import {MARKET_MAX_COPIES_PER_CARD,MARKET_ABSOLUTE_MAX_LISTING_COPIES,listingLimitMessage} from '@/lib/market/listing-limits';
 import {enforceMarketListingLimits} from '@/lib/server/market-listing-limits';
 
-const itemSchema=z.object({instanceId:z.string().uuid().optional(),printingId:z.string(),quantity:z.number().int().positive().max(MARKET_MAX_COPIES_PER_CARD),condition:z.string().optional(),unitAmount:z.number().int().nonnegative().optional()});
+const itemSchema=z.object({instanceId:z.string().uuid().optional(),printingId:z.string(),quantity:z.number().int().positive().max(MARKET_MAX_COPIES_PER_CARD),condition:z.string().optional(),productType:z.enum(['RAW','GRADED']).optional(),gradingCompany:z.string().trim().max(40).optional(),grade:z.string().trim().max(20).optional(),certification:z.string().trim().max(100).optional(),unitAmount:z.number().int().nonnegative().optional()});
 const schema=z.object({instanceId:z.string().uuid().optional(),amount:z.number().int().positive().max(100000000000),quantity:z.number().int().positive().max(MARKET_ABSOLUTE_MAX_LISTING_COPIES),city:z.string().trim().min(2).max(60),title:z.string().trim().min(3).max(100),type:z.enum(['WTS','WTB']).default('WTS'),negotiable:z.boolean().default(true),items:z.array(itemSchema).min(1).max(MARKET_ABSOLUTE_MAX_LISTING_COPIES).optional()});
 
 async function ensureMarketPrintings(database:ReturnType<typeof db>,printingIds:string[]){
@@ -76,6 +76,7 @@ export async function POST(request:Request){
       const bundleAmount=bundle.reduce((sum,item)=>sum+(item.unitAmount??0)*item.quantity,0);
       if(bundleQuantity!==value.quantity)throw new HttpError(400,'The wanted quantity must match the combined card quantities.');
       if(bundle.some(item=>!item.unitAmount||item.unitAmount<1)||bundleAmount!==value.amount)throw new HttpError(400,'Set a price for each card and make sure the total matches.');
+      if(bundle.some(item=>item.productType==='GRADED'&&(!item.gradingCompany||!item.grade||item.quantity!==1)))throw new HttpError(400,'Choose a grading company and grade for each slab request.');
       const printingIds=[...new Set(bundle.map(item=>item.printingId))];
       await ensureMarketPrintings(database,printingIds);
       await enforceMarketListingLimits(database,bundle,policy);
@@ -86,7 +87,7 @@ export async function POST(request:Request){
       const expiresAt=computeListingExpiration(policy.durationDays);
       const first=bundle[0];
       await database.prepare(`INSERT INTO listings (id,seller_id,printing_id,instance_id,title,amount,currency,quantity,condition,type,city,expires_at,items,negotiable)
-        VALUES (?,?,?,NULL,?,?,'IDR',?,?,?,?,?,?,?)`).bind(id,profile.id,first.printingId,value.title,value.amount,value.quantity,first.condition??'NM','WTB',buyerCity,expiresAt,JSON.stringify(bundle),value.negotiable?1:0).run();
+        VALUES (?,?,?,NULL,?,?,'IDR',?,?,?,?,?,?,?)`).bind(id,profile.id,first.printingId,value.title,value.amount,value.quantity,first.productType==='GRADED'?'GRADED':first.condition??'NM','WTB',buyerCity,expiresAt,JSON.stringify(bundle),value.negotiable?1:0).run();
       after(()=>notifyListingWatchers(id));
       return Response.json({id,expiresAt,durationDays:policy.durationDays},{status:201});
     }
@@ -97,6 +98,7 @@ export async function POST(request:Request){
     const primary=await database.prepare('SELECT printing_id,quantity,condition FROM collectible_instances WHERE id=? AND owner_id=? AND deleted_at IS NULL').bind(value.instanceId,profile.id).first<{printing_id:string;quantity:number;condition:string}>();
     if(!primary)throw new HttpError(400,'Choose an owned item and available quantity.');
 
+    const verifiedCopies=new Map<string,{printingId:string;quantity:number;type:string;condition:string;gradingCompany:string|null;grade:string|null;certification:string|null}>();
     if(bundle){
       await enforceMarketListingLimits(database,bundle,policy);
       if(bundle[0].instanceId!==value.instanceId||bundle[0].printingId!==primary.printing_id)throw new HttpError(400,'The first bundle card must match the selected Vault item.');
@@ -110,8 +112,11 @@ export async function POST(request:Request){
         byInstance.set(item.instanceId,{printingId:item.printingId,quantity:(current?.quantity??0)+item.quantity});
       }
       for(const [instanceId,item] of byInstance){
-        const owned=await database.prepare('SELECT printing_id,quantity FROM collectible_instances WHERE id=? AND owner_id=? AND deleted_at IS NULL').bind(instanceId,profile.id).first<{printing_id:string;quantity:number}>();
-        if(!owned||owned.printing_id!==item.printingId||item.quantity>owned.quantity)throw new HttpError(400,'One or more items in the bundle exceeds your available Vault quantity.');
+        const owned=await database.prepare(`SELECT c.printing_id AS printingId,c.quantity,c.type,c.condition,p.short_name AS gradingCompany,g.grade,g.certification FROM collectible_instances c LEFT JOIN graded_cards g ON g.instance_id=c.id LEFT JOIN grading_providers p ON p.id=g.provider_id WHERE c.id=? AND c.owner_id=? AND c.deleted_at IS NULL`).bind(instanceId,profile.id).first<{printingId:string;quantity:number;type:string;condition:string;gradingCompany:string|null;grade:string|null;certification:string|null}>();
+        if(!owned||owned.printingId!==item.printingId||item.quantity>owned.quantity)throw new HttpError(400,'One or more items in the bundle exceeds your available Vault quantity.');
+        if(owned.type==='GRADED'&&item.quantity!==1)throw new HttpError(400,'A graded slab can only be listed as one copy.');
+        if(owned.type==='GRADED'&&(!owned.gradingCompany||!owned.grade))throw new HttpError(400,'This Vault slab is missing its grading details. Update it before listing.');
+        verifiedCopies.set(instanceId,owned);
         const alreadyListed=await database.prepare(`SELECT
           COALESCE((SELECT SUM(CASE WHEN items IS NULL THEN quantity ELSE 0 END) FROM listings WHERE instance_id=? AND status='ACTIVE' AND (expires_at IS NULL OR expires_at>CURRENT_TIMESTAMP)),0)
           + COALESCE((SELECT SUM(CAST(json_extract(entry.value,'$.quantity') AS INTEGER)) FROM listings l,json_each(l.items) entry WHERE json_extract(entry.value,'$.instanceId')=? AND l.status='ACTIVE' AND (l.expires_at IS NULL OR l.expires_at>CURRENT_TIMESTAMP)),0) AS total`).bind(instanceId,instanceId).first<{total:number}>();
@@ -124,7 +129,13 @@ export async function POST(request:Request){
     const primaryQuantity=bundle?byInstanceQuantity(bundle,value.instanceId):value.quantity;
     const id=crypto.randomUUID();
     const expiresAt=computeListingExpiration(policy.durationDays);
-    const itemsJson=bundle?JSON.stringify(bundle):null;
+    const itemsJson=bundle?JSON.stringify(bundle.map(item=>{
+      const owned=item.instanceId?verifiedCopies.get(item.instanceId):undefined;
+      if(!owned)return item;
+      return owned.type==='GRADED'
+        ? {...item,condition:undefined,productType:'GRADED',gradingCompany:owned.gradingCompany??undefined,grade:owned.grade??undefined,certification:owned.certification??undefined}
+        : {...item,condition:owned.condition,productType:'RAW',gradingCompany:undefined,grade:undefined,certification:undefined};
+    })):null;
     const result=await database.prepare(`
       INSERT INTO listings (id,seller_id,printing_id,instance_id,title,amount,currency,quantity,condition,type,city,expires_at,items,negotiable)
       SELECT ?,?,?,?,?,?,'IDR',?,?,?,?,?,?,?
