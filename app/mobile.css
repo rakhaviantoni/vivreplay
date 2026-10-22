@@ -1322,7 +1322,10 @@ html[data-theme='dark'] .card-viewer > header { background: #101d2b !important; 
   .market-listing-detail .market-listing-facts dt{gap:5px;font-size:9px}
   .market-listing-detail .market-listing-facts dd{margin-top:4px;font-size:13px;line-height:1.25;white-space:normal;overflow-wrap:anywhere}
   .market-listing-detail .market-expired-banner,.market-listing-detail .market-listing-seller-toolbar,.market-listing-detail .market-listing-cards{grid-column:1/-1;min-width:0}
-  .market-listing-detail .market-expired-banner{margin:0}
+  .market-listing-detail .market-expired-banner{margin:10px 0 0;padding:11px 13px;gap:10px}
+  .market-listing-detail .market-expired-banner-icon{width:26px;height:26px}
+  .market-listing-detail .market-expired-banner strong{font-size:12px}
+  .market-listing-detail .market-expired-banner p{font-size:11px}
   .market-listing-detail .market-listing-seller-toolbar{margin:0!important;padding:10px 0!important}
   .market-listing-detail .market-listing-seller-toolbar .market-listing-utility-actions{width:auto!important;min-height:40px}
   .market-listing-detail .market-listing-cards{padding:8px 0 110px!important}

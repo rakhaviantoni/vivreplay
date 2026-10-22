@@ -5,7 +5,7 @@ import {SaveListingButton,WishlistButton} from './market-saved';
 import {MarketReputation} from './market-reputation';
 import {usePathname,useRouter} from 'next/navigation';
 import {useCallback,useEffect,useMemo,useRef,useState,type FormEvent,type ReactNode} from 'react';
-import {ArrowClockwiseIcon as Renew,ArrowLeftIcon, ArrowUpIcon, ArrowDownIcon, DotsSixVerticalIcon, CheckIcon as Check, InfoIcon as Info, ListIcon as List, MinusIcon as Minus, PlusIcon as Plus, ShoppingCartIcon as Cart, SquaresFourIcon as Grid, TruckIcon as Truck, XIcon as X} from '@phosphor-icons/react';
+import {ArrowClockwiseIcon as Renew,ArrowLeftIcon, ArrowUpIcon, ArrowDownIcon, CheckCircleIcon, ClockIcon, DotsSixVerticalIcon, CheckIcon as Check, InfoIcon as Info, ListIcon as List, MinusIcon as Minus, PlusIcon as Plus, ShoppingCartIcon as Cart, SquaresFourIcon as Grid, TruckIcon as Truck, WarningCircleIcon, XCircleIcon, XIcon as X} from '@phosphor-icons/react';
 import type {Card} from '@/packages/card-data/catalog';
 import {formatMoney,Listing} from '@/packages/domain';
 import {CardArt} from './card-art';
@@ -998,10 +998,18 @@ export function MarketListingDetailView({
             </div> : <ShippingOptions listingId={listing.id} courierCount={listing.shippingOptionCount??0} couriers={listing.shippingCouriers??[]} items={shippingQuoteItems}/>}
           </dl>
 
-          {!ownerView && isExpired && (
-            <div className="market-expired-banner">
-              <strong>{status === 'SOLD_PENDING' ? t('Just sold', 'Baru terjual') : status === 'SOLD' ? t('Sold', 'Terjual') : status === 'CLOSED' ? t('This listing has been closed', 'Listing ini telah ditutup') : t('This listing has expired', 'Listing ini telah kedaluwarsa')}</strong>
-              <p>{status === 'SOLD_PENDING' ? t('The order is on its way. This listing stays here while the buyer receives and checks the cards.', 'Pesanan sedang dikirim. Listing ini tetap ditampilkan saat pembeli menerima dan memeriksa kartu.') : status === 'SOLD' ? t('The cards are no longer available.', 'Kartu tidak lagi tersedia.') : status === 'CLOSED' ? t('This listing is no longer accepting offers.', 'Listing ini tidak lagi menerima penawaran.') : t('The seller has not renewed this listing and it is no longer accepting offers.', 'Penjual belum memperbarui listing ini dan tidak lagi menerima penawaran.')}</p>
+          {isUnavailable && (
+            <div className={`market-expired-banner is-${status.toLowerCase().replaceAll('_','-')}`} role="status">
+              <span className="market-expired-banner-icon" aria-hidden="true">
+                {status === 'SOLD' ? <CheckCircleIcon size={17} weight="bold" /> :
+                 status === 'SOLD_PENDING' ? <ClockIcon size={17} weight="bold" /> :
+                 status === 'CLOSED' ? <XCircleIcon size={17} weight="bold" /> :
+                 <WarningCircleIcon size={17} weight="bold" />}
+              </span>
+              <div className="market-expired-banner-body">
+                <strong>{status === 'SOLD_PENDING' ? t('Just sold', 'Baru terjual') : status === 'SOLD' ? t('Sold', 'Terjual') : status === 'CLOSED' ? t('This listing has been closed', 'Listing ini telah ditutup') : t('This listing has expired', 'Listing ini telah kedaluwarsa')}</strong>
+                <p>{status === 'SOLD_PENDING' ? t('The order is on its way. This listing stays here while the buyer receives and checks the cards.', 'Pesanan sedang dikirim. Listing ini tetap ditampilkan saat pembeli menerima dan memeriksa kartu.') : status === 'SOLD' ? t('The cards are no longer available.', 'Kartu tidak lagi tersedia.') : status === 'CLOSED' ? t('This listing is no longer accepting offers.', 'Listing ini tidak lagi menerima penawaran.') : t('The seller has not renewed this listing and it is no longer accepting offers.', 'Penjual belum memperbarui listing ini dan tidak lagi menerima penawaran.')}</p>
+              </div>
             </div>
           )}
 
