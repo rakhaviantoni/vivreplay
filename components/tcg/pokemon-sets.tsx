@@ -28,7 +28,7 @@ export function PokemonSets(){
   useEffect(()=>{
     const controller=new AbortController();
     setLoading(true);
-    fetch(`/api/cards/sets?game=pokemon&language=${language}&includeCards=1`,{signal:controller.signal})
+    fetch(`/api/cards/sets?game=pokemon&language=${language}&includeCards=2`,{signal:controller.signal,cache:'no-store'})
       .then(async response=>{
         if(!response.ok)throw new Error('Sets unavailable');
         const result=await response.json() as {sets?:SetRecord[]};
