@@ -2,6 +2,7 @@
 'use client';
 import {useEffect,useMemo,useRef,useState,type CSSProperties} from 'react';
 import Link from 'next/link';
+import {GAME_LOGOS} from './brand-assets';
 import {SaveListingButton} from './market-saved';
 import {useRouter,useSearchParams} from 'next/navigation';
 import {
@@ -71,8 +72,8 @@ type MarketCard=Card&{availablePrintings?:CardPrintingItem[];gameSlug?:'one-piec
 type MarketGameScope='one-piece'|'pokemon'|'all';
 function MarketGameMark({gameSlug,compact=false}:{gameSlug:MarketGameScope;compact?:boolean}){
   return <span className={`market-game-mark${compact?' market-game-mark-compact':''}`} aria-hidden="true">
-    {(gameSlug==='one-piece'||gameSlug==='all')&&<img className="market-game-mark-one-piece" src="/assets/one-piece-card-game-logo.png" alt=""/>}
-    {(gameSlug==='pokemon'||gameSlug==='all')&&<img className="market-game-mark-pokemon" src="https://upload.wikimedia.org/wikipedia/commons/1/1a/Pok%C3%A9mon_Trading_Card_Game_logo.svg" alt=""/>}
+    {(gameSlug==='one-piece'||gameSlug==='all')&&<img className="market-game-mark-one-piece" src={GAME_LOGOS['one-piece']} alt=""/>}
+    {(gameSlug==='pokemon'||gameSlug==='all')&&<img className="market-game-mark-pokemon" src={GAME_LOGOS.pokemon} alt=""/>}
   </span>;
 }
 type SearchIdentity={id:string;code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number;effect_text:string;tcg_card_printings?:Array<{id:string;card_image_url:string|null;rarity:string|null;set_code:string;language:string;variant:string|null;printing_code:string|null;tcg_card_assets?:Array<{kind:string;object_key:string}>}>};
@@ -1232,7 +1233,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
         <div className="market-feed-tabs">
           <div className="market-feed-tabs-main">
             <div className="market-game-feed-controls">
-              {!modalOnly&&<nav className="market-game-switch" aria-label={locale==='ID'?'Pilih permainan kartu':'Choose a card game'}><button type="button" aria-label="One Piece Card Game" title="One Piece Card Game" className={gameSlug==='one-piece'?'is-active':''} aria-current={gameSlug==='one-piece'?'page':undefined} onClick={()=>changeGame('one-piece')}><span className="market-game-logo-pad"><img src="/assets/one-piece-card-game-logo.png" alt=""/></span><span className="sr-only">One Piece</span></button><button type="button" aria-label="Pokémon Trading Card Game" title="Pokémon Trading Card Game" className={gameSlug==='pokemon'?'is-active':''} aria-current={gameSlug==='pokemon'?'page':undefined} onClick={()=>changeGame('pokemon')}><span className="market-game-logo-pad"><img src="https://upload.wikimedia.org/wikipedia/commons/1/1a/Pok%C3%A9mon_Trading_Card_Game_logo.svg" alt=""/></span><span className="sr-only">Pokémon</span></button></nav>}
+              {!modalOnly&&<nav className="market-game-switch" aria-label={locale==='ID'?'Pilih permainan kartu':'Choose a card game'}><button type="button" aria-label="One Piece Card Game" title="One Piece Card Game" className={`game-mode-one-piece${gameSlug==='one-piece'?' is-active':''}`} aria-current={gameSlug==='one-piece'?'page':undefined} onClick={()=>changeGame('one-piece')}><span className="market-game-logo-pad"><img src={GAME_LOGOS['one-piece']} alt=""/></span><span className="sr-only">One Piece</span></button><button type="button" aria-label="Pokémon Trading Card Game" title="Pokémon Trading Card Game" className={gameSlug==='pokemon'?'is-active':''} aria-current={gameSlug==='pokemon'?'page':undefined} onClick={()=>changeGame('pokemon')}><span className="market-game-logo-pad"><img src={GAME_LOGOS.pokemon} alt=""/></span><span className="sr-only">Pokémon</span></button></nav>}
               <nav className="market-scope-nav" aria-label={locale === 'ID' ? 'Pilihan feed market' : 'Market feed view'}>
               <button
                 type="button"

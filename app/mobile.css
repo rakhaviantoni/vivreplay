@@ -4740,7 +4740,7 @@ html[data-theme='dark'] .market-footer-pokemon { border-color:#42658a!important;
 }
 .site-shell.game-pokemon > .mobile-nav a { color:#52615d!important; }
 .site-shell.game-pokemon > .mobile-nav a.active { color:#20558a!important; }
-html[data-theme='dark'] .game-mode-switch a.game-mode-one-piece img { filter:brightness(0) invert(1); }
+html[data-theme='dark'] :is(.game-mode-switch,.market-game-switch) .game-mode-one-piece img { filter:brightness(0) invert(1); }
 
 html[data-theme='dark'] .site-shell.game-pokemon > .masthead,
 html[data-theme='dark'] .site-shell.game-pokemon > .masthead.is-scrolled {

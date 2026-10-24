@@ -1,5 +1,10 @@
 import type {SVGProps} from 'react';
 
+export const GAME_LOGOS = {
+  'one-piece': '/assets/one-piece-card-game-logo.png',
+  pokemon: 'https://upload.wikimedia.org/wikipedia/commons/1/1a/Pok%C3%A9mon_Trading_Card_Game_logo.svg',
+} as const;
+
 type IconProps=SVGProps<SVGSVGElement>&{size?:number;label?:string};
 const hidden=(label?:string)=>label?{role:'img','aria-label':label}:{'aria-hidden':true};
 

@@ -10,7 +10,7 @@ import {useAccount} from '@/lib/client';
 import {CardArt} from './card-art';
 import {displayCardName} from './card-name';
 import type {Card} from '@/packages/card-data/catalog';
-import {VivreMark} from './brand-assets';
+import {GAME_LOGOS, VivreMark} from './brand-assets';
 import {AuthDialog} from './auth-dialog';
 import {NewCardsAnnouncement} from './new-cards-announcement';
 import {FeedbackForm} from './feedback-form';
@@ -88,7 +88,7 @@ function PrimaryNav({language,selected,game,path}:{language:Locale;selected:(url
 }
 
 function GameModeSwitch({language,game,path,search}:{language:Locale;game:'one-piece'|'pokemon';path:string;search:string}) {
-  const options=[{id:'one-piece' as const,href:'/cards',label:'One Piece',logo:'/assets/one-piece-card-game-logo.png'},{id:'pokemon' as const,href:'/pokemon',label:'Pokémon',logo:'https://upload.wikimedia.org/wikipedia/commons/1/1a/Pok%C3%A9mon_Trading_Card_Game_logo.svg'}];
+  const options=[{id:'one-piece' as const,href:'/cards',label:'One Piece',logo:GAME_LOGOS['one-piece']},{id:'pokemon' as const,href:'/pokemon',label:'Pokémon',logo:GAME_LOGOS.pokemon}];
   const localize=(href:string)=>language==='ID'?`/id${href}`:href;
   const hrefFor=(option:typeof options[number])=>{
     if(path!=='/vault')return localize(option.href);
