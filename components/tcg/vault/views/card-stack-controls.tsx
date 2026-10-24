@@ -8,6 +8,7 @@ import { api } from '@/lib/client';
 import { CardArt } from '../../card-art';
 import type { EnrichedCollectionItem, VaultPrinting } from '../types';
 import {onePieceVariantLabel} from './printing-labels';
+import {pokemonPublicReference} from '@/lib/pokemon-public-reference';
 
 type Props = {
   item: EnrichedCollectionItem;
@@ -144,7 +145,7 @@ export function CardStackControls({ item, stackItems, quantity, isAnonymous, onS
         <div className="vault-printing-grid" role="list" aria-label={`${activeLanguage} printings`}>{languageOptions.map(option=>{
           const preview={...item.card,language:option.language,variant:option.variant,setCode:option.set_code??item.card.setCode,printingCode:option.printing_code??item.card.printingCode,imageUrl:option.card_image_url??item.card.imageUrl};
           const selected=String(option.id)===currentPrintingId&&(option.language??'EN')===chosenLanguage;
-          return <button type="button" role="listitem" key={option.id} className={`vault-printing-choice ${selected?'is-selected':''}`} aria-pressed={selected} disabled={busy} onClick={()=>selectPrinting(option.id)}><span className="vault-printing-choice-art"><CardArt card={preview} small/></span><span className="vault-printing-choice-meta"><b>{option.set_code?`${option.set_code} · `:''}{option.variant||'Standard'}</b><small>{option.printing_code??item.card.code}</small></span><span className="vault-printing-choice-check">{selected&&<Check size={14}/>}</span></button>;
+          return <button type="button" role="listitem" key={option.id} className={`vault-printing-choice ${selected?'is-selected':''}`} aria-pressed={selected} disabled={busy} onClick={()=>selectPrinting(option.id)}><span className="vault-printing-choice-art"><CardArt card={preview} small/></span><span className="vault-printing-choice-meta"><b>{option.set_code?`${option.set_code} · `:''}{option.variant||'Standard'}</b><small>{isPokemonCard?pokemonPublicReference({code:item.card.code,setCode:option.set_code,printingCode:option.printing_code}):(option.printing_code??item.card.code)}</small></span><span className="vault-printing-choice-check">{selected&&<Check size={14}/>}</span></button>;
         })}</div>
       </section>}
     </div>

@@ -25,6 +25,7 @@ import {INDONESIAN_REGIONS,getCities,getDistricts,getSubdistricts} from '@/lib/i
 import {MarketListingPriceEdit,MarketListingPriceTerms,MarketListingTitleEdit,MarketListingUnitPriceEdit} from '@/components/tcg/market-listing-inline-edit';
 import {MarketAddCardsModal} from '@/components/tcg/market-add-cards-modal';
 import {Slider} from '@/components/ui/slider';
+import {pokemonPublicReference} from '@/lib/pokemon-public-reference';
 
 type CourierRate={courier_code:string;courier_service_code:string;courier_name:string;courier_service_name:string;price:number;duration?:string;max_km?:number};
 type ShippingArea={id:string;name:string;province:string;city:string;district:string;subdistrict:string;postalCode:string;latitude?:number;longitude?:number;source:'biteship'|'local'};
@@ -51,6 +52,11 @@ async function loadDeliveryRegions(level:DeliveryRegionLevel,parent:string|undef
 }
 const COURIER_LABELS:Record<string,string>={'jne':'JNE Express','jnt':'J&T Express','sicepat':'SiCepat Ekspres','anteraja':'Anteraja','tiki':'TIKI','pos':'Pos Indonesia','lion':'Lion Parcel','ninja':'Ninja Xpress','wahana':'Wahana Express','grab':'GrabExpress','gojek':'GoSend','grab_instant':'Grab Instant','gojek_instant':'Gojek Instant'};
 const INSTANT_COURIERS=new Set(['grab','gojek','grab_instant','gojek_instant']);
+function marketCardReference(card:Card){
+  return /^PK-/i.test(card.code)||/^CT-\d+$/i.test(card.printingCode??'')
+    ?pokemonPublicReference({code:card.code,setCode:card.setCode,printingCode:card.printingCode,localCardNumber:card.localCardNumber})
+    :card.code;
+}
 
 export function ShippingCouriers({couriers,language,maxVisible=2}:{couriers:string[];language:'EN'|'ID';maxVisible?:number}){
   const labels=couriers.map(code=>COURIER_LABELS[code]??code);
@@ -382,6 +388,10 @@ export type MarketListingCard={
   salePending?:boolean;
   soldQuantity?:number;
   condition:string;
+  productType?:'RAW'|'GRADED';
+  gradingCompany?:string;
+  grade?:string;
+  certification?:string;
   unitAmount:number;
   language:string;
 };
@@ -678,8 +688,8 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
           <div className="market-listing-card-copy">
             <strong>{item.card.name}</strong>
             {canManageListing&&listingType==='WTS'&&items.length>1&&<div className="market-listing-order-tools" aria-label={language==='ID'?'Urutan kartu listing':'Listing card order'} aria-busy={reordering}><button type="button" className="market-listing-drag-handle" draggable={!reordering} disabled={reordering} aria-label={language==='ID'?`Pindahkan ${item.card.name}`:`Reorder ${item.card.name}`} title={language==='ID'?'Seret untuk mengubah urutan':'Drag to reorder'} onDragStart={event=>{event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('text/plain',String(index));setDraggingIndex(index)}} onDragEnd={()=>setDraggingIndex(null)}><DotsSixVerticalIcon size={16}/></button><button type="button" aria-label={language==='ID'?`Pindahkan ${item.card.name} ke atas`:`Move ${item.card.name} up`} title={language==='ID'?'Pindah ke atas':'Move up'} disabled={reordering||index===0} onClick={()=>{const next=[...items];next.splice(index-1,0,next.splice(index,1)[0]);onReorder?.(next)}}><ArrowUpIcon size={14}/></button><button type="button" aria-label={language==='ID'?`Pindahkan ${item.card.name} ke bawah`:`Move ${item.card.name} down`} title={language==='ID'?'Pindah ke bawah':'Move down'} disabled={reordering||index===items.length-1} onClick={()=>{const next=[...items];next.splice(index+1,0,next.splice(index,1)[0]);onReorder?.(next)}}><ArrowDownIcon size={14}/></button></div>}
-            <small className="market-card-meta"><span>{item.card.code}</span><span>{item.card.rarity}</span><span>{item.language}</span></small>
-            <p className="market-listing-card-condition"><span>{item.condition}</span>{!readOnly&&!singleCopyListing&&availableQuantity>0&&<em>{amount}/{availableQuantity} {t('selected','dipilih')}</em>}{item.heldQuantity? <em>{item.heldQuantity} {t('reserved','dipesan')}</em>:null}</p>
+            <small className="market-card-meta"><span>{marketCardReference(item.card)}</span><span>{item.card.rarity}</span><span>{item.language}</span></small>
+            <p className="market-listing-card-condition">{item.productType==='GRADED'?<span>{item.gradingCompany} {item.grade}{item.certification?` / Cert ${item.certification}`:''}</span>:<span>{item.condition}</span>}{!readOnly&&!singleCopyListing&&availableQuantity>0&&<em>{amount}/{availableQuantity} {t('selected','dipilih')}</em>}{item.heldQuantity? <em>{item.heldQuantity} {t('reserved','dipesan')}</em>:null}</p>
             <div className="market-listing-card-unit-price" aria-label={item.unitAmount>0?`${formatMoney(item.unitAmount,currency)} ${t('per card','per kartu')}: ${item.card.name}`:t('Price not set','Harga belum diatur')} title={item.unitAmount>0?`${formatMoney(item.unitAmount,currency)} ${t('per card','per kartu')}`:t('Price not set','Harga belum diatur')}>{canEditPrices?<MarketListingUnitPriceEdit listingId={listingId} title={listingTitle||''} listingType={listingType} cards={items.map(entry=>({printingId:entry.id,name:entry.card.name,quantity:entry.quantity,unitAmount:entry.unitAmount}))} cardIndex={index} currency={currency} language={language} onSaved={unitAmount=>onPriceSaved?.(index,unitAmount)}><span>{item.unitAmount>0?formatMoney(item.unitAmount,currency):t('Set price','Atur harga')}</span></MarketListingUnitPriceEdit>:item.unitAmount>0?formatMoney(item.unitAmount,currency):t('Price not set','Harga belum diatur')}</div>
 
             {!readOnly&&acceptsOffers&&offerCheckComplete&&!activeOffer&&!submitting&&amount>0 && (
@@ -809,7 +819,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
             card: item.card,
             printingId: item.id,
             quantity: item.quantity,
-            condition: item.condition,
+          condition: item.productType==='GRADED'?`${item.gradingCompany} ${item.grade}`:item.condition,
             unitAmount: item.unitAmount,
           }))}
           price={formatMoney(publicListingTotal, currency)}
@@ -1024,7 +1034,7 @@ export function MarketListingDetailView({
               </div>
             </section>
             <div className="market-listing-utility-actions">
-              {!ownerView&&<><FeedbackLaunchButton request={{initialCategory:'market-report',listingId:listing.id,cardCode:editableCards.length===1?editableCards[0].card.code:undefined,printingId:editableCards.length===1?editableCards[0].id:undefined,cardOptions:editableCards.map(item=>({cardCode:item.card.code,printingId:item.id,label:`${item.card.name} (${item.card.code})${item.card.variant?` / ${item.card.variant}`:''} / ${item.language}`}))}} className="market-report-link" disabled={counterpartyPreview}>{t('Report listing','Laporkan listing')}</FeedbackLaunchButton><SaveListingButton listingId={listing.id} language={language} iconOnly disabled={counterpartyPreview}/></>}
+              {!ownerView&&<><FeedbackLaunchButton request={{initialCategory:'market-report',listingId:listing.id,cardCode:editableCards.length===1?editableCards[0].card.code:undefined,printingId:editableCards.length===1?editableCards[0].id:undefined,cardOptions:editableCards.map(item=>({cardCode:item.card.code,printingId:item.id,label:`${item.card.name} (${marketCardReference(item.card)})${item.card.variant?` / ${item.card.variant}`:''} / ${item.language}`}))}} className="market-report-link" disabled={counterpartyPreview}>{t('Report listing','Laporkan listing')}</FeedbackLaunchButton><SaveListingButton listingId={listing.id} language={language} iconOnly disabled={counterpartyPreview}/></>}
               {canPreviewAsBuyer&&<div className="market-listing-view-as-toggle" role="group" aria-label={t('View listing as','Lihat listing sebagai')}><button type="button" aria-pressed={previewRole==='buyer'} onClick={()=>setPreviewRole('buyer')}>{t('Buyer','Pembeli')}</button><button type="button" aria-pressed={previewRole==='seller'} onClick={()=>setPreviewRole('seller')}>{t('Seller','Penjual')}</button></div>}
             </div>
           </div>

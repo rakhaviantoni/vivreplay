@@ -2,12 +2,14 @@ import type {Metadata} from 'next';
 import Script from 'next/script';
 import {headers} from 'next/headers';
 import {Shell} from '@/components/tcg/shell';
+import {BrandLaunchPreloader} from '@/components/tcg/brand-launch-preloader';
 import {DeferredWebFonts} from '@/components/tcg/deferred-web-fonts';
 import './globals.css';
 import './vault.css';
 import './vivreplay.css';
 import './catalog-workbench.css';
 import './mobile.css';
+import './card-scan.css';
 
 const siteName='VivrePlay';
 const description='A premium One Piece Card Game companion for cards, decks, collections, and play.';
@@ -42,6 +44,7 @@ export default async function RootLayout({children}:{children:React.ReactNode}){
       </head>
       <body>
         <DeferredWebFonts/>
+        <BrandLaunchPreloader language={locale} market={initialPath.split(/[/?#]/).includes('market')}/>
         <script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(structuredData)}}/>
         <Script id="error-guard" strategy="beforeInteractive">{`window.addEventListener('error',function(e){if(e&&e.message&&e.message.indexOf("reading 'startTime'")!==-1){e.preventDefault();e.stopImmediatePropagation()}});`}</Script>
         <Shell initialPath={initialPath}>{children}</Shell>

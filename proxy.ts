@@ -5,13 +5,18 @@ export function proxy(request:NextRequest){
   const {pathname,search}=request.nextUrl;
   const requestHeaders=new Headers(request.headers);
   requestHeaders.set('x-vivreplay-path',pathname);
-  if(pathname!=='/id'&&!pathname.startsWith('/id/'))return NextResponse.next({request:{headers:requestHeaders}});
+  if(pathname!=='/id'&&!pathname.startsWith('/id/')){
+    const response=NextResponse.next({request:{headers:requestHeaders}});
+    response.headers.set('Permissions-Policy','camera=(self), microphone=(), geolocation=(self)');
+    return response;
+  }
 
   requestHeaders.set('x-locale','ID');
   const targetPath=pathname.replace(/^\/id(?=\/|$)/,'')||'/';
   const response=NextResponse.rewrite(new URL(`${targetPath}${search}`,request.url),{request:{headers:requestHeaders}});
   response.cookies.set('vivreplay-locale','ID',{path:'/',maxAge:60*60*24*365,sameSite:'lax'});
   response.headers.set('x-locale','ID');
+  response.headers.set('Permissions-Policy','camera=(self), microphone=(), geolocation=(self)');
   return response;
 }
 

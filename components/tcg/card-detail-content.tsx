@@ -54,7 +54,7 @@ export function CardDetailContent({code,color,title,titleId,heading,type,rarity,
       <span>{code}</span>
     </p>
     <Heading id={titleId} className="card-detail-title">{title}</Heading>
-    <p className="viewer-kind">{displayType} <span>·</span> {rarity||(id?'Versi cetak':'Printing')} {attribute&&<><span>·</span>{attribute}</>}</p>
+    <p className="viewer-kind"><span className="viewer-kind-type">{displayType}</span>{rarity&&<span className="viewer-kind-rarity">{rarity}</span>}{attribute&&<span className="viewer-kind-attribute">{id?'Atribut':'Attribute'}: {attribute}</span>}</p>
     <dl className="viewer-stats">
       {type!=='Leader'&&<div className="viewer-stat-cost"><dt>{id?'Biaya':'Cost'}</dt><dd>{cost}</dd></div>}
       {(type==='Character'||type==='Leader')&&<div><dt>{id?'Kekuatan':'Power'}</dt><dd>{power??0}</dd></div>}

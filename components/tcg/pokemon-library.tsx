@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { MagnifyingGlassIcon as Search, ArrowUpRightIcon, CaretDownIcon as ChevronDown, CaretLeftIcon, CaretRightIcon, SlidersHorizontalIcon as SlidersHorizontal, SortAscendingIcon as SortAscending, ArrowSquareOutIcon, StorefrontIcon, PlusIcon } from '@phosphor-icons/react';
 import { CardArt } from '@/components/tcg/card-art';
+import { pokemonLocalCardNumber } from '@/lib/pokemon-set-aliases';
+import { CardScanButton } from '@/components/tcg/card-scan-button';
 import { FeedbackLaunchButton } from '@/components/tcg/feedback-launch';
 import { PokemonCardText, PokemonCardVitals, PokemonMechanicText, pokemonRuleAbilities, trainerEffectText } from '@/components/tcg/pokemon-card-text';
 import { pokemonExpansionArt } from '@/components/tcg/pokemon-expansion-art';
@@ -18,6 +20,7 @@ import { CollectionForm } from '@/components/tcg/collection-form';
 import { useAccount } from '@/lib/client';
 import { CardMarketPanel } from '@/components/tcg/card-market-panel';
 import { pokemonRarityLabel } from '@/lib/pokemon-rarity';
+import { parsePokemonSearchQuery, resolvePokemonSearchRarities } from '@/lib/pokemon-search';
 
 type GameCard = {
   id: string; rarity: string; variant: string; set_code: string; set_name: string; printing_code: string;
@@ -28,17 +31,29 @@ type GameCard = {
 type SetRecord = { code: string; name: string; productImageUrl?: string; series?: string; releaseYear?: number };
 type SortOrder = 'latest' | 'number' | 'name' | 'rarity' | 'hp';
 type PokemonFacets = { rarities?: string[]; illustrators?: string[]; types?: string[]; categories?: string[]; stages?: string[]; attackEnergies?: string[]; regulations?: string[]; retreats?: string[]; weaknesses?: string[]; resistances?: string[] };
-type DisplayCard = { id: string; code: string; name: string; color: string; type: 'Character'; cost: number; power: number; rarity: string; art: number; effect: string; imageUrl?: string; setCode?: string; language?: string; printingCode?: string; variant?: string; gameSlug: 'pokemon' };
+type DisplayCard = { id: string; code: string; name: string; color: string; type: 'Character'; cost: number; power: number; rarity: string; art: number; effect: string; imageUrl?: string; setCode?: string; language?: string; printingCode?: string; localCardNumber?:string; variant?: string; gameSlug: 'pokemon' };
 
-const languages = ['ID', 'EN', 'JP'] as const;
+const languages = ['ID', 'EN', 'JP', 'ALL'] as const;
 type Language = typeof languages[number];
+const pokemonPrintingNumber=(value:string)=>value.replace(/_p\d+$/i,'');
+const pokemonPublicCardUrl=(card:GameCard,game='pokemon')=>{
+  const params=new URLSearchParams({set:card.set_code,number:pokemonPrintingNumber(card.printing_code),lang:card.language});
+  if(game==='pokemon')return `/pokemon?${params.toString()}`;
+  params.set('game','pokemon');
+  return `/market?${params.toString()}`;
+};
 
-export function PokemonLibrary({ initialSet, initialQuery, initialIllustrator, initialCard, initialPrinting }: { initialSet?: string; initialQuery?: string; initialIllustrator?: string; initialCard?: string; initialPrinting?: string }) {
+export function PokemonLibrary({ initialSet, initialQuery, initialIllustrator, initialRarity, initialCard, initialPrinting, initialNumber, initialLanguage }: { initialSet?: string; initialQuery?: string; initialIllustrator?: string; initialRarity?: string; initialCard?: string; initialPrinting?: string; initialNumber?: string; initialLanguage?: string }) {
   const pathname = usePathname();
   const router = useRouter();
   const id = pathname === '/id' || pathname.startsWith('/id/');
   const localize = (href: string) => id ? `/id${href}` : href;
-  const [language, setLanguage] = useState<Language>(() => pathname === '/id' || pathname.startsWith('/id/') ? 'ID' : 'EN');
+  const rawExplicitLanguage = initialLanguage?.toUpperCase();
+  const explicitLanguage = rawExplicitLanguage === 'JA' ? 'JP' : rawExplicitLanguage;
+  const hasExplicitLanguage = ['ID', 'EN', 'JP', 'ALL'].includes(explicitLanguage ?? '');
+  const [language, setLanguage] = useState<Language>(() => hasExplicitLanguage ? explicitLanguage as Language : pathname === '/id' || pathname.startsWith('/id/') ? 'ID' : 'EN');
+  const [languageReady, setLanguageReady] = useState(hasExplicitLanguage);
+  const skipAllFetchOnce = useRef(false);
   const [cards, setCards] = useState<GameCard[]>([]);
   const [introCards, setIntroCards] = useState<GameCard[]>([]);
   const [sets, setSets] = useState<SetRecord[]>([]);
@@ -73,22 +88,35 @@ export function PokemonLibrary({ initialSet, initialQuery, initialIllustrator, i
   const [query, setQuery] = useState(initialQuery ?? '');
   const [searchQuery, setSearchQuery] = useState(initialQuery ?? '');
   const [setFilters, setSetFilters] = useState<string[]>(() => initialSet ? [initialSet] : []);
-  const [rarityFilters, setRarityFilters] = useState<string[]>([]);
+  const [rarityFilters, setRarityFilters] = useState<string[]>(() => initialRarity?.trim() ? [initialRarity.trim()] : []);
   const [illustratorFilters, setIllustratorFilters] = useState<string[]>(() => initialIllustrator?.trim() ? [initialIllustrator.trim()] : []);
   const [selected, setSelected] = useState<GameCard | null>(null);
   const openedPrintingQuery = useRef('');
   const [vaultFormOpen, setVaultFormOpen] = useState(false);
   const { data: account, refresh: refreshAccount, loading: accountLoading } = useAccount();
+  useEffect(() => {
+    const applyPreference = (value?: string) => {
+      const stored = value ?? window.localStorage.getItem('vivreplay-locale') ?? '';
+      const profileLocale = String((account as { profile?: { locale?: string } } | null)?.profile?.locale ?? '');
+      const preferred = (stored.trim() || profileLocale.trim()).toUpperCase().split(/[-_]/)[0];
+      if (preferred === 'ID' || preferred === 'EN') setLanguage(preferred);
+      else if (preferred) setLanguage('ALL');
+      setLanguageReady(true);
+    };
+    if (!hasExplicitLanguage && !accountLoading) applyPreference();
+    const onLocale = (event: Event) => {
+      if (hasExplicitLanguage) return;
+      applyPreference((event as CustomEvent<'EN' | 'ID'>).detail);
+    };
+    window.addEventListener('vivreplay:locale', onLocale);
+    return () => window.removeEventListener('vivreplay:locale', onLocale);
+  }, [account, accountLoading, hasExplicitLanguage]);
   const [relatedPrintings, setRelatedPrintings] = useState<GameCard[]>([]);
   const [relatedPrintingsLoading, setRelatedPrintingsLoading] = useState(false);
   const relatedPrintingsTrack = useRef<HTMLDivElement>(null);
   const relatedDrag = useRef({ pointerId: -1, startX: 0, startScrollLeft: 0, moved: false });
   const [relatedDragging, setRelatedDragging] = useState(false);
   const [relatedScrollState, setRelatedScrollState] = useState({ left: false, right: false });
-  const [missingImageIds, setMissingImageIds] = useState<Record<string, boolean>>({});
-  const markImageMissing = useCallback((printingId: string) => {
-    setMissingImageIds(current => current[printingId] ? current : { ...current, [printingId]: true });
-  }, []);
   const [detailLoading, setDetailLoading] = useState(false);
   const detailTransitionId = useRef(0);
   const detailLoadingTimer = useRef<number | null>(null);
@@ -252,11 +280,17 @@ export function PokemonLibrary({ initialSet, initialQuery, initialIllustrator, i
   useEffect(() => { const timer = window.setTimeout(() => setSearchQuery(query.trim()), 250); return () => window.clearTimeout(timer); }, [query]);
 
   useEffect(() => {
+    if (!languageReady) return;
+    if (language === 'ALL' && skipAllFetchOnce.current) {
+      skipAllFetchOnce.current = false;
+      return;
+    }
     const controller = new AbortController();
     const params = new URLSearchParams({ game: 'pokemon', language, limit: '240', offset: '0' });
+    const parsedSearch = parsePokemonSearchQuery(searchQuery);
     setFilters.forEach(value => params.append('set', value));
-    if (searchQuery) params.set('q', searchQuery);
-    rarityFilters.forEach(value => params.append('rarity', value));
+    if (parsedSearch.query) params.set('q', parsedSearch.query);
+    [...new Set([...rarityFilters, ...resolvePokemonSearchRarities(parsedSearch.rarityLabels, rarities, language)])].forEach(value => params.append('rarity', value));
     illustratorFilters.forEach(value => params.append('illustrator', value));
     typeFilters.forEach(value => params.append('type', value));
     categoryFilters.forEach(value => params.append('category', value));
@@ -271,39 +305,61 @@ export function PokemonLibrary({ initialSet, initialQuery, initialIllustrator, i
     params.set('sort', sort);
     setLoading(true);
     setLoadError(false);
-    fetch(versionedCardCatalogUrl(`/api/cards/catalog?${params}`), { signal: controller.signal })
-      .then(async response => {
+    (async () => {
+      try {
+        const response = await fetch(versionedCardCatalogUrl(`/api/cards/catalog?${params}`), { signal: controller.signal });
         if (!response.ok) throw new Error('Catalog unavailable');
         const result = await response.json() as { cards?: GameCard[] };
-        const nextCards = result.cards ?? [];
+        let nextCards = result.cards ?? [];
+        if (!nextCards.length && language !== 'ALL') {
+          const allParams = new URLSearchParams(params);
+          allParams.set('language', 'ALL');
+          const allResponse = await fetch(versionedCardCatalogUrl(`/api/cards/catalog?${allParams}`), { signal: controller.signal });
+          if (allResponse.ok) {
+            const allResult = await allResponse.json() as { cards?: GameCard[] };
+            if (allResult.cards?.length) {
+              nextCards = allResult.cards;
+              skipAllFetchOnce.current = true;
+              setLanguage('ALL');
+            }
+          }
+        }
         setCards(nextCards);
         setIntroCards(current => current.length ? current : nextCards.filter(card => card.card_image_url).slice(0, 6));
-        setHasMore((result.cards?.length ?? 0) === 240);
-      })
-      .catch(error => { if (error.name !== 'AbortError') { setCards([]); setLoadError(true); setHasMore(false); } })
-      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+        setHasMore(nextCards.length === 240);
+      } catch (error) {
+        if ((error as Error).name !== 'AbortError') { setCards([]); setLoadError(true); setHasMore(false); }
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    })();
     return () => controller.abort();
-  }, [language, setFilters, searchQuery, rarityFilters, illustratorFilters, typeFilters, categoryFilters, stageFilters, energyFilters, regulationFilters, retreatFilters, weaknessFilters, resistanceFilters, hpMin, hpMax, sort, retryVersion]);
+  }, [languageReady, language, setFilters, searchQuery, rarities, rarityFilters, illustratorFilters, typeFilters, categoryFilters, stageFilters, energyFilters, regulationFilters, retreatFilters, weaknessFilters, resistanceFilters, hpMin, hpMax, sort, retryVersion]);
 
   useEffect(() => {
-    if ((!initialPrinting && !initialCard) || loading) return;
-    const queryKey = `${initialPrinting ?? ''}:${initialCard ?? ''}`;
+    if ((!initialPrinting && !initialCard && !(initialSet && initialNumber)) || loading) return;
+    const queryKey = `${initialPrinting ?? ''}:${initialCard ?? ''}:${initialSet ?? ''}:${initialNumber ?? ''}:${initialLanguage ?? ''}`;
     if (openedPrintingQuery.current === queryKey) return;
     openedPrintingQuery.current = queryKey;
-    const existing = cards.find(card => initialPrinting ? card.id === initialPrinting : card.tcg_card_identities?.code.toUpperCase() === initialCard?.toUpperCase());
+    const normalizedSet=(value:string)=>value.replace(/[-_\s]/g,'').toUpperCase();
+    const normalizedNumber=(value:string)=>value.replace(/_p\d+$/i,'').replace(/^0+(?=\d)/,'').toUpperCase();
+    const matchesPublicNumber=(card:GameCard)=>normalizedSet(card.set_code??'')===normalizedSet(initialSet??'')&&normalizedNumber(pokemonLocalCardNumber(card.source_payload,card.printing_code??''))===normalizedNumber(initialNumber??'')&&(language==='ALL'||card.language===language);
+    const existing = cards.find(card => initialPrinting ? card.id === initialPrinting : initialNumber&&initialSet ? matchesPublicNumber(card) : card.tcg_card_identities?.code.toUpperCase() === initialCard?.toUpperCase());
     if (existing) { setSelected(existing); return; }
     const controller = new AbortController();
-    const params = new URLSearchParams({ game: 'pokemon', language });
+    const params = new URLSearchParams({ game: 'pokemon', language: initialLanguage?.toUpperCase() === 'JP' || initialLanguage?.toUpperCase() === 'ID' ? initialLanguage.toUpperCase() : language });
     if (initialPrinting) params.set('ids', initialPrinting);
+    else if(initialNumber&&initialSet){params.set('set',initialSet);params.set('q',initialNumber);params.set('limit','500');}
     else if (initialCard) params.set('code', initialCard);
     fetch(versionedCardCatalogUrl(`/api/cards/catalog?${params}`), { signal: controller.signal })
       .then(async response => response.ok ? response.json() as Promise<{ cards?: GameCard[] }> : { cards: [] })
-      .then(result => { const match = result.cards?.find(card => initialPrinting ? card.id === initialPrinting : card.tcg_card_identities?.code.toUpperCase() === initialCard?.toUpperCase()); if (match && !controller.signal.aborted) setSelected(match); })
+      .then(result => { const match = result.cards?.find(card => initialPrinting ? card.id === initialPrinting : initialNumber&&initialSet ? matchesPublicNumber(card) : card.tcg_card_identities?.code.toUpperCase() === initialCard?.toUpperCase()); if (match && !controller.signal.aborted) setSelected(match); })
       .catch(() => { openedPrintingQuery.current = ''; });
     return () => controller.abort();
-  }, [initialCard, initialPrinting, language, loading, cards]);
+  }, [initialCard, initialPrinting, initialNumber, initialSet, initialLanguage, language, loading, cards]);
 
   useEffect(() => {
+    if (!languageReady) return;
     const controller = new AbortController();
     fetch(versionedCardCatalogUrl(`/api/cards/sets?game=pokemon&language=${language}`), { signal: controller.signal })
       .then(async response => response.ok ? response.json() as Promise<{ sets?: SetRecord[] }> : { sets: [] })
@@ -314,16 +370,17 @@ export function PokemonLibrary({ initialSet, initialQuery, initialIllustrator, i
       .then(result => { setRarities(result.rarities ?? []); setIllustratorOptions(result.illustrators ?? []); setTypeOptions(result.types ?? []); setCategoryOptions(result.categories ?? []); setStageOptions(result.stages ?? []); setEnergyOptions(result.attackEnergies ?? []); setRegulationOptions(result.regulations ?? []); setRetreatOptions(result.retreats ?? []); setWeaknessOptions(result.weaknesses ?? []); setResistanceOptions(result.resistances ?? []); })
       .catch(error => { if (error.name !== 'AbortError') { setRarities([]); setIllustratorOptions([]); setTypeOptions([]); setCategoryOptions([]); setStageOptions([]); setEnergyOptions([]); setRegulationOptions([]); setRetreatOptions([]); setWeaknessOptions([]); setResistanceOptions([]); } });
     return () => controller.abort();
-  }, [language, retryVersion]);
+  }, [languageReady, language, retryVersion]);
 
   const loadMore = async () => {
     if (loadingMore || !hasMore) return;
     setLoadingMore(true);
     try {
       const params = new URLSearchParams({ game: 'pokemon', language, limit: '240', offset: String(cards.length) });
+      const parsedSearch = parsePokemonSearchQuery(searchQuery);
       setFilters.forEach(value => params.append('set', value));
-      if (searchQuery) params.set('q', searchQuery);
-      rarityFilters.forEach(value => params.append('rarity', value));
+      if (parsedSearch.query) params.set('q', parsedSearch.query);
+      [...new Set([...rarityFilters, ...resolvePokemonSearchRarities(parsedSearch.rarityLabels, rarities, language)])].forEach(value => params.append('rarity', value));
       illustratorFilters.forEach(value => params.append('illustrator', value));
       typeFilters.forEach(value => params.append('type', value));
       categoryFilters.forEach(value => params.append('category', value));
@@ -360,6 +417,7 @@ export function PokemonLibrary({ initialSet, initialQuery, initialIllustrator, i
     setCode: card.set_code,
     language: card.language,
     printingCode: card.printing_code,
+    localCardNumber:pokemonLocalCardNumber(card.source_payload,card.printing_code),
     variant: card.variant,
     gameSlug: 'pokemon',
   });
@@ -385,7 +443,7 @@ export function PokemonLibrary({ initialSet, initialQuery, initialIllustrator, i
       </div>
     </section>
     <section className={`library-controls pokemon-library-controls${mobileFiltersOpen?' mobile-filters-open':''}`} aria-label={id ? 'Filter kartu Pokémon' : 'Pokémon card filters'}>
-      <div className="pokemon-library-searches"><label className="search-box"><Search size={16}/><input value={query} onChange={event => setQuery(event.target.value)} placeholder={id ? 'Cari nama atau nomor kartu' : 'Search name or card number'}/></label></div>
+      <div className="pokemon-library-searches"><label className="search-box"><Search size={16}/><input value={query} onChange={event => setQuery(event.target.value)} placeholder={id ? 'Cari nama, nomor, set, atau rarity' : 'Search name, number, set, or rarity'}/><CardScanButton game="pokemon" locale={id?'ID':'EN'}/></label></div>
       <button type="button" className={`library-mobile-filter-toggle${mobileFiltersOpen?' is-open':''}`} aria-expanded={mobileFiltersOpen} aria-controls="pokemon-library-facets" onClick={()=>setMobileFiltersOpen(value=>!value)}><SlidersHorizontal size={15}/><span>{id?'Filter':'Filters'}</span>{activeFilterCount>0&&<b>{activeFilterCount}</b>}<ChevronDown size={14}/></button>
       <div className={`pokemon-library-filter-content${mobileFiltersOpen?' is-open':''}`} id="pokemon-library-facets">
       <div className="pokemon-library-filterbar">
@@ -406,7 +464,7 @@ export function PokemonLibrary({ initialSet, initialQuery, initialIllustrator, i
             {value:'rarity',label:id?'Kelangkaan: tinggi ke rendah':'Rarity: high to low'},
             {value:'hp',label:'HP'},
           ]}/></div>
-          <div className="pokemon-library-language"><div className="language-switch" aria-label={id?'Bahasa kartu':'Card language'}>{languages.map(option => <button type="button" key={option} aria-pressed={language === option} onClick={() => { setLoading(true); setLanguage(option); }}>{option}</button>)}</div></div>
+          <div className="pokemon-library-language"><div className="language-switch" aria-label={id?'Bahasa kartu':'Card language'}>{languages.map(option => <button type="button" key={option} aria-pressed={language === option} onClick={() => { setLoading(true); setLanguage(option); }}>{option === 'ALL' ? id ? 'Semua' : 'All' : option}</button>)}</div></div>
           {hasFilters&&<button type="button" className="pokemon-clear-filters" onClick={clearFilters}>{id?'Hapus':'Clear'}</button>}
           </div>
         </div>
@@ -426,12 +484,12 @@ export function PokemonLibrary({ initialSet, initialQuery, initialIllustrator, i
     {loading && !cards.length ? <div className="pokemon-card-grid" aria-label={id?'Memuat kartu Pokémon':'Loading Pokémon cards'}>{Array.from({ length: 12 }, (_, index) => <i key={index}/>)}</div> : loadError && !cards.length ? <section className="empty-state pokemon-empty"><h2>{id?'Kartu tidak dapat dimuat.':'Cards could not be loaded.'}</h2><p>{id?'Periksa koneksi Anda, lalu coba lagi.':'Check your connection and try again.'}</p><button type="button" className="button secondary" onClick={() => setRetryVersion(value => value + 1)}>{id?'Coba lagi':'Try again'}</button></section> : cards.length ? <div className="pokemon-card-grid" aria-busy={loading}>{cards.map(card => {
       const display = displayCard(card);
       const metadata = pokemonCardMetadata(card);
-      return <div className="pokemon-card-tile-wrap" key={`${card.id}:${card.language}`}>
+      const isOpenInDetail = selected?.id === card.id;
+      return <div className="pokemon-card-tile-wrap" key={`${card.id}:${card.language}`} aria-hidden={isOpenInDetail || undefined} inert={isOpenInDetail || undefined}>
         <button type="button" className="pokemon-card-tile" onClick={() => selectDetailCard(card)}>
-          <CardArt card={display} onImageMissing={() => markImageMissing(card.id)}/>
+          <CardArt card={display} missingImageAction={<FeedbackLaunchButton className="pokemon-missing-image-report" request={{initialCategory:'missing-printing',cardCode:card.tcg_card_identities?.code,printingId:card.id}}>{id?'Laporkan gambar hilang':'Report missing image'}</FeedbackLaunchButton>}/>
           <span className="pokemon-card-caption"><strong>{display.name}</strong><PokemonCardMetadata metadata={metadata}/></span>
         </button>
-        {missingImageIds[card.id] && <div className="pokemon-missing-image-report-overlay"><FeedbackLaunchButton className="pokemon-missing-image-report" request={{initialCategory:'missing-printing',cardCode:card.tcg_card_identities?.code,printingId:card.id}}>{id?'Laporkan gambar hilang':'Report missing image'}</FeedbackLaunchButton></div>}
       </div>;
     })}</div> : <section className="empty-state pokemon-empty"><h2>{searchQuery||hasFilters?(id?'Tidak ada kartu yang cocok dengan filter ini.':'No cards match these filters.'):(id?'Belum ada kartu Pokémon untuk bahasa ini.':'No Pokémon cards are available in this language yet.')}</h2>{(searchQuery||hasFilters)&&<p>{id?'Ubah pencarian atau hapus salah satu filter.':'Change your search or clear a filter.'}</p>}</section>}
     {!loading && loadError && cards.length > 0 && <p className="pokemon-load-error" role="status">{id?'Kartu lainnya gagal dimuat.':'More cards could not be loaded.'} <button type="button" onClick={() => setRetryVersion(value => value + 1)}>{id?'Coba lagi':'Try again'}</button></p>}
@@ -439,11 +497,11 @@ export function PokemonLibrary({ initialSet, initialQuery, initialIllustrator, i
     <Dialog open={Boolean(selected)} onOpenChange={open => { if (!open) { detailTransitionId.current += 1; if (detailLoadingTimer.current !== null) window.clearTimeout(detailLoadingTimer.current); evolutionCardRequest.current?.abort(); setDetailLoading(false); setSelected(null); } }}>
       <DialogContent className="pokemon-card-dialog" aria-busy={detailLoading}>
         {selected && detailLoading ? <PokemonDetailSkeleton id={id}/> : selected && <>
-          <div className="pokemon-card-dialog-layout"><div className="pokemon-card-dialog-art-column"><div className="pokemon-dialog-art-wrap">{cards.length > 1 && <button type="button" className="pokemon-dialog-nav pokemon-dialog-mobile-nav pokemon-dialog-prev" aria-label={id ? 'Kartu sebelumnya' : 'Previous card'} onClick={() => navigateSelected(-1)}><CaretLeftIcon size={22}/></button>}<CardArt card={displayCard(selected)} priority onImageMissing={() => markImageMissing(selected.id)} missingImageAction={missingImageIds[selected.id]&&<FeedbackLaunchButton className="pokemon-missing-image-report" request={{initialCategory:'missing-printing',cardCode:selected.tcg_card_identities?.code,printingId:selected.id}}>{id?'Laporkan gambar hilang':'Report missing image'}</FeedbackLaunchButton>}/>{cards.length > 1 && <button type="button" className="pokemon-dialog-nav pokemon-dialog-mobile-nav pokemon-dialog-next" aria-label={id ? 'Kartu berikutnya' : 'Next card'} onClick={() => navigateSelected(1)}><CaretRightIcon size={22}/></button>}</div></div><div className="pokemon-card-dialog-details"><DialogHeader><div className="pokemon-dialog-title-row"><DialogTitle><PokemonMechanicText text={selected.tcg_card_identities?.name ?? selected.printing_code}/></DialogTitle><PokemonCardVitals source={selected.source_payload} language={selected.language}/></div><DialogDescription asChild><div className="pokemon-dialog-meta"><PokemonCardMetadata metadata={pokemonCardMetadata(selected)} setName={selected.set_name} illustrator={selected.source_payload?.illustrator} illustratorLabel="Illus."/></div></DialogDescription></DialogHeader><PokemonCardText code={selected.tcg_card_identities?.code} name={selected.tcg_card_identities?.name} language={selected.language} source={selected.source_payload} onEvolutionSelect={openEvolutionCard}/><div className="pokemon-dialog-actions"><button type="button" className="button secondary" disabled={accountLoading} onClick={()=>{if(!account){window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));return;}setVaultFormOpen(true)}}><PlusIcon size={16}/>{id?'Tambahkan ke Vault':'Add to Vault'}</button><WishlistButton printingId={selected.id} language={id ? 'ID' : 'EN'}/><ShareButton title={selected.tcg_card_identities?.name ?? selected.printing_code} path={localize(`/pokemon?printing=${encodeURIComponent(selected.id)}&card=${encodeURIComponent(selected.tcg_card_identities?.code ?? selected.printing_code)}&lang=${selected.language}`)} card={displayCard(selected)} cardDetails={pokemonShareDetails(selected, id)} entityType="card"/>{pathname !== '/pokemon' && pathname !== '/id/pokemon' && <Link className="button secondary" href={localize(`/pokemon?q=${encodeURIComponent(selected.tcg_card_identities?.name ?? selected.printing_code)}`)}><ArrowSquareOutIcon size={16}/>{id ? 'Buka di katalog' : 'Open in library'}</Link>}<div className="pokemon-dialog-market-actions"><Link className="button secondary" href={`/market?game=pokemon&printing=${encodeURIComponent(selected.id)}`}><StorefrontIcon size={16}/>{id ? 'Beli kartu' : 'Buy a copy'}</Link><MarketSellAction className="button secondary" printingId={selected.id}><StorefrontIcon size={16}/>{id ? 'Jual kartu ini' : 'Sell a copy'}</MarketSellAction></div></div></div><div className="pokemon-dialog-market-data"><PokemonPriceGuide source={selected.source_payload} cardName={selected.tcg_card_identities?.name??selected.printing_code} preferredCurrency={account?.profile.currency} id={id}/><CardMarketPanel game="pokemon" printingId={selected.id} printing={{language:'EN',setCode:selected.set_code,printingCode:selected.printing_code,variant:selected.variant}} disableExternalPrice/></div></div>
+          <div className="pokemon-card-dialog-layout"><div className="pokemon-card-dialog-art-column"><div className="pokemon-dialog-art-wrap">{cards.length > 1 && <button type="button" className="pokemon-dialog-nav pokemon-dialog-mobile-nav pokemon-dialog-prev" aria-label={id ? 'Kartu sebelumnya' : 'Previous card'} onClick={() => navigateSelected(-1)}><CaretLeftIcon size={22}/></button>}<CardArt card={displayCard(selected)} priority missingImageAction={<FeedbackLaunchButton className="pokemon-missing-image-report" request={{initialCategory:'missing-printing',cardCode:selected.tcg_card_identities?.code,printingId:selected.id}}>{id?'Laporkan gambar hilang':'Report missing image'}</FeedbackLaunchButton>}/>{cards.length > 1 && <button type="button" className="pokemon-dialog-nav pokemon-dialog-mobile-nav pokemon-dialog-next" aria-label={id ? 'Kartu berikutnya' : 'Next card'} onClick={() => navigateSelected(1)}><CaretRightIcon size={22}/></button>}</div></div><div className="pokemon-card-dialog-details"><DialogHeader><div className="pokemon-dialog-title-row"><DialogTitle><PokemonMechanicText text={selected.tcg_card_identities?.name ?? selected.printing_code}/></DialogTitle><PokemonCardVitals source={selected.source_payload} language={selected.language}/></div><DialogDescription asChild><div className="pokemon-dialog-meta"><PokemonCardMetadata metadata={pokemonCardMetadata(selected)} setName={selected.set_name} illustrator={selected.source_payload?.illustrator} illustratorLabel="Illus."/></div></DialogDescription></DialogHeader><PokemonCardText code={selected.tcg_card_identities?.code} name={selected.tcg_card_identities?.name} language={selected.language} source={selected.source_payload} onEvolutionSelect={openEvolutionCard}/><div className="pokemon-dialog-actions"><button type="button" className="button secondary" disabled={accountLoading} onClick={()=>{if(!account){window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));return;}setVaultFormOpen(true)}}><PlusIcon size={16}/>{id?'Tambahkan ke Vault':'Add to Vault'}</button><WishlistButton printingId={selected.id} language={id ? 'ID' : 'EN'}/><ShareButton title={selected.tcg_card_identities?.name ?? selected.printing_code} path={localize(pokemonPublicCardUrl(selected))} card={displayCard(selected)} cardDetails={pokemonShareDetails(selected, id)} entityType="card"/>{pathname !== '/pokemon' && pathname !== '/id/pokemon' && <Link className="button secondary" href={localize(`/pokemon?q=${encodeURIComponent(selected.tcg_card_identities?.name ?? selected.printing_code)}`)}><ArrowSquareOutIcon size={16}/>{id ? 'Buka di katalog' : 'Open in library'}</Link>}<div className="pokemon-dialog-market-actions"><Link className="button secondary" href={pokemonPublicCardUrl(selected,'market')}><StorefrontIcon size={16}/>{id ? 'Beli kartu' : 'Buy a copy'}</Link><MarketSellAction className="button secondary" printingId={selected.id}><StorefrontIcon size={16}/>{id ? 'Jual kartu ini' : 'Sell a copy'}</MarketSellAction></div></div></div><div className="pokemon-dialog-market-data"><PokemonPriceGuide source={selected.source_payload} cardName={selected.tcg_card_identities?.name??selected.printing_code} preferredCurrency={account?.profile.currency} id={id}/><CardMarketPanel game="pokemon" printingId={selected.id} printing={{language:selected.language,setCode:selected.set_code,printingCode:selected.printing_code,localCardNumber:pokemonLocalCardNumber(selected.source_payload,selected.printing_code),variant:selected.variant}} disableExternalPrice/></div></div>
           {(relatedPrintingsLoading || relatedPrintings.some(printing => printing.id !== selected.id)) && <section className={`pokemon-related-printings${relatedScrollState.left?' has-left-overflow':''}${relatedScrollState.right?' has-right-overflow':''}`} aria-label={id ? 'Kartu terkait' : 'Related cards'}>
             <header><h3>{id ? 'Kartu terkait' : 'Related cards'}</h3><div className="pokemon-related-printings-controls"><button type="button" aria-label={id ? 'Gulir ke kiri' : 'Scroll left'} disabled={!relatedScrollState.left} onClick={() => relatedPrintingsTrack.current?.scrollBy({ left: -360, behavior: 'smooth' })}><CaretLeftIcon size={18}/></button><button type="button" aria-label={id ? 'Gulir ke kanan' : 'Scroll right'} disabled={!relatedScrollState.right} onClick={() => relatedPrintingsTrack.current?.scrollBy({ left: 360, behavior: 'smooth' })}><CaretRightIcon size={18}/></button></div></header>
             <div className={`pokemon-related-printings-track${relatedDragging ? ' is-dragging' : ''}`} ref={relatedPrintingsTrack} aria-busy={relatedPrintingsLoading} onScroll={updateRelatedScrollState} onLoad={updateRelatedScrollState} onPointerDown={startRelatedDrag} onPointerMove={moveRelatedDrag} onPointerUp={finishRelatedDrag} onPointerCancel={finishRelatedDrag} onClickCapture={event => { if (relatedDrag.current.moved) { event.preventDefault(); event.stopPropagation(); relatedDrag.current.moved = false; } }}>
-              {relatedPrintingsLoading ? Array.from({ length: 4 }, (_, index) => <i className="pokemon-related-printing-skeleton" key={index}/>) : relatedPrintings.filter((printing, index, all) => printing.id !== selected.id && all.findIndex(item => item.id === printing.id) === index).map(printing => <div className="pokemon-related-printing-wrap" key={printing.id}><button type="button" className="pokemon-related-printing" onClick={() => selectDetailCard(printing)}><CardArt card={displayCard(printing)} imageWidth={220} onImageMissing={() => markImageMissing(printing.id)}/><span className="pokemon-card-caption"><strong>{printing.tcg_card_identities?.name ?? printing.printing_code}</strong><PokemonCardMetadata metadata={pokemonCardMetadata(printing)}/></span></button>{missingImageIds[printing.id]&&<div className="pokemon-missing-image-report-overlay"><FeedbackLaunchButton className="pokemon-missing-image-report" request={{initialCategory:'missing-printing',cardCode:printing.tcg_card_identities?.code,printingId:printing.id}}>{id?'Laporkan gambar hilang':'Report missing image'}</FeedbackLaunchButton></div>}</div>)}
+              {relatedPrintingsLoading ? Array.from({ length: 4 }, (_, index) => <i className="pokemon-related-printing-skeleton" key={index}/>) : relatedPrintings.filter((printing, index, all) => printing.id !== selected.id && all.findIndex(item => item.id === printing.id) === index).map(printing => <div className="pokemon-related-printing-wrap" key={printing.id}><button type="button" className="pokemon-related-printing" onClick={() => selectDetailCard(printing)}><CardArt card={displayCard(printing)} imageWidth={220} missingImageAction={<FeedbackLaunchButton className="pokemon-missing-image-report" request={{initialCategory:'missing-printing',cardCode:printing.tcg_card_identities?.code,printingId:printing.id}}>{id?'Laporkan gambar hilang':'Report missing image'}</FeedbackLaunchButton>}/><span className="pokemon-card-caption"><strong>{printing.tcg_card_identities?.name ?? printing.printing_code}</strong><PokemonCardMetadata metadata={pokemonCardMetadata(printing)}/></span></button></div>)}
             </div>
           </section>}
         </>}
@@ -569,7 +627,7 @@ function pokemonCardMetadata(card: GameCard) {
   const rarity = pokemonRarityLabel(cleanRarity(card.rarity) || card.source_payload?.rarity, card.language);
   return {
     set: card.set_code.trim().toLowerCase(),
-    number: formatPokemonNumber(card.source_payload?.localId ?? card.printing_code, setTotal),
+    number: formatPokemonNumber(pokemonLocalCardNumber(card.source_payload,card.printing_code), setTotal),
     rarity: rarity || (card.set_code.trim().toLowerCase() === '30th-c' ? 'CC' : ''),
     regulation: typeof card.source_payload?.regulationMark === 'string' ? card.source_payload.regulationMark.trim() : '',
   };
@@ -626,6 +684,7 @@ function PokemonCardMetadata({ metadata, setName, illustrator, illustratorLabel 
     : undefined;
   return <span className={`pokemon-card-meta-row${illustrator?.trim() ? ' has-illustrator' : ''}`} aria-label={[setName, metadata.set, metadata.number, metadata.rarity, metadata.regulation && `Regulation ${metadata.regulation}`, illustrator?.trim() && `Illustrator ${illustrator.trim()}`].filter(Boolean).join(' ')}>
     {setName?.trim() && <small className="pokemon-card-set-name" title={setName.trim()}>{setName.trim()}</small>}
+    {setName?.trim() && metadata.set && <span className="pokemon-card-meta-divider" aria-hidden="true"/>}
     {metadata.set && <small className="pokemon-card-set-badge">{metadata.set}</small>}
     {metadata.set && metadata.number && <span className="pokemon-card-meta-divider" aria-hidden="true"/>}
     {metadata.number && <small className="pokemon-card-number">{metadata.number}</small>}

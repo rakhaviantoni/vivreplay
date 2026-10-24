@@ -37,9 +37,10 @@ test('Pokemon rarity labels preserve unrecognized values and omit missing values
 });
 
 test('Pokemon artwork routes use catalog set and printing identifiers for each language',()=>{
-  assert.equal(pokemonArtRoute('JP','sv4a','327'),'/pokemon/art/jp/sv4a/327');
-  assert.equal(pokemonArtRoute('JA','sv5s','088'),'/pokemon/art/jp/sv5s/088');
-  assert.equal(pokemonArtRoute('ID','sv8a','217'),'/pokemon/art/id/sv8a/217');
-  assert.equal(pokemonArtRoute('EN','sv2a','331'),'/pokemon/art/en/sv2a/331');
+  assert.equal(pokemonArtRoute('JP','sv4a','327'),'/sv4a/jp/327.webp');
+  assert.equal(pokemonArtRoute('JA','sv5s','088'),'/sv5s/jp/088.webp');
+  assert.equal(pokemonArtRoute('ID','sv8a','217'),'/sv8a/id/217.webp');
+  assert.equal(pokemonArtRoute('EN','sv2a','331'),'/sv2a/en/331.webp');
+  assert.equal(pokemonArtRoute('ID','S6a','073/069','fbf45d27-b735-5928-9fa9-63ca65c7bbd1'),'/S6a/id/073.webp?printingId=fbf45d27-b735-5928-9fa9-63ca65c7bbd1');
   assert.equal(pokemonArtRoute('JP','../sv4a','327'),'');
 });

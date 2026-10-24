@@ -13,6 +13,8 @@ import { cards, printings, Card } from '@/packages/card-data/catalog';
 import { CardArt } from '../card-art';
 import { api } from '@/lib/client';
 import { addLocalVaultItem } from '../local-vault';
+import {pokemonLocalCardNumber} from '@/lib/pokemon-set-aliases';
+import {pokemonPublicReference} from '@/lib/pokemon-public-reference';
 
 interface QuickAddModalProps {
   open: boolean;
@@ -22,7 +24,7 @@ interface QuickAddModalProps {
   language?: 'EN' | 'ID';
   gameSlug?: 'one-piece' | 'pokemon';
 }
-type PokemonCatalogPrinting={id:string;rarity:string;variant:string;set_code:string;set_name:string;printing_code:string;language:string;card_image_url?:string|null;tcg_card_identities?:{code:string;name:string;color:string;card_type:string;cost:number;power:number;effect_text:string};source_payload?:Record<string,unknown>};
+type PokemonCatalogPrinting={id:string;rarity:string;variant:string;set_code:string;set_name:string;printing_code:string;language:string;card_image_url?:string|null;source_payload?:Record<string,unknown>;tcg_card_identities?:{code:string;name:string;color:string;card_type:string;cost:number;power:number;effect_text:string}};
 
 export function QuickAddModal({
   open,
@@ -185,7 +187,7 @@ export function QuickAddModal({
           {!query.trim().length || query.trim().length<2 ? <p className="vault-quick-add-hint">{gameSlug==='pokemon'?'Search by Pokémon name or card number. Each result is a specific printing.':'Search by card name or code. Quick Add uses the English default printing.'}</p> : gameSlug==='pokemon' ? searching ? <p className="vault-quick-add-hint">Searching…</p> : pokemonCards.length===0 ? <p className="vault-quick-add-hint">No Pokémon printings matched that search.</p> : pokemonCards.map(printing=>{
             const identity=printing.tcg_card_identities;if(!identity)return null;
             const art:Card={id:identity.code,code:identity.code,name:identity.name,color:identity.color||'Colorless',type:'Character',cost:identity.cost||0,power:identity.power||0,rarity:printing.rarity,art:0,effect:identity.effect_text||'',imageUrl:printing.card_image_url??undefined,setCode:printing.set_code,language:printing.language,printingCode:printing.printing_code,variant:printing.variant};
-            return <div key={printing.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 12px',borderRadius:'10px',background:'var(--vault-slot-bg)',border:'1px solid var(--vault-border)',gap:'12px'}}><div style={{display:'flex',alignItems:'center',gap:'10px',minWidth:0}}><div style={{width:'36px',aspectRatio:'420/580',borderRadius:'4px',overflow:'hidden',flexShrink:0}}><CardArt card={art} small/></div><div style={{minWidth:0}}><h4 style={{margin:0,fontSize:'13px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{identity.name}</h4><span style={{fontSize:'10.5px',color:'var(--vault-ink-muted)'}}>{printing.set_code}, {printing.printing_code}, {printing.language}, {printing.rarity}</span></div></div><button type="button" className="vault-btn vault-btn-primary" style={{height:'32px',fontSize:'11px',flexShrink:0}} disabled={busy} onClick={()=>void handlePokemonQuickAdd(printing)}><Zap size={13} weight="fill"/>{language==='ID'?'Tambah 1':'Add 1'}</button></div>
+            return <div key={printing.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 12px',borderRadius:'10px',background:'var(--vault-slot-bg)',border:'1px solid var(--vault-border)',gap:'12px'}}><div style={{display:'flex',alignItems:'center',gap:'10px',minWidth:0}}><div style={{width:'36px',aspectRatio:'420/580',borderRadius:'4px',overflow:'hidden',flexShrink:0}}><CardArt card={art} small/></div><div style={{minWidth:0}}><h4 style={{margin:0,fontSize:'13px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{identity.name}</h4><span style={{fontSize:'10.5px',color:'var(--vault-ink-muted)'}}>{pokemonPublicReference({code:identity.code,setCode:printing.set_code,printingCode:printing.printing_code,localCardNumber:pokemonLocalCardNumber(printing.source_payload,printing.printing_code)})}, {printing.language}, {printing.rarity}</span></div></div><button type="button" className="vault-btn vault-btn-primary" style={{height:'32px',fontSize:'11px',flexShrink:0}} disabled={busy} onClick={()=>void handlePokemonQuickAdd(printing)}><Zap size={13} weight="fill"/>{language==='ID'?'Tambah 1':'Add 1'}</button></div>
           }) : filteredCards.length===0 ? <p className="vault-quick-add-hint">No catalog cards matched that search.</p> : filteredCards.map(card => (
             <div
               key={card.id}

@@ -463,7 +463,7 @@ export function AddEditItemModal({
               {cardQuery.trim().length >= 2 && <div className="vault-identity-results" role="listbox" aria-label="Card identities">
                 {identitySearchLoading && <p>Searching cards…</p>}
                 {!identitySearchLoading && identityResults.map(card => <button type="button" role="option" aria-selected={hasSelectedIdentity && card.code === selectedCardCode} key={card.id} className={hasSelectedIdentity && card.code === selectedCardCode ? 'selected' : ''} onClick={() => {setSelectedCardCode(card.code);setSelectedIdentity(card);setSelectedPrintingId('');setIdentityConfirmed(true);setIdentityPickerOpen(false);setCardQuery('');}}>
-                  <span className="vault-identity-result-art"><CardArt card={card} small /></span><span><b>{card.name}</b><small>{card.code} / {card.rarity || card.type}</small></span>
+                  <span className="vault-identity-result-art"><CardArt card={card} small /></span><span><b>{card.name}</b>{!/^PK-/i.test(card.code)&&<small>{card.code} / {card.rarity || card.type}</small>}</span>
                 </button>)}
                 {!identitySearchLoading && !identityResults.length && <p>No matching cards.</p>}
               </div>}

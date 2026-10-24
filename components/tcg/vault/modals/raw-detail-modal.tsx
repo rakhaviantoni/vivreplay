@@ -20,6 +20,7 @@ import { printings } from '@/packages/card-data/catalog';
 import { PRICECHARTING_USD_TO_IDR_RATE } from '@/lib/market/pricecharting';
 import { formatCompactMoney, formatMoney } from '@/packages/domain';
 import type { EnrichedCollectionItem } from '../types';
+import {VaultSlotMetaIdentity} from '../views/vault-slot-meta-identity';
 
 interface RawDetailModalProps {
   item: EnrichedCollectionItem | null;
@@ -51,6 +52,7 @@ export function RawDetailModal({
   if (!open || !item) return null;
 
   const printing = printings.find(p => p.id === item.printingId);
+  const isPokemon=item.card.gameSlug==='pokemon'||/^PK-/i.test(item.card.code);
   const lang = item.language || item.card.language || printing?.language || 'EN';
   const variant = item.variant || item.card.variant || printing?.variant || 'Standard';
   const listedQuantity = Math.min(item.quantity, item.listedQuantity ?? 0);
@@ -114,18 +116,18 @@ export function RawDetailModal({
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <span style={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '0.12em', color: 'var(--vault-gold)', textTransform: 'uppercase' }}>
-                {item.card.code} · {item.card.rarity} · {(item.visibility==='marketplace-only'?'private':item.visibility).toUpperCase()}
-              </span>
+              {isPokemon?<VaultSlotMetaIdentity item={item} printingLabel=""/>:<span style={{ fontSize: '10.5px', fontWeight: 700, letterSpacing: '0.12em', color: 'var(--vault-gold)', textTransform: 'uppercase' }}>
+                {item.card.code} / {item.card.rarity} / {(item.visibility==='marketplace-only'?'private':item.visibility).toUpperCase()}
+              </span>}
               <h2 style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '24px', fontWeight: 600, margin: '2px 0 0', color: 'var(--vault-ink)' }}>
                 {item.card.name}
               </h2>
-              <span style={{ fontSize: '11px', color: 'var(--vault-ink-muted)' }}>
-                {item.printingCode || item.card.printingCode || item.card.code} · {item.setCode || printing?.set || item.card.setCode || 'Set not listed'}
-              </span>
+              {!isPokemon&&<span style={{ fontSize: '11px', color: 'var(--vault-ink-muted)' }}>
+                {item.printingCode || item.card.printingCode || item.card.code} / {item.setCode || printing?.set || item.card.setCode || 'Set not listed'}
+              </span>}
               {listedQuantity > 0 && (
                 <span style={{ alignSelf: 'flex-start', marginTop: '3px', padding: '4px 8px', borderRadius: '5px', background: 'var(--vault-slot-bg)', border: '1px solid var(--vault-border)', color: 'var(--vault-ink-secondary)', fontSize: '10px', fontWeight: 700 }}>
-                  {listedQuantity} of {item.quantity} {listedQuantity === 1 ? 'copy' : 'copies'} listed · {availableQuantity} available
+                  {listedQuantity} of {item.quantity} {listedQuantity === 1 ? 'copy' : 'copies'} listed / {availableQuantity} available
                 </span>
               )}
             </div>
@@ -147,14 +149,14 @@ export function RawDetailModal({
               <span style={{ color: 'var(--vault-ink-muted)', display: 'block', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                 Printing & Lang
               </span>
-              <strong>{lang} · {variant}</strong>
+              <strong>{lang} {variant}</strong>
             </div>
 
             <div>
               <span style={{ color: 'var(--vault-ink-muted)', display: 'block', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                 Condition & Copies
               </span>
-              <strong>{item.condition} · {item.quantity} {item.quantity > 1 ? 'copies' : 'copy'}</strong>
+              <strong>{item.condition} {item.quantity} {item.quantity > 1 ? 'copies' : 'copy'}</strong>
             </div>
 
             <div>

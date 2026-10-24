@@ -34,6 +34,7 @@ export type DeckEntry={cardId:string;quantity:number};
 export type SavedDeck={id:string;name:string;leaderId:string;visibility:'public'|'private';version:number;versionId:string;cards:DeckEntry[]};
 export type ListingItem={
   printingId:string;
+  instanceId?:string;
   quantity:number;
   availableQuantity?:number;
   heldQuantity?:number;

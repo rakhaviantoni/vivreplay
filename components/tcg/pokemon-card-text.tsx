@@ -180,9 +180,14 @@ function formatInline(content: ReactNode, emphasis: number, bold: number, key: n
   return <span key={key}>{bold > 0 ? <strong>{emphasis > 0 ? <em>{content}</em> : content}</strong> : emphasis > 0 ? <em>{content}</em> : content}</span>;
 }
 
+function isCardtellSetDescription(source: NonNullable<PokemonText['source']>) {
+  const description = typeof source.description === 'string' ? source.description.trim() : '';
+  return String(source.source ?? '').toLowerCase() === 'cardtell' && /^[^·•]{1,100}[·•]\s*[A-Z0-9_-]+(?:\/[A-Z0-9_-]+)?$/i.test(description);
+}
+
 export function trainerEffectText(source: NonNullable<PokemonText['source']>) {
   const isTrainer = [source.category, source.trainerType].some(value => typeof value === 'string' && /trainer|supporter|item|stadium/i.test(value));
-  const candidates = [source.effect, source.trainerEffect, source.trainerText, source.cardEffect, source.effectText, source.text, source.rules, isTrainer ? source.description : undefined];
+  const candidates = [source.effect, source.trainerEffect, source.trainerText, source.cardEffect, source.effectText, source.text, source.rules, isTrainer && !isCardtellSetDescription(source) ? source.description : undefined];
   for (const value of candidates) {
     if (typeof value === 'string' && value.trim()) return value;
     if (value && typeof value === 'object' && !Array.isArray(value)) {
@@ -195,6 +200,12 @@ export function trainerEffectText(source: NonNullable<PokemonText['source']>) {
     }
   }
   return undefined;
+}
+
+function cardDescription(source: NonNullable<PokemonText['source']>) {
+  const description = typeof source.description === 'string' ? source.description.trim() : '';
+  if (!description) return '';
+  return isCardtellSetDescription(source) ? '' : description;
 }
 
 export type PokemonRuleAbility = { type?: string; name: string; effect?: string };
@@ -290,6 +301,7 @@ export function PokemonCardText({ code, name, language, source, onEvolutionSelec
   const copy = textByLanguage[lang];
   const abilities = pokemonRuleAbilities(source);
   const trainerEffect = trainerEffectText(source);
+  const description = cardDescription(source);
   const hasCardText = Boolean(source.attacks?.length || abilities.length || trainerEffect);
   const evolutionLevels = (() => {
     const currentEvolution = evolutionLoadedKey === evolutionRequestKey ? evolution : null;
@@ -329,7 +341,7 @@ export function PokemonCardText({ code, name, language, source, onEvolutionSelec
   const energyValues = (items?: Array<{ type?: string; value?: string }>) => items?.length ? <span className="pokemon-fact-energy-list">{items.map((item,index) => <span className="pokemon-fact-energy" key={`${item.type}-${index}`}><EnergySymbol type={item.type ?? ''}/>{item.value && <small>{item.value}</small>}</span>)}</span> : <span className="pokemon-fact-dash">—</span>;
 
   return <div className="pokemon-card-text">
-    {source.description?.trim() && ![source.category, source.trainerType].some(value => typeof value === 'string' && /trainer|supporter|item|stadium/i.test(value)) && <section className="pokemon-card-description"><p>{source.description}</p></section>}
+    {description && ![source.category, source.trainerType].some(value => typeof value === 'string' && /trainer|supporter|item|stadium/i.test(value)) && <section className="pokemon-card-description"><p>{description}</p></section>}
     {abilities.length ? <section className="pokemon-card-rules pokemon-ability-list">{abilities.map((ability, index) => <article className="pokemon-card-ability" key={`${ability.name || 'ability'}-${index}`}><p><small className="pokemon-ability-badge">{ability.type || (lang==='ID'?'Ability':lang==='JP'?'特性':'Ability')}</small><strong><PokemonMechanicText text={ability.name}/></strong></p><RuleCopy text={ability.effect}/></article>)}</section> : null}
     {source.attacks?.length ? <section className="pokemon-card-rules" aria-label={copy.attacks}>{source.attacks.map((attack, index) => <article className="pokemon-card-attack" key={`${attack.name ?? 'attack'}-${index}`}><header><EnergyCost cost={attack.cost} language={lang}/><strong><PokemonMechanicText text={attack.name}/></strong>{attack.damage !== undefined && attack.damage !== '' && <b>{attack.damage}</b>}</header><RuleCopy text={attack.effect}/></article>)}</section> : null}
     {trainerEffect && !source.attacks?.length && !abilities.length ? <section className="pokemon-card-rules"><h3>{typeof source.trainerType === 'string' && source.trainerType.trim() ? source.trainerType : copy.trainer}</h3><RuleCopy text={trainerEffect}/></section> : null}
@@ -378,6 +390,6 @@ export function PokemonCardText({ code, name, language, source, onEvolutionSelec
       </section>}
       {(source.weaknesses?.length || source.resistances?.length || source.retreat !== undefined) && <dl className="pokemon-fact-combat"><div><dt>{copy.weakness}</dt><dd>{energyValues(source.weaknesses)}</dd></div><div><dt>{copy.resistance}</dt><dd>{energyValues(source.resistances)}</dd></div><div><dt>{copy.retreat}</dt><dd>{source.retreat !== undefined && source.retreat > 0 ? <EnergyCost cost={Array.from({ length: Math.min(source.retreat, 10) }, () => 'Colorless')} language={lang}/> : <span className="pokemon-fact-dash">—</span>}</dd></div></dl>}
     </section>}
-    {!hasCardText && !source.description?.trim() && <p className="pokemon-card-text-missing">{lang === 'ID' ? 'Teks kartu belum tersedia.' : lang === 'JP' ? 'カードテキストはありません。' : 'Card text is not available.'}</p>}
+    {!hasCardText && !description && <p className="pokemon-card-text-missing">{lang === 'ID' ? 'Teks kartu belum tersedia.' : lang === 'JP' ? 'カードテキストはありません。' : 'Card text is not available.'}</p>}
   </div>;
 }

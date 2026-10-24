@@ -20,6 +20,7 @@ import { CardArt } from '../card-art';
 import { VaultSlotSlabPlate } from '../views/vault-slot-slab-plate';
 import { VaultSlotMetaIdentity } from '../views/vault-slot-meta-identity';
 import { EffectText } from '../../effect-text';
+import { PokemonCardText } from '../../pokemon-card-text';
 import { printings } from '@/packages/card-data/catalog';
 import { formatCompactMoney, GRADING_PROVIDERS } from '@/packages/domain';
 import { toast } from 'sonner';
@@ -30,6 +31,7 @@ interface SlabDetailModalProps {
   open: boolean;
   canManagePhotos?: boolean;
   hideValues: boolean;
+  preferredCurrency?: string;
   onClose: () => void;
   onEdit: (slab: EnrichedCollectionItem) => void;
   onSell: (slab: EnrichedCollectionItem) => void;
@@ -42,6 +44,7 @@ export function SlabDetailModal({
   open,
   canManagePhotos=false,
   hideValues,
+  preferredCurrency,
   onClose,
   onEdit,
   onSell,
@@ -53,6 +56,8 @@ export function SlabDetailModal({
   const [isZoomed, setIsZoomed] = useState(false);
   const [slabPhotoData,setSlabPhotoData]=useState<{instanceId:string;photos:Array<{id:string;role:string}>}|null>(null);
   const [photoBusy,setPhotoBusy]=useState(false);
+  const [pokemonPrintingData,setPokemonPrintingData]=useState<{printingId:string;source:Record<string,unknown>|null}|null>(null);
+  const [estimateRate,setEstimateRate]=useState<{currency:string;rate:number}|null>(null);
   const portalTarget=typeof document==='undefined'?null:document.body;
 
   useEffect(()=>{
@@ -64,6 +69,35 @@ export function SlabDetailModal({
       .catch(error=>{if(!(error instanceof DOMException&&error.name==='AbortError'))setSlabPhotoData({instanceId:slab.id,photos:[]});});
     return()=>controller.abort();
   },[open,slab?.id,canManagePhotos]);
+
+  useEffect(()=>{
+    if(!open||!slab||(slab.card.gameSlug!=='pokemon'&&!/^PK-/i.test(slab.card.code)))return;
+    const controller=new AbortController();
+    const params=new URLSearchParams({game:'pokemon',language:slab.language||slab.card.language||'EN',ids:slab.printingId});
+    void fetch(`/api/cards/catalog?${params}`,{signal:controller.signal})
+      .then(async response=>response.ok?await response.json() as {cards?:Array<{id:string;source_payload?:Record<string,unknown>}>}:{cards:[]})
+      .then(result=>{if(!controller.signal.aborted){const printing=result.cards?.find(card=>card.id===slab.printingId);setPokemonPrintingData({printingId:slab.printingId,source:printing?.source_payload??slab.card.source_payload??null});}})
+      .catch(error=>{if(!(error instanceof DOMException&&error.name==='AbortError'))setPokemonPrintingData({printingId:slab.printingId,source:slab.card.source_payload??null});});
+    return()=>controller.abort();
+  },[open,slab]);
+
+  const estimateCurrency=preferredCurrency&&/^(IDR|USD|JPY)$/.test(preferredCurrency)?preferredCurrency:'IDR';
+  useEffect(()=>{
+    if(estimateCurrency==='IDR')return;
+    let active=true;
+    void fetch(`https://api.frankfurter.dev/v2/providers/ecb/rate/idr/${estimateCurrency.toLowerCase()}`,{cache:'force-cache'})
+      .then(async response=>response.ok?await response.json() as {rate?:number}:{})
+      .then(result=>{if(active&&typeof result.rate==='number'&&Number.isFinite(result.rate))setEstimateRate({currency:estimateCurrency,rate:result.rate});})
+      .catch(()=>{});
+    return()=>{active=false};
+  },[estimateCurrency]);
+
+  const formatEstimate=(amountIdr:number)=>{
+    if(estimateCurrency==='IDR')return formatCompactMoney(amountIdr,'IDR');
+    if(!estimateRate||estimateRate.currency!==estimateCurrency)return formatCompactMoney(amountIdr,'IDR');
+    const converted=amountIdr*estimateRate.rate;
+    return estimateCurrency==='USD'?formatCompactMoney(Math.round(converted*100),'USD'):formatCompactMoney(Math.round(converted),estimateCurrency);
+  };
 
   if (!open || !slab || !portalTarget) return null;
 
@@ -90,6 +124,7 @@ export function SlabDetailModal({
   const lang = slab.language || slab.card.language || printing?.language || 'EN';
   const variant = slab.variant || slab.card.variant || printing?.variant || '';
   const isPokemon=slab.card.gameSlug==='pokemon'||/^PK-/i.test(slab.card.code);
+  const pokemonSource=pokemonPrintingData?.printingId===slab.printingId?pokemonPrintingData.source:slab.card.source_payload??null;
   const subgrades = slab.subgrades;
   const storedProvider=String(slab.provider??'').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
   const providerDef = GRADING_PROVIDERS.find(p => [p.id,p.shortName,p.name].some(value=>value.toLowerCase().replace(/[^a-z0-9]/g,'')===storedProvider)||storedProvider==='beckett'&&p.id==='BGS');
@@ -109,12 +144,12 @@ export function SlabDetailModal({
       case 'unavailable':
         return { label: 'Verification Unavailable', icon: ShieldCheck, color: '#94a3b8', desc: 'Grading provider does not have an open verification API' };
       default:
-        return { label: 'User Entered', icon: ShieldCheck, color: 'var(--vault-gold)', desc: 'Certification entered by owner; registry verification pending' };
+        return null;
     }
   };
 
   const vBadge = getVerificationBadge();
-  const VIcon = vBadge.icon;
+  const VIcon = vBadge?.icon;
 
   return createPortal((
     <div className="vault-slab-detail-backdrop" role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }} style={{
@@ -151,7 +186,7 @@ export function SlabDetailModal({
               <span style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.12em', color: 'var(--vault-gold)' }}>
                 {slab.provider || 'PSA'} {slab.grade || '10'}
               </span>
-              <span style={{
+              {vBadge&&VIcon&&<span style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '4px',
@@ -165,7 +200,7 @@ export function SlabDetailModal({
               }}>
                 <VIcon size={12} weight="fill" />
                 {vBadge.label}
-              </span>
+              </span>}
             </div>
             <h2 style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '28px', fontWeight: 600, margin: '4px 0 0', color: 'var(--vault-ink)' }}>
               {slab.card.name}
@@ -284,19 +319,18 @@ export function SlabDetailModal({
                   Acquired Cost
                 </span>
                 <div style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '18px', fontWeight: 600, color: 'var(--vault-ink)', marginTop: '2px' }}>
-                  {hideValues ? '••••••••' : slab.acquisitionAmount > 0 ? formatCompactMoney(slab.acquisitionAmount, 'IDR') : '-'}
+                  {hideValues ? '••••••••' : slab.acquisitionAmount > 0 ? formatCompactMoney(slab.acquisitionAmount, slab.currency || 'IDR') : '-'}
                 </div>
                 <small style={{ fontSize: '10px', color: 'var(--vault-ink-muted)' }}>{slab.acquiredAt ? new Date(slab.acquiredAt).toLocaleDateString() : 'Date not recorded'}</small>
               </div>
 
               <div>
                 <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--vault-ink-muted)' }}>
-                  Est. Market Value
+                  Market estimate{slab.hasMarketEstimate&&estimateCurrency!=='IDR'?` (${estimateRate?.currency===estimateCurrency?estimateCurrency:'IDR'})`:''}
                 </span>
                 <div style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '18px', fontWeight: 600, color: 'var(--vault-gold)', marginTop: '2px' }}>
-                  {hideValues ? '••••••••' : slab.hasMarketEstimate ? formatCompactMoney(slab.estimatedValue, 'IDR') : 'Not available'}
+                  {hideValues ? '••••••••' : slab.hasMarketEstimate ? formatEstimate(slab.estimatedValue) : 'No graded price data'}
                 </div>
-                <small style={{ fontSize: '10px', color: 'var(--vault-ink-muted)' }}>No graded price available</small>
               </div>
 
               <div>
@@ -316,7 +350,7 @@ export function SlabDetailModal({
                   {hideValues ? '••••••••' : slab.hasMarketEstimate && slab.acquisitionAmount > 0 ? (
                     <>
                       <TrendingUp size={16} />
-                      {slab.gainLossAmount >= 0 ? '+' : ''}{formatCompactMoney(slab.gainLossAmount, 'IDR')}
+                      {slab.gainLossAmount >= 0 ? '+' : ''}{formatEstimate(slab.gainLossAmount)}
                     </>
                   ) : '-'}
                 </div>
@@ -384,8 +418,11 @@ export function SlabDetailModal({
             {activeTab === 'overview' && (
               <div className="vault-slab-panel" id="vault-slab-panel-overview" role="tabpanel" aria-labelledby="vault-slab-tab-overview" tabIndex={0}>
                 <div className="vault-slab-panel-section">
-                  <h3>Card effect</h3>
-                  <p>{slab.card.effect ? <EffectText text={slab.card.effect}/> : 'No effect text available.'}</p>
+                  {isPokemon
+                    ? pokemonSource
+                      ? <PokemonCardText code={slab.card.code} name={slab.card.name} language={lang} source={pokemonSource as Parameters<typeof PokemonCardText>[0]['source']}/>
+                      : <p>Card details are not available.</p>
+                    : <><h3>Card effect</h3><p>{slab.card.effect ? <EffectText text={slab.card.effect}/> : 'No effect text available.'}</p></>}
                 </div>
                 {slab.notes && (
                   <div className="vault-slab-panel-section">

@@ -14,8 +14,11 @@ import {formatDeliveryAddress} from '@/lib/market/address-format';
 import {cardImageUrl} from '@/components/tcg/card-art';
 import {MarketOrderProgress} from '@/components/tcg/market-order-progress';
 import {MarketShipmentHistory} from '@/components/tcg/market-shipment-history';
+import {pokemonPublicReference} from '@/lib/pokemon-public-reference';
 import {MarketShippingDeadline} from '@/components/tcg/market-shipping-deadline';
 import {MarketPrintLabel} from '@/components/tcg/market-print-label';
+
+const publicOrderCardCode=(card:MarketActivityCard['card'])=>card?.code&&(/^(?:PK-|CT-)/i.test(card.code)||/^CT-\d+$/i.test(card.printingCode??''))?pokemonPublicReference(card):card?.code;
 import {MarketOrderDispute} from '@/components/tcg/market-order-dispute';
 import {MarketShipmentChoice} from '@/components/tcg/market-shipment-choice';
 
@@ -111,7 +114,7 @@ export function OrdersTab({language,initialOrderId}:{language:'EN'|'ID';initialO
             {order.kind==='MARKET'&&<MarketOrderProgress status={status} role={order.role} language={language} deliveredAt={detail.deliveredAt} trackingStatus={tracking[order.id]?.status??detail.shipping?.trackingStatus??order.trackingStatus}/>}
             <div className="market-order-detail-items"><h4>{id?'Kartu':'Cards'}</h4>{detail.items.map((item,index)=><div className="market-order-detail-item" key={`${item.printingId}-${index}`}>
               {item.card?.imageUrl&&cardImageUrl(item.card)?<img src={cardImageUrl(item.card)!} alt=""/>:<span className="market-order-detail-placeholder"/>}
-              <div><strong>{item.card?.name??(id?'Kartu koleksi':'Trading card')}</strong><small>{[item.card?.code,item.card?.rarity,item.card?.language,item.condition].filter(Boolean).join(', ')}{[item.card?.code,item.card?.rarity,item.card?.language,item.condition].some(Boolean)?' ':''}× {item.quantity}</small>{(item.listingId||detail.listingId)&&<Link className="market-order-source-link" href={marketListingPath(item.listingTitle??'',item.listingId||detail.listingId!)} target="_blank" rel="noreferrer">{id?'Buka listing':'View listing'}<ExternalLink size={12}/></Link>}</div>
+              <div><strong>{item.card?.name??(id?'Kartu koleksi':'Trading card')}</strong><small>{[publicOrderCardCode(item.card),item.card?.rarity,item.card?.language,item.condition].filter(Boolean).join(', ')}{[publicOrderCardCode(item.card),item.card?.rarity,item.card?.language,item.condition].some(Boolean)?' ':''}× {item.quantity}</small>{(item.listingId||detail.listingId)&&<Link className="market-order-source-link" href={marketListingPath(item.listingTitle??'',item.listingId||detail.listingId!)} target="_blank" rel="noreferrer">{id?'Buka listing':'View listing'}<ExternalLink size={12}/></Link>}</div>
               <b>{money((item.unitAmount??0)*item.quantity,detail.currency)}</b>
             </div>)}</div>
             <div className="market-order-ledger"><h4>{id?'Rincian pembayaran':'Payment breakdown'}</h4>

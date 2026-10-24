@@ -1,5 +1,4 @@
 import { env } from 'cloudflare:workers';
-const imageHosts = new Set(['assets.tcgdex.net']);
 
 export async function GET(request: Request) {
   const requested = new URL(request.url).searchParams.get('url');
@@ -9,7 +8,9 @@ export async function GET(request: Request) {
   try { source = new URL(requested); }
   catch { return new Response('Not found', { status: 404 }); }
   const pathSegments = source.pathname.split('/').filter(Boolean);
-  if (source.protocol !== 'https:' || !imageHosts.has(source.hostname) || !/^\/[a-z0-9._/-]+\.(png|webp|jpg|jpeg)$/i.test(source.pathname) || pathSegments.some(segment => segment === '.' || segment === '..')) {
+  const validTcgDex = source.hostname === 'assets.tcgdex.net' && /^\/[a-z0-9._/-]+\.(png|webp|jpg|jpeg)$/i.test(source.pathname);
+  const validCardtell = source.hostname === 'cardtell.id' && /^\/images\/taxonomy\/[0-9]{1,12}\.png$/i.test(source.pathname);
+  if (source.protocol !== 'https:' || (!validTcgDex && !validCardtell) || pathSegments.some(segment => segment === '.' || segment === '..')) {
     return new Response('Not found', { status: 404 });
   }
 

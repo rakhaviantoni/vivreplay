@@ -5,6 +5,7 @@ import {ArrowSquareOutIcon as ArrowSquareOut} from '@phosphor-icons/react';
 import {marketListingPath} from '@/lib/market/listing-url';
 import {useEffect, useMemo, useState} from 'react';
 import {priceChartingFallback,PRICECHARTING_USD_TO_IDR_RATE} from '@/lib/market/pricecharting';
+import {pokemonPublicReference} from '@/lib/pokemon-public-reference';
 
 type Observation = {amount:number; currency:string; observed_at:string; source_kind:string; source_record?:{payload?:{card_url?:unknown}}|null};
 type SoldSale={unitAmount:number;quantity:number;soldAt:string};
@@ -48,7 +49,7 @@ function ActivePrintingListings({printingId,language,game}:{printingId?:string;l
   return <div className="card-market-active-listings" aria-label={id?'Listing aktif di Market':'Current Market listings'}><header><span>{id?'Listing aktif':'For sale now'}</span></header>{listings===null?<p>{failed?<button type="button" className="card-market-retry" onClick={()=>{setResult(null);setFailed(false);void fetch(`/api/market/printing-listings?printingId=${encodeURIComponent(printingId)}`,{cache:'no-store'}).then(async response=>{if(!response.ok)throw new Error();return await response.json() as {listings?:ActiveListing[]}}).then(data=>setResult({printingId,listings:data.listings??[]})).catch(()=>setFailed(true))}}>{id?'Coba lagi':'Retry'}</button>:<span className="card-market-listing-loading" aria-label={id?'Memuat listing':'Loading listings'}/>}</p>:listings.length===0?<p>{id?`Belum ada listing aktif untuk ${objectLabel}.`:`No active listings for ${objectLabel} yet.`}</p>:<ul>{listings.slice(0,4).map(listing=><li key={listing.id}><div className="card-market-listing-main"><Link href={marketListingPath(listing.title,listing.id)}>{listing.title}</Link><small>{[listing.seller,listing.city,listing.condition,listing.negotiable?(id?'Bisa ditawar':'Offers welcome'):(id?'Harga pas':'Firm price')].filter(Boolean).join(' | ')}</small></div><div className="card-market-listing-price"><strong>{money(listing.amount,listing.currency)}</strong><small>{id?`${listing.quantity} tersedia`:`${listing.quantity} available`}</small></div></li>)}</ul>}</div>;
 }
 
-export function CardMarketPanel({printingId,onMarketPrice,printing,disableExternalPrice=false,game='onepiece'}:{printingId?:string;onMarketPrice?:(amountIdr:number|null)=>void;printing?:{language?:string;setCode?:string;printingCode?:string;variant?:string};disableExternalPrice?:boolean;game?:'onepiece'|'pokemon'}) {
+export function CardMarketPanel({printingId,onMarketPrice,printing,disableExternalPrice=false,game='onepiece'}:{printingId?:string;onMarketPrice?:(amountIdr:number|null)=>void;printing?:{language?:string;setCode?:string;printingCode?:string;localCardNumber?:string;variant?:string};disableExternalPrice?:boolean;game?:'onepiece'|'pokemon'}) {
   const [savedHistory,setSavedHistory]=useState<{printingId:string;history:Observation[]}|null>(null);
   const usesYuyutei=!disableExternalPrice&&printing?.language?.toUpperCase()==='JP';
   const history=printingId?(savedHistory?.printingId===printingId?savedHistory.history:undefined):[];
@@ -67,8 +68,11 @@ export function CardMarketPanel({printingId,onMarketPrice,printing,disableExtern
   const benchmark=history?.at(-1);
   const listingUrl=benchmark?yuyuteiUrl(benchmark):undefined;
   const id=language==='ID';
+  const printingLabel=game==='pokemon'
+    ?pokemonPublicReference({setCode:printing?.setCode,printingCode:printing?.printingCode,localCardNumber:printing?.localCardNumber})
+    :printing?.printingCode;
   return <section className="card-market-panel" aria-label={id?'Aktivitas pasar kartu':'Card market activity'}>
-    <header><span>{id?'Aktivitas pasar':'Market activity'}</span>{printing?.printingCode&&<small>{printing.printingCode}{printing.variant&&printing.variant!=='Standard'?` | ${printing.variant}`:''}</small>}</header>
+    <header><span>{id?'Aktivitas pasar':'Market activity'}</span>{printingLabel&&<small>{printingLabel}{printing?.variant&&printing.variant!=='Standard'?` | ${printing.variant}`:''}</small>}</header>
     {usesYuyutei&&<div className="card-market-benchmark">
       <div className="card-market-benchmark-heading"><span>{id?'Harga referensi':'Reference price'}</span><small>Yuyutei</small></div>
       {!history?<div className="card-market-price-skeleton" role="status" aria-label={id?'Memuat harga referensi':'Loading reference price'}><i/><i/></div>:benchmark?<><div className="card-market-price"><strong>{money(benchmark.amount,benchmark.currency)}</strong><time dateTime={benchmark.observed_at}>{formatDate(benchmark.observed_at,language)}</time></div><PriceLine history={history} language={language}/>{listingUrl&&<a className="card-market-source" href={listingUrl} target="_blank" rel="noopener noreferrer">{id?'Lihat sumber':'Source'}<ArrowSquareOut size={14}/></a>}</>:fallback?<><div className="card-market-price"><strong>{money(fallback.amount,fallback.currency)}</strong><span>{id?'Panduan kartu tanpa grading':'Ungraded card guide'}</span></div><a className="card-market-source" href={fallback.url} target="_blank" rel="noopener noreferrer">{id?'Lihat sumber':'Source'}<ArrowSquareOut size={14}/></a></>:<p>{id?'Belum ada harga untuk cetakan ini.':'No reference price for this printing.'}</p>}

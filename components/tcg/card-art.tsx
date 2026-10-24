@@ -4,20 +4,21 @@ import {useEffect, useRef, useState} from 'react';
 import type {ReactNode} from 'react';
 import {Card, colors} from '@/packages/card-data/catalog';
 import {isPreviewCard} from '@/packages/domain/release-availability';
+import {pokemonArtRoute} from '@/lib/pokemon-art-route';
 
-export function cardPrintingImageUrl(printing:{assetPath?:string|null;imageUrl?:string|null;setCode?:string|null;language?:string|null;printingCode?:string|null;code?:string|null;gameSlug?:string|null}){
+export function cardPrintingImageUrl(printing:{id?:string|null;assetPath?:string|null;imageUrl?:string|null;setCode?:string|null;language?:string|null;printingCode?:string|null;localCardNumber?:string|null;code?:string|null;gameSlug?:string|null}){
   if(printing.assetPath){
     const asset=printing.assetPath.replace(/^\/+/, '').match(/^one-piece\/([^/]+)\/([^/]+)\/(?:small\/|thumb\/|large\/)?(.+)$/);
     if(asset)return `/${encodeURIComponent(asset[1].replaceAll('-',''))}/${encodeURIComponent(asset[2].toLowerCase())}/${asset[3].split('/').map(encodeURIComponent).join('/')}`;
     if(!printing.assetPath.startsWith('//'))return `/${printing.assetPath.replace(/^\/+/, '')}`;
   }
   const imageUrl=printing.imageUrl??undefined;
+  if(imageUrl?.startsWith('/')&&!imageUrl.startsWith('//')&&!imageUrl.startsWith('/api/card-assets/'))return imageUrl;
   if(printing.gameSlug==='pokemon'&&printing.setCode){
-    const cardCode=printing.printingCode??printing.code;
-    if(cardCode)return `/pokemon/art/${encodeURIComponent((printing.language??'EN').toLowerCase())}/${encodeURIComponent(printing.setCode)}/${encodeURIComponent(cardCode)}`;
+    const cardCode=printing.localCardNumber??printing.printingCode??printing.code??undefined;
+    if(cardCode)return pokemonArtRoute(printing.language??'EN',printing.setCode,cardCode,/^[a-f0-9-]{36}$/i.test(printing.id??'')?printing.id??undefined:undefined);
   }
   if(!imageUrl)return undefined;
-  if(imageUrl.startsWith('/')&&!imageUrl.startsWith('//')&&!imageUrl.startsWith('/api/card-assets/'))return imageUrl;
   if(!imageUrl.startsWith('http'))return undefined;
   // Preserve the exact filename when the catalog has a source URL. The app
   // route resolves that filename from VivrePlay storage.
@@ -41,38 +42,28 @@ export function cardPrintingImageUrl(printing:{assetPath?:string|null;imageUrl?:
 
 export function cardImageUrl(card:Omit<Partial<Card>,'imageUrl'|'assetPath'>&{imageUrl?:string|null;assetPath?:string|null;gameSlug?:string|null}){return cardPrintingImageUrl(card)}
 
-export function CardArt({card,small=false,priority=false,imageWidth,onImageMissing,missingImageAction}:{card:Card&{gameSlug?:string};small?:boolean;priority?:boolean;imageWidth?:160|220|280|360;onImageMissing?:()=>void;missingImageAction?:ReactNode}) {
+export function CardArt({card,small=false,priority=false,imageWidth,onImageMissing,onImageLoaded,missingImageAction}:{card:Card&{gameSlug?:string};small?:boolean;priority?:boolean;imageWidth?:160|220|280|360;onImageMissing?:()=>void;onImageLoaded?:()=>void;missingImageAction?:ReactNode}) {
   const preview=isPreviewCard(card.code,card.setCode,card.variant);
   const baseImage=cardImageUrl(card);
-  const resolvedImage=baseImage&&imageWidth?`${baseImage}?width=${imageWidth}`:baseImage;
-  const storedImage=resolvedImage;
-  const [loaded,setLoaded]=useState(false);
-  const [imageFailed,setImageFailed]=useState(false);
-  const [imageSource,setImageSource]=useState(storedImage);
-  const imageRef=useRef<HTMLImageElement>(null);
+  const resolvedImage=baseImage&&imageWidth?`${baseImage}${baseImage.includes('?')?'&':'?'}width=${imageWidth}`:baseImage;
+  const [imageResult,setImageResult]=useState<{url:string;status:'loaded'|'failed'}|null>(null);
+  const loaded=Boolean(resolvedImage&&imageResult?.url===resolvedImage&&imageResult.status==='loaded');
+  const imageFailed=Boolean(resolvedImage&&imageResult?.url===resolvedImage&&imageResult.status==='failed');
   const onImageMissingRef=useRef(onImageMissing);
+  const onImageLoadedRef=useRef(onImageLoaded);
   useEffect(()=>{onImageMissingRef.current=onImageMissing},[onImageMissing]);
+  useEffect(()=>{onImageLoadedRef.current=onImageLoaded},[onImageLoaded]);
   useEffect(()=>{
-    setLoaded(false);
-    setImageFailed(false);
-    setImageSource(storedImage);
-    if(!storedImage)onImageMissingRef.current?.();
-    const image=imageRef.current;
-    if(!image)return;
-    const finish=()=>setLoaded(true);
-    image.addEventListener('load',finish);
-    image.addEventListener('error',finish);
-    if(image.complete)finish();
-    return()=>{image.removeEventListener('load',finish);image.removeEventListener('error',finish);};
-  },[storedImage]);
-  if (storedImage&&!imageFailed) return <div className={`tcg-card printing-image ${small?'small':''} ${loaded?'is-loaded':'is-loading'} ${preview?'is-preview-card':''}`} aria-label={preview?"Preview of a set that hasn’t launched yet. You can play it in Casual, New Cards, and Extended, but not Ranked. Its image and text may still change.":undefined}>
+    if(!resolvedImage)onImageMissingRef.current?.();
+  },[resolvedImage]);
+  if (resolvedImage&&!imageFailed) return <div className={`tcg-card printing-image ${small?'small':''} ${loaded?'is-loaded':'is-loading'} ${preview?'is-preview-card':''}`} aria-label={preview?"Preview of a set that hasn’t launched yet. You can play it in Casual, New Cards, and Extended, but not Ranked. Its image and text may still change.":undefined}>
     {preview&&<span className="preview-card-badge" aria-hidden="true">Preview</span>}<span className="card-image-skeleton" aria-hidden="true"/>
-    <img ref={imageRef} src={imageSource} alt={`${card.name} card printing`} draggable={false} loading={priority?"eager":"lazy"} fetchPriority={priority?"high":undefined} decoding="async" width={imageWidth??420} height={imageWidth?Math.round(imageWidth*580/420):580} onLoad={()=>setLoaded(true)} onError={()=>{setImageFailed(true);setLoaded(true);onImageMissingRef.current?.();}}/>
+    <img src={resolvedImage} alt={`${card.name} card printing`} draggable={false} loading={priority?"eager":"lazy"} fetchPriority={priority?"high":undefined} decoding="async" width={imageWidth??420} height={imageWidth?Math.round(imageWidth*580/420):580} onLoad={()=>{setImageResult({url:resolvedImage,status:'loaded'});onImageLoadedRef.current?.();}} onError={()=>{setImageResult({url:resolvedImage,status:'failed'});onImageMissingRef.current?.();}}/>
   </div>;
   if(card.gameSlug==='pokemon')return <div className={`tcg-card missing-printing pokemon-missing-printing ${small?'small':''}`} aria-label={`Card is missing: ${card.name}`}><strong>Card is missing</strong>{missingImageAction}</div>;
   return <div className={`tcg-card missing-printing ${small?'small':''} ${preview?'is-preview-card':''}`} style={{'--card-color':colors[card.color]} as React.CSSProperties} aria-label={`${card.name} artwork unavailable`}>
     {preview&&<span className="preview-card-badge" aria-hidden="true">Preview</span>}
     <div className="card-top"><b>{card.type==='Leader'?'L':card.cost}</b><strong>{card.power>0?card.power.toLocaleString():card.type.toUpperCase()}</strong></div>
-    <div className="card-caption"><span>{card.type.toUpperCase()}</span><strong>{card.name}</strong><div>{card.code} <span>Artwork pending</span></div></div>
+    <div className="card-caption"><span>{card.type.toUpperCase()}</span><strong>{card.name}</strong><div>{card.code} <span>Image unavailable</span></div></div>
   </div>;
 }

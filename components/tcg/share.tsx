@@ -17,6 +17,7 @@ import {Dialog, DialogContent, DialogTitle, DialogDescription, DialogHeader} fro
 import {cardImageUrl} from './card-art';
 import type {Card} from '@/packages/card-data/catalog';
 import {energyAssetFromName} from './pokemon-card-text';
+import {pokemonPrintingRarity} from '@/lib/pokemon-rarity';
 
 export type ShareCardItem = {
   card: Card;
@@ -24,7 +25,35 @@ export type ShareCardItem = {
   quantity?: number;
   condition?: string;
   unitAmount?: number;
+  metaLine?: string;
+  productType?: 'RAW'|'GRADED';
+  gradingCompany?: string;
+  grade?: string;
+  certification?: string;
+  slabLabel?: {setCode?:string;language?:string;number?:string;rarity?:string};
 };
+
+export type ShareVaultSetProgress={name:string;ownedCount:number;totalCards:number;percentage:number;mainSetOwned:number;mainSetTotal:number;parallelsOwned:number;parallelsTotal:number};
+
+type ShareSetYear={code:string;releaseYear:number};
+const shareSetYearCache=new Map<string,Promise<Map<string,number>>>();
+const normalizeShareSetCode=(value:string)=>value.toUpperCase().replace(/[-_\s]/g,'');
+
+async function shareSetYear(game:'one-piece'|'pokemon',language:string,setCode:string){
+  if(!setCode)return undefined;
+  const locale=language==='ID'?'ID':language==='JP'||language==='JA'?'JP':'EN';
+  const key=`${game}:${locale}`;
+  let years=shareSetYearCache.get(key);
+  if(!years){
+    years=fetch(`/api/cards/sets?game=${game}&language=${locale}`,{cache:'force-cache'}).then(async response=>{
+      if(!response.ok)return new Map<string,number>();
+      const payload=await response.json() as {sets?:ShareSetYear[]};
+      return new Map((payload.sets??[]).filter(set=>set.code&&Number(set.releaseYear)>0).map(set=>[normalizeShareSetCode(set.code),Number(set.releaseYear)]));
+    }).catch(()=>new Map<string,number>());
+    shareSetYearCache.set(key,years);
+  }
+  return (await years).get(normalizeShareSetCode(setCode));
+}
 
 export type ShareCardDetails = {
   gameLabel?: string;
@@ -189,6 +218,57 @@ function drawRoundedRect(
   ctx.closePath();
 }
 
+function drawVaultPsaLabel(ctx:CanvasRenderingContext2D,item:ShareCardItem,gameSlug:'one-piece'|'pokemon'|undefined,x:number,y:number,width:number,height:number,setYear?:number){
+  const card=item.card as Card&{gameSlug?:string};
+  const game=card.gameSlug??gameSlug??'one-piece';
+  const language=String(item.slabLabel?.language??card.language??'').toUpperCase().replace('JA','JP');
+  const setCode=String(item.slabLabel?.setCode??card.setCode??'').toUpperCase();
+  const number=String(item.slabLabel?.number??card.printingCode??card.code??'').match(/(\d+[A-Z]?)$/i)?.[1]??'';
+  const rawRarity=String(item.slabLabel?.rarity??card.rarity??'').trim();
+  const resolvedRarity=game==='pokemon'?pokemonPrintingRarity(rawRarity,language,setCode,card.printingCode??card.code):rawRarity;
+  const rarityKey=resolvedRarity.toLowerCase().replace(/[^a-z]/g,'');
+  const pokemonRarities:Record<string,string>={c:'COMMON',u:'UNCOMMON',r:'RARE',rr:'DOUBLE RARE',rrr:'TRIPLE RARE',ur:'ULTRA RARE',hr:'HYPER RARE',ace:'ACE SPEC RARE',ssr:'SHINY ULTRA RARE',sar:'SPECIAL ART RARE',sir:'SPECIAL ART RARE',ar:'ART RARE',ir:'ART RARE',promo:'PROMO'};
+  const rarity=game==='pokemon'?(pokemonRarities[rarityKey]??resolvedRarity.toUpperCase()):rarityKey==='sr'?'SPECIAL ART RARE':resolvedRarity.toUpperCase();
+  const rawGrade=String(item.grade??'10').trim().toUpperCase();
+  const gradeScore=rawGrade.match(/(\d{1,2}(?:\.\d)?)$/)?.[1]??rawGrade;
+  const gradeInput=rawGrade.replace(/\s*\d{1,2}(?:\.\d)?$/,'').trim();
+  const gradeNames:Record<string,string>={'10':'GEM MT','9.5':'MINT','9':'MINT','8.5':'NM-MT','8':'NM-MT','7':'NM','6':'EX-MT','5':'EX','4':'VG-EX','3':'VG','2':'GOOD','1':'PR'};
+  const gradeLabel=gradeInput==='GEM MINT'?'GEM MT':gradeInput||gradeNames[gradeScore]||'GRADE';
+  const certificate=String(item.certification??'');
+  const psa=String(item.gradingCompany??'PSA').toUpperCase()==='PSA';
+  const border=psa?'#ed1c2e':'#8b929b';
+  const frame=4;
+  const left=x+8,right=x+width-8;
+  const split=x+width*.69;
+  const baseY=y+height;
+  ctx.save();
+  ctx.fillStyle='#fbfcff';ctx.fillRect(x,y,width,height);
+  ctx.save();ctx.beginPath();ctx.rect(x+frame,y+frame,width-frame*2,height-frame*2);ctx.clip();
+  ctx.strokeStyle='#e8eef7';ctx.lineWidth=2;
+  for(let line=y+8;line<baseY;line+=8){ctx.beginPath();ctx.moveTo(x+frame,line);ctx.lineTo(x+width-frame,line);ctx.stroke();}
+  ctx.restore();
+  ctx.strokeStyle=border;ctx.lineWidth=frame;ctx.strokeRect(x+frame/2,y+frame/2,width-frame,height-frame);
+  ctx.fillStyle='#17202b';ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.font='900 9px Arial,sans-serif';
+  const releaseYear=(card as Card&{releaseYear?:number}).releaseYear??setYear;
+  const descriptor=[releaseYear,game==='pokemon'?'POKÉMON':'ONE PIECE',setCode,language].filter(Boolean).join(' ');
+  ctx.fillText(fitCanvasText(ctx,descriptor,split-left-5),left,y+14,split-left-5);
+  ctx.textAlign='right';ctx.fillText(number?`#${number}`:'',right,y+14,width*.27);
+  ctx.textAlign='left';ctx.fillText(fitCanvasText(ctx,card.name.toUpperCase(),split-left-5),left,y+27,split-left-5);
+  ctx.textAlign='right';ctx.fillText(fitCanvasText(ctx,gradeLabel, right-split-4),right,y+27,right-split-4);
+  ctx.textAlign='left';ctx.fillText(fitCanvasText(ctx,rarity,split-left-5),left,y+40,split-left-5);
+  ctx.textAlign='right';ctx.fillText(gradeScore,right,y+40,right-split-4);
+  let seed=2166136261;for(const char of certificate||'UNVERIFIED')seed=Math.imul(seed^char.charCodeAt(0),16777619)>>>0;
+  let barcodeX=left;const barcodeY=y+height-14;const barcodeW=Math.max(20,width*.34);
+  while(barcodeX<left+barcodeW){seed=(Math.imul(seed,1664525)+1013904223)>>>0;const barWidth=Math.min(1+seed%3,left+barcodeW-barcodeX);ctx.fillStyle='#17202b';ctx.fillRect(barcodeX,barcodeY,barWidth,7);barcodeX+=barWidth+1+(seed>>>8)%2;}
+  ctx.textAlign='right';ctx.fillText(certificate,right,y+height-7,right-split-4);
+  if(psa){
+    const stampW=Math.min(36,width*.15),stampH=19,stampX=x+(width-stampW)/2,stampY=baseY-stampH/2;
+    ctx.fillStyle='#d8dee5';ctx.fillRect(stampX,stampY,stampW,stampH);ctx.strokeStyle='#53677f';ctx.lineWidth=1;ctx.strokeRect(stampX,stampY,stampW,stampH);
+    ctx.textAlign='center';ctx.font='italic 900 12px Arial,sans-serif';ctx.fillStyle='#064e9a';ctx.fillText('P',stampX+10,stampY+14);ctx.fillStyle='#e52d41';ctx.fillText('S',stampX+18,stampY+14);ctx.fillStyle='#064e9a';ctx.fillText('A',stampX+26,stampY+14);
+  }
+  ctx.restore();ctx.textAlign='left';
+}
+
 function loadImg(src: string): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
     const img = new Image();
@@ -217,6 +297,8 @@ async function generateListingCompositeBlob({
   style = 'light',
   entityType = 'listing',
   cardDetails,
+  gameSlug,
+  setProgress,
 }: {
   title: string;
   price?: string;
@@ -225,8 +307,10 @@ async function generateListingCompositeBlob({
   link: string;
   language?: 'EN' | 'ID';
   style?: 'light' | 'dark';
-  entityType?: 'listing' | 'card';
+  entityType?: 'listing' | 'card' | 'vault';
   cardDetails?: ShareCardDetails;
+  gameSlug?: 'one-piece'|'pokemon';
+  setProgress?: ShareVaultSetProgress;
 }): Promise<Blob | null> {
   const canvasWidth = 1200;
   const paddingX = 54;
@@ -250,20 +334,33 @@ async function generateListingCompositeBlob({
     cols = 5;
     cardWidth = 175;
   }
+  if(entityType==='vault'){
+    if(count<=1){cols=1;cardWidth=430}
+    else if(count<=2){cols=2;cardWidth=350}
+    else {cols=3;cardWidth=280}
+  }
 
   const cardHeight = Math.round(cardWidth * (580 / 420));
   const rows = Math.ceil(count / cols);
   const gapY = 16;
-  const cardInfoHeight = 58;
+  const cardInfoHeight = entityType==='vault'?74:58;
   const headerHeight = 136;
   const footerHeight = 56;
   const cardsAreaHeight = rows * (cardHeight + cardInfoHeight) + (rows - 1) * gapY;
   const cardDetailShare = entityType === 'card' && count === 1;
-  const canvasHeight = cardDetailShare ? 2400 : Math.max(640, headerHeight + cardsAreaHeight + footerHeight + 44);
-  const palette = style === 'light' ? {
+  const vaultProgressHeight=entityType==='vault'&&setProgress?118:0;
+  const canvasHeight = cardDetailShare ? 2400 : Math.max(640, headerHeight + vaultProgressHeight + cardsAreaHeight + footerHeight + 44);
+  const isPokemon=gameSlug==='pokemon'||cardDetails?.gameLabel==='Pokémon TCG'||(cards[0]?.card as Card&{gameSlug?:string}|undefined)?.gameSlug==='pokemon';
+  const palette = style === 'light' ? isPokemon?{
+    bgStart:'#fbf3d8',bgMid:'#f6efd9',bgEnd:'#e8edf0',panel:'#fffdf4',line:'#d8c989',ink:'#203b55',muted:'#617486',accent:'#d94a3f',
+    cardFallback:'#f5e4a1',cardText:'#203b55',badge:'#f0ce4d',badgeText:'#173d5f',
+  } : {
     bgStart: '#f5f0e6', bgMid: '#eee7d9', bgEnd: '#e8dfcf',
     panel: '#fffaf0', line: '#d8cbb5', ink: '#28251f', muted: '#716a5e', accent: '#b77a19',
     cardFallback: '#f5f0e6', cardText: '#28251f', badge: '#fffaf0', badgeText: '#28251f',
+  } : isPokemon?{
+    bgStart:'#132b40',bgMid:'#15364b',bgEnd:'#102738',panel:'#17374b',line:'#35586c',ink:'#f5f2df',muted:'#b8c6c9',accent:'#f0cd4f',
+    cardFallback:'#1c4055',cardText:'#f5f2df',badge:'#f0cd4f',badgeText:'#18344a',
   } : {
     bgStart: '#10141a', bgMid: '#131922', bgEnd: '#171f2b',
     panel: '#10161f', line: '#273344', ink: '#f6f2ea', muted: '#aab4c2', accent: '#e8c47d',
@@ -275,6 +372,7 @@ async function generateListingCompositeBlob({
   canvas.height = canvasHeight;
   const ctx = canvas.getContext('2d');
   if (!ctx) return null;
+  const pokemonWaveImg=entityType==='vault'&&isPokemon?await loadImg('/assets/pokemon-shell-wave.svg'):null;
 
   // Listing image background
   const bgGrad = ctx.createLinearGradient(0, 0, 0, canvasHeight);
@@ -283,9 +381,10 @@ async function generateListingCompositeBlob({
   bgGrad.addColorStop(1, palette.bgEnd);
   ctx.fillStyle = bgGrad;
   ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+  if(pokemonWaveImg){ctx.save();ctx.globalAlpha=.12;ctx.drawImage(pokemonWaveImg,0,canvasHeight-190,canvasWidth,190);ctx.restore();}
 
   // The card-detail share border is redrawn after its content height is known.
-  if (!cardDetailShare) {
+  if (!cardDetailShare && entityType !== 'vault') {
     ctx.strokeStyle = palette.line;
     ctx.lineWidth = 1.5;
     drawRoundedRect(ctx, 16, 16, canvasWidth - 32, canvasHeight - 32, 14);
@@ -302,8 +401,9 @@ async function generateListingCompositeBlob({
   }
 
   // Load brand compass mark & card images concurrently
-  const [compassImg, ...loadedCardImages] = await Promise.all([
+  const [compassImg, gameLogoImg, ...loadedCardImages] = await Promise.all([
     loadImg('/brand/vivreplay-compass.png'),
+    entityType==='vault'?loadImg(gameSlug==='pokemon'?'https://upload.wikimedia.org/wikipedia/commons/1/1a/Pok%C3%A9mon_Trading_Card_Game_logo.svg':'/assets/one-piece-card-game-logo.png'):Promise.resolve(null),
     ...cards.map(async (item) => {
       // Share previews should use the exact printing selected for the listing.
       // Catalog URL reconstruction can point at the standard art when an
@@ -315,6 +415,15 @@ async function generateListingCompositeBlob({
       return null;
     }),
   ]);
+  const slabYears=new Map<ShareCardItem,number>();
+  if(entityType==='vault')await Promise.all(cards.filter(item=>item.productType==='GRADED'&&String(item.gradingCompany??'PSA').toUpperCase()==='PSA').map(async item=>{
+    const card=item.card as Card&{gameSlug?:string};
+    const game=(card.gameSlug??gameSlug??'one-piece') as 'one-piece'|'pokemon';
+    const setCode=item.slabLabel?.setCode??card.setCode??'';
+    const language=item.slabLabel?.language??card.language??'EN';
+    const year=await shareSetYear(game,language,setCode);
+    if(year)slabYears.set(item,year);
+  }));
 
   if (cardDetailShare) {
     const item = cards[0];
@@ -497,6 +606,12 @@ async function generateListingCompositeBlob({
   const vpWidth = ctx.measureText('VivrePlay').width;
   brandX += vpWidth + 8;
 
+  if(entityType==='vault'&&gameLogoImg){
+    const logoWidth=gameLogoImg.naturalWidth||gameLogoImg.width,logoHeight=gameLogoImg.naturalHeight||gameLogoImg.height;
+    const scale=Math.min(170/logoWidth,34/logoHeight);
+    ctx.drawImage(gameLogoImg,brandX+12,brandY-21,logoWidth*scale,logoHeight*scale);
+  }
+
   if (entityType === 'listing') {
     ctx.font = '400 14px "Plus Jakarta Sans", sans-serif';
     ctx.fillStyle = palette.muted;
@@ -546,7 +661,23 @@ async function generateListingCompositeBlob({
   const gapX = 18;
   const gridWidth = cols * cardWidth + (cols - 1) * gapX;
   const gridStartX = paddingX + Math.max(0, (availableWidth - gridWidth) / 2);
-  const startY = 162;
+  let startY = 162;
+
+  if(entityType==='vault'&&setProgress){
+    const progressY=158;
+    ctx.font='800 21px "Plus Jakarta Sans", sans-serif';ctx.fillStyle=palette.ink;
+    ctx.fillText(fitCanvasText(ctx,setProgress.name,availableWidth),paddingX,progressY,availableWidth);
+    ctx.font='600 14px "Manrope", sans-serif';ctx.fillStyle=palette.muted;
+    ctx.fillText(`${setProgress.ownedCount} / ${setProgress.totalCards} ${language==='ID'?'kartu':'cards'}`,paddingX,progressY+27);
+    ctx.font='800 14px "Plus Jakarta Sans", sans-serif';ctx.fillStyle=palette.accent;ctx.textAlign='right';
+    ctx.fillText(`${Math.max(0,Math.min(100,setProgress.percentage)).toFixed(1)}%`,canvasWidth-paddingX,progressY+27);ctx.textAlign='left';
+    ctx.fillStyle=palette.line;drawRoundedRect(ctx,paddingX,progressY+40,availableWidth,10,5);ctx.fill();
+    ctx.fillStyle=palette.accent;drawRoundedRect(ctx,paddingX,progressY+40,availableWidth*Math.max(0,Math.min(100,setProgress.percentage))/100,10,5);ctx.fill();
+    ctx.font='600 12px "Manrope", sans-serif';ctx.fillStyle=palette.muted;
+    ctx.fillText(`${language==='ID'?'Set utama':'Main set'} ${setProgress.mainSetOwned} / ${setProgress.mainSetTotal}`,paddingX,progressY+72);
+    ctx.fillText(`${language==='ID'?'Kartu paralel':'Parallels'} ${setProgress.parallelsOwned} / ${setProgress.parallelsTotal}`,paddingX+230,progressY+72);
+    startY=progressY+100;
+  }
 
   for (let i = 0; i < count; i++) {
     const item = cards[i];
@@ -636,18 +767,30 @@ async function generateListingCompositeBlob({
       ctx.restore();
     }
 
-    // Listing details stay attached to each card in the grid.
-    ctx.font = '700 13px "Plus Jakarta Sans", sans-serif';
-    ctx.fillStyle = palette.ink;
-    ctx.textAlign = 'center';
-    const maxLabelWidth = cardWidth - 8;
-    let nameLabel = item.card.name;
-    while (nameLabel.length > 3 && ctx.measureText(nameLabel).width > maxLabelWidth) nameLabel = `${nameLabel.slice(0, -2)}…`;
-    ctx.fillText(nameLabel, cardX + cardWidth / 2, cardY + cardHeight + 16);
-    ctx.font = '600 10px "Manrope", sans-serif';
-    ctx.fillStyle = palette.muted;
-    const cardDetails = [item.card.code, item.condition].filter(Boolean).join(' / ');
-    ctx.fillText(cardDetails, cardX + cardWidth / 2, cardY + cardHeight + 32);
+    // Graded cards carry their details in the PSA label below the artwork.
+    if(entityType==='vault'&&item.productType==='GRADED'&&String(item.gradingCompany??'PSA').toUpperCase()==='PSA'){
+      drawVaultPsaLabel(ctx,item,gameSlug,cardX,cardY+cardHeight+2,cardWidth,cardInfoHeight-2,slabYears.get(item));
+    }else{
+      ctx.font = '700 13px "Plus Jakarta Sans", sans-serif';
+      ctx.fillStyle = palette.ink;
+      ctx.textAlign = 'center';
+      const maxLabelWidth = cardWidth - 8;
+      let nameLabel = item.card.name;
+      while (nameLabel.length > 3 && ctx.measureText(nameLabel).width > maxLabelWidth) nameLabel = `${nameLabel.slice(0, -2)}…`;
+      ctx.fillText(nameLabel, cardX + cardWidth / 2, cardY + cardHeight + 16);
+      ctx.font = '600 10px "Manrope", sans-serif';
+      ctx.fillStyle = palette.muted;
+      const cardDetails = [item.metaLine??item.card.code, item.productType==='GRADED'?'':item.condition].filter(Boolean).join('  ');
+      ctx.fillText(cardDetails, cardX + cardWidth / 2, cardY + cardHeight + 32);
+    }
+    if(entityType==='vault'&&item.productType==='GRADED'&&String(item.gradingCompany??'PSA').toUpperCase()!=='PSA'){
+      const label=`${item.gradingCompany??'PSA'}  ${item.grade??''}`.trim();
+      ctx.font='800 10px "Plus Jakarta Sans", sans-serif';ctx.textAlign='center';
+      const badgeWidth=Math.min(cardWidth-12,ctx.measureText(label).width+16),badgeX=cardX+(cardWidth-badgeWidth)/2,badgeY=cardY+cardHeight+42;
+      ctx.fillStyle=palette.badge;drawRoundedRect(ctx,badgeX,badgeY,badgeWidth,20,6);ctx.fill();
+      ctx.strokeStyle=palette.accent;ctx.lineWidth=1;drawRoundedRect(ctx,badgeX,badgeY,badgeWidth,20,6);ctx.stroke();
+      ctx.fillStyle=palette.badgeText;ctx.fillText(label,cardX+cardWidth/2,badgeY+14,cardWidth-20);
+    }
     if (typeof item.unitAmount === 'number' && item.unitAmount > 0) {
       ctx.font = '800 12px "Plus Jakarta Sans", sans-serif';
       ctx.fillStyle = palette.accent;
@@ -666,10 +809,16 @@ async function generateListingCompositeBlob({
   ctx.stroke();
 
   const footerY = canvasHeight - 24;
+  if (entityType==='vault'){
+    ctx.font='600 10px "Manrope", sans-serif';ctx.fillStyle=palette.muted;ctx.fillText('Powered by',paddingX,footerY);
+    if (compassImg) ctx.drawImage(compassImg,paddingX+62,footerY-13,16,16);
+    ctx.font='800 12px "Plus Jakarta Sans", sans-serif';ctx.fillStyle=palette.ink;ctx.fillText('VivrePlay',paddingX+82,footerY);
+  } else {
   if (compassImg) ctx.drawImage(compassImg, paddingX, footerY - 13, 18, 18);
   ctx.font = '800 13px "Plus Jakarta Sans", sans-serif';
   ctx.fillStyle = palette.ink;
   ctx.fillText('VivrePlay', paddingX + 25, footerY);
+  }
   ctx.textAlign = 'right';
   ctx.fillStyle = palette.muted;
   ctx.font = '600 11px "Manrope", sans-serif';
@@ -679,6 +828,10 @@ async function generateListingCompositeBlob({
   return new Promise<Blob | null>((resolve) => {
     canvas.toBlob((blob) => resolve(blob), 'image/png');
   });
+}
+
+export async function generateVaultShareBlob({title,cards,link,language='EN',style='light',gameSlug,setProgress}:{title:string;cards:ShareCardItem[];link:string;language?:'EN'|'ID';style?:'light'|'dark';gameSlug:'one-piece'|'pokemon';setProgress?:ShareVaultSetProgress}){
+  return generateListingCompositeBlob({title,cards,link,language,style,entityType:'vault',gameSlug,setProgress});
 }
 
 export function ShareButton({
@@ -737,9 +890,12 @@ export function ShareButton({
   useEffect(() => {
     if (!open || cardList.length === 0) return;
     let active = true;
-    setPreviewLoading(true);
-    setImagePreview('');
-    void generateListingCompositeBlob({title,price,subtitle:imageSubtitle,cards:cardList,link:imageLink,language,style:shareStyle,entityType,cardDetails:stableCardDetails ?? undefined}).then(blob => {
+    void Promise.resolve().then(()=>{
+      if(!active)return null;
+      setPreviewLoading(true);
+      setImagePreview('');
+      return generateListingCompositeBlob({title,price,subtitle:imageSubtitle,cards:cardList,link:imageLink,language,style:shareStyle,entityType,cardDetails:stableCardDetails ?? undefined});
+    }).then(blob => {
       if (!active || !blob) return;
       setImagePreview(URL.createObjectURL(blob));
     }).catch(() => {}).finally(() => { if (active) setPreviewLoading(false); });

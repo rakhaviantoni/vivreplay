@@ -351,7 +351,7 @@
 
 .vault-toolbar-search {
   flex: 1;
-  min-width: 240px;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -365,6 +365,8 @@
 
 .vault-toolbar-search input {
   width: 100%;
+  min-width: 0;
+  min-height: 0;
   background: transparent;
   border: none;
   outline: none;
@@ -382,7 +384,8 @@
   gap: 8px;
   flex-wrap: wrap;
 }
-.vault-filter-count{flex:none;color:var(--vault-ink-muted);font-size:11px;font-weight:650;white-space:nowrap}
+.vault-toolbar-search-row{display:flex;align-items:center;gap:10px;flex:1;min-width:240px}
+.vault-filter-count{flex:none;color:var(--vault-ink-muted);font-size:11px;font-weight:650;white-space:nowrap;padding:0 2px}
 
 .vault-toolbar-filters [data-slot="select-trigger"] {
   width: auto;
@@ -559,7 +562,7 @@ html[data-theme='dark'] .vault-item-form :is(input,select,textarea,.vault-select
 .vault-item-modal.vault-dialog[data-slot='dialog-content'] .vault-item-modal-description{margin:0!important;border-color:var(--vault-border)!important;color:var(--vault-ink-muted)!important}
 .vault-item-modal.vault-dialog[data-slot='dialog-content']>form{display:grid;gap:14px;min-height:0;padding:16px 22px 22px;overflow:auto}
 @media(max-width:600px){.vault-item-modal.vault-dialog[data-slot='dialog-content']{width:calc(100vw - 20px)!important;max-width:none!important;max-height:calc(100dvh - 20px)!important;border-radius:12px!important}.vault-item-modal.vault-dialog[data-slot='dialog-content'] .vault-item-modal-heading{padding:15px 16px 12px!important}.vault-item-modal.vault-dialog[data-slot='dialog-content'] .vault-item-modal-description{padding:9px 16px!important}.vault-item-modal.vault-dialog[data-slot='dialog-content']>form{gap:12px;padding:13px 16px 18px}}
-@media(max-width:560px){.vault-cost-market-grid{grid-template-columns:1fr}.vault-toolbar-search{min-width:0;flex-basis:100%}.vault-filter-count{justify-self:end}.vault-toolbar-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%}.vault-toolbar-filters [data-slot="select-trigger"]{width:100%;min-width:0;max-width:none}.vault-view-toggle{justify-self:start}}
+@media(max-width:560px){.vault-cost-market-grid{grid-template-columns:1fr}.vault-toolbar-search-row{min-width:0;width:100%;gap:8px}.vault-toolbar-search{height:44px;padding-inline:10px}.vault-toolbar-search input{height:100%;font-size:13px}.vault-filter-count{font-size:10px}.vault-toolbar-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%}.vault-toolbar-filters [data-slot="select-trigger"]{width:100%;min-width:0;max-width:none}.vault-view-toggle{justify-self:start}}
 
 /* Pokémon Vault uses the card game's familiar blue, yellow and red accents. */
 .vault-item-modal.is-pokemon{--vault-panel:#fffdf7;--vault-surface-warm:#fffaf0;--vault-border:#d9c98e;--vault-border-light:#e9dfbd;--vault-ink:#1d3048;--vault-ink-secondary:#4d5e6d;--vault-ink-muted:#65716e;--vault-gold:#e2b832;--vault-gold-deep:#9b7419;--vault-gold-soft:#fff1bf;--vault-slot-bg:#f4ecd4;--vault-modal-shadow:0 24px 64px rgb(21 42 64 / .28);position:relative;border-top:0!important}
@@ -668,6 +671,7 @@ html[data-theme='dark'] .vault-item-modal.is-pokemon .vault-condition-option:hov
 .vault-binder-tools{display:flex;align-items:center;justify-content:flex-end;gap:12px;flex:none}
 .vault-binder-grid-size{display:flex;align-items:center;gap:3px;padding:3px;border:1px solid var(--vault-border);border-radius:7px;background:var(--vault-panel)}
 .vault-binder-grid-size button{display:grid;place-items:center;width:25px;height:24px;padding:0;border:0;border-radius:4px;background:transparent;color:var(--vault-ink-secondary);font-size:10px;font-weight:750;cursor:pointer}
+.vault-binder-grid-size button[data-columns="1"]{display:none}
 .vault-binder-grid-size button:hover{background:var(--vault-gold-soft);color:var(--vault-ink)}
 .vault-binder-grid-size button.is-selected{background:var(--vault-gold);color:#fff9ed}
 
@@ -744,6 +748,7 @@ html[data-theme='dark'] .vault-item-modal.is-pokemon .vault-condition-option:hov
   .vault-binder-page-title { gap:5px; font-size: 12px; }
   .vault-binder-reorder-hint { display:none; }
   .vault-binder-tools { margin-left: auto; }
+  .vault-binder-grid-size button[data-columns="1"]{display:grid}
   .vault-binder-container {
     padding: 16px 12px;
     border-radius: 12px;
@@ -808,7 +813,7 @@ html[data-theme='dark'] .vault-item-modal.is-pokemon .vault-condition-option:hov
 .vault-binder-grid .vault-slot.is-drop-target:not(.is-reordering){border-color:var(--vault-gold);box-shadow:0 0 0 2px color-mix(in srgb,var(--vault-gold) 38%,transparent),0 12px 24px rgba(35,28,16,.12)}
 .vault-binder-grid .vault-slot:focus-visible { outline: 2px solid var(--vault-gold); outline-offset: 3px; }
 
-.vault-bulk-listing-launch-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 10px;padding:9px 12px;border:1px solid var(--vault-slot-border);border-radius:8px;background:var(--vault-slot-bg)}
+.vault-bulk-listing-launch-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 10px;padding:0;border:0;border-radius:0;background:transparent}
 .vault-bulk-listing-launch-row p{margin:0;color:var(--vault-ink-muted);font-size:12px;line-height:1.4}
 .vault-listings-panel{padding:18px;border:1px solid var(--vault-slot-border);border-radius:10px;background:var(--vault-slot-bg);color:var(--vault-ink)}
 .vault-listings-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:16px}
@@ -853,7 +858,8 @@ html[data-theme='dark'] .vault-item-modal.is-pokemon .vault-condition-option:hov
 .vault-bulk-listing-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;max-height:310px;overflow:auto;padding:1px}
 .vault-bulk-listing-choice{position:relative;display:grid;min-width:0;grid-template-columns:minmax(0,1fr) 138px;align-items:center;gap:8px;padding:6px;border:1px solid var(--vault-slot-border);border-radius:6px;background:transparent;color:inherit}
 .vault-bulk-listing-choice.is-selected{border-color:var(--vault-brass);background:color-mix(in srgb,var(--vault-brass) 9%,transparent)}
-.vault-bulk-listing-select{display:flex;min-width:0;align-items:center;gap:9px;padding:2px;border:0;background:transparent;color:inherit;text-align:left;cursor:pointer}
+.vault-bulk-listing-choice:not(.is-selected) .vault-bulk-listing-select{grid-column:1/-1}
+.vault-bulk-listing-select{box-sizing:border-box;display:flex;width:100%;min-width:0;align-items:center;gap:9px;padding:2px;border:0;background:transparent;color:inherit;text-align:left;cursor:pointer}
 .vault-bulk-listing-select:hover{color:var(--vault-ink);transform:none;filter:none}
 .vault-bulk-listing-choice:not(.is-selected):has(.vault-bulk-listing-select:hover){border-color:color-mix(in srgb,var(--vault-brass) 46%,var(--vault-slot-border));background:color-mix(in srgb,var(--vault-brass) 4%,transparent)}
 .vault-bulk-listing-select:focus-visible{outline:2px solid var(--vault-brass);outline-offset:2px;border-radius:4px}
@@ -861,8 +867,8 @@ html[data-theme='dark'] .vault-item-modal.is-pokemon .vault-condition-option:hov
 .vault-bulk-listing-search input{flex:1;min-width:0;height:36px;padding:0 10px;border:1px solid var(--vault-slot-border);border-radius:5px;background:var(--vault-paper);color:var(--vault-ink);font:inherit}
 .vault-bulk-listing-more{grid-column:1/-1;min-height:34px;border:1px solid var(--vault-slot-border);border-radius:5px;background:transparent;color:var(--vault-ink);font:inherit;font-size:11px;cursor:pointer}
 .vault-bulk-listing-more:hover{border-color:var(--vault-brass);background:color-mix(in srgb,var(--vault-brass) 5%,transparent)}
-.vault-bulk-listing-art{flex:none;width:38px;aspect-ratio:420/580;overflow:hidden;border-radius:4px;background:#15171a}
-.vault-bulk-listing-art>.tcg-card{width:100%;height:100%;border-radius:4px}
+.vault-bulk-listing-art{flex:none;width:38px;aspect-ratio:420/580;overflow:hidden;border-radius:2px;background:#15171a}
+.vault-bulk-listing-art>.tcg-card{width:100%;height:100%;border-radius:2px}
 .vault-bulk-missing-image-report{position:absolute;z-index:3;top:49px;left:8px;min-height:13px;padding:0 2px;border:0;border-radius:2px;background:color-mix(in srgb,var(--vault-panel) 90%,transparent);color:var(--vault-ink);font:650 7px/1 var(--game-font);text-decoration:underline;text-underline-offset:1px;cursor:pointer}
 .vault-bulk-listing-copy{display:grid;min-width:0;gap:3px}
 .vault-bulk-listing-copy strong,.vault-bulk-listing-copy small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -877,14 +883,13 @@ html[data-theme='dark'] .vault-item-modal.is-pokemon .vault-condition-option:hov
 .vault-bulk-listing-quantity input{width:100%;min-width:0;height:28px;padding:0 5px;border:1px solid var(--vault-slot-border);border-radius:4px;background:var(--vault-paper);color:var(--vault-ink);font:inherit;font-size:12px}
 .vault-bulk-listing-quantity small{font-size:9px;white-space:nowrap}
 .vault-bulk-empty{grid-column:1/-1;padding:20px;text-align:center;color:var(--vault-ink-muted);font-size:13px}
-.vault-bulk-listing-fields{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:10px;margin-top:15px}
+.vault-bulk-listing-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:15px}
 .vault-bulk-listing-fields label{display:grid;gap:5px;font-size:11px;font-weight:700}
 .vault-bulk-listing-fields input{width:100%;min-width:0;height:38px;padding:0 10px;border:1px solid var(--vault-slot-border);border-radius:5px;background:transparent;color:inherit;font:inherit;font-weight:400}
 .vault-bulk-listing-fields input[readonly]{background:color-mix(in srgb,var(--vault-slot-bg) 70%,transparent);color:var(--vault-ink-muted)}
 .vault-bulk-listing-fields label>small{font-size:10px;font-weight:500}
 .vault-bulk-listing-fields label>small a,.vault-bulk-listing-fields label>small button{padding:0;border:0;background:none;color:var(--vault-brass);font:inherit;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
-.vault-bulk-listing-origin{display:flex;min-width:0;align-items:center;align-content:center;gap:4px 8px;flex-wrap:wrap;padding:7px 10px;border:1px solid var(--vault-slot-border);border-radius:5px;background:color-mix(in srgb,var(--vault-slot-bg) 70%,transparent);font-size:11px}.vault-bulk-listing-origin span{color:var(--vault-ink-muted)}.vault-bulk-listing-origin strong{overflow-wrap:anywhere}.vault-bulk-listing-origin button{padding:0;border:0;background:none;color:var(--vault-brass);font:inherit;text-decoration:underline;text-underline-offset:2px;cursor:pointer}
-@media(max-width:760px){.vault-bulk-listing-origin{grid-column:1/-1}}
+.vault-bulk-listing-origin{display:grid;min-width:0;gap:5px;font-size:11px;font-weight:700}.vault-bulk-listing-origin-control{box-sizing:border-box;display:flex;align-items:center;gap:8px;width:100%;min-width:0;height:38px;padding:0 10px;border:1px solid var(--vault-slot-border);border-radius:5px;background:transparent;color:inherit}.vault-bulk-listing-origin-control strong{flex:1;min-width:0;overflow:hidden;color:var(--vault-ink);font-size:12px;font-weight:400;text-overflow:ellipsis;white-space:nowrap}.vault-bulk-listing-origin-control button{flex:none;min-height:0;padding:3px 0;border:0;background:none;color:var(--vault-brass);font:650 10px/1.2 var(--game-font,var(--font-sans));white-space:nowrap;cursor:pointer}
 .vault-bulk-listing-modal form>.market-price-mode{margin-top:15px}
 .vault-bulk-listing-summary{display:flex;justify-content:space-between;gap:10px;margin-top:12px;padding:10px 0;border-top:1px solid var(--vault-slot-border);color:var(--vault-ink-muted);font-size:12px}
 .vault-bulk-listing-summary>span{display:grid;gap:4px}
@@ -894,7 +899,7 @@ html[data-theme='dark'] .vault-item-modal.is-pokemon .vault-condition-option:hov
 .vault-bulk-listing-modal form>footer{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
 .vault-bulk-listing-modal form>footer .vault-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:38px}
 .vault-bulk-listing-modal form>footer .vault-btn:hover:not(:disabled){transform:none;filter:none;box-shadow:none}
-@media(max-width:760px){.vault-listing-row{grid-template-columns:minmax(0,1fr) auto;gap:10px}.vault-listing-price{grid-column:2;grid-row:1}.vault-listing-actions{grid-column:1/-1;justify-content:flex-start;flex-wrap:wrap}.vault-bulk-listing-modal form{padding:13px}.vault-bulk-listing-modal>header{padding:16px}.vault-bulk-listing-fields{grid-template-columns:1fr 1fr}.vault-bulk-listing-fields label:first-child{grid-column:1/-1}}
+@media(max-width:760px){.vault-listing-row{grid-template-columns:minmax(0,1fr) auto;gap:10px}.vault-listing-price{grid-column:2;grid-row:1}.vault-listing-actions{grid-column:1/-1;justify-content:flex-start;flex-wrap:wrap}.vault-bulk-listing-modal form{padding:13px}.vault-bulk-listing-modal>header{padding:16px}.vault-bulk-listing-fields{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:480px){.vault-bulk-listing-launch-row{align-items:center;flex-direction:row;gap:8px;padding:8px}.vault-bulk-listing-launch-row p{font-size:11px}.vault-bulk-listing-launch-row .vault-btn{flex:none;padding:7px 9px;font-size:11px}.vault-bulk-listing-choices{grid-template-columns:1fr;max-height:38vh}.vault-bulk-listing-choice{grid-template-columns:minmax(0,1fr) 112px;gap:6px;padding:6px}.vault-bulk-listing-art{width:34px}.vault-bulk-listing-copy strong{font-size:11px}.vault-bulk-listing-copy small{font-size:9px}.vault-bulk-listing-fields{grid-template-columns:1fr}.vault-bulk-listing-fields label:first-child{grid-column:auto}.vault-bulk-listing-modal form>footer{flex-direction:column-reverse}.vault-bulk-listing-modal form>footer .vault-btn{width:100%}.vault-listing-actions button span{display:none}}
 @media(max-width:360px){.vault-bulk-listing-choice{grid-template-columns:minmax(0,1fr)}.vault-bulk-listing-select,.vault-bulk-listing-price{grid-column:1/-1}.vault-bulk-listing-price{grid-template-columns:minmax(0,1fr) 112px;align-items:center;padding:0 2px}.vault-bulk-listing-price input{height:30px}.vault-bulk-listing-modal>header h2{font-size:17px}.vault-bulk-listing-summary{font-size:10px}}
 
@@ -959,17 +964,16 @@ html[data-theme='dark'] .vault-item-modal.is-pokemon .vault-condition-option:hov
 .vault-slot:focus-within .vault-slot-card-stage:not(:has(.vault-stack-art))::after,
 .vault-slot:focus-within .vault-stack-art::after,
 .vault-slot:focus-within .vault-slot-slab-plate::after {
-  opacity: .6;
-  animation: vault-card-library-shine .94s cubic-bezier(.22,.7,.22,1);
+  animation: vault-card-library-shine 1.08s cubic-bezier(.2,.55,.25,1) both;
 }
 
 .vault-slot:hover .vault-slot-slab-plate::after,
 .vault-slot:focus-within .vault-slot-slab-plate::after {
-  animation: vault-slab-library-shine .94s cubic-bezier(.22,.7,.22,1);
+  animation: vault-slab-library-shine 1.08s cubic-bezier(.2,.55,.25,1) both;
 }
 
-@keyframes vault-card-library-shine { to { transform: translateX(430%) rotate(18deg); } }
-@keyframes vault-slab-library-shine { to { background-position: -120% 0; } }
+@keyframes vault-card-library-shine { 0% { transform:translateX(-150%) rotate(18deg);opacity:0; } 12%,78% { opacity:.6; } 100% { transform:translateX(540%) rotate(18deg);opacity:0; } }
+@keyframes vault-slab-library-shine { 0% { background-position:100% 0;opacity:0; } 12%,78% { opacity:.6; } 100% { background-position:-160% 0;opacity:0; } }
 
 @media (prefers-reduced-motion: reduce) {
   .vault-slot-card-stage::after,
@@ -1118,6 +1122,7 @@ html[data-theme='dark'] .vault-item-modal.is-pokemon .vault-condition-option:hov
   color: var(--vault-ink-muted);
 }
 .vault-slot-meta-identity{display:flex;align-items:center;gap:7px;min-width:0}.vault-slot-meta-identity>b{color:var(--vault-ink);font-weight:750}.vault-slot-meta-identity>span{color:var(--vault-ink-muted);white-space:nowrap}
+.vault-slot-meta-identity a{color:inherit;text-decoration:none}.vault-slot-meta-identity a:hover{text-decoration:underline;text-underline-offset:2px}.vault-slot-meta-identity a:focus-visible{border-radius:2px;outline:2px solid var(--vault-gold);outline-offset:2px}
 .vault-slot-meta-op { width:auto;max-width:100%;flex-wrap:wrap;justify-content:flex-end;gap:3px 8px; }
 .vault-slot-meta-op > small { color:var(--vault-ink-muted);font-size:10px;font-weight:550;line-height:1.25;white-space:nowrap; }
 .vault-slot-meta-op > b { white-space:nowrap; }
@@ -1168,9 +1173,15 @@ html[data-theme='dark'] .vault-item-modal.is-pokemon .vault-condition-option:hov
 
 .vault-slabs-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 24px 20px;
 }
+
+.vault-slabs-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.vault-slabs-heading h2{margin:0;color:var(--vault-ink);font:600 20px var(--display-font,var(--font-sans))}
+.vault-slabs-heading p{margin:3px 0 0;color:var(--vault-ink-muted);font-size:12px}
+.vault-slab-tab-value{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:5px;color:var(--vault-ink-muted);font-size:10px}
+.vault-slab-tab-value .is-verified{color:#398b62;font-weight:650}
 
 .vault-slab-card {
   position: relative;
@@ -1835,7 +1846,7 @@ html[data-theme='dark'] .vault-item-modal.is-pokemon .vault-condition-option:hov
   align-items: center;
   margin: 0 0 0 auto;
   padding: 0 0 0 12px;
-  border-left: 1px solid var(--vault-border-light);
+  border: 0;
   border-radius: 0;
   background: transparent;
 }
@@ -1940,3 +1951,148 @@ html[data-theme='dark'] .vault-item-modal.is-pokemon .vault-condition-option:hov
   .vault-slot-info.is-one-piece .vault-slot-heading-row { grid-template-columns:minmax(0,1fr); }
   .vault-slot-info.is-one-piece .vault-slot-heading-row>.vault-slot-meta-row { grid-column:1;grid-row:2;justify-content:flex-start; }
 }
+
+.vault-actions-primary,.vault-actions-utilities{display:contents}
+.vault-header-bundle-action{display:none}
+.vault-action-import-icons{display:inline-flex;flex:none;align-items:center;justify-content:center;gap:2px;white-space:nowrap}
+.vault-share-dialog{width:min(720px,calc(100vw - 24px));max-width:720px;gap:12px;padding:22px;background:var(--vault-panel);color:var(--vault-ink)}
+.vault-share-dialog-header{padding-right:30px}
+.vault-share-brand{display:flex;align-items:center;gap:7px;color:var(--vault-ink-secondary);font-size:12px;font-weight:800}
+.vault-share-dialog-header [data-slot="dialog-title"]{margin-top:5px;font-size:24px;letter-spacing:-.035em}
+.vault-share-dialog-header [data-slot="dialog-description"]{color:var(--vault-ink-muted);font-size:12px}
+.vault-share-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.vault-share-formats{display:flex;min-width:0;gap:4px;padding:3px;border:1px solid var(--vault-border);border-radius:9px;background:var(--vault-surface-warm)}
+.vault-share-formats button{min-height:34px;padding:0 12px;border:0;border-radius:6px;background:transparent;color:var(--vault-ink-secondary);font-size:12px;font-weight:700;white-space:nowrap;cursor:pointer}
+.vault-share-formats button.is-selected{background:var(--vault-panel);color:var(--vault-ink);box-shadow:0 1px 3px rgba(25,28,31,.12)}
+.vault-share-theme-toggle{display:grid;flex:none;width:40px;height:40px;place-items:center;border:1px solid var(--vault-border);border-radius:9px;background:var(--vault-panel);color:var(--vault-ink);cursor:pointer}
+.vault-share-preview{--share-ink:var(--vault-ink);--share-border:var(--vault-border);position:relative;display:grid;min-height:230px;max-height:min(58vh,520px);place-items:center;overflow:auto;border:0;border-radius:0;background:transparent;color:var(--share-ink)}
+.vault-share-preview.is-light{--share-border:#d2c6b0}
+.vault-share-preview.is-dark,.vault-share-preview.is-pokemon.is-dark,.vault-share-preview.is-pokemon.is-light{background:transparent}
+.vault-share-image{display:block;width:100%;height:auto;max-height:520px;object-fit:contain}
+.vault-share-loading{width:82%;height:180px;border-radius:8px;background:linear-gradient(100deg,rgba(127,127,127,.08) 20%,rgba(127,127,127,.17) 38%,rgba(127,127,127,.08) 56%);background-size:200% 100%;animation:vault-share-skeleton 1.3s ease-in-out infinite}
+@keyframes vault-share-skeleton{to{background-position-x:-200%}}
+.vault-share-error{color:var(--vault-ink-muted);font-size:13px}
+.vault-share-link{display:flex;gap:7px;min-width:0}
+.vault-share-link input{flex:1;min-width:0;height:40px;padding:0 11px;border:1px solid var(--vault-border);border-radius:8px;background:var(--vault-surface-warm);color:var(--vault-ink-secondary);font-size:12px}
+.vault-share-link button,.vault-share-actions button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:40px;padding:0 13px;border:1px solid var(--vault-border);border-radius:8px;background:var(--vault-panel);color:var(--vault-ink);font-size:12px;font-weight:750;cursor:pointer}
+.vault-share-actions{display:flex;gap:8px}.vault-share-actions button:first-child{flex:1;background:var(--vault-gold);border-color:var(--vault-gold);color:#fff}
+.vault-share-actions button:disabled{opacity:.5;cursor:wait}
+@media(max-width:768px){
+  .vault-header{margin-bottom:14px}.vault-page{padding-top:14px}
+  .vault-header-top{display:grid;grid-template-columns:minmax(0,1fr);align-items:start;gap:10px}
+  .vault-title-group .vault-eyebrow{display:none}.vault-title-group h1{font-size:28px;line-height:1.1}.vault-title-group .vault-subtitle{margin-top:4px;font-size:12px}
+  .vault-actions-group{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;width:100%}
+  .vault-actions-primary{display:contents}
+  .vault-actions-group .vault-actions-utilities{display:grid!important;grid-column:1/-1;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .vault-actions-group .vault-btn{display:flex;min-width:0;width:100%;height:40px;justify-content:center;gap:6px;padding:0 7px;font-size:11px}
+  .vault-action-add,.vault-header-bundle-action{grid-column:span 2}
+  .vault-header-bundle-action{display:flex}
+  .vault-actions-group .vault-action-compact{height:40px;padding:0 8px}
+  .vault-action-label{position:static;width:auto;height:auto;overflow:visible;clip:auto;white-space:nowrap}
+  .vault-action-import-icons{display:inline-flex;align-items:center;gap:1px}
+  .vault-nav-tabs{margin-top:12px}.vault-bulk-listing-launch-row{display:none}
+  .vault-metrics-card{margin-top:14px}
+  .vault-share-dialog{width:calc(100vw - 20px);max-height:calc(100dvh - 20px);padding:16px}
+  .vault-share-dialog-header [data-slot="dialog-title"]{font-size:21px}
+  .vault-share-preview{min-height:180px;max-height:48vh}
+  .vault-share-image{max-height:48vh}
+}
+@media(max-width:390px){.vault-actions-group{grid-template-columns:repeat(4,minmax(0,1fr))}.vault-action-add,.vault-header-bundle-action{grid-column:span 2}.vault-share-link button{padding-inline:9px}.vault-share-actions button{padding-inline:9px}}
+
+@media(max-width:480px){
+  .vault-bulk-listing-modal{width:100%;height:96dvh;max-height:96dvh;border-radius:16px 16px 0 0}
+  .vault-modal-overlay:has(>.vault-bulk-listing-modal){place-items:end center;padding:0}
+  .vault-bulk-listing-modal>header{gap:12px;padding:13px 16px 10px}
+  .vault-bulk-listing-modal>header h2{font-size:19px;line-height:1.2}
+  .vault-bulk-listing-modal>header p{margin-top:3px;font-size:11px}
+  .vault-modal-eyebrow{font-size:9px}
+  .vault-bulk-listing-modal form{flex:1 1 0;min-height:0;padding:10px 14px max(14px,env(safe-area-inset-bottom))}
+  .vault-bulk-listing-modal form>:not(.vault-bulk-listing-choices){flex:0 0 auto}
+  .vault-bulk-listing-search{gap:8px;margin-bottom:5px}
+  .vault-bulk-listing-search input{height:40px}
+  .vault-bulk-listing-limit{margin:0 0 8px;font-size:10px;line-height:1.35}
+  .vault-bulk-listing-choices{flex:1 1 0;grid-template-columns:minmax(0,1fr);grid-auto-rows:max-content;align-content:start;gap:5px;max-height:none;min-height:120px;padding:1px;overflow:auto;overscroll-behavior:contain}
+  .vault-bulk-listing-choice,.vault-bulk-listing-choice:has(.vault-bulk-listing-controls){grid-template-columns:minmax(0,1fr);align-items:stretch;gap:6px;padding:7px}
+  .vault-bulk-listing-select{grid-column:1;min-height:44px!important;height:auto;padding:0;gap:8px;line-height:1.15}
+  .vault-bulk-listing-art{width:27px}
+  .vault-bulk-listing-copy{flex:1;gap:1px}
+  .vault-bulk-listing-copy strong{font-size:11px;line-height:1.2}
+  .vault-bulk-listing-copy small{font-size:9px;line-height:1.2}
+  .vault-bulk-listing-check{width:18px;height:18px}
+  .vault-bulk-listing-controls{grid-column:1;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:end;gap:8px;padding-top:7px;border-top:1px solid var(--vault-slot-border)}
+  .vault-bulk-listing-price{gap:5px;font-size:10px}
+  .vault-bulk-listing-price input{height:40px;padding-inline:9px;font-size:14px}
+  .vault-bulk-listing-quantity{grid-template-columns:minmax(0,1fr) 64px;gap:5px;font-size:10px}
+  .vault-bulk-listing-quantity input{height:40px;padding-inline:8px;font-size:14px}
+  .vault-bulk-listing-quantity small{grid-column:1/-1;font-size:9px}
+  .vault-bulk-listing-fields{gap:8px;margin-top:11px}
+  .vault-bulk-listing-fields input{height:42px}
+  .vault-bulk-listing-modal form>.market-price-mode{margin-top:11px}
+  .vault-bulk-listing-summary{margin-top:9px;padding:8px 0}
+  .vault-bulk-listing-modal form>footer{gap:7px;margin-top:10px}
+  .vault-bulk-listing-modal form>footer .vault-btn{min-height:44px}
+}
+@media(max-width:360px){
+  .vault-bulk-listing-modal>header{padding-inline:14px}
+  .vault-bulk-listing-modal form{padding-inline:12px}
+  .vault-bulk-listing-choice,.vault-bulk-listing-choice:has(.vault-bulk-listing-controls){grid-template-columns:minmax(0,1fr)}
+  .vault-bulk-listing-controls{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+}
+
+.vault-page.vault-loading-page:not(.vault-error-page){display:block;min-height:68vh;padding-block:22px 56px;text-align:left}
+.vault-loading-layout{--vault-loading-base:color-mix(in srgb,var(--vault-panel) 78%,var(--vault-border));--vault-loading-shine:color-mix(in srgb,var(--vault-panel) 54%,white);display:grid;gap:18px;width:100%;animation:vault-loading-arrive .35s ease-out both}
+.vault-loading-layout i{display:block;overflow:hidden;background:linear-gradient(105deg,var(--vault-loading-base) 25%,var(--vault-loading-shine) 43%,var(--vault-loading-base) 61%);background-size:240% 100%;animation:vault-loading-shimmer 1.65s ease-in-out infinite}
+.vault-loading-header,.vault-loading-header>div,.vault-loading-metrics,.vault-loading-toolbar,.vault-loading-toolbar>div,.vault-loading-tabs{display:flex;align-items:center;gap:9px}
+.vault-loading-header{justify-content:space-between;min-height:54px}
+.vault-loading-header>div:first-child{display:grid;gap:8px}.vault-loading-header>div:first-child i:first-child{width:112px;height:9px;border-radius:8px}.vault-loading-header>div:first-child i:nth-child(2){width:176px;height:28px;border-radius:7px}.vault-loading-header>div:first-child i:last-child{width:92px;height:8px;border-radius:8px}
+.vault-loading-header>div:last-child i{width:92px;height:38px;border-radius:8px}
+.vault-loading-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;padding:18px 22px;border:1px solid var(--vault-border);border-radius:12px;background:var(--vault-panel)}
+.vault-loading-metrics i{height:48px;border-radius:7px}
+.vault-loading-tabs{gap:22px;min-height:48px;border-bottom:1px solid var(--vault-border)}.vault-loading-tabs i{width:82px;height:12px;border-radius:8px}.vault-loading-tabs i:first-child{height:15px}
+.vault-loading-toolbar{flex-wrap:wrap;justify-content:space-between;padding:12px 14px;border:1px solid var(--vault-border);border-radius:12px;background:var(--vault-panel)}
+.vault-loading-search{flex:1;min-width:180px;height:42px;border-radius:8px}.vault-loading-toolbar>div{flex-wrap:wrap}.vault-loading-toolbar>div i{width:92px;height:36px;border-radius:7px}
+.vault-loading-slots{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.vault-loading-slot{display:grid;align-content:start;gap:9px;min-width:0;padding:10px;border:1px solid var(--vault-border);border-radius:12px;background:var(--vault-panel)}
+.vault-loading-art{width:100%;aspect-ratio:420/580;border-radius:9px}.vault-loading-name{width:64%;height:14px;border-radius:8px}.vault-loading-meta{width:42%;height:10px;border-radius:8px}
+@keyframes vault-loading-shimmer{to{background-position-x:-240%}}@keyframes vault-loading-arrive{from{opacity:.55}to{opacity:1}}
+@media(max-width:700px){.vault-loading-layout{gap:13px}.vault-loading-header{min-height:40px}.vault-loading-header>div:last-child i{width:68px;height:36px}.vault-loading-metrics{gap:8px;padding:13px 10px}.vault-loading-metrics i{height:40px}.vault-loading-tabs{gap:15px;min-height:40px}.vault-loading-tabs i{width:62px}.vault-loading-toolbar{gap:8px;padding:10px}.vault-loading-search{flex-basis:100%;height:44px}.vault-loading-toolbar>div{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}.vault-loading-toolbar>div i{width:100%}.vault-loading-slots{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 10px}.vault-loading-slot{gap:7px;padding:8px}}
+@media(prefers-reduced-motion:reduce){.vault-loading-layout,.vault-loading-layout i{animation:none}}
+@media(max-width:580px){
+  .vault-slot-card-stage{border-radius:13px}
+  .vault-slot-card-stage.is-pokemon{border-radius:18px}
+  .vault-slot.is-slab{padding:8px}
+  .vault-slot-slab-plate.is-psa{border-width:6px;padding:2px 3px}
+  .vault-slot-psa-label{grid-template-columns:minmax(0,1fr) minmax(52px,30%);gap:2px 4px;min-height:58px;font-size:11px}
+  .vault-slot-psa-stamp{bottom:-6px;width:32px;height:19px}
+}
+
+.vault-toolbar-filters .filter-menu .filter-trigger,
+.vault-toolbar-filters .vault-filter-picker-trigger{box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:36px;padding:0 10px;border:1px solid var(--vault-border);border-radius:8px;background:var(--vault-panel);color:var(--vault-ink-secondary);font:600 11.5px/1.2 var(--game-font,var(--font-sans),sans-serif);letter-spacing:0;box-shadow:none;transition:border-color .15s ease,background-color .15s ease,color .15s ease}
+.vault-toolbar-filters .filter-menu .filter-trigger{width:100%;white-space:nowrap}
+.vault-toolbar-filters .vault-filter-picker-trigger{width:auto;min-width:112px;max-width:220px;height:36px;white-space:nowrap}
+.vault-toolbar-filters .vault-filter-picker-value{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vault-toolbar-filters .filter-menu .filter-trigger:hover,
+.vault-toolbar-filters .filter-menu.is-open .filter-trigger,
+.vault-toolbar-filters .filter-menu.has-selection .filter-trigger,
+.vault-toolbar-filters .vault-filter-picker-trigger:hover,
+.vault-toolbar-filters .vault-filter-picker-trigger[data-state=open]{border-color:color-mix(in srgb,var(--vault-gold) 62%,var(--vault-border));background:color-mix(in srgb,var(--vault-gold-soft) 55%,var(--vault-panel));color:var(--vault-ink)}
+.vault-toolbar-filters :is(.filter-trigger,.vault-filter-picker-trigger)>svg{flex:none;width:14px;height:14px;color:var(--vault-ink-muted);opacity:.75;transition:transform .15s ease,color .15s ease}
+.vault-toolbar-filters .filter-menu.is-open .filter-trigger>svg:last-child,
+.vault-toolbar-filters .vault-filter-picker-trigger[data-state=open]>svg:last-child{transform:rotate(180deg);color:var(--vault-gold-deep)}
+.vault-toolbar-filters .filter-menu .filter-trigger>b{flex:none;min-width:18px;height:18px;margin-left:auto;padding:0 5px;border-radius:9px;background:var(--vault-gold-soft);color:var(--vault-gold-deep);font:700 10px/18px var(--game-font,var(--font-sans),sans-serif);text-align:center}
+.vault-toolbar-filters .filter-menu .filter-options{position:absolute;z-index:650;top:calc(100% + 5px);left:0;display:grid;grid-template-columns:minmax(0,1fr);align-content:start;gap:2px;box-sizing:border-box;width:min(260px,calc(100vw - 32px));min-width:176px;max-width:calc(100vw - 24px);max-height:min(56vh,380px);overflow-y:auto;overscroll-behavior:contain;padding:5px;border:1px solid var(--vault-border);border-radius:8px;background:var(--vault-panel);color:var(--vault-ink);box-shadow:0 10px 26px rgb(25 28 25 / .16)}
+.vault-toolbar-filters .filter-menu .filter-options button{display:flex;align-items:center;gap:8px;box-sizing:border-box;width:100%;min-width:0;min-height:35px;padding:0 9px;border:1px solid transparent;border-radius:5px;background:transparent;color:var(--vault-ink-secondary);font:550 11.5px/1.25 var(--game-font,var(--font-sans),sans-serif);text-align:left;cursor:pointer;transition:background-color .12s ease,color .12s ease}
+.vault-toolbar-filters .filter-menu .filter-options button:hover,
+.vault-toolbar-filters .filter-menu .filter-options button[aria-pressed=true]{border-color:transparent;background:var(--vault-gold-soft);color:var(--vault-ink)}
+.vault-toolbar-filters .filter-menu .filter-options button svg{flex:none;color:var(--vault-gold-deep)}
+.vault-toolbar-filters .filter-menu .filter-option-search{min-height:36px;padding:0 9px;border:1px solid var(--vault-border);border-radius:6px;background:var(--vault-surface-warm);color:var(--vault-ink-muted)}
+.vault-toolbar-filters .filter-menu .filter-option-search input{font:550 11.5px/1.2 var(--game-font,var(--font-sans),sans-serif)}
+.vault-filter-picker-content{z-index:700!important;box-sizing:border-box;width:min(260px,calc(100vw - 24px));max-height:min(56vh,380px);overflow:hidden;padding:5px!important;border:1px solid var(--vault-border)!important;border-radius:8px!important;background:var(--vault-panel)!important;color:var(--vault-ink)!important;box-shadow:0 10px 26px rgb(25 28 25 / .16)!important;font-family:var(--game-font,var(--font-sans),sans-serif)!important}
+.vault-filter-picker-search{display:flex;align-items:center;gap:7px;min-height:36px;padding:0 9px;border:1px solid var(--vault-border);border-radius:6px;background:var(--vault-surface-warm);color:var(--vault-ink-muted)}
+.vault-filter-picker-search input{width:100%;min-width:0;border:0;outline:0;background:transparent;color:var(--vault-ink);font:550 11.5px/1.2 var(--game-font,var(--font-sans),sans-serif)}
+.vault-filter-picker-options{display:grid;max-height:min(48vh,325px);overflow-y:auto;overscroll-behavior:contain;gap:2px;margin-top:4px}
+.vault-filter-picker-options button{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:35px;padding:0 9px;border:0;border-radius:5px;background:transparent;color:var(--vault-ink-secondary);font:550 11.5px/1.25 var(--game-font,var(--font-sans),sans-serif);text-align:left;cursor:pointer}
+.vault-filter-picker-options button:hover,.vault-filter-picker-options button[aria-selected=true]{background:var(--vault-gold-soft);color:var(--vault-ink)}
+.vault-filter-picker-options button svg{flex:none;color:var(--vault-gold-deep)}
+.vault-filter-picker-empty{margin:0;padding:10px 9px;color:var(--vault-ink-muted);font-size:11px}
+@media(max-width:560px){.vault-toolbar-filters .filter-menu{width:100%;min-width:0}.vault-toolbar-filters .vault-filter-picker-trigger{width:100%;min-width:0;max-width:none}.vault-toolbar-filters .filter-menu .filter-options{width:min(300px,calc(100vw - 32px));max-width:calc(100vw - 24px)}}

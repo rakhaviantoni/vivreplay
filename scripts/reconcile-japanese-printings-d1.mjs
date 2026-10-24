@@ -5,10 +5,12 @@ import { join } from 'node:path';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 
 const setArg=process.argv.find(arg=>arg.startsWith('--set='))?.split('=')[1]??'OP15';
+const codeArg=process.argv.find(arg=>arg.startsWith('--code='))?.split('=')[1]?.toUpperCase();
 const target=process.argv.find(arg=>arg.startsWith('--target='))?.split('=')[1]??'remote';
 const apply=process.argv.includes('--apply');
 const skipImages=process.argv.includes('--skip-images');
 if(!/^(OP|EB|ST|PRB)\d{2}$/i.test(setArg))throw new Error('Use a set code such as --set=OP15.');
+if(codeArg&&!new RegExp(`^${setArg.toUpperCase()}-\\d{3}$`).test(codeArg))throw new Error('The card code must belong to the selected set, for example --code=ST18-004.');
 if(!['local','remote'].includes(target))throw new Error('Use --target=local or --target=remote.');
 const setPrefix=setArg.toUpperCase().replace(/^(OP|EB|ST|PRB)(\d{2})$/,'$1$2');
 const wrangler='node_modules/.bin/wrangler';
@@ -31,16 +33,16 @@ if(!game)throw new Error('One Piece catalog is not present in D1.');
 const rows=query(`SELECT p.id,p.identity_id,p.set_id,p.set_code,p.set_name,p.rarity,p.source_kind,p.life,p.sub_types,p.counter_amount,p.attribute,p.card_image_id,p.source_payload,p.printing_code,p.release_date,p.is_reprint,i.code
   FROM tcg_card_printings p JOIN tcg_card_identities i ON i.id=p.identity_id
   WHERE i.game_id='${String(game.id).replaceAll("'","''")}' AND p.language='EN' AND p.variant='Standard'
-    AND upper(i.code) LIKE '${setPrefix}-%' ORDER BY i.code,p.id`);
+    AND upper(i.code) LIKE '${setPrefix}-%' ${codeArg?`AND upper(i.code)='${codeArg}'`:''} ORDER BY i.code,p.id`);
 const existing=query(`SELECT p.identity_id,p.set_code FROM tcg_card_printings p JOIN tcg_card_identities i ON i.id=p.identity_id
   WHERE i.game_id='${String(game.id).replaceAll("'","''")}' AND p.language='JP' AND p.variant='Standard'
-    AND upper(i.code) LIKE '${setPrefix}-%'`);
+    AND upper(i.code) LIKE '${setPrefix}-%' ${codeArg?`AND upper(i.code)='${codeArg}'`:''}`);
 const existingKeys=new Set(existing.map(row=>`${row.identity_id}:${String(row.set_code).toUpperCase().replace(/[^A-Z0-9]/g,'')}`));
 const candidates=rows.filter(row=>!existingKeys.has(`${row.identity_id}:${String(row.set_code).toUpperCase().replace(/[^A-Z0-9]/g,'')}`));
 const quote=value=>`'${String(value??'').replaceAll("'","''")}'`;
 const jobs=candidates.map(row=>{
   const code=String(row.printing_code||row.code).toUpperCase();
-  const folder=String(row.set_code).toUpperCase();
+  const folder=String(row.set_code).toUpperCase().replace(/[^A-Z0-9]/g,'');
   const sourceUrl=`https://cards.oplaytcg.com/${folder}/jp/small/${code}.webp`;
   const assetKey=`one-piece/${folder.replace(/[^A-Z0-9]/g,'')}/jp/${code}.webp`;
   let payload={};try{payload=typeof row.source_payload==='string'?JSON.parse(row.source_payload):row.source_payload??{}}catch{}

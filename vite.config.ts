@@ -13,6 +13,23 @@ const { d1 } = hostingConfig;
 const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
 const managedLinux = readExecutionProfile() === "managed-linux";
 
+// PaddleOCR's generated worker is a large self-contained bundle with its own
+// import.meta.url references. Vite's asset URL transform recursively walks it
+// and can overflow while preparing the OCR module, even when worker mode is
+// disabled. Keep the URL runtime-resolved; the app runs OCR inline.
+const paddleOcrWorkerUrl = {
+  name: "paddleocr-worker-url-runtime",
+  enforce: "pre" as const,
+  transform(code: string, id: string) {
+    if (!id.includes("/@paddleocr/paddleocr-js/dist/index.mjs")) return;
+    const transformed = code.replace(
+      /new URL\((["'])\.\/assets\/(worker-entry-[^"']+\.js)\1,\s*import\.meta\.url\)/g,
+      'new URL("./assets/" + "$2", import.meta.url)',
+    );
+    return transformed === code ? undefined : { code: transformed, map: null };
+  },
+};
+
 const localBindingConfig = {
   name: "vivreplay",
   main: "vinext/server/fetch-handler",
@@ -66,6 +83,17 @@ export default defineConfig(async ({ command, mode }) => {
     // Cloudflare's local worker only receives explicit bindings. Keep the AI
     // gateway credential local to Miniflare, sourced from ignored .env files.
     for (const key of [
+      "AZEKHA_AI_GATEWAY_URL",
+      "AI_GATEWAY_URL",
+      "OPENAI_BASE_URL",
+      "AZEKHA_AI_MODEL",
+      "AI_GATEWAY_MODEL",
+    ]) {
+      if (localEnv[key]) {
+        localBindingConfig.vars[key] = localEnv[key];
+      }
+    }
+    for (const key of [
       "AZEKHA_AI_GATEWAY_TOKEN",
       "AZEKHA_AI_GATEWAY_API_KEY",
       "AI_GATEWAY_INTERNAL_TOKEN",
@@ -103,6 +131,17 @@ export default defineConfig(async ({ command, mode }) => {
   const { cloudflare } = await import("@cloudflare/vite-plugin");
 
   return {
+    resolve: {
+      // PaddleOCR configures ONNX Runtime to load WASM from its CDN. Select
+      // the package's external-WASM entry so Vite doesn't also emit a 27 MiB
+      // fallback asset that Cloudflare Workers cannot deploy.
+      conditions: [
+        "module",
+        "browser",
+        "development|production",
+        "onnxruntime-web-use-extern-wasm",
+      ],
+    },
     define: {
       "process.env.NEXT_PUBLIC_SUPABASE_URL": JSON.stringify(
         process.env.NEXT_PUBLIC_SUPABASE_URL ||
@@ -121,13 +160,31 @@ export default defineConfig(async ({ command, mode }) => {
       ),
     },
     server: {
+      headers: {
+        "Permissions-Policy": "camera=(self), microphone=(), geolocation=(self)",
+      },
       ...(managedLinux ? { host: "0.0.0.0", allowedHosts: ["terminal.local"] } : {}),
       ...(isCodexSeatbeltSandbox ? { watch: { useFsEvents: false, usePolling: true } } : {}),
     },
     ...(command === "serve"
-      ? { environments: { client: { optimizeDeps: { exclude: ["vinext"] } } } }
+      ? {
+          environments: {
+            client: {
+              optimizeDeps: {
+                // PaddleOCR's bundled OpenCV/WASM assets overflow Vite's
+                // import.meta.url asset transform when prebundled. Let Vite
+                // serve its ESM modules directly instead. Its OpenCV and
+                // clipper dependencies are legacy CommonJS/UMD packages, so
+                // prebundle them separately for Vite's ESM interop wrappers.
+                exclude: ["vinext", "@paddleocr/paddleocr-js"],
+                include: ["clipper-lib", "@techstark/opencv-js"],
+              },
+            },
+          },
+        }
       : {}),
     plugins: [
+      paddleOcrWorkerUrl,
       vinext(),
       sites({ mockAuth: !managedLinux }),
       cloudflare({

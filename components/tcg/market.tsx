@@ -33,10 +33,14 @@ import {Card,cardFor,cards,printings} from '@/packages/card-data/catalog';
 import {displayCardName} from './card-name';
 import {printingLabel} from './card-printing-selector';
 import {pokemonRarityLabel} from '@/lib/pokemon-rarity';
+import {parsePokemonSearchQuery,resolvePokemonSearchRarities} from '@/lib/pokemon-search';
+import {pokemonLocalCardNumber} from '@/lib/pokemon-set-aliases';
+import {pokemonPublicNumber,pokemonPublicReference} from '@/lib/pokemon-public-reference';
 import {CollectionItem,GRADING_PROVIDERS,Listing,formatMoney} from '@/packages/domain';
 import {api,useAccount,type AccountState} from '@/lib/client';
 import {loadMarketActivityCounts} from '@/lib/market/activity-client';
 import {CardArt} from './card-art';
+import {CardScanButton,type CardScanCandidate} from './card-scan-button';
 import {FeedbackLaunchButton} from './feedback-launch';
 import {CardMarketPanel} from './card-market-panel';
 import {MultiFilter,Picker} from './catalog';
@@ -64,11 +68,18 @@ import '@/app/market-account.css';
 type MarketBenchmark={amount:number;currency:string;url:string|null;observedAt:string;confidence:string;normalizedAmount:number|null;normalizedCurrency:string|null};
 type CardPrintingItem={id:string;language:string;variant:string|null;printing_code:string|null;card_image_url:string|null;rarity?:string|null;set_code?:string;tcg_card_assets?:Array<{kind:string;object_key:string}>};
 type MarketCard=Card&{availablePrintings?:CardPrintingItem[];gameSlug?:'one-piece'|'pokemon';pokemonTypes?:string[];pokemonCategory?:string;pokemonSetName?:string;pokemonIllustrator?:string};
+type MarketGameScope='one-piece'|'pokemon'|'all';
+function MarketGameMark({gameSlug,compact=false}:{gameSlug:MarketGameScope;compact?:boolean}){
+  return <span className={`market-game-mark${compact?' market-game-mark-compact':''}`} aria-hidden="true">
+    {(gameSlug==='one-piece'||gameSlug==='all')&&<img className="market-game-mark-one-piece" src="/assets/one-piece-card-game-logo.png" alt=""/>}
+    {(gameSlug==='pokemon'||gameSlug==='all')&&<img className="market-game-mark-pokemon" src="https://upload.wikimedia.org/wikipedia/commons/1/1a/Pok%C3%A9mon_Trading_Card_Game_logo.svg" alt=""/>}
+  </span>;
+}
 type SearchIdentity={id:string;code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number;effect_text:string;tcg_card_printings?:Array<{id:string;card_image_url:string|null;rarity:string|null;set_code:string;language:string;variant:string|null;printing_code:string|null;tcg_card_assets?:Array<{kind:string;object_key:string}>}>};
-type PokemonMarketCard={id:string;rarity?:string|null;variant:string;set_code:string;set_name:string;printing_code:string;language:string;card_image_url?:string|null;source_payload?:{illustrator?:string;category?:string;types?:string[];rarity?:string;localId?:string;set?:{name?:string;cardCount?:{official?:number;total?:number}};[key:string]:unknown};tcg_card_identities?:{code:string;name:string;color:string;card_type:string;cost:number;power:number;effect_text:string}};
+type PokemonMarketCard={id:string;rarity?:string|null;variant:string;set_code:string;set_name:string;printing_code:string;language:string;card_image_url?:string|null;source_payload?:{illustrator?:string;category?:string;types?:string[];rarity?:string;localId?:string;collectorNumber?:string;set?:{name?:string;cardCount?:{official?:number;total?:number}};[key:string]:unknown};tcg_card_identities?:{code:string;name:string;color:string;card_type:string;cost:number;power:number;effect_text:string}};
 type PokemonMarketSet={code:string;name:string;series?:string;releaseYear?:number;productImageUrl?:string};
 type PokemonMarketFacets={rarities?:string[];illustrators?:string[];types?:string[];categories?:string[];stages?:string[]};
-type PokemonSearchOptions={language:string;sets:string[];types:string[];rarities:string[];categories:string[];stages:string[];illustrators:string[];hpMin:string;hpMax:string};
+type PokemonSearchOptions={language:string;sets:string[];types:string[];rarities:string[];rarityOptions?:string[];categories:string[];stages:string[];illustrators:string[];hpMin:string;hpMax:string};
 type CardSearchFilters={nameTerms:string[];code:string|null;setCode:string|null;cardType:string|null;rarities:string[];color:string|null;cost:number|null};
 type ListingBundleCard={
   id:string;
@@ -94,7 +105,7 @@ function PokemonMarketType({card}:{card:MarketCard}){
 }
 function MarketLookupCardThumb({card,gameSlug}:{card:MarketCard;gameSlug:'one-piece'|'pokemon'}){
   const [missing,setMissing]=useState(false);
-  return <div className="market-card-lookup-art-wrap"><Link href={gameSlug==='pokemon'?`/pokemon?q=${encodeURIComponent(card.name)}`:`/cards/${card.code}`} className="market-card-lookup-art"><CardArt card={card} small onImageMissing={()=>setMissing(true)}/></Link>{gameSlug==='pokemon'&&missing&&<FeedbackLaunchButton className="market-lookup-missing-image" request={{initialCategory:'missing-printing',cardCode:card.code,printingId:card.id}} title="Report this missing card image">Report</FeedbackLaunchButton>}</div>;
+  return <div className="market-card-lookup-art-wrap"><Link href={gameSlug==='pokemon'?`/pokemon?q=${encodeURIComponent(card.name)}`:`/cards/${card.code}`} className="market-card-lookup-art"><CardArt card={card} small onImageMissing={()=>setMissing(true)} onImageLoaded={()=>setMissing(false)}/></Link>{gameSlug==='pokemon'&&missing&&<FeedbackLaunchButton className="market-lookup-missing-image" request={{initialCategory:'missing-printing',cardCode:card.code,printingId:card.id}} title="Report this missing card image">Report</FeedbackLaunchButton>}</div>;
 }
 function addFeedListingToCart(listing:Listing,printingId:string,locale:'EN'|'ID'){
   const cartKey='vivreplay-market-cart-v1';
@@ -186,13 +197,16 @@ async function searchMarketCards(value:string,limit:number,gameSlug:'one-piece'|
   if(gameSlug==='all'){
     const [onePiece,pokemon]=await Promise.all([
       searchMarketCards(value,limit,'one-piece'),
-      searchMarketCards(value,limit,'pokemon',{language:pokemonOptions?.language??'EN',sets:[],types:[],rarities:[],categories:[],stages:[],illustrators:[],hpMin:'',hpMax:''}),
+      searchMarketCards(value,limit,'pokemon',{language:pokemonOptions?.language??'EN',sets:[],types:[],rarities:[],rarityOptions:pokemonOptions?.rarityOptions,categories:[],stages:[],illustrators:[],hpMin:'',hpMax:''}),
     ]);
     return [...onePiece,...pokemon].slice(0,limit*2);
   }
   if(gameSlug==='pokemon'){
-    const params=new URLSearchParams({game:'pokemon',language:pokemonOptions?.language??'EN',q:value,limit:'500'});
-    pokemonOptions?.sets.forEach(item=>params.append('set',item));pokemonOptions?.types.forEach(item=>params.append('type',item));pokemonOptions?.rarities.forEach(item=>params.append('rarity',item));pokemonOptions?.categories.forEach(item=>params.append('category',item));pokemonOptions?.stages.forEach(item=>params.append('stage',item));pokemonOptions?.illustrators.forEach(item=>params.append('illustrator',item));
+    const parsedSearch=parsePokemonSearchQuery(value);
+    const params=new URLSearchParams({game:'pokemon',language:pokemonOptions?.language??'EN',limit:'500'});
+    if(parsedSearch.query)params.set('q',parsedSearch.query);
+    const inferred=resolvePokemonSearchRarities(parsedSearch.rarityLabels,pokemonOptions?.rarityOptions??[],pokemonOptions?.language??'EN');
+    pokemonOptions?.sets.forEach(item=>params.append('set',item));pokemonOptions?.types.forEach(item=>params.append('type',item));[...new Set([...(pokemonOptions?.rarities??[]),...inferred])].forEach(item=>params.append('rarity',item));pokemonOptions?.categories.forEach(item=>params.append('category',item));pokemonOptions?.stages.forEach(item=>params.append('stage',item));pokemonOptions?.illustrators.forEach(item=>params.append('illustrator',item));
     if(pokemonOptions?.hpMin)params.set('minHp',pokemonOptions.hpMin);if(pokemonOptions?.hpMax)params.set('maxHp',pokemonOptions.hpMax);
     const response=await fetch(versionedCardCatalogUrl(`/api/cards/catalog?${params}`),{cache:'no-store'});
     if(!response.ok)throw new Error('Card catalog is unavailable.');
@@ -206,7 +220,7 @@ async function searchMarketCards(value:string,limit:number,gameSlug:'one-piece'|
       const current=grouped.get(code);
       if(current){current.availablePrintings=[...(current.availablePrintings??[]),printing];continue;}
       const rarity=pokemonRarityLabel(item.rarity??item.source_payload?.rarity,item.language);
-      grouped.set(code,{id:item.id,code,name:displayCardName(identity.name,code),color:identity.color||'Colorless',type:(identity.card_type||item.source_payload?.category||'Pokémon') as Card['type'],cost:identity.cost??0,power:identity.power??0,rarity,art:0,effect:identity.effect_text??'',imageUrl:item.card_image_url??undefined,imageSource:'external',setCode:item.set_code,language:item.language,printingCode:item.printing_code,variant:item.variant,gameSlug:'pokemon',pokemonTypes:item.source_payload?.types??[],pokemonCategory:item.source_payload?.category,pokemonSetName:item.source_payload?.set?.name??item.set_name,pokemonIllustrator:item.source_payload?.illustrator,availablePrintings:[printing]});
+      grouped.set(code,{id:item.id,code,name:displayCardName(identity.name,code),color:identity.color||'Colorless',type:(identity.card_type||item.source_payload?.category||'Pokémon') as Card['type'],cost:identity.cost??0,power:identity.power??0,rarity,art:0,effect:identity.effect_text??'',imageUrl:item.card_image_url??undefined,imageSource:'external',setCode:item.set_code,language:item.language,printingCode:item.printing_code,localCardNumber:pokemonLocalCardNumber(item.source_payload,item.printing_code),variant:item.variant,gameSlug:'pokemon',pokemonTypes:item.source_payload?.types??[],pokemonCategory:item.source_payload?.category,pokemonSetName:item.source_payload?.set?.name??item.set_name,pokemonIllustrator:item.source_payload?.illustrator,availablePrintings:[printing]});
     }
     return [...grouped.values()].slice(0,limit);
   }
@@ -229,7 +243,7 @@ function WishlistCardPicker({items,gameSlug,value,onChange,onSelect,locale}:{ite
     const card:MarketCard={id:item.printingId,code:saved.code,name:saved.name,color:'Colorless',type:(actualGame==='pokemon'?'Pokémon':'Character') as Card['type'],cost:0,power:0,rarity:saved.rarity,art:0,effect:'',imageUrl:saved.imageUrl??undefined,imageSource:'external',setCode:saved.setCode,language:saved.language,printingCode:saved.printingCode??saved.code,variant:saved.variant,gameSlug:actualGame,availablePrintings:[{id:item.printingId,language:saved.language,variant:saved.variant,printing_code:saved.printingCode??saved.code,card_image_url:saved.imageUrl,rarity:saved.rarity,set_code:saved.setCode}]};
     return [card];
   }).filter(card=>!value.trim()||`${card.name} ${card.code} ${card.printingCode} ${card.setCode}`.toLowerCase().includes(value.trim().toLowerCase()));
-  return <div className="market-wishlist-picker"><label className="market-vault-picker-search"><Search size={16}/><input value={value} onChange={event=>onChange(event.target.value)} placeholder={locale==='ID'?'Cari di Wishlist':'Search your Wishlist'} aria-label={locale==='ID'?'Cari kartu di Wishlist':'Search cards in your Wishlist'}/>{value&&<button type="button" onClick={()=>onChange('')} aria-label={locale==='ID'?'Hapus pencarian':'Clear search'}><X size={14}/></button>}</label><div className="market-sell-search-results market-wishlist-card-picker">{cards.length?cards.map(card=><div key={`${card.gameSlug}:${card.id}`} className="market-sell-card-result"><div className="market-sell-card-thumb"><CardArt card={card} small/></div><div className="market-sell-card-meta"><strong>{card.name}</strong><div className="market-sell-card-sub">{gameSlug==='all'&&<span className="market-sell-game-badge">{card.gameSlug==='pokemon'?'Pokémon':'One Piece'}</span>}<span className="market-sell-code">{card.printingCode}</span><span>{card.language}</span>{card.setCode&&<span>{card.setCode}</span>}</div></div><div className="market-sell-card-actions"><button type="button" className="market-sell-card-select-btn" onClick={()=>onSelect(card)}><span>{locale==='ID'?'Pilih kartu':'Choose card'}</span><ArrowRight size={14}/></button></div></div>):<div className="market-sell-search-empty"><p>{value.trim()?locale==='ID'?'Tidak ada kartu wishlist yang cocok.':'No saved cards match this search.':locale==='ID'?'Belum ada kartu untuk game ini di wishlist.':'No saved cards for this game yet.'}</p></div>}</div></div>;
+  return <div className="market-wishlist-picker"><label className="market-vault-picker-search"><Search size={16}/><input value={value} onChange={event=>onChange(event.target.value)} placeholder={locale==='ID'?'Cari di Wishlist':'Search your Wishlist'} aria-label={locale==='ID'?'Cari kartu di Wishlist':'Search cards in your Wishlist'}/>{value&&<button type="button" onClick={()=>onChange('')} aria-label={locale==='ID'?'Hapus pencarian':'Clear search'}><X size={14}/></button>}</label><div className="market-sell-search-results market-wishlist-card-picker">{cards.length?cards.map(card=><div key={`${card.gameSlug}:${card.id}`} className="market-sell-card-result"><div className="market-sell-card-thumb"><CardArt card={card} small/></div><div className="market-sell-card-meta"><strong>{card.name}</strong><div className="market-sell-card-sub">{gameSlug==='all'&&<span className="market-sell-game-badge"><span className="sr-only">{card.gameSlug==='pokemon'?'Pokémon':'One Piece'}</span><MarketGameMark gameSlug={card.gameSlug??'one-piece'} compact/></span>}<span className="market-sell-code">{card.printingCode}</span><span>{card.language}</span>{card.setCode&&<span>{card.setCode}</span>}</div></div><div className="market-sell-card-actions"><button type="button" className="market-sell-card-select-btn" onClick={()=>onSelect(card)}><span>{locale==='ID'?'Pilih kartu':'Choose card'}</span><ArrowRight size={14}/></button></div></div>):<div className="market-sell-search-empty"><p>{value.trim()?locale==='ID'?'Tidak ada kartu wishlist yang cocok.':'No saved cards match this search.':locale==='ID'?'Belum ada kartu untuk game ini di wishlist.':'No saved cards for this game yet.'}</p></div>}</div></div>;
 }
 
 function CardSearch({value,onChange,onSelect,onAddToVault,locale='EN',wanted=false,gameSlug='one-piece'}:{value:string;onChange:(value:string)=>void;onSelect:(card:MarketCard)=>void;onAddToVault:(card:MarketCard)=>void;locale?:'EN'|'ID';wanted?:boolean;gameSlug?:'one-piece'|'pokemon'|'all'}) {
@@ -240,6 +254,18 @@ function CardSearch({value,onChange,onSelect,onAddToVault,locale='EN',wanted=fal
   const [pokemonFacets,setPokemonFacets]=useState<PokemonMarketFacets>({});
   const [setFilters,setSetFilters]=useState<string[]>([]);const [typeFilters,setTypeFilters]=useState<string[]>([]);const [rarityFilters,setRarityFilters]=useState<string[]>([]);const [categoryFilters,setCategoryFilters]=useState<string[]>([]);const [stageFilters,setStageFilters]=useState<string[]>([]);const [illustratorFilters,setIllustratorFilters]=useState<string[]>([]);const [hpMin,setHpMin]=useState('');const [hpMax,setHpMax]=useState('');const [moreFilters,setMoreFilters]=useState(false);
   const [mobileFiltersOpen,setMobileFiltersOpen]=useState(false);
+  const selectScanned=async(candidate:CardScanCandidate)=>{
+    const params=new URLSearchParams({game:candidate.game,language:candidate.language,ids:candidate.id});
+    const response=await fetch(versionedCardCatalogUrl(`/api/cards/catalog?${params}`));
+    if(!response.ok)throw new Error('Card details are unavailable.');
+    const payload=await response.json() as {cards?:PokemonMarketCard[]};
+    const item=payload.cards?.find(card=>card.id===candidate.id);
+    const identity=item?.tcg_card_identities;
+    if(!item||!identity)throw new Error('Card details are unavailable.');
+    const printing:CardPrintingItem={id:item.id,language:item.language,variant:item.variant,printing_code:item.printing_code,card_image_url:item.card_image_url??null,rarity:item.rarity??null,set_code:item.set_code,tcg_card_assets:[]};
+    const card:MarketCard={id:item.id,code:identity.code,name:displayCardName(identity.name,identity.code),color:identity.color||'Colorless',type:(identity.card_type||'Character') as Card['type'],cost:identity.cost??0,power:identity.power??0,rarity:candidate.game==='pokemon'?pokemonRarityLabel(item.rarity??item.source_payload?.rarity,item.language):item.rarity??'',art:0,effect:identity.effect_text??'',imageUrl:item.card_image_url??undefined,imageSource:'external',setCode:item.set_code,language:item.language,printingCode:item.printing_code,localCardNumber:candidate.game==='pokemon'?pokemonLocalCardNumber(item.source_payload,item.printing_code):undefined,variant:item.variant,gameSlug:candidate.game,pokemonTypes:item.source_payload?.types??[],pokemonCategory:item.source_payload?.category,pokemonSetName:item.source_payload?.set?.name??item.set_name,pokemonIllustrator:item.source_payload?.illustrator,availablePrintings:[printing]};
+    onSelect(card);
+  };
   const [onePieceFilters,setOnePieceFilters]=useState<{set:string[];type:string[];color:string[];rarity:string[];cost:string[]}>({set:[],type:[],color:[],rarity:[],cost:[]});
   const [onePieceSets,setOnePieceSets]=useState<Array<{code:string;name:string;series?:string;releaseYear?:number}>>([]);
   useEffect(()=>{
@@ -261,7 +287,7 @@ function CardSearch({value,onChange,onSelect,onAddToVault,locale='EN',wanted=fal
     fetch(versionedCardCatalogUrl('/api/cards/sets?game=one-piece&language=EN'),{signal:controller.signal}).then(response=>response.ok?response.json() as Promise<{sets?:Array<{code:string;name:string;series?:string;releaseYear?:number}>}>:{sets:[]}).then(payload=>setOnePieceSets(payload.sets??[])).catch(()=>{if(!controller.signal.aborted)setOnePieceSets([])});
     return()=>controller.abort();
   },[gameSlug]);
-  const pokemonOptions=useMemo<PokemonSearchOptions>(()=>({language:pokemonLanguage,sets:setFilters,types:typeFilters,rarities:rarityFilters,categories:categoryFilters,stages:stageFilters,illustrators:illustratorFilters,hpMin,hpMax}),[pokemonLanguage,setFilters,typeFilters,rarityFilters,categoryFilters,stageFilters,illustratorFilters,hpMin,hpMax]);
+  const pokemonOptions=useMemo<PokemonSearchOptions>(()=>({language:pokemonLanguage,sets:setFilters,types:typeFilters,rarities:rarityFilters,rarityOptions:pokemonFacets.rarities??[],categories:categoryFilters,stages:stageFilters,illustrators:illustratorFilters,hpMin,hpMax}),[pokemonLanguage,setFilters,typeFilters,rarityFilters,pokemonFacets.rarities,categoryFilters,stageFilters,illustratorFilters,hpMin,hpMax]);
   useEffect(()=>{
     const term=value.trim();
     if(term.length<2){setResults([]);setLoading(false);return}
@@ -295,9 +321,10 @@ function CardSearch({value,onChange,onSelect,onAddToVault,locale='EN',wanted=fal
           type="text"
           value={value}
           onChange={event=>onChange(event.target.value)}
-          placeholder={gameSlug==='pokemon'||gameSlug==='all'?(locale==='ID'?'Cari nama, nomor kartu, atau set':'Search card name, number, or set'):(locale==='ID'?'Nama, set, tipe, rarity, atau biaya (mis. OP17 Leader)':'Name, set, type, rarity, or cost (e.g. OP17 Leader)')}
+          placeholder={gameSlug==='pokemon'||gameSlug==='all'?(locale==='ID'?'Cari nama, nomor, set, atau rarity':'Search name, number, set, or rarity (e.g. Keldeo ex SAR)'):(locale==='ID'?'Nama, set, tipe, rarity, atau biaya (mis. OP17 Leader)':'Name, set, type, rarity, or cost (e.g. OP17 Leader)')}
           aria-label={wanted?(locale==='ID'?'Cari kartu yang ingin dibeli':'Search cards you want to buy'):(locale==='ID'?'Cari kartu untuk dijual':'Search cards to sell')}
         />
+        <CardScanButton game={gameSlug==='all'?'auto':gameSlug} locale={locale} onSelect={selectScanned}/>
         {value.trim().length>0&&(
           <button
             type="button"
@@ -365,12 +392,12 @@ function CardSearch({value,onChange,onSelect,onAddToVault,locale='EN',wanted=fal
                   <div className="market-sell-card-meta">
                     <strong>{card.name}</strong>
                     <div className="market-sell-card-sub">
-                      {gameSlug==='all'&&<span className="market-sell-game-badge">{card.gameSlug==='pokemon'?'Pokémon':'One Piece'}</span>}
-                      {card.gameSlug==='pokemon'?<span className={`pokemon-card-meta-row${card.pokemonIllustrator?' has-illustrator':''}`} aria-label={[card.pokemonSetName,card.setCode,card.printingCode,marketRarity(card),card.pokemonIllustrator&&`Illustrator ${card.pokemonIllustrator}`].filter(Boolean).join(' ')}>
+                      {gameSlug==='all'&&<span className="market-sell-game-badge"><span className="sr-only">{card.gameSlug==='pokemon'?'Pokémon':'One Piece'}</span><MarketGameMark gameSlug={card.gameSlug??'one-piece'} compact/></span>}
+                      {card.gameSlug==='pokemon'?<span className={`pokemon-card-meta-row${card.pokemonIllustrator?' has-illustrator':''}`} aria-label={[card.pokemonSetName,card.setCode,card.localCardNumber||card.printingCode,marketRarity(card),card.pokemonIllustrator&&`Illustrator ${card.pokemonIllustrator}`].filter(Boolean).join(' ')}>
                         {card.pokemonSetName&&<small className="pokemon-card-set-name" title={card.pokemonSetName}>{card.pokemonSetName}</small>}
                         {card.setCode&&<small className="pokemon-card-set-badge">{card.setCode.toLowerCase()}</small>}
-                        {card.setCode&&card.printingCode&&<span className="pokemon-card-meta-divider" aria-hidden="true"/>}
-                        {card.printingCode&&<small className="pokemon-card-number">{card.printingCode}</small>}
+                        {card.setCode&&(card.localCardNumber||card.printingCode)&&pokemonPublicNumber(card.localCardNumber||card.printingCode)&&<span className="pokemon-card-meta-divider" aria-hidden="true"/>}
+                        {pokemonPublicNumber(card.localCardNumber||card.printingCode)&&<small className="pokemon-card-number">{pokemonPublicNumber(card.localCardNumber||card.printingCode)}</small>}
                         {marketRarity(card)&&<small className="pokemon-card-rarity">{marketRarity(card)}</small>}
                         {card.pokemonIllustrator&&<span className="pokemon-card-illustrator-inline"><small>{locale==='ID'?'Ilustrator':'Illustrator'}</small><Link href={`${locale==='ID'?'/id':''}/pokemon?illustrator=${encodeURIComponent(card.pokemonIllustrator)}`}><strong>{card.pokemonIllustrator}</strong></Link></span>}
                       </span>:<><span className="market-sell-code">{card.code}</span><span>{card.type}</span>{marketRarity(card)&&<span className="market-sell-rarity">{marketRarity(card)}</span>}{card.setCode&&<span>{card.setCode}</span>}</>}
@@ -433,7 +460,7 @@ function MarketVaultPickerCard({card,item,locale,showGame,onSelect}:{card:Market
   const actualGame=card.gameSlug??(/^PK-/i.test(card.code)?'pokemon':'one-piece');
   const graded=item.type==='GRADED';
   const copyLabel=graded?`${item.provider||'Graded'} ${item.grade||''}`.trim():item.condition||'NM';
-  return <div className="market-vault-card-option"><button type="button" className="market-vault-card-item" disabled={item.quantity<=0} onClick={()=>onSelect({...card,id:item.printingId,gameSlug:actualGame,language:item.language??card.language,variant:item.variant??card.variant,printingCode:item.printingCode??card.printingCode,setCode:item.setCode??card.setCode},item.id,item.quantity,item.condition||'NM')}><div className="market-vault-card-thumb"><CardArt card={card} small onImageMissing={()=>setMissing(true)}/></div><div className="market-vault-card-info"><strong>{card.name}</strong><small className="market-vault-card-meta">{showGame&&<span className="market-sell-game-badge">{actualGame==='pokemon'?'Pokémon':'One Piece'}</span>}<span>{card.code}</span><span>{item.language??card.language??'EN'}</span><span>{copyLabel}</span></small><small className="market-vault-card-available">{item.quantity} {locale==='ID'?(item.quantity===1?'salinan tersedia':'salinan tersedia'):(item.quantity===1?'copy available':'copies available')}</small>{item.quantity<=0&&<small>{locale==='ID'?'Sudah terpakai di listing':'Reserved by a listing'}</small>}</div></button>{missing&&actualGame==='pokemon'&&<FeedbackLaunchButton className="market-vault-missing-image-report" request={{initialCategory:'missing-printing',cardCode:card.code,printingId:item.printingId}} title="Report this missing card image">Report</FeedbackLaunchButton>}</div>;
+  return <div className="market-vault-card-option"><button type="button" className="market-vault-card-item" disabled={item.quantity<=0} onClick={()=>onSelect({...card,id:item.printingId,gameSlug:actualGame,language:item.language??card.language,variant:item.variant??card.variant,printingCode:item.printingCode??card.printingCode,setCode:item.setCode??card.setCode},item.id,item.quantity,item.condition||'NM')}><div className="market-vault-card-thumb"><CardArt card={card} small onImageMissing={()=>setMissing(true)}/></div><div className="market-vault-card-info"><strong>{card.name}</strong><small className="market-vault-card-meta">{showGame&&<span className="market-sell-game-badge"><span className="sr-only">{actualGame==='pokemon'?'Pokémon':'One Piece'}</span><MarketGameMark gameSlug={actualGame} compact/></span>}<span>{actualGame==='pokemon'?pokemonPublicReference({code:card.code,setCode:item.setCode??card.setCode,printingCode:item.printingCode??card.printingCode,localCardNumber:card.localCardNumber}):card.code}</span><span>{item.language??card.language??'EN'}</span><span>{copyLabel}</span></small><small className="market-vault-card-available">{item.quantity} {locale==='ID'?(item.quantity===1?'salinan tersedia':'salinan tersedia'):(item.quantity===1?'copy available':'copies available')}</small>{item.quantity<=0&&<small>{locale==='ID'?'Sudah terpakai di listing':'Reserved by a listing'}</small>}</div></button>{missing&&actualGame==='pokemon'&&<FeedbackLaunchButton className="market-vault-missing-image-report" request={{initialCategory:'missing-printing',cardCode:card.code,printingId:item.printingId}} title="Report this missing card image">Report</FeedbackLaunchButton>}</div>;
 }
 function MarketCardLookup({
   value,
@@ -506,7 +533,7 @@ function MarketCardLookup({
                 <div className="market-card-lookup-details">
                   <strong>{card.name}</strong>
                   <div className="market-card-lookup-meta">
-                    <span className="market-sell-code">{gameSlug==='pokemon'?(card as MarketCard).printingCode||card.code:card.code}</span>
+                    <span className="market-sell-code">{gameSlug==='pokemon'?pokemonPublicReference({code:card.code,setCode:(card as MarketCard).setCode,printingCode:(card as MarketCard).printingCode,localCardNumber:(card as MarketCard).localCardNumber}):card.code}</span>
                     {gameSlug==='pokemon'?<PokemonMarketType card={card as MarketCard}/>:<span>{card.type}</span>}
                     {gameSlug!=='pokemon'&&card.color&&(
                       <>
@@ -897,10 +924,18 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
     return matches;
   },[initialCards,lang,listings,query,sort,tradeType]);
   const printingFilter=searchParams.get('printing')??'';
+  const publicSetFilter=searchParams.get('set')??'';
+  const publicNumberFilter=searchParams.get('number')??'';
+  const publicLanguageFilter=searchParams.get('lang')??'';
   const displayListings=useMemo(()=>{
     if(printingFilter)return visible.filter(listing=>listing.printingId===printingFilter||listing.items?.some(item=>item.printingId===printingFilter));
+    if(publicSetFilter&&publicNumberFilter){
+      const normalize=(value:string)=>value.replace(/[-_\s]/g,'').toUpperCase();
+      const number=(value:string|undefined)=>String(value??'').replace(/_p\d+$/i,'').split(/[-/]/).filter(Boolean).at(-1)?.replace(/^0+(?=\d)/,'').toUpperCase()??'';
+      return visible.filter(listing=>[listing.card,...(listing.items??[]).map(item=>item.card)].some(card=>{const pokemonCard=card as MarketCard|undefined;return Boolean(pokemonCard&&(pokemonCard.gameSlug==='pokemon'||/^PK-/i.test(pokemonCard.code))&&normalize(pokemonCard.setCode??'')===normalize(publicSetFilter)&&number(pokemonCard.printingCode)===number(publicNumberFilter)&&(!publicLanguageFilter||pokemonCard.language===publicLanguageFilter))}));
+    }
     return visible;
-  },[visible,printingFilter]);
+  },[visible,printingFilter,publicSetFilter,publicNumberFilter,publicLanguageFilter]);
   const captureFeedPositions=()=>{
     const list=feedListRef.current;
     if(list&&typeof window!=='undefined'&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches){
@@ -1127,7 +1162,11 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
           instanceId:item.instanceId,
           printingId:item.printing.id,
           quantity:item.quantity,
-          condition:item.condition,
+          ...(item.productType==='RAW'?{condition:item.condition}:{}),
+          productType:item.productType,
+          gradingCompany:item.gradingCompany,
+          grade:item.grade,
+          certification:item.certification,
           unitAmount:item.unitAmount,
         })),
       })});
@@ -1418,9 +1457,9 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
             </DialogTitle>
             <DialogDescription>
               {configuringCard
-                ? activeCardObj?.gameSlug==='pokemon'
-                  ? (listingType==='WTB'?(locale==='ID'?'Pilih set dan bahasa yang dicari, lalu atur kondisi, jumlah, dan tawaran.':'Confirm the set and language you want, then set condition, copies, and your offer.'):(locale==='ID'?'Pastikan set dan bahasa kartu, lalu atur kondisi, jumlah, dan harga.':'Confirm the set and language, then set condition, copies, and price.'))
-                  : (listingType==='WTB'?(locale==='ID'?'Pilih versi cetak, kondisi, jumlah, dan harga yang Anda tawarkan.':'Choose the printing, condition, copies, and offer per card.'):(locale==='ID'?'Pilih versi cetak, kondisi, jumlah, dan harga per kartu.':'Choose the printing, condition, quantity, and price per card.'))
+                  ? activeCardObj?.gameSlug==='pokemon'
+                  ? (listingType==='WTB'?(locale==='ID'?'Pilih set dan bahasa, lalu pilih kartu mentah atau slab dan atur tawaran.':'Choose a set and language, then choose a raw card or slab and set your offer.'):(locale==='ID'?'Pastikan set dan bahasa, lalu pilih kartu mentah atau slab dan atur harga.':'Confirm the set and language, then choose a raw card or slab and set the price.'))
+                  : (listingType==='WTB'?(locale==='ID'?'Pilih versi cetak, jenis kartu, jumlah, dan tawaran.':'Choose the printing, card type, quantity, and offer.'):(locale==='ID'?'Pilih versi cetak, kondisi kartu mentah, jumlah, dan harga.':'Choose the printing, raw-card condition, quantity, and price.'))
                 : bundleCards.length>0
                   ? (listingType==='WTB'?(locale==='ID'?'Atur kartu dan anggaran yang Anda tawarkan.':'Review the cards and budget you are offering.'):(locale==='ID'?'Atur rincian listing dan harga total paket.':'Review bundle cards and set overall price.'))
                   : listingType==='WTB'?(locale==='ID'?'Tambahkan kartu, kondisi, jumlah, dan harga yang Anda cari.':'Add the cards, condition, quantity, and price you want.'):(locale==='ID'?'Cari kartu dari katalog atau pilih dari koleksi Anda.':'Search the catalog or choose cards from your Vault.')
@@ -1457,11 +1496,11 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                     <p className="eyebrow">{listingType==='WTB'?(locale==='ID'?'KARTU YANG DICARI':'CARD YOU WANT'):(locale==='ID'?'KARTU UNTUK DIJUAL':'CARD FOR SALE')}</p>
                     <h3>{activeCardObj.name}</h3>
                     <p className={`listing-card-sub${activeCardObj.gameSlug==='pokemon'?' is-pokemon':''}`}>
-                      <span className="market-sell-code">{activeCardObj.gameSlug==='pokemon'?(activeCardObj.printingCode||activeCardObj.code):activeCardObj.code}</span>
+                      <span className="market-sell-code">{activeCardObj.gameSlug==='pokemon'?pokemonPublicReference({code:activeCardObj.code,setCode:activeCardObj.setCode,printingCode:activeCardObj.printingCode,localCardNumber:activeCardObj.localCardNumber}):activeCardObj.code}</span>
                       {activeCardObj.gameSlug==='pokemon'?<PokemonMarketType card={activeCardObj}/>:<span>{activeCardObj.type}</span>}
                       {activeCardObj.gameSlug==='pokemon'&&activeCardObj.language&&<span>{activeCardObj.language}</span>}
                       {marketRarity(activeCardObj)&&<span className="market-sell-rarity">{marketRarity(activeCardObj)}</span>}
-                      {activeCardObj.setCode&&<><span>{activeCardObj.setCode}</span></>}
+                      {activeCardObj.gameSlug!=='pokemon'&&activeCardObj.setCode&&<span>{activeCardObj.setCode}</span>}
                       {activeCardObj.gameSlug!=='pokemon'&&activeCardObj.variant&&<><span className="listing-variant-tag">{locale==='ID'&&printingLabel(activeCardObj.variant)==='Standard'?'Standar':printingLabel(activeCardObj.variant)}</span></>}
                     </p>
                   </div>
@@ -1571,7 +1610,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                       )}
                     </div>
                   )}
-                  {activeCardObj.gameSlug==='pokemon'&&selectedPrintingId&&<details className="market-pokemon-listing-activity"><summary>{locale==='ID'?'Aktivitas pasar':'Market activity'}</summary><CardMarketPanel game="pokemon" printingId={selectedPrintingId} printing={{language:activeCardObj.language,setCode:activeCardObj.setCode,printingCode:activeCardObj.printingCode,variant:activeCardObj.variant}} disableExternalPrice/></details>}
+                  {activeCardObj.gameSlug==='pokemon'&&selectedPrintingId&&<details className="market-pokemon-listing-activity"><summary>{locale==='ID'?'Aktivitas pasar':'Market activity'}</summary><CardMarketPanel game="pokemon" printingId={selectedPrintingId} printing={{language:activeCardObj.language,setCode:activeCardObj.setCode,printingCode:activeCardObj.printingCode,localCardNumber:activeCardObj.localCardNumber,variant:activeCardObj.variant}} disableExternalPrice/></details>}
                   {/* Pick an owned copy for sale, or the kind of copy wanted. */}
                   {listingType==='WTS'&&ownedCopiesForConfig.length>0&&(
                     <fieldset className="market-owned-copy-picker">
@@ -1656,7 +1695,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                   <button
                     type="button"
                     className="market-list-button"
-                    disabled={!itemPrice||Number(itemPrice)<=0}
+                    disabled={!itemPrice||Number(itemPrice)<=0||(listingType==='WTB'&&configuredProductType==='GRADED'&&!wantedGrade.trim())}
                     onClick={addConfiguredCardToBundle}
                   >
                     {bundleCards.length===0
@@ -1689,7 +1728,8 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                           <span>{item.card.code}</span>
                               <span>{displayLabel}</span>
                               <span>{item.card.language??'EN'}</span>
-                              <span className="listing-variant-tag">{item.condition}</span>
+                              {item.productType==='GRADED'?<span className="listing-variant-tag">{item.gradingCompany} {item.grade}</span>:<span className="listing-variant-tag">{item.condition}</span>}
+                              {item.productType==='GRADED'&&item.certification&&<span>Cert {item.certification}</span>}
                               {listingType==='WTS'&&!item.instanceId&&(
                                 <span className="listing-variant-tag" style={{background:'color-mix(in srgb, #e5484d 15%, transparent)',color:'#e5484d'}}>
                                   {locale==='ID'?'Belum ada di koleksi':'Not in Vault'}
@@ -1721,7 +1761,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                                   return prev.map(card=>card.id===item.id?{...card,quantity:Math.min(maximum,card.quantity+1)}:card);
                                 });
                               }}
-                              disabled={item.quantity>=Math.min(item.instanceId?item.availableQuantity:listingLimits.maxCopiesPerCard,listingLimits.maxCopiesPerCard-(bundleCards.filter(card=>marketCardIdentity(card.card)===marketCardIdentity(item.card)).reduce((sum,card)=>sum+card.quantity,0)-item.quantity),listingLimits.maxListingCopies-(totalBundleQuantity-item.quantity))}
+                              disabled={item.productType==='GRADED'||item.quantity>=Math.min(item.instanceId?item.availableQuantity:listingLimits.maxCopiesPerCard,listingLimits.maxCopiesPerCard-(bundleCards.filter(card=>marketCardIdentity(card.card)===marketCardIdentity(item.card)).reduce((sum,card)=>sum+card.quantity,0)-item.quantity),listingLimits.maxListingCopies-(totalBundleQuantity-item.quantity))}
                               aria-label={locale==='ID'?'Tambah jumlah':'Increase quantity'}
                             >
                               <Plus size={12}/>
@@ -1869,14 +1909,14 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                 </div>}
                 <div className="market-listing-game-scope" role="group" aria-label={locale==='ID'?'Game kartu':'Card game'}>
                   <span>{locale==='ID'?'Game':'Game'}</span>
-                  {(['one-piece','pokemon','all'] as const).map(scope=><button key={scope} type="button" className={listingGameScope===scope?'active':''} aria-pressed={listingGameScope===scope} onClick={()=>setListingGameScope(scope)}>{scope==='one-piece'?'One Piece':scope==='pokemon'?'Pokémon':locale==='ID'?'Semua game':'All games'}</button>)}
+                  {(['one-piece','pokemon','all'] as const).map(scope=><button key={scope} type="button" data-game-scope={scope} className={listingGameScope===scope?'active':''} aria-label={scope==='one-piece'?'One Piece Card Game':scope==='pokemon'?'Pokémon Trading Card Game':locale==='ID'?'Semua game':'All games'} title={scope==='one-piece'?'One Piece Card Game':scope==='pokemon'?'Pokémon Trading Card Game':locale==='ID'?'Semua game':'All games'} aria-pressed={listingGameScope===scope} onClick={()=>setListingGameScope(scope)}><MarketGameMark gameSlug={scope}/></button>)}
                 </div>
                 {listingType==='WTS'&&bundleCards.length===0&&(data?.collection?.length??0)>0&&<button type="button" className="market-sell-bundle-trigger" onClick={()=>{configLoadVersion.current++;setOpen(false);window.setTimeout(()=>setBulkListingOpen(true),0)}} aria-haspopup="dialog">
                   <Cards size={16}/><span>{locale==='ID'?'Buat listing dari Vault':'Build a listing from Vault'}</span><small>{locale==='ID'?'Pilih beberapa kartu sekaligus':'Select several cards at once'}</small><ArrowRight size={16}/>
                 </button>}
-                {searchSource==='wishlist'&&listingType==='WTB'?<WishlistCardPicker items={data?.wishlist??[]} gameSlug={listingGameScope} value={cardSearch} onSelect={card=>loadCardForConfig(card)} locale={locale}/>:searchSource==='vault'&&(data?.collection?.length??0)>0?(
+                {searchSource==='wishlist'&&listingType==='WTB'?<WishlistCardPicker items={data?.wishlist??[]} gameSlug={listingGameScope} value={cardSearch} onChange={setCardSearch} onSelect={card=>loadCardForConfig(card)} locale={locale}/>:searchSource==='vault'&&(data?.collection?.length??0)>0?(
                   <VaultCardPicker
-                    items={data!.collection.map(copy=>({...copy,quantity:Math.max(0,copy.quantity-(copy.listedQuantity??0)-bundleCards.filter(item=>item.instanceId===copy.id).reduce((sum,item)=>sum+item.quantity,0))})).filter(copy=>copy.type==='RAW')}
+                    items={data!.collection.map(copy=>({...copy,quantity:Math.max(0,copy.quantity-(copy.listedQuantity??0)-bundleCards.filter(item=>item.instanceId===copy.id).reduce((sum,item)=>sum+item.quantity,0))}))}
                     onSelect={(card,instanceId,qty,cond)=>loadCardForConfig(card,instanceId,qty,cond)}
                     locale={locale}
                     gameSlug={listingGameScope}

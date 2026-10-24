@@ -14,6 +14,7 @@ import {splitArchetypeTraits} from './library-directory';
 import {versionedCardCatalogUrl} from '@/lib/card-catalog-cache';
 import {cardMatchesSearch,parseCardSearch} from '@/lib/card-search';
 import {Popover,PopoverContent,PopoverTrigger} from '@/components/ui/popover';
+import {CardScanButton} from './card-scan-button';
 
 type LibraryCard = Card & {setCode:string;setName:string;attribute:string;counter:number;block:string;keywords:string[];traits:string[];variant:string;printingCode:string};
 type FilterOption = string | {value:string;label:string;image?:string;group?:string};
@@ -56,12 +57,25 @@ function cardKeywords(effect:string|undefined|null){
 }
 
 /** Shared compact select used by the collection, market, and deck tools. */
-export function Picker({value,onChange,options,label,leadingIcon}:{value:string;onChange:(v:string)=>void;options:FilterOption[];label:string;leadingIcon?:ReactNode}) {
-  return <Select value={value} onValueChange={onChange}><SelectTrigger aria-label={label} className={leadingIcon?'picker-trigger-with-icon':''}>{leadingIcon&&<span className="picker-leading-icon" aria-hidden="true">{leadingIcon}</span>}<SelectValue/></SelectTrigger><SelectContent>{options.map(item=>{const option=typeof item==='string'?{value:item,label:item}:item;return <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>})}</SelectContent></Select>;
+export function Picker({value,onChange,options,label,leadingIcon,filterStyle=false,searchPlaceholder='Search…',emptyLabel='No matches'}:{value:string;onChange:(v:string)=>void;options:FilterOption[];label:string;leadingIcon?:ReactNode;filterStyle?:boolean;searchPlaceholder?:string;emptyLabel?:string}) {
+  const [open,setOpen]=useState(false);
+  const [query,setQuery]=useState('');
+  const selectedOption=options.map(item=>typeof item==='string'?{value:item,label:item}:item).find(item=>item.value===value);
+  if(filterStyle){
+    const filtered=options.map(item=>typeof item==='string'?{value:item,label:item}:item).filter(item=>item.label.toLowerCase().includes(query.trim().toLowerCase()));
+    return <Popover open={open} onOpenChange={next=>{setOpen(next);if(!next)setQuery('')}}>
+      <PopoverTrigger asChild><button type="button" aria-label={label} aria-expanded={open} className={[leadingIcon?'picker-trigger-with-icon':'','vault-filter-picker-trigger'].filter(Boolean).join(' ')}>{leadingIcon&&<span className="picker-leading-icon" aria-hidden="true">{leadingIcon}</span>}<span className="vault-filter-picker-value">{selectedOption?.label??value}</span><ChevronDown size={14}/></button></PopoverTrigger>
+      <PopoverContent align="start" sideOffset={5} collisionPadding={10} className="vault-filter-picker-content">
+        <label className="vault-filter-picker-search"><Search size={14}/><input value={query} onChange={event=>setQuery(event.target.value)} placeholder={searchPlaceholder} aria-label={`${searchPlaceholder} ${label.toLowerCase()}`} autoFocus/></label>
+        <div className="vault-filter-picker-options" role="listbox" aria-label={label}>{filtered.map(option=><button type="button" role="option" aria-selected={option.value===value} key={option.value} onClick={()=>{onChange(option.value);setOpen(false);setQuery('')}}>{option.label}{option.value===value&&<Check size={14}/>}</button>)}{filtered.length===0&&<p className="vault-filter-picker-empty">{emptyLabel}</p>}</div>
+      </PopoverContent>
+    </Popover>;
+  }
+  return <Select value={value} onValueChange={onChange}><SelectTrigger aria-label={label} className={[leadingIcon?'picker-trigger-with-icon':''].filter(Boolean).join(' ')}>{leadingIcon&&<span className="picker-leading-icon" aria-hidden="true">{leadingIcon}</span>}<SelectValue/></SelectTrigger><SelectContent>{options.map(item=>{const option=typeof item==='string'?{value:item,label:item}:item;return <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>})}</SelectContent></Select>;
 }
 
-export function MultiFilter({label,values,selected,onToggle,searchPlaceholder,portal=false}:{label:string;values:FilterOption[];selected:string[];onToggle:(value:string)=>void;searchPlaceholder?:string;portal?:boolean}) {
-  const [open,setOpen]=useState(false); const [query,setQuery]=useState(''); const ref=useRef<HTMLDivElement>(null); const colour=label==='Colour'||label==='Warna'; const searchable=['Set','Archetype','Arketipe','Illustrator','Ilustrator','Rarity','Kelangkaan','Type','Tipe','Stage','Tahap','Attack energy','Energi serangan','Weakness','Kelemahan','Resistance','Resistansi'].includes(label);
+export function MultiFilter({label,values,selected,onToggle,searchPlaceholder,portal=false,portalClassName}:{label:string;values:FilterOption[];selected:string[];onToggle:(value:string)=>void;searchPlaceholder?:string;portal?:boolean;portalClassName?:string}) {
+  const [open,setOpen]=useState(false); const [query,setQuery]=useState(''); const ref=useRef<HTMLDivElement>(null); const colour=label==='Colour'||label==='Warna'; const searchable=['Set','Language','Bahasa','Source','Grader','Rarity','Kelangkaan','Filter by rarity','Filter berdasarkan kelangkaan','Filter by grading provider','Filter berdasarkan grading','Archetype','Arketipe','Illustrator','Ilustrator','Type','Tipe','Stage','Tahap','Attack energy','Energi serangan','Weakness','Kelemahan','Resistance','Resistansi'].includes(label);
   const matches=values.filter(item=>{const option=typeof item==='string'?{value:item,label:item}:item;return option.label.toLowerCase().includes(query.toLowerCase())||option.value.toLowerCase().includes(query.toLowerCase())});
   const hasGroups=values.some(item=>typeof item!=='string'&&Boolean(item.group));
   const matchGroups=new Map<string,FilterOption[]>();matches.forEach(item=>{const option=typeof item==='string'?{value:item,label:item}:item;const group=option.group??'';matchGroups.set(group,[...(matchGroups.get(group)??[]),item])});
@@ -70,7 +84,7 @@ export function MultiFilter({label,values,selected,onToggle,searchPlaceholder,po
   const options=<>{searchable&&<label className="filter-option-search"><Search size={14}/><input value={query} onChange={event=>setQuery(event.target.value)} placeholder={searchPlaceholder??`Find an ${label.toLowerCase()}`} autoFocus/></label>}{hasGroups?[...matchGroups].map(([group,items])=><div className="filter-option-group" key={group||'ungrouped'}>{group&&<strong>{group}</strong>}{items.map(renderOption)}</div>):matches.map(renderOption)}</>;
   const trigger=<button type="button" className="filter-trigger" aria-expanded={open} onClick={()=>setOpen(value=>!value)}>{label}{selected.length>0&&<b>{selected.length}</b>}<ChevronDown size={14}/></button>;
   return <div ref={ref} className={`filter-menu ${open?'is-open':''} ${selected.length?'has-selection':''} ${colour?'colour-menu':''} ${label==='Set'?'set-menu':''}`}>
-    {portal?<Popover open={open} onOpenChange={setOpen}><PopoverTrigger asChild>{trigger}</PopoverTrigger><PopoverContent align="start" sideOffset={5} collisionPadding={12} className={`filter-options market-filter-popover${colour?' colour-menu':''}${label==='Set'?' set-menu':''}`}>{options}</PopoverContent></Popover>:<>{trigger}{open&&<div className="filter-options">{options}</div>}</>}
+    {portal?<Popover open={open} onOpenChange={setOpen}><PopoverTrigger asChild>{trigger}</PopoverTrigger><PopoverContent align="start" sideOffset={5} collisionPadding={12} className={`filter-options market-filter-popover${colour?' colour-menu':''}${label==='Set'?' set-menu':''}${portalClassName?` ${portalClassName}`:''}`}>{options}</PopoverContent></Popover>:<>{trigger}{open&&<div className="filter-options">{options}</div>}</>}
   </div>;
 }
 
@@ -134,7 +148,7 @@ function CatalogTile({primary,variants,language,onOpen}:{primary:Card;variants:C
     <div className="card-stage printing-stack">
       {visible.map((variant,index)=><div className="stacked-printing" style={{'--stack-index':index} as React.CSSProperties} key={variant.id}><CardArt card={variant}/></div>)}
     </div>
-    <div className="card-meta"><span>{primary.code} · {language}</span><span className={`rarity rarity-${primary.rarity}`}>{primary.rarity}</span></div>
+    <div className="card-meta"><span>{primary.code} · {primary.language??language}</span><span className={`rarity rarity-${primary.rarity}`}>{primary.rarity}</span></div>
     <div className="card-title"><i className="filter-colour identity-colour" title={primary.color || undefined} aria-label={primary.color ? `${primary.color} color` : undefined} style={{background:identityBackground}}/><h3>{primary.name}</h3><span className="card-bottom" aria-label={`${primary.color} ${primary.type}`}>{primary.type}</span></div>
   </button>
 }
@@ -152,7 +166,10 @@ export function Catalog({home=false,initialSet,initialArchetype,initialCard,init
   const [types,setTypes] = useState<string[]>([]);
   const [selectedColors,setSelectedColors] = useState<string[]>([]);
   const [rarities,setRarities] = useState<string[]>([]);
-  const [language,setLanguage] = useState(initialLanguage === 'JP' ? 'JP' : 'EN');
+  const requestedLanguage=initialLanguage?.toUpperCase();
+  const hasExplicitLanguage=Boolean(requestedLanguage);
+  const [language,setLanguage] = useState(requestedLanguage==='JP'?'JP':requestedLanguage==='EN'?'EN':requestedLanguage?'ALL':'EN');
+  const [languageReady,setLanguageReady]=useState(hasExplicitLanguage);
   const [locale,setLocale] = useState<'EN'|'ID'>('EN');
   const [gridColumns,setGridColumns] = useState('5');
   const [sortOrder,setSortOrder] = useState<SortOrder>('leaders-latest');
@@ -165,15 +182,25 @@ export function Catalog({home=false,initialSet,initialArchetype,initialCard,init
   const [catalogLoading,setCatalogLoading] = useState(true);
 
   useEffect(()=>{
-    const syncLocale=()=>setLocale(window.localStorage.getItem('vivreplay-locale')==='ID'?'ID':'EN');
-    const onLocale=(event:Event)=>setLocale((event as CustomEvent<'EN'|'ID'>).detail);
+    const syncLocale=()=>{
+      const preferred=window.localStorage.getItem('vivreplay-locale')==='ID'?'ID':'EN';
+      setLocale(preferred);
+      if(!hasExplicitLanguage)setLanguage(preferred==='ID'?'ALL':'EN');
+      setLanguageReady(true);
+    };
+    const onLocale=(event:Event)=>{
+      const preferred=(event as CustomEvent<'EN'|'ID'>).detail;
+      setLocale(preferred);
+      if(!hasExplicitLanguage)setLanguage(preferred==='ID'?'ALL':'EN');
+    };
     syncLocale();
     window.addEventListener('vivreplay:locale',onLocale);
     return()=>window.removeEventListener('vivreplay:locale',onLocale);
-  },[]);
+  },[hasExplicitLanguage]);
   const id=locale==='ID';
 
   useEffect(()=>{
+    if(!languageReady)return;
     let active=true; const controller=new AbortController();
     function toCards(rows:Record<string,unknown>[]){
       return Array.from(new Map(rows.map(row=>[String(row.id),row])).values()).map((row,index)=>{
@@ -198,7 +225,7 @@ export function Catalog({home=false,initialSet,initialArchetype,initialCard,init
       }
     }
     loadCatalog().catch(()=>{if(active)setCatalogLoading(false)});return()=>{active=false;controller.abort()};
-  },[language]);
+  },[language,languageReady]);
   useEffect(()=>{
     if(catalogLoading||(!initialCard&&!initialPrinting))return;
     const queryKey=`${initialCard??''}:${initialPrinting??''}:${language}`;
@@ -265,6 +292,7 @@ export function Catalog({home=false,initialSet,initialArchetype,initialCard,init
         <label className="search-box">
           <Search size={16}/>
           <input placeholder={id?'Nama, kode, set, warna, tipe, biaya…':'Name, code, set, color, type, cost…'} value={query} onChange={e=>setQuery(e.target.value)}/>
+          <CardScanButton game="one-piece" locale={locale}/>
           {query&&<button type="button" className="search-clear" onClick={()=>setQuery('')} aria-label={id?'Hapus pencarian':'Clear search'}><X size={12}/></button>}
         </label>
         <button type="button" className={`library-mobile-filter-toggle${mobileFiltersOpen?' is-open':''}`} aria-expanded={mobileFiltersOpen} aria-controls="opcg-library-facets" onClick={()=>setMobileFiltersOpen(value=>!value)}><SlidersHorizontal size={15}/><span>{id?'Filter':'Filters'}</span>{activeFilterCount>0&&<b>{activeFilterCount}</b>}<ChevronDown size={14}/></button>
@@ -283,7 +311,7 @@ export function Catalog({home=false,initialSet,initialArchetype,initialCard,init
         <div className="filter-secondary">
           <SortOrderPicker value={sortOrder} onChange={setSortOrder} locale={locale}/>
           <GridDensity value={gridColumns} onChange={setGridColumns} locale={locale}/>
-          <div className="language-switch" aria-label="Printing language"><button aria-pressed={language==='EN'} onClick={()=>{setLanguage('EN');setCatalogPage(0);setCatalogLoading(true)}}>EN</button><button aria-pressed={language==='JP'} onClick={()=>{setLanguage('JP');setCatalogPage(0);setCatalogLoading(true)}}>JP</button></div>
+          <div className="language-switch" aria-label="Printing language"><button aria-pressed={language==='EN'} onClick={()=>{setLanguage('EN');setCatalogPage(0);setCatalogLoading(true)}}>EN</button><button aria-pressed={language==='JP'} onClick={()=>{setLanguage('JP');setCatalogPage(0);setCatalogLoading(true)}}>JP</button><button aria-pressed={language==='ALL'} onClick={()=>{setLanguage('ALL');setCatalogPage(0);setCatalogLoading(true)}}>{id?'Semua':'All'}</button></div>
           {(selectedColors.length||types.length||rarities.length||attributes.length||counters.length||keywords.length||traits.length||blocks.length||(!setPage&&sets.length)||query)&&<div className="filter-status"><button onClick={()=>{setQuery('');setColor('All colors');setSelectedColors([]);setTypes([]);setRarities([]);setAttributes([]);setCounters([]);setKeywords([]);setTraits([]);setBlocks([]);setSets(setPage&&initialSet?[normalizeSetCode(initialSet)]:[])}}><X size={13}/>{id?'Hapus':'Clear'}</button></div>}
         </div>
       </div>
@@ -294,6 +322,6 @@ export function Catalog({home=false,initialSet,initialArchetype,initialCard,init
     </div>
     {catalogLoading&&<div className="catalog-loading" role="status"><div className="catalog-skeleton-grid">{Array.from({length:10},(_,index)=><i key={index}/>)}</div><span className="sr-only">{id?'Memuat versi cetak kartu':'Loading card printings'}</span></div>}{!filtered.length&&!catalogLoading && <div className="empty-state"><h2>{setPage?(id?'Tidak ada kartu dalam set ini yang cocok.':'No cards in this set match those filters.'):(id?'Tidak ada kartu yang cocok dengan pencarian.':'No card matches that search.')}</h2><p>{id?'Coba masukkan nomor kartu, nama yang lebih singkat, atau atur ulang filter.':'Try the card number, a shorter name, or reset the filters.'}</p><button className="button secondary" onClick={()=>{setQuery('');setColor('All colors');setSelectedColors([]);setTypes([]);setRarities([]);setAttributes([]);setCounters([]);setKeywords([]);setTraits([]);setBlocks([]);setSets(setPage&&initialSet?[normalizeSetCode(initialSet)]:[])}}>{id?'Atur ulang filter katalog':'Reset library filters'}</button></div>}
     {!catalogLoading&&groups.length>(catalogPage+1)*240&&<div className="browse-all-wrap"><button className="button secondary browse-all" onClick={()=>setCatalogPage(page=>page+1)}>{id?'Muat lebih banyak kartu':'Load more catalog cards'}</button></div>}
-    {preview&&<CardPreviewModal card={preview} origin={previewOrigin} language={language as 'EN'|'JP'} cards={groups.map(group=>group[0])} onClose={()=>{setPreview(undefined);setPreviewOrigin(undefined)}} onNavigate={setPreview}/>} 
+    {preview&&<CardPreviewModal card={preview} origin={previewOrigin} language={preview.language==='JP'?'JP':'EN'} cards={groups.map(group=>group[0])} onClose={()=>{setPreview(undefined);setPreviewOrigin(undefined)}} onNavigate={setPreview}/>}
   </main>;
 }

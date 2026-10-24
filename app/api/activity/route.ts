@@ -27,20 +27,22 @@ export async function GET(){
       ...audit.results.map(row=>{
         const graded=row.type==='GRADED';
         const created=row.action==='COLLECTIBLE_CREATED';
-        const cardName=row.name??row.code??'card';
+        const cardName=row.name??'card';
+        const grade=[row.gradingProvider,row.grade].filter(Boolean).join(' ');
+        const certificate=row.certification?`Certificate #${row.certification}`:'';
         return{
           id:`audit:${row.id}`,
           kind:graded?'slab':'vault',
           createdAt:row.createdAt,
           title:graded?(created?'Slab added to Vault':'Slab updated'):(created?'Raw card added to Vault':'Raw card updated'),
           description:graded
-            ? `${cardName}${row.gradingProvider||row.grade?` · ${[row.gradingProvider,row.grade].filter(Boolean).join(' ')}`:''}${row.certification?` · Cert #${row.certification}`:''}`
-            : `${row.quantity??1}× ${cardName}${row.condition?` · ${row.condition}`:''}`,
+            ? [grade?`${cardName} graded ${grade}`:cardName,certificate].filter(Boolean).join('. ')
+            : `${row.quantity??1} ${row.quantity===1?'copy':'copies'} of ${cardName}${row.condition?` in ${row.condition} condition`:''}.`,
         };
       }),
-      ...listings.results.map(row=>({id:`listing:${row.id}`,kind:'market',createdAt:row.createdAt,title:row.status==='SOLD'?'Listing sold':'Listed on Market',description:`${row.title} · ${money(row.amount,row.currency)} · ${row.status.toLowerCase()}`})),
-      ...offers.results.map(row=>({id:`offer:${row.id}`,kind:'offer',createdAt:row.createdAt,title:row.sellerId===profile.id?'Offer received':'Offer sent',description:`${row.title} · ${money(row.amount,row.currency)} · ${row.status.toLowerCase()}`})),
-      ...orders.results.map(row=>({id:`order:${row.id}`,kind:'order',createdAt:row.createdAt,title:row.kind==='PRO'?'Market Pro order':'Market order',description:`${money(row.amount,row.currency)} · ${row.status.toLowerCase().replaceAll('_',' ')}`})),
+      ...listings.results.map(row=>({id:`listing:${row.id}`,kind:'market',createdAt:row.createdAt,title:row.status==='SOLD'?'Listing sold':'Listed on Market',description:`${row.title} is ${row.status.toLowerCase()} at ${money(row.amount,row.currency)}.`})),
+      ...offers.results.map(row=>({id:`offer:${row.id}`,kind:'offer',createdAt:row.createdAt,title:row.sellerId===profile.id?'Offer received':'Offer sent',description:`${row.status.toLowerCase()} offer for ${row.title}, ${money(row.amount,row.currency)}.`})),
+      ...orders.results.map(row=>({id:`order:${row.id}`,kind:'order',createdAt:row.createdAt,title:row.kind==='PRO'?'Market Pro order':'Market order',description:`${row.status.toLowerCase().replaceAll('_',' ')} for ${money(row.amount,row.currency)}.`})),
     ].sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).slice(0,100);
     return Response.json({activities},{headers:{'Cache-Control':'private, no-store, max-age=0','Vary':'Cookie'}});
   }catch(error){return errorResponse(error)}

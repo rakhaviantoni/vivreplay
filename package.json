@@ -20,6 +20,8 @@
     "db:mirror-supabase": "node --env-file=.env.local scripts/mirror-supabase-catalog-to-d1.mjs",
     "catalog:import-sealed": "node --env-file=.env.local --import tsx scripts/import-sealed-products.ts",
     "catalog:import-pokemon": "node --import tsx scripts/import-tcgdex-pokemon.ts",
+    "catalog:import-cardtell-pokemon": "node --import tsx scripts/import-cardtell-pokemon-id.ts",
+    "catalog:ocr-cardtell": "node --env-file=.env.local scripts/cardtell-pokemon-ocr.mjs",
     "catalog:refresh-set-dates": "node --env-file=.env.local --import tsx scripts/refresh-tcg-set-release-dates.ts",
     "catalog:recover-pokemon-images": "node scripts/recover-pokepedia-images.mjs",
     "catalog:reconcile-r2": "node --env-file=.env.local scripts/reconcile-missing-r2-card-images.mjs",
@@ -41,6 +43,7 @@
   "dependencies": {
     "@base-ui/react": "^1.7.0",
     "@hookform/resolvers": "^5.7.1",
+    "@paddleocr/paddleocr-js": "^0.4.2",
     "@phosphor-icons/react": "^2.1.10",
     "@shadcn/react": "^0.3.0",
     "@supabase/ssr": "^0.12.7",

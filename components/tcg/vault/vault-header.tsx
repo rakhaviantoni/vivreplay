@@ -9,7 +9,9 @@ import {
   LockKeyIcon as Lock, 
   ShareNetworkIcon as Share2, 
   ArrowDownIcon as Download, 
+  UploadSimpleIcon as Upload,
   ChartLineUpIcon as TrendingUp,
+  StorefrontIcon as Storefront,
 } from '@phosphor-icons/react';
 import { formatMoney, formatCompactMoney } from '@/packages/domain';
 import type { VaultStats, PrivacySettings } from './types';
@@ -27,6 +29,7 @@ interface VaultHeaderProps {
   onOpenPrivacyModal: () => void;
   onOpenShareModal: () => void;
   onOpenImportExport: () => void;
+  onCreateBundleListing?: () => void;
 }
 
 export function VaultHeader({
@@ -42,6 +45,7 @@ export function VaultHeader({
   onOpenPrivacyModal,
   onOpenShareModal,
   onOpenImportExport,
+  onCreateBundleListing,
 }: VaultHeaderProps) {
   const t = (en: string, idStr: string) => language === 'ID' ? idStr : en;
 
@@ -54,56 +58,68 @@ export function VaultHeader({
           <p className="vault-subtitle">
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
               <Lock size={12} />
-              {privacy.collection === 'public' ? t('Visible to others','Terlihat oleh orang lain') : t('Only you can see this','Hanya Anda yang dapat melihat')}
+              {privacy.collection === 'public' ? t('Public','Publik') : t('Private','Pribadi')}
             </span>
           </p>
         </div>
 
         <div className="vault-actions-group">
-          <button 
-            type="button" 
-            className="vault-btn vault-btn-secondary" 
-            onClick={onOpenQuickAdd}
-            title={t('Add a card quickly','Tambah kartu dengan cepat')}
-          >
-            <Zap size={15} weight="fill" color="#c68a2c" />
-            {t('Quick Add','Tambah Cepat')}
-          </button>
-          <button 
-            type="button" 
-            className="vault-btn vault-btn-primary" 
+          <div className="vault-actions-primary">
+          <button
+            type="button"
+            className="vault-btn vault-btn-primary vault-action-add"
             onClick={onOpenFullAdd}
           >
             <Plus size={15} weight="bold" />
-            {t('Add to Vault','Simpan ke koleksi')}
+            <span>{t('Add to Vault','Simpan ke koleksi')}</span>
+          </button>
+          {onCreateBundleListing&&<button type="button" className="vault-btn vault-btn-secondary vault-header-bundle-action" onClick={onCreateBundleListing}>
+            <Storefront size={15}/>
+            <span>{t('Create bundle','Buat bundle')}</span>
+          </button>}
+          </div>
+          <div className="vault-actions-utilities">
+          <button
+            type="button" 
+            className="vault-btn vault-btn-secondary vault-action-compact vault-action-quick"
+            onClick={onOpenQuickAdd}
+            title={t('Add a card quickly','Tambah kartu dengan cepat')}
+            aria-label={t('Quick Add','Tambah Cepat')}
+          >
+            <Zap size={15} weight="fill" color="#c68a2c" />
+            <span className="vault-action-label">{t('Quick Add','Tambah Cepat')}</span>
           </button>
           <button 
             type="button" 
-            className="vault-btn vault-btn-secondary" 
+            className="vault-btn vault-btn-secondary vault-action-compact vault-action-privacy"
             onClick={onOpenPrivacyModal}
             title={t('Choose who can see your collection','Atur siapa yang dapat melihat koleksi')}
+            aria-label={t('Privacy','Privasi')}
           >
             <Lock size={14} />
-            {t('Privacy','Privasi')}
+            <span className="vault-action-label">{t('Privacy','Privasi')}</span>
           </button>
           <button 
             type="button" 
-            className="vault-btn vault-btn-secondary" 
+            className="vault-btn vault-btn-secondary vault-action-compact vault-action-share"
             onClick={onOpenShareModal}
             title={t('Share your collection','Bagikan koleksi')}
+            aria-label={t('Share','Bagikan')}
           >
             <Share2 size={14} />
-            {t('Share','Bagikan')}
+            <span className="vault-action-label">{t('Share','Bagikan')}</span>
           </button>
           <button 
             type="button" 
-            className="vault-btn vault-btn-ghost" 
+            className="vault-btn vault-btn-ghost vault-action-compact vault-action-import"
             onClick={onOpenImportExport}
             title={t('Import or Export collection data','Impor atau Ekspor data koleksi')}
+            aria-label={t('Import / Export','Impor / Ekspor')}
           >
-            <Download size={14} />
-            {t('Import / Export','Impor / Ekspor')}
+            <span className="vault-action-import-icons" aria-hidden="true"><Upload size={14} /><Download size={14} /></span>
+            <span className="vault-action-label">{t('Import / Export','Impor / Ekspor')}</span>
           </button>
+          </div>
         </div>
       </div>
 

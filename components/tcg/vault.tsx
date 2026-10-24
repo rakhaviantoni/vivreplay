@@ -44,6 +44,7 @@ import { ActivityTab } from './vault/tabs/activity-tab';
 import { VaultPanelEmpty } from './vault/vault-panel-empty';
 import { ListingsTab } from './vault/tabs/listings-tab';
 import { VivreMark } from './brand-assets';
+import { VaultLoading } from './vault/vault-loading';
 
 // Vault Modals
 import { QuickAddModal } from './vault/modals/quick-add-modal';
@@ -105,13 +106,13 @@ export function Vault() {
   // Filter & Search State
   const [filters, setFilters] = useState<VaultFilterState>({
     search: '',
-    setCode: 'all',
-    language: 'all',
-    rarity: 'all',
+    setCode: [],
+    language: [],
+    rarity: [],
     cardType: 'all',
     color: 'all',
     typeFilter: 'all',
-    gradingProvider: 'all',
+    gradingProvider: [],
     grade: 'all',
     ownership: 'all',
     forSaleOnly: false,
@@ -274,28 +275,29 @@ export function Vault() {
         const matchesName = item.card.name.toLowerCase().includes(q);
         const matchesCode = item.card.code.toLowerCase().includes(q);
         const matchesSet = (item.card.setCode || '').toLowerCase().includes(q);
-        if (!matchesName && !matchesCode && !matchesSet) return false;
+        const matchesPrinting = (item.card.printingCode || '').toLowerCase().includes(q);
+        if (!matchesName && !matchesCode && !matchesSet && !matchesPrinting) return false;
       }
       // Set
-      if (filters.setCode !== 'all') {
+      if (filters.setCode.length) {
         const cardSet = item.card.setCode || 'OP-01';
-        if (cardSet !== filters.setCode) return false;
+        if (!filters.setCode.includes(cardSet)) return false;
       }
       // Language
-      if (filters.language !== 'all') {
+      if (filters.language.length) {
         const printing = printings.find(p => p.id === item.printingId);
         const itemLanguage = printing?.language ?? item.language ?? item.card.language;
-        if (itemLanguage && itemLanguage !== filters.language) return false;
+        if (itemLanguage && !filters.language.includes(itemLanguage)) return false;
       }
       // Type (Raw vs Graded)
       if (filters.typeFilter === 'raw' && item.type !== 'RAW') return false;
       if (filters.typeFilter === 'graded' && item.type !== 'GRADED') return false;
       // Grading Provider
-      if (filters.gradingProvider !== 'all' && item.provider !== filters.gradingProvider) return false;
+      if (filters.gradingProvider.length && !filters.gradingProvider.includes(item.provider ?? '')) return false;
       // Grade
       if (filters.grade !== 'all' && item.grade !== filters.grade) return false;
       // Rarity
-      if (filters.rarity !== 'all' && item.card.rarity !== filters.rarity) return false;
+      if (filters.rarity.length && !filters.rarity.includes(item.card.rarity)) return false;
       // Color
       if (gameSlug==='one-piece'&&filters.color !== 'all' && !item.card.color.split(/\s*(?:\/|&|,|·)\s*|\s+/).includes(filters.color)) return false;
       // Card type
@@ -452,7 +454,7 @@ export function Vault() {
 
   const username = data?.profile?.username || (language === 'ID' ? 'kolektor-tamu' : 'guest-collector');
 
-  if (loading) return <main className="page vault-page vault-loading-page" aria-busy="true" aria-live="polite"><VivreMark size={42} label="VivrePlay"/><h1>{t('Opening your Vault…','Membuka koleksi…')}</h1><p>{t('Loading your saved cards and collection details.','Memuat kartu tersimpan dan detail koleksi Anda.')}</p><div className="vault-loading-grid" aria-hidden="true">{Array.from({length:6},(_,index)=><i key={index}/>)}</div></main>;
+  if (loading) return <VaultLoading label={t('Loading your Vault','Memuat koleksi Anda')}/>;
   if (!data && error && !/sign in to save/i.test(error)) return <main className="page vault-loading-page vault-error-page" role="alert"><VivreMark size={42} label="VivrePlay"/><h1>{t('Your Vault could not load','Koleksi Anda tidak dapat dimuat')}</h1><p>{error}</p><button type="button" className="vault-btn vault-btn-primary" onClick={()=>void refresh()}>{t('Try again','Coba lagi')}</button></main>;
 
   return (
@@ -553,6 +555,7 @@ export function Vault() {
         onOpenPrivacyModal={() => setPrivacyModalOpen(true)}
         onOpenShareModal={() => setShareModalOpen(true)}
         onOpenImportExport={() => setImportExportOpen(true)}
+        onCreateBundleListing={data?.profile?()=>setBulkListingOpen(true):undefined}
       />
 
       {/* Vault Navigation Tabs */}
@@ -647,7 +650,7 @@ export function Vault() {
               icon={<Layers3 size={22}/>}
               title={enrichedItems.length===0?t('Your Vault is empty','Koleksi Anda masih kosong'):t('No cards match','Tidak ada kartu yang cocok')}
               description={enrichedItems.length===0?t('Add a card printing to start your collection.','Tambahkan cetakan kartu untuk memulai koleksi Anda.'):t('Clear a filter or change your search.','Hapus filter atau ubah pencarian Anda.')}
-              action={enrichedItems.length===0?<button type="button" className="vault-btn vault-btn-primary" onClick={()=>setQuickAddOpen(true)}>{t('Find a card to add','Cari kartu untuk ditambahkan')}</button>:<button type="button" className="vault-btn vault-btn-secondary" onClick={()=>setFilters(prev=>({...prev,search:'',setCode:'all',language:'all',rarity:'all',color:'all',typeFilter:'all',gradingProvider:'all',grade:'all',favoritesOnly:false}))}>{t('Clear filters','Hapus filter')}</button>}
+              action={enrichedItems.length===0?<button type="button" className="vault-btn vault-btn-primary" onClick={()=>setQuickAddOpen(true)}>{t('Find a card to add','Cari kartu untuk ditambahkan')}</button>:<button type="button" className="vault-btn vault-btn-secondary" onClick={()=>setFilters(prev=>({...prev,search:'',setCode:[],language:[],rarity:[],color:'all',typeFilter:'all',gradingProvider:[],grade:'all',favoritesOnly:false}))}>{t('Clear filters','Hapus filter')}</button>}
             />
           ) : viewMode === 'binder' ? (
             <BinderView
@@ -803,6 +806,7 @@ export function Vault() {
         open={Boolean(selectedSlabItem)}
         canManagePhotos={Boolean(data?.profile)}
         hideValues={hideValues}
+        preferredCurrency={data?.profile?.currency}
         onClose={() => setSelectedSlabItem(null)}
         onEdit={slab => {
           setSelectedSlabItem(null);
@@ -826,6 +830,7 @@ export function Vault() {
         selectedSlab={selectedSlabItem}
         selectedSet={selectedShareSet}
         language={language}
+        gameSlug={gameSlug}
       />
 
       <PrivacyModal

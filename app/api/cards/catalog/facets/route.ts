@@ -14,7 +14,8 @@ export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   const gameSlug = params.get('game')?.toLowerCase() === 'pokemon' ? 'pokemon' : 'one-piece';
   const requestedLanguage = params.get('language')?.toUpperCase();
-  const language = requestedLanguage === 'JP' || requestedLanguage === 'JA' ? 'JP' : requestedLanguage === 'ID' ? 'ID' : 'EN';
+  const language = gameSlug === 'pokemon' && requestedLanguage === 'ALL' ? 'ALL' : requestedLanguage === 'JP' || requestedLanguage === 'JA' ? 'JP' : requestedLanguage === 'ID' ? 'ID' : 'EN';
+  const languageFilter = language === 'ALL' ? '' : ' AND p.language=?';
   const key = `catalog-snapshots/facets-${gameSlug}-${language.toLowerCase()}-${CARD_CATALOG_CACHE_REVISION}.json`;
   try {
     const snapshot = await env.CARD_IMAGES?.get(key);
@@ -28,82 +29,82 @@ export async function GET(request: Request) {
       SELECT DISTINCT p.rarity
       FROM tcg_card_printings p
       JOIN tcg_card_identities i ON i.id=p.identity_id
-      WHERE i.game_id=? AND p.language=? AND p.rarity IS NOT NULL AND trim(p.rarity)!=''
+      WHERE i.game_id=?${languageFilter} AND p.rarity IS NOT NULL AND trim(p.rarity)!=''
         AND LOWER(trim(p.rarity)) NOT IN ('unknown','none','null')
       ORDER BY p.rarity COLLATE NOCASE
-    `).bind(game.id, language).all<{ rarity: string }>();
+    `).bind(...(language === 'ALL' ? [game.id] : [game.id, language])).all<{ rarity: string }>();
     const illustrators = await db.prepare(`
       SELECT DISTINCT trim(json_extract(p.source_payload, '$.illustrator')) AS illustrator
       FROM tcg_card_printings p
       JOIN tcg_card_identities i ON i.id=p.identity_id
-      WHERE i.game_id=? AND p.language=? AND json_valid(p.source_payload)
+      WHERE i.game_id=?${languageFilter} AND json_valid(p.source_payload)
         AND json_type(p.source_payload, '$.illustrator')='text'
         AND trim(json_extract(p.source_payload, '$.illustrator'))!=''
       ORDER BY illustrator COLLATE NOCASE
-    `).bind(game.id, language).all<{ illustrator: string }>();
+    `).bind(...(language === 'ALL' ? [game.id] : [game.id, language])).all<{ illustrator: string }>();
     const types = await db.prepare(`
       SELECT DISTINCT trim(t.value) AS type
       FROM tcg_card_printings p
       JOIN tcg_card_identities i ON i.id=p.identity_id
       JOIN json_each(p.source_payload, '$.types') t
-      WHERE i.game_id=? AND p.language=? AND json_valid(p.source_payload)
+      WHERE i.game_id=?${languageFilter} AND json_valid(p.source_payload)
         AND json_type(p.source_payload, '$.types')='array'
         AND trim(t.value)!=''
       ORDER BY type COLLATE NOCASE
-    `).bind(game.id, language).all<{ type: string }>();
+    `).bind(...(language === 'ALL' ? [game.id] : [game.id, language])).all<{ type: string }>();
     const categories = await db.prepare(`
       SELECT DISTINCT trim(json_extract(p.source_payload, '$.category')) AS category
       FROM tcg_card_printings p
       JOIN tcg_card_identities i ON i.id=p.identity_id
-      WHERE i.game_id=? AND p.language=? AND json_valid(p.source_payload)
+      WHERE i.game_id=?${languageFilter} AND json_valid(p.source_payload)
         AND json_type(p.source_payload, '$.category')='text'
         AND trim(json_extract(p.source_payload, '$.category'))!=''
       ORDER BY category COLLATE NOCASE
-    `).bind(game.id, language).all<{ category: string }>();
+    `).bind(...(language === 'ALL' ? [game.id] : [game.id, language])).all<{ category: string }>();
     const stages = await db.prepare(`
       SELECT DISTINCT trim(json_extract(p.source_payload, '$.stage')) AS stage
       FROM tcg_card_printings p
       JOIN tcg_card_identities i ON i.id=p.identity_id
-      WHERE i.game_id=? AND p.language=? AND json_valid(p.source_payload)
+      WHERE i.game_id=?${languageFilter} AND json_valid(p.source_payload)
         AND json_type(p.source_payload, '$.stage')='text'
         AND trim(json_extract(p.source_payload, '$.stage'))!=''
       ORDER BY stage COLLATE NOCASE
-    `).bind(game.id, language).all<{ stage: string }>();
+    `).bind(...(language === 'ALL' ? [game.id] : [game.id, language])).all<{ stage: string }>();
     const attackEnergies = await db.prepare(`
       SELECT DISTINCT trim(energy.value) AS energy
       FROM tcg_card_printings p JOIN tcg_card_identities i ON i.id=p.identity_id
       JOIN json_each(p.source_payload, '$.attacks') attack JOIN json_each(attack.value, '$.cost') energy
-      WHERE i.game_id=? AND p.language=? AND json_valid(p.source_payload)
+      WHERE i.game_id=?${languageFilter} AND json_valid(p.source_payload)
       ORDER BY energy COLLATE NOCASE
-    `).bind(game.id, language).all<{ energy: string }>();
+    `).bind(...(language === 'ALL' ? [game.id] : [game.id, language])).all<{ energy: string }>();
     const regulations = await db.prepare(`
       SELECT DISTINCT trim(json_extract(p.source_payload, '$.regulationMark')) AS regulation
       FROM tcg_card_printings p JOIN tcg_card_identities i ON i.id=p.identity_id
-      WHERE i.game_id=? AND p.language=? AND json_valid(p.source_payload)
+      WHERE i.game_id=?${languageFilter} AND json_valid(p.source_payload)
         AND json_type(p.source_payload, '$.regulationMark')='text'
       ORDER BY regulation COLLATE NOCASE
-    `).bind(game.id, language).all<{ regulation: string }>();
+    `).bind(...(language === 'ALL' ? [game.id] : [game.id, language])).all<{ regulation: string }>();
     const retreats = await db.prepare(`
       SELECT DISTINCT CAST(json_extract(p.source_payload, '$.retreat') AS INTEGER) AS retreat
       FROM tcg_card_printings p JOIN tcg_card_identities i ON i.id=p.identity_id
-      WHERE i.game_id=? AND p.language=? AND json_valid(p.source_payload)
+      WHERE i.game_id=?${languageFilter} AND json_valid(p.source_payload)
         AND json_type(p.source_payload, '$.retreat') IN ('integer','real')
       ORDER BY retreat
-    `).bind(game.id, language).all<{ retreat: number }>();
+    `).bind(...(language === 'ALL' ? [game.id] : [game.id, language])).all<{ retreat: number }>();
     const weaknesses = await db.prepare(`
       SELECT DISTINCT trim(json_extract(weakness.value, '$.type')) AS type
       FROM tcg_card_printings p JOIN tcg_card_identities i ON i.id=p.identity_id
       JOIN json_each(p.source_payload, '$.weaknesses') weakness
-      WHERE i.game_id=? AND p.language=? AND json_valid(p.source_payload)
+      WHERE i.game_id=?${languageFilter} AND json_valid(p.source_payload)
       ORDER BY type COLLATE NOCASE
-    `).bind(game.id, language).all<{ type: string }>();
+    `).bind(...(language === 'ALL' ? [game.id] : [game.id, language])).all<{ type: string }>();
     const resistances = await db.prepare(`
       SELECT DISTINCT trim(json_extract(resistance.value, '$.type')) AS type
       FROM tcg_card_printings p JOIN tcg_card_identities i ON i.id=p.identity_id
       JOIN json_each(p.source_payload, '$.resistances') resistance
-      WHERE i.game_id=? AND p.language=? AND json_valid(p.source_payload)
+      WHERE i.game_id=?${languageFilter} AND json_valid(p.source_payload)
       ORDER BY type COLLATE NOCASE
-    `).bind(game.id, language).all<{ type: string }>();
+    `).bind(...(language === 'ALL' ? [game.id] : [game.id, language])).all<{ type: string }>();
     const body = {
       rarities: results.map(row => row.rarity),
       illustrators: illustrators.results.map(row => row.illustrator),

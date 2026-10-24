@@ -43,6 +43,8 @@ export function BinderView({
 }: BinderViewProps) {
   const [currentPage, setCurrentPage] = useState(0);
   const [gridColumns, setGridColumns] = useState<2|3|4>(3);
+  const [mobileGridColumns, setMobileGridColumns] = useState<1|2>(1);
+  const [isMobile, setIsMobile] = useState(false);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const draggedId = useRef<string | null>(null);
@@ -50,9 +52,21 @@ export function BinderView({
   const gridRef = useRef<HTMLDivElement>(null);
   const previousRects = useRef(new Map<string, DOMRect>());
   useEffect(()=>{
-    try{const saved=Number(window.localStorage.getItem(gridSizeStorageKey));if(saved===2||saved===3||saved===4)setGridColumns(saved);}catch{}
+    try{
+      const saved=Number(window.localStorage.getItem(gridSizeStorageKey));
+      if(saved===2||saved===3||saved===4)setGridColumns(saved);
+      const savedMobile=Number(window.localStorage.getItem(`${gridSizeStorageKey}:mobile`));
+      if(savedMobile===1||savedMobile===2)setMobileGridColumns(savedMobile);
+    }catch{}
   },[gridSizeStorageKey]);
-  const visibleColumns=gridColumns;
+  useEffect(()=>{
+    const media=window.matchMedia('(max-width: 580px)');
+    const sync=()=>{setIsMobile(media.matches);setCurrentPage(0)};
+    sync();
+    media.addEventListener('change',sync);
+    return()=>media.removeEventListener('change',sync);
+  },[]);
+  const visibleColumns=isMobile?mobileGridColumns:gridColumns;
   const pageSize = visibleColumns * 3;
   const stacks=useMemo(()=>{
     const grouped=groupVaultStacks(items);
@@ -92,9 +106,15 @@ export function BinderView({
     next.splice(to,0,next.splice(from,1)[0]);
     onOrderChange(next);
   };
-  const changeGridColumns=(columns:2|3|4)=>{
-    setGridColumns(columns);
-    try{window.localStorage.setItem(gridSizeStorageKey,String(columns));}catch{}
+  const changeGridColumns=(columns:1|2|3|4)=>{
+    if(isMobile){
+      if(columns!==1&&columns!==2)return;
+      setMobileGridColumns(columns);
+      try{window.localStorage.setItem(`${gridSizeStorageKey}:mobile`,String(columns));}catch{}
+    }else if(columns>1){
+      setGridColumns(columns as 2|3|4);
+      try{window.localStorage.setItem(gridSizeStorageKey,String(columns));}catch{}
+    }
     setCurrentPage(0);
   };
 
@@ -114,7 +134,7 @@ export function BinderView({
         {/* Page Turnover Pagination */}
         <div className="vault-binder-tools">
           <div className="vault-binder-grid-size" role="group" aria-label="Binder grid size">
-            {[2,3,4].map(columns=><button type="button" key={columns} aria-pressed={gridColumns===columns} aria-label={`${columns} columns per row`} title={`${columns} columns per row`} className={gridColumns===columns?'is-selected':''} onClick={()=>changeGridColumns(columns as 2|3|4)}>{columns}</button>)}
+            {(isMobile?[1,2]:[2,3,4]).map(columns=><button type="button" key={columns} data-columns={columns} aria-pressed={visibleColumns===columns} aria-label={`${columns} columns per row`} title={`${columns} columns per row`} className={visibleColumns===columns?'is-selected':''} onClick={()=>changeGridColumns(columns as 1|2|3|4)}>{columns}</button>)}
           </div>
           <div className="vault-binder-pagination">
             <button

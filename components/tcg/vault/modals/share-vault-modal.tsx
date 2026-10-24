@@ -1,284 +1,102 @@
 'use client';
 
-import React, { useState } from 'react';
-import { 
-  XIcon as X, 
-  CopyIcon as Copy, 
-  CheckIcon as Check, 
-  ShareNetworkIcon as Share2
-} from '@phosphor-icons/react';
-import { toast } from 'sonner';
-import { CardArt } from '../card-art';
-import { VivreMark } from '../../brand-assets';
-import { formatCompactMoney } from '@/packages/domain';
-import type { EnrichedCollectionItem, SetProgress } from '../types';
+import React, {useEffect, useMemo, useState} from 'react';
+import {CheckIcon as Check, CopyIcon as Copy, DownloadSimpleIcon as Download, MoonIcon as Moon, ShareNetworkIcon as Share2, SunIcon as Sun} from '@phosphor-icons/react';
+import {toast} from 'sonner';
+import {VivreMark} from '../../brand-assets';
+import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle} from '@/components/ui/dialog';
+import {generateVaultShareBlob, type ShareCardItem} from '../../share';
+import {vaultPublicCardReference} from '../views/vault-slot-meta-identity';
+import type {EnrichedCollectionItem, SetProgress} from '../types';
 
 interface ShareVaultModalProps {
-  open: boolean;
-  onClose: () => void;
-  username: string;
-  items: EnrichedCollectionItem[];
-  hideValues: boolean;
-  selectedSlab?: EnrichedCollectionItem | null;
-  selectedSet?: SetProgress | null;
-  language?: 'EN' | 'ID';
+  open:boolean; onClose:()=>void; username:string; items:EnrichedCollectionItem[]; hideValues:boolean;
+  selectedSlab?:EnrichedCollectionItem|null; selectedSet?:SetProgress|null; language?:'EN'|'ID'; gameSlug:'one-piece'|'pokemon';
 }
 
-export function ShareVaultModal({
-  open,
-  onClose,
-  username,
-  items,
-  hideValues,
-  selectedSlab,
-  selectedSet,
-  language = 'EN',
-}: ShareVaultModalProps) {
-  const [shareFormat, setShareFormat] = useState<'top9' | 'slab' | 'set'>(
-    selectedSlab ? 'slab' : selectedSet ? 'set' : 'top9'
-  );
-  const [shareStyle,setShareStyle]=useState<'light'|'dark'>('light');
-  const [copied, setCopied] = useState(false);
-  const id=language==='ID';
+function shareMeta(item:EnrichedCollectionItem){
+  const printing=item.card.availablePrintings?.find(candidate=>String(candidate.id)===String(item.printingId));
+  const setCode=printing?.set_code??item.setCode??item.card.setCode;
+  const language=printing?.language??item.language??item.card.language;
+  const rarity=printing?.rarity??item.rarity??item.card.rarity;
+  const isPokemon=item.card.gameSlug==='pokemon'||/^PK-/i.test(item.card.code);
+  const reference=isPokemon?vaultPublicCardReference(item):[setCode,(printing?.printing_code??item.printingCode??item.card.printingCode??item.card.code).replace(/_p\d+$/i,'')].filter(Boolean).join(' ');
+  return [reference,language,rarity].filter(Boolean).join('  ');
+}
 
-  if (!open) return null;
-
-  // The Vault supplies binder order; preserve it in the share showcase.
-  const displayTop9 = items.slice(0, 9);
-
-  const activeSlab = selectedSlab || items.find(i => i.type === 'GRADED') || items[0];
-
-  const shareOrigin = typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname) ? window.location.origin : 'https://vivreplay.com';
-  const shareUrl = `${shareOrigin}/players/${username}`;
-
-  const handleCopyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      setCopied(true);
-      toast.success(id?'Tautan koleksi berhasil disalin':'Collection showcase link copied to clipboard');
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast.error(id?'Tautan gagal disalin':'Copy link failed');
-    }
+function slabShareLabel(item:EnrichedCollectionItem){
+  const printing=item.card.availablePrintings?.find(candidate=>String(candidate.id)===String(item.printingId));
+  const printCode=printing?.printing_code??item.printingCode??item.card.printingCode??item.card.code;
+  return {
+    setCode:printing?.set_code??item.setCode??item.card.setCode,
+    language:printing?.language??item.language??item.card.language,
+    number:printCode.match(/(\d+[A-Z]?)$/i)?.[1]??printCode,
+    rarity:printing?.rarity??item.rarity??item.card.rarity,
   };
+}
 
-  return (
-    <div style={{
-      position: 'fixed',
-      inset: 0,
-      zIndex: 160,
-      background: 'rgba(10, 12, 16, 0.8)',
-      backdropFilter: 'blur(8px)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '20px',
-    }}>
-      <div style={{
-        width: '100%',
-        maxWidth: '560px',
-        maxHeight: '92vh',
-        overflowY: 'auto',
-        borderRadius: '18px',
-        background: 'var(--vault-panel)',
-        border: '1px solid var(--vault-border)',
-        boxShadow: '0 28px 70px rgba(0, 0, 0, 0.35)',
-        padding: '26px',
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <div>
-            <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.12em', color: 'var(--vault-gold)', textTransform: 'uppercase' }}>
-              {id?'Bagikan koleksi':'Collector Pride & Social Share'}
-            </span>
-            <h3 style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '22px', fontWeight: 600, margin: '2px 0 0' }}>
-              {id?'Bagikan koleksi':'Share Your Collection'}
-            </h3>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--vault-ink-muted)' }}
-          >
-            <X size={20} />
-          </button>
+export function ShareVaultModal({open,onClose,username,items,selectedSlab,selectedSet,language='EN',gameSlug}:ShareVaultModalProps){
+  const id=language==='ID';
+  const activeSlab=selectedSlab??items.find(item=>item.type==='GRADED')??null;
+  const [requestedFormat,setRequestedFormat]=useState<'top9'|'slab'|'set'|null>(null);
+  const format=requestedFormat??(selectedSlab?'slab':selectedSet?'set':'top9');
+  const [style,setStyle]=useState<'light'|'dark'>('light');
+  const [copied,setCopied]=useState(false);
+  const [preview,setPreview]=useState('');
+  const [loading,setLoading]=useState(false);
+  const topItems=useMemo(()=>items.slice(0,9),[items]);
+  const shareItems:ShareCardItem[]=useMemo(()=>topItems.map(item=>({
+    card:item.card,printingId:item.printingId,quantity:item.quantity,metaLine:shareMeta(item),
+    productType:item.type,gradingCompany:item.provider??undefined,grade:item.grade??undefined,certification:item.certification??undefined,
+    ...(item.type==='GRADED'?{slabLabel:slabShareLabel(item)}:{}),
+  })),[topItems]);
+  const origin=typeof window!=='undefined'&&['localhost','127.0.0.1'].includes(window.location.hostname)?window.location.origin:'https://vivreplay.com';
+  const shareUrl=`${origin}/players/${username}`;
+  const setData=useMemo(()=>selectedSet?{name:selectedSet.name,ownedCount:selectedSet.ownedCount,totalCards:selectedSet.totalCards,percentage:selectedSet.percentage,mainSetOwned:selectedSet.mainSetOwned,mainSetTotal:selectedSet.mainSetTotal,parallelsOwned:selectedSet.parallelsOwned,parallelsTotal:selectedSet.parallelsTotal}:undefined,[selectedSet]);
+  const cardsForImage=useMemo(()=>format==='top9'?shareItems:format==='slab'&&activeSlab?[{card:activeSlab.card,printingId:activeSlab.printingId,quantity:1,metaLine:shareMeta(activeSlab),productType:'GRADED' as const,gradingCompany:activeSlab.provider??undefined,grade:activeSlab.grade??undefined,certification:activeSlab.certification??undefined,slabLabel:slabShareLabel(activeSlab)}]:[],[format,shareItems,activeSlab]);
+
+  useEffect(()=>{
+    if(!open)return;
+    let active=true;let objectUrl='';
+    void Promise.resolve().then(()=>{
+      if(!active)return null;
+      setLoading(true);setPreview('');
+      return generateVaultShareBlob({title:format==='set'?(selectedSet?.name??(id?'Progres set':'Set progress')):format==='slab'?(activeSlab?.card.name??'Vault'):id?`Koleksi @${username}`:`@${username}'s Vault`,cards:cardsForImage,link:`vivreplay.com/players/${username}`,language,style,gameSlug,setProgress:format==='set'?setData:undefined});
+    })
+      .then(blob=>{if(!active||!blob)return;objectUrl=URL.createObjectURL(blob);setPreview(objectUrl)})
+      .catch(()=>{})
+      .finally(()=>{if(active)setLoading(false)});
+    return()=>{active=false;if(objectUrl)URL.revokeObjectURL(objectUrl)};
+  },[open,format,selectedSet,activeSlab,username,language,style,gameSlug,cardsForImage,setData,id]);
+
+  const copyLink=async()=>{try{await navigator.clipboard.writeText(shareUrl);setCopied(true);toast.success(id?'Tautan disalin':'Link copied');window.setTimeout(()=>setCopied(false),2000)}catch{toast.error(id?'Gagal menyalin tautan':'Could not copy link')}};
+  const saveImage=async()=>{if(!preview)return;try{const response=await fetch(preview);const blob=await response.blob();const file=document.createElement('a');file.href=URL.createObjectURL(blob);file.download=`${username}_${format==='slab'?'slab':format==='set'?'set':'vault'}.png`;file.click();URL.revokeObjectURL(file.href)}catch{toast.error(id?'Gagal menyimpan gambar':'Could not save image')}};
+  const nativeShare=async()=>{try{if(!navigator.share)return;if(preview){const response=await fetch(preview);const image=new File([await response.blob()],`${username}_${format}.png`,{type:'image/png'});if(navigator.canShare?.({files:[image]})){await navigator.share({title:`${username}'s Vault`,text:id?'Lihat koleksi kartu saya':'View my card collection',url:shareUrl,files:[image]});return}}await navigator.share({title:`${username}'s Vault`,text:id?'Lihat koleksi kartu saya':'View my card collection',url:shareUrl})}catch{}}
+
+  return <Dialog open={open} onOpenChange={next=>{if(!next){setRequestedFormat(null);onClose()}}}>
+    <DialogContent className={`vault-share-dialog${gameSlug==='pokemon'?' is-pokemon':''}`}>
+      <DialogHeader className="vault-share-dialog-header">
+        <div className="vault-share-brand"><VivreMark size={20} label="VivrePlay"/><span>VivrePlay</span></div>
+        <DialogTitle>{id?'Bagikan koleksi':'Share your Vault'}</DialogTitle>
+        <DialogDescription>{id?'Pilih tampilan, lalu bagikan tautan atau gambar.':'Choose a view, then share the link or image.'}</DialogDescription>
+      </DialogHeader>
+      <div className="vault-share-toolbar">
+        <div className="vault-share-formats" role="group" aria-label={id?'Tampilan koleksi':'Collection view'}>
+          <button type="button" aria-pressed={format==='top9'} className={format==='top9'?'is-selected':''} onClick={()=>setRequestedFormat('top9')}>{id?'Pilihan':'Top cards'}</button>
+          {activeSlab&&<button type="button" aria-pressed={format==='slab'} className={format==='slab'?'is-selected':''} onClick={()=>setRequestedFormat('slab')}>Slab</button>}
+          {selectedSet&&<button type="button" aria-pressed={format==='set'} className={format==='set'?'is-selected':''} onClick={()=>setRequestedFormat('set')}>Set</button>}
         </div>
-
-        {/* Share Format Selector */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', marginBottom: '18px' }}>
-          <button
-            type="button"
-            className={`vault-btn ${shareFormat === 'top9' ? 'vault-btn-primary' : 'vault-btn-secondary'}`}
-            style={{ height: '34px', fontSize: '11.5px', justifyContent: 'center' }}
-            onClick={() => setShareFormat('top9')}
-          >
-            {id?'9 Kartu Pilihan':'My Top 9'}
-          </button>
-          <button
-            type="button"
-            className={`vault-btn ${shareFormat === 'slab' ? 'vault-btn-primary' : 'vault-btn-secondary'}`}
-            style={{ height: '34px', fontSize: '11.5px', justifyContent: 'center' }}
-            onClick={() => setShareFormat('slab')}
-          >
-            {id?'Showcase Slab':'Slab Showcase'}
-          </button>
-          <button
-            type="button"
-            className={`vault-btn ${shareFormat === 'set' ? 'vault-btn-primary' : 'vault-btn-secondary'}`}
-            style={{ height: '34px', fontSize: '11.5px', justifyContent: 'center' }}
-            onClick={() => setShareFormat('set')}
-          >
-            {id?'Progres Set':'Set Progress'}
-          </button>
-        </div>
-
-        <div className="vault-share-style-picker" role="group" aria-label={id?'Gaya kartu yang dibagikan':'Share card style'}>
-          <span>{id?'Gaya':'Style'}</span>
-          <button type="button" aria-pressed={shareStyle==='light'} className={shareStyle==='light'?'is-selected':''} onClick={()=>setShareStyle('light')}>{id?'Terang':'Light'}</button>
-          <button type="button" aria-pressed={shareStyle==='dark'} className={shareStyle==='dark'?'is-selected':''} onClick={()=>setShareStyle('dark')}>{id?'Gelap':'Dark'}</button>
-        </div>
-
-        {/* Share Card Canvas Preview */}
-        <div className={`vault-share-preview is-${shareStyle}`}>
-          {/* Card Header Branding */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <VivreMark size={20} label="VivrePlay" />
-              <strong style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '15px', color: 'var(--share-ink)' }}>
-                VivrePlay
-              </strong>
-            </div>
-            <span style={{ fontSize: '11px', color: 'var(--share-muted)' }}>{id?`Koleksi @${username}`:`@${username}'s Vault`}</span>
-          </div>
-
-          {/* Format 1: My Top 9 Binder Card */}
-          {shareFormat === 'top9' && (
-            <div>
-              <div className="vault-share-card-grid" style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-                gap: '8px',
-                padding: '8px',
-              }}>
-                {displayTop9.map(item => (
-                  <div key={item.id} className="vault-share-card-slot">
-                    <CardArt card={item.card} small />
-                    {item.type === 'GRADED' && (
-                      <span style={{
-                        position: 'absolute',
-                        bottom: '2px',
-                        left: '2px',
-                        background: 'rgba(0,0,0,0.85)',
-                        color: 'var(--share-accent)',
-                        fontSize: '7.5px',
-                        fontWeight: 800,
-                        padding: '1px 3px',
-                        borderRadius: '3px',
-                      }}>
-                        {item.provider} {item.grade}
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px', fontSize: '11px', color: 'var(--share-muted)' }}>
-                <span>{id?'9 Kartu Pilihan':'Curated Top 9 Cards'}</span>
-                <span>{id?`${items.length} kartu dalam koleksi`:`${items.length} cards catalogued`}</span>
-              </div>
-            </div>
-          )}
-
-          {/* Format 2: Slab Showcase Card */}
-          {shareFormat === 'slab' && activeSlab && (
-            <div style={{ textAlign: 'center' }}>
-              <div className="vault-share-slab-art" style={{
-                maxWidth: '200px',
-                margin: '0 auto',
-                borderRadius: '12px',
-                overflow: 'hidden',
-                background: 'var(--share-frame)',
-                border: '2px solid var(--share-border)',
-                padding: '8px',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
-              }}>
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  padding: '4px 8px',
-                  background: 'var(--share-frame-raised)',
-                  borderRadius: '6px',
-                  fontSize: '9px',
-                  fontWeight: 800,
-                  marginBottom: '6px',
-                  color: 'var(--share-accent)',
-                }}>
-                  <span>{activeSlab.provider || 'PSA'}</span>
-                  <span>{activeSlab.grade || '10'}</span>
-                </div>
-                <CardArt card={activeSlab.card} />
-              </div>
-              <h4 style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '16px', margin: '10px 0 2px' }}>
-                {activeSlab.card.name}
-              </h4>
-              <p style={{ fontSize: '11px', color: 'var(--share-muted)', margin: 0 }}>
-                {activeSlab.card.code} · {activeSlab.provider || 'PSA'} {activeSlab.grade || '10'}
-                {!hideValues && activeSlab.hasMarketEstimate && ` · Est. ${formatCompactMoney(activeSlab.estimatedValue, 'IDR')}`}
-              </p>
-            </div>
-          )}
-
-          {/* Format 3: Set Progress Card */}
-          {shareFormat === 'set' && (
-            <div style={{ padding: '10px 0' }}>
-              <h4 style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '18px', margin: '0 0 4px' }}>
-                {selectedSet ? selectedSet.name : 'OP-09 Emperors in the New World'}
-              </h4>
-              <div style={{ fontSize: '12px', color: 'var(--share-muted)', marginBottom: '14px' }}>
-                {selectedSet?.language && <>{selectedSet.language==='JP'?'Japanese':'English'} · </>}
-                {id?'Progres koleksi set: ':'Set Collection Progress: '}<b>{selectedSet ? selectedSet.ownedCount : 123} / {selectedSet ? selectedSet.totalCards : 142} {id?'kartu':'Cards'} ({selectedSet ? selectedSet.percentage : 86.6}%)</b>
-              </div>
-              <div className="vault-set-progress-track">
-                <div className="vault-set-progress-bar" style={{ width: `${selectedSet ? selectedSet.percentage : 86.6}%` }} />
-              </div>
-            </div>
-          )}
-
-          {/* Watermark */}
-          <div style={{ textAlign: 'right', marginTop: '12px', fontSize: '9.5px', color: 'var(--share-muted)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-            vivreplay.com/vault
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div style={{ display: 'flex', gap: '8px', marginTop: '18px' }}>
-          <button
-            type="button"
-            className="vault-btn vault-btn-primary"
-            style={{ flex: 1, justifyContent: 'center' }}
-            onClick={handleCopyLink}
-          >
-            {copied ? <Check size={16} /> : <Copy size={16} />}
-            {copied ? (id?'Tautan disalin':'Link Copied!') : (id?'Salin tautan':'Copy Share Link')}
-          </button>
-          {typeof navigator !== 'undefined' && !!navigator.share && (
-            <button
-              type="button"
-              className="vault-btn vault-btn-secondary"
-              onClick={async () => {
-                try {
-                  await navigator.share({
-                    title: id?`Koleksi VivrePlay milik @${username}`:`@${username}'s VivrePlay Vault`,
-                    text: id?'Lihat koleksi kartu One Piece saya di VivrePlay.':'Check out my One Piece card collection on VivrePlay Vault!',
-                    url: shareUrl,
-                  });
-                } catch {}
-              }}
-            >
-              <Share2 size={16} />
-              {id?'Bagikan':'Share'}
-            </button>
-          )}
-        </div>
+        <button type="button" className="vault-share-theme-toggle" onClick={()=>setStyle(current=>current==='light'?'dark':'light')} aria-label={style==='light'?(id?'Gunakan tema gelap':'Use dark theme'):(id?'Gunakan tema terang':'Use light theme')}>
+          {style==='light'?<Moon size={17}/>:<Sun size={17}/>}
+        </button>
       </div>
-    </div>
-  );
+      <div className={`vault-share-preview is-${style}${gameSlug==='pokemon'?' is-pokemon':''}`}>
+        {loading&&<div className="vault-share-loading" aria-label={id?'Memuat pratinjau':'Loading preview'}/>}
+        {!loading&&preview&&<img className="vault-share-image" src={preview} alt={id?'Pratinjau gambar koleksi':'Vault share image preview'}/>}
+        {!loading&&!preview&&<p className="vault-share-error" role="status">{id?'Pratinjau tidak tersedia':'Preview unavailable'}</p>}
+      </div>
+      <div className="vault-share-link"><input readOnly value={shareUrl} aria-label={id?'Tautan koleksi':'Vault link'} onFocus={event=>event.currentTarget.select()}/><button type="button" onClick={copyLink}>{copied?<Check size={16}/>:<Copy size={16}/>}<span>{copied?(id?'Tersalin':'Copied'):(id?'Salin tautan':'Copy link')}</span></button></div>
+      <div className="vault-share-actions"><button type="button" onClick={saveImage} disabled={!preview||loading}><Download size={16}/><span>{id?'Simpan gambar':'Save image'}</span></button><button type="button" onClick={nativeShare}><Share2 size={16}/><span>{id?'Bagikan':'Share'}</span></button></div>
+    </DialogContent>
+  </Dialog>;
 }

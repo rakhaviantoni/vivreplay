@@ -11,6 +11,7 @@ import { CardArt } from '../card-art';
 import { printings } from '@/packages/card-data/catalog';
 import { formatCompactMoney, formatMoney } from '@/packages/domain';
 import type { EnrichedCollectionItem } from '../types';
+import { VaultSlotMetaIdentity } from './vault-slot-meta-identity';
 
 interface ListViewProps {
   items: EnrichedCollectionItem[];
@@ -98,15 +99,7 @@ export function ListView({
                       <strong style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '13.5px', color: 'var(--vault-ink)' }}>
                         {item.card.name}
                       </strong>
-                      <div style={{ fontSize: '10.5px', color: 'var(--vault-ink-secondary)', display: 'flex', gap: '6px' }}>
-                        <span>{item.card.code}</span>
-                        <span>·</span>
-                        <span>{lang}</span>
-                        <span>·</span>
-                        <span>{printing?.variant || 'Standard'}</span>
-                        <span>·</span>
-                        <span>{item.card.rarity}</span>
-                      </div>
+                      <VaultSlotMetaIdentity item={item} printingLabel={[lang,printing?.variant].filter(Boolean).join(' ')}/>
                     </div>
                   </div>
                 </td>

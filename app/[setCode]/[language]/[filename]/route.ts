@@ -1,5 +1,6 @@
 import {env} from 'cloudflare:workers';
 import {database} from '@/lib/server/database';
+import {servePokemonArt} from '@/lib/server/pokemon-art-response';
 
 const filenamePattern=/^[A-Za-z0-9_-]+\.webp$/;
 
@@ -129,6 +130,10 @@ export async function serveCardImage(setCode:string,language:string,filename:str
 
 export async function GET(request:Request,{params}:{params:Promise<{setCode:string;language:string;filename:string}>}) {
   const {setCode,language,filename}=await params;
+  if(filename.toLowerCase().endsWith('.webp')){
+    const pokemon=await servePokemonArt(request,language,setCode,filename.replace(/\.webp$/i,''));
+    if(pokemon.status!==404)return pokemon;
+  }
   const rawWidth=Number(new URL(request.url).searchParams.get('width'));
   const requestedWidth=[160,220,280,360].includes(rawWidth)?rawWidth:undefined;
   return serveCardImage(setCode,language,filename,'small',requestedWidth);

@@ -44,7 +44,7 @@ export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   const gameSlug = params.get('game')?.toLowerCase() === 'pokemon' ? 'pokemon' : 'one-piece';
   const requestedLanguage = params.get('language')?.toUpperCase();
-  const language = requestedLanguage === 'JP' || requestedLanguage === 'JA' ? 'JP' : requestedLanguage === 'ID' ? 'ID' : 'EN';
+  const language = gameSlug === 'pokemon' && requestedLanguage === 'ALL' ? 'ALL' : requestedLanguage === 'JP' || requestedLanguage === 'JA' ? 'JP' : requestedLanguage === 'ID' ? 'ID' : 'EN';
   const snapshotKey = `catalog-snapshots/sets-${gameSlug}-${language.toLowerCase()}-${CARD_CATALOG_CACHE_REVISION}.json`;
   try {
     const snapshot = await env.CARD_IMAGES?.get(snapshotKey);
@@ -61,8 +61,8 @@ export async function GET(request: Request) {
         FROM tcg_card_printings p
         JOIN tcg_card_identities i ON i.id=p.identity_id
         LEFT JOIN tcg_sets s ON s.id=p.set_id
-        WHERE p.identity_id IS NOT NULL AND p.language=? AND i.game_id=?
-      `).bind(language, game.id).all<Row>()).results;
+        WHERE p.identity_id IS NOT NULL AND i.game_id=?${language === 'ALL' ? '' : ' AND p.language=?'}
+      `).bind(...(language === 'ALL' ? [game.id] : [game.id, language])).all<Row>()).results;
     const sets = summarize(rows, gameSlug);
     try { await env.CARD_IMAGES?.put(snapshotKey, JSON.stringify({ sets }), { httpMetadata: { contentType: 'application/json; charset=utf-8', cacheControl: 'public, max-age=86400' } }); }
     catch { /* Keep serving the catalog if snapshot storage is unavailable. */ }

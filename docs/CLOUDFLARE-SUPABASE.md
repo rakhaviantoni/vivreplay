@@ -14,6 +14,10 @@ Set `AZEKHA_AI_GATEWAY_URL`, `AZEKHA_AI_GATEWAY_TOKEN`, and optionally `AZEKHA_A
 
 Apply `drizzle/0002_ai_coach_requests.sql` to D1 before enabling the feature. It creates the private coach audit trail used in Admin, including the signed-in account when present, source IP, user agent, locale, model, question, deck context summary, result status, and response timing.
 
+## Card scanning
+
+Card scanning runs PaddleOCR.js in a browser worker to read the printed set and number, then sends only recognized text to the catalog search endpoint. The photo stays in the browser. The first scan downloads the OCR runtime and model files; no vision gateway key is needed.
+
 Set `ADMIN_EMAILS` to a comma-separated list of administrator email addresses. It gates the Deck Coach audit endpoint in Admin.
 6. Add a Cloudflare Cron Trigger or Workflow that invokes the protected importer route. Use a daily schedule at first and retain raw-import and failure metrics.
 

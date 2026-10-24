@@ -5,9 +5,10 @@ import { CARD_CATALOG_CACHE_REVISION } from '@/lib/card-catalog-cache';
 import { parseCatalogRange } from '@/lib/card-catalog-query';
 import { pokemonPrintingRarity } from '@/lib/pokemon-rarity';
 import { pokemonArtRoute } from '@/lib/pokemon-art-route';
+import {pokemonLocalCardNumber,pokemonSetFilter} from '@/lib/pokemon-set-aliases';
 import { env } from 'cloudflare:workers';
 
-function publicCardPath(objectKey: string, setCode = '', language = 'EN', printingCode = '') {
+function publicCardPath(objectKey: string, setCode = '', language = 'EN', printingCode = '', printingId = '', localCardNumber = printingCode) {
   if (objectKey.startsWith('/')) return objectKey;
   if (objectKey.startsWith('one-piece/')) {
     const match = objectKey.match(/^one-piece\/([^/]+)\/([^/]+)\/(?:small\/|thumb\/|large\/)?(.+)$/);
@@ -20,7 +21,10 @@ function publicCardPath(objectKey: string, setCode = '', language = 'EN', printi
       const [folder, sourceLanguage, ...parts] = segments;
       const filename = parts.at(-1);
       if (source.hostname === 'assets.tcgdex.net' && source.protocol === 'https:' && source.pathname.startsWith('/')) {
-        return pokemonArtRoute(language, setCode, printingCode);
+        return pokemonArtRoute(language, setCode, localCardNumber, printingId);
+      }
+      if (source.hostname === 'cardtell.id' && source.protocol === 'https:' && /^\/images\/products\/[0-9]{1,12}\.png$/i.test(source.pathname)) {
+        return pokemonArtRoute(language, setCode, localCardNumber, printingId);
       }
       if (source.hostname === 'cards.oplaytcg.com' && folder && sourceLanguage && filename && folder.toLowerCase() !== 'tcg' && !filename.toLowerCase().startsWith('tcg-')) {
         return `/${encodeURIComponent(folder)}/${encodeURIComponent(sourceLanguage.toLowerCase())}/${encodeURIComponent(filename)}`;
@@ -38,13 +42,102 @@ function parseJson(value: unknown) {
   try { return JSON.parse(value); } catch { return value; }
 }
 
-async function fromD1(gameSlug: string, language: string, identityCode?: string, setCodes: string[] = [], limit?: number, offset = 0, printingIds?: string[],identityCodes?:string[],identityIds?:string[],query?:string,rarities:string[] = [],illustrators:string[] = [],types:string[] = [],categories:string[] = [],stages:string[] = [],sort='latest',missingImages=false,attackEnergies:string[]=[],regulations:string[]=[],minHp?:number,maxHp?:number,retreats:string[]=[],weaknesses:string[]=[],resistances:string[]=[],illustratorQuery?:string) {
+type PokemonSearchAlias={dexId:string;suffix:string};
+async function pokemonSearchAliases(query:string):Promise<PokemonSearchAlias[]>{
+  const terms=[...new Set(query.toLowerCase().match(/[\p{L}\p{N}]+/gu)??[])];
+  if(!terms.length)return [];
+  const game=await database().prepare("SELECT id FROM tcg_games WHERE slug='pokemon' LIMIT 1").first<{id:string}>();
+  if(!game)return [];
+  const expression=terms.map(term=>`"${term.replaceAll('"','""')}"`).join(' AND ');
+  const result=await database().prepare("SELECT DISTINCT p.source_payload FROM tcg_card_printings p JOIN tcg_card_identities i ON i.id=p.identity_id WHERE p.language='EN' AND i.game_id=? AND i.id IN (SELECT identity_id FROM tcg_card_identity_search WHERE tcg_card_identity_search MATCH ?) LIMIT 300").bind(game.id,expression).all<{source_payload:string}>();
+  const aliases=new Map<string,PokemonSearchAlias>();
+  for(const row of result.results){
+    const payload=parseJson(row.source_payload) as Record<string,unknown>|undefined;
+    if(!payload||typeof payload!=='object')continue;
+    const rawIds=Array.isArray(payload.dexId)?payload.dexId:[payload.dexId];
+    const suffix=String(payload.suffix??'').trim().toUpperCase();
+    for(const rawId of rawIds){const dexId=String(rawId??'').trim();if(/^\d{1,4}$/.test(dexId))aliases.set(`${dexId}:${suffix}`,{dexId,suffix});}
+  }
+  return [...aliases.values()].slice(0,50);
+}
+
+function pokemonCollectorRawIdSql(printingAlias: string) {
+  const payloadValue = (key: string) => `CASE WHEN json_valid(${printingAlias}.source_payload) THEN json_extract(${printingAlias}.source_payload,'$.${key}') END`;
+  return `COALESCE(NULLIF(trim(${payloadValue('localId')}),''),NULLIF(trim(${payloadValue('collectorNumber')}),''),${printingAlias}.printing_code)`;
+}
+
+function pokemonCollectorNumberSql(printingAlias: string) {
+  const rawId = pokemonCollectorRawIdSql(printingAlias);
+  return `UPPER(trim(CASE WHEN instr(CAST(${rawId} AS TEXT),'/')>0 THEN substr(CAST(${rawId} AS TEXT),1,instr(CAST(${rawId} AS TEXT),'/')-1) ELSE CAST(${rawId} AS TEXT) END))`;
+}
+
+function pokemonCollectorDenominatorSql(printingAlias: string) {
+  const rawId = pokemonCollectorRawIdSql(printingAlias);
+  const payloadValue = (key: string) => `CASE WHEN json_valid(${printingAlias}.source_payload) THEN json_extract(${printingAlias}.source_payload,'$.${key}') END`;
+  return `UPPER(trim(CASE WHEN instr(CAST(${rawId} AS TEXT),'/')>0 THEN substr(CAST(${rawId} AS TEXT),instr(CAST(${rawId} AS TEXT),'/')+1) ELSE COALESCE(${payloadValue('set.cardCount.official')},${payloadValue('set.cardCount.total')},'') END))`;
+}
+
+function pokemonPrintingCompletenessSql(printingAlias: string, identityAlias: string) {
+  const payloadValue = (key: string) => `CASE WHEN json_valid(${printingAlias}.source_payload) THEN json_extract(${printingAlias}.source_payload,'$.${key}') END`;
+  const hasValue = (expression: string) => `CASE WHEN ${expression} IS NOT NULL AND trim(CAST(${expression} AS TEXT)) NOT IN ('','[]','{}','null') THEN 1 ELSE 0 END`;
+  const hasArray = (key: string) => `CASE WHEN json_valid(${printingAlias}.source_payload) THEN CASE WHEN json_type(${printingAlias}.source_payload,'$.${key}')='array' AND json_array_length(${printingAlias}.source_payload,'$.${key}')>0 THEN 1 ELSE 0 END ELSE 0 END`;
+  return [
+    `${hasValue(`COALESCE(NULLIF(trim(${printingAlias}.rarity),''),NULLIF(trim(CAST(${payloadValue('rarity')} AS TEXT)),''))`)}*16`,
+    `${hasValue(payloadValue('regulationMark'))}*8`,
+    `${hasValue(payloadValue('hp'))}*8`,
+    `${hasArray('types')}*4`,
+    `${hasValue(payloadValue('stage'))}*5`,
+    `${hasArray('attacks')}*12`,
+    `${hasArray('abilities')}*10`,
+    `${hasArray('weaknesses')}*6`,
+    `${hasArray('resistances')}*6`,
+    `${hasValue(payloadValue('retreat'))}*4`,
+    `${hasValue(`COALESCE(${payloadValue('evolvesFrom')},${payloadValue('evolveFrom')})`)}*4`,
+    `${hasValue(`${identityAlias}.effect_text`)}*3`,
+    `${hasValue(`${printingAlias}.card_image_url`)}*2`,
+  ].join('+');
+}
+
+async function fromD1(gameSlug: string, language: string, identityCode?: string, setCodes: string[] = [], limit?: number, offset = 0, printingIds?: string[],identityCodes?:string[],identityIds?:string[],query?:string,rarities:string[] = [],illustrators:string[] = [],types:string[] = [],categories:string[] = [],stages:string[] = [],sort='latest',missingImages=false,attackEnergies:string[]=[],regulations:string[]=[],minHp?:number,maxHp?:number,retreats:string[]=[],weaknesses:string[]=[],resistances:string[]=[],illustratorQuery?:string,pokemonAliases:PokemonSearchAlias[] = []) {
   const db = database();
   const selectedGame = await db.prepare('SELECT id FROM tcg_games WHERE slug=? LIMIT 1').bind(gameSlug).first<{ id: string }>();
   if (!selectedGame) return [];
   const predicates = ['i.game_id=?'];
   const values: (string | number)[] = [selectedGame.id];
-  if (!printingIds?.length) { predicates.push('p.language=?'); values.push(language); }
+  // Imports can contain a sparse Cardtell row alongside a richer row for the
+  // same physical printing. Compare collector numbers from the source payload
+  // because Cardtell's internal CT- IDs do not match the printed number.
+  if (gameSlug === 'pokemon' && !printingIds?.length) {
+    const currentCollectorNumber = pokemonCollectorNumberSql('p');
+    const duplicateCollectorNumber = pokemonCollectorNumberSql('duplicate');
+    const currentCollectorDenominator = pokemonCollectorDenominatorSql('p');
+    const duplicateCollectorDenominator = pokemonCollectorDenominatorSql('duplicate');
+    const currentCompleteness = pokemonPrintingCompletenessSql('p', 'i');
+    const duplicateCompleteness = pokemonPrintingCompletenessSql('duplicate', 'duplicate_identity');
+    predicates.push(`NOT EXISTS (
+      SELECT 1
+      FROM tcg_card_printings duplicate
+      JOIN tcg_card_identities duplicate_identity ON duplicate_identity.id=duplicate.identity_id
+      WHERE duplicate.id<>p.id
+        AND duplicate_identity.game_id=i.game_id
+        AND duplicate.language=p.language
+        AND duplicate.set_code=p.set_code
+        AND ${duplicateCollectorNumber}<>''
+        AND ${duplicateCollectorNumber}=${currentCollectorNumber}
+        AND ${duplicateCollectorDenominator}=${currentCollectorDenominator}
+        AND LOWER(TRIM(COALESCE(duplicate_identity.name,'')))=LOWER(TRIM(COALESCE(i.name,'')))
+        AND LOWER(TRIM(COALESCE(duplicate.variant,'')))=LOWER(TRIM(COALESCE(p.variant,'')))
+        AND (
+          (${duplicateCompleteness})>(${currentCompleteness})
+          OR ((${duplicateCompleteness})=(${currentCompleteness}) AND (
+            CASE duplicate.source_kind WHEN 'tcgdex' THEN 0 WHEN 'cardtell' THEN 1 ELSE 2 END
+              < CASE p.source_kind WHEN 'tcgdex' THEN 0 WHEN 'cardtell' THEN 1 ELSE 2 END
+            OR (duplicate.source_kind=p.source_kind AND duplicate.id<p.id)
+          ))
+        )
+    )`);
+  }
+  if (!printingIds?.length && language !== 'ALL') { predicates.push('p.language=?'); values.push(language); }
   if (printingIds?.length) { predicates.push(`p.id IN (${printingIds.map(()=>'?').join(',')})`); values.push(...printingIds); }
   if(identityCodes?.length){predicates.push(`i.code IN (${identityCodes.map(()=>'?').join(',')})`);values.push(...identityCodes)}
   if(identityIds?.length){predicates.push(`i.id IN (${identityIds.map(()=>'?').join(',')})`);values.push(...identityIds)}
@@ -59,12 +152,18 @@ async function fromD1(gameSlug: string, language: string, identityCode?: string,
     // Set codes have historically been imported as both OP15 and OP-15 (and
     // EB01 / EB-01). Match their canonical form so a route or deep link never
     // loses cards just because one import used punctuation.
+    if(gameSlug==='pokemon'){
+      const filter=pokemonSetFilter(setCodes);
+      predicates.push(filter.sql);
+      values.push(...filter.values);
+    }else{
     const setPredicates = setCodes.map(setCode => {
       const normalizedSet=setCode.toUpperCase().replace(/[-_\s]/g, '');
       values.push(normalizedSet,normalizedSet,normalizedSet);
       return "(UPPER(REPLACE(REPLACE(REPLACE(p.set_code,'-',''),'_',''),' ',''))=? OR (? LIKE 'OP%' AND UPPER(REPLACE(REPLACE(REPLACE(p.set_code,'-',''),'_',''),' ','')) LIKE ? || 'EB%'))";
     });
     predicates.push(`(${setPredicates.join(' OR ')})`);
+    }
   }
   const queryTerms = query ? [...new Set(query.split(/\s+/).map(term=>term.trim()).filter(Boolean))] : [];
   if (queryTerms.length) {
@@ -73,6 +172,11 @@ async function fromD1(gameSlug: string, language: string, identityCode?: string,
       predicates.push(`(${searchableFields.map(field=>`${field} LIKE ?`).join(' OR ')})`);
       values.push(...searchableFields.map(()=>`%${term}%`));
     }
+  }
+  if(gameSlug==='pokemon'&&pokemonAliases.length){
+    const alternatives=pokemonAliases.map(()=>`(EXISTS (SELECT 1 FROM json_each(CASE WHEN json_valid(p.source_payload) THEN p.source_payload ELSE '{}' END,'$.dexId') dex WHERE CAST(dex.value AS TEXT)=?) AND UPPER(COALESCE(json_extract(p.source_payload,'$.suffix'),''))=?)`);
+    predicates.push(`(${alternatives.join(' OR ')})`);
+    for(const alias of pokemonAliases)values.push(alias.dexId,alias.suffix);
   }
   if (rarities.length) { predicates.push(`LOWER(p.rarity) IN (${rarities.map(()=>'?').join(',')})`); values.push(...rarities.map(value=>value.toLocaleLowerCase())); }
   if (illustrators.length) { predicates.push(`LOWER(trim(json_extract(p.source_payload, '$.illustrator'))) IN (${illustrators.map(()=>'?').join(',')})`); values.push(...illustrators.map(value=>value.toLocaleLowerCase())); }
@@ -148,11 +252,13 @@ async function fromD1(gameSlug: string, language: string, identityCode?: string,
     if (gameSlug === 'one-piece' && !isPlayableSet(setCode) && !PREVIEW_CARD_CODES.has(code) && row.variant !== 'Preview') return [];
     const imageKey = String(row.image_key ?? '');
     const printingCode = String(row.printing_code || identity.code || '');
+    const sourcePayload=parseJson(row.source_payload);
+    const localCardNumber=gameSlug==='pokemon'?pokemonLocalCardNumber(sourcePayload,printingCode):printingCode;
     const imageUrl = !imageKey
       ? gameSlug === 'pokemon'
-        ? `/pokemon/art/${language.toLowerCase()}/${encodeURIComponent(setCode)}/${encodeURIComponent(printingCode)}${setCode.toLowerCase() === '30th-c' ? '?artRevision=2' : ''}`
+        ? pokemonArtRoute(String(row.language??language),setCode,localCardNumber,String(row.id??''))
         : null
-      : publicCardPath(imageKey, setCode, language, printingCode) || null;
+      : publicCardPath(imageKey, setCode, String(row.language??language), printingCode, String(row.id ?? ''), localCardNumber) || null;
     const rarity = gameSlug === 'pokemon'
       ? pokemonPrintingRarity(String(row.rarity ?? ''), String(row.language ?? language), setCode, printingCode)
       : row.rarity;
@@ -173,8 +279,13 @@ async function fromD1(gameSlug: string, language: string, identityCode?: string,
 
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
-  const cached = await readPublicEdgeCache(request);
-  if (cached) return cached;
+  // Image repair queues need the live asset state after a batch attaches R2
+  // objects. Serving an older cached gap list makes fixed printings reappear.
+  const liveImageAudit = params.get('missingImages') === '1' && params.get('game') === 'pokemon';
+  if (!liveImageAudit) {
+    const cached = await readPublicEdgeCache(request);
+    if (cached) return cached;
+  }
   const rawIds=params.get('ids');
   const printingIds=rawIds===null?undefined:[...new Set(rawIds.split(',').map(value=>value.trim()).filter(Boolean))];
   if(printingIds?.length===0||printingIds&&printingIds.length>500)return Response.json({error:'Choose up to 500 printings.'},{status:400});
@@ -186,7 +297,7 @@ export async function GET(request: Request) {
   if(identityIds?.length===0||identityIds&&identityIds.length>100)return Response.json({error:'Choose up to 100 card identities.'},{status:400});
   const gameSlug = params.get('game')?.toLowerCase() === 'pokemon' ? 'pokemon' : 'one-piece';
   const requestedLanguage = params.get('language')?.toUpperCase();
-  const language = requestedLanguage === 'JP' || requestedLanguage === 'JA' ? 'JP' : requestedLanguage === 'ID' ? 'ID' : 'EN';
+  const language = requestedLanguage === 'ALL' ? 'ALL' : requestedLanguage === 'JP' || requestedLanguage === 'JA' ? 'JP' : requestedLanguage === 'ID' ? 'ID' : 'EN';
   const rawCode = params.get('code')?.trim().toUpperCase();
   const identityCode = rawCode && /^[A-Z0-9-]{1,32}$/.test(rawCode) ? rawCode : undefined;
   const setCodes = [...new Set(params.getAll('set').map(value=>value.trim()).filter(value=>/^[A-Za-z0-9_-]{1,24}$/.test(value)).map(value=>gameSlug === 'pokemon' ? value : value.toUpperCase()))];
@@ -215,7 +326,7 @@ export async function GET(request: Request) {
   const illustratorQuery=illustratorQueryRaw&&illustratorQueryRaw.length>=2?illustratorQueryRaw:undefined;
   const requestedSort = params.get('sort') ?? 'latest';
   const sort = ['latest','name','number','rarity','hp'].includes(requestedSort) ? requestedSort : 'latest';
-  const missingImages = params.get('missingImages') === '1' && gameSlug === 'pokemon' && ['ID','JP'].includes(language);
+  const missingImages = params.get('missingImages') === '1' && gameSlug === 'pokemon' && ['ID','JP','ALL'].includes(language);
   const resultLimit = missingImages ? Math.min(limit ?? 250, 250) : limit;
   const snapshotKey = `catalog-snapshots/cards-${gameSlug}-${language.toLowerCase()}-${CARD_CATALOG_CACHE_REVISION}.json`;
   const snapshotEligible = !missingImages && !printingIds && !identityCodes && !identityIds && !identityCode && !setCodes.length && !query && !illustratorQuery && !rarities.length && !illustrators.length && !types.length && !categories.length && !stages.length && !attackEnergies.length && !regulations.length && minHp===undefined && maxHp===undefined && !retreats.length && !weaknesses.length && !resistances.length && sort === 'latest' && !limit && offset === 0;
@@ -234,12 +345,22 @@ export async function GET(request: Request) {
     }
   }
   let cards: Record<string, unknown>[];
-  try { cards = await fromD1(gameSlug, language, identityCode, setCodes, printingIds||identityCodes||identityIds?undefined:resultLimit, offset, printingIds,identityCodes,identityIds,query,rarities,illustrators,types,categories,stages,sort,missingImages,attackEnergies,regulations,minHp,maxHp,retreats,weaknesses,resistances,illustratorQuery); }
+  try {
+    cards = await fromD1(gameSlug, language, identityCode, setCodes, printingIds||identityCodes||identityIds?undefined:resultLimit, offset, printingIds,identityCodes,identityIds,query,rarities,illustrators,types,categories,stages,sort,missingImages,attackEnergies,regulations,minHp,maxHp,retreats,weaknesses,resistances,illustratorQuery);
+    if(gameSlug==='pokemon'&&(language==='JP'||language==='ALL')&&query&&/[a-z]/i.test(query)&&query.length>=3&&!printingIds&&!identityCodes&&!identityIds&&!identityCode){
+      const aliases=await pokemonSearchAliases(query);
+      if(aliases.length){
+        const aliasCards=await fromD1(gameSlug,language,undefined,setCodes,resultLimit,offset,undefined,undefined,undefined,undefined,rarities,illustrators,types,categories,stages,sort,missingImages,attackEnergies,regulations,minHp,maxHp,retreats,weaknesses,resistances,illustratorQuery,aliases);
+        const seen=new Set(cards.map(card=>String(card.id)));
+        cards=[...cards,...aliasCards.filter(card=>!seen.has(String(card.id)))];
+      }
+    }
+  }
   catch { return Response.json({ error: 'Catalog is temporarily unavailable.' }, { status: 503 }); }
   const response = Response.json({ cards }, {
     headers: {
-      'Cache-Control': 'public, max-age=300, stale-while-revalidate=86400',
-      'Cloudflare-CDN-Cache-Control': 'public, max-age=31536000, immutable',
+      'Cache-Control': liveImageAudit ? 'no-store' : 'public, max-age=300, stale-while-revalidate=86400',
+      'Cloudflare-CDN-Cache-Control': liveImageAudit ? 'no-store' : 'public, max-age=31536000, immutable',
     },
   });
   if (snapshotEligible) {
@@ -251,5 +372,5 @@ export async function GET(request: Request) {
       // The catalog response can still be served when snapshot storage is unavailable.
     }
   }
-  return storePublicEdgeCache(request, response);
+  return liveImageAudit ? response : storePublicEdgeCache(request, response);
 }
