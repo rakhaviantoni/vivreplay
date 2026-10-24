@@ -90,16 +90,36 @@ function PrimaryNav({language,selected,game,path}:{language:Locale;selected:(url
 }
 
 function GameModeSwitch({language,game,path,search}:{language:Locale;game:'one-piece'|'pokemon';path:string;search:string}) {
-  const options=[{id:'one-piece' as const,href:'/cards',label:'One Piece',logo:GAME_LOGOS['one-piece']},{id:'pokemon' as const,href:'/pokemon',label:'Pokémon',logo:GAME_LOGOS.pokemon}];
+  const options=[{id:'one-piece' as const,label:'One Piece',logo:GAME_LOGOS['one-piece']},{id:'pokemon' as const,label:'Pokémon',logo:GAME_LOGOS.pokemon}];
   const localize=(href:string)=>language==='ID'?`/id${href}`:href;
-  const hrefFor=(option:typeof options[number])=>{
-    if(path!=='/vault'&&game==='pokemon'&&option.id==='one-piece')return language==='ID'?'/id':'/';
-    if(path!=='/vault')return localize(option.href);
+  const hrefFor=(target:'one-piece'|'pokemon')=>{
     const params=new URLSearchParams(search);
-    if(option.id==='pokemon')params.set('game','pokemon');else params.delete('game');
-    return localize(`/vault${params.size?`?${params.toString()}`:''}`);
+    const query=(pathname:string)=>params.size?`${pathname}?${params.toString()}`:pathname;
+    const sharedPrefixes=['/about','/contact','/faq','/feedback','/help','/legal','/profile','/checkout','/slabs'];
+    const isShared=sharedPrefixes.some(prefix=>path===prefix||path.startsWith(`${prefix}/`));
+    if(isShared){
+      if(target==='pokemon')params.set('game','pokemon');else params.delete('game');
+      return localize(query(path));
+    }
+    if(path==='/vault'){
+      if(target==='pokemon')params.set('game','pokemon');else params.delete('game');
+      return localize(query('/vault'));
+    }
+    if(path==='/market'||path.startsWith('/market/')){
+      if(target==='pokemon')params.set('game','pokemon');else params.delete('game');
+      return localize(query(path));
+    }
+    if(target==='pokemon'){
+      if(path==='/cards'||path==='/cards/index'||path.startsWith('/cards/'))return localize('/pokemon/cards');
+      if(path==='/sets'||path.startsWith('/sets/'))return localize('/pokemon/sets');
+      if(path==='/pokemon'||path.startsWith('/pokemon/'))return localize(query(path));
+      return localize('/pokemon');
+    }
+    if(path==='/pokemon')return localize('/');
+    if(path==='/pokemon/cards'||path==='/pokemon/sets'||path.startsWith('/pokemon/'))return localize('/cards');
+    return localize(query(path));
   };
-  return <nav className="game-mode-switch" aria-label={language==='ID'?'Pilih katalog kartu':'Choose a card catalog'}>{options.map(option=><Link key={option.id} href={hrefFor(option)} aria-label={option.label} title={option.label} aria-current={game===option.id?'page':undefined} className={`${game===option.id?'is-active ':''}game-mode-${option.id}`}><span className="game-mode-logo-pad"><img src={option.logo} alt="" aria-hidden="true"/></span><span className="sr-only">{option.label}</span></Link>)}</nav>;
+  return <nav className="game-mode-switch" aria-label={language==='ID'?'Pilih katalog kartu':'Choose a card catalog'}>{options.map(option=><Link key={option.id} href={hrefFor(option.id)} aria-label={option.label} title={option.label} aria-current={game===option.id?'page':undefined} className={`${game===option.id?'is-active ':''}game-mode-${option.id}`}><span className="game-mode-logo-pad"><img src={option.logo} alt="" aria-hidden="true"/></span><span className="sr-only">{option.label}</span></Link>)}</nav>;
 }
 
 function Footer({language,game}:{language:Locale;game:'one-piece'|'pokemon'}) {
