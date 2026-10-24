@@ -114,7 +114,7 @@ export function AboutExperience() {
       desc: isId
         ? 'Jelajahi kartu dan set Pokémon yang tersedia. Cakupan data dan fitur terus bertambah; tidak semua alat One Piece tersedia untuk Pokémon.'
         : 'Browse Pokémon cards and sets currently in the catalog. Coverage and tools are still growing; not every One Piece feature is available for Pokémon.',
-      link: '/pokemon',
+      link: '/pokemon/cards',
       linkText: isId ? 'Jelajahi Pokémon' : 'Browse Pokémon cards',
       icon: Cards,
     },
@@ -246,7 +246,7 @@ export function AboutExperience() {
               <Storefront size={17} />
               <span>{isId ? 'Market & Koleksi' : 'Market & Vault'}</span>
             </Link>
-            <Link className="button secondary about-secondary-action" href="/pokemon">
+            <Link className="button secondary about-secondary-action" href="/pokemon/cards">
               <Cards size={17} />
               <span>{isId ? 'Kartu Pokémon' : 'Pokémon cards'}</span>
             </Link>

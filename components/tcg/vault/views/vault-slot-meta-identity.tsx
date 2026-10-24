@@ -21,7 +21,7 @@ export function vaultPublicCardHref(item:EnrichedCollectionItem){
   if(item.card.gameSlug==='pokemon'||/^PK-/i.test(item.card.code)){
     const reference=vaultPublicCardReference(item).split(/\s+/);
     const params=new URLSearchParams({set:reference[0]??'',number:reference[1]??'',lang:item.language??item.card.language??'EN'});
-    return `/pokemon?${params.toString()}`;
+    return `/pokemon/cards?${params.toString()}`;
   }
   return `/cards/${encodeURIComponent(item.card.code)}`;
 }
@@ -63,7 +63,7 @@ export function VaultSlotMetaIdentity({item,printingLabel}:{item:EnrichedCollect
   const rawRarity=printing?.rarity??item.rarity??item.card.rarity??'';
   const rarity=pokemonRarityLabel(rawRarity,language);
   const illustrator=printing?.illustrator?.trim();
-  const libraryPath=language.toUpperCase()==='ID'?'/id/pokemon':'/pokemon';
+  const libraryPath=language.toUpperCase()==='ID'?'/id/pokemon/cards':'/pokemon/cards';
   const filterHref=(filter:'set'|'rarity'|'illustrator',value:string)=>{
     const params=new URLSearchParams({lang:language});
     params.set(filter,value);

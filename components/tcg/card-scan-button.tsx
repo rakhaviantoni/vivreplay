@@ -129,7 +129,7 @@ async function scanImages(file:File,game:Props['game'],cropOverride?:NormalizedB
 }
 
 function cardHref(card:CardScanCandidate,locale:'EN'|'ID'){
-  const path=card.game==='pokemon'?'/pokemon':'/cards';
+  const path=card.game==='pokemon'?'/pokemon/cards':'/cards';
   const params=new URLSearchParams({lang:card.language});
   if(card.game==='pokemon'){
     params.set('printing',card.id);

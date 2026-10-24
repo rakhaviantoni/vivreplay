@@ -105,7 +105,7 @@ function PokemonMarketType({card}:{card:MarketCard}){
 }
 function MarketLookupCardThumb({card,gameSlug}:{card:MarketCard;gameSlug:'one-piece'|'pokemon'}){
   const [missing,setMissing]=useState(false);
-  return <div className="market-card-lookup-art-wrap"><Link href={gameSlug==='pokemon'?`/pokemon?q=${encodeURIComponent(card.name)}`:`/cards/${card.code}`} className="market-card-lookup-art"><CardArt card={card} small onImageMissing={()=>setMissing(true)} onImageLoaded={()=>setMissing(false)}/></Link>{gameSlug==='pokemon'&&missing&&<FeedbackLaunchButton className="market-lookup-missing-image" request={{initialCategory:'missing-printing',cardCode:card.code,printingId:card.id}} title="Report this missing card image">Report</FeedbackLaunchButton>}</div>;
+  return <div className="market-card-lookup-art-wrap"><Link href={gameSlug==='pokemon'?`/pokemon/cards?q=${encodeURIComponent(card.name)}`:`/cards/${card.code}`} className="market-card-lookup-art"><CardArt card={card} small onImageMissing={()=>setMissing(true)} onImageLoaded={()=>setMissing(false)}/></Link>{gameSlug==='pokemon'&&missing&&<FeedbackLaunchButton className="market-lookup-missing-image" request={{initialCategory:'missing-printing',cardCode:card.code,printingId:card.id}} title="Report this missing card image">Report</FeedbackLaunchButton>}</div>;
 }
 function addFeedListingToCart(listing:Listing,printingId:string,locale:'EN'|'ID'){
   const cartKey='vivreplay-market-cart-v1';
@@ -399,7 +399,7 @@ function CardSearch({value,onChange,onSelect,onAddToVault,locale='EN',wanted=fal
                         {card.setCode&&(card.localCardNumber||card.printingCode)&&pokemonPublicNumber(card.localCardNumber||card.printingCode)&&<span className="pokemon-card-meta-divider" aria-hidden="true"/>}
                         {pokemonPublicNumber(card.localCardNumber||card.printingCode)&&<small className="pokemon-card-number">{pokemonPublicNumber(card.localCardNumber||card.printingCode)}</small>}
                         {marketRarity(card)&&<small className="pokemon-card-rarity">{marketRarity(card)}</small>}
-                        {card.pokemonIllustrator&&<span className="pokemon-card-illustrator-inline"><small>{locale==='ID'?'Ilustrator':'Illustrator'}</small><Link href={`${locale==='ID'?'/id':''}/pokemon?illustrator=${encodeURIComponent(card.pokemonIllustrator)}`}><strong>{card.pokemonIllustrator}</strong></Link></span>}
+                        {card.pokemonIllustrator&&<span className="pokemon-card-illustrator-inline"><small>{locale==='ID'?'Ilustrator':'Illustrator'}</small><Link href={`${locale==='ID'?'/id':''}/pokemon/cards?illustrator=${encodeURIComponent(card.pokemonIllustrator)}`}><strong>{card.pokemonIllustrator}</strong></Link></span>}
                       </span>:<><span className="market-sell-code">{card.code}</span><span>{card.type}</span>{marketRarity(card)&&<span className="market-sell-rarity">{marketRarity(card)}</span>}{card.setCode&&<span>{card.setCode}</span>}</>}
                     </div>
                     {printingsCount>1&&(
