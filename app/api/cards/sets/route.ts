@@ -50,6 +50,19 @@ function rarityScore(row:Row){
   return rarity+variant+(hasImage?1:0);
 }
 
+function collectorRawSql(alias:string){
+  const value=(key:string)=>`CASE WHEN json_valid(${alias}.source_payload) THEN json_extract(${alias}.source_payload,'$.${key}') END`;
+  return `COALESCE(NULLIF(trim(${value('localId')}),''),NULLIF(trim(${value('collectorNumber')}),''),${alias}.printing_code)`;
+}
+function collectorNumberSql(alias:string){const raw=collectorRawSql(alias);return `UPPER(trim(CASE WHEN instr(CAST(${raw} AS TEXT),'/')>0 THEN substr(CAST(${raw} AS TEXT),1,instr(CAST(${raw} AS TEXT),'/')-1) ELSE CAST(${raw} AS TEXT) END))`}
+function collectorDenominatorSql(alias:string){const raw=collectorRawSql(alias);const value=(key:string)=>`CASE WHEN json_valid(${alias}.source_payload) THEN json_extract(${alias}.source_payload,'$.${key}') END`;return `UPPER(trim(CASE WHEN instr(CAST(${raw} AS TEXT),'/')>0 THEN substr(CAST(${raw} AS TEXT),instr(CAST(${raw} AS TEXT),'/')+1) ELSE COALESCE(${value('set.cardCount.official')},${value('set.cardCount.total')},'') END))`}
+function completenessSql(printing:string,identity:string){
+  const value=(key:string)=>`CASE WHEN json_valid(${printing}.source_payload) THEN json_extract(${printing}.source_payload,'$.${key}') END`;
+  const has=(expression:string)=>`CASE WHEN ${expression} IS NOT NULL AND trim(CAST(${expression} AS TEXT)) NOT IN ('','[]','{}','null') THEN 1 ELSE 0 END`;
+  const array=(key:string)=>`CASE WHEN json_valid(${printing}.source_payload) THEN CASE WHEN json_type(${printing}.source_payload,'$.${key}')='array' AND json_array_length(${printing}.source_payload,'$.${key}')>0 THEN 1 ELSE 0 END ELSE 0 END`;
+  return [`${has(`COALESCE(NULLIF(trim(${printing}.rarity),''),NULLIF(trim(CAST(${value('rarity')} AS TEXT)),''))`)}*16`,`${has(value('regulationMark'))}*8`,`${has(value('hp'))}*8`,`${array('types')}*4`,`${has(value('stage'))}*5`,`${array('attacks')}*12`,`${array('abilities')}*10`,`${array('weaknesses')}*6`,`${array('resistances')}*6`,`${has(value('retreat'))}*4`,`${has(`COALESCE(${value('evolvesFrom')},${value('evolveFrom')})`)}*4`,`${has(`${identity}.effect_text`)}*3`,`${has(`${printing}.card_image_url`)}*2`].join('+');
+}
+
 function summarize(rows: Row[], gameSlug: string, includeCards=false): SetSummary[] {
   const sets = new Map<string, { code: string; name: string; releaseDate?: string;description?:string;officialUrl?:string;productImageUrl?:string;series?:string; main: Set<string>; parallel: Set<string>;cards:Map<string,{card:FeaturedCard;score:number}> }>();
   for (const row of rows) {
@@ -72,10 +85,8 @@ function summarize(rows: Row[], gameSlug: string, includeCards=false): SetSummar
       const imageUrl=pokemonArtRoute(row.language,code,localCardNumber,row.id);
       const card:FeaturedCard={id:row.id,code:row.identity_code,name:row.identity_name,color:row.identity_color??'Colorless',type:row.identity_type??'Character',cost:Number(row.identity_cost??0),power:Number(row.identity_power??0),rarity:rankedRarity(row).rarity,effect:row.identity_effect??'',imageUrl,setCode:code,language:row.language,printingCode:String(row.printing_code??row.identity_code),localCardNumber,variant:row.variant??'Standard',gameSlug:'pokemon'};
       const score=rarityScore(row);
-      const numberKey=localCardNumber.toLocaleUpperCase().replace(/\/(?:\d+|[A-Z0-9]+)$/,'');
       const nameKey=row.identity_name.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu,'');
-      const variantSuffix=String(row.printing_code??'').match(/_p\d+$/i)?.[0]?.toLocaleLowerCase()??'';
-      const cardKey=`${numberKey}:${nameKey}:${variantSuffix}`;
+      const cardKey=nameKey||`${localCardNumber}:${row.identity_code}`;
       const previous=entry.cards.get(cardKey);
       if(!previous||score>previous.score)entry.cards.set(cardKey,{card,score});
     }
@@ -118,7 +129,18 @@ export async function GET(request: Request) {
         JOIN tcg_card_identities i ON i.id=p.identity_id
         LEFT JOIN tcg_card_localizations l ON l.identity_id=i.id AND l.language=p.language
         LEFT JOIN tcg_sets s ON s.id=p.set_id
-        WHERE p.identity_id IS NOT NULL AND i.game_id=?${language === 'ALL' ? '' : ' AND p.language=?'}
+        WHERE p.identity_id IS NOT NULL AND i.game_id=?${language === 'ALL' ? '' : ' AND p.language=?'}${gameSlug==='pokemon'?` AND NOT EXISTS (
+          SELECT 1 FROM tcg_card_printings duplicate
+          JOIN tcg_card_identities duplicate_identity ON duplicate_identity.id=duplicate.identity_id
+          LEFT JOIN tcg_card_localizations duplicate_localization ON duplicate_localization.identity_id=duplicate_identity.id AND duplicate_localization.language=duplicate.language
+          WHERE duplicate.id<>p.id AND duplicate_identity.game_id=i.game_id AND duplicate.language=p.language AND duplicate.set_code=p.set_code
+            AND ${collectorNumberSql('duplicate')}<>'' AND ${collectorNumberSql('duplicate')}=${collectorNumberSql('p')}
+            AND ${collectorDenominatorSql('duplicate')}=${collectorDenominatorSql('p')}
+            AND LOWER(TRIM(COALESCE(duplicate_localization.name,duplicate_identity.name,'')))=LOWER(TRIM(COALESCE(l.name,i.name,'')))
+            AND LOWER(TRIM(COALESCE(duplicate.variant,'')))=LOWER(TRIM(COALESCE(p.variant,'')))
+            AND ((${completenessSql('duplicate','duplicate_identity')})>(${completenessSql('p','i')}) OR ((${completenessSql('duplicate','duplicate_identity')})=(${completenessSql('p','i')}) AND (CASE duplicate.source_kind WHEN 'tcgdex' THEN 0 WHEN 'cardtell' THEN 1 ELSE 2 END<CASE p.source_kind WHEN 'tcgdex' THEN 0 WHEN 'cardtell' THEN 1 ELSE 2 END OR (duplicate.source_kind=p.source_kind AND duplicate.id<p.id)))
+          )
+        )`:''}
       `).bind(...(language === 'ALL' ? [game.id] : [game.id, language])).all<Row>()).results;
     const sets = summarize(rows, gameSlug,includeCards);
     try { await env.CARD_IMAGES?.put(snapshotKey, JSON.stringify({ sets }), { httpMetadata: { contentType: 'application/json; charset=utf-8', cacheControl: 'public, max-age=86400' } }); }
