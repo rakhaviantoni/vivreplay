@@ -41,7 +41,7 @@
     "play:replay:tournaments": "node --import tsx scripts/replay-tournament-records.ts"
   },
   "dependencies": {
-    "@base-ui/react": "^1.7.0",
+    "@base-ui/react": "^1.9.0",
     "@hookform/resolvers": "^5.7.1",
     "@paddleocr/paddleocr-js": "^0.4.2",
     "@phosphor-icons/react": "^2.1.10",
