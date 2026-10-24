@@ -118,6 +118,9 @@ async function fromD1(gameSlug: string, language: string, identityCode?: string,
       SELECT 1
       FROM tcg_card_printings duplicate
       JOIN tcg_card_identities duplicate_identity ON duplicate_identity.id=duplicate.identity_id
+      LEFT JOIN tcg_card_localizations duplicate_localization
+        ON duplicate_localization.identity_id=duplicate_identity.id
+        AND duplicate_localization.language=duplicate.language
       WHERE duplicate.id<>p.id
         AND duplicate_identity.game_id=i.game_id
         AND duplicate.language=p.language
@@ -125,7 +128,8 @@ async function fromD1(gameSlug: string, language: string, identityCode?: string,
         AND ${duplicateCollectorNumber}<>''
         AND ${duplicateCollectorNumber}=${currentCollectorNumber}
         AND ${duplicateCollectorDenominator}=${currentCollectorDenominator}
-        AND LOWER(TRIM(COALESCE(duplicate_identity.name,'')))=LOWER(TRIM(COALESCE(i.name,'')))
+        AND LOWER(TRIM(COALESCE(duplicate_localization.name,duplicate_identity.name,'')))
+          =LOWER(TRIM(COALESCE(l.name,i.name,'')))
         AND LOWER(TRIM(COALESCE(duplicate.variant,'')))=LOWER(TRIM(COALESCE(p.variant,'')))
         AND (
           (${duplicateCompleteness})>(${currentCompleteness})
