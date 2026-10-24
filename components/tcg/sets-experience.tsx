@@ -61,9 +61,9 @@ export function SetsExperience({compact=false}:{compact?:boolean}){
     {!compact ? (
       <header className="directory-hero sets-hero page-intro-surface">
         <p className="eyebrow"><Stack size={15}/> {id?'Arsip rilis':'Set archive'}</p>
-        <h1>{id?'Setiap rilis, kartu demi kartu.':'Every release, card by card.'}</h1>
+        <h1>{id?'Setiap rilis, kartu demi kartu':'Every release, card by card'}</h1>
         <p>{id?'Cari berdasarkan nama atau kode set, saring kelompok rilis, lalu buka seluruh kartu yang tersedia.':'Search by set name or code, filter the release family, then open the exact card pool.'}</p>
-        <b>{id?`${sets.length} rilis, ${rows.length.toLocaleString()} versi cetak`:`${sets.length} releases, ${rows.length.toLocaleString()} printings indexed`}</b>
+        <b>{id?`${sets.length} rilis dengan ${rows.length.toLocaleString()} versi cetak`:`${sets.length} releases with ${rows.length.toLocaleString()} printings`}</b>
       </header>
     ) : (
       <div className="section-heading">
