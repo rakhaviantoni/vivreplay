@@ -1,47 +1,67 @@
 'use client';
 
 import {useRouteLocale} from '@/components/locale-provider';
-import { useEffect, useState } from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import Link from '@/components/ui/localized-link';
-import { pokemonExpansionArt } from '@/components/tcg/pokemon-expansion-art';
-import { ArrowUpRightIcon } from '@phosphor-icons/react';
-import { CardArt } from '@/components/tcg/card-art';
+import {useLocalizedRouter as useRouter} from '@/lib/use-localized-router';
+import {ArrowUpRightIcon, MagnifyingGlassIcon, StackIcon} from '@phosphor-icons/react';
+import {CardArt} from '@/components/tcg/card-art';
+import {DepthCarousel} from '@/components/tcg/depth-carousel';
+import type {Card} from '@/packages/card-data/catalog';
 
-type SetRecord = { code: string; name: string; releaseYear: number; releaseDate?: string; mainSetTotal: number; productImageUrl?: string };
-type IntroCardRecord = { id: string; set_code: string; language: string; printing_code: string; variant: string; card_image_url?: string | null; tcg_card_identities?: { code?: string; name?: string; power?: number; effect_text?: string } };
+type FeaturedCardRecord={id:string;code:string;name:string;color:string;type:string;cost:number;power:number;rarity:string;effect:string;imageUrl:string;setCode:string;language:string;printingCode:string;localCardNumber:string;variant:string;gameSlug:'pokemon'};
+type SetRecord={code:string;name:string;releaseYear:number;releaseDate?:string;mainSetTotal:number;parallelsTotal:number;productImageUrl?:string;featuredCards?:FeaturedCardRecord[]};
 
-export function PokemonSets() {
-  const id = useRouteLocale() === 'ID';
-  const localize = (href: string) => id ? `/id${href}` : href;
-  const [language, setLanguage] = useState<'ID' | 'EN' | 'JP'>('ID');
-  const [sets, setSets] = useState<SetRecord[]>([]);
-  const [introCards, setIntroCards] = useState<IntroCardRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    const controller = new AbortController();
-    fetch(`/api/cards/sets?game=pokemon&language=${language}`, { signal: controller.signal })
-      .then(async response => {
-        if (!response.ok) throw new Error('Sets unavailable');
-        const result = await response.json() as { sets?: SetRecord[] };
-        setSets(result.sets ?? []);
+function displayCard(record:FeaturedCardRecord):Card&{gameSlug:'pokemon'}{
+  return{id:record.id,code:record.code,name:record.name,color:record.color,type:'Character',cost:record.cost,power:record.power,rarity:record.rarity,art:0,effect:record.effect,imageUrl:record.imageUrl,setCode:record.setCode,language:record.language,printingCode:record.printingCode,localCardNumber:record.localCardNumber,variant:record.variant,gameSlug:'pokemon'};
+}
+
+export function PokemonSets(){
+  const id=useRouteLocale()==='ID';
+  const localize=(href:string)=>id?`/id${href}`:href;
+  const router=useRouter();
+  const [language,setLanguage]=useState<'ID'|'EN'|'JP'>('ID');
+  const [sets,setSets]=useState<SetRecord[]>([]);
+  const [query,setQuery]=useState('');
+  const [loading,setLoading]=useState(true);
+
+  useEffect(()=>{
+    const controller=new AbortController();
+    setLoading(true);
+    fetch(`/api/cards/sets?game=pokemon&language=${language}&includeCards=1`,{signal:controller.signal})
+      .then(async response=>{
+        if(!response.ok)throw new Error('Sets unavailable');
+        const result=await response.json() as {sets?:SetRecord[]};
+        setSets(result.sets??[]);
       })
-      .catch(error => { if (error.name !== 'AbortError') setSets([]); })
-      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
-    fetch(`/api/cards/catalog?game=pokemon&language=${language}&limit=240&offset=0`, { signal: controller.signal })
-      .then(async response => response.ok ? response.json() as Promise<{ cards?: IntroCardRecord[] }> : { cards: [] })
-      .then(result => setIntroCards((result.cards ?? []).filter(card => card.card_image_url).slice(0, 6)))
-      .catch(error => { if (error.name !== 'AbortError') setIntroCards([]); });
-    return () => controller.abort();
-  }, [language]);
+      .catch(error=>{if(error.name!=='AbortError')setSets([])})
+      .finally(()=>{if(!controller.signal.aborted)setLoading(false)});
+    return()=>controller.abort();
+  },[language]);
 
-  return <main className="page catalog-page pokemon-catalog-page">
-    <section className="library-intro pokemon-library-intro pokemon-sets-intro">
-      <div className="library-intro-copy"><Link className="set-library-back" href={localize('/pokemon/cards')}>{id?'Katalog Pokémon':'Pokémon library'}</Link><p className="kicker">POKÉMON TCG</p><h1>{id?'Set dan rilisan.':'Sets and releases.'}</h1><p>{id?'Telusuri setiap rilisan berdasarkan kartu dan bahasa.':'Browse each release by its cards and language.'}</p></div>
-      <div className="library-intro-rail pokemon-intro-rail" aria-hidden="true">
-        <div className="library-intro-rail-cards" aria-hidden="true">{introCards.map((card,index)=><div className={`library-intro-rail-card rail-card-${index}`} key={card.id}><CardArt card={{id:card.id,code:card.tcg_card_identities?.code??card.printing_code,name:card.tcg_card_identities?.name??card.printing_code,color:'Yellow',type:'Character',cost:0,power:card.tcg_card_identities?.power??0,rarity:'',art:0,effect:card.tcg_card_identities?.effect_text??'',imageUrl:card.card_image_url??undefined,setCode:card.set_code,language:card.language,printingCode:card.printing_code,variant:card.variant}}/></div>)}{!introCards.length&&Array.from({length:6},(_,index)=><i className={`library-intro-rail-skeleton rail-card-${index}`} key={index}/>)}</div>
-      </div>
-    </section>
-    <div className="pokemon-set-toolbar"><p>{loading ? ' ' : `${sets.length.toLocaleString(id?'id-ID':'en-US')} ${id?'set':sets.length===1?'set':'sets'}`}</p><div className="language-switch" aria-label={id?'Bahasa set':'Set language'}>{(['ID', 'EN', 'JP'] as const).map(option => <button type="button" key={option} aria-pressed={language === option} onClick={() => { setLoading(true); setLanguage(option); }}>{option}</button>)}</div></div>
-    {loading ? <div className="pokemon-set-grid" aria-label={id?'Memuat set Pokémon':'Loading Pokémon sets'}>{Array.from({ length: 8 }, (_, index) => <i key={index}/>)}</div> : sets.length ? <div className="pokemon-set-grid">{sets.map(set => <Link key={set.code} href={localize(`/pokemon/cards?set=${encodeURIComponent(set.code)}`)} className="pokemon-set-card">{(pokemonExpansionArt(set.name,set.code)||set.productImageUrl)&&<img src={pokemonExpansionArt(set.name,set.code)||set.productImageUrl} alt="" loading="lazy" onError={event=>{event.currentTarget.hidden=true}}/>}<span>{set.releaseDate ? new Intl.DateTimeFormat(language === 'ID' ? 'id-ID' : language === 'JP' ? 'ja-JP' : 'en', { year: 'numeric', month: 'short', day: 'numeric' }).format(new Date(`${set.releaseDate}T00:00:00`)) : set.releaseYear || 'Pokémon TCG'}</span><strong>{set.name}</strong><small>{set.code} <i/> {set.mainSetTotal.toLocaleString(id?'id-ID':'en-US')} {id?'kartu':set.mainSetTotal===1?'card':'cards'}</small><ArrowUpRightIcon size={17}/></Link>)}</div> : <section className="empty-state pokemon-empty"><h2>{id?'Belum ada set untuk bahasa ini':'No sets are listed for this language yet'}</h2></section>}
+  const visibleSets=useMemo(()=>{
+    const term=query.trim().toLocaleLowerCase();
+    return term?sets.filter(set=>`${set.name} ${set.code}`.toLocaleLowerCase().includes(term)):sets;
+  },[sets,query]);
+
+  return <main className="page sets-page pokemon-sets-page">
+    <header className="directory-hero sets-hero page-intro-surface">
+      <p className="eyebrow"><StackIcon size={15}/>{id?'Set Pokémon':'Pokémon sets'}</p>
+      <h1>{id?'Set dan rilisan':'Sets and releases'}</h1>
+      <p>{id?'Cari set berdasarkan nama atau kode, lalu jelajahi kartu unggulannya.':'Find a set by name or code, then browse its featured cards.'}</p>
+      {!loading&&<b>{sets.length.toLocaleString(id?'id-ID':'en-US')} {id?'set tersedia':'sets available'}</b>}
+    </header>
+    <div className="pokemon-set-toolbar">
+      <label className="pokemon-set-search"><MagnifyingGlassIcon size={16}/><input value={query} onChange={event=>setQuery(event.target.value)} placeholder={id?'Cari nama atau kode set':'Search set name or code'} /></label>
+      <div className="language-switch" role="group" aria-label={id?'Bahasa kartu':'Card language'}>{(['ID','EN','JP'] as const).map(option=><button type="button" key={option} aria-pressed={language===option} onClick={()=>setLanguage(option)}>{option}</button>)}</div>
+    </div>
+    {loading?<div className="sets-skeleton" aria-label={id?'Memuat set Pokémon':'Loading Pokémon sets'}><i/><i/><i/></div>:visibleSets.length?<div className="set-release-grid">{visibleSets.map(set=>{
+      const featured=(set.featuredCards??[]).map(displayCard);
+      return <article className="set-release" key={set.code}>
+        <header><div><span>{set.code}</span><h3>{set.name}</h3></div><small>{set.mainSetTotal.toLocaleString(id?'id-ID':'en-US')} {id?'kartu':set.mainSetTotal===1?'card':'cards'}</small></header>
+        {featured.length?<DepthCarousel className="set-card-carousel" label={`${set.code} ${id?'kartu unggulan':'featured cards'}`} items={featured.map(card=>({id:card.id,label:`${id?'Buka':'Open'} ${card.name}`,onSelect:()=>router.push(localize(`/pokemon/cards?set=${encodeURIComponent(card.setCode??set.code)}&number=${encodeURIComponent(card.localCardNumber??card.printingCode??card.code)}&lang=${encodeURIComponent(card.language??language)}`)),content:<CardArt card={card}/> }))}/>:<div className="pokemon-set-cards-empty">{id?'Gambar kartu belum tersedia':'Card images are not available yet'}</div>}
+        <Link href={localize(`/pokemon/cards?set=${encodeURIComponent(set.code)}`)} className="set-all-link">{id?`Lihat semua kartu ${set.code}`:`View all ${set.code} cards`}<ArrowUpRightIcon size={15}/></Link>
+      </article>;
+    })}</div>:<section className="sets-empty"><h2>{query?(id?'Tidak ada set yang cocok':'No sets match your search'):(id?'Belum ada set untuk bahasa ini':'No sets are listed for this language yet')}</h2>{query&&<button type="button" onClick={()=>setQuery('')}>{id?'Hapus pencarian':'Clear search'}</button>}</section>}
   </main>;
 }

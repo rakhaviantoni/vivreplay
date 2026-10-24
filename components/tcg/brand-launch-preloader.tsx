@@ -59,23 +59,20 @@ export function BrandLaunchPreloader({ language, market }: BrandLaunchPreloaderP
 
   if (!active) return null;
 
-  const label = language === 'id' ? 'Membuka VivrePlay' : 'Opening VivrePlay';
+  const label = market
+    ? language === 'id' ? 'Memuat Market' : 'Loading Market'
+    : language === 'id' ? 'Memuat halaman' : 'Loading page';
   return (
     <div
-      className={`brand-launch-preloader${market ? ' is-market' : ''}${leaving ? ' is-leaving' : ''}`}
+      className={`brand-launch-preloader${leaving ? ' is-leaving' : ''}`}
       role="status"
-      aria-label={market ? `${label} Market` : label}
+      aria-label={label}
     >
-      <div className="brand-launch-lockup">
-        <span className="brand-launch-mark">
-          <span className="brand-launch-orbit" aria-hidden="true" />
-          <VivreMark size={42} />
-        </span>
-        <span className="brand-launch-name">VivrePlay</span>
-        {market && <span className="brand-launch-market">Market</span>}
+      <div className="route-loading-brand brand-launch-content">
+        <VivreMark size={34} />
+        <span>{label}</span>
+        <i aria-hidden="true" />
       </div>
-      <span className="brand-launch-caption">{market ? `${label} Market` : label}</span>
-      <span className="brand-launch-progress" aria-hidden="true"><i /></span>
     </div>
   );
 }

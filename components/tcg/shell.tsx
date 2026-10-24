@@ -116,7 +116,9 @@ function GameModeSwitch({language,game,path,search}:{language:Locale;game:'one-p
       return localize('/pokemon');
     }
     if(path==='/pokemon')return localize('/');
-    if(path==='/pokemon/cards'||path==='/pokemon/sets'||path.startsWith('/pokemon/'))return localize('/cards');
+    if(path==='/pokemon/sets')return localize('/sets');
+    if(path==='/pokemon/cards')return localize('/cards');
+    if(path.startsWith('/pokemon/'))return localize('/cards');
     return localize(query(path));
   };
   return <nav className="game-mode-switch" aria-label={language==='ID'?'Pilih katalog kartu':'Choose a card catalog'}>{options.map(option=><Link key={option.id} href={hrefFor(option.id)} aria-label={option.label} title={option.label} aria-current={game===option.id?'page':undefined} className={`${game===option.id?'is-active ':''}game-mode-${option.id}`}><span className="game-mode-logo-pad"><img src={option.logo} alt="" aria-hidden="true"/></span><span className="sr-only">{option.label}</span></Link>)}</nav>;

@@ -84,6 +84,15 @@ body{background:var(--vp-paper);color:var(--vp-ink);font-family:var(--game-font)
 .sets-controls>label{display:flex;align-items:center;gap:8px;min-width:min(100%,300px);height:38px;padding:0 11px;border:1px solid #d5c8b0;border-radius:9px;background:#fffaf0;color:#84735d}
 .sets-controls input{min-width:0;width:100%;border:0;outline:0;background:transparent;color:#2d261b;font:inherit;font-size:12px}
 .sets-controls input::placeholder{color:#8c7e6c}
+.pokemon-sets-page .pokemon-set-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:22px 0 12px}
+.pokemon-set-search{display:flex;flex:1 1 280px;align-items:center;gap:9px;min-width:0;max-width:460px;height:40px;padding:0 12px;border:1px solid #d5c8b0;border-radius:9px;background:#fffaf0;color:#84735d}
+.pokemon-set-search input{width:100%;min-width:0;border:0;outline:0;background:transparent;color:#2d261b;font:inherit;font-size:12px}
+.pokemon-set-search input::placeholder{color:#8c7e6c}
+.pokemon-set-cards-empty{display:grid;min-height:315px;place-items:center;margin-top:10px;color:#847b6c;font-size:12px;text-align:center}
+html[data-theme='dark'] .pokemon-set-search{border-color:#384552;background:#202731;color:#aeb7c0}
+html[data-theme='dark'] .pokemon-set-search input{color:#f4f0e8}
+html[data-theme='dark'] .pokemon-set-search input::placeholder{color:#9ba8b2}
+@media(max-width:620px){.pokemon-sets-page .pokemon-set-toolbar{align-items:stretch;flex-direction:column;gap:9px}.pokemon-set-search{flex:initial;width:100%;max-width:none}.pokemon-sets-page .pokemon-set-toolbar .language-switch{align-self:flex-start}}
 .sets-family{display:flex;flex:1;flex-wrap:wrap;gap:5px}
 .sets-family button,.sets-clear{min-height:34px;padding:0 9px;border:1px solid #d5c8b0;border-radius:8px;background:#fffaf0;color:#5e5241;font-size:11px;font-weight:700;cursor:pointer}
 .sets-family button:hover{border-color:#c69534;color:#9c6d1d}
@@ -2749,29 +2758,19 @@ html[data-theme='dark'] .set-library-meta a{color:#f0c264}
 .route-loading-page{display:grid;align-content:center;min-height:calc(100dvh - 72px);padding-block:32px}
 .route-loading-page{place-items:center;padding:24px;color:var(--ink,#1d2926)}
 .route-loading-brand{display:grid;justify-items:center;gap:12px;color:var(--muted,#68716c);font-size:12px;font-weight:650}
-.route-loading-brand>img{object-fit:contain;animation:route-loading-turn 2.8s ease-in-out infinite}
+.route-loading-brand>img{object-fit:contain}
 .route-loading-brand>i{position:relative;display:block;width:104px;height:3px;overflow:hidden;border-radius:99px;background:color-mix(in srgb,currentColor 14%,transparent)}
 .route-loading-brand>i:after{position:absolute;inset:0;content:"";transform:translateX(-100%);background:linear-gradient(90deg,transparent,var(--brand-accent,#d29a2e),transparent);animation:route-loading-line 1.4s ease-in-out infinite}
-@keyframes route-loading-turn{50%{transform:translateY(-3px)}}@keyframes route-loading-line{to{transform:translateX(100%)}}
+@keyframes route-loading-line{to{transform:translateX(100%)}}
 @media(prefers-reduced-motion:reduce){.route-loading-brand>img,.route-loading-brand>i:after{animation:none}.route-loading-brand>i:after{inset-inline:30%;transform:none}}
 .route-card-loading{width:100%}
-.brand-launch-preloader{--launch-accent:#d5a12f;--launch-blue:#326293;position:fixed;z-index:10000;inset:0;display:none;place-items:center;align-content:center;gap:18px;padding:max(24px,env(safe-area-inset-top)) 24px max(24px,env(safe-area-inset-bottom));background:var(--surface-raised,#fffaf0);color:var(--ink,#1d2926);opacity:1;transition:opacity .26s ease}
-.brand-launch-preloader.is-market{--launch-accent:#c7912d;background:#f4ecdc}
+.brand-launch-preloader{position:fixed;z-index:10000;inset:0;display:none;place-items:center;padding:max(24px,env(safe-area-inset-top)) 24px max(24px,env(safe-area-inset-bottom));background:var(--surface-raised,#fffaf0);color:var(--ink,#1d2926);opacity:1;transition:opacity .26s ease}
 @media(display-mode:standalone){.brand-launch-preloader{display:grid}}
 html.is-pwa-launching .brand-launch-preloader{display:grid}
 .brand-launch-preloader.is-leaving{opacity:0}
-.brand-launch-lockup{display:grid;justify-items:center;gap:12px}
-.brand-launch-mark{position:relative;display:grid;width:82px;height:82px;place-items:center}
-.brand-launch-mark:before{position:absolute;inset:2px;border:1px solid color-mix(in srgb,var(--launch-accent) 25%,transparent);border-radius:50%;content:""}
-.brand-launch-orbit{position:absolute;inset:2px;border:2px solid transparent;border-top-color:var(--launch-accent);border-right-color:var(--launch-blue);border-radius:50%;animation:brand-launch-orbit 1.8s cubic-bezier(.55,.05,.35,.95) infinite}
-.brand-launch-mark>img{z-index:1;object-fit:contain;animation:brand-launch-mark 1.8s ease-in-out infinite}
-.brand-launch-name{font-size:25px;font-weight:800;letter-spacing:-.055em;line-height:1;color:var(--ink,#1d2926)}
-.brand-launch-market{margin-top:-7px;color:var(--launch-accent);font-size:10px;font-weight:800;letter-spacing:.16em;text-transform:uppercase}
-.brand-launch-caption{color:var(--muted,#68716c);font-size:11px;font-weight:650}
-.brand-launch-progress{position:relative;display:block;width:104px;height:3px;overflow:hidden;border-radius:99px;background:color-mix(in srgb,var(--ink,#1d2926) 12%,transparent)}
-.brand-launch-progress>i{position:absolute;inset:0 auto 0 0;width:38%;border-radius:inherit;background:linear-gradient(90deg,var(--launch-accent),var(--launch-blue));animation:brand-launch-progress 1.2s ease-in-out infinite}
-@keyframes brand-launch-orbit{to{transform:rotate(360deg)}}@keyframes brand-launch-mark{50%{transform:translateY(-2px) scale(1.035)}}@keyframes brand-launch-progress{0%{transform:translateX(-110%)}100%{transform:translateX(285%)}}
-@media(prefers-reduced-motion:reduce){.brand-launch-preloader,.brand-launch-orbit,.brand-launch-mark>img,.brand-launch-progress>i{animation:none;transition:none}.brand-launch-progress>i{inset:0;width:100%;opacity:.55}}
+.brand-launch-content{width:min(100%,220px)}
+.brand-launch-content>i:after{background:linear-gradient(90deg,transparent,var(--brand-accent,#d29a2e),transparent)}
+@media(prefers-reduced-motion:reduce){.brand-launch-preloader{transition:none}}
 .vault-loading-page{display:grid;justify-items:center;align-content:center;min-height:68vh;padding-block:48px;text-align:center;color:var(--vault-ink,#172a24)}
 .vault-loading-page>img{object-fit:contain}
 .vault-loading-page h1{margin:18px 0 4px;font:650 clamp(24px,4vw,34px)/1.15 var(--display-font,var(--font-sans));letter-spacing:-.035em}
