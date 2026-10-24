@@ -109,9 +109,9 @@ export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   const gameSlug = params.get('game')?.toLowerCase() === 'pokemon' ? 'pokemon' : 'one-piece';
   const requestedLanguage = params.get('language')?.toUpperCase();
-  const includeCards=gameSlug==='pokemon'&&['1','2','3'].includes(params.get('includeCards')??'');
+  const includeCards=gameSlug==='pokemon'&&['1','2','3','4'].includes(params.get('includeCards')??'');
   const language = gameSlug === 'pokemon' && requestedLanguage === 'ALL' ? 'ALL' : requestedLanguage === 'JP' || requestedLanguage === 'JA' ? 'JP' : requestedLanguage === 'ID' ? 'ID' : 'EN';
-  const snapshotKey = `catalog-snapshots/sets-${gameSlug}-${language.toLowerCase()}-${CARD_CATALOG_CACHE_REVISION}${includeCards?'-previews-v3':''}.json`;
+  const snapshotKey = `catalog-snapshots/sets-${gameSlug}-${language.toLowerCase()}-${CARD_CATALOG_CACHE_REVISION}${includeCards?'-previews-v4':''}.json`;
   try {
     const snapshot = await env.CARD_IMAGES?.get(snapshotKey);
     if (snapshot) return storePublicEdgeCache(request, Response.json(await snapshot.json<{ sets: SetSummary[] }>(), { headers: publicHeaders }));
