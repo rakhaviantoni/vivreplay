@@ -1,7 +1,8 @@
 'use client';
 
-import Link from 'next/link';
-import {useRouter} from 'next/navigation';
+import {useRouteLocale} from '@/components/locale-provider';
+import Link from '@/components/ui/localized-link';
+import {useLocalizedRouter as useRouter} from '@/lib/use-localized-router';
 import {useEffect,useState} from 'react';
 import {formatMoney} from '@/packages/domain';
 import {calculateBuyerServiceFee,calculateSellerServiceFee,MARKET_BUYER_FEE_MINIMUM,MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL} from '@/lib/market/policy';
@@ -29,7 +30,7 @@ export function ProCheckout(){
   const [monthlyPurchaseCount,setMonthlyPurchaseCount]=useState('2');
   const [averageDelivery,setAverageDelivery]=useState('10000');
   const [voucherCount,setVoucherCount]=useState('0');
-  const [id,setId]=useState(false);
+  const [id,setId]=useState(useRouteLocale()==='ID');
 
   useEffect(()=>{const sync=()=>setId(window.localStorage.getItem('vivreplay-locale')==='ID');const change=(event:Event)=>setId((event as CustomEvent<'EN'|'ID'>).detail==='ID');sync();window.addEventListener('vivreplay:locale',change);return()=>window.removeEventListener('vivreplay:locale',change)},[]);
   const t=(en:string,idText:string)=>id?idText:en;

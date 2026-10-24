@@ -1,5 +1,6 @@
 'use client';
 
+import LocalizedAnchor from '@/components/ui/localized-link';
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { 
@@ -431,13 +432,13 @@ export function SlabDetailModal({
                   </div>
                 )}
                 {certificationUrl && slab.certification && (
-                  <a className="vault-slab-panel-link"
+                  <LocalizedAnchor className="vault-slab-panel-link"
                     href={certificationUrl}
                     target="_blank"
                     rel="noreferrer"
                   >
                     {providerDef?.id==='PSA'?'View PSA certificate, sales & population':'Open grading company site'} <ExternalLink size={13} />
-                  </a>
+                  </LocalizedAnchor>
                 )}
               </div>
             )}
@@ -445,7 +446,7 @@ export function SlabDetailModal({
             {activeTab === 'price_history' && (
               <div className="vault-slab-panel" id="vault-slab-panel-price_history" role="tabpanel" aria-labelledby="vault-slab-tab-price_history" tabIndex={0}>
                 <div className="vault-slab-panel-section"><h3>Sales history</h3><p>No graded sales recorded in Vault.</p></div>
-                {providerDef?.id==='PSA'&&certificationUrl&&<a className="vault-slab-panel-link" href={certificationUrl} target="_blank" rel="noreferrer">View PSA sales for this certificate <ExternalLink size={13}/></a>}
+                {providerDef?.id==='PSA'&&certificationUrl&&<LocalizedAnchor className="vault-slab-panel-link" href={certificationUrl} target="_blank" rel="noreferrer">View PSA sales for this certificate <ExternalLink size={13}/></LocalizedAnchor>}
                 <p className="vault-slab-panel-note">Raw card prices are not used to estimate graded cards.</p>
               </div>
             )}
@@ -455,7 +456,7 @@ export function SlabDetailModal({
                 <div className="vault-slab-panel-section"><h3>Population</h3>
                   {providerDef?.id==='PSA'&&certificationUrl?<p>See the grading company’s report for this card.</p>:<p>Check the grading company’s certificate page for current population data.</p>}
                 </div>
-                {providerDef?.id==='PSA'&&certificationUrl&&<a className="vault-slab-panel-link" href={certificationUrl} target="_blank" rel="noreferrer">View PSA population for this certificate <ExternalLink size={13}/></a>}
+                {providerDef?.id==='PSA'&&certificationUrl&&<LocalizedAnchor className="vault-slab-panel-link" href={certificationUrl} target="_blank" rel="noreferrer">View PSA population for this certificate <ExternalLink size={13}/></LocalizedAnchor>}
               </div>
             )}
 

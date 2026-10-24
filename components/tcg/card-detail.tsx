@@ -1,6 +1,6 @@
 'use client';
 import {useState} from 'react';
-import Link from 'next/link';
+import Link from '@/components/ui/localized-link';
 import {ArrowLeftIcon as ArrowLeft, ArrowUpRightIcon, PlusIcon as Plus, MinusIcon as Minus, HeartIcon as Heart, StackIcon as Layers3, ShieldCheckIcon as ShieldCheck, StorefrontIcon as Store} from '@phosphor-icons/react';
 import {toast} from 'sonner';
 import {Card,printingFor,colors} from '@/packages/card-data/catalog';

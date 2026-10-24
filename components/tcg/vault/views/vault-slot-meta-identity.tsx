@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/ui/localized-link';
 import {pokemonRarityLabel} from '@/lib/pokemon-rarity';
 import type {EnrichedCollectionItem} from '../types';
 import {onePieceVariantLabel} from './printing-labels';

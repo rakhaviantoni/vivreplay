@@ -1,3 +1,4 @@
+import LocalizedAnchor from '@/components/ui/localized-link';
 import {useEffect,useRef,useState,type ReactNode} from 'react';
 
 type Scan={status?:string;note?:string;updated_at?:string};
@@ -44,6 +45,6 @@ export function MarketShipmentHistory({status,history,language,timezone,headingA
   return <section className="market-shipment-history" aria-label={indonesian?'Riwayat pengiriman':'Shipment history'}>
     <h4 className="market-shipping-section-title">{indonesian?'Riwayat pengiriman':'Shipment history'}{headingAction}</h4>
     {scans.length?<ol>{scans.map((scan,index)=>{const key=`${scan.updated_at??'scan'}:${normalized(scan.status??'')}:${scan.note??''}`;const note=scan.note?localizedNote(scan.note,scan.status??status??'',indonesian):'';return <li key={key} className={newestSignature===signature&&index===0?'is-new-update':undefined}><strong>{label(scan.status??status??'')}</strong>{note&&<span>{note}</span>}{scan.updated_at&&<time dateTime={scan.updated_at}>{date(scan.updated_at)}</time>}</li>})}</ol>:<p>{status?label(status):(indonesian?'Pembaruan kurir akan muncul di sini.':'Courier updates will appear here.')}</p>}
-    {issueText&&<aside className="market-shipment-issue" role="status"><p>{issueText}</p>{seriousIssue&&<a href={supportHref}>{indonesian?'Hubungi dukungan':'Contact support'}</a>}</aside>}
+    {issueText&&<aside className="market-shipment-issue" role="status"><p>{issueText}</p>{seriousIssue&&<LocalizedAnchor href={supportHref}>{indonesian?'Hubungi dukungan':'Contact support'}</LocalizedAnchor>}</aside>}
   </section>;
 }

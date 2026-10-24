@@ -1,8 +1,9 @@
 'use client';
 
+import {useRouteLocale} from '@/components/locale-provider';
 import {useEffect, useMemo, useRef, useState} from 'react';
-import Link from 'next/link';
-import {useRouter} from 'next/navigation';
+import Link from '@/components/ui/localized-link';
+import {useLocalizedRouter as useRouter} from '@/lib/use-localized-router';
 import {ArrowUpRightIcon as ArrowUpRight, MagnifyingGlassIcon as Search, StackIcon as Stack, XIcon as X} from '@phosphor-icons/react';
 import {CardArt} from './card-art';
 import {displayCardName} from './card-name';
@@ -26,7 +27,7 @@ function ReleaseTile({release,language}:{release:Release;language:'EN'|'ID'}){
 
 export function SetsExperience({compact=false}:{compact?:boolean}){
   const [rows,setRows]=useState<Row[]>([]);const [query,setQuery]=useState('');const [setFamily,setSetFamily]=useState<SetFamily>('all');
-  const [language,setLanguage]=useState<'EN'|'ID'>('EN');
+  const [language,setLanguage]=useState<'EN'|'ID'>(useRouteLocale());
   const rootRef=useRef<HTMLElement>(null);
   useEffect(()=>{
     const syncLocale=()=>setLanguage(window.localStorage.getItem('vivreplay-locale')==='ID'?'ID':'EN');
@@ -68,7 +69,7 @@ export function SetsExperience({compact=false}:{compact?:boolean}){
       <div className="section-heading">
         <div>
           <p className="eyebrow">{id?'ARSIP RILIS':'SET ARCHIVE'}</p>
-          <h2>{id?'Rilis terbaru, dari dekat.':'Latest releases, up close.'}</h2>
+          <h2>{id?'Rilis terbaru, dari dekat':'Latest releases, up close'}</h2>
           <p>{id?'Lihat kartu unggulan dari setiap rilis, lalu buka seluruh daftar kartu resminya.':'Browse the standout cards in each release, then open its complete live card pool.'}</p>
         </div>
         <Link className="text-action" href="/sets">{id?'Lihat semua rilis':'View all sets'} <ArrowUpRight size={15}/></Link>
@@ -76,6 +77,6 @@ export function SetsExperience({compact=false}:{compact?:boolean}){
     )}
     {!compact&&<div className="sets-controls" aria-label={id?'Kontrol arsip rilis':'Set archive controls'}><label><Search size={16}/><input value={query} onChange={event=>setQuery(event.target.value)} placeholder={id?'Cari set berdasarkan nama atau kode':'Find a set by name or code'}/></label><div className="sets-family" role="group" aria-label={id?'Kelompok set':'Set family'}>{familyOptions.map(([value,label])=><button type="button" key={value} aria-pressed={setFamily===value} onClick={()=>setSetFamily(value)}>{label}</button>)}</div>{(query||setFamily!=='all')&&<button className="sets-clear" type="button" onClick={()=>{setQuery('');setSetFamily('all')}}><X size={14}/>{id?'Hapus':'Clear'}</button>}</div>}
     {!rows.length?<div className="sets-skeleton" aria-label={id?'Memuat set':'Loading sets'}><i/><i/><i/></div>:<div className="set-release-grid">{shown.map(release=><ReleaseTile key={release.code} release={release} language={language}/>)}</div>}
-    {!compact&&rows.length>0&&!shown.length&&<div className="sets-empty"><h2>{id?'Tidak ada rilis yang sesuai dengan filter.':'No releases match that filter.'}</h2><button type="button" onClick={()=>{setQuery('');setSetFamily('all')}}>{id?'Atur ulang filter set':'Reset set filters'}</button></div>}
+    {!compact&&rows.length>0&&!shown.length&&<div className="sets-empty"><h2>{id?'Tidak ada rilis yang sesuai dengan filter':'No releases match that filter'}</h2><button type="button" onClick={()=>{setQuery('');setSetFamily('all')}}>{id?'Atur ulang filter set':'Reset set filters'}</button></div>}
   </Wrapper>;
 }

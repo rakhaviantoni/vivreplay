@@ -1,10 +1,12 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 'use client';
+import {useRouteLocale} from '@/components/locale-provider';
 import {useEffect,useMemo,useRef,useState,type CSSProperties} from 'react';
-import Link from 'next/link';
+import Link from '@/components/ui/localized-link';
 import {GAME_LOGOS} from './brand-assets';
 import {SaveListingButton} from './market-saved';
-import {useRouter,useSearchParams} from 'next/navigation';
+import {useSearchParams} from 'next/navigation';
+import {useLocalizedRouter as useRouter} from '@/lib/use-localized-router';
 import {
   ArrowLeftIcon as ArrowLeft,
   ArrowRightIcon as ArrowRight,
@@ -41,6 +43,7 @@ import {CollectionItem,GRADING_PROVIDERS,Listing,formatMoney} from '@/packages/d
 import {api,useAccount,type AccountState} from '@/lib/client';
 import {loadMarketActivityCounts} from '@/lib/market/activity-client';
 import {CardArt} from './card-art';
+import {CardLoadingSkeleton} from './card-loading-skeleton';
 import {CardScanButton,type CardScanCandidate} from './card-scan-button';
 import {FeedbackLaunchButton} from './feedback-launch';
 import {CardMarketPanel} from './card-market-panel';
@@ -372,11 +375,7 @@ function CardSearch({value,onChange,onSelect,onAddToVault,locale='EN',wanted=fal
             <p>{gameSlug==='pokemon'?(locale==='ID'?'Ketik nama atau nomor kartu Pokémon, lalu gunakan filter set, tipe, dan rarity.':'Type a Pokémon name or card number, then narrow by set, type, or rarity.'):gameSlug==='all'?(locale==='ID'?'Cari kartu One Piece dan Pokémon sekaligus.':'Search One Piece and Pokémon cards together.'):(locale==='ID'?'Ketik nama atau kode kartu (contoh: OP01-001 atau Luffy).':'Type a card name or card number (e.g. OP01-001 or Luffy).')}</p>
           </div>
         ):loading?(
-          <div className="market-sell-search-skeleton" aria-label={locale==='ID'?'Mencari kartu...':'Searching cards'}>
-            <div className="market-sell-skeleton-row"/>
-            <div className="market-sell-skeleton-row"/>
-            <div className="market-sell-skeleton-row"/>
-          </div>
+          <div className="market-sell-search-skeleton" role="status" aria-label={locale==='ID'?'Mencari kartu':'Searching cards'}><CardLoadingSkeleton count={3}/></div>
         ):results.length>0?(
           <div className="market-sell-search-results">
             <div className="market-sell-search-count">
@@ -521,9 +520,7 @@ function MarketCardLookup({
         </small>
       </header>
       {loading ? (
-        <div className="market-card-lookup-skeleton">
-          <i/><i/><i/>
-        </div>
+        <div className="market-card-lookup-skeleton" role="status" aria-label={locale==='ID'?'Mencari kartu':'Searching cards'}><CardLoadingSkeleton count={3}/></div>
       ) : results.length > 0 ? (
         <div>
           {results.map(card => {
@@ -620,7 +617,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
   const configLoadVersion=useRef(0);
   const [busy,setBusy]=useState(false);
   const [saveError,setSaveError]=useState('');
-  const [locale,setLocale]=useState<'EN'|'ID'>('EN');
+  const [locale,setLocale]=useState<'EN'|'ID'>(useRouteLocale());
   const [accountPanel,setAccountPanel]=useState<'listings'|'offers'|'orders'|'saved'|null>(()=>{if(modalOnly)return null;const activity=searchParams.get('activity');return activity==='offers'||activity==='orders'||activity==='listings'||activity==='saved'?activity:null});
   const [quickPanel,setQuickPanel]=useState<'profile'|'vault'|'wishlist'|null>(()=>!modalOnly&&['delivery','payouts'].includes(searchParams.get('profile')??'')?'profile':null);
   const [activityCounts,setActivityCounts]=useState({listings:0,offers:0,orders:0});

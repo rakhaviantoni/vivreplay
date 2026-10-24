@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link from '@/components/ui/localized-link';
 import {useCallback,useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {ArrowLeftIcon,PauseIcon,PlayIcon,SkipBackIcon,SkipForwardIcon,ArrowsDownUpIcon,SpeakerHighIcon,SpeakerSlashIcon} from '@phosphor-icons/react';
 import {CardArt} from './card-art';

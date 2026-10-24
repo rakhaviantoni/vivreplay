@@ -1,8 +1,9 @@
 'use client';
 
+import {useRouteLocale} from '@/components/locale-provider';
 import {useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties} from 'react';
 import {createPortal} from 'react-dom';
-import Link from 'next/link';
+import Link from '@/components/ui/localized-link';
 import {WishlistButton} from './market-saved';
 import {ShareButton} from './share';
 import {CaretLeftIcon as ChevronLeft, CaretRightIcon as ChevronRight, ArrowSquareOutIcon as ExternalLink, PlusIcon as Plus, StorefrontIcon as Store, XIcon as X} from '@phosphor-icons/react';
@@ -44,7 +45,7 @@ export function CardPreviewModal({card, origin, language, cards, printingIds, in
   const [printings,setPrintings]=useState<Printing[]>([]); const [selected,setSelected]=useState(initialPrintingId??card.id);
   const [resolvedCard,setResolvedCard]=useState<Card>(card);
   const [detailsLoading,setDetailsLoading]=useState(true); const [artLoading,setArtLoading]=useState(false);
-  const [locale,setLocale]=useState<'EN'|'ID'>('EN');
+  const [locale,setLocale]=useState<'EN'|'ID'>(useRouteLocale());
   useEffect(()=>{
     const previousHtmlOverflow=document.documentElement.style.overflow;
     const previousBodyOverflow=document.body.style.overflow;

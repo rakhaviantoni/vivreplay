@@ -1,7 +1,7 @@
 'use client';
 import {PushNotificationPrompt} from '@/components/tcg/push-notification-settings';
 import {useEffect,useState,type FormEvent} from 'react';
-import Link from 'next/link';
+import Link from '@/components/ui/localized-link';
 import {PlusIcon as Plus,MagnifyingGlassIcon as Search,CheckIcon as Check,ListIcon as List,SquaresFourIcon as Grid,HeartIcon as Heart} from '@phosphor-icons/react';
 import {toast} from 'sonner';
 import {api,type WishlistItem} from '@/lib/client';

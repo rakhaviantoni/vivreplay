@@ -1,9 +1,11 @@
 'use client';
 
-import Link from 'next/link';
+import {useRouteLocale} from '@/components/locale-provider';
+import Link from '@/components/ui/localized-link';
 import {SaveListingButton,WishlistButton} from './market-saved';
 import {MarketReputation} from './market-reputation';
-import {usePathname,useRouter} from 'next/navigation';
+import {usePathname} from 'next/navigation';
+import {useLocalizedRouter as useRouter} from '@/lib/use-localized-router';
 import {useCallback,useEffect,useMemo,useRef,useState,type FormEvent,type ReactNode} from 'react';
 import {ArrowClockwiseIcon as Renew,ArrowLeftIcon, ArrowUpIcon, ArrowDownIcon, CheckCircleIcon, ClockIcon, DotsSixVerticalIcon, CheckIcon as Check, InfoIcon as Info, ListIcon as List, MinusIcon as Minus, PlusIcon as Plus, ShoppingCartIcon as Cart, SquaresFourIcon as Grid, TruckIcon as Truck, WarningCircleIcon, XCircleIcon, XIcon as X} from '@phosphor-icons/react';
 import type {Card} from '@/packages/card-data/catalog';
@@ -75,7 +77,7 @@ export function ShippingOptions({listingId,courierCount=0,couriers=[],items=[]}:
   const quoteRequest=useRef<AbortController|null>(null);
   const autoLoaded=useRef('');
   const [quoteExpiresAt,setQuoteExpiresAt]=useState(0);
-  const [language,setLanguage]=useState<'EN'|'ID'>('EN');
+  const [language,setLanguage]=useState<'EN'|'ID'>(useRouteLocale());
   const dialogRef=useRef<HTMLDivElement>(null);
   const [addressFormOpen,setAddressFormOpen]=useState(false);
   const [addressLoading,setAddressLoading]=useState(false);
@@ -445,7 +447,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
   const [submitting,setSubmitting]=useState(false); const [activeOffer,setActiveOffer]=useState<ActiveListingOffer|null>(null);
   const [offerJustSent,setOfferJustSent]=useState(false);
   const [offerCheckComplete,setOfferCheckComplete]=useState(false);
-  const [language,setLanguage]=useState<'EN'|'ID'>('EN');
+  const [language,setLanguage]=useState<'EN'|'ID'>(useRouteLocale());
   const [cartQuantities,setCartQuantities]=useState<Record<string,number>>({});
 
   useEffect(()=>{
@@ -862,7 +864,7 @@ export function MarketListingDetailView({
 }) {
   const router=useRouter();
   const pathname=usePathname();
-  const [language, setLanguage] = useState<'EN' | 'ID'>('EN');
+  const [language, setLanguage] = useState<'EN' | 'ID'>(useRouteLocale());
   const [listingTitle, setListingTitle] = useState(listing.title);
   const recoveredPrice=listingCards.reduce((sum,item)=>sum+Math.max(0,item.unitAmount)*Math.max(0,item.quantity),0);
   const [listingAmount, setListingAmount] = useState(listing.amount>0?listing.amount:recoveredPrice);

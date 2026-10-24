@@ -1,7 +1,9 @@
 'use client';
 
+import {useRouteLocale} from '@/components/locale-provider';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import {useSearchParams} from 'next/navigation';
+import {useLocalizedRouter as useRouter} from '@/lib/use-localized-router';
 import { toast } from 'sonner';
 
 import { 
@@ -92,7 +94,7 @@ export function Vault() {
     slabs: 'private',
   });
   const [hideValues, setHideValues] = useState<boolean>(true);
-  const [language, setLanguage] = useState<'EN' | 'ID'>('EN');
+  const [language, setLanguage] = useState<'EN' | 'ID'>(useRouteLocale());
 
   const t = (en: string, idStr: string) => language === 'ID' ? idStr : en;
 

@@ -1,9 +1,11 @@
 'use client';
 
-import Link from 'next/link';
+import {useRouteLocale} from '@/components/locale-provider';
+import Link from '@/components/ui/localized-link';
 import {MarketPaymentPreview} from './market-payment-preview';
 import {MarketPaymentMethodPicker,estimatePaymentFee,defaultPaymentOptions,type PaymentOption} from './market-payment-method-picker';
-import {useRouter,useSearchParams} from 'next/navigation';
+import {useSearchParams} from 'next/navigation';
+import {useLocalizedRouter as useRouter} from '@/lib/use-localized-router';
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {ArrowLeftIcon as ArrowLeft,MapPinIcon as MapPin,MinusIcon as Minus,PlusIcon as Plus,ShieldCheckIcon as ShieldCheck,ShoppingCartIcon as Cart,TruckIcon as Truck,XIcon as X} from '@phosphor-icons/react';
 import {formatMoney,Listing} from '@/packages/domain';
@@ -85,7 +87,7 @@ export function MarketCheckout(){
   const autoQuoteKey=useRef('');
   const quoteRequest=useRef<AbortController|null>(null);
 
-  const [locale,setLocale]=useState<'EN'|'ID'>('EN');
+  const [locale,setLocale]=useState<'EN'|'ID'>(useRouteLocale());
   const id=locale==='ID';
   const t=(en:string,idText:string)=>id?idText:en;
   const addressReady=Boolean(origin&&origin.addressLine.trim()&&origin.city.trim()&&/^\d{5}$/.test(origin.postalCode));

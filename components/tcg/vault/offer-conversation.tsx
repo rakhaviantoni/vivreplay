@@ -1,7 +1,7 @@
 'use client';
 
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
-import Link from 'next/link';
+import Link from '@/components/ui/localized-link';
 import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle} from '@/components/ui/dialog';
 import {ArrowBendUpLeft,ArrowLeft,CheckCircle,PaperPlaneRight,Camera,UploadSimple,XCircle} from '@phosphor-icons/react';
 import {toast} from 'sonner';

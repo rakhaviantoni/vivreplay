@@ -1,3 +1,4 @@
+import {withRequestLocale} from '@/lib/with-request-locale';
 import type {Metadata} from 'next';
 import {isIndonesianRequest} from '@/lib/locale';
 
@@ -14,7 +15,7 @@ export async function generateMetadata():Promise<Metadata>{
   };
 }
 
-export default async function ContactPage(){
+async function ContactPage(){
   const id=await isIndonesianRequest();
   return <main className="legal-page contact-page">
     <header className="legal-hero">
@@ -39,3 +40,5 @@ export default async function ContactPage(){
     </div>
   </main>;
 }
+
+export default withRequestLocale(ContactPage);

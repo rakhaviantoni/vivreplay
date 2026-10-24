@@ -1,5 +1,6 @@
 'use client';
 
+import {useRouteLocale} from '@/components/locale-provider';
 import {useEffect, useState, type ReactNode} from 'react';
 import {BlockValue} from './block-value';
 import {SetInformation} from './set-information';
@@ -36,7 +37,7 @@ type CardDetailContentProps={
 };
 
 export function CardDetailContent({code,color,title,titleId,heading,type,rarity,attribute,cost,power,life,block,setCode,setName,effect,hasEffect=true,afterEffect}:CardDetailContentProps) {
-  const [locale,setLocale]=useState<'EN'|'ID'>('EN');
+  const [locale,setLocale]=useState<'EN'|'ID'>(useRouteLocale());
   useEffect(()=>{
     const syncLocale=()=>setLocale(window.localStorage.getItem('vivreplay-locale')==='ID'?'ID':'EN');
     const onLocale=(event:Event)=>setLocale((event as CustomEvent<'EN'|'ID'>).detail);

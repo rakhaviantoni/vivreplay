@@ -1,6 +1,9 @@
+import {withRequestLocale} from '@/lib/with-request-locale';
 import {DeckLibrary} from '@/components/tcg/deck-library';
-import {pageMetadata} from '@/lib/site-metadata';
+import {requestPageMetadata} from '@/lib/request-page-metadata';
 
-export const metadata=pageMetadata({title:'Decks',description:'Build, save, and refine One Piece Card Game decks in VivrePlay.',path:'/decks'});
+export async function generateMetadata(){return requestPageMetadata({title:'Decks',description:'Build, save, and refine One Piece Card Game decks in VivrePlay.',path:'/decks'});}
 
-export default function Page(){return <DeckLibrary/>;}
+function Page(){return <DeckLibrary/>;}
+
+export default withRequestLocale(Page);

@@ -1,7 +1,9 @@
 'use client';
 
+import LocalizedAnchor from '@/components/ui/localized-link';
 import { FormEvent, useEffect, useState } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
+import {usePathname} from 'next/navigation';
+import {useLocalizedRouter as useRouter} from '@/lib/use-localized-router';
 import {
   ArrowRightIcon as ArrowRight,
   EyeIcon as Eye,
@@ -273,9 +275,9 @@ export function AuthDialog({ language, showTrigger = true }: { language: 'EN' | 
                   <div className="auth-label-row">
                     <span>{copy.password}</span>
                     {mode === 'sign-in' && (
-                      <a href="/forgot-password" className="auth-forgot-link">
+                      <LocalizedAnchor href="/forgot-password" className="auth-forgot-link">
                         {copy.forgot}
-                      </a>
+                      </LocalizedAnchor>
                     )}
                   </div>
                   <div className="auth-password-wrap">

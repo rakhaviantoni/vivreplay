@@ -2,7 +2,7 @@
 import {PushNotificationPrompt} from '@/components/tcg/push-notification-settings';
 import {MarketActivityLoading} from '@/components/tcg/vault/tabs/market-activity-state';
 import {useCallback,useEffect,useState} from 'react';
-import Link from 'next/link';
+import Link from '@/components/ui/localized-link';
 import {BookmarkSimpleIcon as Bookmark,HeartIcon as Heart,ArrowCounterClockwiseIcon as Refresh} from '@phosphor-icons/react';
 import {toast} from 'sonner';
 import {api,useAccount} from '@/lib/client';

@@ -1,3 +1,4 @@
+import {withRequestLocale} from '@/lib/with-request-locale';
 import {enabledShippingCouriers} from '@/lib/shipping/couriers';
 import {notFound,permanentRedirect} from 'next/navigation';
 import {db,optionalUser} from '@/lib/server/store';
@@ -46,7 +47,7 @@ export async function generateMetadata({params}:{params:Promise<{id:string}>}){
   return pageMetadata({title:'Market listing',description:'View this VivrePlay Market listing.',path:listingId?marketListingPath('',listingId):`/market/${encodeURIComponent(id)}`});
 }
 
-export default async function Page({params}:{params:Promise<{id:string}>}){
+async function Page({params}:{params:Promise<{id:string}>}){
   const {id:segment}=await params;
   const selector=marketListingSelectorFromPath(segment);
   if(!selector)notFound();
@@ -212,3 +213,5 @@ export default async function Page({params}:{params:Promise<{id:string}>}){
     </>
   );
 }
+
+export default withRequestLocale(Page);

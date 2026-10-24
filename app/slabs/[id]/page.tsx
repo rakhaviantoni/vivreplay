@@ -1,5 +1,6 @@
+import {withRequestLocale} from '@/lib/with-request-locale';
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
+import Link from '@/components/ui/localized-link';
 import { getCurrentUser } from '@/lib/server/auth';
 import { db } from '@/lib/server/store';
 import { cardFor, printings } from '@/packages/card-data/catalog';
@@ -13,7 +14,7 @@ import { ArrowLeftIcon as ArrowLeft, ShieldCheckIcon as ShieldCheck, CheckCircle
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Slab Collection', robots: { index: false, follow: false } };
 
-export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const auth = await getCurrentUser();
 
@@ -276,3 +277,5 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     </main>
   );
 }
+
+export default withRequestLocale(Page);

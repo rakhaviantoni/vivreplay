@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link from '@/components/ui/localized-link';
 import {matchesSearch} from '@/packages/domain/search-eligibility';
 import {type DragEvent as ReactDragEvent,type ReactNode,useEffect,useLayoutEffect,useMemo,useRef,useState} from 'react';
 import {ArrowLeftIcon as ArrowLeft, CaretLeftIcon as ChevronLeft, CaretRightIcon as ChevronRight, CornersOutIcon as Expand, ArrowCounterClockwiseIcon as RotateCcw, ArrowsDownUpIcon as Sort, SparkleIcon as Sparkles, ClockIcon as Clock, ListIcon as List, SpeakerHighIcon, SpeakerSlashIcon, SwordIcon as Sword} from '@phosphor-icons/react';

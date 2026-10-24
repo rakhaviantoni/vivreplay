@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import Link from '@/components/ui/localized-link';
 
 export type LegalSection={title:string;body:React.ReactNode};
 

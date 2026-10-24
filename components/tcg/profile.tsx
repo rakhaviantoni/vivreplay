@@ -1,10 +1,12 @@
 'use client';
+import {useRouteLocale} from '@/components/locale-provider';
 import {PayoutAccountSettings} from './payout-account-settings';
 import {enabledShippingCouriers} from '@/lib/shipping/couriers';
 import {useEffect, useMemo, useRef, useState} from 'react';
-import Link from 'next/link';
+import Link from '@/components/ui/localized-link';
 import {PhoneInput} from '@/components/tcg/phone-input';
-import {useRouter, useSearchParams} from 'next/navigation';
+import {useSearchParams} from 'next/navigation';
+import {useLocalizedRouter as useRouter} from '@/lib/use-localized-router';
 import {
   GlobeIcon as Globe,
   ShieldCheckIcon as ShieldCheck,
@@ -428,7 +430,7 @@ function ProfileForm({
   const [region, setRegion] = useState((profile.region || 'ID').toUpperCase());
   const [timezone, setTimezone] = useState(profile.timezone || 'Asia/Jakarta');
   const [busy, setBusy] = useState(false);
-  const [language, setLanguage] = useState<'EN' | 'ID'>('EN');
+  const [language, setLanguage] = useState<'EN' | 'ID'>(useRouteLocale());
 
   // Shipping origin / address state
   const [shippingOrigin, setShippingOrigin] = useState<ShippingOrigin | null>(null);

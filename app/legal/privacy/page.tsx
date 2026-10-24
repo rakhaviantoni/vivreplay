@@ -1,10 +1,11 @@
+import {withRequestLocale} from '@/lib/with-request-locale';
 import type {Metadata} from 'next';
 import {LegalDocument,LegalSection} from '@/components/tcg/legal-document';
 import {isIndonesianRequest} from '@/lib/locale';
 
 export async function generateMetadata():Promise<Metadata>{const id=await isIndonesianRequest();const title=id?'Kebijakan Privasi':'Privacy Policy';const description=id?'Cara VivrePlay menggunakan informasi akun, koleksi, Market, dan analitik.':'How VivrePlay uses account, collection, Market, and analytics information.';return {title,description,alternates:{canonical:id?'/id/legal/privacy':'/legal/privacy',languages:{'en-US':'/legal/privacy','id-ID':'/id/legal/privacy'}},openGraph:{type:'article',title,description,url:id?'/id/legal/privacy':'/legal/privacy'}}}
 
-export default async function PrivacyPage(){
+async function PrivacyPage(){
   const id=await isIndonesianRequest();
   const sections:LegalSection[]=id?[
     {title:'Informasi yang kami simpan',body:<p>VivrePlay menyimpan informasi yang dibutuhkan untuk akun dan fitur yang Anda gunakan, seperti detail akun, deck tersimpan, entri koleksi, listing, serta pesanan. Preferensi tampilan, bahasa, dan cookie dapat disimpan di browser.</p>},
@@ -27,3 +28,5 @@ export default async function PrivacyPage(){
   ];
   return <LegalDocument id={id} title={id?'Kebijakan Privasi':'Privacy Policy'} description={id?'Cara VivrePlay menggunakan informasi akun, koleksi, Market, dan analitik.':'How VivrePlay uses account, collection, Market, and analytics information.'} lead={id?'Kami menggunakan informasi yang diperlukan untuk menyediakan layanan dan fitur pilihan Anda.':'We use the information needed to provide the service and the features you choose.'} sections={sections} updated="17 October 2026"/>;
 }
+
+export default withRequestLocale(PrivacyPage);

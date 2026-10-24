@@ -1,3 +1,4 @@
+import {withRequestLocale} from '@/lib/with-request-locale';
 import type {Metadata} from 'next';
 import {LegalDocument,LegalSection} from '@/components/tcg/legal-document';
 import {isIndonesianRequest} from '@/lib/locale';
@@ -9,7 +10,7 @@ export const dynamic='force-dynamic';
 
 export async function generateMetadata():Promise<Metadata>{const id=await isIndonesianRequest();const title=id?'Syarat & Ketentuan':'Terms & Conditions';const description=id?'Ketentuan penggunaan VivrePlay, fitur komunitas, dan Market.':'Terms for using VivrePlay, its card tools, community features, and Market.';return {title,description,alternates:{canonical:id?'/id/legal/terms':'/legal/terms',languages:{'en-US':'/legal/terms','id-ID':'/id/legal/terms'}},openGraph:{type:'article',title,description,url:id?'/id/legal/terms':'/legal/terms'}}}
 
-export default async function TermsPage(){
+async function TermsPage(){
   const id=await isIndonesianRequest();
   let policies=LISTING_POLICIES;
   try{policies=await fetchMarketPolicies(db())}catch{}
@@ -36,3 +37,5 @@ export default async function TermsPage(){
   ];
   return <LegalDocument id={id} title={id?'Syarat & Ketentuan':'Terms & Conditions'} description={id?'Ketentuan penggunaan VivrePlay dan layanan Market.':'Terms for using VivrePlay and its Market service.'} lead={id?'Ketentuan ini menjelaskan aturan penggunaan akun, fitur, dan transaksi di VivrePlay.':'These terms explain how accounts, features, and transactions on VivrePlay work.'} sections={sections} updated="17 October 2026"/>;
 }
+
+export default withRequestLocale(TermsPage);

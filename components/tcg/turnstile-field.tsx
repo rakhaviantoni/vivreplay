@@ -1,5 +1,6 @@
 'use client';
 
+import {useRouteLocale} from '@/components/locale-provider';
 import {useEffect,useRef,useState} from 'react';
 
 declare global{
@@ -38,7 +39,7 @@ export function TurnstileField({onToken,resetKey=0}:{onToken:(token:string)=>voi
   useEffect(()=>{callback.current=onToken},[onToken]);
   const [error,setError]=useState('');
   const [retry,setRetry]=useState(0);
-  const [language,setLanguage]=useState<'EN'|'ID'>('EN');
+  const [language,setLanguage]=useState<'EN'|'ID'>(useRouteLocale());
   useEffect(()=>{const sync=()=>setLanguage(window.localStorage.getItem('vivreplay-locale')==='ID'?'ID':'EN');sync();window.addEventListener('vivreplay:locale',sync);return()=>window.removeEventListener('vivreplay:locale',sync)},[]);
 
   useEffect(()=>{

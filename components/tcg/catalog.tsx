@@ -1,7 +1,9 @@
 'use client';
 
+import LocalizedAnchor from '@/components/ui/localized-link';
+import {useRouteLocale} from '@/components/locale-provider';
 import {useEffect, useMemo, useRef, useState, type ReactNode} from 'react';
-import Link from 'next/link';
+import Link from '@/components/ui/localized-link';
 import {ArrowUpRightIcon, MagnifyingGlassIcon as Search, CheckIcon as Check, XIcon as X, CaretDownIcon as ChevronDown, SquaresFourIcon as Grid3X3, SlidersHorizontalIcon as SlidersHorizontal} from '@phosphor-icons/react';
 import {useCatalogTools} from './catalog-tools';
 import {colors, type Card} from '@/packages/card-data/catalog';
@@ -170,7 +172,7 @@ export function Catalog({home=false,initialSet,initialArchetype,initialCard,init
   const hasExplicitLanguage=Boolean(requestedLanguage);
   const [language,setLanguage] = useState(requestedLanguage==='JP'?'JP':requestedLanguage==='EN'?'EN':requestedLanguage?'ALL':'EN');
   const [languageReady,setLanguageReady]=useState(hasExplicitLanguage);
-  const [locale,setLocale] = useState<'EN'|'ID'>('EN');
+  const [locale,setLocale] = useState<'EN'|'ID'>(useRouteLocale());
   const [gridColumns,setGridColumns] = useState('5');
   const [sortOrder,setSortOrder] = useState<SortOrder>('leaders-latest');
   const [mobileFiltersOpen,setMobileFiltersOpen] = useState(false);
@@ -283,7 +285,7 @@ export function Catalog({home=false,initialSet,initialArchetype,initialCard,init
         <p className="kicker">{setPage?(id?'ARSIP SET':'SET ARCHIVE'):(id?'KATALOG KARTU':'CARD LIBRARY')}</p>
         <h1>{setPage?(setInfo?.name??initialSet??''):(home ? (id?'Temukan kartu berikutnya.':'Find your next card.') : (id?'Temukan kartu, set, dan karya seni resminya.':'Find cards, sets, and exact art.'))}</h1>
         <p>{setPage?(setInfo?.description??(id?`Jelajahi kartu dan versi cetak dari ${initialSet}.`:`Browse the cards and printings from ${initialSet}.`)):(id?'Cari berdasarkan nama atau nomor kartu, bandingkan bahasa, dan susun deck dengan data live terkini.':'Search by name or number, compare languages, and build with the live card pool.')}</p>
-        {setPage&&<div className="set-library-meta"><span>{initialSet}{setInfo?.set_kind&&<> · {setInfo.set_kind}</>}</span>{setInfo?.release_date&&<span>{new Intl.DateTimeFormat(id?'id-ID':'en',{year:'numeric',month:'long',day:'numeric'}).format(new Date(`${setInfo.release_date}T00:00:00`))}</span>}{setInfo?.official_url&&<a href={setInfo.official_url} target="_blank" rel="noreferrer">{id?'Halaman resmi set':'Official set page'} <ArrowUpRightIcon aria-hidden="true" size={14}/></a>}<span>{groups.length} {id?'kartu':'cards'}</span></div>}
+        {setPage&&<div className="set-library-meta"><span>{initialSet}{setInfo?.set_kind&&<> · {setInfo.set_kind}</>}</span>{setInfo?.release_date&&<span>{new Intl.DateTimeFormat(id?'id-ID':'en',{year:'numeric',month:'long',day:'numeric'}).format(new Date(`${setInfo.release_date}T00:00:00`))}</span>}{setInfo?.official_url&&<LocalizedAnchor href={setInfo.official_url} target="_blank" rel="noreferrer">{id?'Halaman resmi set':'Official set page'} <ArrowUpRightIcon aria-hidden="true" size={14}/></LocalizedAnchor>}<span>{groups.length} {id?'kartu':'cards'}</span></div>}
       </div>
       <div className="library-intro-rail library-intro-random-rail library-intro-browse-rail"><div className="library-intro-rail-cards" aria-hidden="true">{headerCards.map((card,index)=><div className={`library-intro-rail-card rail-card-${index}`} key={card.id}><CardArt card={card}/></div>)}{!headerCards.length&&Array.from({length:6},(_,index)=><i className={`library-intro-rail-skeleton rail-card-${index}`} key={index}/>)}</div>{!setPage&&<Link className="library-intro-browse" href="/sets">{id?'Jelajahi set':'Browse sets'} <ArrowUpRightIcon size={15}/></Link>}</div>
     </section>
@@ -320,7 +322,7 @@ export function Catalog({home=false,initialSet,initialArchetype,initialCard,init
     <div className="card-grid" style={{'--catalog-grid-mode':gridColumns==='auto'?'auto-fit':gridColumns} as React.CSSProperties}>
       {groups.slice(0,(catalogPage+1)*240).map(variants=><CatalogTile key={variants[0].id} primary={variants[0]} variants={variants} language={language} onOpen={(card,origin)=>{setPreviewOrigin(origin);setPreview(card)}}/>)}
     </div>
-    {catalogLoading&&<div className="catalog-loading" role="status"><div className="catalog-skeleton-grid">{Array.from({length:10},(_,index)=><i key={index}/>)}</div><span className="sr-only">{id?'Memuat versi cetak kartu':'Loading card printings'}</span></div>}{!filtered.length&&!catalogLoading && <div className="empty-state"><h2>{setPage?(id?'Tidak ada kartu dalam set ini yang cocok.':'No cards in this set match those filters.'):(id?'Tidak ada kartu yang cocok dengan pencarian.':'No card matches that search.')}</h2><p>{id?'Coba masukkan nomor kartu, nama yang lebih singkat, atau atur ulang filter.':'Try the card number, a shorter name, or reset the filters.'}</p><button className="button secondary" onClick={()=>{setQuery('');setColor('All colors');setSelectedColors([]);setTypes([]);setRarities([]);setAttributes([]);setCounters([]);setKeywords([]);setTraits([]);setBlocks([]);setSets(setPage&&initialSet?[normalizeSetCode(initialSet)]:[])}}>{id?'Atur ulang filter katalog':'Reset library filters'}</button></div>}
+    {catalogLoading&&<div className="catalog-loading" role="status"><div className="catalog-skeleton-grid">{Array.from({length:10},(_,index)=><i key={index}/>)}</div><span className="sr-only">{id?'Memuat versi cetak kartu':'Loading card printings'}</span></div>}{!filtered.length&&!catalogLoading && <div className="empty-state"><h2>{setPage?(id?'Tidak ada kartu dalam set ini yang cocok':'No cards in this set match those filters'):(id?'Tidak ada kartu yang cocok dengan pencarian':'No card matches that search')}</h2><p>{id?'Coba masukkan nomor kartu, nama yang lebih singkat, atau atur ulang filter.':'Try the card number, a shorter name, or reset the filters.'}</p><button className="button secondary" onClick={()=>{setQuery('');setColor('All colors');setSelectedColors([]);setTypes([]);setRarities([]);setAttributes([]);setCounters([]);setKeywords([]);setTraits([]);setBlocks([]);setSets(setPage&&initialSet?[normalizeSetCode(initialSet)]:[])}}>{id?'Atur ulang filter katalog':'Reset library filters'}</button></div>}
     {!catalogLoading&&groups.length>(catalogPage+1)*240&&<div className="browse-all-wrap"><button className="button secondary browse-all" onClick={()=>setCatalogPage(page=>page+1)}>{id?'Muat lebih banyak kartu':'Load more catalog cards'}</button></div>}
     {preview&&<CardPreviewModal card={preview} origin={previewOrigin} language={preview.language==='JP'?'JP':'EN'} cards={groups.map(group=>group[0])} onClose={()=>{setPreview(undefined);setPreviewOrigin(undefined)}} onNavigate={setPreview}/>}
   </main>;

@@ -1,5 +1,8 @@
+import {withRequestLocale} from '@/lib/with-request-locale';
 import { PokemonSets } from '@/components/tcg/pokemon-sets';
-import { pageMetadata } from '@/lib/site-metadata';
+import {requestPageMetadata} from '@/lib/request-page-metadata';
 
-export const metadata = pageMetadata({ title: 'Pokémon TCG Sets', description: 'Browse Pokémon TCG releases, set dates, and card counts.', path: '/pokemon/sets' });
-export default function Page() { return <PokemonSets />; }
+export async function generateMetadata(){return requestPageMetadata({ title: 'Pokémon TCG Sets', description: 'Browse Pokémon TCG releases, set dates, and card counts.', path: '/pokemon/sets' });}
+function Page() { return <PokemonSets />; }
+
+export default withRequestLocale(Page);

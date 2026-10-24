@@ -1,7 +1,7 @@
 'use client';
 
-import Link from 'next/link';
-import {useRouter} from 'next/navigation';
+import Link from '@/components/ui/localized-link';
+import {useLocalizedRouter as useRouter} from '@/lib/use-localized-router';
 import {useEffect,useState} from 'react';
 import {CrownIcon as Crown} from '@phosphor-icons/react';
 import {formatMoney} from '@/packages/domain';

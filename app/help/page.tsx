@@ -1,3 +1,4 @@
+import {withRequestLocale} from '@/lib/with-request-locale';
 import type {Metadata} from 'next';
 import {isIndonesianRequest} from '@/lib/locale';
 import {HelpCenter} from '@/components/tcg/help-center';
@@ -17,7 +18,9 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function HelpPage() {
+async function HelpPage() {
   const id = await isIndonesianRequest();
   return <HelpCenter locale={id ? 'id' : 'en'}/>;
 }
+
+export default withRequestLocale(HelpPage);

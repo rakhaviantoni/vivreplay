@@ -1,6 +1,6 @@
 'use client';
 import {useState} from 'react';
-import Link from 'next/link';
+import Link from '@/components/ui/localized-link';
 import {PlusIcon as Plus, MinusIcon as Minus, FloppyDiskIcon as Save, MagnifyingGlassIcon as Search, StackIcon as Layers3, ArrowUpRightIcon as ArrowUpRight, CopyIcon as Copy} from '@phosphor-icons/react';
 import {toast} from 'sonner';
 import {cards,Card} from '@/packages/card-data/catalog';

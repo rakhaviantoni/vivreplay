@@ -1,4 +1,5 @@
-import Link from 'next/link';
+import {withRequestLocale} from '@/lib/with-request-locale';
+import Link from '@/components/ui/localized-link';
 import {notFound} from 'next/navigation';
 import {
   GlobeIcon as Globe,
@@ -37,7 +38,7 @@ const REGION_NAMES: Record<string, string> = {
   FR: 'France',
 };
 
-export default async function Page({params}: {params: Promise<{username: string}>}) {
+async function Page({params}: {params: Promise<{username: string}>}) {
   const {username} = await params;
   const p = await db().prepare(
     'SELECT id, display_name, username, region, created_at FROM profiles WHERE username=?'
@@ -287,3 +288,5 @@ export default async function Page({params}: {params: Promise<{username: string}
     </main>
   );
 }
+
+export default withRequestLocale(Page);

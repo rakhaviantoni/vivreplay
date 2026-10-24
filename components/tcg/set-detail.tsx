@@ -1,7 +1,8 @@
 'use client';
 
+import {useRouteLocale} from '@/components/locale-provider';
 import {useEffect,useState} from 'react';
-import Link from 'next/link';
+import Link from '@/components/ui/localized-link';
 import {Catalog,normalizeSetCode,type CatalogSetInfo} from './catalog';
 import {isPlayableSet} from '@/packages/domain/release-availability';
 
@@ -10,7 +11,7 @@ type SetApiRow={code:string;name:string;releaseDate?:string;description?:string;
 
 export function SetDetail({code}:{code:string}){
   const [set,setSet]=useState<SetRow>();
-  const [locale,setLocale]=useState<'EN'|'ID'>('EN');
+  const [locale,setLocale]=useState<'EN'|'ID'>(useRouteLocale());
   const normalizedCode=normalizeSetCode(code);
   const id=locale==='ID';
 

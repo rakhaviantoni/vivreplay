@@ -1,8 +1,10 @@
 /* eslint-disable react-hooks/set-state-in-effect -- hydrate stored navigation preferences after mount. */
 'use client';
 
-import Link from 'next/link';
-import {usePathname,useRouter} from 'next/navigation';
+import {useRouteLocale} from '@/components/locale-provider';
+import Link from '@/components/ui/localized-link';
+import {usePathname} from 'next/navigation';
+import {useLocalizedRouter as useRouter} from '@/lib/use-localized-router';
 import {FormEvent,useCallback,useEffect,useRef,useState} from 'react';
 import {ArrowLeftIcon as ArrowLeft,CardsIcon as Cards,MoonIcon as Moon,PlusIcon as Plus,MagnifyingGlassIcon as Search,SunIcon as Sun,UserIcon as UserRound,StorefrontIcon as Storefront,ShoppingCartIcon as Cart} from '@phosphor-icons/react';
 import {toast} from 'sonner';
@@ -37,7 +39,7 @@ export function MarketStoreNav({initialQuery='',sellHref='/market?sell=open',sho
   const [scrolled,setScrolled]=useState(false);
   const [query,setQuery]=useState(initialQuery);
   const [theme,setTheme]=useState<'light'|'dark'>('light');
-  const [locale,setLocale]=useState<'EN'|'ID'>('EN');
+  const [locale,setLocale]=useState<'EN'|'ID'>(useRouteLocale());
   const [accountPanel,setAccountPanel]=useState<'listings'|'offers'|'orders'|'saved'|null>(null);
   const [selectedOrderId,setSelectedOrderId]=useState<string|null>(null);
   const [selectedConversationId,setSelectedConversationId]=useState<string|null>(null);
@@ -73,7 +75,7 @@ export function MarketStoreNav({initialQuery='',sellHref='/market?sell=open',sho
     return()=>{window.removeEventListener('vivreplay:market-cart-updated',syncCartCount);window.removeEventListener('storage',syncCartCount)};
   },[]);
   const changeTheme=()=>{const next=theme==='light'?'dark':'light';setTheme(next);document.documentElement.dataset.theme=next;window.localStorage.setItem('vivreplay-theme',next);window.dispatchEvent(new CustomEvent('vivreplay:theme',{detail:next}));};
-  const changeLocale=()=>{const next=locale==='EN'?'ID':'EN';setLocale(next);document.documentElement.lang=next==='ID'?'id':'en';window.localStorage.setItem('vivreplay-locale',next);window.dispatchEvent(new CustomEvent('vivreplay:locale',{detail:next}));};
+  const changeLocale=()=>{const next=locale==='EN'?'ID':'EN';setLocale(next);document.documentElement.lang=next==='ID'?'id':'en';window.localStorage.setItem('vivreplay-locale',next);document.cookie=`vivreplay-locale=${next}; path=/; max-age=31536000; SameSite=Lax`;window.dispatchEvent(new CustomEvent('vivreplay:locale',{detail:next}));};
   const currentQuery=queryValue??query;
   const search=(event:FormEvent)=>{event.preventDefault();if(onSearchSubmit){onSearchSubmit(currentQuery);return}router.push(`/market${currentQuery.trim()?`?card=${encodeURIComponent(currentQuery.trim())}`:''}`)};
   const onSell=()=>{

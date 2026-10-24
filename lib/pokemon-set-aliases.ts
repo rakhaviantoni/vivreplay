@@ -17,6 +17,18 @@ export function pokemonSetFamily(setCode:string,localId?:string|null):PokemonSet
   return null;
 }
 
+export function pokemonSetMatches(requestedCode:string,requestedLocalId:string,cardCode:string,cardLocalId:string):boolean{
+  const requestedFamily=pokemonSetFamily(requestedCode,requestedLocalId);
+  const cardFamily=pokemonSetFamily(cardCode,cardLocalId);
+  if(requestedFamily&&cardFamily)return requestedFamily===cardFamily;
+  return normalized(requestedCode)===normalized(cardCode);
+}
+
+export function pokemonPrintingMatchesPublicReference(requestedSet:string,requestedNumber:string,cardSet:string,cardNumber:string):boolean{
+  const number=(value:string)=>value.replace(/_p\d+$/i,'').replace(/^0+(?=\d)/,'').toUpperCase();
+  return pokemonSetMatches(requestedSet,requestedNumber,cardSet,cardNumber)&&number(requestedNumber)===number(cardNumber);
+}
+
 export function pokemonSetAliases(setCode:string,localId?:string|null):string[]{
   const family=pokemonSetFamily(setCode,localId);
   if(family==='30th-celebration')return ['MA6','30th'];
@@ -44,7 +56,7 @@ export function pokemonSetFilter(setCodes:string[]):{sql:string;values:string[]}
       predicates.push(`(${setCodeSql} IN ('MA6','30TH','30THC'))`);
     }else{
       predicates.push(`${setCodeSql}=?`);
-      values.push(code);
+      values.push(code.toUpperCase());
     }
   }
   return {sql:predicates.length?`(${predicates.join(' OR ')})`:'0',values};

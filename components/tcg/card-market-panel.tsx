@@ -1,6 +1,8 @@
 'use client';
 
-import Link from 'next/link';
+import LocalizedAnchor from '@/components/ui/localized-link';
+import {useRouteLocale} from '@/components/locale-provider';
+import Link from '@/components/ui/localized-link';
 import {ArrowSquareOutIcon as ArrowSquareOut} from '@phosphor-icons/react';
 import {marketListingPath} from '@/lib/market/listing-url';
 import {useEffect, useMemo, useState} from 'react';
@@ -53,7 +55,7 @@ export function CardMarketPanel({printingId,onMarketPrice,printing,disableExtern
   const [savedHistory,setSavedHistory]=useState<{printingId:string;history:Observation[]}|null>(null);
   const usesYuyutei=!disableExternalPrice&&printing?.language?.toUpperCase()==='JP';
   const history=printingId?(savedHistory?.printingId===printingId?savedHistory.history:undefined):[];
-  const [language,setLanguage]=useState<'EN'|'ID'>('EN');
+  const [language,setLanguage]=useState<'EN'|'ID'>(useRouteLocale());
   useEffect(()=>{
     const sync=()=>setLanguage(window.localStorage.getItem('vivreplay-locale')==='ID'?'ID':'EN');
     const onLocale=(event:Event)=>setLanguage((event as CustomEvent<'EN'|'ID'>).detail==='ID'?'ID':'EN');
@@ -75,7 +77,7 @@ export function CardMarketPanel({printingId,onMarketPrice,printing,disableExtern
     <header><span>{id?'Aktivitas pasar':'Market activity'}</span>{printingLabel&&<small>{printingLabel}{printing?.variant&&printing.variant!=='Standard'?` | ${printing.variant}`:''}</small>}</header>
     {usesYuyutei&&<div className="card-market-benchmark">
       <div className="card-market-benchmark-heading"><span>{id?'Harga referensi':'Reference price'}</span><small>Yuyutei</small></div>
-      {!history?<div className="card-market-price-skeleton" role="status" aria-label={id?'Memuat harga referensi':'Loading reference price'}><i/><i/></div>:benchmark?<><div className="card-market-price"><strong>{money(benchmark.amount,benchmark.currency)}</strong><time dateTime={benchmark.observed_at}>{formatDate(benchmark.observed_at,language)}</time></div><PriceLine history={history} language={language}/>{listingUrl&&<a className="card-market-source" href={listingUrl} target="_blank" rel="noopener noreferrer">{id?'Lihat sumber':'Source'}<ArrowSquareOut size={14}/></a>}</>:fallback?<><div className="card-market-price"><strong>{money(fallback.amount,fallback.currency)}</strong><span>{id?'Panduan kartu tanpa grading':'Ungraded card guide'}</span></div><a className="card-market-source" href={fallback.url} target="_blank" rel="noopener noreferrer">{id?'Lihat sumber':'Source'}<ArrowSquareOut size={14}/></a></>:<p>{id?'Belum ada harga untuk cetakan ini.':'No reference price for this printing.'}</p>}
+      {!history?<div className="card-market-price-skeleton" role="status" aria-label={id?'Memuat harga referensi':'Loading reference price'}><i/><i/></div>:benchmark?<><div className="card-market-price"><strong>{money(benchmark.amount,benchmark.currency)}</strong><time dateTime={benchmark.observed_at}>{formatDate(benchmark.observed_at,language)}</time></div><PriceLine history={history} language={language}/>{listingUrl&&<LocalizedAnchor className="card-market-source" href={listingUrl} target="_blank" rel="noopener noreferrer">{id?'Lihat sumber':'Source'}<ArrowSquareOut size={14}/></LocalizedAnchor>}</>:fallback?<><div className="card-market-price"><strong>{money(fallback.amount,fallback.currency)}</strong><span>{id?'Panduan kartu tanpa grading':'Ungraded card guide'}</span></div><LocalizedAnchor className="card-market-source" href={fallback.url} target="_blank" rel="noopener noreferrer">{id?'Lihat sumber':'Source'}<ArrowSquareOut size={14}/></LocalizedAnchor></>:<p>{id?'Belum ada harga untuk cetakan ini.':'No reference price for this printing.'}</p>}
     </div>}
     <div className="card-market-sections"><ActivePrintingListings printingId={printingId} language={language} game={game}/><SoldHistory printingId={printingId} language={language} game={game}/></div>
   </section>;

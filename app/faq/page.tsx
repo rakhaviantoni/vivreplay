@@ -1,6 +1,8 @@
+import LocalizedAnchor from '@/components/ui/localized-link';
+import {withRequestLocale} from '@/lib/with-request-locale';
 import type {Metadata} from 'next';
 import type {ReactNode} from 'react';
-import Link from 'next/link';
+import Link from '@/components/ui/localized-link';
 import {isIndonesianRequest} from '@/lib/locale';
 import {db} from '@/lib/server/store';
 import {fetchMarketPolicies,LISTING_POLICIES} from '@/lib/market/policy';
@@ -19,7 +21,7 @@ export async function generateMetadata():Promise<Metadata>{
 
 export const dynamic='force-dynamic';
 
-export default async function FaqPage(){
+async function FaqPage(){
   const id=await isIndonesianRequest();
   let policies=LISTING_POLICIES;
   try{policies=await fetchMarketPolicies(db())}catch{}
@@ -62,7 +64,7 @@ export default async function FaqPage(){
   return <main className="page faq-page">
     <script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(structuredData)}}/>
     <header className="faq-heading"><div><p className="eyebrow">{id?'JAWABAN':'ANSWERS'}</p><h1>{id?'Tanya jawab':'FAQ'}</h1><p>{id?'Jawaban tentang akun, koleksi kartu, biaya Market, dan pesanan.':'Answers about accounts, your card collection, Market fees, and orders.'}</p></div><Link className="faq-help-link" href={id?'/id/help':'/help'}>{id?'Buka pusat bantuan':'Open Help Center'}</Link></header>
-    <nav className="faq-jump-links" aria-label={id?'Topik FAQ':'FAQ topics'}>{groups.map(group=><a key={group.title} href={`#${faqGroupId(group.title)}`}>{group.title}</a>)}</nav>
+    <nav className="faq-jump-links" aria-label={id?'Topik FAQ':'FAQ topics'}>{groups.map(group=><LocalizedAnchor key={group.title} href={`#${faqGroupId(group.title)}`}>{group.title}</LocalizedAnchor>)}</nav>
     {groups.map((group,index)=>{const sectionId=faqGroupId(group.title);return <section className="faq-group" id={sectionId} key={group.title} aria-labelledby={`${sectionId}-heading`}>
       <span className="faq-anchor-alias" id={`faq-group-${index}`} aria-hidden="true"/>
       <h2 id={`${sectionId}-heading`}>{group.title}</h2>
@@ -72,3 +74,5 @@ export default async function FaqPage(){
     </section>})}
   </main>;
 }
+
+export default withRequestLocale(FaqPage);

@@ -1,5 +1,6 @@
 'use client';
 
+import {useRouteLocale} from '@/components/locale-provider';
 import {useEffect, useState, type ReactNode} from 'react';
 import {toast} from 'sonner';
 import {MinusIcon as Minus,PlusIcon as Plus,SignInIcon as SignIn,SpinnerGapIcon as Spinner} from '@phosphor-icons/react';
@@ -33,7 +34,7 @@ function PrintingVaultControl({printing,card,collection,signedIn,busy,locale,onC
 }
 
 export function CardPrintingSelector<T extends CardPrinting>({printings,language,selectedId,onLanguageChange,onSelect,renderCard,vaultCard}:{printings:T[];language:string;selectedId?:string;onLanguageChange:(language:string)=>void;onSelect:(id:string)=>void;renderCard:(printing:T)=>ReactNode;vaultCard?:Card}) {
-  const [locale,setLocale]=useState<'EN'|'ID'>('EN');
+  const [locale,setLocale]=useState<'EN'|'ID'>(useRouteLocale());
   const [collection,setCollection]=useState<CollectionItem[]>([]);
   const [signedIn,setSignedIn]=useState<boolean|null>(null);
   const [busyPrinting,setBusyPrinting]=useState<string|null>(null);

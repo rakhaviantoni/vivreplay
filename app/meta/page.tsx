@@ -1,5 +1,8 @@
+import {withRequestLocale} from '@/lib/with-request-locale';
 import {MetaExperience} from '@/components/tcg/meta-experience';
-import {pageMetadata} from '@/lib/site-metadata';
+import {requestPageMetadata} from '@/lib/request-page-metadata';
 
-export const metadata=pageMetadata({title:'Meta Stats',description:'One Piece Card Game leader win rates, matchup matrix, tournament results, and competitive decklists.',path:'/meta'});
-export default function Page(){return <MetaExperience/>}
+export async function generateMetadata(){return requestPageMetadata({title:'Meta Stats',description:'One Piece Card Game leader win rates, matchup matrix, tournament results, and competitive decklists.',path:'/meta'});}
+function Page(){return <MetaExperience/>}
+
+export default withRequestLocale(Page);

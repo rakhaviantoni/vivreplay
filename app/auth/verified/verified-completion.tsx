@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
+import Link from '@/components/ui/localized-link';
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import {useLocalizedRouter as useRouter} from '@/lib/use-localized-router';
 import { toast } from "sonner";
 import { CheckCircleIcon as CheckCircle } from "@phosphor-icons/react";
 

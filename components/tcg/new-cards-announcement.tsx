@@ -1,6 +1,7 @@
 'use client';
 
-import Link from 'next/link';
+import {useRouteLocale} from '@/components/locale-provider';
+import Link from '@/components/ui/localized-link';
 import {usePathname} from 'next/navigation';
 import {ArrowUpRightIcon, EyeIcon, SparkleIcon, XIcon} from '@phosphor-icons/react';
 import {useEffect,useState} from 'react';
@@ -25,7 +26,7 @@ function releaseCard(row:Record<string,unknown>):ReleaseCard|undefined{
 export function NewCardsAnnouncement(){
  const [open,setOpen]=useState(false);const [launcher,setLauncher]=useState(false);const path=usePathname();
  const [releaseCards,setReleaseCards]=useState<ReleaseCard[]>([]);const [cardsLoading,setCardsLoading]=useState(true);
- const [language,setLanguage]=useState<'EN'|'ID'>('EN');
+ const [language,setLanguage]=useState<'EN'|'ID'>(useRouteLocale());
  useEffect(()=>{
    const sync=()=>setLanguage(window.localStorage.getItem('vivreplay-locale')==='ID'?'ID':'EN');
    const onLocale=(event:Event)=>setLanguage((event as CustomEvent<'EN'|'ID'>).detail);
@@ -53,7 +54,7 @@ export function NewCardsAnnouncement(){
  const dismiss=()=>{window.localStorage.setItem(STORAGE_KEY,ANNOUNCEMENT_VERSION);setOpen(false);setLauncher(false);};
  return <>{launcher&&!open&&<button type="button" className="new-cards-launcher" onClick={()=>{setLauncher(false);setOpen(true)}}><SparkleIcon size={16} weight="fill"/>{id?'Kartu baru':'New cards'}</button>}{open&&<div className="new-cards-backdrop" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget)dismiss()}}><section className="new-cards-dialog" role="dialog" aria-modal="true" aria-labelledby="new-cards-title" onMouseDown={event=>event.stopPropagation()}>
    <header><span><SparkleIcon size={17} weight="fill"/> {id?'Kartu baru':'New cards'}</span><button type="button" aria-label={id?'Tutup kartu baru':'Dismiss new cards'} onClick={dismiss}><XIcon size={19}/></button></header>
-   <div className="new-cards-body"><p className="eyebrow">{id?'KARTU BARU · TERSEDIA UNTUK DICOBA':'NEW CARDS · READY TO PLAY'}</p><h2 id="new-cards-title">{id?'Kartu terbaru telah tersedia.':'The latest cards are ready to play.'}</h2><p>{id?'Coba promo Dracule Mihawk, lalu jelajahi kartu OP18 dan EB05 yang sudah tersedia di katalog.':'Try the Dracule Mihawk promo, then browse the OP18 and EB05 cards currently available in the catalog.'}</p>
+   <div className="new-cards-body"><p className="eyebrow">{id?'KARTU BARU · TERSEDIA UNTUK DICOBA':'NEW CARDS · READY TO PLAY'}</p><h2 id="new-cards-title">{id?'Kartu terbaru telah tersedia':'The latest cards are ready to play'}</h2><p>{id?'Coba promo Dracule Mihawk, lalu jelajahi kartu OP18 dan EB05 yang sudah tersedia di katalog.':'Try the Dracule Mihawk promo, then browse the OP18 and EB05 cards currently available in the catalog.'}</p>
    <Link href="/cards/P-163" className="new-cards-feature" onClick={dismiss} aria-label={id?'Lihat kartu pratinjau Dracule Mihawk':'View preview card Dracule Mihawk'}><CardArt card={mihawk} imageWidth={220}/><span><small>{id?'P-163 · Leader Hijau':'P-163 · Green Leader'}</small><strong>Dracule Mihawk</strong><em>{id?'Kartu pratinjau · dapat dimainkan di mode kasual':'Preview card · playable in casual modes'}</em></span></Link>
    {(['OP18','EB05'] as const).map((setCode)=>{const cards=releaseCards.filter(card=>card.code.startsWith(`${setCode}-`));return <section className="new-cards-release" key={setCode} aria-label={`${setCode} cards`}><header><h3>{setCode}</h3><Link href={`/sets/${setCode}`} onClick={dismiss}>{id?'Lihat set':'View set'} <ArrowUpRightIcon aria-hidden="true" size={14}/></Link></header>{cards.length?<div className="new-cards-grid">{cards.map(card=><Link href={`/cards/${encodeURIComponent(card.code)}`} className="new-cards-card" key={card.code} onClick={dismiss} title={`${card.name} · ${card.code}`}><CardArt card={card} imageWidth={280}/><strong>{card.name}</strong><small>{card.code}</small></Link>)}</div>:<p className="new-cards-set-empty">{cardsLoading?(id?'Memuat kartu…':'Loading cards…'):(id?'Lihat arsip set untuk kartu yang tersedia.':'Open the set archive to browse available cards.')}</p>}</section>})}
    <div className="new-cards-actions"><Link href="/sets/OP18" onClick={dismiss}><EyeIcon size={17}/> OP18</Link><Link href="/sets/EB05" onClick={dismiss}><EyeIcon size={17}/> EB05</Link><Link className="new-cards-primary" href="/decks/builder?card=preview-p-163" onClick={dismiss}>{id?'Susun deck':'Build a deck'}</Link></div>

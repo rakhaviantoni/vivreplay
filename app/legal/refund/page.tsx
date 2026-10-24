@@ -1,10 +1,11 @@
+import {withRequestLocale} from '@/lib/with-request-locale';
 import type {Metadata} from 'next';
 import {LegalDocument,LegalSection} from '@/components/tcg/legal-document';
 import {isIndonesianRequest} from '@/lib/locale';
 
 export async function generateMetadata():Promise<Metadata>{const id=await isIndonesianRequest();const title=id?'Kebijakan Pengembalian Dana':'Refund Policy';const description=id?'Cara meminta bantuan atas pembayaran atau pesanan Market di VivrePlay.':'Refund eligibility and how to request help with a VivrePlay payment or Market order.';return {title,description,alternates:{canonical:id?'/id/legal/refund':'/legal/refund',languages:{'en-US':'/legal/refund','id-ID':'/id/legal/refund'}},openGraph:{type:'article',title,description,url:id?'/id/legal/refund':'/legal/refund'}}}
 
-export default async function RefundPolicyPage(){
+async function RefundPolicyPage(){
   const id=await isIndonesianRequest();
   const sections:LegalSection[]=id?[
     {title:'Kapan pengembalian dana dapat diajukan',body:<p>Anda dapat menghubungi kami jika pembayaran terduplikasi, jumlah yang ditagihkan tidak sesuai dengan checkout, pesanan dibatalkan sebelum dikirim, atau ada masalah transaksi lain yang perlu diperiksa. Untuk Market Pro, hubungi kami bila pembayaran berhasil tetapi manfaat paket tidak aktif atau terjadi tagihan ganda.</p>},
@@ -21,3 +22,5 @@ export default async function RefundPolicyPage(){
   ];
   return <LegalDocument id={id} title={id?'Kebijakan Pengembalian Dana':'Refund Policy'} description={id?'Informasi pengajuan bantuan dan pengembalian pembayaran VivrePlay.':'How to request help with a VivrePlay payment or Market order.'} lead={id?'Kami meninjau laporan berdasarkan status pembayaran, pesanan, dan bukti yang tersedia.':'We review requests against the payment status, order details, and available evidence.'} sections={sections} updated="17 October 2026"/>;
 }
+
+export default withRequestLocale(RefundPolicyPage);

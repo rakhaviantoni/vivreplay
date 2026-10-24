@@ -5,6 +5,7 @@ export function proxy(request:NextRequest){
   const {pathname,search}=request.nextUrl;
   const requestHeaders=new Headers(request.headers);
   requestHeaders.set('x-vivreplay-path',pathname);
+  requestHeaders.set('x-locale',pathname==='/id'||pathname.startsWith('/id/')?'ID':'EN');
   if(pathname!=='/id'&&!pathname.startsWith('/id/')){
     const response=NextResponse.next({request:{headers:requestHeaders}});
     response.headers.set('Permissions-Policy','camera=(self), microphone=(), geolocation=(self)');

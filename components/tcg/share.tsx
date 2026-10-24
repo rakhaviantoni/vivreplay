@@ -1,5 +1,7 @@
 'use client';
 
+import LocalizedAnchor from '@/components/ui/localized-link';
+import {useRouteLocale} from '@/components/locale-provider';
 import {useEffect, useMemo, useState} from 'react';
 import {
   CopyIcon as Copy,
@@ -853,7 +855,7 @@ export function ShareButton({
   const [open, setOpen] = useState(openOnMount);
   const [copied, setCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
-  const [language, setLanguage] = useState<'EN' | 'ID'>('EN');
+  const [language, setLanguage] = useState<'EN' | 'ID'>(useRouteLocale());
   const [shareStyle, setShareStyle] = useState<'light' | 'dark'>('light');
   const [imagePreview, setImagePreview] = useState('');
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -1057,7 +1059,7 @@ export function ShareButton({
 
           {!privateEntity && (
             <div className="share-channels-grid">
-              <a
+              <LocalizedAnchor
                 className="share-channel-btn whatsapp"
                 href={`https://wa.me/?text=${encodeURIComponent(`${title} - ${url}`)}`}
                 target="_blank"
@@ -1065,8 +1067,8 @@ export function ShareButton({
               >
                 <WhatsappLogo size={18} weight="fill" />
                 <span>WhatsApp</span>
-              </a>
-              <a
+              </LocalizedAnchor>
+              <LocalizedAnchor
                 className="share-channel-btn x-social"
                 href={`https://x.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`}
                 target="_blank"
@@ -1074,8 +1076,8 @@ export function ShareButton({
               >
                 <XLogo size={18} weight="bold" />
                 <span>X</span>
-              </a>
-              <a
+              </LocalizedAnchor>
+              <LocalizedAnchor
                 className="share-channel-btn telegram"
                 href={`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`}
                 target="_blank"
@@ -1083,7 +1085,7 @@ export function ShareButton({
               >
                 <TelegramLogo size={18} weight="fill" />
                 <span>Telegram</span>
-              </a>
+              </LocalizedAnchor>
             </div>
           )}
 

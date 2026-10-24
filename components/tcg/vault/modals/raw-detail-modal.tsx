@@ -1,7 +1,8 @@
 'use client';
 
+import LocalizedAnchor from '@/components/ui/localized-link';
 import React from 'react';
-import Link from 'next/link';
+import Link from '@/components/ui/localized-link';
 import { 
   XIcon as X, 
   StorefrontIcon as Store, 
@@ -176,7 +177,7 @@ export function RawDetailModal({
               {!hideValues && item.marketPriceSource === 'pricecharting' && (
                 <small style={{ display: 'block', marginTop: 4, color: 'var(--vault-ink-muted)' }}>
                   PriceCharting ungraded · USD converted at Rp {PRICECHARTING_USD_TO_IDR_RATE.toLocaleString('id-ID')}/USD
-                  {item.marketPriceUrl && <a href={item.marketPriceUrl} target="_blank" rel="noopener noreferrer"> View source</a>}
+                  {item.marketPriceUrl && <LocalizedAnchor href={item.marketPriceUrl} target="_blank" rel="noopener noreferrer"> View source</LocalizedAnchor>}
                 </small>
               )}
               {!hideValues && item.marketPriceSource === 'yuyutei' && <small style={{ display: 'block', marginTop: 4, color: 'var(--vault-ink-muted)' }}>Yuyutei price for this Japanese card</small>}

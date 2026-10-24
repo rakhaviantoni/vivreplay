@@ -1,3 +1,4 @@
+import {withRequestLocale} from '@/lib/with-request-locale';
 import type {Metadata} from 'next';
 import {notFound} from 'next/navigation';
 import {HelpArticlePage} from '@/components/tcg/help-article';
@@ -26,9 +27,11 @@ export async function generateMetadata({params}: {params: Promise<{slug: string}
   };
 }
 
-export default async function HelpArticleRoute({params}: {params: Promise<{slug: string}>}) {
+async function HelpArticleRoute({params}: {params: Promise<{slug: string}>}) {
   const {slug} = await params;
   if (!findHelpArticle(slug)) notFound();
   const id = await isIndonesianRequest();
   return <HelpArticlePage slug={slug} locale={id ? 'id' : 'en'}/>;
 }
+
+export default withRequestLocale(HelpArticleRoute);

@@ -1,3 +1,4 @@
+import {withRequestLocale} from '@/lib/with-request-locale';
 import { VivreMark } from "@/components/tcg/brand-assets";
 import { getCurrentUser } from "@/lib/server/auth";
 import { VerifiedCompletion } from "./verified-completion";
@@ -6,7 +7,7 @@ function safeReturnTo(value: string | undefined) {
   return value?.startsWith("/") && !value.startsWith("//") && !value.startsWith("/api/") ? value : "/market";
 }
 
-export default async function VerifiedPage({ searchParams }: { searchParams: Promise<{ return_to?: string }> }) {
+async function VerifiedPage({ searchParams }: { searchParams: Promise<{ return_to?: string }> }) {
   const params = await searchParams;
   const returnTo = safeReturnTo(params.return_to);
   const account = await getCurrentUser().catch(() => null);
@@ -26,3 +27,5 @@ export default async function VerifiedPage({ searchParams }: { searchParams: Pro
     </main>
   );
 }
+
+export default withRequestLocale(VerifiedPage);

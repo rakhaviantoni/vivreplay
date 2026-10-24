@@ -1,4 +1,5 @@
 'use client';
+import {useRouteLocale} from '@/components/locale-provider';
 import {useEffect, useState} from 'react';
 import {toast} from 'sonner';
 import {Picker} from './catalog';
@@ -14,7 +15,7 @@ export function SlabPhotos({id,photos,owner}:{id:string;photos:{id:string;role:s
   const [items,setItems]=useState(photos);
   const [role,setRole]=useState('front');
   const [busy,setBusy]=useState(false);
-  const [language,setLanguage]=useState<'EN'|'ID'>('EN');
+  const [language,setLanguage]=useState<'EN'|'ID'>(useRouteLocale());
 
   useEffect(()=>{
     const sync=()=>setLanguage(window.localStorage.getItem('vivreplay-locale')==='ID'?'ID':'EN');

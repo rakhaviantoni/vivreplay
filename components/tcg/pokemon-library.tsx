@@ -1,11 +1,14 @@
 'use client';
 
+import LocalizedAnchor from '@/components/ui/localized-link';
+import {useRouteLocale} from '@/components/locale-provider';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import Link from '@/components/ui/localized-link';
+import {usePathname} from 'next/navigation';
+import {useLocalizedRouter as useRouter} from '@/lib/use-localized-router';
 import { MagnifyingGlassIcon as Search, ArrowUpRightIcon, CaretDownIcon as ChevronDown, CaretLeftIcon, CaretRightIcon, SlidersHorizontalIcon as SlidersHorizontal, SortAscendingIcon as SortAscending, ArrowSquareOutIcon, StorefrontIcon, PlusIcon } from '@phosphor-icons/react';
 import { CardArt } from '@/components/tcg/card-art';
-import { pokemonLocalCardNumber } from '@/lib/pokemon-set-aliases';
+import { pokemonLocalCardNumber, pokemonPrintingMatchesPublicReference } from '@/lib/pokemon-set-aliases';
 import { CardScanButton } from '@/components/tcg/card-scan-button';
 import { FeedbackLaunchButton } from '@/components/tcg/feedback-launch';
 import { PokemonCardText, PokemonCardVitals, PokemonMechanicText, pokemonRuleAbilities, trainerEffectText } from '@/components/tcg/pokemon-card-text';
@@ -18,6 +21,7 @@ import { ShareButton, type ShareCardDetails } from '@/components/tcg/share';
 import { MarketSellAction } from '@/components/tcg/market-sell-action';
 import { CollectionForm } from '@/components/tcg/collection-form';
 import { useAccount } from '@/lib/client';
+import { preferredPokemonCardLanguage } from '@/lib/pokemon-card-language';
 import { CardMarketPanel } from '@/components/tcg/card-market-panel';
 import { pokemonRarityLabel } from '@/lib/pokemon-rarity';
 import { parsePokemonSearchQuery, resolvePokemonSearchRarities } from '@/lib/pokemon-search';
@@ -46,12 +50,12 @@ const pokemonPublicCardUrl=(card:GameCard,game='pokemon')=>{
 export function PokemonLibrary({ initialSet, initialQuery, initialIllustrator, initialRarity, initialCard, initialPrinting, initialNumber, initialLanguage }: { initialSet?: string; initialQuery?: string; initialIllustrator?: string; initialRarity?: string; initialCard?: string; initialPrinting?: string; initialNumber?: string; initialLanguage?: string }) {
   const pathname = usePathname();
   const router = useRouter();
-  const id = pathname === '/id' || pathname.startsWith('/id/');
+  const id = useRouteLocale() === 'ID';
   const localize = (href: string) => id ? `/id${href}` : href;
   const rawExplicitLanguage = initialLanguage?.toUpperCase();
   const explicitLanguage = rawExplicitLanguage === 'JA' ? 'JP' : rawExplicitLanguage;
   const hasExplicitLanguage = ['ID', 'EN', 'JP', 'ALL'].includes(explicitLanguage ?? '');
-  const [language, setLanguage] = useState<Language>(() => hasExplicitLanguage ? explicitLanguage as Language : pathname === '/id' || pathname.startsWith('/id/') ? 'ID' : 'EN');
+  const [language, setLanguage] = useState<Language>(() => hasExplicitLanguage ? explicitLanguage as Language : id ? 'ID' : 'EN');
   const [languageReady, setLanguageReady] = useState(hasExplicitLanguage);
   const skipAllFetchOnce = useRef(false);
   const [cards, setCards] = useState<GameCard[]>([]);
@@ -95,22 +99,25 @@ export function PokemonLibrary({ initialSet, initialQuery, initialIllustrator, i
   const [vaultFormOpen, setVaultFormOpen] = useState(false);
   const { data: account, refresh: refreshAccount, loading: accountLoading } = useAccount();
   useEffect(() => {
-    const applyPreference = (value?: string) => {
-      const stored = value ?? window.localStorage.getItem('vivreplay-locale') ?? '';
-      const profileLocale = String((account as { profile?: { locale?: string } } | null)?.profile?.locale ?? '');
-      const preferred = (stored.trim() || profileLocale.trim()).toUpperCase().split(/[-_]/)[0];
-      if (preferred === 'ID' || preferred === 'EN') setLanguage(preferred);
-      else if (preferred) setLanguage('ALL');
-      setLanguageReady(true);
+    let active = true;
+    const applyPreference = async (value?: string) => {
+      const savedCardLanguage = window.localStorage.getItem('vivreplay-pokemon-language')?.toUpperCase();
+      if (savedCardLanguage === 'ALL') setLanguage('ALL');
+      else if (value && !savedCardLanguage) {
+        const preferred = value.toUpperCase().split(/[-_]/)[0];
+        if (preferred === 'ID' || preferred === 'EN') setLanguage(preferred);
+      } else {
+        const profileLocale = String((account as { profile?: { locale?: string } } | null)?.profile?.locale ?? '');
+        const preferred = await preferredPokemonCardLanguage(profileLocale);
+        if (active) setLanguage(savedCardLanguage === 'ID' || savedCardLanguage === 'JP' ? savedCardLanguage : preferred);
+      }
+      if (active) setLanguageReady(true);
     };
-    if (!hasExplicitLanguage && !accountLoading) applyPreference();
-    const onLocale = (event: Event) => {
-      if (hasExplicitLanguage) return;
-      applyPreference((event as CustomEvent<'EN' | 'ID'>).detail);
-    };
+    if (!hasExplicitLanguage && !accountLoading) void applyPreference();
+    const onLocale = (event: Event) => { if (!hasExplicitLanguage) void applyPreference((event as CustomEvent<'EN' | 'ID'>).detail); };
     window.addEventListener('vivreplay:locale', onLocale);
-    return () => window.removeEventListener('vivreplay:locale', onLocale);
-  }, [account, accountLoading, hasExplicitLanguage]);
+    return () => { active = false; window.removeEventListener('vivreplay:locale', onLocale); };
+  }, [account, accountLoading, hasExplicitLanguage, pathname]);
   const [relatedPrintings, setRelatedPrintings] = useState<GameCard[]>([]);
   const [relatedPrintingsLoading, setRelatedPrintingsLoading] = useState(false);
   const relatedPrintingsTrack = useRef<HTMLDivElement>(null);
@@ -341,9 +348,10 @@ export function PokemonLibrary({ initialSet, initialQuery, initialIllustrator, i
     const queryKey = `${initialPrinting ?? ''}:${initialCard ?? ''}:${initialSet ?? ''}:${initialNumber ?? ''}:${initialLanguage ?? ''}`;
     if (openedPrintingQuery.current === queryKey) return;
     openedPrintingQuery.current = queryKey;
-    const normalizedSet=(value:string)=>value.replace(/[-_\s]/g,'').toUpperCase();
-    const normalizedNumber=(value:string)=>value.replace(/_p\d+$/i,'').replace(/^0+(?=\d)/,'').toUpperCase();
-    const matchesPublicNumber=(card:GameCard)=>normalizedSet(card.set_code??'')===normalizedSet(initialSet??'')&&normalizedNumber(pokemonLocalCardNumber(card.source_payload,card.printing_code??''))===normalizedNumber(initialNumber??'')&&(language==='ALL'||card.language===language);
+    const matchesPublicNumber=(card:GameCard)=>{
+      const cardNumber=pokemonLocalCardNumber(card.source_payload,card.printing_code??'');
+      return pokemonPrintingMatchesPublicReference(initialSet??'',initialNumber??'',card.set_code??'',cardNumber)&&(language==='ALL'||card.language===language);
+    };
     const existing = cards.find(card => initialPrinting ? card.id === initialPrinting : initialNumber&&initialSet ? matchesPublicNumber(card) : card.tcg_card_identities?.code.toUpperCase() === initialCard?.toUpperCase());
     if (existing) { setSelected(existing); return; }
     const controller = new AbortController();
@@ -464,7 +472,7 @@ export function PokemonLibrary({ initialSet, initialQuery, initialIllustrator, i
             {value:'rarity',label:id?'Kelangkaan: tinggi ke rendah':'Rarity: high to low'},
             {value:'hp',label:'HP'},
           ]}/></div>
-          <div className="pokemon-library-language"><div className="language-switch" aria-label={id?'Bahasa kartu':'Card language'}>{languages.map(option => <button type="button" key={option} aria-pressed={language === option} onClick={() => { setLoading(true); setLanguage(option); }}>{option === 'ALL' ? id ? 'Semua' : 'All' : option}</button>)}</div></div>
+          <div className="pokemon-library-language"><div className="language-switch" aria-label={id?'Bahasa kartu':'Card language'}>{languages.map(option => <button type="button" key={option} aria-pressed={language === option} onClick={() => { window.localStorage.setItem('vivreplay-pokemon-language',option); const params=new URLSearchParams(window.location.search); params.set('lang',option); router.replace(`${window.location.pathname}?${params.toString()}`,{scroll:false}); setLoading(true); setLanguage(option); }}>{option === 'ALL' ? id ? 'Semua' : 'All' : option}</button>)}</div></div>
           {hasFilters&&<button type="button" className="pokemon-clear-filters" onClick={clearFilters}>{id?'Hapus':'Clear'}</button>}
           </div>
         </div>
@@ -481,7 +489,7 @@ export function PokemonLibrary({ initialSet, initialQuery, initialIllustrator, i
       </div>
     </section>
     <div className="pokemon-library-count" aria-live="polite">{loading ? cards.length ? (id?'Memperbarui kartu…':'Updating cards…') : (id?'Memuat kartu…':'Loading cards…') : `${cards.length.toLocaleString(id?'id-ID':'en-US')} ${id?(cards.length===1?'kartu':'kartu'):(cards.length===1?'card':'cards')}${hasMore ? (id?' dimuat':' loaded') : ''}`}</div>
-    {loading && !cards.length ? <div className="pokemon-card-grid" aria-label={id?'Memuat kartu Pokémon':'Loading Pokémon cards'}>{Array.from({ length: 12 }, (_, index) => <i key={index}/>)}</div> : loadError && !cards.length ? <section className="empty-state pokemon-empty"><h2>{id?'Kartu tidak dapat dimuat.':'Cards could not be loaded.'}</h2><p>{id?'Periksa koneksi Anda, lalu coba lagi.':'Check your connection and try again.'}</p><button type="button" className="button secondary" onClick={() => setRetryVersion(value => value + 1)}>{id?'Coba lagi':'Try again'}</button></section> : cards.length ? <div className="pokemon-card-grid" aria-busy={loading}>{cards.map(card => {
+    {loading && !cards.length ? <div className="pokemon-card-grid" aria-label={id?'Memuat kartu Pokémon':'Loading Pokémon cards'}>{Array.from({ length: 12 }, (_, index) => <i key={index}/>)}</div> : loadError && !cards.length ? <section className="empty-state pokemon-empty"><h2>{id?'Kartu tidak dapat dimuat':'Cards could not be loaded'}</h2><p>{id?'Periksa koneksi Anda, lalu coba lagi.':'Check your connection and try again.'}</p><button type="button" className="button secondary" onClick={() => setRetryVersion(value => value + 1)}>{id?'Coba lagi':'Try again'}</button></section> : cards.length ? <div className="pokemon-card-grid" aria-busy={loading}>{cards.map(card => {
       const display = displayCard(card);
       const metadata = pokemonCardMetadata(card);
       const isOpenInDetail = selected?.id === card.id;
@@ -491,7 +499,7 @@ export function PokemonLibrary({ initialSet, initialQuery, initialIllustrator, i
           <span className="pokemon-card-caption"><strong>{display.name}</strong><PokemonCardMetadata metadata={metadata}/></span>
         </button>
       </div>;
-    })}</div> : <section className="empty-state pokemon-empty"><h2>{searchQuery||hasFilters?(id?'Tidak ada kartu yang cocok dengan filter ini.':'No cards match these filters.'):(id?'Belum ada kartu Pokémon untuk bahasa ini.':'No Pokémon cards are available in this language yet.')}</h2>{(searchQuery||hasFilters)&&<p>{id?'Ubah pencarian atau hapus salah satu filter.':'Change your search or clear a filter.'}</p>}</section>}
+    })}</div> : <section className="empty-state pokemon-empty"><h2>{searchQuery||hasFilters?(id?'Tidak ada kartu yang cocok dengan filter ini':'No cards match these filters'):(id?'Belum ada kartu Pokémon untuk bahasa ini':'No Pokémon cards are available in this language yet')}</h2>{(searchQuery||hasFilters)&&<p>{id?'Ubah pencarian atau hapus salah satu filter.':'Change your search or clear a filter.'}</p>}</section>}
     {!loading && loadError && cards.length > 0 && <p className="pokemon-load-error" role="status">{id?'Kartu lainnya gagal dimuat.':'More cards could not be loaded.'} <button type="button" onClick={() => setRetryVersion(value => value + 1)}>{id?'Coba lagi':'Try again'}</button></p>}
     {!loading && hasMore && <button type="button" className="pokemon-load-more" onClick={() => void loadMore()} disabled={loadingMore} aria-busy={loadingMore}>{loadingMore ? ' ' : id?'Muat kartu lainnya':'Load more cards'}</button>}
     <Dialog open={Boolean(selected)} onOpenChange={open => { if (!open) { detailTransitionId.current += 1; if (detailLoadingTimer.current !== null) window.clearTimeout(detailLoadingTimer.current); evolutionCardRequest.current?.abort(); setDetailLoading(false); setSelected(null); } }}>
@@ -601,7 +609,7 @@ function PokemonPriceGuide({source,cardName,preferredCurrency,id}:{source?:Pokem
       const rate=preferredCurrency&&provider.currency!==preferredCurrency?exchangeRates[`${provider.currency}:${preferredCurrency}`]:undefined;
       return <article key={provider.name}>
         <header>
-          <a href={provider.href} target="_blank" rel="noreferrer" aria-label={`Search ${cardName} on ${provider.name}`}><strong>{provider.name}</strong><ArrowSquareOutIcon size={12} aria-hidden="true"/></a>
+          <LocalizedAnchor href={provider.href} target="_blank" rel="noreferrer" aria-label={`Search ${cardName} on ${provider.name}`}><strong>{provider.name}</strong><ArrowSquareOutIcon size={12} aria-hidden="true"/></LocalizedAnchor>
           <span className="pokemon-price-guide-source-currency">{provider.currency}</span>
           {provider.updated&&<time dateTime={provider.updated}>{new Intl.DateTimeFormat(locale,{month:'short',day:'numeric',year:'numeric'}).format(new Date(provider.updated))}</time>}
         </header>

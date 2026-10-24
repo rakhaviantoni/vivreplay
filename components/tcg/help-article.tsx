@@ -1,4 +1,5 @@
-import Link from 'next/link';
+import LocalizedAnchor from '@/components/ui/localized-link';
+import Link from '@/components/ui/localized-link';
 import {ArrowLeft, ArrowRight} from 'lucide-react';
 import {helpArticles, helpCategories, helpArticleText, type HelpLocale} from '@/lib/help/articles';
 
@@ -47,8 +48,8 @@ export function HelpArticlePage({slug, locale}: {slug: string; locale: HelpLocal
         <div className="help-article-support">
           <strong>{id ? 'Masih perlu bantuan?' : 'Still need help?'}</strong>
           <p>{id ? 'Sertakan nomor pesanan atau kode kartu agar kami dapat memahami konteksnya.' : 'Include the order number or card code so we can see the context.'}</p>
-          <a href={`mailto:support@vivreplay.com?subject=${contactSubject}`}>{id ? 'Email dukungan' : 'Email support'}</a>
-          <a href={`https://wa.me/6287892660993?text=${encodeURIComponent(id ? `Halo VivrePlay, saya perlu bantuan tentang: ${copy.title}. ` : `Hi VivrePlay, I need help with: ${copy.title}. `)}`} target="_blank" rel="noreferrer">WhatsApp</a>
+          <LocalizedAnchor href={`mailto:support@vivreplay.com?subject=${contactSubject}`}>{id ? 'Email dukungan' : 'Email support'}</LocalizedAnchor>
+          <LocalizedAnchor href={`https://wa.me/6287892660993?text=${encodeURIComponent(id ? `Halo VivrePlay, saya perlu bantuan tentang: ${copy.title}. ` : `Hi VivrePlay, I need help with: ${copy.title}. `)}`} target="_blank" rel="noreferrer">WhatsApp</LocalizedAnchor>
         </div>
       </article>
       <aside className="help-article-aside">

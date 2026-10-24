@@ -1,6 +1,7 @@
 'use client';
 
-import Link from 'next/link';
+import LocalizedAnchor from '@/components/ui/localized-link';
+import Link from '@/components/ui/localized-link';
 import {usePathname, useRouter, useSearchParams} from 'next/navigation';
 import {ChartLineUpIcon as ChartNoAxesCombined, CaretDownIcon as ChevronDown, CaretLeftIcon as ChevronLeft, CaretRightIcon as ChevronRight, CaretUpIcon as ChevronUp, CookieIcon as Cookie, GameControllerIcon as Gamepad2, HouseIcon as Home, StackIcon as Layers3, BooksIcon as Library, MoonIcon as Moon, MagnifyingGlassIcon as Search, ShieldCheckIcon as ShieldCheck, StorefrontIcon as Store, SunIcon as Sun, TrophyIcon as Trophy, UserIcon as UserRound, XIcon as X} from '@phosphor-icons/react';
 import {useEffect, useLayoutEffect, useRef, useState} from 'react';
@@ -8,6 +9,7 @@ import {Toaster} from '@/components/ui/sonner';
 import {Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle} from '@/components/ui/dialog';
 import {useAccount} from '@/lib/client';
 import {CardArt} from './card-art';
+import {CardLoadingSkeleton} from './card-loading-skeleton';
 import {displayCardName} from './card-name';
 import type {Card} from '@/packages/card-data/catalog';
 import {GAME_LOGOS, VivreMark} from './brand-assets';
@@ -34,7 +36,7 @@ const collectionMenu={label:'Collection',labelId:'Koleksi',items:[{href:'/vault'
 const arenaMenu={label:'Arena',labelId:'Arena',items:[{href:'/play',label:'Arena lobby',labelId:'Lobi arena',icon:Gamepad2},{href:'/play/tutorial',label:'Learn to play',labelId:'Belajar bermain',icon:Gamepad2},{href:'/events',label:'Events',labelId:'Acara',icon:Trophy}]} satisfies {label:string;labelId:string;items:NavItem[]};
 const market:NavItem={href:'/market',label:'Market',labelId:'Market',icon:Store};
 const mobileNav:NavItem[]=[{href:'/',label:'Home',labelId:'Beranda',icon:Home},{href:'/cards',label:'Cards',labelId:'Kartu',icon:Layers3},{href:'/vault',label:'Vault',labelId:'Koleksi',icon:ShieldCheck},market,{href:'/play',label:'Arena',labelId:'Arena',icon:Gamepad2}];
-const pokemonMobileNav:NavItem[]=[{href:'/pokemon',label:'Home',labelId:'Beranda',icon:Home},{href:'/pokemon/cards',label:'Cards',labelId:'Kartu',icon:Layers3},{href:'/pokemon/sets',label:'Sets',labelId:'Set',icon:Library},{href:'/vault',label:'Vault',labelId:'Koleksi',icon:ShieldCheck},market];
+const pokemonMobileNav:NavItem[]=[{href:'/pokemon/cards',label:'Cards',labelId:'Kartu',icon:Layers3},{href:'/pokemon/sets',label:'Sets',labelId:'Set',icon:Library},{href:'/vault',label:'Vault',labelId:'Koleksi',icon:ShieldCheck},market];
 const rail=[
   {title:'Build a deck',titleId:'Susun deck',body:'Choose a leader, then tune the curve with live cards.',bodyId:'Pilih leader, lalu atur kurva dengan kartu langsung.',action:'Open builder',actionId:'Buka pembuat deck',href:'/decks/builder'},
   {title:'Curate your vault',titleId:'Atur koleksi',body:'Keep the exact art and language you own together.',bodyId:'Simpan art dan bahasa cetakan yang Anda miliki.',action:'Open vault',actionId:'Buka koleksi',href:'/vault'},
@@ -70,7 +72,7 @@ function HeaderSearch({language,game}:{language:Locale;game:'one-piece'|'pokemon
   const copy=language==='ID'?{button:'Cari',title:game==='pokemon'?'Cari kartu Pokémon':'Temukan kartu atau set',hint:game==='pokemon'?'Cari nama, nomor kartu, rarity, atau set.':'Cari nama, set, warna, tipe, biaya, atau rarity. Contoh: OP17 leader, 5c Luffy.',empty:'Cari kartu atau set dengan nama atau kode.',none:'Tidak ada kartu atau set yang cocok.',cards:'Kartu',sets:'Set'}:{button:'Find',title:game==='pokemon'?'Search Pokémon cards':'Find cards or sets',hint:game==='pokemon'?'Search by name, card number, rarity, or set.':'Search name, set, color, type, cost, or rarity. Try OP17 leader or 5c Luffy.',empty:'Search a card or set by name or code.',none:'No cards or sets matched that search.',cards:'Cards',sets:'Sets'};
   const getHref=(href:string)=>language==='ID'?(href==='/'?'/id':`/id${href}`):href;
   const pokemonSearchHref=getHref(`/pokemon/cards?q=${encodeURIComponent(query.trim())}`);
-  return <Dialog open={open} onOpenChange={setOpen}><button type="button" aria-label={copy.button} className="search-link" onClick={()=>setOpen(true)}><Search size={16}/><span>{copy.button}</span><kbd>⌘ K</kbd></button><DialogContent className="header-search-dialog"><DialogHeader><DialogTitle>{copy.title}</DialogTitle><DialogDescription>{copy.hint}</DialogDescription></DialogHeader><div className="header-search-input"><Search size={18}/><input autoFocus value={query} onChange={event=>setQuery(event.target.value)} placeholder={copy.hint}/><CardScanButton game={game} locale={language}/><kbd>ESC</kbd></div><div className="header-search-results" aria-live="polite">{game==='pokemon'&&query.trim().length>=2&&<Link href={pokemonSearchHref} onClick={()=>setOpen(false)} className="header-search-result header-search-set"><Search size={18}/><span><b>{language==='ID'?'Cari di katalog Pokémon':'Search Pokémon catalog'}</b><small>{query.trim()}</small></span><ChevronRight size={16}/></Link>}{loading&&Array.from({length:4}).map((_,i)=><i key={i} className="header-search-skeleton"/>)}{!loading&&query.trim().length<2&&<p>{copy.empty}</p>}{game!=='pokemon'&&!loading&&query.trim().length>=2&&!results.length&&!setMatches.length&&<p>{copy.none}</p>}{!loading&&Boolean(setMatches.length)&&<><small className="header-search-group">{copy.sets}</small>{setMatches.map(set=><Link href={getHref(`/cards?set=${encodeURIComponent(set.code)}`)} onClick={()=>setOpen(false)} key={set.code} className="header-search-result header-search-set"><Layers3 size={18}/><span><b>{set.name}</b><small>{set.code}{set.setKind?` · ${set.setKind}`:''}</small></span><ChevronRight size={16}/></Link>)}</>}{!loading&&Boolean(results.length)&&<><small className="header-search-group">{copy.cards}</small>{results.map(card=><Link href={getHref(`/cards/${card.code}`)} onClick={()=>setOpen(false)} key={card.id} className="header-search-result"><CardArt card={card}/><span><b>{card.name}</b><small>{card.code} · {card.type}</small></span><ChevronRight size={16}/></Link>)}</>}</div></DialogContent></Dialog>;
+  return <Dialog open={open} onOpenChange={setOpen}><button type="button" aria-label={copy.button} className="search-link" onClick={()=>setOpen(true)}><Search size={16}/><span>{copy.button}</span><kbd>⌘ K</kbd></button><DialogContent className="header-search-dialog"><DialogHeader><DialogTitle>{copy.title}</DialogTitle><DialogDescription>{copy.hint}</DialogDescription></DialogHeader><div className="header-search-input"><Search size={18}/><input autoFocus value={query} onChange={event=>setQuery(event.target.value)} placeholder={copy.hint}/><CardScanButton game={game} locale={language}/><kbd>ESC</kbd></div><div className="header-search-results" aria-live="polite">{game==='pokemon'&&query.trim().length>=2&&<Link href={pokemonSearchHref} onClick={()=>setOpen(false)} className="header-search-result header-search-set"><Search size={18}/><span><b>{language==='ID'?'Cari di katalog Pokémon':'Search Pokémon catalog'}</b><small>{query.trim()}</small></span><ChevronRight size={16}/></Link>}{loading&&<CardLoadingSkeleton count={4} className="header-search-loading"/>}{!loading&&query.trim().length<2&&<p>{copy.empty}</p>}{game!=='pokemon'&&!loading&&query.trim().length>=2&&!results.length&&!setMatches.length&&<p>{copy.none}</p>}{!loading&&Boolean(setMatches.length)&&<><small className="header-search-group">{copy.sets}</small>{setMatches.map(set=><Link href={getHref(`/cards?set=${encodeURIComponent(set.code)}`)} onClick={()=>setOpen(false)} key={set.code} className="header-search-result header-search-set"><Layers3 size={18}/><span><b>{set.name}</b><small>{set.code}{set.setKind?` · ${set.setKind}`:''}</small></span><ChevronRight size={16}/></Link>)}</>}{!loading&&Boolean(results.length)&&<><small className="header-search-group">{copy.cards}</small>{results.map(card=><Link href={getHref(`/cards/${card.code}`)} onClick={()=>setOpen(false)} key={card.id} className="header-search-result"><CardArt card={card}/><span><b>{card.name}</b><small>{card.code} · {card.type}</small></span><ChevronRight size={16}/></Link>)}</>}</div></DialogContent></Dialog>;
 }
 function PrimaryNav({language,selected,game,path}:{language:Locale;selected:(url:string)=>boolean;game:'one-piece'|'pokemon';path:string}) {
   const root=useRef<HTMLElement>(null);
@@ -84,13 +86,14 @@ function PrimaryNav({language,selected,game,path}:{language:Locale;selected:(url
   const menus=game==='pokemon'
     ?[{label:'Library',labelId:'Katalog',items:libraryItems}]
     :[{label:'Library',labelId:'Katalog',items:libraryItems},collectionMenu,arenaMenu];
-  return <nav ref={root} aria-label="Primary navigation" className="primary-nav">{game==='pokemon'&&<Link href={getHref('/pokemon')} onClick={closeAll} className={path==='/pokemon'?'active':''}><Home size={14}/>{language==='ID'?'Beranda':'Home'}</Link>}{menus.map(menu=><details key={menu.label} className="nav-more" onPointerEnter={event=>openMenu(event.currentTarget)} onPointerLeave={event=>event.currentTarget.removeAttribute('open')} onToggle={event=>{if(!event.currentTarget.open)return;root.current?.querySelectorAll('details[open]').forEach(item=>{if(item!==event.currentTarget)item.removeAttribute('open')})}}><summary className={menu.items.some(item=>selected(item.href))?'active':''}>{language==='ID'?menu.labelId:menu.label}<ChevronDown size={13}/></summary><div>{menu.items.map(item=>{const Icon=item.icon;return <Link key={item.href} href={getHref(item.href)} onClick={closeAll} className={selected(item.href)?'active':''}><Icon size={14}/>{language==='ID'?item.labelId:item.label}</Link>})}</div></details>)}{game==='pokemon'&&<Link href={getHref('/vault?game=pokemon')} onClick={closeAll} className={selected('/vault')?'active market-nav':''}><ShieldCheck size={14}/>{language==='ID'?'Vault':'Vault'}</Link>}<Link href={getHref(game==='pokemon'?'/market?game=pokemon':market.href)} onClick={closeAll} className={selected(market.href)?'active market-nav':''}><Store size={14}/>{language==='ID'?market.labelId:market.label}</Link></nav>;
+  return <nav ref={root} aria-label="Primary navigation" className="primary-nav">{menus.map(menu=><details key={menu.label} className="nav-more" onPointerEnter={event=>openMenu(event.currentTarget)} onPointerLeave={event=>event.currentTarget.removeAttribute('open')} onToggle={event=>{if(!event.currentTarget.open)return;root.current?.querySelectorAll('details[open]').forEach(item=>{if(item!==event.currentTarget)item.removeAttribute('open')})}}><summary className={menu.items.some(item=>selected(item.href))?'active':''}>{language==='ID'?menu.labelId:menu.label}<ChevronDown size={13}/></summary><div>{menu.items.map(item=>{const Icon=item.icon;return <Link key={item.href} href={getHref(item.href)} onClick={closeAll} className={selected(item.href)?'active':''}><Icon size={14}/>{language==='ID'?item.labelId:item.label}</Link>})}</div></details>)}{game==='pokemon'&&<Link href={getHref('/vault?game=pokemon')} onClick={closeAll} className={selected('/vault')?'active market-nav':''}><ShieldCheck size={14}/>{language==='ID'?'Vault':'Vault'}</Link>}<Link href={getHref(game==='pokemon'?'/market?game=pokemon':market.href)} onClick={closeAll} className={selected(market.href)?'active market-nav':''}><Store size={14}/>{language==='ID'?market.labelId:market.label}</Link></nav>;
 }
 
 function GameModeSwitch({language,game,path,search}:{language:Locale;game:'one-piece'|'pokemon';path:string;search:string}) {
   const options=[{id:'one-piece' as const,href:'/cards',label:'One Piece',logo:GAME_LOGOS['one-piece']},{id:'pokemon' as const,href:'/pokemon',label:'Pokémon',logo:GAME_LOGOS.pokemon}];
   const localize=(href:string)=>language==='ID'?`/id${href}`:href;
   const hrefFor=(option:typeof options[number])=>{
+    if(path!=='/vault'&&game==='pokemon'&&option.id==='one-piece')return language==='ID'?'/id':'/';
     if(path!=='/vault')return localize(option.href);
     const params=new URLSearchParams(search);
     if(option.id==='pokemon')params.set('game','pokemon');else params.delete('game');
@@ -129,7 +132,7 @@ function Footer({language,game}:{language:Locale;game:'one-piece'|'pokemon'}) {
         <Link href={getHref('/help')}>{id?'Pusat bantuan':'Help center'}</Link>
         <Link href={getHref('/faq')}>FAQ</Link>
         <FeedbackLaunchButton request={{initialCategory:'feedback'}} className="footer-feedback-trigger">{id?'Masukan & laporan':'Feedback & reports'}</FeedbackLaunchButton>
-        <a href={`https://wa.me/6287892660993?text=${encodeURIComponent(id?'Halo VivrePlay, saya perlu bantuan tentang ':'Hi VivrePlay, I need help with ')}`} target="_blank" rel="noreferrer">WhatsApp</a>
+        <LocalizedAnchor href={`https://wa.me/6287892660993?text=${encodeURIComponent(id?'Halo VivrePlay, saya perlu bantuan tentang ':'Hi VivrePlay, I need help with ')}`} target="_blank" rel="noreferrer">WhatsApp</LocalizedAnchor>
       </nav>
     </div>
     <div className="footer-bottom">
@@ -151,7 +154,7 @@ function MarketFooter({language,game}:{language:Locale;game:'one-piece'|'pokemon
   const getHref=(href:string)=>id?(href==='/'?'/id':`/id${href}`):href;
   return <footer className={`market-footer${game==='pokemon'?' market-footer-pokemon':''}`}>
     <div className="market-footer-main">
-      <Link className="market-footer-brand" href={getHref('/market')}><VivreMark size={24}/><span>VivrePlay <b>Market</b></span></Link>
+      <Link className="market-footer-brand" href={getHref(game==='pokemon'?'/pokemon':'/')}><VivreMark size={24}/><span>VivrePlay <b>Market</b></span></Link>
       <p>{id?'Beli dan jual kartu dengan aman di VivrePlay Market.':'Buy and sell cards on VivrePlay Market.'}</p>
       <nav aria-label={id?'Jelajahi Market':'Market'}><Link href={getHref(game==='pokemon'?'/market?game=pokemon':'/market')}>{id?'Semua listing':'All listings'}</Link><Link href={getHref(game==='pokemon'?'/market?game=pokemon&tab=selling':'/market?tab=selling')}>{id?'Jual kartu':'Sell cards'}</Link><Link href={getHref(game==='pokemon'?'/market?game=pokemon&tab=buying':'/market?tab=buying')}>{id?'Cari kartu':'Find cards'}</Link></nav>
     </div>
@@ -235,7 +238,7 @@ export function Shell({children,initialPath='/'}:{children:React.ReactNode;initi
     const storedLocale=window.localStorage.getItem('vivreplay-locale');
     const pathHasId=window.location.pathname==='/id'||window.location.pathname.startsWith('/id/');
     const nextTheme=storedTheme==='dark'?'dark':'light';
-    const nextLocale=pathHasId?'ID':(storedLocale==='ID'?'ID':'EN');
+    const nextLocale:Locale=pathHasId?'ID':'EN';
     setTheme(nextTheme);
     setLanguage(nextLocale);
     document.documentElement.dataset.theme=nextTheme;
@@ -245,17 +248,18 @@ export function Shell({children,initialPath='/'}:{children:React.ReactNode;initi
       document.cookie='vivreplay-locale=ID; path=/; max-age=31536000';
     }
     window.dispatchEvent(new CustomEvent('vivreplay:locale',{detail:nextLocale}));
-  },[]);
+  },[data]);
 
   useEffect(()=>{
-    const pathHasId=path==='/id'||path.startsWith('/id/');
-    const nextLocale:Locale=pathHasId?'ID':(window.localStorage.getItem('vivreplay-locale')==='ID'?'ID':'EN');
+    const pathHasId=window.location.pathname==='/id'||window.location.pathname.startsWith('/id/');
+    const storedLocale=window.localStorage.getItem('vivreplay-locale');
+    const nextLocale:Locale=pathHasId?'ID':'EN';
     setLanguage(nextLocale);
     document.documentElement.lang=nextLocale==='ID'?'id':'en';
     window.localStorage.setItem('vivreplay-locale',nextLocale);
     document.cookie=`vivreplay-locale=${nextLocale}; path=/; max-age=31536000; SameSite=Lax`;
     window.dispatchEvent(new CustomEvent('vivreplay:locale',{detail:nextLocale}));
-  },[path]);
+  },[path,data]);
 
   useEffect(()=>{
     const syncTheme=(event:Event)=>{const next=(event as CustomEvent<'light'|'dark'>).detail??(window.localStorage.getItem('vivreplay-theme')==='dark'?'dark':'light');setTheme(next);document.documentElement.dataset.theme=next};
@@ -319,7 +323,7 @@ export function Shell({children,initialPath='/'}:{children:React.ReactNode;initi
     {!marketCheckout&&<NewCardsAnnouncement/>}
     {!marketCheckout&&<MiniRail language={language} game={game}/>}
     {!marketCheckout&&<nav className="mobile-nav" aria-label="Mobile navigation">
-      {(game==='pokemon'?pokemonMobileNav:mobileNav).map(item=>{const Icon=item.icon;const href=item.label==='Cards'&&game==='pokemon'?'/pokemon/cards':game==='pokemon'&&item.label==='Vault'?'/vault?game=pokemon':game==='pokemon'&&item.label==='Market'?'/market?game=pokemon':item.href;const active=game==='pokemon'&&item.label==='Home'?normalizedPath==='/pokemon':game==='pokemon'&&item.label==='Cards'?normalizedPath==='/pokemon/cards':selected(item.label==='Vault'?'/vault':item.label==='Market'?'/market':href);return <Link key={item.href} href={getHref(href)} className={active?'active':''} aria-current={active?'page':undefined}><Icon size={20}/><span>{language==='ID'?item.labelId:item.label}</span></Link>})}
+      {(game==='pokemon'?pokemonMobileNav:mobileNav).map(item=>{const Icon=item.icon;const href=item.label==='Cards'&&game==='pokemon'?'/pokemon/cards':game==='pokemon'&&item.label==='Vault'?'/vault?game=pokemon':game==='pokemon'&&item.label==='Market'?'/market?game=pokemon':item.href;const active=game==='pokemon'&&item.label==='Cards'?normalizedPath==='/pokemon/cards':selected(item.label==='Vault'?'/vault':item.label==='Market'?'/market':href);return <Link key={item.href} href={getHref(href)} className={active?'active':''} aria-current={active?'page':undefined}><Icon size={20}/><span>{language==='ID'?item.labelId:item.label}</span></Link>})}
     </nav>}
     <Toaster theme={theme}/>
   </div>;

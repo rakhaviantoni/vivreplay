@@ -1,7 +1,7 @@
 'use client';
 
 import {useCallback,useEffect,useRef,useState} from 'react';
-import Link from 'next/link';
+import Link from '@/components/ui/localized-link';
 import {PauseIcon as Pause,PlayIcon as Play,ArrowClockwiseIcon as Renew,ArrowSquareOutIcon as Open,XIcon as Close,ArrowCounterClockwiseIcon as Refresh,PlusIcon as Plus,SpinnerGapIcon as Spinner,StorefrontIcon as Store} from '@phosphor-icons/react';
 import {toast} from 'sonner';
 import {MarketActivityLoading,MarketCardStack,type MarketActivityCard} from '@/components/tcg/vault/tabs/market-activity-state';

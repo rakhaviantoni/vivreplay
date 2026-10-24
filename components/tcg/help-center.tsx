@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import Link from '@/components/ui/localized-link';
 import {ArrowRight, MagnifyingGlass, X} from '@phosphor-icons/react';
 import {useMemo, useState} from 'react';
 import {helpArticles, helpCategories, type HelpLocale} from '@/lib/help/articles';

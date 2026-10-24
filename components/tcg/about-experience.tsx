@@ -1,6 +1,7 @@
 'use client';
 
-import Link from 'next/link';
+import {useRouteLocale} from '@/components/locale-provider';
+import Link from '@/components/ui/localized-link';
 import {useEffect, useState} from 'react';
 import {ArrowUpRightIcon as ArrowUpRight, CardsIcon as Cards, StackIcon as Stack, StorefrontIcon as Storefront, BooksIcon as Books, GameControllerIcon as GameController, QuestionIcon as Question} from '@phosphor-icons/react';
 import {GAME_LOGOS, VivreMark} from './brand-assets';
@@ -9,7 +10,7 @@ import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs';
 type Locale = 'EN' | 'ID';
 
 export function AboutExperience() {
-  const [language, setLanguage] = useState<Locale>('EN');
+  const [language, setLanguage] = useState<Locale>(useRouteLocale());
   const isId = language === 'ID';
 
   useEffect(() => {

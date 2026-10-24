@@ -1,7 +1,7 @@
 'use client';
 
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
-import {useRouter} from 'next/navigation';
+import {useLocalizedRouter as useRouter} from '@/lib/use-localized-router';
 import {ArrowRightIcon as ArrowRight,MinusIcon as Minus,PlusIcon as Plus,ShoppingCartIcon as Cart,TrashIcon as Trash} from '@phosphor-icons/react';
 import {formatMoney} from '@/packages/domain';
 import type {Card} from '@/packages/card-data/catalog';

@@ -1,8 +1,9 @@
 'use client';
+import {useRouteLocale} from '@/components/locale-provider';
 import {useEffect, useState} from 'react';
 
 export function AccountStatus({error,retry}:{error:string;retry:()=>void}){
-  const [language,setLanguage]=useState<'EN'|'ID'>('EN');
+  const [language,setLanguage]=useState<'EN'|'ID'>(useRouteLocale());
   useEffect(()=>{
     const sync=()=>setLanguage(window.localStorage.getItem('vivreplay-locale')==='ID'?'ID':'EN');
     const onLocale=(event:Event)=>setLanguage((event as CustomEvent<'EN'|'ID'>).detail==='ID'?'ID':'EN');

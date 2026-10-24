@@ -1,5 +1,6 @@
 'use client';
 
+import {useRouteLocale} from '@/components/locale-provider';
 import {useEffect, useMemo, useRef, useState} from 'react';
 import {WarningIcon as AlertTriangle, ArrowsDownUpIcon as ArrowsDownUp, ChartBarIcon as BarChart3, CaretDownIcon as ChevronDown, CaretUpIcon as ChevronUp, DownloadSimpleIcon as Download, FunnelIcon as Filter, StackIcon as Layers3, CircleNotchIcon as LoaderCircle, SignInIcon as LogIn, MinusIcon as Minus, PlusIcon as Plus, ArrowCounterClockwiseIcon as RotateCcw, RowsIcon as Rows, FloppyDiskIcon as Save, MagnifyingGlassIcon as Search, PaperPlaneTiltIcon as Send, ShareNetworkIcon as Share2, SparkleIcon as Sparkles, SquaresFourIcon as SquaresFour, InfoIcon as Info, UploadSimpleIcon as Upload, XIcon as X} from '@phosphor-icons/react';
 import {CardArt} from './card-art';
@@ -89,7 +90,7 @@ export function LiveDeckBuilder({initialCardId,localDeckId}:{initialCardId?:stri
   const [coachLoading,setCoachLoading]=useState(false);
   const [coachTurnstileToken,setCoachTurnstileToken]=useState('');
   const [coachTurnstileResetKey,setCoachTurnstileResetKey]=useState(0);
-  const [language,setLanguage]=useState<'EN'|'ID'>('EN');
+  const [language,setLanguage]=useState<'EN'|'ID'>(useRouteLocale());
   const importRef=useRef<HTMLInputElement>(null);
   const sortSelectRef=useRef<HTMLSelectElement>(null);
   const restoredRef=useRef(false);

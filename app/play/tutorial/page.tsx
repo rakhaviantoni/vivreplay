@@ -1,10 +1,11 @@
+import {withRequestLocale} from '@/lib/with-request-locale';
 import {ArenaTutorialIndex} from '@/components/tcg/arena-lobby';
 import {PlayTutorial} from '@/components/tcg/play-tutorial';
-import {pageMetadata} from '@/lib/site-metadata';
+import {requestPageMetadata} from '@/lib/request-page-metadata';
 
-export const metadata=pageMetadata({title:'Arena tutorial',description:'Learn the One Piece Card Game table, zones, and turn flow through interactive lessons.',path:'/play/tutorial'});
+export async function generateMetadata(){return requestPageMetadata({title:'Arena tutorial',description:'Learn the One Piece Card Game table, zones, and turn flow through interactive lessons.',path:'/play/tutorial'});}
 
-export default async function Page({
+async function Page({
   searchParams,
 }: {
   searchParams?: Promise<{step?: string; play?: string}>;
@@ -16,3 +17,5 @@ export default async function Page({
   }
   return <ArenaTutorialIndex />;
 }
+
+export default withRequestLocale(Page);
