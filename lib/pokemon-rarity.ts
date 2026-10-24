@@ -65,3 +65,10 @@ export function pokemonPrintingRarity(
   const printingRarity = knownPrintings[`${normalizedSet}:${cardNumber}`];
   return printingRarity ? pokemonRarityLabel(printingRarity, language) : pokemonRarityLabel(value, language);
 }
+
+const rarityScores:Record<string,number>={MUR:112,BWR:108,SAR:104,SIR:104,SEC:101,UR:98,HR:96,SSR:94,SR:91,CSR:89,CHR:87,MA:85,IR:83,AR:83,ACE:80,PR:78,RRR:75,RR:70,R:52,PROMO:45,U:20,C:10};
+
+export function pokemonRarityScore(value?:string|null,language?:string|null,setCode?:string|null,printingCode?:string|null){
+  const rarity=pokemonPrintingRarity(value,language,setCode,printingCode).toUpperCase().replace(/[^A-Z]/g,'');
+  return rarityScores[rarity]??0;
+}
