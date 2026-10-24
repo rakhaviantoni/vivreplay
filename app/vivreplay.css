@@ -3322,7 +3322,8 @@ html[data-theme='dark'] .admin-access-card{border-color:#294653;background:#0f21
 .pro-comparison-table tbody th{font-weight:650}
 .pro-comparison-table tbody td{text-align:center;color:var(--muted);font-variant-numeric:tabular-nums}
 .pro-comparison-table tbody td:nth-child(2){color:var(--muted)}
-.pro-comparison-table tbody td:last-child{color:var(--accent);font-weight:800}
+.pro-comparison-table tbody td:last-child{color:#795414;font-weight:800}
+html[data-theme='dark'] .pro-comparison-table tbody td:last-child{color:#efc569}
 .pro-comparison-table tbody tr:last-child th,.pro-comparison-table tbody tr:last-child td{border-bottom:0}
 .pro-voucher-note{margin:16px 0 0;padding:13px 14px;border-radius:10px;background:var(--surface);color:var(--muted);font-size:12px;line-height:1.55}
 .market-buyer-fee-cap{min-width:0;margin:16px 0 0}.market-buyer-fee-cap h3{margin:0 0 8px;font-size:13px;font-weight:750}.market-buyer-fee-cap-note{margin:0 0 9px;color:var(--muted);font-size:12px;font-weight:400;line-height:1.45}.market-buyer-fee-cap-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:9px;background:var(--surface)}.market-buyer-fee-cap table{width:100%;border-collapse:collapse;font-size:11px}.market-buyer-fee-cap th,.market-buyer-fee-cap td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}.market-buyer-fee-cap thead th{color:var(--muted);font-size:10px;font-weight:700}.market-buyer-fee-cap tbody th{font-weight:600}.market-buyer-fee-cap td{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}.market-buyer-fee-cap tbody tr:last-child th,.market-buyer-fee-cap tbody tr:last-child td{border-bottom:0}.market-pro-dialog-fee-cap{margin-top:12px}.pro-fee-cap-table{max-width:620px}.pro-fee-cap-table .market-buyer-fee-cap-scroll{background:var(--surface-raised)}
