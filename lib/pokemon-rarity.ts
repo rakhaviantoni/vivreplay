@@ -72,3 +72,17 @@ export function pokemonRarityScore(value?:string|null,language?:string|null,setC
   const rarity=pokemonPrintingRarity(value,language,setCode,printingCode).toUpperCase().replace(/[^A-Z]/g,'');
   return rarityScores[rarity]??0;
 }
+
+export function pokemonRarityFallbackScore(name:string,sourcePayload:unknown,printingCode?:string|null){
+  let payload=sourcePayload;
+  if(typeof payload==='string')try{payload=JSON.parse(payload)}catch{payload=null}
+  const record=payload&&typeof payload==='object'?payload as Record<string,unknown>:{};
+  const localId=String(record.localId??record.collectorNumber??printingCode??'');
+  const ratios=[localId,...[record.shortDescription,record.description].filter((value):value is string=>typeof value==='string')]
+    .map(value=>value.match(/(?:^|\s|[·•])([0-9]{1,4})\s*\/\s*([0-9]{1,4})(?:\s|$)/)?.slice(1).map(Number))
+    .find((value):value is number[]=>Boolean(value));
+  const official=Number((record.set as Record<string,unknown>|undefined)?.cardCount&&((record.set as Record<string,unknown>).cardCount as Record<string,unknown>).official);
+  if((ratios&&ratios[0]>ratios[1])||(!ratios&&official>0&&Number.parseInt(localId,10)>official))return 68;
+  if(/\b(?:ex|gx|vmax|vstar|v-union|break)\b/i.test(name))return 60;
+  return 0;
+}

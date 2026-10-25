@@ -5,7 +5,7 @@ import { isPlayableSet } from '@/packages/domain/release-availability';
 import { CARD_CATALOG_CACHE_REVISION } from '@/lib/card-catalog-cache';
 import { pokemonLocalCardNumber } from '@/lib/pokemon-set-aliases';
 import { pokemonArtRoute } from '@/lib/pokemon-art-route';
-import { pokemonPrintingRarity, pokemonRarityScore } from '@/lib/pokemon-rarity';
+import { pokemonPrintingRarity, pokemonRarityFallbackScore, pokemonRarityScore } from '@/lib/pokemon-rarity';
 import { env } from 'cloudflare:workers';
 
 type Row = { id?:string|null;card_image_url?:string|null;set_code: string | null; set_name: string | null; identity_id: string | null; variant: string | null; release_date?: string | null;description?:string|null;official_url?:string|null;product_image_url?:string|null;series?:string|null;identity_code?:string|null;identity_name?:string|null;identity_color?:string|null;identity_type?:string|null;identity_cost?:number|null;identity_power?:number|null;identity_effect?:string|null;printing_code?:string|null;language?:string|null;rarity?:string|null;source_payload?:string|null };
@@ -44,7 +44,7 @@ function rankedRarity(row:Row){
 }
 
 function rarityScore(row:Row){
-  const rarity=rankedRarity(row).score;
+  const rarity=Math.max(rankedRarity(row).score,pokemonRarityFallbackScore(row.identity_name??'',row.source_payload,row.printing_code));
   const variant=/parallel|alternate|alt.?art|special|_p\d+/i.test(row.variant??'')?5:0;
   const hasImage=Boolean(row.card_image_url);
   return rarity+variant+(hasImage?1:0);
@@ -109,9 +109,9 @@ export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   const gameSlug = params.get('game')?.toLowerCase() === 'pokemon' ? 'pokemon' : 'one-piece';
   const requestedLanguage = params.get('language')?.toUpperCase();
-  const includeCards=gameSlug==='pokemon'&&['1','2','3','4'].includes(params.get('includeCards')??'');
+  const includeCards=gameSlug==='pokemon'&&['1','2','3','4','5'].includes(params.get('includeCards')??'');
   const language = gameSlug === 'pokemon' && requestedLanguage === 'ALL' ? 'ALL' : requestedLanguage === 'JP' || requestedLanguage === 'JA' ? 'JP' : requestedLanguage === 'ID' ? 'ID' : 'EN';
-  const snapshotKey = `catalog-snapshots/sets-${gameSlug}-${language.toLowerCase()}-${CARD_CATALOG_CACHE_REVISION}${includeCards?'-previews-v4':''}.json`;
+  const snapshotKey = `catalog-snapshots/sets-${gameSlug}-${language.toLowerCase()}-${CARD_CATALOG_CACHE_REVISION}${includeCards?'-previews-v5':''}.json`;
   try {
     const snapshot = await env.CARD_IMAGES?.get(snapshotKey);
     if (snapshot) return storePublicEdgeCache(request, Response.json(await snapshot.json<{ sets: SetSummary[] }>(), { headers: publicHeaders }));

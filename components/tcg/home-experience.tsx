@@ -9,7 +9,7 @@ import {DepthCarousel} from './depth-carousel';
 import {SetsExperience} from './sets-experience';
 import {useLocalizedRouter as useRouter} from '@/lib/use-localized-router';
 import type {Card} from '@/packages/card-data/catalog';
-import {pokemonRarityScore} from '@/lib/pokemon-rarity';
+import {pokemonRarityFallbackScore,pokemonRarityScore} from '@/lib/pokemon-rarity';
 import {useAccount} from '@/lib/client';
 import {preferredPokemonCardLanguage,type PokemonCardLanguage} from '@/lib/pokemon-card-language';
 
@@ -20,7 +20,7 @@ const metaLeaderCodes=['OP09-062','OP17-079','OP14-020','ST30-001'];
 
 function setRank(code:string){const match=code.toUpperCase().match(/^(OP|EB|ST|PRB|P|DON)[-_ ]?0*(\d+)/);if(!match)return 0;const family:{[key:string]:number}={OP:600,EB:500,ST:400,PRB:300,P:200,DON:100};return (family[match[1]]??0)*1000+Number(match[2]);}
 
-function pokemonHeroRarityScore(row:Row){const sourceRarity=typeof row.source_payload?.rarity==='string'?row.source_payload.rarity:null;const score=Math.max(pokemonRarityScore(row.rarity,row.language,row.set_code,row.printing_code),pokemonRarityScore(sourceRarity,row.language,row.set_code,row.printing_code));return score+(/parallel|alternate|alt.?art|_p\d+/i.test(row.variant??'')?5:0)}
+function pokemonHeroRarityScore(row:Row){const sourceRarity=typeof row.source_payload?.rarity==='string'?row.source_payload.rarity:null;const score=Math.max(pokemonRarityScore(row.rarity,row.language,row.set_code,row.printing_code),pokemonRarityScore(sourceRarity,row.language,row.set_code,row.printing_code),pokemonRarityFallbackScore(row.tcg_card_identities.name,row.source_payload,row.printing_code));return score+(/parallel|alternate|alt.?art|_p\d+/i.test(row.variant??'')?5:0)}
 function pokemonRowKey(row:Row){const name=row.tcg_card_identities.name.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu,'');return name||String(row.printing_code??row.tcg_card_identities.code)}
 
 function asCard(row:Row, index:number, game:'one-piece'|'pokemon'='one-piece'):Card&{gameSlug?:string} {
