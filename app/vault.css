@@ -436,8 +436,10 @@
   border-radius: 8px;
 }
 .vault-toolbar-game-switch button {
-  display: grid;
-  place-items: center;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
   min-height: 30px;
   height: 30px;
   min-width: 62px;
@@ -456,7 +458,21 @@
   border-color: color-mix(in srgb, var(--vault-gold-deep) 30%, var(--vault-border));
 }
 .vault-toolbar-game-switch button .market-game-logo-pad {
-  height: 22px;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 auto !important;
+  height: 22px !important;
+  width: auto !important;
+}
+.vault-toolbar-game-switch button .market-game-logo-pad img {
+  display: block !important;
+  margin: 0 auto !important;
+  max-width: 64px !important;
+  max-height: 18px !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain !important;
 }
 html[data-theme='dark'] .vault-toolbar-game-switch.market-game-switch {
   border-color: var(--vault-border);
@@ -475,16 +491,37 @@ html[data-theme='dark'] .vault-toolbar-game-switch .game-mode-one-piece img {
 @media(max-width: 560px) {
   .vault-toolbar-game-switch.market-game-switch {
     grid-column: 1 / -1;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    width: 100%;
-    height: 40px;
-    margin: 0 0 2px;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    width: 100% !important;
+    height: 40px !important;
+    margin: 0 0 2px !important;
   }
   .vault-toolbar-game-switch button {
-    min-height: 34px;
-    height: 34px;
-    width: 100%;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 34px !important;
+    height: 34px !important;
+    width: 100% !important;
+    padding: 0 !important;
+  }
+  .vault-toolbar-game-switch button .market-game-logo-pad {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 auto !important;
+    height: 24px !important;
+    width: auto !important;
+  }
+  .vault-toolbar-game-switch button .market-game-logo-pad img {
+    display: block !important;
+    margin: 0 auto !important;
+    max-width: 72px !important;
+    max-height: 20px !important;
+    width: auto !important;
+    height: auto !important;
+    object-fit: contain !important;
   }
 }
 

@@ -4041,6 +4041,8 @@ html[data-theme='dark'] .market-listing-detail .market-listing-seller-toolbar{bo
 .market-feed-game-mark .market-game-mark img{display:block;max-width:100%;object-fit:contain}
 .market-feed-game-mark .market-game-mark-one-piece{width:36px;height:13px}
 .market-feed-game-mark .market-game-mark-pokemon{width:32px;height:14px}
+.market-listing-game-badge{display:inline-flex;align-items:center;justify-content:center;height:22px;padding:2px 8px;border-radius:6px;border:1px solid var(--line);background:var(--surface-raised);flex-shrink:0}
+.market-listing-game-badge .market-game-logo-pad{height:15px}
 html[data-theme='dark'] .market-feed-game-mark{background:var(--surface-raised);border-color:var(--line)}
 html[data-theme='dark'] .market-game-mark .market-game-mark-one-piece,
 html[data-theme='dark'] .market-feed-game-mark .market-game-mark-one-piece,

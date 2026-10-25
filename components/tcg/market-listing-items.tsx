@@ -978,6 +978,7 @@ export function MarketListingDetailView({
           <header className="market-listing-heading">
             <div>
               <div className="market-listing-eyebrow-row">
+                <span className="market-feed-game-mark market-listing-game-badge" title={listingGame==='all'?(language==='ID'?'Beragam game':'Multiple games'):listingGame==='pokemon'?'Pokémon':'One Piece'} aria-label={listingGame==='all'?(language==='ID'?'Beragam game':'Multiple games'):listingGame==='pokemon'?'Pokémon':'One Piece'}><MarketGameMark gameSlug={listingGame} compact/></span>
                 <p className="eyebrow market-listing-eyebrow">
                   <span>{primary.language} {t('printing', 'cetakan')}</span>
                   {listing.createdAt && <><span className="market-listing-eyebrow-separator" aria-hidden="true">/</span><span><MarketTimestamp value={listing.createdAt}/></span></>}
@@ -988,7 +989,7 @@ export function MarketListingDetailView({
                   {!isExpired&&<button type="button" className="btn-close" disabled={closing} onClick={handleClose} aria-label={t('Close listing','Tutup listing')}><X size={14}/><span>{closing?t('Closing…','Menutup…'):t('Close','Tutup')}</span></button>}
                 </div></>}
               </div>
-              {canEditListing?<MarketListingTitleEdit listingId={listing.id} title={listingTitle} language={language} onSaved={updated=>{setListingTitle(updated);router.replace(marketListingPath(updated,listing.id),{scroll:false})}}><h1><span>{listingTitle}</span><span className="market-feed-game-mark" title={listingGame==='all'?'Multiple games':listingGame==='pokemon'?'Pokémon':'One Piece'} aria-label={listingGame==='all'?'Multiple games':listingGame==='pokemon'?'Pokémon':'One Piece'}><MarketGameMark gameSlug={listingGame} compact/></span></h1></MarketListingTitleEdit>:<div className="market-listing-title-edit-row"><h1><span>{listingTitle}</span><span className="market-feed-game-mark" title={listingGame==='all'?'Multiple games':listingGame==='pokemon'?'Pokémon':'One Piece'} aria-label={listingGame==='all'?'Multiple games':listingGame==='pokemon'?'Pokémon':'One Piece'}><MarketGameMark gameSlug={listingGame} compact/></span></h1></div>}
+              {canEditListing?<MarketListingTitleEdit listingId={listing.id} title={listingTitle} language={language} onSaved={updated=>{setListingTitle(updated);router.replace(marketListingPath(updated,listing.id),{scroll:false})}}><h1><span>{listingTitle}</span></h1></MarketListingTitleEdit>:<div className="market-listing-title-edit-row"><h1><span>{listingTitle}</span></h1></div>}
             </div>
             <span className={`market-listing-status ${isBuying ? 'is-buying' : 'is-selling'}`}>{typeLabel}</span>
           </header>
