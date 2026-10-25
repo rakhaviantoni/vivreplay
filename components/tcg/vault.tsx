@@ -81,15 +81,28 @@ export function Vault() {
 
   // Active Tab & View Mode State
   const [activeTab, setActiveTab] = useState<VaultTab>(searchParams.get('tab')==='wishlist'?'wishlist':searchParams.get('tab')==='portfolio'?'portfolio':'collection');
-  const [gameSlug,setGameSlug]=useState<'one-piece'|'pokemon'|'all'>(searchParams.get('game')==='pokemon'?'pokemon':searchParams.get('game')==='one-piece'?'one-piece':'all');
+  const resolveGameSlug = useCallback((): 'one-piece' | 'pokemon' | 'all' => {
+    if (searchParams.get('scope') === 'all') return 'all';
+    const g = searchParams.get('game');
+    if (g === 'pokemon') return 'pokemon';
+    if (g === 'one-piece') return 'one-piece';
+    if (g === 'all') return 'all';
+    return 'all';
+  }, [searchParams]);
+  const [gameSlug,setGameSlug]=useState<'one-piece'|'pokemon'|'all'>(()=>resolveGameSlug());
   const [viewMode, setViewMode] = useState<VaultViewMode>('binder');
-  useEffect(()=>{const next=searchParams.get('game')==='pokemon'?'pokemon':searchParams.get('game')==='one-piece'?'one-piece':'all';setGameSlug(next);if(next!=='one-piece'&&activeTab==='sets')setActiveTab('collection')},[searchParams,activeTab]);
+  useEffect(()=>{const next=resolveGameSlug();setGameSlug(next);if(next!=='one-piece'&&activeTab==='sets')setActiveTab('collection')},[resolveGameSlug,activeTab]);
   const handleGameChange=(next:'one-piece'|'pokemon'|'all')=>{
     setGameSlug(next);
     if(next!=='one-piece'&&activeTab==='sets')setActiveTab('collection');
     setFilters(previous=>({...previous,setCode:[],language:[],rarity:[],color:'all',cardType:'all',sort:'recently_added'}));
     const params=new URLSearchParams(window.location.search);
-    if(next==='all')params.delete('game');else params.set('game',next);
+    if(next==='all'){
+      params.set('scope','all');
+    }else{
+      params.delete('scope');
+      params.set('game',next);
+    }
     router.replace(`${window.location.pathname}${params.size?`?${params}`:''}`,{scroll:false});
   };
   const handleGameToggle=(target:'one-piece'|'pokemon')=>{

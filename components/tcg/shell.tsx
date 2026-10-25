@@ -103,7 +103,8 @@ function GameModeSwitch({language,game,path,search}:{language:Locale;game:'one-p
       return localize(query(currentPath));
     }
     if(currentPath==='/vault'){
-      if(target==='pokemon')params.set('game','pokemon');else params.delete('game');
+      params.delete('scope');
+      if(target==='pokemon')params.set('game','pokemon');else params.set('game','one-piece');
       return localize(query('/vault'));
     }
     if(currentPath==='/market'||currentPath.startsWith('/market/')){
