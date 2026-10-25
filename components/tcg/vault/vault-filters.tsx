@@ -24,6 +24,7 @@ interface VaultFiltersProps {
   language?: 'EN' | 'ID';
   cardsInVault?: Card[];
   gameSlug?: 'one-piece' | 'pokemon' | 'all';
+  onChangeGame?: (game: 'one-piece' | 'pokemon' | 'all') => void;
 }
 
 export function VaultFilters({
@@ -35,6 +36,7 @@ export function VaultFilters({
   language = 'EN',
   cardsInVault = [],
   gameSlug = 'one-piece',
+  onChangeGame,
 }: VaultFiltersProps) {
   const t = (en: string, idStr: string) => language === 'ID' ? idStr : en;
   const sets = [...new Set(cardsInVault.map(card => card.setCode).filter((code):code is string=>Boolean(code)))].sort();
@@ -50,7 +52,8 @@ export function VaultFilters({
     filters.typeFilter !== 'all' ||
     filters.gradingProvider.length > 0 ||
     filters.grade !== 'all' ||
-    filters.favoritesOnly
+    filters.favoritesOnly ||
+    gameSlug !== 'all'
   );
 
   const resetFilters = () => {
@@ -67,6 +70,7 @@ export function VaultFilters({
       grade: 'all',
       favoritesOnly: false,
     }));
+    onChangeGame?.('all');
   };
 
   return (
@@ -103,6 +107,21 @@ export function VaultFilters({
 
       {/* Filter Dropdowns */}
       <div className="vault-toolbar-filters">
+        {/* Game Filter */}
+        <Picker
+          filterStyle
+          searchPlaceholder={t('Search…','Cari…')}
+          emptyLabel={t('No matches','Tidak ada hasil')}
+          value={gameSlug}
+          onChange={value => onChangeGame?.(value as 'one-piece' | 'pokemon' | 'all')}
+          label={t('Filter by game','Filter game')}
+          options={[
+            { value: 'all', label: t('All Games','Semua Game') },
+            { value: 'one-piece', label: 'One Piece' },
+            { value: 'pokemon', label: 'Pokémon' },
+          ]}
+        />
+
         {/* Set Filter */}
         <MultiFilter label="Set" values={sets.map(code=>({value:code,label:code}))} selected={filters.setCode} onToggle={value=>onChangeFilters(prev=>({...prev,setCode:prev.setCode.includes(value)?prev.setCode.filter(item=>item!==value):[...prev.setCode,value]}))} searchPlaceholder={t('Find a set','Cari set')} />
 

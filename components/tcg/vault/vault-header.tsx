@@ -24,8 +24,6 @@ interface VaultHeaderProps {
   isPricingLoading?: boolean;
   language?: 'EN' | 'ID';
   gameSlug?: 'one-piece'|'pokemon'|'all';
-  onChangeGame?: (game:'one-piece'|'pokemon'|'all')=>void;
-  onToggleGame?: (target:'one-piece'|'pokemon')=>void;
   onToggleHideValues: () => void;
   onOpenQuickAdd: () => void;
   onOpenFullAdd: () => void;
@@ -42,8 +40,6 @@ export function VaultHeader({
   isPricingLoading = false,
   language = 'EN',
   gameSlug = 'one-piece',
-  onChangeGame,
-  onToggleGame,
   onToggleHideValues,
   onOpenQuickAdd,
   onOpenFullAdd,
@@ -53,18 +49,6 @@ export function VaultHeader({
   onCreateBundleListing,
 }: VaultHeaderProps) {
   const t = (en: string, idStr: string) => language === 'ID' ? idStr : en;
-  const handleToggle = (target: 'one-piece' | 'pokemon') => {
-    if (onToggleGame) {
-      onToggleGame(target);
-      return;
-    }
-    if (!onChangeGame) return;
-    if (gameSlug === 'all') {
-      onChangeGame(target === 'one-piece' ? 'pokemon' : 'one-piece');
-    } else if (gameSlug !== target) {
-      onChangeGame('all');
-    }
-  };
 
   return (
     <header className="vault-header">
@@ -72,28 +56,6 @@ export function VaultHeader({
         <div className="vault-title-group">
           <div className="vault-title-main">
             <h1>{t('Your Vault','Koleksi Anda')}</h1>
-            {(onChangeGame||onToggleGame)&&<div className="vault-game-scope" role="group" aria-label={t('Filter Vault by game','Filter Vault berdasarkan game')}>
-              <button
-                type="button"
-                className={gameSlug==='one-piece'||gameSlug==='all'?'is-active':''}
-                aria-label="One Piece Card Game"
-                title={gameSlug==='one-piece'?(language==='ID'?'Tampilkan semua game':'Show all games'):'One Piece Card Game'}
-                aria-pressed={gameSlug==='one-piece'||gameSlug==='all'}
-                onClick={()=>handleToggle('one-piece')}
-              >
-                <span className="market-game-logo-pad game-mode-one-piece"><img className="vault-game-scope-op" src={GAME_LOGOS['one-piece']} alt=""/><span className="sr-only">One Piece</span></span>
-              </button>
-              <button
-                type="button"
-                className={gameSlug==='pokemon'||gameSlug==='all'?'is-active':''}
-                aria-label="Pokémon Trading Card Game"
-                title={gameSlug==='pokemon'?(language==='ID'?'Tampilkan semua game':'Show all games'):'Pokémon Trading Card Game'}
-                aria-pressed={gameSlug==='pokemon'||gameSlug==='all'}
-                onClick={()=>handleToggle('pokemon')}
-              >
-                <span className="market-game-logo-pad game-mode-pokemon"><img className="vault-game-scope-pokemon" src={GAME_LOGOS.pokemon} alt=""/><span className="sr-only">Pokémon</span></span>
-              </button>
-            </div>}
           </div>
           <p className="vault-subtitle">
             {onOpenPrivacyModal ? (

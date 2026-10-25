@@ -105,15 +105,6 @@ export function Vault() {
     }
     router.replace(`${window.location.pathname}${params.size?`?${params}`:''}`,{scroll:false});
   };
-  const handleGameToggle=(target:'one-piece'|'pokemon')=>{
-    if (gameSlug === 'all') {
-      // Both active: clicking one turns it off, leaving the other active
-      handleGameChange(target === 'one-piece' ? 'pokemon' : 'one-piece');
-    } else if (gameSlug !== target) {
-      // One active: clicking the other activates both
-      handleGameChange('all');
-    }
-  };
   const binderOrderStorageKey=`vivreplay-vault-binder-order:${String(data?.profile?.id??'guest')}`;
   const [binderOrder,setBinderOrder]=useState<string[]>([]);
 
@@ -591,8 +582,6 @@ export function Vault() {
         isPricingLoading={vaultMarketPricesLoading}
         language={language}
         gameSlug={gameSlug}
-        onChangeGame={handleGameChange}
-        onToggleGame={handleGameToggle}
         onToggleHideValues={handleToggleHideValues}
         onOpenQuickAdd={() => setQuickAddOpen(true)}
         onOpenFullAdd={() => { setEditingItem(null); setFullAddOpen(true); }}
@@ -686,6 +675,7 @@ export function Vault() {
             totalFilteredCount={filteredStackCount}
             language={language}
             gameSlug={gameSlug}
+            onChangeGame={handleGameChange}
             cardsInVault={enrichedItems.map(item=>item.card)}
           />
 
