@@ -1760,7 +1760,8 @@ html[data-theme='dark'] .vault-item-modal.is-pokemon .vault-condition-option:hov
 }
 
 .vault-header { margin-bottom: 20px; }
-.vault-header-top { align-items: flex-end; gap: 22px; }
+.vault-header-top { align-items: center; gap: 20px; }
+.vault-title-main { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 .vault-title-group .vault-eyebrow {
   margin: 0 0 8px;
   color: var(--vault-ink-muted);
@@ -2097,14 +2098,18 @@ html[data-theme='dark'] .vault-item-modal.is-pokemon .vault-condition-option:hov
 .vault-filter-picker-empty{margin:0;padding:10px 9px;color:var(--vault-ink-muted);font-size:11px}
 @media(max-width:560px){.vault-toolbar-filters .filter-menu{width:100%;min-width:0}.vault-toolbar-filters .vault-filter-picker-trigger{width:100%;min-width:0;max-width:none}.vault-toolbar-filters .filter-menu .filter-options{width:min(300px,calc(100vw - 32px));max-width:calc(100vw - 24px)}}
 
-.vault-game-scope{display:inline-flex;align-items:center;gap:3px;margin-top:12px;padding:3px;border:1px solid var(--vault-border);border-radius:10px;background:var(--vault-panel)}
-.vault-game-scope button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-width:44px;height:34px;padding:0 10px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--vault-ink-secondary);font:600 12px/1 var(--game-font,var(--font-sans),sans-serif);cursor:pointer;transition:background-color .16s ease,border-color .16s ease,color .16s ease}
-.vault-game-scope button.is-active{border-color:var(--vault-border);background:var(--vault-surface-warm);color:var(--vault-ink)}
+.vault-game-scope{display:inline-flex;align-items:center;gap:3px;margin:0;padding:3px;border:1px solid var(--vault-border);border-radius:10px;background:var(--vault-panel)}
+.vault-game-scope button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-width:44px;height:32px;padding:0 10px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--vault-ink-secondary);font:600 12px/1 var(--game-font,var(--font-sans),sans-serif);cursor:pointer;transition:background-color .16s ease,border-color .16s ease,color .16s ease}
+.vault-game-scope button.is-active{border-color:var(--vault-border);background:var(--vault-surface-warm);color:var(--vault-ink);box-shadow:0 1px 3px rgba(0,0,0,0.06)}
 .vault-game-scope button:focus-visible{outline:2px solid var(--vault-gold);outline-offset:2px}
 .vault-game-scope img{display:block;max-width:100%;max-height:18px;object-fit:contain}
 .vault-game-scope img.vault-game-scope-pokemon{width:46px;height:18px}
 .vault-game-scope img.vault-game-scope-op{width:56px;height:17px}
 html[data-theme='dark'] .vault-game-scope img.vault-game-scope-op{filter:brightness(0) invert(1)}
+.vault-scope-indicator{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:999px;background:color-mix(in srgb,var(--vault-gold) 12%,transparent);border:1px solid color-mix(in srgb,var(--vault-gold) 28%,transparent);font-size:11px;font-weight:650;color:var(--vault-gold-deep)}
+.vault-scope-dot{width:5px;height:5px;border-radius:50%;background:var(--vault-gold)}
+html[data-theme='dark'] .vault-scope-indicator{background:color-mix(in srgb,var(--vault-gold) 18%,transparent);border-color:color-mix(in srgb,var(--vault-gold) 35%,transparent);color:#e2ba64}
+html[data-theme='dark'] .vault-scope-dot{background:#e2ba64}
 .vault-metrics-card.is-all{grid-template-columns:repeat(3,minmax(0,1fr))}
-@media(max-width:640px){.vault-game-scope{margin-top:10px}.vault-game-scope button{height:32px;padding-inline:8px}.vault-game-scope img{width:42px}.vault-game-scope img.vault-game-scope-pokemon{width:40px}.vault-metrics-card.is-all{grid-template-columns:repeat(2,minmax(0,1fr))}.vault-metrics-card.is-all .vault-metric-item:last-child{grid-column:1/-1}}
+@media(max-width:640px){.vault-title-main{gap:10px}.vault-game-scope{margin-top:4px}.vault-game-scope button{height:30px;padding-inline:8px}.vault-game-scope img{width:42px}.vault-game-scope img.vault-game-scope-pokemon{width:40px}.vault-metrics-card.is-all{grid-template-columns:repeat(2,minmax(0,1fr))}.vault-metrics-card.is-all .vault-metric-item:last-child{grid-column:1/-1}}
 @media(prefers-reduced-motion:reduce){.vault-game-scope button{transition:none}}

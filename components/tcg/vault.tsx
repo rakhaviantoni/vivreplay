@@ -94,12 +94,10 @@ export function Vault() {
   };
   const handleGameToggle=(target:'one-piece'|'pokemon')=>{
     let next:'one-piece'|'pokemon'|'all';
-    if(gameSlug==='all'){
-      next=target==='one-piece'?'pokemon':'one-piece';
-    }else if(gameSlug===target){
-      return;
-    }else{
+    if(gameSlug===target){
       next='all';
+    }else{
+      next=target;
     }
     handleGameChange(next);
   };

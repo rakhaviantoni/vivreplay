@@ -59,8 +59,8 @@ export function VaultHeader({
       return;
     }
     if (!onChangeGame) return;
-    if (gameSlug === 'all') onChangeGame(target === 'one-piece' ? 'pokemon' : 'one-piece');
-    else if (gameSlug !== target) onChangeGame('all');
+    if (gameSlug === target) onChangeGame('all');
+    else onChangeGame(target);
   };
 
   return (
@@ -68,34 +68,40 @@ export function VaultHeader({
       <div className="vault-header-top">
         <div className="vault-title-group">
           <p className="vault-eyebrow">{t('Card collection','Koleksi kartu')}</p>
-          <h1>{t('Your Vault','Koleksi Anda')}</h1>
-          {(onChangeGame||onToggleGame)&&<div className="vault-game-scope" role="group" aria-label={t('Filter Vault by game','Filter Vault berdasarkan game')}>
-            <button
-              type="button"
-              className={gameSlug==='one-piece'||gameSlug==='all'?'is-active':''}
-              aria-label="One Piece Card Game"
-              title="One Piece Card Game"
-              aria-pressed={gameSlug==='one-piece'||gameSlug==='all'}
-              onClick={()=>handleToggle('one-piece')}
-            >
-              <span className="market-game-logo-pad game-mode-one-piece"><img className="vault-game-scope-op" src={GAME_LOGOS['one-piece']} alt=""/><span className="sr-only">One Piece</span></span>
-            </button>
-            <button
-              type="button"
-              className={gameSlug==='pokemon'||gameSlug==='all'?'is-active':''}
-              aria-label="Pokémon Trading Card Game"
-              title="Pokémon Trading Card Game"
-              aria-pressed={gameSlug==='pokemon'||gameSlug==='all'}
-              onClick={()=>handleToggle('pokemon')}
-            >
-              <span className="market-game-logo-pad game-mode-pokemon"><img className="vault-game-scope-pokemon" src={GAME_LOGOS.pokemon} alt=""/><span className="sr-only">Pokémon</span></span>
-            </button>
-          </div>}
+          <div className="vault-title-main">
+            <h1>{t('Your Vault','Koleksi Anda')}</h1>
+            {(onChangeGame||onToggleGame)&&<div className="vault-game-scope" role="group" aria-label={t('Filter Vault by game','Filter Vault berdasarkan game')}>
+              <button
+                type="button"
+                className={gameSlug==='one-piece'||gameSlug==='all'?'is-active':''}
+                aria-label="One Piece Card Game"
+                title={gameSlug==='one-piece'?(language==='ID'?'Tampilkan semua game':'Show all games'):'One Piece Card Game'}
+                aria-pressed={gameSlug==='one-piece'||gameSlug==='all'}
+                onClick={()=>handleToggle('one-piece')}
+              >
+                <span className="market-game-logo-pad game-mode-one-piece"><img className="vault-game-scope-op" src={GAME_LOGOS['one-piece']} alt=""/><span className="sr-only">One Piece</span></span>
+              </button>
+              <button
+                type="button"
+                className={gameSlug==='pokemon'||gameSlug==='all'?'is-active':''}
+                aria-label="Pokémon Trading Card Game"
+                title={gameSlug==='pokemon'?(language==='ID'?'Tampilkan semua game':'Show all games'):'Pokémon Trading Card Game'}
+                aria-pressed={gameSlug==='pokemon'||gameSlug==='all'}
+                onClick={()=>handleToggle('pokemon')}
+              >
+                <span className="market-game-logo-pad game-mode-pokemon"><img className="vault-game-scope-pokemon" src={GAME_LOGOS.pokemon} alt=""/><span className="sr-only">Pokémon</span></span>
+              </button>
+            </div>}
+          </div>
           <p className="vault-subtitle">
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
               <Lock size={12} />
               {privacy.collection === 'public' ? t('Public','Publik') : t('Private','Pribadi')}
             </span>
+            {gameSlug==='all'&&<span className="vault-scope-indicator">
+              <span className="vault-scope-dot"/>
+              {t('All games','Semua game')}
+            </span>}
           </p>
         </div>
 
