@@ -93,7 +93,6 @@ body{background:var(--vp-paper);color:var(--vp-ink);font-family:var(--game-font)
 .pokemon-set-results button{border:0;background:transparent;color:#9c6d1d;font-size:11px;font-weight:700}
 .pokemon-set-search input{width:100%;min-width:0;border:0;outline:0;background:transparent;color:#2d261b;font:inherit;font-size:12px}
 .pokemon-set-search input::placeholder{color:#8c7e6c}
-.pokemon-set-cards-empty{display:grid;min-height:315px;place-items:center;margin-top:10px;color:#847b6c;font-size:12px;text-align:center}
 html[data-theme='dark'] .pokemon-set-search{border-color:#384552;background:#202731;color:#aeb7c0}
 html[data-theme='dark'] .pokemon-set-search input{color:#f4f0e8}
 html[data-theme='dark'] .pokemon-set-search input::placeholder{color:#9ba8b2}

@@ -24,7 +24,7 @@ export function pokemonRarityLabel(value?: string | null, language?: string | nu
     bwr: 'BWR', blackwhiterare: 'BWR',
     fur: 'FUR', futuristicrare: 'FUR', futiristicrare: 'FUR',
     ma: 'MA', megaattackrare: 'MA',
-    mur: 'MUR', megaultrarare: 'MUR',
+    mur: 'MUR', megaultrarare: 'MUR', mhr: 'MUR', megahyperrare: 'MUR',
     k: 'K', radiantrare: 'K',
     s: 'S', shinyrare: 'S',
     ssr: 'SSR', shinyultrarare: 'SSR',
@@ -70,7 +70,7 @@ export function pokemonPrintingRarity(
   return printingRarity ? pokemonRarityLabel(printingRarity, language) : pokemonRarityLabel(value, language);
 }
 
-const rarityScores:Record<string,number>={MUR:114,FUR:110,BWR:108,SAR:104,SIR:104,SEC:101,UR:98,HR:96,SSR:94,SR:91,CSR:89,CHR:87,MA:85,IR:83,AR:83,ACE:80,PR:80,RRR:75,RR:70,R:52,PROMO:45,U:20,C:10};
+const rarityScores:Record<string,number>={MUR:130,BWR:125,FUR:120,SAR:115,SIR:115,SEC:112,AR:105,IR:105,ACE:102,PR:100,CSR:98,CHR:97,SSR:94,UR:92,HR:91,RRR:88,MA:86,SR:82,RR:70,R:52,PROMO:45,U:20,C:10};
 
 export const POKEMON_FEATURED_RARITY_MIN_SCORE=75;
 
