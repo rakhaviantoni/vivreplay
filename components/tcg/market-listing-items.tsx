@@ -10,6 +10,7 @@ import {useCallback,useEffect,useMemo,useRef,useState,type FormEvent,type ReactN
 import {ArrowClockwiseIcon as Renew,ArrowLeftIcon, ArrowUpIcon, ArrowDownIcon, CheckCircleIcon, ClockIcon, DotsSixVerticalIcon, CheckIcon as Check, FlagIcon as Flag, InfoIcon as Info, ListIcon as List, MinusIcon as Minus, PlusIcon as Plus, ShoppingCartIcon as Cart, SquaresFourIcon as Grid, TruckIcon as Truck, WarningCircleIcon, XCircleIcon, XIcon as X} from '@phosphor-icons/react';
 import type {Card} from '@/packages/card-data/catalog';
 import {formatMoney,Listing} from '@/packages/domain';
+import {MarketGameMark,type MarketGameScope} from './market';
 import {CardArt} from './card-art';
 import {CardPreviewModal} from './card-preview-modal';
 import {ShareButton} from './share';
@@ -876,6 +877,10 @@ export function MarketListingDetailView({
   const [closing, setClosing] = useState(false);
   const [reorderingCards, setReorderingCards] = useState(false);
   const [previewRole, setPreviewRole] = useState<'buyer'|'seller'>(listing.type==='WTB'?'buyer':'seller');
+  const listingGame: MarketGameScope = useMemo(() => {
+    const games = new Set(editableCards.map(item => (item.card as {gameSlug?: string}).gameSlug ?? (/^PK-/i.test(item.card.code) ? 'pokemon' : 'one-piece')));
+    return games.size > 1 ? 'all' : games.has('pokemon') ? 'pokemon' : 'one-piece';
+  }, [editableCards]);
 
   useEffect(() => {
     const sync = () => setLanguage(window.localStorage.getItem('vivreplay-locale') === 'ID' ? 'ID' : 'EN');
@@ -983,7 +988,7 @@ export function MarketListingDetailView({
                   {!isExpired&&<button type="button" className="btn-close" disabled={closing} onClick={handleClose} aria-label={t('Close listing','Tutup listing')}><X size={14}/><span>{closing?t('Closing…','Menutup…'):t('Close','Tutup')}</span></button>}
                 </div></>}
               </div>
-              {canEditListing?<MarketListingTitleEdit listingId={listing.id} title={listingTitle} language={language} onSaved={updated=>{setListingTitle(updated);router.replace(marketListingPath(updated,listing.id),{scroll:false})}}><h1>{listingTitle}</h1></MarketListingTitleEdit>:<div className="market-listing-title-edit-row"><h1>{listingTitle}</h1></div>}
+              {canEditListing?<MarketListingTitleEdit listingId={listing.id} title={listingTitle} language={language} onSaved={updated=>{setListingTitle(updated);router.replace(marketListingPath(updated,listing.id),{scroll:false})}}><h1><span>{listingTitle}</span><span className="market-feed-game-mark" title={listingGame==='all'?'Multiple games':listingGame==='pokemon'?'Pokémon':'One Piece'} aria-label={listingGame==='all'?'Multiple games':listingGame==='pokemon'?'Pokémon':'One Piece'}><MarketGameMark gameSlug={listingGame} compact/></span></h1></MarketListingTitleEdit>:<div className="market-listing-title-edit-row"><h1><span>{listingTitle}</span><span className="market-feed-game-mark" title={listingGame==='all'?'Multiple games':listingGame==='pokemon'?'Pokémon':'One Piece'} aria-label={listingGame==='all'?'Multiple games':listingGame==='pokemon'?'Pokémon':'One Piece'}><MarketGameMark gameSlug={listingGame} compact/></span></h1></div>}
             </div>
             <span className={`market-listing-status ${isBuying ? 'is-buying' : 'is-selling'}`}>{typeLabel}</span>
           </header>

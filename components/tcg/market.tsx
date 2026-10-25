@@ -72,11 +72,11 @@ import '@/app/market-account.css';
 type MarketBenchmark={amount:number;currency:string;url:string|null;observedAt:string;confidence:string;normalizedAmount:number|null;normalizedCurrency:string|null};
 type CardPrintingItem={id:string;language:string;variant:string|null;printing_code:string|null;card_image_url:string|null;rarity?:string|null;set_code?:string;tcg_card_assets?:Array<{kind:string;object_key:string}>};
 type MarketCard=Card&{availablePrintings?:CardPrintingItem[];gameSlug?:'one-piece'|'pokemon';pokemonTypes?:string[];pokemonCategory?:string;pokemonSetName?:string;pokemonIllustrator?:string};
-type MarketGameScope='one-piece'|'pokemon'|'all';
-function MarketGameMark({gameSlug,compact=false}:{gameSlug:MarketGameScope;compact?:boolean}){
+export type MarketGameScope='one-piece'|'pokemon'|'all';
+export function MarketGameMark({gameSlug,compact=false}:{gameSlug:MarketGameScope;compact?:boolean}){
   return <span className={`market-game-mark${compact?' market-game-mark-compact':''}`} aria-hidden="true">
-    {(gameSlug==='one-piece'||gameSlug==='all')&&<img className="market-game-mark-one-piece" src={GAME_LOGOS['one-piece']} alt=""/>}
-    {(gameSlug==='pokemon'||gameSlug==='all')&&<img className="market-game-mark-pokemon" src={GAME_LOGOS.pokemon} alt=""/>}
+    {(gameSlug==='one-piece'||gameSlug==='all')&&<span className="market-game-logo-pad game-mode-one-piece"><img className="market-game-mark-one-piece" src={GAME_LOGOS['one-piece']} alt="One Piece"/></span>}
+    {(gameSlug==='pokemon'||gameSlug==='all')&&<span className="market-game-logo-pad game-mode-pokemon"><img className="market-game-mark-pokemon" src={GAME_LOGOS.pokemon} alt="Pokémon"/></span>}
   </span>;
 }
 type SearchIdentity={id:string;code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number;effect_text:string;tcg_card_printings?:Array<{id:string;card_image_url:string|null;rarity:string|null;set_code:string;language:string;variant:string|null;printing_code:string|null;tcg_card_assets?:Array<{kind:string;object_key:string}>}>};
@@ -728,6 +728,17 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
     const params=new URLSearchParams(window.location.search);if(next==='pokemon'||next==='all')params.set('game',next);else params.delete('game');
     router.replace(`${window.location.pathname}${params.size?`?${params}`:''}`,{scroll:false});
   };
+  const toggleGame=(target:'one-piece'|'pokemon')=>{
+    let next:MarketGameScope;
+    if(gameSlug==='all'){
+      next=target==='one-piece'?'pokemon':'one-piece';
+    }else if(gameSlug===target){
+      return;
+    }else{
+      next='all';
+    }
+    changeGame(next);
+  };
   const listingHref=(listing:Pick<Listing,'title'|'id'>,targetGame:MarketGameScope=gameSlug)=>{
     const path=marketListingPath(listing.title,listing.id);
     return targetGame==='pokemon'?`${path}?game=pokemon`:targetGame==='all'?`${path}?game=all`:path;
@@ -1231,7 +1242,32 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
         <div className="market-feed-tabs">
           <div className="market-feed-tabs-main">
             <div className="market-game-feed-controls">
-              {!modalOnly&&<nav className="market-game-switch" aria-label={locale==='ID'?'Pilih permainan kartu':'Choose a card game'}><button type="button" aria-label="One Piece Card Game" title="One Piece Card Game" className={`game-mode-one-piece${gameSlug==='one-piece'?' is-active':''}`} aria-current={gameSlug==='one-piece'?'page':undefined} onClick={()=>changeGame('one-piece')}><span className="market-game-logo-pad"><img src={GAME_LOGOS['one-piece']} alt=""/></span><span className="sr-only">One Piece</span></button><button type="button" aria-label="Pokémon Trading Card Game" title="Pokémon Trading Card Game" className={gameSlug==='pokemon'?'is-active':''} aria-current={gameSlug==='pokemon'?'page':undefined} onClick={()=>changeGame('pokemon')}><span className="market-game-logo-pad"><img src={GAME_LOGOS.pokemon} alt=""/></span><span className="sr-only">Pokémon</span></button><button type="button" className={`market-game-all${gameSlug==='all'?' is-active':''}`} aria-label={locale==='ID'?'Semua game':'All games'} title={locale==='ID'?'Semua game':'All games'} aria-current={gameSlug==='all'?'page':undefined} onClick={()=>changeGame('all')}><MarketGameMark gameSlug="all" compact/><span className="market-game-all-label">{locale==='ID'?'Semua':'All'}</span></button></nav>}
+              {!modalOnly&&<nav className="market-game-switch" aria-label={locale==='ID'?'Pilih permainan kartu':'Choose a card game'}>
+                <button
+                  type="button"
+                  aria-label="One Piece Card Game"
+                  title="One Piece Card Game"
+                  className={`game-mode-one-piece${gameSlug==='one-piece'||gameSlug==='all'?' is-active':''}`}
+                  aria-current={gameSlug==='one-piece'?'page':undefined}
+                  aria-pressed={gameSlug==='one-piece'||gameSlug==='all'}
+                  onClick={()=>toggleGame('one-piece')}
+                >
+                  <span className="market-game-logo-pad"><img src={GAME_LOGOS['one-piece']} alt=""/></span>
+                  <span className="sr-only">One Piece</span>
+                </button>
+                <button
+                  type="button"
+                  aria-label="Pokémon Trading Card Game"
+                  title="Pokémon Trading Card Game"
+                  className={`game-mode-pokemon${gameSlug==='pokemon'||gameSlug==='all'?' is-active':''}`}
+                  aria-current={gameSlug==='pokemon'?'page':undefined}
+                  aria-pressed={gameSlug==='pokemon'||gameSlug==='all'}
+                  onClick={()=>toggleGame('pokemon')}
+                >
+                  <span className="market-game-logo-pad"><img src={GAME_LOGOS.pokemon} alt=""/></span>
+                  <span className="sr-only">Pokémon</span>
+                </button>
+              </nav>}
               <nav className="market-scope-nav" aria-label={locale === 'ID' ? 'Pilihan feed market' : 'Market feed view'}>
               <button
                 type="button"
@@ -1910,7 +1946,34 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                 </div>}
                 <div className="market-listing-game-scope" role="group" aria-label={locale==='ID'?'Game kartu':'Card game'}>
                   <span>{locale==='ID'?'Game':'Game'}</span>
-                  {(['one-piece','pokemon','all'] as const).map(scope=><button key={scope} type="button" data-game-scope={scope} className={listingGameScope===scope?'active':''} aria-label={scope==='one-piece'?'One Piece Card Game':scope==='pokemon'?'Pokémon Trading Card Game':locale==='ID'?'Semua game':'All games'} title={scope==='one-piece'?'One Piece Card Game':scope==='pokemon'?'Pokémon Trading Card Game':locale==='ID'?'Semua game':'All games'} aria-pressed={listingGameScope===scope} onClick={()=>setListingGameScope(scope)}><MarketGameMark gameSlug={scope}/></button>)}
+                  <button
+                    type="button"
+                    data-game-scope="one-piece"
+                    className={listingGameScope==='one-piece'||listingGameScope==='all'?'active':''}
+                    aria-label="One Piece Card Game"
+                    title="One Piece Card Game"
+                    aria-pressed={listingGameScope==='one-piece'||listingGameScope==='all'}
+                    onClick={()=>{
+                      if(listingGameScope==='all')setListingGameScope('pokemon');
+                      else if(listingGameScope==='pokemon')setListingGameScope('all');
+                    }}
+                  >
+                    <MarketGameMark gameSlug="one-piece"/>
+                  </button>
+                  <button
+                    type="button"
+                    data-game-scope="pokemon"
+                    className={listingGameScope==='pokemon'||listingGameScope==='all'?'active':''}
+                    aria-label="Pokémon Trading Card Game"
+                    title="Pokémon Trading Card Game"
+                    aria-pressed={listingGameScope==='pokemon'||listingGameScope==='all'}
+                    onClick={()=>{
+                      if(listingGameScope==='all')setListingGameScope('one-piece');
+                      else if(listingGameScope==='one-piece')setListingGameScope('all');
+                    }}
+                  >
+                    <MarketGameMark gameSlug="pokemon"/>
+                  </button>
                 </div>
                 {listingType==='WTS'&&bundleCards.length===0&&(data?.collection?.length??0)>0&&<button type="button" className="market-sell-bundle-trigger" onClick={()=>{configLoadVersion.current++;setOpen(false);window.setTimeout(()=>setBulkListingOpen(true),0)}} aria-haspopup="dialog">
                   <Cards size={16}/><span>{locale==='ID'?'Buat listing dari Vault':'Build a listing from Vault'}</span><small>{locale==='ID'?'Pilih beberapa kartu sekaligus':'Select several cards at once'}</small><ArrowRight size={16}/>

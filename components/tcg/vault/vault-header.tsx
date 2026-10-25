@@ -25,6 +25,7 @@ interface VaultHeaderProps {
   language?: 'EN' | 'ID';
   gameSlug?: 'one-piece'|'pokemon'|'all';
   onChangeGame?: (game:'one-piece'|'pokemon'|'all')=>void;
+  onToggleGame?: (target:'one-piece'|'pokemon')=>void;
   onToggleHideValues: () => void;
   onOpenQuickAdd: () => void;
   onOpenFullAdd: () => void;
@@ -42,6 +43,7 @@ export function VaultHeader({
   language = 'EN',
   gameSlug = 'one-piece',
   onChangeGame,
+  onToggleGame,
   onToggleHideValues,
   onOpenQuickAdd,
   onOpenFullAdd,
@@ -51,6 +53,15 @@ export function VaultHeader({
   onCreateBundleListing,
 }: VaultHeaderProps) {
   const t = (en: string, idStr: string) => language === 'ID' ? idStr : en;
+  const handleToggle = (target: 'one-piece' | 'pokemon') => {
+    if (onToggleGame) {
+      onToggleGame(target);
+      return;
+    }
+    if (!onChangeGame) return;
+    if (gameSlug === 'all') onChangeGame(target === 'one-piece' ? 'pokemon' : 'one-piece');
+    else if (gameSlug !== target) onChangeGame('all');
+  };
 
   return (
     <header className="vault-header">
@@ -58,13 +69,27 @@ export function VaultHeader({
         <div className="vault-title-group">
           <p className="vault-eyebrow">{t('Card collection','Koleksi kartu')}</p>
           <h1>{t('Your Vault','Koleksi Anda')}</h1>
-          {onChangeGame&&<div className="vault-game-scope" role="group" aria-label={t('Filter Vault by game','Filter Vault berdasarkan game')}>
-            <button type="button" className={gameSlug==='all'?'is-active':''} aria-pressed={gameSlug==='all'} onClick={()=>onChangeGame('all')}>
-              <span className="vault-game-scope-all-logos" aria-hidden="true"><img src={GAME_LOGOS['one-piece']} alt=""/><img src={GAME_LOGOS.pokemon} alt=""/></span>
-              <span>{t('All games','Semua game')}</span>
+          {(onChangeGame||onToggleGame)&&<div className="vault-game-scope" role="group" aria-label={t('Filter Vault by game','Filter Vault berdasarkan game')}>
+            <button
+              type="button"
+              className={gameSlug==='one-piece'||gameSlug==='all'?'is-active':''}
+              aria-label="One Piece Card Game"
+              title="One Piece Card Game"
+              aria-pressed={gameSlug==='one-piece'||gameSlug==='all'}
+              onClick={()=>handleToggle('one-piece')}
+            >
+              <span className="market-game-logo-pad game-mode-one-piece"><img className="vault-game-scope-op" src={GAME_LOGOS['one-piece']} alt=""/><span className="sr-only">One Piece</span></span>
             </button>
-            <button type="button" className={gameSlug==='one-piece'?'is-active':''} aria-label="One Piece Card Game" title="One Piece Card Game" aria-pressed={gameSlug==='one-piece'} onClick={()=>onChangeGame('one-piece')}><img className="vault-game-scope-op" src={GAME_LOGOS['one-piece']} alt=""/><span className="sr-only">One Piece</span></button>
-            <button type="button" className={gameSlug==='pokemon'?'is-active':''} aria-label="Pokémon Trading Card Game" title="Pokémon Trading Card Game" aria-pressed={gameSlug==='pokemon'} onClick={()=>onChangeGame('pokemon')}><img className="vault-game-scope-pokemon" src={GAME_LOGOS.pokemon} alt=""/><span className="sr-only">Pokémon</span></button>
+            <button
+              type="button"
+              className={gameSlug==='pokemon'||gameSlug==='all'?'is-active':''}
+              aria-label="Pokémon Trading Card Game"
+              title="Pokémon Trading Card Game"
+              aria-pressed={gameSlug==='pokemon'||gameSlug==='all'}
+              onClick={()=>handleToggle('pokemon')}
+            >
+              <span className="market-game-logo-pad game-mode-pokemon"><img className="vault-game-scope-pokemon" src={GAME_LOGOS.pokemon} alt=""/><span className="sr-only">Pokémon</span></span>
+            </button>
           </div>}
           <p className="vault-subtitle">
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
