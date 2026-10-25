@@ -4520,7 +4520,7 @@ html[data-theme='dark'] .market-game-switch button.is-active { border-color:#587
 
 .market-game-switch button.market-game-all{min-width:76px}
 .market-game-switch button.market-game-all{grid-auto-flow:column;gap:5px;font-size:10px;font-weight:700}
-.market-game-all-label{color:var(--muted);line-height:1}
+.market-game-all-label{color:var(--ink);line-height:1}
 .market-game-all .market-game-mark{gap:2px}
 .market-game-all .market-game-mark img{width:35px;height:13px}
 .market-game-all .market-game-mark .market-game-mark-pokemon{width:32px;height:14px}
