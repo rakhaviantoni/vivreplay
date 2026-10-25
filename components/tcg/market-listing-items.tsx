@@ -918,6 +918,15 @@ export function MarketListingDetailView({
 
   const daysLeft = expiresAt ? getDaysUntilExpiration(expiresAt) : null;
   const isExpired = status !== 'ACTIVE' || (expiresAt ? isListingExpired(expiresAt) : false);
+  const isPro = renewDurationDays > 7;
+  const maxEarlyExtendDays = isPro ? 5 : 2;
+  const canExtend = isExpired || (daysLeft !== null && daysLeft <= maxEarlyExtendDays);
+
+  const listingLanguages = useMemo(() => {
+    const raw = [...new Set(editableCards.map(item => item.language).filter(Boolean))];
+    if (raw.length) return raw;
+    return [primary.language || 'EN'];
+  }, [editableCards, primary.language]);
 
   const handleRenew = async () => {
     setRenewing(true);
@@ -978,16 +987,61 @@ export function MarketListingDetailView({
           <header className="market-listing-heading">
             <div>
               <div className="market-listing-eyebrow-row">
-                <span className="market-feed-game-mark market-listing-game-badge" title={listingGame==='all'?(language==='ID'?'Beragam game':'Multiple games'):listingGame==='pokemon'?'Pokémon':'One Piece'} aria-label={listingGame==='all'?(language==='ID'?'Beragam game':'Multiple games'):listingGame==='pokemon'?'Pokémon':'One Piece'}><MarketGameMark gameSlug={listingGame} compact/></span>
-                <p className="eyebrow market-listing-eyebrow">
-                  <span>{primary.language} {t('printing', 'cetakan')}</span>
-                  {listing.createdAt && <><span className="market-listing-eyebrow-separator" aria-hidden="true">/</span><span><MarketTimestamp value={listing.createdAt}/></span></>}
-                  {expiresAt && <><span className="market-listing-eyebrow-separator" aria-hidden="true">/</span><span>{isExpired?(status==='CLOSED'?t('Closed','Ditutup'):status==='SOLD'?t('Sold','Terjual'):t('Expired','Kedaluwarsa')):daysLeft===null?t('Expiry date unavailable','Tanggal akhir tidak tersedia'):<>{t('Ends in','Berakhir dalam')} {daysLeft} {t('days','hari')} / <MarketTimestamp value={expiresAt} absolute/></>}</span></>}
-                </p>
-                {ownerView&&<><span className="market-listing-eyebrow-separator" aria-hidden="true">/</span><div className="market-listing-owner-actions">
-                  <button type="button" className="btn-renew" disabled={renewing} onClick={handleRenew} aria-label={isExpired?t('Renew listing','Perbarui listing'):t('Extend listing','Perpanjang listing')}><Renew size={14}/><span>{renewing?t('Saving…','Menyimpan…'):isExpired?t('Renew','Perbarui'):t('Extend','Perpanjang')}</span></button>
-                  {!isExpired&&<button type="button" className="btn-close" disabled={closing} onClick={handleClose} aria-label={t('Close listing','Tutup listing')}><X size={14}/><span>{closing?t('Closing…','Menutup…'):t('Close','Tutup')}</span></button>}
-                </div></>}
+                <div className="market-listing-eyebrow-left">
+                  <span
+                    className="market-listing-game-chip"
+                    title={`${listingGame==='all'?(language==='ID'?'Beragam game':'Multiple games'):listingGame==='pokemon'?'Pokémon':'One Piece'} · ${listingLanguages.join('/')}`}
+                    aria-label={`${listingGame==='all'?(language==='ID'?'Beragam game':'Multiple games'):listingGame==='pokemon'?'Pokémon':'One Piece'} (${listingLanguages.join('/')})`}
+                  >
+                    <MarketGameMark gameSlug={listingGame} compact/>
+                    <span className="market-listing-chip-divider" aria-hidden="true" />
+                    <span className="market-listing-chip-lang">{listingLanguages.join('/')}</span>
+                  </span>
+                  <div className="market-listing-eyebrow-meta">
+                    {listing.createdAt && <span><MarketTimestamp value={listing.createdAt}/></span>}
+                    {listing.createdAt && expiresAt && <span className="market-listing-eyebrow-dot" aria-hidden="true">·</span>}
+                    {expiresAt && (
+                      <span className={isExpired ? 'is-expired' : ''} title={expiresAt}>
+                        {isExpired
+                          ? (status === 'CLOSED' ? t('Closed', 'Ditutup') : status === 'SOLD' ? t('Sold', 'Terjual') : t('Expired', 'Kedaluwarsa'))
+                          : daysLeft === null
+                          ? t('Active', 'Aktif')
+                          : language === 'ID'
+                          ? `Berakhir dlm ${daysLeft} hari`
+                          : `Ends in ${daysLeft} ${daysLeft === 1 ? 'day' : 'days'}`}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {ownerView && (
+                  <div className="market-listing-owner-actions">
+                    <button
+                      type="button"
+                      className={`btn-renew${!canExtend ? ' is-disabled' : ''}`}
+                      disabled={renewing || !canExtend}
+                      onClick={canExtend ? handleRenew : undefined}
+                      title={!canExtend
+                        ? (language === 'ID' ? `Dapat diperpanjang saat tersisa ${maxEarlyExtendDays} hari atau kurang` : `Can be extended when ${maxEarlyExtendDays} days or less remain`)
+                        : undefined}
+                      aria-label={isExpired ? t('Renew listing', 'Perbarui listing') : t('Extend listing', 'Perpanjang listing')}
+                    >
+                      <Renew size={14} />
+                      <span>{renewing ? t('Saving…', 'Menyimpan…') : isExpired ? t('Renew', 'Perbarui') : t('Extend', 'Perpanjang')}</span>
+                    </button>
+                    {!isExpired && (
+                      <button
+                        type="button"
+                        className="btn-close"
+                        disabled={closing}
+                        onClick={handleClose}
+                        aria-label={t('Close listing', 'Tutup listing')}
+                      >
+                        <X size={14} />
+                        <span>{closing ? t('Closing…', 'Menutup…') : t('Close', 'Tutup')}</span>
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
               {canEditListing?<MarketListingTitleEdit listingId={listing.id} title={listingTitle} language={language} onSaved={updated=>{setListingTitle(updated);router.replace(marketListingPath(updated,listing.id),{scroll:false})}}><h1><span>{listingTitle}</span></h1></MarketListingTitleEdit>:<div className="market-listing-title-edit-row"><h1><span>{listingTitle}</span></h1></div>}
             </div>

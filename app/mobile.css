@@ -1319,10 +1319,11 @@ html[data-theme='dark'] .card-viewer > header { background: #101d2b !important; 
   .market-listing-detail .market-listing-copy{display:contents!important}
   .market-listing-detail .market-listing-heading{grid-column:2;grid-row:1;display:flex;align-items:flex-start;flex-direction:column;gap:8px;min-width:0;padding:0!important}
   .market-listing-detail .market-listing-heading>div{width:100%;min-width:0}
-  .market-listing-detail .market-listing-eyebrow-row{display:flex;align-items:flex-start;flex-wrap:wrap;gap:4px 6px;min-width:0}
-  .market-listing-detail .market-listing-eyebrow{display:flex;align-items:center;flex-wrap:wrap;gap:4px 6px;margin:0;font-size:9px;line-height:1.35;letter-spacing:.05em}
-  .market-listing-detail .market-listing-owner-actions{display:flex;flex-wrap:wrap;gap:5px}
-  .market-listing-detail .market-listing-owner-actions .btn-renew,.market-listing-detail .market-listing-owner-actions .btn-close{min-height:32px;padding:4px 7px;font-size:10px}
+  .market-listing-detail .market-listing-eyebrow-row{display:flex;align-items:flex-start;flex-direction:column;gap:6px;min-width:0}
+  .market-listing-detail .market-listing-eyebrow-left{display:flex;align-items:center;flex-wrap:wrap;gap:6px 8px;min-width:0}
+  .market-listing-detail .market-listing-eyebrow-meta{font-size:10px;gap:5px}
+  .market-listing-detail .market-listing-owner-actions{display:flex;flex-wrap:wrap;gap:5px;width:100%;margin-top:2px}
+  .market-listing-detail .market-listing-owner-actions .btn-renew,.market-listing-detail .market-listing-owner-actions .btn-close{min-height:30px;padding:3px 8px;font-size:10px}
   .market-listing-detail .market-listing-heading h1{margin:4px 0 0!important;font-size:clamp(22px,6.2vw,28px)!important;line-height:1.12;letter-spacing:-.035em;overflow-wrap:anywhere}
   .market-listing-detail .market-listing-status{align-self:flex-start;margin:0!important;padding:4px 8px!important;font-size:9px!important}
   .market-listing-detail .market-listing-facts{grid-column:1/-1;grid-row:2;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;margin:2px 0 0!important;border-block:1px solid var(--line)}

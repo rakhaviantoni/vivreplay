@@ -23,6 +23,16 @@ export async function POST(req:Request,{params}:{params:Promise<{id:string}>}){
       throw new HttpError(400,'Sold listings cannot be renewed.');
     }
 
+    const currentExpires = listing.expires_at ? new Date(listing.expires_at.includes('T') ? listing.expires_at : `${listing.expires_at.replace(' ', 'T')}Z`).getTime() : 0;
+    const msLeft = currentExpires - Date.now();
+    const maxEarlyExtendDays = policy.tier === 'pro' ? 5 : 2;
+    const maxEarlyRenewMs = maxEarlyExtendDays * 24 * 60 * 60 * 1000;
+
+    if (listing.status === 'ACTIVE' && msLeft > maxEarlyRenewMs) {
+      const daysRemaining = Math.max(1, Math.ceil(msLeft / (24 * 60 * 60 * 1000)));
+      throw new HttpError(400, `Listings can only be extended when nearing expiration (${maxEarlyExtendDays} days or less remaining). This listing currently has ${daysRemaining} days left.`);
+    }
+
     const activeCount=await d.prepare("SELECT COUNT(*) AS total FROM listings WHERE seller_id=? AND status='ACTIVE' AND (expires_at IS NULL OR expires_at>CURRENT_TIMESTAMP) AND id<>?").bind(p.id,id).first<{total:number}>();
     if((activeCount?.total??0)>=policy.maxActiveListings)throw new HttpError(400,`You have reached the limit of ${policy.maxActiveListings} active listings for your account.`);
 
