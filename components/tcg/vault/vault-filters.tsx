@@ -23,7 +23,7 @@ interface VaultFiltersProps {
   totalFilteredCount: number;
   language?: 'EN' | 'ID';
   cardsInVault?: Card[];
-  gameSlug?: 'one-piece' | 'pokemon';
+  gameSlug?: 'one-piece' | 'pokemon' | 'all';
 }
 
 export function VaultFilters({
@@ -79,11 +79,11 @@ export function VaultFilters({
             type="text"
             value={filters.search}
             onChange={e => onChangeFilters(prev => ({ ...prev, search: e.target.value }))}
-            placeholder={gameSlug==='pokemon'?t('Search Pokémon, card number, or set...','Cari Pokémon, nomor kartu, atau set...'):t('Search card name, code (e.g. OP05-119), or set...','Cari nama kartu, kode (mis. OP05-119), atau set...')}
+            placeholder={gameSlug==='pokemon'?t('Search Pokémon, card number, or set...','Cari Pokémon, nomor kartu, atau set...'):gameSlug==='all'?t('Search card name, number, or set...','Cari nama kartu, nomor, atau set...'):t('Search card name, code (e.g. OP05-119), or set...','Cari nama kartu, kode (mis. OP05-119), atau set...')}
           />
-          <CardScanButton game={gameSlug} locale={language} selectionPurpose="filter" onSelect={card=>onChangeFilters(prev=>({
+          <CardScanButton game={gameSlug==='all'?'auto':gameSlug} locale={language} selectionPurpose="filter" onSelect={card=>onChangeFilters(prev=>({
             ...prev,
-            search:gameSlug==='pokemon'?card.cardNumber:card.code,
+            search:card.game==='pokemon'?card.cardNumber:card.code,
             setCode:card.setCode?[card.setCode]:[],
             language:card.language?[card.language]:[],
           }))}/>
@@ -107,7 +107,7 @@ export function VaultFilters({
         <MultiFilter label="Set" values={sets.map(code=>({value:code,label:code}))} selected={filters.setCode} onToggle={value=>onChangeFilters(prev=>({...prev,setCode:prev.setCode.includes(value)?prev.setCode.filter(item=>item!==value):[...prev.setCode,value]}))} searchPlaceholder={t('Find a set','Cari set')} />
 
         {/* Language Filter */}
-        <MultiFilter label={t('Language','Bahasa')} values={[{value:'JP',label:'Japanese (JP)'},{value:'EN',label:'English (EN)'},...(gameSlug==='pokemon'?[{value:'ID',label:'Bahasa Indonesia (ID)'}]:[])]} selected={filters.language} onToggle={value=>onChangeFilters(prev=>({...prev,language:prev.language.includes(value)?prev.language.filter(item=>item!==value):[...prev.language,value]}))} searchPlaceholder={t('Find a language','Cari bahasa')} />
+        <MultiFilter label={t('Language','Bahasa')} values={[{value:'JP',label:'Japanese (JP)'},{value:'EN',label:'English (EN)'},...(gameSlug!=='one-piece'?[{value:'ID',label:'Bahasa Indonesia (ID)'}]:[])]} selected={filters.language} onToggle={value=>onChangeFilters(prev=>({...prev,language:prev.language.includes(value)?prev.language.filter(item=>item!==value):[...prev.language,value]}))} searchPlaceholder={t('Find a language','Cari bahasa')} />
 
         {/* Type Filter: Raw vs Slabs */}
         <Picker filterStyle searchPlaceholder={t('Search…','Cari…')} emptyLabel={t('No matches','Tidak ada hasil')} value={filters.typeFilter} onChange={value => onChangeFilters(prev => ({ ...prev, typeFilter: value as VaultFilterState['typeFilter'] }))} label={t('Filter by raw or slab','Filter kartu reguler atau slab')} options={[{value:'all',label:t('Raw & Slabs','Reguler & Slab')},{value:'raw',label:t('Raw Only','Hanya Reguler')},{value:'graded',label:t('Slabs Only','Hanya Slab')}]} />
@@ -146,7 +146,7 @@ export function VaultFilters({
 
         {/* Sort Dropdown */}
         <Picker filterStyle searchPlaceholder={t('Search…','Cari…')} emptyLabel={t('No matches','Tidak ada hasil')} value={filters.sort} onChange={value => onChangeFilters(prev => ({ ...prev, sort: value as VaultFilterState['sort'] }))} label={t('Sort collection','Urutkan koleksi')} options={[
-          {value:'recently_added',label:t('Recently Added','Baru Ditambahkan')},{value:'set_order',label:t('Set Order','Urutan Set')},...(gameSlug==='pokemon'?[]:[{value:'value_high' as const,label:t('Market price: High to Low','Harga pasar: Tertinggi')},{value:'value_low' as const,label:t('Market price: Low to High','Harga pasar: Terendah')}]),{value:'name',label:t('Name (A-Z)','Nama (A-Z)')},{value:'grade',label:t('Grade (10 - 1)','Grade (10 - 1)')}
+          {value:'recently_added',label:t('Recently Added','Baru Ditambahkan')},{value:'set_order',label:t('Set Order','Urutan Set')},...(gameSlug==='one-piece'?[{value:'value_high' as const,label:t('Market price: High to Low','Harga pasar: Tertinggi')},{value:'value_low' as const,label:t('Market price: Low to High','Harga pasar: Terendah')}] : []),{value:'name',label:t('Name (A-Z)','Nama (A-Z)')},{value:'grade',label:t('Grade (10 - 1)','Grade (10 - 1)')}
         ]} />
 
         {/* Reset Filter Button if active */}

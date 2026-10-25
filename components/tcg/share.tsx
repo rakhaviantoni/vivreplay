@@ -311,7 +311,7 @@ async function generateListingCompositeBlob({
   style?: 'light' | 'dark';
   entityType?: 'listing' | 'card' | 'vault';
   cardDetails?: ShareCardDetails;
-  gameSlug?: 'one-piece'|'pokemon';
+  gameSlug?: 'one-piece'|'pokemon'|'all';
   setProgress?: ShareVaultSetProgress;
 }): Promise<Blob | null> {
   const canvasWidth = 1200;
@@ -405,7 +405,7 @@ async function generateListingCompositeBlob({
   // Load brand compass mark & card images concurrently
   const [compassImg, gameLogoImg, ...loadedCardImages] = await Promise.all([
     loadImg('/brand/vivreplay-compass.png'),
-    entityType==='vault'?loadImg(gameSlug==='pokemon'?'https://upload.wikimedia.org/wikipedia/commons/1/1a/Pok%C3%A9mon_Trading_Card_Game_logo.svg':'/assets/one-piece-card-game-logo.png'):Promise.resolve(null),
+    entityType==='vault'&&gameSlug==='all'?Promise.resolve(null):entityType==='vault'?loadImg(gameSlug==='pokemon'?'https://upload.wikimedia.org/wikipedia/commons/1/1a/Pok%C3%A9mon_Trading_Card_Game_logo.svg':'/assets/one-piece-card-game-logo.png'):Promise.resolve(null),
     ...cards.map(async (item) => {
       // Share previews should use the exact printing selected for the listing.
       // Catalog URL reconstruction can point at the standard art when an
@@ -771,7 +771,7 @@ async function generateListingCompositeBlob({
 
     // Graded cards carry their details in the PSA label below the artwork.
     if(entityType==='vault'&&item.productType==='GRADED'&&String(item.gradingCompany??'PSA').toUpperCase()==='PSA'){
-      drawVaultPsaLabel(ctx,item,gameSlug,cardX,cardY+cardHeight+2,cardWidth,cardInfoHeight-2,slabYears.get(item));
+      drawVaultPsaLabel(ctx,item,gameSlug==='all'?undefined:gameSlug,cardX,cardY+cardHeight+2,cardWidth,cardInfoHeight-2,slabYears.get(item));
     }else{
       ctx.font = '700 13px "Plus Jakarta Sans", sans-serif';
       ctx.fillStyle = palette.ink;
@@ -832,7 +832,7 @@ async function generateListingCompositeBlob({
   });
 }
 
-export async function generateVaultShareBlob({title,cards,link,language='EN',style='light',gameSlug,setProgress}:{title:string;cards:ShareCardItem[];link:string;language?:'EN'|'ID';style?:'light'|'dark';gameSlug:'one-piece'|'pokemon';setProgress?:ShareVaultSetProgress}){
+export async function generateVaultShareBlob({title,cards,link,language='EN',style='light',gameSlug,setProgress}:{title:string;cards:ShareCardItem[];link:string;language?:'EN'|'ID';style?:'light'|'dark';gameSlug:'one-piece'|'pokemon'|'all';setProgress?:ShareVaultSetProgress}){
   return generateListingCompositeBlob({title,cards,link,language,style,entityType:'vault',gameSlug,setProgress});
 }
 

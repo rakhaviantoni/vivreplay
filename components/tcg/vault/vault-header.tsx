@@ -14,6 +14,7 @@ import {
   StorefrontIcon as Storefront,
 } from '@phosphor-icons/react';
 import { formatMoney, formatCompactMoney } from '@/packages/domain';
+import { GAME_LOGOS } from '../brand-assets';
 import type { VaultStats, PrivacySettings } from './types';
 
 interface VaultHeaderProps {
@@ -22,7 +23,8 @@ interface VaultHeaderProps {
   hideValues: boolean;
   isPricingLoading?: boolean;
   language?: 'EN' | 'ID';
-  gameSlug?: 'one-piece'|'pokemon';
+  gameSlug?: 'one-piece'|'pokemon'|'all';
+  onChangeGame?: (game:'one-piece'|'pokemon'|'all')=>void;
   onToggleHideValues: () => void;
   onOpenQuickAdd: () => void;
   onOpenFullAdd: () => void;
@@ -39,6 +41,7 @@ export function VaultHeader({
   isPricingLoading = false,
   language = 'EN',
   gameSlug = 'one-piece',
+  onChangeGame,
   onToggleHideValues,
   onOpenQuickAdd,
   onOpenFullAdd,
@@ -55,6 +58,14 @@ export function VaultHeader({
         <div className="vault-title-group">
           <p className="vault-eyebrow">{t('Card collection','Koleksi kartu')}</p>
           <h1>{t('Your Vault','Koleksi Anda')}</h1>
+          {onChangeGame&&<div className="vault-game-scope" role="group" aria-label={t('Filter Vault by game','Filter Vault berdasarkan game')}>
+            <button type="button" className={gameSlug==='all'?'is-active':''} aria-pressed={gameSlug==='all'} onClick={()=>onChangeGame('all')}>
+              <span className="vault-game-scope-all-logos" aria-hidden="true"><img src={GAME_LOGOS['one-piece']} alt=""/><img src={GAME_LOGOS.pokemon} alt=""/></span>
+              <span>{t('All games','Semua game')}</span>
+            </button>
+            <button type="button" className={gameSlug==='one-piece'?'is-active':''} aria-label="One Piece Card Game" title="One Piece Card Game" aria-pressed={gameSlug==='one-piece'} onClick={()=>onChangeGame('one-piece')}><img className="vault-game-scope-op" src={GAME_LOGOS['one-piece']} alt=""/><span className="sr-only">One Piece</span></button>
+            <button type="button" className={gameSlug==='pokemon'?'is-active':''} aria-label="Pokémon Trading Card Game" title="Pokémon Trading Card Game" aria-pressed={gameSlug==='pokemon'} onClick={()=>onChangeGame('pokemon')}><img className="vault-game-scope-pokemon" src={GAME_LOGOS.pokemon} alt=""/><span className="sr-only">Pokémon</span></button>
+          </div>}
           <p className="vault-subtitle">
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
               <Lock size={12} />
@@ -71,7 +82,7 @@ export function VaultHeader({
             onClick={onOpenFullAdd}
           >
             <Plus size={15} weight="bold" />
-            <span>{t('Add to Vault','Simpan ke koleksi')}</span>
+            <span>{gameSlug==='all'?t('Add One Piece card','Tambah kartu One Piece'):t('Add to Vault','Simpan ke koleksi')}</span>
           </button>
           {onCreateBundleListing&&<button type="button" className="vault-btn vault-btn-secondary vault-header-bundle-action" onClick={onCreateBundleListing}>
             <Storefront size={15}/>
@@ -83,8 +94,8 @@ export function VaultHeader({
             type="button" 
             className="vault-btn vault-btn-secondary vault-action-compact vault-action-quick"
             onClick={onOpenQuickAdd}
-            title={t('Add a card quickly','Tambah kartu dengan cepat')}
-            aria-label={t('Quick Add','Tambah Cepat')}
+            title={gameSlug==='all'?t('Quick Add One Piece card','Tambah cepat kartu One Piece'):t('Add a card quickly','Tambah kartu dengan cepat')}
+            aria-label={gameSlug==='all'?t('Quick Add One Piece','Tambah Cepat One Piece'):t('Quick Add','Tambah Cepat')}
           >
             <Zap size={15} weight="fill" color="#c68a2c" />
             <span className="vault-action-label">{t('Quick Add','Tambah Cepat')}</span>
@@ -124,7 +135,7 @@ export function VaultHeader({
       </div>
 
       {/* Primary Key Metrics Overview Bar */}
-      <div className={`vault-metrics-card${gameSlug === 'pokemon' ? ' is-pokemon' : ''}`}>
+      <div className={`vault-metrics-card${gameSlug === 'pokemon' ? ' is-pokemon' : ''}${gameSlug === 'all' ? ' is-all' : ''}`}>
         {/* Total & Unique Cards */}
         <div className="vault-metric-item">
           <span className="vault-metric-label">{t('Collection Size','Ukuran Koleksi')}</span>
@@ -150,8 +161,8 @@ export function VaultHeader({
         {/* Estimated Value with Privacy Toggle & Confidence Badge */}
         <div className="vault-metric-item">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="vault-metric-label">{gameSlug==='pokemon'?t('Purchase costs recorded','Total pembelian tercatat'):t('Estimated Value','Estimasi Nilai')}</span>
-            <button
+            <span className="vault-metric-label">{gameSlug==='all'?t('Market value','Nilai pasar'):gameSlug==='pokemon'?t('Purchase costs recorded','Total pembelian tercatat'):t('Estimated Value','Estimasi Nilai')}</span>
+            {gameSlug!=='all'&&<button
               type="button"
               className="vault-privacy-toggle"
               onClick={onToggleHideValues}
@@ -159,14 +170,14 @@ export function VaultHeader({
               title={hideValues ? t('Show value','Tampilkan nilai') : t('Hide value','Sembunyikan nilai')}
             >
               {hideValues ? <EyeOff size={14} /> : <Eye size={14} />}
-            </button>
+            </button>}
           </div>
           <div className="vault-metric-value vault-value-row">
-            {hideValues ? (
+            {gameSlug!=='all'&&hideValues ? (
               <span style={{ letterSpacing: '0.15em', color: 'var(--vault-ink-muted)' }}>Rp ••••••••</span>
             ) : (
               <>
-                <span>{gameSlug==='pokemon'?formatCompactMoney(stats.totalAcquisitionCost,'IDR'):isPricingLoading ? '…' : stats.marketPricedCount ? formatCompactMoney(stats.estimatedValue, 'IDR') : '-'}</span>
+                <span>{gameSlug==='all'?'—':gameSlug==='pokemon'?formatCompactMoney(stats.totalAcquisitionCost,'IDR'):isPricingLoading ? '…' : stats.marketPricedCount ? formatCompactMoney(stats.estimatedValue, 'IDR') : '-'}</span>
                 {gameSlug!=='pokemon'&&stats.marketPricedCount > 0 && <span className="vault-confidence-badge">
                   {stats.marketPricedCount} {t('priced cards','kartu dengan harga')}
                 </span>}
@@ -174,8 +185,10 @@ export function VaultHeader({
             )}
           </div>
           <span className="vault-metric-sub">
-            {hideValues ? (
+            {gameSlug!=='all'&&hideValues ? (
               t('Value masked for privacy','Nilai disamarkan untuk privasi')
+            ) : gameSlug==='all' ? (
+              t('Choose a game to see its estimate','Pilih game untuk melihat estimasi')
             ) : gameSlug==='pokemon' ? (
               t('Based on purchase prices you entered','Berdasarkan harga pembelian yang Anda catat')
             ) : isPricingLoading ? (
@@ -189,7 +202,7 @@ export function VaultHeader({
         </div>
 
         {/* Acquisition Cost & Unrealized Difference */}
-        {gameSlug!=='pokemon'&&<div className="vault-metric-item">
+        {gameSlug==='one-piece'&&<div className="vault-metric-item">
           <span className="vault-metric-label">{t('Total paid','Total pembelian')}</span>
           <div className="vault-metric-value">
             {hideValues ? 'Rp ••••••••' : formatCompactMoney(stats.totalAcquisitionCost, 'IDR')}
@@ -206,7 +219,7 @@ export function VaultHeader({
         </div>}
 
         {/* 30-day price change */}
-        {gameSlug!=='pokemon'&&<div className="vault-metric-item">
+        {gameSlug==='one-piece'&&<div className="vault-metric-item">
           <span className="vault-metric-label">{t('Price change over 30 days','Perubahan harga selama 30 hari')}</span>
           <div className="vault-metric-value" style={{ color: stats.change30DayPercent === null ? 'var(--vault-ink-muted)' : stats.change30DayPercent >= 0 ? '#2e8b57' : '#c0392b' }}>
             {stats.change30DayPercent === null ? '-' : `${stats.change30DayPercent >= 0 ? '+' : ''}${stats.change30DayPercent.toFixed(1)}%`}

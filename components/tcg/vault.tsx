@@ -45,7 +45,7 @@ import { PortfolioTab } from './vault/tabs/portfolio-tab';
 import { ActivityTab } from './vault/tabs/activity-tab';
 import { VaultPanelEmpty } from './vault/vault-panel-empty';
 import { ListingsTab } from './vault/tabs/listings-tab';
-import { VivreMark } from './brand-assets';
+import { VivreMark, GAME_LOGOS } from './brand-assets';
 import { VaultLoading } from './vault/vault-loading';
 
 // Vault Modals
@@ -81,9 +81,17 @@ export function Vault() {
 
   // Active Tab & View Mode State
   const [activeTab, setActiveTab] = useState<VaultTab>(searchParams.get('tab')==='wishlist'?'wishlist':searchParams.get('tab')==='portfolio'?'portfolio':'collection');
-  const [gameSlug,setGameSlug]=useState<'one-piece'|'pokemon'>(searchParams.get('game')==='pokemon'?'pokemon':'one-piece');
+  const [gameSlug,setGameSlug]=useState<'one-piece'|'pokemon'|'all'>(searchParams.get('game')==='pokemon'?'pokemon':searchParams.get('game')==='one-piece'?'one-piece':'all');
   const [viewMode, setViewMode] = useState<VaultViewMode>('binder');
-  useEffect(()=>{const next=searchParams.get('game')==='pokemon'?'pokemon':'one-piece';setGameSlug(next);if(next==='pokemon'&&activeTab==='sets')setActiveTab('collection')},[searchParams,activeTab]);
+  useEffect(()=>{const next=searchParams.get('game')==='pokemon'?'pokemon':searchParams.get('game')==='one-piece'?'one-piece':'all';setGameSlug(next);if(next!=='one-piece'&&activeTab==='sets')setActiveTab('collection')},[searchParams,activeTab]);
+  const handleGameChange=(next:'one-piece'|'pokemon'|'all')=>{
+    setGameSlug(next);
+    if(next!=='one-piece'&&activeTab==='sets')setActiveTab('collection');
+    setFilters(previous=>({...previous,setCode:[],language:[],rarity:[],color:'all',cardType:'all',sort:'recently_added'}));
+    const params=new URLSearchParams(window.location.search);
+    if(next==='all')params.delete('game');else params.set('game',next);
+    router.replace(`${window.location.pathname}${params.size?`?${params}`:''}`,{scroll:false});
+  };
   const binderOrderStorageKey=`vivreplay-vault-binder-order:${String(data?.profile?.id??'guest')}`;
   const [binderOrder,setBinderOrder]=useState<string[]>([]);
 
@@ -236,13 +244,17 @@ export function Vault() {
   const collectionItems = useMemo(() => {
     if (loading) return [];
     const rows=data?.collection ?? localVaultItems;
-    return rows.filter(item=>(item.card as (typeof item.card&{gameSlug?:string})|undefined)?.gameSlug===gameSlug || (gameSlug==='one-piece'&&!(item.card as (typeof item.card&{gameSlug?:string})|undefined)?.gameSlug));
+    return rows.filter(item=>{
+      const card=item.card as (typeof item.card&{gameSlug?:string})|undefined;
+      const itemGame=card?.gameSlug??(/^PK-/i.test(card?.code??'')?'pokemon':'one-piece');
+      return gameSlug==='all'||itemGame===gameSlug;
+    });
   }, [data, localVaultItems, loading, gameSlug]);
 
-  const pricingPrintingIds=useMemo(()=>[...new Set(collectionItems.map(item=>item.printingId))].sort(),[collectionItems]);
+  const pricingPrintingIds=useMemo(()=>[...new Set(collectionItems.filter(item=>gameSlug==='one-piece'||((item.card as (typeof item.card&{gameSlug?:string})|undefined)?.gameSlug!=='pokemon'&&!/^PK-/i.test(item.card?.code??''))).map(item=>item.printingId))].sort(),[collectionItems,gameSlug]);
   const pricingRequestKey=pricingPrintingIds.join(',');
   useEffect(()=>{
-    if(gameSlug!=='one-piece'){setVaultMarketPrices({});setVaultMarketPricesLoading(false);return}
+    if(gameSlug==='pokemon'){setVaultMarketPrices({});setVaultMarketPricesLoading(false);return}
     if(!pricingPrintingIds.length){setVaultMarketPrices({});setVaultMarketPricesLoading(false);return}
     const controller=new AbortController();
     setVaultMarketPrices({});setVaultMarketPricesLoading(true);
@@ -266,7 +278,8 @@ export function Vault() {
 
   // Calculate vault stats & set progress
   const stats = useMemo(() => calculateVaultStats(enrichedItems), [enrichedItems]);
-  const setProgressList = useMemo(() => calculateSetProgressList(enrichedItems), [enrichedItems]);
+  const onePieceItems=useMemo(()=>enrichedItems.filter(item=>(item.card as (typeof item.card&{gameSlug?:string})|undefined)?.gameSlug!=='pokemon'&&!/^PK-/i.test(item.card.code)),[enrichedItems]);
+  const setProgressList = useMemo(() => calculateSetProgressList(onePieceItems), [onePieceItems]);
 
   // Filter and sort items for Collection tab
   const filteredCollectionItems = useMemo(() => {
@@ -327,6 +340,10 @@ export function Vault() {
 
   // Wishlist list
   const wishlistList = useMemo(() => data?.wishlist ?? [], [data]);
+  const visibleWishlistList=useMemo(()=>wishlistList.filter(item=>{
+    const itemGame=/^PK-/i.test(item.card?.code??'')?'pokemon':'one-piece';
+    return gameSlug==='all'||itemGame===gameSlug;
+  }),[wishlistList,gameSlug]);
 
   // Actions
   const handleSelectItem = (item: EnrichedCollectionItem) => {
@@ -338,11 +355,12 @@ export function Vault() {
   };
 
   const handleSell = (item: EnrichedCollectionItem) => {
-    window.dispatchEvent(new CustomEvent('vivreplay:open-sell-printing',{detail:{printingId:item.printingId,gameSlug}}));
+    window.dispatchEvent(new CustomEvent('vivreplay:open-sell-printing',{detail:{printingId:item.printingId,gameSlug:(item.card as (typeof item.card&{gameSlug?:string})|undefined)?.gameSlug??(/^PK-/i.test(item.card.code)?'pokemon':'one-piece')}}));
   };
 
   const handleFindListings = (code: string) => {
-    router.push(`/market?search=${encodeURIComponent(code)}`);
+    const game=/^PK-/i.test(code)?'&game=pokemon':'';
+    router.push(`/market?search=${encodeURIComponent(code)}${game}`);
   };
 
   const handleAddCopy = async (item: EnrichedCollectionItem) => {
@@ -551,6 +569,7 @@ export function Vault() {
         isPricingLoading={vaultMarketPricesLoading}
         language={language}
         gameSlug={gameSlug}
+        onChangeGame={handleGameChange}
         onToggleHideValues={handleToggleHideValues}
         onOpenQuickAdd={() => setQuickAddOpen(true)}
         onOpenFullAdd={() => { setEditingItem(null); setFullAddOpen(true); }}
@@ -592,7 +611,7 @@ export function Vault() {
           <span className="vault-tab-count">{slabsList.length}</span>
         </button>
 
-        {gameSlug !== 'pokemon' && <button
+        {gameSlug === 'one-piece' && <button
           type="button"
           className={`vault-tab-btn ${activeTab === 'sets' ? 'is-active' : ''}`}
           onClick={() => setActiveTab('sets')}
@@ -609,7 +628,7 @@ export function Vault() {
         >
           <Heart size={16} />
           {t('Wishlist','Kartu incaran')}
-          <span className="vault-tab-count">{wishlistList.length}</span>
+          <span className="vault-tab-count">{visibleWishlistList.length}</span>
         </button>
 
         <button
@@ -724,7 +743,7 @@ export function Vault() {
       {activeTab === 'wishlist' && (
         <section style={{ marginTop: '24px' }}>
           <WishlistTab
-            wishlist={wishlistList}
+            wishlist={visibleWishlistList}
             language={language}
             onUpdated={refresh}
             onRemoveFromWishlist={async (printingId) => {
@@ -768,7 +787,7 @@ export function Vault() {
         onItemAdded={refresh}
         isAnonymous={!data}
         language={language}
-        gameSlug={gameSlug}
+        gameSlug={gameSlug==='pokemon'?'pokemon':'one-piece'}
       />
 
       <AddEditItemModal
@@ -779,7 +798,7 @@ export function Vault() {
         editingItem={editingItem}
         isAnonymous={!data}
         language={language}
-        gameSlug={gameSlug}
+        gameSlug={gameSlug==='pokemon'||editingItem?.card.gameSlug==='pokemon'?'pokemon':'one-piece'}
       />
 
       <RawDetailModal

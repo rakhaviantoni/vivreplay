@@ -11,7 +11,7 @@ import type {EnrichedCollectionItem, SetProgress} from '../types';
 
 interface ShareVaultModalProps {
   open:boolean; onClose:()=>void; username:string; items:EnrichedCollectionItem[]; hideValues:boolean;
-  selectedSlab?:EnrichedCollectionItem|null; selectedSet?:SetProgress|null; language?:'EN'|'ID'; gameSlug:'one-piece'|'pokemon';
+  selectedSlab?:EnrichedCollectionItem|null; selectedSet?:SetProgress|null; language?:'EN'|'ID'; gameSlug:'one-piece'|'pokemon'|'all';
 }
 
 function shareMeta(item:EnrichedCollectionItem){

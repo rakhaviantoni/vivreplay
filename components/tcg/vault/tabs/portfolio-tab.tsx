@@ -10,7 +10,7 @@ import type { VaultStats, EnrichedCollectionItem } from '../types';
 
 interface PortfolioTabProps {
   language: 'EN'|'ID';
-  gameSlug?: 'one-piece'|'pokemon';
+  gameSlug?: 'one-piece'|'pokemon'|'all';
   stats: VaultStats;
   items: EnrichedCollectionItem[];
   hideValues: boolean;
@@ -27,6 +27,17 @@ export function PortfolioTab({
 }: PortfolioTabProps) {
   const id=language==='ID';
   const t=(en:string,indo:string)=>id?indo:en;
+
+  if(gameSlug==='all'){
+    const copies=items.reduce((sum,item)=>sum+item.quantity,0);
+    const uniqueCards=new Set(items.map(item=>item.printingId)).size;
+    const onePiece=items.filter(item=>item.card.gameSlug!=='pokemon'&&!/^PK-/i.test(item.card.code));
+    const pokemon=items.filter(item=>item.card.gameSlug==='pokemon'||/^PK-/i.test(item.card.code));
+    const distinctSets=(group:typeof items)=>new Set(group.map(item=>item.card.setCode).filter(Boolean)).size;
+    const totalPaid=items.reduce((sum,item)=>sum+(Number(item.acquisitionAmount)||0)*item.quantity,0);
+    const rows=[[t('One Piece','One Piece'),String(onePiece.reduce((sum,item)=>sum+item.quantity,0))],[t('Pokémon','Pokémon'),String(pokemon.reduce((sum,item)=>sum+item.quantity,0))],[t('Different printings','Cetakan berbeda'),String(uniqueCards)],[t('Copies owned','Jumlah kartu'),String(copies)],[t('Sets represented','Set dalam koleksi'),String(distinctSets(items))],[t('Purchase costs recorded','Total pembelian tercatat'),hideValues?'••••••':formatMoney(totalPaid,'IDR')]];
+    return <div className="vault-portfolio-container"><section className="vault-chart-card" style={{padding:'24px',gridColumn:'1 / -1'}}><span style={{fontSize:'11px',fontWeight:700,letterSpacing:'.1em',textTransform:'uppercase',color:'var(--vault-gold)'}}>{t('All games','Semua game')}</span><h2 style={{fontFamily:'var(--display-font, var(--font-sans))',fontSize:'28px',fontWeight:600,margin:'4px 0 0'}}>{t('Collection overview','Ringkasan koleksi')}</h2><p style={{fontSize:'14px',lineHeight:1.6,color:'var(--vault-ink-secondary)',margin:'8px 0 0'}}>{t('Market value is shown separately by game.','Nilai pasar ditampilkan terpisah untuk setiap game.')}</p><div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:16,marginTop:24,paddingTop:20,borderTop:'1px solid var(--vault-border-light)'}}>{rows.map(([label,value])=><div key={label}><span style={{fontSize:11,color:'var(--vault-ink-muted)',textTransform:'uppercase',letterSpacing:'.07em',fontWeight:700}}>{label}</span><strong style={{display:'block',fontSize:24,fontWeight:600,marginTop:5,color:'var(--vault-ink)'}}>{value}</strong></div>)}</div></section></div>;
+  }
 
   if(gameSlug==='pokemon'){
     const copies=items.reduce((sum,item)=>sum+item.quantity,0);

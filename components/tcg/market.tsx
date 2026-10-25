@@ -473,7 +473,7 @@ function MarketCardLookup({
 }: {
   value: string;
   listings?: Listing[];
-  gameSlug?: 'one-piece'|'pokemon';
+  gameSlug?: 'one-piece'|'pokemon'|'all';
   onViewListings: (card: Card) => void;
   onAddToVault: (card: Card) => void;
   onSell: (card: Card) => void;
@@ -510,13 +510,13 @@ function MarketCardLookup({
   return (
     <section className="market-card-lookup" aria-live="polite">
       <header>
-        <span>{gameSlug==='pokemon'?(locale==='ID'?'Katalog Pokémon':'Pokémon card catalog'):(locale === 'ID' ? 'Katalog Kartu Resmi' : 'Official Card Catalog')}</span>
+        <span>{gameSlug==='all'?(locale==='ID'?'Katalog Kartu':'Card catalog'):gameSlug==='pokemon'?(locale==='ID'?'Katalog Pokémon':'Pokémon card catalog'):(locale === 'ID' ? 'Katalog Kartu Resmi' : 'Official Card Catalog')}</span>
         <small>
           {loading
             ? (locale === 'ID' ? 'Mencari...' : 'Searching...')
             : value.trim().length >= 2
               ? (results.length ? (locale === 'ID' ? `${results.length} kartu cocok` : `${results.length} matches`) : (locale === 'ID' ? 'Kartu tidak ditemukan' : 'No cards found'))
-              : gameSlug==='pokemon'?(locale==='ID'?'Cari nama, nomor kartu, atau set Pokémon':'Search Pokémon name, card number, or set'):(locale === 'ID' ? 'Ketik nama atau kode kartu di kolom pencarian' : 'Type card name or code in search bar')}
+              : gameSlug==='pokemon'?(locale==='ID'?'Cari nama, nomor kartu, atau set Pokémon':'Search Pokémon name, card number, or set'):(locale==='ID'?'Cari nama, nomor kartu, atau set':'Search by name, card number, or set')}
         </small>
       </header>
       {loading ? (
@@ -525,15 +525,16 @@ function MarketCardLookup({
         <div>
           {results.map(card => {
             const listingsCount = getCardListingsCount(card);
+            const cardGame=(card as MarketCard).gameSlug??'one-piece';
             return (
               <article key={card.id}>
-                <MarketLookupCardThumb card={card as MarketCard} gameSlug={gameSlug}/>
+                <MarketLookupCardThumb card={card as MarketCard} gameSlug={cardGame}/>
                 <div className="market-card-lookup-details">
                   <strong>{card.name}</strong>
                   <div className="market-card-lookup-meta">
-                    <span className="market-sell-code">{gameSlug==='pokemon'?pokemonPublicReference({code:card.code,setCode:(card as MarketCard).setCode,printingCode:(card as MarketCard).printingCode,localCardNumber:(card as MarketCard).localCardNumber}):card.code}</span>
-                    {gameSlug==='pokemon'?<PokemonMarketType card={card as MarketCard}/>:<span>{card.type}</span>}
-                    {gameSlug!=='pokemon'&&card.color&&(
+                    <span className="market-sell-code">{cardGame==='pokemon'?pokemonPublicReference({code:card.code,setCode:(card as MarketCard).setCode,printingCode:(card as MarketCard).printingCode,localCardNumber:(card as MarketCard).localCardNumber}):card.code}</span>
+                    {cardGame==='pokemon'?<PokemonMarketType card={card as MarketCard}/>:<span>{card.type}</span>}
+                    {cardGame!=='pokemon'&&card.color&&(
                       <>
                         <span>{card.color}</span>
                       </>
@@ -595,7 +596,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
   const listingLimits=useMarketListingLimits(`${data?.profile?.id??'anonymous'}:${data?.profile?.tier??'free'}:${data?.profile?.pro_billing_period??'monthly'}`);
   const router=useRouter();
   const searchParams=useSearchParams();
-  const [gameSlug,setGameSlug]=useState<'one-piece'|'pokemon'>(initialGameSlug??(searchParams.get('game')==='pokemon'?'pokemon':'one-piece'));
+  const [gameSlug,setGameSlug]=useState<MarketGameScope>(initialGameSlug??(searchParams.get('game')==='pokemon'?'pokemon':searchParams.get('game')==='all'?'all':'one-piece'));
   const [listings,setListings]=useState<Listing[]>([]);
   const [listingsLoading,setListingsLoading]=useState(true);
   const [error,setError]=useState('');
@@ -721,15 +722,15 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
   }
   refreshFeedRef.current=refresh;
   useEffect(()=>{if(!modalOnly)void refresh()},[modalOnly,gameSlug]);
-  useEffect(()=>{if(modalOnly)return;setGameSlug(searchParams.get('game')==='pokemon'?'pokemon':'one-piece')},[modalOnly,searchParams]);
-  const changeGame=(next:'one-piece'|'pokemon')=>{
+  useEffect(()=>{if(modalOnly)return;setGameSlug(searchParams.get('game')==='pokemon'?'pokemon':searchParams.get('game')==='all'?'all':'one-piece')},[modalOnly,searchParams]);
+  const changeGame=(next:MarketGameScope)=>{
     setGameSlug(next);setLang('all');setTradeType('all');setQuery('');setCardSearch('');
-    const params=new URLSearchParams(window.location.search);if(next==='pokemon')params.set('game','pokemon');else params.delete('game');
+    const params=new URLSearchParams(window.location.search);if(next==='pokemon'||next==='all')params.set('game',next);else params.delete('game');
     router.replace(`${window.location.pathname}${params.size?`?${params}`:''}`,{scroll:false});
   };
-  const listingHref=(listing:Pick<Listing,'title'|'id'>)=>{
+  const listingHref=(listing:Pick<Listing,'title'|'id'>,targetGame:MarketGameScope=gameSlug)=>{
     const path=marketListingPath(listing.title,listing.id);
-    return gameSlug==='pokemon'?`${path}?game=pokemon`:path;
+    return targetGame==='pokemon'?`${path}?game=pokemon`:targetGame==='all'?`${path}?game=all`:path;
   };
   useEffect(()=>{
     if(modalOnly)return;
@@ -1230,7 +1231,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
         <div className="market-feed-tabs">
           <div className="market-feed-tabs-main">
             <div className="market-game-feed-controls">
-              {!modalOnly&&<nav className="market-game-switch" aria-label={locale==='ID'?'Pilih permainan kartu':'Choose a card game'}><button type="button" aria-label="One Piece Card Game" title="One Piece Card Game" className={`game-mode-one-piece${gameSlug==='one-piece'?' is-active':''}`} aria-current={gameSlug==='one-piece'?'page':undefined} onClick={()=>changeGame('one-piece')}><span className="market-game-logo-pad"><img src={GAME_LOGOS['one-piece']} alt=""/></span><span className="sr-only">One Piece</span></button><button type="button" aria-label="Pokémon Trading Card Game" title="Pokémon Trading Card Game" className={gameSlug==='pokemon'?'is-active':''} aria-current={gameSlug==='pokemon'?'page':undefined} onClick={()=>changeGame('pokemon')}><span className="market-game-logo-pad"><img src={GAME_LOGOS.pokemon} alt=""/></span><span className="sr-only">Pokémon</span></button></nav>}
+              {!modalOnly&&<nav className="market-game-switch" aria-label={locale==='ID'?'Pilih permainan kartu':'Choose a card game'}><button type="button" aria-label="One Piece Card Game" title="One Piece Card Game" className={`game-mode-one-piece${gameSlug==='one-piece'?' is-active':''}`} aria-current={gameSlug==='one-piece'?'page':undefined} onClick={()=>changeGame('one-piece')}><span className="market-game-logo-pad"><img src={GAME_LOGOS['one-piece']} alt=""/></span><span className="sr-only">One Piece</span></button><button type="button" aria-label="Pokémon Trading Card Game" title="Pokémon Trading Card Game" className={gameSlug==='pokemon'?'is-active':''} aria-current={gameSlug==='pokemon'?'page':undefined} onClick={()=>changeGame('pokemon')}><span className="market-game-logo-pad"><img src={GAME_LOGOS.pokemon} alt=""/></span><span className="sr-only">Pokémon</span></button><button type="button" className={`market-game-all${gameSlug==='all'?' is-active':''}`} aria-label={locale==='ID'?'Semua game':'All games'} title={locale==='ID'?'Semua game':'All games'} aria-current={gameSlug==='all'?'page':undefined} onClick={()=>changeGame('all')}><MarketGameMark gameSlug="all" compact/><span className="market-game-all-label">{locale==='ID'?'Semua':'All'}</span></button></nav>}
               <nav className="market-scope-nav" aria-label={locale === 'ID' ? 'Pilihan feed market' : 'Market feed view'}>
               <button
                 type="button"
@@ -1368,6 +1369,8 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                 const fullySold=listing.type==='WTS'&&listing.status==='SOLD';
                 const fullyReserved=listing.type==='WTS'&&!fullySold&&totalCards===0;
                 const stackEntries=items.map(item=>({...item,quantity:item.sold?Math.min(3,item.quantity):listing.isOwner?item.quantity:Math.min(3,(item.availableQuantity??item.quantity)+(item.soldQuantity??0))})).filter(item=>item.sold||item.quantity>0);
+                const listingGames=new Set(items.map(item=>{const card=(item.card??cardFor(item.printingId)) as MarketCard|undefined;return card?.gameSlug??(/^PK-/i.test(card?.code??'')?'pokemon':'one-piece')}));
+                const listingGame:MarketGameScope=listingGames.size>1?'all':listingGames.has('pokemon')?'pokemon':'one-piece';
                 const firstCopies=stackEntries.map((item,itemIndex)=>({item,itemIndex,copyIndex:0})).slice(0,3);
                 const extraCopies=stackEntries.flatMap((item,itemIndex)=>Array.from({length:Math.max(0,Math.min(3,item.quantity)-1)},(_,index)=>({item,itemIndex,copyIndex:index+1}))).slice(0,3-firstCopies.length);
                 const visibleStack=[...firstCopies,...extraCopies];
@@ -1381,7 +1384,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                       {totalCards>1&&<span className="market-feed-quantity" aria-label={`${totalCards} ${locale==='ID'?'kartu':'cards'}`}>{totalCards}</span>}
                     </div>
                     <div className="market-feed-copy">
-                      <h2>{listing.title}</h2>
+                      <h2><span className="market-feed-title-text">{listing.title}</span>{gameSlug==='all'&&<span className="market-feed-game-mark" title={listingGame==='all'?'Multiple games':listingGame==='pokemon'?'Pokémon':'One Piece'} aria-label={listingGame==='all'?'Multiple games':listingGame==='pokemon'?'Pokémon':'One Piece'}><MarketGameMark gameSlug={listingGame} compact/></span>}</h2>
                       <small className="market-feed-meta">
                         <span className="market-feed-meta-primary"><span className="market-feed-meta-primary-line"><span className="market-feed-location"><MapPin size={11}/><span className="market-feed-location-name">{listing.city}</span></span>{listing.createdAt&&<><span className="market-feed-meta-separator" aria-hidden="true">|</span><span className="market-feed-meta-tail"><MarketTimestamp value={listing.createdAt}/><span className="market-feed-seller">{locale==='ID'?'oleh':'by'} {listing.sellerUsername?<Link href={`/players/${encodeURIComponent(listing.sellerUsername)}`} onClick={event=>event.stopPropagation()}>{listing.seller}</Link>:listing.seller}</span></span></>}</span></span>
                         {listing.type==='WTS'&&<span className="market-feed-meta-secondary"><ShippingCouriers couriers={listing.shippingCouriers??[]} language={locale}/></span>}
@@ -1401,9 +1404,9 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                 const rowClass=`market-feed-row ${listing.type==='WTB'?'is-wtb':'is-wts'}${listing.isOwner?'':' has-row-action'}${!listing.isOwner&&listing.type==='WTS'&&items.length===1?' has-cart-action':''}`;
                 return <article key={listing.id} data-listing-id={listing.id} className={`${rowClass} market-feed-entry`}>
                   <div className="market-feed-row-content">{content}</div>
-                  <Link href={listingHref(listing)} className="market-feed-row-link" aria-label={locale==='ID'?`Buka ${listing.title}`:`Open ${listing.title}`}/>
+                  <Link href={listingHref(listing,gameSlug==='all'?listingGame:gameSlug)} className="market-feed-row-link" aria-label={locale==='ID'?`Buka ${listing.title}`:`Open ${listing.title}`}/>
                   {!listing.isOwner&&<div className="market-feed-row-actions">
-                    {listing.type==='WTB'&&<Link href={listingHref(listing)} className="button secondary is-icon-only market-icon-action market-feed-offer-cards" title={locale==='ID'?'Tawarkan kartu':'Offer cards'} aria-label={locale==='ID'?'Tawarkan kartu':'Offer cards'}><Cards size={17}/></Link>}
+                    {listing.type==='WTB'&&<Link href={listingHref(listing,gameSlug==='all'?listingGame:gameSlug)} className="button secondary is-icon-only market-icon-action market-feed-offer-cards" title={locale==='ID'?'Tawarkan kartu':'Offer cards'} aria-label={locale==='ID'?'Tawarkan kartu':'Offer cards'}><Cards size={17}/></Link>}
                     {listing.type==='WTS'&&!fullyReserved&&items.length===1&&items[0].quantity>0&&(items[0].availableQuantity??items[0].quantity)>0&&<MarketFeedCartButton listing={listing} printingId={items[0].printingId} locale={locale}/>}
                     <SaveListingButton listingId={listing.id} language={locale} iconOnly/>
                   </div>}
@@ -1948,7 +1951,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
         initialCard={marketVaultCard??undefined}
         isAnonymous={!data}
         language={locale}
-        gameSlug={gameSlug}
+        gameSlug={(marketVaultCard as MarketCard|null)?.gameSlug??'one-piece'}
       />
       {/* Collection Form modal for syncing unowned draft card with Vault */}
       {collectionCardTarget&&(
@@ -1960,7 +1963,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
           name={`${collectionCardTarget.card.name} (${collectionCardTarget.card.language||'EN'})`}
           submitLabel={locale==='ID'?'Simpan ke koleksi & lanjut':'Save to Vault & Continue'}
           language={locale}
-          gameSlug={gameSlug}
+          gameSlug={(collectionCardTarget.card as MarketCard).gameSlug??'one-piece'}
           open={collectionOpen}
           onClose={()=>{
             setCollectionOpen(false);

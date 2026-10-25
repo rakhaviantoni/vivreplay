@@ -2096,3 +2096,17 @@ html[data-theme='dark'] .vault-item-modal.is-pokemon .vault-condition-option:hov
 .vault-filter-picker-options button svg{flex:none;color:var(--vault-gold-deep)}
 .vault-filter-picker-empty{margin:0;padding:10px 9px;color:var(--vault-ink-muted);font-size:11px}
 @media(max-width:560px){.vault-toolbar-filters .filter-menu{width:100%;min-width:0}.vault-toolbar-filters .vault-filter-picker-trigger{width:100%;min-width:0;max-width:none}.vault-toolbar-filters .filter-menu .filter-options{width:min(300px,calc(100vw - 32px));max-width:calc(100vw - 24px)}}
+
+.vault-game-scope{display:inline-flex;align-items:center;gap:3px;margin-top:12px;padding:3px;border:1px solid var(--vault-border);border-radius:10px;background:var(--vault-panel)}
+.vault-game-scope button{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-width:42px;height:34px;padding:0 10px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--vault-ink-secondary);font:600 12px/1 var(--game-font,var(--font-sans),sans-serif);cursor:pointer;transition:background-color .16s ease,border-color .16s ease,color .16s ease}
+.vault-game-scope button.is-active{border-color:var(--vault-border);background:var(--vault-surface-warm);color:var(--vault-ink)}
+.vault-game-scope button:focus-visible{outline:2px solid var(--vault-gold);outline-offset:2px}
+.vault-game-scope img{display:block;width:48px;height:17px;object-fit:contain}
+.vault-game-scope img.vault-game-scope-pokemon{width:45px;height:20px}
+.vault-game-scope img.vault-game-scope-op{filter:brightness(0) saturate(100%) invert(41%) sepia(37%) saturate(1004%) hue-rotate(3deg) brightness(92%) contrast(91%)}
+.vault-game-scope-all-logos{display:inline-flex;align-items:center;gap:3px}
+.vault-game-scope-all-logos img{width:34px;height:13px}
+.vault-game-scope-all-logos img.vault-game-scope-pokemon{width:31px;height:15px}
+.vault-metrics-card.is-all{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media(max-width:640px){.vault-game-scope{margin-top:10px}.vault-game-scope button{height:32px;padding-inline:8px}.vault-game-scope img{width:42px}.vault-game-scope img.vault-game-scope-pokemon{width:40px}.vault-game-scope-all-logos img{width:28px}.vault-metrics-card.is-all{grid-template-columns:repeat(2,minmax(0,1fr))}.vault-metrics-card.is-all .vault-metric-item:last-child{grid-column:1/-1}}
+@media(prefers-reduced-motion:reduce){.vault-game-scope button{transition:none}}

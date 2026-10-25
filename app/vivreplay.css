@@ -4033,3 +4033,9 @@ html[data-theme='dark'] .market-listing-detail .market-listing-seller-toolbar{bo
 .mini-rail-collapsed:focus-visible,.mini-rail-reopen:focus-visible{outline:2px solid var(--accent);outline-offset:3px;}
 @media(prefers-reduced-motion:reduce){.mini-rail-collapsed{transition:none}.mini-rail-collapsed:hover{transform:none}}
 .tcg-card.printing-image{background:transparent;border:0}
+.market-feed-copy h2{display:flex!important;align-items:center;gap:6px;min-width:0}
+.market-feed-title-text{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.market-feed-game-mark{display:inline-flex;flex:none;align-items:center;justify-content:center;padding:2px 5px;border:1px solid var(--line);border-radius:5px;background:var(--surface-muted)}
+.market-feed-game-mark .market-game-mark img{width:34px;height:13px}
+.market-feed-game-mark .market-game-mark .market-game-mark-pokemon{width:32px;height:14px}
+html[data-theme='dark'] .market-feed-game-mark{background:var(--surface-muted)}
