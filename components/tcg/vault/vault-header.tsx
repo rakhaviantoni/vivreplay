@@ -59,15 +59,17 @@ export function VaultHeader({
       return;
     }
     if (!onChangeGame) return;
-    if (gameSlug === target) onChangeGame('all');
-    else onChangeGame(target);
+    if (gameSlug === 'all') {
+      onChangeGame(target === 'one-piece' ? 'pokemon' : 'one-piece');
+    } else if (gameSlug !== target) {
+      onChangeGame('all');
+    }
   };
 
   return (
     <header className="vault-header">
       <div className="vault-header-top">
         <div className="vault-title-group">
-          <p className="vault-eyebrow">{t('Card collection','Koleksi kartu')}</p>
           <div className="vault-title-main">
             <h1>{t('Your Vault','Koleksi Anda')}</h1>
             {(onChangeGame||onToggleGame)&&<div className="vault-game-scope" role="group" aria-label={t('Filter Vault by game','Filter Vault berdasarkan game')}>
@@ -94,10 +96,22 @@ export function VaultHeader({
             </div>}
           </div>
           <p className="vault-subtitle">
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-              <Lock size={12} />
-              {privacy.collection === 'public' ? t('Public','Publik') : t('Private','Pribadi')}
-            </span>
+            {onOpenPrivacyModal ? (
+              <button
+                type="button"
+                className="vault-subtitle-link"
+                onClick={onOpenPrivacyModal}
+                title={t('Change collection privacy','Ubah privasi koleksi')}
+              >
+                <Lock size={12} />
+                <span>{privacy.collection === 'public' ? t('Public card collection','Koleksi kartu publik') : t('Private card collection','Koleksi kartu pribadi')}</span>
+              </button>
+            ) : (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                <Lock size={12} />
+                <span>{privacy.collection === 'public' ? t('Public card collection','Koleksi kartu publik') : t('Private card collection','Koleksi kartu pribadi')}</span>
+              </span>
+            )}
             {gameSlug==='all'&&<span className="vault-scope-indicator">
               <span className="vault-scope-dot"/>
               {t('All games','Semua game')}

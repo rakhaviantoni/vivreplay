@@ -93,13 +93,13 @@ export function Vault() {
     router.replace(`${window.location.pathname}${params.size?`?${params}`:''}`,{scroll:false});
   };
   const handleGameToggle=(target:'one-piece'|'pokemon')=>{
-    let next:'one-piece'|'pokemon'|'all';
-    if(gameSlug===target){
-      next='all';
-    }else{
-      next=target;
+    if (gameSlug === 'all') {
+      // Both active: clicking one turns it off, leaving the other active
+      handleGameChange(target === 'one-piece' ? 'pokemon' : 'one-piece');
+    } else if (gameSlug !== target) {
+      // One active: clicking the other activates both
+      handleGameChange('all');
     }
-    handleGameChange(next);
   };
   const binderOrderStorageKey=`vivreplay-vault-binder-order:${String(data?.profile?.id??'guest')}`;
   const [binderOrder,setBinderOrder]=useState<string[]>([]);
