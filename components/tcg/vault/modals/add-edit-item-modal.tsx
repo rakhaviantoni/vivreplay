@@ -522,22 +522,32 @@ export function AddEditItemModal({
           {itemType === 'RAW' ? (
             <div className="vault-condition-quantity">
               <fieldset className="vault-condition-fieldset">
-                <legend>Card condition</legend>
-                <div className="vault-condition-options" role="radiogroup" aria-label="Card condition">
+                <legend>{language === 'ID' ? 'Kondisi kartu' : 'Card condition'}</legend>
+                <div className="vault-condition-options" role="radiogroup" aria-label={language === 'ID' ? 'Kondisi kartu' : 'Card condition'}>
                   {[
-                    {code:'NM',name:'Near Mint',hint:'Like new'},
-                    {code:'LP',name:'Lightly Played',hint:'Minor wear'},
-                    {code:'MP',name:'Moderately Played',hint:'Visible wear'},
-                    {code:'HP',name:'Heavily Played',hint:'Heavy wear'},
-                    {code:'DMG',name:'Damaged',hint:'Creases or damage'},
-                  ].map(option=><button key={option.code} type="button" role="radio" aria-checked={condition===option.code} className={`vault-condition-option ${condition===option.code?'selected':''}`} onClick={()=>setCondition(option.code)}>
-                    <b>{option.code}</b><span>{option.name}</span><small>{option.hint}</small>
+                    {code:'NM',name:language==='ID'?'Hampir baru':'Near Mint',hint:language==='ID'?'Seperti baru':'Like new'},
+                    {code:'LP',name:language==='ID'?'Sedikit dimainkan':'Lightly Played',hint:language==='ID'?'Sedikit bekas':'Minor wear'},
+                    {code:'MP',name:language==='ID'?'Cukup dimainkan':'Moderately Played',hint:language==='ID'?'Terlihat bekas':'Visible wear'},
+                    {code:'HP',name:language==='ID'?'Banyak dimainkan':'Heavily Played',hint:language==='ID'?'Banyak bekas':'Heavy wear'},
+                    {code:'DMG',name:language==='ID'?'Rusak':'Damaged',hint:language==='ID'?'Lipat atau rusak':'Creases or damage'},
+                  ].map(option=><button
+                    key={option.code}
+                    type="button"
+                    role="radio"
+                    data-condition={option.code}
+                    aria-checked={condition===option.code}
+                    className={`vault-condition-option condition-${option.code.toLowerCase()} ${condition===option.code?'selected':''}`}
+                    onClick={()=>setCondition(option.code)}
+                  >
+                    <b>{option.code}</b>
+                    <span>{option.name}</span>
+                    <small>{option.hint}</small>
                   </button>)}
                 </div>
               </fieldset>
               <div className="vault-quantity-field">
                 <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--vault-ink-secondary)', display: 'block', marginBottom: '4px' }}>
-                  Quantity
+                  {language === 'ID' ? 'Jumlah' : 'Quantity'}
                 </label>
                 <input
                   type="number"
@@ -550,7 +560,7 @@ export function AddEditItemModal({
                   aria-invalid={submitAttempted && !quantityValid}
                   aria-describedby={submitAttempted && !quantityValid ? 'vault-quantity-error' : undefined}
                 />
-                {submitAttempted && !quantityValid && <small id="vault-quantity-error" className="vault-field-error">Use a whole number from 1 to 999.</small>}
+                {submitAttempted && !quantityValid && <small id="vault-quantity-error" className="vault-field-error">{language === 'ID' ? 'Gunakan angka bulat dari 1 sampai 999.' : 'Use a whole number from 1 to 999.'}</small>}
               </div>
             </div>
           ) : (

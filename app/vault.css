@@ -434,14 +434,11 @@
 .vault-collection-type{min-width:0;margin:0;padding:0;border:0}
 .vault-collection-type legend{margin-bottom:6px;color:var(--vault-ink-secondary);font-size:11px;font-weight:700}
 .vault-collection-type>div{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.vault-item-form .vault-condition-quantity{grid-template-columns:minmax(0,1fr) 132px;align-items:end}
-.vault-item-form .vault-condition-option{min-height:43px;align-content:center}
 .vault-item-form>div:has(>.vault-visibility-options)>label{margin-bottom:6px}
 .vault-item-form .vault-subgrades-toggle{display:flex!important;flex-direction:row;align-items:center;justify-content:flex-start;gap:8px;width:max-content;max-width:100%;margin:0!important;cursor:pointer}
 .vault-item-form .vault-subgrades-toggle input[type=checkbox]{appearance:auto;flex:0 0 16px;width:16px!important;height:16px!important;min-width:16px;min-height:16px!important;margin:0!important;padding:0;border-radius:3px!important;background:var(--vault-panel)!important;accent-color:var(--vault-gold)}
 .vault-collection-subgrades{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
 @media(max-width:420px){.vault-collection-subgrades{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:560px){.vault-item-form .vault-condition-quantity{grid-template-columns:1fr}.vault-item-form .vault-condition-options{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .vault-selected-card-copy .pokemon-card-set-name,.vault-selected-card-copy .pokemon-card-number{color:var(--vault-ink-muted);font-size:9px!important}
 .vault-selected-card-copy .pokemon-card-set-badge{border-color:var(--vault-border);color:var(--vault-ink-secondary)}
 .vault-selected-card-copy .pokemon-card-rarity{background:var(--vault-surface-warm);color:var(--vault-ink)!important}
@@ -502,25 +499,49 @@
 .vault-visibility-option.selected{box-shadow:inset 0 0 0 1px var(--vault-gold)}
 .vault-visibility-option:focus-visible{outline:2px solid var(--vault-gold);outline-offset:2px}
 .vault-yuyutei-pricing>p{margin:0 0 5px;color:var(--vault-ink-muted);font-size:10px;font-weight:700}
-.vault-condition-quantity{display:grid;gap:12px}
+.vault-condition-quantity{display:grid;gap:14px}
 .vault-condition-fieldset{min-width:0;margin:0;padding:0;border:0}
-.vault-condition-fieldset legend{margin-bottom:6px;color:var(--vault-ink-secondary);font-size:11px;font-weight:700}
-.vault-condition-options{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px}
-.vault-condition-option{display:grid;gap:2px;min-width:0;padding:8px;border:1px solid var(--vault-border);border-radius:5px;background:var(--vault-panel);color:var(--vault-ink);text-align:left;cursor:pointer}
-.vault-condition-option b{font-size:12px;line-height:1.2}
-.vault-condition-option span{overflow:hidden;color:var(--vault-ink-secondary);font-size:9px;font-weight:700;text-overflow:ellipsis;white-space:nowrap}
-.vault-condition-option small{overflow:hidden;color:var(--vault-ink-muted);font-size:9px;text-overflow:ellipsis;white-space:nowrap}
-.vault-condition-option:hover,.vault-condition-option.selected{border-color:var(--vault-gold);background:var(--vault-slot-bg)}
-.vault-condition-option.selected{box-shadow:inset 0 0 0 1px var(--vault-gold)}
+.vault-condition-fieldset legend{margin-bottom:8px;color:var(--vault-ink-secondary);font-size:11px;font-weight:700;letter-spacing:.02em;text-transform:uppercase}
+.vault-condition-options{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.vault-condition-option{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:5px;min-width:0;min-height:82px;padding:10px 10px 9px;border:1px solid var(--vault-border);border-radius:8px;background:var(--vault-panel);color:var(--vault-ink);text-align:left;cursor:pointer;transition:border-color .15s ease,background-color .15s ease,box-shadow .15s ease,transform .12s ease;user-select:none}
+.vault-condition-option:hover{border-color:color-mix(in srgb,var(--vault-gold) 60%,var(--vault-border));background:var(--vault-surface-warm)}
+.vault-condition-option.selected{border-color:var(--vault-gold);background:var(--vault-slot-bg);box-shadow:0 0 0 1px var(--vault-gold),0 2px 6px rgb(0 0 0 / .05)}
 .vault-condition-option:focus-visible{outline:2px solid var(--vault-gold);outline-offset:2px}
-.vault-quantity-field{min-width:0}
+.vault-condition-option b{display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:22px;padding:0 6px;border-radius:4px;border:1px solid transparent;font-size:11px;font-weight:800;line-height:1;letter-spacing:.04em;background:var(--vault-surface-warm);color:var(--vault-ink-secondary);transition:all .15s ease}
+.vault-condition-option[data-condition="NM"] b,.vault-condition-option.condition-nm b{background:color-mix(in srgb,#16a34a 12%,var(--vault-panel));border-color:color-mix(in srgb,#16a34a 24%,var(--vault-border));color:#15803d}
+.vault-condition-option[data-condition="LP"] b,.vault-condition-option.condition-lp b{background:color-mix(in srgb,#0284c7 12%,var(--vault-panel));border-color:color-mix(in srgb,#0284c7 24%,var(--vault-border));color:#0369a1}
+.vault-condition-option[data-condition="MP"] b,.vault-condition-option.condition-mp b{background:color-mix(in srgb,#d97706 12%,var(--vault-panel));border-color:color-mix(in srgb,#d97706 24%,var(--vault-border));color:#b45309}
+.vault-condition-option[data-condition="HP"] b,.vault-condition-option.condition-hp b{background:color-mix(in srgb,#ea580c 12%,var(--vault-panel));border-color:color-mix(in srgb,#ea580c 24%,var(--vault-border));color:#c2410c}
+.vault-condition-option[data-condition="DMG"] b,.vault-condition-option.condition-dmg b{background:color-mix(in srgb,#dc2626 12%,var(--vault-panel));border-color:color-mix(in srgb,#dc2626 24%,var(--vault-border));color:#b91c1c}
+.vault-condition-option[data-condition="NM"].selected b,.vault-condition-option.condition-nm.selected b{background:#16a34a;border-color:#16a34a;color:#fff}
+.vault-condition-option[data-condition="LP"].selected b,.vault-condition-option.condition-lp.selected b{background:#0284c7;border-color:#0284c7;color:#fff}
+.vault-condition-option[data-condition="MP"].selected b,.vault-condition-option.condition-mp.selected b{background:#d97706;border-color:#d97706;color:#fff}
+.vault-condition-option[data-condition="HP"].selected b,.vault-condition-option.condition-hp.selected b{background:#ea580c;border-color:#ea580c;color:#fff}
+.vault-condition-option[data-condition="DMG"].selected b,.vault-condition-option.condition-dmg.selected b{background:#dc2626;border-color:#dc2626;color:#fff}
+html[data-theme='dark'] .vault-condition-option[data-condition="NM"] b,html[data-theme='dark'] .vault-condition-option.condition-nm b{color:#4ade80}
+html[data-theme='dark'] .vault-condition-option[data-condition="LP"] b,html[data-theme='dark'] .vault-condition-option.condition-lp b{color:#38bdf8}
+html[data-theme='dark'] .vault-condition-option[data-condition="MP"] b,html[data-theme='dark'] .vault-condition-option.condition-mp b{color:#fbbf24}
+html[data-theme='dark'] .vault-condition-option[data-condition="HP"] b,html[data-theme='dark'] .vault-condition-option.condition-hp b{color:#fb923c}
+html[data-theme='dark'] .vault-condition-option[data-condition="DMG"] b,html[data-theme='dark'] .vault-condition-option.condition-dmg b{color:#f87171}
+.vault-condition-option span{display:block;min-width:0;color:var(--vault-ink);font-size:11px;font-weight:700;line-height:1.25;overflow:visible;white-space:normal;word-break:normal}
+.vault-condition-option small{display:block;min-width:0;color:var(--vault-ink-muted);font-size:10px;font-weight:500;line-height:1.2;overflow:visible;white-space:normal;word-break:normal}
+.vault-condition-option.selected small{color:var(--vault-ink-secondary)}
+.vault-quantity-field{min-width:0;max-width:200px}
 .vault-field-error{display:block;margin-top:4px;color:var(--vault-danger,#b42318);font-size:10px}
 .vault-submit-area{display:grid;gap:8px}
 .vault-submit-issues{padding:10px 12px;border:1px solid color-mix(in srgb,#b42318 34%,var(--vault-border));border-radius:5px;background:color-mix(in srgb,#b42318 7%,var(--vault-panel));color:var(--vault-ink);font-size:11px}
 .vault-submit-issues ul{margin:5px 0 0;padding-left:17px;color:var(--vault-ink-secondary)}
 [aria-invalid="true"]{border-color:#b42318!important}
+@media(max-width:620px){
+  .vault-condition-options{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
+  .vault-condition-option{display:grid!important;grid-template-columns:36px minmax(0,1fr)!important;grid-template-rows:auto auto!important;column-gap:10px!important;row-gap:2px!important;align-items:center!important;min-height:58px!important;padding:10px 12px!important}
+  .vault-condition-option b{grid-column:1!important;grid-row:1/3!important;align-self:center!important;justify-self:center!important;min-width:36px!important;height:26px!important}
+  .vault-condition-option span{grid-column:2!important;grid-row:1!important}
+  .vault-condition-option small{grid-column:2!important;grid-row:2!important}
+  .vault-condition-option:last-child:nth-child(odd){grid-column:1/-1!important}
+  .vault-quantity-field{max-width:100%!important}
+}
 @media(max-width:560px){.vault-identity-results{grid-template-columns:1fr}.vault-printing-options{grid-template-columns:repeat(2,minmax(0,1fr))}.vault-selected-card{gap:8px}.vault-selected-card .vault-btn{padding:0 9px;font-size:10px}}
-@media(max-width:560px){.vault-condition-options{grid-template-columns:repeat(3,minmax(0,1fr))}.vault-condition-option{padding:8px 6px}}
 @media(max-width:380px){.vault-visibility-options{grid-template-columns:1fr}}
 
 .vault-cost-market-grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:14px;align-items:start}
@@ -554,7 +575,7 @@
 html[data-theme='dark'] .vault-item-modal.vault-dialog,html[data-theme='dark'] .vault-item-form{background:var(--vault-panel)!important;color:var(--vault-ink)!important}
 html[data-theme='dark'] .vault-item-modal-heading{border-color:var(--vault-border)!important;background:var(--vault-slot-bg)!important}
 html[data-theme='dark'] .vault-item-form :is(input,select,textarea,.vault-select-compact){border-color:var(--vault-border)!important;background:var(--vault-surface-warm)!important;color:var(--vault-ink)!important}
-@media(max-width:600px){.vault-item-modal.vault-dialog{width:calc(100vw - 20px)!important;max-width:none!important}.vault-item-modal-heading{padding:15px 16px 12px!important}.vault-item-modal-heading h2{font-size:20px!important}.vault-item-form{gap:12px!important;padding:13px 16px 18px!important}.vault-item-form .vault-cost-market-grid{grid-template-columns:1fr}.vault-item-form .vault-condition-options{grid-template-columns:repeat(3,minmax(0,1fr))}.vault-item-form .vault-printing-options{grid-template-columns:repeat(2,minmax(0,1fr))}.vault-item-form .vault-submit-area>div:last-child{display:grid!important;grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.vault-item-modal.vault-dialog{width:calc(100vw - 20px)!important;max-width:none!important}.vault-item-modal-heading{padding:15px 16px 12px!important}.vault-item-modal-heading h2{font-size:20px!important}.vault-item-form{gap:12px!important;padding:13px 16px 18px!important}.vault-item-form .vault-cost-market-grid{grid-template-columns:1fr}.vault-item-form .vault-printing-options{grid-template-columns:repeat(2,minmax(0,1fr))}.vault-item-form .vault-submit-area>div:last-child{display:grid!important;grid-template-columns:1fr 1fr}}
 .vault-market-reference strong{max-width:calc(100% - 34px);color:var(--vault-ink);font-size:13px;font-weight:650;line-height:1.35;text-align:left}
 .vault-market-reference strong.no-estimate{color:var(--vault-ink-muted);font-size:12px;font-weight:550}
 .vault-item-modal.vault-dialog[data-slot='dialog-content']{width:min(680px,calc(100vw - 28px))!important;max-width:680px!important;max-height:min(calc(100dvh - 32px),850px)!important;padding:0!important;overflow:hidden!important;border-radius:14px!important;background:var(--vault-panel)!important;color:var(--vault-ink)!important}
@@ -573,11 +594,15 @@ html[data-theme='dark'] .vault-item-form :is(input,select,textarea,.vault-select
 .vault-item-modal.is-pokemon [data-slot='tabs-list']{border-color:var(--vault-border)!important;background:var(--vault-slot-bg)!important}
 .vault-item-modal.is-pokemon [data-slot='tabs-trigger'][data-state='active']{background:var(--vault-panel)!important;color:var(--vault-ink)!important;box-shadow:0 1px 2px rgb(20 37 52 / .12)!important}
 .vault-item-modal.is-pokemon .vault-item-form :is(input,select,textarea,.vault-select-compact):focus-visible{outline-color:#3474b9}
-.vault-item-modal.is-pokemon .vault-condition-option:hover,.vault-item-modal.is-pokemon .vault-condition-option.selected,.vault-item-modal.is-pokemon .vault-printing-option.selected{border-color:#3474b9;background:#f4e7c2}
+.vault-item-modal.is-pokemon .vault-condition-option:hover{border-color:color-mix(in srgb,#3474b9 55%,var(--vault-border))}
+.vault-item-modal.is-pokemon .vault-condition-option.selected{border-color:#3474b9;background:var(--vault-slot-bg);box-shadow:0 0 0 1px #3474b9,0 2px 6px rgb(52 116 185 / .12)}
+.vault-item-modal.is-pokemon .vault-printing-option.selected{border-color:#3474b9;background:#f4e7c2}
 html[data-theme='dark'] .vault-item-modal.is-pokemon{--vault-panel:#102235;--vault-surface-warm:#0c1d2d;--vault-border:#34516a;--vault-border-light:#29475f;--vault-ink:#f3f4eb;--vault-ink-secondary:#ced9dc;--vault-ink-muted:#aebfc7;--vault-gold:#f1c94c;--vault-gold-deep:#d8b443;--vault-gold-soft:#183149;--vault-slot-bg:#142c40;--vault-modal-shadow:0 24px 64px rgb(0 0 0 / .48)}
 html[data-theme='dark'] .vault-item-modal.is-pokemon .vault-item-modal-heading>div>span{color:#f1c94c!important}
 html[data-theme='dark'] .vault-item-modal.is-pokemon .vault-item-form .vault-btn-primary{background:#3474b9;color:#fff}
-html[data-theme='dark'] .vault-item-modal.is-pokemon .vault-condition-option:hover,html[data-theme='dark'] .vault-item-modal.is-pokemon .vault-condition-option.selected,html[data-theme='dark'] .vault-item-modal.is-pokemon .vault-printing-option.selected{border-color:#f1c94c;background:#183149}
+html[data-theme='dark'] .vault-item-modal.is-pokemon .vault-condition-option:hover{border-color:color-mix(in srgb,#f1c94c 55%,var(--vault-border))}
+html[data-theme='dark'] .vault-item-modal.is-pokemon .vault-condition-option.selected{border-color:#f1c94c;background:#183149;box-shadow:0 0 0 1px #f1c94c,0 2px 6px rgb(0 0 0 / .3)}
+html[data-theme='dark'] .vault-item-modal.is-pokemon .vault-printing-option.selected{border-color:#f1c94c;background:#183149}
 @media(max-width:600px){.vault-item-form .vault-market-reference{min-height:40px}}
 
 /* View Mode Switcher */
