@@ -1289,10 +1289,10 @@ html[data-theme=dark] .admin-customer-close{border-color:#345361;color:#dce8e1}
 .home-hero-map{position:absolute;inset:0;z-index:0;display:block;overflow:hidden;pointer-events:none}
 .home-hero-map img{display:block;width:100%;height:100%;object-fit:cover;object-position:center 44%}
 .home-hero:before{content:""!important;position:absolute!important;z-index:0;inset:0!important;display:block!important;background:linear-gradient(90deg,#f7f1e5e8 0%,#eee3ccd1 45%,#d9dce49c 100%)!important;opacity:1!important;mix-blend-mode:normal!important;animation:none!important;pointer-events:none}
-html[data-theme=dark] .home-hero{border-bottom:1px solid #213943!important;background-color:#08131d!important;background-image:linear-gradient(104deg,#050d16f2 0%,#081a29e8 50%,#07111bf0 100%)!important}
-html[data-theme=dark] .home-hero-map{opacity:0.28!important;mix-blend-mode:screen!important;filter:contrast(1.15) brightness(0.95)}
-html[data-theme=dark] .home-hero:before{content:""!important;position:absolute!important;inset:-11%!important;z-index:1!important;display:block!important;opacity:0.85!important;mix-blend-mode:screen!important;background:radial-gradient(ellipse 42% 50% at 18% 54%,rgb(var(--hero-left-aura,35 120 180) / .45) 0%,rgb(var(--hero-left-aura,35 120 180) / .15) 35%,transparent 72%),radial-gradient(ellipse 42% 50% at 82% 43%,rgb(var(--hero-right-aura,220 160 50) / .45) 0%,rgb(var(--hero-right-aura,220 160 50) / .15) 35%,transparent 72%)!important;filter:blur(5px);pointer-events:none!important;animation:hero-auras 9s ease-in-out infinite alternate!important}
-@media(max-width:700px){html[data-theme=dark] .home-hero{background-image:linear-gradient(104deg,#050d16f2 0%,#081a29e8 50%,#07111bf0 100%)!important}}
+html[data-theme=dark] .home-hero{border-bottom:1px solid #213943!important;background-color:#08131d!important;background-image:linear-gradient(108deg,rgb(4 15 22 / .74) 0%,rgb(7 24 33 / .38) 100%),url('/assets/one-piece-header-bg.webp')!important;background-position:center!important;background-size:cover!important;background-blend-mode:normal!important}
+html[data-theme=dark] .home-hero-map{display:none!important}
+html[data-theme=dark] .home-hero:before{display:none!important}
+@media(max-width:700px){html[data-theme=dark] .home-hero{background-image:linear-gradient(108deg,rgb(4 15 22 / .74) 0%,rgb(7 24 33 / .38) 100%),url('/assets/one-piece-header-bg-mobile.webp')!important}}
 
 @media(max-width:640px){
   .admin-email-history-card{align-items:stretch;gap:10px;padding:12px}

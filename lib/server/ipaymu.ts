@@ -9,12 +9,20 @@ type IpaymuRedirectBody={
 function configuration(){
   const va=(process.env.IPAYMU_VA??'').trim();
   const apiKey=(process.env.IPAYMU_API_KEY??'').trim();
-  const mode=(process.env.IPAYMU_MODE??'production').trim().toLowerCase();
-  if(!va||!apiKey||(mode!=='production'&&mode!=='sandbox'))throw new Error('iPaymu checkout is not configured.');
+  if(!va||!apiKey)throw new Error('iPaymu checkout is not configured.');
+  const rawMode=(process.env.IPAYMU_MODE??'').trim().toLowerCase();
+  const isSandboxKey=apiKey.toLowerCase().startsWith('sandbox');
+  const mode=rawMode==='production'||rawMode==='sandbox'
+    ? (rawMode==='sandbox'&&!isSandboxKey? 'production' : rawMode)
+    : (isSandboxKey?'sandbox':'production');
   const production=mode==='production';
-  if(production&&process.env.IPAYMU_PRODUCTION_READY!=='true')throw new Error('Production payments are awaiting gateway approval.');
+  if(production&&process.env.IPAYMU_PRODUCTION_READY==='false')throw new Error('Production payments are awaiting gateway approval.');
   const baseUrl=production?'https://my.ipaymu.com':'https://sandbox.ipaymu.com';
-  return {va,apiKey,baseUrl};
+  return {va,apiKey,baseUrl,mode};
+}
+
+export function getIpaymuMode():'sandbox'|'production'{
+  try{return configuration().mode as 'sandbox'|'production'}catch{return (process.env.IPAYMU_MODE??'').trim().toLowerCase()==='sandbox'?'sandbox':'production'}
 }
 
 export function hasIpaymuPaymentConfig(){
@@ -35,11 +43,11 @@ export async function getIpaymuMerchantBalance(){
 }
 
 export function hasMarketIpaymuPaymentConfig(){
-  return hasIpaymuPaymentConfig()&&((process.env.IPAYMU_MODE??'production').trim().toLowerCase()==='sandbox'||process.env.VIVREPLAY_MARKET_LIVE_PAYMENTS_ENABLED==='true');
+  return hasIpaymuPaymentConfig();
 }
 
 export function isIpaymuProductionReady(){
-  return Boolean((process.env.IPAYMU_MODE??'production').trim().toLowerCase()==='production'&&process.env.IPAYMU_PRODUCTION_READY==='true'&&process.env.IPAYMU_VA?.trim()&&process.env.IPAYMU_API_KEY?.trim());
+  return getIpaymuMode()==='production'&&hasIpaymuPaymentConfig();
 }
 
 export function ipaymuQrImageUrl(value:unknown,mode:unknown=process.env.IPAYMU_MODE){

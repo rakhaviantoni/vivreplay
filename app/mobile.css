@@ -5307,7 +5307,7 @@ html[data-theme='dark'] .site-shell.game-pokemon .market-footer-pokemon { backgr
 .site-shell.game-pokemon .catalog-page > .pokemon-library-intro:before { background:none!important; }
 html[data-theme='dark'] .site-shell.game-pokemon .catalog-page > .pokemon-library-intro {
   background-image:url('/assets/pokemon-shell-wave.svg?v=3'),linear-gradient(90deg,#081722e6 0%,#081722e0 55%,#081722d9 100%),url('/assets/pokemon-shell-dark.png')!important;
-  background-size:100% 100%,100% 100%,auto 415px!important;
+  background-size:100% 100%,100% 100%,auto 350px!important;
   background-repeat:no-repeat,no-repeat,repeat-x!important;
 }
 html[data-theme='dark'] .site-shell.game-pokemon .catalog-page > .pokemon-library-intro:before { background:none!important; }
@@ -5316,30 +5316,30 @@ html[data-theme='dark'] .site-shell.game-pokemon > .masthead.is-scrolled,
 html[data-theme='dark'] .site-shell.game-pokemon > .masthead.theme-dark,
 html[data-theme='dark'] .site-shell.game-pokemon > .masthead.theme-dark.is-scrolled {
   background-color:#081722!important;
-  background-image:linear-gradient(90deg,#081722e6 0%,#081722e0 58%,#081722d9 100%),url('/assets/pokemon-shell-dark.png')!important;
+  background-image:linear-gradient(90deg,#081722ea 0%,#081722e4 58%,#081722dd 100%),url('/assets/pokemon-shell-dark.png')!important;
   background-blend-mode:normal!important;
   background-position:center,center!important;
-  background-size:100% 100%,auto 415px!important;
+  background-size:100% 100%,auto 350px!important;
   background-repeat:no-repeat,repeat-x!important;
 }
 html[data-theme='dark'] .site-shell.game-pokemon > .mobile-nav,
 html[data-theme='dark'] .site-shell.game-pokemon .market-store-nav,
 html[data-theme='dark'] .site-shell.game-pokemon .market-mobile-nav {
   background-color:#081722!important;
-  background-image:linear-gradient(90deg,#081722e6,#081722dc),url('/assets/pokemon-shell-dark.png')!important;
+  background-image:linear-gradient(90deg,#081722ea,#081722e0),url('/assets/pokemon-shell-dark.png')!important;
   background-blend-mode:normal!important;
   background-position:center,center 50%!important;
-  background-size:100% 100%,auto 415px!important;
+  background-size:100% 100%,auto 350px!important;
   background-repeat:no-repeat,repeat-x!important;
 }
 html[data-theme='dark'] .site-shell.game-pokemon .page-footer,
 html[data-theme='dark'] .site-shell.game-pokemon .footer-top,
 html[data-theme='dark'] .site-shell.game-pokemon .footer-bottom {
   background-color:#081722!important;
-  background-image:linear-gradient(90deg,#081722e3,#081722d9),url('/assets/pokemon-shell-dark.png')!important;
+  background-image:linear-gradient(90deg,#081722e8,#081722de),url('/assets/pokemon-shell-dark.png')!important;
   background-blend-mode:normal!important;
   background-position:center,center 50%!important;
-  background-size:100% 100%,auto 415px!important;
+  background-size:100% 100%,auto 350px!important;
   background-repeat:no-repeat,repeat-x!important;
 }
 html[data-theme='dark'] .site-shell.game-pokemon .market-footer-pokemon {
@@ -5348,10 +5348,10 @@ html[data-theme='dark'] .site-shell.game-pokemon .market-footer-pokemon {
 }
 html[data-theme='dark'] .site-shell.game-pokemon .context-row {
   background-color:#081722!important;
-  background-image:linear-gradient(90deg,#081722e3,#081722d9),url('/assets/pokemon-shell-dark.png')!important;
+  background-image:linear-gradient(90deg,#081722e8,#081722de),url('/assets/pokemon-shell-dark.png')!important;
   background-blend-mode:normal!important;
   background-position:center 50%!important;
-  background-size:100% 100%,auto 415px!important;
+  background-size:100% 100%,auto 350px!important;
   background-repeat:no-repeat,repeat-x!important;
 }
 @media(max-width:760px) {
@@ -5548,7 +5548,7 @@ html[data-theme='dark'] .site-shell:not(.game-pokemon) .page-footer {
 .home-page.is-pokemon .home-market .market-board small{color:#8a512a!important}
 .home-page.is-pokemon .home-market .market-board span{color:#4a5a56!important}
 html[data-theme='dark'] .home-page.is-pokemon .home-hero{background:#081722!important;color:#f1f6ee!important}
-html[data-theme='dark'] .home-page.is-pokemon .home-hero:before{background-image:url('/assets/pokemon-shell-dark.png')!important;opacity:.055!important}
+html[data-theme='dark'] .home-page.is-pokemon .home-hero:before{background-image:url('/assets/pokemon-shell-dark.png')!important;background-size:auto 100%!important;background-position:center 80%!important;opacity:.042!important}
 html[data-theme='dark'] .home-page.is-pokemon .home-hero h1,html[data-theme='dark'] .home-page.is-pokemon .hero-stats dd{color:#f1f6ee!important}
 html[data-theme='dark'] .home-page.is-pokemon .home-hero h1 em{color:#efbd49!important}
 html[data-theme='dark'] .home-page.is-pokemon .home-hero-copy>p:not(.eyebrow),html[data-theme='dark'] .home-page.is-pokemon .hero-stats dt{color:#c3d4d2!important}
