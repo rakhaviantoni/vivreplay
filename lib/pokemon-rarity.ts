@@ -70,7 +70,7 @@ export function pokemonPrintingRarity(
   return printingRarity ? pokemonRarityLabel(printingRarity, language) : pokemonRarityLabel(value, language);
 }
 
-const rarityScores:Record<string,number>={MUR:130,BWR:125,FUR:120,SAR:115,SIR:115,SEC:112,AR:105,IR:105,ACE:102,PR:100,CSR:98,CHR:97,SSR:94,UR:92,HR:91,RRR:88,MA:86,SR:82,RR:70,R:52,PROMO:45,U:20,C:10};
+const rarityScores:Record<string,number>={MUR:130,BWR:125,SAR:120,SIR:120,FUR:115,SEC:112,AR:105,IR:105,ACE:102,PR:100,CSR:98,CHR:97,SSR:94,UR:92,HR:91,RRR:88,MA:86,SR:82,RR:70,R:52,PROMO:45,U:20,C:10};
 
 export const POKEMON_FEATURED_RARITY_MIN_SCORE=75;
 
