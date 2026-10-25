@@ -34,7 +34,7 @@ export function PokemonSets(){
   useEffect(()=>{
     const controller=new AbortController();
     setLoading(true);
-    fetch(`/api/cards/sets?game=pokemon&language=${language}&includeCards=5`,{signal:controller.signal,cache:'no-store'})
+    fetch(`/api/cards/sets?game=pokemon&language=${language}&includeCards=6`,{signal:controller.signal,cache:'no-store'})
       .then(async response=>{
         if(!response.ok)throw new Error('Sets unavailable');
         const result=await response.json() as {sets?:SetRecord[]};
@@ -80,7 +80,7 @@ export function PokemonSets(){
       const featured=(set.featuredCards??[]).map(displayCard);
       return <article className="set-release" key={set.code}>
         <header><div><span>{set.code}</span><h3>{set.name}</h3></div><small>{set.mainSetTotal.toLocaleString(id?'id-ID':'en-US')} {id?'kartu':set.mainSetTotal===1?'card':'cards'}</small></header>
-        {featured.length?<DepthCarousel className="set-card-carousel" label={`${set.code} ${id?'kartu unggulan':'featured cards'}`} items={featured.map(card=>({id:card.id,label:`${id?'Buka':'Open'} ${card.name}`,onSelect:()=>router.push(localize(`/pokemon/cards?set=${encodeURIComponent(card.setCode??set.code)}&number=${encodeURIComponent(card.localCardNumber??card.printingCode??card.code)}&lang=${encodeURIComponent(card.language??language)}`)),content:<CardArt card={card}/> }))}/>:<div className="pokemon-set-cards-empty">{id?'Gambar kartu belum tersedia':'Card images are not available yet'}</div>}
+        {featured.length?<DepthCarousel className="set-card-carousel" label={`${set.code} ${id?'kartu unggulan':'featured cards'}`} items={featured.map(card=>({id:card.id,label:`${id?'Buka':'Open'} ${card.name}`,onSelect:()=>router.push(localize(`/pokemon/cards?set=${encodeURIComponent(card.setCode??set.code)}&number=${encodeURIComponent(card.localCardNumber??card.printingCode??card.code)}&lang=${encodeURIComponent(card.language??language)}`)),content:<CardArt card={card}/> }))}/>:<div className="pokemon-set-cards-empty">{id?'Belum ada kartu rarity tinggi untuk ditampilkan':'No high-rarity cards are available to feature yet'}</div>}
         <Link href={localize(`/pokemon/cards?set=${encodeURIComponent(set.code)}`)} className="set-all-link">{id?`Lihat semua kartu ${set.code}`:`View all ${set.code} cards`}<ArrowUpRightIcon size={15}/></Link>
       </article>;
     })}</div>:<section className="sets-empty"><h2>{hasFilters?(id?'Tidak ada set yang cocok':'No sets match these filters'):(id?'Belum ada set untuk bahasa ini':'No sets are listed for this language yet')}</h2>{hasFilters&&<button type="button" onClick={clearFilters}>{id?'Hapus filter':'Clear filters'}</button>}</section>}
