@@ -5571,3 +5571,31 @@ html[data-theme='dark'] .home-page.is-pokemon .home-market .market-copy>p:not(.e
 html[data-theme='dark'] .home-page.is-pokemon .home-market .market-board{border-color:#a89250!important;border-radius:var(--radius-md)!important;background:#796b42!important}
 html[data-theme='dark'] .home-page.is-pokemon .home-market .market-board>div{border-color:#a89250!important}
 @media(max-width:620px){.home-page.is-pokemon .home-hero-copy{grid-column:1}.home-page.is-pokemon .hero-stats{width:100%;justify-content:space-around}.home-page.is-pokemon .hero-stats div{padding-inline:9px}}
+
+/* Let the seller identity breathe, with actions on a separate mobile row. */
+@media(max-width:760px){
+  .market-listing-detail .market-listing-seller-toolbar{grid-template-columns:minmax(0,1fr)!important;gap:10px!important;margin:10px 0!important;padding:12px!important;border:1px solid var(--line)!important;border-radius:10px!important;background:var(--surface-raised)!important;}
+  .market-listing-detail .market-listing-seller-toolbar .market-listing-seller{width:100%;min-height:44px!important;gap:10px!important;}
+  .market-listing-detail .market-listing-seller-toolbar .market-listing-seller>span{width:40px!important;height:40px!important;}
+  .market-listing-detail .market-listing-seller-toolbar .market-listing-seller-name{display:flex!important;flex-wrap:wrap!important;align-items:center!important;gap:4px 8px!important;}
+  .market-listing-detail .market-listing-seller-toolbar .market-listing-seller-name strong{max-width:min(100%,42vw)!important;font-size:14px!important;}
+  .market-listing-detail .market-listing-seller-toolbar .market-listing-utility-actions{display:flex!important;flex-wrap:wrap!important;width:100%!important;min-height:0!important;justify-content:flex-start!important;gap:7px!important;padding-top:9px!important;border-top:1px solid var(--line)!important;}
+  .market-listing-detail .market-listing-seller-toolbar .market-report-link{min-height:38px!important;padding:0 10px!important;font-size:12px!important;}
+  .market-listing-detail .market-listing-seller-toolbar .market-listing-utility-actions .button.is-icon-only{width:38px!important;min-width:38px!important;height:38px!important;min-height:38px!important;}
+  .market-listing-preview-control{margin-left:auto;gap:6px;}
+  .market-listing-preview-control>span{font-size:10px;}
+  .market-listing-preview-control .market-listing-view-as-toggle{width:auto!important;max-width:none!important;}
+  .market-listing-preview-control .market-listing-view-as-toggle button{min-width:58px!important;padding-inline:8px!important;font-size:11px!important;}
+}
+@media(max-width:390px){
+  .market-listing-detail .market-listing-seller-toolbar .market-listing-utility-actions{column-gap:6px!important;}
+  .market-listing-detail .market-listing-seller-toolbar .market-report-link span{display:none;}
+  .market-listing-detail .market-listing-seller-toolbar .market-report-link{width:38px;min-width:38px;padding:0!important;}
+  .market-listing-preview-control{gap:4px;}
+  .market-listing-preview-control>span{display:none;}
+}
+
+/* Pokémon has four destinations until its own Arena exists; give each one equal width. */
+@media(max-width:900px){
+  .site-shell.game-pokemon > .mobile-nav{grid-template-columns:repeat(4,minmax(0,1fr))!important;}
+}

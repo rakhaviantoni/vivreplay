@@ -7,7 +7,7 @@ import {MarketReputation} from './market-reputation';
 import {usePathname} from 'next/navigation';
 import {useLocalizedRouter as useRouter} from '@/lib/use-localized-router';
 import {useCallback,useEffect,useMemo,useRef,useState,type FormEvent,type ReactNode} from 'react';
-import {ArrowClockwiseIcon as Renew,ArrowLeftIcon, ArrowUpIcon, ArrowDownIcon, CheckCircleIcon, ClockIcon, DotsSixVerticalIcon, CheckIcon as Check, InfoIcon as Info, ListIcon as List, MinusIcon as Minus, PlusIcon as Plus, ShoppingCartIcon as Cart, SquaresFourIcon as Grid, TruckIcon as Truck, WarningCircleIcon, XCircleIcon, XIcon as X} from '@phosphor-icons/react';
+import {ArrowClockwiseIcon as Renew,ArrowLeftIcon, ArrowUpIcon, ArrowDownIcon, CheckCircleIcon, ClockIcon, DotsSixVerticalIcon, CheckIcon as Check, FlagIcon as Flag, InfoIcon as Info, ListIcon as List, MinusIcon as Minus, PlusIcon as Plus, ShoppingCartIcon as Cart, SquaresFourIcon as Grid, TruckIcon as Truck, WarningCircleIcon, XCircleIcon, XIcon as X} from '@phosphor-icons/react';
 import type {Card} from '@/packages/card-data/catalog';
 import {formatMoney,Listing} from '@/packages/domain';
 import {CardArt} from './card-art';
@@ -1028,7 +1028,7 @@ export function MarketListingDetailView({
           {!isExpired && listing.type==='WTS' && reservedCount>0 && <p className="market-listing-reserved-note" role="status">{ownerView?t(`${reservedCount} ${reservedCount===1?'copy is':'copies are'} reserved while the buyer completes checkout. They return if payment is not completed.`,`${reservedCount} kartu dipesan saat pembayaran diproses. Kartu kembali tersedia jika pembayaran tidak selesai.`):cardCount===0?t('All copies are reserved while payment is processed. They return if payment is not completed.','Semua kartu dipesan. Kartu kembali tersedia jika pembayaran tidak selesai.'):t(`${reservedCount} ${reservedCount===1?'copy is':'copies are'} reserved. Available quantities are shown below.`,`${reservedCount} kartu sedang di-checkout. Jumlah yang tersedia ditampilkan di bawah.`)}</p>}
 
           <div className="market-listing-seller-toolbar">
-            <section className="market-listing-seller">
+            <section className="market-listing-seller" aria-label={isBuying ? t('Request owner','Pemilik permintaan') : t('Listing seller','Penjual listing')}>
               <span>{listing.seller.slice(0, 1).toUpperCase()}</span>
               <div className="market-listing-seller-copy">
                 <small>{isBuying ? t('Buyer', 'Pembeli') : t('Seller', 'Penjual')}</small>
@@ -1036,8 +1036,8 @@ export function MarketListingDetailView({
               </div>
             </section>
             <div className="market-listing-utility-actions">
-              {!ownerView&&<><FeedbackLaunchButton request={{initialCategory:'market-report',listingId:listing.id,cardCode:editableCards.length===1?editableCards[0].card.code:undefined,printingId:editableCards.length===1?editableCards[0].id:undefined,cardOptions:editableCards.map(item=>({cardCode:item.card.code,printingId:item.id,label:`${item.card.name} (${marketCardReference(item.card)})${item.card.variant?` / ${item.card.variant}`:''} / ${item.language}`}))}} className="market-report-link" disabled={counterpartyPreview}>{t('Report listing','Laporkan listing')}</FeedbackLaunchButton><SaveListingButton listingId={listing.id} language={language} iconOnly disabled={counterpartyPreview}/></>}
-              {canPreviewAsBuyer&&<div className="market-listing-view-as-toggle" role="group" aria-label={t('View listing as','Lihat listing sebagai')}><button type="button" aria-pressed={previewRole==='buyer'} onClick={()=>setPreviewRole('buyer')}>{t('Buyer','Pembeli')}</button><button type="button" aria-pressed={previewRole==='seller'} onClick={()=>setPreviewRole('seller')}>{t('Seller','Penjual')}</button></div>}
+              {!ownerView&&<><FeedbackLaunchButton request={{initialCategory:'market-report',listingId:listing.id,cardCode:editableCards.length===1?editableCards[0].card.code:undefined,printingId:editableCards.length===1?editableCards[0].id:undefined,cardOptions:editableCards.map(item=>({cardCode:item.card.code,printingId:item.id,label:`${item.card.name} (${marketCardReference(item.card)})${item.card.variant?` / ${item.card.variant}`:''} / ${item.language}`}))}} className="market-report-link" disabled={counterpartyPreview} title={t('Report listing','Laporkan listing')} ariaLabel={t('Report listing','Laporkan listing')}><Flag size={16} aria-hidden="true"/><span>{t('Report','Laporkan')}</span></FeedbackLaunchButton><SaveListingButton listingId={listing.id} language={language} iconOnly disabled={counterpartyPreview}/></>}
+              {canPreviewAsBuyer&&<div className="market-listing-preview-control"><span>{t('View as','Lihat sebagai')}</span><div className="market-listing-view-as-toggle" role="group" aria-label={t('Preview listing as','Pratinjau listing sebagai')}><button type="button" aria-pressed={previewRole==='buyer'} onClick={()=>setPreviewRole('buyer')}>{t('Buyer','Pembeli')}</button><button type="button" aria-pressed={previewRole==='seller'} onClick={()=>setPreviewRole('seller')}>{t('Seller','Penjual')}</button></div></div>}
             </div>
           </div>
 
