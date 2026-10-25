@@ -596,7 +596,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
   const listingLimits=useMarketListingLimits(`${data?.profile?.id??'anonymous'}:${data?.profile?.tier??'free'}:${data?.profile?.pro_billing_period??'monthly'}`);
   const router=useRouter();
   const searchParams=useSearchParams();
-  const [gameSlug,setGameSlug]=useState<MarketGameScope>(initialGameSlug??(searchParams.get('game')==='pokemon'?'pokemon':searchParams.get('game')==='all'?'all':'one-piece'));
+  const [gameSlug,setGameSlug]=useState<MarketGameScope>(initialGameSlug??(searchParams.get('scope')==='all'||searchParams.get('game')==='all'?'all':searchParams.get('game')==='pokemon'?'pokemon':'one-piece'));
   const [listings,setListings]=useState<Listing[]>([]);
   const [listingsLoading,setListingsLoading]=useState(true);
   const [error,setError]=useState('');
@@ -722,24 +722,35 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
   }
   refreshFeedRef.current=refresh;
   useEffect(()=>{if(!modalOnly)void refresh()},[modalOnly,gameSlug]);
-  useEffect(()=>{if(modalOnly)return;setGameSlug(searchParams.get('game')==='pokemon'?'pokemon':searchParams.get('game')==='all'?'all':'one-piece')},[modalOnly,searchParams]);
+  useEffect(()=>{
+    if(modalOnly)return;
+    if(searchParams.get('scope')==='all'||searchParams.get('game')==='all'){
+      setGameSlug('all');
+      return;
+    }
+    setGameSlug(searchParams.get('game')==='pokemon'?'pokemon':'one-piece');
+  },[modalOnly,searchParams]);
   const changeGame=(next:MarketGameScope)=>{
     setGameSlug(next);setLang('all');setTradeType('all');setQuery('');setCardSearch('');
-    const params=new URLSearchParams(window.location.search);if(next==='pokemon'||next==='all')params.set('game',next);else params.delete('game');
+    const params=new URLSearchParams(window.location.search);
+    if(next==='all'){
+      params.set('scope','all');
+    }else{
+      params.delete('scope');
+      if(next==='pokemon')params.set('game','pokemon');else params.delete('game');
+    }
     router.replace(`${window.location.pathname}${params.size?`?${params}`:''}`,{scroll:false});
   };
   const toggleGame=(target:'one-piece'|'pokemon')=>{
-    let next:MarketGameScope;
-    if(gameSlug===target){
-      next='all';
-    }else{
-      next=target;
+    if(gameSlug==='all'){
+      changeGame(target==='one-piece'?'pokemon':'one-piece');
+    }else if(gameSlug!==target){
+      changeGame('all');
     }
-    changeGame(next);
   };
   const listingHref=(listing:Pick<Listing,'title'|'id'>,targetGame:MarketGameScope=gameSlug)=>{
     const path=marketListingPath(listing.title,listing.id);
-    return targetGame==='pokemon'?`${path}?game=pokemon`:targetGame==='all'?`${path}?game=all`:path;
+    return targetGame==='pokemon'?`${path}?game=pokemon`:targetGame==='all'?`${path}?scope=all`:path;
   };
   useEffect(()=>{
     if(modalOnly)return;

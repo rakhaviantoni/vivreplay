@@ -11,6 +11,7 @@ import {
 } from '@phosphor-icons/react';
 import type { Card } from '@/packages/card-data/catalog';
 import { GRADING_PROVIDERS } from '@/packages/domain';
+import { GAME_LOGOS } from '../brand-assets';
 import type { VaultFilterState, VaultViewMode } from './types';
 import { MultiFilter, Picker } from '../catalog';
 import { CardScanButton } from '../card-scan-button';
@@ -107,20 +108,41 @@ export function VaultFilters({
 
       {/* Filter Dropdowns */}
       <div className="vault-toolbar-filters">
-        {/* Game Filter */}
-        <Picker
-          filterStyle
-          searchPlaceholder={t('Search…','Cari…')}
-          emptyLabel={t('No matches','Tidak ada hasil')}
-          value={gameSlug}
-          onChange={value => onChangeGame?.(value as 'one-piece' | 'pokemon' | 'all')}
-          label={t('Filter by game','Filter game')}
-          options={[
-            { value: 'all', label: t('All Games','Semua Game') },
-            { value: 'one-piece', label: 'One Piece' },
-            { value: 'pokemon', label: 'Pokémon' },
-          ]}
-        />
+        {/* Game Filter (Logo Switch) */}
+        <nav className="vault-toolbar-game-switch market-game-switch" aria-label={t('Filter by game','Filter game')}>
+          <button
+            type="button"
+            className={`game-mode-one-piece${gameSlug === 'one-piece' || gameSlug === 'all' ? ' is-active' : ''}`}
+            aria-pressed={gameSlug === 'one-piece' || gameSlug === 'all'}
+            title="One Piece Card Game"
+            onClick={() => {
+              if (gameSlug === 'all') {
+                onChangeGame?.('pokemon');
+              } else if (gameSlug !== 'one-piece') {
+                onChangeGame?.('all');
+              }
+            }}
+          >
+            <span className="market-game-logo-pad"><img src={GAME_LOGOS['one-piece']} alt="" /></span>
+            <span className="sr-only">One Piece</span>
+          </button>
+          <button
+            type="button"
+            className={`game-mode-pokemon${gameSlug === 'pokemon' || gameSlug === 'all' ? ' is-active' : ''}`}
+            aria-pressed={gameSlug === 'pokemon' || gameSlug === 'all'}
+            title="Pokémon Trading Card Game"
+            onClick={() => {
+              if (gameSlug === 'all') {
+                onChangeGame?.('one-piece');
+              } else if (gameSlug !== 'pokemon') {
+                onChangeGame?.('all');
+              }
+            }}
+          >
+            <span className="market-game-logo-pad"><img src={GAME_LOGOS.pokemon} alt="" /></span>
+            <span className="sr-only">Pokémon</span>
+          </button>
+        </nav>
 
         {/* Set Filter */}
         <MultiFilter label="Set" values={sets.map(code=>({value:code,label:code}))} selected={filters.setCode} onToggle={value=>onChangeFilters(prev=>({...prev,setCode:prev.setCode.includes(value)?prev.setCode.filter(item=>item!==value):[...prev.setCode,value]}))} searchPlaceholder={t('Find a set','Cari set')} />
