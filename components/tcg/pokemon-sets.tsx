@@ -9,6 +9,7 @@ import {CardArt} from '@/components/tcg/card-art';
 import {DepthCarousel} from '@/components/tcg/depth-carousel';
 import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue} from '@/components/ui/select';
 import type {Card} from '@/packages/card-data/catalog';
+import {versionedCardCatalogUrl} from '@/lib/card-catalog-cache';
 
 type FeaturedCardRecord={id:string;code:string;name:string;color:string;type:string;cost:number;power:number;rarity:string;effect:string;imageUrl:string;setCode:string;language:string;printingCode:string;localCardNumber:string;variant:string;gameSlug:'pokemon'};
 type SetRecord={code:string;name:string;releaseYear:number;releaseDate?:string;mainSetTotal:number;parallelsTotal:number;productImageUrl?:string;series?:string;featuredCards?:FeaturedCardRecord[]};
@@ -34,7 +35,7 @@ export function PokemonSets(){
   useEffect(()=>{
     const controller=new AbortController();
     setLoading(true);
-    fetch(`/api/cards/sets?game=pokemon&language=${language}&includeCards=6`,{signal:controller.signal,cache:'no-store'})
+    fetch(versionedCardCatalogUrl(`/api/cards/sets?game=pokemon&language=${language}&includeCards=7`),{signal:controller.signal,cache:'no-store'})
       .then(async response=>{
         if(!response.ok)throw new Error('Sets unavailable');
         const result=await response.json() as {sets?:SetRecord[]};

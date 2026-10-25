@@ -89,7 +89,8 @@ function summarize(rows: Row[], gameSlug: string, includeCards=false): SetSummar
       const nameKey=row.identity_name.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu,'');
       const cardKey=nameKey||`${localCardNumber}:${row.identity_code}`;
       const previous=entry.cards.get(cardKey);
-      if(!previous||score>previous.score)entry.cards.set(cardKey,{card,score,highRarity:ranked.score>=POKEMON_FEATURED_RARITY_MIN_SCORE});
+      const rarityBackfill=pokemonRarityFallbackScore(row.identity_name??'',row.source_payload,row.printing_code);
+      if(!previous||score>previous.score)entry.cards.set(cardKey,{card,score,highRarity:ranked.score>=POKEMON_FEATURED_RARITY_MIN_SCORE||(ranked.score===0&&rarityBackfill>=68)});
     }
   }
   const known = new Map(SETS_CATALOG.map(set => [set.code.toUpperCase().replace(/[-_\s]/g, ''), set]));
@@ -111,9 +112,9 @@ export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   const gameSlug = params.get('game')?.toLowerCase() === 'pokemon' ? 'pokemon' : 'one-piece';
   const requestedLanguage = params.get('language')?.toUpperCase();
-  const includeCards=gameSlug==='pokemon'&&['1','2','3','4','5','6'].includes(params.get('includeCards')??'');
+  const includeCards=gameSlug==='pokemon'&&['1','2','3','4','5','6','7'].includes(params.get('includeCards')??'');
   const language = gameSlug === 'pokemon' && requestedLanguage === 'ALL' ? 'ALL' : requestedLanguage === 'JP' || requestedLanguage === 'JA' ? 'JP' : requestedLanguage === 'ID' ? 'ID' : 'EN';
-  const snapshotKey = `catalog-snapshots/sets-${gameSlug}-${language.toLowerCase()}-${CARD_CATALOG_CACHE_REVISION}${includeCards?'-previews-v6':''}.json`;
+  const snapshotKey = `catalog-snapshots/sets-${gameSlug}-${language.toLowerCase()}-${CARD_CATALOG_CACHE_REVISION}${includeCards?'-previews-v7':''}.json`;
   try {
     const snapshot = await env.CARD_IMAGES?.get(snapshotKey);
     if (snapshot) return storePublicEdgeCache(request, Response.json(await snapshot.json<{ sets: SetSummary[] }>(), { headers: publicHeaders }));
