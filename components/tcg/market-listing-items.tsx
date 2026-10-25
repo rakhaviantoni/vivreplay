@@ -990,7 +990,7 @@ export function MarketListingDetailView({
                 <div className="market-listing-eyebrow-left">
                   <span
                     className="market-listing-game-chip"
-                    title={`${listingGame==='all'?(language==='ID'?'Beragam game':'Multiple games'):listingGame==='pokemon'?'Pokémon':'One Piece'} · ${listingLanguages.join('/')}`}
+                    title={`${listingGame==='all'?(language==='ID'?'Beragam game':'Multiple games'):listingGame==='pokemon'?'Pokémon':'One Piece'} (${listingLanguages.join('/')})`}
                     aria-label={`${listingGame==='all'?(language==='ID'?'Beragam game':'Multiple games'):listingGame==='pokemon'?'Pokémon':'One Piece'} (${listingLanguages.join('/')})`}
                   >
                     <MarketGameMark gameSlug={listingGame} compact/>
@@ -998,10 +998,9 @@ export function MarketListingDetailView({
                     <span className="market-listing-chip-lang">{listingLanguages.join('/')}</span>
                   </span>
                   <div className="market-listing-eyebrow-meta">
-                    {listing.createdAt && <span><MarketTimestamp value={listing.createdAt}/></span>}
-                    {listing.createdAt && expiresAt && <span className="market-listing-eyebrow-dot" aria-hidden="true">·</span>}
+                    {listing.createdAt && <span className="market-listing-meta-created"><MarketTimestamp value={listing.createdAt}/></span>}
                     {expiresAt && (
-                      <span className={isExpired ? 'is-expired' : ''} title={expiresAt}>
+                      <span className={`market-listing-meta-expiry${isExpired ? ' is-expired' : ''}`} title={expiresAt}>
                         {isExpired
                           ? (status === 'CLOSED' ? t('Closed', 'Ditutup') : status === 'SOLD' ? t('Sold', 'Terjual') : t('Expired', 'Kedaluwarsa'))
                           : daysLeft === null
