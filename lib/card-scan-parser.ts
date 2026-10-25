@@ -94,12 +94,16 @@ export function parsePokemonScanCode(text:string):PokemonScanCode|null{
 
 export function parseOnePieceScanCode(text:string):OnePieceScanCode|null{
   const normalized=text.toUpperCase().replace(/[—–−]/g,'-');
-  const match=normalized.match(/(?:^|[^A-Z0-9])(?:(SP|5P|E2)\s*[\/|:]?\s*)?(OP|ST|EB|PRB|P|DON)\s*-?\s*(\d{0,2})\s*-?\s*(\d{3})/);
+  // Set and collector numbers are tiny on slabbed cards. OCR often reads
+  // OP08-001 as OPO8-OO1 or OP08-00I, so accept common digit lookalikes only
+  // in the numeric parts of a recognized One Piece card code.
+  const match=normalized.match(/(?:^|[^A-Z0-9])(?:(SP|5P|E2)\s*[\/|:]?\s*)?(OP|ST|EB|PRB|P|DON)\s*-?\s*([0-9OQ]{0,2})\s*-?\s*([0-9OQIL]{3})/);
   if(!match)return null;
-  const [,rawMarker,prefix,series,number]=match;
-  const codeText=match[0].match(/(?:OP|ST|EB|PRB|P|DON)\s*-?\s*\d{0,2}\s*-?\s*\d{3}/i)?.[0]??'';
-  const codeIndex=(match.index??0)+match[0].indexOf(codeText);
-  const markerAfter=normalized.slice(codeIndex+codeText.length,codeIndex+codeText.length+12);
+  const [,rawMarker,prefix,rawSeries,rawNumber]=match;
+  const normalizeDigit=(value:string)=>value.replace(/[OQ]/g,'0').replace(/[IL]/g,'1');
+  const series=normalizeDigit(rawSeries??'');
+  const number=normalizeDigit(rawNumber??'');
+  const markerAfter=normalized.slice((match.index??0)+match[0].length,(match.index??0)+match[0].length+12);
   const suffixRarity=markerAfter.match(/^\s*(SEC|SR|UC|R|C|L|SP|TR|P|DON)(?=$|[^A-Z0-9])/i)?.[1]?.toUpperCase()??'';
   const variant=rawMarker?'SP':'';
   return {setCode:`${prefix}${series}`,cardNumber:`${prefix}${series}-${number}`,rarity:suffixRarity||(variant?'SP':''),variant};
