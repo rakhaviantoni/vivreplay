@@ -2,11 +2,16 @@ export type OnePieceScanCode={setCode:string;cardNumber:string;rarity:string;var
 
 export type PokemonScanCode={setCodeCandidates:string[];cardNumber:string;cardNumberTotal:string;rarity:string;language:string};
 
+function hasOnePieceScanSignals(text:string){
+  return /\bONE\s*PIECE\b|\bLEADER\b|\bDON\s*!{1,2}\b|\bSTRAW\s+HAT\s+CREW\b/i.test(text)
+    || /ワンピース|リーダー|麦わらの一味|ドン!!/.test(text);
+}
+
 export function detectCardScanGame(text:string,requestedGame:'pokemon'|'one-piece'|'auto'):'pokemon'|'one-piece'|null{
   // A printed One Piece set/card code is stronger evidence than the page the
   // scanner was opened from. This lets scans work when the library is on the
   // other game, while the selected game still handles ambiguous OCR.
-  if(parseOnePieceScanCode(text))return 'one-piece';
+  if(parseOnePieceScanCode(text)||hasOnePieceScanSignals(text))return 'one-piece';
   if(requestedGame==='one-piece')return 'one-piece';
   if(requestedGame==='pokemon')return 'pokemon';
   return parsePokemonScanCode(text)?'pokemon':null;
@@ -41,7 +46,10 @@ function pokemonSetCandidates(word:string){
 }
 
 function isPokemonSetCodeCandidate(value:string){
-  return value==='PAL'||/^(?:MATS|MATK|MATL|MATH|MAAF|MAAL)$/.test(value)||/^(?:[A-Z]{2,5}\d[A-Z0-9]{0,3}|[A-Z]\d[A-Z]{1,3})$/.test(value);
+  // A single letter followed by a digit is only a valid set prefix for the
+  // established S/M eras (for example S6A). The broader old pattern treated
+  // a name like T0NY as a set code when OCR confused O with 0.
+  return value==='PAL'||/^(?:MATS|MATK|MATL|MATH|MAAF|MAAL)$/.test(value)||/^(?:[A-Z]{2,5}\d[A-Z0-9]{0,3}|[SM]\d[A-Z]{1,2})$/.test(value);
 }
 
 export function parsePokemonScanCode(text:string):PokemonScanCode|null{
