@@ -1516,7 +1516,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
             </DialogDescription>
           </div>
           <div className="market-sell-body">
-            {!configuringCard&&!bundleCards.length&&listingType==='WTS'&&<div className="market-sealed-kind-switch" role="group" aria-label="Listing product"><button type="button" aria-pressed={!sealedMode} onClick={()=>setSealedMode(false)}>Cards & slabs</button><button type="button" aria-pressed={sealedMode} onClick={()=>setSealedMode(true)}>Sealed products</button></div>}
+            {!configuringCard&&!bundleCards.length&&<div className="market-sealed-kind-switch" role="group" aria-label={locale==='ID'?'Jenis produk':'Product type'}><button type="button" aria-pressed={!sealedMode} onClick={()=>setSealedMode(false)}>{locale==='ID'?'Kartu & slab':'Cards & slabs'}</button><button type="button" aria-pressed={sealedMode} onClick={()=>setSealedMode(true)}>{locale==='ID'?'Produk tersegel':'Sealed products'}</button></div>}
             {sealedMode?<MarketSealedComposer type={listingType} onPublished={()=>{setOpen(false);setSealedMode(false);void refresh();void refreshAccount();}}/>:directSellLoading?<div className="market-direct-sell-loading" role="status" aria-label={locale==='ID'?'Memuat pilihan jual':'Loading sell options'}><span/><span/><span/></div>:<>
             {/* VIEW 1: Card Configuration Step */}
             {configuringCard&&activeCardObj?(

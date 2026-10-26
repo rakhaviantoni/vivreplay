@@ -2,6 +2,7 @@ import {db,errorResponse,user} from '@/lib/server/store';
 import {offerContext,parseOfferItems} from '@/lib/server/market-offers';
 import {marketCardThumbnails} from '@/lib/server/market-card-thumbnails';
 import {sendMarketEmail} from '@/lib/server/market-notifications';
+import {sealedDisplayCard} from '@/lib/market/sealed-products';
 
 export async function GET(_request:Request,{params}:{params:Promise<{offerId:string}>}){
   try{
@@ -33,9 +34,9 @@ export async function GET(_request:Request,{params}:{params:Promise<{offerId:str
       }
     }
     const availableCards=await marketCardThumbnails(revisedItems.map(item=>item.printingId));
-    revisedItems=revisedItems.map(item=>({...item,card:availableCards.get(item.printingId)}));
+    revisedItems=revisedItems.map(item=>({...item,card:availableCards.get(item.printingId)??sealedDisplayCard(item.printingId),photoUrls:(item.photoIds??[]).map(id=>`/api/market/product-photos/${encodeURIComponent(id)}`)}));
     const cards=await marketCardThumbnails(parsedRounds.flatMap(round=>round.items.map(item=>item.printingId)));
-    const allRounds=parsedRounds.map(round=>({...round,items:round.items.map(item=>({...item,card:cards.get(item.printingId)}))}));
+    const allRounds=parsedRounds.map(round=>({...round,items:round.items.map(item=>({...item,card:cards.get(item.printingId)??sealedDisplayCard(item.printingId),photoUrls:(item.photoIds??[]).map(id=>`/api/market/product-photos/${encodeURIComponent(id)}`)}))}));
     return Response.json({threadId:current.threadId,listingId:current.listingId,currentOfferId:parsedRounds.filter(round=>round.status==='PENDING').at(-1)?.id??current.id,viewerId:profile.id,sellerId:current.sellerId,buyerId:current.buyerId,supplierId:current.supplierId,listingType:current.listingType,negotiable:current.negotiable!==0,listingStatus:current.listingStatus,listingExpiresAt:current.listingExpiresAt,requiresRevision,revisedItems,rounds:allRounds,messages:messages.map(message=>({...message,attachments:(attachments.get(message.id)??[]).map(file=>({...file,url:`/api/listings/offers/${encodeURIComponent(offerId)}/attachments/${encodeURIComponent(file.id)}`}))}))},{headers:{'Cache-Control':'private, no-store'}});
   }catch(error){return errorResponse(error)}
 }

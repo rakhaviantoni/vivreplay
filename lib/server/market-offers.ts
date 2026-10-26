@@ -2,10 +2,11 @@ import {db,HttpError} from '@/lib/server/store';
 import {MARKET_MAX_CARD_TYPES} from '@/lib/market/listing-limits';
 import {enforceMarketListingLimits} from '@/lib/server/market-listing-limits';
 
-export type OfferContext={id:string;threadId:string;parentOfferId:string|null;listingId:string;listingTitle:string;actorId:string;type:string;items:string;amount:number;currency:string;status:string;sellerId:string;listingStatus:string;listingType:string;negotiable:number;quantity:number;printingId:string;listingItems:string|null;expiresAt:string|null;listingExpiresAt:string|null;initialActorId:string;buyerId:string;supplierId:string};
+export type OfferLine={printingId:string;quantity:number;unitAmount?:number;sealedProductId?:string;productType?:'RAW'|'GRADED'|'SEALED';condition?:string;notes?:string;photoIds?:string[];parcel?:{weight:number;length:number;width:number;height:number}};
+export type OfferContext={id:string;threadId:string;parentOfferId:string|null;listingId:string;listingTitle:string;actorId:string;type:string;items:string;amount:number;currency:string;status:string;sellerId:string;listingStatus:string;listingType:string;negotiable:number;quantity:number;printingId:string;sealedProductId:string|null;listingItems:string|null;expiresAt:string|null;listingExpiresAt:string|null;initialActorId:string;buyerId:string;supplierId:string};
 
 export async function offerContext(offerId:string,profileId:string){
-  const offer=await db().prepare(`SELECT o.id,COALESCE(o.thread_id,o.id) AS threadId,o.parent_offer_id AS parentOfferId,o.listing_id AS listingId,l.title AS listingTitle,o.actor_id AS actorId,o.type,o.items,o.amount,o.currency,o.status,l.seller_id AS sellerId,l.status AS listingStatus,l.type AS listingType,l.negotiable,l.quantity,l.printing_id AS printingId,l.items AS listingItems,COALESCE((SELECT active.expires_at FROM listing_offers active WHERE COALESCE(active.thread_id,active.id)=COALESCE(o.thread_id,o.id) AND active.status='PENDING' ORDER BY active.created_at DESC,active.rowid DESC LIMIT 1),o.expires_at) AS expiresAt,l.expires_at AS listingExpiresAt,(SELECT initial.actor_id FROM listing_offers initial WHERE COALESCE(initial.thread_id,initial.id)=COALESCE(o.thread_id,o.id) ORDER BY initial.created_at,initial.rowid LIMIT 1) AS initialActorId
+  const offer=await db().prepare(`SELECT o.id,COALESCE(o.thread_id,o.id) AS threadId,o.parent_offer_id AS parentOfferId,o.listing_id AS listingId,l.title AS listingTitle,o.actor_id AS actorId,o.type,o.items,o.amount,o.currency,o.status,l.seller_id AS sellerId,l.status AS listingStatus,l.type AS listingType,l.negotiable,l.quantity,COALESCE(l.printing_id,l.sealed_product_id) AS printingId,l.sealed_product_id AS sealedProductId,l.items AS listingItems,COALESCE((SELECT active.expires_at FROM listing_offers active WHERE COALESCE(active.thread_id,active.id)=COALESCE(o.thread_id,o.id) AND active.status='PENDING' ORDER BY active.created_at DESC,active.rowid DESC LIMIT 1),o.expires_at) AS expiresAt,l.expires_at AS listingExpiresAt,(SELECT initial.actor_id FROM listing_offers initial WHERE COALESCE(initial.thread_id,initial.id)=COALESCE(o.thread_id,o.id) ORDER BY initial.created_at,initial.rowid LIMIT 1) AS initialActorId
     FROM listing_offers o JOIN listings l ON l.id=o.listing_id WHERE o.id=?`).bind(offerId).first<OfferContext>();
   if(!offer)throw new HttpError(404,'Offer not found.');
   const participant=offer.sellerId===profileId||Boolean(await db().prepare('SELECT 1 AS ok FROM listing_offers WHERE COALESCE(thread_id,id)=? AND actor_id=? LIMIT 1').bind(offer.threadId,profileId).first());
@@ -28,7 +29,7 @@ export function isOfferExpired(expiresAt:string|null){
   return Number.isNaN(timestamp)||timestamp<=Date.now();
 }
 
-export function priceOfferItems(items:Array<{printingId:string;quantity:number;unitAmount?:number}>,amount:number){
+export function priceOfferItems(items:OfferLine[],amount:number){
   const quantity=items.reduce((total,item)=>total+item.quantity,0);
   if(!quantity||amount<quantity)throw new HttpError(400,'Offer total must cover at least one IDR per card.');
   const pool=amount-quantity;
@@ -42,9 +43,9 @@ export function priceOfferItems(items:Array<{printingId:string;quantity:number;u
     const lineTotal=item.quantity+shares[index];
     const unitAmount=Math.floor(lineTotal/item.quantity);
     const extra=lineTotal%item.quantity;
-    const result=[] as Array<{printingId:string;quantity:number;unitAmount:number}>;
-    if(extra)result.push({printingId:item.printingId,quantity:extra,unitAmount:unitAmount+1});
-    if(item.quantity>extra)result.push({printingId:item.printingId,quantity:item.quantity-extra,unitAmount});
+    const result:OfferLine[]=[];
+    if(extra)result.push({...item,quantity:extra,unitAmount:unitAmount+1});
+    if(item.quantity>extra)result.push({...item,quantity:item.quantity-extra,unitAmount});
     return result;
   });
 }
@@ -53,14 +54,24 @@ export function parseOfferItems(raw:string){
   try{
     const value=JSON.parse(raw) as unknown;
     if(!Array.isArray(value))return [];
-    return value.filter((item):item is {printingId:string;quantity:number;unitAmount?:number}=>Boolean(item&&typeof item==='object'&&typeof (item as {printingId?:unknown}).printingId==='string'&&Number.isInteger((item as {quantity?:unknown}).quantity)&&Number((item as {quantity:number}).quantity)>0));
+    return value.filter((item):item is OfferLine=>Boolean(item&&typeof item==='object'&&typeof (item as {printingId?:unknown}).printingId==='string'&&Number.isInteger((item as {quantity?:unknown}).quantity)&&Number((item as {quantity:number}).quantity)>0));
   }catch{return []}
 }
 
-export async function validateListingOfferItems(offer:OfferContext,actorId:string,items:Array<{printingId:string;quantity:number;unitAmount?:number}>){
+export async function validateListingOfferItems(offer:OfferContext,actorId:string,items:OfferLine[]){
   if(items.length<1||items.length>MARKET_MAX_CARD_TYPES)throw new HttpError(400,'Choose at least one card.');
-  await enforceMarketListingLimits(db(),items);
+  const sealedWanted=offer.listingType==='WTB'&&Boolean(offer.sealedProductId);
+  if(sealedWanted){
+    if(items.length!==1)throw new HttpError(400,'Offer one sealed product at a time.');
+    const item=items[0];
+    if(item.printingId!==offer.sealedProductId||item.sealedProductId!==offer.sealedProductId||item.productType!=='SEALED')throw new HttpError(400,'Choose the sealed product named in this request.');
+    if(!['SEALED','SEALED_DAMAGED'].includes(item.condition??'')||!item.parcel||!item.photoIds?.length)throw new HttpError(400,'Add the package condition, a photo, and packed dimensions.');
+    const photoIds=[...new Set(item.photoIds)];
+    const photos=await db().prepare(`SELECT id FROM market_product_photos WHERE owner_id=? AND id IN (${photoIds.map(()=>'?').join(',')})`).bind(actorId,...photoIds).all<{id:string}>();
+    if(photos.results.length!==photoIds.length)throw new HttpError(400,'Choose photos uploaded from your account.');
+  }else await enforceMarketListingLimits(db(),items);
   if(items.reduce((sum,item)=>sum+item.quantity,0)>offer.quantity)throw new HttpError(400,'Select no more cards than this listing requests.');
+  if(sealedWanted)return;
   if(offer.listingType==='WTS'){
     let available=new Map<string,number>([[offer.printingId,offer.quantity]]);
     try{

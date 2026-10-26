@@ -24,7 +24,7 @@ import {formatDeliveryAddress} from '@/lib/market/address-format';
 
 type Origin={addressLine:string;city:string;postalCode:string;areaId:string|null;recipientName:string|null;phone:string|null;latitude?:number|null;longitude?:number|null;regionNames?:{province?:string;city?:string;district?:string;subdistrict?:string}};
 type Rate={courier_name:string;courier_service_name:string;courier_code:string;courier_service_code:string;company:string;type:string;price:number;duration?:string};
-type CheckoutLine={printingId:string;quantity:number;unitAmount?:number};
+type CheckoutLine={printingId:string;quantity:number;unitAmount?:number;sealedProductId?:string;condition?:string;notes?:string;photoIds?:string[];photoUrls?:string[];parcel?:{weight:number;length:number;width:number;height:number}};
 type CartLine={listingId:string;listingTitle:string;items:CheckoutLine[]};
 
 export function MarketCheckout(){
@@ -143,7 +143,7 @@ export function MarketCheckout(){
       const card=(source?.printingId===selected.printingId?source.card:item?.card??cardFor(selected.printingId)) as Card|undefined;
       const bundleQuantity=cardItems.reduce((total,entry)=>total+entry.quantity,0)||source?.quantity||1;
       const fallbackUnitAmount=source?Math.max(1,Math.floor(source.amount/bundleQuantity)):0;
-      return {listingId:source?.id,listingTitle:source?.title,printingId:selected.printingId,quantity:selected.quantity,card,unitAmount:selected.unitAmount&&selected.unitAmount>0?selected.unitAmount:item?.unitAmount&&item.unitAmount>0?item.unitAmount:fallbackUnitAmount,condition:item?.condition??source?.condition??'NM',sealedProductId:item?.sealedProductId,photoUrl:item?.photoUrls?.[0]};
+      return {listingId:source?.id,listingTitle:source?.title,printingId:selected.printingId,quantity:selected.quantity,card,unitAmount:selected.unitAmount&&selected.unitAmount>0?selected.unitAmount:item?.unitAmount&&item.unitAmount>0?item.unitAmount:fallbackUnitAmount,condition:selected.condition??item?.condition??source?.condition??'NM',sealedProductId:selected.sealedProductId??item?.sealedProductId,photoUrl:selected.photoUrls?.[0]??(selected.photoIds?.[0]?`/api/market/product-photos/${encodeURIComponent(selected.photoIds[0])}`:undefined)??item?.photoUrls?.[0],parcel:selected.parcel??item?.parcel};
     }));
   },[items,listing,cartMode,activeCartLines,cartListings]);
   const hasSealedProducts=selectedCards.some(item=>Boolean(item.sealedProductId));
@@ -171,14 +171,14 @@ export function MarketCheckout(){
     const controller=new AbortController();quoteRequest.current=controller;
     setQuoting(true);setQuoteError('');setRates([]);setSelectedRate('');
     try{
-      const response=await fetch('/api/shipping/quotes',{signal:controller.signal,method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({listingId:orderListingId,lines:cartMode?activeCartLines.map(line=>({listingId:line.listingId,items:line.items})):undefined,items,destinationAreaId:origin.areaId,destinationPostalCode:origin.postalCode,refresh:forceRefresh})});
+      const response=await fetch('/api/shipping/quotes',{signal:controller.signal,method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({listingId:orderListingId,offerId:offerId||undefined,lines:cartMode?activeCartLines.map(line=>({listingId:line.listingId,items:line.items})):undefined,items,destinationAreaId:origin.areaId,destinationPostalCode:origin.postalCode,refresh:forceRefresh})});
       const result=await response.json() as {pricing?:Rate[];error?:string};
       if(controller.signal.aborted)return;
       if(!response.ok)throw new Error(result.error??t('Shipping rates could not be loaded.','Ongkir tidak dapat dimuat.'));
       const options=result.pricing??[];setRates(options);if(options[0])setSelectedRate(`${options[0].courier_code}:${options[0].courier_service_code}`);
       if(!options.length)throw new Error(t('No delivery services are available for this address. Update the address or ask the seller for help.','Tidak ada layanan pengiriman untuk alamat ini. Perbarui alamat atau hubungi penjual.'));
     }catch(cause){if(!controller.signal.aborted)setQuoteError(cause instanceof Error?cause.message:t('Shipping rates could not be loaded.','Ongkir tidak dapat dimuat.'))}finally{if(quoteRequest.current===controller){setQuoting(false);quoteRequest.current=null;}}
-  },[listing,origin,items,selectedCards,orderListingId,locale,cartMode,activeCartLines]);
+  },[listing,origin,items,selectedCards,orderListingId,locale,cartMode,activeCartLines,offerId]);
 
   useEffect(()=>{
     if(!listing||!origin||!addressReady||!selectedCards.length)return;
@@ -241,7 +241,7 @@ export function MarketCheckout(){
       <section className="checkout-panel checkout-order-summary"><h2>{cartMode?t(`${activeCartLines.length} ${activeCartLines.length===1?'listing':'listings'}`,`${activeCartLines.length} listing`):listing.title}</h2><p className="checkout-seller"><strong>{listing.seller}</strong><span>{listing.city}</span></p>
         <div className="checkout-items">{checkoutGroups.map(group=>{
           const sourceListing=cartListings.find(row=>row.id===group.id)??listing;
-          const artworkItems=sourceListing?.items?.length?sourceListing.items.map(item=>({card:item.card??(item.printingId===sourceListing.printingId?sourceListing.card:undefined),quantity:item.quantity,printingId:item.printingId,photoUrl:item.photoUrls?.[0]})).filter(item=>item.card):sourceListing?.card?[{card:sourceListing.card,quantity:sourceListing.quantity,printingId:sourceListing.printingId,photoUrl:undefined}]:[];
+          const artworkItems=group.items.map(item=>({card:item.card??sourceListing?.items?.find(entry=>entry.printingId===item.printingId)?.card??(item.printingId===sourceListing?.printingId?sourceListing.card:undefined),quantity:item.quantity,printingId:item.printingId,photoUrl:item.photoUrl})).filter((item):item is typeof item&{card:Card}=>Boolean(item.card));
           const groupCount=artworkItems.reduce((total,item)=>total+item.quantity,0);
           const stack=artworkItems.flatMap(item=>Array.from({length:Math.max(1,Math.min(3,item.quantity))},(_,copy)=>({card:item.card!,photoUrl:item.photoUrl,key:`${item.printingId}-${copy}`}))).slice(0,3);
           return <section className="checkout-listing-group" key={group.id}>

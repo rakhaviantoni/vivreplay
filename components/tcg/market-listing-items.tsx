@@ -449,6 +449,11 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
   const [cardsView,setCardsView]=useState<'grid'|'list'>('grid');
   const [draggingIndex,setDraggingIndex]=useState<number|null>(null);
   const [customPrices,setCustomPrices]=useState<Record<string,number>>({});
+  const [sealedOfferCondition,setSealedOfferCondition]=useState<'SEALED'|'SEALED_DAMAGED'>('SEALED');
+  const [sealedOfferNotes,setSealedOfferNotes]=useState('');
+  const [sealedOfferPhotos,setSealedOfferPhotos]=useState<string[]>([]);
+  const [sealedOfferParcel,setSealedOfferParcel]=useState({weight:'',length:'',width:'',height:''});
+  const [sealedPhotoBusy,setSealedPhotoBusy]=useState(false);
   const [preview,setPreview]=useState<Card>();
   const [previewPrintingId,setPreviewPrintingId]=useState<string>();
   const [vaultTarget,setVaultTarget]=useState<MarketListingCard|null>(null);
@@ -497,6 +502,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
   },[items]);
 
   const selectedCount=useMemo(()=>Object.values(selected).reduce((total,amount)=>total+amount,0),[selected]);
+  const sealedOfferReady=sealedOfferPhotos.length>0&&Object.values(sealedOfferParcel).every(value=>Number(value)>0);
   const selectionInCart=selectedCount>0&&items.every(item=>{const quantity=selected[item.id]??0;return quantity===0||(cartQuantities[item.id]??0)>=quantity});
   const publicListingTotal=useMemo(()=>items.reduce((total,item)=>total+availableFor(item)*item.unitAmount,0),[items,readOnly]);
   const originalTotal=useMemo(()=>items.reduce((total,item)=>total+(selected[item.id]??0)*item.unitAmount,0),[items,selected]);
@@ -563,7 +569,8 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
 
   const isBuying=listingType==='WTS';
   const acceptsOffers=!isBuying||negotiable;
-  const actionLabel=isBuying?t('Make offer','Ajukan penawaran'):t('Offer cards','Tawarkan kartu');
+  const isSealedRequest=listingType==='WTB'&&items.some(item=>Boolean(item.sealedProductId));
+  const actionLabel=isBuying?t('Make offer','Ajukan penawaran'):isSealedRequest?t('Offer product','Tawarkan produk'):t('Offer cards','Tawarkan kartu');
   const openOfferConversation=(offerId:string)=>window.dispatchEvent(new CustomEvent('vivreplay:open-market-offer',{detail:offerId}));
   useEffect(()=>{
     let active=true;
@@ -584,7 +591,16 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
   const continueOffer=async()=>{
     if(previewOnly)return;
     if(!session){window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));return;}
-    setSubmitting(true);try{const offerItems=items.flatMap(item=>{const quantity=selected[item.id]??0;if(!quantity)return[];const unitAmount=getUnitPrice(item);return [{printingId:item.id,quantity,unitAmount}];});const response=await fetch(`/api/listings/${encodeURIComponent(listingId)}/offers`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({type:isBuying?'BUY':'SELL',items:offerItems,amount:selectedTotal,currency})});const payload=await response.json() as {id?:string;actorId?:string;status?:string;expiresAt?:string;error?:string;offerId?:string};if(!response.ok){if(response.status===409&&payload.offerId){const currentResponse=await fetch(`/api/listings/${encodeURIComponent(listingId)}/offers`,{cache:'no-store'});const current=await currentResponse.json() as {offer?:ActiveListingOffer|null};if(currentResponse.ok&&current.offer&&restoreActiveOffer(current.offer)){setOfferCheckComplete(true);toast.info(t('An open offer already exists.','Penawaran masih terbuka.'),{action:{label:t('See offer','Lihat penawaran'),onClick:()=>openOfferConversation(current.offer!.id)}});return;}}throw new Error(payload.error??t('We could not send your offer.','Gagal mengirimkan penawaran Anda.'));}const id=payload.id;if(!id)throw new Error(t('We could not confirm your offer. Refresh and check your Offers.','Penawaran belum dapat dikonfirmasi. Muat ulang dan periksa Penawaran Anda.'));setActiveOffer({id,actorId:payload.actorId??session.user.id,viewerIsActor:true,items:offerItems,amount:selectedTotal,currency,expiresAt:payload.expiresAt??null});setOfferJustSent(true);setOfferCheckComplete(true);toast.success(isBuying?t('Offer sent to the seller.','Penawaran dikirim ke penjual.'):t('Your cards were offered to the buyer.','Kartu Anda ditawarkan ke pembeli.'),{action:{label:t('See offer','Lihat penawaran'),onClick:()=>openOfferConversation(id)}});}catch(error){const message=error instanceof Error?error.message:'';const localized=language==='ID'&&message.includes('listing is no longer active')?'Listing ini sudah tidak aktif.':language==='ID'&&message.includes('listing has expired')?'Listing ini sudah kedaluwarsa.':language==='ID'&&message.includes('firm price')?'Listing ini menggunakan harga pas dan tidak menerima penawaran.':language==='ID'&&message.includes('Offer total must match')?'Total penawaran harus sesuai dengan harga tiap kartu.':message||t('We could not send your offer.','Gagal mengirimkan penawaran Anda.');toast.error(localized)}
+    if(isSealedRequest&&(!sealedOfferPhotos.length||Object.values(sealedOfferParcel).some(value=>!Number(value)))){toast.error(t('Add a product photo and packed dimensions before sending.','Tambahkan foto produk dan ukuran paket sebelum mengirim.'));return;}
+    setSubmitting(true);try{const offerItems=items.flatMap(item=>{const quantity=selected[item.id]??0;if(!quantity)return[];const unitAmount=getUnitPrice(item);return [{printingId:item.id,quantity,unitAmount,...(isSealedRequest?{sealedProductId:item.sealedProductId,productType:'SEALED',condition:sealedOfferCondition,notes:sealedOfferNotes,photoIds:sealedOfferPhotos,parcel:Object.fromEntries(Object.entries(sealedOfferParcel).map(([key,value])=>[key,Number(value)]))}:{})}];});const response=await fetch(`/api/listings/${encodeURIComponent(listingId)}/offers`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({type:isBuying?'BUY':'SELL',items:offerItems,amount:selectedTotal,currency})});const payload=await response.json() as {id?:string;actorId?:string;status?:string;expiresAt?:string;error?:string;offerId?:string};if(!response.ok){if(response.status===409&&payload.offerId){const currentResponse=await fetch(`/api/listings/${encodeURIComponent(listingId)}/offers`,{cache:'no-store'});const current=await currentResponse.json() as {offer?:ActiveListingOffer|null};if(currentResponse.ok&&current.offer&&restoreActiveOffer(current.offer)){setOfferCheckComplete(true);toast.info(t('An open offer already exists.','Penawaran masih terbuka.'),{action:{label:t('See offer','Lihat penawaran'),onClick:()=>openOfferConversation(current.offer!.id)}});return;}}throw new Error(payload.error??t('We could not send your offer.','Gagal mengirimkan penawaran Anda.'));}const id=payload.id;if(!id)throw new Error(t('We could not confirm your offer. Refresh and check your Offers.','Penawaran belum dapat dikonfirmasi. Muat ulang dan periksa Penawaran Anda.'));setActiveOffer({id,actorId:payload.actorId??session.user.id,viewerIsActor:true,items:offerItems,amount:selectedTotal,currency,expiresAt:payload.expiresAt??null});setOfferJustSent(true);setOfferCheckComplete(true);toast.success(isBuying?t('Offer sent to the seller.','Penawaran dikirim ke penjual.'):isSealedRequest?t('Product offer sent to the buyer.','Penawaran produk dikirim ke pembeli.'):t('Your cards were offered to the buyer.','Kartu Anda ditawarkan ke pembeli.'),{action:{label:t('See offer','Lihat penawaran'),onClick:()=>openOfferConversation(id)}});}catch(error){const message=error instanceof Error?error.message:'';const localized=language==='ID'&&message.includes('listing is no longer active')?'Listing ini sudah tidak aktif.':language==='ID'&&message.includes('listing has expired')?'Listing ini sudah kedaluwarsa.':language==='ID'&&message.includes('firm price')?'Listing ini menggunakan harga pas dan tidak menerima penawaran.':language==='ID'&&message.includes('Offer total must match')?'Total penawaran harus sesuai dengan harga tiap kartu.':message||t('We could not send your offer.','Gagal mengirimkan penawaran Anda.');toast.error(localized)}
+  };
+  const uploadSealedOfferPhotos=async(files:FileList|null)=>{
+    if(!files?.length)return;
+    const selectedFiles=Array.from(files).slice(0,6-sealedOfferPhotos.length);
+    setSealedPhotoBusy(true);
+    try{const ids:string[]=[];for(const file of selectedFiles){const form=new FormData();form.set('photo',file);const response=await fetch('/api/market/product-photos',{method:'POST',body:form});const payload=await response.json() as {id?:string;error?:string};if(!response.ok||!payload.id)throw new Error(payload.error||t('Photo could not be uploaded.','Foto gagal diunggah.'));ids.push(payload.id)}setSealedOfferPhotos(current=>[...current,...ids]);}
+    catch(error){toast.error(error instanceof Error?error.message:t('Photo could not be uploaded.','Foto gagal diunggah.'))}
+    finally{setSealedPhotoBusy(false)}
   };
   const buySelected=()=>{
     if(previewOnly)return;
@@ -609,7 +625,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
     toast.success(current?t('Cart updated','Keranjang diperbarui'):t('Added to cart','Ditambahkan ke keranjang'),{action:{label:t('View cart','Lihat keranjang'),onClick:()=>window.dispatchEvent(new Event('vivreplay:open-market-cart'))}});
   };
 
-  return <section className="market-listing-cards" aria-label={t('Cards in this listing','Kartu dalam listing ini')}>
+  return <section className="market-listing-cards" aria-label={isSealedRequest?t('Products in this buying request','Produk dalam permintaan ini'):t('Cards in this listing','Kartu dalam listing ini')}>
     <header className="market-listing-cards-header">
       <div className="market-listing-cards-heading">
         <h2>{items.some(item=>item.sealedProductId)?t('Products in this listing','Produk dalam listing ini'):t('Cards in this listing','Kartu dalam listing ini')}</h2>
@@ -707,7 +723,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
             {!readOnly&&acceptsOffers&&offerCheckComplete&&!activeOffer&&!submitting&&amount>0 && (
               <div className="market-card-offer">
                 <div className="market-card-offer-label">
-                  <span>{t('Offer price / card:','Tawar harga / kartu:')}</span>
+                  <span>{item.sealedProductId?t('Offer per item','Tawaran per produk'):t('Offer price per card','Tawaran per kartu')}</span>
                   {unitPrice!==item.unitAmount && (
                     <span className={`market-card-offer-badge ${diffPercent<0?'is-below':'is-above'}`}>
                       {diffPercent>0?`+${diffPercent}%`:`${diffPercent}%`}
@@ -793,6 +809,20 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
         </article>;
       })}
     </div>
+    {!readOnly&&isSealedRequest&&selectedCount>0&&!activeOffer&&<section className="market-sealed-offer-details" aria-label={t('Product details','Detail produk')}>
+      <div className="market-sealed-offer-heading"><strong>{t('Product details','Detail produk')}</strong><span>{t('Add photos and packed size so the buyer can review delivery.','Tambahkan foto dan ukuran paket agar pembeli dapat memeriksa pengiriman.')}</span></div>
+      <div className="market-sealed-offer-fields">
+        <label>{t('Packaging condition','Kondisi kemasan')}<select value={sealedOfferCondition} onChange={event=>setSealedOfferCondition(event.target.value as 'SEALED'|'SEALED_DAMAGED')}><option value="SEALED">{t('Factory sealed','Segel pabrik')}</option><option value="SEALED_DAMAGED">{t('Sealed with packaging damage','Segel utuh, kemasan rusak')}</option></select></label>
+        <label>{t('Packed weight (g)','Berat paket (g)')}<input type="number" min="10" value={sealedOfferParcel.weight} onChange={event=>setSealedOfferParcel(value=>({...value,weight:event.target.value}))}/></label>
+        <label>{t('Length (cm)','Panjang (cm)')}<input type="number" min="1" value={sealedOfferParcel.length} onChange={event=>setSealedOfferParcel(value=>({...value,length:event.target.value}))}/></label>
+        <label>{t('Width (cm)','Lebar (cm)')}<input type="number" min="1" value={sealedOfferParcel.width} onChange={event=>setSealedOfferParcel(value=>({...value,width:event.target.value}))}/></label>
+        <label>{t('Height (cm)','Tinggi (cm)')}<input type="number" min="1" value={sealedOfferParcel.height} onChange={event=>setSealedOfferParcel(value=>({...value,height:event.target.value}))}/></label>
+      </div>
+      <label className="market-sealed-offer-photo-input">{t('Product photos','Foto produk')}<input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={sealedPhotoBusy||sealedOfferPhotos.length>=6} onChange={event=>{void uploadSealedOfferPhotos(event.target.files);event.target.value='';}}/><small>{t('Show the seal and any wear on the packaging.','Tampilkan segel dan kondisi kemasan.')}</small></label>
+      {sealedOfferPhotos.length>0&&<div className="market-sealed-offer-photo-list">{sealedOfferPhotos.map((photo,index)=><figure key={photo}><img src={`/api/market/product-photos/${photo}`} alt={t(`Product photo ${index+1}`,`Foto produk ${index+1}`)}/><button type="button" onClick={()=>setSealedOfferPhotos(current=>current.filter(id=>id!==photo))} aria-label={t('Remove photo','Hapus foto')}>{t('Remove','Hapus')}</button></figure>)}</div>}
+      {!sealedOfferReady&&<small className="market-sealed-offer-requirement" role="status">{sealedPhotoBusy?t('Uploading photos…','Mengunggah foto…'):t('Add at least one photo and enter all four packed measurements.','Tambahkan minimal satu foto dan isi keempat ukuran paket.')}</small>}
+      <label>{t('Packaging notes','Catatan kemasan')}<textarea maxLength={1000} value={sealedOfferNotes} onChange={event=>setSealedOfferNotes(event.target.value)} placeholder={t('Mention dents, tears, or other wear','Sebutkan penyok, sobekan, atau kerusakan lain')}/></label>
+    </section>}
     {canManageListing&&listingType==='WTS'&&!items.some(item=>item.sealedProductId)&&<MarketAddCardsModal key={addCardsOpen?'open':'closed'} open={addCardsOpen} listingId={listingId} listingItems={items.map(item=>({instanceId:item.instanceId,printingId:item.id,quantity:item.quantity,condition:item.condition,unitAmount:item.unitAmount,card:item.card,language:item.language}))} currency={currency} language={language} onClose={()=>setAddCardsOpen(false)} onAdded={cards=>{onItemsAdded?.(cards);router.refresh()}}/>}
     {preview&&<CardPreviewModal card={preview} initialPrintingId={previewPrintingId} printingIds={items.map(item=>item.id)} language={preview.language==='JP'?'JP':'EN'} cards={items.map(item=>item.card)} marketActions={!readOnly&&!previewOnly} onClose={()=>{setPreview(undefined);setPreviewPrintingId(undefined)}} onNavigate={(card,index)=>{setPreview(card);setPreviewPrintingId(items[index]?.id)}}/>}
     <AddEditItemModal key={`${vaultTarget?.id??'market-listing-card'}-${Boolean(vaultTarget)}`} open={Boolean(vaultTarget)} onClose={()=>setVaultTarget(null)} onSaved={()=>router.refresh()} initialCard={vaultTarget?.card} initialPrintingId={vaultTarget?.id} isAnonymous={!session?.user} language={language}/>
@@ -823,7 +853,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
         {isBuying&&<button type="button" className="button market-buy-selected" disabled={!selectedCount||submitting||previewOnly} onClick={buySelected}>{singleCopyListing?t('Buy now','Beli sekarang'):t('Buy selected','Beli pilihan')}</button>}
         {isBuying&&!readOnly&&<button type="button" className={`button secondary market-add-cart${selectionInCart?' is-in-cart':''}`} title={selectionInCart?t('In cart — view cart','Sudah di keranjang — lihat keranjang'):t('Add selected cards to cart','Tambahkan kartu pilihan ke keranjang')} aria-label={selectionInCart?t('In cart — view cart','Sudah di keranjang — lihat keranjang'):t('Add selected cards to cart','Tambahkan kartu pilihan ke keranjang')} aria-pressed={selectionInCart} disabled={!selectedCount||submitting||previewOnly} onClick={addSelectedToCart}>{selectionInCart?<Check size={18}/>:<Cart size={18}/>}</button>}
         {activeOffer&&<button type="button" className="button market-listing-offer-action" onClick={()=>openOfferConversation(activeOffer.id)}>{activeOffer.viewerIsActor?t('See offer','Lihat penawaran'):t('Review counteroffer','Tinjau penawaran balik')}</button>}
-        {!activeOffer&&acceptsOffers&&<button type="button" className="button market-listing-offer-action" disabled={!selectedCount||submitting||!offerCheckComplete||previewOnly} onClick={continueOffer}>{submitting?t('Sending...','Mengirim...'):!offerCheckComplete?t('Checking offer…','Memeriksa penawaran…'):session?(hasPriceAdjustments?t('Submit offer','Kirim penawaran'):actionLabel):(language==='ID'?`Masuk untuk ${isBuying?'menawar':'menawarkan'}`:`Sign in to ${actionLabel.toLowerCase()}`)}</button>}
+        {!activeOffer&&acceptsOffers&&<button type="button" className="button market-listing-offer-action" disabled={!selectedCount||submitting||sealedPhotoBusy||(isSealedRequest&&!sealedOfferReady)||!offerCheckComplete||previewOnly} onClick={continueOffer}>{submitting?t('Sending...','Mengirim...'):!offerCheckComplete?t('Checking offer…','Memeriksa penawaran…'):session?(hasPriceAdjustments?t('Submit offer','Kirim penawaran'):actionLabel):(language==='ID'?`Masuk untuk ${isBuying?'menawar':'menawarkan'}`:`Sign in to ${actionLabel.toLowerCase()}`)}</button>}
         <ShareButton
           title={listingTitle ?? t('Card listing','Listing kartu')}
           path={marketListingPath(listingTitle??'Card listing',listingId)}

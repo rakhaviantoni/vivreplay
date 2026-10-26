@@ -47,7 +47,11 @@ class CardMatcher:
         if os.path.exists(emb_path) and os.path.exists(meta_path):
             self.catalog_matrix = np.load(emb_path).astype(np.float32)
             with open(meta_path, "r", encoding="utf-8") as f:
-                self.catalog_metadata = json.load(f)
+                raw_meta = json.load(f)
+                for item in raw_meta:
+                    if str(item.get("cardNumber", "")).startswith("CT-"):
+                        item["cardNumber"] = ""
+                self.catalog_metadata = raw_meta
             print(f"[Matcher] Loaded {len(self.catalog_metadata)} catalog card embeddings from {self.index_dir}")
             return True
         else:

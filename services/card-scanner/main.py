@@ -22,9 +22,9 @@ app = FastAPI(
 # Enable CORS for cross-origin requests from VivrePlay web
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origin_regex=r"^https://([a-zA-Z0-9-]+\.)*vivreplay\.com$|^http://localhost(:\d+)?$",
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
 
