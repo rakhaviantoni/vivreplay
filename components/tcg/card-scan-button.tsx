@@ -35,8 +35,54 @@ async function getPaddleEngine():Promise<PaddleEngine>{
   try{return await paddleEnginePromise}catch(error){paddleEnginePromise=undefined;throw error}
 }
 
-function dataUrl(bitmap:ImageBitmap,box:{x:number;y:number;width:number;height:number},maxWidth:number,maxScale=1,enhance=false){
-  const scale=Math.min(maxScale,maxWidth/box.width);
+async function loadSourceCanvas(file:Blob):Promise<{canvas:HTMLCanvasElement;width:number;height:number}>{
+  const maxDim=1920;
+  if(typeof createImageBitmap!=='undefined'){
+    try{
+      const bitmap=await createImageBitmap(file);
+      const scale=Math.min(1,maxDim/Math.max(bitmap.width,bitmap.height));
+      const width=Math.max(1,Math.round(bitmap.width*scale));
+      const height=Math.max(1,Math.round(bitmap.height*scale));
+      const canvas=document.createElement('canvas');
+      canvas.width=width;canvas.height=height;
+      const context=canvas.getContext('2d');
+      if(context){
+        context.imageSmoothingEnabled=true;
+        context.imageSmoothingQuality='high';
+        context.drawImage(bitmap,0,0,width,height);
+        bitmap.close();
+        return {canvas,width,height};
+      }
+      bitmap.close();
+    }catch{}
+  }
+  return new Promise((resolve,reject)=>{
+    const url=URL.createObjectURL(file);
+    const img=new window.Image();
+    img.onload=()=>{
+      URL.revokeObjectURL(url);
+      const scale=Math.min(1,maxDim/Math.max(img.naturalWidth,img.naturalHeight));
+      const width=Math.max(1,Math.round(img.naturalWidth*scale));
+      const height=Math.max(1,Math.round(img.naturalHeight*scale));
+      const canvas=document.createElement('canvas');
+      canvas.width=width;canvas.height=height;
+      const context=canvas.getContext('2d');
+      if(!context){reject(new Error('Canvas context unavailable'));return;}
+      context.imageSmoothingEnabled=true;
+      context.imageSmoothingQuality='high';
+      context.drawImage(img,0,0,width,height);
+      resolve({canvas,width,height});
+    };
+    img.onerror=()=>{
+      URL.revokeObjectURL(url);
+      reject(new Error('Could not decode image'));
+    };
+    img.src=url;
+  });
+}
+
+function dataUrl(source:HTMLCanvasElement,box:{x:number;y:number;width:number;height:number},maxWidth:number,maxScale=1,enhance=false){
+  const scale=Math.min(maxScale,maxWidth/Math.max(1,box.width));
   const canvas=document.createElement('canvas');
   canvas.width=Math.max(1,Math.round(box.width*scale));
   canvas.height=Math.max(1,Math.round(box.height*scale));
@@ -44,7 +90,7 @@ function dataUrl(bitmap:ImageBitmap,box:{x:number;y:number;width:number;height:n
   if(!context)return '';
   context.imageSmoothingEnabled=true;
   context.imageSmoothingQuality='high';
-  context.drawImage(bitmap,box.x,box.y,box.width,box.height,0,0,canvas.width,canvas.height);
+  context.drawImage(source,box.x,box.y,box.width,box.height,0,0,canvas.width,canvas.height);
   if(enhance){
     const image=context.getImageData(0,0,canvas.width,canvas.height);
     for(let index=0;index<image.data.length;index+=4){
@@ -54,7 +100,9 @@ function dataUrl(bitmap:ImageBitmap,box:{x:number;y:number;width:number;height:n
     }
     context.putImageData(image,0,0);
   }
-  return canvas.toDataURL('image/jpeg',1);
+  const url=canvas.toDataURL('image/jpeg',.88);
+  canvas.width=0;canvas.height=0;
+  return url;
 }
 
 function videoCropBlob(video:HTMLVideoElement,bounds:NormalizedBounds,maxWidth:number):Promise<Blob|null>{
@@ -64,9 +112,12 @@ function videoCropBlob(video:HTMLVideoElement,bounds:NormalizedBounds,maxWidth:n
   canvas.width=Math.max(1,Math.round(width*scale));canvas.height=Math.max(1,Math.round(height*scale));
   const context=canvas.getContext('2d');
   if(!context)return Promise.resolve(null);
-  context.imageSmoothingEnabled=true;context.imageSmoothingQuality='high';
+  context.imageSmoothingEnabled=true;context.imageSmoothingQuality='medium';
   context.drawImage(video,x,y,width,height,0,0,canvas.width,canvas.height);
-  return new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',.94));
+  return new Promise(resolve=>canvas.toBlob(blob=>{
+    canvas.width=0;canvas.height=0;
+    resolve(blob);
+  },'image/jpeg',.85));
 }
 
 function liveCardName(items:Array<{text:string;score:number;poly:Array<[number,number]>}>,imageHeight:number){
@@ -94,28 +145,34 @@ function parseLiveCardRead(text:string,requestedGame:Props['game'],name?:string)
 }
 
 async function scanImages(file:File,game:Props['game'],cropOverride?:NormalizedBounds){
-  const bitmap=await createImageBitmap(file);
+  const {canvas:sourceCanvas,width,height}=await loadSourceCanvas(file);
   try{
-    const full=dataUrl(bitmap,{x:0,y:0,width:bitmap.width,height:bitmap.height},1500);
-    const detectionScale=Math.min(1,240/bitmap.width,240/bitmap.height);
+    const full=dataUrl(sourceCanvas,{x:0,y:0,width,height},1080);
+    const detectionScale=Math.min(1,240/width,240/height);
     const detectionCanvas=document.createElement('canvas');
-    detectionCanvas.width=Math.max(1,Math.round(bitmap.width*detectionScale));
-    detectionCanvas.height=Math.max(1,Math.round(bitmap.height*detectionScale));
+    detectionCanvas.width=Math.max(1,Math.round(width*detectionScale));
+    detectionCanvas.height=Math.max(1,Math.round(height*detectionScale));
     const detectionContext=detectionCanvas.getContext('2d',{willReadFrequently:true});
-    detectionContext?.drawImage(bitmap,0,0,detectionCanvas.width,detectionCanvas.height);
+    detectionContext?.drawImage(sourceCanvas,0,0,detectionCanvas.width,detectionCanvas.height);
     const detected=detectionContext?detectCardBounds(detectionContext.getImageData(0,0,detectionCanvas.width,detectionCanvas.height)):null;
+    const detW=detectionCanvas.width;
+    const detH=detectionCanvas.height;
+    detectionCanvas.width=0;
+    detectionCanvas.height=0;
     const bounds=cropOverride?{
-      x:cropOverride.x*bitmap.width,y:cropOverride.y*bitmap.height,
-      width:cropOverride.width*bitmap.width,height:cropOverride.height*bitmap.height,
+      x:cropOverride.x*width,y:cropOverride.y*height,
+      width:cropOverride.width*width,height:cropOverride.height*height,
     }:detected?{
-      x:detected.x/detectionCanvas.width*bitmap.width,
-      y:detected.y/detectionCanvas.height*bitmap.height,
-      width:detected.width/detectionCanvas.width*bitmap.width,
-      height:detected.height/detectionCanvas.height*bitmap.height,
-    }:{x:0,y:0,width:bitmap.width,height:bitmap.height};
-    const relative=(x:number,y:number,width:number,height:number)=>({
-      x:bounds.x+bounds.width*x,y:bounds.y+bounds.height*y,
-      width:bounds.width*width,height:bounds.height*height,
+      x:(detected.x/detW)*width,
+      y:(detected.y/detH)*height,
+      width:(detected.width/detW)*width,
+      height:(detected.height/detH)*height,
+    }:{x:0,y:0,width,height};
+    const relative=(x:number,y:number,w:number,h:number)=>({
+      x:Math.max(0,bounds.x+bounds.width*x),
+      y:Math.max(0,bounds.y+bounds.height*y),
+      width:Math.min(width-(bounds.x+bounds.width*x),bounds.width*w),
+      height:Math.min(height-(bounds.y+bounds.height*y),bounds.height*h),
     });
     const footer=(top:number)=>relative(0,top,1,1-top);
     const pokemonCorner=relative(0,.7,.58,.3);
@@ -123,9 +180,12 @@ async function scanImages(file:File,game:Props['game'],cropOverride?:NormalizedB
     // The card-relative crops keep the scanner on its lower corners even if
     // the card is small or offset in the photo. The full image stays as backup.
     const crops=game==='pokemon'?[pokemonCorner,footer(.7),footer(.84)]:game==='one-piece'?[onePieceCorner,footer(.7),footer(.84)]:[pokemonCorner,onePieceCorner,footer(.7),footer(.84)];
-    const focused=crops.map((crop,index)=>dataUrl(bitmap,crop,2400,4,index>0));
-    return {images:[full,...focused],width:bitmap.width,height:bitmap.height,bounds:{x:bounds.x/bitmap.width,y:bounds.y/bitmap.height,width:bounds.width/bitmap.width,height:bounds.height/bitmap.height}};
-  }finally{bitmap.close();}
+    const focused=crops.map((crop,index)=>dataUrl(sourceCanvas,crop,960,2,index>0));
+    return {images:[full,...focused],width,height,bounds:{x:bounds.x/width,y:bounds.y/height,width:bounds.width/width,height:bounds.height/height}};
+  }finally{
+    sourceCanvas.width=0;
+    sourceCanvas.height=0;
+  }
 }
 
 function cardHref(card:CardScanCandidate,locale:'EN'|'ID'){
@@ -219,7 +279,7 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
     setError('');
     try{
       cameraStream.current=await navigator.mediaDevices.getUserMedia({
-        video:{facingMode:{ideal:'environment'},width:{ideal:3840},height:{ideal:2160},frameRate:{ideal:30,max:30}},
+        video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080},frameRate:{ideal:30,max:30}},
         audio:false,
       });
       const cameraTrack=cameraStream.current.getVideoTracks()[0];
@@ -240,36 +300,54 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
     captureInProgress.current=true;
     setCameraStatus('capturing');
     const scanArea=bounds??getCameraGuideBounds();
-    const track=cameraStream.current?.getVideoTracks()[0];
-    if(track&&typeof ImageCapture!=='undefined'){
-      try{
-        const blob=await new ImageCapture(track).takePhoto();
-        stopCamera();
-        await choose(new File([blob],'card-scan.jpg',{type:blob.type||'image/jpeg'}),autoScan,scanArea);
-        return;
-      }catch{
-        // Some browsers expose ImageCapture but cannot take a still photo.
-      }
-    }
     const video=videoRef.current;
-    if(!video||!video.videoWidth||!video.videoHeight){captureInProgress.current=false;return;}
-    const canvas=document.createElement('canvas');
-    canvas.width=video.videoWidth;canvas.height=video.videoHeight;
-    const context=canvas.getContext('2d');
-    if(!context){captureInProgress.current=false;setCameraStatus('steady');setError(id?'Foto tidak dapat diambil.':'Could not capture the photo.');return;}
-    context.drawImage(video,0,0,canvas.width,canvas.height);
-    canvas.toBlob(blob=>{
-      if(!blob){captureInProgress.current=false;setCameraStatus('steady');setError(id?'Foto tidak dapat disimpan.':'Could not save the photo.');return;}
+    if(!video||!video.videoWidth||!video.videoHeight){
+      captureInProgress.current=false;
+      setCameraStatus('searching');
+      return;
+    }
+    try{
+      const maxDim=1920;
+      const scale=Math.min(1,maxDim/Math.max(video.videoWidth,video.videoHeight));
+      const canvas=document.createElement('canvas');
+      canvas.width=Math.max(1,Math.round(video.videoWidth*scale));
+      canvas.height=Math.max(1,Math.round(video.videoHeight*scale));
+      const context=canvas.getContext('2d');
+      if(!context){
+        captureInProgress.current=false;
+        setCameraStatus('steady');
+        setError(id?'Foto tidak dapat diambil.':'Could not capture the photo.');
+        return;
+      }
+      context.imageSmoothingEnabled=true;
+      context.imageSmoothingQuality='high';
+      context.drawImage(video,0,0,canvas.width,canvas.height);
       stopCamera();
-      void choose(new File([blob],'card-scan.jpg',{type:'image/jpeg'}),autoScan,scanArea);
-    },'image/jpeg',.94);
+      await new Promise<void>(resolve=>{
+        canvas.toBlob(blob=>{
+          canvas.width=0;canvas.height=0;
+          if(!blob){
+            setCameraStatus('steady');
+            setError(id?'Foto tidak dapat disimpan.':'Could not save the photo.');
+            resolve();
+            return;
+          }
+          void choose(new File([blob],'card-scan.jpg',{type:'image/jpeg'}),autoScan,scanArea).finally(resolve);
+        },'image/jpeg',.92);
+      });
+    }catch{
+      setCameraStatus('steady');
+      setError(id?'Foto tidak dapat diambil.':'Could not capture the photo.');
+    }finally{
+      captureInProgress.current=false;
+    }
   };
-  const close=(next:boolean)=>{setOpen(next);if(!next){autoScanRequested.current=false;stopCamera();setPreview(undefined);setPreviewSize(undefined);setPreviewZoom(1);setPreviewPan({x:0,y:0});setScanBounds(undefined);setDetectedBounds(undefined);setSourceFile(undefined);setImages([]);setRead(undefined);setCandidates([]);setError('');setResultScroll({left:false,right:false});}};
+  const close=(next:boolean)=>{setOpen(next);if(!next){autoScanRequested.current=false;captureInProgress.current=false;stopCamera();setPreview(undefined);setPreviewSize(undefined);setPreviewZoom(1);setPreviewPan({x:0,y:0});setScanBounds(undefined);setDetectedBounds(undefined);setSourceFile(undefined);setImages([]);setRead(undefined);setCandidates([]);setError('');setResultScroll({left:false,right:false});}};
   const choose=async(file?:File,autoScan=false,captureBounds?:NormalizedBounds)=>{
     if(!file)return;
     autoScanRequested.current=autoScan;
     setError('');setRead(undefined);setCandidates([]);setImages([]);setScanBounds(undefined);setDetectedBounds(undefined);setSourceFile(file);setPreviewZoom(1);setPreviewPan({x:0,y:0});
-    if(file.size>12_000_000){autoScanRequested.current=false;setError(id?'Foto terlalu besar. Pilih gambar di bawah 12 MB.':'Photo is too large. Choose an image under 12 MB.');return;}
+    if(file.size>24_000_000){autoScanRequested.current=false;setError(id?'Foto terlalu besar. Pilih gambar di bawah 24 MB.':'Photo is too large. Choose an image under 24 MB.');return;}
     try{
       const prepared=await scanImages(file,game,captureBounds);
       setPreview(prepared.images[0]);setPreviewSize({width:prepared.width,height:prepared.height});setScanBounds(prepared.bounds);setDetectedBounds(prepared.bounds);setImages(prepared.images);
@@ -283,11 +361,22 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
       const engine=await getPaddleEngine();
       setOcrStage('reading');
       const prepared=await scanImages(sourceFile,game,scanBounds);
-      const cropImages=await Promise.all([...prepared.images.slice(1),prepared.images[0]].map(async image=>await (await fetch(image)).blob()));
-      const results=await engine.predict(cropImages);
-      const text=results.flatMap(result=>result.items.filter(item=>item.score>=.2).map(item=>item.text)).join('\n').trim();
-      if(!text.trim())throw new Error(id?'Teks kartu tidak terbaca. Pastikan nomor dan set terlihat jelas.':'No card text was recognized. Make sure the set and card number are visible.');
-      const response=await fetch('/api/cards/scan',{method:'POST',headers:{'content-type':'application/json',...turnstileHeaders(token)},body:JSON.stringify({game,text})});
+      const candidateUrls=[...prepared.images.slice(1),prepared.images[0]];
+      let combinedText='';
+      for(const dataUri of candidateUrls){
+        const blob=await (await fetch(dataUri)).blob();
+        const results=await engine.predict([blob]);
+        const text=results.flatMap(result=>result.items.filter(item=>item.score>=.2).map(item=>item.text)).join('\n').trim();
+        if(text){
+          combinedText=combinedText?`${combinedText}\n${text}`:text;
+          const candidateRead=parseLiveCardRead(combinedText,game);
+          if(candidateRead.cardNumber&&candidateRead.setCode){
+            break;
+          }
+        }
+      }
+      if(!combinedText.trim())throw new Error(id?'Teks kartu tidak terbaca. Pastikan nomor dan set terlihat jelas.':'No card text was recognized. Make sure the set and card number are visible.');
+      const response=await fetch('/api/cards/scan',{method:'POST',headers:{'content-type':'application/json',...turnstileHeaders(token)},body:JSON.stringify({game,text:combinedText})});
       const result=await response.json() as {error?:string;read?:CardScanRead;candidates?:CardScanCandidate[]};
       if(!response.ok)throw new Error(result.error??'Card scan failed.');
       setRead(result.read);setCandidates(result.candidates??[]);
@@ -311,7 +400,7 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
     let steadyFrames=0;
     let timer=0;
     const checkFrame=()=>{
-      if(!video.videoWidth||!video.videoHeight)return;
+      if(!video.videoWidth||!video.videoHeight||captureInProgress.current)return;
       let sourceX=0,sourceWidth=video.videoWidth;
       // Some phones expose a landscape stream while held upright. Inspect its
       // centered portrait area so a card can fill the guide naturally.
@@ -353,22 +442,19 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
     let timer=0;
     const runLiveRead=async()=>{
       if(cancelled)return;
-      if(!cameraSteady.current||liveOcrInProgress.current){timer=window.setTimeout(runLiveRead,900);return;}
+      if(!cameraSteady.current||liveOcrInProgress.current||captureInProgress.current){timer=window.setTimeout(runLiveRead,1200);return;}
       const guide=getCameraGuideBounds();
-      if(!guide||!video.videoWidth||!video.videoHeight){timer=window.setTimeout(runLiveRead,900);return;}
+      if(!guide||!video.videoWidth||!video.videoHeight){timer=window.setTimeout(runLiveRead,1200);return;}
       liveOcrInProgress.current=true;
       setLiveOcrStatus('loading');
       try{
         const engine=await getPaddleEngine();
-        if(cancelled)return;
+        if(cancelled||captureInProgress.current)return;
         setLiveOcrStatus('reading');
-        const bottom={x:guide.x,y:guide.y+guide.height*.68,width:guide.width,height:guide.height*.32};
-        const pokemonCorner={...bottom,width:bottom.width*.62};
-        const onePieceCorner={...bottom,x:bottom.x+bottom.width*.38,width:bottom.width*.62};
-        const crops=game==='pokemon'?[pokemonCorner]:game==='one-piece'?[onePieceCorner]:[pokemonCorner,onePieceCorner];
-        const blobs=await Promise.all([videoCropBlob(video,guide,1100),...crops.map(crop=>videoCropBlob(video,crop,1300))]);
-        const results=await engine.predict(blobs.filter((blob):blob is Blob=>Boolean(blob)));
-        if(cancelled)return;
+        const blob=await videoCropBlob(video,guide,720);
+        if(!blob||cancelled||captureInProgress.current)return;
+        const results=await engine.predict([blob]);
+        if(cancelled||captureInProgress.current)return;
         const text=results.flatMap(result=>result.items.filter(item=>item.score>=.23).map(item=>item.text)).join('\n').trim();
         const name=liveCardName(results[0]?.items??[],results[0]?.image.height??1);
         const parsed=parseLiveCardRead(text,game,name);
@@ -385,7 +471,7 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
           if(key){liveIdentity.current=liveIdentity.current.key===key?{key,count:liveIdentity.current.count+1}:{key,count:1};}
           setLiveOcrStatus('ready');
           const mergedName=Boolean(merged.name),mergedRarity=Boolean(merged.rarity),mergedLanguage=Boolean(merged.language);
-          if(key&&liveIdentity.current.count>=2&&mergedName&&mergedRarity&&mergedLanguage&&!autoCaptureStarted.current){
+          if(key&&liveIdentity.current.count>=2&&mergedName&&mergedRarity&&mergedLanguage&&!autoCaptureStarted.current&&!captureInProgress.current){
             autoCaptureStarted.current=true;
             void capturePhotoRef.current?.(true,getCameraGuideBounds());
           }
@@ -394,7 +480,7 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
         if(!cancelled)setLiveOcrStatus('waiting');
       }finally{
         liveOcrInProgress.current=false;
-        if(!cancelled)timer=window.setTimeout(runLiveRead,1400);
+        if(!cancelled&&!captureInProgress.current)timer=window.setTimeout(runLiveRead,1800);
       }
     };
     void runLiveRead();
