@@ -7,6 +7,7 @@ and saves the vector index for sub-10ms similarity search.
 import os
 import sys
 import json
+import gzip
 import argparse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -47,8 +48,12 @@ def build_index(input_json: str, output_dir: str, max_workers: int = 12):
     cache_dir = os.path.join(output_dir, "image_cache")
     os.makedirs(cache_dir, exist_ok=True)
 
-    with open(input_json, "r", encoding="utf-8") as f:
-        cards: List[Dict[str, Any]] = json.load(f)
+    if input_json.endswith(".gz"):
+        with gzip.open(input_json, "rt", encoding="utf-8") as f:
+            cards: List[Dict[str, Any]] = json.load(f)
+    else:
+        with open(input_json, "r", encoding="utf-8") as f:
+            cards: List[Dict[str, Any]] = json.load(f)
 
     print(f"[Indexer] Loaded {len(cards)} cards from {input_json}")
 
@@ -116,8 +121,9 @@ def build_index(input_json: str, output_dir: str, max_workers: int = 12):
 
 
 if __name__ == "__main__":
+    default_input = "data/catalog_seed.json.gz" if os.path.exists("data/catalog_seed.json.gz") else "data/catalog_seed.json"
     parser = argparse.ArgumentParser(description="Build visual search index for TCG card scanner")
-    parser.add_argument("--input", default="data/catalog_seed.json", help="Path to cards catalog JSON file")
+    parser.add_argument("--input", default=default_input, help="Path to cards catalog JSON/GZ file")
     parser.add_argument("--output", default="data", help="Output directory for index files")
     parser.add_argument("--workers", type=int, default=12, help="Parallel download workers")
     args = parser.parse_args()
