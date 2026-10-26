@@ -111,6 +111,21 @@ function dataUrl(source:HTMLCanvasElement,box:{x:number;y:number;width:number;he
   return url;
 }
 
+function videoCropBlob(video:HTMLVideoElement,bounds:NormalizedBounds,maxWidth:number):Promise<Blob|null>{
+  const x=bounds.x*video.videoWidth,y=bounds.y*video.videoHeight,width=bounds.width*video.videoWidth,height=bounds.height*video.videoHeight;
+  const scale=Math.min(1,maxWidth/width);
+  const canvas=document.createElement('canvas');
+  canvas.width=Math.max(1,Math.round(width*scale));canvas.height=Math.max(1,Math.round(height*scale));
+  const context=canvas.getContext('2d');
+  if(!context)return Promise.resolve(null);
+  context.imageSmoothingEnabled=true;context.imageSmoothingQuality='medium';
+  context.drawImage(video,x,y,width,height,0,0,canvas.width,canvas.height);
+  return new Promise(resolve=>canvas.toBlob(blob=>{
+    canvas.width=0;canvas.height=0;
+    resolve(blob);
+  },'image/jpeg',.85));
+}
+
 async function getCroppedCardBlob(file:File|Blob,bounds?:NormalizedBounds):Promise<Blob>{
   const {canvas:sourceCanvas,width,height}=await loadSourceCanvas(file);
   try{
@@ -272,6 +287,7 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
   const autoScanRequested=useRef(false);
   const cameraSteady=useRef(false);
   const cameraSteadySince=useRef<number|null>(null);
+  const liveScanning=useRef(false);
   const cropDrag=useRef<{pointerId:number;corner:'top-left'|'top-right'|'bottom-left'|'bottom-right'|'move'|null;startX:number;startY:number;startBounds?:NormalizedBounds}>({pointerId:-1,corner:null,startX:0,startY:0});
   const resultTrack=useRef<HTMLDivElement>(null);
   const panDrag=useRef<{pointerId:number;startX:number;startY:number;originX:number;originY:number}|null>(null);
@@ -545,6 +561,50 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
     let previous:NormalizedBounds|undefined;
     let steadyFrames=0;
     let timer=0;
+
+    const scanLiveFrame=async()=>{
+      if(liveScanning.current||candidates.length>0||!cameraActive||!videoRef.current)return;
+      const guideBounds=getCameraGuideBounds();
+      if(!guideBounds)return;
+      liveScanning.current=true;
+      try{
+        const video=videoRef.current;
+        if(!video||!video.videoWidth||!video.videoHeight)return;
+        const blob=await videoCropBlob(video,guideBounds,480);
+        if(!blob)return;
+        const vpsScannerUrl=process.env.NEXT_PUBLIC_CARD_SCANNER_URL||'https://scan.vivreplay.com';
+        const formData=new FormData();
+        formData.append('image',blob,'live-card.jpg');
+        if(selectedGame!=='auto')formData.append('game',selectedGame);
+        const res=await fetch(`${vpsScannerUrl.replace(/\/+$/,'')}/api/scan`,{method:'POST',body:formData,signal:AbortSignal.timeout(2800)});
+        if(res.ok){
+          const data=await res.json() as {status:string;product?:CardScanCandidate;candidates?:CardScanCandidate[]};
+          if(data.status==='match'&&data.product){
+            const rawMatches=data.candidates?.length?data.candidates:[data.product];
+            const matches=rawMatches.map(c=>({...c,cardNumber:cleanCardNumber(c.cardNumber)}));
+            const cleanProduct={...data.product,cardNumber:cleanCardNumber(data.product.cardNumber)};
+            triggerHaptic([40,50,40]);
+            setCandidates(matches);
+            setSelectedCandidateIndex(0);
+            setScanMethod('vision');
+            setRead({
+              game:cleanProduct.game,
+              name:cleanProduct.name,
+              setCode:cleanProduct.setCode,
+              cardNumber:cleanProduct.cardNumber,
+              cardNumberTotal:'',
+              language:cleanProduct.language,
+              rarity:cleanProduct.rarity,
+              variant:cleanProduct.variant,
+              block:'',
+            });
+          }
+        }
+      }catch{}finally{
+        liveScanning.current=false;
+      }
+    };
+
     const checkFrame=()=>{
       if(!video.videoWidth||!video.videoHeight||captureInProgress.current)return;
       let sourceX=0,sourceWidth=video.videoWidth;
@@ -565,7 +625,8 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
       cameraSteady.current=true;
       cameraSteadySince.current??=performance.now();
       setCameraStatus('steady');
-      if(!autoCaptureStarted.current&&cameraSteadySince.current!==null&&performance.now()-cameraSteadySince.current>=1600){
+      void scanLiveFrame();
+      if(!autoCaptureStarted.current&&candidates.length===0&&cameraSteadySince.current!==null&&performance.now()-cameraSteadySince.current>=2600){
         autoCaptureStarted.current=true;
         window.clearInterval(timer);
         setCameraStatus('capturing');

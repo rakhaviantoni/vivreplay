@@ -108,6 +108,16 @@ def detect_card_hough(gray: np.ndarray, edges: np.ndarray, min_area: float) -> O
     if area < min_area:
         return None
 
+    # Validate aspect ratio matches standard card proportion (~1.4)
+    rect = order_points(pts)
+    w_box = float(np.linalg.norm(rect[0] - rect[1]))
+    h_box = float(np.linalg.norm(rect[1] - rect[2]))
+    if w_box <= 0 or h_box <= 0:
+        return None
+    aspect = max(w_box, h_box) / min(w_box, h_box)
+    if aspect < 1.15 or aspect > 1.85:
+        return None
+
     return pts
 
 
@@ -129,7 +139,14 @@ def detect_card_contour(edges: np.ndarray, min_area: float) -> Optional[np.ndarr
         approx = cv2.approxPolyDP(cnt, 0.025 * peri, True)
 
         if len(approx) == 4 and cv2.isContourConvex(approx):
-            return approx.reshape(4, 2).astype("float32")
+            pts = approx.reshape(4, 2).astype("float32")
+            rect = order_points(pts)
+            w_box = float(np.linalg.norm(rect[0] - rect[1]))
+            h_box = float(np.linalg.norm(rect[1] - rect[2]))
+            if w_box > 0 and h_box > 0:
+                aspect = max(w_box, h_box) / min(w_box, h_box)
+                if 1.15 <= aspect <= 1.85:
+                    return pts
 
     return None
 
@@ -168,7 +185,27 @@ def extract_card(image_bytes: bytes, target_w: int = 400, target_h: int = 560) -
         detection_source = "contour"
         pts = detect_card_contour(edges, min_area)
 
+    orig_aspect = orig_h / max(1, orig_w)
+    is_already_cropped = 1.2 <= orig_aspect <= 1.65
+
+    # If image is already a card crop, reject sub-contours that isolate inner art (e.g. Mega Diancie crystal box)
+    if pts is not None:
+        detected_area = cv2.contourArea(pts.astype(np.int32))
+        frame_area = work_h * work_w
+        if is_already_cropped and detected_area < frame_area * 0.60:
+            pts = None
+
     if pts is None:
+        if is_already_cropped:
+            warped = cv2.resize(img, (target_w, target_h), interpolation=cv2.INTER_AREA)
+            return warped, {
+                "detection_source": "direct_resize",
+                "original_width": orig_w,
+                "original_height": orig_h,
+                "scaled_working_width": work_w,
+                "scaled_working_height": work_h,
+                "corners": [[0, 0], [orig_w, 0], [orig_w, orig_h], [0, orig_h]]
+            }
         detection_source = "center_crop"
         # Standard card aspect ratio is 2.5 x 3.5 = 1 : 1.4
         aspect = 1.4

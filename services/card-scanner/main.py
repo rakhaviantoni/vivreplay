@@ -68,7 +68,7 @@ async def scan_card(
 
     scan_id = str(uuid.uuid4())
 
-    if not results or results[0]["score"] < 0.40:
+    if not results or results[0]["score"] < 0.32:
         return {
             "status": "no_match",
             "scan_id": scan_id,
