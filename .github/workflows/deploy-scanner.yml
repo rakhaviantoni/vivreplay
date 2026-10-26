@@ -1,0 +1,67 @@
+name: Deploy Card Scanner to VPS
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'services/card-scanner/**'
+      - '.github/workflows/deploy-scanner.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-card-scanner
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy Scanner Service
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SCANNER_VPS_HOST }}
+          username: ${{ secrets.SCANNER_VPS_USER || 'ubuntu' }}
+          key: ${{ secrets.SCANNER_VPS_SSH_KEY }}
+          password: ${{ secrets.SCANNER_VPS_PASSWORD }}
+          port: ${{ secrets.SCANNER_VPS_PORT || 22 }}
+          script: |
+            set -e
+            echo "=== Updating VivrePlay Card Scanner ==="
+            if [ -d "$HOME/tcg-platform" ]; then
+              APP_DIR="$HOME/tcg-platform"
+            elif [ -d "/home/ubuntu/tcg-platform" ]; then
+              APP_DIR="/home/ubuntu/tcg-platform"
+            elif [ -d "/root/tcg-platform" ]; then
+              APP_DIR="/root/tcg-platform"
+            else
+              echo "Error: tcg-platform repository directory not found"
+              exit 1
+            fi
+
+            cd "$APP_DIR"
+            git fetch origin main
+            git reset --hard origin/main
+
+            cd "$APP_DIR/services/card-scanner"
+
+            if [ -f "sync_metadata.py" ] && [ -f "data/catalog_metadata.json" ]; then
+              echo "Syncing catalog metadata..."
+              python3 sync_metadata.py || true
+            fi
+
+            echo "Restarting card-scanner service..."
+            sudo systemctl restart card-scanner
+            sleep 2
+            sudo systemctl is-active --quiet card-scanner && echo "Card scanner service is active and healthy!" || {
+              echo "Service failed to restart. Checking logs:"
+              sudo journalctl -u card-scanner -n 25 --no-pager
+              exit 1
+            }
+
+            if command -v curl &> /dev/null; then
+              echo "Checking local health endpoint..."
+              curl -s http://127.0.0.1:8000/health || true
+            fi
+            echo "=== Deployment Complete ==="
