@@ -89,13 +89,15 @@ async def scan_card(
     best = results[0] if results else None
     best_score = best["score"] if best else 0.0
     second_score = results[1]["score"] if len(results) > 1 else 0.0
+    margin = round(best_score - second_score, 4) if len(results) > 1 else 0.10
 
-    # Strict confidence check to prevent false positives:
-    # A true card match has score >= 0.40, or >= 0.36 with a clear distinction over rank 2.
+    # Confident match logic:
+    # 1. High absolute similarity (>= 0.36) -> instant match
+    # 2. Moderate similarity (>= 0.32) WITH a distinct margin (>= 0.03) above rank 2 -> matches real cards under room lighting while rejecting random backgrounds
     is_confident_match = bool(
         best and (
-            best_score >= 0.40 or
-            (best_score >= 0.36 and (best_score - second_score) >= 0.04)
+            best_score >= 0.36 or
+            (best_score >= 0.32 and margin >= 0.03)
         )
     )
 
