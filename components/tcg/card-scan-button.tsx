@@ -357,6 +357,35 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
     if(!sourceFile||!scanBounds)return;
     if(turnstileEnabled&&!token){setError(id?'Selesaikan pemeriksaan keamanan.':'Complete the security check first.');return;}
     setBusy(true);setOcrStage('loading');setError('');setRead(undefined);setCandidates([]);setResultScroll({left:false,right:false});
+    const vpsScannerUrl=process.env.NEXT_PUBLIC_CARD_SCANNER_URL;
+    if(vpsScannerUrl){
+      try{
+        setOcrStage('reading');
+        const formData=new FormData();
+        formData.append('image',sourceFile,'card-scan.jpg');
+        if(game!=='auto')formData.append('game',game);
+        const vpsResponse=await fetch(`${vpsScannerUrl.replace(/\/+$/,'')}/api/scan`,{method:'POST',body:formData});
+        if(vpsResponse.ok){
+          const vpsData=await vpsResponse.json() as {status:string;product?:CardScanCandidate;candidates?:CardScanCandidate[]};
+          if(vpsData.status==='match'&&vpsData.product){
+            const matches=vpsData.candidates?.length?vpsData.candidates:[vpsData.product];
+            setCandidates(matches);
+            setRead({
+              game:vpsData.product.game,
+              name:vpsData.product.name,
+              setCode:vpsData.product.setCode,
+              cardNumber:vpsData.product.cardNumber,
+              cardNumberTotal:'',
+              language:vpsData.product.language,
+              rarity:vpsData.product.rarity,
+              variant:vpsData.product.variant,
+              block:'',
+            });
+            return;
+          }
+        }
+      }catch{}
+    }
     try{
       const engine=await getPaddleEngine();
       setOcrStage('reading');
