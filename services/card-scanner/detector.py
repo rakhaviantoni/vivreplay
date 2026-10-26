@@ -172,6 +172,13 @@ def extract_card(image_bytes: bytes, target_w: int = 400, target_h: int = 560) -
         raise ValueError("Could not decode image bytes into OpenCV matrix")
 
     orig_h, orig_w = img.shape[:2]
+
+    # Auto-orient: All TCG cards are portrait (height > width).
+    # If the camera captured in landscape (w > h), rotate 90° clockwise to portrait.
+    if orig_w > orig_h:
+        img = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
+        orig_h, orig_w = img.shape[:2]
+
     # Resize working image to max 1080px for fast edge detection
     max_dim = 1080
     scale = min(1.0, max_dim / max(orig_h, orig_w))
@@ -202,11 +209,11 @@ def extract_card(image_bytes: bytes, target_w: int = 400, target_h: int = 560) -
             if pts is not None:
                 detection_source = "contour"
 
-        # If image is already a card crop, reject sub-contours that isolate inner art (e.g. Mega Diancie crystal box)
+        # If image is already a card crop, reject tiny sub-contours that isolate inner art (e.g. Mega Diancie crystal box)
         if pts is not None:
             detected_area = cv2.contourArea(pts.astype(np.int32))
             frame_area = work_h * work_w
-            if is_already_cropped and detected_area < frame_area * 0.60:
+            if is_already_cropped and detected_area < frame_area * 0.35:
                 pts = None
     except Exception as err:
         print(f"[Detector] OpenCV extraction warning: {err}")

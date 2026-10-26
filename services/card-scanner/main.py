@@ -6,6 +6,7 @@ Provides instant card recognition via OpenCV Hough/contour detection and visual 
 import time
 import uuid
 from typing import Optional
+import cv2
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -83,6 +84,16 @@ async def scan_card(
         if secondary_score > primary_score:
             results = results_secondary
             chosen_source = det_meta.get("secondary_source", "secondary")
+
+    # Orientation check: if card was held upside-down, test 180° rotation
+    current_best_score = results[0]["score"] if results else 0.0
+    if current_best_score < 0.88:
+        flipped = cv2.rotate(primary_card, cv2.ROTATE_180)
+        results_flipped = matcher.search(flipped, top_k=top_k, game=game)
+        flipped_score = results_flipped[0]["score"] if results_flipped else 0.0
+        if flipped_score > current_best_score + 0.03:
+            results = results_flipped
+            chosen_source = f"{chosen_source}_flipped180"
 
     elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
     scan_id = str(uuid.uuid4())

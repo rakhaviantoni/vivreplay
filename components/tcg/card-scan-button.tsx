@@ -566,19 +566,26 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
     triggerHaptic(35);
     try{
       const guideBounds=getCameraGuideBounds();
-      const blob=await videoCropBlob(video,guideBounds??{x:0.1,y:0.1,width:0.8,height:0.8},720);
+      const blob=await videoCropBlob(video,guideBounds??{x:0.1,y:0.1,width:0.8,height:0.8},1080);
       if(!blob){
         setError(id?'Foto tidak dapat diambil.':'Could not capture frame.');
         return;
       }
       const matches=await scanBlob(blob,true);
-      if(matches&&matches.length>0){
+      const topScore=matches?.[0]?.score??0;
+      if(matches&&matches.length>0&&topScore>=0.90){
         triggerHaptic([40,50,40]);
         setCandidates(matches);
         setSelectedCandidateIndex(0);
         videoRef.current?.pause();
       }else{
-        setError(id?'Kartu belum terdeteksi. Posisikan seluruh kartu di dalam bingkai dan pastikan tidak silau.':'No card recognized. Keep the whole card inside the frame and avoid glare.');
+        // If match confidence is ambiguous or no match, transition the captured photo directly into the Zoom & Crop workspace
+        stopCamera();
+        const file=new File([blob],'camera-capture.jpg',{type:'image/jpeg'});
+        await chooseFile(file);
+        if(!matches||matches.length===0){
+          setError(id?'Sesuaikan bingkai di sekeliling kartu lalu tekan Cari Kartu.':'Adjust the frame around the card and tap Search Card.');
+        }
       }
     }catch{
       setError(id?'Gagal memindai kartu. Silakan coba lagi.':'Scan failed. Please try again.');
