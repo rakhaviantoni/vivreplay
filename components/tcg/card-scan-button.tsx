@@ -120,6 +120,37 @@ function videoCropBlob(video:HTMLVideoElement,bounds:NormalizedBounds,maxWidth:n
   },'image/jpeg',.85));
 }
 
+async function getCroppedCardBlob(file:File|Blob,bounds?:NormalizedBounds):Promise<Blob>{
+  const {canvas:sourceCanvas,width,height}=await loadSourceCanvas(file);
+  try{
+    const box=bounds?{
+      x:Math.max(0,Math.min(width-10,Math.round(bounds.x*width))),
+      y:Math.max(0,Math.min(height-10,Math.round(bounds.y*height))),
+      width:Math.min(width,Math.max(20,Math.round(bounds.width*width))),
+      height:Math.min(height,Math.max(20,Math.round(bounds.height*height))),
+    }:{x:0,y:0,width,height};
+    const cropCanvas=document.createElement('canvas');
+    const maxDim=800;
+    const scale=Math.min(1,maxDim/Math.max(box.width,box.height));
+    cropCanvas.width=Math.max(1,Math.round(box.width*scale));
+    cropCanvas.height=Math.max(1,Math.round(box.height*scale));
+    const context=cropCanvas.getContext('2d');
+    if(!context)return file;
+    context.imageSmoothingEnabled=true;
+    context.imageSmoothingQuality='high';
+    context.drawImage(sourceCanvas,box.x,box.y,box.width,box.height,0,0,cropCanvas.width,cropCanvas.height);
+    return new Promise(resolve=>{
+      cropCanvas.toBlob(blob=>{
+        cropCanvas.width=0;cropCanvas.height=0;
+        resolve(blob??file);
+      },'image/jpeg',.90);
+    });
+  }finally{
+    sourceCanvas.width=0;
+    sourceCanvas.height=0;
+  }
+}
+
 function liveCardName(items:Array<{text:string;score:number;poly:Array<[number,number]>}>,imageHeight:number){
   const ignored=/^(?:BASIC|STAGE\s*\d|CHARACTER|LEADER|DON!!|TRAINER|SUPPORTER|ITEM|STADIUM|ENERGY|POK[EÉ]MON|HP\s*\d*|WEAKNESS|RESISTANCE|RETREAT|ILLUS\.?|NO\.?\s*\d+|[A-Z0-9]{1,3})$/i;
   return items.map(item=>{
@@ -219,8 +250,7 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
   const [cameraActive,setCameraActive]=useState(false);
   const [cameraReady,setCameraReady]=useState(false);
   const [cameraStatus,setCameraStatus]=useState<'searching'|'steady'|'capturing'>('searching');
-  const [liveRead,setLiveRead]=useState<LiveCardScanRead>({});
-  const [liveOcrStatus,setLiveOcrStatus]=useState<'waiting'|'loading'|'reading'|'ready'>('waiting');
+  const [scanMethod,setScanMethod]=useState<'vision'|'ocr'|null>(null);
   const [useCameraPicker,setUseCameraPicker]=useState(false);
   const [scanBounds,setScanBounds]=useState<NormalizedBounds>();
   const [detectedBounds,setDetectedBounds]=useState<NormalizedBounds>();
@@ -248,9 +278,6 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
   const autoScanRequested=useRef(false);
   const cameraSteady=useRef(false);
   const cameraSteadySince=useRef<number|null>(null);
-  const liveOcrInProgress=useRef(false);
-  const liveIdentity=useRef<{key:string;count:number}>({key:'',count:0});
-  const liveReadRef=useRef<LiveCardScanRead>({});
   const cropDrag=useRef<{pointerId:number;corner:'top-left'|'top-right'|'bottom-left'|'bottom-right'|'move'|null;startX:number;startY:number;startBounds?:NormalizedBounds}>({pointerId:-1,corner:null,startX:0,startY:0});
   const resultTrack=useRef<HTMLDivElement>(null);
   const panDrag=useRef<{pointerId:number;startX:number;startY:number;originX:number;originY:number}|null>(null);
@@ -287,8 +314,8 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
       if(cameraTrack&&cameraCapabilities?.focusMode?.includes('continuous')){
         try{await cameraTrack.applyConstraints({advanced:[{focusMode:'continuous'}] as unknown as MediaTrackConstraintSet[]})}catch{}
       }
-      autoCaptureStarted.current=false;captureInProgress.current=false;cameraSteady.current=false;cameraSteadySince.current=null;liveIdentity.current={key:'',count:0};liveReadRef.current={};setCameraStatus('searching');setLiveRead({});setLiveOcrStatus('waiting');
-      setPreview(undefined);setPreviewSize(undefined);setImages([]);setScanBounds(undefined);setDetectedBounds(undefined);setRead(undefined);setCandidates([]);
+      autoCaptureStarted.current=false;captureInProgress.current=false;cameraSteady.current=false;cameraSteadySince.current=null;setCameraStatus('searching');
+      setPreview(undefined);setPreviewSize(undefined);setImages([]);setScanBounds(undefined);setDetectedBounds(undefined);setRead(undefined);setCandidates([]);setScanMethod(null);
       setCameraActive(true);
     }catch{
       setUseCameraPicker(true);
@@ -342,11 +369,11 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
       captureInProgress.current=false;
     }
   };
-  const close=(next:boolean)=>{setOpen(next);if(!next){autoScanRequested.current=false;captureInProgress.current=false;stopCamera();setPreview(undefined);setPreviewSize(undefined);setPreviewZoom(1);setPreviewPan({x:0,y:0});setScanBounds(undefined);setDetectedBounds(undefined);setSourceFile(undefined);setImages([]);setRead(undefined);setCandidates([]);setError('');setResultScroll({left:false,right:false});}};
+  const close=(next:boolean)=>{setOpen(next);if(!next){autoScanRequested.current=false;captureInProgress.current=false;stopCamera();setPreview(undefined);setPreviewSize(undefined);setPreviewZoom(1);setPreviewPan({x:0,y:0});setScanBounds(undefined);setDetectedBounds(undefined);setSourceFile(undefined);setImages([]);setRead(undefined);setCandidates([]);setScanMethod(null);setError('');setResultScroll({left:false,right:false});}};
   const choose=async(file?:File,autoScan=false,captureBounds?:NormalizedBounds)=>{
     if(!file)return;
     autoScanRequested.current=autoScan;
-    setError('');setRead(undefined);setCandidates([]);setImages([]);setScanBounds(undefined);setDetectedBounds(undefined);setSourceFile(file);setPreviewZoom(1);setPreviewPan({x:0,y:0});
+    setError('');setRead(undefined);setCandidates([]);setImages([]);setScanBounds(undefined);setDetectedBounds(undefined);setSourceFile(file);setPreviewZoom(1);setPreviewPan({x:0,y:0});setScanMethod(null);
     if(file.size>24_000_000){autoScanRequested.current=false;setError(id?'Foto terlalu besar. Pilih gambar di bawah 24 MB.':'Photo is too large. Choose an image under 24 MB.');return;}
     try{
       const prepared=await scanImages(file,game,captureBounds);
@@ -361,8 +388,9 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
     if(vpsScannerUrl){
       try{
         setOcrStage('reading');
+        const croppedBlob=await getCroppedCardBlob(sourceFile,scanBounds);
         const formData=new FormData();
-        formData.append('image',sourceFile,'card-scan.jpg');
+        formData.append('image',croppedBlob,'card-scan.jpg');
         if(game!=='auto')formData.append('game',game);
         const vpsResponse=await fetch(`${vpsScannerUrl.replace(/\/+$/,'')}/api/scan`,{method:'POST',body:formData});
         if(vpsResponse.ok){
@@ -370,6 +398,7 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
           if(vpsData.status==='match'&&vpsData.product){
             const matches=vpsData.candidates?.length?vpsData.candidates:[vpsData.product];
             setCandidates(matches);
+            setScanMethod('vision');
             setRead({
               game:vpsData.product.game,
               name:vpsData.product.name,
@@ -384,9 +413,12 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
             return;
           }
         }
-      }catch{}
+      }catch(err){
+        console.warn('VivrePlay Vision scan error, checking fallback',err);
+      }
     }
     try{
+      setScanMethod('ocr');
       const engine=await getPaddleEngine();
       setOcrStage('reading');
       const prepared=await scanImages(sourceFile,game,scanBounds);
@@ -440,14 +472,14 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
       context.drawImage(video,sourceX,0,sourceWidth,video.videoHeight,0,0,canvas.width,canvas.height);
       const bounds=detectCardBounds(context.getImageData(0,0,canvas.width,canvas.height));
       const centered=Boolean(bounds&&bounds.width/canvas.width>=.34&&bounds.height/canvas.height>=.48&&Math.abs(bounds.x+bounds.width/2-canvas.width/2)<canvas.width*.18&&Math.abs(bounds.y+bounds.height/2-canvas.height/2)<canvas.height*.18);
-      if(!bounds||!centered){previous=undefined;steadyFrames=0;cameraSteady.current=false;cameraSteadySince.current=null;liveIdentity.current={key:'',count:0};setCameraStatus('searching');setLiveOcrStatus('waiting');return}
+      if(!bounds||!centered){previous=undefined;steadyFrames=0;cameraSteady.current=false;cameraSteadySince.current=null;setCameraStatus('searching');return}
       const stable=Boolean(previous&&Math.abs(bounds.x-previous.x)<canvas.width*.035&&Math.abs(bounds.y-previous.y)<canvas.height*.035&&Math.abs(bounds.width-previous.width)<canvas.width*.045&&Math.abs(bounds.height-previous.height)<canvas.height*.045);
       steadyFrames=stable?steadyFrames+1:1;
       previous=bounds;
       cameraSteady.current=true;
       cameraSteadySince.current??=performance.now();
       setCameraStatus('steady');
-      if(!autoCaptureStarted.current&&cameraSteadySince.current!==null&&performance.now()-cameraSteadySince.current>=12000){
+      if(!autoCaptureStarted.current&&cameraSteadySince.current!==null&&performance.now()-cameraSteadySince.current>=2200){
         autoCaptureStarted.current=true;
         window.clearInterval(timer);
         setCameraStatus('capturing');
@@ -463,58 +495,6 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
     timer=window.setInterval(checkFrame,650);
     return()=>window.clearInterval(timer);
   },[cameraActive,cameraReady]);
-  useEffect(()=>{
-    if(!cameraActive||!cameraReady)return;
-    const video=videoRef.current;
-    if(!video)return;
-    let cancelled=false;
-    let timer=0;
-    const runLiveRead=async()=>{
-      if(cancelled)return;
-      if(!cameraSteady.current||liveOcrInProgress.current||captureInProgress.current){timer=window.setTimeout(runLiveRead,1200);return;}
-      const guide=getCameraGuideBounds();
-      if(!guide||!video.videoWidth||!video.videoHeight){timer=window.setTimeout(runLiveRead,1200);return;}
-      liveOcrInProgress.current=true;
-      setLiveOcrStatus('loading');
-      try{
-        const engine=await getPaddleEngine();
-        if(cancelled||captureInProgress.current)return;
-        setLiveOcrStatus('reading');
-        const blob=await videoCropBlob(video,guide,720);
-        if(!blob||cancelled||captureInProgress.current)return;
-        const results=await engine.predict([blob]);
-        if(cancelled||captureInProgress.current)return;
-        const text=results.flatMap(result=>result.items.filter(item=>item.score>=.23).map(item=>item.text)).join('\n').trim();
-        const name=liveCardName(results[0]?.items??[],results[0]?.image.height??1);
-        const parsed=parseLiveCardRead(text,game,name);
-        if(Object.values(parsed).some(value=>typeof value==='string'&&value.trim())){
-          const key=parsed.game&&parsed.setCode&&parsed.cardNumber?`${parsed.game}:${parsed.setCode}:${parsed.cardNumber}`:'';
-          const changedCard=Boolean(key&&liveIdentity.current.key&&key!==liveIdentity.current.key);
-          const merged:LiveCardScanRead=changedCard?{}:{...liveReadRef.current};
-          for(const field of ['game','name','setCode','cardNumber','cardNumberTotal','language','rarity','variant','block'] as const){
-            const value=parsed[field];
-            if(typeof value==='string'&&value.trim())(merged as Record<keyof LiveCardScanRead,string>)[field]=value;
-          }
-          liveReadRef.current=merged;
-          setLiveRead(merged);
-          if(key){liveIdentity.current=liveIdentity.current.key===key?{key,count:liveIdentity.current.count+1}:{key,count:1};}
-          setLiveOcrStatus('ready');
-          const mergedName=Boolean(merged.name),mergedRarity=Boolean(merged.rarity),mergedLanguage=Boolean(merged.language);
-          if(key&&liveIdentity.current.count>=2&&mergedName&&mergedRarity&&mergedLanguage&&!autoCaptureStarted.current&&!captureInProgress.current){
-            autoCaptureStarted.current=true;
-            void capturePhotoRef.current?.(true,getCameraGuideBounds());
-          }
-        }else setLiveOcrStatus('reading');
-      }catch{
-        if(!cancelled)setLiveOcrStatus('waiting');
-      }finally{
-        liveOcrInProgress.current=false;
-        if(!cancelled&&!captureInProgress.current)timer=window.setTimeout(runLiveRead,1800);
-      }
-    };
-    void runLiveRead();
-    return()=>{cancelled=true;window.clearTimeout(timer)};
-  },[cameraActive,cameraReady,game]);
   const changePreviewZoom=(value:number)=>{
     if(!photoRef.current){setPreviewZoom(value);return;}
     if(value===1){setPreviewZoom(1);setPreviewPan({x:0,y:0});return;}
@@ -626,8 +606,8 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
   return <>
     <button type="button" className={`card-scan-trigger${className?` ${className}`:''}`} aria-label={id?'Pindai kartu':'Scan card'} title={id?'Pindai kartu':'Scan card'} onClick={event=>{event.preventDefault();setOpen(true)}}><CameraIcon size={18} aria-hidden="true"/></button>
     <Dialog open={open} onOpenChange={close}><DialogContent className={`card-scan-dialog${preview?' has-preview':''}`} overlayClassName="card-scan-overlay">
-      <DialogHeader className="card-scan-header"><DialogTitle>{cameraActive?(id?'Pindai kartu':'Scan a card'):(id?'Pindai kartu':'Scan a card')}</DialogTitle>{cameraActive?<DialogDescription>{cameraStatus==='capturing'?(id?'Mengambil foto dan memindai kartu…':'Capturing and scanning…'):cameraStatus==='steady'?(id?'Kartu terdeteksi. Tahan posisi sebentar.':'Card found. Hold it steady.'):id?'Posisikan kartu di dalam bingkai. Foto diambil otomatis saat kartu stabil.':'Place the card inside the frame. It will capture once the card is steady.'}</DialogDescription>:preview&&<DialogDescription>{id?'Pastikan seluruh kartu masuk ke dalam bingkai.':'Keep the full card inside the frame.'}</DialogDescription>}</DialogHeader>
-      {cameraActive&&<section className="card-scan-camera-view"><div ref={cameraStageRef} className="card-scan-camera-stage"><video ref={videoRef} className="card-scan-live-video" autoPlay muted playsInline onLoadedMetadata={()=>setCameraReady(true)} aria-label={id?'Pratinjau kamera':'Camera preview'}/><div ref={cameraGuideRef} className="card-scan-camera-guide" aria-hidden="true"/></div><p className={`card-scan-camera-status is-${cameraStatus}`} role="status">{cameraStatus==='capturing'?(id?'Memindai…':'Scanning…'):cameraStatus==='steady'?(id?'Kartu stabil':'Card is steady'):id?'Cari kartu':'Finding card'}</p><dl className="card-scan-live-fields" aria-live="polite"><div className="is-name"><dt>{id?'Nama':'Name'}</dt><dd>{liveRead.name||'—'}</dd></div><div><dt>Set</dt><dd>{liveRead.setCode||'—'}</dd></div><div><dt>{id?'Nomor':'Number'}</dt><dd>{liveRead.cardNumber?`${liveRead.cardNumber}${liveRead.cardNumberTotal?`/${liveRead.cardNumberTotal}`:''}`:'—'}</dd></div><div><dt>{id?'Kelangkaan':'Rarity'}</dt><dd>{liveRead.rarity||'—'}</dd></div><div><dt>{id?'Bahasa':'Language'}</dt><dd>{liveRead.language||'—'}</dd></div></dl><p className="card-scan-live-status" role="status">{liveOcrStatus==='loading'?(id?'Menyiapkan pembacaan…':'Starting live read…'):liveOcrStatus==='reading'?(id?'Membaca tulisan kartu':'Reading card text'):liveOcrStatus==='ready'?(id?'Detail kartu diperbarui':'Card details updating'):id?'Arahkan kartu ke dalam bingkai':'Hold the card inside the frame'}</p><div className="card-scan-camera-actions"><button type="button" className="button secondary" onClick={stopCamera}>{id?'Batal':'Cancel'}</button><button type="button" className="button card-scan-capture" onClick={()=>void capturePhoto()} disabled={!cameraReady||cameraStatus==='capturing'}>{id?'Ambil sekarang':'Capture now'}</button></div></section>}
+      <DialogHeader className="card-scan-header"><DialogTitle>{cameraActive?(id?'Pindai kartu':'Scan a card'):(id?'Pindai kartu':'Scan a card')}</DialogTitle>{cameraActive?<DialogDescription>{cameraStatus==='capturing'?(id?'Mengambil foto dan memindai visual kartu…':'Capturing and scanning visual…'):cameraStatus==='steady'?(id?'Kartu terdeteksi. Tahan posisi sebentar.':'Card found. Hold it steady.'):id?'Posisikan kartu di dalam bingkai. Foto diambil otomatis saat kartu stabil.':'Place the card inside the frame. It will capture once the card is steady.'}</DialogDescription>:preview&&<DialogDescription>{id?'Pastikan seluruh kartu masuk ke dalam bingkai.':'Keep the full card inside the frame.'}</DialogDescription>}</DialogHeader>
+      {cameraActive&&<section className="card-scan-camera-view"><div ref={cameraStageRef} className="card-scan-camera-stage"><video ref={videoRef} className="card-scan-live-video" autoPlay muted playsInline onLoadedMetadata={()=>setCameraReady(true)} aria-label={id?'Pratinjau kamera':'Camera preview'}/><div ref={cameraGuideRef} className="card-scan-camera-guide" aria-hidden="true"/></div><p className={`card-scan-camera-status is-${cameraStatus}`} role="status">{cameraStatus==='capturing'?(id?'Mengambil foto…':'Capturing photo…'):cameraStatus==='steady'?(id?'Kartu terdeteksi. Tahan posisi…':'Card aligned. Hold steady…'):(id?'Posisikan kartu di dalam bingkai':'Place card inside the frame')}</p><p className="card-scan-camera-hint">{id?'Foto diambil otomatis saat stabil, atau tekan Ambil & Pindai.':'Captures automatically when steady, or tap Capture & Scan.'}</p><div className="card-scan-camera-actions"><button type="button" className="button secondary" onClick={stopCamera}>{id?'Batal':'Cancel'}</button><button type="button" className="button card-scan-capture" onClick={()=>void capturePhoto(true)} disabled={!cameraReady||cameraStatus==='capturing'}><CameraIcon size={16}/> {id?'Ambil & Pindai':'Capture & Scan'}</button></div></section>}
       {preview&&<div className="card-scan-workspace">
       <div ref={photoRef} className={`card-scan-photo${previewZoom>1?' is-zoomed':''}`} onPointerDown={beginPan} onPointerMove={event=>{moveCrop(event);movePan(event)}} onPointerUp={event=>{finishCropDrag(event);finishPan(event)}} onPointerCancel={event=>{finishCropDrag(event);finishPan(event)}} style={previewSize?{aspectRatio:`${previewSize.width}/${previewSize.height}`,width:`min(100%, ${Math.min(520,320*previewSize.width/previewSize.height)}px)`}:undefined}>
         {preview&&<div className="card-scan-photo-content" style={{left:`calc(50% - ${previewZoom*50}% + ${previewPan.x}px)`,top:`calc(50% - ${previewZoom*50}% + ${previewPan.y}px)`,width:`${previewZoom*100}%`,height:`${previewZoom*100}%`}}><Image src={preview} width={previewSize?.width??440} height={previewSize?.height??235} unoptimized alt={id?'Foto kartu yang dipilih':'Selected card photo'}/></div>}
@@ -638,7 +618,6 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
       </div>
       </div>}
       {preview&&read&&<section className="card-scan-read-panel" aria-label={id?'Detail kartu':'Card details'}><dl className="card-scan-read-fields">{read.setCode&&<div><dt>Set</dt><dd>{read.setCode}</dd></div>}{read.cardNumber&&<div><dt>{id?'Nomor':'Number'}</dt><dd>{read.cardNumber}{read.cardNumberTotal?`/${read.cardNumberTotal}`:''}</dd></div>}{read.rarity&&<div><dt>{id?'Kelangkaan':'Rarity'}</dt><dd>{read.rarity}</dd></div>}{read.language&&<div><dt>{id?'Bahasa':'Language'}</dt><dd>{read.language}</dd></div>}</dl></section>}
-      {preview&&!read&&Object.values(liveRead).some(Boolean)&&<section className="card-scan-live-fields is-captured" aria-label={id?'Detail sementara':'Live details'}><div className="is-name"><dt>{id?'Nama':'Name'}</dt><dd>{liveRead.name||'—'}</dd></div>{liveRead.setCode&&<div><dt>Set</dt><dd>{liveRead.setCode}</dd></div>}{liveRead.cardNumber&&<div><dt>{id?'Nomor':'Number'}</dt><dd>{liveRead.cardNumber}{liveRead.cardNumberTotal?`/${liveRead.cardNumberTotal}`:''}</dd></div>}{liveRead.rarity&&<div><dt>{id?'Kelangkaan':'Rarity'}</dt><dd>{liveRead.rarity}</dd></div>}{liveRead.language&&<div><dt>{id?'Bahasa':'Language'}</dt><dd>{liveRead.language}</dd></div>}</section>}
       {preview&&<div className="card-scan-crop-tools"><span>{id?'Seret sudut atau bingkai untuk memilih area kartu. Perbesar foto lalu geser untuk melihat tulisan kecil.':'Drag a corner or the frame to select the card area. Zoom in, then move the photo to check small print.'}</span><label className="card-scan-zoom"><span>{id?'Zoom':'Zoom'}</span><input type="range" min="1" max="5" step=".1" value={previewZoom} onChange={event=>changePreviewZoom(Number(event.target.value))} aria-label={id?'Perbesar pratinjau':'Zoom preview'}/><output>{Math.round(previewZoom*100)}%</output></label><button type="button" className="card-scan-crop-reset" onClick={()=>{setScanBounds(detectedBounds);setPreviewZoom(1);setPreviewPan({x:0,y:0});setRead(undefined);setCandidates([]);setError('')}} disabled={!detectedBounds}>{id?'Atur ulang':'Reset view'}</button></div>}
       {!cameraActive&&<div className="card-scan-source-actions">
         <button type="button" className="button secondary" onClick={()=>{if(useCameraPicker){setError('');cameraInput.current?.click()}else void startCamera()}}><CameraIcon size={17}/>{useCameraPicker?(id?'Buka kamera':'Open camera'):(id?'Ambil foto':'Take photo')}</button>
@@ -647,10 +626,16 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
         <input ref={uploadInput} className="sr-only" type="file" accept="image/*" onChange={event=>{void choose(event.currentTarget.files?.[0]);event.currentTarget.value=''}}/>
       </div>}
       {turnstileEnabled&&images.length>0&&<TurnstileField onToken={setToken} resetKey={turnstileRevision}/>}
-      {images.length>0&&<button type="button" className="button card-scan-submit" disabled={busy} onClick={()=>void identify()}>{busy?<SpinnerGapIcon size={17} className="card-scan-spinner"/>:<CameraIcon size={17}/>} {busy?(id?(ocrStage==='loading'?'Menyiapkan pemindaian…':'Membaca kartu…'):(ocrStage==='loading'?'Getting ready…':'Reading card…')):(id?'Cari kartu':'Search cards')}</button>}
+      {images.length>0&&<button type="button" className="button card-scan-submit" disabled={busy} onClick={()=>void identify()}>{busy?<SpinnerGapIcon size={17} className="card-scan-spinner"/>:<CameraIcon size={17}/>} {busy?(id?'Memindai dengan VivrePlay Vision…':'Scanning with VivrePlay Vision…'):(id?'Pindai kartu':'Scan card')}</button>}
       {error&&<p className="card-scan-error" role="alert">{error}</p>}
       {read&&<section className={`card-scan-results${resultScroll.left?' has-left-overflow':''}${resultScroll.right?' has-right-overflow':''}`} aria-live="polite">
-        <header><p>{candidates.length?(id?'Kartu yang cocok':'Possible matches'):(id?'Kartu tidak ditemukan.':'No matching cards found.')}</p>{candidates.length>1&&<div className="card-scan-results-controls"><button type="button" aria-label={id?'Geser ke kiri':'Scroll left'} disabled={!resultScroll.left} onClick={()=>resultTrack.current?.scrollBy({left:-260,behavior:'smooth'})}><CaretLeftIcon size={17}/></button><button type="button" aria-label={id?'Geser ke kanan':'Scroll right'} disabled={!resultScroll.right} onClick={()=>resultTrack.current?.scrollBy({left:260,behavior:'smooth'})}><CaretRightIcon size={17}/></button></div>}</header>
+        <header>
+          <div className="card-scan-results-title">
+            <p>{candidates.length?(scanMethod==='vision'?(id?'Kartu cocok (VivrePlay Vision)':'Matches (VivrePlay Vision)'):(id?'Kartu yang cocok':'Possible matches')):(id?'Kartu tidak ditemukan.':'No matching cards found.')}</p>
+            {scanMethod==='vision'&&<span className="card-scan-vision-badge">AI Vision</span>}
+          </div>
+          {candidates.length>1&&<div className="card-scan-results-controls"><button type="button" aria-label={id?'Geser ke kiri':'Scroll left'} disabled={!resultScroll.left} onClick={()=>resultTrack.current?.scrollBy({left:-260,behavior:'smooth'})}><CaretLeftIcon size={17}/></button><button type="button" aria-label={id?'Geser ke kanan':'Scroll right'} disabled={!resultScroll.right} onClick={()=>resultTrack.current?.scrollBy({left:260,behavior:'smooth'})}><CaretRightIcon size={17}/></button></div>}
+        </header>
         {candidates.length>0&&<div ref={resultTrack} role="region" className="card-scan-results-track" aria-label={id?'Hasil kartu yang cocok':'Matching cards'} onScroll={updateResultScroll} onLoad={updateResultScroll}>
         {candidates.map(card=><button type="button" key={card.id} disabled={busy} aria-label={`${card.name}, ${card.setCode} ${card.cardNumber}, ${card.language}${card.rarity?`, ${card.rarity}`:''}`} onClick={()=>void select(card)} className={`card-scan-result${card.game==='pokemon'?' pokemon-card-tile':' catalog-card catalog-card-button'}`}>
           {card.game==='pokemon'?<CardArt card={scanDisplayCard(card)}/>:<span className="card-stage"><CardArt card={scanDisplayCard(card)}/></span>}

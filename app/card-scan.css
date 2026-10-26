@@ -16,6 +16,7 @@
 .card-scan-camera-status{justify-self:center;margin:0;color:var(--muted);font-size:12px;font-weight:650;line-height:1.3}
 .card-scan-camera-status.is-steady{color:var(--accent)}
 .card-scan-camera-status.is-capturing{color:var(--ink)}
+.card-scan-camera-hint{justify-self:center;margin:0;color:var(--muted);font-size:11px;line-height:1.3;text-align:center}
 .card-scan-live-fields{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px 12px;margin:0;padding:10px 12px;border-radius:8px;background:var(--surface-muted)}
 .card-scan-live-fields>div{display:grid;align-content:start;gap:2px;min-width:0}
 .card-scan-live-fields>div.is-name{grid-column:span 2}
@@ -61,7 +62,9 @@
 .card-scan-results.has-left-overflow::before{left:0;opacity:1;background:linear-gradient(90deg,var(--surface-raised),color-mix(in srgb,var(--surface-raised) 70%,transparent) 42%,transparent)}
 .card-scan-results.has-right-overflow::after{right:0;opacity:1;background:linear-gradient(270deg,var(--surface-raised),color-mix(in srgb,var(--surface-raised) 70%,transparent) 42%,transparent)}
 .card-scan-results>header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 0}
-.card-scan-results>header>p{margin:0;color:var(--muted);font-size:12px;font-weight:700}
+.card-scan-results-title{display:flex;align-items:center;gap:8px}
+.card-scan-results-title>p{margin:0;color:var(--muted);font-size:12px;font-weight:700}
+.card-scan-vision-badge{display:inline-flex;align-items:center;padding:1px 6px;border-radius:100px;background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--accent);font-size:10px;font-weight:750;letter-spacing:.03em;text-transform:uppercase}
 .card-scan-results>small{color:var(--muted);font-size:12px}
 .card-scan-results-controls{display:flex;gap:6px}
 .card-scan-results-controls button{display:grid;width:44px;height:44px;place-items:center;border:1px solid var(--line);border-radius:50%;background:var(--surface-raised);color:var(--ink);cursor:pointer}
