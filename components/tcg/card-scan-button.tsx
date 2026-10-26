@@ -19,7 +19,7 @@ import {CardArt} from '@/components/tcg/card-art';
 import type {Card} from '@/packages/card-data/catalog';
 import {pokemonRarityLabel} from '@/lib/pokemon-rarity';
 
-export type CardScanCandidate={id:string;game:'pokemon'|'one-piece';code:string;name:string;setCode:string;cardNumber:string;language:string;rarity:string;variant:string;imageUrl:string|null;setCardCount?:string};
+export type CardScanCandidate={id:string;game:'pokemon'|'one-piece';code:string;name:string;setCode:string;cardNumber:string;language:string;rarity:string;variant:string;imageUrl:string|null;setCardCount?:string;score?:number;confidence?:number};
 type Props={game?:'pokemon'|'one-piece'|'auto';locale?:'EN'|'ID';onSelect?:(card:CardScanCandidate)=>void|Promise<void>;selectionPurpose?:'choose'|'filter';className?:string};
 type NormalizedBounds={x:number;y:number;width:number;height:number};
 
@@ -326,10 +326,13 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
     void startCamera();
   };
 
-  const scanBlob=async(blob:Blob):Promise<boolean>=>{
+  const scanBlob=async(blob:Blob,isManual=false):Promise<CardScanCandidate[]|null>=>{
     const vpsScannerUrl=process.env.NEXT_PUBLIC_CARD_SCANNER_URL||'https://scan.vivreplay.com';
     const formData=new FormData();
     formData.append('image',blob,'card-scan.jpg');
+    if(isManual){
+      formData.append('manual','true');
+    }
     if(game==='pokemon'||game==='one-piece'){
       formData.append('game',game);
     }
@@ -337,21 +340,16 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
       const res=await fetch(`${vpsScannerUrl.replace(/\/+$/,'')}/api/scan`,{
         method:'POST',
         body:formData,
-        signal:AbortSignal.timeout(4000),
+        signal:AbortSignal.timeout(4500),
       });
-      if(!res.ok)return false;
+      if(!res.ok)return null;
       const data=await res.json() as {status:string;product?:CardScanCandidate;candidates?:CardScanCandidate[]};
       if(data.status==='match'&&data.product){
         const rawMatches=data.candidates?.length?data.candidates:[data.product];
-        const matches=rawMatches.map(c=>({...c,cardNumber:cleanCardNumber(c.cardNumber)}));
-        triggerHaptic([40,50,40]);
-        setCandidates(matches);
-        setSelectedCandidateIndex(0);
-        videoRef.current?.pause();
-        return true;
+        return rawMatches.map(c=>({...c,cardNumber:cleanCardNumber(c.cardNumber)}));
       }
     }catch{}
-    return false;
+    return null;
   };
 
   // Immediate manual capture
@@ -369,8 +367,13 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
         setError(id?'Foto tidak dapat diambil.':'Could not capture frame.');
         return;
       }
-      const matched=await scanBlob(blob);
-      if(!matched){
+      const matches=await scanBlob(blob,true);
+      if(matches&&matches.length>0){
+        triggerHaptic([40,50,40]);
+        setCandidates(matches);
+        setSelectedCandidateIndex(0);
+        videoRef.current?.pause();
+      }else{
         setError(id?'Kartu belum terdeteksi. Posisikan seluruh kartu di dalam bingkai dan pastikan tidak silau.':'No card recognized. Keep the whole card inside the frame and avoid glare.');
       }
     }catch{
@@ -391,8 +394,12 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
     setSourceFile(file);
     try{
       const croppedBlob=await getCroppedCardBlob(file);
-      const matched=await scanBlob(croppedBlob);
-      if(!matched){
+      const matches=await scanBlob(croppedBlob,true);
+      if(matches&&matches.length>0){
+        triggerHaptic([40,50,40]);
+        setCandidates(matches);
+        setSelectedCandidateIndex(0);
+      }else{
         setError(id?'Kartu belum terdeteksi dari foto ini. Coba foto yang lebih tajam.':'No card recognized from this photo. Try a clearer photo.');
       }
     }catch{
@@ -407,12 +414,16 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
     if(!cameraActive||!cameraReady||candidates.length>0)return;
     let mounted=true;
     let timer=0;
+    let prevSample:Uint8ClampedArray|null=null;
+    let pendingCandidateId:string|null=null;
+    let pendingCandidateName:string|null=null;
+
     const sampleCanvas=document.createElement('canvas');
     sampleCanvas.width=32;
     sampleCanvas.height=45;
     const sampleCtx=sampleCanvas.getContext('2d',{willReadFrequently:true});
 
-    // Settle delay (1400ms) gives the user time to place the card in the frame
+    // Settle delay (1200ms) gives the user time to place the card in the frame
     const settleTimer=setTimeout(()=>{
       if(!mounted)return;
       timer=window.setInterval(()=>{
@@ -429,23 +440,54 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
         const imgData=sampleCtx.getImageData(0,0,32,45).data;
 
         let minLuma=255,maxLuma=0;
-        for(let i=0;i<imgData.length;i+=4){
+        let motionDiff=0;
+        for(let i=0;i<imgData.length;i+=8){
           const luma=imgData[i]!*0.299+imgData[i+1]!*0.587+imgData[i+2]!*0.114;
           if(luma<minLuma)minLuma=luma;
           if(luma>maxLuma)maxLuma=luma;
+          if(prevSample){
+            motionDiff+=Math.abs(imgData[i]!-prevSample[i]!);
+          }
         }
+        prevSample=new Uint8ClampedArray(imgData);
+
         // Don't scan if guide is pitch dark or completely uniform flat color
         if(maxLuma-minLuma<25||maxLuma<35)return;
+
+        // If card or phone is actively moving, wait for the user to hold it steady
+        // Sampled pixels = 1440 / 2 = 720 pixels. Average delta > 16 indicates rapid motion.
+        if(motionDiff>720*16)return;
 
         void(async()=>{
           if(liveScanning.current||candidates.length>0||!mounted)return;
           liveScanning.current=true;
           setIsEvaluating(true);
           try{
-            const blob=await videoCropBlob(v,guideBounds,440);
+            const blob=await videoCropBlob(v,guideBounds,480);
             if(blob&&mounted&&candidates.length===0){
-              const matched=await scanBlob(blob);
-              if(!matched&&mounted){
+              const matches=await scanBlob(blob,false);
+              if(!mounted)return;
+              if(matches&&matches.length>0){
+                const topMatch=matches[0]!;
+                const topScore=topMatch.score??0;
+                const isConfirmed=(pendingCandidateId===topMatch.id)||(pendingCandidateName===topMatch.name);
+
+                // Lock immediately on high confidence (>= 0.92) or on consecutive verification
+                if(topScore>=0.92||isConfirmed){
+                  triggerHaptic([40,50,40]);
+                  setCandidates(matches);
+                  setSelectedCandidateIndex(0);
+                  videoRef.current?.pause();
+                  pendingCandidateId=null;
+                  pendingCandidateName=null;
+                }else{
+                  // First detection: stage for consecutive verification on next tick
+                  pendingCandidateId=topMatch.id;
+                  pendingCandidateName=topMatch.name;
+                }
+              }else{
+                pendingCandidateId=null;
+                pendingCandidateName=null;
                 setUnmatchedAttempts(prev=>prev+1);
               }
             }
@@ -456,8 +498,8 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
             }
           }
         })();
-      }, 1200);
-    }, 1400);
+      }, 1000);
+    }, 1200);
 
     return()=>{
       mounted=false;

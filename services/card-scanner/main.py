@@ -55,7 +55,8 @@ def clean_card_number(num: Optional[str]) -> str:
 async def scan_card(
     image: UploadFile = File(...),
     game: Optional[str] = Form(None),
-    top_k: int = Form(5)
+    top_k: int = Form(5),
+    manual: bool = Form(False)
 ):
     if not image.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="Uploaded file must be an image")
@@ -88,18 +89,32 @@ async def scan_card(
 
     best = results[0] if results else None
     best_score = best["score"] if best else 0.0
-    second_score = results[1]["score"] if len(results) > 1 else 0.0
-    margin = round(best_score - second_score, 4) if len(results) > 1 else 0.10
+    best_name = best["card"]["name"].strip().lower() if best else ""
 
-    # Confident match logic:
-    # 1. High absolute similarity (>= 0.38) -> instant match
-    # 2. Moderate similarity (>= 0.34) WITH a distinct margin (>= 0.035) above rank 2 -> matches real cards under room lighting while strictly rejecting random desks/walls
-    is_confident_match = bool(
-        best and (
-            best_score >= 0.38 or
-            (best_score >= 0.34 and margin >= 0.035)
+    # Calculate distinct margin against the top candidate having a genuinely different card name.
+    # This ensures reprints / alt-arts of the same card do not artificially shrink the margin.
+    different_card_score = 0.0
+    for r in results[1:]:
+        cand_name = r["card"]["name"].strip().lower()
+        if cand_name != best_name:
+            different_card_score = r["score"]
+            break
+
+    distinct_margin = round(best_score - different_card_score, 4) if different_card_score > 0 else 0.10
+
+    # Confident match evaluation:
+    # 1. Manual user trigger (shutter button / upload): accept reasonable match (>= 0.70)
+    # 2. Continuous live auto-scan: strictly require high confidence (>= 0.92) or solid similarity (>= 0.80)
+    #    with distinct margin (>= 0.025) above the nearest different card to reject blurry hands, partial frames, and random noise.
+    if manual:
+        is_confident_match = bool(best and best_score >= 0.70)
+    else:
+        is_confident_match = bool(
+            best and (
+                best_score >= 0.92 or
+                (best_score >= 0.80 and distinct_margin >= 0.025)
+            )
         )
-    )
 
     if not is_confident_match or best is None:
         return {
@@ -107,6 +122,7 @@ async def scan_card(
             "scan_id": scan_id,
             "detection_source": chosen_source,
             "confidence": best_score,
+            "distinct_margin": distinct_margin,
             "candidates": results,
             "latency_ms": elapsed_ms
         }
