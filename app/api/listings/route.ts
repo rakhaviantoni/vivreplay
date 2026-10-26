@@ -5,6 +5,7 @@ import {user,db,errorResponse,guard,market,HttpError} from '@/lib/server/store';
 import {getDynamicListingPolicy,computeListingExpiration} from '@/lib/market/policy';
 import {MARKET_MAX_COPIES_PER_CARD,MARKET_ABSOLUTE_MAX_LISTING_COPIES,listingLimitMessage} from '@/lib/market/listing-limits';
 import {enforceMarketListingLimits} from '@/lib/server/market-listing-limits';
+import {createSealedListing} from '@/lib/server/sealed-listings';
 
 const itemSchema=z.object({instanceId:z.string().uuid().optional(),printingId:z.string(),quantity:z.number().int().positive().max(MARKET_MAX_COPIES_PER_CARD),condition:z.string().optional(),productType:z.enum(['RAW','GRADED']).optional(),gradingCompany:z.string().trim().max(40).optional(),grade:z.string().trim().max(20).optional(),certification:z.string().trim().max(100).optional(),unitAmount:z.number().int().nonnegative().optional()});
 const schema=z.object({instanceId:z.string().uuid().optional(),amount:z.number().int().positive().max(100000000000),quantity:z.number().int().positive().max(MARKET_ABSOLUTE_MAX_LISTING_COPIES),city:z.string().trim().min(2).max(60),title:z.string().trim().min(3).max(100),type:z.enum(['WTS','WTB']).default('WTS'),negotiable:z.boolean().default(true),items:z.array(itemSchema).min(1).max(MARKET_ABSOLUTE_MAX_LISTING_COPIES).optional()});
@@ -64,7 +65,9 @@ export async function POST(request:Request){
     const activeCount=await database.prepare("SELECT COUNT(*) AS total FROM listings WHERE seller_id=? AND status='ACTIVE' AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)").bind(profile.id).first<{total:number}>();
     if((activeCount?.total??0)>=policy.maxActiveListings)throw new HttpError(400,`You have reached the limit of ${policy.maxActiveListings} active listings for your account.`);
 
-    const value=schema.parse(await request.json());
+    const body=await request.json() as Record<string,unknown>;
+    if(body?.productType==='SEALED')return await createSealedListing(body,profile.id,policy.durationDays,policy.maxActiveListings);
+    const value=schema.parse(body);
     const bundle=value.items?.length?value.items:null;
     if(value.type==='WTB'){
       if(!bundle)throw new HttpError(400,'Add at least one card to your buying request.');

@@ -1,0 +1,14 @@
+.market-sealed-composer{display:grid;gap:20px;color:var(--ink)}
+.market-sealed-composer label{display:grid;gap:7px;font-size:14px;font-weight:600;min-width:0}
+.market-sealed-composer input,.market-sealed-composer select,.market-sealed-composer textarea{width:100%;min-height:42px;border:1px solid var(--line);border-radius:var(--radius-md,8px);background:var(--surface);color:inherit;padding:10px 12px;font:inherit}
+.market-sealed-search{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px}
+.market-sealed-choices{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-height:400px;overflow:auto;align-content:start}
+.market-sealed-choices>button{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--line);border-radius:var(--radius-md,8px);background:var(--surface);color:inherit;text-align:left;cursor:pointer}
+.market-sealed-choices img{width:65px;height:80px;object-fit:contain}
+.market-sealed-choices small{display:block;color:var(--muted);margin-top:6px}
+.market-sealed-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.market-sealed-selection{display:flex;align-items:center;gap:20px}.market-sealed-selection>img{width:120px;height:150px;object-fit:contain}
+.market-sealed-composer fieldset{border:0;margin:0;padding:0}.market-sealed-composer legend{font-weight:600}.market-sealed-composer fieldset>p{color:var(--muted);font-size:13px}
+.market-sealed-photos{display:flex;gap:12px;flex-wrap:wrap}.market-sealed-photos img{width:100px;height:100px;object-fit:contain}.market-sealed-photos>div{display:grid}
+.market-sealed-kind-switch{display:flex;gap:8px;margin-bottom:18px}.market-sealed-kind-switch button{padding:10px 16px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:var(--radius-md,8px);cursor:pointer}.market-sealed-kind-switch button[aria-pressed=true]{border-color:var(--gold,#b58b39);font-weight:700}
+@media(max-width:600px){.market-sealed-search{grid-template-columns:1fr 1fr}.market-sealed-search>label:first-child{grid-column:1/-1}.market-sealed-choices{grid-template-columns:1fr}.market-sealed-choices img{width:48px;height:64px}.market-sealed-kind-switch button{flex:1}}

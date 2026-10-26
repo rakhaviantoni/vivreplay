@@ -1,4 +1,4 @@
-export type Card = { id:string; code:string; name:string; color:string; type:'Leader'|'Character'|'Event'; cost:number; power:number; counter?:number; rarity:string; art:number; effect:string; imageUrl?:string; imageSource?:'external'|'generated'; setCode?:string; language?:string; printingCode?:string; localCardNumber?:string; assetPath?:string; variant?:string; attribute?:string };
+export type Card = { sealedProduct?:import('@/lib/market/sealed-products').SealedProduct; id:string; code:string; name:string; color:string; type:'Leader'|'Character'|'Event'; cost:number; power:number; counter?:number; rarity:string; art:number; effect:string; imageUrl?:string; imageSource?:'external'|'generated'; setCode?:string; language?:string; printingCode?:string; localCardNumber?:string; assetPath?:string; variant?:string; attribute?:string };
 export const gameId='00000000-0000-4000-8000-000000000001';
 const iconicCards:Card[] = [
   {

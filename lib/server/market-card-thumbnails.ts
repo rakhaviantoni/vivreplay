@@ -1,4 +1,5 @@
 import {db} from '@/lib/server/store';
+import {sealedProductById,sealedProductKinds} from '@/lib/market/sealed-products';
 import {CARD_CATALOG_CACHE_REVISION} from '@/lib/card-catalog-cache';
 import {pokemonLocalCardNumber} from '@/lib/pokemon-set-aliases';
 import {pokemonArtRoute} from '@/lib/pokemon-art-route';
@@ -49,6 +50,8 @@ export async function marketCardThumbnails(printingIds:string[]){
   const now=Date.now();
   const missing:string[]=[];
   for(const id of unique){
+    const product=sealedProductById(id);
+    if(product){result.set(id,{printingId:id,name:product.name,code:product.setCode,language:product.language,variant:sealedProductKinds[product.kind],rarity:'',setCode:product.setCode,imageUrl:product.imageUrl});continue;}
     const key=`${CARD_CATALOG_CACHE_REVISION}:${id}`;
     const cached=thumbnailCache.get(key);
     if(cached&&cached.expiresAt>now){

@@ -56,6 +56,7 @@ export function CardArt({card,small=false,priority=false,imageWidth,onImageMissi
   useEffect(()=>{
     if(!resolvedImage)onImageMissingRef.current?.();
   },[resolvedImage]);
+  if(card.sealedProduct)return <div className="market-sealed-art" style={{width:'100%',aspectRatio:'3 / 4',display:'grid',placeItems:'center'}}><img src={card.imageUrl} alt={card.name} style={{width:'100%',height:'100%',objectFit:'contain'}} loading={priority?'eager':'lazy'}/></div>;
   if (resolvedImage&&!imageFailed) return <div className={`tcg-card printing-image ${small?'small':''} ${loaded?'is-loaded':'is-loading'} ${preview?'is-preview-card':''}`} aria-label={preview?"Preview of a set that hasn’t launched yet. You can play it in Casual, New Cards, and Extended, but not Ranked. Its image and text may still change.":undefined}>
     {preview&&<span className="preview-card-badge" aria-hidden="true">Preview</span>}<span className="card-image-skeleton" aria-hidden="true"/>
     <img src={resolvedImage} alt={`${card.name} card printing`} draggable={false} loading={priority?"eager":"lazy"} fetchPriority={priority?"high":undefined} decoding="async" width={imageWidth??420} height={imageWidth?Math.round(imageWidth*580/420):580} onLoad={()=>{setImageResult({url:resolvedImage,status:'loaded'});onImageLoadedRef.current?.();}} onError={()=>{setImageResult({url:resolvedImage,status:'failed'});onImageMissingRef.current?.();}}/>

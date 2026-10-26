@@ -1,4 +1,5 @@
 import {withRequestLocale} from '@/lib/with-request-locale';
+import {sealedDisplayCard} from '@/lib/market/sealed-products';
 import {enabledShippingCouriers} from '@/lib/shipping/couriers';
 import {notFound,permanentRedirect} from 'next/navigation';
 import {db,optionalUser} from '@/lib/server/store';
@@ -57,7 +58,7 @@ async function Page({params}:{params:Promise<{id:string}>}){
     db().prepare(`
       SELECT
         l.id,
-        l.printing_id AS printingId,
+        COALESCE(l.printing_id,l.sealed_product_id) AS printingId,
         l.title,
         l.amount,
         l.currency,
@@ -179,7 +180,7 @@ async function Page({params}:{params:Promise<{id:string}>}){
   const activePrintings=new Set(items.map(item=>item.printingId));
   const soldOnlyRows=stored.status==='ACTIVE'?displayedSoldRows.filter(item=>!activePrintings.has(item.printingId)):displayedSoldRows;
   const listingCards:MarketListingCard[]=[...items.flatMap((item,index)=>{
-    const card=(item.printingId === stored?.printingId ? storedCard : undefined) ?? bundleCards.get(item.printingId) ?? cardFor(item.printingId);
+    const card=sealedDisplayCard(item.printingId)??(item.printingId === stored?.printingId ? storedCard : undefined) ?? bundleCards.get(item.printingId) ?? cardFor(item.printingId);
     const printing=printings.find(candidate=>candidate.id===item.printingId);
     const language=item.printingId===stored?.printingId?stored?.cardLanguage??printing?.language??'EN':bundleLanguages.get(item.printingId)??printing?.language??'EN';
     const held=heldByPrinting.get(item.printingId)??0;

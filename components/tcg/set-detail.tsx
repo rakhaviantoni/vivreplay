@@ -5,6 +5,7 @@ import {useEffect,useState} from 'react';
 import Link from '@/components/ui/localized-link';
 import {Catalog,normalizeSetCode,type CatalogSetInfo} from './catalog';
 import {isPlayableSet} from '@/packages/domain/release-availability';
+import products from '@/packages/card-data/one-piece-products.json';
 
 type SetRow=CatalogSetInfo&{code:string};
 type SetApiRow={code:string;name:string;releaseDate?:string;description?:string;officialUrl?:string;productImageUrl?:string};
@@ -28,7 +29,7 @@ export function SetDetail({code}:{code:string}){
     let live=true;
     fetch('/api/cards/sets?language=EN',{cache:'force-cache'}).then(response=>response.ok?response.json() as Promise<{sets:SetApiRow[]}>:{sets:[]}).then(({sets})=>{
       if(!live)return;
-      const match=sets.find(row=>normalizeSetCode(row.code)===normalizedCode||row.code.split(/[-_]/).some(part=>normalizeSetCode(part)===normalizedCode));
+      const match=sets.find(row=>normalizeSetCode(row.code)===normalizedCode);
       setSet(match?{code:match.code,name:match.name,set_kind:'booster',release_date:match.releaseDate??null,description:match.description??null,official_url:match.officialUrl??null,product_image_url:match.productImageUrl??null}:undefined);
     });
     return()=>{live=false};
@@ -36,5 +37,7 @@ export function SetDetail({code}:{code:string}){
 
   if(!isPlayableSet(normalizedCode))return <main className="page catalog-page"><section className="library-intro"><div className="library-intro-copy"><p className="kicker">{id?'ARSIP SET':'SET ARCHIVE'}</p><h1>{id?`${code} sedang dipersiapkan.`:`${code} is being prepared.`}</h1><p>{id?'Rilis ini belum tersedia sampai data kartu dan aturannya selesai diproses.':'This release is unavailable until its card data and rules have been completed.'}</p><Link className="button secondary" href="/sets">{id?'Semua set':'All sets'}</Link></div></section></main>;
 
-  return <Catalog key={normalizedCode} initialSet={normalizedCode} setPage setInfo={set}/>;
+  const product=products.find(product=>normalizeSetCode(product.code)===normalizedCode);
+  const productName=product?.title.match(/-([^\[]+?)-\s*\[/)?.[1]?.trim();
+  return <Catalog key={normalizedCode} initialSet={normalizedCode} initialLanguage={normalizedCode==='OP15'?'JP':undefined} setPage setInfo={{...set,name:set?.name??productName,displayCode:code.toUpperCase()}}/>;
 }

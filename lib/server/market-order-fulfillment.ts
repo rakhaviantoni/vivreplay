@@ -4,7 +4,7 @@ import {MARKET_REVIEW_WINDOW_MS} from '@/lib/market/review-window';
 import {sellerVaultDebits} from '@/lib/market/order-transfer';
 
 type Order={id:string;kind:string;buyerId:string;sellerId:string|null;items:string;details:string|null;currency:string;status:string;deliveredAt:string|null;title:string|null};
-type Item={printingId:string;quantity:number;unitAmount?:number;condition?:string;instanceId?:string;listingId?:string};
+type Item={printingId:string;quantity:number;unitAmount?:number;condition?:string;instanceId?:string;listingId?:string;sealedProductId?:string};
 
 export async function completeDeliveredMarketOrder(orderId:string,buyerId:string,automatic=false){
   const database=db();
@@ -43,6 +43,7 @@ export async function completeDeliveredMarketOrder(orderId:string,buyerId:string
 
   const purchases=new Map<string,{printingId:string;condition:string;quantity:number;amount:number}>();
   for(const item of items){
+    if(item.sealedProductId)continue;
     const condition=item.condition||'NM';const key=`${item.printingId}:${condition}`;
     const purchase=purchases.get(key)??{printingId:item.printingId,condition,quantity:0,amount:0};
     purchase.quantity+=item.quantity;purchase.amount+=Math.max(0,Math.round(item.unitAmount??0))*item.quantity;purchases.set(key,purchase);

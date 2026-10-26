@@ -1,6 +1,5 @@
 'use client';
 
-import LocalizedAnchor from '@/components/ui/localized-link';
 import {useRouteLocale} from '@/components/locale-provider';
 import {useEffect, useMemo, useRef, useState, type ReactNode} from 'react';
 import Link from '@/components/ui/localized-link';
@@ -17,10 +16,12 @@ import {versionedCardCatalogUrl} from '@/lib/card-catalog-cache';
 import {cardMatchesSearch,parseCardSearch} from '@/lib/card-search';
 import {Popover,PopoverContent,PopoverTrigger} from '@/components/ui/popover';
 import {CardScanButton} from './card-scan-button';
+import {SetProductOverview,SetProductArtwork} from './set-product-overview';
+import {productCodeForLanguage} from '@/lib/one-piece-products';
 
 type LibraryCard = Card & {setCode:string;setName:string;attribute:string;counter:number;block:string;keywords:string[];traits:string[];variant:string;printingCode:string};
 type FilterOption = string | {value:string;label:string;image?:string;group?:string};
-export type CatalogSetInfo={name?:string;set_kind?:string;release_date?:string|null;description?:string|null;official_url?:string|null;product_image_url?:string|null};
+export type CatalogSetInfo={displayCode?:string;name?:string;set_kind?:string;release_date?:string|null;description?:string|null;official_url?:string|null;product_image_url?:string|null};
 
 export function normalizeSetCode(code:string){return code.trim().toUpperCase().replace(/[-_\s]/g,'')}
 
@@ -34,9 +35,9 @@ function canonicalSetName(code:string,name:string){
 }
 
 function cardBelongsToSet(card:Pick<LibraryCard,'setCode'|'code'>,selectedSet:string){
-  const selected=normalizeSetCode(canonicalSetCode(selectedSet));
+  const selected=normalizeSetCode(selectedSet);
   const cardSet=normalizeSetCode(canonicalSetCode(card.setCode));
-  return Boolean(selected)&&(cardSet===selected||(selected==='OP15EB04'&&normalizeSetCode(card.code).startsWith('OP15')));
+  return Boolean(selected)&&(normalizeSetCode(card.setCode)===selected||cardSet===selected||(['OP15','OP15EB04','OP14','OP14EB04'].includes(selected)&&normalizeSetCode(card.code).startsWith(selected.slice(0,4))));
 }
 
 const keywordAliases=new Map([
@@ -119,14 +120,14 @@ function blockForSet(code:string,payload?:{block?:string|number;block_value?:str
 
 const sortLabels = {
   EN: {
-    'latest-leaders': 'Latest sets · leaders first',
-    'leaders-latest': 'Leaders · latest first',
+    'latest-leaders': 'Latest sets, leaders first',
+    'leaders-latest': 'Leaders, latest first',
     latest: 'Latest sets',
     name: 'Name A-Z',
   },
   ID: {
-    'latest-leaders': 'Set terbaru · Leader pertama',
-    'leaders-latest': 'Leader · rilis terbaru',
+    'latest-leaders': 'Set terbaru, Leader pertama',
+    'leaders-latest': 'Leader, rilis terbaru',
     latest: 'Set terbaru',
     name: 'Nama A-Z',
   },
@@ -150,7 +151,7 @@ function CatalogTile({primary,variants,language,onOpen}:{primary:Card;variants:C
     <div className="card-stage printing-stack">
       {visible.map((variant,index)=><div className="stacked-printing" style={{'--stack-index':index} as React.CSSProperties} key={variant.id}><CardArt card={variant}/></div>)}
     </div>
-    <div className="card-meta"><span>{primary.code} · {primary.language??language}</span><span className={`rarity rarity-${primary.rarity}`}>{primary.rarity}</span></div>
+    <div className="card-meta"><span>{primary.code}</span><span>{primary.language??language}</span><span className={`rarity rarity-${primary.rarity}`}>{primary.rarity}</span></div>
     <div className="card-title"><i className="filter-colour identity-colour" title={primary.color || undefined} aria-label={primary.color ? `${primary.color} color` : undefined} style={{background:identityBackground}}/><h3>{primary.name}</h3><span className="card-bottom" aria-label={`${primary.color} ${primary.type}`}>{primary.type}</span></div>
   </button>
 }
@@ -169,7 +170,7 @@ export function Catalog({home=false,initialSet,initialArchetype,initialCard,init
   const [selectedColors,setSelectedColors] = useState<string[]>([]);
   const [rarities,setRarities] = useState<string[]>([]);
   const requestedLanguage=initialLanguage?.toUpperCase();
-  const hasExplicitLanguage=Boolean(requestedLanguage);
+  const hasExplicitLanguage=Boolean(requestedLanguage)||setPage;
   const [language,setLanguage] = useState(requestedLanguage==='JP'?'JP':requestedLanguage==='EN'?'EN':requestedLanguage?'ALL':'EN');
   const [languageReady,setLanguageReady]=useState(hasExplicitLanguage);
   const [locale,setLocale] = useState<'EN'|'ID'>(useRouteLocale());
@@ -187,18 +188,18 @@ export function Catalog({home=false,initialSet,initialArchetype,initialCard,init
     const syncLocale=()=>{
       const preferred=window.localStorage.getItem('vivreplay-locale')==='ID'?'ID':'EN';
       setLocale(preferred);
-      if(!hasExplicitLanguage)setLanguage(preferred==='ID'?'ALL':'EN');
+      if(!hasExplicitLanguage)setLanguage(!setPage&&preferred==='ID'?'ALL':'EN');
       setLanguageReady(true);
     };
     const onLocale=(event:Event)=>{
       const preferred=(event as CustomEvent<'EN'|'ID'>).detail;
       setLocale(preferred);
-      if(!hasExplicitLanguage)setLanguage(preferred==='ID'?'ALL':'EN');
+      if(!hasExplicitLanguage)setLanguage(!setPage&&preferred==='ID'?'ALL':'EN');
     };
     syncLocale();
     window.addEventListener('vivreplay:locale',onLocale);
     return()=>window.removeEventListener('vivreplay:locale',onLocale);
-  },[hasExplicitLanguage]);
+  },[hasExplicitLanguage,setPage]);
   const id=locale==='ID';
 
   useEffect(()=>{
@@ -278,18 +279,18 @@ export function Catalog({home=false,initialSet,initialArchetype,initialCard,init
     'DON!!'
   ];
 
-  return <main className="page catalog-page">
+  const displaySetCode=productCodeForLanguage(setInfo?.displayCode??initialSet??'',language);
+  return <main className={`page catalog-page${setPage?' set-product-page':''}`}>
     <section className="library-intro">
       <div className="library-intro-copy">
         {setPage&&<Link className="set-library-back" href="/sets">{id?'Semua set':'All sets'}</Link>}
-        <p className="kicker">{setPage?(id?'ARSIP SET':'SET ARCHIVE'):(id?'KATALOG KARTU':'CARD LIBRARY')}</p>
+        {setPage?<div className="set-intro-tools"><span className="kicker">{displaySetCode}</span><div className="language-switch" aria-label={id?'Bahasa kartu dan produk':'Card and product language'}>{['EN','JP'].map(value=><button key={value} type="button" aria-pressed={language===value} onClick={()=>{if(language!==value){setLanguage(value);setCatalogPage(0);setCatalogLoading(true)}}}>{value}</button>)}</div></div>:<p className="kicker">{id?'KATALOG KARTU':'CARD LIBRARY'}</p>}
         <h1>{setPage?(setInfo?.name??initialSet??''):(home ? (id?'Temukan kartu berikutnya.':'Find your next card.') : (id?'Temukan kartu, set, dan karya seni resminya.':'Find cards, sets, and exact art.'))}</h1>
-        <p>{setPage?(setInfo?.description??(id?`Jelajahi kartu dan versi cetak dari ${initialSet}.`:`Browse the cards and printings from ${initialSet}.`)):(id?'Cari berdasarkan nama atau nomor kartu, bandingkan bahasa, dan susun deck dengan data live terkini.':'Search by name or number, compare languages, and build with the live card pool.')}</p>
-        {setPage&&<div className="set-library-meta"><span>{initialSet}{setInfo?.set_kind&&<> · {setInfo.set_kind}</>}</span>{setInfo?.release_date&&<span>{new Intl.DateTimeFormat(id?'id-ID':'en',{year:'numeric',month:'long',day:'numeric'}).format(new Date(`${setInfo.release_date}T00:00:00`))}</span>}{setInfo?.official_url&&<LocalizedAnchor href={setInfo.official_url} target="_blank" rel="noreferrer">{id?'Halaman resmi set':'Official set page'} <ArrowUpRightIcon aria-hidden="true" size={14}/></LocalizedAnchor>}<span>{groups.length} {id?'kartu':'cards'}</span></div>}
+        {setPage?<SetProductOverview code={displaySetCode} id={id} language={language}/>:<p>{id?'Cari berdasarkan nama atau nomor kartu, bandingkan bahasa, dan susun deck dengan data live terkini.':'Search by name or number, compare languages, and build with the live card pool.'}</p>}
       </div>
-      <div className="library-intro-rail library-intro-random-rail library-intro-browse-rail"><div className="library-intro-rail-cards" aria-hidden="true">{headerCards.map((card,index)=><div className={`library-intro-rail-card rail-card-${index}`} key={card.id}><CardArt card={card}/></div>)}{!headerCards.length&&Array.from({length:6},(_,index)=><i className={`library-intro-rail-skeleton rail-card-${index}`} key={index}/>)}</div>{!setPage&&<Link className="library-intro-browse" href="/sets">{id?'Jelajahi set':'Browse sets'} <ArrowUpRightIcon size={15}/></Link>}</div>
+      {setPage?<SetProductArtwork code={displaySetCode} id={id} language={language}/>:<div className="library-intro-rail library-intro-random-rail library-intro-browse-rail"><div className="library-intro-rail-cards" aria-hidden="true">{headerCards.map((card,index)=><div className={`library-intro-rail-card rail-card-${index}`} key={card.id}><CardArt card={card}/></div>)}{!headerCards.length&&Array.from({length:6},(_,index)=><i className={`library-intro-rail-skeleton rail-card-${index}`} key={index}/>)}</div><Link className="library-intro-browse" href="/sets">{id?'Jelajahi set':'Browse sets'} <ArrowUpRightIcon size={15}/></Link></div>}
     </section>
-    <section className={`library-controls${mobileFiltersOpen?' mobile-filters-open':''}`} aria-label={id?'Kontrol katalog kartu':'Card library controls'}>
+    <section id={setPage?'set-cards':undefined} className={`library-controls${mobileFiltersOpen?' mobile-filters-open':''}`} aria-label={id?'Kontrol katalog kartu':'Card library controls'}>
       <div className="filter-workbench">
         <label className="search-box">
           <Search size={16}/>
@@ -313,7 +314,7 @@ export function Catalog({home=false,initialSet,initialArchetype,initialCard,init
         <div className="filter-secondary">
           <SortOrderPicker value={sortOrder} onChange={setSortOrder} locale={locale}/>
           <GridDensity value={gridColumns} onChange={setGridColumns} locale={locale}/>
-          <div className="language-switch" aria-label="Printing language"><button aria-pressed={language==='EN'} onClick={()=>{setLanguage('EN');setCatalogPage(0);setCatalogLoading(true)}}>EN</button><button aria-pressed={language==='JP'} onClick={()=>{setLanguage('JP');setCatalogPage(0);setCatalogLoading(true)}}>JP</button><button aria-pressed={language==='ALL'} onClick={()=>{setLanguage('ALL');setCatalogPage(0);setCatalogLoading(true)}}>{id?'Semua':'All'}</button></div>
+          {!setPage&&<div className="language-switch" aria-label="Printing language"><button aria-pressed={language==='EN'} onClick={()=>{setLanguage('EN');setCatalogPage(0);setCatalogLoading(true)}}>EN</button><button aria-pressed={language==='JP'} onClick={()=>{setLanguage('JP');setCatalogPage(0);setCatalogLoading(true)}}>JP</button><button aria-pressed={language==='ALL'} onClick={()=>{setLanguage('ALL');setCatalogPage(0);setCatalogLoading(true)}}>{id?'Semua':'All'}</button></div>}
           {(selectedColors.length||types.length||rarities.length||attributes.length||counters.length||keywords.length||traits.length||blocks.length||(!setPage&&sets.length)||query)&&<div className="filter-status"><button onClick={()=>{setQuery('');setColor('All colors');setSelectedColors([]);setTypes([]);setRarities([]);setAttributes([]);setCounters([]);setKeywords([]);setTraits([]);setBlocks([]);setSets(setPage&&initialSet?[normalizeSetCode(initialSet)]:[])}}><X size={13}/>{id?'Hapus':'Clear'}</button></div>}
         </div>
       </div>

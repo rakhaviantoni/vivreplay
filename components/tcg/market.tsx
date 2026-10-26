@@ -58,6 +58,7 @@ import {Dialog,DialogContent,DialogDescription,DialogTitle} from '@/components/u
 import {MarketPriceMode} from './market-price-mode';
 import {ShareButton} from './share';
 import {BulkListingModal} from './vault/modals/bulk-listing-modal';
+import {MarketSealedComposer} from './market-sealed-composer';
 import {Slider} from '@/components/ui/slider';
 import {MarketQuickPanel} from './market-quick-panel';
 import {MarketStoreNav} from './market-store-nav';
@@ -631,6 +632,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
   useEffect(()=>{if(modalOnly)return;const profileTab=searchParams.get('profile');if(profileTab==='delivery'||profileTab==='payouts'){setProfileQuickTab(profileTab);setAccountPanel(null);setQuickPanel('profile')}},[searchParams,modalOnly]);
   // Bundle & Card Listing Draft State
   const [bundleCards,setBundleCards]=useState<ListingBundleCard[]>([]);
+  const [sealedMode,setSealedMode]=useState(false);
   const [publishedShare,setPublishedShare]=useState<PublishedShare|null>(null);
   const [configuringCard,setConfiguringCard]=useState<MarketCard|null>(null);
   const [cardPrintings,setCardPrintings]=useState<CardPrintingItem[]>([]);
@@ -1006,6 +1008,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
     return false;
   };
   function beginListing(type:'WTS'|'WTB'='WTS'){
+    setSealedMode(false);
     configLoadVersion.current++;
     if(!signInToContinue())return;
     setListingType(type);
@@ -1492,7 +1495,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
           <div className="market-sell-heading">
             <div className="market-sell-heading-actions"><span>{listingType==='WTB'?(locale==='ID'?'PERMINTAAN BELI':'BUYING REQUEST'):(locale==='ID'?'BUAT LISTING':'CREATE LISTING')}</span><button type="button" className="market-sell-manage-listings" onClick={()=>{setOpen(false);setQuickPanel(null);setAccountPanel('listings')}}><ClipboardText size={15}/>{locale==='ID'?'Listing saya':'My listings'}</button></div>
             <DialogTitle>
-              {configuringCard
+              {sealedMode?(listingType==='WTS'?'Sell a sealed product':'Find a sealed product'):configuringCard
                 ? activeCardObj?.gameSlug==='pokemon'
                   ? (listingType==='WTB'?(locale==='ID'?'Atur permintaan kartu Pokémon.':'Set your Pokémon card request.'):(locale==='ID'?'Atur listing kartu Pokémon.':'Set up this Pokémon listing.'))
                   : (listingType==='WTB'?(locale==='ID'?'Atur permintaan kartu.':'Set your card request.'):(locale==='ID'?'Atur kartu untuk dijual.':'Set up your card for sale.'))
@@ -1502,7 +1505,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
               }
             </DialogTitle>
             <DialogDescription>
-              {configuringCard
+              {sealedMode?'Choose a pack, booster box, or starter deck':configuringCard
                   ? activeCardObj?.gameSlug==='pokemon'
                   ? (listingType==='WTB'?(locale==='ID'?'Pilih set dan bahasa, lalu pilih kartu mentah atau slab dan atur tawaran.':'Choose a set and language, then choose a raw card or slab and set your offer.'):(locale==='ID'?'Pastikan set dan bahasa, lalu pilih kartu mentah atau slab dan atur harga.':'Confirm the set and language, then choose a raw card or slab and set the price.'))
                   : (listingType==='WTB'?(locale==='ID'?'Pilih versi cetak, jenis kartu, jumlah, dan tawaran.':'Choose the printing, card type, quantity, and offer.'):(locale==='ID'?'Pilih versi cetak, kondisi kartu mentah, jumlah, dan harga.':'Choose the printing, raw-card condition, quantity, and price.'))
@@ -1513,7 +1516,8 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
             </DialogDescription>
           </div>
           <div className="market-sell-body">
-            {directSellLoading?<div className="market-direct-sell-loading" role="status" aria-label={locale==='ID'?'Memuat pilihan jual':'Loading sell options'}><span/><span/><span/></div>:<>
+            {!configuringCard&&!bundleCards.length&&<div className="market-sealed-kind-switch" role="group" aria-label="Listing product"><button type="button" aria-pressed={!sealedMode} onClick={()=>setSealedMode(false)}>Cards & slabs</button><button type="button" aria-pressed={sealedMode} onClick={()=>setSealedMode(true)}>Sealed products</button></div>}
+            {sealedMode?<MarketSealedComposer type={listingType} onPublished={()=>{setOpen(false);setSealedMode(false);void refresh();void refreshAccount();}}/>:directSellLoading?<div className="market-direct-sell-loading" role="status" aria-label={locale==='ID'?'Memuat pilihan jual':'Loading sell options'}><span/><span/><span/></div>:<>
             {/* VIEW 1: Card Configuration Step */}
             {configuringCard&&activeCardObj?(
               <div className="listing-selection">

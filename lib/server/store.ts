@@ -1,4 +1,5 @@
 import {enabledShippingCouriers} from '@/lib/shipping/couriers';
+import {sealedDisplayCard} from '@/lib/market/sealed-products';
 import {env} from 'cloudflare:workers';
 import {getCurrentUser} from '@/lib/server/auth';
 import type {Card} from '@/packages/card-data/catalog';
@@ -147,7 +148,8 @@ export async function savedDecks(ownerId:string){const rows=(await db().prepare(
 export async function market(viewerId?:string,listingIds?:string[],gameSlug?:'one-piece'|'pokemon'){
   const listingFilter=listingIds?.length?`AND l.id IN (${listingIds.map(()=>'?').join(',')})`:'';
   const gameFilter=gameSlug?`AND ? IN (
-    SELECT fg.slug FROM card_printings fp JOIN card_identities fi ON fi.id=fp.identity_id JOIN games fg ON fg.id=fi.game_id WHERE fp.id=l.printing_id
+    SELECT sp.game_slug FROM tcg_sealed_products sp WHERE sp.id=l.sealed_product_id
+    UNION SELECT fg.slug FROM card_printings fp JOIN card_identities fi ON fi.id=fp.identity_id JOIN games fg ON fg.id=fi.game_id WHERE fp.id=l.printing_id
     UNION
     SELECT bg.slug FROM json_each(l.items) entry JOIN card_printings bp ON bp.id=json_extract(entry.value,'$.printingId') JOIN card_identities bi ON bi.id=bp.identity_id JOIN games bg ON bg.id=bi.game_id
   )`:'';
@@ -155,7 +157,7 @@ export async function market(viewerId?:string,listingIds?:string[],gameSlug?:'on
   const rows = (await db().prepare(`
     SELECT
       l.id,
-      l.printing_id AS printingId,
+      COALESCE(l.printing_id,l.sealed_product_id) AS printingId,
       l.title,
       l.amount,
       l.currency,
@@ -254,6 +256,7 @@ export async function market(viewerId?:string,listingIds?:string[],gameSlug?:'on
     for(const item of held)reservations.set(`${item.listingId}:${item.printingId}`,Number(item.quantity)||0);
   }
   const bundleCards=new Map<string,Card>();
+  for(const id of printingIds){const product=sealedDisplayCard(id);if(product)bundleCards.set(id,product);}
   for(let offset=0;offset<printingIds.length;offset+=80){
     const chunk=printingIds.slice(offset,offset+80);
     const printingRows=(await db().prepare(`SELECT p.id AS printingId,p.image_url AS imageUrl,p.language,p.variant,p.printing_code AS printingCode,COALESCE(p.rarity,tcp.rarity) AS rarity,p.set_code AS setCode,i.id AS identityId,i.code,i.name,i.color,i.type,i.cost,i.power,i.effect,g.slug AS gameSlug,tcp.printing_code AS catalogPrintingCode,tca.object_key AS assetPath FROM card_printings p LEFT JOIN card_identities i ON i.id=p.identity_id LEFT JOIN games g ON g.id=i.game_id LEFT JOIN tcg_card_printings tcp ON tcp.id=p.id LEFT JOIN tcg_card_assets tca ON tca.printing_id=tcp.id AND tca.kind='small' WHERE p.id IN (${chunk.map(()=>'?').join(',')})`).bind(...chunk).all<{printingId:string;imageUrl:string|null;language:string;variant:string|null;printingCode:string|null;rarity:string|null;setCode:string|null;identityId:string|null;code:string|null;name:string|null;color:string|null;type:string|null;cost:number|null;power:number|null;effect:string|null;gameSlug:string|null;catalogPrintingCode:string|null;assetPath:string|null}>()).results;
@@ -321,7 +324,7 @@ export async function market(viewerId?:string,listingIds?:string[],gameSlug?:'on
       sellerUsername:r.sellerUsername??undefined,
       isOwner: Boolean(viewerId&&r.sellerId===viewerId),
       language: r.cardLanguage ?? 'EN',
-      card,
+      card:sealedDisplayCard(r.printingId)??card,
       items,
       shippingOptionCount:couriers.size,
       shippingCouriers:[...couriers],
