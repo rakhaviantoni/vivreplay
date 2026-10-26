@@ -15,6 +15,7 @@ import {
   XIcon,
 } from '@phosphor-icons/react';
 import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle} from '@/components/ui/dialog';
+import {detectCardBounds} from '@/lib/card-scan-detection';
 import {CardArt} from '@/components/tcg/card-art';
 import type {Card} from '@/packages/card-data/catalog';
 import {pokemonRarityLabel} from '@/lib/pokemon-rarity';
@@ -179,6 +180,10 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
   const [open,setOpen]=useState(false);
   const [preview,setPreview]=useState<string>();
   const [previewSize,setPreviewSize]=useState<{width:number;height:number}>();
+  const [previewZoom,setPreviewZoom]=useState(1);
+  const [previewPan,setPreviewPan]=useState({x:0,y:0});
+  const [scanBounds,setScanBounds]=useState<NormalizedBounds>();
+  const [detectedBounds,setDetectedBounds]=useState<NormalizedBounds>();
   const [cameraActive,setCameraActive]=useState(false);
   const [cameraReady,setCameraReady]=useState(false);
   const [isEvaluating,setIsEvaluating]=useState(false);
@@ -194,11 +199,14 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
 
   const cameraInput=useRef<HTMLInputElement>(null);
   const uploadInput=useRef<HTMLInputElement>(null);
+  const photoRef=useRef<HTMLDivElement>(null);
   const videoRef=useRef<HTMLVideoElement>(null);
   const cameraStageRef=useRef<HTMLDivElement>(null);
   const cameraGuideRef=useRef<HTMLDivElement>(null);
   const cameraStream=useRef<MediaStream|null>(null);
   const liveScanning=useRef(false);
+  const cropDrag=useRef<{pointerId:number;corner:'top-left'|'top-right'|'bottom-left'|'bottom-right'|'move'|null;startX:number;startY:number;startBounds?:NormalizedBounds}>({pointerId:-1,corner:null,startX:0,startY:0});
+  const panDrag=useRef<{pointerId:number;startX:number;startY:number;originX:number;originY:number}|null>(null);
   const resultTrack=useRef<HTMLDivElement>(null);
   const [resultScroll,setResultScroll]=useState<{left:boolean;right:boolean}>({left:false,right:false});
   const id=locale==='ID';
@@ -295,6 +303,10 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
       stopCamera();
       setPreview(undefined);
       setPreviewSize(undefined);
+      setPreviewZoom(1);
+      setPreviewPan({x:0,y:0});
+      setScanBounds(undefined);
+      setDetectedBounds(undefined);
       setSourceFile(undefined);
       setCandidates([]);
       setSelectedCandidateIndex(0);
@@ -310,6 +322,13 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
     setError('');
     setIsEvaluating(false);
     setUnmatchedAttempts(0);
+    setPreview(undefined);
+    setPreviewSize(undefined);
+    setPreviewZoom(1);
+    setPreviewPan({x:0,y:0});
+    setScanBounds(undefined);
+    setDetectedBounds(undefined);
+    setSourceFile(undefined);
     liveScanning.current=false;
     if(videoRef.current){
       void videoRef.current.play().catch(()=>{});
@@ -323,7 +342,192 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
     setOpen(true);
     setIsEvaluating(false);
     setUnmatchedAttempts(0);
+    setPreview(undefined);
+    setScanBounds(undefined);
+    setPreviewZoom(1);
+    setPreviewPan({x:0,y:0});
     void startCamera();
+  };
+
+  const changePreviewZoom=(value:number)=>{
+    if(!photoRef.current){setPreviewZoom(value);return;}
+    if(value===1){setPreviewZoom(1);setPreviewPan({x:0,y:0});return;}
+    const rect=photoRef.current.getBoundingClientRect();
+    const focusX=scanBounds?scanBounds.x+scanBounds.width/2:.5;
+    const focusY=scanBounds?scanBounds.y+scanBounds.height/2:.5;
+    const maxX=(value-1)*rect.width/2,maxY=(value-1)*rect.height/2;
+    const nextX=previewPan.x+(focusX-.5)*rect.width*(previewZoom-value);
+    const nextY=previewPan.y+(focusY-.5)*rect.height*(previewZoom-value);
+    setPreviewZoom(value);
+    setPreviewPan({x:Math.max(-maxX,Math.min(maxX,nextX)),y:Math.max(-maxY,Math.min(maxY,nextY))});
+  };
+
+  const beginCropDrag=(corner:'top-left'|'top-right'|'bottom-left'|'bottom-right',event:React.PointerEvent<HTMLButtonElement>)=>{
+    event.preventDefault();event.stopPropagation();
+    cropDrag.current={pointerId:event.pointerId,corner,startX:event.clientX,startY:event.clientY};
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const beginCropMove=(event:React.PointerEvent<HTMLDivElement>)=>{
+    if(event.button!==0||!scanBounds)return;
+    event.preventDefault();event.stopPropagation();
+    cropDrag.current={pointerId:event.pointerId,corner:'move',startX:event.clientX,startY:event.clientY,startBounds:scanBounds};
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const finishCropDrag=(event:React.PointerEvent<HTMLElement>)=>{
+    if(cropDrag.current.pointerId!==event.pointerId)return;
+    cropDrag.current={pointerId:-1,corner:null,startX:0,startY:0};
+  };
+
+  const beginPan=(event:React.PointerEvent<HTMLDivElement>)=>{
+    if(previewZoom<=1||event.button!==0)return;
+    event.preventDefault();
+    panDrag.current={pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,originX:previewPan.x,originY:previewPan.y};
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const movePan=(event:React.PointerEvent<HTMLDivElement>)=>{
+    const drag=panDrag.current;
+    if(!drag||drag.pointerId!==event.pointerId||!photoRef.current)return;
+    const rect=photoRef.current.getBoundingClientRect();
+    const maxX=(previewZoom-1)*rect.width/2,maxY=(previewZoom-1)*rect.height/2;
+    setPreviewPan({
+      x:Math.max(-maxX,Math.min(maxX,drag.originX+event.clientX-drag.startX)),
+      y:Math.max(-maxY,Math.min(maxY,drag.originY+event.clientY-drag.startY)),
+    });
+  };
+
+  const finishPan=(event:React.PointerEvent<HTMLDivElement>)=>{
+    if(panDrag.current?.pointerId!==event.pointerId)return;
+    panDrag.current=null;
+  };
+
+  const moveCrop=(event:React.PointerEvent<HTMLDivElement>)=>{
+    const drag=cropDrag.current;
+    if(drag.pointerId!==event.pointerId||!drag.corner||!photoRef.current)return;
+    const rect=photoRef.current.getBoundingClientRect();
+    const scaledWidth=rect.width*previewZoom,scaledHeight=rect.height*previewZoom;
+    const imageLeft=rect.left+(rect.width-scaledWidth)/2+previewPan.x,imageTop=rect.top+(rect.height-scaledHeight)/2+previewPan.y;
+    if(drag.corner==='move'&&drag.startBounds){
+      const start=drag.startBounds;
+      const dx=(event.clientX-drag.startX)/scaledWidth,dy=(event.clientY-drag.startY)/scaledHeight;
+      setScanBounds({...start,x:Math.max(0,Math.min(1-start.width,start.x+dx)),y:Math.max(0,Math.min(1-start.height,start.y+dy))});
+      setCandidates([]);setError('');return;
+    }
+    const x=Math.max(0,Math.min(1,(event.clientX-imageLeft)/scaledWidth));
+    const y=Math.max(0,Math.min(1,(event.clientY-imageTop)/scaledHeight));
+    setScanBounds(previous=>{
+      if(!previous)return previous;
+      let left=previous.x,top=previous.y,right=previous.x+previous.width,bottom=previous.y+previous.height;
+      const minimum=.035;
+      if(drag.corner==='top-left'){left=Math.min(x,right-minimum);top=Math.min(y,bottom-minimum)}
+      if(drag.corner==='top-right'){right=Math.max(x,left+minimum);top=Math.min(y,bottom-minimum)}
+      if(drag.corner==='bottom-left'){left=Math.min(x,right-minimum);bottom=Math.max(y,top+minimum)}
+      if(drag.corner==='bottom-right'){right=Math.max(x,left+minimum);bottom=Math.max(y,top+minimum)}
+      left=Math.max(0,left);top=Math.max(0,top);right=Math.min(1,right);bottom=Math.min(1,bottom);
+      return{x:left,y:top,width:right-left,height:bottom-top};
+    });
+    setCandidates([]);setError('');
+  };
+
+  const nudgeCrop=(corner:'top-left'|'top-right'|'bottom-left'|'bottom-right',event:React.KeyboardEvent<HTMLButtonElement>)=>{
+    const step=event.shiftKey?.02:.005;
+    const deltaX=event.key==='ArrowLeft'?-step:event.key==='ArrowRight'?step:0;
+    const deltaY=event.key==='ArrowUp'?-step:event.key==='ArrowDown'?step:0;
+    if(!deltaX&&!deltaY)return;
+    event.preventDefault();
+    setScanBounds(previous=>{
+      if(!previous)return previous;
+      let left=previous.x,top=previous.y,right=previous.x+previous.width,bottom=previous.y+previous.height;
+      const minimum=.035;
+      if(corner==='top-left'){left=Math.min(right-minimum,Math.max(0,left+deltaX));top=Math.min(bottom-minimum,Math.max(0,top+deltaY))}
+      if(corner==='top-right'){right=Math.max(left+minimum,Math.min(1,right+deltaX));top=Math.min(bottom-minimum,Math.max(0,top+deltaY))}
+      if(corner==='bottom-left'){left=Math.min(right-minimum,Math.max(0,left+deltaX));bottom=Math.max(top+minimum,Math.min(1,bottom+deltaY))}
+      if(corner==='bottom-right'){right=Math.max(left+minimum,Math.min(1,right+deltaX));bottom=Math.max(top+minimum,Math.min(1,bottom+deltaY))}
+      return{x:left,y:top,width:right-left,height:bottom-top};
+    });
+  };
+
+  // Choose file and prepare zoom & crop workspace
+  const chooseFile=async(file?:File)=>{
+    if(!file)return;
+    stopCamera();
+    setCandidates([]);
+    setSelectedCandidateIndex(0);
+    setError('');
+    setBusy(true);
+    setSourceFile(file);
+    setPreviewZoom(1);
+    setPreviewPan({x:0,y:0});
+    try{
+      const {canvas:sourceCanvas,width,height}=await loadSourceCanvas(file);
+      try{
+        const previewCanvas=document.createElement('canvas');
+        const scale=Math.min(1,1080/Math.max(width,height));
+        previewCanvas.width=Math.round(width*scale);
+        previewCanvas.height=Math.round(height*scale);
+        const pctx=previewCanvas.getContext('2d');
+        pctx?.drawImage(sourceCanvas,0,0,previewCanvas.width,previewCanvas.height);
+        const previewUrl=previewCanvas.toDataURL('image/jpeg',0.90);
+        previewCanvas.width=0;previewCanvas.height=0;
+
+        // Auto-detect card boundary in background
+        const detectCanvas=document.createElement('canvas');
+        detectCanvas.width=160;
+        detectCanvas.height=Math.max(1,Math.round(160*height/width));
+        const dctx=detectCanvas.getContext('2d');
+        dctx?.drawImage(sourceCanvas,0,0,detectCanvas.width,detectCanvas.height);
+        const idata=dctx?.getImageData(0,0,detectCanvas.width,detectCanvas.height);
+        const rawBounds=idata?detectCardBounds({data:idata.data,width:detectCanvas.width,height:detectCanvas.height}):null;
+        detectCanvas.width=0;detectCanvas.height=0;
+
+        const bounds:NormalizedBounds=rawBounds?{
+          x:rawBounds.x/160,
+          y:rawBounds.y/(160*height/width),
+          width:rawBounds.width/160,
+          height:rawBounds.height/(160*height/width),
+        }:{
+          x:0.08,
+          y:0.06,
+          width:0.84,
+          height:0.88,
+        };
+
+        setPreview(previewUrl);
+        setPreviewSize({width,height});
+        setScanBounds(bounds);
+        setDetectedBounds(bounds);
+      }finally{
+        sourceCanvas.width=0;sourceCanvas.height=0;
+      }
+    }catch{
+      setError(id?'Gambar tidak dapat dibuka. Coba JPEG, PNG, atau WebP.':'Could not open that image. Try JPEG, PNG, or WebP.');
+    }finally{
+      setBusy(false);
+    }
+  };
+
+  // Search card from cropped photo in workspace
+  const searchCroppedCard=async()=>{
+    if(!sourceFile||busy)return;
+    setBusy(true);
+    setError('');
+    try{
+      const croppedBlob=await getCroppedCardBlob(sourceFile,scanBounds);
+      const matches=await scanBlob(croppedBlob,true);
+      if(matches&&matches.length>0){
+        triggerHaptic([40,50,40]);
+        setCandidates(matches);
+        setSelectedCandidateIndex(0);
+      }else{
+        setError(id?'Kartu belum terdeteksi dari foto ini. Coba sesuaikan bingkai atau pilih foto yang lebih tajam.':'No card recognized from this photo. Try adjusting the crop frame or choosing a clearer photo.');
+      }
+    }catch{
+      setError(id?'Gagal memindai gambar. Silakan coba lagi.':'Failed to scan image. Please try again.');
+    }finally{
+      setBusy(false);
+    }
   };
 
   const scanBlob=async(blob:Blob,isManual=false):Promise<CardScanCandidate[]|null>=>{
@@ -378,32 +582,6 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
       }
     }catch{
       setError(id?'Gagal memindai kartu. Silakan coba lagi.':'Scan failed. Please try again.');
-    }finally{
-      setBusy(false);
-    }
-  };
-
-  // File upload fallback
-  const chooseFile=async(file?:File)=>{
-    if(!file)return;
-    stopCamera();
-    setCandidates([]);
-    setSelectedCandidateIndex(0);
-    setError('');
-    setBusy(true);
-    setSourceFile(file);
-    try{
-      const croppedBlob=await getCroppedCardBlob(file);
-      const matches=await scanBlob(croppedBlob,true);
-      if(matches&&matches.length>0){
-        triggerHaptic([40,50,40]);
-        setCandidates(matches);
-        setSelectedCandidateIndex(0);
-      }else{
-        setError(id?'Kartu belum terdeteksi dari foto ini. Coba foto yang lebih tajam.':'No card recognized from this photo. Try a clearer photo.');
-      }
-    }catch{
-      setError(id?'Gambar tidak dapat dibuka atau dipindai.':'Could not scan that image.');
     }finally{
       setBusy(false);
     }
@@ -539,6 +717,8 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
               ?(id?'Kartu berhasil dicocokkan.':'Card matched successfully.')
               :cameraActive
               ?(id?'Posisikan kartu di dalam bingkai panduan.':'Place card inside the guide frame.')
+              :preview
+              ?(id?'Sesuaikan bingkai dan perbesar gambar jika diperlukan.':'Adjust the frame and zoom if needed.')
               :(id?'Pilih kamera atau gambar kartu.':'Choose camera or card image.')}
           </DialogDescription>
         </DialogHeader>
@@ -736,14 +916,69 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
           </div>
         </section>}
 
+        {preview&&!cameraActive&&!candidates.length&&<div className="card-scan-workspace">
+          <div
+            ref={photoRef}
+            className={`card-scan-photo${previewZoom>1?' is-zoomed':''}`}
+            onPointerDown={beginPan}
+            onPointerMove={event=>{moveCrop(event);movePan(event)}}
+            onPointerUp={event=>{finishCropDrag(event);finishPan(event)}}
+            onPointerCancel={event=>{finishCropDrag(event);finishPan(event)}}
+            style={previewSize?{aspectRatio:`${previewSize.width}/${previewSize.height}`,width:`min(100%, ${Math.min(520,320*previewSize.width/previewSize.height)}px)`}:undefined}
+          >
+            <div className="card-scan-photo-content" style={{left:`calc(50% - ${previewZoom*50}% + ${previewPan.x}px)`,top:`calc(50% - ${previewZoom*50}% + ${previewPan.y}px)`,width:`${previewZoom*100}%`,height:`${previewZoom*100}%`}}>
+              <Image src={preview} width={previewSize?.width??440} height={previewSize?.height??314} unoptimized alt={id?'Foto kartu yang dipilih':'Selected card photo'}/>
+            </div>
+            {scanBounds&&<div
+              className="card-scan-crop-box"
+              onPointerDown={beginCropMove}
+              style={{left:`calc(50% + ${(scanBounds.x-.5)*previewZoom*100}% + ${previewPan.x}px)`,top:`calc(50% + ${(scanBounds.y-.5)*previewZoom*100}% + ${previewPan.y}px)`,width:`${scanBounds.width*previewZoom*100}%`,height:`${scanBounds.height*previewZoom*100}%`}}
+              aria-label={id?'Batas kartu yang bisa diatur':'Adjustable card outline'}
+            >
+              {(['top-left','top-right','bottom-left','bottom-right'] as const).map(corner=>(
+                <button
+                  key={corner}
+                  type="button"
+                  className={`card-scan-crop-handle is-${corner}`}
+                  aria-label={id?`Atur sudut ${corner}`:`Adjust ${corner} corner`}
+                  onPointerDown={event=>beginCropDrag(corner,event)}
+                  onKeyDown={event=>nudgeCrop(corner,event)}
+                />
+              ))}
+            </div>}
+          </div>
+        </div>}
+
+        {preview&&!cameraActive&&!candidates.length&&<div className="card-scan-crop-tools">
+          <span>{id?'Seret sudut atau bingkai untuk memilih area kartu. Perbesar foto lalu geser untuk memfokuskan kartu.':'Drag a corner or the frame to select the card area. Zoom in and pan to focus the card.'}</span>
+          <label className="card-scan-zoom">
+            <span>Zoom</span>
+            <input type="range" min="1" max="5" step=".1" value={previewZoom} onChange={event=>changePreviewZoom(Number(event.target.value))} aria-label={id?'Perbesar pratinjau':'Zoom preview'}/>
+            <output>{Math.round(previewZoom*100)}%</output>
+          </label>
+          <button type="button" className="card-scan-crop-reset" onClick={()=>{setScanBounds(detectedBounds);setPreviewZoom(1);setPreviewPan({x:0,y:0});setCandidates([]);setError('')}} disabled={!detectedBounds}>
+            {id?'Atur ulang':'Reset view'}
+          </button>
+        </div>}
+
+        {preview&&!cameraActive&&!candidates.length&&<button
+          type="button"
+          className="button card-scan-submit"
+          disabled={busy}
+          onClick={()=>void searchCroppedCard()}
+        >
+          {busy?<SpinnerGapIcon size={18} className="card-scan-spinner"/>:<CameraIcon size={18} weight="bold"/>}
+          {busy?(id?'Mencari kartu…':'Searching card…'):(id?'Cari Kartu':'Search Card')}
+        </button>}
+
         {!cameraActive&&!candidates.length&&<div className="card-scan-source-actions">
-          <button type="button" className="button secondary" onClick={()=>{if(useCameraPicker){setError('');cameraInput.current?.click()}else void startCamera()}}>
+          <button type="button" className="button secondary" onClick={()=>{setPreview(undefined);setScanBounds(undefined);if(useCameraPicker){setError('');cameraInput.current?.click()}else void startCamera()}}>
             <CameraIcon size={17}/>
-            {useCameraPicker?(id?'Buka kamera':'Open camera'):(id?'Ambil foto':'Take photo')}
+            {id?'Buka Kamera':'Open Camera'}
           </button>
           <button type="button" className="button secondary" onClick={()=>uploadInput.current?.click()}>
             <ImageSquareIcon size={17}/>
-            {id?'Pilih gambar':'Choose image'}
+            {preview?(id?'Ganti Gambar':'Change Image'):(id?'Pilih Gambar':'Choose Image')}
           </button>
         </div>}
 
