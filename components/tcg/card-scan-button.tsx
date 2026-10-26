@@ -5,8 +5,6 @@ import Image from 'next/image';
 import {
   ArrowsCounterClockwiseIcon,
   CameraIcon,
-  CaretLeftIcon,
-  CaretRightIcon,
   CheckCircleIcon,
   FlashlightIcon,
   ImageSquareIcon,
@@ -18,27 +16,48 @@ import {detectCardBounds} from '@/lib/card-scan-detection';
 import {CardArt} from '@/components/tcg/card-art';
 import type {Card} from '@/packages/card-data/catalog';
 import {pokemonRarityLabel} from '@/lib/pokemon-rarity';
-import {detectCardScanGame,detectPokemonScanLanguage,parseOnePieceScanCode,parsePokemonScanCode} from '@/lib/card-scan-parser';
 
 export type CardScanCandidate={id:string;game:'pokemon'|'one-piece';code:string;name:string;setCode:string;cardNumber:string;language:string;rarity:string;variant:string;imageUrl:string|null;setCardCount?:string};
-type CardScanRead={game:'pokemon'|'one-piece';name:string;setCode:string;cardNumber:string;cardNumberTotal:string;language:string;rarity:string;variant:string;block:string};
-type LiveCardScanRead=Partial<CardScanRead>;
-type Props={game:'pokemon'|'one-piece'|'auto';locale?:'EN'|'ID';onSelect?:(card:CardScanCandidate)=>void|Promise<void>;selectionPurpose?:'choose'|'filter';className?:string};
+type Props={game?:'pokemon'|'one-piece'|'auto';locale?:'EN'|'ID';onSelect?:(card:CardScanCandidate)=>void|Promise<void>;selectionPurpose?:'choose'|'filter';className?:string};
 type NormalizedBounds={x:number;y:number;width:number;height:number};
-type PaddleEngine=Awaited<ReturnType<typeof import('@paddleocr/paddleocr-js').PaddleOCR.create>>;
-let paddleEnginePromise:Promise<PaddleEngine>|undefined;
 
-async function getPaddleEngine():Promise<PaddleEngine>{
-  if(!paddleEnginePromise){
-    paddleEnginePromise=(async()=>{
-      const {PaddleOCR}=await import('@paddleocr/paddleocr-js');
-      return PaddleOCR.create({
-        lang:'en',ocrVersion:'PP-OCRv5',worker:false,
-        ortOptions:{backend:'wasm',wasmPaths:'https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/',simd:true},
-      });
-    })();
+function dataUrl(source:HTMLCanvasElement,box:{x:number;y:number;width:number;height:number},maxWidth:number,maxScale=1,enhance=false){
+  const scale=Math.min(maxScale,maxWidth/Math.max(1,box.width));
+  const canvas=document.createElement('canvas');
+  canvas.width=Math.max(1,Math.round(box.width*scale));
+  canvas.height=Math.max(1,Math.round(box.height*scale));
+  const context=canvas.getContext('2d',{willReadFrequently:enhance});
+  if(!context)return '';
+  context.imageSmoothingEnabled=true;
+  context.imageSmoothingQuality='high';
+  context.drawImage(source,box.x,box.y,box.width,box.height,0,0,canvas.width,canvas.height);
+  if(enhance){
+    const image=context.getImageData(0,0,canvas.width,canvas.height);
+    for(let index=0;index<image.data.length;index+=4){
+      const gray=image.data[index]*.299+image.data[index+1]*.587+image.data[index+2]*.114;
+      const contrast=Math.max(0,Math.min(255,(gray-128)*1.45+128));
+      image.data[index]=contrast;image.data[index+1]=contrast;image.data[index+2]=contrast;
+    }
+    context.putImageData(image,0,0);
   }
-  try{return await paddleEnginePromise}catch(error){paddleEnginePromise=undefined;throw error}
+  const url=canvas.toDataURL('image/jpeg',.88);
+  canvas.width=0;canvas.height=0;
+  return url;
+}
+
+function videoCropBlob(video:HTMLVideoElement,bounds:NormalizedBounds,maxWidth:number):Promise<Blob|null>{
+  const x=bounds.x*video.videoWidth,y=bounds.y*video.videoHeight,width=bounds.width*video.videoWidth,height=bounds.height*video.videoHeight;
+  const scale=Math.min(1,maxWidth/width);
+  const canvas=document.createElement('canvas');
+  canvas.width=Math.max(1,Math.round(width*scale));canvas.height=Math.max(1,Math.round(height*scale));
+  const context=canvas.getContext('2d');
+  if(!context)return Promise.resolve(null);
+  context.imageSmoothingEnabled=true;context.imageSmoothingQuality='medium';
+  context.drawImage(video,x,y,width,height,0,0,canvas.width,canvas.height);
+  return new Promise(resolve=>canvas.toBlob(blob=>{
+    canvas.width=0;canvas.height=0;
+    resolve(blob);
+  },'image/jpeg',.85));
 }
 
 async function loadSourceCanvas(file:Blob):Promise<{canvas:HTMLCanvasElement;width:number;height:number}>{
@@ -87,45 +106,6 @@ async function loadSourceCanvas(file:Blob):Promise<{canvas:HTMLCanvasElement;wid
   });
 }
 
-function dataUrl(source:HTMLCanvasElement,box:{x:number;y:number;width:number;height:number},maxWidth:number,maxScale=1,enhance=false){
-  const scale=Math.min(maxScale,maxWidth/Math.max(1,box.width));
-  const canvas=document.createElement('canvas');
-  canvas.width=Math.max(1,Math.round(box.width*scale));
-  canvas.height=Math.max(1,Math.round(box.height*scale));
-  const context=canvas.getContext('2d',{willReadFrequently:enhance});
-  if(!context)return '';
-  context.imageSmoothingEnabled=true;
-  context.imageSmoothingQuality='high';
-  context.drawImage(source,box.x,box.y,box.width,box.height,0,0,canvas.width,canvas.height);
-  if(enhance){
-    const image=context.getImageData(0,0,canvas.width,canvas.height);
-    for(let index=0;index<image.data.length;index+=4){
-      const gray=image.data[index]*.299+image.data[index+1]*.587+image.data[index+2]*.114;
-      const contrast=Math.max(0,Math.min(255,(gray-128)*1.45+128));
-      image.data[index]=contrast;image.data[index+1]=contrast;image.data[index+2]=contrast;
-    }
-    context.putImageData(image,0,0);
-  }
-  const url=canvas.toDataURL('image/jpeg',.88);
-  canvas.width=0;canvas.height=0;
-  return url;
-}
-
-function videoCropBlob(video:HTMLVideoElement,bounds:NormalizedBounds,maxWidth:number):Promise<Blob|null>{
-  const x=bounds.x*video.videoWidth,y=bounds.y*video.videoHeight,width=bounds.width*video.videoWidth,height=bounds.height*video.videoHeight;
-  const scale=Math.min(1,maxWidth/width);
-  const canvas=document.createElement('canvas');
-  canvas.width=Math.max(1,Math.round(width*scale));canvas.height=Math.max(1,Math.round(height*scale));
-  const context=canvas.getContext('2d');
-  if(!context)return Promise.resolve(null);
-  context.imageSmoothingEnabled=true;context.imageSmoothingQuality='medium';
-  context.drawImage(video,x,y,width,height,0,0,canvas.width,canvas.height);
-  return new Promise(resolve=>canvas.toBlob(blob=>{
-    canvas.width=0;canvas.height=0;
-    resolve(blob);
-  },'image/jpeg',.85));
-}
-
 async function getCroppedCardBlob(file:File|Blob,bounds?:NormalizedBounds):Promise<Blob>{
   const {canvas:sourceCanvas,width,height}=await loadSourceCanvas(file);
   try{
@@ -151,61 +131,6 @@ async function getCroppedCardBlob(file:File|Blob,bounds?:NormalizedBounds):Promi
         resolve(blob??file);
       },'image/jpeg',.90);
     });
-  }finally{
-    sourceCanvas.width=0;
-    sourceCanvas.height=0;
-  }
-}
-
-function parseLiveCardRead(text:string,requestedGame:Props['game'],name?:string):LiveCardScanRead{
-  const game:CardScanRead['game']|null=detectCardScanGame(text,requestedGame);
-  if(game==='one-piece'){
-    const parsed=parseOnePieceScanCode(text);
-    return parsed?{game,name,setCode:parsed.setCode,cardNumber:parsed.cardNumber,language:detectPokemonScanLanguage(text),rarity:parsed.rarity,variant:parsed.variant}:name?{name}:{};
-  }
-  if(game==='pokemon'){
-    const parsed=parsePokemonScanCode(text);
-    return parsed?{game,name,setCode:parsed.setCodeCandidates[0],cardNumber:parsed.cardNumber,cardNumberTotal:parsed.cardNumberTotal,language:parsed.language,rarity:parsed.rarity}:name?{name}:{};
-  }
-  return name?{name}:{};
-}
-
-async function scanImages(file:File,game:Props['game'],cropOverride?:NormalizedBounds){
-  const {canvas:sourceCanvas,width,height}=await loadSourceCanvas(file);
-  try{
-    const full=dataUrl(sourceCanvas,{x:0,y:0,width,height},1080);
-    const detectionScale=Math.min(1,240/width,240/height);
-    const detectionCanvas=document.createElement('canvas');
-    detectionCanvas.width=Math.max(1,Math.round(width*detectionScale));
-    detectionCanvas.height=Math.max(1,Math.round(height*detectionScale));
-    const detectionContext=detectionCanvas.getContext('2d',{willReadFrequently:true});
-    detectionContext?.drawImage(sourceCanvas,0,0,detectionCanvas.width,detectionCanvas.height);
-    const detected=detectionContext?detectCardBounds(detectionContext.getImageData(0,0,detectionCanvas.width,detectionCanvas.height)):null;
-    const detW=detectionCanvas.width;
-    const detH=detectionCanvas.height;
-    detectionCanvas.width=0;
-    detectionCanvas.height=0;
-    const bounds=cropOverride?{
-      x:cropOverride.x*width,y:cropOverride.y*height,
-      width:cropOverride.width*width,height:cropOverride.height*height,
-    }:detected?{
-      x:(detected.x/detW)*width,
-      y:(detected.y/detH)*height,
-      width:(detected.width/detW)*width,
-      height:(detected.height/detH)*height,
-    }:{x:0,y:0,width,height};
-    const relative=(x:number,y:number,w:number,h:number)=>({
-      x:Math.max(0,bounds.x+bounds.width*x),
-      y:Math.max(0,bounds.y+bounds.height*y),
-      width:Math.min(width-(bounds.x+bounds.width*x),bounds.width*w),
-      height:Math.min(height-(bounds.y+bounds.height*y),bounds.height*h),
-    });
-    const footer=(top:number)=>relative(0,top,1,1-top);
-    const pokemonCorner=relative(0,.7,.58,.3);
-    const onePieceCorner=relative(.42,.7,.58,.3);
-    const crops=game==='pokemon'?[pokemonCorner,footer(.7),footer(.84)]:game==='one-piece'?[onePieceCorner,footer(.7),footer(.84)]:[pokemonCorner,onePieceCorner,footer(.7),footer(.84)];
-    const focused=crops.map((crop,index)=>dataUrl(sourceCanvas,crop,960,2,index>0));
-    return {images:[full,...focused],width,height,bounds:{x:bounds.x/width,y:bounds.y/height,width:bounds.width/width,height:bounds.height/height}};
   }finally{
     sourceCanvas.width=0;
     sourceCanvas.height=0;
@@ -248,56 +173,35 @@ function triggerHaptic(pattern:number|number[]){
   }
 }
 
-export function CardScanButton({game,locale='EN',onSelect,className}:Props){
+export function CardScanButton({locale='EN',onSelect,className}:Props){
   const [open,setOpen]=useState(false);
-  const [selectedGame,setSelectedGame]=useState<'auto'|'pokemon'|'one-piece'>(game);
   const [preview,setPreview]=useState<string>();
   const [previewSize,setPreviewSize]=useState<{width:number;height:number}>();
-  const [previewZoom,setPreviewZoom]=useState(1);
-  const [previewPan,setPreviewPan]=useState({x:0,y:0});
   const [cameraActive,setCameraActive]=useState(false);
   const [cameraReady,setCameraReady]=useState(false);
   const [cameraStatus,setCameraStatus]=useState<'searching'|'steady'|'capturing'>('searching');
   const [torchAvailable,setTorchAvailable]=useState(false);
   const [torchOn,setTorchOn]=useState(false);
-  const [scanMethod,setScanMethod]=useState<'vision'|'ocr'|null>(null);
   const [useCameraPicker,setUseCameraPicker]=useState(false);
-  const [scanBounds,setScanBounds]=useState<NormalizedBounds>();
-  const [detectedBounds,setDetectedBounds]=useState<NormalizedBounds>();
   const [sourceFile,setSourceFile]=useState<File>();
-  const [images,setImages]=useState<string[]>([]);
-  const [read,setRead]=useState<CardScanRead>();
   const [candidates,setCandidates]=useState<CardScanCandidate[]>([]);
   const [selectedCandidateIndex,setSelectedCandidateIndex]=useState(0);
   const [busy,setBusy]=useState(false);
-  const [ocrStage,setOcrStage]=useState<'loading'|'reading'>('loading');
   const [error,setError]=useState('');
-  const [resultScroll,setResultScroll]=useState({left:false,right:false});
+
   const cameraInput=useRef<HTMLInputElement>(null);
   const uploadInput=useRef<HTMLInputElement>(null);
-  const photoRef=useRef<HTMLDivElement>(null);
   const videoRef=useRef<HTMLVideoElement>(null);
   const cameraStageRef=useRef<HTMLDivElement>(null);
   const cameraGuideRef=useRef<HTMLDivElement>(null);
   const cameraStream=useRef<MediaStream|null>(null);
-  const capturePhotoRef=useRef<((autoScan?:boolean,bounds?:NormalizedBounds)=>Promise<void>)|undefined>(undefined);
-  const identifyRef=useRef<(()=>Promise<void>)|undefined>(undefined);
-  const autoCaptureStarted=useRef(false);
-  const captureInProgress=useRef(false);
-  const autoScanRequested=useRef(false);
-  const cameraSteady=useRef(false);
-  const cameraSteadySince=useRef<number|null>(null);
   const liveScanning=useRef(false);
-  const cropDrag=useRef<{pointerId:number;corner:'top-left'|'top-right'|'bottom-left'|'bottom-right'|'move'|null;startX:number;startY:number;startBounds?:NormalizedBounds}>({pointerId:-1,corner:null,startX:0,startY:0});
-  const resultTrack=useRef<HTMLDivElement>(null);
-  const panDrag=useRef<{pointerId:number;startX:number;startY:number;originX:number;originY:number}|null>(null);
   const id=locale==='ID';
-
-  useEffect(()=>{setSelectedGame(game)},[game]);
 
   const stopCamera=()=>{
     if(torchOn)setTorchOn(false);
     setTorchAvailable(false);
+    liveScanning.current=false;
     cameraStream.current?.getTracks().forEach(track=>track.stop());
     cameraStream.current=null;
     setCameraActive(false);
@@ -351,104 +255,43 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
       }
       setTorchAvailable(Boolean(cameraCapabilities?.torch));
       setTorchOn(false);
-      autoCaptureStarted.current=false;captureInProgress.current=false;cameraSteady.current=false;cameraSteadySince.current=null;setCameraStatus('searching');
-      setPreview(undefined);setPreviewSize(undefined);setImages([]);setScanBounds(undefined);setDetectedBounds(undefined);setRead(undefined);setCandidates([]);setSelectedCandidateIndex(0);setScanMethod(null);
+      setCameraStatus('searching');
+      setPreview(undefined);
+      setPreviewSize(undefined);
+      setCandidates([]);
+      setSelectedCandidateIndex(0);
       setCameraActive(true);
     }catch{
       setUseCameraPicker(true);
-      setError(id?'Kamera langsung tidak tersedia. Tekan Ambil foto lagi untuk mencoba kamera perangkat, atau pilih gambar.':'Live camera is unavailable. Tap Take photo again to try your device camera, or choose an image.');
-    }
-  };
-
-  const capturePhoto=async(autoScan=false,bounds?:NormalizedBounds)=>{
-    if(captureInProgress.current)return;
-    captureInProgress.current=true;
-    setCameraStatus('capturing');
-    triggerHaptic(35);
-    const scanArea=bounds??getCameraGuideBounds();
-    const video=videoRef.current;
-    if(!video||!video.videoWidth||!video.videoHeight){
-      captureInProgress.current=false;
-      setCameraStatus('searching');
-      return;
-    }
-    try{
-      const maxDim=1920;
-      const scale=Math.min(1,maxDim/Math.max(video.videoWidth,video.videoHeight));
-      const canvas=document.createElement('canvas');
-      canvas.width=Math.max(1,Math.round(video.videoWidth*scale));
-      canvas.height=Math.max(1,Math.round(video.videoHeight*scale));
-      const context=canvas.getContext('2d');
-      if(!context){
-        captureInProgress.current=false;
-        setCameraStatus('steady');
-        setError(id?'Foto tidak dapat diambil.':'Could not capture the photo.');
-        return;
-      }
-      context.imageSmoothingEnabled=true;
-      context.imageSmoothingQuality='high';
-      context.drawImage(video,0,0,canvas.width,canvas.height);
-      stopCamera();
-      await new Promise<void>(resolve=>{
-        canvas.toBlob(blob=>{
-          canvas.width=0;canvas.height=0;
-          if(!blob){
-            setCameraStatus('steady');
-            setError(id?'Foto tidak dapat disimpan.':'Could not save the photo.');
-            resolve();
-            return;
-          }
-          void choose(new File([blob],'card-scan.jpg',{type:'image/jpeg'}),autoScan,scanArea).finally(resolve);
-        },'image/jpeg',.92);
-      });
-    }catch{
-      setCameraStatus('steady');
-      setError(id?'Foto tidak dapat diambil.':'Could not capture the photo.');
-    }finally{
-      captureInProgress.current=false;
+      setError(id?'Kamera langsung tidak tersedia. Tekan Buka kamera atau pilih gambar.':'Live camera is unavailable. Open camera or choose an image.');
     }
   };
 
   const close=(next:boolean)=>{
     setOpen(next);
     if(!next){
-      autoScanRequested.current=false;
-      captureInProgress.current=false;
       stopCamera();
       setPreview(undefined);
       setPreviewSize(undefined);
-      setPreviewZoom(1);
-      setPreviewPan({x:0,y:0});
-      setScanBounds(undefined);
-      setDetectedBounds(undefined);
       setSourceFile(undefined);
-      setImages([]);
-      setRead(undefined);
       setCandidates([]);
       setSelectedCandidateIndex(0);
-      setScanMethod(null);
       setError('');
-      setResultScroll({left:false,right:false});
     }
   };
 
   const resumeScanning=()=>{
     setCandidates([]);
     setSelectedCandidateIndex(0);
-    setRead(undefined);
-    setPreview(undefined);
-    setPreviewSize(undefined);
-    setSourceFile(undefined);
-    setScanBounds(undefined);
-    setDetectedBounds(undefined);
-    setScanMethod(null);
     setError('');
-    autoCaptureStarted.current=false;
-    captureInProgress.current=false;
-    cameraSteady.current=false;
-    cameraSteadySince.current=null;
     setCameraStatus('searching');
-    void startCamera();
+    liveScanning.current=false;
+    if(videoRef.current){
+      void videoRef.current.play().catch(()=>{});
+    }
+    if(!cameraActive){
+      void startCamera();
+    }
   };
 
   const openScanner=()=>{
@@ -456,101 +299,79 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
     void startCamera();
   };
 
-  const choose=async(file?:File,autoScan=false,captureBounds?:NormalizedBounds)=>{
-    if(!file)return;
-    autoScanRequested.current=autoScan;
-    setError('');setRead(undefined);setCandidates([]);setSelectedCandidateIndex(0);setImages([]);setScanBounds(undefined);setDetectedBounds(undefined);setSourceFile(file);setPreviewZoom(1);setPreviewPan({x:0,y:0});setScanMethod(null);
-    if(file.size>24_000_000){autoScanRequested.current=false;setError(id?'Foto terlalu besar. Pilih gambar di bawah 24 MB.':'Photo is too large. Choose an image under 24 MB.');return;}
-    try{
-      const prepared=await scanImages(file,selectedGame,captureBounds);
-      setPreview(prepared.images[0]);setPreviewSize({width:prepared.width,height:prepared.height});setScanBounds(prepared.bounds);setDetectedBounds(prepared.bounds);setImages(prepared.images);
-    }catch{autoScanRequested.current=false;setError(id?'Gambar tidak dapat dibuka. Coba JPEG, PNG, atau WebP.':'Could not open that image. Try JPEG, PNG, or WebP.');}
+  const scanBlob=async(blob:Blob):Promise<boolean>=>{
+    const vpsScannerUrl=process.env.NEXT_PUBLIC_CARD_SCANNER_URL||'https://scan.vivreplay.com';
+    const formData=new FormData();
+    formData.append('image',blob,'card-scan.jpg');
+    const res=await fetch(`${vpsScannerUrl.replace(/\/+$/,'')}/api/scan`,{
+      method:'POST',
+      body:formData,
+      signal:AbortSignal.timeout(3500),
+    });
+    if(!res.ok)return false;
+    const data=await res.json() as {status:string;product?:CardScanCandidate;candidates?:CardScanCandidate[]};
+    if(data.status==='match'&&data.product){
+      const rawMatches=data.candidates?.length?data.candidates:[data.product];
+      const matches=rawMatches.map(c=>({...c,cardNumber:cleanCardNumber(c.cardNumber)}));
+      triggerHaptic([40,50,40]);
+      setCandidates(matches);
+      setSelectedCandidateIndex(0);
+      setCameraStatus('steady');
+      videoRef.current?.pause();
+      return true;
+    }
+    return false;
   };
 
-  const identify=async()=>{
-    if(!sourceFile||!scanBounds)return;
-    setBusy(true);setOcrStage('loading');setError('');setRead(undefined);setCandidates([]);setSelectedCandidateIndex(0);setResultScroll({left:false,right:false});
+  // Immediate manual capture
+  const capturePhoto=async()=>{
+    if(busy)return;
+    const video=videoRef.current;
+    if(!video||!video.videoWidth||!video.videoHeight)return;
+    setBusy(true);
+    setError('');
+    triggerHaptic(35);
     try{
-      const vpsScannerUrl=process.env.NEXT_PUBLIC_CARD_SCANNER_URL||'https://scan.vivreplay.com';
-      if(vpsScannerUrl){
-        try{
-          setOcrStage('reading');
-          const croppedBlob=await getCroppedCardBlob(sourceFile,scanBounds);
-          const formData=new FormData();
-          formData.append('image',croppedBlob,'card-scan.jpg');
-          if(selectedGame!=='auto')formData.append('game',selectedGame);
-          const vpsResponse=await fetch(`${vpsScannerUrl.replace(/\/+$/,'')}/api/scan`,{method:'POST',body:formData});
-          if(vpsResponse.ok){
-            const vpsData=await vpsResponse.json() as {status:string;product?:CardScanCandidate;candidates?:CardScanCandidate[]};
-            if(vpsData.status==='match'&&vpsData.product){
-              const rawMatches=vpsData.candidates?.length?vpsData.candidates:[vpsData.product];
-              const matches=rawMatches.map(c=>({...c,cardNumber:cleanCardNumber(c.cardNumber)}));
-              const cleanProduct={...vpsData.product,cardNumber:cleanCardNumber(vpsData.product.cardNumber)};
-              triggerHaptic([40,50,40]);
-              setCandidates(matches);
-              setSelectedCandidateIndex(0);
-              setScanMethod('vision');
-              setRead({
-                game:cleanProduct.game,
-                name:cleanProduct.name,
-                setCode:cleanProduct.setCode,
-                cardNumber:cleanProduct.cardNumber,
-                cardNumberTotal:'',
-                language:cleanProduct.language,
-                rarity:cleanProduct.rarity,
-                variant:cleanProduct.variant,
-                block:'',
-              });
-              return;
-            }
-          }
-        }catch(err){
-          console.warn('VivrePlay Vision scan error, checking fallback',err);
-        }
+      const guideBounds=getCameraGuideBounds();
+      const blob=await videoCropBlob(video,guideBounds??{x:0.1,y:0.1,width:0.8,height:0.8},720);
+      if(!blob){
+        setError(id?'Foto tidak dapat diambil.':'Could not capture frame.');
+        return;
       }
-      try{
-        setScanMethod('ocr');
-        const engine=await getPaddleEngine();
-        setOcrStage('reading');
-        const prepared=await scanImages(sourceFile,selectedGame,scanBounds);
-        const candidateUrls=[...prepared.images.slice(1),prepared.images[0]];
-        let combinedText='';
-        for(const dataUri of candidateUrls){
-          const blob=await (await fetch(dataUri)).blob();
-          const results=await engine.predict([blob]);
-          const text=results.flatMap(result=>result.items.filter(item=>item.score>=.2).map(item=>item.text)).join('\n').trim();
-          if(text){
-            combinedText=combinedText?`${combinedText}\n${text}`:text;
-            const candidateRead=parseLiveCardRead(combinedText,selectedGame);
-            if(candidateRead.cardNumber&&candidateRead.setCode){
-              break;
-            }
-          }
-        }
-        if(!combinedText.trim())throw new Error(id?'Teks kartu tidak terbaca. Pastikan nomor dan set terlihat jelas.':'No card text was recognized. Make sure the set and card number are visible.');
-        const response=await fetch('/api/cards/scan',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({game:selectedGame,text:combinedText})});
-        const result=await response.json() as {error?:string;read?:CardScanRead;candidates?:CardScanCandidate[]};
-        if(!response.ok)throw new Error(result.error??'Card scan failed.');
-        const cleanCandidates=(result.candidates??[]).map(c=>({...c,cardNumber:cleanCardNumber(c.cardNumber)}));
-        triggerHaptic([40,50,40]);
-        setRead(result.read?{...result.read,cardNumber:cleanCardNumber(result.read.cardNumber)}:undefined);
-        setCandidates(cleanCandidates);
-        setSelectedCandidateIndex(0);
-      }catch(cause){
-        setError(cause instanceof Error?cause.message:id?'Teks kartu tidak dapat dibaca. Coba gambar yang lebih tajam.':'Could not read the card text. Try a sharper photo.');
+      const matched=await scanBlob(blob);
+      if(!matched){
+        setError(id?'Kartu belum terdeteksi. Posisikan seluruh kartu di dalam bingkai dan pastikan tidak silau.':'No card recognized. Keep the whole card inside the frame and avoid glare.');
       }
+    }catch{
+      setError(id?'Gagal memindai kartu. Silakan coba lagi.':'Scan failed. Please try again.');
     }finally{
       setBusy(false);
     }
   };
 
-  useEffect(()=>{identifyRef.current=identify;capturePhotoRef.current=capturePhoto});
-  useEffect(()=>{
-    if(!autoScanRequested.current||!sourceFile||!scanBounds)return;
-    autoScanRequested.current=false;
-    void identifyRef.current?.();
-  },[scanBounds,sourceFile]);
+  // File upload fallback
+  const chooseFile=async(file?:File)=>{
+    if(!file)return;
+    stopCamera();
+    setCandidates([]);
+    setSelectedCandidateIndex(0);
+    setError('');
+    setBusy(true);
+    setSourceFile(file);
+    try{
+      const croppedBlob=await getCroppedCardBlob(file);
+      const matched=await scanBlob(croppedBlob);
+      if(!matched){
+        setError(id?'Kartu belum terdeteksi dari foto ini. Coba foto yang lebih tajam.':'No card recognized from this photo. Try a clearer photo.');
+      }
+    }catch{
+      setError(id?'Gambar tidak dapat dibuka atau dipindai.':'Could not scan that image.');
+    }finally{
+      setBusy(false);
+    }
+  };
 
+  // Continuous background live scan loop (non-blocking)
   useEffect(()=>{
     if(!cameraActive||!cameraReady)return;
     const video=videoRef.current;
@@ -558,55 +379,28 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
     const canvas=document.createElement('canvas');
     const context=canvas.getContext('2d',{willReadFrequently:true});
     if(!context)return;
+
     let previous:NormalizedBounds|undefined;
-    let steadyFrames=0;
     let timer=0;
 
-    const scanLiveFrame=async()=>{
+    const scanLive=async()=>{
       if(liveScanning.current||candidates.length>0||!cameraActive||!videoRef.current)return;
       const guideBounds=getCameraGuideBounds();
       if(!guideBounds)return;
       liveScanning.current=true;
       try{
-        const video=videoRef.current;
-        if(!video||!video.videoWidth||!video.videoHeight)return;
-        const blob=await videoCropBlob(video,guideBounds,480);
+        const v=videoRef.current;
+        if(!v||!v.videoWidth||!v.videoHeight)return;
+        const blob=await videoCropBlob(v,guideBounds,420);
         if(!blob)return;
-        const vpsScannerUrl=process.env.NEXT_PUBLIC_CARD_SCANNER_URL||'https://scan.vivreplay.com';
-        const formData=new FormData();
-        formData.append('image',blob,'live-card.jpg');
-        if(selectedGame!=='auto')formData.append('game',selectedGame);
-        const res=await fetch(`${vpsScannerUrl.replace(/\/+$/,'')}/api/scan`,{method:'POST',body:formData,signal:AbortSignal.timeout(2800)});
-        if(res.ok){
-          const data=await res.json() as {status:string;product?:CardScanCandidate;candidates?:CardScanCandidate[]};
-          if(data.status==='match'&&data.product){
-            const rawMatches=data.candidates?.length?data.candidates:[data.product];
-            const matches=rawMatches.map(c=>({...c,cardNumber:cleanCardNumber(c.cardNumber)}));
-            const cleanProduct={...data.product,cardNumber:cleanCardNumber(data.product.cardNumber)};
-            triggerHaptic([40,50,40]);
-            setCandidates(matches);
-            setSelectedCandidateIndex(0);
-            setScanMethod('vision');
-            setRead({
-              game:cleanProduct.game,
-              name:cleanProduct.name,
-              setCode:cleanProduct.setCode,
-              cardNumber:cleanProduct.cardNumber,
-              cardNumberTotal:'',
-              language:cleanProduct.language,
-              rarity:cleanProduct.rarity,
-              variant:cleanProduct.variant,
-              block:'',
-            });
-          }
-        }
+        await scanBlob(blob);
       }catch{}finally{
         liveScanning.current=false;
       }
     };
 
     const checkFrame=()=>{
-      if(!video.videoWidth||!video.videoHeight||captureInProgress.current)return;
+      if(!video.videoWidth||!video.videoHeight||candidates.length>0)return;
       let sourceX=0,sourceWidth=video.videoWidth;
       if(sourceWidth>video.videoHeight*1.15){sourceWidth=Math.min(sourceWidth,video.videoHeight*.75);sourceX=(video.videoWidth-sourceWidth)/2}
       const scale=Math.min(180/sourceWidth,180/video.videoHeight);
@@ -614,154 +408,30 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
       canvas.height=Math.max(1,Math.round(video.videoHeight*scale));
       context.drawImage(video,sourceX,0,sourceWidth,video.videoHeight,0,0,canvas.width,canvas.height);
       const bounds=detectCardBounds(context.getImageData(0,0,canvas.width,canvas.height));
-      const centered=Boolean(bounds&&bounds.width/canvas.width>=.34&&bounds.height/canvas.height>=.48&&Math.abs(bounds.x+bounds.width/2-canvas.width/2)<canvas.width*.18&&Math.abs(bounds.y+bounds.height/2-canvas.height/2)<canvas.height*.18);
-      if(!bounds||!centered){previous=undefined;steadyFrames=0;cameraSteady.current=false;cameraSteadySince.current=null;setCameraStatus('searching');return}
-      const stable=Boolean(previous&&Math.abs(bounds.x-previous.x)<canvas.width*.035&&Math.abs(bounds.y-previous.y)<canvas.height*.035&&Math.abs(bounds.width-previous.width)<canvas.width*.045&&Math.abs(bounds.height-previous.height)<canvas.height*.045);
-      steadyFrames=stable?steadyFrames+1:1;
-      previous=bounds;
-      if(!cameraSteady.current){
-        triggerHaptic(30);
+      const centered=Boolean(bounds&&bounds.width/canvas.width>=.30&&bounds.height/canvas.height>=.44&&Math.abs(bounds.x+bounds.width/2-canvas.width/2)<canvas.width*.20&&Math.abs(bounds.y+bounds.height/2-canvas.height/2)<canvas.height*.20);
+
+      if(!bounds||!centered){
+        previous=undefined;
+        setCameraStatus('searching');
+        return;
       }
-      cameraSteady.current=true;
-      cameraSteadySince.current??=performance.now();
+      const stable=Boolean(previous&&Math.abs(bounds.x-previous.x)<canvas.width*.04&&Math.abs(bounds.y-previous.y)<canvas.height*.04);
+      previous=bounds;
       setCameraStatus('steady');
-      void scanLiveFrame();
-      if(!autoCaptureStarted.current&&candidates.length===0&&cameraSteadySince.current!==null&&performance.now()-cameraSteadySince.current>=2600){
-        autoCaptureStarted.current=true;
-        window.clearInterval(timer);
-        setCameraStatus('capturing');
-        const captureBounds=getCameraGuideBounds()??{
-          x:sourceX/video.videoWidth+bounds.x/canvas.width*(sourceWidth/video.videoWidth),
-          y:bounds.y/canvas.height,
-          width:bounds.width/canvas.width*(sourceWidth/video.videoWidth),
-          height:bounds.height/canvas.height,
-        };
-        void capturePhotoRef.current?.(true,captureBounds);
+      if(stable){
+        void scanLive();
       }
     };
-    timer=window.setInterval(checkFrame,550);
+
+    timer=window.setInterval(checkFrame,450);
     return()=>window.clearInterval(timer);
-  },[cameraActive,cameraReady]);
-
-  const changePreviewZoom=(value:number)=>{
-    if(!photoRef.current){setPreviewZoom(value);return;}
-    if(value===1){setPreviewZoom(1);setPreviewPan({x:0,y:0});return;}
-    const rect=photoRef.current.getBoundingClientRect();
-    const focusX=scanBounds?scanBounds.x+scanBounds.width/2:.5;
-    const focusY=scanBounds?scanBounds.y+scanBounds.height/2:.5;
-    const maxX=(value-1)*rect.width/2,maxY=(value-1)*rect.height/2;
-    const nextX=previewPan.x+(focusX-.5)*rect.width*(previewZoom-value);
-    const nextY=previewPan.y+(focusY-.5)*rect.height*(previewZoom-value);
-    setPreviewZoom(value);
-    setPreviewPan({x:Math.max(-maxX,Math.min(maxX,nextX)),y:Math.max(-maxY,Math.min(maxY,nextY))});
-  };
-
-  const beginCropDrag=(corner:'top-left'|'top-right'|'bottom-left'|'bottom-right',event:React.PointerEvent<HTMLButtonElement>)=>{
-    event.preventDefault();event.stopPropagation();
-    cropDrag.current={pointerId:event.pointerId,corner,startX:event.clientX,startY:event.clientY};
-    event.currentTarget.setPointerCapture(event.pointerId);
-  };
-
-  const beginCropMove=(event:React.PointerEvent<HTMLDivElement>)=>{
-    if(event.button!==0||!scanBounds)return;
-    event.preventDefault();event.stopPropagation();
-    cropDrag.current={pointerId:event.pointerId,corner:'move',startX:event.clientX,startY:event.clientY,startBounds:scanBounds};
-    event.currentTarget.setPointerCapture(event.pointerId);
-  };
-
-  const beginPan=(event:React.PointerEvent<HTMLDivElement>)=>{
-    if(previewZoom<=1||event.button!==0)return;
-    event.preventDefault();
-    panDrag.current={pointerId:event.pointerId,startX:event.clientX,startY:event.clientY,originX:previewPan.x,originY:previewPan.y};
-    event.currentTarget.setPointerCapture(event.pointerId);
-  };
-
-  const movePan=(event:React.PointerEvent<HTMLDivElement>)=>{
-    const drag=panDrag.current;
-    if(!drag||drag.pointerId!==event.pointerId||!photoRef.current)return;
-    const rect=photoRef.current.getBoundingClientRect();
-    const maxX=(previewZoom-1)*rect.width/2,maxY=(previewZoom-1)*rect.height/2;
-    setPreviewPan({
-      x:Math.max(-maxX,Math.min(maxX,drag.originX+event.clientX-drag.startX)),
-      y:Math.max(-maxY,Math.min(maxY,drag.originY+event.clientY-drag.startY)),
-    });
-  };
-
-  const finishPan=(event:React.PointerEvent<HTMLDivElement>)=>{
-    if(panDrag.current?.pointerId!==event.pointerId)return;
-    panDrag.current=null;
-  };
-
-  const moveCrop=(event:React.PointerEvent<HTMLDivElement>)=>{
-    const drag=cropDrag.current;
-    if(drag.pointerId!==event.pointerId||!drag.corner||!photoRef.current)return;
-    const rect=photoRef.current.getBoundingClientRect();
-    const scaledWidth=rect.width*previewZoom,scaledHeight=rect.height*previewZoom;
-    const imageLeft=rect.left+(rect.width-scaledWidth)/2+previewPan.x,imageTop=rect.top+(rect.height-scaledHeight)/2+previewPan.y;
-    if(drag.corner==='move'&&drag.startBounds){
-      const start=drag.startBounds;
-      const dx=(event.clientX-drag.startX)/scaledWidth,dy=(event.clientY-drag.startY)/scaledHeight;
-      setScanBounds({...start,x:Math.max(0,Math.min(1-start.width,start.x+dx)),y:Math.max(0,Math.min(1-start.height,start.y+dy))});
-      setRead(undefined);setCandidates([]);setError('');return;
-    }
-    const x=Math.max(0,Math.min(1,(event.clientX-imageLeft)/scaledWidth));
-    const y=Math.max(0,Math.min(1,(event.clientY-imageTop)/scaledHeight));
-    setScanBounds(previous=>{
-      if(!previous)return previous;
-      let left=previous.x,top=previous.y,right=previous.x+previous.width,bottom=previous.y+previous.height;
-      const minimum=.035;
-      if(drag.corner==='top-left'){left=Math.min(x,right-minimum);top=Math.min(y,bottom-minimum)}
-      if(drag.corner==='top-right'){right=Math.max(x,left+minimum);top=Math.min(y,bottom-minimum)}
-      if(drag.corner==='bottom-left'){left=Math.min(x,right-minimum);bottom=Math.max(y,top+minimum)}
-      if(drag.corner==='bottom-right'){right=Math.max(x,left+minimum);bottom=Math.max(y,top+minimum)}
-      left=Math.max(0,left);top=Math.max(0,top);right=Math.min(1,right);bottom=Math.min(1,bottom);
-      return{x:left,y:top,width:right-left,height:bottom-top};
-    });
-    setRead(undefined);setCandidates([]);setError('');
-  };
-
-  const nudgeCrop=(corner:'top-left'|'top-right'|'bottom-left'|'bottom-right',event:React.KeyboardEvent<HTMLButtonElement>)=>{
-    const step=event.shiftKey?.02:.005;
-    const deltaX=event.key==='ArrowLeft'?-step:event.key==='ArrowRight'?step:0;
-    const deltaY=event.key==='ArrowUp'?-step:event.key==='ArrowDown'?step:0;
-    if(!deltaX&&!deltaY)return;
-    event.preventDefault();
-    setScanBounds(previous=>{
-      if(!previous)return previous;
-      let left=previous.x,top=previous.y,right=previous.x+previous.width,bottom=previous.y+previous.height;
-      const minimum=.035;
-      if(corner==='top-left'){left=Math.max(0,Math.min(left+deltaX,right-minimum));top=Math.max(0,Math.min(top+deltaY,bottom-minimum))}
-      if(corner==='top-right'){right=Math.min(1,Math.max(right+deltaX,left+minimum));top=Math.max(0,Math.min(top+deltaY,bottom-minimum))}
-      if(corner==='bottom-left'){left=Math.max(0,Math.min(left+deltaX,right-minimum));bottom=Math.min(1,Math.max(bottom+deltaY,top+minimum))}
-      if(corner==='bottom-right'){right=Math.min(1,Math.max(right+deltaX,left+minimum));bottom=Math.min(1,Math.max(bottom+deltaY,top+minimum))}
-      return{x:left,y:top,width:right-left,height:bottom-top};
-    });
-    setRead(undefined);setCandidates([]);setError('');
-  };
-
-  const finishCropDrag=(event:React.PointerEvent<HTMLDivElement>)=>{
-    if(cropDrag.current.pointerId!==event.pointerId)return;
-    cropDrag.current={pointerId:-1,corner:null,startX:0,startY:0};
-  };
+  },[cameraActive,cameraReady,candidates.length]);
 
   const select=async(card:CardScanCandidate)=>{
     if(!onSelect){window.location.assign(cardHref(card,locale));return;}
     setBusy(true);setError('');
     try{await onSelect(card);close(false)}catch{setError(id?'Kartu tidak dapat dibuka. Coba lagi.':'Could not open this card. Try again.')}finally{setBusy(false)}
   };
-
-  const updateResultScroll=useCallback(()=>{
-    const track=resultTrack.current;
-    if(!track)return;
-    const maxScroll=Math.max(0,track.scrollWidth-track.clientWidth);
-    setResultScroll({left:track.scrollLeft>3,right:maxScroll-track.scrollLeft>3});
-  },[]);
-
-  useEffect(()=>{
-    const frame=window.requestAnimationFrame(updateResultScroll);
-    window.addEventListener('resize',updateResultScroll);
-    return()=>{window.cancelAnimationFrame(frame);window.removeEventListener('resize',updateResultScroll)};
-  },[candidates,read,updateResultScroll]);
 
   const activeCandidate=candidates[selectedCandidateIndex]??candidates[0];
 
@@ -776,28 +446,22 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
       <CameraIcon size={18} aria-hidden="true"/>
     </button>
     <Dialog open={open} onOpenChange={close}>
-      <DialogContent className={`card-scan-dialog${preview?' has-preview':''}`} overlayClassName="card-scan-overlay">
+      <DialogContent className="card-scan-dialog" overlayClassName="card-scan-overlay">
         <DialogHeader className="card-scan-header">
           <DialogTitle>
-            {candidates.length>0?(id?'Hasil Pindai Kartu':'Scan Result'):cameraActive?(id?'Pindai Kartu TCG':'Scan TCG Card'):(id?'Pindai Kartu':'Scan Card')}
+            {candidates.length>0?(id?'Kartu Ditemukan':'Card Detected'):(id?'Pindai Kartu TCG':'Scan TCG Card')}
           </DialogTitle>
           <DialogDescription>
             {candidates.length>0
-              ?(id?'Kartu berhasil dicocokkan. Pilih kartu untuk melihat detail, atau pindai kartu berikutnya.':'Card matched. Select to view details, or scan your next card.')
+              ?(id?'Kartu berhasil dicocokkan otomatis.':'Card identified automatically by visual AI.')
               :cameraActive
-              ?(cameraStatus==='capturing'
-                ?(id?'Mengambil foto dan memindai visual kartu…':'Capturing and scanning card visual…')
-                :cameraStatus==='steady'
-                ?(id?'Kartu terdeteksi. Tahan sebentar…':'Card detected. Hold steady…')
-                :(id?'Posisikan kartu di dalam bingkai. Foto diambil otomatis saat stabil.':'Keep card inside frame. Captures automatically when steady.'))
-              :preview
-              ?(id?'Pastikan seluruh kartu masuk ke dalam bingkai.':'Keep the full card inside the frame.')
-              :(id?'Arahkan kamera ke kartu Pokémon atau One Piece Anda.':'Point camera at your Pokémon or One Piece card.')}
+              ?(id?'Arahkan kamera ke kartu. Pengenalan berjalan otomatis saat kartu di dalam bingkai.':'Aim camera at your card. Scanning happens automatically in the frame.')
+              :(id?'Pilih kamera atau gambar kartu.':'Choose camera or card image.')}
           </DialogDescription>
         </DialogHeader>
 
-        {cameraActive&&!candidates.length&&<section className="card-scan-camera-view">
-          <div ref={cameraStageRef} className={`card-scan-camera-stage${cameraStatus==='steady'?' is-steady':''}`}>
+        {cameraActive&&<section className="card-scan-camera-view">
+          <div ref={cameraStageRef} className={`card-scan-camera-stage${candidates.length>0||cameraStatus==='steady'?' is-steady':''}`}>
             <video
               ref={videoRef}
               className="card-scan-live-video"
@@ -808,17 +472,8 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
               aria-label={id?'Pratinjau kamera':'Camera preview'}
             />
             <div className="card-scan-hud-top">
-              <div className="card-scan-game-switcher" role="radiogroup" aria-label={id?'Pilih Game':'Select Game'}>
-                {(['auto','pokemon','one-piece'] as const).map(g=>(
-                  <button
-                    key={g}
-                    type="button"
-                    className={`card-scan-game-pill${selectedGame===g?' is-active':''}`}
-                    onClick={()=>setSelectedGame(g)}
-                  >
-                    {g==='auto'?(id?'Semua':'All'):g==='pokemon'?'Pokémon':'One Piece'}
-                  </button>
-                ))}
+              <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                <span className="card-scan-vision-pill">AI Vision</span>
               </div>
               <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
                 {torchAvailable&&<button
@@ -847,39 +502,40 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
               <div className="card-scan-beam"/>
             </div>
           </div>
-          <p className={`card-scan-camera-status is-${cameraStatus}`} role="status">
-            {cameraStatus==='capturing'?(id?'Mengambil foto…':'Capturing photo…'):cameraStatus==='steady'?(id?'Kartu terdeteksi. Tahan sebentar…':'Card aligned. Hold steady…'):(id?'Posisikan kartu di dalam bingkai':'Place card inside the frame')}
-          </p>
-          <div className="card-scan-source-actions" style={{marginTop:'2px'}}>
+
+          {candidates.length===0&&<p className={`card-scan-camera-status is-${cameraStatus}`} role="status">
+            {cameraStatus==='steady'?(id?'Mencocokkan visual kartu…':'Matching card visual…'):(id?'Posisikan kartu di dalam bingkai':'Place card inside the frame')}
+          </p>}
+
+          {candidates.length===0&&<div className="card-scan-source-actions" style={{marginTop:'2px'}}>
             <button
               type="button"
               className="button card-scan-shutter-btn"
-              onClick={()=>void capturePhoto(true)}
-              disabled={!cameraReady||cameraStatus==='capturing'}
+              onClick={()=>void capturePhoto()}
+              disabled={!cameraReady||busy}
             >
-              <CameraIcon size={18} weight="bold"/>
-              {id?'Ambil & Pindai':'Capture & Scan'}
+              {busy?<SpinnerGapIcon size={18} className="card-scan-spinner"/>:<CameraIcon size={18} weight="bold"/>}
+              {busy?(id?'Memindai…':'Scanning…'):(id?'Pindai Sekarang':'Scan Now')}
             </button>
             <button
               type="button"
               className="button secondary"
               onClick={()=>uploadInput.current?.click()}
+              disabled={busy}
             >
               <ImageSquareIcon size={17}/>
               {id?'Pilih Gambar':'Upload Image'}
             </button>
-          </div>
+          </div>}
         </section>}
 
         {candidates.length>0&&activeCandidate&&<section className="card-scan-match-sheet" aria-label={id?'Hasil kartu yang cocok':'Card match result'}>
           <div className="card-scan-match-header">
             <div className="card-scan-match-meta">
               <CheckCircleIcon size={18} weight="fill" color="#10b981"/>
-              <strong style={{fontSize:'13px',color:'var(--ink)'}}>{id?'Kartu Terdeteksi':'Card Matched'}</strong>
+              <strong style={{fontSize:'13px',color:'var(--ink)'}}>{id?'Kartu Cocok!':'Match Found!'}</strong>
             </div>
-            <span className="card-scan-vision-pill">
-              {scanMethod==='vision'?'VivrePlay AI Vision':'PaddleOCR'}
-            </span>
+            <span className="card-scan-vision-pill">VivrePlay AI Vision</span>
           </div>
 
           <div className="card-scan-card-card">
@@ -906,7 +562,7 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
 
           {candidates.length>1&&<div style={{display:'grid',gap:'6px'}}>
             <p style={{margin:0,fontSize:'11px',color:'var(--muted)',fontWeight:600}}>
-              {id?'Pilihan varian/cetakan lain yang cocok:':'Other matching printings:'}
+              {id?'Pilihan cetakan/varian lain yang cocok:':'Other matching printings:'}
             </p>
             <div style={{display:'flex',gap:'6px',overflowX:'auto',paddingBottom:'4px'}}>
               {candidates.map((candidate,idx)=>{
@@ -957,52 +613,6 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
           </div>
         </section>}
 
-        {preview&&!candidates.length&&<div className="card-scan-workspace">
-          <div
-            ref={photoRef}
-            className={`card-scan-photo${previewZoom>1?' is-zoomed':''}`}
-            onPointerDown={beginPan}
-            onPointerMove={event=>{moveCrop(event);movePan(event)}}
-            onPointerUp={event=>{finishCropDrag(event);finishPan(event)}}
-            onPointerCancel={event=>{finishCropDrag(event);finishPan(event)}}
-            style={previewSize?{aspectRatio:`${previewSize.width}/${previewSize.height}`,width:`min(100%, ${Math.min(520,320*previewSize.width/previewSize.height)}px)`}:undefined}
-          >
-            {preview&&<div className="card-scan-photo-content" style={{left:`calc(50% - ${previewZoom*50}% + ${previewPan.x}px)`,top:`calc(50% - ${previewZoom*50}% + ${previewPan.y}px)`,width:`${previewZoom*100}%`,height:`${previewZoom*100}%`}}>
-              <Image src={preview} width={previewSize?.width??440} height={previewSize?.height??235} unoptimized alt={id?'Foto kartu yang dipilih':'Selected card photo'}/>
-            </div>}
-            {preview&&scanBounds&&<div
-              className="card-scan-crop-box"
-              onPointerDown={beginCropMove}
-              style={{left:`calc(50% + ${(scanBounds.x-.5)*previewZoom*100}% + ${previewPan.x}px)`,top:`calc(50% + ${(scanBounds.y-.5)*previewZoom*100}% + ${previewPan.y}px)`,width:`${scanBounds.width*previewZoom*100}%`,height:`${scanBounds.height*previewZoom*100}%`}}
-              aria-label={id?'Batas kartu yang bisa diatur':'Adjustable card outline'}
-            >
-              {(['top-left','top-right','bottom-left','bottom-right'] as const).map(corner=>(
-                <button
-                  key={corner}
-                  type="button"
-                  className={`card-scan-crop-handle is-${corner}`}
-                  aria-label={id?`Atur sudut ${corner}`:`Adjust ${corner} corner`}
-                  onPointerDown={event=>beginCropDrag(corner,event)}
-                  onKeyDown={event=>nudgeCrop(corner,event)}
-                />
-              ))}
-            </div>}
-            {!preview&&<CameraIcon size={34} aria-hidden="true"/>}
-          </div>
-        </div>}
-
-        {preview&&!candidates.length&&<div className="card-scan-crop-tools">
-          <span>{id?'Seret sudut atau bingkai untuk memilih area kartu. Perbesar foto lalu geser untuk melihat tulisan kecil.':'Drag a corner or the frame to select the card area. Zoom in, then move the photo to check small print.'}</span>
-          <label className="card-scan-zoom">
-            <span>{id?'Zoom':'Zoom'}</span>
-            <input type="range" min="1" max="5" step=".1" value={previewZoom} onChange={event=>changePreviewZoom(Number(event.target.value))} aria-label={id?'Perbesar pratinjau':'Zoom preview'}/>
-            <output>{Math.round(previewZoom*100)}%</output>
-          </label>
-          <button type="button" className="card-scan-crop-reset" onClick={()=>{setScanBounds(detectedBounds);setPreviewZoom(1);setPreviewPan({x:0,y:0});setRead(undefined);setCandidates([]);setError('')}} disabled={!detectedBounds}>
-            {id?'Atur ulang':'Reset view'}
-          </button>
-        </div>}
-
         {!cameraActive&&!candidates.length&&<div className="card-scan-source-actions">
           <button type="button" className="button secondary" onClick={()=>{if(useCameraPicker){setError('');cameraInput.current?.click()}else void startCamera()}}>
             <CameraIcon size={17}/>
@@ -1014,18 +624,8 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
           </button>
         </div>}
 
-        <input ref={cameraInput} className="sr-only" type="file" accept="image/*" capture="environment" onChange={event=>{void choose(event.currentTarget.files?.[0]);event.currentTarget.value=''}}/>
-        <input ref={uploadInput} className="sr-only" type="file" accept="image/*" onChange={event=>{void choose(event.currentTarget.files?.[0]);event.currentTarget.value=''}}/>
-
-        {images.length>0&&!candidates.length&&<button
-          type="button"
-          className="button card-scan-submit"
-          disabled={busy}
-          onClick={()=>void identify()}
-        >
-          {busy?<SpinnerGapIcon size={17} className="card-scan-spinner"/>:<CameraIcon size={17}/>}
-          {busy?(id?'Memindai visual kartu dengan AI…':'Scanning card visual with AI…'):(id?'Pindai kartu':'Scan card')}
-        </button>}
+        <input ref={cameraInput} className="sr-only" type="file" accept="image/*" capture="environment" onChange={event=>{void chooseFile(event.currentTarget.files?.[0]);event.currentTarget.value=''}}/>
+        <input ref={uploadInput} className="sr-only" type="file" accept="image/*" onChange={event=>{void chooseFile(event.currentTarget.files?.[0]);event.currentTarget.value=''}}/>
 
         {error&&<p className="card-scan-error" role="alert">{error}</p>}
       </DialogContent>
