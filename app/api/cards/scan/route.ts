@@ -1,5 +1,4 @@
 import {database} from '@/lib/server/database';
-import {verifyTurnstile} from '@/lib/server/turnstile';
 import {detectCardScanGame,parseOnePieceScanCode,parsePokemonScanCode} from '@/lib/card-scan-parser';
 import {pokemonArtRoute} from '@/lib/pokemon-art-route';
 import {displayCardName} from '@/components/tcg/card-name';
@@ -153,8 +152,6 @@ function setCandidatesForComparison(parsed:NonNullable<ReturnType<typeof parseTe
 }
 
 export async function POST(request:Request){
-  const rejected=await verifyTurnstile(request);
-  if(rejected)return rejected;
   try{
     const payload=await request.json() as {text?:unknown;game?:unknown};
     const text=typeof payload.text==='string'?payload.text.trim().slice(0,4000):'';

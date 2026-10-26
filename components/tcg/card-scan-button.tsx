@@ -14,7 +14,6 @@ import {
   XIcon,
 } from '@phosphor-icons/react';
 import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle} from '@/components/ui/dialog';
-import {TurnstileField,turnstileEnabled,turnstileHeaders} from './turnstile-field';
 import {detectCardBounds} from '@/lib/card-scan-detection';
 import {CardArt} from '@/components/tcg/card-art';
 import type {Card} from '@/packages/card-data/catalog';
@@ -258,8 +257,6 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
   const [busy,setBusy]=useState(false);
   const [ocrStage,setOcrStage]=useState<'loading'|'reading'>('loading');
   const [error,setError]=useState('');
-  const [token,setToken]=useState('');
-  const [turnstileRevision,setTurnstileRevision]=useState(0);
   const [resultScroll,setResultScroll]=useState({left:false,right:false});
   const cameraInput=useRef<HTMLInputElement>(null);
   const uploadInput=useRef<HTMLInputElement>(null);
@@ -515,7 +512,7 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
           }
         }
         if(!combinedText.trim())throw new Error(id?'Teks kartu tidak terbaca. Pastikan nomor dan set terlihat jelas.':'No card text was recognized. Make sure the set and card number are visible.');
-        const response=await fetch('/api/cards/scan',{method:'POST',headers:{'content-type':'application/json',...turnstileHeaders(token)},body:JSON.stringify({game:selectedGame,text:combinedText})});
+        const response=await fetch('/api/cards/scan',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({game:selectedGame,text:combinedText})});
         const result=await response.json() as {error?:string;read?:CardScanRead;candidates?:CardScanCandidate[]};
         if(!response.ok)throw new Error(result.error??'Card scan failed.');
         const cleanCandidates=(result.candidates??[]).map(c=>({...c,cardNumber:cleanCardNumber(c.cardNumber)}));
@@ -528,7 +525,6 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
       }
     }finally{
       setBusy(false);
-      setToken('');
     }
   };
 
@@ -959,8 +955,6 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
 
         <input ref={cameraInput} className="sr-only" type="file" accept="image/*" capture="environment" onChange={event=>{void choose(event.currentTarget.files?.[0]);event.currentTarget.value=''}}/>
         <input ref={uploadInput} className="sr-only" type="file" accept="image/*" onChange={event=>{void choose(event.currentTarget.files?.[0]);event.currentTarget.value=''}}/>
-
-        {turnstileEnabled&&images.length>0&&<TurnstileField onToken={setToken} resetKey={turnstileRevision}/>}
 
         {images.length>0&&!candidates.length&&<button
           type="button"
