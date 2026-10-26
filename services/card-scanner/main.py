@@ -42,6 +42,15 @@ def health():
     }
 
 
+def clean_card_number(num: Optional[str]) -> str:
+    if not num:
+        return ""
+    s = str(num).strip()
+    if s.upper().startswith("CT-"):
+        return ""
+    return s
+
+
 @app.post("/api/scan")
 async def scan_card(
     image: UploadFile = File(...),
@@ -57,22 +66,32 @@ async def scan_card(
         raise HTTPException(status_code=400, detail="Image size exceeds 25 MB limit")
 
     try:
-        # Step 1: Detect card boundary and deskew
-        warped_card, det_meta = extract_card(image_bytes, target_w=400, target_h=560)
+        # Step 1: Detect card boundary, deskew, and provide viewfinder direct crop
+        primary_card, secondary_card, det_meta = extract_card(image_bytes, target_w=400, target_h=560)
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Card boundary detection failed: {str(e)}")
 
     # Step 2: Visual feature embedding and similarity search
-    results = matcher.search(warped_card, top_k=top_k, game=game)
-    elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
+    results = matcher.search(primary_card, top_k=top_k, game=game)
+    chosen_source = det_meta.get("detection_source", "direct")
 
+    if secondary_card is not None:
+        results_secondary = matcher.search(secondary_card, top_k=top_k, game=game)
+        primary_score = results[0]["score"] if results else 0.0
+        secondary_score = results_secondary[0]["score"] if results_secondary else 0.0
+        if secondary_score > primary_score:
+            results = results_secondary
+            chosen_source = det_meta.get("secondary_source", "secondary")
+
+    elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
     scan_id = str(uuid.uuid4())
 
-    if not results or results[0]["score"] < 0.32:
+    # Similarity threshold (0.28 allows confident matches even under slight tilt or glare)
+    if not results or results[0]["score"] < 0.28:
         return {
             "status": "no_match",
             "scan_id": scan_id,
-            "detection_source": det_meta["detection_source"],
+            "detection_source": chosen_source,
             "confidence": results[0]["score"] if results else 0.0,
             "candidates": results,
             "latency_ms": elapsed_ms
@@ -83,7 +102,7 @@ async def scan_card(
     return {
         "status": "match",
         "scan_id": scan_id,
-        "detection_source": det_meta["detection_source"],
+        "detection_source": chosen_source,
         "confidence": best["confidence"],
         "product": {
             "id": best["card"]["id"],
@@ -91,7 +110,7 @@ async def scan_card(
             "name": best["card"]["name"],
             "game": best["card"]["game"],
             "setCode": best["card"]["setCode"],
-            "cardNumber": best["card"]["cardNumber"],
+            "cardNumber": clean_card_number(best["card"].get("cardNumber")),
             "language": best["card"]["language"],
             "rarity": best["card"]["rarity"],
             "variant": best["card"]["variant"],
@@ -105,7 +124,7 @@ async def scan_card(
                 "name": r["card"]["name"],
                 "game": r["card"]["game"],
                 "setCode": r["card"]["setCode"],
-                "cardNumber": r["card"]["cardNumber"],
+                "cardNumber": clean_card_number(r["card"].get("cardNumber")),
                 "language": r["card"]["language"],
                 "rarity": r["card"]["rarity"],
                 "variant": r["card"]["variant"],

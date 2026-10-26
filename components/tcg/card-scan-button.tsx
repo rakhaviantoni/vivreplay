@@ -12,7 +12,6 @@ import {
   XIcon,
 } from '@phosphor-icons/react';
 import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle} from '@/components/ui/dialog';
-import {detectCardBounds} from '@/lib/card-scan-detection';
 import {CardArt} from '@/components/tcg/card-art';
 import type {Card} from '@/packages/card-data/catalog';
 import {pokemonRarityLabel} from '@/lib/pokemon-rarity';
@@ -179,7 +178,8 @@ export function CardScanButton({locale='EN',onSelect,className}:Props){
   const [previewSize,setPreviewSize]=useState<{width:number;height:number}>();
   const [cameraActive,setCameraActive]=useState(false);
   const [cameraReady,setCameraReady]=useState(false);
-  const [cameraStatus,setCameraStatus]=useState<'searching'|'steady'|'capturing'>('searching');
+  const [isEvaluating,setIsEvaluating]=useState(false);
+  const [unmatchedAttempts,setUnmatchedAttempts]=useState(0);
   const [torchAvailable,setTorchAvailable]=useState(false);
   const [torchOn,setTorchOn]=useState(false);
   const [useCameraPicker,setUseCameraPicker]=useState(false);
@@ -255,7 +255,8 @@ export function CardScanButton({locale='EN',onSelect,className}:Props){
       }
       setTorchAvailable(Boolean(cameraCapabilities?.torch));
       setTorchOn(false);
-      setCameraStatus('searching');
+      setIsEvaluating(false);
+      setUnmatchedAttempts(0);
       setPreview(undefined);
       setPreviewSize(undefined);
       setCandidates([]);
@@ -276,6 +277,8 @@ export function CardScanButton({locale='EN',onSelect,className}:Props){
       setSourceFile(undefined);
       setCandidates([]);
       setSelectedCandidateIndex(0);
+      setIsEvaluating(false);
+      setUnmatchedAttempts(0);
       setError('');
     }
   };
@@ -284,7 +287,8 @@ export function CardScanButton({locale='EN',onSelect,className}:Props){
     setCandidates([]);
     setSelectedCandidateIndex(0);
     setError('');
-    setCameraStatus('searching');
+    setIsEvaluating(false);
+    setUnmatchedAttempts(0);
     liveScanning.current=false;
     if(videoRef.current){
       void videoRef.current.play().catch(()=>{});
@@ -296,6 +300,8 @@ export function CardScanButton({locale='EN',onSelect,className}:Props){
 
   const openScanner=()=>{
     setOpen(true);
+    setIsEvaluating(false);
+    setUnmatchedAttempts(0);
     void startCamera();
   };
 
@@ -303,23 +309,24 @@ export function CardScanButton({locale='EN',onSelect,className}:Props){
     const vpsScannerUrl=process.env.NEXT_PUBLIC_CARD_SCANNER_URL||'https://scan.vivreplay.com';
     const formData=new FormData();
     formData.append('image',blob,'card-scan.jpg');
-    const res=await fetch(`${vpsScannerUrl.replace(/\/+$/,'')}/api/scan`,{
-      method:'POST',
-      body:formData,
-      signal:AbortSignal.timeout(3500),
-    });
-    if(!res.ok)return false;
-    const data=await res.json() as {status:string;product?:CardScanCandidate;candidates?:CardScanCandidate[]};
-    if(data.status==='match'&&data.product){
-      const rawMatches=data.candidates?.length?data.candidates:[data.product];
-      const matches=rawMatches.map(c=>({...c,cardNumber:cleanCardNumber(c.cardNumber)}));
-      triggerHaptic([40,50,40]);
-      setCandidates(matches);
-      setSelectedCandidateIndex(0);
-      setCameraStatus('steady');
-      videoRef.current?.pause();
-      return true;
-    }
+    try{
+      const res=await fetch(`${vpsScannerUrl.replace(/\/+$/,'')}/api/scan`,{
+        method:'POST',
+        body:formData,
+        signal:AbortSignal.timeout(4000),
+      });
+      if(!res.ok)return false;
+      const data=await res.json() as {status:string;product?:CardScanCandidate;candidates?:CardScanCandidate[]};
+      if(data.status==='match'&&data.product){
+        const rawMatches=data.candidates?.length?data.candidates:[data.product];
+        const matches=rawMatches.map(c=>({...c,cardNumber:cleanCardNumber(c.cardNumber)}));
+        triggerHaptic([40,50,40]);
+        setCandidates(matches);
+        setSelectedCandidateIndex(0);
+        videoRef.current?.pause();
+        return true;
+      }
+    }catch{}
     return false;
   };
 
@@ -373,59 +380,41 @@ export function CardScanButton({locale='EN',onSelect,className}:Props){
 
   // Continuous background live scan loop (non-blocking)
   useEffect(()=>{
-    if(!cameraActive||!cameraReady)return;
-    const video=videoRef.current;
-    if(!video)return;
-    const canvas=document.createElement('canvas');
-    const context=canvas.getContext('2d',{willReadFrequently:true});
-    if(!context)return;
-
-    let previous:NormalizedBounds|undefined;
+    if(!cameraActive||!cameraReady||candidates.length>0)return;
+    let mounted=true;
     let timer=0;
 
-    const scanLive=async()=>{
-      if(liveScanning.current||candidates.length>0||!cameraActive||!videoRef.current)return;
+    const performLiveScan=async()=>{
+      if(!mounted||liveScanning.current||candidates.length>0||!cameraActive||!videoRef.current||busy)return;
+      const v=videoRef.current;
+      if(!v.videoWidth||!v.videoHeight)return;
       const guideBounds=getCameraGuideBounds();
       if(!guideBounds)return;
+
       liveScanning.current=true;
+      setIsEvaluating(true);
       try{
-        const v=videoRef.current;
-        if(!v||!v.videoWidth||!v.videoHeight)return;
-        const blob=await videoCropBlob(v,guideBounds,420);
-        if(!blob)return;
-        await scanBlob(blob);
+        const blob=await videoCropBlob(v,guideBounds,440);
+        if(blob&&mounted&&candidates.length===0){
+          const matched=await scanBlob(blob);
+          if(!matched&&mounted){
+            setUnmatchedAttempts(prev=>prev+1);
+          }
+        }
       }catch{}finally{
-        liveScanning.current=false;
+        if(mounted){
+          liveScanning.current=false;
+          setIsEvaluating(false);
+        }
       }
     };
 
-    const checkFrame=()=>{
-      if(!video.videoWidth||!video.videoHeight||candidates.length>0)return;
-      let sourceX=0,sourceWidth=video.videoWidth;
-      if(sourceWidth>video.videoHeight*1.15){sourceWidth=Math.min(sourceWidth,video.videoHeight*.75);sourceX=(video.videoWidth-sourceWidth)/2}
-      const scale=Math.min(180/sourceWidth,180/video.videoHeight);
-      canvas.width=Math.max(1,Math.round(sourceWidth*scale));
-      canvas.height=Math.max(1,Math.round(video.videoHeight*scale));
-      context.drawImage(video,sourceX,0,sourceWidth,video.videoHeight,0,0,canvas.width,canvas.height);
-      const bounds=detectCardBounds(context.getImageData(0,0,canvas.width,canvas.height));
-      const centered=Boolean(bounds&&bounds.width/canvas.width>=.30&&bounds.height/canvas.height>=.44&&Math.abs(bounds.x+bounds.width/2-canvas.width/2)<canvas.width*.20&&Math.abs(bounds.y+bounds.height/2-canvas.height/2)<canvas.height*.20);
-
-      if(!bounds||!centered){
-        previous=undefined;
-        setCameraStatus('searching');
-        return;
-      }
-      const stable=Boolean(previous&&Math.abs(bounds.x-previous.x)<canvas.width*.04&&Math.abs(bounds.y-previous.y)<canvas.height*.04);
-      previous=bounds;
-      setCameraStatus('steady');
-      if(stable){
-        void scanLive();
-      }
+    timer=window.setInterval(()=>void performLiveScan(), 700);
+    return()=>{
+      mounted=false;
+      window.clearInterval(timer);
     };
-
-    timer=window.setInterval(checkFrame,450);
-    return()=>window.clearInterval(timer);
-  },[cameraActive,cameraReady,candidates.length]);
+  },[cameraActive,cameraReady,candidates.length,busy]);
 
   const select=async(card:CardScanCandidate)=>{
     if(!onSelect){window.location.assign(cardHref(card,locale));return;}
@@ -461,7 +450,7 @@ export function CardScanButton({locale='EN',onSelect,className}:Props){
         </DialogHeader>
 
         {cameraActive&&<section className="card-scan-camera-view">
-          <div ref={cameraStageRef} className={`card-scan-camera-stage${candidates.length>0||cameraStatus==='steady'?' is-steady':''}`}>
+          <div ref={cameraStageRef} className={`card-scan-camera-stage${candidates.length>0?' is-steady':''}`}>
             <video
               ref={videoRef}
               className="card-scan-live-video"
@@ -503,9 +492,14 @@ export function CardScanButton({locale='EN',onSelect,className}:Props){
             </div>
           </div>
 
-          {candidates.length===0&&<p className={`card-scan-camera-status is-${cameraStatus}`} role="status">
-            {cameraStatus==='steady'?(id?'Mencocokkan visual kartu…':'Matching card visual…'):(id?'Posisikan kartu di dalam bingkai':'Place card inside the frame')}
-          </p>}
+          {candidates.length===0&&<div style={{display:'grid',gap:'3px',justifyItems:'center',margin:'2px 0 4px'}}>
+            <p className={`card-scan-camera-status${isEvaluating?' is-evaluating':''}`} role="status">
+              {isEvaluating?<><span className="card-scan-pulse-dot"/>{id?'Memeriksa visual kartu…':'Checking card visual…'}</>:(id?'Posisikan kartu di dalam bingkai':'Place card inside the frame')}
+            </p>
+            {unmatchedAttempts>=4&&!isEvaluating&&<p className="card-scan-camera-tip">
+              {id?'💡 Pastikan kartu pas di bingkai dan miringkan sedikit jika silau':'💡 Fit card inside frame and tilt away from glare'}
+            </p>}
+          </div>}
 
           {candidates.length===0&&<div className="card-scan-source-actions" style={{marginTop:'2px'}}>
             <button

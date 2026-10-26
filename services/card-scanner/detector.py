@@ -151,10 +151,17 @@ def detect_card_contour(edges: np.ndarray, min_area: float) -> Optional[np.ndarr
     return None
 
 
-def extract_card(image_bytes: bytes, target_w: int = 400, target_h: int = 560) -> Tuple[np.ndarray, Dict[str, Any]]:
+def extract_card(image_bytes: bytes, target_w: int = 400, target_h: int = 560) -> Tuple[np.ndarray, Optional[np.ndarray], Dict[str, Any]]:
     """
     Takes raw image bytes, locates the card, straightens it,
-    and returns (deskewed_image, metadata).
+    and returns (primary_image, secondary_image, metadata).
+
+    If image is already cropped to the viewfinder (~1.15-1.70 aspect ratio):
+      - primary: direct resize of the whole image (guarantees holo/mega-evolution/full-art cards stay intact)
+      - secondary: perspective-warped card if 4 corners were detected
+    If uncropped photo (e.g. card on table):
+      - primary: perspective-warped card
+      - secondary: center crop fallback
     """
     nparr = np.frombuffer(image_bytes, np.uint8)
     img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
@@ -186,7 +193,7 @@ def extract_card(image_bytes: bytes, target_w: int = 400, target_h: int = 560) -
         pts = detect_card_contour(edges, min_area)
 
     orig_aspect = orig_h / max(1, orig_w)
-    is_already_cropped = 1.2 <= orig_aspect <= 1.65
+    is_already_cropped = 1.15 <= orig_aspect <= 1.70
 
     # If image is already a card crop, reject sub-contours that isolate inner art (e.g. Mega Diancie crystal box)
     if pts is not None:
@@ -195,47 +202,55 @@ def extract_card(image_bytes: bytes, target_w: int = 400, target_h: int = 560) -
         if is_already_cropped and detected_area < frame_area * 0.60:
             pts = None
 
-    if pts is None:
-        if is_already_cropped:
-            warped = cv2.resize(img, (target_w, target_h), interpolation=cv2.INTER_AREA)
-            return warped, {
-                "detection_source": "direct_resize",
-                "original_width": orig_w,
-                "original_height": orig_h,
-                "scaled_working_width": work_w,
-                "scaled_working_height": work_h,
-                "corners": [[0, 0], [orig_w, 0], [orig_w, orig_h], [0, orig_h]]
-            }
-        detection_source = "center_crop"
-        # Standard card aspect ratio is 2.5 x 3.5 = 1 : 1.4
-        aspect = 1.4
-        if work_h / work_w > aspect:
-            cw = work_w * 0.88
-            ch = cw * aspect
+    primary: np.ndarray
+    secondary: Optional[np.ndarray] = None
+    primary_source: str
+    secondary_source: Optional[str] = None
+
+    if is_already_cropped:
+        # Viewfinder crop: direct resize is primary (perfect for Mega Diancie, holo, and full-art cards)
+        primary = cv2.resize(img, (target_w, target_h), interpolation=cv2.INTER_AREA)
+        primary_source = "viewfinder_crop"
+        if pts is not None:
+            warped_pts = pts / scale if scale < 1.0 else pts
+            secondary = four_point_transform(img, warped_pts, target_w, target_h)
+            secondary_source = f"{detection_source}_deskew"
+    else:
+        # Gallery or raw photo with background: deskewed card is primary
+        if pts is not None:
+            warped_pts = pts / scale if scale < 1.0 else pts
+            primary = four_point_transform(img, warped_pts, target_w, target_h)
+            primary_source = detection_source
         else:
-            ch = work_h * 0.88
-            cw = ch / aspect
-        cx, cy = work_w / 2.0, work_h / 2.0
-        pts = np.array([
-            [cx - cw / 2, cy - ch / 2],
-            [cx + cw / 2, cy - ch / 2],
-            [cx + cw / 2, cy + ch / 2],
-            [cx - cw / 2, cy + ch / 2]
-        ], dtype="float32")
-
-    # Map points back to original image scale
-    if scale < 1.0:
-        pts = pts / scale
-
-    warped = four_point_transform(img, pts, target_w, target_h)
+            # Fallback center crop
+            aspect = 1.4
+            if work_h / work_w > aspect:
+                cw = work_w * 0.88
+                ch = cw * aspect
+            else:
+                ch = work_h * 0.88
+                cw = ch / aspect
+            cx, cy = work_w / 2.0, work_h / 2.0
+            pts_center = np.array([
+                [cx - cw / 2, cy - ch / 2],
+                [cx + cw / 2, cy - ch / 2],
+                [cx + cw / 2, cy + ch / 2],
+                [cx - cw / 2, cy + ch / 2]
+            ], dtype="float32")
+            if scale < 1.0:
+                pts_center = pts_center / scale
+            primary = four_point_transform(img, pts_center, target_w, target_h)
+            primary_source = "center_crop"
 
     metadata = {
-        "detection_source": detection_source,
+        "detection_source": primary_source,
+        "secondary_source": secondary_source,
+        "is_already_cropped": is_already_cropped,
         "original_width": orig_w,
         "original_height": orig_h,
         "scaled_working_width": work_w,
         "scaled_working_height": work_h,
-        "corners": pts.tolist()
+        "corners": pts.tolist() if pts is not None else None
     }
 
-    return warped, metadata
+    return primary, secondary, metadata
