@@ -1427,7 +1427,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                     <div className={`market-feed-stack ${totalCards===1?'is-single':''}`} style={{'--stack-last-index':Math.max(0,visibleStack.length-1)} as CSSProperties}>
                       {visibleStack.map(({item,itemIndex,copyIndex},index)=>{
                         const stackCard=item.card??(itemIndex===0?listing.card:undefined)??cardFor(item.printingId);
-                        return stackCard?<div key={`${item.printingId}-${itemIndex}-${copyIndex}`} className={`market-feed-art${item.sold?' is-sold':''}`} style={{'--stack-index':index} as CSSProperties}><CardArt card={stackCard}/>{(item.sold||Number(item.soldQuantity)>0)&&copyIndex===0&&<span className="market-feed-art-sold">{item.sold?locale==='ID'?'Baru terjual':'Just sold':locale==='ID'?`${Number(item.soldQuantity)} terjual`:`${Number(item.soldQuantity)} sold`}</span>}</div>:null;
+                        return stackCard?<div key={`${item.printingId}-${itemIndex}-${copyIndex}`} className={`market-feed-art${item.sold?' is-sold':''}`} style={{'--stack-index':index} as CSSProperties}>{item.photoUrls?.[0]?<img className="market-sealed-listing-photo" src={item.photoUrls[0]} alt={stackCard.name} loading="lazy"/>:<CardArt card={stackCard}/>}{(item.sold||Number(item.soldQuantity)>0)&&copyIndex===0&&<span className="market-feed-art-sold">{item.sold?locale==='ID'?'Baru terjual':'Just sold':locale==='ID'?`${Number(item.soldQuantity)} terjual`:`${Number(item.soldQuantity)} sold`}</span>}</div>:null;
                       })}
                       {totalCards>1&&<span className="market-feed-quantity" aria-label={`${totalCards} ${locale==='ID'?'kartu':'cards'}`}>{totalCards}</span>}
                     </div>
@@ -1516,7 +1516,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
             </DialogDescription>
           </div>
           <div className="market-sell-body">
-            {!configuringCard&&!bundleCards.length&&<div className="market-sealed-kind-switch" role="group" aria-label="Listing product"><button type="button" aria-pressed={!sealedMode} onClick={()=>setSealedMode(false)}>Cards & slabs</button><button type="button" aria-pressed={sealedMode} onClick={()=>setSealedMode(true)}>Sealed products</button></div>}
+            {!configuringCard&&!bundleCards.length&&listingType==='WTS'&&<div className="market-sealed-kind-switch" role="group" aria-label="Listing product"><button type="button" aria-pressed={!sealedMode} onClick={()=>setSealedMode(false)}>Cards & slabs</button><button type="button" aria-pressed={sealedMode} onClick={()=>setSealedMode(true)}>Sealed products</button></div>}
             {sealedMode?<MarketSealedComposer type={listingType} onPublished={()=>{setOpen(false);setSealedMode(false);void refresh();void refreshAccount();}}/>:directSellLoading?<div className="market-direct-sell-loading" role="status" aria-label={locale==='ID'?'Memuat pilihan jual':'Loading sell options'}><span/><span/><span/></div>:<>
             {/* VIEW 1: Card Configuration Step */}
             {configuringCard&&activeCardObj?(

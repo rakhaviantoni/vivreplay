@@ -9,14 +9,14 @@ type ShipmentChoice={shippingMethod:'biteship';collectionMethod:'pickup'|'drop_o
 const COURIERS=[['jnt','J&T Express'],['jne','JNE'],['sicepat','SiCepat'],['anteraja','AnterAja'],['tiki','TIKI'],['pos','Pos Indonesia'],['lion','Lion Parcel'],['ninja','Ninja Xpress'],['wahana','Wahana'],['grab','GrabExpress'],['gojek','GoSend']] as const;
 const TRACKING_PAGES:Record<string,string>={jne:'https://jne.co.id/tracking-package',jnt:'https://www.jet.co.id/',sicepat:'https://www.sicepat.com/',anteraja:'https://anteraja.id/tracking/trace',tiki:'https://www.tiki.id/en/track',lion:'https://lionparcel.com/track',ninja:'https://www.ninjaxpress.co/id-id/tracking',wahana:'https://www.wahana.com/'};
 
-export function MarketShipmentChoice({availableMethods,busy,retry,language,courierCode,courierName,onConfirm}:{availableMethods?:CollectionMethod[];busy:boolean;retry?:boolean;language:'EN'|'ID';courierCode?:string;courierName?:string;onConfirm:(choice:ShipmentChoice)=>void}){
+export function MarketShipmentChoice({availableMethods,busy,retry,language,courierCode,courierName,initialParcelDescription,onConfirm}:{availableMethods?:CollectionMethod[];busy:boolean;retry?:boolean;language:'EN'|'ID';courierCode?:string;courierName?:string;initialParcelDescription?:string;onConfirm:(choice:ShipmentChoice)=>void}){
   const id=language==='ID';
   const groupId=useId();
   const methods=availableMethods?.length?availableMethods:['pickup'];
   const [open,setOpen]=useState(false);
   const [selection,setSelection]=useState<CollectionMethod>(methods.includes('pickup')?'pickup':'drop_off');
   const knownCourier=COURIERS.find(([code,label])=>code===courierCode||label.toLowerCase()===courierName?.toLowerCase());
-  const [courier,setCourier]=useState(knownCourier?.[0]??'other');const [otherCourier,setOtherCourier]=useState(knownCourier?'':courierName??'');const [trackingNumber,setTrackingNumber]=useState('');const [trackingUrl,setTrackingUrl]=useState('');const [shippingNote,setShippingNote]=useState('');const [parcelDescription,setParcelDescription]=useState('Trading cards');
+  const [courier,setCourier]=useState(knownCourier?.[0]??'other');const [otherCourier,setOtherCourier]=useState(knownCourier?'':courierName??'');const [trackingNumber,setTrackingNumber]=useState('');const [trackingUrl,setTrackingUrl]=useState('');const [shippingNote,setShippingNote]=useState('');const [parcelDescription,setParcelDescription]=useState(initialParcelDescription||'Trading cards');
   const chosenCourier=COURIERS.find(([code])=>code===courier)?.[1]??otherCourier.trim();
   const selected=selection==='manual'?'manual':methods.includes(selection)?selection:methods.includes('pickup')?'pickup':'drop_off';
   return <div className="market-order-shipment-control">

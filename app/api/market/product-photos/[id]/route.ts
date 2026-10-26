@@ -10,6 +10,6 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
     if(!published&&(await optionalUser())?.id!==photo.ownerId)throw new HttpError(404,'Photo not found.');
     const object=await env.CARD_IMAGES?.get(photo.objectKey);
     if(!object)throw new HttpError(404,'Photo not found.');
-    return new Response(object.body,{headers:{'Content-Type':photo.mime,'Cache-Control':'private, max-age=300','X-Content-Type-Options':'nosniff'}});
+    return new Response(object.body,{headers:{'Content-Type':photo.mime,'Cache-Control':published?'public, max-age=3600':'private, no-store','X-Content-Type-Options':'nosniff'}});
   }catch(error){return errorResponse(error);}
 }

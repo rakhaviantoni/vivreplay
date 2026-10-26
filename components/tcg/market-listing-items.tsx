@@ -391,13 +391,22 @@ export type MarketListingCard={
   salePending?:boolean;
   soldQuantity?:number;
   condition:string;
-  productType?:'RAW'|'GRADED';
+  productType?:'RAW'|'GRADED'|'SEALED';
+  sealedProductId?:string;
+  parcel?:{weight:number;length:number;width:number;height:number};
+  photoUrls?:string[];
+  notes?:string;
   gradingCompany?:string;
   grade?:string;
   certification?:string;
   unitAmount:number;
   language:string;
 };
+
+function ListingItemArt({item,priority=false}:{item:MarketListingCard;priority?:boolean}){
+  const photo=item.photoUrls?.[0];
+  return photo?<img className="market-sealed-listing-photo" src={photo} alt={item.card.name} loading={priority?'eager':'lazy'}/>:<CardArt card={item.card} priority={priority}/>;
+}
 
 type ActiveListingOffer={
   id:string;
@@ -426,8 +435,8 @@ export function ListingArtRotator({items, badge}:{items:MarketListingCard[]; bad
   const underlays=Array.from({length:visibleStackCount-1},(_,index)=>items[(activeIndex+index+1)%items.length]??active);
 
   return <div className={`viewer-art-stack market-listing-art-rotator ${visibleStackCount===1?'is-single':''}`} data-card-count={cardCount} aria-label={`Featured card: ${active.card.name}; ${cardCount} ${cardCount===1?'card':'cards'} in this listing`}>
-    {underlays.map((item,index)=><div key={`${item.id}-${index}`} className={`viewer-art-underlay viewer-art-underlay-${index}`} aria-hidden="true"><CardArt card={item.card}/></div>)}
-    <div className="viewer-art-current market-listing-art-current" key={active.id}><CardArt card={active.card} priority/></div>
+    {underlays.map((item,index)=><div key={`${item.id}-${index}`} className={`viewer-art-underlay viewer-art-underlay-${index}`} aria-hidden="true"><ListingItemArt item={item}/></div>)}
+    <div className="viewer-art-current market-listing-art-current" key={active.id}><ListingItemArt item={active} priority/></div>
     {badge}
   </div>;
 }
@@ -603,8 +612,8 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
   return <section className="market-listing-cards" aria-label={t('Cards in this listing','Kartu dalam listing ini')}>
     <header className="market-listing-cards-header">
       <div className="market-listing-cards-heading">
-        <h2>{t('Cards in this listing','Kartu dalam listing ini')}</h2>
-        {canManageListing&&listingType==='WTS'&&<button type="button" className="button secondary market-listing-add-cards" onClick={()=>setAddCardsOpen(true)}><Plus size={15}/>{t('Add cards','Tambah kartu')}</button>}
+        <h2>{items.some(item=>item.sealedProductId)?t('Products in this listing','Produk dalam listing ini'):t('Cards in this listing','Kartu dalam listing ini')}</h2>
+        {canManageListing&&listingType==='WTS'&&!items.some(item=>item.sealedProductId)&&<button type="button" className="button secondary market-listing-add-cards" onClick={()=>setAddCardsOpen(true)}><Plus size={15}/>{t('Add cards','Tambah kartu')}</button>}
         <div className="market-view-toggle market-listing-view-toggle" role="group" aria-label={t('Card layout','Tata letak kartu')}>
           <button type="button" className={cardsView==='grid'?'active':''} onClick={()=>setCardsView('grid')} aria-label={t('Grid view','Tampilan kisi')} aria-pressed={cardsView==='grid'}><Grid size={16}/></button>
           <button type="button" className={cardsView==='list'?'active':''} onClick={()=>setCardsView('list')} aria-label={t('List view','Tampilan daftar')} aria-pressed={cardsView==='list'}><List size={16}/></button>
@@ -656,22 +665,22 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
                   <div
                     className="deck-stack-art"
                     title={item.card.name}
-                    onClick={()=>{setPreview(item.card);setPreviewPrintingId(item.id)}}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setPreview(item.card);setPreviewPrintingId(item.id);}}}
+                    onClick={item.sealedProductId?undefined:()=>{setPreview(item.card);setPreviewPrintingId(item.id)}}
+                    role={item.sealedProductId?undefined:'button'}
+                    tabIndex={item.sealedProductId?undefined:0}
+                    onKeyDown={item.sealedProductId?undefined:e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setPreview(item.card);setPreviewPrintingId(item.id);}}}
                   >
-                    <CardArt card={item.card}/>
+                    <ListingItemArt item={item}/>
                   </div>
                 ) : (
-                  <CardArt card={item.card}/>
+                  <ListingItemArt item={item}/>
                 )}
               </div>
             ))}
             {availableQuantity>1 && <b>×{availableQuantity}</b>}
             {item.soldQuantity&&availableQuantity>0&&<span className="market-listing-card-sold-count">{language==='ID'?`${item.soldQuantity} terjual`:`${item.soldQuantity} sold`}</span>}
-            <button type="button" className="deck-info-action market-icon-action market-listing-info" onClick={()=>{setPreview(item.card);setPreviewPrintingId(item.id)}} aria-label={`View ${item.card.name} details`}><Info size={13}/></button>
-            {!readOnly&&<div className="market-listing-card-utility-actions">
+            {!item.sealedProductId&&<button type="button" className="deck-info-action market-icon-action market-listing-info" onClick={()=>{setPreview(item.card);setPreviewPrintingId(item.id)}} aria-label={`View ${item.card.name} details`}><Info size={13}/></button>}
+            {!readOnly&&!item.sealedProductId&&<div className="market-listing-card-utility-actions">
               {listingType==='WTS'&&<button type="button" className="button secondary is-icon-only market-icon-action market-listing-add-vault" disabled={previewOnly} onClick={()=>setVaultTarget(item)} aria-label={t('Add an owned copy to Vault','Simpan salinan milik Anda ke Koleksi')} title={t('Add an owned copy to Vault','Simpan salinan milik Anda ke Koleksi')}><Plus size={17}/></button>}
               <WishlistButton printingId={item.id} language={language} iconOnly disabled={previewOnly}/>
             </div>}
@@ -691,9 +700,9 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
           <div className="market-listing-card-copy">
             <strong>{item.card.name}</strong>
             {canManageListing&&listingType==='WTS'&&items.length>1&&<div className="market-listing-order-tools" aria-label={language==='ID'?'Urutan kartu listing':'Listing card order'} aria-busy={reordering}><button type="button" className="market-listing-drag-handle" draggable={!reordering} disabled={reordering} aria-label={language==='ID'?`Pindahkan ${item.card.name}`:`Reorder ${item.card.name}`} title={language==='ID'?'Seret untuk mengubah urutan':'Drag to reorder'} onDragStart={event=>{event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('text/plain',String(index));setDraggingIndex(index)}} onDragEnd={()=>setDraggingIndex(null)}><DotsSixVerticalIcon size={16}/></button><button type="button" aria-label={language==='ID'?`Pindahkan ${item.card.name} ke atas`:`Move ${item.card.name} up`} title={language==='ID'?'Pindah ke atas':'Move up'} disabled={reordering||index===0} onClick={()=>{const next=[...items];next.splice(index-1,0,next.splice(index,1)[0]);onReorder?.(next)}}><ArrowUpIcon size={14}/></button><button type="button" aria-label={language==='ID'?`Pindahkan ${item.card.name} ke bawah`:`Move ${item.card.name} down`} title={language==='ID'?'Pindah ke bawah':'Move down'} disabled={reordering||index===items.length-1} onClick={()=>{const next=[...items];next.splice(index+1,0,next.splice(index,1)[0]);onReorder?.(next)}}><ArrowDownIcon size={14}/></button></div>}
-            <small className="market-card-meta"><span>{marketCardReference(item.card)}</span><span>{item.card.rarity}</span><span>{item.language}</span></small>
-            <p className="market-listing-card-condition">{item.productType==='GRADED'?<span>{item.gradingCompany} {item.grade}{item.certification?` / Cert ${item.certification}`:''}</span>:<span>{item.condition}</span>}{!readOnly&&!singleCopyListing&&availableQuantity>0&&<em>{amount}/{availableQuantity} {t('selected','dipilih')}</em>}{item.heldQuantity? <em>{item.heldQuantity} {t('reserved','dipesan')}</em>:null}</p>
-            <div className="market-listing-card-unit-price" aria-label={item.unitAmount>0?`${formatMoney(item.unitAmount,currency)} ${t('per card','per kartu')}: ${item.card.name}`:t('Price not set','Harga belum diatur')} title={item.unitAmount>0?`${formatMoney(item.unitAmount,currency)} ${t('per card','per kartu')}`:t('Price not set','Harga belum diatur')}>{canEditPrices?<MarketListingUnitPriceEdit listingId={listingId} title={listingTitle||''} listingType={listingType} cards={items.map(entry=>({printingId:entry.id,name:entry.card.name,quantity:entry.quantity,unitAmount:entry.unitAmount}))} cardIndex={index} currency={currency} language={language} onSaved={unitAmount=>onPriceSaved?.(index,unitAmount)}><span>{item.unitAmount>0?formatMoney(item.unitAmount,currency):t('Set price','Atur harga')}</span></MarketListingUnitPriceEdit>:item.unitAmount>0?formatMoney(item.unitAmount,currency):t('Price not set','Harga belum diatur')}</div>
+            <small className="market-card-meta">{item.sealedProductId?<><span>{item.card.setCode}</span><span>{item.language}</span><span>{item.card.variant}</span></>:<><span>{marketCardReference(item.card)}</span><span>{item.card.rarity}</span><span>{item.language}</span></>}</small>
+            <p className="market-listing-card-condition">{item.productType==='GRADED'?<span>{item.gradingCompany} {item.grade}{item.certification?` / Cert ${item.certification}`:''}</span>:item.sealedProductId?<span>{item.condition==='SEALED_DAMAGED'?t('Packaging has damage','Kemasan rusak'):t('Factory sealed','Segel pabrik')}</span>:<span>{item.condition}</span>}{!readOnly&&!singleCopyListing&&availableQuantity>0&&<em>{amount}/{availableQuantity} {t('selected','dipilih')}</em>}{item.heldQuantity? <em>{item.heldQuantity} {t('reserved','dipesan')}</em>:null}</p>
+            <div className="market-listing-card-unit-price" aria-label={item.unitAmount>0?`${formatMoney(item.unitAmount,currency)} ${item.sealedProductId?t('per item','per item'):t('per card','per kartu')}: ${item.card.name}`:t('Price not set','Harga belum diatur')} title={item.unitAmount>0?`${formatMoney(item.unitAmount,currency)} ${item.sealedProductId?t('per item','per item'):t('per card','per kartu')}`:t('Price not set','Harga belum diatur')}>{canEditPrices?<MarketListingUnitPriceEdit listingId={listingId} title={listingTitle||''} listingType={listingType} cards={items.map(entry=>({printingId:entry.id,name:entry.card.name,quantity:entry.quantity,unitAmount:entry.unitAmount}))} cardIndex={index} currency={currency} language={language} onSaved={unitAmount=>onPriceSaved?.(index,unitAmount)}><span>{item.unitAmount>0?formatMoney(item.unitAmount,currency):t('Set price','Atur harga')}</span></MarketListingUnitPriceEdit>:item.unitAmount>0?formatMoney(item.unitAmount,currency):t('Price not set','Harga belum diatur')}</div>
 
             {!readOnly&&acceptsOffers&&offerCheckComplete&&!activeOffer&&!submitting&&amount>0 && (
               <div className="market-card-offer">
@@ -784,12 +793,12 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
         </article>;
       })}
     </div>
-    {canManageListing&&listingType==='WTS'&&<MarketAddCardsModal key={addCardsOpen?'open':'closed'} open={addCardsOpen} listingId={listingId} listingItems={items.map(item=>({instanceId:item.instanceId,printingId:item.id,quantity:item.quantity,condition:item.condition,unitAmount:item.unitAmount,card:item.card,language:item.language}))} currency={currency} language={language} onClose={()=>setAddCardsOpen(false)} onAdded={cards=>{onItemsAdded?.(cards);router.refresh()}}/>}
+    {canManageListing&&listingType==='WTS'&&!items.some(item=>item.sealedProductId)&&<MarketAddCardsModal key={addCardsOpen?'open':'closed'} open={addCardsOpen} listingId={listingId} listingItems={items.map(item=>({instanceId:item.instanceId,printingId:item.id,quantity:item.quantity,condition:item.condition,unitAmount:item.unitAmount,card:item.card,language:item.language}))} currency={currency} language={language} onClose={()=>setAddCardsOpen(false)} onAdded={cards=>{onItemsAdded?.(cards);router.refresh()}}/>}
     {preview&&<CardPreviewModal card={preview} initialPrintingId={previewPrintingId} printingIds={items.map(item=>item.id)} language={preview.language==='JP'?'JP':'EN'} cards={items.map(item=>item.card)} marketActions={!readOnly&&!previewOnly} onClose={()=>{setPreview(undefined);setPreviewPrintingId(undefined)}} onNavigate={(card,index)=>{setPreview(card);setPreviewPrintingId(items[index]?.id)}}/>}
     <AddEditItemModal key={`${vaultTarget?.id??'market-listing-card'}-${Boolean(vaultTarget)}`} open={Boolean(vaultTarget)} onClose={()=>setVaultTarget(null)} onSaved={()=>router.refresh()} initialCard={vaultTarget?.card} initialPrintingId={vaultTarget?.id} isAnonymous={!session?.user} language={language}/>
     {!readOnly&&totalAvailable>0&&<footer className={`market-listing-selection${offerJustSent?' has-push-prompt':''}`} aria-live="polite">
       <div className="market-listing-selection-info">
-        <span>{activeOffer?(activeOffer.viewerIsActor?t('Offer sent, awaiting a response.','Penawaran terkirim, menunggu tanggapan.'):t('A counteroffer is waiting for you.','Ada penawaran balik untuk Anda.')):selectedCount?(language==='ID'?`${selectedCount} kartu dipilih`:`${selectedCount} ${selectedCount===1?'card':'cards'} selected`):t('Select cards to calculate a total','Pilih kartu untuk menghitung total')}</span>
+        <span>{activeOffer?(activeOffer.viewerIsActor?t('Offer sent, awaiting a response.','Penawaran terkirim, menunggu tanggapan.'):t('A counteroffer is waiting for you.','Ada penawaran balik untuk Anda.')):selectedCount?(items.some(item=>item.sealedProductId)?language==='ID'?`${selectedCount} produk dipilih`:`${selectedCount} ${selectedCount===1?'item':'items'} selected`:language==='ID'?`${selectedCount} kartu dipilih`:`${selectedCount} ${selectedCount===1?'card':'cards'} selected`):t('Select cards to calculate a total','Pilih kartu untuk menghitung total')}</span>
         {!activeOffer&&selectedCount>0&&acceptsOffers&&<small>{t('Offers expire after 24 hours or when the listing ends.','Penawaran berakhir setelah 24 jam atau saat listing berakhir.')}</small>}
         {activeOffer?.expiresAt&&<small>{t('Expires','Berakhir')} {new Intl.DateTimeFormat(language==='ID'?'id-ID':'en-US',{dateStyle:'medium',timeStyle:'short'}).format(new Date(activeOffer.expiresAt.includes('T')?activeOffer.expiresAt:`${activeOffer.expiresAt.replace(' ','T')}Z`))}</small>}
         <div className="market-listing-pricing-block">
@@ -1058,7 +1067,7 @@ export function MarketListingDetailView({
             </div>}
             {listing.type==='WTS'&&<div>
               <dt>{t('Price terms','Ketentuan harga')}</dt>
-              <dd>{canEditListing?<MarketListingPriceTerms listingId={listing.id} negotiable={listingNegotiable} language={language} onSaved={setListingNegotiable}/>:listingNegotiable===false?t('Firm price','Harga pas'):t('Negotiable','Bisa ditawar')}</dd>
+              <dd>{canEditListing&&!editableCards.some(item=>item.sealedProductId)?<MarketListingPriceTerms listingId={listing.id} negotiable={listingNegotiable} language={language} onSaved={setListingNegotiable}/>:listingNegotiable===false?t('Firm price','Harga pas'):t('Negotiable','Bisa ditawar')}</dd>
             </div>}
             {isBuying ? <div>
               <dt>{t('Location', 'Lokasi')}</dt>

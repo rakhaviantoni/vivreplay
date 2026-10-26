@@ -12,8 +12,8 @@ export async function POST(req:Request,{params}:{params:Promise<{id:string}>}){
     const policy=await getDynamicListingPolicy(p.tier,d,p.pro_billing_period);
 
     const listing=await d.prepare(
-      'SELECT id,seller_id,status,expires_at,instance_id AS instanceId,quantity,items FROM listings WHERE id=? AND seller_id=?'
-    ).bind(id,p.id).first<{id:string;seller_id:string;status:string;expires_at:string|null;instanceId:string;quantity:number;items:string|null}>();
+      'SELECT id,seller_id,status,expires_at,instance_id AS instanceId,sealed_product_id AS sealedProductId,quantity,items FROM listings WHERE id=? AND seller_id=?'
+    ).bind(id,p.id).first<{id:string;seller_id:string;status:string;expires_at:string|null;instanceId:string|null;sealedProductId:string|null;quantity:number;items:string|null}>();
 
     if(!listing){
       throw new HttpError(404,'Listing not found or you are not authorized to renew it.');
@@ -36,12 +36,13 @@ export async function POST(req:Request,{params}:{params:Promise<{id:string}>}){
     const activeCount=await d.prepare("SELECT COUNT(*) AS total FROM listings WHERE seller_id=? AND status='ACTIVE' AND (expires_at IS NULL OR expires_at>CURRENT_TIMESTAMP) AND id<>?").bind(p.id,id).first<{total:number}>();
     if((activeCount?.total??0)>=policy.maxActiveListings)throw new HttpError(400,`You have reached the limit of ${policy.maxActiveListings} active listings for your account.`);
 
-    const entries=listing.items?JSON.parse(listing.items) as {instanceId?:string;quantity?:number}[]:[];
-    if(entries.length)await enforceMarketListingLimits(d,entries as {printingId:string;quantity:number}[],policy);
-    else if(listing.quantity>policy.maxCopiesPerCard)throw new HttpError(400,listingLimitMessage('too-many-copies-of-card','EN',policy));
+    const entries=listing.items?JSON.parse(listing.items) as {instanceId?:string;printingId?:string;quantity?:number;sealedProductId?:string}[]:[];
+    const cardEntries=entries.filter((entry):entry is {instanceId?:string;printingId:string;quantity:number;sealedProductId?:string}=>!entry.sealedProductId&&typeof entry.printingId==='string'&&Number.isInteger(entry.quantity));
+    if(cardEntries.length)await enforceMarketListingLimits(d,cardEntries,policy);
+    else if(!listing.sealedProductId&&listing.quantity>policy.maxCopiesPerCard)throw new HttpError(400,listingLimitMessage('too-many-copies-of-card','EN',policy));
     const needed=new Map<string,number>();
-    for(const entry of entries){if(entry.instanceId&&entry.quantity)needed.set(entry.instanceId,(needed.get(entry.instanceId)??0)+entry.quantity)}
-    if(!needed.size)needed.set(listing.instanceId,listing.quantity);
+    for(const entry of cardEntries){if(entry.instanceId&&entry.quantity)needed.set(entry.instanceId,(needed.get(entry.instanceId)??0)+entry.quantity)}
+    if(!needed.size&&listing.instanceId)needed.set(listing.instanceId,listing.quantity);
     for(const [instanceId,quantity] of needed){
       const owned=await d.prepare('SELECT quantity FROM collectible_instances WHERE id=? AND owner_id=? AND deleted_at IS NULL').bind(instanceId,p.id).first<{quantity:number}>();
       if(!owned||quantity>owned.quantity)throw new HttpError(409,'The Vault no longer has enough copies to renew this listing.');

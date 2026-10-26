@@ -357,7 +357,7 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
     if(!sourceFile||!scanBounds)return;
     if(turnstileEnabled&&!token){setError(id?'Selesaikan pemeriksaan keamanan.':'Complete the security check first.');return;}
     setBusy(true);setOcrStage('loading');setError('');setRead(undefined);setCandidates([]);setResultScroll({left:false,right:false});
-    const vpsScannerUrl=process.env.NEXT_PUBLIC_CARD_SCANNER_URL;
+    const vpsScannerUrl=process.env.NEXT_PUBLIC_CARD_SCANNER_URL||'https://scan.vivreplay.com';
     if(vpsScannerUrl){
       try{
         setOcrStage('reading');

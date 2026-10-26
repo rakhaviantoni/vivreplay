@@ -1,8 +1,9 @@
 import {db,errorResponse,guard,HttpError,user} from '@/lib/server/store';
 import {biteshipRequest} from '@/lib/server/biteship';
 import {sendMarketEmail} from '@/lib/server/market-notifications';
+import {marketParcel,sealedProductById} from '@/lib/market/sealed-products';
 
-type ShippingSnapshot={recipientName?:string;addressLine?:string;city?:string;postalCode?:string;areaId?:string;latitude?:number|null;longitude?:number|null;phone?:string;courierName?:string;courierServiceName?:string;courierCode?:string;courierServiceCode?:string;courierCompany?:string;courierType?:string;availableCollectionMethods?:string[];collectionMethod?:'pickup'|'drop_off';sender?:{recipientName?:string|null;addressLine?:string;city?:string;postalCode?:string;areaId?:string|null;latitude?:number|null;longitude?:number|null;phone?:string|null};trackingNumber?:string;courier?:string;waybillId?:string;trackingUrl?:string;trackingStatus?:string;shippingNote?:string;parcelDescription?:string;shippingAttempts?:Array<Record<string,unknown>>};
+type ShippingSnapshot={recipientName?:string;addressLine?:string;city?:string;postalCode?:string;areaId?:string;latitude?:number|null;longitude?:number|null;phone?:string;courierName?:string;courierServiceName?:string;courierCode?:string;courierServiceCode?:string;courierCompany?:string;courierType?:string;availableCollectionMethods?:string[];collectionMethod?:'pickup'|'drop_off';sender?:{recipientName?:string|null;addressLine?:string;city?:string;postalCode?:string;areaId?:string|null;latitude?:number|null;longitude?:number|null;phone?:string|null};parcel?:{weight:number;length:number;width:number;height:number};trackingNumber?:string;courier?:string;waybillId?:string;trackingUrl?:string;trackingStatus?:string;shippingNote?:string;parcelDescription?:string;shippingAttempts?:Array<Record<string,unknown>>};
 type Result={id?:string;object?:string;draft_order_id?:string;draft_order?:{id?:string;rates?:Array<{company?:string;courier_code?:string;type?:string;price?:number;available_collection_method?:string[]}>};order?:{id?:string;tracking_id?:string;waybill_id?:string;link?:string};courier?:{tracking_id?:string;waybill_id?:string;link?:string};tracking_id?:string;waybill_id?:string;link?:string;pricing?:Array<{company?:string;courier_code?:string;type?:string;price?:number;available_collection_method?:string[]}>};
 
 export async function POST(request:Request,{params}:{params:Promise<{id:string}>}){
@@ -18,7 +19,6 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     if(row.status!=='PAID'&&!retrying)throw new HttpError(409,'Shipping can be arranged after payment is confirmed.');
     if(row.shippingStatus==='CREATING')throw new HttpError(409,'Shipment setup is already in progress. Refresh the order in a moment.');
     const shippingNote=shippingMethod==='biteship'&&typeof payload.shippingNote==='string'?payload.shippingNote.trim().slice(0,250):'';
-    const parcelDescription=shippingMethod==='biteship'&&typeof payload.parcelDescription==='string'?payload.parcelDescription.replace(/[\u0000-\u001f\u007f]/g,' ').replace(/\s+/g,' ').trim().slice(0,100)||'Trading cards':'Trading cards';
     const manualCourierName=typeof payload.courierName==='string'?payload.courierName.trim().slice(0,80):'';
     const manualTrackingNumber=typeof payload.trackingNumber==='string'?payload.trackingNumber.trim().slice(0,100):'';
     const manualTrackingUrl=typeof payload.trackingUrl==='string'?payload.trackingUrl.trim().slice(0,500):'';
@@ -39,14 +39,20 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
       return Response.json({ok:true,status:'SHIPPED',trackingNumber:manualTrackingNumber,trackingUrl:manualTrackingUrl||null});
     }
     if(!shipping.sender?.addressLine||!shipping.addressLine||!shipping.phone||!shipping.sender.phone||!shipping.courierCompany||!shipping.courierType)throw new HttpError(400,'The order is missing pickup, delivery, or courier details.');
-    let entries:Array<{printingId:string;quantity:number;unitAmount?:number}>;try{entries=JSON.parse(row.items) as typeof entries}catch{entries=[]}
-    if(!entries.length)throw new HttpError(400,'This order has no cards to ship.');
+    let entries:Array<{printingId:string;quantity:number;unitAmount?:number;sealedProductId?:string;parcel?:{weight:number;length:number;width:number;height:number}}>;
+    try{entries=JSON.parse(row.items) as typeof entries}catch{entries=[]}
+    if(!entries.length)throw new HttpError(400,'This order has no items to ship.');
+    const sealedNames=[...new Set(entries.map(item=>sealedProductById(item.sealedProductId)?.name).filter((name):name is string=>Boolean(name)))];
+    const submittedDescription=typeof payload.parcelDescription==='string'?payload.parcelDescription.replace(/[\u0000-\u001f\u007f]/g,' ').replace(/\s+/g,' ').trim().slice(0,100):'';
+    const parcelDescription=shippingMethod==='biteship'?(submittedDescription&&submittedDescription!=='Trading cards'?submittedDescription:(sealedNames.join(', ').slice(0,100)||'Trading cards')):'Trading cards';
+    const parcel=marketParcel(entries);
+    const shipmentItems=entries.map(item=>({name:parcelDescription,description:parcelDescription,category:'hobby',value:Math.max(0,item.unitAmount??0),quantity:item.quantity,weight:item.parcel?.weight??100,length:item.parcel?.length??18,width:item.parcel?.width??13,height:item.parcel?.height??2}));
     const sender=shipping.sender;
     const postal=(value:string|undefined)=>value&&/^\d{5}$/.test(value)?Number(value):undefined;
     const coordinate=(latitude:number|null|undefined,longitude:number|null|undefined)=>typeof latitude==='number'&&typeof longitude==='number'?{latitude,longitude}:undefined;
     let draftId=retrying?null:row.draftId;
     if(!draftId){
-      const created=await biteshipRequest<Result>('/draft_orders',{method:'POST',body:JSON.stringify({reference_id:`VPM-${row.id.slice(0,8).toUpperCase()}-${crypto.randomUUID().slice(0,8).toUpperCase()}`,origin_contact_name:sender.recipientName||'VivrePlay seller',origin_contact_phone:sender.phone,origin_address:`${sender.addressLine}, ${sender.city}`,origin_postal_code:postal(sender.postalCode),origin_area_id:sender.areaId||undefined,origin_coordinate:coordinate(sender.latitude,sender.longitude),destination_contact_name:shipping.recipientName||'VivrePlay buyer',destination_contact_phone:shipping.phone,destination_address:`${shipping.addressLine}, ${shipping.city}`,destination_postal_code:postal(shipping.postalCode),destination_area_id:shipping.areaId||undefined,destination_coordinate:coordinate(shipping.latitude,shipping.longitude),delivery_type:'now',order_note:shippingNote||undefined,items:entries.map(item=>({name:parcelDescription,description:parcelDescription,category:'hobby',value:Math.max(0,item.unitAmount??0),quantity:item.quantity,weight:100,length:18,width:13,height:2}))})});
+      const created=await biteshipRequest<Result>('/draft_orders',{method:'POST',body:JSON.stringify({reference_id:`VPM-${row.id.slice(0,8).toUpperCase()}-${crypto.randomUUID().slice(0,8).toUpperCase()}`,origin_contact_name:sender.recipientName||'VivrePlay seller',origin_contact_phone:sender.phone,origin_address:`${sender.addressLine}, ${sender.city}`,origin_postal_code:postal(sender.postalCode),origin_area_id:sender.areaId||undefined,origin_coordinate:coordinate(sender.latitude,sender.longitude),destination_contact_name:shipping.recipientName||'VivrePlay buyer',destination_contact_phone:shipping.phone,destination_address:`${shipping.addressLine}, ${shipping.city}`,destination_postal_code:postal(shipping.postalCode),destination_area_id:shipping.areaId||undefined,destination_coordinate:coordinate(shipping.latitude,shipping.longitude),delivery_type:'now',order_note:shippingNote||undefined,items:shipmentItems})});
       draftId=created.id??created.draft_order_id??created.draft_order?.id??null;
       if(!draftId)throw new HttpError(502,'Biteship did not return a draft shipment ID.');
       await database.prepare("UPDATE checkout_orders SET biteship_draft_order_id=?,shipping_status='DRAFT',shipping_updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(draftId,id).run();
@@ -57,13 +63,13 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     if(!eligibleRate)throw new HttpError(409,'The selected courier service is no longer available for this package.');
     const availableCollectionMethods=Array.isArray(eligibleRate.available_collection_method)?eligibleRate.available_collection_method:['pickup'];
     if(!availableCollectionMethods.includes(collectionMethod))throw new HttpError(409,collectionMethod==='drop_off'?'This courier service only offers pickup. Choose pickup to continue.':'This courier service no longer offers pickup. Refresh the order and choose an available option.');
-    await biteshipRequest<Result>(`/draft_orders/${encodeURIComponent(draftId)}`,{method:'POST',body:JSON.stringify({courier_company:shipping.courierCompany,courier_type:shipping.courierType,origin_collection_method:collectionMethod,order_note:shippingNote||undefined,items:entries.map(item=>({name:parcelDescription,description:parcelDescription,category:'hobby',value:Math.max(0,item.unitAmount??0),quantity:item.quantity,weight:100,length:18,width:13,height:2}))})});
+    await biteshipRequest<Result>(`/draft_orders/${encodeURIComponent(draftId)}`,{method:'POST',body:JSON.stringify({courier_company:shipping.courierCompany,courier_type:shipping.courierType,origin_collection_method:collectionMethod,order_note:shippingNote||undefined,items:shipmentItems})});
     const confirmed=await biteshipRequest<Result>(`/draft_orders/${encodeURIComponent(draftId)}/confirm`,{method:'POST',body:JSON.stringify({})});
     const order=confirmed.order??confirmed;
     const biteshipOrderId=confirmed.id??order.id??null;const trackingId=confirmed.courier?.tracking_id??order.tracking_id??confirmed.tracking_id??null;const waybill=confirmed.courier?.waybill_id??order.waybill_id??confirmed.waybill_id??null;const trackingUrl=confirmed.courier?.link??order.link??confirmed.link??null;
     if(!biteshipOrderId&&!trackingId)throw new HttpError(502,'Biteship confirmed the shipment without returning tracking details.');
     const courier=[shipping.courierName,shipping.courierServiceName].filter(Boolean).join(' ');
-    const nextShipping={...shipping,shippingMethod:'biteship',collectionMethod,shippingNote:shippingNote||undefined,parcelDescription,courier,trackingNumber:waybill??trackingId??undefined,waybillId:waybill??undefined,trackingUrl:trackingUrl??undefined};
+    const nextShipping={...shipping,parcel,shippingMethod:'biteship',collectionMethod,shippingNote:shippingNote||undefined,parcelDescription,courier,trackingNumber:waybill??trackingId??undefined,waybillId:waybill??undefined,trackingUrl:trackingUrl??undefined};
     await database.prepare("UPDATE checkout_orders SET status='SHIPPED',shipping_status='CONFIRMED',biteship_order_id=?,biteship_tracking_id=?,shipping_waybill_id=?,shipping_tracking_url=?,details=?,shipping_updated_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PAID'").bind(biteshipOrderId,trackingId,waybill,trackingUrl,JSON.stringify(nextShipping),id).run();
     await sendMarketEmail(row.buyerId,'order-shipped',row.title||'Market order',id);
     return Response.json({ok:true,status:'SHIPPED',trackingNumber:waybill??trackingId,trackingUrl});

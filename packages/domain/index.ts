@@ -42,7 +42,12 @@ export type ListingItem={
   sold?:boolean;
   /** Condition and price belong to an individual card line in a multi-card listing. */
   condition?:string;
-  productType?:'RAW'|'GRADED';
+  productType?:'RAW'|'GRADED'|'SEALED';
+  sealedProductId?:string;
+  parcel?:{weight:number;length:number;width:number;height:number};
+  photoIds?:string[];
+  photoUrls?:string[];
+  notes?:string;
   gradingCompany?:string;
   grade?:string;
   certification?:string;

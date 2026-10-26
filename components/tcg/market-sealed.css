@@ -11,4 +11,5 @@
 .market-sealed-composer fieldset{border:0;margin:0;padding:0}.market-sealed-composer legend{font-weight:600}.market-sealed-composer fieldset>p{color:var(--muted);font-size:13px}
 .market-sealed-photos{display:flex;gap:12px;flex-wrap:wrap}.market-sealed-photos img{width:100px;height:100px;object-fit:contain}.market-sealed-photos>div{display:grid}
 .market-sealed-kind-switch{display:flex;gap:8px;margin-bottom:18px}.market-sealed-kind-switch button{padding:10px 16px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:var(--radius-md,8px);cursor:pointer}.market-sealed-kind-switch button[aria-pressed=true]{border-color:var(--gold,#b58b39);font-weight:700}
+.market-sealed-listing-photo{display:block;width:100%;height:100%;object-fit:contain;background:var(--surface,#f8f6f0);border-radius:var(--radius-md,8px)}
 @media(max-width:600px){.market-sealed-search{grid-template-columns:1fr 1fr}.market-sealed-search>label:first-child{grid-column:1/-1}.market-sealed-choices{grid-template-columns:1fr}.market-sealed-choices img{width:48px;height:64px}.market-sealed-kind-switch button{flex:1}}

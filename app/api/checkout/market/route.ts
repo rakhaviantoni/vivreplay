@@ -4,11 +4,13 @@ import {db,errorResponse,guard,user,HttpError} from '@/lib/server/store';
 import {getCurrentUser} from '@/lib/server/auth';
 import {getEnabledIpaymuPaymentChannels,getIpaymuPaymentChannels,hasMarketIpaymuPaymentConfig} from '@/lib/server/ipaymu';
 import {biteshipDestination,isBiteshipAreaId} from '@/lib/shipping/biteship-area';
+import {marketParcel} from '@/lib/market/sealed-products';
 import {shippingRateOptions} from '@/lib/server/shipping-quote-cache';
 import {fetchMarketPolicies,MARKET_BUYER_FEE_CAP,calculateBuyerServiceFee,calculateSellerServiceFee,getMarketBuyerFeeCap,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH,MARKET_PRO_SHIPPING_VOUCHERS_PER_YEAR,MARKET_PRO_SHIPPING_VOUCHER_SHARE,MARKET_PRO_SHIPPING_VOUCHER_CAP} from '@/lib/market/policy';
 
-const schema=z.object({listingId:z.string().min(1),offerId:z.string().min(1).optional(),items:z.array(z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(99),listingId:z.string().optional()})).min(1).max(600),lines:z.array(z.object({listingId:z.string().min(1),items:z.array(z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(99)})).min(1).max(60)})).max(10).optional(),courierName:z.string().min(1),courierServiceName:z.string().min(1),courierCode:z.string().min(1),courierServiceCode:z.string().min(1),courierType:z.string().min(1),shippingFee:z.number().int().nonnegative().optional(),useShippingVoucher:z.boolean().default(true),paymentMethod:z.enum(['va','cstore','qris','cc','paylater','ewallet']).default('qris'),paymentChannel:z.string().regex(/^[a-z0-9_]{2,24}$/).default('mpm')});
-type BundleEntry={instanceId?:string;printingId:string;quantity:number;condition?:string;unitAmount:number;listingId?:string};
+const checkoutItem=z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(99),sealedProductId:z.string().optional(),parcel:z.object({weight:z.number().int().positive(),length:z.number().int().positive(),width:z.number().int().positive(),height:z.number().int().positive()}).optional()});
+const schema=z.object({listingId:z.string().min(1),offerId:z.string().min(1).optional(),items:z.array(checkoutItem.extend({listingId:z.string().optional()})).min(1).max(600),lines:z.array(z.object({listingId:z.string().min(1),items:z.array(checkoutItem).min(1).max(60)})).max(10).optional(),courierName:z.string().min(1),courierServiceName:z.string().min(1),courierCode:z.string().min(1),courierServiceCode:z.string().min(1),courierType:z.string().min(1),shippingFee:z.number().int().nonnegative().optional(),useShippingVoucher:z.boolean().default(true),paymentMethod:z.enum(['va','cstore','qris','cc','paylater','ewallet']).default('qris'),paymentChannel:z.string().regex(/^[a-z0-9_]{2,24}$/).default('mpm')});
+type BundleEntry={instanceId?:string;printingId:string;sealedProductId?:string;parcel?:{weight:number;length:number;width:number;height:number};photoIds?:string[];notes?:string;quantity:number;condition?:string;unitAmount:number;listingId?:string};
 type AcceptedOffer={id:string;actorId:string;buyerId:string;listingId:string;status:string;amount:number;items:string};
 
 export async function GET(){
@@ -58,9 +60,9 @@ export async function POST(request:Request){
     const selectedPaymentChannel=availablePaymentChannels.find(channel=>channel.method===paymentMethod&&channel.channel===paymentChannel);
     if(!selectedPaymentChannel)throw new HttpError(409,'That payment option is temporarily unavailable. Choose another method.');
     const database=db();
-    const listing=await database.prepare(`SELECT l.id,l.seller_id AS sellerId,l.printing_id AS printingId,l.instance_id AS instanceId,l.title,l.amount,l.currency,l.quantity,l.type,l.status,l.items,l.expires_at AS expiresAt,o.area_id AS originAreaId,o.postal_code AS originPostalCode,o.label AS originLabel FROM listings l JOIN seller_shipping_origins o ON o.owner_id=l.seller_id WHERE l.id=?`).bind(input.listingId).first<{id:string;sellerId:string;printingId:string;instanceId:string|null;title:string;amount:number;currency:string;quantity:number;type:string;status:string;items:string|null;expiresAt:string|null;originAreaId:string|null;originPostalCode:string;originLabel:string|null}>();
+    const listing=await database.prepare(`SELECT l.id,l.seller_id AS sellerId,COALESCE(l.printing_id,l.sealed_product_id) AS printingId,l.instance_id AS instanceId,l.title,l.amount,l.currency,l.quantity,l.type,l.status,l.items,l.expires_at AS expiresAt,o.area_id AS originAreaId,o.postal_code AS originPostalCode,o.label AS originLabel FROM listings l JOIN seller_shipping_origins o ON o.owner_id=l.seller_id WHERE l.id=?`).bind(input.listingId).first<{id:string;sellerId:string;printingId:string;instanceId:string|null;title:string;amount:number;currency:string;quantity:number;type:string;status:string;items:string|null;expiresAt:string|null;originAreaId:string|null;originPostalCode:string;originLabel:string|null}>();
     if(!listing||listing.status!=='ACTIVE'||(listing.expiresAt&&new Date(`${listing.expiresAt.replace(' ','T')}Z`).getTime()<=Date.now()))throw new HttpError(404,'This listing is no longer available.');
-    if(listing.type!=='WTS')throw new HttpError(400,'Only cards listed for sale can be checked out.');
+    if(listing.type!=='WTS')throw new HttpError(400,'Only items listed for sale can be checked out.');
     if(listing.sellerId===profile.id)throw new HttpError(403,'You cannot purchase from your own listing.');
     if(listing.currency!=='IDR')throw new HttpError(400,'Checkout currently supports IDR listings only.');
     let acceptedOffer:AcceptedOffer|null=null;
@@ -92,7 +94,7 @@ export async function POST(request:Request){
     if(!input.lines?.length&&input.items.length>60)throw new HttpError(400,'Select up to 60 card entries.');
     if(input.offerId&&requestedLines.length!==1)throw new HttpError(400,'Accepted offers must be checked out on their listing.');
     if(requestedLines.length>10||new Set(requestedLines.map(line=>line.listingId)).size!==requestedLines.length)throw new HttpError(400,'Remove duplicate listings from the cart and try again.');
-    const listingRows=await database.prepare(`SELECT l.id,l.seller_id AS sellerId,l.printing_id AS printingId,l.instance_id AS instanceId,l.title,l.amount,l.currency,l.quantity,l.type,l.status,l.items,l.expires_at AS expiresAt FROM listings l WHERE l.id IN (${requestedLines.map(()=>'?').join(',')})`).bind(...requestedLines.map(line=>line.listingId)).all<{id:string;sellerId:string;printingId:string;instanceId:string|null;title:string;amount:number;currency:string;quantity:number;type:string;status:string;items:string|null;expiresAt:string|null}>();
+    const listingRows=await database.prepare(`SELECT l.id,l.seller_id AS sellerId,COALESCE(l.printing_id,l.sealed_product_id) AS printingId,l.instance_id AS instanceId,l.title,l.amount,l.currency,l.quantity,l.type,l.status,l.items,l.expires_at AS expiresAt FROM listings l WHERE l.id IN (${requestedLines.map(()=>'?').join(',')})`).bind(...requestedLines.map(line=>line.listingId)).all<{id:string;sellerId:string;printingId:string;instanceId:string|null;title:string;amount:number;currency:string;quantity:number;type:string;status:string;items:string|null;expiresAt:string|null}>();
     const listingById=new Map(listingRows.results.map(row=>[row.id,row]));
     if(listingById.size!==requestedLines.length)throw new HttpError(404,'One or more listings are no longer available.');
     for(const row of listingRows.results){if(row.sellerId!==listing.sellerId)throw new HttpError(400,'A cart can only include listings from one seller.');if(row.type!=='WTS'||row.status!=='ACTIVE'||(row.expiresAt&&new Date(`${row.expiresAt.replace(' ','T')}Z`).getTime()<=Date.now()))throw new HttpError(409,'One or more listings are no longer available.');if(row.currency!==listing.currency)throw new HttpError(400,'Cart listings must use the same currency.');}
@@ -145,7 +147,8 @@ export async function POST(request:Request){
     if(!pickup.areaId&&!pickup.postalCode)throw new HttpError(400,'The seller needs a valid 5-digit pickup postal code.');
     if(!dropoff.areaId&&!dropoff.postalCode)throw new HttpError(400,'Save a valid 5-digit delivery postal code in your profile.');
     const quantity=orderItems.reduce((sum,item)=>sum+item.quantity,0);
-    const packageItems=[{name:'Trading cards',value:subtotal,length:18,width:13,height:2,weight:Math.max(100,quantity*100),quantity:1}];
+    const parcel=marketParcel(orderItems);
+    const packageItems=[{name:orderItems.some(item=>item.sealedProductId)?'Sealed products':'Trading cards',value:subtotal,length:parcel.length,width:parcel.width,height:parcel.height,weight:Math.max(100,parcel.weight),quantity:1}];
     const {pricing:rates}=await shippingRateOptions(profile.id,listing.id,{couriers,origin:pickup,destination:dropoff,originLatitude:seller.latitude,originLongitude:seller.longitude,destinationLatitude:address.latitude,destinationLongitude:address.longitude,items:packageItems,refresh:true});
     const rate=rates.find(item=>item.courier_name===input.courierName&&item.courier_service_name===input.courierServiceName&&item.courier_code===input.courierCode&&item.courier_service_code===input.courierServiceCode);
     if(!rate||!Number.isSafeInteger(rate.price)||rate.price<0)throw new HttpError(409,'That delivery service is no longer available. Choose an updated quote.');
@@ -185,7 +188,7 @@ export async function POST(request:Request){
       ?`AND EXISTS(SELECT 1 FROM listing_offers f WHERE f.id=? AND f.listing_id=? AND f.status='ACCEPTED' AND (SELECT first.actor_id FROM listing_offers first WHERE COALESCE(first.thread_id,first.id)=COALESCE(f.thread_id,f.id) ORDER BY first.created_at,first.rowid LIMIT 1)=?) AND NOT EXISTS(SELECT 1 FROM checkout_orders prior WHERE prior.offer_id=? AND (prior.status IN ('PROCESSING','PAID','SHIPPED','RECEIVED','COMPLETED','FULFILLED') OR (prior.status='PENDING_PAYMENT' AND prior.expires_at>CURRENT_TIMESTAMP)))`
       :'';
     const offerBindings=acceptedOffer?[acceptedOffer.id,listing.id,profile.id,acceptedOffer.id]:[];
-    const orderDetails={...shipping,ipaymuSelectedMethod:paymentMethod,ipaymuSelectedChannel:paymentChannel,ipaymuSelectedName:selectedPaymentChannel?.name??'QRIS',ipaymuSelectedLogo:selectedPaymentChannel?.logo??''};
+    const orderDetails={...shipping,parcel,parcelDescription:orderItems.some(item=>item.sealedProductId)?'Sealed products':'Trading cards',ipaymuSelectedMethod:paymentMethod,ipaymuSelectedChannel:paymentChannel,ipaymuSelectedName:selectedPaymentChannel?.name??'QRIS',ipaymuSelectedLogo:selectedPaymentChannel?.logo??''};
     const inserted=await database.prepare(`INSERT INTO checkout_orders (id,kind,buyer_id,seller_id,listing_id,offer_id,items,details,subtotal,seller_net_amount,shipping_fee,amount,currency,status,expires_at)
       SELECT ?,'MARKET',?,?,?,?,?,?,?,?,?,?,?,'PENDING_PAYMENT',?
       WHERE EXISTS(SELECT 1 FROM listings current WHERE current.id=? AND current.status='ACTIVE' AND current.amount=? AND current.quantity=? AND current.items IS ? AND (current.expires_at IS NULL OR current.expires_at>CURRENT_TIMESTAMP))

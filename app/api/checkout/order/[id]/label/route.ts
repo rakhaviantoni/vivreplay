@@ -1,10 +1,11 @@
 import {db,errorResponse,HttpError,user} from '@/lib/server/store';
 import {marketCardThumbnails} from '@/lib/server/market-card-thumbnails';
 import {formatDeliveryAddress} from '@/lib/market/address-format';
+import {marketParcel,sealedProductById} from '@/lib/market/sealed-products';
 
 const escape=(value:string)=>value.replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]??char));
 type Address={recipientName?:string|null;addressLine?:string;city?:string;postalCode?:string;phone?:string};
-type PackageItem={printingId:string;quantity:number;listingId?:string;listingTitle?:string};
+type PackageItem={printingId:string;quantity:number;listingId?:string;listingTitle?:string;sealedProductId?:string;parcel?:{weight:number;length:number;width:number;height:number}};
 
 // Code 128B symbol widths, represented as alternating bar/space module counts.
 const CODE128_B=[
@@ -27,17 +28,17 @@ export async function GET(request:Request,{params}:{params:Promise<{id:string}>}
     const row=await db().prepare("SELECT o.seller_id AS sellerId,o.status,o.items,o.details,o.shipping_waybill_id AS waybill,o.biteship_tracking_id AS trackingId,l.title FROM checkout_orders o LEFT JOIN listings l ON l.id=o.listing_id WHERE o.id=? AND o.kind='MARKET'").bind(id).first<{sellerId:string|null;status:string;items:string;details:string|null;waybill:string|null;trackingId:string|null;title:string|null}>();
     if(!row||row.sellerId!==profile.id)throw new HttpError(404,'Shipment label not found.');
     if(row.status!=='SHIPPED')throw new HttpError(409,'Create the shipment before printing its label.');
-    let shipping:{sender?:Address;recipientName?:string;addressLine?:string;city?:string;postalCode?:string;phone?:string;courierName?:string;courierServiceName?:string;courierCode?:string;courierServiceCode?:string;courierType?:string;courierCompany?:string;codAmount?:number;specialInstructions?:string;notes?:string}|undefined;
+    let shipping:{sender?:Address;recipientName?:string;addressLine?:string;city?:string;postalCode?:string;phone?:string;courierName?:string;courierServiceName?:string;courierCode?:string;courierServiceCode?:string;courierType?:string;courierCompany?:string;codAmount?:number;specialInstructions?:string;notes?:string;parcel?:{weight:number;length:number;width:number;height:number}}|undefined;
     try{shipping=JSON.parse(row.details||'{}') as typeof shipping}catch{}
     let items:PackageItem[]=[];try{items=JSON.parse(row.items) as PackageItem[]}catch{}
     const listingIds=[...new Set(items.map(item=>item.listingId).filter((value):value is string=>Boolean(value)))];
     const listingTitles=new Map<string,string>();
     if(listingIds.length){const rows=(await db().prepare(`SELECT id,title FROM listings WHERE id IN (${listingIds.map(()=>'?').join(',')})`).bind(...listingIds).all<{id:string;title:string}>()).results;for(const listing of rows)listingTitles.set(listing.id,listing.title)}
     const cards=await marketCardThumbnails(items.map(item=>item.printingId));
-    const tracking=row.waybill||row.trackingId||'';const sender=shipping?.sender??{};const quantity=items.reduce((total,item)=>total+(Number.isSafeInteger(item.quantity)&&item.quantity>0?item.quantity:1),0);const weight=quantity*100;
+    const tracking=row.waybill||row.trackingId||'';const sender=shipping?.sender??{};const quantity=items.reduce((total,item)=>total+(Number.isSafeInteger(item.quantity)&&item.quantity>0?item.quantity:1),0);const weight=shipping?.parcel?.weight??marketParcel(items).weight;
     const text=(value:string|undefined|null,fallback:string)=>escape(value?.trim()||fallback);
     const address=(details:Address)=>escape(formatDeliveryAddress([details.addressLine,details.city,details.postalCode]));
-    const contents=items.map(item=>{const card=cards.get(item.printingId);const title=item.listingTitle|| (item.listingId?listingTitles.get(item.listingId):null)|| (listingIds.length===0?row.title:null)||[card?.name,card?.code?`(${card.code})`:null].filter(Boolean).join(' ')|| (isID?'Kartu koleksi':'Trading card');return `<li><span>${escape(title)}</span><b>×${Number.isSafeInteger(item.quantity)&&item.quantity>0?item.quantity:1}</b></li>`}).join('');
+    const contents=items.map(item=>{const product=sealedProductById(item.sealedProductId??item.printingId);const card=cards.get(item.printingId);const title=product?.name||item.listingTitle|| (item.listingId?listingTitles.get(item.listingId):null)|| (listingIds.length===0?row.title:null)||[card?.name,card?.code?`(${card.code})`:null].filter(Boolean).join(' ')|| (isID?'Kartu koleksi':'Trading card');return `<li><span>${escape(title)}</span><b>×${Number.isSafeInteger(item.quantity)&&item.quantity>0?item.quantity:1}</b></li>`}).join('');
     const notes=shipping?.specialInstructions?.trim()||shipping?.notes?.trim()||'';
     const courierName=shipping?.courierName?.trim()||'';
     const rawService=shipping?.courierServiceName?.trim()||'';

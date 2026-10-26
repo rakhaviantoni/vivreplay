@@ -2,9 +2,10 @@ import {db,errorResponse,user,HttpError} from '@/lib/server/store';
 import {getCurrentUser} from '@/lib/server/auth';
 import {createIpaymuDirectPayment,getEnabledIpaymuPaymentChannels,hasIpaymuPaymentConfig,hasMarketIpaymuPaymentConfig,ipaymuExpiryTimestamp,ipaymuQrImageUrl} from '@/lib/server/ipaymu';
 import {sendMarketEmail} from '@/lib/server/market-notifications';
+import {sealedProductById,sealedProductKinds} from '@/lib/market/sealed-products';
 
 type Order={id:string;kind:string;buyerId:string;sellerId:string|null;listingId:string|null;items:string;details:string;subtotal:number;amount:number;shippingFee:number;title:string|null;paymentId:string|null;status:string;expiresAt:string|null;updatedAt:string|null};
-type OrderItem={printingId:string;quantity:number;unitAmount:number};
+type OrderItem={printingId:string;quantity:number;unitAmount:number;sealedProductId?:string};
 
 export async function POST(request:Request,{params}:{params:Promise<{id:string}>}){
   try{
@@ -51,7 +52,7 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     const productLines=order.kind==='PRO'
       ?[{name:'VivrePlay Market Pro',quantity:1,unitPrice:order.amount,description:`Market Pro membership · ${Number(details.durationDays)||0} days`}]
       :[
-        ...products.map(item=>({name:item.printingId,quantity:item.quantity,unitPrice:item.unitAmount,description:`One Piece Card Game card · ${item.printingId}`})),
+        ...products.map(item=>{const product=sealedProductById(item.sealedProductId??item.printingId);return product?{name:product.name,quantity:item.quantity,unitPrice:item.unitAmount,description:`${sealedProductKinds[product.kind]} from ${product.setCode}`}:{name:item.printingId,quantity:item.quantity,unitPrice:item.unitAmount,description:`Trading card ${item.printingId}`}}),
         ...(order.shippingFee>0?[{name:'Delivery',quantity:1,unitPrice:order.shippingFee,description:'Courier delivery for this Market order'}]:[]),
       ];
     let buyerServiceFee=order.kind==='MARKET'&&Number.isSafeInteger(details.marketBuyerFeeAmount)?Number(details.marketBuyerFeeAmount):0;

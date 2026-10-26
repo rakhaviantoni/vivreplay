@@ -1,14 +1,15 @@
 import {db} from '@/lib/server/store';
+import {sealedProductById,sealedProductKinds} from '@/lib/market/sealed-products';
 
 type ListingRow={id:string;sellerId:string;title:string;amount:number;currency:string;quantity:number;condition:string;items:string|null;printingId:string;seller:string};
-type BundleEntry={printingId:string;quantity:number;condition?:string;unitAmount?:number};
+type BundleEntry={printingId:string;quantity:number;condition?:string;unitAmount?:number;sealedProductId?:string;photoIds?:string[];parcel?:{weight:number;length:number;width:number;height:number}};
 
 export async function GET(request:Request){
   const url=new URL(request.url);
   const ids=[...new Set((url.searchParams.get('ids')??'').split(',').filter(Boolean))].slice(0,10);
   if(!ids.length||ids.some(id=>!/^[0-9a-f-]{36}$/i.test(id)))return Response.json({listings:[],unavailableIds:ids},{headers:{'Cache-Control':'private, no-store'}});
   try{
-    const rows=(await db().prepare(`SELECT l.id,l.seller_id AS sellerId,l.title,l.amount,l.currency,l.quantity,l.condition,l.items,l.printing_id AS printingId,p.display_name AS seller
+    const rows=(await db().prepare(`SELECT l.id,l.seller_id AS sellerId,l.title,l.amount,l.currency,l.quantity,l.condition,l.items,COALESCE(l.printing_id,l.sealed_product_id) AS printingId,p.display_name AS seller
       FROM listings l JOIN profiles p ON p.id=l.seller_id
       WHERE l.id IN (${ids.map(()=>'?').join(',')}) AND l.type='WTS' AND l.status='ACTIVE' AND (l.expires_at IS NULL OR l.expires_at>CURRENT_TIMESTAMP)`)
       .bind(...ids).all<ListingRow>()).results;
@@ -41,7 +42,28 @@ export async function GET(request:Request){
     }
     const cardByPrinting=new Map(cards.map(card=>[card.printingId,card]));
     const sellerGroups=new Map<string,string>();
-    const listings=rows.map(row=>{let sellerGroupId=sellerGroups.get(row.sellerId);if(!sellerGroupId){sellerGroupId=`seller-${sellerGroups.size+1}`;sellerGroups.set(row.sellerId,sellerGroupId)}const items=cardsByListing.get(row.id)??[];return{id:row.id,sellerGroupId,title:row.title,seller:row.seller,currency:row.currency,items:items.map(item=>{const card=cardByPrinting.get(item.printingId);return{printingId:item.printingId,name:card?.name??card?.code??item.printingId,code:card?.code??item.printingId,quantity:item.quantity,unitAmount:item.unitAmount??0,condition:item.condition??row.condition,imageUrl:card?.imageUrl??null,assetPath:card?.assetPath??null,setCode:card?.setCode??null,language:card?.language??null,printingCode:card?.printingCode??null}}),subtotal:items.reduce((sum,item)=>sum+(item.unitAmount??0)*item.quantity,0)}});
+    const listings=rows.map(row=>{
+      let sellerGroupId=sellerGroups.get(row.sellerId);
+      if(!sellerGroupId){sellerGroupId=`seller-${sellerGroups.size+1}`;sellerGroups.set(row.sellerId,sellerGroupId)}
+      const items=cardsByListing.get(row.id)??[];
+      return {
+        id:row.id,sellerGroupId,title:row.title,seller:row.seller,currency:row.currency,
+        items:items.map(item=>{
+          const card=cardByPrinting.get(item.printingId);
+          const product=sealedProductById(item.sealedProductId??item.printingId);
+          return {
+            printingId:item.printingId,name:product?.name??card?.name??card?.code??item.printingId,
+            code:product?.setCode??card?.code??item.printingId,quantity:item.quantity,unitAmount:item.unitAmount??0,
+            condition:item.condition??row.condition,imageUrl:product?.imageUrl??card?.imageUrl??null,
+            assetPath:card?.assetPath??null,setCode:product?.setCode??card?.setCode??null,
+            language:product?.language??card?.language??null,printingCode:card?.printingCode??null,
+            variant:product?sealedProductKinds[product.kind]:undefined,
+            photoUrls:item.photoIds?.map(photoId=>`/api/market/product-photos/${photoId}`)??[],parcel:item.parcel,
+          };
+        }),
+        subtotal:items.reduce((sum,item)=>sum+(item.unitAmount??0)*item.quantity,0),
+      };
+    });
     return Response.json({listings,unavailableIds},{headers:{'Cache-Control':'private, no-store'}});
   }catch(error){
     console.error('market_cart_preview_failed',error instanceof Error?error.message:'unknown error');
