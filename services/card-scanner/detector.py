@@ -69,7 +69,10 @@ def detect_card_hough(gray: np.ndarray, edges: np.ndarray, min_area: float) -> O
     horizontal = []
     vertical = []
     for line in lines:
-        x1, y1, x2, y2 = line[0]
+        coords = np.squeeze(line)
+        if coords.shape != (4,):
+            continue
+        x1, y1, x2, y2 = coords
         dx = abs(x2 - x1)
         dy = abs(y2 - y1)
         angle = np.degrees(np.arctan2(dy, dx))
@@ -185,22 +188,29 @@ def extract_card(image_bytes: bytes, target_w: int = 400, target_h: int = 560) -
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
     edges = cv2.Canny(blurred, 40, 140)
 
-    detection_source = "hough"
-    pts = detect_card_hough(gray, edges, min_area)
-
-    if pts is None:
-        detection_source = "contour"
-        pts = detect_card_contour(edges, min_area)
-
+    detection_source = "direct_resize"
+    pts = None
     orig_aspect = orig_h / max(1, orig_w)
     is_already_cropped = 1.15 <= orig_aspect <= 1.70
 
-    # If image is already a card crop, reject sub-contours that isolate inner art (e.g. Mega Diancie crystal box)
-    if pts is not None:
-        detected_area = cv2.contourArea(pts.astype(np.int32))
-        frame_area = work_h * work_w
-        if is_already_cropped and detected_area < frame_area * 0.60:
-            pts = None
+    try:
+        pts = detect_card_hough(gray, edges, min_area)
+        if pts is not None:
+            detection_source = "hough"
+        else:
+            pts = detect_card_contour(edges, min_area)
+            if pts is not None:
+                detection_source = "contour"
+
+        # If image is already a card crop, reject sub-contours that isolate inner art (e.g. Mega Diancie crystal box)
+        if pts is not None:
+            detected_area = cv2.contourArea(pts.astype(np.int32))
+            frame_area = work_h * work_w
+            if is_already_cropped and detected_area < frame_area * 0.60:
+                pts = None
+    except Exception as err:
+        print(f"[Detector] OpenCV extraction warning: {err}")
+        pts = None
 
     primary: np.ndarray
     secondary: Optional[np.ndarray] = None

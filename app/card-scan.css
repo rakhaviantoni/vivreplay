@@ -21,7 +21,8 @@
 .card-scan-camera-stage.is-steady .card-scan-corner{border-color:#10b981;transform:scale(1.05)}
 .card-scan-beam{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent,#f59e0b) 20%,#fff 50%,var(--accent,#f59e0b) 80%,transparent);box-shadow:0 0 10px var(--accent,#f59e0b);animation:card-scan-sweep 2.4s ease-in-out infinite;pointer-events:none}
 @keyframes card-scan-sweep{0%{top:4%;opacity:.3}50%{top:94%;opacity:.9}100%{top:4%;opacity:.3}}
-.card-scan-camera-stage.is-steady .card-scan-beam{background:linear-gradient(90deg,transparent,#10b981 20%,#fff 50%,#10b981 80%,transparent);box-shadow:0 0 12px #10b981}
+.card-scan-camera-stage.is-steady .card-scan-beam,
+.card-scan-camera-stage.is-evaluating .card-scan-beam{background:linear-gradient(90deg,transparent,#10b981 20%,#fff 50%,#10b981 80%,transparent);box-shadow:0 0 12px #10b981}
 
 .card-scan-hud-top{position:absolute;top:10px;left:10px;right:10px;display:flex;align-items:center;justify-content:space-between;gap:8px;z-index:4;pointer-events:auto}
 .card-scan-game-switcher{display:flex;align-items:center;gap:3px;padding:3px;border-radius:100px;background:rgb(0 0 0 / .6);backdrop-filter:blur(8px)}

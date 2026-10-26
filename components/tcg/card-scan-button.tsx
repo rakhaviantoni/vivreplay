@@ -502,7 +502,7 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
         </DialogHeader>
 
         {cameraActive&&<section className="card-scan-camera-view">
-          <div ref={cameraStageRef} className={`card-scan-camera-stage${candidates.length>0?' is-steady':''}`}>
+          <div ref={cameraStageRef} className={`card-scan-camera-stage${candidates.length>0?' is-steady':isEvaluating?' is-evaluating':''}`}>
             <video
               ref={videoRef}
               className="card-scan-live-video"
@@ -547,11 +547,11 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
             </div>
           </div>
 
-          {candidates.length===0&&<div style={{display:'grid',gap:'4px',justifyItems:'center',margin:'2px 0 4px'}}>
-            <p className={`card-scan-camera-status${isEvaluating?' is-evaluating':''}`} role="status">
-              {isEvaluating?<><span className="card-scan-pulse-dot"/>{id?'Memindai…':'Scanning…'}</>:(id?'Posisikan kartu di dalam bingkai':'Align card inside the frame')}
+          {candidates.length===0&&<div style={{display:'grid',gap:'4px',justifyItems:'center',margin:'4px 0 2px',minHeight:'22px'}}>
+            <p className="card-scan-camera-status" role="status">
+              {id?'Posisikan kartu di dalam bingkai':'Align card inside the frame'}
             </p>
-            {unmatchedAttempts>=3&&!isEvaluating&&<p className="card-scan-camera-tip">
+            {unmatchedAttempts>=4&&<p className="card-scan-camera-tip">
               <InfoIcon size={14} weight="bold" style={{verticalAlign:'middle',marginRight:'4px'}}/>
               {id?'Posisikan kartu pas di dalam bingkai dan hindari pantulan cahaya':'Fit card inside the frame and avoid glare'}
             </p>}
