@@ -86,18 +86,28 @@ async def scan_card(
     elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
     scan_id = str(uuid.uuid4())
 
-    # Similarity threshold (0.28 allows confident matches even under slight tilt or glare)
-    if not results or results[0]["score"] < 0.28:
+    best = results[0] if results else None
+    best_score = best["score"] if best else 0.0
+    second_score = results[1]["score"] if len(results) > 1 else 0.0
+
+    # Strict confidence check to prevent false positives:
+    # A true card match has score >= 0.40, or >= 0.36 with a clear distinction over rank 2.
+    is_confident_match = bool(
+        best and (
+            best_score >= 0.40 or
+            (best_score >= 0.36 and (best_score - second_score) >= 0.04)
+        )
+    )
+
+    if not is_confident_match or best is None:
         return {
             "status": "no_match",
             "scan_id": scan_id,
             "detection_source": chosen_source,
-            "confidence": results[0]["score"] if results else 0.0,
+            "confidence": best_score,
             "candidates": results,
             "latency_ms": elapsed_ms
         }
-
-    best = results[0]
 
     return {
         "status": "match",

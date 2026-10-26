@@ -172,7 +172,7 @@ function triggerHaptic(pattern:number|number[]){
   }
 }
 
-export function CardScanButton({locale='EN',onSelect,className}:Props){
+export function CardScanButton({game='auto',locale='EN',onSelect,className}:Props){
   const [open,setOpen]=useState(false);
   const [preview,setPreview]=useState<string>();
   const [previewSize,setPreviewSize]=useState<{width:number;height:number}>();
@@ -309,6 +309,9 @@ export function CardScanButton({locale='EN',onSelect,className}:Props){
     const vpsScannerUrl=process.env.NEXT_PUBLIC_CARD_SCANNER_URL||'https://scan.vivreplay.com';
     const formData=new FormData();
     formData.append('image',blob,'card-scan.jpg');
+    if(game==='pokemon'||game==='one-piece'){
+      formData.append('game',game);
+    }
     try{
       const res=await fetch(`${vpsScannerUrl.replace(/\/+$/,'')}/api/scan`,{
         method:'POST',
@@ -378,43 +381,94 @@ export function CardScanButton({locale='EN',onSelect,className}:Props){
     }
   };
 
-  // Continuous background live scan loop (non-blocking)
+  // Continuous background live scan loop (non-blocking, stability-gated)
   useEffect(()=>{
     if(!cameraActive||!cameraReady||candidates.length>0)return;
     let mounted=true;
     let timer=0;
+    let stableTicks=0;
+    let previousPixels:Uint8ClampedArray|null=null;
+    const sampleCanvas=document.createElement('canvas');
+    sampleCanvas.width=32;
+    sampleCanvas.height=45;
+    const sampleCtx=sampleCanvas.getContext('2d',{willReadFrequently:true});
 
-    const performLiveScan=async()=>{
-      if(!mounted||liveScanning.current||candidates.length>0||!cameraActive||!videoRef.current||busy)return;
-      const v=videoRef.current;
-      if(!v.videoWidth||!v.videoHeight)return;
-      const guideBounds=getCameraGuideBounds();
-      if(!guideBounds)return;
+    // Settle delay (700ms) to let camera focus and exposure stabilize
+    const settleTimer=setTimeout(()=>{
+      if(!mounted)return;
+      timer=window.setInterval(()=>{
+        if(!mounted||liveScanning.current||candidates.length>0||!cameraActive||!videoRef.current||busy)return;
+        const v=videoRef.current;
+        if(!v.videoWidth||!v.videoHeight||!sampleCtx)return;
+        const guideBounds=getCameraGuideBounds();
+        if(!guideBounds)return;
 
-      liveScanning.current=true;
-      setIsEvaluating(true);
-      try{
-        const blob=await videoCropBlob(v,guideBounds,440);
-        if(blob&&mounted&&candidates.length===0){
-          const matched=await scanBlob(blob);
-          if(!matched&&mounted){
-            setUnmatchedAttempts(prev=>prev+1);
+        const sx=guideBounds.x*v.videoWidth,sy=guideBounds.y*v.videoHeight;
+        const sw=guideBounds.width*v.videoWidth,sh=guideBounds.height*v.videoHeight;
+        sampleCtx.drawImage(v,sx,sy,sw,sh,0,0,32,45);
+        const currData=sampleCtx.getImageData(0,0,32,45).data;
+
+        let diff=0;
+        let minLuma=255,maxLuma=0;
+        for(let i=0;i<currData.length;i+=4){
+          const luma=currData[i]!*0.299+currData[i+1]!*0.587+currData[i+2]!*0.114;
+          if(luma<minLuma)minLuma=luma;
+          if(luma>maxLuma)maxLuma=luma;
+          if(previousPixels){
+            diff+=Math.abs(currData[i]!-previousPixels[i]!)+
+                  Math.abs(currData[i+1]!-previousPixels[i+1]!)+
+                  Math.abs(currData[i+2]!-previousPixels[i+2]!);
           }
         }
-      }catch{}finally{
-        if(mounted){
-          liveScanning.current=false;
-          setIsEvaluating(false);
-        }
-      }
-    };
+        previousPixels=new Uint8ClampedArray(currData);
 
-    timer=window.setInterval(()=>void performLiveScan(), 700);
+        const avgDiff=diff/((currData.length/4)*3);
+        const contrast=maxLuma-minLuma;
+
+        // User must hold phone steady over an object with card contrast
+        const isSteady=previousPixels!==null&&avgDiff<12;
+        const hasCardContent=contrast>35;
+
+        if(isSteady&&hasCardContent){
+          stableTicks++;
+        }else{
+          stableTicks=0;
+        }
+
+        // Only evaluate when user has held frame still for ~600ms
+        if(stableTicks>=2){
+          stableTicks=0;
+          void(async()=>{
+            if(liveScanning.current||candidates.length>0||!mounted)return;
+            liveScanning.current=true;
+            setIsEvaluating(true);
+            try{
+              const blob=await videoCropBlob(v,guideBounds,440);
+              if(blob&&mounted&&candidates.length===0){
+                const matched=await scanBlob(blob);
+                if(!matched&&mounted){
+                  setUnmatchedAttempts(prev=>prev+1);
+                }
+              }
+            }catch{}finally{
+              if(mounted){
+                liveScanning.current=false;
+                setIsEvaluating(false);
+              }
+            }
+          })();
+        }
+      },320);
+    },700);
+
     return()=>{
       mounted=false;
+      clearTimeout(settleTimer);
       window.clearInterval(timer);
+      sampleCanvas.width=0;
+      sampleCanvas.height=0;
     };
-  },[cameraActive,cameraReady,candidates.length,busy]);
+  },[cameraActive,cameraReady,candidates.length,busy,game]);
 
   const select=async(card:CardScanCandidate)=>{
     if(!onSelect){window.location.assign(cardHref(card,locale));return;}
