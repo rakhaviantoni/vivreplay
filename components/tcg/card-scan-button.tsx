@@ -232,12 +232,20 @@ function cardHref(card:CardScanCandidate,locale:'EN'|'ID'){
 
 function scanVariantLabel(value:string){return value.split(/\s*[|·]\s*/)[0]?.trim()||value.trim()}
 
+function cleanCardNumber(cardNumber?:string|null):string{
+  if(!cardNumber)return '';
+  const trimmed=cardNumber.trim();
+  if(/^CT-\d+$/i.test(trimmed))return '';
+  return trimmed;
+}
+
 function scanDisplayCard(candidate:CardScanCandidate):Card&{gameSlug:'pokemon'|'one-piece'}{
+  const cleanNumber=cleanCardNumber(candidate.cardNumber);
   return {
     id:candidate.id,code:candidate.code,name:candidate.name,color:'',type:'Character',cost:0,power:0,
     rarity:candidate.rarity,art:0,effect:'',imageUrl:candidate.imageUrl??undefined,gameSlug:candidate.game,
-    setCode:candidate.setCode,language:candidate.language,printingCode:candidate.cardNumber,
-    localCardNumber:candidate.cardNumber.split('/')[0],variant:candidate.variant,
+    setCode:candidate.setCode,language:candidate.language,printingCode:cleanNumber,
+    localCardNumber:cleanNumber.split('/')[0],variant:candidate.variant,
   };
 }
 
@@ -382,74 +390,83 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
   };
   const identify=async()=>{
     if(!sourceFile||!scanBounds)return;
-    if(turnstileEnabled&&!token){setError(id?'Selesaikan pemeriksaan keamanan.':'Complete the security check first.');return;}
     setBusy(true);setOcrStage('loading');setError('');setRead(undefined);setCandidates([]);setResultScroll({left:false,right:false});
-    const vpsScannerUrl=process.env.NEXT_PUBLIC_CARD_SCANNER_URL||'https://scan.vivreplay.com';
-    if(vpsScannerUrl){
-      try{
-        setOcrStage('reading');
-        const croppedBlob=await getCroppedCardBlob(sourceFile,scanBounds);
-        const formData=new FormData();
-        formData.append('image',croppedBlob,'card-scan.jpg');
-        if(game!=='auto')formData.append('game',game);
-        const vpsResponse=await fetch(`${vpsScannerUrl.replace(/\/+$/,'')}/api/scan`,{method:'POST',body:formData});
-        if(vpsResponse.ok){
-          const vpsData=await vpsResponse.json() as {status:string;product?:CardScanCandidate;candidates?:CardScanCandidate[]};
-          if(vpsData.status==='match'&&vpsData.product){
-            const matches=vpsData.candidates?.length?vpsData.candidates:[vpsData.product];
-            setCandidates(matches);
-            setScanMethod('vision');
-            setRead({
-              game:vpsData.product.game,
-              name:vpsData.product.name,
-              setCode:vpsData.product.setCode,
-              cardNumber:vpsData.product.cardNumber,
-              cardNumberTotal:'',
-              language:vpsData.product.language,
-              rarity:vpsData.product.rarity,
-              variant:vpsData.product.variant,
-              block:'',
-            });
-            return;
-          }
-        }
-      }catch(err){
-        console.warn('VivrePlay Vision scan error, checking fallback',err);
-      }
-    }
     try{
-      setScanMethod('ocr');
-      const engine=await getPaddleEngine();
-      setOcrStage('reading');
-      const prepared=await scanImages(sourceFile,game,scanBounds);
-      const candidateUrls=[...prepared.images.slice(1),prepared.images[0]];
-      let combinedText='';
-      for(const dataUri of candidateUrls){
-        const blob=await (await fetch(dataUri)).blob();
-        const results=await engine.predict([blob]);
-        const text=results.flatMap(result=>result.items.filter(item=>item.score>=.2).map(item=>item.text)).join('\n').trim();
-        if(text){
-          combinedText=combinedText?`${combinedText}\n${text}`:text;
-          const candidateRead=parseLiveCardRead(combinedText,game);
-          if(candidateRead.cardNumber&&candidateRead.setCode){
-            break;
+      const vpsScannerUrl=process.env.NEXT_PUBLIC_CARD_SCANNER_URL||'https://scan.vivreplay.com';
+      if(vpsScannerUrl){
+        try{
+          setOcrStage('reading');
+          const croppedBlob=await getCroppedCardBlob(sourceFile,scanBounds);
+          const formData=new FormData();
+          formData.append('image',croppedBlob,'card-scan.jpg');
+          if(game!=='auto')formData.append('game',game);
+          const vpsResponse=await fetch(`${vpsScannerUrl.replace(/\/+$/,'')}/api/scan`,{method:'POST',body:formData});
+          if(vpsResponse.ok){
+            const vpsData=await vpsResponse.json() as {status:string;product?:CardScanCandidate;candidates?:CardScanCandidate[]};
+            if(vpsData.status==='match'&&vpsData.product){
+              const rawMatches=vpsData.candidates?.length?vpsData.candidates:[vpsData.product];
+              const matches=rawMatches.map(c=>({...c,cardNumber:cleanCardNumber(c.cardNumber)}));
+              const cleanProduct={...vpsData.product,cardNumber:cleanCardNumber(vpsData.product.cardNumber)};
+              setCandidates(matches);
+              setScanMethod('vision');
+              setRead({
+                game:cleanProduct.game,
+                name:cleanProduct.name,
+                setCode:cleanProduct.setCode,
+                cardNumber:cleanProduct.cardNumber,
+                cardNumberTotal:'',
+                language:cleanProduct.language,
+                rarity:cleanProduct.rarity,
+                variant:cleanProduct.variant,
+                block:'',
+              });
+              return;
+            }
           }
+        }catch(err){
+          console.warn('VivrePlay Vision scan error, checking fallback',err);
         }
       }
-      if(!combinedText.trim())throw new Error(id?'Teks kartu tidak terbaca. Pastikan nomor dan set terlihat jelas.':'No card text was recognized. Make sure the set and card number are visible.');
-      const response=await fetch('/api/cards/scan',{method:'POST',headers:{'content-type':'application/json',...turnstileHeaders(token)},body:JSON.stringify({game,text:combinedText})});
-      const result=await response.json() as {error?:string;read?:CardScanRead;candidates?:CardScanCandidate[]};
-      if(!response.ok)throw new Error(result.error??'Card scan failed.');
-      setRead(result.read);setCandidates(result.candidates??[]);
-    }catch(cause){setError(cause instanceof Error?cause.message:id?'Teks kartu tidak dapat dibaca. Coba gambar yang lebih tajam.':'Could not read the card text. Try a sharper photo.');}
-    finally{setBusy(false);setToken('');setTurnstileRevision(value=>value+1);}
+      try{
+        setScanMethod('ocr');
+        const engine=await getPaddleEngine();
+        setOcrStage('reading');
+        const prepared=await scanImages(sourceFile,game,scanBounds);
+        const candidateUrls=[...prepared.images.slice(1),prepared.images[0]];
+        let combinedText='';
+        for(const dataUri of candidateUrls){
+          const blob=await (await fetch(dataUri)).blob();
+          const results=await engine.predict([blob]);
+          const text=results.flatMap(result=>result.items.filter(item=>item.score>=.2).map(item=>item.text)).join('\n').trim();
+          if(text){
+            combinedText=combinedText?`${combinedText}\n${text}`:text;
+            const candidateRead=parseLiveCardRead(combinedText,game);
+            if(candidateRead.cardNumber&&candidateRead.setCode){
+              break;
+            }
+          }
+        }
+        if(!combinedText.trim())throw new Error(id?'Teks kartu tidak terbaca. Pastikan nomor dan set terlihat jelas.':'No card text was recognized. Make sure the set and card number are visible.');
+        const response=await fetch('/api/cards/scan',{method:'POST',headers:{'content-type':'application/json',...turnstileHeaders(token)},body:JSON.stringify({game,text:combinedText})});
+        const result=await response.json() as {error?:string;read?:CardScanRead;candidates?:CardScanCandidate[]};
+        if(!response.ok)throw new Error(result.error??'Card scan failed.');
+        const cleanCandidates=(result.candidates??[]).map(c=>({...c,cardNumber:cleanCardNumber(c.cardNumber)}));
+        setRead(result.read?{...result.read,cardNumber:cleanCardNumber(result.read.cardNumber)}:undefined);
+        setCandidates(cleanCandidates);
+      }catch(cause){
+        setError(cause instanceof Error?cause.message:id?'Teks kartu tidak dapat dibaca. Coba gambar yang lebih tajam.':'Could not read the card text. Try a sharper photo.');
+      }
+    }finally{
+      setBusy(false);
+      setToken('');
+    }
   };
   useEffect(()=>{identifyRef.current=identify;capturePhotoRef.current=capturePhoto});
   useEffect(()=>{
-    if(!autoScanRequested.current||!sourceFile||!scanBounds||(turnstileEnabled&&!token))return;
+    if(!autoScanRequested.current||!sourceFile||!scanBounds)return;
     autoScanRequested.current=false;
     void identifyRef.current?.();
-  },[scanBounds,sourceFile,token]);
+  },[scanBounds,sourceFile]);
   useEffect(()=>{
     if(!cameraActive||!cameraReady)return;
     const video=videoRef.current;
@@ -617,7 +634,7 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
         {!preview&&<CameraIcon size={34} aria-hidden="true"/>}
       </div>
       </div>}
-      {preview&&read&&<section className="card-scan-read-panel" aria-label={id?'Detail kartu':'Card details'}><dl className="card-scan-read-fields">{read.setCode&&<div><dt>Set</dt><dd>{read.setCode}</dd></div>}{read.cardNumber&&<div><dt>{id?'Nomor':'Number'}</dt><dd>{read.cardNumber}{read.cardNumberTotal?`/${read.cardNumberTotal}`:''}</dd></div>}{read.rarity&&<div><dt>{id?'Kelangkaan':'Rarity'}</dt><dd>{read.rarity}</dd></div>}{read.language&&<div><dt>{id?'Bahasa':'Language'}</dt><dd>{read.language}</dd></div>}</dl></section>}
+      {preview&&read&&<section className="card-scan-read-panel" aria-label={id?'Detail kartu':'Card details'}><dl className="card-scan-read-fields">{read.setCode&&<div><dt>Set</dt><dd>{read.setCode}</dd></div>}{read.cardNumber&&!/^CT-\d+$/i.test(read.cardNumber)&&<div><dt>{id?'Nomor':'Number'}</dt><dd>{read.cardNumber}{read.cardNumberTotal?`/${read.cardNumberTotal}`:''}</dd></div>}{read.rarity&&<div><dt>{id?'Kelangkaan':'Rarity'}</dt><dd>{read.rarity}</dd></div>}{read.language&&<div><dt>{id?'Bahasa':'Language'}</dt><dd>{read.language}</dd></div>}</dl></section>}
       {preview&&<div className="card-scan-crop-tools"><span>{id?'Seret sudut atau bingkai untuk memilih area kartu. Perbesar foto lalu geser untuk melihat tulisan kecil.':'Drag a corner or the frame to select the card area. Zoom in, then move the photo to check small print.'}</span><label className="card-scan-zoom"><span>{id?'Zoom':'Zoom'}</span><input type="range" min="1" max="5" step=".1" value={previewZoom} onChange={event=>changePreviewZoom(Number(event.target.value))} aria-label={id?'Perbesar pratinjau':'Zoom preview'}/><output>{Math.round(previewZoom*100)}%</output></label><button type="button" className="card-scan-crop-reset" onClick={()=>{setScanBounds(detectedBounds);setPreviewZoom(1);setPreviewPan({x:0,y:0});setRead(undefined);setCandidates([]);setError('')}} disabled={!detectedBounds}>{id?'Atur ulang':'Reset view'}</button></div>}
       {!cameraActive&&<div className="card-scan-source-actions">
         <button type="button" className="button secondary" onClick={()=>{if(useCameraPicker){setError('');cameraInput.current?.click()}else void startCamera()}}><CameraIcon size={17}/>{useCameraPicker?(id?'Buka kamera':'Open camera'):(id?'Ambil foto':'Take photo')}</button>
@@ -637,10 +654,15 @@ export function CardScanButton({game,locale='EN',onSelect,className}:Props){
           {candidates.length>1&&<div className="card-scan-results-controls"><button type="button" aria-label={id?'Geser ke kiri':'Scroll left'} disabled={!resultScroll.left} onClick={()=>resultTrack.current?.scrollBy({left:-260,behavior:'smooth'})}><CaretLeftIcon size={17}/></button><button type="button" aria-label={id?'Geser ke kanan':'Scroll right'} disabled={!resultScroll.right} onClick={()=>resultTrack.current?.scrollBy({left:260,behavior:'smooth'})}><CaretRightIcon size={17}/></button></div>}
         </header>
         {candidates.length>0&&<div ref={resultTrack} role="region" className="card-scan-results-track" aria-label={id?'Hasil kartu yang cocok':'Matching cards'} onScroll={updateResultScroll} onLoad={updateResultScroll}>
-        {candidates.map(card=><button type="button" key={card.id} disabled={busy} aria-label={`${card.name}, ${card.setCode} ${card.cardNumber}, ${card.language}${card.rarity?`, ${card.rarity}`:''}`} onClick={()=>void select(card)} className={`card-scan-result${card.game==='pokemon'?' pokemon-card-tile':' catalog-card catalog-card-button'}`}>
-          {card.game==='pokemon'?<CardArt card={scanDisplayCard(card)}/>:<span className="card-stage"><CardArt card={scanDisplayCard(card)}/></span>}
-          {card.game==='pokemon'?<span className="pokemon-card-caption"><strong>{card.name}</strong><span className="pokemon-card-meta-row"><small className="pokemon-card-set-badge">{card.setCode.toLowerCase()}</small><small className="pokemon-card-number">{card.cardNumber.includes('/')?card.cardNumber:`${card.cardNumber}${card.setCardCount?`/${card.setCardCount}`:''}`}</small>{card.rarity&&<small className="pokemon-card-rarity">{pokemonRarityLabel(card.rarity,card.language)||card.rarity}</small>}</span></span>:<><span className="card-meta"><span><b>{card.setCode}</b><small>{card.cardNumber}</small><small>{card.language}</small></span>{card.rarity&&<span className={`rarity rarity-${card.rarity}`}>{card.rarity}</span>}</span><span className="card-title"><h3>{card.name}</h3></span><small className="card-scan-printing-variant">{scanVariantLabel(card.variant)||'Standard'}</small></>}
-        </button>)}
+        {candidates.map(card=>{
+          const cleanNumber=cleanCardNumber(card.cardNumber);
+          return (
+            <button type="button" key={card.id} disabled={busy} aria-label={`${card.name}, ${card.setCode}${cleanNumber?` ${cleanNumber}`:''}, ${card.language}${card.rarity?`, ${card.rarity}`:''}`} onClick={()=>void select(card)} className={`card-scan-result${card.game==='pokemon'?' pokemon-card-tile':' catalog-card catalog-card-button'}`}>
+              {card.game==='pokemon'?<CardArt card={scanDisplayCard(card)}/>:<span className="card-stage"><CardArt card={scanDisplayCard(card)}/></span>}
+              {card.game==='pokemon'?<span className="pokemon-card-caption"><strong>{card.name}</strong><span className="pokemon-card-meta-row"><small className="pokemon-card-set-badge">{card.setCode.toLowerCase()}</small>{cleanNumber&&<small className="pokemon-card-number">{cleanNumber.includes('/')?cleanNumber:`${cleanNumber}${card.setCardCount?`/${card.setCardCount}`:''}`}</small>}{card.rarity&&<small className="pokemon-card-rarity">{pokemonRarityLabel(card.rarity,card.language)||card.rarity}</small>}</span></span>:<><span className="card-meta"><span><b>{card.setCode}</b>{cleanNumber&&<small>{cleanNumber}</small>}<small>{card.language}</small></span>{card.rarity&&<span className={`rarity rarity-${card.rarity}`}>{card.rarity}</span>}</span><span className="card-title"><h3>{card.name}</h3></span><small className="card-scan-printing-variant">{scanVariantLabel(card.variant)||'Standard'}</small></>}
+            </button>
+          );
+        })}
         </div>}
       </section>}
     </DialogContent></Dialog>
