@@ -5,9 +5,12 @@ import Image from 'next/image';
 import {
   ArrowsCounterClockwiseIcon,
   CameraIcon,
+  CaretLeftIcon,
+  CaretRightIcon,
   CheckCircleIcon,
   FlashlightIcon,
   ImageSquareIcon,
+  InfoIcon,
   SpinnerGapIcon,
   XIcon,
 } from '@phosphor-icons/react';
@@ -196,7 +199,25 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
   const cameraGuideRef=useRef<HTMLDivElement>(null);
   const cameraStream=useRef<MediaStream|null>(null);
   const liveScanning=useRef(false);
+  const resultTrack=useRef<HTMLDivElement>(null);
+  const [resultScroll,setResultScroll]=useState<{left:boolean;right:boolean}>({left:false,right:false});
   const id=locale==='ID';
+
+  const updateResultScroll=useCallback(()=>{
+    const el=resultTrack.current;
+    if(!el)return;
+    setResultScroll({
+      left:el.scrollLeft>6,
+      right:el.scrollLeft+el.clientWidth<el.scrollWidth-6,
+    });
+  },[]);
+
+  useEffect(()=>{
+    if(candidates.length>1){
+      const t=setTimeout(updateResultScroll,60);
+      return()=>clearTimeout(t);
+    }
+  },[candidates.length,updateResultScroll]);
 
   const stopCamera=()=>{
     if(torchOn)setTorchOn(false);
@@ -386,38 +407,64 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
     if(!cameraActive||!cameraReady||candidates.length>0)return;
     let mounted=true;
     let timer=0;
+    const sampleCanvas=document.createElement('canvas');
+    sampleCanvas.width=32;
+    sampleCanvas.height=45;
+    const sampleCtx=sampleCanvas.getContext('2d',{willReadFrequently:true});
 
-    const performLiveScan=async()=>{
-      if(!mounted||liveScanning.current||candidates.length>0||!cameraActive||!videoRef.current||busy)return;
-      const v=videoRef.current;
-      if(!v.videoWidth||!v.videoHeight)return;
-      const guideBounds=getCameraGuideBounds();
-      if(!guideBounds)return;
+    // Settle delay (1400ms) gives the user time to place the card in the frame
+    const settleTimer=setTimeout(()=>{
+      if(!mounted)return;
+      timer=window.setInterval(()=>{
+        if(!mounted||liveScanning.current||candidates.length>0||!cameraActive||!videoRef.current||busy)return;
+        const v=videoRef.current;
+        if(!v.videoWidth||!v.videoHeight||!sampleCtx)return;
+        const guideBounds=getCameraGuideBounds();
+        if(!guideBounds)return;
 
-      liveScanning.current=true;
-      setIsEvaluating(true);
-      try{
-        const blob=await videoCropBlob(v,guideBounds,440);
-        if(blob&&mounted&&candidates.length===0){
-          const matched=await scanBlob(blob);
-          if(!matched&&mounted){
-            setUnmatchedAttempts(prev=>prev+1);
+        // Check if there is actual content in the guide frame
+        const sx=guideBounds.x*v.videoWidth,sy=guideBounds.y*v.videoHeight;
+        const sw=guideBounds.width*v.videoWidth,sh=guideBounds.height*v.videoHeight;
+        sampleCtx.drawImage(v,sx,sy,sw,sh,0,0,32,45);
+        const imgData=sampleCtx.getImageData(0,0,32,45).data;
+
+        let minLuma=255,maxLuma=0;
+        for(let i=0;i<imgData.length;i+=4){
+          const luma=imgData[i]!*0.299+imgData[i+1]!*0.587+imgData[i+2]!*0.114;
+          if(luma<minLuma)minLuma=luma;
+          if(luma>maxLuma)maxLuma=luma;
+        }
+        // Don't scan if guide is pitch dark or completely uniform flat color
+        if(maxLuma-minLuma<25||maxLuma<35)return;
+
+        void(async()=>{
+          if(liveScanning.current||candidates.length>0||!mounted)return;
+          liveScanning.current=true;
+          setIsEvaluating(true);
+          try{
+            const blob=await videoCropBlob(v,guideBounds,440);
+            if(blob&&mounted&&candidates.length===0){
+              const matched=await scanBlob(blob);
+              if(!matched&&mounted){
+                setUnmatchedAttempts(prev=>prev+1);
+              }
+            }
+          }catch{}finally{
+            if(mounted){
+              liveScanning.current=false;
+              setIsEvaluating(false);
+            }
           }
-        }
-      }catch{}finally{
-        if(mounted){
-          liveScanning.current=false;
-          setIsEvaluating(false);
-        }
-      }
-    };
-
-    // Scan every 850ms steadily
-    timer=window.setInterval(()=>void performLiveScan(), 850);
+        })();
+      }, 1200);
+    }, 1400);
 
     return()=>{
       mounted=false;
+      clearTimeout(settleTimer);
       window.clearInterval(timer);
+      sampleCanvas.width=0;
+      sampleCanvas.height=0;
     };
   },[cameraActive,cameraReady,candidates.length,busy,game]);
 
@@ -447,9 +494,9 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
           </DialogTitle>
           <DialogDescription>
             {candidates.length>0
-              ?(id?'Kartu berhasil dicocokkan otomatis.':'Card identified automatically by visual AI.')
+              ?(id?'Kartu berhasil dicocokkan.':'Card matched successfully.')
               :cameraActive
-              ?(id?'Arahkan kamera ke kartu. Pengenalan berjalan otomatis saat kartu di dalam bingkai.':'Aim camera at your card. Scanning happens automatically in the frame.')
+              ?(id?'Posisikan kartu di dalam bingkai panduan.':'Place card inside the guide frame.')
               :(id?'Pilih kamera atau gambar kartu.':'Choose camera or card image.')}
           </DialogDescription>
         </DialogHeader>
@@ -466,8 +513,11 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
               aria-label={id?'Pratinjau kamera':'Camera preview'}
             />
             <div className="card-scan-hud-top">
-              <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
-                <span className="card-scan-vision-pill">AI Vision</span>
+              <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
+                <span className="card-scan-vision-pill">
+                  <CameraIcon size={12} weight="bold"/>
+                  {id?'Pemindai':'Scanner'}
+                </span>
               </div>
               <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
                 {torchAvailable&&<button
@@ -497,12 +547,13 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
             </div>
           </div>
 
-          {candidates.length===0&&<div style={{display:'grid',gap:'3px',justifyItems:'center',margin:'2px 0 4px'}}>
+          {candidates.length===0&&<div style={{display:'grid',gap:'4px',justifyItems:'center',margin:'2px 0 4px'}}>
             <p className={`card-scan-camera-status${isEvaluating?' is-evaluating':''}`} role="status">
-              {isEvaluating?<><span className="card-scan-pulse-dot"/>{id?'Memeriksa visual kartu…':'Checking card visual…'}</>:(id?'Posisikan kartu di dalam bingkai':'Place card inside the frame')}
+              {isEvaluating?<><span className="card-scan-pulse-dot"/>{id?'Memindai…':'Scanning…'}</>:(id?'Posisikan kartu di dalam bingkai':'Align card inside the frame')}
             </p>
-            {unmatchedAttempts>=4&&!isEvaluating&&<p className="card-scan-camera-tip">
-              {id?'💡 Pastikan kartu pas di bingkai dan miringkan sedikit jika silau':'💡 Fit card inside frame and tilt away from glare'}
+            {unmatchedAttempts>=3&&!isEvaluating&&<p className="card-scan-camera-tip">
+              <InfoIcon size={14} weight="bold" style={{verticalAlign:'middle',marginRight:'4px'}}/>
+              {id?'Posisikan kartu pas di dalam bingkai dan hindari pantulan cahaya':'Fit card inside the frame and avoid glare'}
             </p>}
           </div>}
 
@@ -532,9 +583,8 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
           <div className="card-scan-match-header">
             <div className="card-scan-match-meta">
               <CheckCircleIcon size={18} weight="fill" color="#10b981"/>
-              <strong style={{fontSize:'13px',color:'var(--ink)'}}>{id?'Kartu Cocok!':'Match Found!'}</strong>
+              <strong style={{fontSize:'13px',color:'var(--ink)'}}>{id?'Kartu Ditemukan':'Card Detected'}</strong>
             </div>
-            <span className="card-scan-vision-pill">VivrePlay AI Vision</span>
           </div>
 
           <div className="card-scan-card-card">
@@ -559,36 +609,68 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
             </div>
           </div>
 
-          {candidates.length>1&&<div style={{display:'grid',gap:'6px'}}>
-            <p style={{margin:0,fontSize:'11px',color:'var(--muted)',fontWeight:600}}>
-              {id?'Pilihan cetakan/varian lain yang cocok:':'Other matching printings:'}
-            </p>
-            <div style={{display:'flex',gap:'6px',overflowX:'auto',paddingBottom:'4px'}}>
-              {candidates.map((candidate,idx)=>{
-                const num=cleanCardNumber(candidate.cardNumber);
+          {candidates.length>1&&<section className={`card-scan-results${resultScroll.left?' has-left-overflow':''}${resultScroll.right?' has-right-overflow':''}`} aria-label={id?'Pilihan cetakan lain':'Other matching printings'}>
+            <header>
+              <div className="card-scan-results-title">
+                <p>{id?'Pilihan cetakan lain:':'Other matching printings:'}</p>
+              </div>
+              <div className="card-scan-results-controls">
+                <button
+                  type="button"
+                  aria-label={id?'Geser ke kiri':'Scroll left'}
+                  disabled={!resultScroll.left}
+                  onClick={()=>resultTrack.current?.scrollBy({left:-240,behavior:'smooth'})}
+                >
+                  <CaretLeftIcon size={16}/>
+                </button>
+                <button
+                  type="button"
+                  aria-label={id?'Geser ke kanan':'Scroll right'}
+                  disabled={!resultScroll.right}
+                  onClick={()=>resultTrack.current?.scrollBy({left:240,behavior:'smooth'})}
+                >
+                  <CaretRightIcon size={16}/>
+                </button>
+              </div>
+            </header>
+            <div ref={resultTrack} role="region" className="card-scan-results-track" onScroll={updateResultScroll}>
+              {candidates.map((card,idx)=>{
+                const cleanNumber=cleanCardNumber(card.cardNumber);
+                const isSelected=idx===selectedCandidateIndex;
                 return (
                   <button
-                    key={candidate.id}
                     type="button"
+                    key={card.id}
+                    disabled={busy}
                     onClick={()=>setSelectedCandidateIndex(idx)}
-                    style={{
-                      padding:'4px 9px',
-                      borderRadius:'6px',
-                      border:idx===selectedCandidateIndex?'1.5px solid var(--accent,#f59e0b)':'1px solid var(--line)',
-                      background:idx===selectedCandidateIndex?'color-mix(in srgb, var(--accent,#f59e0b) 16%, transparent)':'var(--surface-raised)',
-                      fontSize:'11px',
-                      fontWeight:650,
-                      color:'var(--ink)',
-                      cursor:'pointer',
-                      whiteSpace:'nowrap',
-                    }}
+                    className={`card-scan-result${card.game==='pokemon'?' pokemon-card-tile':' catalog-card'}${isSelected?' is-selected':''}`}
+                    style={isSelected?{outline:'2px solid var(--accent,#f59e0b)',outlineOffset:'2px',borderRadius:'8px'}:undefined}
                   >
-                    {candidate.setCode}{num?` #${num}`:''}{candidate.rarity?` (${candidate.rarity})`:''}
+                    {card.game==='pokemon'?<CardArt card={scanDisplayCard(card)}/>:<span className="card-stage"><CardArt card={scanDisplayCard(card)}/></span>}
+                    {card.game==='pokemon'?(
+                      <span className="pokemon-card-caption">
+                        <strong>{card.name}</strong>
+                        <span className="pokemon-card-meta-row">
+                          <small className="pokemon-card-set-badge">{card.setCode.toLowerCase()}</small>
+                          {cleanNumber&&<small className="pokemon-card-number">{cleanNumber.includes('/')?cleanNumber:`${cleanNumber}${card.setCardCount?`/${card.setCardCount}`:''}`}</small>}
+                          {card.rarity&&<small className="pokemon-card-rarity">{pokemonRarityLabel(card.rarity,card.language)||card.rarity}</small>}
+                        </span>
+                      </span>
+                    ):(
+                      <>
+                        <span className="card-meta">
+                          <span><b>{card.setCode}</b>{cleanNumber&&<small>{cleanNumber}</small>}<small>{card.language}</small></span>
+                          {card.rarity&&<span className={`rarity rarity-${card.rarity}`}>{card.rarity}</span>}
+                        </span>
+                        <span className="card-title"><h3>{card.name}</h3></span>
+                        <small className="card-scan-printing-variant">{scanVariantLabel(card.variant)||'Standard'}</small>
+                      </>
+                    )}
                   </button>
                 );
               })}
             </div>
-          </div>}
+          </section>}
 
           <div className="card-scan-sheet-actions">
             <button
