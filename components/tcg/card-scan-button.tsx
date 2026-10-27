@@ -55,12 +55,33 @@ function videoCropBlob(video:HTMLVideoElement,bounds:NormalizedBounds,maxWidth:n
   canvas.width=Math.max(1,Math.round(width*scale));canvas.height=Math.max(1,Math.round(height*scale));
   const context=canvas.getContext('2d');
   if(!context)return Promise.resolve(null);
-  context.imageSmoothingEnabled=true;context.imageSmoothingQuality='medium';
+  context.imageSmoothingEnabled=true;context.imageSmoothingQuality='high';
   context.drawImage(video,x,y,width,height,0,0,canvas.width,canvas.height);
+
+  // If crop is wider than tall, mobile sensor streamed landscape: rotate 90° clockwise into standard card portrait
+  if(canvas.width>canvas.height){
+    const rotCanvas=document.createElement('canvas');
+    rotCanvas.width=canvas.height;
+    rotCanvas.height=canvas.width;
+    const rctx=rotCanvas.getContext('2d');
+    if(rctx){
+      rctx.imageSmoothingEnabled=true;
+      rctx.imageSmoothingQuality='high';
+      rctx.translate(rotCanvas.width,0);
+      rctx.rotate(Math.PI/2);
+      rctx.drawImage(canvas,0,0);
+      canvas.width=0;canvas.height=0;
+      return new Promise(resolve=>rotCanvas.toBlob(blob=>{
+        rotCanvas.width=0;rotCanvas.height=0;
+        resolve(blob);
+      },'image/jpeg',.92));
+    }
+  }
+
   return new Promise(resolve=>canvas.toBlob(blob=>{
     canvas.width=0;canvas.height=0;
     resolve(blob);
-  },'image/jpeg',.85));
+  },'image/jpeg',.92));
 }
 
 async function loadSourceCanvas(file:Blob):Promise<{canvas:HTMLCanvasElement;width:number;height:number}>{
