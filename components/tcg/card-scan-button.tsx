@@ -191,8 +191,6 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
   const [detectedBounds,setDetectedBounds]=useState<NormalizedBounds>();
   const [cameraActive,setCameraActive]=useState(false);
   const [cameraReady,setCameraReady]=useState(false);
-  const [isEvaluating,setIsEvaluating]=useState(false);
-  const [unmatchedAttempts,setUnmatchedAttempts]=useState(0);
   const [torchAvailable,setTorchAvailable]=useState(false);
   const [torchOn,setTorchOn]=useState(false);
   const [useCameraPicker,setUseCameraPicker]=useState(false);
@@ -209,7 +207,6 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
   const cameraStageRef=useRef<HTMLDivElement>(null);
   const cameraGuideRef=useRef<HTMLDivElement>(null);
   const cameraStream=useRef<MediaStream|null>(null);
-  const liveScanning=useRef(false);
   const cropDrag=useRef<{pointerId:number;corner:'top-left'|'top-right'|'bottom-left'|'bottom-right'|'move'|null;startX:number;startY:number;startBounds?:NormalizedBounds}>({pointerId:-1,corner:null,startX:0,startY:0});
   const panDrag=useRef<{pointerId:number;startX:number;startY:number;originX:number;originY:number}|null>(null);
   const resultTrack=useRef<HTMLDivElement>(null);
@@ -235,7 +232,6 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
   const stopCamera=()=>{
     if(torchOn)setTorchOn(false);
     setTorchAvailable(false);
-    liveScanning.current=false;
     cameraStream.current?.getTracks().forEach(track=>track.stop());
     cameraStream.current=null;
     setCameraActive(false);
@@ -255,16 +251,27 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
   };
 
   const getCameraGuideBounds=():NormalizedBounds|undefined=>{
-    const video=videoRef.current,stage=cameraStageRef.current,guide=cameraGuideRef.current;
-    if(!video||!stage||!guide||!video.videoWidth||!video.videoHeight)return;
-    const videoRect=video.getBoundingClientRect(),stageRect=stage.getBoundingClientRect(),guideRect=guide.getBoundingClientRect();
-    const scale=Math.min(videoRect.width/video.videoWidth,videoRect.height/video.videoHeight);
+    const video=videoRef.current,guide=cameraGuideRef.current;
+    if(!video||!guide||!video.videoWidth||!video.videoHeight)return;
+    const videoRect=video.getBoundingClientRect(),guideRect=guide.getBoundingClientRect();
+    if(!videoRect.width||!videoRect.height)return;
+    const scale=Math.max(videoRect.width/video.videoWidth,videoRect.height/video.videoHeight);
     const contentWidth=video.videoWidth*scale,contentHeight=video.videoHeight*scale;
     const contentLeft=videoRect.left+(videoRect.width-contentWidth)/2,contentTop=videoRect.top+(videoRect.height-contentHeight)/2;
     const left=Math.max(contentLeft,guideRect.left),top=Math.max(contentTop,guideRect.top);
     const right=Math.min(contentLeft+contentWidth,guideRect.right),bottom=Math.min(contentTop+contentHeight,guideRect.bottom);
-    if(right<=left||bottom<=top||stageRect.width===0)return;
-    return{x:(left-contentLeft)/contentWidth,y:(top-contentTop)/contentHeight,width:(right-left)/contentWidth,height:(bottom-top)/contentHeight};
+    if(right<=left||bottom<=top||contentWidth<=0||contentHeight<=0)return;
+
+    const rawX=(left-contentLeft)/contentWidth,rawY=(top-contentTop)/contentHeight;
+    const rawW=(right-left)/contentWidth,rawH=(bottom-top)/contentHeight;
+    const padX=rawW*0.04,padY=rawH*0.04;
+    const normX=Math.max(0,rawX-padX),normY=Math.max(0,rawY-padY);
+    return{
+      x:normX,
+      y:normY,
+      width:Math.min(1-normX,rawW+padX*2),
+      height:Math.min(1-normY,rawH+padY*2),
+    };
   };
 
   useEffect(()=>()=>cameraStream.current?.getTracks().forEach(track=>track.stop()),[]);
@@ -289,8 +296,6 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
       }
       setTorchAvailable(Boolean(cameraCapabilities?.torch));
       setTorchOn(false);
-      setIsEvaluating(false);
-      setUnmatchedAttempts(0);
       setPreview(undefined);
       setPreviewSize(undefined);
       setCandidates([]);
@@ -315,8 +320,6 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
       setSourceFile(undefined);
       setCandidates([]);
       setSelectedCandidateIndex(0);
-      setIsEvaluating(false);
-      setUnmatchedAttempts(0);
       setError('');
     }
   };
@@ -325,8 +328,6 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
     setCandidates([]);
     setSelectedCandidateIndex(0);
     setError('');
-    setIsEvaluating(false);
-    setUnmatchedAttempts(0);
     setPreview(undefined);
     setPreviewSize(undefined);
     setPreviewZoom(1);
@@ -334,21 +335,19 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
     setScanBounds(undefined);
     setDetectedBounds(undefined);
     setSourceFile(undefined);
-    liveScanning.current=false;
-    if(videoRef.current){
-      void videoRef.current.play().catch(()=>{});
-    }
     if(!cameraActive){
       void startCamera();
+    }else if(videoRef.current){
+      void videoRef.current.play().catch(()=>{});
     }
   };
 
   const openScanner=()=>{
     setOpen(true);
-    setIsEvaluating(false);
-    setUnmatchedAttempts(0);
     setPreview(undefined);
+    setPreviewSize(undefined);
     setScanBounds(undefined);
+    setDetectedBounds(undefined);
     setPreviewZoom(1);
     setPreviewPan({x:0,y:0});
     void startCamera();
@@ -455,7 +454,7 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
   };
 
   // Choose file and prepare zoom & crop workspace
-  const chooseFile=async(file?:File)=>{
+  const chooseFile=async(file?:File,preferredBounds?:NormalizedBounds,autoSearch=false)=>{
     if(!file)return;
     stopCamera();
     setCandidates([]);
@@ -477,32 +476,50 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
         const previewUrl=previewCanvas.toDataURL('image/jpeg',0.90);
         previewCanvas.width=0;previewCanvas.height=0;
 
-        // Auto-detect card boundary in background
-        const detectCanvas=document.createElement('canvas');
-        detectCanvas.width=160;
-        detectCanvas.height=Math.max(1,Math.round(160*height/width));
-        const dctx=detectCanvas.getContext('2d');
-        dctx?.drawImage(sourceCanvas,0,0,detectCanvas.width,detectCanvas.height);
-        const idata=dctx?.getImageData(0,0,detectCanvas.width,detectCanvas.height);
-        const rawBounds=idata?detectCardBounds({data:idata.data,width:detectCanvas.width,height:detectCanvas.height}):null;
-        detectCanvas.width=0;detectCanvas.height=0;
+        let bounds:NormalizedBounds;
+        if(preferredBounds){
+          bounds=preferredBounds;
+        }else{
+          // Auto-detect card boundary in background
+          const detectCanvas=document.createElement('canvas');
+          detectCanvas.width=160;
+          detectCanvas.height=Math.max(1,Math.round(160*height/width));
+          const dctx=detectCanvas.getContext('2d');
+          dctx?.drawImage(sourceCanvas,0,0,detectCanvas.width,detectCanvas.height);
+          const idata=dctx?.getImageData(0,0,detectCanvas.width,detectCanvas.height);
+          const rawBounds=idata?detectCardBounds({data:idata.data,width:detectCanvas.width,height:detectCanvas.height}):null;
+          detectCanvas.width=0;detectCanvas.height=0;
 
-        const bounds:NormalizedBounds=rawBounds?{
-          x:rawBounds.x/160,
-          y:rawBounds.y/(160*height/width),
-          width:rawBounds.width/160,
-          height:rawBounds.height/(160*height/width),
-        }:{
-          x:0.08,
-          y:0.06,
-          width:0.84,
-          height:0.88,
-        };
+          bounds=rawBounds?{
+            x:rawBounds.x/160,
+            y:rawBounds.y/(160*height/width),
+            width:rawBounds.width/160,
+            height:rawBounds.height/(160*height/width),
+          }:{
+            x:0.08,
+            y:0.06,
+            width:0.84,
+            height:0.88,
+          };
+        }
 
         setPreview(previewUrl);
         setPreviewSize({width,height});
         setScanBounds(bounds);
         setDetectedBounds(bounds);
+
+        if(autoSearch){
+          const croppedBlob=await getCroppedCardBlob(file,bounds);
+          const matches=await scanBlob(croppedBlob,true);
+          const topScore=matches?.[0]?.score??0;
+          if(matches&&matches.length>0&&topScore>=0.88){
+            triggerHaptic([40,50,40]);
+            setCandidates(matches);
+            setSelectedCandidateIndex(0);
+          }else{
+            setError(id?'Sesuaikan bingkai di sekeliling kartu lalu tekan Cari Kartu.':'Adjust the frame around the card and tap Search Card.');
+          }
+        }
       }finally{
         sourceCanvas.width=0;sourceCanvas.height=0;
       }
@@ -561,7 +578,7 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
     return null;
   };
 
-  // Immediate manual capture
+  // Manual camera capture with instant framing handoff
   const capturePhoto=async()=>{
     if(busy)return;
     const video=videoRef.current;
@@ -571,134 +588,20 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
     triggerHaptic(35);
     try{
       const guideBounds=getCameraGuideBounds();
-      const blob=await videoCropBlob(video,guideBounds??{x:0.1,y:0.1,width:0.8,height:0.8},1080);
+      const blob=await captureVideoFrameBlob(video);
       if(!blob){
         setError(id?'Foto tidak dapat diambil.':'Could not capture frame.');
         return;
       }
-      const matches=await scanBlob(blob,true);
-      const topScore=matches?.[0]?.score??0;
-      if(matches&&matches.length>0&&topScore>=0.90){
-        triggerHaptic([40,50,40]);
-        setCandidates(matches);
-        setSelectedCandidateIndex(0);
-        videoRef.current?.pause();
-      }else{
-        // If match confidence is ambiguous or no match, transition the captured photo directly into the Zoom & Crop workspace
-        stopCamera();
-        const file=new File([blob],'camera-capture.jpg',{type:'image/jpeg'});
-        await chooseFile(file);
-        if(!matches||matches.length===0){
-          setError(id?'Sesuaikan bingkai di sekeliling kartu lalu tekan Cari Kartu.':'Adjust the frame around the card and tap Search Card.');
-        }
-      }
+      stopCamera();
+      const file=new File([blob],'camera-capture.jpg',{type:'image/jpeg'});
+      await chooseFile(file,guideBounds,true);
     }catch{
       setError(id?'Gagal memindai kartu. Silakan coba lagi.':'Scan failed. Please try again.');
     }finally{
       setBusy(false);
     }
   };
-
-  // Continuous background live scan loop (non-blocking)
-  useEffect(()=>{
-    if(!cameraActive||!cameraReady||candidates.length>0)return;
-    let mounted=true;
-    let timer=0;
-    let prevSample:Uint8ClampedArray|null=null;
-    let pendingCandidateId:string|null=null;
-    let pendingCandidateName:string|null=null;
-
-    const sampleCanvas=document.createElement('canvas');
-    sampleCanvas.width=32;
-    sampleCanvas.height=45;
-    const sampleCtx=sampleCanvas.getContext('2d',{willReadFrequently:true});
-
-    // Settle delay (1200ms) gives the user time to place the card in the frame
-    const settleTimer=setTimeout(()=>{
-      if(!mounted)return;
-      timer=window.setInterval(()=>{
-        if(!mounted||liveScanning.current||candidates.length>0||!cameraActive||!videoRef.current||busy)return;
-        const v=videoRef.current;
-        if(!v.videoWidth||!v.videoHeight||!sampleCtx)return;
-        const guideBounds=getCameraGuideBounds();
-        if(!guideBounds)return;
-
-        // Check if there is actual content in the guide frame
-        const sx=guideBounds.x*v.videoWidth,sy=guideBounds.y*v.videoHeight;
-        const sw=guideBounds.width*v.videoWidth,sh=guideBounds.height*v.videoHeight;
-        sampleCtx.drawImage(v,sx,sy,sw,sh,0,0,32,45);
-        const imgData=sampleCtx.getImageData(0,0,32,45).data;
-
-        let minLuma=255,maxLuma=0;
-        let motionDiff=0;
-        for(let i=0;i<imgData.length;i+=8){
-          const luma=imgData[i]!*0.299+imgData[i+1]!*0.587+imgData[i+2]!*0.114;
-          if(luma<minLuma)minLuma=luma;
-          if(luma>maxLuma)maxLuma=luma;
-          if(prevSample){
-            motionDiff+=Math.abs(imgData[i]!-prevSample[i]!);
-          }
-        }
-        prevSample=new Uint8ClampedArray(imgData);
-
-        // Don't scan if guide is pitch dark or completely uniform flat color
-        if(maxLuma-minLuma<25||maxLuma<35)return;
-
-        // If card or phone is actively moving, wait for the user to hold it steady
-        // Sampled pixels = 1440 / 2 = 720 pixels. Average delta > 16 indicates rapid motion.
-        if(motionDiff>720*16)return;
-
-        void(async()=>{
-          if(liveScanning.current||candidates.length>0||!mounted)return;
-          liveScanning.current=true;
-          setIsEvaluating(true);
-          try{
-            const blob=await videoCropBlob(v,guideBounds,480);
-            if(blob&&mounted&&candidates.length===0){
-              const matches=await scanBlob(blob,false);
-              if(!mounted)return;
-              if(matches&&matches.length>0){
-                const topMatch=matches[0]!;
-                const topScore=topMatch.score??0;
-                const isConfirmed=(pendingCandidateId===topMatch.id)||(pendingCandidateName===topMatch.name);
-
-                // Lock immediately on high confidence (>= 0.92) or on consecutive verification
-                if(topScore>=0.92||isConfirmed){
-                  triggerHaptic([40,50,40]);
-                  setCandidates(matches);
-                  setSelectedCandidateIndex(0);
-                  videoRef.current?.pause();
-                  pendingCandidateId=null;
-                  pendingCandidateName=null;
-                }else{
-                  // First detection: stage for consecutive verification on next tick
-                  pendingCandidateId=topMatch.id;
-                  pendingCandidateName=topMatch.name;
-                }
-              }else{
-                pendingCandidateId=null;
-                pendingCandidateName=null;
-                setUnmatchedAttempts(prev=>prev+1);
-              }
-            }
-          }catch{}finally{
-            if(mounted){
-              liveScanning.current=false;
-              setIsEvaluating(false);
-            }
-          }
-        })();
-      }, 1000);
-    }, 1200);
-
-    return()=>{
-      mounted=false;
-      clearTimeout(settleTimer);
-      window.clearInterval(timer);
-      sampleCanvas.width=0;
-      sampleCanvas.height=0;
-    };
-  },[cameraActive,cameraReady,candidates.length,busy,game]);
 
   const select=async(card:CardScanCandidate)=>{
     if(!onSelect){window.location.assign(cardHref(card,locale));return;}
@@ -736,7 +639,7 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
         </DialogHeader>
 
         {cameraActive&&<section className="card-scan-camera-view">
-          <div ref={cameraStageRef} className={`card-scan-camera-stage${candidates.length>0?' is-steady':isEvaluating?' is-evaluating':''}`}>
+          <div ref={cameraStageRef} className={`card-scan-camera-stage${candidates.length>0?' is-steady':busy?' is-evaluating':''}`}>
             <video
               ref={videoRef}
               className="card-scan-live-video"
@@ -783,12 +686,8 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
 
           {candidates.length===0&&<div style={{display:'grid',gap:'4px',justifyItems:'center',margin:'4px 0 2px',minHeight:'22px'}}>
             <p className="card-scan-camera-status" role="status">
-              {id?'Posisikan kartu di dalam bingkai':'Align card inside the frame'}
+              {id?'Posisikan kartu di dalam bingkai lalu tekan Pindai':'Align card inside the frame then tap Scan'}
             </p>
-            {unmatchedAttempts>=4&&<p className="card-scan-camera-tip">
-              <InfoIcon size={14} weight="bold" style={{verticalAlign:'middle',marginRight:'4px'}}/>
-              {id?'Posisikan kartu pas di dalam bingkai dan hindari pantulan cahaya':'Fit card inside the frame and avoid glare'}
-            </p>}
           </div>}
 
           {candidates.length===0&&<div className="card-scan-source-actions" style={{marginTop:'2px'}}>
