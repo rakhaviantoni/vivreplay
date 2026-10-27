@@ -48,40 +48,24 @@ function dataUrl(source:HTMLCanvasElement,box:{x:number;y:number;width:number;he
   return url;
 }
 
-function videoCropBlob(video:HTMLVideoElement,bounds:NormalizedBounds,maxWidth:number):Promise<Blob|null>{
-  const x=bounds.x*video.videoWidth,y=bounds.y*video.videoHeight,width=bounds.width*video.videoWidth,height=bounds.height*video.videoHeight;
-  const scale=Math.min(1,maxWidth/width);
+async function captureVideoFrameBlob(video:HTMLVideoElement):Promise<Blob|null>{
+  const vw=video.videoWidth,vh=video.videoHeight;
+  if(!vw||!vh)return null;
+  const maxDim=1600;
+  const scale=Math.min(1,maxDim/Math.max(vw,vh));
   const canvas=document.createElement('canvas');
-  canvas.width=Math.max(1,Math.round(width*scale));canvas.height=Math.max(1,Math.round(height*scale));
+  canvas.width=Math.max(1,Math.round(vw*scale));
+  canvas.height=Math.max(1,Math.round(vh*scale));
   const context=canvas.getContext('2d');
-  if(!context)return Promise.resolve(null);
-  context.imageSmoothingEnabled=true;context.imageSmoothingQuality='high';
-  context.drawImage(video,x,y,width,height,0,0,canvas.width,canvas.height);
-
-  // If crop is wider than tall, mobile sensor streamed landscape: rotate 90° clockwise into standard card portrait
-  if(canvas.width>canvas.height){
-    const rotCanvas=document.createElement('canvas');
-    rotCanvas.width=canvas.height;
-    rotCanvas.height=canvas.width;
-    const rctx=rotCanvas.getContext('2d');
-    if(rctx){
-      rctx.imageSmoothingEnabled=true;
-      rctx.imageSmoothingQuality='high';
-      rctx.translate(rotCanvas.width,0);
-      rctx.rotate(Math.PI/2);
-      rctx.drawImage(canvas,0,0);
-      canvas.width=0;canvas.height=0;
-      return new Promise(resolve=>rotCanvas.toBlob(blob=>{
-        rotCanvas.width=0;rotCanvas.height=0;
-        resolve(blob);
-      },'image/jpeg',.92));
-    }
-  }
+  if(!context)return null;
+  context.imageSmoothingEnabled=true;
+  context.imageSmoothingQuality='high';
+  context.drawImage(video,0,0,canvas.width,canvas.height);
 
   return new Promise(resolve=>canvas.toBlob(blob=>{
     canvas.width=0;canvas.height=0;
     resolve(blob);
-  },'image/jpeg',.92));
+  },'image/jpeg',0.94));
 }
 
 async function loadSourceCanvas(file:Blob):Promise<{canvas:HTMLCanvasElement;width:number;height:number}>{

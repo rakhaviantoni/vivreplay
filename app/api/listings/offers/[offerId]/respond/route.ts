@@ -3,9 +3,10 @@ import {db,errorResponse,guard,HttpError,user} from '@/lib/server/store';
 import {computeOfferExpiration,isOfferExpired,offerContext,parseOfferItems,priceOfferItems,validateListingOfferItems} from '@/lib/server/market-offers';
 import {sendMarketEmail} from '@/lib/server/market-notifications';
 import {MARKET_MAX_CARD_TYPES,MARKET_MAX_COPIES_PER_CARD} from '@/lib/market/listing-limits';
+import {recordMarketActivity} from '@/lib/server/market-activity-progress';
 
 const parcelSchema=z.object({weight:z.number().int().min(10).max(30000),length:z.number().int().min(1).max(100),width:z.number().int().min(1).max(100),height:z.number().int().min(1).max(100)});
-const offerItemSchema=z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(MARKET_MAX_COPIES_PER_CARD),unitAmount:z.number().int().positive().optional(),sealedProductId:z.string().optional(),productType:z.enum(['RAW','GRADED','SEALED']).optional(),condition:z.string().max(40).optional(),notes:z.string().max(1000).optional(),photoIds:z.array(z.string().uuid()).max(6).optional(),parcel:parcelSchema.optional()});
+const offerItemSchema=z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(MARKET_MAX_COPIES_PER_CARD),unitAmount:z.number().int().positive().optional(),sealedProductId:z.string().optional(),productType:z.enum(['RAW','GRADED','SEALED','GENERAL']).optional(),condition:z.string().max(40).optional(),notes:z.string().max(1000).optional(),photoIds:z.array(z.string().uuid()).max(6).optional(),parcel:parcelSchema.optional()});
 const schema=z.discriminatedUnion('action',[
   z.object({action:z.literal('accept')}),
   z.object({action:z.literal('decline')}),
@@ -56,6 +57,7 @@ export async function POST(request:Request,{params}:{params:Promise<{offerId:str
         db().prepare("INSERT INTO listing_offer_messages (id,thread_id,offer_id,actor_id,kind,body) SELECT ?,?,?,?,?,? WHERE EXISTS (SELECT 1 FROM listing_offers WHERE id=?)").bind(crypto.randomUUID(),offer.threadId,nextId,actor.id,value.action==='revise'?'OFFER_REVISED':'OFFER_COUNTERED',null,nextId),
       ]);
       if(!results[0]?.meta.changes)throw new HttpError(409,'This offer has already been answered.');
+      if(value.action==='counter')await recordMarketActivity(db(),actor.id,'offer_replied',offerId);
       const recipient=value.action==='revise'?(actor.id===offer.sellerId?offer.buyerId:offer.sellerId):offer.actorId;
       await sendMarketEmail(recipient,'counteroffer',offer.listingTitle,nextId);
       return Response.json({status:value.action==='revise'?'REVISED':'COUNTERED',offerId:nextId},{headers:{'Cache-Control':'private, no-store'}});
@@ -67,6 +69,7 @@ export async function POST(request:Request,{params}:{params:Promise<{offerId:str
       db().prepare("INSERT INTO listing_offer_messages (id,thread_id,offer_id,actor_id,kind,body) SELECT ?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM listing_offers WHERE id=? AND status=?)").bind(crypto.randomUUID(),offer.threadId,offerId,actor.id,`OFFER_${value.action.toUpperCase()}`,null,offerId,nowStatus),
     ]);
     if(!results[0]?.meta.changes)throw new HttpError(409,'This offer has already been answered.');
+    await recordMarketActivity(db(),actor.id,'offer_replied',offerId);
     if(value.action==='accept'||value.action==='decline')await sendMarketEmail(offer.actorId,value.action==='accept'?'accepted':'declined',offer.listingTitle,offer.threadId);
     return Response.json({status:nowStatus},{headers:{'Cache-Control':'private, no-store'}});
   }catch(error){return errorResponse(error)}

@@ -2,6 +2,7 @@ import {db,HttpError} from '@/lib/server/store';
 import {sendMarketEmailOnce} from '@/lib/server/market-notifications';
 import {MARKET_REVIEW_WINDOW_MS} from '@/lib/market/review-window';
 import {sellerVaultDebits} from '@/lib/market/order-transfer';
+import {recordMarketActivity} from '@/lib/server/market-activity-progress';
 
 type Order={id:string;kind:string;buyerId:string;sellerId:string|null;items:string;details:string|null;currency:string;status:string;deliveredAt:string|null;title:string|null};
 type Item={printingId:string;quantity:number;unitAmount?:number;condition?:string;instanceId?:string;listingId?:string;sealedProductId?:string};
@@ -87,5 +88,9 @@ export async function completeDeliveredMarketOrder(orderId:string,buyerId:string
   }else if(order.sellerId){
     await sendMarketEmailOnce(order.sellerId,'order-received',order.title||'Market order',orderId,`market-received:${orderId}`);
   }
+  await Promise.all([
+    recordMarketActivity(database,order.buyerId,'order_completed',orderId),
+    ...(order.sellerId?[recordMarketActivity(database,order.sellerId,'order_completed',orderId)]:[]),
+  ]);
   return{completed:true,status:'RECEIVED'};
 }

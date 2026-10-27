@@ -5,6 +5,7 @@ import {getCurrentUser} from '@/lib/server/auth';
 import type {Card} from '@/packages/card-data/catalog';
 import type {CollectionItem,SavedDeck,Listing} from '@/packages/domain';
 import {normalizeListingItemPrices} from '@/lib/market/normalize-listing-prices';
+import {generalMarketCategoryLabel} from '@/lib/market/general-products';
 export function db(){if(!env.DB)throw new Error('Persistent storage is unavailable. Please retry shortly.');return env.DB;}
 function defaultUsername(email: string | undefined, id: string): string {
   if (!email) return `player-${id.slice(0, 8)}`;
@@ -256,6 +257,26 @@ export async function market(viewerId?:string,listingIds?:string[],gameSlug?:'on
     for(const item of held)reservations.set(`${item.listingId}:${item.printingId}`,Number(item.quantity)||0);
   }
   const bundleCards=new Map<string,Card>();
+  const generalProducts=new Map<string,{category:string;brand?:string;model?:string;attributes?:Record<string,string>}>();
+  for(const row of rows){
+    let entries:unknown;try{entries=JSON.parse(row.itemsJson??'[]')}catch{}
+    if(!Array.isArray(entries))continue;
+    for(const entry of entries){
+      if(!entry||typeof entry!=='object')continue;
+      const item=entry as {printingId?:unknown;productType?:unknown;generalProduct?:unknown;photoIds?:unknown};
+      if(item.productType!=='GENERAL'||typeof item.printingId!=='string'||!item.generalProduct||typeof item.generalProduct!=='object')continue;
+      const details=item.generalProduct as {category?:unknown;brand?:unknown;model?:unknown;attributes?:unknown};
+      const categoryKey=typeof details.category==='string'?details.category:'HOBBY';
+      const category=generalMarketCategoryLabel(categoryKey);
+      const brand=typeof details.brand==='string'?details.brand:undefined;
+      const model=typeof details.model==='string'?details.model:undefined;
+      const attributes=details.attributes&&typeof details.attributes==='object'?details.attributes as Record<string,string>:undefined;
+      generalProducts.set(item.printingId,{category:categoryKey,brand,model,attributes});
+      const photo=Array.isArray(item.photoIds)&&typeof item.photoIds[0]==='string'?'/api/market/product-photos/'+item.photoIds[0]:undefined;
+      const title=typeof (entry as {name?:unknown}).name==='string'?(entry as {name:string}).name:rows.find(candidate=>candidate.printingId===item.printingId)?.title??'Item';
+      bundleCards.set(item.printingId,{id:item.printingId,code:'',name:title,color:'',type:'Character',cost:0,power:0,rarity:'',art:0,effect:'',imageUrl:photo,imageSource:'external',setCode:category,language:'',variant:[brand,model].filter(Boolean).join(' ')||undefined} as Card);
+    }
+  }
   for(const id of printingIds){const product=sealedDisplayCard(id);if(product)bundleCards.set(id,product);}
   for(let offset=0;offset<printingIds.length;offset+=80){
     const chunk=printingIds.slice(offset,offset+80);
@@ -291,14 +312,14 @@ export async function market(viewerId?:string,listingIds?:string[],gameSlug?:'on
     } : undefined;
 
     const parsedItems = r.itemsJson ? (()=>{try{return JSON.parse(r.itemsJson);}catch{return undefined;}})() : undefined;
-    const validItems=Array.isArray(parsedItems)?parsedItems.filter((item):item is {instanceId?:string;printingId:string;sealedProductId?:string;quantity:number;condition?:string;productType?:'RAW'|'GRADED'|'SEALED';gradingCompany?:string;grade?:string;certification?:string;unitAmount?:number;parcel?:{weight:number;length:number;width:number;height:number};photoIds?:string[];notes?:string}=>Boolean(item&&typeof item.printingId==='string'&&Number.isInteger(item.quantity)&&item.quantity>0)):[];
+    const validItems=Array.isArray(parsedItems)?parsedItems.filter((item):item is {instanceId?:string;printingId:string;sealedProductId?:string;quantity:number;condition?:string;productType?:'RAW'|'GRADED'|'SEALED'|'GENERAL';gradingCompany?:string;grade?:string;certification?:string;unitAmount?:number;parcel?:{weight:number;length:number;width:number;height:number};photoIds?:string[];notes?:string;generalProduct?:{category:string;brand?:string;model?:string;attributes?:Record<string,string>}}=>Boolean(item&&typeof item.printingId==='string'&&Number.isInteger(item.quantity)&&item.quantity>0)):[];
     const itemQuantity=validItems.reduce((total,item)=>total+item.quantity,0)||r.quantity;
     const fallbackUnitAmount=r.amount>0?Math.max(1,Math.floor(r.amount/Math.max(1,itemQuantity))):0;
     const rawItems=validItems.length?validItems:r.status==='SOLD'?[]:[{printingId:r.printingId,quantity:r.quantity,condition:r.condition,unitAmount:fallbackUnitAmount}];
     const sourceItems=normalizeListingItemPrices(rawItems,r.amount);
     const listingSoldRows=soldByListing.get(r.id)??[];
     const soldByPrinting=new Map(listingSoldRows.map(item=>[item.printingId,item]));
-    const items=[...sourceItems.map(item=>{const held=r.type==='WTS'?(reservations.get(`${r.id}:${item.printingId}`)??0):0;const soldQuantity=Number(soldByPrinting.get(item.printingId)?.quantity)||0;return {...item,quantity:item.quantity+soldQuantity,availableQuantity:Math.max(0,item.quantity-held),heldQuantity:held,soldQuantity,condition:item.productType==='GRADED'?'':item.condition||r.condition,unitAmount:Number.isSafeInteger(item.unitAmount)&&Number(item.unitAmount)>0?Number(item.unitAmount):fallbackUnitAmount,photoUrls:item.photoIds?.map(photoId=>`/api/market/product-photos/${photoId}`),card:bundleCards.get(item.printingId)}}),...(r.status==='SOLD'?listingSoldRows.map(item=>({printingId:item.printingId,quantity:Number(item.quantity)||1,availableQuantity:0,heldQuantity:0,soldQuantity:Number(item.quantity)||1,sold:true,condition:item.condition||r.condition,unitAmount:Number(item.unitAmount)||fallbackUnitAmount,card:bundleCards.get(item.printingId)})):[])];
+    const items=[...sourceItems.map(item=>{const held=r.type==='WTS'?(reservations.get(`${r.id}:${item.printingId}`)??0):0;const soldQuantity=Number(soldByPrinting.get(item.printingId)?.quantity)||0;return {...item,generalProduct:item.generalProduct??generalProducts.get(item.printingId),quantity:item.quantity+soldQuantity,availableQuantity:Math.max(0,item.quantity-held),heldQuantity:held,soldQuantity,condition:item.productType==='GRADED'?'':item.condition||r.condition,unitAmount:Number.isSafeInteger(item.unitAmount)&&Number(item.unitAmount)>0?Number(item.unitAmount):fallbackUnitAmount,photoUrls:item.photoIds?.map(photoId=>`/api/market/product-photos/${photoId}`),card:bundleCards.get(item.printingId)}}),...(r.status==='SOLD'?listingSoldRows.map(item=>({printingId:item.printingId,quantity:Number(item.quantity)||1,availableQuantity:0,heldQuantity:0,soldQuantity:Number(item.quantity)||1,sold:true,condition:item.condition||r.condition,unitAmount:Number(item.unitAmount)||fallbackUnitAmount,card:bundleCards.get(item.printingId)})):[])];
     const availableCount=items.reduce((sum,item)=>sum+item.availableQuantity,0);
     const availableAmount=items.reduce((sum,item)=>sum+item.availableQuantity*item.unitAmount,0);
     const storedAmount=r.amount>0?r.amount:items.reduce((sum,item)=>sum+item.quantity*item.unitAmount,0);
@@ -323,7 +344,7 @@ export async function market(viewerId?:string,listingIds?:string[],gameSlug?:'on
       seller: r.seller,
       sellerUsername:r.sellerUsername??undefined,
       isOwner: Boolean(viewerId&&r.sellerId===viewerId),
-      language: r.cardLanguage ?? 'EN',
+      language: r.cardLanguage ?? (items.some(item=>'productType' in item&&item.productType==='GENERAL')?'':'EN'),
       card:sealedDisplayCard(r.printingId)??card,
       items,
       shippingOptionCount:couriers.size,

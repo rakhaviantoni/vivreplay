@@ -3,6 +3,7 @@ import {offerContext,parseOfferItems} from '@/lib/server/market-offers';
 import {marketCardThumbnails} from '@/lib/server/market-card-thumbnails';
 import {sendMarketEmail} from '@/lib/server/market-notifications';
 import {sealedDisplayCard} from '@/lib/market/sealed-products';
+import {generalMarketCategoryLabel} from '@/lib/market/general-products';
 
 export async function GET(_request:Request,{params}:{params:Promise<{offerId:string}>}){
   try{
@@ -13,6 +14,9 @@ export async function GET(_request:Request,{params}:{params:Promise<{offerId:str
     const messageIds=messages.map(message=>message.id);const attachments=new Map<string,Array<{id:string;mime:string;byteSize:number}>>();
     for(let offset=0;offset<messageIds.length;offset+=80){const ids=messageIds.slice(offset,offset+80);if(!ids.length)continue;const rows=(await db().prepare(`SELECT id,message_id AS messageId,mime,byte_size AS byteSize FROM listing_offer_attachments WHERE message_id IN (${ids.map(()=>'?').join(',')})`).bind(...ids).all<{id:string;messageId:string;mime:string;byteSize:number}>()).results;for(const row of rows){const list=attachments.get(row.messageId)??[];list.push({id:row.id,mime:row.mime,byteSize:row.byteSize});attachments.set(row.messageId,list);}}
     const parsedRounds=rounds.map(round=>({...round,items:parseOfferItems(round.items)}));
+    const generalDetails=new Map<string,{category:string;brand?:string;model?:string}>();
+    try{for(const item of JSON.parse(current.listingItems??'[]') as Array<{printingId?:string;generalProduct?:{category?:string;brand?:string;model?:string}}>){if(item.printingId&&item.generalProduct)generalDetails.set(item.printingId,{category:item.generalProduct.category??'HOBBY',brand:item.generalProduct.brand,model:item.generalProduct.model})}}catch{}
+    const generalCard=(printingId:string,photoId?:string)=>{const details=generalDetails.get(printingId);if(!details)return undefined;return {name:current.listingTitle,code:generalMarketCategoryLabel(details.category),imageUrl:photoId?`/api/market/product-photos/${encodeURIComponent(photoId)}`:null}};
     const latest=parsedRounds.at(-1);
     let revisedItems:ReturnType<typeof parseOfferItems>=[];
     let requiresRevision=false;
@@ -34,9 +38,9 @@ export async function GET(_request:Request,{params}:{params:Promise<{offerId:str
       }
     }
     const availableCards=await marketCardThumbnails(revisedItems.map(item=>item.printingId));
-    revisedItems=revisedItems.map(item=>({...item,card:availableCards.get(item.printingId)??sealedDisplayCard(item.printingId),photoUrls:(item.photoIds??[]).map(id=>`/api/market/product-photos/${encodeURIComponent(id)}`)}));
+    revisedItems=revisedItems.map(item=>({...item,card:availableCards.get(item.printingId)??sealedDisplayCard(item.printingId)??generalCard(item.printingId,item.photoIds?.[0]),photoUrls:(item.photoIds??[]).map(id=>`/api/market/product-photos/${encodeURIComponent(id)}`)}));
     const cards=await marketCardThumbnails(parsedRounds.flatMap(round=>round.items.map(item=>item.printingId)));
-    const allRounds=parsedRounds.map(round=>({...round,items:round.items.map(item=>({...item,card:cards.get(item.printingId)??sealedDisplayCard(item.printingId),photoUrls:(item.photoIds??[]).map(id=>`/api/market/product-photos/${encodeURIComponent(id)}`)}))}));
+    const allRounds=parsedRounds.map(round=>({...round,items:round.items.map(item=>({...item,card:cards.get(item.printingId)??sealedDisplayCard(item.printingId)??generalCard(item.printingId,item.photoIds?.[0]),photoUrls:(item.photoIds??[]).map(id=>`/api/market/product-photos/${encodeURIComponent(id)}`)}))}));
     return Response.json({threadId:current.threadId,listingId:current.listingId,currentOfferId:parsedRounds.filter(round=>round.status==='PENDING').at(-1)?.id??current.id,viewerId:profile.id,sellerId:current.sellerId,buyerId:current.buyerId,supplierId:current.supplierId,listingType:current.listingType,negotiable:current.negotiable!==0,listingStatus:current.listingStatus,listingExpiresAt:current.listingExpiresAt,requiresRevision,revisedItems,rounds:allRounds,messages:messages.map(message=>({...message,attachments:(attachments.get(message.id)??[]).map(file=>({...file,url:`/api/listings/offers/${encodeURIComponent(offerId)}/attachments/${encodeURIComponent(file.id)}`}))}))},{headers:{'Cache-Control':'private, no-store'}});
   }catch(error){return errorResponse(error)}
 }

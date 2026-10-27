@@ -48,6 +48,7 @@ import {CardScanButton,type CardScanCandidate} from './card-scan-button';
 import {FeedbackLaunchButton} from './feedback-launch';
 import {CardMarketPanel} from './card-market-panel';
 import {MultiFilter,Picker} from './catalog';
+import {Popover,PopoverContent,PopoverTrigger} from '@/components/ui/popover';
 import {EnergySymbol,energyTypeFromName} from './pokemon-card-text';
 import {CollectionForm} from './collection-form';
 import {AddEditItemModal} from './vault/modals/add-edit-item-modal';
@@ -58,7 +59,9 @@ import {Dialog,DialogContent,DialogDescription,DialogTitle} from '@/components/u
 import {MarketPriceMode} from './market-price-mode';
 import {ShareButton} from './share';
 import {BulkListingModal} from './vault/modals/bulk-listing-modal';
-import {MarketSealedComposer} from './market-sealed-composer';
+import {matchesSealedProductQuery,normalizeSealedProductQuery,sealedProductById,sealedProductDisplayName,sealedProductPublicCode,sealedProducts,sealedProductKinds} from '@/lib/market/sealed-products';
+import {generalMarketCategories,generalMarketCategoryLabel,type GeneralMarketCategory} from '@/lib/market/general-products';
+import {MarketSealedComposer,type BundleProductInput} from './market-sealed-composer';
 import {Slider} from '@/components/ui/slider';
 import {MarketQuickPanel} from './market-quick-panel';
 import {MarketStoreNav} from './market-store-nav';
@@ -80,6 +83,28 @@ export function MarketGameMark({gameSlug,compact=false}:{gameSlug:MarketGameScop
     {(gameSlug==='pokemon'||gameSlug==='all')&&<span className="market-game-logo-pad game-mode-pokemon"><img className="market-game-mark-pokemon" src={GAME_LOGOS.pokemon} alt="Pokémon"/></span>}
   </span>;
 }
+type MarketScopeOption={value:string;label:string};
+function MarketScopePicker({label,logo,active,selected,options,onToggleScope,onToggleOption,onClear,locale}:{label:string;logo?:string;active:boolean;selected:string[];options:MarketScopeOption[];onToggleScope:()=>void;onToggleOption:(value:string)=>void;onClear:()=>void;locale:'EN'|'ID'}){
+  const [open,setOpen]=useState(false);const [query,setQuery]=useState('');
+  const filtered=options.filter(option=>`${option.label} ${option.value}`.toLowerCase().includes(query.trim().toLowerCase()));
+  return <div className={`market-scope-picker${active?' is-active':''}`}>
+    <button type="button" className="market-scope-toggle" aria-label={label} aria-pressed={active} onClick={onToggleScope}>
+      {logo?<span className="market-scope-logo"><img src={logo} alt=""/></span>:<span className="market-scope-label">{label}</span>}
+    </button>
+    <Popover open={open} onOpenChange={next=>{setOpen(next);if(!next)setQuery('')}}>
+      <PopoverTrigger asChild><button type="button" className="market-scope-menu-toggle" aria-label={locale==='ID'?`Buka filter ${label}`:`Open ${label} filters`}><ChevronDown size={14} aria-hidden="true"/></button></PopoverTrigger>
+      <PopoverContent align="start" sideOffset={6} collisionPadding={10} className="market-scope-popover">
+        <strong className="market-scope-menu-title">{locale==='ID'?`Item ${label}`:`${label} items`}</strong>
+        <label className="market-scope-search"><Search size={14}/><input value={query} onChange={event=>setQuery(event.target.value)} placeholder={locale==='ID'?'Cari item':'Search items'} aria-label={locale==='ID'?`Cari ${label}`:`Search ${label}`}/></label>
+        <div className="market-scope-options" role="group" aria-label={locale==='ID'?`Filter ${label}`:`Filter ${label}`}>
+          <button type="button" role="checkbox" aria-checked={selected.length===0} onClick={onClear}><span className={`market-scope-check${selected.length===0?' is-checked':''}`}>{selected.length===0&&<Check size={13}/>}</span><span>{locale==='ID'?'Semua item':'All items'}</span></button>
+          {filtered.map(option=><button type="button" role="checkbox" aria-checked={selected.includes(option.value)} key={option.value} onClick={()=>onToggleOption(option.value)}><span className={`market-scope-check${selected.includes(option.value)?' is-checked':''}`}>{selected.includes(option.value)&&<Check size={13}/>}</span><span>{option.label}</span></button>)}
+          {!filtered.length&&<p className="market-scope-empty">{locale==='ID'?'Tidak ada hasil':'No matches'}</p>}
+        </div>
+      </PopoverContent>
+    </Popover>
+  </div>;
+}
 type SearchIdentity={id:string;code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number;effect_text:string;tcg_card_printings?:Array<{id:string;card_image_url:string|null;rarity:string|null;set_code:string;language:string;variant:string|null;printing_code:string|null;tcg_card_assets?:Array<{kind:string;object_key:string}>}>};
 type PokemonMarketCard={id:string;rarity?:string|null;variant:string;set_code:string;set_name:string;printing_code:string;language:string;card_image_url?:string|null;source_payload?:{illustrator?:string;category?:string;types?:string[];rarity?:string;localId?:string;collectorNumber?:string;set?:{name?:string;cardCount?:{official?:number;total?:number}};[key:string]:unknown};tcg_card_identities?:{code:string;name:string;color:string;card_type:string;cost:number;power:number;effect_text:string}};
 type PokemonMarketSet={code:string;name:string;series?:string;releaseYear?:number;productImageUrl?:string};
@@ -100,7 +125,8 @@ type ListingBundleCard={
   unitAmount:number;
   availableQuantity:number;
 };
-type PublishedShare={id:string;title:string;price:number;cards:ListingBundleCard[];seller?:string;city?:string;expiresAt?:string;timeZone?:string};
+type ListingBundleProduct=BundleProductInput&{id:string};
+type PublishedShare={id:string;title:string;price:number;cards:ListingBundleCard[];productUnits?:number;seller?:string;city?:string;expiresAt?:string;timeZone?:string};
 function PokemonMarketType({card}:{card:MarketCard}){
   if(card.pokemonCategory==='Energy'){
     const type=energyTypeFromName(card.name);
@@ -471,6 +497,7 @@ function MarketCardLookup({
   onAddToVault,
   onSell,
   locale = 'EN',
+  hideWhenEmpty=false,
 }: {
   value: string;
   listings?: Listing[];
@@ -479,6 +506,7 @@ function MarketCardLookup({
   onAddToVault: (card: Card) => void;
   onSell: (card: Card) => void;
   locale?: 'EN' | 'ID';
+  hideWhenEmpty?:boolean;
 }) {
   const [results, setResults] = useState<MarketCard[]>([]);
   const [loading, setLoading] = useState(false);
@@ -508,10 +536,11 @@ function MarketCardLookup({
       return false;
     }).length;
   };
+  if(hideWhenEmpty&&!results.length)return null;
   return (
     <section className="market-card-lookup" aria-live="polite">
       <header>
-        <span>{gameSlug==='all'?(locale==='ID'?'Katalog Kartu':'Card catalog'):gameSlug==='pokemon'?(locale==='ID'?'Katalog Pokémon':'Pokémon card catalog'):(locale === 'ID' ? 'Katalog Kartu Resmi' : 'Official Card Catalog')}</span>
+        <span>{locale==='ID'?'Kartu':'Cards'}</span>
         <small>
           {loading
             ? (locale === 'ID' ? 'Mencari...' : 'Searching...')
@@ -521,7 +550,7 @@ function MarketCardLookup({
         </small>
       </header>
       {loading ? (
-        <div className="market-card-lookup-skeleton" role="status" aria-label={locale==='ID'?'Mencari kartu':'Searching cards'}><CardLoadingSkeleton count={3}/></div>
+        <div className="market-card-lookup-skeleton" role="status" aria-label={locale==='ID'?'Mencari kartu':'Searching cards'}>{Array.from({length:3},(_,index)=><article key={index}><i/><span><b/><small/><small/></span><strong/></article>)}</div>
       ) : results.length > 0 ? (
         <div>
           {results.map(card => {
@@ -580,23 +609,50 @@ function MarketCardLookup({
         </div>
       ) : value.trim().length >= 2 ? (
         <div className="market-feed-empty" style={{ minHeight: 180, padding: '24px 18px' }}>
-          <p>{gameSlug==='pokemon'?(locale==='ID'?`Tidak ada kartu Pokémon untuk "${value}".`:`No Pokémon cards found for "${value}".`):(locale === 'ID' ? `Tidak ada kartu di database untuk "${value}".` : `No cards found in catalog for "${value}".`)}</p>
+          <p>{locale==='ID'?`Tidak ada hasil untuk "${value}"`:`No matches for "${value}"`}</p>
         </div>
       ) : (
         <div className="market-feed-empty" style={{ minHeight: 180, padding: '28px 18px' }}>
           <p>{gameSlug==='pokemon'
             ? (locale==='ID'?'Cari nama, nomor kartu, atau set. Saring berdasarkan tipe energi, jenis kartu, rarity, tahap, ilustrator, dan HP.':'Search by name, card number, or set. Filter by energy type, card type, rarity, stage, illustrator, and HP.')
-            : (locale==='ID'?'Cari nama, nomor kartu, set, tipe, rarity, atau biaya (contoh: OP17 Leader, SEC Luffy, 3c Robin).':'Search by name, card number, set, type, rarity, or cost (e.g. OP17 Leader, SEC Luffy, 3c Robin).')}</p>
+            : (locale==='ID'?'Cari kartu, produk tersegel, atau aksesori berdasarkan nama.':'Search cards, sealed products, or accessories by name.')}</p>
         </div>
       )}
     </section>
   );
 }
+function MarketProductLookup({value,listings,locale,onViewListings}:{value:string;listings:Listing[];locale:'EN'|'ID';onViewListings:(name:string)=>void}){
+  const [visibleCount,setVisibleCount]=useState(8);
+  const term=normalizeSealedProductQuery(value);
+  if(term.length<2)return null;
+  const matches=sealedProducts.filter(product=>matchesSealedProductQuery(`${product.name} ${product.setCode} ${sealedProductKinds[product.kind]} ${product.edition}`,term));
+  const generalMatches=listings.flatMap(listing=>(listing.items??[]).filter(item=>item.generalProduct&&matchesSealedProductQuery(`${listing.title} ${item.generalProduct.category} ${item.generalProduct.brand??''} ${item.generalProduct.model??''} ${JSON.stringify(item.generalProduct.attributes??{})}`,term)).map(item=>({listing,item}))).slice(0,8);
+  if(!matches.length&&!generalMatches.length)return null;
+  return <section className="market-product-lookup" aria-label={locale==='ID'?'Produk yang cocok':'Matching products'}>
+    <header><strong>{locale==='ID'?'Produk':'Products'}</strong><span>{matches.length+generalMatches.length} {locale==='ID'?'hasil':'matches'}</span></header>
+    <div>{matches.slice(0,visibleCount).map(product=>{
+      const count=listings.filter(listing=>listing.printingId===product.id||listing.items?.some(item=>item.sealedProductId===product.id)).length;
+      const name=sealedProductDisplayName(product);
+      return <article key={product.id}>
+        <span className="market-product-lookup-art"><img src={product.imageUrl} alt="" loading="lazy"/></span>
+        <span className="market-product-lookup-copy"><strong>{name}</strong><small>{sealedProductKinds[product.kind]}</small><small>{sealedProductPublicCode(product)}<span>{product.edition==='asia'?'Asia':'Global'}</span></small></span>
+        <span className="market-product-lookup-action">{count>0?<small>{count} {locale==='ID'?'listing':'listings'}</small>:<small>{locale==='ID'?'Belum ada listing':'No listings yet'}</small>}<button type="button" onClick={()=>onViewListings(name)}>{locale==='ID'?'Lihat':'View'}</button></span>
+      </article>;
+    })}</div>
+    {visibleCount<matches.length&&<footer className="market-product-load-more"><button type="button" onClick={()=>setVisibleCount(count=>count+16)}>{locale==='ID'?'Tampilkan produk lainnya':'Show more products'}</button></footer>}
+    {generalMatches.length>0&&<div className="market-product-general-results"><header><strong>{locale==='ID'?'Barang dari penjual':'Items from sellers'}</strong><span>{generalMatches.length} {locale==='ID'?'listing':'listings'}</span></header>{generalMatches.map(({listing,item})=><article key={`${listing.id}:${item.printingId}`}><span className="market-product-lookup-art">{item.photoUrls?.[0]||item.card?.imageUrl?<img src={item.photoUrls?.[0]??item.card?.imageUrl} alt="" loading="lazy"/>:null}</span><span className="market-product-lookup-copy"><strong>{listing.title}</strong><small>{generalMarketCategoryLabel(item.generalProduct!.category,locale)}</small><small>{[item.generalProduct?.brand,item.generalProduct?.model].filter(Boolean).join(' ')}</small></span><span className="market-product-lookup-action"><small>{formatMoney(item.unitAmount??listing.amount,listing.currency)}</small><button type="button" onClick={()=>onViewListings(listing.title)}>{locale==='ID'?'Lihat':'View'}</button></span></article>)}</div>}
+  </section>;
+}
+
 export function Market({initialCards=[],modalOnly=false,initialSellPrinting,initialSellType,initialGameSlug}:{initialCards?:string[];modalOnly?:boolean;initialSellPrinting?:string;initialSellType?:'WTS'|'WTB';initialGameSlug?:'one-piece'|'pokemon'}) {
   const {data,loading:accountLoading,refresh:refreshAccount}=useAccount();
   const listingLimits=useMarketListingLimits(`${data?.profile?.id??'anonymous'}:${data?.profile?.tier??'free'}:${data?.profile?.pro_billing_period??'monthly'}`);
   const router=useRouter();
   const searchParams=useSearchParams();
+  const [marketCategory,setMarketCategory]=useState<'tcg'|'other'|'mixed'>(()=>{
+    const hasTcgScope=Boolean(initialGameSlug||searchParams.get('game')||searchParams.get('scope'));
+    return searchParams.get('category')==='other'?(hasTcgScope?'mixed':'other'):'tcg';
+  });
   const [gameSlug,setGameSlug]=useState<MarketGameScope>(initialGameSlug??(searchParams.get('scope')==='all'||searchParams.get('game')==='all'?'all':searchParams.get('game')==='pokemon'?'pokemon':'one-piece'));
   const [listings,setListings]=useState<Listing[]>([]);
   const [listingsLoading,setListingsLoading]=useState(true);
@@ -607,6 +663,9 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
   const feedListRef=useRef<HTMLElement|null>(null);
   const previousFeedPositions=useRef<Map<string,{left:number;top:number}>|null>(null);
   const [tradeType,setTradeType]=useState<'all'|'WTS'|'WTB'>('all');
+  const [onePieceItemTypes,setOnePieceItemTypes]=useState<string[]>([]);
+  const [pokemonItemTypes,setPokemonItemTypes]=useState<string[]>([]);
+  const [otherCategories,setOtherCategories]=useState<GeneralMarketCategory[]>([]);
   const [filterMotionKey,setFilterMotionKey]=useState<0|1|null>(null);
   const [listingView,setListingView]=useState<'list'|'grid'>('list');
   const [feedScope,setFeedScope]=useState<'listings'|'cards'>('listings');
@@ -632,6 +691,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
   useEffect(()=>{if(modalOnly)return;const profileTab=searchParams.get('profile');if(profileTab==='delivery'||profileTab==='payouts'){setProfileQuickTab(profileTab);setAccountPanel(null);setQuickPanel('profile')}},[searchParams,modalOnly]);
   // Bundle & Card Listing Draft State
   const [bundleCards,setBundleCards]=useState<ListingBundleCard[]>([]);
+  const [bundleProducts,setBundleProducts]=useState<ListingBundleProduct[]>([]);
   const [sealedMode,setSealedMode]=useState(false);
   const [publishedShare,setPublishedShare]=useState<PublishedShare|null>(null);
   const [configuringCard,setConfiguringCard]=useState<MarketCard|null>(null);
@@ -713,7 +773,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
   async function refresh(){
     if(!listings.length)setListingsLoading(true);
     try{
-      const response=await fetch(`/api/listings?game=${gameSlug}`,{cache:'no-store'});
+      const response=await fetch(`/api/listings?game=${includeOther?'all':gameSlug}`,{cache:'no-store'});
       const result=await response.json() as {listings?:Listing[];error?:string};
       if(!response.ok||!result.listings)throw new Error(result.error||'Live listings are temporarily unavailable. Please retry.');
       setListings(result.listings);
@@ -723,36 +783,59 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
     }finally{setListingsLoading(false)}
   }
   refreshFeedRef.current=refresh;
-  useEffect(()=>{if(!modalOnly)void refresh()},[modalOnly,gameSlug]);
+  useEffect(()=>{if(!modalOnly)void refresh()},[modalOnly,gameSlug,marketCategory]);
   useEffect(()=>{
     if(modalOnly)return;
+    const hasTcgScope=Boolean(initialGameSlug||searchParams.get('game')||searchParams.get('scope'));
+    setMarketCategory(searchParams.get('category')==='other'?(hasTcgScope?'mixed':'other'):'tcg');
     if(searchParams.get('scope')==='all'||searchParams.get('game')==='all'){
       setGameSlug('all');
       return;
     }
     setGameSlug(searchParams.get('game')==='pokemon'?'pokemon':'one-piece');
-  },[modalOnly,searchParams]);
-  const changeGame=(next:MarketGameScope)=>{
-    setGameSlug(next);setLang('all');setTradeType('all');setQuery('');setCardSearch('');
+  },[modalOnly,searchParams,initialGameSlug]);
+  const toggleOtherScope=()=>{
+    const includeTcg=marketCategory==='tcg'||marketCategory==='mixed';
+    const includeOther=marketCategory==='other'||marketCategory==='mixed';
+    const nextCategory=includeOther?'tcg':(includeTcg?'mixed':'other');
+    setMarketCategory(nextCategory);setFeedScope('listings');setQuery('');setTradeType('all');setLang('all');
     const params=new URLSearchParams(window.location.search);
-    if(next==='all'){
-      params.set('scope','all');
-    }else{
-      params.delete('scope');
-      if(next==='pokemon')params.set('game','pokemon');else params.delete('game');
-    }
+    if(nextCategory==='other'||nextCategory==='mixed')params.set('category','other');else params.delete('category');
+    if(nextCategory==='other'){params.delete('scope');params.delete('game');}
+    if(nextCategory==='mixed'&&gameSlug==='one-piece'&&!params.has('scope')&&!params.has('game'))params.set('game','one-piece');
+    if(nextCategory==='tcg'&&!params.has('scope')&&!params.has('game'))setGameSlug('one-piece');
     router.replace(`${window.location.pathname}${params.size?`?${params}`:''}`,{scroll:false});
   };
   const toggleGame=(target:'one-piece'|'pokemon')=>{
-    if(gameSlug==='all'){
-      changeGame(target==='one-piece'?'pokemon':'one-piece');
-    }else if(gameSlug!==target){
-      changeGame('all');
+    const tcgActive=marketCategory==='tcg'||marketCategory==='mixed';
+    const otherActive=marketCategory==='other'||marketCategory==='mixed';
+    if(!tcgActive){
+      setGameSlug(target);setMarketCategory(otherActive?'mixed':'tcg');setFeedScope('listings');setLang('all');setTradeType('all');setQuery('');setCardSearch('');
+      const params=new URLSearchParams(window.location.search);params.delete('scope');if(target==='pokemon')params.set('game','pokemon');else if(otherActive)params.set('game','one-piece');else params.delete('game');
+      if(otherActive)params.set('category','other');else params.delete('category');
+      router.replace(`${window.location.pathname}?${params}`,{scroll:false});return;
     }
+    const targetEnabled=gameSlug==='all'||gameSlug===target;
+    if(targetEnabled&&gameSlug===target){
+      if(!otherActive)return;
+      setMarketCategory('other');setFeedScope('listings');setLang('all');setTradeType('all');setQuery('');setCardSearch('');
+      const params=new URLSearchParams(window.location.search);params.delete('scope');params.delete('game');
+      router.replace(`${window.location.pathname}${params.size?`?${params}`:''}`,{scroll:false});return;
+    }
+    const next=gameSlug==='all'?(target==='one-piece'?'pokemon':'one-piece'):'all';
+    setGameSlug(next);setLang('all');setTradeType('all');setQuery('');setCardSearch('');setFeedScope('listings');
+    const params=new URLSearchParams(window.location.search);
+    if(next==='all'){params.set('scope','all');params.delete('game');}
+    else {params.delete('scope');if(next==='pokemon')params.set('game','pokemon');else params.delete('game');}
+    router.replace(`${window.location.pathname}${params.size?`?${params}`:''}`,{scroll:false});
   };
   const listingHref=(listing:Pick<Listing,'title'|'id'>,targetGame:MarketGameScope=gameSlug)=>{
     const path=marketListingPath(listing.title,listing.id);
-    return targetGame==='pokemon'?`${path}?game=pokemon`:targetGame==='all'?`${path}?scope=all`:path;
+    const params=new URLSearchParams();
+    if(marketCategory==='other'||marketCategory==='mixed')params.set('category','other');
+    if(marketCategory!=='other'&&targetGame==='pokemon')params.set('game','pokemon');
+    else if(marketCategory!=='other'&&targetGame==='all')params.set('scope','all');
+    return `${path}${params.size?`?${params}`:''}`;
   };
   useEffect(()=>{
     if(modalOnly)return;
@@ -926,6 +1009,10 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
     setSelectedPrintingId(chosen.id);
     setConfiguringCard(prev=>prev?printingToCard(prev,chosen):prev);
   };
+  const includeTcg=marketCategory==='tcg'||marketCategory==='mixed';
+  const includeOther=marketCategory==='other'||marketCategory==='mixed';
+  const includeOnePiece=includeTcg&&(gameSlug==='one-piece'||gameSlug==='all');
+  const includePokemon=includeTcg&&(gameSlug==='pokemon'||gameSlug==='all');
   const visible=useMemo(()=>{
     const term=query.trim().toLowerCase();
     const matches=listings.filter(listing=>{
@@ -934,16 +1021,34 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
       const cardLanguage=listing.language??printing?.language??'EN';
       const cardName=card?.name??listing.title;
       const cardCode=card?.code??'';
+      const listingItems=listing.items?.length?listing.items:[{printingId:listing.printingId,quantity:listing.quantity}];
       const matchesTrade = tradeType === 'all' || listing.type === tradeType;
       const matchesSearch = !term || [listing.title,cardName,cardCode].some(value=>value.toLowerCase().includes(term));
-      const matchesLang = lang === 'all' || cardLanguage === lang;
       const matchesInitial = !initialCards.length || (card && initialCards.includes(card.id));
-      return matchesTrade && matchesSearch && matchesLang && matchesInitial;
+      const hasSelectedGeneral=includeOther&&listingItems.some(item=>item.generalProduct&&(!otherCategories.length||otherCategories.includes(item.generalProduct.category as GeneralMarketCategory)));
+      const hasSelectedTcg=includeTcg&&listingItems.some(item=>{
+        if(item.generalProduct)return false;
+        const itemCard=(item.card??(listing.items?.length?undefined:listing.card)) as MarketCard|undefined;
+        const itemGame=itemCard?.gameSlug??(/^PK-/i.test(itemCard?.code??'')?'pokemon':'one-piece');
+        if(itemGame==='pokemon'&&!includePokemon||itemGame==='one-piece'&&!includeOnePiece)return false;
+        const itemLanguage=itemCard?.language??cardLanguage;
+        if(lang!=='all'&&itemLanguage!==lang)return false;
+        const selectedTypes=itemGame==='pokemon'?pokemonItemTypes:onePieceItemTypes;
+        if(!selectedTypes.length)return true;
+        const itemType=item.sealedProductId?sealedProductById(item.sealedProductId)?.kind:item.productType==='GRADED'?'GRADED':'RAW';
+        return selectedTypes.includes(itemType??'');
+      });
+      const matchesCategory=hasSelectedGeneral||hasSelectedTcg;
+      return matchesCategory&&matchesTrade&&matchesSearch&&matchesInitial;
     });
     if (sort === 'price_asc') return [...matches].sort((a,b)=>a.amount-b.amount);
     if (sort === 'price_desc') return [...matches].sort((a,b)=>b.amount-a.amount);
     return matches;
-  },[initialCards,lang,listings,query,sort,tradeType]);
+  },[initialCards,lang,listings,marketCategory,includeOther,includeTcg,includeOnePiece,includePokemon,otherCategories,onePieceItemTypes,pokemonItemTypes,query,sort,tradeType]);
+  const categoryListings=useMemo(()=>listings.filter(listing=>{
+    const items=listing.items?.length?listing.items:[{printingId:listing.printingId,quantity:listing.quantity}];
+    return includeOther&&items.some(item=>Boolean(item.generalProduct))||includeTcg&&items.some(item=>!item.generalProduct);
+  }),[listings,marketCategory,includeOther,includeTcg]);
   const printingFilter=searchParams.get('printing')??'';
   const publicSetFilter=searchParams.get('set')??'';
   const publicNumberFilter=searchParams.get('number')??'';
@@ -1014,6 +1119,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
     setListingType(type);
     setProfileQuickTab('account');
     setBundleCards([]);
+    setBundleProducts([]);
     setConfiguringCard(null);
     setCardSearch('');
     setCardPrintings([]);
@@ -1039,6 +1145,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
     setListingType('WTS');
     setListingGameScope((card as MarketCard).gameSlug??gameSlug);
     setBundleCards([]);
+    setBundleProducts([]);
     setCardSearch(card.name);
     setSaveError('');
     setListingTitle(card.name);
@@ -1140,11 +1247,12 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
     setBundleCards(prev=>{
       const next=[...prev,newItem];
       if(next.length===1){
-        setListingTitle(next[0].quantity>1?`${next[0].card.name} ×${next[0].quantity}`:next[0].card.name);
+        const cardTitle=next[0].quantity>1?`${next[0].card.name} ×${next[0].quantity}`:next[0].card.name;
+        setListingTitle(bundleProducts.length?`${next[0].card.name} bundle`:cardTitle);
       }else{
         setListingTitle(`${next.slice(0,2).map(c=>c.card.name).join(' + ')}${next.length>2?` +${next.length-2}`:''} Bundle`);
       }
-      const sumTotal=next.reduce((sum,it)=>sum+(it.unitAmount*it.quantity),0);
+      const sumTotal=next.reduce((sum,it)=>sum+(it.unitAmount*it.quantity),0)+bundleProducts.reduce((sum,item)=>sum+item.unitAmount*item.quantity,0);
       setListingPrice(String(sumTotal));
       return next;
     });
@@ -1153,7 +1261,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
   };
   const handlePublishListing=async(event:React.FormEvent)=>{
     event.preventDefault();
-    if(bundleCards.length===0)return;
+    if(bundleCards.length===0&&bundleProducts.length===0)return;
     const limitViolation=marketListingLimit(bundleCards,listingLimits);
     if(limitViolation){setSaveError(listingLimitMessage(limitViolation,locale,listingLimits));return;}
     if(listingType==='WTB'&&!buyerCity){
@@ -1170,17 +1278,19 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
       return;
     }
     try{
-      const totalQty=bundleCards.reduce((sum,it)=>sum+it.quantity,0);
+      const totalQty=bundleCards.reduce((sum,it)=>sum+it.quantity,0)+bundleProducts.reduce((sum,it)=>sum+it.quantity,0);
       const primary=bundleCards[0];
+      const firstProduct=bundleProducts[0];
+      const listingName=primary?.card.name??firstProduct?.title??'Bundle';
       const response=await fetch('/api/listings',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({
-        instanceId:primary.instanceId,
-        title:listingTitle||primary.card.name,
+        instanceId:primary?.instanceId,
+        title:listingTitle||listingName,
         amount:Number(listingPrice),
         quantity:totalQty,
         city:listingType==='WTB'?buyerCity:(listingCity||'Jakarta'),
         type:listingType,
         negotiable:listingNegotiable,
-        items:bundleCards.map(item=>({
+        items:[...bundleCards.map(item=>({
           instanceId:item.instanceId,
           printingId:item.printing.id,
           quantity:item.quantity,
@@ -1190,7 +1300,21 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
           grade:item.grade,
           certification:item.certification,
           unitAmount:item.unitAmount,
-        })),
+        })),...bundleProducts.map(item=>({
+          productType:item.productType,
+          productId:item.productId,
+          printingId:item.productId??item.id,
+          sealedProductId:item.productType==='SEALED'?item.productId:undefined,
+          quantity:item.quantity,
+          unitAmount:item.unitAmount,
+          condition:item.condition,
+          notes:item.notes,
+          photoIds:item.photoIds,
+          parcel:item.parcel,
+          name:item.title,
+          generalProduct:item.generalProduct,
+          catalogProduct:item.catalogProduct,
+        }))],
       })});
       const result=await response.json() as {error?:string;id?:string;expiresAt?:string};
       if(!response.ok)throw new Error(result.error??'Listing could not be published.');
@@ -1198,8 +1322,9 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
       await refreshAccount();
       setOpen(false);
       if(result.id){
-        setPublishedShare({id:result.id,title:listingTitle||primary.card.name,price:Number(listingPrice),cards:[...bundleCards],seller:String(data?.profile?.display_name??''),city:listingType==='WTB'?buyerCity:listingCity,expiresAt:result.expiresAt,timeZone:typeof data?.profile?.timezone==='string'?data.profile.timezone:undefined});
+        if(primary)setPublishedShare({id:result.id,title:listingTitle||listingName,price:Number(listingPrice),cards:[...bundleCards],productUnits:totalProductQuantity,seller:String(data?.profile?.display_name??''),city:listingType==='WTB'?buyerCity:listingCity,expiresAt:result.expiresAt,timeZone:typeof data?.profile?.timezone==='string'?data.profile.timezone:undefined});
         setBundleCards([]);
+        setBundleProducts([]);
         toast.success(locale==='ID'?'Listing berhasil dipublikasikan':'Listing published');
       }
     }catch(cause){
@@ -1223,7 +1348,9 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
     setCollectionCardTarget(null);
   };
   const totalBundleQuantity=bundleCards.reduce((sum,c)=>sum+c.quantity,0);
-  const totalCalculatedUnitSum=bundleCards.reduce((sum,c)=>sum+(c.unitAmount*c.quantity),0);
+  const totalProductQuantity=bundleProducts.reduce((sum,item)=>sum+item.quantity,0);
+  const hasBundleItems=bundleCards.length+bundleProducts.length>0;
+  const totalCalculatedUnitSum=bundleCards.reduce((sum,c)=>sum+(c.unitAmount*c.quantity),0)+bundleProducts.reduce((sum,item)=>sum+(item.unitAmount*item.quantity),0);
   const listingFeePercent=liveListingFeePercent??(String(data?.profile?.tier??'free').toLowerCase()==='pro'?LISTING_POLICIES.pro.commissionPercent:LISTING_POLICIES.free.commissionPercent);
   const enteredListingTotal=Math.max(0,Number(listingPrice)||0);
   const estimatedSellerFee=calculateSellerServiceFee(enteredListingTotal,listingFeePercent);
@@ -1238,8 +1365,8 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
         showPromo={false}
         queryValue={query}
         onQueryChange={setQuery}
-        searchPlaceholder={feedScope==='cards'?(locale==='ID'?'Cari kartu di katalog...':'Search cards in catalog...'):(locale==='ID'?'Cari listing di Market...':'Search market listings...')}
-        searchAriaLabel={feedScope==='cards'?(locale==='ID'?'Cari kartu di katalog':'Search cards in catalog'):(locale==='ID'?'Cari listing di Market':'Search market listings')}
+        searchPlaceholder={feedScope==='cards'?(locale==='ID'?'Cari kartu atau produk...':'Search cards or products...'):(locale==='ID'?'Cari listing di Market...':'Search market listings...')}
+        searchAriaLabel={feedScope==='cards'?(locale==='ID'?'Cari kartu atau produk':'Search cards or products'):(locale==='ID'?'Cari listing di Market':'Search market listings')}
         onSearchSubmit={()=>{}}
         onCreateListing={type=>beginListing(type)}
       />}
@@ -1254,31 +1381,10 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
         <div className="market-feed-tabs">
           <div className="market-feed-tabs-main">
             <div className="market-game-feed-controls">
-              {!modalOnly&&<nav className="market-game-switch" aria-label={locale==='ID'?'Pilih permainan kartu':'Choose a card game'}>
-                <button
-                  type="button"
-                  aria-label="One Piece Card Game"
-                  title="One Piece Card Game"
-                  className={`game-mode-one-piece${gameSlug==='one-piece'||gameSlug==='all'?' is-active':''}`}
-                  aria-current={gameSlug==='one-piece'?'page':undefined}
-                  aria-pressed={gameSlug==='one-piece'||gameSlug==='all'}
-                  onClick={()=>toggleGame('one-piece')}
-                >
-                  <span className="market-game-logo-pad"><img src={GAME_LOGOS['one-piece']} alt=""/></span>
-                  <span className="sr-only">One Piece</span>
-                </button>
-                <button
-                  type="button"
-                  aria-label="Pokémon Trading Card Game"
-                  title="Pokémon Trading Card Game"
-                  className={`game-mode-pokemon${gameSlug==='pokemon'||gameSlug==='all'?' is-active':''}`}
-                  aria-current={gameSlug==='pokemon'?'page':undefined}
-                  aria-pressed={gameSlug==='pokemon'||gameSlug==='all'}
-                  onClick={()=>toggleGame('pokemon')}
-                >
-                  <span className="market-game-logo-pad"><img src={GAME_LOGOS.pokemon} alt=""/></span>
-                  <span className="sr-only">Pokémon</span>
-                </button>
+              {!modalOnly&&<nav className="market-game-switch market-scope-switch" aria-label={locale==='ID'?'Pilih kategori Market':'Market categories'}>
+                <MarketScopePicker label="One Piece" logo={GAME_LOGOS['one-piece']} active={includeOnePiece} selected={onePieceItemTypes} locale={locale} onToggleScope={()=>toggleGame('one-piece')} onClear={()=>setOnePieceItemTypes([])} onToggleOption={value=>setOnePieceItemTypes(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])} options={[{value:'RAW',label:locale==='ID'?'Kartu mentah':'Raw cards'},{value:'GRADED',label:locale==='ID'?'Slab graded':'Graded slabs'},...Object.entries(sealedProductKinds).filter(([kind])=>sealedProducts.some(product=>product.kind===kind)).map(([value,label])=>({value,label}))]}/>
+                <MarketScopePicker label="Pokémon" logo={GAME_LOGOS.pokemon} active={includePokemon} selected={pokemonItemTypes} locale={locale} onToggleScope={()=>toggleGame('pokemon')} onClear={()=>setPokemonItemTypes([])} onToggleOption={value=>setPokemonItemTypes(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])} options={[{value:'RAW',label:locale==='ID'?'Kartu mentah':'Raw cards'},{value:'GRADED',label:locale==='ID'?'Slab graded':'Graded slabs'}]}/>
+                <MarketScopePicker label={locale==='ID'?'Lainnya':'Others'} active={includeOther} selected={otherCategories} locale={locale} onToggleScope={toggleOtherScope} onClear={()=>setOtherCategories([])} onToggleOption={value=>setOtherCategories(current=>current.includes(value as GeneralMarketCategory)?current.filter(item=>item!==value):[...current,value as GeneralMarketCategory])} options={Object.entries(generalMarketCategories).map(([value])=>({value,label:generalMarketCategoryLabel(value,locale)}))}/>
               </nav>}
               <nav className="market-scope-nav" aria-label={locale === 'ID' ? 'Pilihan feed market' : 'Market feed view'}>
               <button
@@ -1290,14 +1396,14 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                 <span>{locale === 'ID' ? 'Listing' : 'Listings'}</span>
                 <span className="market-tab-badge">{displayListings.length}</span>
               </button>
-              <button
+              {includeTcg&&<button
                 type="button"
                 className={`market-scope-tab ${feedScope === 'cards' ? 'is-active' : ''}`}
                 onClick={() => setFeedScope('cards')}
               >
                 <Cards size={16} />
-                <span>{locale === 'ID' ? 'Kartu' : 'Cards'}</span>
-              </button>
+                <span>{locale === 'ID' ? 'Katalog' : 'Catalog'}</span>
+              </button>}
               </nav>
             </div>
             {/* <div className="market-feed-tabs-meta">
@@ -1395,9 +1501,11 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
           </div>
         )}
         {feedScope === 'cards' ? (
+          <>
             <MarketCardLookup
             value={query}
-            listings={listings}
+            listings={categoryListings}
+            hideWhenEmpty={gameSlug!=='pokemon'&&query.trim().length>=2&&sealedProducts.some(product=>matchesSealedProductQuery(`${product.name} ${product.setCode} ${sealedProductKinds[product.kind]} ${product.edition}`,query))}
               gameSlug={gameSlug}
             onViewListings={(card) => {
               setQuery(card.code || card.name);
@@ -1407,18 +1515,25 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
             onSell={sellCard}
             locale={locale}
           />
+            <MarketProductLookup key={`${marketCategory}:${gameSlug}:${query}`} value={query} listings={categoryListings} locale={locale} onViewListings={name=>{setQuery(name);setFeedScope('listings')}}/>
+          </>
         ) : (
           <>
             <section ref={feedListRef} data-feed-motion={filterMotionKey??undefined} className={`market-feed-list is-${listingView}`} aria-label={locale==='ID'?'Daftar listing Market aktif':'Live Market listings'}>
               {displayListings.map(listing=>{
                 const items=listing.items?.length?listing.items:[{printingId:listing.printingId,quantity:listing.quantity}];
+                const generalCategories=[...new Set(items.map(item=>item.generalProduct?.category).filter((value):value is string=>Boolean(value)))];
+                const isGeneralListing=generalCategories.length>0;
+                const hasMarketProducts=items.some(item=>Boolean(item.sealedProductId||item.generalProduct));
+                const hasCards=items.some(item=>!item.sealedProductId&&!item.generalProduct);
+                const isMixedInventory=hasMarketProducts&&hasCards;
                 const totalCards=items.reduce((total,item)=>total+(listing.isOwner?item.quantity:(item.availableQuantity??item.quantity)),0);
                 const heldCards=items.reduce((total,item)=>total+(item.heldQuantity??0),0);
                 const fullySold=listing.type==='WTS'&&listing.status==='SOLD';
                 const fullyReserved=listing.type==='WTS'&&!fullySold&&totalCards===0;
                 const stackEntries=items.map(item=>({...item,quantity:item.sold?Math.min(3,item.quantity):listing.isOwner?item.quantity:Math.min(3,(item.availableQuantity??item.quantity)+(item.soldQuantity??0))})).filter(item=>item.sold||item.quantity>0);
-                const listingGames=new Set(items.map(item=>{const card=(item.card??cardFor(item.printingId)) as MarketCard|undefined;return card?.gameSlug??(/^PK-/i.test(card?.code??'')?'pokemon':'one-piece')}));
-                const listingGame:MarketGameScope=listingGames.size>1?'all':listingGames.has('pokemon')?'pokemon':'one-piece';
+                const listingGames=new Set(items.filter(item=>!item.generalProduct).map(item=>{const card=(item.card??cardFor(item.printingId)) as MarketCard|undefined;return card?.gameSlug??(/^PK-/i.test(card?.code??'')?'pokemon':'one-piece')}));
+                const listingGame:MarketGameScope|null=listingGames.size>1?'all':listingGames.has('pokemon')?'pokemon':listingGames.has('one-piece')?'one-piece':null;
                 const firstCopies=stackEntries.map((item,itemIndex)=>({item,itemIndex,copyIndex:0})).slice(0,3);
                 const extraCopies=stackEntries.flatMap((item,itemIndex)=>Array.from({length:Math.max(0,Math.min(3,item.quantity)-1)},(_,index)=>({item,itemIndex,copyIndex:index+1}))).slice(0,3-firstCopies.length);
                 const visibleStack=[...firstCopies,...extraCopies];
@@ -1429,10 +1544,10 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                         const stackCard=item.card??(itemIndex===0?listing.card:undefined)??cardFor(item.printingId);
                         return stackCard?<div key={`${item.printingId}-${itemIndex}-${copyIndex}`} className={`market-feed-art${item.sold?' is-sold':''}`} style={{'--stack-index':index} as CSSProperties}>{item.photoUrls?.[0]?<img className="market-sealed-listing-photo" src={item.photoUrls[0]} alt={stackCard.name} loading="lazy"/>:<CardArt card={stackCard}/>}{(item.sold||Number(item.soldQuantity)>0)&&copyIndex===0&&<span className="market-feed-art-sold">{item.sold?locale==='ID'?'Baru terjual':'Just sold':locale==='ID'?`${Number(item.soldQuantity)} terjual`:`${Number(item.soldQuantity)} sold`}</span>}</div>:null;
                       })}
-                      {totalCards>1&&<span className="market-feed-quantity" aria-label={`${totalCards} ${locale==='ID'?'kartu':'cards'}`}>{totalCards}</span>}
+                      {totalCards>1&&<span className="market-feed-quantity" aria-label={`${totalCards} ${isMixedInventory?(locale==='ID'?'item':'items'):isGeneralListing?(locale==='ID'?'barang':'items'):hasMarketProducts?(locale==='ID'?'produk':'products'):(locale==='ID'?'kartu':'cards')}`}>{totalCards}</span>}
                     </div>
                     <div className="market-feed-copy">
-                      <h2><span className="market-feed-title-text">{listing.title}</span>{gameSlug==='all'&&<span className="market-feed-game-mark" title={listingGame==='all'?'Multiple games':listingGame==='pokemon'?'Pokémon':'One Piece'} aria-label={listingGame==='all'?'Multiple games':listingGame==='pokemon'?'Pokémon':'One Piece'}><MarketGameMark gameSlug={listingGame} compact/></span>}</h2>
+                      <h2><span className="market-feed-title-text">{listing.title}</span>{marketCategory==='tcg'&&gameSlug==='all'&&listingGame&&<span className="market-feed-game-mark" title={listingGame==='all'?'Multiple games':listingGame==='pokemon'?'Pokémon':'One Piece'} aria-label={listingGame==='all'?'Multiple games':listingGame==='pokemon'?'Pokémon':'One Piece'}><MarketGameMark gameSlug={listingGame} compact/></span>}{(marketCategory==='other'||generalCategories.length>0)&&generalCategories.map(category=><span key={category} className="market-feed-category-mark">{generalMarketCategoryLabel(category,locale)}</span>)}</h2>
                       <small className="market-feed-meta">
                         <span className="market-feed-meta-primary"><span className="market-feed-meta-primary-line"><span className="market-feed-location"><MapPin size={11}/><span className="market-feed-location-name">{listing.city}</span></span>{listing.createdAt&&<><span className="market-feed-meta-separator" aria-hidden="true">|</span><span className="market-feed-meta-tail"><MarketTimestamp value={listing.createdAt}/><span className="market-feed-seller">{locale==='ID'?'oleh':'by'} {listing.sellerUsername?<Link href={`/players/${encodeURIComponent(listing.sellerUsername)}`} onClick={event=>event.stopPropagation()}>{listing.seller}</Link>:listing.seller}</span></span></>}</span></span>
                         {listing.type==='WTS'&&<span className="market-feed-meta-secondary"><ShippingCouriers couriers={listing.shippingCouriers??[]} language={locale}/></span>}
@@ -1441,7 +1556,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                     <div className="market-feed-trade">
                       <div className="market-feed-status">
                         <b>{fullySold||fullyReserved||listing.type==='WTS'?<Store size={12} aria-hidden="true"/>:<Search size={12} aria-hidden="true"/>}{fullySold?(locale==='ID'?'Baru terjual':'Just sold'):fullyReserved?(locale==='ID'?'Dipesan':'Reserved'):listing.type==='WTB'?(locale==='ID'?'Dicari':'Buying'):(locale==='ID'?'Dijual':'Selling')}</b>
-                        {heldCards>0&&!fullyReserved&&listing.type==='WTS'&&<span className="market-feed-held-count">{locale==='ID'?`${heldCards} kartu dipesan`:`${heldCards} ${heldCards===1?'card':'cards'} reserved`}</span>}
+                        {heldCards>0&&!fullyReserved&&listing.type==='WTS'&&<span className="market-feed-held-count">{locale==='ID'?`${heldCards} ${isGeneralListing?'barang':'kartu'} dipesan`:`${heldCards} ${isGeneralListing?(heldCards===1?'item':'items'):(heldCards===1?'card':'cards')} reserved`}</span>}
                       </div>
                       <div className="market-feed-price">
                         <strong>{listing.amount>0?formatMoney(listing.amount,listing.currency):(locale==='ID'?'Harga belum diatur':'Price not set')}</strong>
@@ -1452,16 +1567,16 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                 const rowClass=`market-feed-row ${listing.type==='WTB'?'is-wtb':'is-wts'}${listing.isOwner?'':' has-row-action'}${!listing.isOwner&&listing.type==='WTS'&&items.length===1?' has-cart-action':''}`;
                 return <article key={listing.id} data-listing-id={listing.id} className={`${rowClass} market-feed-entry`}>
                   <div className="market-feed-row-content">{content}</div>
-                  <Link href={listingHref(listing,gameSlug==='all'?listingGame:gameSlug)} className="market-feed-row-link" aria-label={locale==='ID'?`Buka ${listing.title}`:`Open ${listing.title}`}/>
+                  <Link href={listingHref(listing,gameSlug==='all'?(listingGame??'all'):gameSlug)} className="market-feed-row-link" aria-label={locale==='ID'?`Buka ${listing.title}`:`Open ${listing.title}`}/>
                   {!listing.isOwner&&<div className="market-feed-row-actions">
-                    {listing.type==='WTB'&&<Link href={listingHref(listing,gameSlug==='all'?listingGame:gameSlug)} className="button secondary is-icon-only market-icon-action market-feed-offer-cards" title={locale==='ID'?'Tawarkan kartu':'Offer cards'} aria-label={locale==='ID'?'Tawarkan kartu':'Offer cards'}><Cards size={17}/></Link>}
+                    {listing.type==='WTB'&&<Link href={listingHref(listing,gameSlug==='all'?(listingGame??'all'):gameSlug)} className="button secondary is-icon-only market-icon-action market-feed-offer-cards" title={isGeneralListing?(locale==='ID'?'Tawarkan barang':'Offer item'):(locale==='ID'?'Tawarkan kartu':'Offer cards')} aria-label={isGeneralListing?(locale==='ID'?'Tawarkan barang':'Offer item'):(locale==='ID'?'Tawarkan kartu':'Offer cards')}>{isGeneralListing?<Store size={17}/>:<Cards size={17}/>}</Link>}
                     {listing.type==='WTS'&&!fullyReserved&&items.length===1&&items[0].quantity>0&&(items[0].availableQuantity??items[0].quantity)>0&&<MarketFeedCartButton listing={listing} printingId={items[0].printingId} locale={locale}/>}
                     <SaveListingButton listingId={listing.id} language={locale} iconOnly/>
                   </div>}
                 </article>;
               })}
             </section>
-            {listingsLoading&&<div className={`market-feed-skeleton is-${listingView}`} role="status" aria-label={locale==='ID'?'Memuat listing Market':'Loading Market listings'}>{Array.from({length:listingView==='grid'?6:5},(_,index)=><div className="market-feed-skeleton-row" key={index}><i/><span><b/><b/><small/></span><strong/></div>)}</div>}
+            {listingsLoading&&<div className={`market-feed-skeleton is-${listingView}`} role="status" aria-label={locale==='ID'?'Memuat listing Market':'Loading Market listings'}>{Array.from({length:listingView==='grid'?6:5},(_,index)=><div className={`market-feed-skeleton-row is-${(['card','sealed','item','bundle'] as const)[index%4]}`} key={index}><i/><span><b/><b/><small/></span><strong/></div>)}</div>}
             {!listingsLoading&&error&&(
               <div className="market-feed-empty" role="alert"><Store size={26}/><h2>{locale==='ID'?'Listing tidak dapat dimuat':'Listings could not load'}</h2><p>{locale==='ID'?'Coba lagi sebentar lagi.':'Try again in a moment.'}</p><button type="button" className="button secondary" onClick={()=>void refresh()}>{locale==='ID'?'Coba lagi':'Retry'}</button></div>
             )}
@@ -1495,29 +1610,29 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
           <div className="market-sell-heading">
             <div className="market-sell-heading-actions"><span>{listingType==='WTB'?(locale==='ID'?'PERMINTAAN BELI':'BUYING REQUEST'):(locale==='ID'?'BUAT LISTING':'CREATE LISTING')}</span><button type="button" className="market-sell-manage-listings" onClick={()=>{setOpen(false);setQuickPanel(null);setAccountPanel('listings')}}><ClipboardText size={15}/>{locale==='ID'?'Listing saya':'My listings'}</button></div>
             <DialogTitle>
-              {sealedMode?(listingType==='WTS'?'Sell a sealed product':'Find a sealed product'):configuringCard
+              {sealedMode?(listingType==='WTS'?(locale==='ID'?'Jual produk':'Sell a product'):(locale==='ID'?'Cari produk':'Find a product')):configuringCard
                 ? activeCardObj?.gameSlug==='pokemon'
                   ? (listingType==='WTB'?(locale==='ID'?'Atur permintaan kartu Pokémon.':'Set your Pokémon card request.'):(locale==='ID'?'Atur listing kartu Pokémon.':'Set up this Pokémon listing.'))
                   : (listingType==='WTB'?(locale==='ID'?'Atur permintaan kartu.':'Set your card request.'):(locale==='ID'?'Atur kartu untuk dijual.':'Set up your card for sale.'))
-                : bundleCards.length>0
+                : hasBundleItems
                   ? (listingType==='WTB'?(locale==='ID'?'Rincian permintaan beli.':'Buying request details.'):(locale==='ID'?'Rincian listing paket.':'Bundle listing details.'))
                   : listingType==='WTB'?(locale==='ID'?'Pilih kartu yang ingin Anda beli.':'Choose cards you’re looking to buy.'):(locale==='ID'?'Pilih kartu untuk dijual.':'Select cards to sell.')
               }
             </DialogTitle>
             <DialogDescription>
-              {sealedMode?'Choose a pack, booster box, or starter deck':configuringCard
+              {sealedMode?(locale==='ID'?'Pilih produk dan atur harga atau permintaan.':'Choose a product and set your price or request.'):configuringCard
                   ? activeCardObj?.gameSlug==='pokemon'
                   ? (listingType==='WTB'?(locale==='ID'?'Pilih set dan bahasa, lalu pilih kartu mentah atau slab dan atur tawaran.':'Choose a set and language, then choose a raw card or slab and set your offer.'):(locale==='ID'?'Pastikan set dan bahasa, lalu pilih kartu mentah atau slab dan atur harga.':'Confirm the set and language, then choose a raw card or slab and set the price.'))
                   : (listingType==='WTB'?(locale==='ID'?'Pilih versi cetak, jenis kartu, jumlah, dan tawaran.':'Choose the printing, card type, quantity, and offer.'):(locale==='ID'?'Pilih versi cetak, kondisi kartu mentah, jumlah, dan harga.':'Choose the printing, raw-card condition, quantity, and price.'))
-                : bundleCards.length>0
+                : hasBundleItems
                   ? (listingType==='WTB'?(locale==='ID'?'Atur kartu dan anggaran yang Anda tawarkan.':'Review the cards and budget you are offering.'):(locale==='ID'?'Atur rincian listing dan harga total paket.':'Review bundle cards and set overall price.'))
                   : listingType==='WTB'?(locale==='ID'?'Tambahkan kartu, kondisi, jumlah, dan harga yang Anda cari.':'Add the cards, condition, quantity, and price you want.'):(locale==='ID'?'Cari kartu dari katalog atau pilih dari koleksi Anda.':'Search the catalog or choose cards from your Vault.')
               }
             </DialogDescription>
           </div>
           <div className="market-sell-body">
-            {!configuringCard&&!bundleCards.length&&<div className="market-sealed-kind-switch" role="group" aria-label={locale==='ID'?'Jenis produk':'Product type'}><button type="button" aria-pressed={!sealedMode} onClick={()=>setSealedMode(false)}>{locale==='ID'?'Kartu & slab':'Cards & slabs'}</button><button type="button" aria-pressed={sealedMode} onClick={()=>setSealedMode(true)}>{locale==='ID'?'Produk tersegel':'Sealed products'}</button></div>}
-            {sealedMode?<MarketSealedComposer type={listingType} onPublished={()=>{setOpen(false);setSealedMode(false);void refresh();void refreshAccount();}}/>:directSellLoading?<div className="market-direct-sell-loading" role="status" aria-label={locale==='ID'?'Memuat pilihan jual':'Loading sell options'}><span/><span/><span/></div>:<>
+            {!configuringCard&&!hasBundleItems&&<div className="market-sealed-kind-switch" role="group" aria-label={locale==='ID'?'Jenis barang':'Item type'}><button type="button" aria-pressed={!sealedMode} onClick={()=>setSealedMode(false)}>{locale==='ID'?'Kartu':'Cards'}</button><button type="button" aria-pressed={sealedMode} onClick={()=>setSealedMode(true)}>{locale==='ID'?'Produk':'Products'}</button></div>}
+            {sealedMode?<MarketSealedComposer type={listingType} onPublished={()=>{setOpen(false);setSealedMode(false);void refresh();void refreshAccount();}} onBackToBundle={()=>setSealedMode(false)} onAddToBundle={listingType==='WTS'?item=>{const max=listingLimits.maxProductStock??10;const used=bundleProducts.reduce((sum,current)=>sum+current.quantity,0);if(used+item.quantity>max){toast.error(locale==='ID'?`Maksimal ${max} unit produk dalam satu listing.`:`A listing can include up to ${max} product units.`);return;}const next=[...bundleProducts,{...item,id:crypto.randomUUID()}];setBundleProducts(next);if(!hasBundleItems)setListingTitle(item.title);else if(bundleCards.length===1&&bundleProducts.length===0)setListingTitle(`${bundleCards[0].card.name} bundle`);setListingPrice(String(bundleCards.reduce((sum,card)=>sum+card.quantity*card.unitAmount,0)+next.reduce((sum,product)=>sum+product.quantity*product.unitAmount,0)));setSealedMode(false);setIsAddingAnother(false);}:undefined}/>:directSellLoading?<div className="market-direct-sell-loading" role="status" aria-label={locale==='ID'?'Memuat pilihan jual':'Loading sell options'}><span/><span/><span/></div>:<>
             {/* VIEW 1: Card Configuration Step */}
             {configuringCard&&activeCardObj?(
               <div className="listing-selection">
@@ -1531,14 +1646,14 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                     onClick={()=>{
                       configLoadVersion.current++;
                       setConfiguringCard(null);
-                      if(bundleCards.length===0){
+                      if(!hasBundleItems){
                         setCardSearch('');
                         setCardPrintings([]);
                       }
                     }}
                   >
                     <ArrowLeft size={13}/>
-                    <span>{bundleCards.length>0?(locale==='ID'?'Kembali ke paket':'Back to bundle'):(locale==='ID'?'Ganti kartu':'Change card')}</span>
+                    <span>{hasBundleItems?(locale==='ID'?'Kembali ke paket':'Back to bundle'):(locale==='ID'?'Ganti kartu':'Change card')}</span>
                   </button>
                 </div>
                 <div className="listing-selection-right">
@@ -1748,20 +1863,20 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                     disabled={!itemPrice||Number(itemPrice)<=0||(listingType==='WTB'&&configuredProductType==='GRADED'&&!wantedGrade.trim())}
                     onClick={addConfiguredCardToBundle}
                   >
-                    {bundleCards.length===0
+                    {!hasBundleItems
                       ? (listingType==='WTB'?(locale==='ID'?'Lanjutkan permintaan beli':'Continue with buy request'):(locale==='ID'?'Lanjut ke rincian listing':'Continue to listing details'))
                       : (listingType==='WTB'?(locale==='ID'?'+ Tambahkan ke permintaan':'+ Add to request'):(locale==='ID'?'+ Tambahkan ke paket':'+ Add to bundle'))
                     }
                   </button>
                 </div>
               </div>
-            ):bundleCards.length>0&&!isAddingAnother?(
+              ):hasBundleItems&&!isAddingAnother?(
               /* VIEW 2: Bundle Review & Publish Form */
               <form className="form-stack" onSubmit={handlePublishListing}>
                 <div className="market-sell-bundle">
                   <div className="market-sell-bundle-header">
                     <span>{listingType==='WTB'?(locale==='ID'?'KARTU YANG INGIN DIBELI':'CARDS TO BUY'):(locale==='ID'?'KARTU DALAM LISTING':'CARDS IN THIS LISTING')}</span>
-                    <small>{totalBundleQuantity} {locale==='ID'?'kartu':(totalBundleQuantity===1?'card':'cards')}</small>
+                    <small>{totalBundleQuantity} {locale==='ID'?'kartu':(totalBundleQuantity===1?'card':'cards')}{totalProductQuantity?` + ${totalProductQuantity} ${locale==='ID'?'produk':(totalProductQuantity===1?'product unit':'product units')}`:''}</small>
                   </div>
                   <div className="market-sell-bundle-list">
                     {bundleCards.map(item=>{
@@ -1791,7 +1906,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                             <button
                               type="button"
                               onClick={()=>{
-                                setBundleCards(prev=>prev.map(c=>c.id===item.id?{...c,quantity:Math.max(1,c.quantity-1)}:c));
+                                const next=bundleCards.map(c=>c.id===item.id?{...c,quantity:Math.max(1,c.quantity-1)}:c);setBundleCards(next);setListingPrice(String(next.reduce((sum,card)=>sum+card.unitAmount*card.quantity,0)+bundleProducts.reduce((sum,product)=>sum+product.unitAmount*product.quantity,0)));
                               }}
                               disabled={item.quantity<=1}
                               aria-label={locale==='ID'?'Kurangi jumlah':'Decrease quantity'}
@@ -1802,14 +1917,12 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                             <button
                               type="button"
                               onClick={()=>{
-                                setBundleCards(prev=>{
-                                  const current=prev.find(card=>card.id===item.id);
-                                  if(!current)return prev;
-                                  const sameIdentity=prev.filter(card=>marketCardIdentity(card.card)===marketCardIdentity(current.card)).reduce((sum,card)=>sum+card.quantity,0);
-                                  const total=prev.reduce((sum,card)=>sum+card.quantity,0);
+                                const current=bundleCards.find(card=>card.id===item.id);
+                                if(!current)return;
+                                const sameIdentity=bundleCards.filter(card=>marketCardIdentity(card.card)===marketCardIdentity(current.card)).reduce((sum,card)=>sum+card.quantity,0);
+                                const total=bundleCards.reduce((sum,card)=>sum+card.quantity,0);
                                   const maximum=Math.min(current.instanceId?current.availableQuantity:listingLimits.maxCopiesPerCard,listingLimits.maxCopiesPerCard-(sameIdentity-current.quantity),listingLimits.maxListingCopies-(total-current.quantity));
-                                  return prev.map(card=>card.id===item.id?{...card,quantity:Math.min(maximum,card.quantity+1)}:card);
-                                });
+                                const next=bundleCards.map(card=>card.id===item.id?{...card,quantity:Math.min(maximum,card.quantity+1)}:card);setBundleCards(next);setListingPrice(String(next.reduce((sum,card)=>sum+card.unitAmount*card.quantity,0)+bundleProducts.reduce((sum,product)=>sum+product.unitAmount*product.quantity,0)));
                               }}
                               disabled={item.productType==='GRADED'||item.quantity>=Math.min(item.instanceId?item.availableQuantity:listingLimits.maxCopiesPerCard,listingLimits.maxCopiesPerCard-(bundleCards.filter(card=>marketCardIdentity(card.card)===marketCardIdentity(item.card)).reduce((sum,card)=>sum+card.quantity,0)-item.quantity),listingLimits.maxListingCopies-(totalBundleQuantity-item.quantity))}
                               aria-label={locale==='ID'?'Tambah jumlah':'Increase quantity'}
@@ -1825,7 +1938,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                             type="button"
                             className="market-sell-bundle-remove"
                             onClick={()=>{
-                              setBundleCards(prev=>prev.filter(c=>c.id!==item.id));
+                              const next=bundleCards.filter(c=>c.id!==item.id);setBundleCards(next);setListingPrice(String(next.reduce((sum,card)=>sum+card.unitAmount*card.quantity,0)+bundleProducts.reduce((sum,product)=>sum+product.unitAmount*product.quantity,0)));
                             }}
                             aria-label={locale==='ID'?'Hapus kartu':'Remove card'}
                           >
@@ -1834,8 +1947,15 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                         </div>
                       );
                     })}
+                    {bundleProducts.map(item=><div key={item.id} className="market-sell-bundle-item market-sell-bundle-product">
+                      <div className="market-sell-bundle-thumb">{item.catalogProduct?.imageUrl?<img src={item.catalogProduct.imageUrl} alt=""/>:item.photoIds[0]?<img src={`/api/market/product-photos/${item.photoIds[0]}`} alt=""/>:<span aria-hidden="true"/>}</div>
+                      <div className="market-sell-bundle-details"><strong>{item.title}</strong><div className="market-sell-bundle-meta"><span>{item.productType==='SEALED'?(locale==='ID'?'Produk TCG':'TCG product'):(locale==='ID'?'Barang lain':'Other item')}</span><span>{item.condition}</span></div></div>
+                      <div className="market-sell-bundle-stepper"><button type="button" disabled={item.quantity<=1} aria-label={locale==='ID'?'Kurangi jumlah':'Decrease quantity'} onClick={()=>{const next=bundleProducts.map(product=>product.id===item.id?{...product,quantity:Math.max(1,product.quantity-1)}:product);setBundleProducts(next);setListingPrice(String(bundleCards.reduce((sum,card)=>sum+card.unitAmount*card.quantity,0)+next.reduce((sum,product)=>sum+product.unitAmount*product.quantity,0)));}}><Minus size={12}/></button><span>{item.quantity}</span><button type="button" disabled={totalProductQuantity>=(listingLimits.maxProductStock??10)} aria-label={locale==='ID'?'Tambah jumlah':'Increase quantity'} onClick={()=>{const next=bundleProducts.map(product=>product.id===item.id?{...product,quantity:product.quantity+1}:product);setBundleProducts(next);setListingPrice(String(bundleCards.reduce((sum,card)=>sum+card.unitAmount*card.quantity,0)+next.reduce((sum,product)=>sum+product.unitAmount*product.quantity,0)));}}><Plus size={12}/></button></div>
+                      <div className="market-sell-bundle-pricing"><strong>Rp {(item.unitAmount*item.quantity).toLocaleString('id-ID')}</strong><small>Rp {item.unitAmount.toLocaleString('id-ID')} / {locale==='ID'?'unit':'item'}</small></div>
+                      <button type="button" className="market-sell-bundle-remove" onClick={()=>{const next=bundleProducts.filter(product=>product.id!==item.id);setBundleProducts(next);setListingPrice(String(bundleCards.reduce((sum,card)=>sum+card.unitAmount*card.quantity,0)+next.reduce((sum,product)=>sum+product.unitAmount*product.quantity,0)));}} aria-label={locale==='ID'?'Hapus produk':'Remove product'}><Trash size={15}/></button>
+                    </div>)}
                   </div>
-                  <p className="market-bundle-limit-note">{locale==='ID'?`Maksimal ${listingLimits.maxListingCopies} kartu dalam satu listing, maksimal ${listingLimits.maxCopiesPerCard} salinan untuk kartu yang sama.`:`Up to ${listingLimits.maxListingCopies} cards in one listing, with no more than ${listingLimits.maxCopiesPerCard} copies of the same card.`}</p>
+                  <p className="market-bundle-limit-note">{locale==='ID'?`Maksimal ${listingLimits.maxListingCopies} kartu dan ${listingLimits.maxProductStock??10} unit produk dalam satu listing. Maksimal ${listingLimits.maxCopiesPerCard} salinan untuk kartu yang sama.`:`Up to ${listingLimits.maxListingCopies} cards and ${listingLimits.maxProductStock??10} product units in one listing. Up to ${listingLimits.maxCopiesPerCard} copies of each card.`}</p>
                   <button
                     type="button"
                     className="market-sell-add-card-btn"
@@ -1848,8 +1968,9 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                     }}
                   >
                     <Plus size={14}/>
-                    <span>{locale==='ID'?'Tambah kartu lain ke listing (Bundle / Playset)':'Add another card to listing (Bundle / Playset)'}</span>
+                    <span>{locale==='ID'?'Tambah kartu lain':'Add another card'}</span>
                   </button>
+                  {listingType==='WTS'&&<button type="button" className="market-sell-add-card-btn" onClick={()=>setSealedMode(true)}><Plus size={14}/><span>{locale==='ID'?'Tambah produk atau barang':'Add a product or other item'}</span></button>}
                 </div>
                 <label>
                   {locale==='ID'?'Judul listing':'Listing title'}
@@ -1907,7 +2028,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                   )}
                 </div>
                 {saveError&&<p role="alert" className="error-text">{saveError}</p>}
-                <button className="market-list-button" disabled={busy||bundleCards.length===0||(listingType==='WTB'&&!buyerCity)}>
+                <button className="market-list-button" disabled={busy||!hasBundleItems||(listingType==='WTB'&&!buyerCity)}>
                   {busy
                     ?(locale==='ID'?'Mempublikasikan...':'Publishing...')
                     :listingType==='WTS'&&bundleCards.some(it=>!it.instanceId)
@@ -1919,7 +2040,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
             ):(
               /* VIEW 3: Card Search & Vault Picker Step */
               <div>
-                {bundleCards.length>0&&(
+                {hasBundleItems&&(
                   <button
                     type="button"
                     className="listing-change-card-btn"
@@ -1988,7 +2109,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                     <MarketGameMark gameSlug="pokemon"/>
                   </button>
                 </div>
-                {listingType==='WTS'&&bundleCards.length===0&&(data?.collection?.length??0)>0&&<button type="button" className="market-sell-bundle-trigger" onClick={()=>{configLoadVersion.current++;setOpen(false);window.setTimeout(()=>setBulkListingOpen(true),0)}} aria-haspopup="dialog">
+                {listingType==='WTS'&&!hasBundleItems&&(data?.collection?.length??0)>0&&<button type="button" className="market-sell-bundle-trigger" onClick={()=>{configLoadVersion.current++;setOpen(false);window.setTimeout(()=>setBulkListingOpen(true),0)}} aria-haspopup="dialog">
                   <Cards size={16}/><span>{locale==='ID'?'Buat listing dari Vault':'Build a listing from Vault'}</span><small>{locale==='ID'?'Pilih beberapa kartu sekaligus':'Select several cards at once'}</small><ArrowRight size={16}/>
                 </button>}
                 {searchSource==='wishlist'&&listingType==='WTB'?<WishlistCardPicker items={data?.wishlist??[]} gameSlug={listingGameScope} value={cardSearch} onChange={setCardSearch} onSelect={card=>loadCardForConfig(card)} locale={locale}/>:searchSource==='vault'&&(data?.collection?.length??0)>0?(
@@ -2016,7 +2137,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
         </DialogContent>
       </Dialog>
       {bulkListingOpen&&<BulkListingModal open={bulkListingOpen} onClose={wasPublished=>{setBulkListingOpen(false);if(!wasPublished)setOpen(true)}} language={locale} stacks={groupVaultStacks((data?.collection??[]).map(item=>enrichCollectionItem(item,new Set())))} onPublished={async()=>{await refresh();await refreshAccount()}}/>}
-      {publishedShare&&<ShareButton title={publishedShare.title} path={listingHref(publishedShare)} cards={publishedShare.cards.map(item=>({card:printingToCard(item.card,item.printing),printingId:item.printing.id,quantity:item.quantity,condition:item.condition,unitAmount:item.unitAmount}))} subtitle={locale==='ID'?`${publishedShare.cards.reduce((sum,item)=>sum+item.quantity,0)} kartu`:`${publishedShare.cards.reduce((sum,item)=>sum+item.quantity,0)} cards`} listingInfo={{seller:publishedShare.seller,city:publishedShare.city,expiresAt:publishedShare.expiresAt,timeZone:publishedShare.timeZone}} price={formatMoney(publishedShare.price,'IDR')} openOnMount hideTrigger onOpenChange={open=>{if(!open)setPublishedShare(null)}}/>}
+      {publishedShare&&<ShareButton title={publishedShare.title} path={listingHref(publishedShare)} cards={publishedShare.cards.map(item=>({card:printingToCard(item.card,item.printing),printingId:item.printing.id,quantity:item.quantity,condition:item.condition,unitAmount:item.unitAmount}))} subtitle={locale==='ID'?`${publishedShare.cards.reduce((sum,item)=>sum+item.quantity,0)} kartu${publishedShare.productUnits?` + ${publishedShare.productUnits} produk`:''}`:`${publishedShare.cards.reduce((sum,item)=>sum+item.quantity,0)} cards${publishedShare.productUnits?` + ${publishedShare.productUnits} products`:''}`} listingInfo={{seller:publishedShare.seller,city:publishedShare.city,expiresAt:publishedShare.expiresAt,timeZone:publishedShare.timeZone}} price={formatMoney(publishedShare.price,'IDR')} openOnMount hideTrigger onOpenChange={open=>{if(!open)setPublishedShare(null)}}/>}
 
       {data&&<MarketQuickPanel panel={accountPanel??quickPanel} onOpenChange={open=>{if(!open){setAccountPanel(null);setQuickPanel(null)}}} onPanelChange={next=>{if(next==='listings'||next==='offers'||next==='orders'||next==='saved'){setQuickPanel(null);setAccountPanel(next)}else{setAccountPanel(null);setQuickPanel(next)}}} onCreateListing={()=>{setAccountPanel(null);setQuickPanel(null);beginListing()}} locale={locale} account={data} activityCounts={activityCounts} initialOrderId={modalOnly?null:searchParams.get('order')} initialConversationId={modalOnly?null:searchParams.get('conversation')} initialProfileTab={profileQuickTab} onRefresh={async()=>{await Promise.all([refreshAccount(),refresh()])}} onSaved={async()=>{await refreshAccount();setAccountPanel(null);setQuickPanel(null)}}/>}
       <AddEditItemModal

@@ -2,14 +2,16 @@ import {z} from 'zod';
 import {db,errorResponse,guard,HttpError,user} from '@/lib/server/store';
 import {computeOfferExpiration,parseOfferItems} from '@/lib/server/market-offers';
 import {sendMarketEmail} from '@/lib/server/market-notifications';
-import {MARKET_MAX_CARD_TYPES,MARKET_MAX_COPIES_PER_CARD} from '@/lib/market/listing-limits';
 import {enforceMarketListingLimits} from '@/lib/server/market-listing-limits';
 import {enabledShippingCouriers} from '@/lib/shipping/couriers';
 import {isBiteshipAreaId} from '@/lib/shipping/biteship-area';
+import {sealedProductById} from '@/lib/market/sealed-products';
+import {validProductCondition} from '@/lib/market/product-conditions';
+import {isGeneralMarketCondition} from '@/lib/market/general-products';
 
 const parcelSchema=z.object({weight:z.number().int().min(10).max(30000),length:z.number().int().min(1).max(100),width:z.number().int().min(1).max(100),height:z.number().int().min(1).max(100)});
-const offerItemSchema=z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(MARKET_MAX_COPIES_PER_CARD),unitAmount:z.number().int().positive().optional(),sealedProductId:z.string().optional(),productType:z.enum(['RAW','GRADED','SEALED']).optional(),condition:z.string().max(40).optional(),notes:z.string().max(1000).optional(),photoIds:z.array(z.string().uuid()).max(6).optional(),parcel:parcelSchema.optional()});
-const schema=z.object({type:z.enum(['BUY','SELL']),items:z.array(offerItemSchema).min(1).max(MARKET_MAX_CARD_TYPES),amount:z.number().int().positive(),currency:z.string().length(3)});
+const offerItemSchema=z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(99),unitAmount:z.number().int().positive().optional(),sealedProductId:z.string().optional(),productType:z.enum(['RAW','GRADED','SEALED','GENERAL']).optional(),condition:z.string().max(40).optional(),notes:z.string().max(1000).optional(),photoIds:z.array(z.string().uuid()).max(6).optional(),parcel:parcelSchema.optional()});
+const schema=z.object({type:z.enum(['BUY','SELL']),items:z.array(offerItemSchema).min(1).max(150),amount:z.number().int().positive(),currency:z.string().length(3)});
 
 export async function GET(_request:Request,{params}:{params:Promise<{id:string}>}){try{
   const actor=await user();const {id}=await params;
@@ -49,17 +51,35 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
   const count=value.items.reduce((total,item)=>total+item.quantity,0);
   const sealedWanted=listing.type==='WTB'&&Boolean(listing.sealedProductId);
   if(sealedWanted){
-    if(value.items.length!==1)throw new HttpError(400,'Offer one sealed product at a time.');
+    if(value.items.length!==1)throw new HttpError(400,'Offer one product at a time.');
     const item=value.items[0];
-    if(item.printingId!==listing.sealedProductId||item.sealedProductId!==listing.sealedProductId||item.productType!=='SEALED')throw new HttpError(400,'Choose the sealed product named in this request.');
-    if(!['SEALED','SEALED_DAMAGED'].includes(item.condition??'')||!item.parcel||!item.photoIds?.length)throw new HttpError(400,'Add the package condition, a photo, and packed dimensions.');
+    let generalWanted=false;try{generalWanted=Boolean((JSON.parse(listing.items??'[]') as Array<{productType?:string}>).some(entry=>entry.productType==='GENERAL'))}catch{}
+    const productType=generalWanted?'GENERAL':'SEALED';
+    if(item.printingId!==listing.sealedProductId||item.sealedProductId!==listing.sealedProductId||item.productType!==productType)throw new HttpError(400,'Choose the product named in this request.');
+    if(!(generalWanted?isGeneralMarketCondition(item.condition):validProductCondition(sealedProductById(item.sealedProductId)?.kind,item.condition))||!item.parcel||!item.photoIds?.length)throw new HttpError(400,'Add the product condition, a photo, and packed dimensions.');
     const origin=await db().prepare('SELECT address_line AS addressLine,city,postal_code AS postalCode,area_id AS areaId,phone,label FROM seller_shipping_origins WHERE owner_id=?').bind(actor.id).first<{addressLine:string;city:string;postalCode:string;areaId:string|null;phone:string|null;label:string|null}>();
     let shippingMethods:string[]=[];try{const parsed=JSON.parse(origin?.label??'{}');if(Array.isArray(parsed.methods))shippingMethods=parsed.methods.filter((method:unknown):method is string=>typeof method==='string')}catch{}
     if(!origin?.addressLine||!origin.city||!origin.phone||(!/^\d{5}$/.test(origin.postalCode)&&!isBiteshipAreaId(origin.areaId))||!enabledShippingCouriers(shippingMethods).length)throw new HttpError(400,'Add a delivery address and choose a courier in your shipping settings before offering this product.');
     const photoIds=[...new Set(item.photoIds)];
     const photos=await db().prepare(`SELECT id FROM market_product_photos WHERE owner_id=? AND id IN (${photoIds.map(()=>'?').join(',')})`).bind(actor.id,...photoIds).all<{id:string}>();
     if(photos.results.length!==photoIds.length)throw new HttpError(400,'Choose photos uploaded from your account.');
-  }else await enforceMarketListingLimits(db(),value.items);
+  }else{
+    let listingItems:Array<{printingId:string;sealedProductId?:string;productType?:string;quantity:number}>=[];
+    try{listingItems=Array.isArray(JSON.parse(listing.items??'[]'))?JSON.parse(listing.items??'[]') as typeof listingItems:[]}catch{}
+    const listingItemById=new Map(listingItems.map(item=>[item.printingId,item]));
+    const cardOffers=value.items.filter(item=>{
+      const listed=listingItemById.get(item.printingId);
+      const isProduct=listed?.productType==='SEALED'||listed?.productType==='GENERAL';
+      if(isProduct){
+        const expectedType=listed.productType;
+        if(item.sealedProductId!==(listed.sealedProductId??listed.printingId)||item.productType!==expectedType)throw new HttpError(400,'Choose a product that is part of this listing.');
+        return false;
+      }
+      if(item.sealedProductId||item.productType==='SEALED'||item.productType==='GENERAL')throw new HttpError(400,'Choose a card that is part of this listing.');
+      return true;
+    });
+    if(cardOffers.length)await enforceMarketListingLimits(db(),cardOffers);
+  }
   if(count>listing.quantity)throw new HttpError(400,'Select no more cards than this listing requests.');
   if(listing.type==='WTS'){
     let available:Map<string,number>;

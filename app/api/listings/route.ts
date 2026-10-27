@@ -6,6 +6,9 @@ import {getDynamicListingPolicy,computeListingExpiration} from '@/lib/market/pol
 import {MARKET_MAX_COPIES_PER_CARD,MARKET_ABSOLUTE_MAX_LISTING_COPIES,listingLimitMessage} from '@/lib/market/listing-limits';
 import {enforceMarketListingLimits} from '@/lib/server/market-listing-limits';
 import {createSealedListing} from '@/lib/server/sealed-listings';
+import {createGeneralListing} from '@/lib/server/general-listings';
+import {createMixedListing} from '@/lib/server/mixed-listings';
+import {recordMarketActivity} from '@/lib/server/market-activity-progress';
 
 const itemSchema=z.object({instanceId:z.string().uuid().optional(),printingId:z.string(),quantity:z.number().int().positive().max(MARKET_MAX_COPIES_PER_CARD),condition:z.string().optional(),productType:z.enum(['RAW','GRADED']).optional(),gradingCompany:z.string().trim().max(40).optional(),grade:z.string().trim().max(20).optional(),certification:z.string().trim().max(100).optional(),unitAmount:z.number().int().nonnegative().optional()});
 const schema=z.object({instanceId:z.string().uuid().optional(),amount:z.number().int().positive().max(100000000000),quantity:z.number().int().positive().max(MARKET_ABSOLUTE_MAX_LISTING_COPIES),city:z.string().trim().min(2).max(60),title:z.string().trim().min(3).max(100),type:z.enum(['WTS','WTB']).default('WTS'),negotiable:z.boolean().default(true),items:z.array(itemSchema).min(1).max(MARKET_ABSOLUTE_MAX_LISTING_COPIES).optional()});
@@ -66,7 +69,14 @@ export async function POST(request:Request){
     if((activeCount?.total??0)>=policy.maxActiveListings)throw new HttpError(400,`You have reached the limit of ${policy.maxActiveListings} active listings for your account.`);
 
     const body=await request.json() as Record<string,unknown>;
-    if(body?.productType==='SEALED')return await createSealedListing(body,profile.id,policy.durationDays,policy.maxActiveListings);
+    const requestedItems=Array.isArray(body.items)?body.items as Array<Record<string,unknown>>:[];
+    if(body.type==='WTS'&&requestedItems.some(item=>item.productType==='SEALED'||item.productType==='GENERAL')){
+      const response=await createMixedListing(body,profile.id,policy.durationDays,policy.maxActiveListings,{maxListingCopies:policy.maxListingCopies,maxCopiesPerCard:policy.maxCopiesPerCard,maxCardTypes:policy.maxCardTypes,maxProductStock:policy.maxProductStock});
+      if(response.status===201){const created=await response.clone().json() as {id?:string};if(created.id)await recordMarketActivity(database,profile.id,'listing_published',created.id)}
+      return response;
+    }
+    if(body?.productType==='SEALED')return await createSealedListing(body,profile.id,policy.durationDays,policy.maxActiveListings,policy.maxProductStock);
+    if(body?.productType==='GENERAL')return await createGeneralListing(body,profile.id,policy.durationDays,policy.maxActiveListings,policy.maxProductStock);
     const value=schema.parse(body);
     const bundle=value.items?.length?value.items:null;
     if(value.type==='WTB'){
@@ -91,6 +101,7 @@ export async function POST(request:Request){
       const first=bundle[0];
       await database.prepare(`INSERT INTO listings (id,seller_id,printing_id,instance_id,title,amount,currency,quantity,condition,type,city,expires_at,items,negotiable)
         VALUES (?,?,?,NULL,?,?,'IDR',?,?,?,?,?,?,?)`).bind(id,profile.id,first.printingId,value.title,value.amount,value.quantity,first.productType==='GRADED'?'GRADED':first.condition??'NM','WTB',buyerCity,expiresAt,JSON.stringify(bundle),value.negotiable?1:0).run();
+      await recordMarketActivity(database,profile.id,'listing_published',id);
       after(()=>notifyListingWatchers(id));
       return Response.json({id,expiresAt,durationDays:policy.durationDays},{status:201});
     }
@@ -158,6 +169,7 @@ export async function POST(request:Request){
       )
     `).bind(id,profile.id,primary.printing_id,value.instanceId,value.title,value.amount,value.quantity,primary.condition,value.type,value.city,expiresAt,itemsJson,value.negotiable?1:0,primaryQuantity,primary.quantity,value.instanceId,value.instanceId,itemsJson,profile.id).run();
     if(!result.meta.changes)throw new HttpError(409,'That quantity is already listed.');
+    await recordMarketActivity(database,profile.id,'listing_published',id);
     after(()=>notifyListingWatchers(id));
     return Response.json({id,expiresAt,durationDays:policy.durationDays},{status:201});
   }catch(error){

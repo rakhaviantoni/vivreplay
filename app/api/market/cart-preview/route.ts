@@ -1,8 +1,9 @@
 import {db} from '@/lib/server/store';
 import {sealedProductById,sealedProductKinds} from '@/lib/market/sealed-products';
+import {generalMarketCategoryLabel} from '@/lib/market/general-products';
 
 type ListingRow={id:string;sellerId:string;title:string;amount:number;currency:string;quantity:number;condition:string;items:string|null;printingId:string;seller:string};
-type BundleEntry={printingId:string;quantity:number;condition?:string;unitAmount?:number;sealedProductId?:string;photoIds?:string[];parcel?:{weight:number;length:number;width:number;height:number}};
+type BundleEntry={printingId:string;name?:string;quantity:number;condition?:string;unitAmount?:number;sealedProductId?:string;photoIds?:string[];parcel?:{weight:number;length:number;width:number;height:number};productType?:string;generalProduct?:{category:string;brand?:string;model?:string;attributes?:Record<string,string>}};
 
 export async function GET(request:Request){
   const url=new URL(request.url);
@@ -52,12 +53,13 @@ export async function GET(request:Request){
           const card=cardByPrinting.get(item.printingId);
           const product=sealedProductById(item.sealedProductId??item.printingId);
           return {
-            printingId:item.printingId,name:product?.name??card?.name??card?.code??item.printingId,
-            code:product?.setCode??card?.code??item.printingId,quantity:item.quantity,unitAmount:item.unitAmount??0,
+            printingId:item.printingId,name:item.name??(item.generalProduct?row.title:product?.name??card?.name??card?.code??item.printingId),
+            code:item.generalProduct?generalMarketCategoryLabel(item.generalProduct.category):product?.setCode??card?.code??item.printingId,quantity:item.quantity,unitAmount:item.unitAmount??0,
             condition:item.condition??row.condition,imageUrl:product?.imageUrl??card?.imageUrl??null,
             assetPath:card?.assetPath??null,setCode:product?.setCode??card?.setCode??null,
             language:product?.language??card?.language??null,printingCode:card?.printingCode??null,
-            variant:product?sealedProductKinds[product.kind]:undefined,
+            variant:item.generalProduct?[item.generalProduct.brand,item.generalProduct.model].filter(Boolean).join(' ')||undefined:product?sealedProductKinds[product.kind]:undefined,
+            generalProduct:item.generalProduct,
             photoUrls:item.photoIds?.map(photoId=>`/api/market/product-photos/${photoId}`)??[],parcel:item.parcel,
           };
         }),

@@ -34,9 +34,9 @@ function dateForInput(value:string|null){
 
 function ListingBundleFields({prefix,limits,onChange}:{prefix:string;limits:{maxListingCopies:number;maxCopiesPerCard:number;maxCardTypes:number};onChange:(value:{maxListingCopies:number;maxCopiesPerCard:number;maxCardTypes:number})=>void}){
   return <>
-    <div className="admin-policy-field"><label htmlFor={`${prefix}-bundle-total`}>Cards per listing <span>(total)</span></label><input id={`${prefix}-bundle-total`} type="number" min="1" max="100" value={limits.maxListingCopies} onChange={event=>onChange({...limits,maxListingCopies:Number(event.target.value)})} required/><small>Maximum cards grouped in one listing.</small></div>
-    <div className="admin-policy-field"><label htmlFor={`${prefix}-bundle-copy`}>Copies per card</label><input id={`${prefix}-bundle-copy`} type="number" min="1" max="20" value={limits.maxCopiesPerCard} onChange={event=>onChange({...limits,maxCopiesPerCard:Number(event.target.value)})} required/><small>Maximum copies of one card identity.</small></div>
-    <div className="admin-policy-field"><label htmlFor={`${prefix}-bundle-types`}>Card types per listing</label><input id={`${prefix}-bundle-types`} type="number" min="1" max="100" value={limits.maxCardTypes} onChange={event=>onChange({...limits,maxCardTypes:Number(event.target.value)})} required/><small>Maximum different cards in one bundle.</small></div>
+    <div className="admin-policy-field"><label htmlFor={`${prefix}-bundle-total`}>Cards in a bundle <span>(total)</span></label><input id={`${prefix}-bundle-total`} type="number" min="1" max="100" value={limits.maxListingCopies} onChange={event=>onChange({...limits,maxListingCopies:Number(event.target.value)})} required/><small>Maximum cards grouped in one listing.</small></div>
+    <div className="admin-policy-field"><label htmlFor={`${prefix}-bundle-copy`}>Copies of the same card</label><input id={`${prefix}-bundle-copy`} type="number" min="1" max="20" value={limits.maxCopiesPerCard} onChange={event=>onChange({...limits,maxCopiesPerCard:Number(event.target.value)})} required/><small>Maximum copies of one card identity.</small></div>
+    <div className="admin-policy-field"><label htmlFor={`${prefix}-bundle-types`}>Different cards in a bundle</label><input id={`${prefix}-bundle-types`} type="number" min="1" max="100" value={limits.maxCardTypes} onChange={event=>onChange({...limits,maxCardTypes:Number(event.target.value)})} required/><small>Maximum different cards in one bundle.</small></div>
   </>;
 }
 
@@ -50,13 +50,16 @@ export function MarketPolicyManager() {
   const [freeDays, setFreeDays] = useState(7);
   const [freeMax, setFreeMax] = useState(10);
   const [freeBundle,setFreeBundle]=useState({maxListingCopies:51,maxCopiesPerCard:4,maxCardTypes:51});
+  const [freeProductStock,setFreeProductStock]=useState(10);
   const [freeFee, setFreeFee] = useState(1.5);
 
   const [proDays, setProDays] = useState(30);
   const [proMax, setProMax] = useState(500);
   const [proBundle,setProBundle]=useState({maxListingCopies:75,maxCopiesPerCard:10,maxCardTypes:75});
+  const [proProductStock,setProProductStock]=useState(50);
   const [annualMax,setAnnualMax]=useState(1000);
   const [annualBundle,setAnnualBundle]=useState({maxListingCopies:100,maxCopiesPerCard:20,maxCardTypes:100});
+  const [annualProductStock,setAnnualProductStock]=useState(99);
   const [proFee, setProFee] = useState(0.75);
   const [proAutoRenew, setProAutoRenew] = useState(true);
   const [buyerFeeMinimum,setBuyerFeeMinimum]=useState(2_000);
@@ -86,13 +89,16 @@ export function MarketPolicyManager() {
       setFreeDays(data.policies.free.durationDays);
       setFreeMax(data.policies.free.maxActiveListings);
       setFreeBundle({maxListingCopies:data.policies.free.maxListingCopies,maxCopiesPerCard:data.policies.free.maxCopiesPerCard,maxCardTypes:data.policies.free.maxCardTypes});
+      setFreeProductStock(data.policies.free.maxProductStock);
       setFreeFee(data.policies.free.commissionPercent);
 
       setProDays(data.policies.pro.durationDays);
       setProMax(data.policies.pro.maxActiveListings);
       setProBundle({maxListingCopies:data.policies.pro.maxListingCopies,maxCopiesPerCard:data.policies.pro.maxCopiesPerCard,maxCardTypes:data.policies.pro.maxCardTypes});
+      setProProductStock(data.policies.pro.maxProductStock);
       setAnnualMax(data.policies.proAnnual.maxActiveListings);
       setAnnualBundle({maxListingCopies:data.policies.proAnnual.maxListingCopies,maxCopiesPerCard:data.policies.proAnnual.maxCopiesPerCard,maxCardTypes:data.policies.proAnnual.maxCardTypes});
+      setAnnualProductStock(data.policies.proAnnual.maxProductStock);
       setProFee(data.policies.pro.commissionPercent);
       setProAutoRenew(data.policies.pro.canAutoRenew);
       setVoucherMinimum(data.policies.shippingVoucherMinSubtotal);
@@ -152,13 +158,16 @@ export function MarketPolicyManager() {
     setFreeDays(initialPolicies.free.durationDays);
     setFreeMax(initialPolicies.free.maxActiveListings);
     setFreeBundle({maxListingCopies:initialPolicies.free.maxListingCopies,maxCopiesPerCard:initialPolicies.free.maxCopiesPerCard,maxCardTypes:initialPolicies.free.maxCardTypes});
+    setFreeProductStock(initialPolicies.free.maxProductStock);
     setFreeFee(initialPolicies.free.commissionPercent);
 
     setProDays(initialPolicies.pro.durationDays);
     setProMax(initialPolicies.pro.maxActiveListings);
     setProBundle({maxListingCopies:initialPolicies.pro.maxListingCopies,maxCopiesPerCard:initialPolicies.pro.maxCopiesPerCard,maxCardTypes:initialPolicies.pro.maxCardTypes});
+    setProProductStock(initialPolicies.pro.maxProductStock);
     setAnnualMax(initialPolicies.proAnnual.maxActiveListings);
     setAnnualBundle({maxListingCopies:initialPolicies.proAnnual.maxListingCopies,maxCopiesPerCard:initialPolicies.proAnnual.maxCopiesPerCard,maxCardTypes:initialPolicies.proAnnual.maxCardTypes});
+    setAnnualProductStock(initialPolicies.proAnnual.maxProductStock);
     setProFee(initialPolicies.pro.commissionPercent);
     setProAutoRenew(initialPolicies.pro.canAutoRenew);
     setBuyerFeeMinimum(initialPolicies.buyerFeeMinimum);
@@ -186,6 +195,7 @@ export function MarketPolicyManager() {
           durationDays: Math.max(1, Number(freeDays)),
           maxActiveListings: Math.max(1, Number(freeMax)),
           ...freeBundle,
+          maxProductStock:Math.max(1,Math.min(99,Number(freeProductStock))),
           commissionPercent: Math.max(0, Number(freeFee)),
           canAutoRenew: false,
         },
@@ -193,6 +203,7 @@ export function MarketPolicyManager() {
           durationDays: Math.max(1, Number(proDays)),
           maxActiveListings: Math.max(1, Number(proMax)),
           ...proBundle,
+          maxProductStock:Math.max(1,Math.min(99,Number(proProductStock))),
           commissionPercent: Math.max(0, Number(proFee)),
           canAutoRenew: proAutoRenew,
         },
@@ -200,6 +211,7 @@ export function MarketPolicyManager() {
           durationDays:Math.max(1,Number(proDays)),
           maxActiveListings:Math.max(1,Number(annualMax)),
           ...annualBundle,
+          maxProductStock:Math.max(1,Math.min(99,Number(annualProductStock))),
           commissionPercent:Math.max(0,Number(proFee)),
           canAutoRenew:proAutoRenew,
         },
@@ -347,6 +359,7 @@ export function MarketPolicyManager() {
               <small>Cap on active WTS/WTB listings. Prevents spam while giving casuals enough room.</small>
             </div>
             <ListingBundleFields prefix="free" limits={freeBundle} onChange={setFreeBundle}/>
+            <div className="admin-policy-field"><label htmlFor="free-product-stock">Product stock per listing</label><input id="free-product-stock" type="number" min="1" max="99" value={freeProductStock} onChange={event=>setFreeProductStock(Number(event.target.value))} required/><small>Maximum units of one TCG or other product in a listing.</small></div>
 
             <div className="admin-policy-field">
               <label htmlFor="free-fee">
@@ -420,8 +433,10 @@ export function MarketPolicyManager() {
               <small>Maximum simultaneous listings allowed for Pro stores.</small>
             </div>
             <ListingBundleFields prefix="pro" limits={proBundle} onChange={setProBundle}/>
+            <div className="admin-policy-field"><label htmlFor="pro-product-stock">Product stock per listing</label><input id="pro-product-stock" type="number" min="1" max="99" value={proProductStock} onChange={event=>setProProductStock(Number(event.target.value))} required/><small>Maximum units of one TCG or other product in a listing.</small></div>
             <div className="admin-policy-field"><label htmlFor="pro-annual-max">Annual Pro active listings</label><input id="pro-annual-max" type="number" min="1" max="100000" value={annualMax} onChange={event=>setAnnualMax(Number(event.target.value))} required/><small>Annual Pro has a separate inventory cap.</small></div>
             <ListingBundleFields prefix="pro-annual" limits={annualBundle} onChange={setAnnualBundle}/>
+            <div className="admin-policy-field"><label htmlFor="pro-annual-product-stock">Annual product stock per listing</label><input id="pro-annual-product-stock" type="number" min="1" max="99" value={annualProductStock} onChange={event=>setAnnualProductStock(Number(event.target.value))} required/><small>Maximum units of one TCG or other product in a listing.</small></div>
 
             <div className="admin-policy-field">
               <label htmlFor="pro-fee">

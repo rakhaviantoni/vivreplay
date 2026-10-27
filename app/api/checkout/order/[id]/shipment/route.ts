@@ -39,12 +39,14 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
       return Response.json({ok:true,status:'SHIPPED',trackingNumber:manualTrackingNumber,trackingUrl:manualTrackingUrl||null});
     }
     if(!shipping.sender?.addressLine||!shipping.addressLine||!shipping.phone||!shipping.sender.phone||!shipping.courierCompany||!shipping.courierType)throw new HttpError(400,'The order is missing pickup, delivery, or courier details.');
-    let entries:Array<{printingId:string;quantity:number;unitAmount?:number;sealedProductId?:string;parcel?:{weight:number;length:number;width:number;height:number}}>;
+    let entries:Array<{printingId:string;quantity:number;unitAmount?:number;sealedProductId?:string;productType?:string;listingTitle?:string;parcel?:{weight:number;length:number;width:number;height:number}} >;
     try{entries=JSON.parse(row.items) as typeof entries}catch{entries=[]}
     if(!entries.length)throw new HttpError(400,'This order has no items to ship.');
-    const sealedNames=[...new Set(entries.map(item=>sealedProductById(item.sealedProductId)?.name).filter((name):name is string=>Boolean(name)))];
+    const productNames=[...new Set(entries.map(item=>item.productType==='GENERAL'?item.listingTitle:sealedProductById(item.sealedProductId)?.name).filter((name):name is string=>Boolean(name)))];
     const submittedDescription=typeof payload.parcelDescription==='string'?payload.parcelDescription.replace(/[\u0000-\u001f\u007f]/g,' ').replace(/\s+/g,' ').trim().slice(0,100):'';
-    const parcelDescription=shippingMethod==='biteship'?(submittedDescription&&submittedDescription!=='Trading cards'?submittedDescription:(sealedNames.join(', ').slice(0,100)||'Trading cards')):'Trading cards';
+    const hasGeneralItems=entries.some(item=>item.productType==='GENERAL');
+    const defaultDescription=productNames.join(', ').slice(0,100)||(hasGeneralItems?'Market items':'Trading cards');
+    const parcelDescription=shippingMethod==='biteship'?(submittedDescription&&submittedDescription!=='Trading cards'?submittedDescription:defaultDescription):'Trading cards';
     const parcel=marketParcel(entries);
     const shipmentItems=entries.map(item=>({name:parcelDescription,description:parcelDescription,category:'hobby',value:Math.max(0,item.unitAmount??0),quantity:item.quantity,weight:item.parcel?.weight??100,length:item.parcel?.length??18,width:item.parcel?.width??13,height:item.parcel?.height??2}));
     const sender=shipping.sender;

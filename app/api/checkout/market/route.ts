@@ -10,7 +10,7 @@ import {fetchMarketPolicies,MARKET_BUYER_FEE_CAP,calculateBuyerServiceFee,calcul
 
 const checkoutItem=z.object({printingId:z.string().min(1),quantity:z.number().int().positive().max(99),sealedProductId:z.string().optional(),parcel:z.object({weight:z.number().int().positive(),length:z.number().int().positive(),width:z.number().int().positive(),height:z.number().int().positive()}).optional()});
 const schema=z.object({listingId:z.string().min(1),offerId:z.string().min(1).optional(),items:z.array(checkoutItem.extend({listingId:z.string().optional()})).min(1).max(600),lines:z.array(z.object({listingId:z.string().min(1),items:z.array(checkoutItem).min(1).max(60)})).max(10).optional(),courierName:z.string().min(1),courierServiceName:z.string().min(1),courierCode:z.string().min(1),courierServiceCode:z.string().min(1),courierType:z.string().min(1),shippingFee:z.number().int().nonnegative().optional(),useShippingVoucher:z.boolean().default(true),paymentMethod:z.enum(['va','cstore','qris','cc','paylater','ewallet']).default('qris'),paymentChannel:z.string().regex(/^[a-z0-9_]{2,24}$/).default('mpm')});
-type BundleEntry={instanceId?:string;printingId:string;sealedProductId?:string;parcel?:{weight:number;length:number;width:number;height:number};photoIds?:string[];notes?:string;quantity:number;condition?:string;unitAmount:number;listingId?:string};
+type BundleEntry={instanceId?:string;printingId:string;sealedProductId?:string;parcel?:{weight:number;length:number;width:number;height:number};photoIds?:string[];notes?:string;quantity:number;condition?:string;unitAmount:number;listingId?:string;productType?:string;generalProduct?:{category:string;brand?:string;model?:string}};
 type AcceptedOffer={id:string;actorId:string;buyerId:string;initialActorId:string;listingOwnerId:string;listingType:string;sealedProductId:string|null;listingId:string;status:string;amount:number;items:string};
 
 export async function GET(){
@@ -150,7 +150,10 @@ export async function POST(request:Request){
     if(!dropoff.areaId&&!dropoff.postalCode)throw new HttpError(400,'Save a valid 5-digit delivery postal code in your profile.');
     const quantity=orderItems.reduce((sum,item)=>sum+item.quantity,0);
     const parcel=marketParcel(orderItems);
-    const packageItems=[{name:orderItems.some(item=>item.sealedProductId)?'Sealed products':'Trading cards',value:subtotal,length:parcel.length,width:parcel.width,height:parcel.height,weight:Math.max(100,parcel.weight),quantity:1}];
+    const hasProductItems=orderItems.some(item=>Boolean(item.sealedProductId||item.generalProduct));
+    const hasCardItems=orderItems.some(item=>!item.sealedProductId&&!item.generalProduct);
+    const parcelDescription=hasProductItems&&hasCardItems?'Market items':orderItems.some(item=>item.generalProduct)?'Market items':hasProductItems?'TCG products':'Trading cards';
+    const packageItems=[{name:parcelDescription,value:subtotal,length:parcel.length,width:parcel.width,height:parcel.height,weight:Math.max(100,parcel.weight),quantity:1}];
     const {pricing:rates}=await shippingRateOptions(profile.id,listing.id,{couriers,origin:pickup,destination:dropoff,originLatitude:seller.latitude,originLongitude:seller.longitude,destinationLatitude:address.latitude,destinationLongitude:address.longitude,items:packageItems,refresh:true});
     const rate=rates.find(item=>item.courier_name===input.courierName&&item.courier_service_name===input.courierServiceName&&item.courier_code===input.courierCode&&item.courier_service_code===input.courierServiceCode);
     if(!rate||!Number.isSafeInteger(rate.price)||rate.price<0)throw new HttpError(409,'That delivery service is no longer available. Choose an updated quote.');
@@ -190,7 +193,7 @@ export async function POST(request:Request){
       ?`AND EXISTS(SELECT 1 FROM listing_offers f WHERE f.id=? AND f.listing_id=? AND f.status='ACCEPTED' AND (SELECT first.actor_id FROM listing_offers first WHERE COALESCE(first.thread_id,first.id)=COALESCE(f.thread_id,f.id) ORDER BY first.created_at,first.rowid LIMIT 1)=?) AND NOT EXISTS(SELECT 1 FROM checkout_orders prior WHERE prior.offer_id=? AND (prior.status IN ('PROCESSING','PAID','SHIPPED','RECEIVED','COMPLETED','FULFILLED') OR (prior.status='PENDING_PAYMENT' AND prior.expires_at>CURRENT_TIMESTAMP)))`
       :'';
     const offerBindings=acceptedOffer?[acceptedOffer.id,listing.id,acceptedOffer.initialActorId,acceptedOffer.id]:[];
-    const orderDetails={...shipping,parcel,parcelDescription:orderItems.some(item=>item.sealedProductId)?'Sealed products':'Trading cards',ipaymuSelectedMethod:paymentMethod,ipaymuSelectedChannel:paymentChannel,ipaymuSelectedName:selectedPaymentChannel?.name??'QRIS',ipaymuSelectedLogo:selectedPaymentChannel?.logo??''};
+    const orderDetails={...shipping,parcel,parcelDescription,ipaymuSelectedMethod:paymentMethod,ipaymuSelectedChannel:paymentChannel,ipaymuSelectedName:selectedPaymentChannel?.name??'QRIS',ipaymuSelectedLogo:selectedPaymentChannel?.logo??''};
     const inserted=await database.prepare(`INSERT INTO checkout_orders (id,kind,buyer_id,seller_id,listing_id,offer_id,items,details,subtotal,seller_net_amount,shipping_fee,amount,currency,status,expires_at)
       SELECT ?,'MARKET',?,?,?,?,?,?,?,?,?,?,?,'PENDING_PAYMENT',?
       WHERE EXISTS(SELECT 1 FROM listings current WHERE current.id=? AND current.status='ACTIVE' AND current.amount=? AND current.quantity=? AND current.items IS ? AND (current.expires_at IS NULL OR current.expires_at>CURRENT_TIMESTAMP))

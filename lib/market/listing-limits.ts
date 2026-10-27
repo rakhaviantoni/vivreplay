@@ -1,11 +1,11 @@
-export type ListingBundleLimits = {maxListingCopies:number;maxCopiesPerCard:number;maxCardTypes:number};
+export type ListingBundleLimits = {maxListingCopies:number;maxCopiesPerCard:number;maxCardTypes:number;maxProductStock?:number};
 export const MARKET_MAX_CARD_TYPES = 51;
 export const MARKET_MAX_COPIES_PER_CARD = 4;
 // A complete One Piece deck has 50 cards plus one Leader. Listings may also
 // contain up to four copies of a single card, such as a Leader playset.
 export const MARKET_MAX_LISTING_COPIES = 51;
 export const MARKET_ABSOLUTE_MAX_LISTING_COPIES = 100;
-export const DEFAULT_LISTING_BUNDLE_LIMITS:ListingBundleLimits={maxListingCopies:MARKET_MAX_LISTING_COPIES,maxCopiesPerCard:MARKET_MAX_COPIES_PER_CARD,maxCardTypes:MARKET_MAX_CARD_TYPES};
+export const DEFAULT_LISTING_BUNDLE_LIMITS:ListingBundleLimits={maxListingCopies:MARKET_MAX_LISTING_COPIES,maxCopiesPerCard:MARKET_MAX_COPIES_PER_CARD,maxCardTypes:MARKET_MAX_CARD_TYPES,maxProductStock:10};
 
 export type ListingLimitItem = { printingId: string; quantity: number };
 

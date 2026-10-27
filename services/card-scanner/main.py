@@ -85,7 +85,7 @@ async def scan_card(
             results = results_secondary
             chosen_source = det_meta.get("secondary_source", "secondary")
 
-    # Orientation check: if card was held upside-down, test 180° rotation
+    # Orientation check: if confidence is moderate (< 0.88), check 180°, 90°, and 270° rotations
     current_best_score = results[0]["score"] if results else 0.0
     if current_best_score < 0.88:
         flipped = cv2.rotate(primary_card, cv2.ROTATE_180)
@@ -93,7 +93,25 @@ async def scan_card(
         flipped_score = results_flipped[0]["score"] if results_flipped else 0.0
         if flipped_score > current_best_score + 0.03:
             results = results_flipped
+            current_best_score = flipped_score
             chosen_source = f"{chosen_source}_flipped180"
+
+        if current_best_score < 0.88:
+            rot90 = cv2.resize(cv2.rotate(primary_card, cv2.ROTATE_90_CLOCKWISE), (400, 560), interpolation=cv2.INTER_AREA)
+            res90 = matcher.search(rot90, top_k=top_k, game=game)
+            score90 = res90[0]["score"] if res90 else 0.0
+            if score90 > current_best_score + 0.04:
+                results = res90
+                current_best_score = score90
+                chosen_source = f"{chosen_source}_rot90"
+            else:
+                rot270 = cv2.resize(cv2.rotate(primary_card, cv2.ROTATE_90_COUNTERCLOCKWISE), (400, 560), interpolation=cv2.INTER_AREA)
+                res270 = matcher.search(rot270, top_k=top_k, game=game)
+                score270 = res270[0]["score"] if res270 else 0.0
+                if score270 > current_best_score + 0.04:
+                    results = res270
+                    current_best_score = score270
+                    chosen_source = f"{chosen_source}_rot270"
 
     elapsed_ms = round((time.perf_counter() - start_time) * 1000, 2)
     scan_id = str(uuid.uuid4())

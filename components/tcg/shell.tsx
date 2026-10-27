@@ -180,8 +180,8 @@ function MarketFooter({language,game}:{language:Locale;game:'one-piece'|'pokemon
   return <footer className={`market-footer${game==='pokemon'?' market-footer-pokemon':''}`}>
     <div className="market-footer-main">
       <Link className="market-footer-brand" href={getHref(game==='pokemon'?'/pokemon':'/')}><VivreMark size={24}/><span>VivrePlay <b>Market</b></span></Link>
-      <p>{id?'Beli dan jual kartu dengan aman di VivrePlay Market.':'Buy and sell cards on VivrePlay Market.'}</p>
-      <nav aria-label={id?'Jelajahi Market':'Market'}><Link href={getHref(game==='pokemon'?'/market?game=pokemon':'/market')}>{id?'Semua listing':'All listings'}</Link><Link href={getHref(game==='pokemon'?'/market?game=pokemon&tab=selling':'/market?tab=selling')}>{id?'Jual kartu':'Sell cards'}</Link><Link href={getHref(game==='pokemon'?'/market?game=pokemon&tab=buying':'/market?tab=buying')}>{id?'Cari kartu':'Find cards'}</Link></nav>
+      <p>{id?'Jual beli kartu, produk tersegel, dan aksesori di VivrePlay Market.':'Buy and sell cards, sealed products, and accessories on VivrePlay Market.'}</p>
+      <nav aria-label={id?'Jelajahi Market':'Market'}><Link href={getHref(game==='pokemon'?'/market?game=pokemon':'/market')}>{id?'Semua listing':'All listings'}</Link><Link href={getHref(game==='pokemon'?'/market?game=pokemon&tab=selling':'/market?tab=selling')}>{id?'Jual':'Sell'}</Link><Link href={getHref(game==='pokemon'?'/market?game=pokemon&tab=buying':'/market?tab=buying')}>{id?'Permintaan beli':'Buying requests'}</Link></nav>
     </div>
     <div className="market-footer-side">
       <nav aria-label={id?'Bantuan dan kebijakan':'Help and policies'}><Link href={getHref('/help')}>{id?'Pusat bantuan':'Help center'}</Link><Link href={getHref('/faq')}>FAQ</Link><Link href={getHref('/contact')}>{id?'Kontak':'Contact'}</Link><Link href={getHref('/legal/terms')}>{id?'Syarat & Ketentuan':'Terms'}</Link><Link href={getHref('/legal/refund')}>{id?'Kebijakan pengembalian dana':'Refund policy'}</Link><Link href={getHref('/legal/privacy')}>{id?'Privasi':'Privacy'}</Link></nav>

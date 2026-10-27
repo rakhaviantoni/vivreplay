@@ -20,7 +20,7 @@ export function useMarketListingLimits(refreshKey?:string){
         const response=data as {current?:Partial<ListingBundleLimits>}|null;
         const value=response?.current;
         if(value&&Number.isInteger(value.maxListingCopies)&&Number.isInteger(value.maxCopiesPerCard)&&Number.isInteger(value.maxCardTypes)){
-          setLimits({maxListingCopies:Number(value.maxListingCopies),maxCopiesPerCard:Number(value.maxCopiesPerCard),maxCardTypes:Number(value.maxCardTypes)});
+          setLimits({maxListingCopies:Number(value.maxListingCopies),maxCopiesPerCard:Number(value.maxCopiesPerCard),maxCardTypes:Number(value.maxCardTypes),maxProductStock:Number.isInteger(value.maxProductStock)?Number(value.maxProductStock):10});
         }
       }).catch(()=>undefined);
     return()=>controller.abort();

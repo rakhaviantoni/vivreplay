@@ -7,6 +7,7 @@ export interface ListingTierPolicy {
   maxListingCopies: number;
   maxCopiesPerCard: number;
   maxCardTypes: number;
+  maxProductStock: number;
   canAutoRenew: boolean;
   commissionPercent: number;
 }
@@ -29,6 +30,7 @@ export const LISTING_POLICIES: MarketPolicies = {
     maxListingCopies: 51,
     maxCopiesPerCard: 4,
     maxCardTypes: 51,
+    maxProductStock: 10,
     canAutoRenew: false,
     commissionPercent: 1.5,
   },
@@ -39,6 +41,7 @@ export const LISTING_POLICIES: MarketPolicies = {
     maxListingCopies: 75,
     maxCopiesPerCard: 10,
     maxCardTypes: 75,
+    maxProductStock: 50,
     canAutoRenew: true,
     commissionPercent: 0.75,
   },
@@ -49,6 +52,7 @@ export const LISTING_POLICIES: MarketPolicies = {
     maxListingCopies: 100,
     maxCopiesPerCard: 20,
     maxCardTypes: 100,
+    maxProductStock: 99,
     canAutoRenew: true,
     commissionPercent: 0.75,
   },
@@ -108,6 +112,7 @@ export function parseMarketPolicies(rawJson: string | null | undefined): MarketP
         maxListingCopies: positiveLimit(parsed.free?.maxListingCopies,LISTING_POLICIES.free.maxListingCopies,100),
         maxCopiesPerCard: positiveLimit(parsed.free?.maxCopiesPerCard,LISTING_POLICIES.free.maxCopiesPerCard,20),
         maxCardTypes: positiveLimit(parsed.free?.maxCardTypes,LISTING_POLICIES.free.maxCardTypes,100),
+        maxProductStock: positiveLimit(parsed.free?.maxProductStock,LISTING_POLICIES.free.maxProductStock,99),
         canAutoRenew: Boolean(parsed.free?.canAutoRenew),
         commissionPercent: Number.isFinite(Number(parsed.free?.commissionPercent)) ? Math.max(0, Number(parsed.free.commissionPercent)) : LISTING_POLICIES.free.commissionPercent,
       },
@@ -118,6 +123,7 @@ export function parseMarketPolicies(rawJson: string | null | undefined): MarketP
         maxListingCopies: positiveLimit(parsed.pro?.maxListingCopies,LISTING_POLICIES.pro.maxListingCopies,100),
         maxCopiesPerCard: positiveLimit(parsed.pro?.maxCopiesPerCard,LISTING_POLICIES.pro.maxCopiesPerCard,20),
         maxCardTypes: positiveLimit(parsed.pro?.maxCardTypes,LISTING_POLICIES.pro.maxCardTypes,100),
+        maxProductStock: positiveLimit(parsed.pro?.maxProductStock,LISTING_POLICIES.pro.maxProductStock,99),
         canAutoRenew: parsed.pro?.canAutoRenew !== false,
         commissionPercent: Number.isFinite(Number(parsed.pro?.commissionPercent)) ? Math.max(0, Number(parsed.pro.commissionPercent)) : LISTING_POLICIES.pro.commissionPercent,
       },
@@ -128,6 +134,7 @@ export function parseMarketPolicies(rawJson: string | null | undefined): MarketP
         maxListingCopies: positiveLimit(parsed.proAnnual?.maxListingCopies,LISTING_POLICIES.proAnnual.maxListingCopies,100),
         maxCopiesPerCard: positiveLimit(parsed.proAnnual?.maxCopiesPerCard,LISTING_POLICIES.proAnnual.maxCopiesPerCard,20),
         maxCardTypes: positiveLimit(parsed.proAnnual?.maxCardTypes,LISTING_POLICIES.proAnnual.maxCardTypes,100),
+        maxProductStock: positiveLimit(parsed.proAnnual?.maxProductStock,LISTING_POLICIES.proAnnual.maxProductStock,99),
         canAutoRenew: parsed.proAnnual?.canAutoRenew !== false,
         commissionPercent: Number.isFinite(Number(parsed.proAnnual?.commissionPercent)) ? Math.max(0, Number(parsed.proAnnual.commissionPercent)) : LISTING_POLICIES.proAnnual.commissionPercent,
       },

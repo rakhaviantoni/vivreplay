@@ -1,8 +1,11 @@
 import {db,HttpError} from '@/lib/server/store';
 import {MARKET_MAX_CARD_TYPES} from '@/lib/market/listing-limits';
 import {enforceMarketListingLimits} from '@/lib/server/market-listing-limits';
+import {sealedProductById} from '@/lib/market/sealed-products';
+import {validProductCondition} from '@/lib/market/product-conditions';
+import {isGeneralMarketCondition} from '@/lib/market/general-products';
 
-export type OfferLine={printingId:string;quantity:number;unitAmount?:number;sealedProductId?:string;productType?:'RAW'|'GRADED'|'SEALED';condition?:string;notes?:string;photoIds?:string[];parcel?:{weight:number;length:number;width:number;height:number}};
+export type OfferLine={printingId:string;quantity:number;unitAmount?:number;sealedProductId?:string;productType?:'RAW'|'GRADED'|'SEALED'|'GENERAL';condition?:string;notes?:string;photoIds?:string[];parcel?:{weight:number;length:number;width:number;height:number}};
 export type OfferContext={id:string;threadId:string;parentOfferId:string|null;listingId:string;listingTitle:string;actorId:string;type:string;items:string;amount:number;currency:string;status:string;sellerId:string;listingStatus:string;listingType:string;negotiable:number;quantity:number;printingId:string;sealedProductId:string|null;listingItems:string|null;expiresAt:string|null;listingExpiresAt:string|null;initialActorId:string;buyerId:string;supplierId:string};
 
 export async function offerContext(offerId:string,profileId:string){
@@ -62,10 +65,12 @@ export async function validateListingOfferItems(offer:OfferContext,actorId:strin
   if(items.length<1||items.length>MARKET_MAX_CARD_TYPES)throw new HttpError(400,'Choose at least one card.');
   const sealedWanted=offer.listingType==='WTB'&&Boolean(offer.sealedProductId);
   if(sealedWanted){
-    if(items.length!==1)throw new HttpError(400,'Offer one sealed product at a time.');
+    if(items.length!==1)throw new HttpError(400,'Offer one product at a time.');
     const item=items[0];
-    if(item.printingId!==offer.sealedProductId||item.sealedProductId!==offer.sealedProductId||item.productType!=='SEALED')throw new HttpError(400,'Choose the sealed product named in this request.');
-    if(!['SEALED','SEALED_DAMAGED'].includes(item.condition??'')||!item.parcel||!item.photoIds?.length)throw new HttpError(400,'Add the package condition, a photo, and packed dimensions.');
+    let generalWanted=false;try{generalWanted=Boolean((JSON.parse(offer.listingItems??'[]') as Array<{productType?:string}>).some(entry=>entry.productType==='GENERAL'))}catch{}
+    const productType=generalWanted?'GENERAL':'SEALED';
+    if(item.printingId!==offer.sealedProductId||item.sealedProductId!==offer.sealedProductId||item.productType!==productType)throw new HttpError(400,'Choose the product named in this request.');
+    if(!(generalWanted?isGeneralMarketCondition(item.condition):validProductCondition(sealedProductById(item.sealedProductId)?.kind,item.condition))||!item.parcel||!item.photoIds?.length)throw new HttpError(400,'Add the product condition, a photo, and packed dimensions.');
     const photoIds=[...new Set(item.photoIds)];
     const photos=await db().prepare(`SELECT id FROM market_product_photos WHERE owner_id=? AND id IN (${photoIds.map(()=>'?').join(',')})`).bind(actorId,...photoIds).all<{id:string}>();
     if(photos.results.length!==photoIds.length)throw new HttpError(400,'Choose photos uploaded from your account.');

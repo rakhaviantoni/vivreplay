@@ -1,6 +1,7 @@
 import {user,db,errorResponse,guard,HttpError} from '@/lib/server/store';
 import {collectionInput} from '@/packages/domain';
 import {gameId} from '@/packages/card-data/catalog';
+import {recordMarketActivity} from '@/lib/server/market-activity-progress';
 
 const liveAssetSourceId='30000000-0000-4000-8000-000000000008';
 async function ensureCatalogPrinting(input:Awaited<ReturnType<typeof collectionInput.parse>>){
@@ -57,6 +58,8 @@ export async function POST(req:Request){
           d.prepare('UPDATE collectible_instances SET quantity=?,acquisition_amount=?,visibility=?,acquired_at=COALESCE(?,acquired_at),notes=? WHERE id=? AND owner_id=?').bind(quantity,acquisitionAmount,visibility,v.acquiredAt??stack.acquiredAt,notes,stack.id,p.id),
           d.prepare('INSERT INTO audit_logs (id,actor_id,action,entity_id) VALUES (?,?,?,?)').bind(crypto.randomUUID(),p.id,'COLLECTIBLE_UPDATED',stack.id),
         ]);
+        const period=new Date().toISOString().slice(0,7);
+        await recordMarketActivity(d,p.id,'vault_added',`${v.printingId}:${period}`);
         return Response.json({id:stack.id,merged:true,quantity});
       }
     }
@@ -69,6 +72,8 @@ export async function POST(req:Request){
     }
     stmts.push(d.prepare('INSERT INTO audit_logs (id,actor_id,action,entity_id) VALUES (?,?,?,?)').bind(crypto.randomUUID(),p.id,'COLLECTIBLE_CREATED',id));
     await d.batch(stmts);
+    const period=new Date().toISOString().slice(0,7);
+    await recordMarketActivity(d,p.id,'vault_added',`${v.printingId}:${period}`);
     return Response.json({id},{status:201});
   }catch(e){
     if(e instanceof Error&&/UNIQUE constraint failed: card_printings\./i.test(e.message))return Response.json({error:'This exact printing is already in your Vault catalog. Refresh the card and try again.'},{status:409});
