@@ -93,7 +93,7 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
             try{if(rawUrl){const parsed=new URL(rawUrl);const sandbox=String(details.ipaymuMode??getIpaymuMode())==='sandbox';const hosts=sandbox?['sandbox.ipaymu.com','sandbox-payment.ipaymu.com']:['my.ipaymu.com','payment.ipaymu.com'];if(parsed.protocol==='https:'&&!parsed.username&&!parsed.password&&(!parsed.port||parsed.port==='443')&&hosts.includes(parsed.hostname))checkoutUrl=parsed.toString()}}catch{}
             details.ipaymuPaymentMethod=method;
             details.ipaymuPaymentChannel=channel;
-            details.ipaymuPaymentName=String(gateway.PaymentName??details.ipaymuSelectedName??gateway.Notes??(active[0].type||channel.toUpperCase()));
+            details.ipaymuPaymentName=String(details.ipaymuSelectedName??gateway.PaymentName??gateway.Notes??(active[0].type||channel.toUpperCase()));
             details.ipaymuPaymentNo=gateway.PaymentNo==null?details.ipaymuPaymentNo??null:String(gateway.PaymentNo);
             details.ipaymuCheckoutUrl=checkoutUrl??details.ipaymuCheckoutUrl??null;
             details.ipaymuTransactionId=latest.transactionId;
@@ -272,7 +272,7 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     }
     details.ipaymuPaymentMethod=payment.paymentMethod;
     details.ipaymuPaymentChannel=payment.paymentChannel;
-    details.ipaymuPaymentName=payment.paymentName??details.ipaymuSelectedName??payment.paymentChannel.toUpperCase();
+    details.ipaymuPaymentName=details.ipaymuSelectedName??payment.paymentName??payment.paymentChannel.toUpperCase();
     details.ipaymuPaymentNo=payment.paymentNo;
     details.ipaymuPaymentInstructionsUrl=payment.instructionsUrl;
     details.ipaymuCheckoutUrl=payment.checkoutUrl;

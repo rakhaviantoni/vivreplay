@@ -71,7 +71,7 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
             }catch{}
             details.ipaymuPaymentMethod=method||details.ipaymuPaymentMethod;
             details.ipaymuPaymentChannel=channel||details.ipaymuPaymentChannel;
-            details.ipaymuPaymentName=String(gateway.PaymentName??details.ipaymuPaymentName??details.ipaymuSelectedName??channel.toUpperCase());
+            details.ipaymuPaymentName=String(details.ipaymuSelectedName??gateway.PaymentName??details.ipaymuPaymentName??channel.toUpperCase());
             // Transaction lookups can omit VA instructions after the payment starts
             // or completes. Keep the original checkout data when the field is absent.
             details.ipaymuPaymentNo=gateway.PaymentNo==null?details.ipaymuPaymentNo??null:String(gateway.PaymentNo);
