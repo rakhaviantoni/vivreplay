@@ -155,6 +155,7 @@ export function MarketProDialog({locale,member=false,profile=null,accountLoading
         {error&&<p className="checkout-error" role="alert">{error}</p>}
         {profile&&member&&<p className="market-pro-member-note">{t('Your current membership stays active. The annual term will be added after it ends.','Keanggotaan Anda tetap aktif. Masa tahunan ditambahkan setelah masa aktif saat ini berakhir.')}</p>}
         {profile&&!hasValidPhone?<Link className="button market-pro-dialog-join" href={route('/profile')} onClick={()=>setOpen(false)}>{t('Add phone number','Tambahkan nomor telepon')}</Link>:<button type="button" className="button market-pro-dialog-join" disabled={joining||loading||accountLoading||plan?.available===false||amount==null||Boolean(profile&&!selectedPaymentOption)} onClick={()=>void join()}>{joining?t('Opening checkout…','Membuka checkout…'):!profile&&!accountLoading?t('Sign in to join','Masuk untuk bergabung'):member?t('Extend annual membership','Perpanjang paket tahunan'):billingPeriod==='yearly'?t('Get Market Pro Annual','Pilih Market Pro Tahunan'):t('Join Market Pro','Gabung Market Pro')}</button>}
+        {profile&&<button type="button" className="market-pro-history-link" onClick={()=>{setOpen(false);window.dispatchEvent(new Event('vivreplay:open-market-membership'))}}>{t('Plan history','Riwayat paket')}</button>}
       </DialogContent>
     </Dialog>
   </>;

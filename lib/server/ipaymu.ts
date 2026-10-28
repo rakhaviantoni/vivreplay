@@ -191,14 +191,19 @@ export async function createIpaymuDirectPayment(input:{orderId:string;amount:num
   const now=new Date();
   const timestamp=`${now.getUTCFullYear()}${String(now.getUTCMonth()+1).padStart(2,'0')}${String(now.getUTCDate()).padStart(2,'0')}${String(now.getUTCHours()).padStart(2,'0')}${String(now.getUTCMinutes()).padStart(2,'0')}${String(now.getUTCSeconds()).padStart(2,'0')}`;
   const response=await fetch(`${baseUrl}/api/v2/payment/direct`,{method:'POST',headers:{'Content-Type':'application/json',va,timestamp,signature:await requestSignature(bodyText,va,apiKey)},body:bodyText,cache:'no-store'});
-  const payload=await response.json().catch(()=>null) as {Status?:number;Message?:string;Data?:{SessionId?:string|number;TransactionId?:string|number;QrImage?:string;QrString?:string;Url?:string;PaymentNo?:string|number;PaymentName?:string;PaymentInstructionsDoc?:string;Total?:number|string;Fee?:number|string;Expired?:string}}|null;
+  const payload=await response.json().catch(()=>null) as {Status?:number;Message?:string;Data?:{SessionId?:string|number;SessionID?:string|number;TransactionId?:string|number;QrImage?:string;QrString?:string;Url?:string;PaymentNo?:string|number;PaymentName?:string;PaymentInstructionsDoc?:string;Total?:number|string;Fee?:number|string;Expired?:string}}|null;
   const data=payload?.Data;
   const transactionId=data?.TransactionId;
-  const sessionId=data?.SessionId;
+  // Direct Payment may omit SessionId; TransactionId is also accepted by our callback matcher.
+  const sessionId=data?.SessionId??data?.SessionID??transactionId;
   const qrImage=data?.QrImage;
   const paymentNo=data?.PaymentNo===undefined?null:String(data.PaymentNo);
   const url=typeof data?.Url==='string'?data.Url:null;
-  if(!response.ok||payload?.Status!==200||!data||transactionId===undefined||sessionId===undefined)throw new Error('This payment option could not be started. Check that it is enabled for your iPaymu account, then try again.');
+  if(!response.ok||payload?.Status!==200||!data||transactionId===undefined||sessionId===undefined){
+    const providerMessage=typeof payload?.Message==='string'?payload.Message.replace(/[\r\n\t]+/g,' ').slice(0,180):null;
+    console.error('ipaymu_direct_payment_failed',{method:input.method,channel:input.channel,httpStatus:response.status,providerStatus:payload?.Status??null,providerMessage,responseFields:data?Object.keys(data).sort():[]});
+    throw new Error('This payment option could not be started. Check that it is enabled for your iPaymu account, then try again.');
+  }
   const providerTotal=Number(data.Total);
   if(input.method==='qris'&&(!qrImage||!Number.isFinite(providerTotal)||Math.round(providerTotal)!==input.amount))throw new Error('The QRIS amount did not match this order. Please try again.');
   const parsedQr=input.method==='qris'&&qrImage?ipaymuQrImageUrl(qrImage,baseUrl.includes('sandbox')?'sandbox':'production'):null;

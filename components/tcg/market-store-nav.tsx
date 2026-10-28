@@ -45,7 +45,7 @@ export function MarketStoreNav({initialQuery='',sellHref='/market?sell=open',sho
   const [selectedOrderId,setSelectedOrderId]=useState<string|null>(null);
   const [selectedConversationId,setSelectedConversationId]=useState<string|null>(null);
   const [quickPanel,setQuickPanel]=useState<'profile'|'vault'|'wishlist'|null>(null);
-  const [initialProfileTab,setInitialProfileTab]=useState<'account'|'delivery'|'payouts'>('account');
+  const [initialProfileTab,setInitialProfileTab]=useState<'account'|'delivery'|'membership'|'payouts'>('account');
   const searchInputRef=useRef<HTMLInputElement>(null);
   useEffect(()=>{
     const update=()=>setScrolled(window.scrollY>24);
@@ -140,6 +140,7 @@ export function MarketStoreNav({initialQuery='',sellHref='/market?sell=open',sho
   useEffect(()=>{const open=(event:Event)=>{setSelectedOrderId((event as CustomEvent<string>).detail??null);openAccountPanel('orders')};window.addEventListener('vivreplay:open-market-orders',open);return()=>window.removeEventListener('vivreplay:open-market-orders',open)},[openAccountPanel]);
   useEffect(()=>{const open=(event:Event)=>{const conversationId=(event as CustomEvent<string>).detail;if(conversationId)openAccountPanel('offers',conversationId)};window.addEventListener('vivreplay:open-market-offer',open);return()=>window.removeEventListener('vivreplay:open-market-offer',open)},[openAccountPanel]);
   useEffect(()=>{const open=()=>{setAccountPanel(null);setInitialProfileTab('payouts');setQuickPanel('profile')};window.addEventListener('vivreplay:open-market-payouts',open);return()=>window.removeEventListener('vivreplay:open-market-payouts',open)},[]);
+  useEffect(()=>{const open=()=>{setAccountPanel(null);setInitialProfileTab('membership');setQuickPanel('profile')};window.addEventListener('vivreplay:open-market-membership',open);return()=>window.removeEventListener('vivreplay:open-market-membership',open)},[]);
   const unreadCount=activityCounts.listings+activityCounts.offers+activityCounts.orders+proPaymentsCount;
   const signInLabel=locale==='ID'?'Masuk':'Sign in';
   const showMobileNav=pathname.includes('/market')||pathname.startsWith('/checkout/');
