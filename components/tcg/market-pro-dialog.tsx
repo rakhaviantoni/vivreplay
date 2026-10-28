@@ -57,6 +57,8 @@ export function MarketProDialog({locale,member=false,profile=null,accountLoading
   const [error,setError]=useState('');
   const [planError,setPlanError]=useState(false);
   const [loaded,setLoaded]=useState(false);
+  const [pendingLoading,setPendingLoading]=useState(false);
+  const [pendingOrder,setPendingOrder]=useState<{id:string;status:string;amount:number;currency:string;billingPeriod:'monthly'|'yearly';paymentMethod:string|null;paymentChannel:string|null;paymentName:string|null;paymentCreated:boolean;expiresAt:string|null}|null>(null);
   const [selectedPayment,setSelectedPayment]=useState<{method:PaymentMethod;channel:string}>({method:'qris',channel:'mpm'});
   const [billingPeriod,setBillingPeriod]=useState<'monthly'|'yearly'>('monthly');
   const isId=locale==='ID';
@@ -64,6 +66,7 @@ export function MarketProDialog({locale,member=false,profile=null,accountLoading
   const route=(path:string)=>isId?`/id${path}`:path;
 
   const join=async()=>{
+    if(pendingOrder?.paymentCreated){setOpen(false);router.push(route(`/checkout/order/${encodeURIComponent(pendingOrder.id)}`));return}
     if(!profile){
       setError(t('Sign in to continue.','Masuk untuk melanjutkan.'));
       window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));
@@ -100,13 +103,29 @@ export function MarketProDialog({locale,member=false,profile=null,accountLoading
     return()=>{active=false};
   },[open,loaded]);
 
-  const amount=billingPeriod==='yearly'?plan?.annualAmount:plan?.amount;
+  useEffect(()=>{
+    if(!open)return;
+    if(!profile){setPendingOrder(null);setPendingLoading(false);return}
+    let active=true;
+    setPendingLoading(true);
+    fetch('/api/checkout/pro/orders',{cache:'no-store'}).then(async response=>{
+      if(!response.ok)throw new Error('Could not load pending plan payments');
+      const result=await response.json() as {orders?:Array<{id:string;status:string;amount:number;currency:string;billingPeriod:'monthly'|'yearly';paymentMethod:string|null;paymentChannel:string|null;paymentName:string|null;paymentCreated:boolean;expiresAt:string|null}>};
+      const pending=(result.orders??[]).find(order=>order.status==='PENDING_PAYMENT')??null;
+      if(active){setPendingOrder(pending);if(pending)setBillingPeriod(pending.billingPeriod)}
+    }).catch(()=>{if(active)setPendingOrder(null)}).finally(()=>{if(active)setPendingLoading(false)});
+    return()=>{active=false};
+  },[open,profile?.id]);
+
+  const amount=pendingOrder?.amount??(billingPeriod==='yearly'?plan?.annualAmount:plan?.amount);
   const annualSavings=Math.max(0,(plan?.standardAmount??plan?.amount??24900)*12-(plan?.annualAmount??249000));
   const monthlyStandardAmount=plan?.standardAmount??plan?.amount??24900;
   const annualSavingsPercent=monthlyStandardAmount>0?Math.round(annualSavings/(monthlyStandardAmount*12)*100):0;
   const paymentOptions=Array.isArray(plan?.paymentChannels)?plan.paymentChannels:defaultPaymentOptions;
   const selectedPaymentOption=paymentOptions.find(option=>option.method===selectedPayment.method&&option.channel===selectedPayment.channel);
-  const paymentFee=estimatePaymentFee(selectedPaymentOption,amount??0);
+  const pendingPaymentOption=pendingOrder?.paymentMethod&&pendingOrder.paymentChannel?paymentOptions.find(option=>option.method===pendingOrder.paymentMethod&&option.channel===pendingOrder.paymentChannel):undefined;
+  const paymentAmount=pendingOrder?.amount??amount??0;
+  const paymentFee=estimatePaymentFee(selectedPaymentOption,paymentAmount);
   const introLimit=plan?.introOfferLimit??null;
   const phone=String(profile?.phone??'').replaceAll(' ','').replaceAll('(','').replaceAll(')','').replaceAll('.','').replaceAll('-','');
   const phoneDigits=phone.startsWith('+')?phone.slice(1):phone;
@@ -129,7 +148,7 @@ export function MarketProDialog({locale,member=false,profile=null,accountLoading
             </>
           ) : amount !== null && amount !== undefined ? (
             <>
-              <div className="market-pro-billing-toggle" role="group" aria-label={t('Membership period','Masa keanggotaan')}>
+              <div className="market-pro-billing-toggle" role="group" aria-label={t('Membership period','Masa keanggotaan')} hidden={Boolean(pendingOrder)}>
                 <button type="button" aria-pressed={billingPeriod==='monthly'} disabled={member} onClick={()=>setBillingPeriod('monthly')}>{t('Monthly','Bulanan')}</button>
                 <button type="button" aria-pressed={billingPeriod==='yearly'} onClick={()=>setBillingPeriod('yearly')}>{member?t('Extend for a year','Perpanjang setahun'):t('Annual','Tahunan')}</button>
               </div>
@@ -151,10 +170,11 @@ export function MarketProDialog({locale,member=false,profile=null,accountLoading
         </div>
         <div className="market-pro-dialog-table-wrap"><MarketMembershipComparison locale={locale} selectedPeriod={billingPeriod} freeListings={plan?.freeMaxActiveListings??10} monthlyListings={plan?.maxActiveListings??500} annualListings={plan?.annualMaxActiveListings??1000} freeDays={plan?.freeDurationDays??7} proDays={plan?.durationDays??30} freeBundle={plan?.freeListingLimits??{maxListingCopies:51,maxCopiesPerCard:4,maxCardTypes:51}} monthlyBundle={plan?.monthlyListingLimits??{maxListingCopies:75,maxCopiesPerCard:10,maxCardTypes:75}} annualBundle={plan?.annualListingLimits??{maxListingCopies:100,maxCopiesPerCard:20,maxCardTypes:100}} freeProductStock={plan?.freeProductStock??10} monthlyProductStock={plan?.monthlyProductStock??50} annualProductStock={plan?.annualProductStock??99} freeFee={plan?.freeCommissionPercent??1.5} proFee={plan?.commissionPercent??0.75} buyerMinimum={plan?.buyerFeeMinimum??2_000} sellerMinimum={plan?.sellerFeeMinimum??1_000} monthlyVouchers={plan?.shippingVouchersPerMonth??2} annualVouchers={plan?.shippingVouchersPerYear??24} loading={loading}/></div>
         {loading?<div className="market-pro-note-skeleton" aria-hidden="true"><i/><i/></div>:<p className="market-pro-dialog-note">{t(`${plan?.shippingVoucherSharePercent??50}% off delivery, up to ${formatMoney(plan?.shippingVoucherCap??5000,'IDR')} per voucher on card orders of ${formatMoney(plan?.shippingVoucherMinSubtotal??MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL,'IDR')} or more.`,`Diskon ongkir ${plan?.shippingVoucherSharePercent??50}%, maksimal ${formatMoney(plan?.shippingVoucherCap??5000,'IDR')} per voucher untuk pesanan kartu minimal ${formatMoney(plan?.shippingVoucherMinSubtotal??MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL,'IDR')}.`)}</p>}
-        {profile&&hasValidPhone&&amount!=null&&<><MarketPaymentMethodPicker layout="compact" locale={locale} options={paymentOptions} amount={amount} selectedMethod={selectedPayment.method} selectedChannel={selectedPayment.channel} onChange={(method,channel)=>setSelectedPayment({method,channel})}/>{paymentFee>0&&<p className="pro-dialog-payment-total">{t('Estimated total','Perkiraan total')}: <strong>{formatMoney(amount+paymentFee,'IDR')}</strong></p>}</>}
+        {pendingOrder&&<div className="market-pro-pending-payment" role="status"><strong>{pendingOrder.paymentCreated?t('A payment is already open','Pembayaran sudah dibuat'):t('You have an unfinished plan checkout','Ada checkout paket yang belum selesai')}</strong><span>{pendingOrder.paymentCreated?t(`Continue the ${pendingPaymentOption?.name??pendingOrder.paymentName??pendingOrder.paymentChannel??'selected'} payment for ${formatMoney(pendingOrder.amount,pendingOrder.currency||'IDR')}.`,`Lanjutkan pembayaran ${pendingPaymentOption?.name??pendingOrder.paymentName??pendingOrder.paymentChannel??'yang dipilih'} sebesar ${formatMoney(pendingOrder.amount,pendingOrder.currency||'IDR')}.`):t('Choose a payment method to finish this checkout.','Pilih metode pembayaran untuk menyelesaikan checkout ini.')}</span></div>}
+        {profile&&hasValidPhone&&amount!=null&&!pendingOrder?.paymentCreated&&<><MarketPaymentMethodPicker layout="compact" locale={locale} options={paymentOptions} amount={paymentAmount} selectedMethod={selectedPayment.method} selectedChannel={selectedPayment.channel} onChange={(method,channel)=>setSelectedPayment({method,channel})}/>{paymentFee>0&&<p className="pro-dialog-payment-total">{t('Estimated total','Perkiraan total')}: <strong>{formatMoney(paymentAmount+paymentFee,'IDR')}</strong></p>}</>}
         {error&&<p className="checkout-error" role="alert">{error}</p>}
         {profile&&member&&<p className="market-pro-member-note">{t('Your current membership stays active. The annual term will be added after it ends.','Keanggotaan Anda tetap aktif. Masa tahunan ditambahkan setelah masa aktif saat ini berakhir.')}</p>}
-        {profile&&!hasValidPhone?<Link className="button market-pro-dialog-join" href={route('/profile')} onClick={()=>setOpen(false)}>{t('Add phone number','Tambahkan nomor telepon')}</Link>:<button type="button" className="button market-pro-dialog-join" disabled={joining||loading||accountLoading||plan?.available===false||amount==null||Boolean(profile&&!selectedPaymentOption)} onClick={()=>void join()}>{joining?t('Opening checkout…','Membuka checkout…'):!profile&&!accountLoading?t('Sign in to join','Masuk untuk bergabung'):member?t('Extend annual membership','Perpanjang paket tahunan'):billingPeriod==='yearly'?t('Get Market Pro Annual','Pilih Market Pro Tahunan'):t('Join Market Pro','Gabung Market Pro')}</button>}
+        {profile&&!hasValidPhone&&!pendingOrder?.paymentCreated?<Link className="button market-pro-dialog-join" href={route('/profile')} onClick={()=>setOpen(false)}>{t('Add phone number','Tambahkan nomor telepon')}</Link>:<button type="button" className="button market-pro-dialog-join" disabled={joining||loading||pendingLoading||accountLoading||plan?.available===false||(amount==null&&!pendingOrder)||Boolean(profile&&!pendingOrder?.paymentCreated&&!selectedPaymentOption)} onClick={()=>void join()}>{joining?t('Opening checkout…','Membuka checkout…'):pendingOrder?.paymentCreated?t('Continue payment','Lanjutkan pembayaran'):pendingOrder?t('Finish checkout','Selesaikan checkout'):!profile&&!accountLoading?t('Sign in to join','Masuk untuk bergabung'):member?t('Extend annual membership','Perpanjang paket tahunan'):billingPeriod==='yearly'?t('Get Market Pro Annual','Pilih Market Pro Tahunan'):t('Join Market Pro','Gabung Market Pro')}</button>}
         {profile&&<button type="button" className="market-pro-history-link" onClick={()=>{setOpen(false);window.dispatchEvent(new Event('vivreplay:open-market-membership'))}}>{t('Plan history','Riwayat paket')}</button>}
       </DialogContent>
     </Dialog>

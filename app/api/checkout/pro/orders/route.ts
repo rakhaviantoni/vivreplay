@@ -2,7 +2,7 @@ import {db,errorResponse,user} from '@/lib/server/store';
 import {ipaymuExpiryTimestamp} from '@/lib/server/ipaymu';
 import {sendMarketEmailOnce} from '@/lib/server/market-notifications';
 
-type MembershipOrder={id:string;status:string;amount:number;currency:string;createdAt:string;paidAt:string|null};
+type MembershipOrder={id:string;status:string;amount:number;currency:string;createdAt:string;paidAt:string|null;paymentId:string|null;details:string;expiresAt:string|null;updatedAt:string|null};
 
 export async function GET(){
   try{
@@ -46,7 +46,10 @@ export async function GET(){
         await sendMarketEmailOnce(profile.id,'pro-expired','Market Pro',expiryValue,`expired:${expiryValue}`);
       }
     }
-    const orders=rows.map(({id,status,amount,currency,createdAt,paidAt})=>({id,status,amount,currency,createdAt,paidAt}));
+    const orders=rows.map(({id,status,amount,currency,createdAt,paidAt,paymentId,details:rawDetails,expiresAt,updatedAt})=>{
+      let details:Record<string,unknown>={};try{const parsed=JSON.parse(rawDetails) as unknown;if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))details=parsed as Record<string,unknown>}catch{}
+      return {id,status,amount,currency,createdAt,paidAt,billingPeriod:details.billingPeriod==='yearly'?'yearly':'monthly',paymentMethod:typeof details.ipaymuPaymentMethod==='string'?details.ipaymuPaymentMethod:null,paymentChannel:typeof details.ipaymuPaymentChannel==='string'?details.ipaymuPaymentChannel:null,paymentName:typeof details.ipaymuPaymentName==='string'?details.ipaymuPaymentName:null,paymentCreated:Boolean(paymentId&&!paymentId.startsWith('CREATING:')&&details.ipaymuPaymentMethod),expiresAt:details.ipaymuPaymentExpiresAt??expiresAt};
+    });
     return Response.json({orders},{headers:{'Cache-Control':'private, no-store, max-age=0','Vary':'Cookie'}});
   }catch(error){return errorResponse(error)}
 }

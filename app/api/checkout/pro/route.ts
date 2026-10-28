@@ -124,10 +124,10 @@ export async function POST(request:Request){
     if(!/^\+?[0-9]{8,16}$/.test(phone))throw new HttpError(400,'Add a valid phone number to your profile before continuing.');
 
     const database=db();
-    const pendingOrders=(await database.prepare(`SELECT id,details,expires_at AS expiresAt,updated_at AS updatedAt
+    const pendingOrders=(await database.prepare(`SELECT id,payment_id AS paymentId,details,expires_at AS expiresAt,updated_at AS updatedAt
       FROM checkout_orders WHERE kind='PRO' AND buyer_id=? AND status='PENDING_PAYMENT'
-      ORDER BY created_at DESC LIMIT 20`).bind(profile.id).all<{id:string;details:string;expiresAt:string|null;updatedAt:string|null}>()).results;
-    let resumableOrder:{id:string;details:string}|null=null;
+      ORDER BY created_at DESC LIMIT 20`).bind(profile.id).all<{id:string;paymentId:string|null;details:string;expiresAt:string|null;updatedAt:string|null}>()).results;
+    let resumableOrder:{id:string;paymentId:string|null;details:string}|null=null;
     for(const pendingOrder of pendingOrders){
       let pendingDetails:Record<string,unknown>={};
       try{const parsed=JSON.parse(pendingOrder.details) as unknown;if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))pendingDetails=parsed as Record<string,unknown>}catch{}
@@ -136,10 +136,8 @@ export async function POST(request:Request){
         :null;
       const pendingStoredExpiry=pendingOrder.expiresAt?Date.parse(`${pendingOrder.expiresAt.replace(' ','T')}Z`):null;
       const pendingExpiry=pendingPaymentExpiry??(pendingStoredExpiry!==null&&Number.isFinite(pendingStoredExpiry)?pendingStoredExpiry:null);
-      const pendingPeriod=pendingDetails.billingPeriod==='yearly'?'yearly':'monthly';
-      if(pendingPeriod!==billingPeriod)continue;
       if(pendingExpiry===null||pendingExpiry>Date.now()){
-        resumableOrder={id:pendingOrder.id,details:pendingOrder.details};
+        resumableOrder={id:pendingOrder.id,paymentId:pendingOrder.paymentId,details:pendingOrder.details};
         break;
       }
       await database.prepare(`UPDATE checkout_orders SET status='EXPIRED',updated_at=CURRENT_TIMESTAMP
@@ -149,7 +147,7 @@ export async function POST(request:Request){
       await updatePendingPaymentChoice(database,resumableOrder.id,paymentMethod,paymentChannel);
       let pendingDetails:Record<string,unknown>={};
       try{const parsed=JSON.parse(resumableOrder.details) as unknown;if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))pendingDetails=parsed as Record<string,unknown>}catch{}
-      return Response.json({id:resumableOrder.id,checkoutUrl:`/checkout/order/${encodeURIComponent(resumableOrder.id)}`,introOffer:Boolean(pendingDetails.introOffer)},{status:200});
+      return Response.json({id:resumableOrder.id,checkoutUrl:`/checkout/order/${encodeURIComponent(resumableOrder.id)}`,introOffer:Boolean(pendingDetails.introOffer),billingPeriod:pendingDetails.billingPeriod==='yearly'?'yearly':'monthly',paymentCreated:Boolean(resumableOrder.paymentId&&!resumableOrder.paymentId.startsWith('CREATING:'))},{status:200});
     }
     const intro=await introStatus(profile.id,true,pricing);
     if(billingPeriod==='monthly'&&intro.pendingOrderId){await updatePendingPaymentChoice(db(),intro.pendingOrderId,paymentMethod,paymentChannel);return Response.json({id:intro.pendingOrderId,checkoutUrl:`/checkout/order/${encodeURIComponent(intro.pendingOrderId)}`,introOffer:true,billingPeriod},{status:200});}
