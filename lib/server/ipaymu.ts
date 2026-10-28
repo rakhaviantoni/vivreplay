@@ -81,6 +81,14 @@ async function signedIpaymuPost(path:string,body:Record<string,unknown>){
 
 export type IpaymuHistoryTransaction={transactionId:string;referenceId:string|null;amount:number|null;status:number|null;type:string;createdAt:string};
 
+export function ipaymuPayableTotal(amount:number,method:unknown,fee:unknown,reportedTotal:unknown){
+  if(method==='qris')return amount;
+  const feeAmount=Number(fee);
+  const parsedTotal=Number(reportedTotal);
+  const minimumTotal=amount+(Number.isFinite(feeAmount)&&feeAmount>0?Math.round(feeAmount):0);
+  return Math.max(Number.isSafeInteger(parsedTotal)&&parsedTotal>=amount?parsedTotal:amount,minimumTotal);
+}
+
 export async function findIpaymuTransactionsByReference(referenceId:string,startDate:string,endDate:string){
   const matches:IpaymuHistoryTransaction[]=[];
   const append=(rows:Array<{TransactionId?:string|number;ReferenceId?:string|null;Amount?:string|number;Status?:string|number;StatusDesc?:string;TypeDesc?:string;CreatedDate?:string}>)=>{

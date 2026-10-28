@@ -1,6 +1,6 @@
 import {db,errorResponse,user,HttpError} from '@/lib/server/store';
 import {getCurrentUser} from '@/lib/server/auth';
-import {createIpaymuDirectPayment,findIpaymuTransactionsByReference,getEnabledIpaymuPaymentChannels,getIpaymuMode,getIpaymuPaymentChannels,getIpaymuTransaction,hasIpaymuPaymentConfig,hasMarketIpaymuPaymentConfig,ipaymuExpiryTimestamp,ipaymuQrImageUrl} from '@/lib/server/ipaymu';
+import {createIpaymuDirectPayment,findIpaymuTransactionsByReference,getEnabledIpaymuPaymentChannels,getIpaymuMode,getIpaymuPaymentChannels,getIpaymuTransaction,hasIpaymuPaymentConfig,hasMarketIpaymuPaymentConfig,ipaymuExpiryTimestamp,ipaymuPayableTotal,ipaymuQrImageUrl} from '@/lib/server/ipaymu';
 import {sendMarketEmail} from '@/lib/server/market-notifications';
 import {sealedProductById,sealedProductKinds} from '@/lib/market/sealed-products';
 
@@ -86,7 +86,7 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
             details.ipaymuTransactionId=latest.transactionId;
             details.ipaymuSessionId=sessionId;
             details.ipaymuPaymentFee=Number.isFinite(Number(gateway.Fee))?Math.round(Number(gateway.Fee)):null;
-            details.ipaymuPaymentTotal=Number.isFinite(Number(gateway.Total))?Math.round(Number(gateway.Total)):order.amount;
+            details.ipaymuPaymentTotal=ipaymuPayableTotal(order.amount,method,details.ipaymuPaymentFee,gateway.Total);
             details.ipaymuPaymentCreatedAt=gateway.CreatedDate??latest.createdAt;
             details.ipaymuPaymentExpiresAt=gateway.ExpiredDate??null;
             details.ipaymuMode=getIpaymuMode();
@@ -167,7 +167,7 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
       if(!existingQrUrl)throw new HttpError(502,'Could not load the payment code. Please try again.');
       return Response.json({paymentMethod:'qris',qrImage:`/api/checkout/order/${encodeURIComponent(order.id)}/qris`,qrString:details.ipaymuPaymentQrString??null,paymentFee:details.ipaymuPaymentFee??null,expiresAt:new Date(existingPaymentExpiry).toISOString(),reused:true});
     }
-    if(order.paymentId&&details.ipaymuPaymentMethod&&details.ipaymuPaymentMethod!=='qris')return Response.json({checkoutUrl:existingUrl,paymentMethod:details.ipaymuPaymentMethod,paymentChannel:details.ipaymuPaymentChannel??null,paymentNo:details.ipaymuPaymentNo??null,paymentName:details.ipaymuPaymentName??null,instructionsUrl:details.ipaymuPaymentInstructionsUrl??null,paymentFee:details.ipaymuPaymentFee??null,paymentTotal:details.ipaymuPaymentTotal??order.amount,expiresAt:details.ipaymuPaymentExpiresAt??order.expiresAt,reused:true});
+    if(order.paymentId&&details.ipaymuPaymentMethod&&details.ipaymuPaymentMethod!=='qris')return Response.json({checkoutUrl:existingUrl,paymentMethod:details.ipaymuPaymentMethod,paymentChannel:details.ipaymuPaymentChannel??null,paymentNo:details.ipaymuPaymentNo??null,paymentName:details.ipaymuPaymentName??null,instructionsUrl:details.ipaymuPaymentInstructionsUrl??null,paymentFee:details.ipaymuPaymentFee??null,paymentTotal:ipaymuPayableTotal(order.amount,details.ipaymuPaymentMethod,details.ipaymuPaymentFee,details.ipaymuPaymentTotal),expiresAt:details.ipaymuPaymentExpiresAt??order.expiresAt,reused:true});
 
     const baseUrl=process.env.VIVREPLAY_PUBLIC_URL?.trim().replace(/\/$/,'')||'https://vivreplay.com';
     const callbackOrigin=new URL(request.url).origin;
@@ -252,7 +252,7 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
         if(!latestQrUrl)throw new HttpError(502,'Could not load the payment code. Please try again.');
         return Response.json({paymentMethod:'qris',qrImage:`/api/checkout/order/${encodeURIComponent(order.id)}/qris`,qrString:latestDetails.ipaymuPaymentQrString??null,paymentFee:latestDetails.ipaymuPaymentFee??null,expiresAt:latestDetails.ipaymuPaymentExpiresAt??null,reused:true});
       }
-      if(latest?.paymentId&&typeof latestDetails.ipaymuPaymentMethod==='string')return Response.json({checkoutUrl:latestDetails.ipaymuCheckoutUrl??null,paymentMethod:latestDetails.ipaymuPaymentMethod,paymentChannel:latestDetails.ipaymuPaymentChannel??null,paymentNo:latestDetails.ipaymuPaymentNo??null,paymentName:latestDetails.ipaymuPaymentName??null,instructionsUrl:latestDetails.ipaymuPaymentInstructionsUrl??null,paymentFee:latestDetails.ipaymuPaymentFee??null,paymentTotal:latestDetails.ipaymuPaymentTotal??order.amount,expiresAt:latestDetails.ipaymuPaymentExpiresAt??null,reused:true});
+      if(latest?.paymentId&&typeof latestDetails.ipaymuPaymentMethod==='string')return Response.json({checkoutUrl:latestDetails.ipaymuCheckoutUrl??null,paymentMethod:latestDetails.ipaymuPaymentMethod,paymentChannel:latestDetails.ipaymuPaymentChannel??null,paymentNo:latestDetails.ipaymuPaymentNo??null,paymentName:latestDetails.ipaymuPaymentName??null,instructionsUrl:latestDetails.ipaymuPaymentInstructionsUrl??null,paymentFee:latestDetails.ipaymuPaymentFee??null,paymentTotal:ipaymuPayableTotal(order.amount,latestDetails.ipaymuPaymentMethod,latestDetails.ipaymuPaymentFee,latestDetails.ipaymuPaymentTotal),expiresAt:latestDetails.ipaymuPaymentExpiresAt??null,reused:true});
       throw new HttpError(409,'This checkout has already been updated. Refresh the page.');
     }
     return Response.json({paymentMethod:payment.paymentMethod,paymentChannel:payment.paymentChannel,qrImage:payment.qrImage?`/api/checkout/order/${encodeURIComponent(order.id)}/qris`:null,qrString:payment.qrString,paymentNo:payment.paymentNo,paymentName:details.ipaymuPaymentName,instructionsUrl:payment.instructionsUrl,checkoutUrl:payment.checkoutUrl,paymentFee:payment.fee,paymentTotal:details.ipaymuPaymentTotal,expiresAt:payment.expiresAt,reused:false});
