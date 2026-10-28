@@ -121,7 +121,6 @@ export async function POST(request:Request){
     if(profile.tier==='pro'&&billingPeriod!=='yearly')throw new HttpError(409,'Your Pro membership is already active. Choose the annual plan to extend it.');
     const name=String(profile.display_name||account.name||account.email.split('@')[0]||'VivrePlay member').trim();
     const phone=String(profile.phone??'').replace(/[\s().-]/g,'');
-    if(!/^\+?[0-9]{8,16}$/.test(phone))throw new HttpError(400,'Add a valid phone number to your profile before continuing.');
 
     const database=db();
     const pendingOrders=(await database.prepare(`SELECT id,payment_id AS paymentId,details,expires_at AS expiresAt,updated_at AS updatedAt
@@ -149,6 +148,7 @@ export async function POST(request:Request){
       try{const parsed=JSON.parse(resumableOrder.details) as unknown;if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))pendingDetails=parsed as Record<string,unknown>}catch{}
       return Response.json({id:resumableOrder.id,checkoutUrl:`/checkout/order/${encodeURIComponent(resumableOrder.id)}`,introOffer:Boolean(pendingDetails.introOffer),billingPeriod:pendingDetails.billingPeriod==='yearly'?'yearly':'monthly',paymentCreated:Boolean(resumableOrder.paymentId&&!resumableOrder.paymentId.startsWith('CREATING:'))},{status:200});
     }
+    if(!/^\+?[0-9]{8,16}$/.test(phone))throw new HttpError(400,'Add a valid phone number to your profile before continuing.');
     const intro=await introStatus(profile.id,true,pricing);
     if(billingPeriod==='monthly'&&intro.pendingOrderId){await updatePendingPaymentChoice(db(),intro.pendingOrderId,paymentMethod,paymentChannel);return Response.json({id:intro.pendingOrderId,checkoutUrl:`/checkout/order/${encodeURIComponent(intro.pendingOrderId)}`,introOffer:true,billingPeriod},{status:200});}
     if(billingPeriod==='monthly'&&body.introOffer===true&&!intro.eligible)throw new HttpError(409,'The launch offer is no longer available. Refresh the page to see the current price.');
