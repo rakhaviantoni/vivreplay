@@ -51,6 +51,43 @@ html[data-theme='dark'] .market-quick-profile-form input,html[data-theme='dark']
 @media(max-width:520px){.market-membership-history-row{grid-template-columns:minmax(0,1fr) auto;gap:6px 9px}.market-membership-history-row>span{grid-column:1;grid-row:auto}.market-membership-history-row>b{grid-column:2;grid-row:1}.market-membership-history-row>strong{grid-column:1;grid-row:auto;justify-self:start}.market-membership-history-row>button{grid-column:2;grid-row:2;justify-self:end}.market-pro-history-row{grid-template-columns:minmax(0,1fr) auto;gap:6px}.market-pro-history-row>span{grid-column:1}.market-pro-history-row>b{grid-column:2;grid-row:1}.market-pro-history-row>strong{grid-column:1;grid-row:2;justify-self:start}.market-pro-history-row>button{grid-column:2;grid-row:2;justify-self:end}}
 @media(prefers-reduced-motion:reduce){.market-membership-profile-skeleton i,.market-membership-history-skeleton i,.market-pro-history-skeleton i,.market-pro-payment-loading i{animation:none}}
 .market-pro-pending-checkout{gap:10px;margin:0}.market-pro-pending-copy{display:grid;gap:3px}.market-pro-pending-checkout .checkout-payment-methods.is-compact{margin:0}.market-pro-pending-checkout .checkout-payment-methods.is-compact h2{font-size:11px!important}.market-pro-pending-checkout .pro-dialog-payment-total{margin:0}
+
+/* Keep an existing membership payment in the same compact, readable panel at every width. */
+.market-pro-payment-view{box-sizing:border-box;width:100%;min-width:0;gap:12px;padding:14px;border-radius:12px}
+.market-pro-payment-view-heading{min-width:0}
+.market-pro-payment-view-heading>div{min-width:0}
+.market-pro-payment-qr{width:min(100%,200px);max-height:200px}
+.market-pro-payment-number{min-width:0;flex-wrap:wrap}
+.market-pro-payment-number button{flex:0 0 auto;min-width:64px;min-height:38px}
+.market-pro-payment-open{width:fit-content;max-width:100%;min-height:40px;box-sizing:border-box}
+.market-pro-payment-total{align-items:center;flex-wrap:wrap;padding-top:10px}
+.market-pro-payment-actions{display:grid;gap:8px;min-width:0;align-content:center}
+.market-pro-payment-actions>.button{box-sizing:border-box;width:100%;min-height:42px;justify-content:center}
+.market-pro-payment-instructions{box-sizing:border-box;width:100%;min-height:40px;justify-content:center;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--accent);font:700 11px var(--game-font);text-decoration:none}
+.market-pro-payment-view:has(.market-pro-payment-qr):has(.market-pro-payment-actions){grid-template-columns:minmax(150px,200px) minmax(0,1fr);align-items:center}
+.market-pro-payment-view:has(.market-pro-payment-qr):has(.market-pro-payment-actions)>.market-pro-payment-view-heading,.market-pro-payment-view:has(.market-pro-payment-qr):has(.market-pro-payment-actions)>.market-pro-payment-fee,.market-pro-payment-view:has(.market-pro-payment-qr):has(.market-pro-payment-actions)>.market-pro-payment-total{grid-column:1/-1}
+.market-pro-payment-view:has(.market-pro-payment-qr):has(.market-pro-payment-actions)>.market-pro-payment-qr{grid-column:1;width:100%}
+.market-pro-payment-view:has(.market-pro-payment-qr):has(.market-pro-payment-actions)>.market-pro-payment-actions{grid-column:2}
+.market-pro-payment-loading{box-sizing:border-box;width:100%;min-width:0;min-height:46px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);line-height:1.45}
+.market-pro-payment-loading>.market-pro-pending-payment{width:100%;box-sizing:border-box}
+.market-pro-payment-loading>.market-pro-pending-payment button{width:fit-content;min-height:38px;padding:0 12px}
+.market-membership-quick-actions:has(.market-pro-payment-view),.market-membership-quick-actions:has(.market-pro-payment-loading){display:block;padding:0;border:0;background:transparent}
+.market-membership-quick-actions>.market-pro-payment-view,.market-membership-quick-actions>.market-pro-payment-loading{margin:0}
+.market-membership-quick:has(.market-pro-payment-view),.market-membership-quick:has(.market-pro-payment-loading){display:flex;flex-direction:column}
+.market-membership-quick:has(.market-pro-payment-view)>.market-membership-active,.market-membership-quick:has(.market-pro-payment-loading)>.market-membership-active{order:-2}
+.market-membership-quick:has(.market-pro-payment-view)>.market-membership-quick-actions,.market-membership-quick:has(.market-pro-payment-loading)>.market-membership-quick-actions{order:-1}
+@media(max-width:620px){
+  .market-pro-payment-view{gap:11px;padding:12px}
+  .market-pro-payment-number{align-items:stretch}
+  .market-pro-payment-number>span{flex:1 1 140px}
+  .market-pro-payment-number button,.market-pro-payment-open{min-height:42px}
+  .market-pro-payment-open{width:100%}
+  .market-pro-payment-view:has(.market-pro-payment-qr):has(.market-pro-payment-actions){grid-template-columns:minmax(0,1fr)}
+  .market-pro-payment-view:has(.market-pro-payment-qr):has(.market-pro-payment-actions)>.market-pro-payment-view-heading,.market-pro-payment-view:has(.market-pro-payment-qr):has(.market-pro-payment-actions)>.market-pro-payment-fee,.market-pro-payment-view:has(.market-pro-payment-qr):has(.market-pro-payment-actions)>.market-pro-payment-total,.market-pro-payment-view:has(.market-pro-payment-qr):has(.market-pro-payment-actions)>.market-pro-payment-qr,.market-pro-payment-view:has(.market-pro-payment-qr):has(.market-pro-payment-actions)>.market-pro-payment-actions{grid-column:1}
+  .market-pro-payment-total{gap:6px 10px}
+  .market-pro-payment-loading{padding:10px}
+  .market-pro-payment-loading>.market-pro-pending-payment button{width:100%}
+}
 @media(max-width:520px){.market-pro-dialog{padding:19px!important}.market-pro-dialog-heading{margin:-19px -19px 7px!important;padding:18px 50px 15px 19px!important}.market-pro-dialog [data-slot='dialog-body']{gap:4px!important}.market-pro-dialog-table th,.market-pro-dialog-table td{padding:8px 5px;font-size:11px}}
 
 /* Keep the plan choice and benefits visible without a tall promotional header. */
