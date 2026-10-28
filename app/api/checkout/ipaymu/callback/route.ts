@@ -16,7 +16,8 @@ export async function POST(request:Request){
     if(!order)return Response.json({error:'Order was not found.'},{status:404});
     let details:Record<string,unknown>={};try{details=JSON.parse(order.details) as Record<string,unknown>}catch{}
     const validPaymentIds=[order.paymentId,details.ipaymuTransactionId].filter(Boolean).map(String);
-    if(!validPaymentIds.includes(sessionId)&&!validPaymentIds.includes(transactionId))return Response.json({error:'Payment session does not match this order.'},{status:409});
+    const claimedAttempt=Boolean(callbackReference(payload)===order.id&&(order.paymentId?.startsWith('CREATING:')||(!order.paymentId&&typeof details.ipaymuSelectedMethod==='string')));
+    if(!validPaymentIds.includes(sessionId)&&!validPaymentIds.includes(transactionId)&&!claimedAttempt)return Response.json({error:'Payment session does not match this order.'},{status:409});
     if(callbackIsSuccessful(payload)){
       const paidAmount=callbackAmount(payload);
       const expectedAmounts=[order.amount,Number(details.ipaymuPaymentTotal)].filter((value,index,array)=>Number.isSafeInteger(value)&&value>0&&array.indexOf(value)===index);
@@ -33,7 +34,16 @@ export async function POST(request:Request){
         if(order.kind==='PRO'&&order.status==='PAYMENT_REVIEW')await sendMarketEmailOnce(order.buyerId,'pro-payment-review','Market Pro',order.id,`payment-review:${order.id}`);
         return Response.json({status:'already_processed'});
       }
-      const fulfilled=await fulfillCheckoutOrder(database,{...order,paymentId:order.paymentId});
+      let paymentId=order.paymentId;
+      if(claimedAttempt){
+        paymentId=sessionId||transactionId;
+        const bound=await database.prepare("UPDATE checkout_orders SET payment_id=?,details=json_set(details,'$.ipaymuSessionId',?,'$.ipaymuTransactionId',?),updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id IS ?").bind(paymentId,sessionId||paymentId,transactionId||paymentId,order.id,order.paymentId).run();
+        if(!bound.meta.changes){
+          const latest=await database.prepare("SELECT payment_id AS paymentId,status FROM checkout_orders WHERE id=?").bind(order.id).first<{paymentId:string|null;status:string}>();
+          if(latest?.status!=='PENDING_PAYMENT'||latest.paymentId!==paymentId)return Response.json({status:'already_processed'});
+        }
+      }
+      const fulfilled=await fulfillCheckoutOrder(database,{...order,paymentId});
       if(!fulfilled)return Response.json({status:'already_processed'});
       if(order.kind==='MARKET'){
         const title=order.title||'Market order';
@@ -46,7 +56,7 @@ export async function POST(request:Request){
     if(order.status!=='PENDING_PAYMENT')return Response.json({status:'already_processed'});
     const nextStatus=callbackStatus(payload);
     if(nextStatus!=='PENDING_PAYMENT'){
-      const updated=await database.prepare('UPDATE checkout_orders SET status=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status=\'PENDING_PAYMENT\' AND payment_id=?').bind(nextStatus,orderId,order.paymentId).run();
+      const updated=await database.prepare('UPDATE checkout_orders SET status=?,payment_id=CASE WHEN ? THEN ? ELSE payment_id END,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status=\'PENDING_PAYMENT\' AND payment_id IS ?').bind(nextStatus,claimedAttempt?1:0,sessionId||transactionId,orderId,order.paymentId).run();
       if(updated.meta.changes&&nextStatus==='EXPIRED'&&order.kind==='MARKET'){
         const title=order.title||'Market order';
         await Promise.all([sendMarketEmail(order.buyerId,'order-expired',title,order.id),...(order.sellerId?[sendMarketEmail(order.sellerId,'order-expired',title,order.id)]:[])]);

@@ -68,6 +68,39 @@ async function hmac(value:string,key:string){
   return hex(await crypto.subtle.sign('HMAC',cryptoKey,encoder.encode(value)));
 }
 
+async function signedIpaymuPost(path:string,body:Record<string,unknown>){
+  const {va,apiKey,baseUrl}=configuration();
+  const bodyText=JSON.stringify(body);
+  const now=new Date();
+  const timestamp=`${now.getUTCFullYear()}${String(now.getUTCMonth()+1).padStart(2,'0')}${String(now.getUTCDate()).padStart(2,'0')}${String(now.getUTCHours()).padStart(2,'0')}${String(now.getUTCMinutes()).padStart(2,'0')}${String(now.getUTCSeconds()).padStart(2,'0')}`;
+  const response=await fetch(`${baseUrl}/api/v2/${path}`,{method:'POST',headers:{'Content-Type':'application/json',va,timestamp,signature:await requestSignature(bodyText,va,apiKey)},body:bodyText,cache:'no-store',signal:AbortSignal.timeout(12_000)});
+  const payload=await response.json().catch(()=>null) as {Status?:number;Success?:boolean;Data?:unknown}|null;
+  if(!response.ok||payload?.Status!==200||!payload.Data)throw new Error('iPaymu transaction details could not be checked.');
+  return payload.Data;
+}
+
+export type IpaymuHistoryTransaction={transactionId:string;referenceId:string|null;amount:number;status:number;type:string;createdAt:string};
+
+export async function findIpaymuTransactionsByReference(referenceId:string,startDate:string,endDate:string){
+  const matches:IpaymuHistoryTransaction[]=[];
+  for(let page=1;page<=5;page++){
+    const data=await signedIpaymuPost('history',{date:'created_at',startdate:startDate,enddate:endDate,page:String(page),limit:'20',orderBy:'created_at',order:'DESC',lang:'en'}) as {Total_Page?:number;Results?:Array<{TransactionId?:string|number;ReferenceId?:string|null;Amount?:string|number;Status?:string|number;TypeDesc?:string;CreatedDate?:string}>};
+    const results=Array.isArray(data.Results)?data.Results:[];
+    for(const row of results){
+      if(String(row.ReferenceId??'')!==referenceId)continue;
+      const amount=Number(row.Amount),status=Number(row.Status),transactionId=String(row.TransactionId??'');
+      if(!transactionId||!Number.isSafeInteger(amount)||!Number.isFinite(status))continue;
+      matches.push({transactionId,referenceId,amount,status,type:String(row.TypeDesc??''),createdAt:String(row.CreatedDate??'')});
+    }
+    if(page>=Number(data.Total_Page??1)||results.length<20)break;
+  }
+  return matches;
+}
+
+export async function getIpaymuTransaction(transactionId:string){
+  return await signedIpaymuPost('transaction',{transactionId}) as {TransactionId?:string|number;SessionId?:string;ReferenceId?:string|null;Amount?:number|string;Fee?:number|string;Status?:number|string;TypeDesc?:string;Notes?:string;CreatedDate?:string;ExpiredDate?:string;Via?:string;Channel?:string;PaymentNo?:string|number;PaymentName?:string;Url?:string;PaymentInstructionsDoc?:string;Total?:number|string};
+}
+
 async function requestSignature(bodyText:string,va:string,apiKey:string){
   const digest=hex(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(bodyText)));
   return hmac(`POST:${va}:${digest}:${apiKey}`,apiKey);
@@ -194,7 +227,7 @@ export async function createIpaymuDirectPayment(input:{orderId:string;amount:num
   const bodyText=JSON.stringify(body);
   const now=new Date();
   const timestamp=`${now.getUTCFullYear()}${String(now.getUTCMonth()+1).padStart(2,'0')}${String(now.getUTCDate()).padStart(2,'0')}${String(now.getUTCHours()).padStart(2,'0')}${String(now.getUTCMinutes()).padStart(2,'0')}${String(now.getUTCSeconds()).padStart(2,'0')}`;
-  const response=await fetch(`${baseUrl}/api/v2/payment/direct`,{method:'POST',headers:{'Content-Type':'application/json',va,timestamp,signature:await requestSignature(bodyText,va,apiKey)},body:bodyText,cache:'no-store'});
+  const response=await fetch(`${baseUrl}/api/v2/payment/direct`,{method:'POST',headers:{'Content-Type':'application/json',va,timestamp,signature:await requestSignature(bodyText,va,apiKey)},body:bodyText,cache:'no-store',signal:AbortSignal.timeout(20_000)});
   const payload=await response.json().catch(()=>null) as {Status?:number;Message?:string;Data?:{SessionId?:string|number;SessionID?:string|number;TransactionId?:string|number;QrImage?:string;QrString?:string;Url?:string;PaymentNo?:string|number;PaymentName?:string;PaymentInstructionsDoc?:string;Total?:number|string;Fee?:number|string;Expired?:string}}|null;
   const data=payload?.Data;
   const transactionId=data?.TransactionId;
@@ -213,7 +246,7 @@ export async function createIpaymuDirectPayment(input:{orderId:string;amount:num
   const parsedQr=input.method==='qris'&&qrImage?ipaymuQrImageUrl(qrImage,baseUrl.includes('sandbox')?'sandbox':'production'):null;
   if(input.method==='qris'&&(!qrImage||!parsedQr))throw new Error('We couldn’t open the QR code. Choose another method or try again.');
   let checkoutUrl:string|null=null;
-  if(url){try{const parsedUrl=new URL(url);const allowedHosts=baseUrl==='https://sandbox.ipaymu.com'?['sandbox-payment.ipaymu.com','sandbox.ipaymu.com']:['my.ipaymu.com','payment.ipaymu.com'];if(parsedUrl.protocol!=='https:'||!allowedHosts.includes(parsedUrl.hostname))throw new Error();checkoutUrl=parsedUrl.toString()}catch{throw new Error('The payment page could not be opened. Choose another method or try again.')}}
+  if(url){try{const parsedUrl=new URL(url);if(parsedUrl.protocol!=='https:'||parsedUrl.username||parsedUrl.password||(parsedUrl.port&&parsedUrl.port!=='443')||!parsedUrl.hostname||parsedUrl.hostname==='localhost')throw new Error();checkoutUrl=parsedUrl.toString()}catch{throw new Error('The payment page could not be opened. Choose another method or try again.')}}
   if(input.method!=='qris'&&!paymentNo&&!checkoutUrl)throw new Error('Payment instructions aren’t available. Choose another method or try again later.');
   let instructionsUrl:string|null=null;
   if(typeof data.PaymentInstructionsDoc==='string'){try{const parsedUrl=new URL(data.PaymentInstructionsDoc);if(parsedUrl.protocol==='https:'&&(parsedUrl.hostname==='storage.googleapis.com'||parsedUrl.hostname==='ipaymu.com'||parsedUrl.hostname.endsWith('.ipaymu.com')))instructionsUrl=parsedUrl.toString()}catch{}}
