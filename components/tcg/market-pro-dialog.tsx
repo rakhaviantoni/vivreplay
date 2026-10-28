@@ -3,11 +3,11 @@
 import Link from '@/components/ui/localized-link';
 import {useLocalizedRouter as useRouter} from '@/lib/use-localized-router';
 import {useEffect,useState} from 'react';
-import {CrownIcon as Crown} from '@phosphor-icons/react';
+import {ArrowSquareOutIcon as ExternalLink,CheckIcon as Check,CopySimpleIcon as Copy,CrownIcon as Crown} from '@phosphor-icons/react';
 import {formatMoney} from '@/packages/domain';
 import {Dialog,DialogContent,DialogHeader,DialogTitle} from '@/components/ui/dialog';
 import {MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL} from '@/lib/market/policy';
-import {MarketPaymentMethodPicker,defaultPaymentOptions,estimatePaymentFee,type PaymentMethod,type PaymentOption} from '@/components/tcg/market-payment-method-picker';
+import {MarketPaymentMethodPicker,defaultPaymentOptions,estimatePaymentFee,paymentInstrumentLabel,type PaymentMethod,type PaymentOption} from '@/components/tcg/market-payment-method-picker';
 import {MarketIntroOfferProgress} from '@/components/tcg/market-intro-offer-progress';
 import {MarketMembershipComparison} from '@/components/tcg/market-membership-comparison';
 
@@ -49,6 +49,9 @@ type PlanPreview={
   shippingVoucherCap:number;
 };
 
+type ProHistoryOrder={id:string;status:string;amount:number;currency:string;createdAt:string;paidAt:string|null;billingPeriod:'monthly'|'yearly';paymentMethod:string|null;paymentChannel:string|null;paymentName:string|null;paymentCreated:boolean;expiresAt:string|null;selectedMethod:string|null;selectedChannel:string|null};
+type ProPaymentView={id:string;status:string;paymentMethod:string|null;paymentName:string|null;paymentNo:string|null;paymentInstructionsUrl:string|null;paymentQrImage:string|null;checkoutUrl:string|null;paymentFee:number|null;paymentTotal:number;amount:number;currency:string;paymentNeedsHelp:boolean};
+
 export function MarketProDialog({locale,member=false,profile=null,accountLoading=false}:{locale:'EN'|'ID';member?:boolean;profile?:Record<string,unknown>|null;accountLoading?:boolean}){
   const router=useRouter();
   const [open,setOpen]=useState(false);
@@ -60,14 +63,35 @@ export function MarketProDialog({locale,member=false,profile=null,accountLoading
   const [planRefreshKey,setPlanRefreshKey]=useState(0);
   const [pendingLoading,setPendingLoading]=useState(false);
   const [pendingOrder,setPendingOrder]=useState<{id:string;status:string;amount:number;currency:string;billingPeriod:'monthly'|'yearly';paymentMethod:string|null;paymentChannel:string|null;paymentName:string|null;selectedMethod:string|null;selectedChannel:string|null;paymentCreated:boolean;expiresAt:string|null}|null>(null);
+  const [planHistory,setPlanHistory]=useState<ProHistoryOrder[]>([]);
+  const [historyLoading,setHistoryLoading]=useState(false);
+  const [paymentView,setPaymentView]=useState<ProPaymentView|null>(null);
+  const [paymentViewLoading,setPaymentViewLoading]=useState(false);
+  const [copiedPaymentNo,setCopiedPaymentNo]=useState(false);
   const [selectedPayment,setSelectedPayment]=useState<{method:PaymentMethod;channel:string}>({method:'qris',channel:'mpm'});
   const [billingPeriod,setBillingPeriod]=useState<'monthly'|'yearly'>('monthly');
   const isId=locale==='ID';
   const t=(en:string,id:string)=>isId?id:en;
   const route=(path:string)=>isId?`/id${path}`:path;
 
+  const openPayment=async(orderId:string,createInstrument:boolean)=>{
+    setPaymentViewLoading(true);setError('');setPaymentView(null);
+    try{
+      if(createInstrument){
+        const instrumentResponse=await fetch(`/api/checkout/order/${encodeURIComponent(orderId)}/instrument`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({paymentMethod:selectedPayment.method,paymentChannel:selectedPayment.channel})});
+        const instrument=await instrumentResponse.json() as {error?:string};
+        if(!instrumentResponse.ok)throw new Error(instrument.error??t('Payment could not be started.','Pembayaran tidak dapat dimulai.'));
+      }
+      const response=await fetch(`/api/checkout/order/${encodeURIComponent(orderId)}`,{cache:'no-store',headers:{'Cache-Control':'no-cache'}});
+      const order=await response.json() as ProPaymentView&{error?:string};
+      if(!response.ok)throw new Error(order.error??t('Payment details could not be loaded.','Detail pembayaran tidak dapat dimuat.'));
+      setPaymentView(order);
+    }catch(cause){setError(cause instanceof Error?cause.message:t('Payment details could not be loaded.','Detail pembayaran tidak dapat dimuat.'))}
+    finally{setPaymentViewLoading(false)}
+  };
+
   const join=async()=>{
-    if(pendingOrder?.paymentCreated){setOpen(false);router.push(route(`/checkout/order/${encodeURIComponent(pendingOrder.id)}`));return}
+    if(pendingOrder?.paymentCreated){await openPayment(pendingOrder.id,false);return}
     if(!profile){
       setError(t('Sign in to continue.','Masuk untuk melanjutkan.'));
       window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));
@@ -82,10 +106,9 @@ export function MarketProDialog({locale,member=false,profile=null,accountLoading
     setJoining(true);setError('');
     try{
       const response=await fetch('/api/checkout/pro',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({billingPeriod,introOffer:billingPeriod==='monthly'&&Boolean(plan?.introOffer),paymentMethod:selectedPayment.method,paymentChannel:selectedPayment.channel})});
-      const result=await response.json() as {checkoutUrl?:string;error?:string};
-      if(!response.ok||!result.checkoutUrl)throw new Error(result.error??t('Market Pro checkout is unavailable.','Checkout Market Pro tidak tersedia.'));
-      setOpen(false);
-      router.push(result.checkoutUrl.startsWith('/')?route(result.checkoutUrl):result.checkoutUrl);
+      const result=await response.json() as {id?:string;error?:string};
+      if(!response.ok||!result.id)throw new Error(result.error??t('Market Pro checkout is unavailable.','Checkout Market Pro tidak tersedia.'));
+      await openPayment(result.id,true);
     }catch(cause){setError(cause instanceof Error?cause.message:t('Market Pro checkout is unavailable.','Checkout Market Pro tidak tersedia.'))}
     finally{setJoining(false)}
   };
@@ -110,13 +133,13 @@ export function MarketProDialog({locale,member=false,profile=null,accountLoading
     if(!open)return;
     if(!profile){setPendingOrder(null);setPendingLoading(false);return}
     let active=true;
-    setPendingLoading(true);
+    setPendingLoading(true);setHistoryLoading(true);
     fetch('/api/checkout/pro/orders',{cache:'no-store'}).then(async response=>{
       if(!response.ok)throw new Error('Could not load pending plan payments');
-      const result=await response.json() as {orders?:Array<{id:string;status:string;amount:number;currency:string;billingPeriod:'monthly'|'yearly';paymentMethod:string|null;paymentChannel:string|null;paymentName:string|null;selectedMethod:string|null;selectedChannel:string|null;paymentCreated:boolean;expiresAt:string|null}>};
+      const result=await response.json() as {orders?:ProHistoryOrder[]};
       const pending=(result.orders??[]).find(order=>order.status==='PENDING_PAYMENT')??null;
-      if(active){setPendingOrder(pending);if(pending){setBillingPeriod(pending.billingPeriod);if(!pending.paymentCreated&&pending.selectedMethod&&pending.selectedChannel)setSelectedPayment({method:pending.selectedMethod as PaymentMethod,channel:pending.selectedChannel})}}
-    }).catch(()=>{if(active)setPendingOrder(null)}).finally(()=>{if(active)setPendingLoading(false)});
+      if(active){setPlanHistory(result.orders??[]);setPendingOrder(pending);if(pending){setBillingPeriod(pending.billingPeriod);if(!pending.paymentCreated&&pending.selectedMethod&&pending.selectedChannel)setSelectedPayment({method:pending.selectedMethod as PaymentMethod,channel:pending.selectedChannel})}}
+    }).catch(()=>{if(active){setPendingOrder(null);setPlanHistory([])}}).finally(()=>{if(active){setPendingLoading(false);setHistoryLoading(false)}});
     return()=>{active=false};
   },[open,profile?.id]);
 
@@ -126,7 +149,6 @@ export function MarketProDialog({locale,member=false,profile=null,accountLoading
   const annualSavingsPercent=monthlyStandardAmount>0?Math.round(annualSavings/(monthlyStandardAmount*12)*100):0;
   const paymentOptions=Array.isArray(plan?.paymentChannels)?plan.paymentChannels:defaultPaymentOptions;
   const selectedPaymentOption=paymentOptions.find(option=>option.method===selectedPayment.method&&option.channel===selectedPayment.channel);
-  const pendingPaymentOption=pendingOrder?.paymentMethod&&pendingOrder.paymentChannel?paymentOptions.find(option=>option.method===pendingOrder.paymentMethod&&option.channel===pendingOrder.paymentChannel):undefined;
   const paymentAmount=pendingOrder?.amount??amount??0;
   const paymentFee=estimatePaymentFee(selectedPaymentOption,paymentAmount);
   const introLimit=plan?.introOfferLimit??null;
@@ -136,7 +158,7 @@ export function MarketProDialog({locale,member=false,profile=null,accountLoading
 
   return <>
     <button type="button" className="market-pro-nav-link" aria-label={t('Market Pro','Market Pro')} onClick={()=>{setBillingPeriod(member?'yearly':'monthly');setLoading(true);setOpen(true)}}><Crown size={15} aria-hidden="true"/><span className="market-pro-nav-long">{member?t('Extend Pro','Perpanjang Pro'):t('Market Pro','Market Pro')}</span><span className="market-pro-nav-short">Pro</span></button>
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={value=>{setOpen(value);if(!value){setPaymentView(null);setError('')}}}>
       <DialogContent className="market-pro-dialog">
         <DialogHeader className="market-pro-dialog-heading">
           <div className="market-pro-dialog-heading-copy">
@@ -178,12 +200,20 @@ export function MarketProDialog({locale,member=false,profile=null,accountLoading
           {profile&&<MarketPaymentMethodPicker layout="compact" locale={locale} options={paymentOptions} unavailableReason={plan?.paymentChannelStatus} amount={paymentAmount} selectedMethod={selectedPayment.method} selectedChannel={selectedPayment.channel} loading={loading||pendingLoading} onChange={(method,channel)=>setSelectedPayment({method,channel})}/>}
           {paymentFee>0&&<p className="pro-dialog-payment-total">{t('Estimated total','Perkiraan total')}: <strong>{formatMoney(paymentAmount+paymentFee,'IDR')}</strong></p>}
         </section>}
-        {pendingOrder?.paymentCreated&&<div className="market-pro-pending-payment" role="status"><strong>{t('Payment is ready','Pembayaran siap')}</strong><span>{t(`Continue with ${pendingPaymentOption?.name??pendingOrder.paymentName??pendingOrder.paymentChannel??'your selected method'} for ${formatMoney(pendingOrder.amount,pendingOrder.currency||'IDR')}.`,`Lanjutkan pembayaran dengan ${pendingPaymentOption?.name??pendingOrder.paymentName??pendingOrder.paymentChannel??'metode pilihan'} sebesar ${formatMoney(pendingOrder.amount,pendingOrder.currency||'IDR')}.`)}</span></div>}
-        {!pendingOrder&&profile&&hasValidPhone&&amount!=null&&<><MarketPaymentMethodPicker layout="compact" locale={locale} options={paymentOptions} unavailableReason={plan?.paymentChannelStatus} amount={paymentAmount} selectedMethod={selectedPayment.method} selectedChannel={selectedPayment.channel} loading={loading||pendingLoading} onChange={(method,channel)=>setSelectedPayment({method,channel})}/>{paymentFee>0&&<p className="pro-dialog-payment-total">{t('Estimated total','Perkiraan total')}: <strong>{formatMoney(paymentAmount+paymentFee,'IDR')}</strong></p>}</>}
+        {pendingOrder?.paymentCreated&&!paymentView&&<div className="market-pro-pending-payment" role="status"><strong>{t('Payment is ready','Pembayaran siap')}</strong><span>{t(`Continue your ${paymentInstrumentLabel(pendingOrder.paymentMethod,pendingOrder.paymentName,locale)} payment for ${formatMoney(pendingOrder.amount,pendingOrder.currency||'IDR')}.`,`Lanjutkan pembayaran ${pendingOrder.paymentName??pendingOrder.paymentChannel??'yang dipilih'} sebesar ${formatMoney(pendingOrder.amount,pendingOrder.currency||'IDR')}.`)}</span></div>}
+        {paymentViewLoading&&<div className="market-pro-payment-loading" role="status" aria-live="polite"><i/><span>{t('Loading payment details','Memuat detail pembayaran')}</span></div>}
+        {paymentView&&!paymentViewLoading&&<section className="market-pro-payment-view" aria-label={t('Payment details','Detail pembayaran')}>
+          <div className="market-pro-payment-view-heading"><span><Check size={16}/></span><div><strong>{t('Payment details','Detail pembayaran')}</strong><small>{paymentInstrumentLabel(paymentView.paymentMethod,paymentView.paymentName,locale)}</small></div></div>
+          {paymentView.paymentNeedsHelp?<p>{t('We found this payment, but could not restore its details. Contact support before starting another payment.','Pembayaran ditemukan, tetapi detailnya tidak dapat dipulihkan. Hubungi dukungan sebelum memulai pembayaran lain.')}</p>:paymentView.paymentQrImage?<img className="market-pro-payment-qr" src={paymentView.paymentQrImage} alt={t('QRIS payment code','Kode pembayaran QRIS')}/>:paymentView.paymentNo?<div className="market-pro-payment-number"><span><small>{paymentView.paymentName??t('Payment number','Nomor pembayaran')}</small><strong>{paymentView.paymentNo}</strong></span><button type="button" onClick={async()=>{await navigator.clipboard?.writeText(paymentView.paymentNo??'');setCopiedPaymentNo(true);window.setTimeout(()=>setCopiedPaymentNo(false),1600)}}>{copiedPaymentNo?<Check size={16}/>:<Copy size={16}/>}<span>{copiedPaymentNo?t('Copied','Disalin'):t('Copy','Salin')}</span></button></div>:paymentView.checkoutUrl?<>{paymentView.paymentMethod==='cc'&&<p>{t('Enter your card details on the secure payment page.','Masukkan detail kartu di halaman pembayaran yang aman.')}</p>}<a className="button market-pro-payment-open" href={paymentView.checkoutUrl} target="_blank" rel="noreferrer">{paymentView.paymentMethod==='cc'?t('Continue to card payment','Lanjutkan ke pembayaran kartu'):t('Open payment page','Buka halaman pembayaran')}<ExternalLink size={15}/></a></>:<p>{t('This payment is being prepared. Refresh the order if it does not appear shortly.','Pembayaran sedang disiapkan. Muat ulang pesanan jika belum muncul.')}</p>}
+          {Number(paymentView.paymentFee)>0&&<div className="market-pro-payment-fee"><span>{t('Payment fee','Biaya pembayaran')}</span><strong>{formatMoney(paymentView.paymentFee??0,paymentView.currency||'IDR')}</strong></div>}<div className="market-pro-payment-total"><span>{t('Total to pay','Total pembayaran')}</span><strong>{formatMoney(paymentView.paymentTotal??paymentView.amount,paymentView.currency||'IDR')}</strong></div>
+          {paymentView.paymentInstructionsUrl&&<a className="market-pro-payment-instructions" href={paymentView.paymentInstructionsUrl} target="_blank" rel="noreferrer">{t('Payment instructions','Petunjuk pembayaran')}<ExternalLink size={13}/></a>}
+        </section>}
+        {paymentView&&!paymentViewLoading&&<button type="button" className="market-pro-history-link" onClick={()=>setPaymentView(null)}>{t('Done','Selesai')}</button>}
+        {!paymentView&&!pendingOrder&&profile&&hasValidPhone&&amount!=null&&<><MarketPaymentMethodPicker layout="compact" locale={locale} options={paymentOptions} unavailableReason={plan?.paymentChannelStatus} amount={paymentAmount} selectedMethod={selectedPayment.method} selectedChannel={selectedPayment.channel} loading={loading||pendingLoading} onChange={(method,channel)=>setSelectedPayment({method,channel})}/>{paymentFee>0&&<p className="pro-dialog-payment-total">{t('Estimated total','Perkiraan total')}: <strong>{formatMoney(paymentAmount+paymentFee,'IDR')}</strong></p>}</>}
         {error&&<p className="checkout-error" role="alert">{error}</p>}
         {profile&&member&&<p className="market-pro-member-note">{t('Your current membership stays active. The annual term will be added after it ends.','Keanggotaan Anda tetap aktif. Masa tahunan ditambahkan setelah masa aktif saat ini berakhir.')}</p>}
-        {profile&&!pendingOrder&&!hasValidPhone?<Link className="button market-pro-dialog-join" href={route('/profile')} onClick={()=>setOpen(false)}>{t('Add phone number','Tambahkan nomor telepon')}</Link>:<button type="button" className="button market-pro-dialog-join" disabled={joining||loading||pendingLoading||accountLoading||plan?.available===false||(amount==null&&!pendingOrder)||Boolean(profile&&!pendingOrder?.paymentCreated&&!selectedPaymentOption)} onClick={()=>void join()}>{joining?t('Opening checkout…','Membuka checkout…'):pendingOrder?.paymentCreated?t('Continue payment','Lanjutkan pembayaran'):pendingOrder?t('Continue to payment','Lanjut ke pembayaran'):!profile&&!accountLoading?t('Sign in to join','Masuk untuk bergabung'):member?t('Extend Pro','Perpanjang Pro'):billingPeriod==='yearly'?t('Get Market Pro Annual','Pilih Market Pro Tahunan'):t('Get Market Pro','Pilih Market Pro')}</button>}
-        {profile&&<button type="button" className="market-pro-history-link" onClick={()=>{setOpen(false);window.dispatchEvent(new Event('vivreplay:open-market-membership'))}}>{t('Plan history','Riwayat paket')}</button>}
+        {!paymentView&&(profile&&!pendingOrder&&!hasValidPhone?<Link className="button market-pro-dialog-join" href={route('/profile')} onClick={()=>setOpen(false)}>{t('Add phone number','Tambahkan nomor telepon')}</Link>:<button type="button" className="button market-pro-dialog-join" disabled={joining||loading||pendingLoading||paymentViewLoading||accountLoading||plan?.available===false||(amount==null&&!pendingOrder)||Boolean(profile&&!pendingOrder?.paymentCreated&&!selectedPaymentOption)} onClick={()=>void join()}>{joining||paymentViewLoading?t('Starting payment…','Memulai pembayaran…'):pendingOrder?.paymentCreated?t('Continue payment','Lanjutkan pembayaran'):pendingOrder?t('Continue to payment','Lanjut ke pembayaran'):!profile&&!accountLoading?t('Sign in to join','Masuk untuk bergabung'):member?t('Extend Pro','Perpanjang Pro'):billingPeriod==='yearly'?t('Get Market Pro Annual','Pilih Market Pro Tahunan'):t('Get Market Pro','Pilih Market Pro')}</button>)}
+        {profile&&<section className="market-pro-dialog-history"><h3>{t('Plan history','Riwayat paket')}</h3>{historyLoading?<div className="market-pro-history-skeleton" aria-hidden="true"><i/><i/></div>:planHistory.length?<div className="market-pro-history-list">{planHistory.slice(0,5).map(order=><article className="market-pro-history-row" key={order.id}><span><strong>{order.billingPeriod==='yearly'?t('Annual plan','Paket tahunan'):t('Monthly plan','Paket bulanan')}</strong><small>{new Intl.DateTimeFormat(isId?'id-ID':'en-US',{dateStyle:'medium'}).format(new Date(order.createdAt))}</small></span><b className={`is-${order.status.toLowerCase()}`}>{order.status==='PAID'?t('Paid','Dibayar'):order.status==='PENDING_PAYMENT'?t('Awaiting payment','Menunggu pembayaran'):order.status==='EXPIRED'?t('Expired','Kedaluwarsa'):order.status==='CANCELLED'?t('Cancelled','Dibatalkan'):order.status}</b><strong>{formatMoney(order.amount,order.currency||'IDR')}</strong>{order.status==='PENDING_PAYMENT'&&<button type="button" onClick={()=>{setPaymentView(null);setOpen(true);if(order.paymentCreated)void openPayment(order.id,false);else{setPendingOrder(order);setError('')}}}>{t('Continue','Lanjutkan')}</button>}</article>)}</div>:<p>{t('Your Market Pro payments will appear here.','Pembayaran Market Pro akan muncul di sini.')}</p>}</section>}
       </DialogContent>
     </Dialog>
   </>;

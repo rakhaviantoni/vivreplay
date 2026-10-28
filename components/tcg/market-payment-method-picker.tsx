@@ -20,6 +20,13 @@ export function paymentMethodLabel(method:PaymentMethod,locale:'EN'|'ID'){
   return labels[method];
 }
 
+export function paymentInstrumentLabel(method:string|null,name:string|null,locale:'EN'|'ID'){
+  if(method==='cc')return paymentMethodLabel('cc',locale);
+  if(name&&name.trim()&&name.trim().toLowerCase()!=='sprint')return name.trim();
+  if(method&&['va','cstore','qris','paylater','ewallet'].includes(method))return paymentMethodLabel(method as PaymentMethod,locale);
+  return locale==='ID'?'Metode pembayaran':'Payment method';
+}
+
 function PaymentMethodIcon({method}:{method:PaymentMethod}){
   const props={size:19,weight:'regular' as const,'aria-hidden':true as const};
   if(method==='qris')return <QrCode {...props}/>;

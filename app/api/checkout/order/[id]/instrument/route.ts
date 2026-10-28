@@ -1,6 +1,7 @@
 import {db,errorResponse,user,HttpError} from '@/lib/server/store';
 import {getCurrentUser} from '@/lib/server/auth';
-import {createIpaymuDirectPayment,findIpaymuTransactionsByReference,getEnabledIpaymuPaymentChannels,getIpaymuMode,getIpaymuPaymentChannels,getIpaymuTransaction,hasIpaymuPaymentConfig,hasMarketIpaymuPaymentConfig,ipaymuExpiryTimestamp,ipaymuPayableTotal,ipaymuQrImageUrl} from '@/lib/server/ipaymu';
+import {createIpaymuDirectPayment,createIpaymuRedirect,findIpaymuTransactionsByReference,getEnabledIpaymuPaymentChannels,getIpaymuMode,getIpaymuPaymentChannels,getIpaymuTransaction,hasIpaymuPaymentConfig,hasMarketIpaymuPaymentConfig,ipaymuExpiryTimestamp,ipaymuPayableTotal,ipaymuQrImageUrl} from '@/lib/server/ipaymu';
+import {estimateIpaymuFee} from '@/lib/market/ipaymu-fees';
 import {sendMarketEmail} from '@/lib/server/market-notifications';
 import {sealedProductById,sealedProductKinds} from '@/lib/market/sealed-products';
 
@@ -217,7 +218,14 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     if(!claimed.meta.changes)throw new HttpError(409,'This order is already being paid or has changed. Refresh to check its status.');
     let payment: {checkoutUrl:string|null;sessionId:string;transactionId:string;paymentMethod:string;paymentChannel:string;paymentNo:string|null;paymentName:string|null;instructionsUrl:string|null;qrImage:string|null;qrString:string|null;fee:number|null;total:number;paymentCreatedAt:string;expiresAt:string};
     try{
-      payment=await createIpaymuDirectPayment({orderId:order.id,amount:order.amount,buyer:{name,email:account.email,phone},returnUrl:`${origin}/checkout/order/${encodeURIComponent(order.id)}`,notifyUrl,method:method as 'va'|'cstore'|'qris'|'cc'|'paylater'|'ewallet',channel});
+      if(method==='cc'){
+        const paymentCreatedAt=new Date().toISOString();
+        const paymentTotal=order.amount+estimateIpaymuFee(selectedChannel,order.amount);
+        const checkout=await createIpaymuRedirect({orderId:order.id,products:productLines.map(item=>({name:item.name,quantity:item.quantity,unitPrice:item.unitPrice,description:item.description})),buyer:{name,email:account.email,phone},returnUrl:`${origin}/checkout/order/${encodeURIComponent(order.id)}`,cancelUrl:`${origin}/checkout/order/${encodeURIComponent(order.id)}`,notifyUrl,paymentMethod:'cc',feeDirection:'BUYER'});
+        payment={checkoutUrl:checkout.url,sessionId:checkout.sessionId,transactionId:checkout.sessionId,paymentMethod:'cc',paymentChannel:channel,paymentNo:null,paymentName:null,instructionsUrl:null,qrImage:null,qrString:null,fee:paymentTotal-order.amount,total:paymentTotal,paymentCreatedAt,expiresAt:new Date(Date.parse(paymentCreatedAt)+24*60*60*1000).toISOString()};
+      }else{
+        payment=await createIpaymuDirectPayment({orderId:order.id,amount:order.amount,buyer:{name,email:account.email,phone},returnUrl:`${origin}/checkout/order/${encodeURIComponent(order.id)}`,notifyUrl,method:method as 'va'|'cstore'|'qris'|'paylater'|'ewallet',channel});
+      }
     }catch(error){
       // The request may have reached iPaymu even if its response timed out or
       // could not be parsed. Keep the claim so the next status check can find

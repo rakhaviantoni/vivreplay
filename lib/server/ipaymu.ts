@@ -3,7 +3,7 @@ type IpaymuProduct={name:string;quantity:number;unitPrice:number;description:str
 type IpaymuRedirectBody={
   product:string[];qty:string[];price:string[];description:string[];
   returnUrl:string;notifyUrl:string;cancelUrl:string;referenceId:string;
-  buyerName:string;buyerEmail:string;buyerPhone:string;expired:number;feeDirection:'MERCHANT';
+  buyerName:string;buyerEmail:string;buyerPhone:string;expired:number;feeDirection:'BUYER'|'MERCHANT';paymentMethod?:PaymentMethodCode;
 };
 
 function configuration(){
@@ -189,7 +189,7 @@ export async function getEnabledIpaymuPaymentChannels(database:PaymentSettingsDa
   return channels.filter(channel=>!disabled.has(paymentChannelKey(channel.method,channel.channel)));
 }
 
-export async function createIpaymuRedirect(input:{orderId:string;products:IpaymuProduct[];buyer:{name:string;email:string;phone:string};returnUrl:string;cancelUrl:string;notifyUrl:string}){
+export async function createIpaymuRedirect(input:{orderId:string;products:IpaymuProduct[];buyer:{name:string;email:string;phone:string};returnUrl:string;cancelUrl:string;notifyUrl:string;paymentMethod?:PaymentMethodCode;feeDirection?:'BUYER'|'MERCHANT'}){
   const {va,apiKey,baseUrl}=configuration();
   if(!input.products.length||input.products.length>50)throw new Error('This checkout has an invalid product list.');
   const body:IpaymuRedirectBody={
@@ -205,7 +205,8 @@ export async function createIpaymuRedirect(input:{orderId:string;products:Ipaymu
     buyerEmail:input.buyer.email.slice(0,150),
     buyerPhone:input.buyer.phone.slice(0,30),
     expired:24,
-    feeDirection:'MERCHANT',
+    feeDirection:input.feeDirection??'MERCHANT',
+    ...(input.paymentMethod?{paymentMethod:input.paymentMethod}:{}),
   };
   const bodyText=JSON.stringify(body);
   const now=new Date();
