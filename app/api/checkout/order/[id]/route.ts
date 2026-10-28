@@ -2,7 +2,7 @@ import {db,errorResponse,user,HttpError} from '@/lib/server/store';
 import {sendMarketEmail} from '@/lib/server/market-notifications';
 import {completeDeliveredMarketOrder} from '@/lib/server/market-order-fulfillment';
 import {marketCardThumbnails} from '@/lib/server/market-card-thumbnails';
-import {getIpaymuMode,getIpaymuTransaction,ipaymuExpiryTimestamp,ipaymuPayableTotal,ipaymuQrImageUrl} from '@/lib/server/ipaymu';
+import {clearIpaymuPaymentAttempt,getIpaymuMode,getIpaymuTransaction,ipaymuCheckoutExpiresAt,ipaymuExpiryTimestamp,ipaymuPayableTotal,ipaymuQrImageUrl} from '@/lib/server/ipaymu';
 import {marketShippingDeadline} from '@/lib/market/shipping-deadline';
 
 type OrderRow={id:string;kind:string;buyerId:string;sellerId:string|null;listingId:string|null;items:string;details:string;subtotal:number;sellerNetAmount:number|null;shippingFee:number;amount:number;currency:string;paymentId:string|null;status:string;expiresAt:string|null;createdAt:string|null;updatedAt:string|null;paidAt:string|null;title:string|null;deliveredAt:string|null;disputeStatus:string|null;trackingId:string|null};
@@ -86,11 +86,13 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
             order.paymentId=sessionId;
             if(gateway.ExpiredDate)order.expiresAt=String(gateway.ExpiredDate);
           }else{
-            for(const key of ['ipaymuPaymentMethod','ipaymuPaymentChannel','ipaymuPaymentName','ipaymuPaymentNo','ipaymuPaymentInstructionsUrl','ipaymuCheckoutUrl','ipaymuPaymentQrImage','ipaymuPaymentQrString','ipaymuTransactionId','ipaymuSessionId','ipaymuPaymentFee','ipaymuPaymentTotal','ipaymuPaymentCreatedAt','ipaymuPaymentExpiresAt','ipaymuMode','ipaymuPaymentAwaitingConfirmation'])delete details[key];
+            details=clearIpaymuPaymentAttempt(details);
             paymentAwaitingConfirmation=false;
             order.paymentId=null;
+            const checkoutExpiry=ipaymuCheckoutExpiresAt(details.ipaymuCheckoutExpiresAt,order.createdAt);
+            if(checkoutExpiry)order.expiresAt=checkoutExpiry;
           }
-          const saved=await database.prepare("UPDATE checkout_orders SET payment_id=?,details=?,expires_at=COALESCE(?,expires_at),updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id IS ?").bind(order.paymentId,JSON.stringify(details),selectedAttempt?.gateway.ExpiredDate??null,order.id,originalPaymentId).run();
+          const saved=await database.prepare("UPDATE checkout_orders SET payment_id=?,details=?,expires_at=COALESCE(?,expires_at),updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id IS ?").bind(order.paymentId,JSON.stringify(details),selectedAttempt?.gateway.ExpiredDate??order.expiresAt??null,order.id,originalPaymentId).run();
           if(!saved.meta.changes){
             const latest=await database.prepare('SELECT payment_id AS paymentId FROM checkout_orders WHERE id=?').bind(order.id).first<{paymentId:string|null}>();
             order.paymentId=latest?.paymentId??order.paymentId;
@@ -172,7 +174,7 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
     // iPaymu's QR URL serves an HTML page with an embedded PNG, not an image
     // response. Keep the browser same-origin and let the QR route extract it.
     const paymentQrImage=details.ipaymuPaymentMethod==='qris'&&paymentQrSource?`/api/checkout/order/${encodeURIComponent(order.id)}/qris`:null;
-    const legacyPaymentCheck=order.status==='PENDING_PAYMENT'&&!order.paymentId&&typeof details.ipaymuSelectedMethod==='string';
+    const legacyPaymentCheck=order.status==='PENDING_PAYMENT'&&!order.paymentId&&typeof details.ipaymuSelectedMethod==='string'&&!details.ipaymuPaymentRecoveryCheckedAt;
     const updatedAtMs=order.updatedAt?Date.parse(`${order.updatedAt.replace(' ','T')}Z`):NaN;
     const createdAtMs=order.createdAt?Date.parse(`${order.createdAt.replace(' ','T')}Z`):NaN;
     const unmarkedPaymentCheck=order.status==='PENDING_PAYMENT'&&!order.paymentId&&!details.ipaymuPaymentRecoveryCheckedAt&&Number.isFinite(updatedAtMs)&&Number.isFinite(createdAtMs)&&updatedAtMs-createdAtMs>45_000;

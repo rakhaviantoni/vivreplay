@@ -122,6 +122,33 @@ export async function getIpaymuTransaction(transactionId:string){
   return await signedIpaymuPost('transaction',{transactionId}) as {TransactionId?:string|number;SessionId?:string;SessionID?:string;ReferenceId?:string|null;Amount?:number|string;Fee?:number|string;Status?:number|string;TypeDesc?:string;Notes?:string;CreatedDate?:string;ExpiredDate?:string;Via?:string;Channel?:string;PaymentNo?:string|number|null;PaymentName?:string;Url?:string;PaymentInstructionsDoc?:string;Total?:number|string};
 }
 
+export async function getIpaymuAttemptState(transactionId:string,referenceId:string):Promise<'expired'|'pending'|'paid'|'unknown'>{
+  if(!/^\d{3,20}$/.test(transactionId))return 'unknown';
+  try{
+    const transaction=await getIpaymuTransaction(transactionId);
+    if(transaction.ReferenceId&&String(transaction.ReferenceId)!==referenceId)return 'unknown';
+    const status=Number(transaction.Status);
+    if(status===0)return 'pending';
+    if(status===1||status===6)return 'paid';
+    if(status===-2||status===2||status===3||status===4||status===5)return 'expired';
+  }catch{}
+  return 'unknown';
+}
+
+export function ipaymuCheckoutExpiresAt(savedValue:unknown,createdAt:unknown){
+  const saved=timestamp(savedValue,'Z');
+  if(saved!==null)return new Date(saved).toISOString();
+  const created=timestamp(createdAt,'Z');
+  return created===null?null:new Date(created+24*60*60*1000).toISOString();
+}
+
+export function clearIpaymuPaymentAttempt(details:Record<string,unknown>){
+  const next={...details};
+  for(const key of ['ipaymuPaymentMethod','ipaymuPaymentChannel','ipaymuPaymentName','ipaymuPaymentNo','ipaymuPaymentInstructionsUrl','ipaymuCheckoutUrl','ipaymuPaymentQrImage','ipaymuPaymentQrString','ipaymuTransactionId','ipaymuSessionId','ipaymuActiveTransactionIds','ipaymuRecoveryTransactionIds','ipaymuPaymentFee','ipaymuPaymentTotal','ipaymuPaymentCreatedAt','ipaymuPaymentExpiresAt','ipaymuMode','ipaymuPaymentAwaitingConfirmation','ipaymuSelectedMethod','ipaymuSelectedChannel','ipaymuSelectedName','ipaymuSelectedLogo','ipaymuAttemptCount'])delete next[key];
+  next.ipaymuPaymentRecoveryCheckedAt=new Date().toISOString();
+  return next;
+}
+
 async function requestSignature(bodyText:string,va:string,apiKey:string){
   const digest=hex(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(bodyText)));
   return hmac(`POST:${va}:${digest}:${apiKey}`,apiKey);
