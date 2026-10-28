@@ -78,7 +78,7 @@ export function ProCheckout(){
   },[accountLoading,account?.profile?.id]);
 
   const phone=String(account?.profile?.phone??'').replace(/[\s().-]/g,'');
-  const hasPhone=/^\+?[0-9]{8,16}$/.test(phone);
+  const hasPhone=/^\+?[0-9]{5,15}$/.test(phone);
   const begin=async()=>{
     if(!hasPhone){router.push('/profile');return;}
     if(alreadyPro&&billingPeriod!=='yearly'){setError(t('Choose Annual to extend your current membership.','Pilih Tahunan untuk memperpanjang keanggotaan Anda.'));return;}

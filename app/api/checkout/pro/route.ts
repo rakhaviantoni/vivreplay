@@ -148,7 +148,7 @@ export async function POST(request:Request){
       try{const parsed=JSON.parse(resumableOrder.details) as unknown;if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))pendingDetails=parsed as Record<string,unknown>}catch{}
       return Response.json({id:resumableOrder.id,checkoutUrl:`/checkout/order/${encodeURIComponent(resumableOrder.id)}`,introOffer:Boolean(pendingDetails.introOffer),billingPeriod:pendingDetails.billingPeriod==='yearly'?'yearly':'monthly',paymentCreated:Boolean(resumableOrder.paymentId&&!resumableOrder.paymentId.startsWith('CREATING:'))},{status:200});
     }
-    if(!/^\+?[0-9]{8,16}$/.test(phone))throw new HttpError(400,'Add a valid phone number to your profile before continuing.');
+    if(!/^\+?[0-9]{5,15}$/.test(phone))throw new HttpError(400,'Add a valid phone number with 5 to 15 digits to your profile before continuing.');
     const intro=await introStatus(profile.id,true,pricing);
     if(billingPeriod==='monthly'&&intro.pendingOrderId){await updatePendingPaymentChoice(db(),intro.pendingOrderId,paymentMethod,paymentChannel);return Response.json({id:intro.pendingOrderId,checkoutUrl:`/checkout/order/${encodeURIComponent(intro.pendingOrderId)}`,introOffer:true,billingPeriod},{status:200});}
     if(billingPeriod==='monthly'&&body.introOffer===true&&!intro.eligible)throw new HttpError(409,'The launch offer is no longer available. Refresh the page to see the current price.');

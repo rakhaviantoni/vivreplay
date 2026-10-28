@@ -171,10 +171,14 @@ export async function createIpaymuDirectPayment(input:{orderId:string;amount:num
   const {va,apiKey,baseUrl}=configuration();
   if(!Number.isSafeInteger(input.amount)||input.amount<1)throw new Error('This checkout has an invalid amount.');
   if(!/^[a-z0-9_]{2,24}$/.test(input.channel))throw new Error('This payment option is unavailable.');
+  const rawPhone=input.buyer.phone.trim();
+  const phone=rawPhone.replace(/[\s().-]/g,'');
+  const phoneDigits=phone.replace(/\D/g,'');
+  if(!/^\+?\d{5,15}$/.test(phone)||phoneDigits.length<5||phoneDigits.length>15)throw new Error('Add a valid phone number with 5 to 15 digits before continuing.');
   const paymentCreatedAt=new Date().toISOString();
   const body={
     name:input.buyer.name.slice(0,100),
-    phone:input.buyer.phone.slice(0,30),
+    phone:phoneDigits,
     email:input.buyer.email.slice(0,150),
     amount:input.amount,
     notifyUrl:input.notifyUrl,
