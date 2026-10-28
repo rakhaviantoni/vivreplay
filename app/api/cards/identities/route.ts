@@ -106,7 +106,10 @@ async function fromD1(filters:SearchFilters,gameSlug:'one-piece'|'pokemon'){
       values.push(filters.terms.map(term=>`${term}*`).join(' AND '));
     }
   }
-  if(filters.setCode){
+  // An exact card number can differ from the release set stored on a reprint.
+  // Use the identity code alone for exact searches; applying both filters can
+  // hide valid reprints such as ST31-004 catalogued under OP-17.
+  if(filters.setCode&&!filters.code){
     if(gameSlug==='pokemon'){
       const setFilter=pokemonSetFilter([filters.setCode]);
       where.push(`i.id IN (SELECT p.identity_id FROM tcg_card_printings p WHERE ${setFilter.sql})`);
