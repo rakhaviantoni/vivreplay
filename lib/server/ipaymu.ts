@@ -97,8 +97,8 @@ export async function getIpaymuPaymentChannelSettings(database:PaymentSettingsDa
   return parseIpaymuPaymentChannelSettings(row?.value);
 }
 
-export async function getIpaymuPaymentChannels():Promise<IpaymuPaymentChannel[]>{
-  if(paymentChannelsCache&&paymentChannelsCache.expiresAt>Date.now())return paymentChannelsCache.channels;
+export async function getIpaymuPaymentChannels(options:{forceRefresh?:boolean}={}):Promise<IpaymuPaymentChannel[]>{
+  if(!options.forceRefresh&&paymentChannelsCache&&paymentChannelsCache.expiresAt>Date.now())return paymentChannelsCache.channels;
   const {va,apiKey,baseUrl}=configuration();
   const timestampValue=new Date();
   const timestamp=`${timestampValue.getUTCFullYear()}${String(timestampValue.getUTCMonth()+1).padStart(2,'0')}${String(timestampValue.getUTCDate()).padStart(2,'0')}${String(timestampValue.getUTCHours()).padStart(2,'0')}${String(timestampValue.getUTCMinutes()).padStart(2,'0')}${String(timestampValue.getUTCSeconds()).padStart(2,'0')}`;
@@ -125,12 +125,12 @@ export async function getIpaymuPaymentChannels():Promise<IpaymuPaymentChannel[]>
       return [{method:code,channel:channelCode,name,logo,fee:Number.isFinite(fee)&&fee>=0?fee:0,feeType,additionalFee:Number.isFinite(additionalFee)&&additionalFee>=0?additionalFee:0}];
     });
   });
-  paymentChannelsCache={channels,expiresAt:Date.now()+5*60*1000};
+  paymentChannelsCache={channels,expiresAt:Date.now()+30*1000};
   return channels;
 }
 
-export async function getEnabledIpaymuPaymentChannels(database:PaymentSettingsDatabase):Promise<IpaymuPaymentChannel[]>{
-  const [channels,settings]=await Promise.all([getIpaymuPaymentChannels(),getIpaymuPaymentChannelSettings(database)]);
+export async function getEnabledIpaymuPaymentChannels(database:PaymentSettingsDatabase,options:{forceRefresh?:boolean}={}):Promise<IpaymuPaymentChannel[]>{
+  const [channels,settings]=await Promise.all([getIpaymuPaymentChannels(options),getIpaymuPaymentChannelSettings(database)]);
   const disabled=new Set(settings.disabledChannels);
   return channels.filter(channel=>!disabled.has(paymentChannelKey(channel.method,channel.channel)));
 }

@@ -96,6 +96,30 @@ export function MarketCheckout(){
 
   useEffect(()=>{const sync=()=>setLocale(window.localStorage.getItem('vivreplay-locale')==='ID'?'ID':'EN');const onLocale=(event:Event)=>setLocale((event as CustomEvent<'EN'|'ID'>).detail==='ID'?'ID':'EN');sync();window.addEventListener('vivreplay:locale',onLocale);return()=>window.removeEventListener('vivreplay:locale',onLocale)},[]);
   useEffect(()=>{if(!cartMode){setCartSelectionReady(true);return}try{const raw=window.sessionStorage.getItem('vivreplay-market-checkout-listings-v1');const parsed=raw?JSON.parse(raw) as unknown:[];setStoredCartSelection(Array.isArray(parsed)?[...new Set(parsed.filter((id):id is string=>typeof id==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)))].slice(0,10):[])}catch{setStoredCartSelection([])}finally{setCartSelectionReady(true)}},[cartMode]);
+  useEffect(()=>{
+    let active=true;
+    const refreshPaymentChannels=async()=>{
+      if(document.visibilityState==='hidden')return;
+      try{
+        const response=await fetch('/api/checkout/market',{cache:'no-store'});
+        if(!response.ok)return;
+        const result=await response.json() as {paymentChannels?:PaymentOption[];paymentChannelStatus?:typeof paymentChannelStatus};
+        if(!active)return;
+        const options=Array.isArray(result.paymentChannels)?result.paymentChannels:[];
+        setPaymentOptions(options);
+        setPaymentChannelStatus(result.paymentChannelStatus??(options.length?'ready':'provider_unavailable'));
+        if(!options.some(option=>option.method===selectedPaymentChoice.current.method&&option.channel===selectedPaymentChoice.current.channel)){
+          const preferred=options.find(option=>option.method==='qris')??options[0];
+          if(preferred){selectedPaymentChoice.current={method:preferred.method,channel:preferred.channel};setSelectedPaymentMethod(preferred.method);setSelectedPaymentChannel(preferred.channel)}
+        }
+      }catch{
+        if(active){setPaymentOptions([]);setPaymentChannelStatus('provider_unavailable')}
+      }
+    };
+    const timer=window.setInterval(()=>void refreshPaymentChannels(),30_000);
+    document.addEventListener('visibilitychange',refreshPaymentChannels);
+    return()=>{active=false;window.clearInterval(timer);document.removeEventListener('visibilitychange',refreshPaymentChannels)};
+  },[]);
   useEffect(()=>{if(!cartMode||!hasLegacyListingParam)return;const ids=[...new Set(requestedListingsParam.split(',').filter(id=>/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)))];if(!ids.length||ids.length>10||ids.length!==requestedListingsParam.split(',').length)return;try{window.sessionStorage.setItem('vivreplay-market-checkout-listings-v1',JSON.stringify(ids))}catch{}setStoredCartSelection(ids);router.replace('/checkout/market?cart=1')},[cartMode,hasLegacyListingParam,requestedListingsParam,router]);
   useEffect(()=>{if(!cartMode)return;try{const cart=JSON.parse(window.localStorage.getItem('vivreplay-market-cart-v1')||'null');const lines=Array.isArray(cart?.lines)?cart.lines.filter((line:CartLine)=>typeof line?.listingId==='string'&&Array.isArray(line.items)&&line.items.length).map((line:CartLine)=>({listingId:line.listingId,listingTitle:typeof line.listingTitle==='string'?line.listingTitle:'',items:line.items.filter(item=>typeof item?.printingId==='string'&&Number.isInteger(item.quantity)&&item.quantity>0).map(item=>({printingId:item.printingId,quantity:item.quantity,unitAmount:item.unitAmount}))})):[];setCartLines(lines);window.localStorage.setItem('vivreplay-market-cart-v1',JSON.stringify({lines}))}catch{setCartLines([])}finally{setCartReady(true)}},[cartMode]);
   useEffect(()=>{

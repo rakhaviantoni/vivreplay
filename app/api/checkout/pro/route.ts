@@ -116,7 +116,7 @@ export async function POST(request:Request){
     const paymentMethod=body.paymentMethod??'qris';
     const paymentChannel=body.paymentChannel??'mpm';
     if(!['va','cstore','qris','cc','paylater','ewallet'].includes(paymentMethod)||!(/^[a-z0-9_]{2,24}$/.test(paymentChannel)))throw new HttpError(400,'Choose a valid payment method.');
-    const channels=await getEnabledIpaymuPaymentChannels(db()).catch(()=>[]);
+    const channels=await getEnabledIpaymuPaymentChannels(db(),{forceRefresh:true}).catch(()=>[]);
     if(!channels.some(channel=>channel.method===paymentMethod&&channel.channel===paymentChannel))throw new HttpError(409,'That payment option is temporarily unavailable. Choose another method.');
     if(profile.tier==='pro'&&billingPeriod!=='yearly')throw new HttpError(409,'Your Pro membership is already active. Choose the annual plan to extend it.');
     const name=String(profile.display_name||account.name||account.email.split('@')[0]||'VivrePlay member').trim();

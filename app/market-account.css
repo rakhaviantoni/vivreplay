@@ -269,6 +269,7 @@ html[data-theme='dark'] .market-account-menu [data-slot='dropdown-menu-separator
 .market-order-qris-copy{gap:3px}
 .market-order-qris-copy strong{font-size:12px}
 .market-order-qris-prompt{gap:8px;font-size:11px}
+.market-order-payment-change{display:grid;min-width:0;flex:1 1 100%;gap:8px}.market-order-payment-change .checkout-payment-methods.is-compact{margin:0}.market-order-payment-change-actions{display:flex;justify-content:flex-end;gap:8px}.market-order-payment-change-actions .button{min-height:38px}
 .market-order-detail-actions{gap:6px 10px;margin-top:0}
 .market-order-detail-actions .button{min-height:36px;padding-inline:10px}
 .market-order-cancel-note{flex-basis:100%;font-size:10px}

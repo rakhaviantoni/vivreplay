@@ -190,6 +190,18 @@ function ProfileQuickEdit({profile,locale,onSaved,initialTab='account'}:{profile
     });
     return()=>{active=false};
   },[profile.id,profile.display_name,profile.phone,fetchShippingOrigin,applyShippingOrigin]);
+  useEffect(()=>{
+    if(!confirmingPro)return;
+    let active=true;
+    api<typeof proPlan>('/api/checkout/pro').then(result=>{
+      if(!active||!result)return;
+      setProPlan(result);
+      const options=result.paymentChannels?.length?result.paymentChannels:defaultPaymentOptions;
+      const preferred=options.find(option=>option.method==='qris')??options[0];
+      if(preferred)setProPayment(current=>options.some(option=>option.method===current.method&&option.channel===current.channel)?current:{method:preferred.method,channel:preferred.channel});
+    }).catch(()=>{if(active)setProPlan(current=>current?{...current,paymentChannels:[],paymentChannelStatus:'provider_unavailable'}:current)});
+    return()=>{active=false};
+  },[confirmingPro]);
   useEffect(()=>{let active=true;api<{points:number;level:string;pointsToNext:number;progressPercent:number}>('/api/market/progress').then(value=>{if(active)setActivityProgress(value)}).catch(()=>{if(active)setActivityProgress(null)});return()=>{active=false}},[profile.id]);
   useEffect(()=>{let active=true;setAddressRegionLoading(current=>({...current,provinces:true}));void loadQuickRegions('provinces').then(items=>{if(active)setAddressProvinces(items)}).finally(()=>{if(active)setAddressRegionLoading(current=>({...current,provinces:false}))});return()=>{active=false}},[]);
   useEffect(()=>{if(!addressDraft.province){setAddressCities([]);setAddressRegionLoading(current=>({...current,cities:false}));return}let active=true;setAddressRegionLoading(current=>({...current,cities:true}));const parent=addressProvinces.find(item=>normalizeQuickRegion(item.name)===normalizeQuickRegion(addressDraft.province));void loadQuickRegions('regencies',parent?.id,{province:addressDraft.province}).then(items=>{if(active)setAddressCities(items)}).finally(()=>{if(active)setAddressRegionLoading(current=>({...current,cities:false}))});return()=>{active=false}},[addressDraft.province,addressProvinces]);

@@ -56,7 +56,7 @@ export async function POST(request:Request){
     const input=schema.parse(await request.json());
     const paymentMethod=input.paymentMethod;
     const paymentChannel=input.paymentChannel;
-    const availablePaymentChannels=await getEnabledIpaymuPaymentChannels(db()).catch(()=>[]);
+    const availablePaymentChannels=await getEnabledIpaymuPaymentChannels(db(),{forceRefresh:true}).catch(()=>[]);
     const selectedPaymentChannel=availablePaymentChannels.find(channel=>channel.method===paymentMethod&&channel.channel===paymentChannel);
     if(!selectedPaymentChannel)throw new HttpError(409,'That payment option is temporarily unavailable. Choose another method.');
     const database=db();
