@@ -126,7 +126,7 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
       payment=await createIpaymuDirectPayment({orderId:order.id,amount:order.amount,buyer:{name,email:account.email,phone},returnUrl:`${origin}/checkout/order/${encodeURIComponent(order.id)}`,notifyUrl,method:method as 'va'|'cstore'|'qris'|'cc'|'paylater'|'ewallet',channel});
     }catch(error){
       await database.prepare("UPDATE checkout_orders SET payment_id=NULL,details=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id=?").bind(JSON.stringify(details),id,paymentClaim).run();
-      throw new HttpError(502,error instanceof Error?error.message:'This payment option could not be started. Choose another method and try again.');
+      throw new HttpError(502,error instanceof Error?error.message:'We couldn’t start this payment. Choose another method or try again later.');
     }
     details.ipaymuPaymentMethod=payment.paymentMethod;
     details.ipaymuPaymentChannel=payment.paymentChannel;

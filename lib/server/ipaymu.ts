@@ -160,10 +160,10 @@ export async function createIpaymuRedirect(input:{orderId:string;products:Ipaymu
   const payload=await response.json().catch(()=>null) as {Status?:number;Message?:string;Data?:{SessionID?:string;Url?:string}}|null;
   const url=payload?.Data?.Url;
   const sessionId=payload?.Data?.SessionID;
-  if(!response.ok||payload?.Status!==200||!sessionId||!url)throw new Error('iPaymu could not start this payment. Please try again.');
+  if(!response.ok||payload?.Status!==200||!sessionId||!url)throw new Error('We couldn’t start this payment. Please try again.');
   const parsed=new URL(url);
   const allowedHosts=baseUrl==='https://sandbox.ipaymu.com'?['sandbox-payment.ipaymu.com','sandbox.ipaymu.com']:['my.ipaymu.com','payment.ipaymu.com'];
-  if(parsed.protocol!=='https:'||!allowedHosts.includes(parsed.hostname))throw new Error('iPaymu returned an invalid checkout address.');
+  if(parsed.protocol!=='https:'||!allowedHosts.includes(parsed.hostname))throw new Error('The payment page could not be opened. Choose another method or try again.');
   return {sessionId,url:parsed.toString()};
 }
 
@@ -202,15 +202,15 @@ export async function createIpaymuDirectPayment(input:{orderId:string;amount:num
   if(!response.ok||payload?.Status!==200||!data||transactionId===undefined||sessionId===undefined){
     const providerMessage=typeof payload?.Message==='string'?payload.Message.replace(/[\r\n\t]+/g,' ').slice(0,180):null;
     console.error('ipaymu_direct_payment_failed',{method:input.method,channel:input.channel,httpStatus:response.status,providerStatus:payload?.Status??null,providerMessage,responseFields:data?Object.keys(data).sort():[]});
-    throw new Error('This payment option could not be started. Check that it is enabled for your iPaymu account, then try again.');
+    throw new Error('We couldn’t start this payment. Choose another method or try again later.');
   }
   const providerTotal=Number(data.Total);
   if(input.method==='qris'&&(!qrImage||!Number.isFinite(providerTotal)||Math.round(providerTotal)!==input.amount))throw new Error('The QRIS amount did not match this order. Please try again.');
   const parsedQr=input.method==='qris'&&qrImage?ipaymuQrImageUrl(qrImage,baseUrl.includes('sandbox')?'sandbox':'production'):null;
-  if(input.method==='qris'&&(!qrImage||!parsedQr))throw new Error('iPaymu returned an invalid payment code address.');
+  if(input.method==='qris'&&(!qrImage||!parsedQr))throw new Error('We couldn’t open the QR code. Choose another method or try again.');
   let checkoutUrl:string|null=null;
-  if(url){try{const parsedUrl=new URL(url);const allowedHosts=baseUrl==='https://sandbox.ipaymu.com'?['sandbox-payment.ipaymu.com','sandbox.ipaymu.com']:['my.ipaymu.com','payment.ipaymu.com'];if(parsedUrl.protocol!=='https:'||!allowedHosts.includes(parsedUrl.hostname))throw new Error();checkoutUrl=parsedUrl.toString()}catch{throw new Error('iPaymu returned an invalid payment address.')}}
-  if(input.method!=='qris'&&!paymentNo&&!checkoutUrl)throw new Error('iPaymu did not return payment instructions. Please choose another payment option.');
+  if(url){try{const parsedUrl=new URL(url);const allowedHosts=baseUrl==='https://sandbox.ipaymu.com'?['sandbox-payment.ipaymu.com','sandbox.ipaymu.com']:['my.ipaymu.com','payment.ipaymu.com'];if(parsedUrl.protocol!=='https:'||!allowedHosts.includes(parsedUrl.hostname))throw new Error();checkoutUrl=parsedUrl.toString()}catch{throw new Error('The payment page could not be opened. Choose another method or try again.')}}
+  if(input.method!=='qris'&&!paymentNo&&!checkoutUrl)throw new Error('Payment instructions aren’t available. Choose another method or try again later.');
   let instructionsUrl:string|null=null;
   if(typeof data.PaymentInstructionsDoc==='string'){try{const parsedUrl=new URL(data.PaymentInstructionsDoc);if(parsedUrl.protocol==='https:'&&(parsedUrl.hostname==='storage.googleapis.com'||parsedUrl.hostname==='ipaymu.com'||parsedUrl.hostname.endsWith('.ipaymu.com')))instructionsUrl=parsedUrl.toString()}catch{}}
   const fee=Number(data.Fee);
@@ -222,7 +222,7 @@ export async function createIpaymuDirectPayment(input:{orderId:string;amount:num
 
 export async function createIpaymuQris(input:{orderId:string;amount:number;buyer:{name:string;email:string;phone:string};returnUrl:string;notifyUrl:string}){
   const payment=await createIpaymuDirectPayment({...input,method:'qris',channel:'mpm'});
-  if(!payment.qrImage)throw new Error('QRIS could not be started. Check that QRIS is enabled for this iPaymu account, then try again.');
+  if(!payment.qrImage)throw new Error('We couldn’t open the QR code. Choose another method or try again.');
   return payment;
 }
 
