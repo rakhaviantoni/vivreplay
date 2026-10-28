@@ -2,7 +2,7 @@ import {db,errorResponse,user,HttpError} from '@/lib/server/store';
 import {sendMarketEmail} from '@/lib/server/market-notifications';
 import {completeDeliveredMarketOrder} from '@/lib/server/market-order-fulfillment';
 import {marketCardThumbnails} from '@/lib/server/market-card-thumbnails';
-import {getIpaymuMode,getIpaymuTransaction,ipaymuExpiryTimestamp,ipaymuPayableTotal,ipaymuQrImageUrl} from '@/lib/server/ipaymu';
+import {getIpaymuMode,getIpaymuTransaction,ipaymuExpiryTimestamp,ipaymuHostedPaymentUrl,ipaymuPayableTotal,ipaymuQrImageUrl} from '@/lib/server/ipaymu';
 import {marketShippingDeadline} from '@/lib/market/shipping-deadline';
 
 type OrderRow={id:string;kind:string;buyerId:string;sellerId:string|null;listingId:string|null;items:string;details:string;subtotal:number;sellerNetAmount:number|null;shippingFee:number;amount:number;currency:string;paymentId:string|null;status:string;expiresAt:string|null;createdAt:string|null;updatedAt:string|null;paidAt:string|null;title:string|null;deliveredAt:string|null;disputeStatus:string|null;trackingId:string|null};
@@ -23,6 +23,14 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
     let items:unknown[]=[];let details:Record<string,unknown>={};
     try{items=JSON.parse(order.items) as unknown[]}catch{}
     try{const parsed=JSON.parse(order.details) as unknown;if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))details=parsed as Record<string,unknown>}catch{}
+    const knownTransactionId=String(details.ipaymuTransactionId??'');
+    if(order.status==='PENDING_PAYMENT'&&order.paymentId&&details.ipaymuPaymentMethod&&details.ipaymuPaymentMethod!=='qris'&&!details.ipaymuCheckoutUrl){
+      const hostedUrl=ipaymuHostedPaymentUrl(knownTransactionId,details.ipaymuMode??getIpaymuMode());
+      if(hostedUrl){
+        details.ipaymuCheckoutUrl=hostedUrl;
+        await database.prepare("UPDATE checkout_orders SET details=? WHERE id=? AND status='PENDING_PAYMENT' AND payment_id=?").bind(JSON.stringify(details),order.id,order.paymentId).run();
+      }
+    }
     let paymentAwaitingConfirmation=details.ipaymuPaymentAwaitingConfirmation===true;
     const recordedAttemptCount=Number(details.ipaymuAttemptCount)||1;
     const lastAttemptStatusCheck=Date.parse(String(details.ipaymuAttemptStatusCheckedAt??''));
@@ -69,6 +77,7 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
                 if(parsed.protocol==='https:'&&!parsed.username&&!parsed.password&&(!parsed.port||parsed.port==='443')&&allowedHosts.includes(parsed.hostname))checkoutUrl=parsed.toString();
               }
             }catch{}
+            checkoutUrl??=ipaymuHostedPaymentUrl(transactionId,details.ipaymuMode??getIpaymuMode());
             details.ipaymuPaymentMethod=method||details.ipaymuPaymentMethod;
             details.ipaymuPaymentChannel=channel||details.ipaymuPaymentChannel;
             details.ipaymuPaymentName=String(gateway.PaymentName??details.ipaymuPaymentName??details.ipaymuSelectedName??channel.toUpperCase());
