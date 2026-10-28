@@ -122,13 +122,6 @@ export async function getIpaymuTransaction(transactionId:string){
   return await signedIpaymuPost('transaction',{transactionId}) as {TransactionId?:string|number;SessionId?:string;SessionID?:string;ReferenceId?:string|null;Amount?:number|string;Fee?:number|string;Status?:number|string;TypeDesc?:string;Notes?:string;CreatedDate?:string;ExpiredDate?:string;Via?:string;Channel?:string;PaymentNo?:string|number|null;PaymentName?:string;Url?:string;PaymentInstructionsDoc?:string;Total?:number|string};
 }
 
-export function ipaymuHostedPaymentUrl(transactionId:unknown,mode:unknown=getIpaymuMode()){
-  const id=String(transactionId??'');
-  if(!/^\d{3,20}$/.test(id))return null;
-  const host=String(mode).trim().toLowerCase()==='sandbox'?'sandbox.ipaymu.com':'my.ipaymu.com';
-  return `https://${host}/payment/${id}`;
-}
-
 async function requestSignature(bodyText:string,va:string,apiKey:string){
   const digest=hex(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(bodyText)));
   return hmac(`POST:${va}:${digest}:${apiKey}`,apiKey);
@@ -276,7 +269,6 @@ export async function createIpaymuDirectPayment(input:{orderId:string;amount:num
   if(input.method==='qris'&&(!qrImage||!parsedQr))throw new Error('We couldn’t open the QR code. Choose another method or try again.');
   let checkoutUrl:string|null=null;
   if(url){try{const parsedUrl=new URL(url);const allowedHosts=baseUrl.includes('sandbox')?['sandbox.ipaymu.com','sandbox-payment.ipaymu.com']:['my.ipaymu.com','payment.ipaymu.com'];if(parsedUrl.protocol!=='https:'||parsedUrl.username||parsedUrl.password||(parsedUrl.port&&parsedUrl.port!=='443')||!allowedHosts.includes(parsedUrl.hostname))throw new Error();checkoutUrl=parsedUrl.toString()}catch{throw new Error('The payment page could not be opened. Choose another method or try again.')}}
-  checkoutUrl??=ipaymuHostedPaymentUrl(transactionId,baseUrl.includes('sandbox')?'sandbox':'production');
   if(input.method!=='qris'&&!paymentNo&&!checkoutUrl)throw new Error('Payment instructions aren’t available. Choose another method or try again later.');
   let instructionsUrl:string|null=null;
   if(typeof data.PaymentInstructionsDoc==='string'){try{const parsedUrl=new URL(data.PaymentInstructionsDoc);if(parsedUrl.protocol==='https:'&&(parsedUrl.hostname==='storage.googleapis.com'||parsedUrl.hostname==='ipaymu.com'||parsedUrl.hostname.endsWith('.ipaymu.com')))instructionsUrl=parsedUrl.toString()}catch{}}
