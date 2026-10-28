@@ -9,21 +9,15 @@
   "theme_color": "#fffaf0",
   "icons": [
     {
-      "src": "/brand/vivreplay-icon-192.png?v=3",
+      "src": "/brand/vivreplay-icon-192.png?v=4",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/brand/vivreplay-icon-512.png?v=3",
+      "src": "/brand/vivreplay-icon-512.png?v=4",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/brand/vivreplay-map-icon.svg?v=3",
-      "sizes": "any",
-      "type": "image/svg+xml",
       "purpose": "any"
     }
   ],
