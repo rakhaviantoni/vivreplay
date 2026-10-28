@@ -82,8 +82,8 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
             details.ipaymuPaymentMethod=method;
             details.ipaymuPaymentChannel=channel;
             details.ipaymuPaymentName=String(gateway.PaymentName??details.ipaymuSelectedName??gateway.Notes??(active[0].type||channel.toUpperCase()));
-            details.ipaymuPaymentNo=gateway.PaymentNo==null?null:String(gateway.PaymentNo);
-            details.ipaymuCheckoutUrl=checkoutUrl;
+            details.ipaymuPaymentNo=gateway.PaymentNo==null?details.ipaymuPaymentNo??null:String(gateway.PaymentNo);
+            details.ipaymuCheckoutUrl=checkoutUrl??details.ipaymuCheckoutUrl??null;
             details.ipaymuTransactionId=latest.transactionId;
             details.ipaymuSessionId=sessionId;
             details.ipaymuPaymentFee=Number.isFinite(Number(gateway.Fee))?Math.round(Number(gateway.Fee)):null;
