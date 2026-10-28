@@ -1,11 +1,13 @@
 import {env} from 'cloudflare:workers';
 import {db} from '@/lib/server/store';
+import {ipaymuExpiryTimestamp} from '@/lib/server/ipaymu';
 import {sendMarketEmailOnce} from '@/lib/server/market-notifications';
 import {paymentReminderDue,shippingReminderStage} from '@/lib/market/reminder-windows';
 import {marketShippingDeadline} from '@/lib/market/shipping-deadline';
 import {completeDeliveredMarketOrder} from '@/lib/server/market-order-fulfillment';
 
 type PendingOrder={id:string;buyerId:string;expiresAt:string|null};
+type ExpiringOrder={id:string;buyerId:string;sellerId:string|null;title:string|null;details:string;expiresAt:string|null;updatedAt:string|null};
 type PaidOrder={id:string;sellerId:string;paidAt:string|null;updatedAt:string};
 
 async function deliverInBatches(jobs:Array<()=>Promise<unknown>>){
@@ -16,6 +18,29 @@ export async function POST(request:Request){
   const secret=(env as unknown as {PRO_MEMBERSHIP_CRON_SECRET?:string}).PRO_MEMBERSHIP_CRON_SECRET;
   if(!secret||request.headers.get('authorization')!==`Bearer ${secret}`)return Response.json({error:'Unauthorized.'},{status:401,headers:{'Cache-Control':'no-store'}});
   const database=db();const now=Date.now();const jobs:Array<()=>Promise<unknown>>=[];
+  const expiring=(await database.prepare(`SELECT o.id,o.buyer_id AS buyerId,o.seller_id AS sellerId,l.title,o.details,
+      o.expires_at AS expiresAt,o.updated_at AS updatedAt
+    FROM checkout_orders o LEFT JOIN listings l ON l.id=o.listing_id
+    WHERE o.kind='MARKET' AND o.status='PENDING_PAYMENT' ORDER BY o.expires_at LIMIT 1000`)
+    .all<ExpiringOrder>()).results;
+  for(const order of expiring){
+    let details:Record<string,unknown>={};
+    try{const parsed=JSON.parse(order.details) as unknown;if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))details=parsed as Record<string,unknown>}catch{}
+    const paymentExpiry=typeof details.ipaymuPaymentMethod==='string'
+      ?ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt,details.ipaymuPaymentCreatedAt,order.updatedAt)
+      :null;
+    const storedExpiry=order.expiresAt?Date.parse(`${order.expiresAt.replace(' ','T')}Z`):NaN;
+    const expiresAt=paymentExpiry??(Number.isFinite(storedExpiry)?storedExpiry:null);
+    if(expiresAt===null||expiresAt>now)continue;
+    if(paymentExpiry!==null)details.ipaymuExpiredByProviderAt??=new Date().toISOString();
+    const expiresAtSql=new Date(expiresAt).toISOString().slice(0,19).replace('T',' ');
+    const expired=await database.prepare(`UPDATE checkout_orders SET status='EXPIRED',details=?,expires_at=?,updated_at=CURRENT_TIMESTAMP
+      WHERE id=? AND kind='MARKET' AND status='PENDING_PAYMENT'`).bind(JSON.stringify(details),expiresAtSql,order.id).run();
+    if(!expired.meta.changes)continue;
+    const title=order.title||'Market order';
+    jobs.push(()=>sendMarketEmailOnce(order.buyerId,'order-expired',title,order.id,`market-payment-expired:${order.id}:${order.buyerId}`));
+    if(order.sellerId)jobs.push(()=>sendMarketEmailOnce(order.sellerId!,'order-expired',title,order.id,`market-payment-expired:${order.id}:${order.sellerId}`));
+  }
   const pending=(await database.prepare(`SELECT id,buyer_id AS buyerId,expires_at AS expiresAt FROM checkout_orders
     WHERE kind='MARKET' AND status='PENDING_PAYMENT' AND expires_at>CURRENT_TIMESTAMP
       AND expires_at<=datetime('now','+45 minutes') ORDER BY expires_at LIMIT 500`).all<PendingOrder>()).results;
