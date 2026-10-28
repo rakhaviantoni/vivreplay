@@ -26,8 +26,14 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
     let paymentAwaitingConfirmation=details.ipaymuPaymentAwaitingConfirmation===true;
     const recordedAttemptCount=Number(details.ipaymuAttemptCount)||1;
     const lastAttemptStatusCheck=Date.parse(String(details.ipaymuAttemptStatusCheckedAt??''));
-    const attemptIds=Array.isArray(details.ipaymuActiveTransactionIds)?[...new Set(details.ipaymuActiveTransactionIds.map(String).filter(value=>/^\d{3,20}$/.test(value)))].slice(0,5):[];
-    if(viewerRole==='buyer'&&order.status==='PENDING_PAYMENT'&&recordedAttemptCount>1&&attemptIds.length>1&&(!Number.isFinite(lastAttemptStatusCheck)||Date.now()-lastAttemptStatusCheck>30_000)){
+    const attemptIds=[...new Set([
+      ...(Array.isArray(details.ipaymuActiveTransactionIds)?details.ipaymuActiveTransactionIds.map(String):[]),
+      String(details.ipaymuTransactionId??''),
+      String(order.paymentId??''),
+    ].filter(value=>/^\d{3,20}$/.test(value)))].slice(0,5);
+    const paymentDetailsMissing=Boolean(order.paymentId&&details.ipaymuPaymentMethod!=='qris'&&!details.ipaymuCheckoutUrl&&!details.ipaymuPaymentNo);
+    const attemptStatusRefreshDue=!Number.isFinite(lastAttemptStatusCheck)||Date.now()-lastAttemptStatusCheck>(paymentDetailsMissing?10_000:30_000);
+    if(viewerRole==='buyer'&&order.status==='PENDING_PAYMENT'&&attemptIds.length>0&&attemptStatusRefreshDue){
       try{
         const originalPaymentId=order.paymentId;
         const attempts=await Promise.all(attemptIds.map(async transactionId=>{
