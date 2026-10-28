@@ -2,7 +2,7 @@ import {db,errorResponse,user,HttpError} from '@/lib/server/store';
 import {sendMarketEmail} from '@/lib/server/market-notifications';
 import {completeDeliveredMarketOrder} from '@/lib/server/market-order-fulfillment';
 import {marketCardThumbnails} from '@/lib/server/market-card-thumbnails';
-import {ipaymuExpiryTimestamp,ipaymuPayableTotal,ipaymuQrImageUrl} from '@/lib/server/ipaymu';
+import {getIpaymuMode,getIpaymuTransaction,ipaymuExpiryTimestamp,ipaymuPayableTotal,ipaymuQrImageUrl} from '@/lib/server/ipaymu';
 import {marketShippingDeadline} from '@/lib/market/shipping-deadline';
 
 type OrderRow={id:string;kind:string;buyerId:string;sellerId:string|null;listingId:string|null;items:string;details:string;subtotal:number;sellerNetAmount:number|null;shippingFee:number;amount:number;currency:string;paymentId:string|null;status:string;expiresAt:string|null;createdAt:string|null;updatedAt:string|null;paidAt:string|null;title:string|null;deliveredAt:string|null;disputeStatus:string|null;trackingId:string|null};
@@ -23,6 +23,73 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
     let items:unknown[]=[];let details:Record<string,unknown>={};
     try{items=JSON.parse(order.items) as unknown[]}catch{}
     try{const parsed=JSON.parse(order.details) as unknown;if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))details=parsed as Record<string,unknown>}catch{}
+    let paymentAwaitingConfirmation=details.ipaymuPaymentAwaitingConfirmation===true;
+    const recordedAttemptCount=Number(details.ipaymuAttemptCount)||1;
+    const lastAttemptStatusCheck=Date.parse(String(details.ipaymuAttemptStatusCheckedAt??''));
+    const attemptIds=Array.isArray(details.ipaymuActiveTransactionIds)?[...new Set(details.ipaymuActiveTransactionIds.map(String).filter(value=>/^\d{3,20}$/.test(value)))].slice(0,5):[];
+    if(viewerRole==='buyer'&&order.status==='PENDING_PAYMENT'&&recordedAttemptCount>1&&attemptIds.length>1&&(!Number.isFinite(lastAttemptStatusCheck)||Date.now()-lastAttemptStatusCheck>30_000)){
+      try{
+        const originalPaymentId=order.paymentId;
+        const attempts=await Promise.all(attemptIds.map(async transactionId=>{
+          try{
+            const gateway=await getIpaymuTransaction(transactionId);
+            const status=Number(gateway.Status);
+            if(!Number.isFinite(status)||(gateway.ReferenceId&&String(gateway.ReferenceId)!==order.id))return null;
+            return {transactionId,gateway,status};
+          }catch{return null}
+        }));
+        if(attempts.every((attempt):attempt is NonNullable<typeof attempt>=>attempt!==null)){
+          const successfulAttempt=attempts.find(attempt=>attempt.status===1||attempt.status===6);
+          const pendingAttempts=attempts.filter(attempt=>attempt.status===0);
+          const currentAttempt=pendingAttempts.find(attempt=>attempt.transactionId===String(details.ipaymuTransactionId??''));
+          const selectedAttempt=successfulAttempt??currentAttempt??pendingAttempts[0]??null;
+          details.ipaymuAttemptStatusCheckedAt=new Date().toISOString();
+          details.ipaymuAttemptCount=successfulAttempt?1:pendingAttempts.length;
+          details.ipaymuActiveTransactionIds=successfulAttempt?[successfulAttempt.transactionId]:pendingAttempts.map(attempt=>attempt.transactionId);
+          paymentAwaitingConfirmation=Boolean(successfulAttempt);
+          details.ipaymuPaymentAwaitingConfirmation=paymentAwaitingConfirmation;
+          if(selectedAttempt){
+            const {gateway,transactionId}=selectedAttempt;
+            const sessionId=String(gateway.SessionId??gateway.SessionID??transactionId);
+            const method=String(gateway.Via??details.ipaymuPaymentMethod??'').toLowerCase();
+            const channel=String(gateway.Channel??details.ipaymuPaymentChannel??'').toLowerCase();
+            const rawUrl=typeof gateway.Url==='string'?gateway.Url:null;
+            let checkoutUrl:string|null=null;
+            try{
+              if(rawUrl){
+                const parsed=new URL(rawUrl);
+                const sandbox=getIpaymuMode()==='sandbox';
+                const allowedHosts=sandbox?['sandbox.ipaymu.com','sandbox-payment.ipaymu.com']:['my.ipaymu.com','payment.ipaymu.com'];
+                if(parsed.protocol==='https:'&&!parsed.username&&!parsed.password&&(!parsed.port||parsed.port==='443')&&allowedHosts.includes(parsed.hostname))checkoutUrl=parsed.toString();
+              }
+            }catch{}
+            details.ipaymuPaymentMethod=method||details.ipaymuPaymentMethod;
+            details.ipaymuPaymentChannel=channel||details.ipaymuPaymentChannel;
+            details.ipaymuPaymentName=String(gateway.PaymentName??details.ipaymuPaymentName??details.ipaymuSelectedName??channel.toUpperCase());
+            details.ipaymuPaymentNo=gateway.PaymentNo==null?null:String(gateway.PaymentNo);
+            details.ipaymuCheckoutUrl=checkoutUrl;
+            details.ipaymuTransactionId=transactionId;
+            details.ipaymuSessionId=sessionId;
+            details.ipaymuPaymentFee=Number.isFinite(Number(gateway.Fee))?Math.round(Number(gateway.Fee)):null;
+            details.ipaymuPaymentTotal=ipaymuPayableTotal(order.amount,method,details.ipaymuPaymentFee,gateway.Total);
+            details.ipaymuPaymentCreatedAt=gateway.CreatedDate??details.ipaymuPaymentCreatedAt;
+            details.ipaymuPaymentExpiresAt=gateway.ExpiredDate??details.ipaymuPaymentExpiresAt;
+            details.ipaymuMode=getIpaymuMode();
+            order.paymentId=sessionId;
+            if(gateway.ExpiredDate)order.expiresAt=String(gateway.ExpiredDate);
+          }else{
+            for(const key of ['ipaymuPaymentMethod','ipaymuPaymentChannel','ipaymuPaymentName','ipaymuPaymentNo','ipaymuPaymentInstructionsUrl','ipaymuCheckoutUrl','ipaymuPaymentQrImage','ipaymuPaymentQrString','ipaymuTransactionId','ipaymuSessionId','ipaymuPaymentFee','ipaymuPaymentTotal','ipaymuPaymentCreatedAt','ipaymuPaymentExpiresAt','ipaymuMode','ipaymuPaymentAwaitingConfirmation'])delete details[key];
+            paymentAwaitingConfirmation=false;
+            order.paymentId=null;
+          }
+          const saved=await database.prepare("UPDATE checkout_orders SET payment_id=?,details=?,expires_at=COALESCE(?,expires_at),updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id IS ?").bind(order.paymentId,JSON.stringify(details),selectedAttempt?.gateway.ExpiredDate??null,order.id,originalPaymentId).run();
+          if(!saved.meta.changes){
+            const latest=await database.prepare('SELECT payment_id AS paymentId FROM checkout_orders WHERE id=?').bind(order.id).first<{paymentId:string|null}>();
+            order.paymentId=latest?.paymentId??order.paymentId;
+          }
+        }
+      }catch(error){console.error('ipaymu_attempt_status_refresh_failed',{orderId:order.id,error:error instanceof Error?error.message:'unknown'})}
+    }
     const paymentExpiry=order.paymentId&&details.ipaymuPaymentMethod?ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt,details.ipaymuPaymentCreatedAt,order.updatedAt):null;
     const paymentExpiresAt=paymentExpiry===null?null:new Date(paymentExpiry).toISOString();
     // Earlier versions closed QRIS orders after the image's five-minute window.
@@ -106,7 +173,7 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
     const paymentNeedsHelp=hasActivePayment&&details.ipaymuPaymentMethod!=='qris'&&!details.ipaymuCheckoutUrl&&!details.ipaymuPaymentNo;
     const canCancel=order.kind==='MARKET'&&order.status==='PENDING_PAYMENT'&&!order.paymentId&&(!order.expiresAt||new Date(`${order.expiresAt.replace(' ','T')}Z`).getTime()>Date.now());
     const manualShippingReimbursement=viewerRole==='seller'&&details.shippingMethod==='manual'?Math.max(0,order.shippingFee-(typeof details.marketProShippingDiscount==='number'?details.marketProShippingDiscount:0)-disputeShippingRefund):0;
-    const response=Response.json({id:order.id,kind:order.kind,status:order.status,viewerRole,shippingDeadline:order.kind==='MARKET'&&order.status==='PAID'?marketShippingDeadline(order.paidAt):null,listingId:order.listingId,title:order.kind==='PRO'?'VivrePlay Market Pro':displayTitle,membershipDurationDays:order.kind==='PRO'&&Number.isInteger(Number(details.durationDays))?Number(details.durationDays):null,items:orderItems,details:{},shipping,sellerNetAmount:order.sellerNetAmount,manualShippingReimbursement,marketFeePercent,marketSellerTier,marketStandardFeePercent,marketBuyerFeePercent,marketBuyerFeeAmount,disputeRefundAmount,disputeShippingRefund,shippingDiscount:viewerRole==='buyer'&&typeof details.marketProShippingDiscount==='number'?details.marketProShippingDiscount:0,trackingId:order.trackingId,waybillId:order.waybillId,trackingUrl:order.trackingUrl,deliveredAt:order.deliveredAt,disputeStatus:order.disputeStatus,checkoutUrl:viewerRole==='buyer'&&!paymentExpired&&typeof details.ipaymuCheckoutUrl==='string'?details.ipaymuCheckoutUrl:null,paymentMethod:viewerRole==='buyer'?details.ipaymuPaymentMethod??details.ipaymuSelectedMethod??null:null,paymentChannel:viewerRole==='buyer'?details.ipaymuPaymentChannel??details.ipaymuSelectedChannel??null:null,paymentName:viewerRole==='buyer'?details.ipaymuPaymentName??details.ipaymuSelectedName??null:null,paymentNo:viewerRole==='buyer'&&!paymentExpired?details.ipaymuPaymentNo??null:null,paymentInstructionsUrl:viewerRole==='buyer'?details.ipaymuPaymentInstructionsUrl??null:null,paymentMode:paymentMode==='sandbox'?'sandbox':'production',paymentFee:viewerRole==='buyer'&&typeof details.ipaymuPaymentFee==='number'?details.ipaymuPaymentFee:null,paymentTotal:viewerRole==='buyer'?paymentTotal:order.amount,paymentExpiresAt:paymentExpiresAt,paymentExpired,paymentQrImage,paymentQrString:viewerRole==='buyer'&&!paymentExpired&&typeof details.ipaymuPaymentQrString==='string'?details.ipaymuPaymentQrString:null,canCancel,paymentCreating,hasActivePayment,paymentNeedsHelp,activeAttemptCount:Number(details.ipaymuAttemptCount)||1,subtotal:order.subtotal,shippingFee:order.shippingFee,amount:order.amount,currency:order.currency,expiresAt:effectiveExpiry});response.headers.set('Cache-Control','private, no-store, max-age=0');return response;
+    const response=Response.json({id:order.id,kind:order.kind,status:order.status,viewerRole,shippingDeadline:order.kind==='MARKET'&&order.status==='PAID'?marketShippingDeadline(order.paidAt):null,listingId:order.listingId,title:order.kind==='PRO'?'VivrePlay Market Pro':displayTitle,membershipDurationDays:order.kind==='PRO'&&Number.isInteger(Number(details.durationDays))?Number(details.durationDays):null,items:orderItems,details:{},shipping,sellerNetAmount:order.sellerNetAmount,manualShippingReimbursement,marketFeePercent,marketSellerTier,marketStandardFeePercent,marketBuyerFeePercent,marketBuyerFeeAmount,disputeRefundAmount,disputeShippingRefund,shippingDiscount:viewerRole==='buyer'&&typeof details.marketProShippingDiscount==='number'?details.marketProShippingDiscount:0,trackingId:order.trackingId,waybillId:order.waybillId,trackingUrl:order.trackingUrl,deliveredAt:order.deliveredAt,disputeStatus:order.disputeStatus,checkoutUrl:viewerRole==='buyer'&&!paymentExpired&&typeof details.ipaymuCheckoutUrl==='string'?details.ipaymuCheckoutUrl:null,paymentMethod:viewerRole==='buyer'?details.ipaymuPaymentMethod??details.ipaymuSelectedMethod??null:null,paymentChannel:viewerRole==='buyer'?details.ipaymuPaymentChannel??details.ipaymuSelectedChannel??null:null,paymentName:viewerRole==='buyer'?details.ipaymuPaymentName??details.ipaymuSelectedName??null:null,paymentNo:viewerRole==='buyer'&&!paymentExpired?details.ipaymuPaymentNo??null:null,paymentInstructionsUrl:viewerRole==='buyer'?details.ipaymuPaymentInstructionsUrl??null:null,paymentMode:paymentMode==='sandbox'?'sandbox':'production',paymentFee:viewerRole==='buyer'&&typeof details.ipaymuPaymentFee==='number'?details.ipaymuPaymentFee:null,paymentTotal:viewerRole==='buyer'?paymentTotal:order.amount,paymentExpiresAt:paymentExpiresAt,paymentExpired,paymentQrImage,paymentQrString:viewerRole==='buyer'&&!paymentExpired&&typeof details.ipaymuPaymentQrString==='string'?details.ipaymuPaymentQrString:null,canCancel,paymentCreating,hasActivePayment,paymentNeedsHelp,paymentAwaitingConfirmation,activeAttemptCount:Number(details.ipaymuAttemptCount)||1,subtotal:order.subtotal,shippingFee:order.shippingFee,amount:order.amount,currency:order.currency,expiresAt:effectiveExpiry});response.headers.set('Cache-Control','private, no-store, max-age=0');return response;
   }catch(error){return errorResponse(error)}
 }
 
