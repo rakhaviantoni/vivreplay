@@ -13,7 +13,7 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
     const profile=await user();
     const {id}=await params;
     const database=db();
-    const order=await database.prepare("SELECT id,kind,buyer_id AS buyerId,payment_id AS paymentId,status,details,amount,updated_at AS updatedAt FROM checkout_orders WHERE id=?").bind(id).first<{id:string;kind:string;buyerId:string;paymentId:string|null;status:string;details:string;amount:number;updatedAt:string|null}>();
+    const order=await database.prepare("SELECT id,kind,buyer_id AS buyerId,payment_id AS paymentId,status,details,amount,created_at AS createdAt,updated_at AS updatedAt FROM checkout_orders WHERE id=?").bind(id).first<{id:string;kind:string;buyerId:string;paymentId:string|null;status:string;details:string;amount:number;createdAt:string|null;updatedAt:string|null}>();
     if(!order||order.buyerId!==profile.id)throw new HttpError(404,'Checkout was not found.');
     if(order.status!=='PENDING_PAYMENT')throw new HttpError(409,'This checkout is no longer payable.');
     let details:Record<string,unknown>={};
@@ -23,10 +23,13 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
     const claimCreatedAt=order.updatedAt?Date.parse(`${order.updatedAt.replace(' ','T')}Z`):NaN;
     const legacyAttempt=!paymentId&&typeof details.ipaymuSelectedMethod==='string';
     const staleAttempt=Number.isFinite(claimCreatedAt)&&Date.now()-claimCreatedAt>45_000;
-    let shouldRecover=(paymentId?.startsWith('CREATING:')&&!details.ipaymuPaymentMethod&&staleAttempt)||(legacyAttempt&&staleAttempt);
-    if(legacyAttempt&&staleAttempt){
+    const createdAt=order.createdAt?Date.parse(`${order.createdAt.replace(' ','T')}Z`):NaN;
+    const updatedAfterCreation=Number.isFinite(claimCreatedAt)&&Number.isFinite(createdAt)&&claimCreatedAt-createdAt>45_000;
+    const unmarkedAttempt=!paymentId&&!legacyAttempt&&!details.ipaymuPaymentRecoveryCheckedAt&&updatedAfterCreation;
+    let shouldRecover=(paymentId?.startsWith('CREATING:')&&!details.ipaymuPaymentMethod&&staleAttempt)||(legacyAttempt&&staleAttempt)||unmarkedAttempt;
+    if((legacyAttempt&&staleAttempt)||unmarkedAttempt){
       const recoveryClaim=`CREATING:${crypto.randomUUID()}`;
-      const claimed=await database.prepare("UPDATE checkout_orders SET payment_id=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id IS NULL AND json_extract(details,'$.ipaymuSelectedMethod') IS NOT NULL").bind(recoveryClaim,order.id).run();
+      const claimed=await database.prepare("UPDATE checkout_orders SET payment_id=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id IS NULL").bind(recoveryClaim,order.id).run();
       if(claimed.meta.changes)paymentId=recoveryClaim;
       else{
         const latest=await database.prepare("SELECT payment_id AS paymentId FROM checkout_orders WHERE id=?").bind(order.id).first<{paymentId:string|null}>();
@@ -38,23 +41,47 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
       try{
         const from=new Date(claimCreatedAt-24*60*60*1000).toISOString().slice(0,10);
         const through=new Date(Date.now()+24*60*60*1000).toISOString().slice(0,10);
-        const history=await findIpaymuTransactionsByReference(order.id,from,through);
-        const active=history.filter(transaction=>[0,1,6].includes(transaction.status)&&transaction.amount>=order.amount).sort((a,b)=>Date.parse(b.createdAt)-Date.parse(a.createdAt));
+        const recoveryIds=Array.isArray(details.ipaymuRecoveryTransactionIds)?[...new Set(details.ipaymuRecoveryTransactionIds.map(String).filter(value=>/^\d{3,20}$/.test(value)))].slice(0,5):[];
+        const recoveredById=new Map<string,Awaited<ReturnType<typeof getIpaymuTransaction>>>();
+        const directAttempts=await Promise.all(recoveryIds.map(async transactionId=>{
+          try{
+            const gateway=await getIpaymuTransaction(transactionId);
+            const status=Number(gateway.Status);
+            const reference=String(gateway.ReferenceId??'');
+            if(![0,1,6].includes(status)||(reference&&reference!==order.id))return null;
+            recoveredById.set(transactionId,gateway);
+            return {transactionId,referenceId:reference||order.id,amount:Number.isSafeInteger(Number(gateway.Amount))?Number(gateway.Amount):null,status,type:String(gateway.TypeDesc??gateway.Notes??''),createdAt:String(gateway.CreatedDate??'')};
+          }catch{return null}
+        }));
+        const directActive=directAttempts.filter((transaction):transaction is NonNullable<typeof transaction>=>Boolean(transaction)).sort((a,b)=>Date.parse(b.createdAt)-Date.parse(a.createdAt));
+        const history=directActive.length?[]:await findIpaymuTransactionsByReference(order.id,from,through);
+        const active=(directActive.length?directActive:history.filter(transaction=>transaction.status!==null&&[0,1,6].includes(transaction.status))).sort((a,b)=>Date.parse(b.createdAt)-Date.parse(a.createdAt));
         if(active.length){
           const latest=active[0];
-          const gateway=await getIpaymuTransaction(latest.transactionId);
-          const method=String(gateway.Via??details.ipaymuSelectedMethod??'').toLowerCase();
-          const channel=String(gateway.Channel??details.ipaymuSelectedChannel??'').toLowerCase();
+          const gateway=recoveredById.get(latest.transactionId)??await getIpaymuTransaction(latest.transactionId);
+          const descriptor=[latest.type,gateway.TypeDesc,gateway.Notes].filter(Boolean).join(' ').toLowerCase();
+          let method=String(gateway.Via??details.ipaymuSelectedMethod??'').toLowerCase();
+          if(!['va','cstore','qris','cc','paylater','ewallet'].includes(method)){
+            method=descriptor.includes('qris')?'qris':descriptor.includes('credit card')||descriptor.includes('card payment')?'cc':descriptor.includes('e-wallet')||descriptor.includes('ewallet')||descriptor.includes('dana')||descriptor.includes('shopeepay')||descriptor.includes('gopay')?'ewallet':descriptor.includes('virtual account')||descriptor.includes('virtual bank')?'va':descriptor.includes('convenience store')||descriptor.includes('indomaret')||descriptor.includes('alfamart')?'cstore':descriptor.includes('paylater')?'paylater':'';
+          }
+          let channel=String(gateway.Channel??details.ipaymuSelectedChannel??'').toLowerCase();
+          if(!/^[a-z0-9_]{2,24}$/.test(channel)&&method){
+            const channels=await getIpaymuPaymentChannels().catch(()=>[]);
+            const candidates=channels.filter(option=>option.method===method&&(descriptor.includes(option.channel)||descriptor.includes(option.name.toLowerCase())));
+            const methodChannels=channels.filter(option=>option.method===method);
+            if(candidates.length===1)channel=candidates[0].channel;
+            else if(methodChannels.length===1)channel=methodChannels[0].channel;
+          }
           const validMethod=['va','cstore','qris','cc','paylater','ewallet'].includes(method);
-          const sessionId=String(gateway.SessionId??latest.transactionId);
-          if(validMethod&&/^[a-z0-9_]{2,24}$/.test(channel)&&String(gateway.ReferenceId??order.id)===order.id){
+          const sessionId=String(gateway.SessionId??gateway.SessionID??latest.transactionId);
+          if(validMethod&&/^[a-z0-9_]{2,24}$/.test(channel)&&(!gateway.ReferenceId||String(gateway.ReferenceId)===order.id)){
             const rawUrl=typeof gateway.Url==='string'?gateway.Url:null;
             let checkoutUrl:string|null=null;
             try{if(rawUrl){const parsed=new URL(rawUrl);if(parsed.protocol==='https:'&&!parsed.username&&!parsed.password&&(!parsed.port||parsed.port==='443'))checkoutUrl=parsed.toString()}}catch{}
             details.ipaymuPaymentMethod=method;
             details.ipaymuPaymentChannel=channel;
             details.ipaymuPaymentName=String(gateway.PaymentName??details.ipaymuSelectedName??gateway.Notes??(active[0].type||channel.toUpperCase()));
-            details.ipaymuPaymentNo=gateway.PaymentNo===undefined?null:String(gateway.PaymentNo);
+            details.ipaymuPaymentNo=gateway.PaymentNo==null?null:String(gateway.PaymentNo);
             details.ipaymuCheckoutUrl=checkoutUrl;
             details.ipaymuTransactionId=latest.transactionId;
             details.ipaymuSessionId=sessionId;
@@ -63,15 +90,21 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
             details.ipaymuPaymentCreatedAt=gateway.CreatedDate??latest.createdAt;
             details.ipaymuPaymentExpiresAt=gateway.ExpiredDate??null;
             details.ipaymuMode=getIpaymuMode();
+            details.ipaymuActiveTransactionIds=active.map(transaction=>transaction.transactionId);
+            delete details.ipaymuRecoveryTransactionIds;
             if(active.length>1)details.ipaymuAttemptCount=active.length;
             const saved=await database.prepare("UPDATE checkout_orders SET payment_id=?,details=?,expires_at=COALESCE(?,expires_at),updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id=?").bind(sessionId,JSON.stringify(details),details.ipaymuPaymentExpiresAt??null,order.id,paymentId).run();
             if(saved.meta.changes){paymentId=sessionId;paymentRecovery=active.length>1?'multiple':'recovered'}
           }
+        }else if(history.some(transaction=>transaction.status===null)){
+          console.error('ipaymu_payment_recovery_status_unknown',{orderId:order.id,matchingTransactions:history.length});
         }else{
           delete details.ipaymuSelectedMethod;
           delete details.ipaymuSelectedChannel;
           delete details.ipaymuSelectedName;
           delete details.ipaymuSelectedLogo;
+          delete details.ipaymuRecoveryTransactionIds;
+          details.ipaymuPaymentRecoveryCheckedAt=new Date().toISOString();
           const cleared=await database.prepare("UPDATE checkout_orders SET payment_id=NULL,details=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id=?").bind(JSON.stringify(details),order.id,paymentId).run();
           if(cleared.meta.changes){paymentId=null;paymentRecovery='cleared'}
         }

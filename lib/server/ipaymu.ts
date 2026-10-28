@@ -79,26 +79,39 @@ async function signedIpaymuPost(path:string,body:Record<string,unknown>){
   return payload.Data;
 }
 
-export type IpaymuHistoryTransaction={transactionId:string;referenceId:string|null;amount:number;status:number;type:string;createdAt:string};
+export type IpaymuHistoryTransaction={transactionId:string;referenceId:string|null;amount:number|null;status:number|null;type:string;createdAt:string};
 
 export async function findIpaymuTransactionsByReference(referenceId:string,startDate:string,endDate:string){
   const matches:IpaymuHistoryTransaction[]=[];
-  for(let page=1;page<=5;page++){
-    const data=await signedIpaymuPost('history',{date:'created_at',startdate:startDate,enddate:endDate,page:String(page),limit:'20',orderBy:'created_at',order:'DESC',lang:'en'}) as {Total_Page?:number;Results?:Array<{TransactionId?:string|number;ReferenceId?:string|null;Amount?:string|number;Status?:string|number;TypeDesc?:string;CreatedDate?:string}>};
-    const results=Array.isArray(data.Results)?data.Results:[];
-    for(const row of results){
+  const append=(rows:Array<{TransactionId?:string|number;ReferenceId?:string|null;Amount?:string|number;Status?:string|number;StatusDesc?:string;TypeDesc?:string;CreatedDate?:string}>)=>{
+    for(const row of rows){
       if(String(row.ReferenceId??'')!==referenceId)continue;
-      const amount=Number(row.Amount),status=Number(row.Status),transactionId=String(row.TransactionId??'');
-      if(!transactionId||!Number.isSafeInteger(amount)||!Number.isFinite(status))continue;
-      matches.push({transactionId,referenceId,amount,status,type:String(row.TypeDesc??''),createdAt:String(row.CreatedDate??'')});
+      const amount=Number(row.Amount),rawStatus=Number(row.Status),label=String(row.StatusDesc??'').toLowerCase();
+      const status=Number.isFinite(rawStatus)?rawStatus:label.includes('pending')?0:label.includes('success')||label.includes('berhasil')?1:label.includes('expired')||label.includes('kedaluwarsa')?-2:label.includes('cancel')||label.includes('batal')?2:null;
+      const transactionId=String(row.TransactionId??'');
+      if(!transactionId)continue;
+      matches.push({transactionId,referenceId,amount:Number.isSafeInteger(amount)?amount:null,status,type:String(row.TypeDesc??''),createdAt:String(row.CreatedDate??'')});
     }
+  };
+  for(let page=1;page<=5;page++){
+    const data=await signedIpaymuPost('history',{date:'created_at',startdate:startDate,enddate:endDate,page:String(page),limit:'20',orderBy:'created_at',order:'DESC',lang:'en'}) as {Total_Page?:number;Results?:Array<{TransactionId?:string|number;ReferenceId?:string|null;Amount?:string|number;Status?:string|number;StatusDesc?:string;TypeDesc?:string;CreatedDate?:string}>};
+    const results=Array.isArray(data.Results)?data.Results:[];
+    append(results);
     if(page>=Number(data.Total_Page??1)||results.length<20)break;
+  }
+  if(!matches.length){
+    for(let page=1;page<=20;page++){
+      const data=await signedIpaymuPost('history',{page:String(page),limit:'20',orderBy:'id',order:'DESC',lang:'en'}) as {Total_Page?:number;Results?:Array<{TransactionId?:string|number;ReferenceId?:string|null;Amount?:string|number;Status?:string|number;StatusDesc?:string;TypeDesc?:string;CreatedDate?:string}>};
+      const results=Array.isArray(data.Results)?data.Results:[];
+      append(results);
+      if(matches.length||page>=Number(data.Total_Page??1)||!results.length)break;
+    }
   }
   return matches;
 }
 
 export async function getIpaymuTransaction(transactionId:string){
-  return await signedIpaymuPost('transaction',{transactionId}) as {TransactionId?:string|number;SessionId?:string;ReferenceId?:string|null;Amount?:number|string;Fee?:number|string;Status?:number|string;TypeDesc?:string;Notes?:string;CreatedDate?:string;ExpiredDate?:string;Via?:string;Channel?:string;PaymentNo?:string|number;PaymentName?:string;Url?:string;PaymentInstructionsDoc?:string;Total?:number|string};
+  return await signedIpaymuPost('transaction',{transactionId}) as {TransactionId?:string|number;SessionId?:string;SessionID?:string;ReferenceId?:string|null;Amount?:number|string;Fee?:number|string;Status?:number|string;TypeDesc?:string;Notes?:string;CreatedDate?:string;ExpiredDate?:string;Via?:string;Channel?:string;PaymentNo?:string|number|null;PaymentName?:string;Url?:string;PaymentInstructionsDoc?:string;Total?:number|string};
 }
 
 async function requestSignature(bodyText:string,va:string,apiKey:string){

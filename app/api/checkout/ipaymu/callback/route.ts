@@ -15,9 +15,12 @@ export async function POST(request:Request){
     const order=await database.prepare(`SELECT o.id,o.kind,o.buyer_id AS buyerId,o.seller_id AS sellerId,o.listing_id AS listingId,o.items,o.details,o.subtotal,o.amount,o.payment_id AS paymentId,o.status,l.title FROM checkout_orders o LEFT JOIN listings l ON l.id=o.listing_id WHERE o.id=?`).bind(orderId).first<{id:string;kind:string;buyerId:string;sellerId:string|null;listingId:string|null;items:string;details:string;subtotal:number;amount:number;paymentId:string|null;status:string;title:string|null}>();
     if(!order)return Response.json({error:'Order was not found.'},{status:404});
     let details:Record<string,unknown>={};try{details=JSON.parse(order.details) as Record<string,unknown>}catch{}
-    const validPaymentIds=[order.paymentId,details.ipaymuTransactionId].filter(Boolean).map(String);
     const claimedAttempt=Boolean(callbackReference(payload)===order.id&&(order.paymentId?.startsWith('CREATING:')||(!order.paymentId&&typeof details.ipaymuSelectedMethod==='string')));
-    if(!validPaymentIds.includes(sessionId)&&!validPaymentIds.includes(transactionId)&&!claimedAttempt)return Response.json({error:'Payment session does not match this order.'},{status:409});
+    // The signed iPaymu payload binds every attempt to its reference. A buyer can
+    // have more than one live attempt for an order, so the latest saved attempt
+    // must not be the only callback accepted.
+    const signedAttemptForOrder=callbackReference(payload)===order.id&&Boolean(sessionId||transactionId);
+    if(!signedAttemptForOrder&&!claimedAttempt)return Response.json({error:'Payment session does not match this order.'},{status:409});
     if(callbackIsSuccessful(payload)){
       const paidAmount=callbackAmount(payload);
       const expectedAmounts=[order.amount,Number(details.ipaymuPaymentTotal)].filter((value,index,array)=>Number.isSafeInteger(value)&&value>0&&array.indexOf(value)===index);
@@ -56,6 +59,7 @@ export async function POST(request:Request){
     if(order.status!=='PENDING_PAYMENT')return Response.json({status:'already_processed'});
     const nextStatus=callbackStatus(payload);
     if(nextStatus!=='PENDING_PAYMENT'){
+      if(Number(details.ipaymuAttemptCount)>1)return Response.json({status:'other_payment_attempts_remain'});
       const updated=await database.prepare('UPDATE checkout_orders SET status=?,payment_id=CASE WHEN ? THEN ? ELSE payment_id END,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status=\'PENDING_PAYMENT\' AND payment_id IS ?').bind(nextStatus,claimedAttempt?1:0,sessionId||transactionId,orderId,order.paymentId).run();
       if(updated.meta.changes&&nextStatus==='EXPIRED'&&order.kind==='MARKET'){
         const title=order.title||'Market order';

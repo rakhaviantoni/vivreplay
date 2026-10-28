@@ -5,14 +5,14 @@ import {marketCardThumbnails} from '@/lib/server/market-card-thumbnails';
 import {ipaymuExpiryTimestamp,ipaymuQrImageUrl} from '@/lib/server/ipaymu';
 import {marketShippingDeadline} from '@/lib/market/shipping-deadline';
 
-type OrderRow={id:string;kind:string;buyerId:string;sellerId:string|null;listingId:string|null;items:string;details:string;subtotal:number;sellerNetAmount:number|null;shippingFee:number;amount:number;currency:string;paymentId:string|null;status:string;expiresAt:string|null;updatedAt:string|null;paidAt:string|null;title:string|null;deliveredAt:string|null;disputeStatus:string|null;trackingId:string|null};
+type OrderRow={id:string;kind:string;buyerId:string;sellerId:string|null;listingId:string|null;items:string;details:string;subtotal:number;sellerNetAmount:number|null;shippingFee:number;amount:number;currency:string;paymentId:string|null;status:string;expiresAt:string|null;createdAt:string|null;updatedAt:string|null;paidAt:string|null;title:string|null;deliveredAt:string|null;disputeStatus:string|null;trackingId:string|null};
 
 export async function GET(_request:Request,{params}:{params:Promise<{id:string}>}){
   try{
     const profile=await user();
     const {id}=await params;
     const database=db();
-    const order=await database.prepare(`SELECT o.id,o.kind,o.buyer_id AS buyerId,o.seller_id AS sellerId,o.listing_id AS listingId,o.items,o.details,o.subtotal,o.seller_net_amount AS sellerNetAmount,o.shipping_fee AS shippingFee,o.amount,o.currency,o.payment_id AS paymentId,o.status,o.expires_at AS expiresAt,o.updated_at AS updatedAt,o.paid_at AS paidAt,o.delivered_at AS deliveredAt,(SELECT status FROM market_disputes d WHERE d.order_id=o.id) AS disputeStatus,o.biteship_tracking_id AS trackingId,o.shipping_waybill_id AS waybillId,o.shipping_tracking_url AS trackingUrl,l.title FROM checkout_orders o LEFT JOIN listings l ON l.id=o.listing_id WHERE o.id=?`).bind(id).first<OrderRow&{waybillId:string|null;trackingUrl:string|null}>();
+    const order=await database.prepare(`SELECT o.id,o.kind,o.buyer_id AS buyerId,o.seller_id AS sellerId,o.listing_id AS listingId,o.items,o.details,o.subtotal,o.seller_net_amount AS sellerNetAmount,o.shipping_fee AS shippingFee,o.amount,o.currency,o.payment_id AS paymentId,o.status,o.expires_at AS expiresAt,o.created_at AS createdAt,o.updated_at AS updatedAt,o.paid_at AS paidAt,o.delivered_at AS deliveredAt,(SELECT status FROM market_disputes d WHERE d.order_id=o.id) AS disputeStatus,o.biteship_tracking_id AS trackingId,o.shipping_waybill_id AS waybillId,o.shipping_tracking_url AS trackingUrl,l.title FROM checkout_orders o LEFT JOIN listings l ON l.id=o.listing_id WHERE o.id=?`).bind(id).first<OrderRow&{waybillId:string|null;trackingUrl:string|null}>();
     if(!order||(order.buyerId!==profile.id&&order.sellerId!==profile.id))throw new HttpError(404,'Checkout was not found.');
     if(order.kind==='MARKET'&&order.status==='SHIPPED'&&order.deliveredAt){
       const completed=await completeDeliveredMarketOrder(order.id,order.buyerId,true);
@@ -97,7 +97,10 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
     // response. Keep the browser same-origin and let the QR route extract it.
     const paymentQrImage=details.ipaymuPaymentMethod==='qris'&&paymentQrSource?`/api/checkout/order/${encodeURIComponent(order.id)}/qris`:null;
     const legacyPaymentCheck=order.status==='PENDING_PAYMENT'&&!order.paymentId&&typeof details.ipaymuSelectedMethod==='string';
-    const paymentCreating=order.status==='PENDING_PAYMENT'&&Boolean(order.paymentId?.startsWith('CREATING:')||legacyPaymentCheck);
+    const updatedAtMs=order.updatedAt?Date.parse(`${order.updatedAt.replace(' ','T')}Z`):NaN;
+    const createdAtMs=order.createdAt?Date.parse(`${order.createdAt.replace(' ','T')}Z`):NaN;
+    const unmarkedPaymentCheck=order.status==='PENDING_PAYMENT'&&!order.paymentId&&!details.ipaymuPaymentRecoveryCheckedAt&&Number.isFinite(updatedAtMs)&&Number.isFinite(createdAtMs)&&updatedAtMs-createdAtMs>45_000;
+    const paymentCreating=order.status==='PENDING_PAYMENT'&&Boolean(order.paymentId?.startsWith('CREATING:')||legacyPaymentCheck||unmarkedPaymentCheck);
     const hasActivePayment=order.status==='PENDING_PAYMENT'&&Boolean(order.paymentId&&!paymentCreating);
     const paymentNeedsHelp=hasActivePayment&&details.ipaymuPaymentMethod!=='qris'&&!details.ipaymuCheckoutUrl&&!details.ipaymuPaymentNo;
     const canCancel=order.kind==='MARKET'&&order.status==='PENDING_PAYMENT'&&!order.paymentId&&(!order.expiresAt||new Date(`${order.expiresAt.replace(' ','T')}Z`).getTime()>Date.now());
