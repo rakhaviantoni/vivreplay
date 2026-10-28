@@ -6,6 +6,7 @@ import {matchesSealedProductQuery,normalizeSealedProductQuery,sealedProductDispl
 import {isAccessoryKind,productConditionLabel,productConditionOptions} from '@/lib/market/product-conditions';
 import {MarketGeneralComposer} from './market-general-composer';
 import {useMarketListingLimits} from '@/lib/market/use-listing-limits';
+import {RadioGroup,RadioGroupItem} from '@/components/ui/radio-group';
 import './market-sealed.css';
 
 export type BundleProductInput={productType:'SEALED'|'GENERAL';productId?:string;title:string;quantity:number;unitAmount:number;condition:string;notes:string;photoIds:string[];parcel?:{weight:number;length:number;width:number;height:number};generalProduct?:{category:string;brand:string;model:string;attributes:Record<string,string>};catalogProduct?:SealedProduct};
@@ -19,6 +20,7 @@ export function MarketSealedComposer({type,onPublished,onAddToBundle,onBackToBun
   const [condition,setCondition]=useState('SEALED');const [notes,setNotes]=useState('');const [photos,setPhotos]=useState<string[]>([]);
   const [parcel,setParcel]=useState({weight:'',length:'',width:'',height:''});const [busy,setBusy]=useState(false);const [error,setError]=useState('');
   const kinds=useMemo(()=>(Object.keys(sealedProductKinds) as SealedProductKind[]).filter(kind=>sealedProducts.some(item=>item.kind===kind)),[]);
+  const selectedConditionOptions=product?productConditionOptions(product.kind):[];
   const normalizedQuery=normalizeSealedProductQuery(query);
   const choices=useMemo(()=>sealedProducts.filter(item=>(edition==='all'||item.edition===edition)&&(kind==='all'||item.kind===kind)&&matchesSealedProductQuery(`${item.name} ${item.setCode} ${item.kind} ${item.edition}`,normalizedQuery)),[edition,kind,normalizedQuery]);
   const chooseProduct=(next:SealedProduct)=>{setProduct(next);setQuantity(1);setPrice('');setCondition(isAccessoryKind(next.kind)?'NEW':'SEALED');setNotes('');setPhotos([]);setParcel({weight:'',length:'',width:'',height:''});setError('')};
@@ -33,7 +35,11 @@ export function MarketSealedComposer({type,onPublished,onAddToBundle,onBackToBun
       <div className="market-product-picker-top">
         <label className="market-product-search"><span>{copy('Find a product','Cari produk')}</span><div><Search size={17}/><input value={query} onChange={event=>{setQuery(event.target.value);setVisibleCount(30)}} placeholder={copy('Name or product code','Nama atau kode produk')} aria-label={copy('Search products','Cari produk')}/></div></label>
         <label className="market-product-category"><span>{copy('Product type','Jenis produk')}</span><select value={kind} onChange={event=>{setKind(event.target.value as typeof kind);setVisibleCount(30)}}><option value="all">{copy('All products','Semua produk')}</option>{kinds.map(item=><option key={item} value={item}>{sealedProductKinds[item]}</option>)}</select></label>
-        <label className="market-product-edition"><span>{copy('Edition','Edisi')}</span><select value={edition} onChange={event=>{setEdition(event.target.value as typeof edition);setVisibleCount(30)}}><option value="asia">Asia</option><option value="global">Global</option><option value="all">{copy('All editions','Semua edisi')}</option></select></label>
+        <fieldset className="market-product-edition"><legend>{copy('Edition','Edisi')}</legend><RadioGroup value={edition} onValueChange={value=>{setEdition(value as typeof edition);setVisibleCount(30)}} className="market-product-edition-options" aria-label={copy('Product edition','Edisi produk')}>
+          <div className={edition==='asia'?'is-selected':''}><RadioGroupItem value="asia"/><span>Asia</span></div>
+          <div className={edition==='global'?'is-selected':''}><RadioGroupItem value="global"/><span>Global</span></div>
+          <div className={edition==='all'?'is-selected':''}><RadioGroupItem value="all"/><span>{copy('All','Semua')}</span></div>
+        </RadioGroup></fieldset>
       </div>
       <div className="market-product-results-heading"><strong>{query.trim()?copy('Matches','Hasil pencarian'):copy('Available products','Produk tersedia')}</strong><span>{choices.length}</span></div>
       <div className="market-sealed-choices" aria-label={copy('Products','Produk')}>
@@ -47,7 +53,13 @@ export function MarketSealedComposer({type,onPublished,onAddToBundle,onBackToBun
       </div>
     </>:<>
       <div className="market-sealed-selection"><span className="market-product-selection-art">{product.imageUrl?<img src={product.imageUrl} alt=""/>:null}</span><div><span className="market-product-selection-kind">{sealedProductKinds[product.kind]}</span><strong>{displayProduct(product)}</strong><small>{sealedProductPublicCode(product)}<span>{product.edition==='asia'?'Asia':'Global'}</span></small>{product.contents&&<p className="market-product-contents">{product.contents}</p>}<button type="button" disabled={busy} onClick={()=>setProduct(undefined)}>{copy('Choose another product','Pilih produk lain')}</button></div></div>
-      <div className="market-sealed-fields"><label>{type==='WTS'?copy('Quantity available','Jumlah tersedia'):copy('Quantity wanted','Jumlah yang dicari')}<input type="number" min={1} max={productStockLimit} value={quantity} onChange={event=>setQuantity(Math.min(productStockLimit,Math.max(1,Number(event.target.value)||1)))}/><small>{copy(`Up to ${productStockLimit} units per listing`,`Maksimal ${productStockLimit} unit per listing`)}</small></label><label>{type==='WTS'?copy('Price per item (IDR)','Harga per produk (IDR)'):copy('Offer per item (IDR)','Tawaran per produk (IDR)')}<input type="number" min={1} value={price} onChange={event=>setPrice(event.target.value)}/></label><label>{type==='WTB'?copy('Condition wanted','Kondisi yang dicari'):copy('Condition','Kondisi')}<select value={condition} onChange={event=>setCondition(event.target.value)}>{productConditionOptions(product.kind).map(value=><option key={value} value={value}>{productConditionLabel(value,language)}</option>)}</select></label></div>
+      <div className="market-sealed-fields"><label>{type==='WTS'?copy('Quantity available','Jumlah tersedia'):copy('Quantity wanted','Jumlah yang dicari')}<input type="number" min={1} max={productStockLimit} value={quantity} onChange={event=>setQuantity(Math.min(productStockLimit,Math.max(1,Number(event.target.value)||1)))}/><small>{copy(`Up to ${productStockLimit} units per listing`,`Maksimal ${productStockLimit} unit per listing`)}</small></label><label>{type==='WTS'?copy('Price per item (IDR)','Harga per produk (IDR)'):copy('Offer per item (IDR)','Tawaran per produk (IDR)')}<input type="number" min={1} value={price} onChange={event=>setPrice(event.target.value)}/></label>
+        <fieldset className="market-product-condition-field"><legend>{type==='WTB'?copy('Condition wanted','Kondisi yang dicari'):copy('Condition','Kondisi')}</legend>
+          {selectedConditionOptions.length<=2?<RadioGroup value={condition} onValueChange={setCondition} className="market-product-condition-options" aria-label={type==='WTB'?copy('Condition wanted','Kondisi yang dicari'):copy('Condition','Kondisi')}>
+            {selectedConditionOptions.map(value=><div key={value} className={condition===value?'is-selected':''}><RadioGroupItem value={value}/><span className="market-product-radio-mark" aria-hidden="true"/><span>{productConditionLabel(value,language)}</span></div>)}
+          </RadioGroup>:<select className="market-product-condition-select" value={condition} onChange={event=>setCondition(event.target.value)}>{selectedConditionOptions.map(value=><option key={value} value={value}>{productConditionLabel(value,language)}</option>)}</select>}
+        </fieldset>
+      </div>
       <label>{copy('Condition notes','Catatan kondisi')}<textarea maxLength={1000} value={notes} onChange={event=>setNotes(event.target.value)} placeholder={type==='WTB'?copy('Describe the condition or design you want','Jelaskan kondisi atau desain yang dicari'):copy('Mention wear, damage, or missing pieces','Sebutkan tanda pemakaian, kerusakan, atau bagian yang tidak lengkap')}/></label>
       {type==='WTS'&&<>
         <fieldset className="market-product-parcel"><legend>{copy('Packed size','Ukuran paket')}</legend><p>{copy('Measure the parcel after adding protective packaging.','Ukur paket setelah diberi pelindung.')}</p><div className="market-sealed-fields">{Object.entries(parcel).map(([key,value])=><label key={key}>{key==='weight'?copy('Weight (g)','Berat (g)'):`${key.charAt(0).toUpperCase()+key.slice(1)} (cm)`}<input type="number" min={key==='weight'?10:1} value={value} onChange={event=>setParcel(current=>({...current,[key]:event.target.value}))}/></label>)}</div></fieldset>

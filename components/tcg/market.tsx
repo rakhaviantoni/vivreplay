@@ -89,7 +89,7 @@ function MarketScopePicker({label,logo,active,selected,options,onToggleScope,onT
   const filtered=options.filter(option=>`${option.label} ${option.value}`.toLowerCase().includes(query.trim().toLowerCase()));
   return <div className={`market-scope-picker${active?' is-active':''}`}>
     <button type="button" className="market-scope-toggle" aria-label={label} aria-pressed={active} onClick={onToggleScope}>
-      {logo?<span className="market-scope-logo"><img src={logo} alt=""/></span>:<span className="market-scope-label">{label}</span>}
+      {logo?<span className={`market-scope-logo${label==='One Piece'?' is-one-piece':''}`}><img src={logo} alt=""/></span>:<span className="market-scope-label">{label}</span>}
     </button>
     <Popover open={open} onOpenChange={next=>{setOpen(next);if(!next)setQuery('')}}>
       <PopoverTrigger asChild><button type="button" className="market-scope-menu-toggle" aria-label={locale==='ID'?`Buka filter ${label}`:`Open ${label} filters`}><ChevronDown size={14} aria-hidden="true"/></button></PopoverTrigger>
@@ -1265,7 +1265,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
     const limitViolation=marketListingLimit(bundleCards,listingLimits);
     if(limitViolation){setSaveError(listingLimitMessage(limitViolation,locale,listingLimits));return;}
     if(listingType==='WTB'&&!buyerCity){
-      setSaveError(locale==='ID'?'Tambahkan alamat pengiriman sebelum membuat permintaan beli.':'Add a delivery address before posting a buying request.');
+      setSaveError(locale==='ID'?'Tambahkan alamat pengiriman sebelum mengirim permintaan.':'Add a delivery address before posting your request.');
       return;
     }
     setBusy(true);
@@ -1608,30 +1608,30 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
       <Dialog open={open} modal={!marketVaultOpen} onOpenChange={next=>{if(!next&&(marketVaultOpen||bulkListingOpen))return;if(!next)configLoadVersion.current++;setOpen(next)}}>
         <DialogContent className={`listing-dialog market-sell-dialog ${listingType==='WTB'?'is-buying-request':'is-selling-listing'}`}>
           <div className="market-sell-heading">
-            <div className="market-sell-heading-actions"><span>{listingType==='WTB'?(locale==='ID'?'PERMINTAAN BELI':'BUYING REQUEST'):(locale==='ID'?'BUAT LISTING':'CREATE LISTING')}</span><button type="button" className="market-sell-manage-listings" onClick={()=>{setOpen(false);setQuickPanel(null);setAccountPanel('listings')}}><ClipboardText size={15}/>{locale==='ID'?'Listing saya':'My listings'}</button></div>
+            <div className="market-sell-heading-actions"><span>{listingType==='WTB'?(locale==='ID'?'CARI UNTUK DIBELI':'LOOKING TO BUY'):(locale==='ID'?'BUAT LISTING':'CREATE LISTING')}</span><button type="button" className="market-sell-manage-listings" onClick={()=>{setOpen(false);setQuickPanel(null);setAccountPanel('listings')}}><ClipboardText size={15}/>{locale==='ID'?'Listing saya':'My listings'}</button></div>
             <DialogTitle>
               {sealedMode?(listingType==='WTS'?(locale==='ID'?'Jual produk':'Sell a product'):(locale==='ID'?'Cari produk':'Find a product')):configuringCard
                 ? activeCardObj?.gameSlug==='pokemon'
-                  ? (listingType==='WTB'?(locale==='ID'?'Atur permintaan kartu Pokémon.':'Set your Pokémon card request.'):(locale==='ID'?'Atur listing kartu Pokémon.':'Set up this Pokémon listing.'))
-                  : (listingType==='WTB'?(locale==='ID'?'Atur permintaan kartu.':'Set your card request.'):(locale==='ID'?'Atur kartu untuk dijual.':'Set up your card for sale.'))
+                  ? (listingType==='WTB'?(locale==='ID'?'Atur kartu Pokémon yang ingin dibeli':'Set up a Pokémon card you want to buy'):(locale==='ID'?'Atur kartu Pokémon untuk dijual':'Set up your Pokémon card for sale'))
+                  : (listingType==='WTB'?(locale==='ID'?'Atur kartu yang ingin dibeli':'Set up a card you want to buy'):(locale==='ID'?'Atur kartu untuk dijual':'Set up your card for sale'))
                 : hasBundleItems
-                  ? (listingType==='WTB'?(locale==='ID'?'Rincian permintaan beli.':'Buying request details.'):(locale==='ID'?'Rincian listing paket.':'Bundle listing details.'))
-                  : listingType==='WTB'?(locale==='ID'?'Pilih kartu yang ingin Anda beli.':'Choose cards you’re looking to buy.'):(locale==='ID'?'Pilih kartu untuk dijual.':'Select cards to sell.')
+                  ? (listingType==='WTB'?(locale==='ID'?'Tinjau kartu yang ingin dibeli':'Review cards to buy'):(locale==='ID'?'Tinjau listing':'Review your listing'))
+                  : listingType==='WTB'?(locale==='ID'?'Pilih kartu untuk dibeli':'Choose cards to buy'):(locale==='ID'?'Pilih kartu untuk dijual':'Select cards to sell')
               }
             </DialogTitle>
             <DialogDescription>
-              {sealedMode?(locale==='ID'?'Pilih produk dan atur harga atau permintaan.':'Choose a product and set your price or request.'):configuringCard
+              {sealedMode?(listingType==='WTS'?(locale==='ID'?'Pilih produk dan tetapkan harga':'Choose a product and set your price'):(locale==='ID'?'Pilih produk dan tetapkan tawaran':'Choose a product and set your offer')):configuringCard
                   ? activeCardObj?.gameSlug==='pokemon'
-                  ? (listingType==='WTB'?(locale==='ID'?'Pilih set dan bahasa, lalu pilih kartu mentah atau slab dan atur tawaran.':'Choose a set and language, then choose a raw card or slab and set your offer.'):(locale==='ID'?'Pastikan set dan bahasa, lalu pilih kartu mentah atau slab dan atur harga.':'Confirm the set and language, then choose a raw card or slab and set the price.'))
-                  : (listingType==='WTB'?(locale==='ID'?'Pilih versi cetak, jenis kartu, jumlah, dan tawaran.':'Choose the printing, card type, quantity, and offer.'):(locale==='ID'?'Pilih versi cetak, kondisi kartu mentah, jumlah, dan harga.':'Choose the printing, raw-card condition, quantity, and price.'))
+                  ? (listingType==='WTB'?(locale==='ID'?'Pilih cetakan, kondisi, jumlah, dan tawaran':'Choose a printing, condition, quantity, and offer'):(locale==='ID'?'Pilih cetakan, kondisi, jumlah, dan harga':'Choose a printing, condition, quantity, and price'))
+                  : (listingType==='WTB'?(locale==='ID'?'Pilih cetakan, jenis kartu, jumlah, dan tawaran':'Choose a printing, card type, quantity, and offer'):(locale==='ID'?'Pilih cetakan, kondisi, jumlah, dan harga':'Choose a printing, condition, quantity, and price'))
                 : hasBundleItems
-                  ? (listingType==='WTB'?(locale==='ID'?'Atur kartu dan anggaran yang Anda tawarkan.':'Review the cards and budget you are offering.'):(locale==='ID'?'Atur rincian listing dan harga total paket.':'Review bundle cards and set overall price.'))
-                  : listingType==='WTB'?(locale==='ID'?'Tambahkan kartu, kondisi, jumlah, dan harga yang Anda cari.':'Add the cards, condition, quantity, and price you want.'):(locale==='ID'?'Cari kartu dari katalog atau pilih dari koleksi Anda.':'Search the catalog or choose cards from your Vault.')
+                  ? (listingType==='WTB'?(locale==='ID'?'Periksa kartu dan total anggaran':'Review the cards and total budget'):(locale==='ID'?'Periksa kartu dan total harga':'Review the cards and total price'))
+                  : listingType==='WTB'?(locale==='ID'?'Cari di katalog atau pilih kartu dari Wishlist':'Search the catalog or choose cards from your Wishlist'):(locale==='ID'?'Cari di katalog atau pilih kartu dari Vault':'Search the catalog or choose cards from your Vault')
               }
             </DialogDescription>
           </div>
           <div className="market-sell-body">
-            {!configuringCard&&!hasBundleItems&&<div className="market-sealed-kind-switch" role="group" aria-label={locale==='ID'?'Jenis barang':'Item type'}><button type="button" aria-pressed={!sealedMode} onClick={()=>setSealedMode(false)}>{locale==='ID'?'Kartu':'Cards'}</button><button type="button" aria-pressed={sealedMode} onClick={()=>setSealedMode(true)}>{locale==='ID'?'Produk':'Products'}</button></div>}
+            {!configuringCard&&!hasBundleItems&&<div className="market-category-switch market-sealed-kind-switch" role="group" aria-label={locale==='ID'?'Jenis barang':'Item type'}><button type="button" className={!sealedMode?'is-active':''} aria-pressed={!sealedMode} onClick={()=>setSealedMode(false)}>{locale==='ID'?'Kartu':'Cards'}</button><button type="button" className={sealedMode?'is-active':''} aria-pressed={sealedMode} onClick={()=>setSealedMode(true)}>{locale==='ID'?'Produk':'Products'}</button></div>}
             {sealedMode?<MarketSealedComposer type={listingType} onPublished={()=>{setOpen(false);setSealedMode(false);void refresh();void refreshAccount();}} onBackToBundle={()=>setSealedMode(false)} onAddToBundle={listingType==='WTS'?item=>{const max=listingLimits.maxProductStock??10;const used=bundleProducts.reduce((sum,current)=>sum+current.quantity,0);if(used+item.quantity>max){toast.error(locale==='ID'?`Maksimal ${max} unit produk dalam satu listing.`:`A listing can include up to ${max} product units.`);return;}const next=[...bundleProducts,{...item,id:crypto.randomUUID()}];setBundleProducts(next);if(!hasBundleItems)setListingTitle(item.title);else if(bundleCards.length===1&&bundleProducts.length===0)setListingTitle(`${bundleCards[0].card.name} bundle`);setListingPrice(String(bundleCards.reduce((sum,card)=>sum+card.quantity*card.unitAmount,0)+next.reduce((sum,product)=>sum+product.quantity*product.unitAmount,0)));setSealedMode(false);setIsAddingAnother(false);}:undefined}/>:directSellLoading?<div className="market-direct-sell-loading" role="status" aria-label={locale==='ID'?'Memuat pilihan jual':'Loading sell options'}><span/><span/><span/></div>:<>
             {/* VIEW 1: Card Configuration Step */}
             {configuringCard&&activeCardObj?(
@@ -1658,15 +1658,14 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                 </div>
                 <div className="listing-selection-right">
                   <div className="listing-selection-header">
-                    <p className="eyebrow">{listingType==='WTB'?(locale==='ID'?'KARTU YANG DICARI':'CARD YOU WANT'):(locale==='ID'?'KARTU UNTUK DIJUAL':'CARD FOR SALE')}</p>
+                    <p className="eyebrow">{listingType==='WTB'?(locale==='ID'?'KARTU UNTUK DIBELI':'CARD TO BUY'):(locale==='ID'?'KARTU UNTUK DIJUAL':'CARD FOR SALE')}</p>
                     <h3>{activeCardObj.name}</h3>
                     <p className={`listing-card-sub${activeCardObj.gameSlug==='pokemon'?' is-pokemon':''}`}>
                       <span className="market-sell-code">{activeCardObj.gameSlug==='pokemon'?pokemonPublicReference({code:activeCardObj.code,setCode:activeCardObj.setCode,printingCode:activeCardObj.printingCode,localCardNumber:activeCardObj.localCardNumber}):activeCardObj.code}</span>
                       {activeCardObj.gameSlug==='pokemon'?<PokemonMarketType card={activeCardObj}/>:<span>{activeCardObj.type}</span>}
                       {activeCardObj.gameSlug==='pokemon'&&activeCardObj.language&&<span>{activeCardObj.language}</span>}
                       {marketRarity(activeCardObj)&&<span className="market-sell-rarity">{marketRarity(activeCardObj)}</span>}
-                      {activeCardObj.gameSlug!=='pokemon'&&activeCardObj.setCode&&<span>{activeCardObj.setCode}</span>}
-                      {activeCardObj.gameSlug!=='pokemon'&&activeCardObj.variant&&<><span className="listing-variant-tag">{locale==='ID'&&printingLabel(activeCardObj.variant)==='Standard'?'Standar':printingLabel(activeCardObj.variant)}</span></>}
+                      {activeCardObj.gameSlug!=='pokemon'&&activeCardObj.variant&&printingLabel(activeCardObj.variant)!=='Standard'&&<span className="listing-variant-tag">{locale==='ID'&&printingLabel(activeCardObj.variant)==='Alternate Art'?'Ilustrasi alternatif':printingLabel(activeCardObj.variant)}</span>}
                     </p>
                   </div>
                   {/* Printing Selector Strip */}
@@ -1698,7 +1697,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                         {cardPrintings.filter(p=>p.language===printingLang).map(p=>{
                           const isSelected=p.id===selectedPrintingId;
                           const label=printingLabel(p.variant);
-                          const displayLabel=locale==='ID'&&label==='Standard'?'Standar':label;
+                          const displayLabel=label==='Standard'?(locale==='ID'?'Reguler':'Regular'):label;
                           const pillCard=printingToCard(configuringCard,p);
                           return (
                             <button
@@ -1727,8 +1726,8 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                     <div className="listing-benchmark-box">
                       <div className="listing-benchmark-info">
                         <div className="listing-benchmark-header">
-                          <span className="listing-benchmark-badge">Yuyutei (YYT)</span>
-                          {benchmarkLoading&&<small>{locale==='ID'?'Memeriksa tolok ukur...':'Checking benchmark...'}</small>}
+                          <span className="listing-benchmark-badge">{locale==='ID'?'Harga Yuyutei':'Yuyutei price'}</span>
+                          {benchmarkLoading&&<small>{locale==='ID'?'Memuat harga Yuyutei...':'Loading Yuyutei price...'}</small>}
                         </div>
                         {benchmark?(
                           <div className="listing-benchmark-price">
@@ -1739,13 +1738,13 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                             </strong>
                           </div>
                         ):(
-                          <small>{locale==='ID'?'Belum ada data tolok ukur untuk cetakan JP ini.':'No benchmark available for this JP printing.'}</small>
+                            <small>{locale==='ID'?'Harga Yuyutei tidak tersedia untuk cetakan JP ini.':'No Yuyutei price is available for this JP printing.'}</small>
                         )}
                       </div>
                       {benchmark?.amount&&(
                         <div className="listing-benchmark-actions">
                           <div className="listing-benchmark-rate">
-                            <span>{locale==='ID'?'Harga dibanding tolok ukur':'Price vs benchmark'}</span>
+                            <span>{locale==='ID'?'Harga dibanding Yuyutei':'Price vs Yuyutei'}</span>
                             <output aria-live="polite">{benchmarkMultiplierLabel}</output>
                             <div className="market-slider-wrap">
                               <Slider
@@ -1755,7 +1754,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                                 step={benchmarkSliderStep}
                                 value={[benchmarkMultiplier]}
                                 onValueChange={([value])=>value!==undefined&&setBenchmarkMultiplier(value)}
-                                aria-label={locale==='ID'?'Persentase harga dibanding tolok ukur':'Price percentage against benchmark'}
+                                aria-label={locale==='ID'?'Persentase harga dibanding Yuyutei':'Price percentage against Yuyutei'}
                               />
                               <div className="market-slider-checkpoints" aria-hidden="true">{Array.from({length:Math.floor((benchmarkSliderMax-benchmarkSliderMin)/5)+1},(_,index)=><i key={index} style={{left:`${((benchmarkSliderMin+index*5-benchmarkSliderMin)/(benchmarkSliderMax-benchmarkSliderMin))*100}%`}}/>)}</div>
                             </div>
@@ -1786,7 +1785,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                     </fieldset>
                   )}
                   {listingType==='WTB'&&<fieldset className="market-condition-field market-product-type-field"><legend>{locale==='ID'?'Jenis kartu':'Card type'}</legend><div className="market-product-type-options" role="radiogroup" aria-label={locale==='ID'?'Jenis kartu':'Card type'}><button type="button" role="radio" aria-checked={itemProductType==='RAW'} className={itemProductType==='RAW'?'selected':''} onClick={()=>{setItemProductType('RAW');setItemQuantity(1)}}>{locale==='ID'?'Kartu mentah':'Raw card'}</button><button type="button" role="radio" aria-checked={itemProductType==='GRADED'} className={itemProductType==='GRADED'?'selected':''} onClick={()=>{setItemProductType('GRADED');setItemQuantity(1)}}>{locale==='ID'?'Slab':'Graded slab'}</button></div></fieldset>}
-                  {configuredProductType==='GRADED'?(listingType==='WTB'?<div className="market-slab-wanted-fields"><label>{locale==='ID'?'Perusahaan grading':'Grading company'}<select value={wantedGradingCompany} onChange={event=>setWantedGradingCompany(event.target.value)}>{GRADING_PROVIDERS.map(provider=><option key={provider.id} value={provider.shortName}>{provider.shortName}</option>)}</select></label><label>{locale==='ID'?'Nilai':'Grade'}<input value={wantedGrade} onChange={event=>setWantedGrade(event.target.value)} maxLength={20} placeholder="10"/></label></div>:<p className="market-slab-selected-note">{selectedVaultCopy?.provider} {selectedVaultCopy?.grade}{selectedVaultCopy?.certification?` · Cert ${selectedVaultCopy.certification}`:''}</p>):(
+                  {configuredProductType==='GRADED'?(listingType==='WTB'?<div className="market-slab-wanted-fields"><label>{locale==='ID'?'Perusahaan grading':'Grading company'}<select value={wantedGradingCompany} onChange={event=>setWantedGradingCompany(event.target.value)}>{GRADING_PROVIDERS.map(provider=><option key={provider.id} value={provider.shortName}>{provider.shortName}</option>)}</select></label><label>{locale==='ID'?'Nilai':'Grade'}<input value={wantedGrade} onChange={event=>setWantedGrade(event.target.value)} maxLength={20} placeholder="10"/></label></div>:<p className="market-slab-selected-note">{selectedVaultCopy?.provider} {selectedVaultCopy?.grade}{selectedVaultCopy?.certification&&<> <span>Certificate #{selectedVaultCopy.certification}</span></>}</p>):(
                     <div className="form-row">
                       <fieldset className="market-condition-field">
                         <legend>{listingType==='WTB'?(locale==='ID'?'Kondisi yang dicari':'Condition wanted'):(locale==='ID'?'Kondisi kartu':'Card condition')}</legend>
@@ -1864,8 +1863,8 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                     onClick={addConfiguredCardToBundle}
                   >
                     {!hasBundleItems
-                      ? (listingType==='WTB'?(locale==='ID'?'Lanjutkan permintaan beli':'Continue with buy request'):(locale==='ID'?'Lanjut ke rincian listing':'Continue to listing details'))
-                      : (listingType==='WTB'?(locale==='ID'?'+ Tambahkan ke permintaan':'+ Add to request'):(locale==='ID'?'+ Tambahkan ke paket':'+ Add to bundle'))
+                      ? (locale==='ID'?'Lanjut':'Continue')
+                      : (listingType==='WTB'?(locale==='ID'?'+ Tambahkan kartu':'+ Add card'):(locale==='ID'?'+ Tambahkan ke paket':'+ Add to bundle'))
                     }
                   </button>
                 </div>
@@ -1881,7 +1880,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                   <div className="market-sell-bundle-list">
                     {bundleCards.map(item=>{
                       const label=printingLabel(item.printing.variant);
-                      const displayLabel=locale==='ID'&&label==='Standard'?'Standar':label;
+                      const displayLabel=label==='Standard'?(locale==='ID'?'Reguler':'Regular'):label;
                       return (
                         <div key={item.id} className="market-sell-bundle-item">
                           <div className="market-sell-bundle-thumb">
@@ -2033,7 +2032,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                     ?(locale==='ID'?'Mempublikasikan...':'Publishing...')
                     :listingType==='WTS'&&bundleCards.some(it=>!it.instanceId)
                       ?(locale==='ID'?'Simpan ke koleksi & publikasikan':'Save to Vault & Publish')
-                      :listingType==='WTB'?(locale==='ID'?'Buat permintaan beli':'Post buying request'):(locale==='ID'?'Publikasikan listing':'Publish listing')
+                      :listingType==='WTB'?(locale==='ID'?'Kirim permintaan':'Post request'):(locale==='ID'?'Publikasikan listing':'Publish listing')
                   }
                 </button>
               </form>
@@ -2078,12 +2077,11 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                   <button type="button" className={searchSource==='catalog'?'active':''} onClick={()=>setSearchSource('catalog')} aria-pressed={searchSource==='catalog'}><Search size={14}/><span>{locale==='ID'?'Cari di Katalog':'Search Catalog'}</span></button>
                   <button type="button" className={searchSource==='wishlist'?'active':''} onClick={()=>setSearchSource('wishlist')} aria-pressed={searchSource==='wishlist'}><WalletCards size={14}/><span>{locale==='ID'?'Dari Wishlist':'From Wishlist'}</span></button>
                 </div>}
-                <div className="market-listing-game-scope" role="group" aria-label={locale==='ID'?'Game kartu':'Card game'}>
-                  <span>{locale==='ID'?'Game':'Game'}</span>
+                <div className="market-category-switch market-listing-game-scope" role="group" aria-label={locale==='ID'?'Game kartu':'Card game'}>
                   <button
                     type="button"
                     data-game-scope="one-piece"
-                    className={listingGameScope==='one-piece'||listingGameScope==='all'?'active':''}
+                    className={listingGameScope==='one-piece'||listingGameScope==='all'?'is-active':''}
                     aria-label="One Piece Card Game"
                     title="One Piece Card Game"
                     aria-pressed={listingGameScope==='one-piece'||listingGameScope==='all'}
@@ -2097,7 +2095,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                   <button
                     type="button"
                     data-game-scope="pokemon"
-                    className={listingGameScope==='pokemon'||listingGameScope==='all'?'active':''}
+                    className={listingGameScope==='pokemon'||listingGameScope==='all'?'is-active':''}
                     aria-label="Pokémon Trading Card Game"
                     title="Pokémon Trading Card Game"
                     aria-pressed={listingGameScope==='pokemon'||listingGameScope==='all'}

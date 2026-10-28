@@ -3,6 +3,7 @@ import {useState} from 'react';
 import {useRouteLocale} from '@/components/locale-provider';
 import {generalMarketCategories,generalMarketConditionLabel,generalMarketConditionOptions,type GeneralMarketCategory} from '@/lib/market/general-products';
 import {useMarketListingLimits} from '@/lib/market/use-listing-limits';
+import {RadioGroup,RadioGroupItem} from '@/components/ui/radio-group';
 import type {BundleProductInput} from './market-sealed-composer';
 
 type Parcel={weight:string;length:string;width:string;height:string};
@@ -44,7 +45,9 @@ export function MarketGeneralComposer({type,onPublished,onBack,onAddToBundle}:{t
       {config.fields.map(field=><label key={field.key}>{isId?({series:'Seri atau koleksi',processor:'Prosesor',graphics:'Grafis',memory:'Memori',storage:'Penyimpanan',partType:'Komponen',model:'Merek dan model',compatibility:'Kompatibilitas',platform:'Platform',region:'Wilayah',format:'Format',language:'Bahasa',compatibleWith:'Kompatibel dengan'} as Record<string,string>)[field.key]??field.label:field.label}<input value={fields[field.key]??''} maxLength={100} onChange={event=>setFields(current=>({...current,[field.key]:event.target.value}))} placeholder={field.placeholder}/></label>)}
       <label>{type==='WTS'?copy('Quantity available','Jumlah tersedia'):copy('Quantity wanted','Jumlah yang dicari')}<input type="number" min={1} max={productStockLimit} value={quantity} onChange={event=>setQuantity(Math.min(productStockLimit,Math.max(1,Number(event.target.value)||1)))}/><small>{copy(`Up to ${productStockLimit} units per listing`,`Maksimal ${productStockLimit} unit per listing`)}</small></label>
       <label>{type==='WTS'?copy('Price per item (IDR)','Harga per barang (IDR)'):copy('Offer per item (IDR)','Tawaran per barang (IDR)')}<input type="number" min={1} value={price} onChange={event=>setPrice(event.target.value)}/></label>
-      <label>{type==='WTB'?copy('Condition wanted','Kondisi yang dicari'):copy('Condition','Kondisi')}<select value={condition} onChange={event=>setCondition(event.target.value as typeof condition)}>{generalMarketConditionOptions.map(value=><option key={value} value={value}>{generalMarketConditionLabel(value,language)}</option>)}</select></label>
+      <fieldset className="market-general-condition-field"><legend>{type==='WTB'?copy('Condition wanted','Kondisi yang dicari'):copy('Condition','Kondisi')}</legend><RadioGroup value={condition} onValueChange={value=>setCondition(value as typeof condition)} className="market-general-condition-options" aria-label={type==='WTB'?copy('Condition wanted','Kondisi yang dicari'):copy('Condition','Kondisi')}>
+        {generalMarketConditionOptions.map(value=><div key={value} className={condition===value?'is-selected':''}><RadioGroupItem value={value}/><span className="market-product-radio-mark" aria-hidden="true"/><span>{generalMarketConditionLabel(value,language)}</span></div>)}
+      </RadioGroup></fieldset>
     </div>
     <label className="market-general-notes">{copy('Details','Detail')}<textarea maxLength={1000} value={notes} onChange={event=>setNotes(event.target.value)} placeholder={type==='WTB'?copy('Describe the version, condition, or features you want.','Jelaskan versi, kondisi, atau fitur yang dicari.'):copy('Describe its condition, included parts, and any defects.','Jelaskan kondisi, kelengkapan, dan kerusakan jika ada.')}/></label>
     {type==='WTS'&&<>

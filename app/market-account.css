@@ -1059,12 +1059,7 @@ html[data-theme='dark'] .market-account-unified-body.is-listings .market-listing
 .market-popup-search-filters .market-pokemon-search-filter-row>.filter-menu .filter-trigger{height:36px;min-height:36px;padding-inline:9px;border-radius:8px;font:600 11px/1 var(--game-font)}
 .market-popup-search-filters .market-pokemon-search-filter-row .language-switch{min-height:36px}
 .market-popup-search-filters .market-pokemon-search-filter-row.is-advanced{padding-top:0}
-.market-listing-game-scope{display:flex;align-items:center;flex-wrap:wrap;gap:5px;margin:0 0 12px;padding:0 1px;color:var(--muted);font-size:11px;font-weight:700}
-.market-listing-game-scope>span{margin-right:3px}
-.market-listing-game-scope button{display:inline-flex;align-items:center;justify-content:center;min-width:60px;min-height:36px;padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface-raised);color:var(--muted);font:inherit;font-weight:700;cursor:pointer}
-.market-listing-game-scope button[data-game-scope=one-piece],.market-listing-game-scope button[data-game-scope=pokemon]{min-width:64px}
-.market-listing-game-scope button[data-game-scope=all]{min-width:112px}
-.market-listing-game-scope button.active{border-color:var(--market-create-accent,var(--accent));background:color-mix(in srgb,var(--market-create-accent,var(--accent)) 9%,var(--surface-raised));color:var(--ink)}
+.market-listing-game-scope{margin:0 0 12px}
 .market-game-mark{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-width:0;line-height:0}
 .market-game-mark img{display:block;width:46px;height:18px;object-fit:contain}
 .market-game-mark .market-game-mark-pokemon{width:43px;height:20px}

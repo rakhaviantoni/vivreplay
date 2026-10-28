@@ -4743,6 +4743,19 @@ html[data-theme='dark'] .market-footer-pokemon { border-color:#42658a!important;
 .site-shell.game-pokemon > .mobile-nav a { color:#52615d!important; }
 .site-shell.game-pokemon > .mobile-nav a.active { color:#20558a!important; }
 html[data-theme='dark'] :is(.game-mode-switch,.market-game-switch,.market-feed-game-mark,.market-game-mark,.market-sell-game-badge,.market-listing-game-scope) :is(.game-mode-one-piece,.market-game-mark-op) img { filter:brightness(0) invert(1); }
+
+/* Keep card identity compact, then let setup controls use the full phone width. */
+@media(max-width:600px){
+  .market-sell-dialog .listing-selection{grid-template-columns:74px minmax(0,1fr)!important;column-gap:12px!important;row-gap:12px!important;align-items:start!important}
+  .market-sell-dialog .listing-selection-left{grid-column:1!important;grid-row:1!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:flex-start!important;gap:7px!important;min-width:0!important}
+  .market-sell-dialog .listing-selection-card-preview,.market-sell-dialog .listing-selection-card-preview .tcg-card{width:68px!important;height:95px!important}
+  .market-sell-dialog .listing-change-card-btn{width:100%!important;min-width:0!important;min-height:32px!important;height:auto!important;gap:3px!important;padding:3px!important;font-size:9px!important;line-height:1.1!important}
+  .market-sell-dialog .listing-selection-right{display:contents!important}
+  .market-sell-dialog .listing-selection-right>.listing-selection-header{grid-column:2!important;grid-row:1!important;align-self:center!important;min-width:0!important}
+  .market-sell-dialog .listing-selection-right>*:not(.listing-selection-header){grid-column:1/-1!important;width:100%!important;min-width:0!important}
+  .market-sell-dialog .listing-selection-header h3{font-size:16px!important;line-height:1.25!important;overflow-wrap:anywhere}
+  .market-sell-dialog .listing-card-sub{gap:4px 7px!important;line-height:1.35!important;overflow-wrap:anywhere}
+}
 html[data-theme='dark'] .market-game-mark-one-piece { filter:brightness(0) invert(1); }
 
 html[data-theme='dark'] .site-shell.game-pokemon > .masthead,

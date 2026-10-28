@@ -4106,3 +4106,4 @@ html[data-theme='dark'] .market-feed-game-mark .market-game-mark-one-piece,
 html[data-theme='dark'] .market-sell-game-badge .market-game-mark-one-piece,
 html[data-theme='dark'] .market-listing-game-scope .market-game-mark-one-piece,
 html[data-theme='dark'] :is(.market-game-mark,.market-feed-game-mark) :is(.game-mode-one-piece,.market-game-mark-op) img{filter:brightness(0) invert(1)}
+html[data-theme='dark'] .market-game-switch.market-scope-switch .market-scope-logo.is-one-piece img{filter:brightness(0) invert(1)}
