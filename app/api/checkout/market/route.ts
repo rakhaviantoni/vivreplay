@@ -2,7 +2,7 @@ import {enabledShippingCouriers} from '@/lib/shipping/couriers';
 import {z} from 'zod';
 import {db,errorResponse,guard,user,HttpError} from '@/lib/server/store';
 import {getCurrentUser} from '@/lib/server/auth';
-import {getEnabledIpaymuPaymentChannels,getIpaymuPaymentChannels,hasMarketIpaymuPaymentConfig} from '@/lib/server/ipaymu';
+import {getEnabledIpaymuPaymentChannels,getIpaymuMode,getIpaymuPaymentChannels,hasMarketIpaymuPaymentConfig} from '@/lib/server/ipaymu';
 import {biteshipDestination,isBiteshipAreaId} from '@/lib/shipping/biteship-area';
 import {marketParcel} from '@/lib/market/sealed-products';
 import {shippingRateOptions} from '@/lib/server/shipping-quote-cache';
@@ -41,7 +41,7 @@ export async function GET(){
       else if(paymentChannelStatus!=='provider_unavailable')paymentChannelStatus='no_active_channels';
     }
     const serviceFeePercent=policies[profile.tier==='pro'?'pro':'free'].commissionPercent;
-    return Response.json({available,sandbox:process.env.IPAYMU_MODE==='sandbox',paymentChannels,paymentChannelStatus,buyerTier:profile.tier==='pro'?'pro':'free',buyerFeePercent:serviceFeePercent,serviceFeePercent,buyerFeeMinimum:policies.buyerFeeMinimum,buyerFeeCap:MARKET_BUYER_FEE_CAP,sellerFeePercent:serviceFeePercent,sellerFeeMinimum:policies.sellerFeeMinimum,shippingVoucherMinSubtotal:policies.shippingVoucherMinSubtotal,shippingVouchersRemaining,shippingVoucherPeriod},{headers:{'Cache-Control':'private, no-store, max-age=0','Vary':'Cookie'}});
+    return Response.json({available,sandbox:getIpaymuMode()==='sandbox',paymentChannels,paymentChannelStatus,buyerTier:profile.tier==='pro'?'pro':'free',buyerFeePercent:serviceFeePercent,serviceFeePercent,buyerFeeMinimum:policies.buyerFeeMinimum,buyerFeeCap:MARKET_BUYER_FEE_CAP,sellerFeePercent:serviceFeePercent,sellerFeeMinimum:policies.sellerFeeMinimum,shippingVoucherMinSubtotal:policies.shippingVoucherMinSubtotal,shippingVouchersRemaining,shippingVoucherPeriod},{headers:{'Cache-Control':'private, no-store, max-age=0','Vary':'Cookie'}});
   }catch(error){return errorResponse(error)}
 }
 

@@ -1,6 +1,6 @@
 import {db,errorResponse,user,HttpError} from '@/lib/server/store';
 import {getCurrentUser} from '@/lib/server/auth';
-import {createIpaymuDirectPayment,getEnabledIpaymuPaymentChannels,hasIpaymuPaymentConfig,hasMarketIpaymuPaymentConfig,ipaymuExpiryTimestamp,ipaymuQrImageUrl} from '@/lib/server/ipaymu';
+import {createIpaymuDirectPayment,getEnabledIpaymuPaymentChannels,getIpaymuMode,hasIpaymuPaymentConfig,hasMarketIpaymuPaymentConfig,ipaymuExpiryTimestamp,ipaymuQrImageUrl} from '@/lib/server/ipaymu';
 import {sendMarketEmail} from '@/lib/server/market-notifications';
 import {sealedProductById,sealedProductKinds} from '@/lib/market/sealed-products';
 
@@ -42,7 +42,8 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
 
     const baseUrl=process.env.VIVREPLAY_PUBLIC_URL?.trim().replace(/\/$/,'')||'https://vivreplay.com';
     const callbackOrigin=new URL(request.url).origin;
-    const origin=process.env.IPAYMU_MODE==='sandbox'?callbackOrigin:baseUrl;
+    const paymentMode=getIpaymuMode();
+    const origin=paymentMode==='sandbox'?callbackOrigin:baseUrl;
     const notifyUrl=process.env.IPAYMU_CALLBACK_URL?.trim()||`${origin}/api/checkout/ipaymu/callback`;
     let products:OrderItem[]=[];
     if(order.kind==='MARKET'){
@@ -104,7 +105,7 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     details.ipaymuPaymentTotal=payment.paymentMethod==='qris'?order.amount:Math.max(payment.total,order.amount+(payment.fee??0));
     details.ipaymuPaymentCreatedAt=payment.paymentCreatedAt;
     details.ipaymuPaymentExpiresAt=payment.expiresAt;
-    details.ipaymuMode=process.env.IPAYMU_MODE==='sandbox'?'sandbox':'production';
+    details.ipaymuMode=paymentMode;
     const paymentId=payment.sessionId;
     if(!paymentId){await database.prepare("UPDATE checkout_orders SET payment_id=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id=?").bind(id,paymentClaim).run();throw new HttpError(502,'Could not start payment. Please try again.');}
     const paymentExpirySql=payment.expiresAt?new Date(payment.expiresAt).toISOString().slice(0,19).replace('T',' '):order.expiresAt;

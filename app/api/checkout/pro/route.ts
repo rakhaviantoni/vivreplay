@@ -1,10 +1,20 @@
 import {db,errorResponse,guard,user,optionalUser,HttpError} from '@/lib/server/store';
 import {getCurrentUser} from '@/lib/server/auth';
-import {createIpaymuDirectPayment,getEnabledIpaymuPaymentChannels,getIpaymuPaymentChannels,hasMarketIpaymuPaymentConfig,ipaymuExpiryTimestamp} from '@/lib/server/ipaymu';
+import {getEnabledIpaymuPaymentChannels,getIpaymuPaymentChannels,hasMarketIpaymuPaymentConfig,ipaymuExpiryTimestamp} from '@/lib/server/ipaymu';
 import {fetchMarketPolicies,MARKET_BUYER_FEE_CAP,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH,MARKET_PRO_SHIPPING_VOUCHERS_PER_YEAR,MARKET_PRO_SHIPPING_VOUCHER_SHARE,MARKET_PRO_SHIPPING_VOUCHER_CAP} from '@/lib/market/policy';
 import {getProPricing} from '@/lib/market/pro-pricing';
 
 const PAID_INTRO_STATUSES="'PROCESSING','PAID','COMPLETED'";
+
+async function updatePendingPaymentChoice(database:ReturnType<typeof db>,orderId:string,method:string,channel:string){
+  const order=await database.prepare("SELECT payment_id AS paymentId,details FROM checkout_orders WHERE id=? AND kind='PRO' AND status='PENDING_PAYMENT'").bind(orderId).first<{paymentId:string|null;details:string}>();
+  if(!order||order.paymentId)return;
+  let details:Record<string,unknown>={};
+  try{const parsed=JSON.parse(order.details) as unknown;if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))details=parsed as Record<string,unknown>}catch{}
+  details.ipaymuSelectedMethod=method;
+  details.ipaymuSelectedChannel=channel;
+  await database.prepare("UPDATE checkout_orders SET details=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND kind='PRO' AND status='PENDING_PAYMENT' AND payment_id IS NULL").bind(JSON.stringify(details),orderId).run();
+}
 
 async function introStatus(profileId?:string|null,checkCapacity=true,knownPricing?:Awaited<ReturnType<typeof getProPricing>>){
   const database=db();
@@ -136,12 +146,13 @@ export async function POST(request:Request){
         WHERE id=? AND buyer_id=? AND kind='PRO' AND status='PENDING_PAYMENT'`).bind(pendingOrder.id,profile.id).run();
     }
     if(resumableOrder){
+      await updatePendingPaymentChoice(database,resumableOrder.id,paymentMethod,paymentChannel);
       let pendingDetails:Record<string,unknown>={};
       try{const parsed=JSON.parse(resumableOrder.details) as unknown;if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))pendingDetails=parsed as Record<string,unknown>}catch{}
       return Response.json({id:resumableOrder.id,checkoutUrl:`/checkout/order/${encodeURIComponent(resumableOrder.id)}`,introOffer:Boolean(pendingDetails.introOffer)},{status:200});
     }
     const intro=await introStatus(profile.id,true,pricing);
-    if(billingPeriod==='monthly'&&intro.pendingOrderId)return Response.json({id:intro.pendingOrderId,checkoutUrl:`/checkout/order/${encodeURIComponent(intro.pendingOrderId)}`,introOffer:true,billingPeriod},{status:200});
+    if(billingPeriod==='monthly'&&intro.pendingOrderId){await updatePendingPaymentChoice(db(),intro.pendingOrderId,paymentMethod,paymentChannel);return Response.json({id:intro.pendingOrderId,checkoutUrl:`/checkout/order/${encodeURIComponent(intro.pendingOrderId)}`,introOffer:true,billingPeriod},{status:200});}
     if(billingPeriod==='monthly'&&body.introOffer===true&&!intro.eligible)throw new HttpError(409,'The launch offer is no longer available. Refresh the page to see the current price.');
 
     const orderId=crypto.randomUUID();
@@ -165,7 +176,7 @@ export async function POST(request:Request){
       if(!introOffer){
         const retry=(await database.prepare(`SELECT id FROM checkout_orders WHERE kind='PRO' AND buyer_id=? AND json_extract(details,'$.introOffer')=1
           AND status='PENDING_PAYMENT' AND (expires_at IS NULL OR expires_at>CURRENT_TIMESTAMP) ORDER BY created_at DESC LIMIT 1`).bind(profile.id).first<{id:string}>())?.id;
-        if(retry)return Response.json({id:retry,checkoutUrl:`/checkout/order/${encodeURIComponent(retry)}`,introOffer:true},{status:200});
+        if(retry){await updatePendingPaymentChoice(database,retry,paymentMethod,paymentChannel);return Response.json({id:retry,checkoutUrl:`/checkout/order/${encodeURIComponent(retry)}`,introOffer:true},{status:200});}
         if(body.introOffer===true)throw new HttpError(409,'The launch offer just ran out. Refresh the page to see the current price.');
       }
     }
@@ -174,17 +185,6 @@ export async function POST(request:Request){
       const details=JSON.stringify({durationDays,billingPeriod,customerName:name,customerPhone:phone,introOffer:false,ipaymuSelectedMethod:paymentMethod,ipaymuSelectedChannel:paymentChannel});
       await database.prepare(`INSERT INTO checkout_orders (id,kind,buyer_id,items,details,subtotal,shipping_fee,amount,currency,status,expires_at) VALUES (?,'PRO',?,'[]',?,?,0,?,'IDR','PENDING_PAYMENT',?)`).bind(orderId,profile.id,details,finalAmount,finalAmount,expiresAt).run();
     }
-    const baseUrl=process.env.VIVREPLAY_PUBLIC_URL?.trim().replace(/\/$/,'')||'https://vivreplay.com';
-    const origin=process.env.IPAYMU_MODE==='sandbox'?new URL(request.url).origin:baseUrl;
-    const notifyUrl=process.env.IPAYMU_CALLBACK_URL?.trim()||`${origin}/api/checkout/ipaymu/callback`;
-    try{
-      const payment=await createIpaymuDirectPayment({orderId,amount:finalAmount,buyer:{name,email:account.email,phone},returnUrl:`${origin}/checkout/order/${encodeURIComponent(orderId)}`,notifyUrl,method:paymentMethod as 'va'|'cstore'|'qris'|'cc'|'paylater'|'ewallet',channel:paymentChannel});
-      if(payment.sessionId){
-        const proDetails={durationDays,billingPeriod,customerName:name,customerPhone:phone,introOffer,ipaymuSelectedMethod:paymentMethod,ipaymuSelectedChannel:paymentChannel,ipaymuPaymentMethod:payment.paymentMethod,ipaymuPaymentChannel:payment.paymentChannel,ipaymuPaymentName:payment.paymentName??paymentChannel.toUpperCase(),ipaymuPaymentNo:payment.paymentNo,ipaymuPaymentInstructionsUrl:payment.instructionsUrl,ipaymuCheckoutUrl:payment.checkoutUrl,ipaymuPaymentQrImage:payment.qrImage,ipaymuPaymentQrString:payment.qrString,ipaymuTransactionId:payment.transactionId,ipaymuSessionId:payment.sessionId,ipaymuPaymentFee:payment.fee,ipaymuPaymentTotal:payment.paymentMethod==='qris'?finalAmount:Math.max(payment.total,finalAmount+(payment.fee??0)),ipaymuPaymentCreatedAt:payment.paymentCreatedAt,ipaymuPaymentExpiresAt:payment.expiresAt,ipaymuMode:process.env.IPAYMU_MODE==='sandbox'?'sandbox':'production'};
-        const paymentExpirySql=payment.expiresAt?new Date(payment.expiresAt).toISOString().slice(0,19).replace('T',' '):expiresAt;
-        await database.prepare("UPDATE checkout_orders SET payment_id=?,details=?,expires_at=?,updated_at=CURRENT_TIMESTAMP WHERE id=?").bind(payment.sessionId,JSON.stringify(proDetails),paymentExpirySql,orderId).run();
-      }
-    }catch{}
     return Response.json({id:orderId,checkoutUrl:`/checkout/order/${orderId}`,introOffer,amount:finalAmount,billingPeriod},{status:201});
   }catch(error){return errorResponse(error)}
 }

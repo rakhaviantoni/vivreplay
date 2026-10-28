@@ -92,7 +92,7 @@ export function CheckoutOrder(){
       if(result.paymentNo&&result.paymentMethod){setOrder(current=>current?{...current,paymentMethod:result.paymentMethod!,paymentChannel:result.paymentChannel??null,paymentNo:result.paymentNo!,paymentName:result.paymentName??null,paymentInstructionsUrl:result.instructionsUrl??null,paymentFee:result.paymentFee??null,paymentTotal:result.paymentTotal??current.amount,paymentExpiresAt:result.expiresAt??null,canCancel:false,hasActivePayment:true}:current);return;}
       if(result.checkoutUrl&&result.paymentMethod){setOrder(current=>current?{...current,checkoutUrl:result.checkoutUrl!,paymentMethod:result.paymentMethod!,paymentChannel:result.paymentChannel??null,paymentName:result.paymentName??null,paymentFee:result.paymentFee??null,paymentTotal:result.paymentTotal??current.amount,paymentExpiresAt:result.expiresAt??null,canCancel:false,hasActivePayment:true}:current);return;}
       if(!result.checkoutUrl)throw new Error(result.error??(id?'Halaman pembayaran aman tidak dapat dibuka.':'Secure payment could not be opened.'));
-    }catch(cause){setError(controller.signal.aborted?(id?'QRIS belum siap. Coba lagi.':'QRIS is taking too long. Try again.'):cause instanceof Error?cause.message:(id?'Halaman pembayaran aman tidak dapat dibuka.':'Secure payment could not be opened.'))}
+    }catch(cause){setError(controller.signal.aborted?(id?'Pembayaran belum siap. Coba lagi.':'Payment is taking too long. Try again.'):cause instanceof Error?cause.message:(id?'Halaman pembayaran aman tidak dapat dibuka.':'Secure payment could not be opened.'))}
     finally{window.clearTimeout(timeout);if(!navigatingAway)setBusy(false)}
   },[id,params.id]);
   useEffect(()=>{
