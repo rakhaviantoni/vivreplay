@@ -68,12 +68,12 @@ async function hmac(value:string,key:string){
   return hex(await crypto.subtle.sign('HMAC',cryptoKey,encoder.encode(value)));
 }
 
-async function signedIpaymuPost(path:string,body:Record<string,unknown>){
+async function signedIpaymuPost(path:string,body:Record<string,unknown>,timeoutMs=12_000){
   const {va,apiKey,baseUrl}=configuration();
   const bodyText=JSON.stringify(body);
   const now=new Date();
   const timestamp=`${now.getUTCFullYear()}${String(now.getUTCMonth()+1).padStart(2,'0')}${String(now.getUTCDate()).padStart(2,'0')}${String(now.getUTCHours()).padStart(2,'0')}${String(now.getUTCMinutes()).padStart(2,'0')}${String(now.getUTCSeconds()).padStart(2,'0')}`;
-  const response=await fetch(`${baseUrl}/api/v2/${path}`,{method:'POST',headers:{'Content-Type':'application/json',va,timestamp,signature:await requestSignature(bodyText,va,apiKey)},body:bodyText,cache:'no-store',signal:AbortSignal.timeout(12_000)});
+  const response=await fetch(`${baseUrl}/api/v2/${path}`,{method:'POST',headers:{'Content-Type':'application/json',va,timestamp,signature:await requestSignature(bodyText,va,apiKey)},body:bodyText,cache:'no-store',signal:AbortSignal.timeout(timeoutMs)});
   const payload=await response.json().catch(()=>null) as {Status?:number;Success?:boolean;Data?:unknown}|null;
   if(!response.ok||payload?.Status!==200||!payload.Data)throw new Error('iPaymu transaction details could not be checked.');
   return payload.Data;
@@ -91,6 +91,7 @@ export function ipaymuPayableTotal(amount:number,method:unknown,fee:unknown,repo
 
 export async function findIpaymuTransactionsByReference(referenceId:string,startDate:string,endDate:string){
   const matches:IpaymuHistoryTransaction[]=[];
+  let dateHistoryIncomplete=false;
   const append=(rows:Array<{TransactionId?:string|number;ReferenceId?:string|null;Amount?:string|number;Status?:string|number;StatusDesc?:string;TypeDesc?:string;CreatedDate?:string}>)=>{
     for(const row of rows){
       if(String(row.ReferenceId??'')!==referenceId)continue;
@@ -101,19 +102,23 @@ export async function findIpaymuTransactionsByReference(referenceId:string,start
       matches.push({transactionId,referenceId,amount:Number.isSafeInteger(amount)?amount:null,status,type:String(row.TypeDesc??''),createdAt:String(row.CreatedDate??'')});
     }
   };
-  for(let page=1;page<=5;page++){
-    const data=await signedIpaymuPost('history',{date:'created_at',startdate:startDate,enddate:endDate,page:String(page),limit:'20',orderBy:'created_at',order:'DESC',lang:'en'}) as {Total_Page?:number;Results?:Array<{TransactionId?:string|number;ReferenceId?:string|null;Amount?:string|number;Status?:string|number;StatusDesc?:string;TypeDesc?:string;CreatedDate?:string}>};
+  for(let page=1;page<=3;page++){
+    const data=await signedIpaymuPost('history',{date:'created_at',startdate:startDate,enddate:endDate,page:String(page),limit:'20',orderBy:'created_at',order:'DESC',lang:'en'},4_000) as {Total_Page?:number;Results?:Array<{TransactionId?:string|number;ReferenceId?:string|null;Amount?:string|number;Status?:string|number;StatusDesc?:string;TypeDesc?:string;CreatedDate?:string}>};
     const results=Array.isArray(data.Results)?data.Results:[];
     append(results);
     if(page>=Number(data.Total_Page??1)||results.length<20)break;
+    if(page===3)dateHistoryIncomplete=true;
   }
   if(!matches.length){
-    for(let page=1;page<=20;page++){
-      const data=await signedIpaymuPost('history',{page:String(page),limit:'20',orderBy:'id',order:'DESC',lang:'en'}) as {Total_Page?:number;Results?:Array<{TransactionId?:string|number;ReferenceId?:string|null;Amount?:string|number;Status?:string|number;StatusDesc?:string;TypeDesc?:string;CreatedDate?:string}>};
+    let latestHistoryIncomplete=false;
+    for(let page=1;page<=2;page++){
+      const data=await signedIpaymuPost('history',{page:String(page),limit:'20',orderBy:'id',order:'DESC',lang:'en'},4_000) as {Total_Page?:number;Results?:Array<{TransactionId?:string|number;ReferenceId?:string|null;Amount?:string|number;Status?:string|number;StatusDesc?:string;TypeDesc?:string;CreatedDate?:string}>};
       const results=Array.isArray(data.Results)?data.Results:[];
       append(results);
       if(matches.length||page>=Number(data.Total_Page??1)||!results.length)break;
+      if(page===2)latestHistoryIncomplete=true;
     }
+    if(dateHistoryIncomplete||latestHistoryIncomplete)throw new Error('iPaymu transaction search returned an incomplete result.');
   }
   return matches;
 }
@@ -155,6 +160,12 @@ async function requestSignature(bodyText:string,va:string,apiKey:string){
 }
 
 type PaymentMethodCode='va'|'cstore'|'qris'|'cc'|'paylater'|'ewallet';
+export class IpaymuPaymentStartError extends Error{
+  constructor(message:string,public outcome:'rejected'|'unknown'){
+    super(message);
+    this.name='IpaymuPaymentStartError';
+  }
+}
 export type IpaymuPaymentChannel={method:PaymentMethodCode;channel:string;name:string;logo:string;fee:number;feeType:'FLAT'|'PERCENT';additionalFee:number};
 let paymentChannelsCache:{expiresAt:number;channels:IpaymuPaymentChannel[]}|null=null;
 
@@ -276,7 +287,7 @@ export async function createIpaymuDirectPayment(input:{orderId:string;amount:num
   const bodyText=JSON.stringify(body);
   const now=new Date();
   const timestamp=`${now.getUTCFullYear()}${String(now.getUTCMonth()+1).padStart(2,'0')}${String(now.getUTCDate()).padStart(2,'0')}${String(now.getUTCHours()).padStart(2,'0')}${String(now.getUTCMinutes()).padStart(2,'0')}${String(now.getUTCSeconds()).padStart(2,'0')}`;
-  const response=await fetch(`${baseUrl}/api/v2/payment/direct`,{method:'POST',headers:{'Content-Type':'application/json',va,timestamp,signature:await requestSignature(bodyText,va,apiKey)},body:bodyText,cache:'no-store',signal:AbortSignal.timeout(20_000)});
+  const response=await fetch(`${baseUrl}/api/v2/payment/direct`,{method:'POST',headers:{'Content-Type':'application/json',va,timestamp,signature:await requestSignature(bodyText,va,apiKey)},body:bodyText,cache:'no-store',signal:AbortSignal.timeout(40_000)});
   const payload=await response.json().catch(()=>null) as {Status?:number;Message?:string;Data?:{SessionId?:string|number;SessionID?:string|number;TransactionId?:string|number;QrImage?:string;QrString?:string;Url?:string;PaymentNo?:string|number;PaymentName?:string;PaymentInstructionsDoc?:string;Total?:number|string;Fee?:number|string;Expired?:string}}|null;
   const data=payload?.Data;
   const transactionId=data?.TransactionId;
@@ -285,18 +296,19 @@ export async function createIpaymuDirectPayment(input:{orderId:string;amount:num
   const qrImage=data?.QrImage;
   const paymentNo=data?.PaymentNo===undefined?null:String(data.PaymentNo);
   const url=typeof data?.Url==='string'?data.Url:null;
-  if(!response.ok||payload?.Status!==200||!data||transactionId===undefined||sessionId===undefined){
+  if(!response.ok||payload?.Status!==200||!data){
     const providerMessage=typeof payload?.Message==='string'?payload.Message.replace(/[\r\n\t]+/g,' ').slice(0,180):null;
     console.error('ipaymu_direct_payment_failed',{method:input.method,channel:input.channel,httpStatus:response.status,providerStatus:payload?.Status??null,providerMessage,responseFields:data?Object.keys(data).sort():[]});
-    throw new Error('We couldn’t start this payment. Choose another method or try again later.');
+    throw new IpaymuPaymentStartError('We couldn’t start this payment. Choose another method or try again later.','rejected');
   }
+  if(transactionId===undefined||sessionId===undefined)throw new IpaymuPaymentStartError('The payment provider did not return a confirmation.','unknown');
   const providerTotal=Number(data.Total);
-  if(input.method==='qris'&&(!qrImage||!Number.isFinite(providerTotal)||Math.round(providerTotal)!==input.amount))throw new Error('The QRIS amount did not match this order. Please try again.');
+  if(input.method==='qris'&&(!qrImage||!Number.isFinite(providerTotal)||Math.round(providerTotal)!==input.amount))throw new IpaymuPaymentStartError('The QRIS amount did not match this order.','unknown');
   const parsedQr=input.method==='qris'&&qrImage?ipaymuQrImageUrl(qrImage,baseUrl.includes('sandbox')?'sandbox':'production'):null;
-  if(input.method==='qris'&&(!qrImage||!parsedQr))throw new Error('We couldn’t open the QR code. Choose another method or try again.');
+  if(input.method==='qris'&&(!qrImage||!parsedQr))throw new IpaymuPaymentStartError('We couldn’t open the QR code.','unknown');
   let checkoutUrl:string|null=null;
-  if(url){try{const parsedUrl=new URL(url);const allowedHosts=baseUrl.includes('sandbox')?['sandbox.ipaymu.com','sandbox-payment.ipaymu.com']:['my.ipaymu.com','payment.ipaymu.com'];if(parsedUrl.protocol!=='https:'||parsedUrl.username||parsedUrl.password||(parsedUrl.port&&parsedUrl.port!=='443')||!allowedHosts.includes(parsedUrl.hostname))throw new Error();checkoutUrl=parsedUrl.toString()}catch{throw new Error('The payment page could not be opened. Choose another method or try again.')}}
-  if(input.method!=='qris'&&!paymentNo&&!checkoutUrl)throw new Error('Payment instructions aren’t available. Choose another method or try again later.');
+  if(url){try{const parsedUrl=new URL(url);const allowedHosts=baseUrl.includes('sandbox')?['sandbox.ipaymu.com','sandbox-payment.ipaymu.com']:['my.ipaymu.com','payment.ipaymu.com'];if(parsedUrl.protocol!=='https:'||parsedUrl.username||parsedUrl.password||(parsedUrl.port&&parsedUrl.port!=='443')||!allowedHosts.includes(parsedUrl.hostname))throw new Error();checkoutUrl=parsedUrl.toString()}catch{throw new IpaymuPaymentStartError('The payment page could not be opened.','unknown')}}
+  if(input.method!=='qris'&&!paymentNo&&!checkoutUrl)throw new IpaymuPaymentStartError('Payment instructions aren’t available.','unknown');
   let instructionsUrl:string|null=null;
   if(typeof data.PaymentInstructionsDoc==='string'){try{const parsedUrl=new URL(data.PaymentInstructionsDoc);if(parsedUrl.protocol==='https:'&&(parsedUrl.hostname==='storage.googleapis.com'||parsedUrl.hostname==='ipaymu.com'||parsedUrl.hostname.endsWith('.ipaymu.com')))instructionsUrl=parsedUrl.toString()}catch{}}
   const fee=Number(data.Fee);

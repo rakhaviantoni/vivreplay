@@ -123,11 +123,14 @@ export function CheckoutOrder(){
     setBusy(true);setError('');
     let navigatingAway=false;
     const controller=new AbortController();
-    const timeout=window.setTimeout(()=>controller.abort(),30000);
+    const timeout=window.setTimeout(()=>controller.abort(),55000);
     try{
       const response=await fetch(`/api/checkout/order/${encodeURIComponent(params.id)}/instrument`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(choice?{paymentMethod:choice.method,paymentChannel:choice.channel}:{}),signal:controller.signal});
       const result=await response.json() as {checkoutUrl?:string|null;paymentMethod?:string;paymentChannel?:string;paymentNo?:string|null;paymentName?:string|null;instructionsUrl?:string|null;qrImage?:string|null;qrString?:string|null;paymentFee?:number|null;paymentTotal?:number;expiresAt?:string|null;error?:string};
-      if(!response.ok)throw new Error(result.error??(id?'Halaman pembayaran aman tidak dapat dibuka.':'Secure payment could not be opened.'));
+      if(!response.ok){
+        if(response.status===504)setOrder(current=>current?{...current,paymentCreating:true,hasActivePayment:false}:current);
+        throw new Error(result.error??(id?'Halaman pembayaran aman tidak dapat dibuka.':'Secure payment could not be opened.'));
+      }
       if(result.paymentMethod==='qris'&&result.qrImage){setQrImageFailed(false);setQrImageVersion(Date.now());setOrder(current=>current?{...current,paymentMethod:'qris',paymentQrImage:result.qrImage!,paymentQrString:result.qrString??null,paymentFee:result.paymentFee??null,paymentTotal:result.paymentTotal??current.amount,paymentExpiresAt:result.expiresAt??null,canCancel:false,hasActivePayment:true}:current);return;}
       if(result.paymentNo&&result.paymentMethod){setOrder(current=>current?{...current,paymentMethod:result.paymentMethod!,paymentChannel:result.paymentChannel??null,paymentNo:result.paymentNo!,paymentName:result.paymentName??null,paymentInstructionsUrl:result.instructionsUrl??null,paymentFee:result.paymentFee??null,paymentTotal:result.paymentTotal??current.amount,paymentExpiresAt:result.expiresAt??null,canCancel:false,hasActivePayment:true}:current);return;}
       if(result.checkoutUrl&&result.paymentMethod){setOrder(current=>current?{...current,checkoutUrl:result.checkoutUrl!,paymentMethod:result.paymentMethod!,paymentChannel:result.paymentChannel??null,paymentName:result.paymentName??null,paymentFee:result.paymentFee??null,paymentTotal:result.paymentTotal??current.amount,paymentExpiresAt:result.expiresAt??null,canCancel:false,hasActivePayment:true}:current);return;}

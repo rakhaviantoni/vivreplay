@@ -1,6 +1,6 @@
 import {db,errorResponse,user,HttpError} from '@/lib/server/store';
 import {getCurrentUser} from '@/lib/server/auth';
-import {clearIpaymuPaymentAttempt,createIpaymuDirectPayment,createIpaymuRedirect,findIpaymuTransactionsByReference,getEnabledIpaymuPaymentChannels,getIpaymuAttemptState,getIpaymuMode,getIpaymuPaymentChannels,getIpaymuTransaction,hasIpaymuPaymentConfig,hasMarketIpaymuPaymentConfig,ipaymuCheckoutExpiresAt,ipaymuExpiryTimestamp,ipaymuPayableTotal,ipaymuQrImageUrl} from '@/lib/server/ipaymu';
+import {clearIpaymuPaymentAttempt,createIpaymuDirectPayment,createIpaymuRedirect,findIpaymuTransactionsByReference,getEnabledIpaymuPaymentChannels,getIpaymuAttemptState,getIpaymuMode,getIpaymuPaymentChannels,getIpaymuTransaction,hasIpaymuPaymentConfig,hasMarketIpaymuPaymentConfig,IpaymuPaymentStartError,ipaymuCheckoutExpiresAt,ipaymuExpiryTimestamp,ipaymuPayableTotal,ipaymuQrImageUrl} from '@/lib/server/ipaymu';
 import {estimateIpaymuFee} from '@/lib/market/ipaymu-fees';
 import {sendMarketEmail} from '@/lib/server/market-notifications';
 import {sealedProductById,sealedProductKinds} from '@/lib/market/sealed-products';
@@ -250,7 +250,17 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
       // could not be parsed. Keep the claim so the next status check can find
       // the transaction instead of creating a second one.
       console.error('ipaymu_payment_start_needs_reconciliation',{orderId:id,error:error instanceof Error?error.message:'unknown'});
-      throw new HttpError(502,error instanceof Error?error.message:'We couldn’t start this payment. Choose another method or try again later.');
+      const providerWait=error instanceof Error&&(/(?:timeout|timed out|aborted|fetch failed|network)/i.test(error.message)||error.name==='TimeoutError'||error.name==='AbortError');
+      const outcome=error instanceof IpaymuPaymentStartError?error.outcome:providerWait?'unknown':'rejected';
+      if(outcome==='rejected'){
+        const clearedDetails=clearIpaymuPaymentAttempt(details);
+        const checkoutExpiry=ipaymuCheckoutExpiresAt(details.ipaymuCheckoutExpiresAt,order.createdAt);
+        await database.prepare("UPDATE checkout_orders SET payment_id=NULL,details=?,expires_at=COALESCE(?,expires_at),updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id=?").bind(JSON.stringify(clearedDetails),checkoutExpiry,id,paymentClaim).run();
+      }
+      const message=outcome==='unknown'
+        ?'The payment provider is taking longer than expected. We’re checking this request before you try another method.'
+        :error instanceof Error?error.message:'We couldn’t start this payment. Choose another method or try again later.';
+      throw new HttpError(outcome==='unknown'?504:502,message);
     }
     details.ipaymuPaymentMethod=payment.paymentMethod;
     details.ipaymuPaymentChannel=payment.paymentChannel;
