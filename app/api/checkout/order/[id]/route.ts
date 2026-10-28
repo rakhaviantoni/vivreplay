@@ -1,5 +1,5 @@
 import {db,errorResponse,user,HttpError} from '@/lib/server/store';
-import {sendMarketEmail} from '@/lib/server/market-notifications';
+import {sendMarketEmail,sendMarketEmailOnce} from '@/lib/server/market-notifications';
 import {completeDeliveredMarketOrder} from '@/lib/server/market-order-fulfillment';
 import {marketCardThumbnails} from '@/lib/server/market-card-thumbnails';
 import {clearIpaymuPaymentAttempt,getIpaymuMode,getIpaymuTransaction,ipaymuCheckoutExpiresAt,ipaymuExpiryTimestamp,ipaymuPayableTotal,ipaymuQrImageUrl} from '@/lib/server/ipaymu';
@@ -86,16 +86,30 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
             order.paymentId=sessionId;
             if(gateway.ExpiredDate)order.expiresAt=String(gateway.ExpiredDate);
           }else{
-            details=clearIpaymuPaymentAttempt(details);
+            const expiredAttempt=attempts.find(attempt=>attempt.status===-2);
             paymentAwaitingConfirmation=false;
-            order.paymentId=null;
-            const checkoutExpiry=ipaymuCheckoutExpiresAt(details.ipaymuCheckoutExpiresAt,order.createdAt);
-            if(checkoutExpiry)order.expiresAt=checkoutExpiry;
+            if(expiredAttempt){
+              details.ipaymuPaymentAwaitingConfirmation=false;
+              details.ipaymuExpiredByProviderAt=new Date().toISOString();
+              details.ipaymuPaymentExpiresAt=expiredAttempt.gateway.ExpiredDate??details.ipaymuPaymentExpiresAt;
+              order.status='EXPIRED';
+              order.expiresAt=String(details.ipaymuPaymentExpiresAt??new Date().toISOString());
+            }else{
+              details=clearIpaymuPaymentAttempt(details);
+              order.paymentId=null;
+              const checkoutExpiry=ipaymuCheckoutExpiresAt(details.ipaymuCheckoutExpiresAt,order.createdAt);
+              if(checkoutExpiry)order.expiresAt=checkoutExpiry;
+            }
           }
-          const saved=await database.prepare("UPDATE checkout_orders SET payment_id=?,details=?,expires_at=COALESCE(?,expires_at),updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id IS ?").bind(order.paymentId,JSON.stringify(details),selectedAttempt?.gateway.ExpiredDate??order.expiresAt??null,order.id,originalPaymentId).run();
+          const saved=await database.prepare("UPDATE checkout_orders SET status=?,payment_id=?,details=?,expires_at=COALESCE(?,expires_at),updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id IS ?").bind(order.status,order.paymentId,JSON.stringify(details),selectedAttempt?.gateway.ExpiredDate??order.expiresAt??null,order.id,originalPaymentId).run();
           if(!saved.meta.changes){
             const latest=await database.prepare('SELECT payment_id AS paymentId FROM checkout_orders WHERE id=?').bind(order.id).first<{paymentId:string|null}>();
             order.paymentId=latest?.paymentId??order.paymentId;
+          }else if(order.status==='EXPIRED'&&order.kind==='MARKET'){
+            const title=order.title||'Market order';
+            await Promise.all([sendMarketEmail(order.buyerId,'order-expired',title,order.id),...(order.sellerId?[sendMarketEmail(order.sellerId,'order-expired',title,order.id)]:[])]);
+          }else if(order.status==='EXPIRED'&&order.kind==='PRO'){
+            await sendMarketEmailOnce(order.buyerId,'pro-payment-expired','Market Pro',order.id,`payment-expired:${order.id}`);
           }
         }
       }catch(error){console.error('ipaymu_attempt_status_refresh_failed',{orderId:order.id,error:error instanceof Error?error.message:'unknown'})}
@@ -105,7 +119,7 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
     // Earlier versions closed QRIS orders after the image's five-minute window.
     // Restore one of those orders only while iPaymu's transaction deadline is
     // still ahead and the original listing can safely cover every reserved copy.
-    if(order.status==='EXPIRED'&&order.kind==='MARKET'&&order.paymentId&&paymentExpiry!==null&&paymentExpiry>Date.now()){
+    if(order.status==='EXPIRED'&&order.kind==='MARKET'&&order.paymentId&&!details.ipaymuExpiredByProviderAt&&paymentExpiry!==null&&paymentExpiry>Date.now()){
       const deadline=new Date(paymentExpiry).toISOString().slice(0,19).replace('T',' ');
       const reopened=await database.prepare(`UPDATE checkout_orders SET status='PENDING_PAYMENT',expires_at=?,updated_at=CURRENT_TIMESTAMP
         WHERE id=? AND kind='MARKET' AND status='EXPIRED' AND payment_id IS NOT NULL
@@ -140,12 +154,15 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
     }
     if(order.status==='PENDING_PAYMENT'&&effectiveExpiry&&new Date(`${effectiveExpiry.replace(' ','T')}Z`).getTime()<=Date.now()){
       const expirySql=paymentExpiresAt?new Date(paymentExpiry!).toISOString().slice(0,19).replace('T',' '):effectiveExpiry;
-      const expired=await database.prepare("UPDATE checkout_orders SET status='EXPIRED',expires_at=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT'").bind(expirySql,id).run();
+      details.ipaymuExpiredByProviderAt??=new Date().toISOString();
+      const expired=await database.prepare("UPDATE checkout_orders SET status='EXPIRED',expires_at=?,details=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT'").bind(expirySql,JSON.stringify(details),id).run();
       if(expired.meta.changes){
         order.status='EXPIRED';
         if(order.kind==='MARKET'){
           const title=order.title||'Market order';
           await Promise.all([sendMarketEmail(order.buyerId,'order-expired',title,order.id),...(order.sellerId?[sendMarketEmail(order.sellerId,'order-expired',title,order.id)]:[])]);
+        }else if(order.kind==='PRO'){
+          await sendMarketEmailOnce(order.buyerId,'pro-payment-expired','Market Pro',order.id,`payment-expired:${order.id}`);
         }
       }
     }

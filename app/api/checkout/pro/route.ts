@@ -139,8 +139,10 @@ export async function POST(request:Request){
         resumableOrder={id:pendingOrder.id,paymentId:pendingOrder.paymentId,details:pendingOrder.details};
         break;
       }
-      await database.prepare(`UPDATE checkout_orders SET status='EXPIRED',updated_at=CURRENT_TIMESTAMP
-        WHERE id=? AND buyer_id=? AND kind='PRO' AND status='PENDING_PAYMENT'`).bind(pendingOrder.id,profile.id).run();
+      if(pendingPaymentExpiry!==null)pendingDetails.ipaymuExpiredByProviderAt??=new Date().toISOString();
+      const expirySql=pendingExpiry!==null?new Date(pendingExpiry).toISOString().slice(0,19).replace('T',' '):null;
+      await database.prepare(`UPDATE checkout_orders SET status='EXPIRED',details=?,expires_at=COALESCE(?,expires_at),updated_at=CURRENT_TIMESTAMP
+        WHERE id=? AND buyer_id=? AND kind='PRO' AND status='PENDING_PAYMENT'`).bind(JSON.stringify(pendingDetails),expirySql,pendingOrder.id,profile.id).run();
     }
     if(resumableOrder){
       await updatePendingPaymentChoice(database,resumableOrder.id,paymentMethod,paymentChannel);

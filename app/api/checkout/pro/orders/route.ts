@@ -23,8 +23,12 @@ export async function GET(){
       const storedExpiry=order.expiresAt?Date.parse(`${order.expiresAt.replace(' ','T')}Z`):null;
       const expiry=paymentExpiry??(storedExpiry!==null&&Number.isFinite(storedExpiry)?storedExpiry:null);
       if(expiry!==null&&expiry<=now){
-        const result=await database.prepare(`UPDATE checkout_orders SET status='EXPIRED',updated_at=CURRENT_TIMESTAMP
-          WHERE id=? AND buyer_id=? AND kind='PRO' AND status='PENDING_PAYMENT'`).bind(order.id,profile.id).run();
+        if(paymentExpiry!==null){
+          details.ipaymuExpiredByProviderAt??=new Date().toISOString();
+          order.expiresAt=new Date(paymentExpiry).toISOString().slice(0,19).replace('T',' ');
+        }
+        const result=await database.prepare(`UPDATE checkout_orders SET status='EXPIRED',details=?,expires_at=COALESCE(?,expires_at),updated_at=CURRENT_TIMESTAMP
+          WHERE id=? AND buyer_id=? AND kind='PRO' AND status='PENDING_PAYMENT'`).bind(JSON.stringify(details),paymentExpiry!==null?order.expiresAt:null,order.id,profile.id).run();
         if(result.meta.changes)order.status='EXPIRED';
       }
     }

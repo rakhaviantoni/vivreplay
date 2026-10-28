@@ -1,9 +1,11 @@
 import {env} from 'cloudflare:workers';
 import {db} from '@/lib/server/store';
+import {ipaymuExpiryTimestamp} from '@/lib/server/ipaymu';
 import {sendMarketEmailOnce} from '@/lib/server/market-notifications';
 
 type ProfileExpiry={id:string;expiresAt:string};
 type ProOrder={id:string;buyerId:string;status:string};
+type PendingProOrder={id:string;buyerId:string;expiresAt:string|null;updatedAt:string|null;details:string};
 
 async function deliverInBatches<T>(items:T[],send:(item:T)=>Promise<unknown>){
   for(let offset=0;offset<items.length;offset+=10){
@@ -18,14 +20,22 @@ export async function POST(request:Request){
   }
 
   const database=db();
-  const pending=(await database.prepare(`SELECT id,buyer_id AS buyerId,expires_at AS expiresAt
+  const pending=(await database.prepare(`SELECT id,buyer_id AS buyerId,expires_at AS expiresAt,updated_at AS updatedAt,details
     FROM checkout_orders WHERE kind='PRO' AND status='PENDING_PAYMENT' AND created_at>=datetime('now','-7 days')
-    ORDER BY created_at DESC LIMIT 500`).all<{id:string;buyerId:string;expiresAt:string|null}>()).results;
+    ORDER BY created_at DESC LIMIT 500`).all<PendingProOrder>()).results;
   for(const order of pending){
-    const expiredAt=order.expiresAt?Date.parse(`${order.expiresAt.replace(' ','T')}Z`):NaN;
-    if(Number.isFinite(expiredAt)&&expiredAt<=Date.now()){
-      await database.prepare(`UPDATE checkout_orders SET status='EXPIRED',updated_at=CURRENT_TIMESTAMP
-        WHERE id=? AND kind='PRO' AND status='PENDING_PAYMENT' AND expires_at<=CURRENT_TIMESTAMP`).bind(order.id).run();
+    let details:Record<string,unknown>={};
+    try{const parsed=JSON.parse(order.details) as unknown;if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))details=parsed as Record<string,unknown>}catch{}
+    const paymentExpiry=typeof details.ipaymuPaymentMethod==='string'
+      ?ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt,details.ipaymuPaymentCreatedAt,order.updatedAt)
+      :null;
+    const storedExpiry=order.expiresAt?Date.parse(`${order.expiresAt.replace(' ','T')}Z`):NaN;
+    const expiredAt=paymentExpiry??(Number.isFinite(storedExpiry)?storedExpiry:null);
+    if(expiredAt!==null&&expiredAt<=Date.now()){
+      if(paymentExpiry!==null)details.ipaymuExpiredByProviderAt??=new Date().toISOString();
+      const expirySql=new Date(expiredAt).toISOString().slice(0,19).replace('T',' ');
+      await database.prepare(`UPDATE checkout_orders SET status='EXPIRED',details=?,expires_at=?,updated_at=CURRENT_TIMESTAMP
+        WHERE id=? AND kind='PRO' AND status='PENDING_PAYMENT'`).bind(JSON.stringify(details),expirySql,order.id).run();
     }
   }
 

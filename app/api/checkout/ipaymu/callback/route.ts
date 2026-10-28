@@ -1,6 +1,6 @@
 import {db} from '@/lib/server/store';
 import {fulfillCheckoutOrder} from '@/lib/server/checkout-orders';
-import {callbackAmount,callbackIsSuccessful,callbackReference,callbackSessionId,callbackStatus,callbackTransactionId,parseAndVerifyIpaymuCallback} from '@/lib/server/ipaymu';
+import {callbackAmount,callbackIsSuccessful,callbackReference,callbackSessionId,callbackStatus,callbackTransactionId,getIpaymuTransaction,parseAndVerifyIpaymuCallback} from '@/lib/server/ipaymu';
 import {sendMarketEmail,sendMarketEmailOnce} from '@/lib/server/market-notifications';
 
 export async function POST(request:Request){
@@ -59,8 +59,27 @@ export async function POST(request:Request){
     if(order.status!=='PENDING_PAYMENT')return Response.json({status:'already_processed'});
     const nextStatus=callbackStatus(payload);
     if(nextStatus!=='PENDING_PAYMENT'){
-      if(Number(details.ipaymuAttemptCount)>1)return Response.json({status:'other_payment_attempts_remain'});
-      const updated=await database.prepare('UPDATE checkout_orders SET status=?,payment_id=CASE WHEN ? THEN ? ELSE payment_id END,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status=\'PENDING_PAYMENT\' AND payment_id IS ?').bind(nextStatus,claimedAttempt?1:0,sessionId||transactionId,orderId,order.paymentId).run();
+      if(Number(details.ipaymuAttemptCount)>1){
+        const callbackAttemptIds=new Set([sessionId,transactionId].filter(Boolean));
+        const activeIds=Array.isArray(details.ipaymuActiveTransactionIds)?[...new Set(details.ipaymuActiveTransactionIds.map(String).filter(value=>/^\d{3,20}$/.test(value)&&!callbackAttemptIds.has(value)))].slice(0,5):[];
+        const remaining=await Promise.all(activeIds.map(async id=>{
+          try{
+            const attempt=await getIpaymuTransaction(id);
+            return String(attempt.ReferenceId??order.id)===order.id&&[0,1,6].includes(Number(attempt.Status));
+          }catch{return false}
+        }));
+        const stillActive=activeIds.filter((_,index)=>remaining[index]);
+        if(stillActive.length){
+          details.ipaymuActiveTransactionIds=stillActive;
+          details.ipaymuAttemptCount=stillActive.length;
+          await database.prepare("UPDATE checkout_orders SET details=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT'").bind(JSON.stringify(details),order.id).run();
+          return Response.json({status:'other_payment_attempts_remain'});
+        }
+        details.ipaymuActiveTransactionIds=[];
+        details.ipaymuAttemptCount=0;
+      }
+      if(nextStatus==='EXPIRED')details.ipaymuExpiredByProviderAt=new Date().toISOString();
+      const updated=await database.prepare('UPDATE checkout_orders SET status=?,details=?,payment_id=CASE WHEN ? THEN ? ELSE payment_id END,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status=\'PENDING_PAYMENT\' AND payment_id IS ?').bind(nextStatus,JSON.stringify(details),claimedAttempt?1:0,sessionId||transactionId,orderId,order.paymentId).run();
       if(updated.meta.changes&&nextStatus==='EXPIRED'&&order.kind==='MARKET'){
         const title=order.title||'Market order';
         await Promise.all([sendMarketEmail(order.buyerId,'order-expired',title,order.id),...(order.sellerId?[sendMarketEmail(order.sellerId,'order-expired',title,order.id)]:[])]);
