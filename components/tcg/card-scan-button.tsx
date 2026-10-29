@@ -16,6 +16,7 @@ import {
 } from '@phosphor-icons/react';
 import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle} from '@/components/ui/dialog';
 import {detectCardBounds} from '@/lib/card-scan-detection';
+import {detectCardScanGame,parseOnePieceScanCode,parsePokemonScanCode} from '@/lib/card-scan-parser';
 import {CardArt} from '@/components/tcg/card-art';
 import type {Card} from '@/packages/card-data/catalog';
 import {pokemonRarityLabel} from '@/lib/pokemon-rarity';
@@ -143,6 +144,86 @@ async function getCroppedCardBlob(file:File|Blob,bounds?:NormalizedBounds):Promi
     sourceCanvas.width=0;
     sourceCanvas.height=0;
   }
+}
+
+type PaddleEngine=Awaited<ReturnType<typeof import('@paddleocr/paddleocr-js').PaddleOCR.create>>;
+let paddleEnginePromise:Promise<PaddleEngine>|undefined;
+
+async function getPaddleEngine():Promise<PaddleEngine>{
+  if(!paddleEnginePromise){
+    paddleEnginePromise=(async()=>{
+      const {PaddleOCR}=await import('@paddleocr/paddleocr-js');
+      return PaddleOCR.create({
+        lang:'en',ocrVersion:'PP-OCRv5',worker:false,
+        ortOptions:{backend:'wasm',wasmPaths:'https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/',simd:true},
+      });
+    })();
+  }
+  try{return await paddleEnginePromise}catch(error){paddleEnginePromise=undefined;throw error}
+}
+
+async function scanFooterOcr(file:Blob|File,game:Props['game'],bounds?:NormalizedBounds):Promise<CardScanCandidate[]|null>{
+  try{
+    const engine=await getPaddleEngine();
+    const {canvas:sourceCanvas,width,height}=await loadSourceCanvas(file);
+    try{
+      const b=bounds?{
+        x:Math.max(0,Math.min(width-10,Math.round(bounds.x*width))),
+        y:Math.max(0,Math.min(height-10,Math.round(bounds.y*height))),
+        width:Math.min(width,Math.max(20,Math.round(bounds.width*width))),
+        height:Math.min(height,Math.max(20,Math.round(bounds.height*height))),
+      }:{x:0,y:0,width,height};
+
+      const relative=(x:number,y:number,w:number,h:number)=>({
+        x:Math.max(0,Math.round(b.x+b.width*x)),
+        y:Math.max(0,Math.round(b.y+b.height*y)),
+        width:Math.min(width-(b.x+b.width*x),Math.round(b.width*w)),
+        height:Math.min(height-(b.y+b.height*y),Math.round(b.height*h)),
+      });
+
+      const pokemonCorner=relative(0,.68,.60,.32);
+      const onePieceCorner=relative(.36,.68,.64,.32);
+      const footer=relative(0,.70,1,.30);
+
+      const crops=game==='pokemon'?[pokemonCorner,footer]:game==='one-piece'?[onePieceCorner,footer]:[onePieceCorner,pokemonCorner,footer];
+      const focusedUrls=crops.map((crop,idx)=>dataUrl(sourceCanvas,crop,960,2,idx>0));
+
+      let combinedText='';
+      for(const dataUri of focusedUrls){
+        const res=await fetch(dataUri);
+        const blob=await res.blob();
+        const results=await engine.predict([blob]);
+        const text=results.flatMap(result=>result.items.filter(item=>item.score>=.2).map(item=>item.text)).join('\n').trim();
+        if(text){
+          combinedText=combinedText?`${combinedText}\n${text}`:text;
+          const parsedGame=detectCardScanGame(combinedText,game||'auto');
+          if(parsedGame==='one-piece'&&parseOnePieceScanCode(combinedText)){
+            break;
+          }
+          if(parsedGame==='pokemon'&&parsePokemonScanCode(combinedText)){
+            break;
+          }
+        }
+      }
+
+      if(!combinedText.trim())return null;
+      const response=await fetch('/api/cards/scan',{
+        method:'POST',
+        headers:{'content-type':'application/json'},
+        body:JSON.stringify({game:game||'auto',text:combinedText})
+      });
+      if(!response.ok)return null;
+      const result=await response.json() as {candidates?:CardScanCandidate[]};
+      if(result.candidates&&result.candidates.length>0){
+        return result.candidates.map(c=>({...c,cardNumber:cleanCardNumber(c.cardNumber)}));
+      }
+    }finally{
+      sourceCanvas.width=0;sourceCanvas.height=0;
+    }
+  }catch(err){
+    console.warn('Footer OCR scan failed:',err);
+  }
+  return null;
 }
 
 function cardHref(card:CardScanCandidate,locale:'EN'|'ID'){
@@ -509,10 +590,8 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
         setDetectedBounds(bounds);
 
         if(autoSearch){
-          const croppedBlob=await getCroppedCardBlob(file,bounds);
-          const matches=await scanBlob(croppedBlob,true);
-          const topScore=matches?.[0]?.score??0;
-          if(matches&&matches.length>0&&topScore>=0.88){
+          const matches=await executeHybridScan(file,bounds);
+          if(matches&&matches.length>0){
             triggerHaptic([40,50,40]);
             setCandidates(matches);
             setSelectedCandidateIndex(0);
@@ -525,28 +604,6 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
       }
     }catch{
       setError(id?'Gambar tidak dapat dibuka. Coba JPEG, PNG, atau WebP.':'Could not open that image. Try JPEG, PNG, or WebP.');
-    }finally{
-      setBusy(false);
-    }
-  };
-
-  // Search card from cropped photo in workspace
-  const searchCroppedCard=async()=>{
-    if(!sourceFile||busy)return;
-    setBusy(true);
-    setError('');
-    try{
-      const croppedBlob=await getCroppedCardBlob(sourceFile,scanBounds);
-      const matches=await scanBlob(croppedBlob,true);
-      if(matches&&matches.length>0){
-        triggerHaptic([40,50,40]);
-        setCandidates(matches);
-        setSelectedCandidateIndex(0);
-      }else{
-        setError(id?'Kartu belum terdeteksi dari foto ini. Coba sesuaikan bingkai atau pilih foto yang lebih tajam.':'No card recognized from this photo. Try adjusting the crop frame or choosing a clearer photo.');
-      }
-    }catch{
-      setError(id?'Gagal memindai gambar. Silakan coba lagi.':'Failed to scan image. Please try again.');
     }finally{
       setBusy(false);
     }
@@ -576,6 +633,57 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
       }
     }catch{}
     return null;
+  };
+
+  const executeHybridScan=async(file:File|Blob,bounds?:NormalizedBounds):Promise<CardScanCandidate[]|null>=>{
+    let visualMatches:CardScanCandidate[]|null=null;
+    try{
+      const croppedBlob=await getCroppedCardBlob(file,bounds);
+      visualMatches=await scanBlob(croppedBlob,true);
+    }catch{}
+
+    const topScore=visualMatches?.[0]?.score??0;
+    if(visualMatches&&visualMatches.length>0&&topScore>=0.92){
+      return visualMatches;
+    }
+
+    try{
+      const ocrMatches=await scanFooterOcr(file,game,bounds);
+      if(ocrMatches&&ocrMatches.length>0){
+        if(visualMatches&&visualMatches.length>0){
+          const visualIds=new Set(visualMatches.map(v=>v.id));
+          const prioritized=[
+            ...ocrMatches.filter(o=>visualIds.has(o.id)),
+            ...ocrMatches.filter(o=>!visualIds.has(o.id)),
+          ];
+          return prioritized;
+        }
+        return ocrMatches;
+      }
+    }catch{}
+
+    return visualMatches&&visualMatches.length>0?visualMatches:null;
+  };
+
+  // Search card from cropped photo in workspace
+  const searchCroppedCard=async()=>{
+    if(!sourceFile||busy)return;
+    setBusy(true);
+    setError('');
+    try{
+      const matches=await executeHybridScan(sourceFile,scanBounds);
+      if(matches&&matches.length>0){
+        triggerHaptic([40,50,40]);
+        setCandidates(matches);
+        setSelectedCandidateIndex(0);
+      }else{
+        setError(id?'Kartu belum terdeteksi dari foto ini. Coba sesuaikan bingkai atau pilih foto yang lebih tajam.':'No card recognized from this photo. Try adjusting the crop frame or choosing a clearer photo.');
+      }
+    }catch{
+      setError(id?'Gagal memindai gambar. Silakan coba lagi.':'Failed to scan image. Please try again.');
+    }finally{
+      setBusy(false);
+    }
   };
 
   // Manual camera capture with instant framing handoff

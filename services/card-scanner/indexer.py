@@ -20,6 +20,9 @@ from matcher import CardMatcher
 
 def download_image(url: str, cache_dir: str, card_id: str) -> str:
     """Downloads an image from URL and caches it locally."""
+    if url.startswith("/"):
+        url = f"https://vivreplay.com{url.replace('/small/', '/')}"
+
     ext = url.split("?")[0].split(".")[-1]
     if len(ext) > 4 or not ext:
         ext = "jpg"

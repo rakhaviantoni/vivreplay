@@ -48,6 +48,9 @@ const cards = parsed[0]?.results ?? [];
 console.log(`Found ${cards.length} cards with images. Sanitizing card numbers...`);
 
 for (const card of cards) {
+  if (card.imageUrl && card.imageUrl.startsWith('/')) {
+    card.imageUrl = `https://vivreplay.com${card.imageUrl.replace('/small/', '/')}`;
+  }
   if (card.game === 'pokemon') {
     const local = pokemonLocalCardNumber(card.sourcePayload, '');
     if (local && !/^CT-\d+$/i.test(local)) {
