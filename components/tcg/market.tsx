@@ -255,7 +255,7 @@ async function searchMarketCards(value:string,limit:number,gameSlug:'one-piece'|
     }
     return [...grouped.values()].slice(0,limit);
   }
-  const response=await fetch(`/api/cards/identities?game=${gameSlug}&q=${encodeURIComponent(value)}`,{cache:'no-store'});
+  const response=await fetch(versionedCardCatalogUrl(`/api/cards/identities?game=${gameSlug}&q=${encodeURIComponent(value)}`),{cache:'no-store'});
   if(!response.ok)throw new Error('Card catalog is unavailable.');
   const payload=await response.json() as {cards?:Array<{id:string;code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number;effect_text:string}>};
   const identities=(payload.cards??[]).slice(0,limit);
