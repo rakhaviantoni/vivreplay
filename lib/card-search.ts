@@ -43,7 +43,7 @@ export function parseCardSearch(value:string):ParsedCardSearch{
     const upper=cleaned.toUpperCase();
     if(rarities.has(upper)&&(upper.length>1||cleaned===upper)){rarity=upper;removed.add(index);}
   });
-  const terms=words.filter((_,index)=>!removed.has(index)).map(normalize).filter(Boolean);
+  const terms=words.filter((_,index)=>!removed.has(index)).flatMap(searchToken);
   return {terms,code,setCode,cardType,rarity,color,cost};
 }
 
