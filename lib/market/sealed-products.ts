@@ -1,12 +1,14 @@
 import products from '@/packages/card-data/one-piece-products.json';
 import accessories from '@/packages/card-data/one-piece-accessories.json';
 import type {Card} from '@/packages/card-data/catalog';
+import {matchesSearchText,tokenizeSearchTerms} from '@/lib/card-search';
 
 export type SealedProductKind='BOOSTER_PACK'|'BOOSTER_BOX'|'STARTER_DECK'|'DOUBLE_PACK'|'MINI_TIN'|'SLEEVE'|'PLAYMAT'|'STORAGE'|'BINDER'|'CARD_COLLECTION'|'PREMIUM_COLLECTION'|'OTHER';
 export type SealedProduct={id:string;name:string;displayName?:string;kind:SealedProductKind;setCode:string;language:string;edition:'global'|'asia';imageUrl:string;sourceUrl:string;releaseDate?:string;design?:string;contents?:string};
 export const sealedProductKinds:Record<SealedProductKind,string>={BOOSTER_PACK:'Booster pack',BOOSTER_BOX:'Booster box',STARTER_DECK:'Starter deck',DOUBLE_PACK:'Double pack',MINI_TIN:'Mini tin',SLEEVE:'Card sleeves',PLAYMAT:'Playmat',STORAGE:'Storage',BINDER:'Binder',CARD_COLLECTION:'Card collection',PREMIUM_COLLECTION:'Premium collection',OTHER:'Other products'};
 export const normalizeSealedProductQuery=(value:string)=>value.normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
-export const matchesSealedProductQuery=(text:string,query:string)=>{const normalizedText=normalizeSealedProductQuery(text);const normalizedQuery=normalizeSealedProductQuery(query);return !normalizedQuery||normalizedText.includes(normalizedQuery)||normalizedText.replace(/\s/g,'').includes(normalizedQuery.replace(/\s/g,''));};
+export const matchesSealedProductQuery=(text:string,query:string)=>{const normalizedQuery=normalizeSealedProductQuery(query);if(!normalizedQuery)return true;const terms=tokenizeSearchTerms(normalizedQuery);return matchesSearchText([text],normalizedQuery)||normalizedTextCompact(text).includes(terms.join(''));};
+const normalizedTextCompact=(value:string)=>normalizeSealedProductQuery(value).replace(/\s/g,'');
 export const sealedProductDisplayName=(product:Pick<SealedProduct,'name'|'displayName'>)=>product.displayName??product.name;
 export const sealedProductPublicCode=(product:Pick<SealedProduct,'setCode'>)=>/^(?:OP|ST|EB|PRB|DP|TS|SPC|TC|AC|IB)\d+(?:-EB\d+)?$/i.test(product.setCode)?product.setCode:'';
 const setProducts:SealedProduct[]=products.flatMap(product=>{

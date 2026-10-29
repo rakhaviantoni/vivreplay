@@ -15,6 +15,7 @@ import { api } from '@/lib/client';
 import { addLocalVaultItem } from '../local-vault';
 import {pokemonLocalCardNumber} from '@/lib/pokemon-set-aliases';
 import {pokemonPublicReference} from '@/lib/pokemon-public-reference';
+import {matchesSearchText} from '@/lib/card-search';
 
 interface QuickAddModalProps {
   open: boolean;
@@ -54,7 +55,7 @@ export function QuickAddModal({
   if (!open || typeof document === 'undefined') return null;
 
   const filteredCards = query.trim().length >= 2
-    ? cards.filter(c => `${c.name} ${c.code}`.toLowerCase().includes(query.trim().toLowerCase())).slice(0, 6)
+    ? cards.filter(c => matchesSearchText([c.name,c.code],query)).slice(0, 6)
     : [];
   const preferredPrinting=(card:Card)=>printings.find(item=>item.cardId===card.id&&item.language==='EN'&&/^(standard|base)$/i.test(item.variant??''))
     ||printings.find(item=>item.cardId===card.id&&item.language==='EN')

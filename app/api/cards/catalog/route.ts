@@ -3,6 +3,7 @@ import { readPublicEdgeCache, storePublicEdgeCache } from '@/lib/server/public-e
 import { isPlayableSet, PREVIEW_CARD_CODES } from '@/packages/domain/release-availability';
 import { CARD_CATALOG_CACHE_REVISION } from '@/lib/card-catalog-cache';
 import { parseCatalogRange } from '@/lib/card-catalog-query';
+import {tokenizeSearchTerms} from '@/lib/card-search';
 import { pokemonPrintingRarity } from '@/lib/pokemon-rarity';
 import { pokemonArtRoute } from '@/lib/pokemon-art-route';
 import {pokemonLocalCardNumber,pokemonSetFilter} from '@/lib/pokemon-set-aliases';
@@ -169,7 +170,7 @@ async function fromD1(gameSlug: string, language: string, identityCode?: string,
     predicates.push(`(${setPredicates.join(' OR ')})`);
     }
   }
-  const queryTerms = query ? [...new Set(query.split(/\s+/).map(term=>term.trim()).filter(Boolean))] : [];
+  const queryTerms = query ? [...new Set(tokenizeSearchTerms(query))] : [];
   if (queryTerms.length) {
     const searchableFields = ["LOWER(COALESCE(i.name,''))", "LOWER(COALESCE(l.name,''))", "LOWER(COALESCE(i.code,''))", "LOWER(COALESCE(p.printing_code,''))", "LOWER(COALESCE(p.set_code,''))", "LOWER(COALESCE(p.set_name,''))", "LOWER(COALESCE(p.rarity,''))", "LOWER(COALESCE(p.source_payload,''))", "LOWER(COALESCE(i.card_type,''))", "LOWER(COALESCE(i.color,''))", "LOWER(COALESCE(i.effect_text,''))", "CAST(COALESCE(i.cost,0) AS TEXT)", "CAST(COALESCE(i.power,0) AS TEXT)"];
     for (const term of queryTerms) {

@@ -1,4 +1,5 @@
 import { pokemonRarityLabel } from '@/lib/pokemon-rarity';
+import {tokenizeSearchTerms} from '@/lib/card-search';
 
 const rarityTerms: Record<string, string[]> = {
   sar: ['SAR', 'SIR'], sir: ['SAR', 'SIR'], ar: ['AR', 'IR'], ir: ['AR', 'IR'],
@@ -10,7 +11,7 @@ const rarityTerms: Record<string, string[]> = {
 const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
 export function parsePokemonSearchQuery(value: string) {
-  const words = value.trim().split(/\s+/).filter(Boolean);
+  const words = tokenizeSearchTerms(value);
   const removed = new Set<number>();
   const rarityLabels = new Set<string>();
   for (const [phrase, labels] of Object.entries(rarityTerms).sort(([a], [b]) => b.length - a.length)) {

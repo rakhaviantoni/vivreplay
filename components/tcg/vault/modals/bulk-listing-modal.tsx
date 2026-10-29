@@ -12,6 +12,7 @@ import {marketListingPath} from '@/lib/market/listing-url';
 import {useMarketListingLimits} from '@/lib/market/use-listing-limits';
 import {FeedbackLaunchButton} from '../../feedback-launch';
 import {vaultPublicCardReference} from '../views/vault-slot-meta-identity';
+import {matchesSearchText} from '@/lib/card-search';
 
 const countLabel=(count:number,singular:string,plural:string)=>`${count} ${count===1?singular:plural}`;
 
@@ -31,7 +32,7 @@ export function BulkListingModal({open,onClose,stacks,onPublished,language}:{ope
   const [busy,setBusy]=useState(false);
   const [published,setPublished]=useState<{id:string;title:string;amount:number;cards:ShareCardItem[];city?:string;expiresAt?:string}|null>(null);
   const choices=useMemo(()=>stacks.filter(stack=>stack.items.some(copy=>copy.quantity-(copy.listedQuantity??0)>0)),[stacks]);
-  const filteredChoices=useMemo(()=>{const query=cardSearch.trim().toLowerCase();if(!query)return choices;return choices.filter(stack=>[stack.item.card.name,stack.item.card.code,stack.item.card.setCode,stack.printingLabel].some(value=>String(value??'').toLowerCase().includes(query)))},[choices,cardSearch]);
+  const filteredChoices=useMemo(()=>{if(!cardSearch.trim())return choices;return choices.filter(stack=>matchesSearchText([stack.item.card.name,stack.item.card.code,stack.item.card.setCode,stack.printingLabel],cardSearch))},[choices,cardSearch]);
   const visibleChoices=filteredChoices.slice(0,choiceLimit);
   const lineQuantity=(stack:VaultStackGroup)=>stack.item.type==='GRADED'?(stack.items.some(copy=>(copy.listedQuantity??0)<1)?1:0):stack.items.reduce((sum,copy)=>sum+Math.max(0,copy.quantity-(copy.listedQuantity??0)),0);
   const selectedQuantity=(stack:VaultStackGroup)=>Math.min(lineQuantity(stack),quantities[stack.item.id]??0);

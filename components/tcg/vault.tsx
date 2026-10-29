@@ -5,6 +5,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {useSearchParams} from 'next/navigation';
 import {useLocalizedRouter as useRouter} from '@/lib/use-localized-router';
 import { toast } from 'sonner';
+import {matchesSearchText} from '@/lib/card-search';
 
 import { 
   BookOpenIcon as BookOpen, 
@@ -299,12 +300,7 @@ export function Vault() {
     return enrichedItems.filter(item => {
       // Search
       if (filters.search) {
-        const q = filters.search.toLowerCase();
-        const matchesName = item.card.name.toLowerCase().includes(q);
-        const matchesCode = item.card.code.toLowerCase().includes(q);
-        const matchesSet = (item.card.setCode || '').toLowerCase().includes(q);
-        const matchesPrinting = (item.card.printingCode || '').toLowerCase().includes(q);
-        if (!matchesName && !matchesCode && !matchesSet && !matchesPrinting) return false;
+        if (!matchesSearchText([item.card.name,item.card.code,item.card.setCode,item.card.printingCode],filters.search)) return false;
       }
       // Set
       if (filters.setCode.length) {

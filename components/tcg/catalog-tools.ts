@@ -3,6 +3,7 @@
 import {useEffect} from 'react';
 import {z} from 'zod';
 import {cards} from '@/packages/card-data/catalog';
+import {matchesSearchText} from '@/lib/card-search';
 
 type ModelContext = {
   registerTool: (
@@ -45,7 +46,7 @@ export function useCatalogTools(
         onType('All types');
         return {
           cards: cards
-            .filter(card => `${card.name} ${card.code}`.toLowerCase().includes(query.toLowerCase()))
+            .filter(card => matchesSearchText([card.name,card.code],query))
             .map(card => ({code: card.code, name: card.name, type: card.type})),
         };
       },

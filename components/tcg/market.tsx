@@ -37,6 +37,7 @@ import {displayCardName} from './card-name';
 import {printingLabel} from './card-printing-selector';
 import {pokemonRarityLabel} from '@/lib/pokemon-rarity';
 import {parsePokemonSearchQuery,resolvePokemonSearchRarities} from '@/lib/pokemon-search';
+import {matchesSearchText,tokenizeSearchTerms} from '@/lib/card-search';
 import {pokemonLocalCardNumber} from '@/lib/pokemon-set-aliases';
 import {pokemonPublicNumber,pokemonPublicReference} from '@/lib/pokemon-public-reference';
 import {CollectionItem,GRADING_PROVIDERS,Listing,formatMoney} from '@/packages/domain';
@@ -217,7 +218,7 @@ function parseCardSearch(value:string):CardSearchFilters{
     if(colorAliases.has(lower)){color=colorAliases.get(lower)??null;removed.add(index);return;}
     if(rarityAliases.has(upper)&&(upper.length>1||word===upper)){rarities.push(upper);removed.add(index);}
   });
-  const nameTerms=words.filter((_,index)=>!removed.has(index)).map(word=>word.toLowerCase().replace(/[^a-z0-9]/g,'')).filter(Boolean);
+  const nameTerms=words.filter((_,index)=>!removed.has(index)).flatMap(tokenizeSearchTerms);
   return {nameTerms,code,setCode,cardType,rarities:[...new Set(rarities)],color,cost};
 }
 function matchesCardSearch(card:Card,filters:CardSearchFilters){
@@ -273,7 +274,7 @@ function WishlistCardPicker({items,gameSlug,value,onChange,onSelect,locale}:{ite
     if(!saved||(gameSlug!=='all'&&actualGame!==gameSlug))return [];
     const card:MarketCard={id:item.printingId,code:saved.code,name:saved.name,color:'Colorless',type:(actualGame==='pokemon'?'Pokémon':'Character') as Card['type'],cost:0,power:0,rarity:saved.rarity,art:0,effect:'',imageUrl:saved.imageUrl??undefined,imageSource:'external',setCode:saved.setCode,language:saved.language,printingCode:saved.printingCode??saved.code,variant:saved.variant,gameSlug:actualGame,availablePrintings:[{id:item.printingId,language:saved.language,variant:saved.variant,printing_code:saved.printingCode??saved.code,card_image_url:saved.imageUrl,rarity:saved.rarity,set_code:saved.setCode}]};
     return [card];
-  }).filter(card=>!value.trim()||`${card.name} ${card.code} ${card.printingCode} ${card.setCode}`.toLowerCase().includes(value.trim().toLowerCase()));
+  }).filter(card=>matchesSearchText([card.name,card.code,card.printingCode,card.setCode],value));
   return <div className="market-wishlist-picker"><label className="market-vault-picker-search"><Search size={16}/><input value={value} onChange={event=>onChange(event.target.value)} placeholder={locale==='ID'?'Cari di Wishlist':'Search your Wishlist'} aria-label={locale==='ID'?'Cari kartu di Wishlist':'Search cards in your Wishlist'}/>{value&&<button type="button" onClick={()=>onChange('')} aria-label={locale==='ID'?'Hapus pencarian':'Clear search'}><X size={14}/></button>}</label><div className="market-sell-search-results market-wishlist-card-picker">{cards.length?cards.map(card=><div key={`${card.gameSlug}:${card.id}`} className="market-sell-card-result"><div className="market-sell-card-thumb"><CardArt card={card} small/></div><div className="market-sell-card-meta"><strong>{card.name}</strong><div className="market-sell-card-sub">{gameSlug==='all'&&<span className="market-sell-game-badge"><span className="sr-only">{card.gameSlug==='pokemon'?'Pokémon':'One Piece'}</span><MarketGameMark gameSlug={card.gameSlug??'one-piece'} compact/></span>}<span className="market-sell-code">{card.printingCode}</span><span>{card.language}</span>{card.setCode&&<span>{card.setCode}</span>}</div></div><div className="market-sell-card-actions"><button type="button" className="market-sell-card-select-btn" onClick={()=>onSelect(card)}><span>{locale==='ID'?'Pilih kartu':'Choose card'}</span><ArrowRight size={14}/></button></div></div>):<div className="market-sell-search-empty"><p>{value.trim()?locale==='ID'?'Tidak ada kartu wishlist yang cocok.':'No saved cards match this search.':locale==='ID'?'Belum ada kartu untuk game ini di wishlist.':'No saved cards for this game yet.'}</p></div>}</div></div>;
 }
 
@@ -465,7 +466,7 @@ function VaultCardPicker({items,onSelect,locale='EN',gameSlug='one-piece'}:{item
     const card=(item.card as MarketCard|undefined)??cardFor(item.printingId);
     if(!card)return false;
     const term=query.trim().toLocaleLowerCase();
-    return !term||[card.name,card.code,item.setCode??card.setCode??''].some(value=>value.toLocaleLowerCase().includes(term));
+    return !term||matchesSearchText([card.name,card.code,item.setCode??card.setCode??''],term);
   });
   return (
     <div className="market-vault-picker">
