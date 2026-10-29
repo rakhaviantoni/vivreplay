@@ -13,7 +13,8 @@ from matcher import CardMatcher
 
 
 def sync_missing():
-    data_dir = "data"
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    data_dir = os.path.join(script_dir, "data")
     emb_path = os.path.join(data_dir, "catalog_embeddings.npy")
     meta_path = os.path.join(data_dir, "catalog_metadata.json")
     seed_path = os.path.join(data_dir, "catalog_seed.json.gz")
