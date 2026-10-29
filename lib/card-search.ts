@@ -12,6 +12,7 @@ const colors=new Map([['red','Red'],['blue','Blue'],['green','Green'],['purple',
 const types=new Map<string,ParsedCardSearch['cardType']>([['leader','Leader'],['leaders','Leader'],['character','Character'],['characters','Character'],['event','Event'],['events','Event'],['stage','Stage'],['stages','Stage'],['don','DON!!'],['don!!','DON!!']]);
 const rarities=new Set(['C','UC','R','SR','SEC','PSEC','SP','L','TR']);
 const normalize=(value:string)=>value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\p{L}\p{N}]/gu,'');
+const tokenize=(value:string)=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().match(/[\p{L}\p{N}]+/gu)??[];
 
 export function parseCardSearch(value:string):ParsedCardSearch{
   const words=value.trim().split(/\s+/).filter(Boolean);
@@ -43,7 +44,7 @@ export function parseCardSearch(value:string):ParsedCardSearch{
     const upper=cleaned.toUpperCase();
     if(rarities.has(upper)&&(upper.length>1||cleaned===upper)){rarity=upper;removed.add(index);}
   });
-  const terms=words.filter((_,index)=>!removed.has(index)).flatMap(searchToken);
+  const terms=words.filter((_,index)=>!removed.has(index)).flatMap(tokenize);
   return {terms,code,setCode,cardType,rarity,color,cost};
 }
 
