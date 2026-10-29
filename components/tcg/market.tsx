@@ -296,6 +296,7 @@ function CardSearch({value,onChange,onSelect,onAddToVault,locale='EN',wanted=fal
     if(!item||!identity)throw new Error('Card details are unavailable.');
     const printing:CardPrintingItem={id:item.id,language:item.language,variant:item.variant,printing_code:item.printing_code,card_image_url:item.card_image_url??null,rarity:item.rarity??null,set_code:item.set_code,tcg_card_assets:[]};
     const card:MarketCard={id:item.id,code:identity.code,name:displayCardName(identity.name,identity.code),color:identity.color||'Colorless',type:(identity.card_type||'Character') as Card['type'],cost:identity.cost??0,power:identity.power??0,rarity:candidate.game==='pokemon'?pokemonRarityLabel(item.rarity??item.source_payload?.rarity,item.language):item.rarity??'',art:0,effect:identity.effect_text??'',imageUrl:item.card_image_url??undefined,imageSource:'external',setCode:item.set_code,language:item.language,printingCode:item.printing_code,localCardNumber:candidate.game==='pokemon'?pokemonLocalCardNumber(item.source_payload,item.printing_code):undefined,variant:item.variant,gameSlug:candidate.game,pokemonTypes:item.source_payload?.types??[],pokemonCategory:item.source_payload?.category,pokemonSetName:item.source_payload?.set?.name??item.set_name,pokemonIllustrator:item.source_payload?.illustrator,availablePrintings:[printing]};
+    onChange(card.name);
     onSelect(card);
   };
   const [onePieceFilters,setOnePieceFilters]=useState<{set:string[];type:string[];color:string[];rarity:string[];cost:string[]}>({set:[],type:[],color:[],rarity:[],cost:[]});
@@ -799,35 +800,39 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
     const includeTcg=marketCategory==='tcg'||marketCategory==='mixed';
     const includeOther=marketCategory==='other'||marketCategory==='mixed';
     const nextCategory=includeOther?'tcg':(includeTcg?'mixed':'other');
-    setMarketCategory(nextCategory);setFeedScope('listings');setQuery('');setTradeType('all');setLang('all');
+    setMarketCategory(nextCategory);setFeedScope('listings');setTradeType('all');setLang('all');
     const params=new URLSearchParams(window.location.search);
     if(nextCategory==='other'||nextCategory==='mixed')params.set('category','other');else params.delete('category');
     if(nextCategory==='other'){params.delete('scope');params.delete('game');}
     if(nextCategory==='mixed'&&gameSlug==='one-piece'&&!params.has('scope')&&!params.has('game'))params.set('game','one-piece');
     if(nextCategory==='tcg'&&!params.has('scope')&&!params.has('game'))setGameSlug('one-piece');
+    if(query.trim())params.set('card',query.trim());
     router.replace(`${window.location.pathname}${params.size?`?${params}`:''}`,{scroll:false});
   };
   const toggleGame=(target:'one-piece'|'pokemon')=>{
     const tcgActive=marketCategory==='tcg'||marketCategory==='mixed';
     const otherActive=marketCategory==='other'||marketCategory==='mixed';
     if(!tcgActive){
-      setGameSlug(target);setMarketCategory(otherActive?'mixed':'tcg');setFeedScope('listings');setLang('all');setTradeType('all');setQuery('');setCardSearch('');
+      setGameSlug(target);setMarketCategory(otherActive?'mixed':'tcg');setFeedScope('listings');setLang('all');setTradeType('all');
       const params=new URLSearchParams(window.location.search);params.delete('scope');if(target==='pokemon')params.set('game','pokemon');else if(otherActive)params.set('game','one-piece');else params.delete('game');
       if(otherActive)params.set('category','other');else params.delete('category');
+      if(query.trim())params.set('card',query.trim());
       router.replace(`${window.location.pathname}?${params}`,{scroll:false});return;
     }
     const targetEnabled=gameSlug==='all'||gameSlug===target;
     if(targetEnabled&&gameSlug===target){
       if(!otherActive)return;
-      setMarketCategory('other');setFeedScope('listings');setLang('all');setTradeType('all');setQuery('');setCardSearch('');
+      setMarketCategory('other');setFeedScope('listings');setLang('all');setTradeType('all');
       const params=new URLSearchParams(window.location.search);params.delete('scope');params.delete('game');
+      if(query.trim())params.set('card',query.trim());
       router.replace(`${window.location.pathname}${params.size?`?${params}`:''}`,{scroll:false});return;
     }
     const next=gameSlug==='all'?(target==='one-piece'?'pokemon':'one-piece'):'all';
-    setGameSlug(next);setLang('all');setTradeType('all');setQuery('');setCardSearch('');setFeedScope('listings');
+    setGameSlug(next);setLang('all');setTradeType('all');setFeedScope('listings');
     const params=new URLSearchParams(window.location.search);
     if(next==='all'){params.set('scope','all');params.delete('game');}
     else {params.delete('scope');if(next==='pokemon')params.set('game','pokemon');else params.delete('game');}
+    if(query.trim())params.set('card',query.trim());
     router.replace(`${window.location.pathname}${params.size?`?${params}`:''}`,{scroll:false});
   };
   const listingHref=(listing:Pick<Listing,'title'|'id'>,targetGame:MarketGameScope=gameSlug)=>{
