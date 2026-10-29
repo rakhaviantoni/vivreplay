@@ -152,7 +152,12 @@ export async function GET(request:Request){
   if(!filters.terms.length&&!filters.code&&!filters.setCode&&!filters.rarity&&!filters.cardType&&filters.cost===undefined&&!filters.color)return Response.json({cards:[]});
   let cards:IdentityRow[];
   const index=await readSearchIndex(request,gameSlug);
-  if(index)cards=filterIndex(index,filters);
+  if(index){
+    cards=filterIndex(index,filters);
+    if(!cards.length&&filters.code){
+      try{cards=await fromD1(filters,gameSlug)}catch{return Response.json({error:'Card catalog is temporarily unavailable.'},{status:503})}
+    }
+  }
   else try{cards=await fromD1(filters,gameSlug)}catch{return Response.json({error:'Card catalog is temporarily unavailable.'},{status:503})}
   if(gameSlug==='one-piece')cards=cards.filter(card=>isPlayableSet(card.set_code??'')||PREVIEW_CARD_CODES.has(card.code.toUpperCase()));
   return storePublicEdgeCache(cacheRequest,Response.json({cards:cards.map(card=>({...card,printingId:card.printingId??card.id,imageUrl:internalImageUrl(card.imageUrl,card.set_code??'',card.language??'EN',card.printingCode??card.code,card.printingId??card.id,pokemonLocalCardNumber(card.localCardNumber??card.printingCode,card.printingCode??card.code))}))},{headers:{'Cache-Control':'public, max-age=300, stale-while-revalidate=86400','Cloudflare-CDN-Cache-Control':'public, max-age=86400'}}));
