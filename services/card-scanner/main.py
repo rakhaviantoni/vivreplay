@@ -145,6 +145,24 @@ async def scan_card(
             )
         )
 
+    formatted_candidates = [
+        {
+            "id": r["card"]["id"],
+            "code": r["card"]["code"],
+            "name": r["card"]["name"],
+            "game": r["card"]["game"],
+            "setCode": r["card"]["setCode"],
+            "cardNumber": clean_card_number(r["card"].get("cardNumber")),
+            "language": r["card"].get("language", "EN"),
+            "rarity": r["card"].get("rarity", ""),
+            "variant": r["card"].get("variant", "Standard"),
+            "score": r["score"],
+            "confidence": r["confidence"],
+            "imageUrl": r["card"].get("imageUrl")
+        }
+        for r in results
+    ]
+
     if not is_confident_match or best is None:
         return {
             "status": "no_match",
@@ -152,7 +170,7 @@ async def scan_card(
             "detection_source": chosen_source,
             "confidence": best_score,
             "distinct_margin": distinct_margin,
-            "candidates": results,
+            "candidates": formatted_candidates,
             "latency_ms": elapsed_ms
         }
 
@@ -174,22 +192,7 @@ async def scan_card(
             "score": best["score"],
             "imageUrl": best["card"]["imageUrl"]
         },
-        "candidates": [
-            {
-                "id": r["card"]["id"],
-                "code": r["card"]["code"],
-                "name": r["card"]["name"],
-                "game": r["card"]["game"],
-                "setCode": r["card"]["setCode"],
-                "cardNumber": clean_card_number(r["card"].get("cardNumber")),
-                "language": r["card"]["language"],
-                "rarity": r["card"]["rarity"],
-                "variant": r["card"]["variant"],
-                "score": r["score"],
-                "imageUrl": r["card"]["imageUrl"]
-            }
-            for r in results
-        ],
+        "candidates": formatted_candidates,
         "latency_ms": elapsed_ms
     }
 

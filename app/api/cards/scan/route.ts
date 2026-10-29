@@ -11,6 +11,50 @@ type ScanRead={game:Game;name:string;setCode:string;cardNumber:string;cardNumber
 const pokemonPrintedSetAliases:Record<string,string[]>={
   // TCGdex uses its series ID for Paldea Evolved; PAL is the code printed on cards.
   PAL:['PAL','SV02'],
+  SV11W:['SV11W','SV11s','sv10.5w','PRE'],
+  SV11B:['SV11B','SV11s','sv10.5b','PRE'],
+  SV11:['SV11','SV11s','sv10.5w','sv10.5b'],
+  SV6A:['SV6a','SV06a'],
+  SV7A:['SV7a','SV07a'],
+  SV8A:['SV8a','SV08a'],
+  SV9:['SV9','SV09'],
+};
+
+const pokemonKatakanaAliases:Record<string,string>={
+  'ケルディオ':'Keldeo',
+  'ピカチュウ':'Pikachu',
+  'リザードン':'Charizard',
+  'カメックス':'Blastoise',
+  'フシギバナ':'Venusaur',
+  'ミュウツー':'Mewtwo',
+  'ミュウ':'Mew',
+  'イーブイ':'Eevee',
+  'ブラッキー':'Umbreon',
+  'エーフィ':'Espeon',
+  'ニンフィア':'Sylveon',
+  'ルギア':'Lugia',
+  'ホウオウ':'Ho-Oh',
+  'レックウザ':'Rayquaza',
+  'ギラティナ':'Giratina',
+  'ディアルガ':'Dialga',
+  'パルキア':'Palkia',
+  'アルセウス':'Arceus',
+  'キチキギス':'Fezandipiti',
+  'イイネイヌ':'Okidogi',
+  'マシマシラ':'Munkidori',
+  'オーガポン':'Ogerpon',
+  'テラパゴス':'Terapagos',
+  'タケルライコ':'Raging Bolt',
+  'ウガツホムラ':'Gouging Fire',
+  'ウネルミナモ':'Walking Wake',
+  'テツノカシラ':'Iron Crown',
+  'テツノイワオ':'Iron Boulder',
+  'テツノイサハ':'Iron Leaves',
+  'トドロクツキ':'Roaring Moon',
+  'テツノブジン':'Iron Valiant',
+  'サーナイト':'Gardevoir',
+  'ゲンガー':'Gengar',
+  'ミミッキュ':'Mimikyu',
 };
 
 function catalogSetCandidates(candidates:string[]){
@@ -151,6 +195,43 @@ function setCandidatesForComparison(parsed:NonNullable<ReturnType<typeof parseTe
   return catalogSetCandidates(parsed.setCandidates.length?parsed.setCandidates:[parsed.read.setCode].filter(Boolean));
 }
 
+async function matchPokemonByKatakana(text:string,rarity?:string):Promise<Candidate[]>{
+  let englishName:string|null=null;
+  for(const [katakana,english] of Object.entries(pokemonKatakanaAliases)){
+    if(text.includes(katakana)){
+      englishName=english;
+      break;
+    }
+  }
+  if(!englishName)return [];
+  const rarityAliases:Record<string,string[]>={
+    SAR:['SAR','SPECIALARTRARE','SPECIALILLUSTRATIONRARE'],SIR:['SIR','SPECIALILLUSTRATIONRARE'],
+    SSR:['SSR','SHINYULTRARARE'],RR:['RR','DOUBLERARE'],RRR:['RRR','TRIPLERARE'],UR:['UR','ULTRARARE'],
+    HR:['HR','HYPERRARE'],AR:['AR','ARTRARE'],IR:['IR','ILLUSTRATIONRARE'],SR:['SR','SUPERRARE','SECRETRARE'],
+    R:['R','RARE'],U:['U','UNCOMMON'],C:['C','COMMON'],
+  };
+  const aliases=rarity?rarityAliases[rarity.toUpperCase()]??[rarity]:[];
+  const conditions=['g.slug=?','(UPPER(i.name) LIKE ? OR UPPER(l.name) LIKE ?)'];
+  const values:(string|number)[]=['pokemon',`%${englishName.toUpperCase()}%`,`%${englishName.toUpperCase()}%`];
+  if(aliases.length){
+    conditions.push(`UPPER(REPLACE(REPLACE(COALESCE(p.rarity,''),' ',''),'-','')) IN (${aliases.map(()=>'?').join(',')})`);
+    values.push(...aliases);
+  }
+  const rows=await database().prepare(`
+    SELECT DISTINCT p.id AS id,g.slug AS game,i.code AS code,COALESCE(NULLIF(l.name,''),i.name) AS name,
+      p.set_code AS setCode,p.printing_code AS cardNumber,p.language AS language,
+      COALESCE(p.rarity,'') AS rarity,COALESCE(p.variant,'') AS variant,p.card_image_url AS imageUrl,
+      CASE WHEN json_valid(p.source_payload) AND CAST(json_extract(p.source_payload,'$.set.cardCount.official') AS INTEGER)>0 THEN printf('%03d',CAST(json_extract(p.source_payload,'$.set.cardCount.official') AS INTEGER)) ELSE '' END AS setCardCount
+    FROM tcg_card_printings p
+    JOIN tcg_card_identities i ON i.id=p.identity_id
+    JOIN tcg_games g ON g.id=i.game_id
+    LEFT JOIN tcg_card_localizations l ON l.identity_id=i.id AND l.language=p.language
+    WHERE ${conditions.join(' AND ')}
+    ORDER BY CASE WHEN p.variant='Standard' THEN 0 ELSE 1 END, p.set_code DESC LIMIT 20
+  `).bind(...values).all<Candidate>();
+  return deduplicateScanCandidates(rows.results).map(c=>({...c,imageUrl:pokemonArtRoute(c.language,c.setCode,c.cardNumber,c.id)}));
+}
+
 export async function POST(request:Request){
   try{
     const payload=await request.json() as {text?:unknown;game?:unknown};
@@ -158,13 +239,24 @@ export async function POST(request:Request){
     const game=payload.game==='pokemon'||payload.game==='one-piece'?payload.game:'auto';
     if(!text)return Response.json({error:'No card text was recognized. Try a closer, sharper photo.'},{status:422});
     const parsed=parseText(text,game);
-    if(!parsed)return Response.json({error:'Could not read the set and card number. Keep the lower edge in focus and try again.'},{status:422});
+    if(!parsed){
+      if(game==='pokemon'||game==='auto'){
+        const katakanaCandidates=await matchPokemonByKatakana(text);
+        if(katakanaCandidates.length>0){
+          return Response.json({read:{game:'pokemon',name:'',setCode:'',cardNumber:'',cardNumberTotal:'',language:'JP',rarity:'',variant:'',block:''},candidates:katakanaCandidates});
+        }
+      }
+      return Response.json({error:'Could not read the set and card number. Keep the lower edge in focus and try again.'},{status:422});
+    }
     const rarityOnlyFallback=parsed.read.game==='pokemon'&&!parsed.setCandidates.length;
     let candidates=await catalogMatches(parsed,rarityOnlyFallback);
     if(!candidates.length&&parsed.read.language)candidates=await catalogMatches(parsed,rarityOnlyFallback,true);
     if(!candidates.length&&parsed.read.game==='pokemon'&&parsed.setCandidates.length){
       candidates=await recoverPokemonSetOcr(parsed);
       if(!candidates.length&&parsed.read.language)candidates=await recoverPokemonSetOcr(parsed,true);
+    }
+    if(!candidates.length&&(parsed.read.game==='pokemon'||game==='auto')){
+      candidates=await matchPokemonByKatakana(text,parsed.read.rarity);
     }
     return Response.json({read:parsed.read,candidates},{headers:{'Cache-Control':'private, no-store'}});
   }catch{

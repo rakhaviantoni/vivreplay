@@ -649,10 +649,30 @@ export function CardScanButton({game='auto',locale='EN',onSelect,selectionPurpos
         signal:AbortSignal.timeout(4500),
       });
       if(!res.ok)return null;
-      const data=await res.json() as {status:string;product?:CardScanCandidate;candidates?:CardScanCandidate[]};
-      if(data.status==='match'&&data.product){
-        const rawMatches=data.candidates?.length?data.candidates:[data.product];
-        return rawMatches.map(c=>({...c,cardNumber:cleanCardNumber(c.cardNumber)}));
+      const data=await res.json() as {status:string;product?:CardScanCandidate;candidates?:any[]};
+      const rawList:any[]=data.candidates?.length?data.candidates:data.product?[data.product]:[];
+      if(rawList.length>0){
+        const candidates:CardScanCandidate[]=rawList.map((c:any)=>{
+          const card=c.card||c;
+          return {
+            id:card.id,
+            game:card.game,
+            code:card.code,
+            name:card.name,
+            setCode:card.setCode,
+            cardNumber:cleanCardNumber(card.cardNumber),
+            language:card.language,
+            rarity:card.rarity,
+            variant:card.variant||'Standard',
+            imageUrl:card.imageUrl||null,
+            score:c.score??c.confidence??card.score??card.confidence??0,
+            confidence:c.confidence??card.confidence??0,
+          };
+        });
+        const topScore=candidates[0]?.score??0;
+        if(data.status==='match'||topScore>=0.70){
+          return candidates;
+        }
       }
     }catch{}
     return null;
@@ -666,7 +686,8 @@ export function CardScanButton({game='auto',locale='EN',onSelect,selectionPurpos
     }catch{}
 
     const topScore=visualMatches?.[0]?.score??0;
-    if(visualMatches&&visualMatches.length>0&&topScore>=0.92){
+    // High-confidence visual match (> 0.90) returns immediately
+    if(visualMatches&&visualMatches.length>0&&topScore>=0.90){
       return visualMatches;
     }
 
@@ -685,7 +706,9 @@ export function CardScanButton({game='auto',locale='EN',onSelect,selectionPurpos
       }
     }catch{}
 
-    return visualMatches&&visualMatches.length>0?visualMatches:null;
+    // If OCR yielded no results (e.g. Japanese text, foreign set code, or unlisted promo number),
+    // fallback gracefully to the visual match if score is reasonable (>= 0.70)
+    return visualMatches&&visualMatches.length>0&&topScore>=0.70?visualMatches:null;
   };
 
   // Search card from cropped photo in workspace
