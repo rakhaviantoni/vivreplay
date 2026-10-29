@@ -4,6 +4,7 @@ import type { CollectionItem } from '@/packages/domain';
 
 const LOCAL_VAULT_KEY = 'vivreplay-local-vault';
 const LOCAL_VAULT_MODIFIED_KEY = 'vivreplay-local-vault-modified';
+export const LOCAL_SLAB_EXAMPLE_ID_PREFIX='local-slab-example-';
 
 /**
  * Load collection items from localStorage.

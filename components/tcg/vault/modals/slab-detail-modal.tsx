@@ -15,15 +15,16 @@ import {
   CameraIcon as Camera,
   TrendUpIcon as TrendingUp,
   ArrowSquareOutIcon as ExternalLink,
-  MagnifyingGlassPlusIcon as ZoomIn
+  MagnifyingGlassPlusIcon as ZoomIn,
+  TrashIcon as Trash
 } from '@phosphor-icons/react';
 import { CardArt } from '../card-art';
-import { VaultSlotSlabPlate } from '../views/vault-slot-slab-plate';
+import { VaultSlabCase } from '../views/vault-slot-slab-plate';
 import { VaultSlotMetaIdentity } from '../views/vault-slot-meta-identity';
 import { EffectText } from '../../effect-text';
 import { PokemonCardText } from '../../pokemon-card-text';
 import { printings } from '@/packages/card-data/catalog';
-import { formatCompactMoney, GRADING_PROVIDERS } from '@/packages/domain';
+import { formatCompactMoney, ALL_GRADING_PROVIDERS } from '@/packages/domain';
 import { toast } from 'sonner';
 import type { EnrichedCollectionItem } from '../types';
 
@@ -35,6 +36,7 @@ interface SlabDetailModalProps {
   preferredCurrency?: string;
   onClose: () => void;
   onEdit: (slab: EnrichedCollectionItem) => void;
+  onDelete: (id: string) => void;
   onSell: (slab: EnrichedCollectionItem) => void;
   onToggleHideValues: () => void;
   onShare: (slab: EnrichedCollectionItem) => void;
@@ -48,6 +50,7 @@ export function SlabDetailModal({
   preferredCurrency,
   onClose,
   onEdit,
+  onDelete,
   onSell,
   onToggleHideValues,
   onShare,
@@ -128,7 +131,8 @@ export function SlabDetailModal({
   const pokemonSource=pokemonPrintingData?.printingId===slab.printingId?pokemonPrintingData.source:slab.card.source_payload??null;
   const subgrades = slab.subgrades;
   const storedProvider=String(slab.provider??'').trim().toLowerCase().replace(/[^a-z0-9]/g,'');
-  const providerDef = GRADING_PROVIDERS.find(p => [p.id,p.shortName,p.name].some(value=>value.toLowerCase().replace(/[^a-z0-9]/g,'')===storedProvider)||storedProvider==='beckett'&&p.id==='BGS');
+  const providerDef = ALL_GRADING_PROVIDERS.find(p => [p.id,p.shortName,p.name].some(value=>value.toLowerCase().replace(/[^a-z0-9]/g,'')===storedProvider)||storedProvider==='beckett'&&p.id==='BGS');
+  const visibleSubgrades=Object.entries(subgrades??{}).filter(([key])=>!key.startsWith('__'));
   const certificationUrl=slab.certification&&providerDef?.id==='PSA'
     ? `https://www.psacard.com/cert/${encodeURIComponent(slab.certification)}/psa`
     : providerDef?.website;
@@ -241,9 +245,7 @@ export function SlabDetailModal({
         }}>
           {/* Left: Slab Presentation Stage & Photo Gallery */}
           <div>
-            <div className="vault-slab-case">
-              {!activePhoto&&<VaultSlotSlabPlate item={slab} />}
-
+            <VaultSlabCase item={slab} showLabel={!activePhoto} className="vault-slab-detail-case">
               {/* Artwork Viewport with Zoom Option */}
               <div className="vault-detail-art" style={{ position: 'relative', aspectRatio: '420 / 580', borderRadius: '17px', overflow: 'hidden', cursor: 'zoom-in', background: 'var(--vault-surface-warm)' }} onClick={() => setIsZoomed(!isZoomed)}>
                 {activePhoto?<img src={`/api/photos/${activePhoto.id}`} alt={`${activePhotoRole} photo for ${slab.card.name} slab`} style={{width:'100%',height:'100%',objectFit:'contain'}}/>:activePhotoRole==='front'?<CardArt card={slab.card}/>:<div className="vault-slab-photo-empty">{photoBusy?'Uploading photo…':`No ${activePhotoRole} photo attached yet`}</div>}
@@ -256,7 +258,7 @@ export function SlabDetailModal({
                   <ZoomIn size={14} />
                 </button>
               </div>
-            </div>
+            </VaultSlabCase>
 
             {/* Slab Multi-Photo Switcher (Front, Back, Label, Extra) */}
             <div className="vault-slab-photo-switch" role="group" aria-label="Slab photos" style={{
@@ -362,7 +364,7 @@ export function SlabDetailModal({
             </div>
 
             {/* Subgrades Breakdown if Provider Supports Them */}
-            {subgrades && typeof subgrades === 'object' && Object.keys(subgrades).length > 0 && (
+            {visibleSubgrades.length > 0 && (
               <div style={{
                 padding: '14px 16px',
                 borderRadius: '12px',
@@ -373,7 +375,7 @@ export function SlabDetailModal({
                   Subgrades Inspection
                 </span>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
-                  {Object.entries(subgrades).map(([key, val]) => (
+                  {visibleSubgrades.map(([key, val]) => (
                     <div key={key} style={{ padding: '8px', background: 'var(--vault-panel)', borderRadius: '8px', border: '1px solid var(--vault-border)', textAlign: 'center' }}>
                       <span style={{ fontSize: '9px', color: 'var(--vault-ink-muted)', display: 'block', textTransform: 'uppercase' }}>{key}</span>
                       <strong style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '16px', color: 'var(--vault-gold)' }}>
@@ -499,6 +501,21 @@ export function SlabDetailModal({
                 <Edit size={15} />
                 Edit
               </button>
+        </div>
+        <div className="vault-slab-delete-row">
+          <button
+            type="button"
+            className="vault-btn vault-btn-ghost"
+            disabled={Number(slab.listedQuantity??0)>0}
+            title={Number(slab.listedQuantity??0)>0?'Close the active listing before deleting this slab':'Remove this slab from your Vault'}
+            onClick={()=>{
+              if(Number(slab.listedQuantity??0)>0)return;
+              if(window.confirm(`Remove ${slab.card.name} from your Vault?`))onDelete(slab.id);
+            }}
+          >
+            <Trash size={14}/>
+            {Number(slab.listedQuantity??0)>0?'Close listing to delete':'Delete slab'}
+          </button>
         </div>
         </div>
         </div>

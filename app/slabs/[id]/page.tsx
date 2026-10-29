@@ -4,7 +4,7 @@ import Link from '@/components/ui/localized-link';
 import { getCurrentUser } from '@/lib/server/auth';
 import { db } from '@/lib/server/store';
 import { cardFor, printings } from '@/packages/card-data/catalog';
-import { formatCompactMoney, formatMoney, GRADING_PROVIDERS } from '@/packages/domain';
+import { formatCompactMoney, formatMoney } from '@/packages/domain';
 import { CardArt } from '@/components/tcg/card-art';
 import { SlabPhotos } from '@/components/tcg/slab-photos';
 import { MarketSellAction } from '@/components/tcg/market-sell-action';

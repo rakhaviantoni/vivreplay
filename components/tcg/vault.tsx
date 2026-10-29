@@ -29,7 +29,8 @@ import {
   updateLocalVaultItem,
   deleteLocalVaultItem,
   hasLocalVaultCustomizations,
-  clearLocalVault
+  clearLocalVault,
+  LOCAL_SLAB_EXAMPLE_ID_PREFIX,
 } from './vault/local-vault';
 import type { CollectionItem } from '@/packages/domain';
 
@@ -39,7 +40,7 @@ import { VaultFilters } from './vault/vault-filters';
 import { BinderView } from './vault/views/binder-view';
 import { GridView } from './vault/views/grid-view';
 import { ListView } from './vault/views/list-view';
-import { SlabsTab } from './vault/tabs/slabs-tab';
+import { SlabsTab, LocalSlabSeeder } from './vault/tabs/slabs-tab';
 import { SetsTab } from './vault/tabs/sets-tab';
 import { WishlistTab } from './vault/tabs/wishlist-tab';
 import { PortfolioTab } from './vault/tabs/portfolio-tab';
@@ -79,6 +80,7 @@ export function Vault() {
   const router = useRouter();
   const searchParams=useSearchParams();
   const { data, error, loading, refresh } = useAccount();
+  const isLocalVaultHost=typeof window!=='undefined'&&['localhost','127.0.0.1'].includes(window.location.hostname);
 
   // Active Tab & View Mode State
   const [activeTab, setActiveTab] = useState<VaultTab>(searchParams.get('tab')==='wishlist'?'wishlist':searchParams.get('tab')==='portfolio'?'portfolio':'collection');
@@ -415,9 +417,7 @@ export function Vault() {
       setSelectedRawItem(null);
       setSelectedSlabItem(null);
     } catch {
-      toast.success(language==='ID'?'Kartu dihapus dari koleksi.':'Card removed from Vault.');
-      setSelectedRawItem(null);
-      setSelectedSlabItem(null);
+      toast.error(language==='ID'?'Kartu tidak dapat dihapus. Coba lagi.':'Could not remove this card. Please try again.');
     }
   };
 
@@ -439,7 +439,7 @@ export function Vault() {
     if (!data) return;
     setSyncing(true);
     try {
-      const itemsToSync = getLocalVaultItems();
+      const itemsToSync = getLocalVaultItems().filter(item=>!item.id.startsWith(LOCAL_SLAB_EXAMPLE_ID_PREFIX));
       let syncedCount = 0;
       for (const item of itemsToSync) {
         try {
@@ -660,6 +660,8 @@ export function Vault() {
         {data?.profile && <div className="vault-bulk-listing-launch-row"><button type="button" className="vault-btn vault-btn-secondary" onClick={()=>setBulkListingOpen(true)}><Storefront size={16}/>{t('Create bundle listing','Buat listing bundle')}</button></div>}
       </nav>
 
+      <LocalSlabSeeder enabled={isLocalVaultHost&&!loading&&!data}/>
+
       {/* Tab 1: Collection */}
       {activeTab === 'collection' && (
         <section style={{ marginTop: '16px' }}>
@@ -843,6 +845,7 @@ export function Vault() {
           setEditingItem(slab);
           setFullAddOpen(true);
         }}
+        onDelete={handleDeleteItem}
         onSell={handleSell}
         onToggleHideValues={handleToggleHideValues}
         onShare={slab => {

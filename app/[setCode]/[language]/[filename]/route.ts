@@ -46,35 +46,41 @@ function setCodeAliases(setCode:string){
 async function catalogAssetKeys(setCode:string,language:string,filename:string){
   const printingCode=filename.replace(/\.webp$/i,'');
   const aliases=[...new Set(setCodeAliases(setCode).map(value=>value.toUpperCase().replace(/[^A-Z0-9]/g,'')))];
-  const rows=(await database().prepare(`SELECT a.object_key AS objectKey,a.kind,p.card_image_url AS sourceUrl FROM tcg_card_printings p LEFT JOIN tcg_card_assets a ON a.printing_id=p.id WHERE upper(p.printing_code)=upper(?) AND upper(p.language)=upper(?) AND upper(replace(replace(replace(p.set_code,'-',''),'_',''),' ','')) IN (${aliases.map(()=>'?').join(',')}) ORDER BY CASE WHEN a.kind='small' THEN 0 ELSE 1 END`).bind(printingCode,language,...aliases).all<{objectKey:string|null;kind:string|null;sourceUrl:string|null}>()).results;
+  const rows=(await database().prepare(`SELECT a.object_key AS objectKey,a.kind,p.card_image_url AS sourceUrl,p.source_payload AS sourcePayload FROM tcg_card_printings p LEFT JOIN tcg_card_assets a ON a.printing_id=p.id WHERE upper(p.printing_code)=upper(?) AND upper(p.language)=upper(?) AND upper(replace(replace(replace(p.set_code,'-',''),'_',''),' ','')) IN (${aliases.map(()=>'?').join(',')}) ORDER BY CASE WHEN a.kind='small' THEN 0 ELSE 1 END`).bind(printingCode,language,...aliases).all<{objectKey:string|null;kind:string|null;sourceUrl:string|null;sourcePayload:string|null}>()).results;
   return rows;
 }
 
-const approvedImageHosts=new Set(['cards.oplaytcg.com','assets.tcgdex.net']);
+const approvedImageHosts=new Set(['cards.oplaytcg.com','assets.tcgdex.net','www.optcgapi.com']);
 async function restoreMissingImage(setCode:string,language:string,filename:string){
   if(!/^(en|jp|id)$/i.test(language))return null;
   const rows=await catalogAssetKeys(setCode,language,filename);
   for(const row of rows){
     if(row.objectKey){const existing=await env.CARD_IMAGES?.get(row.objectKey);if(existing)return {object:existing,key:row.objectKey};}
-    if(!row.sourceUrl)continue;
-    let source:URL;
-    try{source=new URL(row.sourceUrl)}catch{continue}
-    // Only restore the exact requested art. In particular, never use an alt
-    // image to fill a missing base printing (or vice versa).
-    if(source.protocol!=='https:'||!approvedImageHosts.has(source.hostname)||decodeURIComponent(source.pathname.split('/').at(-1)??'').toLowerCase()!==filename.toLowerCase())continue;
-    try{
-      const response=await fetch(source,{headers:{accept:'image/webp,image/*;q=0.8'},signal:AbortSignal.timeout(8_000)});
-      const contentType=response.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase()??'';
-      if(!response.ok||!contentType.startsWith('image/'))continue;
-      const declaredSize=Number(response.headers.get('content-length')??0);
-      if(declaredSize>12*1024*1024)continue;
-      const bytes=await response.arrayBuffer();
-      if(!bytes.byteLength||bytes.byteLength>12*1024*1024)continue;
-      const canonicalKey=`one-piece/${setCode.toUpperCase().replace(/[^A-Z0-9]/g,'')}/${language.toLowerCase()}/${filename}`;
-      await env.CARD_IMAGES?.put(canonicalKey,bytes,{httpMetadata:{contentType,cacheControl:'public, max-age=31536000, immutable'}});
-      const restored=await env.CARD_IMAGES?.get(canonicalKey);
-      if(restored)return {object:restored,key:canonicalKey};
-    }catch{/* Keep trying known stored-key variants. */}
+    let payloadImage='';
+    try{payloadImage=String((JSON.parse(row.sourcePayload??'{}') as Record<string,unknown>).card_image??'')}catch{}
+    for(const sourceValue of [row.sourceUrl,payloadImage].filter((value):value is string=>Boolean(value))){
+      let source:URL;
+      try{source=new URL(sourceValue)}catch{continue}
+      const sourceFilename=decodeURIComponent(source.pathname.split('/').at(-1)??'').toLowerCase();
+      const optcgPayloadImage=source.hostname==='www.optcgapi.com'&&/^\/media\/static\/Card_Images\/[A-Za-z0-9_.-]+$/i.test(source.pathname);
+      // Other sources must retain the exact filename. OPTCG API payload images
+      // use descriptive filenames, so their URL is accepted only from this exact
+      // printing's catalog record and only from its static card-image directory.
+      if(source.protocol!=='https:'||!approvedImageHosts.has(source.hostname)||(!optcgPayloadImage&&sourceFilename!==filename.toLowerCase()))continue;
+      try{
+        const response=await fetch(source,{headers:{accept:'image/webp,image/*;q=0.8'},signal:AbortSignal.timeout(8_000)});
+        const contentType=response.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase()??'';
+        if(!response.ok||!contentType.startsWith('image/'))continue;
+        const declaredSize=Number(response.headers.get('content-length')??0);
+        if(declaredSize>12*1024*1024)continue;
+        const bytes=await response.arrayBuffer();
+        if(!bytes.byteLength||bytes.byteLength>12*1024*1024)continue;
+        const canonicalKey=`one-piece/${setCode.toUpperCase().replace(/[^A-Z0-9]/g,'')}/${language.toLowerCase()}/${filename}`;
+        await env.CARD_IMAGES?.put(canonicalKey,bytes,{httpMetadata:{contentType,cacheControl:'public, max-age=31536000, immutable'}});
+        const restored=await env.CARD_IMAGES?.get(canonicalKey);
+        if(restored)return {object:restored,key:canonicalKey};
+      }catch{/* Keep trying known stored-key variants. */}
+    }
   }
   return null;
 }

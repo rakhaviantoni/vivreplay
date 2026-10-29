@@ -13,7 +13,7 @@ import type { EnrichedCollectionItem } from '../types';
 import { CardArt } from '../card-art';
 import { CardStackControls } from './card-stack-controls';
 import { groupVaultStacks } from '../vault-utils';
-import {VaultSlotSlabPlate} from './vault-slot-slab-plate';
+import {VaultSlabCase} from './vault-slot-slab-plate';
 import {VaultSlotMetaIdentity} from './vault-slot-meta-identity';
 
 interface BinderViewProps {
@@ -171,6 +171,25 @@ export function BinderView({
           const isGraded = item.type === 'GRADED';
         const isOnePiece = item.card.gameSlug === 'one-piece';
           const isFavorite=stack.items.some(copy=>copy.isFavorite);
+          const artStage=<div className={`vault-slot-card-stage${item.card.gameSlug==='pokemon'?' is-pokemon':''}`}>
+            <CardArt card={item.card} />
+            <div className="vault-slot-badges-top">
+              <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                {!isGraded&&<span className="vault-badge-qty">x{stack.quantity}</span>}
+                {!isGraded&&<span className="vault-badge-lang">{lang}</span>}
+              </div>
+              <button
+                type="button"
+                className={`vault-favorite-btn ${isFavorite ? 'is-favorite' : ''}`}
+                onClick={e => {const pinned=stack.items.filter(copy=>copy.isFavorite);for(const copy of (pinned.length?pinned:[item]))onToggleFavorite(copy.id,e)}}
+                aria-label={isFavorite ? 'Remove from showcase' : 'Add to showcase'}
+                title={isFavorite ? 'In Showcase (Top cards)' : 'Pin to Showcase'}
+              ><Star size={13} weight={isFavorite ? 'fill' : 'regular'} /></button>
+            </div>
+            <div className="vault-slot-badge-bottom">
+              {!isGraded&&<span className="vault-raw-pill">{stack.conditionLabel}</span>}
+            </div>
+          </div>;
 
           return (
             <div
@@ -191,37 +210,7 @@ export function BinderView({
               onKeyDown={e => { if(e.altKey&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();const index=stacks.findIndex(stack=>stack.item.id===item.id);const delta=e.key==='ArrowLeft'||e.key==='ArrowUp'?-1:1;const target=stacks[index+delta];if(target)reorder(item.id,target.item.id);}else if (e.key === 'Enter') onSelectItem(item); }}
             >
               {/* Card Art Stage with depth and soft shadow */}
-              {isGraded&&<VaultSlotSlabPlate item={item}/>}
-              <div className={`vault-slot-card-stage${item.card.gameSlug==='pokemon'?' is-pokemon':''}`}>
-                <CardArt card={item.card} />
-
-                {/* Badges Overlay */}
-                <div className="vault-slot-badges-top">
-                  <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                    {!isGraded&&<span className="vault-badge-qty">x{stack.quantity}</span>}
-                    {!isGraded&&<span className="vault-badge-lang">{lang}</span>}
-                  </div>
-
-                  <button
-                    type="button"
-                    className={`vault-favorite-btn ${isFavorite ? 'is-favorite' : ''}`}
-                    onClick={e => {const pinned=stack.items.filter(copy=>copy.isFavorite);for(const copy of (pinned.length?pinned:[item]))onToggleFavorite(copy.id,e)}}
-                    aria-label={isFavorite ? 'Remove from showcase' : 'Add to showcase'}
-                    title={isFavorite ? 'In Showcase (Top cards)' : 'Pin to Showcase'}
-                  >
-                    <Star size={13} weight={isFavorite ? 'fill' : 'regular'} />
-                  </button>
-                </div>
-
-                {/* Grade or Condition pill on bottom of card */}
-                <div className="vault-slot-badge-bottom">
-                  {!isGraded&&(
-                    <span className="vault-raw-pill">
-                      {stack.conditionLabel}
-                    </span>
-                  )}
-                </div>
-              </div>
+              {isGraded?<VaultSlabCase item={item}>{artStage}</VaultSlabCase>:artStage}
 
               {/* Slot Meta Information */}
               {!isGraded&&<div className={`vault-slot-info${isOnePiece?' is-one-piece':''}`}>

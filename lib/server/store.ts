@@ -87,7 +87,7 @@ export async function collection(ownerId:string){
     WHERE c.owner_id=? AND c.deleted_at IS NULL ORDER BY c.created_at DESC
   `).bind(ownerId).all<CollectionItem & {subgrades?:string|Record<string,unknown>;population?:string|Record<string,unknown>;language?:string;variant?:string;printingCode?:string;imageUrl?:string;setCode?:string;rarity?:string;identityId?:string;code?:string;cardName?:string;color?:string;cardType?:string;cost?:number;power?:number;effect?:string;gameSlug?:string}>()).results;
   const identityIds=[...new Set(rows.map(row=>(row as typeof row & {identityId?:string}).identityId).filter((id):id is string=>Boolean(id)))];
-  const printingMap=new Map<string,Array<{id:string;language:string;variant:string;printing_code?:string;card_image_url?:string|null;rarity?:string;set_code?:string;set_name?:string;illustrator?:string}>>();
+  const printingMap=new Map<string,Array<{id:string;language:string;variant:string;printing_code?:string;card_image_url?:string|null;rarity?:string;set_code?:string;set_name?:string;sub_types?:string[]|string|null;illustrator?:string}>>();
   for(let offset=0;offset<identityIds.length;offset+=100){
     const chunk=identityIds.slice(offset,offset+100);
     const placeholders=chunk.map(()=>'?').join(',');
@@ -95,27 +95,27 @@ export async function collection(ownerId:string){
     for(const printing of available.results){const values=printingMap.get(printing.identityId)??[];values.push({id:printing.id,language:printing.language,variant:printing.variant,printing_code:printing.printingCode,card_image_url:printing.imageUrl,rarity:printing.rarity,set_code:printing.setCode});printingMap.set(printing.identityId,values);}
   }
   const codes=[...new Set(rows.map(row=>(row as typeof row & {code?:string}).code?.toUpperCase()).filter((code):code is string=>Boolean(code)))];
-  const tcgPrintingMap=new Map<string,Array<{id:string;language:string;variant:string;printing_code?:string;card_image_url?:string|null;rarity?:string;set_code?:string;set_name?:string;illustrator?:string}>>();
+  const tcgPrintingMap=new Map<string,Array<{id:string;language:string;variant:string;printing_code?:string;card_image_url?:string|null;rarity?:string;set_code?:string;set_name?:string;sub_types?:string|null;illustrator?:string}>>();
   try{
     for(let offset=0;offset<codes.length;offset+=100){
       const chunk=codes.slice(offset,offset+100);
       const placeholders=chunk.map(()=>'?').join(',');
-      const available=await db().prepare(`SELECT p.id,i.code,p.language,p.variant,p.printing_code,p.rarity,p.set_code,p.set_name,p.card_image_url,json_extract(p.source_payload,'$.illustrator') AS illustrator,a.object_key AS objectKey
+      const available=await db().prepare(`SELECT p.id,i.code,p.language,p.variant,p.printing_code,p.rarity,p.set_code,p.set_name,p.sub_types,p.card_image_url,json_extract(p.source_payload,'$.illustrator') AS illustrator,a.object_key AS objectKey
         FROM tcg_card_printings p JOIN tcg_card_identities i ON i.id=p.identity_id
         LEFT JOIN tcg_card_assets a ON a.printing_id=p.id AND a.kind='small'
-        WHERE i.code IN (${placeholders}) ORDER BY p.language,p.set_code,p.variant,p.printing_code`).bind(...chunk).all<{id:string;code:string;language:string;variant:string|null;printing_code:string|null;rarity:string|null;set_code:string|null;set_name:string|null;illustrator:string|null;card_image_url:string|null;objectKey:string|null}>();
+        WHERE i.code IN (${placeholders}) ORDER BY p.language,p.set_code,p.variant,p.printing_code`).bind(...chunk).all<{id:string;code:string;language:string;variant:string|null;printing_code:string|null;rarity:string|null;set_code:string|null;set_name:string|null;sub_types:string|null;illustrator:string|null;card_image_url:string|null;objectKey:string|null}>();
       for(const printing of available.results){
         const key=printing.code.toUpperCase();
         const values=tcgPrintingMap.get(key)??[];
         const objectKey=printing.objectKey;
         const imageUrl=objectKey?`/${objectKey.replace(/^one-piece\/([^/]+)\//,(_match,setCode:string)=>`${setCode.replaceAll('-','')}/`)}`:printing.card_image_url;
-        values.push({id:printing.id,language:printing.language,variant:printing.variant??'Standard',printing_code:printing.printing_code??undefined,card_image_url:imageUrl,rarity:printing.rarity??undefined,set_code:printing.set_code??undefined,set_name:printing.set_name??undefined,illustrator:printing.illustrator??undefined});
+        values.push({id:printing.id,language:printing.language,variant:printing.variant??'Standard',printing_code:printing.printing_code??undefined,card_image_url:imageUrl,rarity:printing.rarity??undefined,set_code:printing.set_code??undefined,set_name:printing.set_name??undefined,sub_types:printing.sub_types??undefined,illustrator:printing.illustrator??undefined});
         tcgPrintingMap.set(key,values);
       }
     }
   }catch{tcgPrintingMap.clear();}
   return rows.map(row=>{
-    const availableByPrinting=new Map<string,{id:string;language:string;variant:string;printing_code?:string;card_image_url?:string|null;rarity?:string;set_code?:string;set_name?:string;illustrator?:string}>();
+    const availableByPrinting=new Map<string,{id:string;language:string;variant:string;printing_code?:string;card_image_url?:string|null;rarity?:string;set_code?:string;set_name?:string;sub_types?:string[]|string|null;illustrator?:string}>();
     for(const printing of [...(printingMap.get(row.identityId??'')??[]),...(tcgPrintingMap.get(row.code?.toUpperCase()??'')??[])]){
       const key=`${printing.language}|${printing.set_code}|${printing.variant}|${printing.printing_code}`;
       const existing=availableByPrinting.get(key);
@@ -131,6 +131,7 @@ export async function collection(ownerId:string){
         printing_code:printing.printing_code||existing.printing_code,
         set_code:printing.set_code||existing.set_code,
         set_name:printing.set_name||existing.set_name,
+        sub_types:printing.sub_types||existing.sub_types,
         illustrator:printing.illustrator||existing.illustrator,
       });
     }

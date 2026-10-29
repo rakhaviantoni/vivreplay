@@ -112,6 +112,7 @@ export function AddEditItemModal({
   const [condition, setCondition] = useState(editingItem?.condition || 'NM');
   const [quantity, setQuantity] = useState(editingItem ? editingItem.quantity : 1);
   const [provider, setProvider] = useState(normalizedProvider(editingItem?.provider));
+  const [egsLabelStyle,setEgsLabelStyle]=useState<'standard'|'clear'>(editingItem?.subgrades?.__labelStyle==='clear'?'clear':'standard');
   const [grade, setGrade] = useState(editingItem?.grade || '10');
   const [certification, setCertification] = useState(editingItem?.certification || '');
   const [acquisitionCost, setAcquisitionCost] = useState(editingItem ? String(editingItem.acquisitionAmount || '') : '');
@@ -126,7 +127,7 @@ export function AddEditItemModal({
   const [corners, setCorners] = useState(String(existingSub.Corners || '9.5'));
   const [edges, setEdges] = useState(String(existingSub.Edges || '10'));
   const [surface, setSurface] = useState(String(existingSub.Surface || '9.5'));
-  const [showSubgrades,setShowSubgrades]=useState(Object.keys(editingItem?.subgrades??{}).length>0);
+  const [showSubgrades,setShowSubgrades]=useState(Object.keys(editingItem?.subgrades??{}).some(key=>!key.startsWith('__')));
 
   const [busy, setBusy] = useState(false);
   const [catalogPrintings, setCatalogPrintings] = useState<VaultPrinting[]>([]);
@@ -167,6 +168,7 @@ export function AddEditItemModal({
     setCondition(editingItem?.condition || 'NM');
     setQuantity(editingItem?.quantity ?? 1);
     setProvider(normalizedProvider(editingItem?.provider));
+    setEgsLabelStyle(editingItem?.subgrades?.__labelStyle==='clear'?'clear':'standard');
     setGrade(editingItem?.grade || '10');
     setCertification(editingItem?.certification || '');
     setAcquisitionCost(editingItem ? String(editingItem.acquisitionAmount || '') : '');
@@ -178,7 +180,7 @@ export function AddEditItemModal({
     setCorners(String(subgrades.Corners || '9.5'));
     setEdges(String(subgrades.Edges || '10'));
     setSurface(String(subgrades.Surface || '9.5'));
-    setShowSubgrades(Object.keys(subgrades).length>0);
+    setShowSubgrades(Object.keys(subgrades).some(key=>!key.startsWith('__')));
   }, [open, editingItem, initialCard, initialPrintingId]);
 
   useEffect(() => {
@@ -309,12 +311,16 @@ export function AddEditItemModal({
     setBusy(true);
 
     try {
-      const subgradesObj = itemType === 'GRADED' && showSubgrades ? {
-        Centering: parseFloat(centering) || 10,
-        Corners: parseFloat(corners) || 9.5,
-        Edges: parseFloat(edges) || 10,
-        Surface: parseFloat(surface) || 9.5,
-      } : null;
+      const subgradeScores:Record<string,number>=itemType==='GRADED'&&showSubgrades?{
+        Centering:parseFloat(centering)||10,
+        Corners:parseFloat(corners)||9.5,
+        Edges:parseFloat(edges)||10,
+        Surface:parseFloat(surface)||9.5,
+      }:{};
+      const subgradesObj:Record<string,string|number>|null=itemType==='GRADED'?{
+        ...subgradeScores,
+        ...(provider==='EGS'?{__labelStyle:egsLabelStyle}:{}),
+      }:null;
 
       const payload = {
         id: editingItem?.id,
@@ -576,6 +582,7 @@ export function AddEditItemModal({
                     value={provider}
                     onChange={e => setProvider(e.target.value)}
                   >
+                    {editingItem&&['ESG','SGC'].includes(String(editingItem.provider??'').toUpperCase())&&<option value={normalizedProvider(editingItem.provider)}>{editingItem.provider} (saved slab)</option>}
                     {GRADING_PROVIDERS.map(p => (
                       <option key={p.id} value={p.shortName}>
                         {p.name}
@@ -601,6 +608,18 @@ export function AddEditItemModal({
                   {submitAttempted && !grade.trim() && <small id="vault-grade-error" className="vault-field-error">Enter the grade printed on the slab label.</small>}
                 </div>
               </div>
+
+              {provider==='EGS'&&<fieldset className="vault-egs-style-fieldset">
+                <legend>Label style</legend>
+                <div className="vault-egs-style-options" role="radiogroup" aria-label="EGS label style">
+                  <button type="button" role="radio" aria-checked={egsLabelStyle==='standard'} className={egsLabelStyle==='standard'?'selected':''} onClick={()=>setEgsLabelStyle('standard')}>
+                    <strong>Black</strong><span>Pristine grades use gold</span>
+                  </button>
+                  <button type="button" role="radio" aria-checked={egsLabelStyle==='clear'} className={egsLabelStyle==='clear'?'selected':''} onClick={()=>setEgsLabelStyle('clear')}>
+                    <strong>Clear</strong><span>Transparent label with white print</span>
+                  </button>
+                </div>
+              </fieldset>}
 
               <div>
                 <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--vault-ink-secondary)', display: 'block', marginBottom: '4px' }}>

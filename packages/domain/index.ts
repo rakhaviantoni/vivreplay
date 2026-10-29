@@ -100,7 +100,7 @@ export function formatCompactMoney(amount:number,currency='IDR'):string{
   }
   return formatMoney(amount,currency);
 }
-export const GRADING_PROVIDERS=[
+export const ALL_GRADING_PROVIDERS=[
   {id:'PSA',name:'PSA',shortName:'PSA',hasSubgrades:false,website:'https://www.psacard.com/cert/'},
   {id:'BGS',name:'Beckett (BGS)',shortName:'BGS',hasSubgrades:true,website:'https://www.beckett.com/grading/card-lookup'},
   {id:'CGC',name:'CGC Cards',shortName:'CGC',hasSubgrades:true,website:'https://www.cgccards.com/certlookup/'},
@@ -110,5 +110,6 @@ export const GRADING_PROVIDERS=[
   {id:'ARS',name:'ARS',shortName:'ARS',hasSubgrades:false,website:'https://ars-grading.com'},
   {id:'SGC',name:'SGC',shortName:'SGC',hasSubgrades:false,website:'https://gosgc.com/cert-code-lookup'},
 ] as const;
+export const GRADING_PROVIDERS=ALL_GRADING_PROVIDERS.filter(provider=>provider.id!=='ESG'&&provider.id!=='SGC');
 export type PriceObservation={amount:number;currency:string;saleType:'completed_sale'|'active_listing'|'marketplace_ask'|'marketplace_bid';observedAt:string;grader:string|null;grade:string|null;printingId:string};
 export function valueFromObservations(observations:PriceObservation[],key:Pick<PriceObservation,'printingId'|'grader'|'grade'|'currency'>){const rows=observations.filter(x=>x.printingId===key.printingId&&x.grader===key.grader&&x.grade===key.grade&&x.currency===key.currency&&x.saleType==='completed_sale').sort((a,b)=>a.amount-b.amount);if(!rows.length)return null;const n=rows.length;return {estimatedValue:Math.round((rows[Math.floor((n-1)/2)].amount+rows[Math.ceil((n-1)/2)].amount)/2),lowEstimate:rows[0].amount,highEstimate:rows[n-1].amount,sampleSize:n,confidence:n>=20?'high':n>=5?'medium':'low',lastUpdatedAt:rows.map(x=>x.observedAt).sort().at(-1)};}
