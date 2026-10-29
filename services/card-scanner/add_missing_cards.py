@@ -6,10 +6,97 @@ import os
 import json
 import gzip
 import urllib.request
+import urllib.error
 import numpy as np
 import cv2
 import torch
 from matcher import CardMatcher
+
+
+def resolve_image_candidates(card):
+    url = card.get("imageUrl") or ""
+    if url.startswith("/"):
+        url = f"https://vivreplay.com{url.replace('/small/', '/')}"
+
+    candidates = [url] if url else []
+
+    code = card.get("code", "").strip()
+    set_code = card.get("setCode", "").strip()
+    lang = (card.get("language") or "en").lower()
+
+    # One Piece alternatives for cards with stale promotional/limited URLs
+    if card.get("game") == "one-piece" or (set_code and set_code.startswith("OP")):
+        if set_code and code:
+            candidates.extend([
+                f"https://cards.oplaytcg.com/{set_code}/{lang}/{code}.webp",
+                f"https://cards.oplaytcg.com/{set_code}/{lang}/small/{code}.webp",
+                f"https://cards.oplaytcg.com/{set_code}/{lang}/small/{code}_p1.webp",
+                f"https://cards.oplaytcg.com/{set_code}/{lang}/small/{code}_p2.webp",
+                f"https://cards.oplaytcg.com/{set_code}/{lang}/small/{code}_p3.webp",
+            ])
+
+    # Pokemon alternatives for TCGDex assets
+    if "assets.tcgdex.net" in url:
+        candidates.extend([
+            url.replace("/high.webp", "/low.webp"),
+            url.replace("/high.webp", ".webp"),
+            url.replace("/high.webp", ".png"),
+        ])
+    if card.get("game") == "pokemon" and set_code and card.get("cardNumber"):
+        clean_num = card["cardNumber"].split("/")[0].strip()
+        candidates.extend([
+            f"https://images.pokemontcg.io/{set_code.lower()}/{clean_num}_hires.png",
+            f"https://images.pokemontcg.io/{set_code.lower()}/{clean_num}.png",
+        ])
+
+    # Platform asset fallback
+    card_id = card.get("id")
+    if card_id:
+        candidates.append(f"https://vivreplay.com/api/card-assets/{card_id}")
+
+    # Deduplicate while preserving order
+    seen = set()
+    result = []
+    for c in candidates:
+        if c and c not in seen:
+            seen.add(c)
+            result.append(c)
+    return result
+
+
+def fetch_card_image(card):
+    candidates = resolve_image_candidates(card)
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "image/webp,image/apng,image/*,*/*;q=0.8"
+    }
+
+    for url in candidates:
+        try:
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=12) as response:
+                if response.status != 200:
+                    continue
+                img_bytes = response.read()
+
+            if not img_bytes or len(img_bytes) < 100:
+                continue
+
+            # Automatically decompress gzip if server compressed response
+            if img_bytes[:2] == b'\x1f\x8b':
+                try:
+                    img_bytes = gzip.decompress(img_bytes)
+                except Exception:
+                    pass
+
+            arr = np.frombuffer(img_bytes, np.uint8)
+            img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+            if img is not None and img.size > 0:
+                return img, url
+        except Exception:
+            continue
+
+    return None, None
 
 
 def sync_missing():
@@ -41,19 +128,11 @@ def sync_missing():
     new_metadata = []
 
     for card in missing:
-        url = card["imageUrl"]
-        if url.startswith("/"):
-            url = f"https://vivreplay.com{url.replace('/small/', '/')}"
-
-        print(f"Downloading: {card.get('name')} ({card.get('code')}) from {url}")
+        print(f"Downloading: {card.get('name')} ({card.get('code')})...")
         try:
-            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (CardScanner/1.0; VivrePlay)"})
-            with urllib.request.urlopen(req, timeout=12) as response:
-                img_bytes = response.read()
-            arr = np.frombuffer(img_bytes, np.uint8)
-            img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+            img, successful_url = fetch_card_image(card)
             if img is None:
-                print(f"Could not decode image for {card['id']}")
+                print(f"Could not download or decode image for {card.get('name')} ({card.get('code')}) [{card['id']}]")
                 continue
 
             emb = matcher.extract_embedding(img)
@@ -68,9 +147,9 @@ def sync_missing():
                 "language": card.get("language", "EN"),
                 "rarity": card.get("rarity", ""),
                 "variant": card.get("variant", "Standard"),
-                "imageUrl": url
+                "imageUrl": successful_url
             })
-            print(f"Indexed: {card.get('name')} ({card.get('code')})")
+            print(f"Indexed: {card.get('name')} ({card.get('code')}) via {successful_url}")
         except Exception as err:
             print(f"Failed to index {card['id']}: {err}")
 
