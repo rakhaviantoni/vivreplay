@@ -3,15 +3,19 @@
 import {useCallback,useEffect,useRef,useState} from 'react';
 import Image from 'next/image';
 import {
+  ArrowSquareOutIcon,
   ArrowsCounterClockwiseIcon,
   CameraIcon,
   CaretLeftIcon,
   CaretRightIcon,
   CheckCircleIcon,
   FlashlightIcon,
+  FunnelIcon,
   ImageSquareIcon,
   InfoIcon,
   SpinnerGapIcon,
+  StorefrontIcon,
+  TagIcon,
   XIcon,
 } from '@phosphor-icons/react';
 import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle} from '@/components/ui/dialog';
@@ -246,6 +250,17 @@ function cleanCardNumber(cardNumber?:string|null):string{
   return trimmed.replace(/^CT-\d+\s*/i,'');
 }
 
+function formatScanPrice(amount:number,currency='IDR',locale:'EN'|'ID'='EN'){
+  if(currency==='IDR'||!currency){
+    return new Intl.NumberFormat(locale==='ID'?'id-ID':'en-US',{
+      style:'currency',currency:'IDR',maximumFractionDigits:0
+    }).format(amount);
+  }
+  return new Intl.NumberFormat('en-US',{
+    style:'currency',currency,maximumFractionDigits:currency==='JPY'?0:2
+  }).format(amount);
+}
+
 function scanDisplayCard(candidate:CardScanCandidate):Card&{gameSlug:'pokemon'|'one-piece'}{
   const cleanNumber=cleanCardNumber(candidate.cardNumber);
   return {
@@ -262,7 +277,7 @@ function triggerHaptic(pattern:number|number[]){
   }
 }
 
-export function CardScanButton({game='auto',locale='EN',onSelect,className}:Props){
+export function CardScanButton({game='auto',locale='EN',onSelect,selectionPurpose='choose',className}:Props){
   const [open,setOpen]=useState(false);
   const [preview,setPreview]=useState<string>();
   const [previewSize,setPreviewSize]=useState<{width:number;height:number}>();
@@ -278,6 +293,12 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
   const [sourceFile,setSourceFile]=useState<File>();
   const [candidates,setCandidates]=useState<CardScanCandidate[]>([]);
   const [selectedCandidateIndex,setSelectedCandidateIndex]=useState(0);
+  const [marketSnapshot,setMarketSnapshot]=useState<{
+    loading:boolean;
+    lowestPrice?:number;
+    currency?:string;
+    count:number;
+  }|null>(null);
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState('');
 
@@ -401,6 +422,7 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
       setSourceFile(undefined);
       setCandidates([]);
       setSelectedCandidateIndex(0);
+      setMarketSnapshot(null);
       setError('');
     }
   };
@@ -408,6 +430,7 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
   const resumeScanning=()=>{
     setCandidates([]);
     setSelectedCandidateIndex(0);
+    setMarketSnapshot(null);
     setError('');
     setPreview(undefined);
     setPreviewSize(undefined);
@@ -719,6 +742,38 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
 
   const activeCandidate=candidates[selectedCandidateIndex]??candidates[0];
 
+  useEffect(()=>{
+    if(!activeCandidate?.id){
+      setMarketSnapshot(null);
+      return;
+    }
+    let active=true;
+    setMarketSnapshot({loading:true,count:0});
+    void fetch(`/api/market/printing-listings?printingId=${encodeURIComponent(activeCandidate.id)}`,{cache:'no-store'})
+      .then(async res=>{
+        if(!res.ok)return {listings:[]};
+        return await res.json() as {listings?:Array<{amount:number;currency:string}>};
+      })
+      .then(data=>{
+        if(!active)return;
+        const listings=data.listings??[];
+        if(listings.length>0){
+          setMarketSnapshot({
+            loading:false,
+            lowestPrice:listings[0].amount,
+            currency:listings[0].currency||'IDR',
+            count:listings.length,
+          });
+        }else{
+          setMarketSnapshot({loading:false,count:0});
+        }
+      })
+      .catch(()=>{
+        if(active)setMarketSnapshot({loading:false,count:0});
+      });
+    return ()=>{active=false};
+  },[activeCandidate?.id]);
+
   return <>
     <button
       type="button"
@@ -847,6 +902,33 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
                 {activeCandidate.language&&<span className="card-scan-sheet-badge">{activeCandidate.language}</span>}
                 {activeCandidate.variant&&scanVariantLabel(activeCandidate.variant)!=='Standard'&&<span className="card-scan-sheet-badge">{scanVariantLabel(activeCandidate.variant)}</span>}
               </div>
+
+              <div className="card-scan-sheet-market">
+                {marketSnapshot?.loading?(
+                  <div className="card-scan-market-bar is-loading">
+                    <SpinnerGapIcon size={13} className="card-scan-spinner"/>
+                    <span>{id?'Memeriksa listing market…':'Checking market listings…'}</span>
+                  </div>
+                ):marketSnapshot&&marketSnapshot.lowestPrice?(
+                  <div className="card-scan-market-bar is-available">
+                    <TagIcon size={14} weight="bold" className="card-scan-market-icon"/>
+                    <div className="card-scan-market-details">
+                      <span className="card-scan-market-label">{id?'Mulai dari':'From'}</span>
+                      <strong className="card-scan-market-price">
+                        {formatScanPrice(marketSnapshot.lowestPrice,marketSnapshot.currency,locale)}
+                      </strong>
+                    </div>
+                    <span className="card-scan-market-count">
+                      {marketSnapshot.count} {id?'listing aktif':(marketSnapshot.count===1?'listing':'listings')}
+                    </span>
+                  </div>
+                ):(
+                  <div className="card-scan-market-bar is-empty">
+                    <StorefrontIcon size={14} className="card-scan-market-icon"/>
+                    <span>{id?'Belum ada listing aktif di Market':'No active listings in Market'}</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -883,7 +965,10 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
                     type="button"
                     key={card.id}
                     disabled={busy}
-                    onClick={()=>setSelectedCandidateIndex(idx)}
+                    onClick={()=>{
+                      triggerHaptic(20);
+                      setSelectedCandidateIndex(idx);
+                    }}
                     className={`card-scan-result${card.game==='pokemon'?' pokemon-card-tile':' catalog-card'}${isSelected?' is-selected':''}`}
                     style={isSelected?{outline:'2px solid var(--accent,#f59e0b)',outlineOffset:'2px',borderRadius:'8px'}:undefined}
                   >
@@ -913,23 +998,55 @@ export function CardScanButton({game='auto',locale='EN',onSelect,className}:Prop
             </div>
           </section>}
 
-          <div className="card-scan-sheet-actions">
-            <button
-              type="button"
-              className="card-scan-primary-btn"
-              onClick={()=>void select(activeCandidate)}
-              disabled={busy}
-            >
-              <CheckCircleIcon size={17} weight="bold"/>
-              {onSelect?(id?'Pilih Kartu Ini':'Select This Card'):(id?'Buka Detail Kartu':'View Card Details')}
-            </button>
+          <div className={`card-scan-sheet-actions${!onSelect?' has-three':''}`}>
+            {onSelect?(
+              <button
+                type="button"
+                className="card-scan-primary-btn"
+                onClick={()=>void select(activeCandidate)}
+                disabled={busy}
+              >
+                {selectionPurpose==='filter'?(
+                  <>
+                    <FunnelIcon size={17} weight="bold"/>
+                    {id?'Terapkan Filter':'Apply Filter'}
+                  </>
+                ):(
+                  <>
+                    <CheckCircleIcon size={17} weight="bold"/>
+                    {id?'Pilih Kartu Ini':'Select This Card'}
+                  </>
+                )}
+              </button>
+            ):(
+              <>
+                <button
+                  type="button"
+                  className="card-scan-primary-btn"
+                  onClick={()=>void select(activeCandidate)}
+                  disabled={busy}
+                >
+                  <ArrowSquareOutIcon size={17} weight="bold"/>
+                  {id?'Buka Detail Kartu':'View Card Details'}
+                </button>
+                <a
+                  href={`${locale==='ID'?'/id':''}/market?card=${encodeURIComponent(activeCandidate.name||activeCandidate.code)}`}
+                  className="card-scan-secondary-btn"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <StorefrontIcon size={15}/>
+                  {id?'Cari di Market':'Browse Market'}
+                </a>
+              </>
+            )}
             <button
               type="button"
               className="card-scan-secondary-btn"
               onClick={resumeScanning}
               disabled={busy}
             >
-              <ArrowsCounterClockwiseIcon size={16}/>
+              <ArrowsCounterClockwiseIcon size={15}/>
               {id?'Pindai Lain':'Scan Next'}
             </button>
           </div>
