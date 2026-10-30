@@ -2354,11 +2354,14 @@ html[data-theme='dark'] .vault-scope-dot{background:#e2ba64}
 .vault-slot-egs-grade>small{margin-top:2px;font-weight:700}
 .vault-slot-egs-pristine{color:#9a7100;font-weight:900;letter-spacing:.12em}
 .vault-slot-egs-clear{grid-template-columns:18% minmax(0,1fr) 22%;padding:5px 9px;overflow:visible;border:1.5px solid rgba(255,255,255,.94);border-bottom-color:transparent;background:transparent;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.9)}
-.vault-slot-egs-clear::after{position:absolute;right:0;bottom:-.75px;left:0;height:1.5px;content:"";background:linear-gradient(rgba(255,255,255,.94),rgba(255,255,255,.94)) left center/calc(50% - 11px) 1px no-repeat,linear-gradient(rgba(255,255,255,.94),rgba(255,255,255,.94)) right center/calc(50% - 11px) 1px no-repeat;pointer-events:none}
+.vault-slot-egs-clear::after{position:absolute;right:0;bottom:-.75px;left:0;height:1.5px;content:"";background:linear-gradient(rgba(255,255,255,.94),rgba(255,255,255,.94)) left center/calc(50% - 25px) 1px no-repeat,linear-gradient(rgba(255,255,255,.94),rgba(255,255,255,.94)) right center/calc(50% - 25px) 1px no-repeat;pointer-events:none}
 .vault-slot-egs-clear .vault-slot-egs-details{font-size:clamp(7px,2.7cqi,10px)}
 .vault-slot-egs-clear-qr{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:0;font-size:clamp(5px,2cqi,7px);font-weight:850;line-height:1}
 .vault-slot-egs-qr{display:block;width:clamp(24px,10cqi,38px);height:clamp(24px,10cqi,38px);color:#fff}
-.vault-slot-egs-clear-mark{position:absolute;bottom:0;left:50%;z-index:2;padding:0 5px;background:transparent;font-size:clamp(6px,2.4cqi,9px);font-style:italic;font-weight:900;line-height:1;transform:translate(-50%,20%)}
+.vault-slot-egs-clear-mark{position:absolute;bottom:0;left:50%;z-index:2;display:block;padding:0;background:transparent;line-height:1;transform:translate(-50%,20%)}
+.vault-slot-egs-clear-logo{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:2px 9px 1px;color:#fff;text-align:center}
+.vault-slot-egs-clear-logo>svg{display:block;width:clamp(8px,3.2cqi,12px);height:clamp(7px,2.6cqi,10px);overflow:visible}
+.vault-slot-egs-clear-logo>span{font-size:clamp(6px,2.4cqi,9px);font-style:italic;font-weight:950;line-height:1;letter-spacing:-.06em}
 .vault-slot-slab-plate.is-egs:has(.vault-slot-egs-clear){overflow:visible}
 .vault-slot-egs-clear .vault-slot-egs-details{position:relative;align-items:center;padding:0 4px;text-align:center}
 .vault-slot-egs-clear .vault-slot-egs-details::before,.vault-slot-egs-clear .vault-slot-egs-grade::before{position:absolute;top:50%;left:0;width:1px;content:"";background:rgba(255,255,255,.94);transform:translateY(-50%)}

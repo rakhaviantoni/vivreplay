@@ -416,7 +416,7 @@ export function VaultSlotSlabPlate({item}:{item:EnrichedCollectionItem}){
           <strong>{grade.score||item.grade||'—'}</strong>
           <span>{grade.label||'GRADE'}</span>
         </div>
-        <b className="vault-slot-egs-clear-mark">EGS</b>
+        <b className="vault-slot-egs-clear-mark"><span className="vault-slot-egs-clear-logo"><svg viewBox="0 0 20 16" aria-hidden="true"><path d="M1.5 3.5 5.5 7 10 1.5 14.5 7l4-3.5-2 10H3.5l-2-10ZM4 15h12" fill="currentColor"/></svg><span>EGS</span></span></b>
       </>:<>
         <div className="vault-slot-egs-brand"><span className="vault-slot-egs-brand-logo"><b>EGS</b></span>{certification!=='UNVERIFIED'&&<span>{certification}</span>}</div>
         <div className="vault-slot-egs-details">
