@@ -22,13 +22,10 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
     let paymentId=order.paymentId;
     let paymentRecovery:'none'|'recovered'|'cleared'|'multiple'='none';
     const claimCreatedAt=order.updatedAt?Date.parse(`${order.updatedAt.replace(' ','T')}Z`):NaN;
-    const legacyAttempt=!paymentId&&typeof details.ipaymuSelectedMethod==='string'&&!details.ipaymuPaymentRecoveryCheckedAt;
+    const legacyAttempt=!paymentId&&typeof details.ipaymuPaymentStartAttemptAt==='string'&&!details.ipaymuPaymentRecoveryCheckedAt;
     const staleAttempt=Number.isFinite(claimCreatedAt)&&Date.now()-claimCreatedAt>45_000;
-    const createdAt=order.createdAt?Date.parse(`${order.createdAt.replace(' ','T')}Z`):NaN;
-    const updatedAfterCreation=Number.isFinite(claimCreatedAt)&&Number.isFinite(createdAt)&&claimCreatedAt-createdAt>45_000;
-    const unmarkedAttempt=!paymentId&&!legacyAttempt&&!details.ipaymuPaymentRecoveryCheckedAt&&updatedAfterCreation;
-    let shouldRecover=(paymentId?.startsWith('CREATING:')&&!details.ipaymuPaymentMethod&&staleAttempt)||(legacyAttempt&&staleAttempt)||unmarkedAttempt;
-    if((legacyAttempt&&staleAttempt)||unmarkedAttempt){
+    let shouldRecover=(paymentId?.startsWith('CREATING:')&&!details.ipaymuPaymentMethod&&staleAttempt)||(legacyAttempt&&staleAttempt);
+    if(legacyAttempt&&staleAttempt){
       const recoveryClaim=`CREATING:${crypto.randomUUID()}`;
       const claimed=await database.prepare("UPDATE checkout_orders SET payment_id=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id IS NULL").bind(recoveryClaim,order.id).run();
       if(claimed.meta.changes)paymentId=recoveryClaim;
@@ -103,6 +100,7 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
             details.ipaymuPaymentCreatedAt=gateway.CreatedDate??latest.createdAt;
             details.ipaymuPaymentExpiresAt=gateway.ExpiredDate??null;
             details.ipaymuMode=getIpaymuMode();
+            delete details.ipaymuPaymentStartAttemptAt;
             details.ipaymuActiveTransactionIds=active.map(transaction=>transaction.transactionId);
             delete details.ipaymuRecoveryTransactionIds;
             if(active.length>1)details.ipaymuAttemptCount=active.length;
@@ -150,7 +148,6 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     if(order.status!=='PENDING_PAYMENT')throw new HttpError(409,'This checkout is no longer payable.');
     let details:Record<string,unknown>={};
     try{details=JSON.parse(order.details) as Record<string,unknown>}catch{}
-    if(!order.paymentId&&typeof details.ipaymuSelectedMethod==='string'&&!details.ipaymuPaymentRecoveryCheckedAt)throw new HttpError(409,'We’re still checking the previous payment. Refresh in a moment before choosing another method.');
     const method=typeof input.paymentMethod==='string'?input.paymentMethod:typeof details.ipaymuSelectedMethod==='string'?details.ipaymuSelectedMethod:'qris';
     const channel=typeof input.paymentChannel==='string'?input.paymentChannel:typeof details.ipaymuSelectedChannel==='string'?details.ipaymuSelectedChannel:'mpm';
     if(!['va','cstore','qris','cc','paylater','ewallet'].includes(method)||!(/^[a-z0-9_]{2,24}$/.test(channel)))throw new HttpError(400,'Choose a valid payment method.');
@@ -238,6 +235,8 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     details.ipaymuSelectedChannel=channel;
     details.ipaymuSelectedName=selectedChannel.name;
     details.ipaymuSelectedLogo=selectedChannel.logo;
+    delete details.ipaymuPaymentRecoveryCheckedAt;
+    details.ipaymuPaymentStartAttemptAt=new Date().toISOString();
     const name=typeof details.customerName==='string'?details.customerName:typeof details.recipientName==='string'?details.recipientName:profile.display_name||'VivrePlay customer';
     const phone=typeof details.customerPhone==='string'?details.customerPhone:typeof details.phone==='string'?details.phone:'';
     const paymentClaim=`CREATING:${crypto.randomUUID()}`;
@@ -285,6 +284,7 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     details.ipaymuPaymentCreatedAt=payment.paymentCreatedAt;
     details.ipaymuPaymentExpiresAt=payment.expiresAt;
     details.ipaymuMode=paymentMode;
+    delete details.ipaymuPaymentStartAttemptAt;
     const paymentId=payment.sessionId;
     if(!paymentId){await database.prepare("UPDATE checkout_orders SET payment_id=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id=?").bind(id,paymentClaim).run();throw new HttpError(502,'Could not start payment. Please try again.');}
     const paymentExpirySql=payment.expiresAt?new Date(payment.expiresAt).toISOString().slice(0,19).replace('T',' '):order.expiresAt;

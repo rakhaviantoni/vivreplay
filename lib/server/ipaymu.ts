@@ -149,7 +149,7 @@ export function ipaymuCheckoutExpiresAt(savedValue:unknown,createdAt:unknown){
 
 export function clearIpaymuPaymentAttempt(details:Record<string,unknown>){
   const next={...details};
-  for(const key of ['ipaymuPaymentMethod','ipaymuPaymentChannel','ipaymuPaymentName','ipaymuPaymentNo','ipaymuPaymentInstructionsUrl','ipaymuCheckoutUrl','ipaymuPaymentQrImage','ipaymuPaymentQrString','ipaymuTransactionId','ipaymuSessionId','ipaymuActiveTransactionIds','ipaymuRecoveryTransactionIds','ipaymuPaymentFee','ipaymuPaymentTotal','ipaymuPaymentCreatedAt','ipaymuPaymentExpiresAt','ipaymuMode','ipaymuPaymentAwaitingConfirmation','ipaymuSelectedMethod','ipaymuSelectedChannel','ipaymuSelectedName','ipaymuSelectedLogo','ipaymuAttemptCount'])delete next[key];
+  for(const key of ['ipaymuPaymentMethod','ipaymuPaymentChannel','ipaymuPaymentName','ipaymuPaymentNo','ipaymuPaymentInstructionsUrl','ipaymuCheckoutUrl','ipaymuPaymentQrImage','ipaymuPaymentQrString','ipaymuTransactionId','ipaymuSessionId','ipaymuActiveTransactionIds','ipaymuRecoveryTransactionIds','ipaymuPaymentFee','ipaymuPaymentTotal','ipaymuPaymentCreatedAt','ipaymuPaymentExpiresAt','ipaymuPaymentStartAttemptAt','ipaymuMode','ipaymuPaymentAwaitingConfirmation','ipaymuSelectedMethod','ipaymuSelectedChannel','ipaymuSelectedName','ipaymuSelectedLogo','ipaymuAttemptCount'])delete next[key];
   next.ipaymuPaymentRecoveryCheckedAt=new Date().toISOString();
   return next;
 }

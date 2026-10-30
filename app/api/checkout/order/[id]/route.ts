@@ -191,11 +191,8 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
     // iPaymu's QR URL serves an HTML page with an embedded PNG, not an image
     // response. Keep the browser same-origin and let the QR route extract it.
     const paymentQrImage=details.ipaymuPaymentMethod==='qris'&&paymentQrSource?`/api/checkout/order/${encodeURIComponent(order.id)}/qris`:null;
-    const legacyPaymentCheck=order.status==='PENDING_PAYMENT'&&!order.paymentId&&typeof details.ipaymuSelectedMethod==='string'&&!details.ipaymuPaymentRecoveryCheckedAt;
-    const updatedAtMs=order.updatedAt?Date.parse(`${order.updatedAt.replace(' ','T')}Z`):NaN;
-    const createdAtMs=order.createdAt?Date.parse(`${order.createdAt.replace(' ','T')}Z`):NaN;
-    const unmarkedPaymentCheck=order.status==='PENDING_PAYMENT'&&!order.paymentId&&!details.ipaymuPaymentRecoveryCheckedAt&&Number.isFinite(updatedAtMs)&&Number.isFinite(createdAtMs)&&updatedAtMs-createdAtMs>45_000;
-    const paymentCreating=order.status==='PENDING_PAYMENT'&&Boolean(order.paymentId?.startsWith('CREATING:')||legacyPaymentCheck||unmarkedPaymentCheck);
+    const recoveryCheck=order.status==='PENDING_PAYMENT'&&!order.paymentId&&typeof details.ipaymuPaymentStartAttemptAt==='string'&&!details.ipaymuPaymentRecoveryCheckedAt;
+    const paymentCreating=order.status==='PENDING_PAYMENT'&&Boolean(order.paymentId?.startsWith('CREATING:')||recoveryCheck);
     const hasActivePayment=order.status==='PENDING_PAYMENT'&&Boolean(order.paymentId&&!paymentCreating);
     const paymentNeedsHelp=hasActivePayment&&!paymentAwaitingConfirmation&&details.ipaymuPaymentMethod!=='qris'&&!details.ipaymuCheckoutUrl&&!details.ipaymuPaymentNo;
     const canCancel=order.kind==='MARKET'&&order.status==='PENDING_PAYMENT'&&!order.paymentId&&(!order.expiresAt||new Date(`${order.expiresAt.replace(' ','T')}Z`).getTime()>Date.now());
