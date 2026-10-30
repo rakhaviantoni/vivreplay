@@ -418,6 +418,13 @@ export function VaultSlotSlabPlate({item}:{item:EnrichedCollectionItem}){
         </div>
         <b className="vault-slot-egs-clear-mark"><span className="vault-slot-egs-clear-logo">EGS</span></b>
       </>:<>
+        <svg className="vault-slot-egs-batik" viewBox="0 0 320 72" preserveAspectRatio="none" aria-hidden="true">
+          {[0,106,212].map(offset=><g key={offset} transform={`translate(${offset} 0)`} fill="none" stroke="currentColor" strokeWidth="1.2">
+            <path d="M-7 43c0-7 6-13 13-13h5c2-10 10-17 20-17 8 0 14 4 17 11 4-6 11-9 18-9 11 0 20 9 20 20h3c8 0 14 6 14 14s-6 14-14 14H7C-1 63-7 57-7 49z"/>
+            <path d="M-2 43c4 5 9 5 13 0s9-5 13 0 9 5 13 0 9-5 13 0 9 5 13 0 9-5 13 0 9 5 13 0 9-5 13 0"/>
+            <path d="M8 52c5 4 10 4 15 0s10-4 15 0 10 4 15 0 10-4 15 0 10 4 15 0"/>
+          </g>)}
+        </svg>
         <div className="vault-slot-egs-brand"><span className="vault-slot-egs-brand-logo"><svg viewBox="0 0 20 16" aria-hidden="true"><path d="M1.5 3.5 5.5 7 10 1.5 14.5 7l4-3.5-2 10H3.5l-2-10ZM4 15h12" fill="currentColor"/></svg><b>EGS</b></span>{certification!=='UNVERIFIED'&&<span>{certification}</span>}</div>
         <div className="vault-slot-egs-details">
           <strong>{year?`${year} `:''}{game==='pokemon'?'POKÉMON':'ONE PIECE'}{visibleSetCode?` ${visibleSetCode}`:''} {displayLanguage}</strong>
