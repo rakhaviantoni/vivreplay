@@ -288,7 +288,7 @@ export async function createIpaymuDirectPayment(input:{orderId:string;amount:num
   const now=new Date();
   const timestamp=`${now.getUTCFullYear()}${String(now.getUTCMonth()+1).padStart(2,'0')}${String(now.getUTCDate()).padStart(2,'0')}${String(now.getUTCHours()).padStart(2,'0')}${String(now.getUTCMinutes()).padStart(2,'0')}${String(now.getUTCSeconds()).padStart(2,'0')}`;
   const response=await fetch(`${baseUrl}/api/v2/payment/direct`,{method:'POST',headers:{'Content-Type':'application/json',va,timestamp,signature:await requestSignature(bodyText,va,apiKey)},body:bodyText,cache:'no-store',signal:AbortSignal.timeout(40_000)});
-  const payload=await response.json().catch(()=>null) as {Status?:number;Message?:string;Data?:{SessionId?:string|number;SessionID?:string|number;TransactionId?:string|number;QrImage?:string;QrString?:string;Url?:string;PaymentNo?:string|number;PaymentName?:string;PaymentInstructionsDoc?:string;Total?:number|string;Fee?:number|string;Expired?:string}}|null;
+  const payload=await response.json().catch(()=>null) as {Status?:number;Message?:string;Data?:{SessionId?:string|number;SessionID?:string|number;TransactionId?:string|number;QrImage?:string;QrString?:string;Url?:string;PaymentNo?:string|number;PaymentName?:string;PaymentInstructionsDoc?:string;Total?:number|string;Fee?:number|string;Expired?:string;responseCode?:string|number;responseMessage?:string}}|null;
   const data=payload?.Data;
   const transactionId=data?.TransactionId;
   // Direct Payment may omit SessionId; TransactionId is also accepted by our callback matcher.
@@ -298,8 +298,12 @@ export async function createIpaymuDirectPayment(input:{orderId:string;amount:num
   const url=typeof data?.Url==='string'?data.Url:null;
   if(!response.ok||payload?.Status!==200||!data){
     const providerMessage=typeof payload?.Message==='string'?payload.Message.replace(/[\r\n\t]+/g,' ').slice(0,180):null;
-    console.error('ipaymu_direct_payment_failed',{method:input.method,channel:input.channel,httpStatus:response.status,providerStatus:payload?.Status??null,providerMessage,responseFields:data?Object.keys(data).sort():[]});
-    throw new IpaymuPaymentStartError('We couldn’t start this payment. Choose another method or try again later.','rejected');
+    const providerResponse=typeof data?.responseMessage==='string'?data.responseMessage.replace(/[\r\n\t]+/g,' ').slice(0,180):null;
+    console.error('ipaymu_direct_payment_failed',{method:input.method,channel:input.channel,httpStatus:response.status,providerStatus:payload?.Status??null,providerMessage,providerResponseCode:data?.responseCode??null,providerResponse,responseFields:data?Object.keys(data).sort():[]});
+    const failedFromPartner=/failed from partner/i.test(`${providerMessage??''} ${providerResponse??''}`);
+    const channelName=input.channel==='shopeepay'?'ShopeePay':input.channel==='dana'?'DANA':input.channel==='gopay'?'GoPay':input.channel==='ovo'?'OVO':input.channel==='linkaja'?'LinkAja':input.channel==='akulaku'?'Akulaku':input.channel.replace(/_/g,' ').replace(/\b\w/g,letter=>letter.toUpperCase());
+    const message=failedFromPartner?`${channelName} is temporarily unavailable. Choose another payment method.`:'This payment method is unavailable right now. Choose another one or try again later.';
+    throw new IpaymuPaymentStartError(message,'rejected');
   }
   if(transactionId===undefined||sessionId===undefined)throw new IpaymuPaymentStartError('The payment provider did not return a confirmation.','unknown');
   const providerTotal=Number(data.Total);

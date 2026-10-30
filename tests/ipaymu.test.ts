@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {callbackAmount,callbackIsSuccessful,callbackReference,callbackSessionId,createIpaymuRedirect,getIpaymuPaymentChannels,parseAndVerifyIpaymuCallback,parseIpaymuPaymentChannelSettings} from '../lib/server/ipaymu';
+import {callbackAmount,callbackIsSuccessful,callbackReference,callbackSessionId,createIpaymuDirectPayment,createIpaymuRedirect,getIpaymuPaymentChannels,parseAndVerifyIpaymuCallback,parseIpaymuPaymentChannelSettings} from '../lib/server/ipaymu';
 
 const encoder=new TextEncoder();
 const hex=(data:ArrayBuffer)=>[...new Uint8Array(data)].map(byte=>byte.toString(16).padStart(2,'0')).join('');
@@ -81,6 +81,21 @@ test('iPaymu payment-channel lookup signs an empty GET query as an empty JSON ob
     assert.deepEqual(channels.map(channel=>({method:channel.method,channel:channel.channel})),[{method:'qris',channel:'mpm'}]);
   }finally{
     globalThis.fetch=previous.fetch;
+    if(previous.mode===undefined)delete process.env.IPAYMU_MODE;else process.env.IPAYMU_MODE=previous.mode;
+    if(previous.va===undefined)delete process.env.IPAYMU_VA;else process.env.IPAYMU_VA=previous.va;
+    if(previous.key===undefined)delete process.env.IPAYMU_API_KEY;else process.env.IPAYMU_API_KEY=previous.key;
+  }
+});
+
+test('iPaymu partner rejection names the unavailable wallet without exposing provider wording',async()=>{
+  const previous={mode:process.env.IPAYMU_MODE,va:process.env.IPAYMU_VA,key:process.env.IPAYMU_API_KEY,fetch:globalThis.fetch,consoleError:console.error};
+  process.env.IPAYMU_MODE='sandbox';process.env.IPAYMU_VA='sandbox-va';process.env.IPAYMU_API_KEY='sandbox-key';
+  globalThis.fetch=(async()=>Response.json({Status:400,Message:'Payment failed. Failed from partner',Data:{responseCode:'PARTNER_FAILURE',responseMessage:'Payment failed. Failed from partner',traceId:'test-trace'}},{status:400})) as typeof fetch;
+  console.error=()=>{};
+  try{
+    await assert.rejects(()=>createIpaymuDirectPayment({orderId:'order-123',amount:19900,buyer:{name:'Test buyer',email:'test@example.com',phone:'08123456789'},returnUrl:'https://vivreplay.com/checkout/order/order-123',notifyUrl:'https://vivreplay.com/api/checkout/ipaymu/callback',method:'ewallet',channel:'shopeepay'}),/ShopeePay is temporarily unavailable\. Choose another payment method\./);
+  }finally{
+    globalThis.fetch=previous.fetch;console.error=previous.consoleError;
     if(previous.mode===undefined)delete process.env.IPAYMU_MODE;else process.env.IPAYMU_MODE=previous.mode;
     if(previous.va===undefined)delete process.env.IPAYMU_VA;else process.env.IPAYMU_VA=previous.va;
     if(previous.key===undefined)delete process.env.IPAYMU_API_KEY;else process.env.IPAYMU_API_KEY=previous.key;
