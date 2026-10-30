@@ -2350,9 +2350,6 @@ html[data-theme='dark'] .vault-scope-dot{background:#e2ba64}
 .vault-slot-egs-label:not(.vault-slot-egs-clear) .vault-slot-egs-details>strong:nth-child(2){font-size:1.18em;letter-spacing:.01em}
 .vault-slot-egs-grade{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-width:0;text-align:center}
 .vault-slot-egs-label:not(.vault-slot-egs-clear) .vault-slot-egs-grade{align-self:stretch;border:1.5px solid currentColor;border-radius:5px;background:rgba(0,0,0,.08)}
-.vault-slot-egs-batik{position:absolute;inset:0;z-index:0;width:100%;height:100%;color:#fff;opacity:.12;pointer-events:none}
-.vault-slot-egs-label:not(.vault-slot-egs-clear)>:not(.vault-slot-egs-batik){position:relative;z-index:1}
-.vault-slot-slab-plate.is-egs-pristine .vault-slot-egs-batik{color:#4b3a18;opacity:.1}
 .vault-slot-egs-grade>strong{font-size:clamp(26px,11cqi,38px);font-weight:900;line-height:.86}
 .vault-slot-egs-grade>span,.vault-slot-egs-grade>small{max-width:100%;overflow:hidden;font-size:clamp(6px,2.4cqi,9px);font-weight:850;line-height:1;text-overflow:ellipsis;white-space:nowrap}
 .vault-slot-egs-grade>small{margin-top:2px;font-weight:700}
