@@ -20,7 +20,7 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
     let details:Record<string,unknown>={};
     try{const parsed=JSON.parse(order.details) as unknown;if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))details=parsed as Record<string,unknown>}catch{}
     let paymentId=order.paymentId;
-    let paymentRecovery:'none'|'recovered'|'cleared'|'multiple'='none';
+    let paymentRecovery:'none'|'recovered'|'cleared'|'multiple'|'unavailable'='none';
     const claimCreatedAt=parseCheckoutTimestamp(order.updatedAt,'Z')??NaN;
     const legacyAttempt=!paymentId&&typeof details.ipaymuPaymentStartAttemptAt==='string'&&!details.ipaymuPaymentRecoveryCheckedAt;
     const staleAttempt=Number.isFinite(claimCreatedAt)&&Date.now()-claimCreatedAt>45_000;
@@ -108,6 +108,7 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
             if(saved.meta.changes){paymentId=sessionId;paymentRecovery=active.length>1?'multiple':'recovered'}
           }
         }else if(history.some(transaction=>transaction.status===null)){
+          paymentRecovery='unavailable';
           console.error('ipaymu_payment_recovery_status_unknown',{orderId:order.id,matchingTransactions:history.length});
         }else{
           details=clearIpaymuPaymentAttempt(details);
@@ -115,7 +116,7 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
           const cleared=await database.prepare("UPDATE checkout_orders SET payment_id=NULL,details=?,expires_at=COALESCE(?,expires_at),updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id=?").bind(JSON.stringify(details),checkoutExpiry,order.id,paymentId).run();
           if(cleared.meta.changes){paymentId=null;paymentRecovery='cleared'}
         }
-      }catch(error){console.error('ipaymu_payment_recovery_failed',{orderId:order.id,error:error instanceof Error?error.message:'unknown'})}
+      }catch(error){paymentRecovery='unavailable';console.error('ipaymu_payment_recovery_failed',{orderId:order.id,error:error instanceof Error?error.message:'unknown'})}
     }
     if(order.status==='PENDING_PAYMENT'&&!paymentId){
       const checkoutExpiry=ipaymuCheckoutExpiresAt(details.ipaymuCheckoutExpiresAt,order.createdAt);

@@ -2525,6 +2525,7 @@ html[data-theme='dark'] .checkout-payment-countdown.is-urgent>svg,html[data-them
 .checkout-qris-retry{min-height:44px;padding:0 14px;border:1px solid var(--line,#dfd1b8);border-radius:7px;background:#fff;color:var(--ink,#29251f);font:inherit;font-weight:650;cursor:pointer}
 .checkout-qris-status{margin:10px 0 0;text-align:center;color:var(--muted,#716a5e);font-size:12px}
 .checkout-error{margin:12px 0 0;color:#a3332b;font-size:13px}
+.market-pro-checkout-error{display:grid;gap:6px}.market-pro-checkout-error a{width:fit-content;color:inherit;font-weight:700;text-underline-offset:3px}
 .checkout-loading{min-height:45vh;display:flex;align-items:center;justify-content:center;gap:12px;color:var(--muted,#716a5e)}
 .checkout-loading i{width:18px;height:18px;border:2px solid var(--line,#dfd1b8);border-top-color:var(--accent,#b78327);border-radius:50%;animation:checkout-spin .8s linear infinite}
 @keyframes checkout-spin{to{transform:rotate(360deg)}}
