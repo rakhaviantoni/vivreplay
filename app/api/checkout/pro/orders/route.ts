@@ -1,5 +1,5 @@
 import {db,errorResponse,user} from '@/lib/server/store';
-import {ipaymuExpiryTimestamp} from '@/lib/server/ipaymu';
+import {ipaymuExpiryTimestamp,parseCheckoutTimestamp} from '@/lib/server/ipaymu';
 import {sendMarketEmailOnce} from '@/lib/server/market-notifications';
 
 type MembershipOrder={id:string;status:string;amount:number;currency:string;createdAt:string;paidAt:string|null;paymentId:string|null;details:string;expiresAt:string|null;updatedAt:string|null};
@@ -20,9 +20,10 @@ export async function GET(){
       const paymentExpiry=details.ipaymuPaymentMethod
         ?ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt,details.ipaymuPaymentCreatedAt,order.updatedAt)
         :null;
-      const storedExpiry=order.expiresAt?Date.parse(`${order.expiresAt.replace(' ','T')}Z`):null;
+      const storedExpiry=parseCheckoutTimestamp(order.expiresAt,'Z');
       const expiry=paymentExpiry??(storedExpiry!==null&&Number.isFinite(storedExpiry)?storedExpiry:null);
-      if(expiry!==null&&expiry<=now){
+      const paymentCreating=Boolean(order.paymentId?.startsWith('CREATING:'));
+      if(!paymentCreating&&expiry!==null&&expiry<=now){
         if(paymentExpiry!==null){
           details.ipaymuExpiredByProviderAt??=new Date().toISOString();
           order.expiresAt=new Date(paymentExpiry).toISOString().slice(0,19).replace('T',' ');
@@ -52,7 +53,7 @@ export async function GET(){
     }
     const orders=rows.map(({id,status,amount,currency,createdAt,paidAt,paymentId,details:rawDetails,expiresAt,updatedAt})=>{
       let details:Record<string,unknown>={};try{const parsed=JSON.parse(rawDetails) as unknown;if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))details=parsed as Record<string,unknown>}catch{}
-      return {id,status,amount,currency,createdAt,paidAt,billingPeriod:details.billingPeriod==='yearly'?'yearly':'monthly',paymentMethod:typeof details.ipaymuPaymentMethod==='string'?details.ipaymuPaymentMethod:null,paymentChannel:typeof details.ipaymuPaymentChannel==='string'?details.ipaymuPaymentChannel:null,paymentName:typeof details.ipaymuPaymentName==='string'?details.ipaymuPaymentName:null,selectedMethod:typeof details.ipaymuSelectedMethod==='string'?details.ipaymuSelectedMethod:null,selectedChannel:typeof details.ipaymuSelectedChannel==='string'?details.ipaymuSelectedChannel:null,paymentCreated:Boolean(paymentId&&!paymentId.startsWith('CREATING:')&&details.ipaymuPaymentMethod),expiresAt:details.ipaymuPaymentExpiresAt??expiresAt};
+      return {id,status,amount,currency,createdAt,paidAt,billingPeriod:details.billingPeriod==='yearly'?'yearly':'monthly',paymentMethod:typeof details.ipaymuPaymentMethod==='string'?details.ipaymuPaymentMethod:null,paymentChannel:typeof details.ipaymuPaymentChannel==='string'?details.ipaymuPaymentChannel:null,paymentName:typeof details.ipaymuPaymentName==='string'?details.ipaymuPaymentName:null,selectedMethod:typeof details.ipaymuSelectedMethod==='string'?details.ipaymuSelectedMethod:null,selectedChannel:typeof details.ipaymuSelectedChannel==='string'?details.ipaymuSelectedChannel:null,paymentCreated:Boolean(paymentId&&!paymentId.startsWith('CREATING:')&&details.ipaymuPaymentMethod),paymentCreating:Boolean(paymentId?.startsWith('CREATING:')),expiresAt:details.ipaymuPaymentExpiresAt??expiresAt};
     });
     return Response.json({orders},{headers:{'Cache-Control':'private, no-store, max-age=0','Vary':'Cookie'}});
   }catch(error){return errorResponse(error)}

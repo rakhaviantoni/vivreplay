@@ -1,6 +1,6 @@
 import {db,errorResponse,guard,user,optionalUser,HttpError} from '@/lib/server/store';
 import {getCurrentUser} from '@/lib/server/auth';
-import {getEnabledIpaymuPaymentChannels,getIpaymuPaymentChannelChoices,getIpaymuPaymentChannels,hasMarketIpaymuPaymentConfig,ipaymuExpiryTimestamp} from '@/lib/server/ipaymu';
+import {getEnabledIpaymuPaymentChannels,getIpaymuPaymentChannelChoices,getIpaymuPaymentChannels,hasMarketIpaymuPaymentConfig,ipaymuExpiryTimestamp,parseCheckoutTimestamp} from '@/lib/server/ipaymu';
 import {fetchMarketPolicies,MARKET_BUYER_FEE_CAP,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH,MARKET_PRO_SHIPPING_VOUCHERS_PER_YEAR,MARKET_PRO_SHIPPING_VOUCHER_SHARE,MARKET_PRO_SHIPPING_VOUCHER_CAP} from '@/lib/market/policy';
 import {getProPricing} from '@/lib/market/pro-pricing';
 
@@ -133,9 +133,9 @@ export async function POST(request:Request){
       const pendingPaymentExpiry=pendingDetails.ipaymuPaymentMethod
         ?ipaymuExpiryTimestamp(pendingDetails.ipaymuPaymentExpiresAt,pendingDetails.ipaymuPaymentCreatedAt,pendingOrder.updatedAt)
         :null;
-      const pendingStoredExpiry=pendingOrder.expiresAt?Date.parse(`${pendingOrder.expiresAt.replace(' ','T')}Z`):null;
+      const pendingStoredExpiry=parseCheckoutTimestamp(pendingOrder.expiresAt,'Z');
       const pendingExpiry=pendingPaymentExpiry??(pendingStoredExpiry!==null&&Number.isFinite(pendingStoredExpiry)?pendingStoredExpiry:null);
-      if(pendingExpiry===null||pendingExpiry>Date.now()){
+      if(pendingExpiry===null||pendingExpiry>Date.now()||pendingOrder.paymentId?.startsWith('CREATING:')){
         resumableOrder={id:pendingOrder.id,paymentId:pendingOrder.paymentId,details:pendingOrder.details};
         break;
       }

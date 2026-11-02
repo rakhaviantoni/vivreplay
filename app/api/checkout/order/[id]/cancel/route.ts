@@ -1,4 +1,5 @@
 import {db,errorResponse,HttpError,user} from '@/lib/server/store';
+import {parseCheckoutTimestamp} from '@/lib/server/ipaymu';
 import {sendMarketEmail} from '@/lib/server/market-notifications';
 
 type OrderRow={id:string;kind:string;buyerId:string;sellerId:string|null;status:string;paymentId:string|null;expiresAt:string|null;details:string;title:string|null};
@@ -14,7 +15,7 @@ export async function POST(_request:Request,{params}:{params:Promise<{id:string}
     if(order.kind!=='MARKET')throw new HttpError(400,'Only Market orders can be cancelled here.');
     if(order.status!=='PENDING_PAYMENT')throw new HttpError(409,'Only an unpaid order can be cancelled.');
     if(order.paymentId)throw new HttpError(409,'A payment code is active or being created. Wait for it to expire before cancelling.');
-    if(order.expiresAt&&new Date(`${order.expiresAt.replace(' ','T')}Z`).getTime()<=Date.now()){
+    if(order.expiresAt&&(parseCheckoutTimestamp(order.expiresAt,'Z')??Infinity)<=Date.now()){
       await database.prepare("UPDATE checkout_orders SET status='EXPIRED',updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id IS NULL").bind(id).run();
       throw new HttpError(409,'This unpaid order has expired.');
     }

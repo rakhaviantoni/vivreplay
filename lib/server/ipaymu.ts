@@ -452,6 +452,10 @@ function timestamp(value:unknown,defaultZone:'+07:00'|'Z'='+07:00'){
   return Number.isFinite(timestamp)?timestamp:null;
 }
 
+export function parseCheckoutTimestamp(value:unknown,defaultZone:'+07:00'|'Z'='Z'){
+  return timestamp(value,defaultZone);
+}
+
 export function ipaymuExpiryTimestamp(value:unknown,paymentCreatedAt?:unknown,legacyUpdatedAt?:unknown){
   // iPaymu's timezone-less `Expired` is the transaction's payable-until time.
   const providerExpiry=timestamp(value);
