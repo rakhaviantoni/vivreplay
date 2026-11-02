@@ -168,7 +168,7 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
       throw new HttpError(409,'This checkout has expired. Start a new checkout to continue.');
     }
     if(order.paymentId){
-      if(order.paymentId.startsWith('CREATING:'))throw new HttpError(409,'A payment is already being started. Refresh this order to check its status.');
+      if(order.paymentId.startsWith('CREATING:'))throw new HttpError(409,'Payment status is still being checked. Refresh this checkout shortly.');
       if(hasRequestedMethod&&(details.ipaymuPaymentMethod!==method||details.ipaymuPaymentChannel!==channel))throw new HttpError(409,'A payment has already started for this order. Wait for it to expire before choosing another method.');
     }
     const effectiveExpiry=order.paymentId&&existingPaymentExpiry!==null?new Date(existingPaymentExpiry).toISOString():order.expiresAt;

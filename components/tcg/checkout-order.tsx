@@ -127,20 +127,61 @@ export function CheckoutOrder(){
   const beginPayment=useCallback(async(choice?:{method:PaymentMethod;channel:string})=>{
     setBusy(true);setError('');
     let navigatingAway=false;
+    let providerAttemptStarted=false;
     const controller=new AbortController();
     const timeout=window.setTimeout(()=>controller.abort(),55000);
     try{
+      const readPaymentStatus=async()=>{
+        const response=await fetch(`/api/checkout/order/${encodeURIComponent(params.id)}/instrument`,{cache:'no-store',headers:{'Cache-Control':'no-cache'}});
+        const result=await response.json() as {status?:string;canChange?:boolean;hasActivePayment?:boolean;paymentCreating?:boolean;error?:string};
+        if(!response.ok)throw new Error(result.error??(id?'Status pembayaran tidak dapat dimuat.':'Payment status could not be loaded.'));
+        return result;
+      };
+      const refreshOrder=async()=>{
+        const response=await fetch(`/api/checkout/order/${encodeURIComponent(params.id)}`,{cache:'no-store',headers:{'Cache-Control':'no-cache'}});
+        const result=await response.json() as Order&{error?:string};
+        if(!response.ok)throw new Error(result.error??(id?'Detail pembayaran tidak dapat dimuat.':'Payment details could not be loaded.'));
+        setOrder(result);
+      };
+      let paymentStatus=await readPaymentStatus();
+      if(paymentStatus.status&&paymentStatus.status!=='PENDING_PAYMENT'){
+        setOrder(current=>current?{...current,status:paymentStatus.status!,paymentCreating:false,hasActivePayment:false,canCancel:false}:current);
+        return;
+      }
+      if(paymentStatus.hasActivePayment){await refreshOrder();return}
+      if(paymentStatus.paymentCreating){
+        setOrder(current=>current?{...current,paymentCreating:true,hasActivePayment:false}:current);
+        setError(id?'Kami sedang memeriksa status pembayaran. Muat ulang sebentar lagi.':'We’re checking your payment status. Refresh this page shortly.');
+        return;
+      }
+      if(!paymentStatus.canChange){
+        setError(id?'Status checkout belum siap. Muat ulang halaman untuk memeriksanya.':'This checkout is still updating. Refresh the page to check its status.');
+        return;
+      }
+      providerAttemptStarted=true;
       const response=await fetch(`/api/checkout/order/${encodeURIComponent(params.id)}/instrument`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(choice?{paymentMethod:choice.method,paymentChannel:choice.channel}:{}),signal:controller.signal});
       const result=await response.json() as {checkoutUrl?:string|null;paymentMethod?:string;paymentChannel?:string;paymentNo?:string|null;paymentName?:string|null;instructionsUrl?:string|null;qrImage?:string|null;qrString?:string|null;paymentFee?:number|null;paymentTotal?:number;expiresAt?:string|null;error?:string};
       if(!response.ok){
         if(response.status===504)setOrder(current=>current?{...current,paymentCreating:true,hasActivePayment:false}:current);
+        if(response.status===409){
+          paymentStatus=await readPaymentStatus().catch(()=>paymentStatus);
+          if(paymentStatus.hasActivePayment){await refreshOrder();return}
+          if(paymentStatus.paymentCreating){setOrder(current=>current?{...current,paymentCreating:true,hasActivePayment:false}:current);setError(id?'Kami sedang memeriksa status pembayaran. Muat ulang sebentar lagi.':'We’re checking your payment status. Refresh this page shortly.');return}
+        }
         throw new Error(result.error??(id?'Halaman pembayaran aman tidak dapat dibuka.':'Secure payment could not be opened.'));
       }
       if(result.paymentMethod==='qris'&&result.qrImage){setQrImageFailed(false);setQrImageVersion(Date.now());setOrder(current=>current?{...current,paymentMethod:'qris',paymentQrImage:result.qrImage!,paymentQrString:result.qrString??null,paymentFee:result.paymentFee??null,paymentTotal:result.paymentTotal??current.amount,paymentExpiresAt:result.expiresAt??null,canCancel:false,hasActivePayment:true}:current);return;}
       if(result.paymentNo&&result.paymentMethod){setOrder(current=>current?{...current,paymentMethod:result.paymentMethod!,paymentChannel:result.paymentChannel??null,paymentNo:result.paymentNo!,paymentName:result.paymentName??null,paymentInstructionsUrl:result.instructionsUrl??null,paymentFee:result.paymentFee??null,paymentTotal:result.paymentTotal??current.amount,paymentExpiresAt:result.expiresAt??null,canCancel:false,hasActivePayment:true}:current);return;}
       if(result.checkoutUrl&&result.paymentMethod){setOrder(current=>current?{...current,checkoutUrl:result.checkoutUrl!,paymentMethod:result.paymentMethod!,paymentChannel:result.paymentChannel??null,paymentName:result.paymentName??null,paymentFee:result.paymentFee??null,paymentTotal:result.paymentTotal??current.amount,paymentExpiresAt:result.expiresAt??null,canCancel:false,hasActivePayment:true}:current);return;}
       if(!result.checkoutUrl)throw new Error(result.error??(id?'Halaman pembayaran aman tidak dapat dibuka.':'Secure payment could not be opened.'));
-    }catch(cause){setError(controller.signal.aborted?(id?'Pembayaran belum siap. Coba lagi.':'Payment is taking too long. Try again.'):cause instanceof Error?cause.message:(id?'Halaman pembayaran aman tidak dapat dibuka.':'Secure payment could not be opened.'))}
+    }catch(cause){
+      if(providerAttemptStarted&&!controller.signal.aborted){
+        const status=await fetch(`/api/checkout/order/${encodeURIComponent(params.id)}/instrument`,{cache:'no-store',headers:{'Cache-Control':'no-cache'}}).then(async response=>response.ok?await response.json() as {hasActivePayment?:boolean;paymentCreating?:boolean}:null).catch(()=>null);
+        if(status?.hasActivePayment){await fetch(`/api/checkout/order/${encodeURIComponent(params.id)}`,{cache:'no-store',headers:{'Cache-Control':'no-cache'}}).then(async response=>{if(response.ok)setOrder(await response.json() as Order)}).catch(()=>{});setError('');return}
+        if(status?.paymentCreating){setOrder(current=>current?{...current,paymentCreating:true,hasActivePayment:false}:current);setError(id?'Kami sedang memeriksa status pembayaran. Muat ulang sebentar lagi.':'We’re checking your payment status. Refresh this page shortly.');return}
+      }
+      setError(controller.signal.aborted?(id?'Pembayaran belum siap. Coba lagi.':'Payment is taking too long. Try again.'):cause instanceof Error&&/payment status is still being checked|already being started/i.test(cause.message)?(id?'Kami sedang memeriksa status pembayaran. Muat ulang sebentar lagi.':'We’re checking your payment status. Refresh this page shortly.'):cause instanceof Error?cause.message:(id?'Halaman pembayaran aman tidak dapat dibuka.':'Secure payment could not be opened.'))
+    }
     finally{window.clearTimeout(timeout);if(!navigatingAway)setBusy(false)}
   },[id,params.id]);
 
