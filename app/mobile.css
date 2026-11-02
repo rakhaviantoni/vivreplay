@@ -2464,8 +2464,8 @@ html[data-theme='dark'] .market-icon-action[aria-pressed='true'] {
   }
 }
 @media(max-width:560px){
-  .market-sell-source-toggle{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:2px;padding:3px}
-  .market-sell-source-toggle button{min-width:0;height:36px;padding:0 6px;font-size:10px}
+  .market-sell-source-toggle{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px;padding:3px}
+  .market-sell-source-toggle button{min-width:0;min-height:40px;padding:0 6px;font-size:10px}
   .market-sell-source-toggle .market-sell-bundle-trigger{padding-inline:8px;border-left:0;border-radius:7px}
   .market-sell-card-result{display:grid;grid-template-columns:40px minmax(0,1fr);gap:8px;padding:8px}
   .market-sell-card-thumb{width:40px;height:56px;grid-column:1;grid-row:1}
@@ -3428,10 +3428,12 @@ html[data-theme="dark"] body :is(
 
 /* Phone layout for selling and buying requests. */
 @media(max-width:760px){
+  .market-card-picker-switch-row{gap:8px 10px;margin-bottom:10px}
+  .market-card-picker-switch-row .market-sell-source-toggle{max-width:100%}
   .market-sell-dialog .market-sell-body{padding:14px 16px calc(22px + env(safe-area-inset-bottom))!important;gap:12px!important}
-  .market-sell-dialog .market-sell-source-toggle{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:5px!important;margin-bottom:10px!important}
-  .market-sell-dialog .market-sell-source-toggle button{min-height:46px!important;height:auto!important;gap:6px!important;padding:7px 5px!important;font-size:11px!important;line-height:1.2!important}
-  .market-sell-dialog .market-sell-bundle-trigger{min-height:58px!important;margin-bottom:12px!important;padding:10px!important}
+  .market-sell-dialog .market-sell-source-toggle{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:3px!important;margin-bottom:0!important}
+  .market-sell-dialog .market-sell-source-toggle button{min-height:42px!important;height:auto!important;gap:5px!important;padding:5px!important;font-size:10px!important;line-height:1.2!important}
+  .market-sell-dialog .market-sell-bundle-trigger{min-height:56px!important;margin-bottom:0!important;padding:9px 10px!important}
   .market-sell-dialog .market-vault-picker{gap:10px!important}
   .market-sell-dialog .market-vault-picker-search{min-height:46px!important}
   .market-sell-dialog .market-vault-picker-heading{min-height:24px;font-size:12px!important}
@@ -3443,7 +3445,7 @@ html[data-theme="dark"] body :is(
   .market-sell-dialog .listing-selection{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:12px!important;padding:12px!important;border-radius:12px!important}
   .market-sell-dialog .listing-selection-left{display:grid!important;grid-template-columns:58px minmax(0,1fr)!important;gap:10px!important;align-items:center!important;justify-items:start!important}
   .market-sell-dialog .listing-selection-card-preview,.market-sell-dialog .listing-selection-card-preview .tcg-card{width:58px!important;height:81px!important}
-  .market-sell-dialog .listing-change-card-btn{width:max-content!important;min-width:112px!important;min-height:44px!important;height:auto!important;padding:0 12px!important;font-size:11px!important}
+  .market-sell-dialog .listing-change-card-btn{width:max-content!important;min-width:0!important;min-height:40px!important;height:auto!important;padding:0 9px!important;font-size:10px!important;white-space:normal!important}
   .market-sell-dialog .listing-selection-right{display:grid!important;gap:12px!important}
   .market-sell-dialog .listing-selection-header h3{font-size:17px!important;line-height:1.25!important}
   .market-sell-dialog .listing-card-sub{gap:5px!important;font-size:11px!important}
@@ -4464,8 +4466,8 @@ html[data-theme='dark'] [data-slot='dialog-content'].vault-dialog form { backgro
 }
 @media (prefers-reduced-motion: reduce) { .pokemon-card-grid > i { animation: none; } .pokemon-card-tile > .tcg-card,.pokemon-related-printing > .tcg-card { transition-duration: .01ms; } .pokemon-card-tile:hover > .tcg-card::after,.pokemon-card-tile:focus-visible > .tcg-card::after,.pokemon-related-printing:hover > .tcg-card::after,.pokemon-related-printing:focus-visible > .tcg-card::after { animation: none; } }
 .market-game-switch { display:inline-flex; align-items:center; gap:3px; width:max-content; margin:0; padding:3px; border:1px solid var(--line); border-radius:10px; background:var(--surface-muted); }
-.market-category-switch { display:inline-flex; align-items:center; gap:3px; width:max-content; margin:0; padding:3px; border:1px solid var(--line); border-radius:10px; background:var(--surface-muted); }
-.market-category-switch button { display:flex;align-items:center;justify-content:center;min-height:36px;padding:2px 12px;border:1px solid transparent;border-radius:7px;background:transparent;color:var(--muted);font:inherit;font-size:13px;font-weight:650;white-space:nowrap;cursor:pointer;transition:background-color .16s ease,border-color .16s ease,color .16s ease; }
+.market-category-switch { display:inline-flex; align-items:center; gap:2px; width:max-content; margin:0; padding:3px; border:1px solid var(--line); border-radius:8px; background:var(--surface-muted); }
+.market-category-switch button { display:flex;align-items:center;justify-content:center;min-height:34px;padding:1px 11px;border:1px solid transparent;border-radius:6px;background:transparent;color:var(--muted);font:inherit;font-size:12px;font-weight:650;white-space:nowrap;cursor:pointer;transition:background-color .16s ease,border-color .16s ease,color .16s ease; }
 .market-category-switch button:hover:not(.is-active) { background:color-mix(in srgb,var(--ink) 5%,transparent);color:var(--ink); }
 .market-category-switch button.is-active { border-color:color-mix(in srgb,var(--accent) 62%,var(--line));background:var(--surface-raised);box-shadow:0 1px 3px rgb(22 25 24 / .12);color:var(--ink); }
 .market-category-switch button:focus-visible { outline:2px solid var(--accent);outline-offset:2px; }
@@ -4488,7 +4490,9 @@ html[data-theme='dark'] .market-category-switch button.is-active { border-color:
   .market-game-feed-controls { display:grid; grid-template-columns:minmax(0,1fr); gap:10px; width:100%; }
   .market-game-switch { display:grid!important; grid-template-columns:repeat(3,minmax(0,1fr))!important; width:100%!important; }
   .market-category-switch { display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;width:100%!important; }
-  .market-category-switch button { min-width:0!important;width:100%!important;min-height:42px!important;height:42px!important;padding:0 8px!important; }
+  .market-category-switch button { min-width:0!important;width:100%!important;min-height:40px!important;height:40px!important;padding:0 8px!important; }
+  .market-sell-dialog .market-sealed-kind-switch{width:100%!important;max-width:440px!important}
+  .market-sell-dialog .market-sealed-kind-switch button{min-height:38px!important;height:38px!important}
   .market-game-switch button { display:flex!important; align-items:center!important; justify-content:center!important; min-width:0!important; width:100%!important; min-height:42px!important; height:42px!important; padding:0!important; }
   .market-game-switch button .market-game-logo-pad { display:flex!important; align-items:center!important; justify-content:center!important; margin:0 auto!important; width:auto!important; max-width:100%!important; height:26px!important; }
   .market-game-switch button .market-game-logo-pad img { display:block!important; margin:0 auto!important; width:auto!important; max-width:76px!important; max-height:22px!important; height:auto!important; object-fit:contain!important; }
@@ -4744,12 +4748,22 @@ html[data-theme='dark'] .market-footer-pokemon { border-color:#42658a!important;
 .site-shell.game-pokemon > .mobile-nav a.active { color:#20558a!important; }
 html[data-theme='dark'] :is(.game-mode-switch,.market-game-switch,.market-feed-game-mark,.market-game-mark,.market-sell-game-badge,.market-listing-game-scope) :is(.game-mode-one-piece,.market-game-mark-op) img { filter:brightness(0) invert(1); }
 
+/* Listing setup controls stay content-sized instead of stretching across the dialog. */
+.market-sell-dialog .market-category-switch.market-sealed-kind-switch,
+.market-sell-dialog .market-category-switch.market-listing-game-scope{display:inline-flex!important;align-self:flex-start!important;grid-template-columns:none!important;width:max-content!important;max-width:100%!important}
+.market-sell-dialog .market-category-switch.market-sealed-kind-switch>button{width:auto!important;min-width:84px!important;min-height:36px!important;height:36px!important;padding:0 12px!important}
+.market-sell-dialog .market-category-switch.market-listing-game-scope>button{width:auto!important;min-width:64px!important;min-height:36px!important;height:36px!important;padding:0 8px!important}
+.market-sell-dialog .market-category-switch.market-listing-game-scope .market-game-mark img{max-width:42px!important;max-height:18px!important}
+.market-sell-dialog .listing-selection-left .listing-change-card-btn{width:max-content!important;max-width:100%!important;min-width:0!important;min-height:32px!important;padding-inline:8px!important}
+.market-card-picker-switch-row{display:flex;align-items:center;gap:10px 12px;flex-wrap:wrap;min-width:0;margin:0 0 12px}
+.market-card-picker-switch-row .market-sell-source-toggle,.market-card-picker-switch-row .market-listing-game-scope{margin:0!important}
+
 /* Keep card identity compact, then let setup controls use the full phone width. */
 @media(max-width:600px){
   .market-sell-dialog .listing-selection{grid-template-columns:74px minmax(0,1fr)!important;column-gap:12px!important;row-gap:12px!important;align-items:start!important}
   .market-sell-dialog .listing-selection-left{grid-column:1!important;grid-row:1!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:flex-start!important;gap:7px!important;min-width:0!important}
   .market-sell-dialog .listing-selection-card-preview,.market-sell-dialog .listing-selection-card-preview .tcg-card{width:68px!important;height:95px!important}
-  .market-sell-dialog .listing-change-card-btn{width:100%!important;min-width:0!important;min-height:32px!important;height:auto!important;gap:3px!important;padding:3px!important;font-size:9px!important;line-height:1.1!important}
+  .market-sell-dialog .listing-change-card-btn{width:max-content!important;max-width:100%!important;min-width:0!important;min-height:36px!important;height:auto!important;gap:3px!important;padding:4px 8px!important;font-size:10px!important;line-height:1.15!important;white-space:normal!important}
   .market-sell-dialog .listing-selection-right{display:contents!important}
   .market-sell-dialog .listing-selection-right>.listing-selection-header{grid-column:2!important;grid-row:1!important;align-self:center!important;min-width:0!important}
   .market-sell-dialog .listing-selection-right>*:not(.listing-selection-header){grid-column:1/-1!important;width:100%!important;min-width:0!important}

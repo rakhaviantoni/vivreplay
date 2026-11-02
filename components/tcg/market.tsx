@@ -1637,8 +1637,8 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
             </DialogDescription>
           </div>
           <div className="market-sell-body">
-            {!configuringCard&&!hasBundleItems&&<div className="market-category-switch market-sealed-kind-switch" role="group" aria-label={locale==='ID'?'Jenis barang':'Item type'}><button type="button" className={!sealedMode?'is-active':''} aria-pressed={!sealedMode} onClick={()=>setSealedMode(false)}>{locale==='ID'?'Kartu':'Cards'}</button><button type="button" className={sealedMode?'is-active':''} aria-pressed={sealedMode} onClick={()=>setSealedMode(true)}>{locale==='ID'?'Produk':'Products'}</button></div>}
-            {sealedMode?<MarketSealedComposer type={listingType} onPublished={()=>{setOpen(false);setSealedMode(false);void refresh();void refreshAccount();}} onBackToBundle={()=>setSealedMode(false)} onAddToBundle={listingType==='WTS'?item=>{const max=listingLimits.maxProductStock??10;const used=bundleProducts.reduce((sum,current)=>sum+current.quantity,0);if(used+item.quantity>max){toast.error(locale==='ID'?`Maksimal ${max} unit produk dalam satu listing.`:`A listing can include up to ${max} product units.`);return;}const next=[...bundleProducts,{...item,id:crypto.randomUUID()}];setBundleProducts(next);if(!hasBundleItems)setListingTitle(item.title);else if(bundleCards.length===1&&bundleProducts.length===0)setListingTitle(`${bundleCards[0].card.name} bundle`);setListingPrice(String(bundleCards.reduce((sum,card)=>sum+card.quantity*card.unitAmount,0)+next.reduce((sum,product)=>sum+product.quantity*product.unitAmount,0)));setSealedMode(false);setIsAddingAnother(false);}:undefined}/>:directSellLoading?<div className="market-direct-sell-loading" role="status" aria-label={locale==='ID'?'Memuat pilihan jual':'Loading sell options'}><span/><span/><span/></div>:<>
+            {!configuringCard&&!hasBundleItems&&!sealedMode&&<div className="market-category-switch market-sealed-kind-switch" role="group" aria-label={locale==='ID'?'Jenis barang':'Item type'}><button type="button" className="is-active" aria-pressed="true" onClick={()=>setSealedMode(false)}>{locale==='ID'?'Kartu':'Cards'}</button><button type="button" aria-pressed="false" onClick={()=>setSealedMode(true)}>{locale==='ID'?'Produk':'Products'}</button></div>}
+            {sealedMode?<MarketSealedComposer type={listingType} modeControl={<div className="market-category-switch market-sealed-kind-switch" role="group" aria-label={locale==='ID'?'Jenis barang':'Item type'}><button type="button" aria-pressed="false" onClick={()=>setSealedMode(false)}>{locale==='ID'?'Kartu':'Cards'}</button><button type="button" className="is-active" aria-pressed="true" onClick={()=>setSealedMode(true)}>{locale==='ID'?'Produk':'Products'}</button></div>} onPublished={()=>{setOpen(false);setSealedMode(false);void refresh();void refreshAccount();}} onAddToBundle={listingType==='WTS'?item=>{const max=listingLimits.maxProductStock??10;const used=bundleProducts.reduce((sum,current)=>sum+current.quantity,0);if(used+item.quantity>max){toast.error(locale==='ID'?`Maksimal ${max} unit produk dalam satu listing.`:`A listing can include up to ${max} product units.`);return;}const next=[...bundleProducts,{...item,id:crypto.randomUUID()}];setBundleProducts(next);if(!hasBundleItems)setListingTitle(item.title);else if(bundleCards.length===1&&bundleProducts.length===0)setListingTitle(`${bundleCards[0].card.name} bundle`);setListingPrice(String(bundleCards.reduce((sum,card)=>sum+card.quantity*card.unitAmount,0)+next.reduce((sum,product)=>sum+product.unitAmount*product.quantity,0)));setSealedMode(false);setIsAddingAnother(false);}:undefined}/>:directSellLoading?<div className="market-direct-sell-loading" role="status" aria-label={locale==='ID'?'Memuat pilihan jual':'Loading sell options'}><span/><span/><span/></div>:<>
             {/* VIEW 1: Card Configuration Step */}
             {configuringCard&&activeCardObj?(
               <div className="listing-selection">
@@ -1649,6 +1649,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                   <button
                     type="button"
                     className="listing-change-card-btn"
+                    aria-label={hasBundleItems?(locale==='ID'?'Kembali ke paket':'Back to bundle'):(locale==='ID'?'Ganti kartu':'Change card')}
                     onClick={()=>{
                       configLoadVersion.current++;
                       setConfiguringCard(null);
@@ -1659,7 +1660,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                     }}
                   >
                     <ArrowLeft size={13}/>
-                    <span>{hasBundleItems?(locale==='ID'?'Kembali ke paket':'Back to bundle'):(locale==='ID'?'Ganti kartu':'Change card')}</span>
+                    <span>{hasBundleItems?(locale==='ID'?'Kembali':'Back'):(locale==='ID'?'Ganti':'Change')}</span>
                   </button>
                 </div>
                 <div className="listing-selection-right">
@@ -2056,7 +2057,8 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                     <span>{locale==='ID'?'Kembali ke rincian listing':'Back to listing details'}</span>
                   </button>
                 )}
-                {/* Source choices and the bundle action stay together. */}
+                {/* Keep card source and game scope together as one toolbar. */}
+                <div className="market-card-picker-switch-row">
                 {listingType==='WTS'&&(data?.collection?.length??0)>0&&(
                   <div className="market-sell-source-toggle" role="group" aria-label={locale==='ID'?'Sumber kartu':'Card source'}>
                     <button
@@ -2112,6 +2114,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                   >
                     <MarketGameMark gameSlug="pokemon"/>
                   </button>
+                </div>
                 </div>
                 {listingType==='WTS'&&!hasBundleItems&&(data?.collection?.length??0)>0&&<button type="button" className="market-sell-bundle-trigger" onClick={()=>{configLoadVersion.current++;setOpen(false);window.setTimeout(()=>setBulkListingOpen(true),0)}} aria-haspopup="dialog">
                   <Cards size={16}/><span>{locale==='ID'?'Buat listing dari Vault':'Build a listing from Vault'}</span><small>{locale==='ID'?'Pilih beberapa kartu sekaligus':'Select several cards at once'}</small><ArrowRight size={16}/>

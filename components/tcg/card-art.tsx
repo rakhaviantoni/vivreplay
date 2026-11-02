@@ -47,6 +47,8 @@ export function CardArt({card,small=false,priority=false,imageWidth,onImageMissi
   const baseImage=cardImageUrl(card);
   const resolvedImage=baseImage&&imageWidth?`${baseImage}${baseImage.includes('?')?'&':'?'}width=${imageWidth}`:baseImage;
   const [imageResult,setImageResult]=useState<{url:string;status:'loaded'|'failed'}|null>(null);
+  const imageRef=useRef<HTMLImageElement|null>(null);
+  const settledImageUrl=useRef('');
   const loaded=Boolean(resolvedImage&&imageResult?.url===resolvedImage&&imageResult.status==='loaded');
   const imageFailed=Boolean(resolvedImage&&imageResult?.url===resolvedImage&&imageResult.status==='failed');
   const onImageMissingRef=useRef(onImageMissing);
@@ -56,10 +58,22 @@ export function CardArt({card,small=false,priority=false,imageWidth,onImageMissi
   useEffect(()=>{
     if(!resolvedImage)onImageMissingRef.current?.();
   },[resolvedImage]);
+  useEffect(()=>{
+    const image=imageRef.current;
+    if(!resolvedImage||!image||settledImageUrl.current===resolvedImage||image.getAttribute('src')!==resolvedImage||!image.complete)return;
+    settledImageUrl.current=resolvedImage;
+    if(image.naturalWidth>0){
+      setImageResult({url:resolvedImage,status:'loaded'});
+      onImageLoadedRef.current?.();
+    }else{
+      setImageResult({url:resolvedImage,status:'failed'});
+      onImageMissingRef.current?.();
+    }
+  },[resolvedImage]);
   if(card.sealedProduct)return <div className="market-sealed-art" style={{width:'100%',aspectRatio:'3 / 4',display:'grid',placeItems:'center'}}><img src={card.imageUrl} alt={card.name} style={{width:'100%',height:'100%',objectFit:'contain'}} loading={priority?'eager':'lazy'}/></div>;
   if (resolvedImage&&!imageFailed) return <div className={`tcg-card printing-image ${small?'small':''} ${loaded?'is-loaded':'is-loading'} ${preview?'is-preview-card':''}`} aria-label={preview?"Preview of a set that hasn’t launched yet. You can play it in Casual, New Cards, and Extended, but not Ranked. Its image and text may still change.":undefined}>
     {preview&&<span className="preview-card-badge" aria-hidden="true">Preview</span>}<span className="card-image-skeleton" aria-hidden="true"/>
-    <img src={resolvedImage} alt={`${card.name} card printing`} draggable={false} loading={priority?"eager":"lazy"} fetchPriority={priority?"high":undefined} decoding="async" width={imageWidth??420} height={imageWidth?Math.round(imageWidth*580/420):580} onLoad={()=>{setImageResult({url:resolvedImage,status:'loaded'});onImageLoadedRef.current?.();}} onError={()=>{setImageResult({url:resolvedImage,status:'failed'});onImageMissingRef.current?.();}}/>
+    <img ref={imageRef} src={resolvedImage} alt={`${card.name} card printing`} draggable={false} loading={priority?"eager":"lazy"} fetchPriority={priority?"high":undefined} decoding="async" width={imageWidth??420} height={imageWidth?Math.round(imageWidth*580/420):580} onLoad={()=>{settledImageUrl.current=resolvedImage;setImageResult({url:resolvedImage,status:'loaded'});onImageLoadedRef.current?.();}} onError={()=>{settledImageUrl.current=resolvedImage;setImageResult({url:resolvedImage,status:'failed'});onImageMissingRef.current?.();}}/>
   </div>;
   if(card.gameSlug==='pokemon')return <div className={`tcg-card missing-printing pokemon-missing-printing ${small?'small':''}`} aria-label={`Card is missing: ${card.name}`}><strong>Card is missing</strong>{missingImageAction}</div>;
   return <div className={`tcg-card missing-printing ${small?'small':''} ${preview?'is-preview-card':''}`} style={{'--card-color':colors[card.color]} as React.CSSProperties} aria-label={`${card.name} artwork unavailable`}>

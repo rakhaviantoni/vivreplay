@@ -1,5 +1,5 @@
 'use client';
-import {useMemo,useState} from 'react';
+import {useMemo,useState,type ReactNode} from 'react';
 import {useRouteLocale} from '@/components/locale-provider';
 import {ArrowRightIcon as ArrowRight,MagnifyingGlassIcon as Search} from '@phosphor-icons/react';
 import {matchesSealedProductQuery,normalizeSealedProductQuery,sealedProductDisplayName,sealedProductPublicCode,sealedProducts,sealedProductKinds,type SealedProduct,type SealedProductKind} from '@/lib/market/sealed-products';
@@ -10,7 +10,7 @@ import {RadioGroup,RadioGroupItem} from '@/components/ui/radio-group';
 import './market-sealed.css';
 
 export type BundleProductInput={productType:'SEALED'|'GENERAL';productId?:string;title:string;quantity:number;unitAmount:number;condition:string;notes:string;photoIds:string[];parcel?:{weight:number;length:number;width:number;height:number};generalProduct?:{category:string;brand:string;model:string;attributes:Record<string,string>};catalogProduct?:SealedProduct};
-export function MarketSealedComposer({type,onPublished,onAddToBundle,onBackToBundle}:{type:'WTS'|'WTB';onPublished:()=>void;onAddToBundle?:(item:BundleProductInput)=>void;onBackToBundle?:()=>void}){
+export function MarketSealedComposer({type,onPublished,onAddToBundle,modeControl}:{type:'WTS'|'WTB';onPublished:()=>void;onAddToBundle?:(item:BundleProductInput)=>void;modeControl?:ReactNode}){
   const language=useRouteLocale();const isId=language==='ID';
   const productStockLimit=useMarketListingLimits().maxProductStock??10;
   const [query,setQuery]=useState('');const [edition,setEdition]=useState<'asia'|'global'|'all'>('asia');const [kind,setKind]=useState<SealedProductKind|'all'>('all');
@@ -29,8 +29,10 @@ export function MarketSealedComposer({type,onPublished,onAddToBundle,onBackToBun
   const copy=(en:string,id:string)=>isId?id:en;
   const displayProduct=sealedProductDisplayName;
   return <div className="market-sealed-composer">
-    {onBackToBundle&&<button type="button" className="listing-change-card-btn" onClick={onBackToBundle}>{copy('Back','Kembali')}</button>}
-    {!product&&<div className="market-product-source-switch" role="group" aria-label={copy('Product source','Sumber produk')}><button type="button" aria-pressed={source==='catalog'} onClick={()=>setSource('catalog')}>{copy('TCG products','Produk TCG')}</button><button type="button" aria-pressed={source==='general'} onClick={()=>setSource('general')}>{copy('Other items','Barang lain')}</button></div>}
+    <div className="market-sealed-switch-row">
+      {modeControl}
+      {!product&&<div className="market-product-source-switch" role="group" aria-label={copy('Product source','Sumber produk')}><button type="button" aria-pressed={source==='catalog'} onClick={()=>setSource('catalog')}>{copy('TCG products','Produk TCG')}</button><button type="button" aria-pressed={source==='general'} onClick={()=>setSource('general')}>{copy('Other items','Barang lain')}</button></div>}
+    </div>
     {source==='general'?<MarketGeneralComposer type={type} onBack={()=>setSource('catalog')} onPublished={onPublished} onAddToBundle={onAddToBundle}/>:!product?<>
       <div className="market-product-picker-top">
         <label className="market-product-search"><span>{copy('Find a product','Cari produk')}</span><div><Search size={17}/><input value={query} onChange={event=>{setQuery(event.target.value);setVisibleCount(30)}} placeholder={copy('Name or product code','Nama atau kode produk')} aria-label={copy('Search products','Cari produk')}/></div></label>

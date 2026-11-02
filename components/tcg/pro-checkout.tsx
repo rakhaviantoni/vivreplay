@@ -9,7 +9,7 @@ import {calculateBuyerServiceFee,calculateSellerServiceFee,MARKET_BUYER_FEE_MINI
 import {MarketServiceFeeInfo} from '@/components/tcg/market-buyer-fee-cap-table';
 import {useAccount} from '@/lib/client';
 import {toast} from 'sonner';
-import {MarketPaymentMethodPicker,defaultPaymentOptions,estimatePaymentFee,type PaymentMethod,type PaymentOption} from '@/components/tcg/market-payment-method-picker';
+import {MarketPaymentMethodPicker,defaultPaymentOptions,estimatePaymentFee,preferredPaymentOption,type PaymentMethod,type PaymentOption} from '@/components/tcg/market-payment-method-picker';
 
 type Plan={available:boolean;paymentChannels?:PaymentOption[];paymentChannelStatus?:'not_configured'|'provider_unavailable'|'settings_unavailable'|'no_active_channels'|'all_disabled'|'ready';amount:number|null;standardAmount:number|null;durationDays:number|null;annualAmount:number;annualDurationDays:number;introOffer:boolean;introOfferEndsAt:string|null;introOfferLimit:number|null;introOfferSpotsRemaining:number|null;maxActiveListings:number;freeMaxActiveListings:number;annualMaxActiveListings:number;freeDurationDays:number;freeListingLimits:{maxListingCopies:number;maxCopiesPerCard:number;maxCardTypes:number};monthlyListingLimits:{maxListingCopies:number;maxCopiesPerCard:number;maxCardTypes:number};annualListingLimits:{maxListingCopies:number;maxCopiesPerCard:number;maxCardTypes:number};freeProductStock:number;monthlyProductStock:number;annualProductStock:number;commissionPercent:number;freeCommissionPercent:number;sellerFeeMinimum:number;buyerFeePercent:number;freeBuyerFeePercent:number;buyerFeeCap:number;buyerFeeMinimum:number;shippingVouchersPerMonth:number;shippingVouchersPerYear:number;shippingVoucherMinSubtotal:number;shippingVoucherSharePercent:number;shippingVoucherCap:number;canAutoRenew:boolean;freeCanAutoRenew:boolean;currency:'IDR'};
 type MembershipOrder={id:string;status:string;amount:number;currency:string;createdAt:string;paidAt:string|null};
@@ -41,7 +41,7 @@ export function ProCheckout(){
     fetch('/api/checkout/pro',{cache:'no-store'}).then(async response=>{
       if(!response.ok)throw new Error('Market Pro is temporarily unavailable.');
       const result=await response.json() as Plan;
-      if(active){setPlan(result);if(String(account?.profile?.tier??'free').toLowerCase()==='pro')setBillingPeriod('yearly');const options=Array.isArray(result.paymentChannels)?result.paymentChannels:defaultPaymentOptions;const preferred=options.find(option=>option.method==='qris')??options[0];if(preferred)setSelectedPayment({method:preferred.method,channel:preferred.channel})}
+      if(active){setPlan(result);if(String(account?.profile?.tier??'free').toLowerCase()==='pro')setBillingPeriod('yearly');const options=Array.isArray(result.paymentChannels)?result.paymentChannels:defaultPaymentOptions;const preferred=preferredPaymentOption(options);if(preferred)setSelectedPayment({method:preferred.method,channel:preferred.channel})}
     }).catch(cause=>{if(active)setError(cause instanceof Error?cause.message:'Market Pro is temporarily unavailable.')}).finally(()=>{if(active)setPlanLoading(false)});
     return()=>{active=false};
   },[accountLoading,account?.profile?.id]);
@@ -57,8 +57,8 @@ export function ProCheckout(){
         if(!active)return;
         const options=Array.isArray(result.paymentChannels)?result.paymentChannels:[];
         setPlan(current=>current?{...current,paymentChannels:options}:result);
-        const preferred=options.find(option=>option.method==='qris')??options[0];
-        if(preferred)setSelectedPayment(current=>options.some(option=>option.method===current.method&&option.channel===current.channel)?current:{method:preferred.method,channel:preferred.channel});
+        const preferred=preferredPaymentOption(options);
+        if(preferred)setSelectedPayment(current=>options.some(option=>option.method===current.method&&option.channel===current.channel&&option.available!==false)?current:{method:preferred.method,channel:preferred.channel});
       }catch{if(active)setPlan(current=>current?{...current,paymentChannels:[],paymentChannelStatus:'provider_unavailable'}:current)}
     };
     const timer=window.setInterval(()=>void refreshPaymentChannels(),30_000);

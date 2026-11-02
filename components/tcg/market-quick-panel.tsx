@@ -25,7 +25,7 @@ import {MapPicker} from './map-picker';
 import {enabledShippingCouriers} from '@/lib/shipping/couriers';
 import {INDONESIAN_REGIONS,getCities,getDistricts,getSubdistricts} from '@/lib/indonesia-areas';
 import {formatDateTimeWithOffset} from '@/components/tcg/market-timestamp';
-import {MarketPaymentMethodPicker,defaultPaymentOptions,estimatePaymentFee,paymentInstrumentLabel,type PaymentMethod,type PaymentOption} from '@/components/tcg/market-payment-method-picker';
+import {MarketPaymentMethodPicker,defaultPaymentOptions,estimatePaymentFee,preferredPaymentOption,paymentInstrumentLabel,type PaymentMethod,type PaymentOption} from '@/components/tcg/market-payment-method-picker';
 import {PaymentSupportActions} from '@/components/tcg/payment-support-actions';
 import {MarketIntroOfferProgress} from '@/components/tcg/market-intro-offer-progress';
 import {MarketMembershipComparison} from '@/components/tcg/market-membership-comparison';
@@ -154,7 +154,7 @@ function ProfileQuickEdit({profile,locale,onSaved,initialTab='account'}:{profile
   const selectedProDays=selectedProPeriod==='yearly'?(proPlan?.annualDurationDays??365):(proPlan?.durationDays??30);
   const selectedProPrice=new Intl.NumberFormat(locale==='ID'?'id-ID':'en-US',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(selectedProAmount);
   const proPaymentOptions=proPlan?.paymentChannels?.length?proPlan.paymentChannels:defaultPaymentOptions;
-  const proSelectedOption=proPaymentOptions.find(option=>option.method===proPayment.method&&option.channel===proPayment.channel)??proPaymentOptions.find(option=>option.method==='qris')??proPaymentOptions[0];
+  const proSelectedOption=proPaymentOptions.find(option=>option.method===proPayment.method&&option.channel===proPayment.channel&&option.available!==false)??preferredPaymentOption(proPaymentOptions);
   const proPaymentFee=estimatePaymentFee(proSelectedOption,selectedProAmount);
   const proStandardPrice=new Intl.NumberFormat(locale==='ID'?'id-ID':'en-US',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(proPlan?.standardAmount??24900);
   const proAnnualAmount=proPlan?.annualAmount??249000;
@@ -197,7 +197,7 @@ function ProfileQuickEdit({profile,locale,onSaved,initialTab='account'}:{profile
       setPayoutAmount(payoutSummaryResult?String(payoutSummaryResult.available):'');
       setProPlan(planResult);
       setProPaymentLoading(false);
-      const options=planResult?.paymentChannels?.length?planResult.paymentChannels:defaultPaymentOptions;const preferred=options.find(option=>option.method==='qris')??options[0];if(preferred)setProPayment({method:preferred.method,channel:preferred.channel});
+      const options=planResult?.paymentChannels?.length?planResult.paymentChannels:defaultPaymentOptions;const preferred=preferredPaymentOption(options);if(preferred)setProPayment({method:preferred.method,channel:preferred.channel});
     }).finally(()=>{if(active)setProDetailsLoading(false)});
     return()=>{active=false};
   },[profile.id,profile.display_name,profile.phone,fetchShippingOrigin,applyShippingOrigin]);
@@ -209,8 +209,8 @@ function ProfileQuickEdit({profile,locale,onSaved,initialTab='account'}:{profile
       if(!active||!result)return;
       setProPlan(result);
       const options=result.paymentChannels?.length?result.paymentChannels:defaultPaymentOptions;
-      const preferred=options.find(option=>option.method==='qris')??options[0];
-      if(preferred)setProPayment(current=>options.some(option=>option.method===current.method&&option.channel===current.channel)?current:{method:preferred.method,channel:preferred.channel});
+      const preferred=preferredPaymentOption(options);
+      if(preferred)setProPayment(current=>options.some(option=>option.method===current.method&&option.channel===current.channel&&option.available!==false)?current:{method:preferred.method,channel:preferred.channel});
     }).catch(()=>{if(active)setProPlan(current=>current?{...current,paymentChannels:[],paymentChannelStatus:'provider_unavailable'}:current)}).finally(()=>{if(active)setProPaymentLoading(false)});
     return()=>{active=false};
   },[confirmingPro]);
@@ -312,7 +312,7 @@ function ProfileQuickEdit({profile,locale,onSaved,initialTab='account'}:{profile
         {confirmingPro&&proPaymentView&&<div className="market-pro-payment-view" aria-label={t('Payment details','Detail pembayaran')}><div className="market-pro-payment-view-heading"><span><Check size={16} weight="bold"/></span><div><strong>{t('Payment details','Detail pembayaran')}</strong><small>{paymentInstrumentLabel(proPaymentView.paymentMethod,proPaymentView.paymentName,locale)}</small></div></div>{proPaymentView.paymentNeedsHelp?<PaymentSupportActions locale={locale} orderId={proPaymentView.id} paymentName={proPaymentView.paymentName}/>:proPaymentView.paymentQrImage?<img className="market-pro-payment-qr" src={proPaymentView.paymentQrImage} alt={t('QRIS payment code','Kode pembayaran QRIS')}/>:proPaymentView.paymentNo?<div className="market-pro-payment-number"><span><small>{proPaymentView.paymentName??t('Payment number','Nomor pembayaran')}</small><strong>{proPaymentView.paymentNo}</strong></span><button type="button" onClick={async()=>{await navigator.clipboard?.writeText(proPaymentView.paymentNo??'');setCopiedProPaymentNo(true);window.setTimeout(()=>setCopiedProPaymentNo(false),1600)}}>{copiedProPaymentNo?<Check size={16}/>:t('Copy','Salin')}</button></div>:proPaymentView.checkoutUrl?<>{proPaymentView.paymentMethod==='cc'&&<p>{t('Enter your card details on the secure payment page.','Masukkan detail kartu di halaman pembayaran yang aman.')}</p>}<a className="button primary market-pro-payment-open" href={proPaymentView.checkoutUrl} target="_blank" rel="noreferrer">{proPaymentView.paymentMethod==='cc'?t('Continue to card payment','Lanjutkan ke pembayaran kartu'):t('Continue payment','Lanjutkan pembayaran')}<ArrowRight size={15}/></a></>:<p>{t('Payment details are being prepared.','Detail pembayaran sedang disiapkan.')}</p>}{proPaymentView.paymentInstructionsUrl&&<div className="market-pro-payment-actions">{proPaymentView.paymentInstructionsUrl&&<a className="button secondary market-pro-payment-instructions" href={proPaymentView.paymentInstructionsUrl} target="_blank" rel="noreferrer">{t('Payment instructions','Petunjuk pembayaran')}<ArrowRight size={13}/></a>}</div>}{proPaymentView.paymentMethod!=='qris'&&Number(proPaymentView.paymentFee)>0&&<div className="market-pro-payment-fee"><span>{t('Payment fee','Biaya pembayaran')}</span><strong>{new Intl.NumberFormat(locale==='ID'?'id-ID':'en-US',{style:'currency',currency:proPaymentView.currency||'IDR',maximumFractionDigits:0}).format(proPaymentView.paymentFee??0)}</strong></div>}<div className="market-pro-payment-total"><span>{t('Total to pay','Total pembayaran')}</span><strong>{new Intl.NumberFormat(locale==='ID'?'id-ID':'en-US',{style:'currency',currency:proPaymentView.currency||'IDR',maximumFractionDigits:0}).format(proPaymentView.paymentTotal??proPaymentView.amount)}</strong></div><button type="button" className="market-quick-secondary" onClick={()=>{setProPaymentView(null);setConfirmingPro(false);setProPaymentDismissed(true)}}>{t('Close','Tutup')}</button></div>}
       </div>
       <section className="market-membership-history"><h3>{t('Plan history','Riwayat paket')}</h3>
-        {proDetailsLoading?<div className="market-membership-history-skeleton" role="status" aria-label={t('Loading plan history','Memuat riwayat paket')}><i/><i/></div>:proOrders.length?<div className="market-membership-history-list">{proOrders.map(order=><article className="market-membership-history-row" key={order.id}>
+        {proDetailsLoading?<div className="market-membership-history-skeleton" role="status" aria-label={t('Loading plan history','Memuat riwayat paket')}><i/><i/></div>:proOrders.length?<div className="market-membership-history-list" role="region" aria-label={t('Plan history list','Daftar riwayat paket')} tabIndex={proOrders.length>1?0:undefined}>{proOrders.map(order=><article className="market-membership-history-row" key={order.id}>
           <span><strong>Market Pro</strong><small>{new Date(order.createdAt).toLocaleDateString(locale==='ID'?'id-ID':'en-US',{year:'numeric',month:'short',day:'numeric'})}</small></span>
           <b>{order.status==='PAID'?t('Paid','Dibayar'):order.status==='PENDING_PAYMENT'?t('Awaiting payment','Menunggu pembayaran'):order.status==='EXPIRED'?t('Expired','Kedaluwarsa'):order.status==='CANCELLED'?t('Cancelled','Dibatalkan'):order.status}</b>
           <strong>{new Intl.NumberFormat(locale==='ID'?'id-ID':'en-US',{style:'currency',currency:order.currency||'IDR',maximumFractionDigits:0}).format(order.amount)}</strong>

@@ -2,7 +2,7 @@ import {enabledShippingCouriers} from '@/lib/shipping/couriers';
 import {z} from 'zod';
 import {db,errorResponse,guard,user,HttpError} from '@/lib/server/store';
 import {getCurrentUser} from '@/lib/server/auth';
-import {getEnabledIpaymuPaymentChannels,getIpaymuMode,getIpaymuPaymentChannels,hasMarketIpaymuPaymentConfig} from '@/lib/server/ipaymu';
+import {getEnabledIpaymuPaymentChannels,getIpaymuPaymentChannelChoices,getIpaymuMode,getIpaymuPaymentChannels,hasMarketIpaymuPaymentConfig} from '@/lib/server/ipaymu';
 import {biteshipDestination,isBiteshipAreaId} from '@/lib/shipping/biteship-area';
 import {marketParcel} from '@/lib/market/sealed-products';
 import {shippingRateOptions} from '@/lib/server/shipping-quote-cache';
@@ -32,12 +32,12 @@ export async function GET(){
         shippingVoucherPeriod='monthly';shippingVouchersRemaining=Math.max(0,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH-(usage?.total??0));
       }
     }
-    let paymentChannels=[] as Awaited<ReturnType<typeof getEnabledIpaymuPaymentChannels>>;
+    let paymentChannels=[] as Awaited<ReturnType<typeof getIpaymuPaymentChannelChoices>>;
     let paymentChannelStatus:'not_configured'|'provider_unavailable'|'settings_unavailable'|'no_active_channels'|'all_disabled'|'ready'='not_configured';
     if(hasMarketIpaymuPaymentConfig()){
       let reportedChannels:Awaited<ReturnType<typeof getIpaymuPaymentChannels>>=[];
       try{reportedChannels=await getIpaymuPaymentChannels()}catch{paymentChannelStatus='provider_unavailable'}
-      if(reportedChannels.length){try{paymentChannels=await getEnabledIpaymuPaymentChannels(database);paymentChannelStatus=paymentChannels.length?'ready':'all_disabled'}catch{paymentChannelStatus='settings_unavailable'}}
+      if(reportedChannels.length){try{paymentChannels=await getIpaymuPaymentChannelChoices(database);paymentChannelStatus=paymentChannels.some(channel=>channel.available!==false)?'ready':'all_disabled'}catch{paymentChannelStatus='settings_unavailable'}}
       else if(paymentChannelStatus!=='provider_unavailable')paymentChannelStatus='no_active_channels';
     }
     const serviceFeePercent=policies[profile.tier==='pro'?'pro':'free'].commissionPercent;

@@ -5,7 +5,7 @@ import {sendMarketEmailOnce} from '@/lib/server/market-notifications';
 
 type ProfileExpiry={id:string;expiresAt:string};
 type ProOrder={id:string;buyerId:string;status:string};
-type PendingProOrder={id:string;buyerId:string;expiresAt:string|null;updatedAt:string|null;details:string};
+type PendingProOrder={id:string;buyerId:string;paymentId:string|null;expiresAt:string|null;updatedAt:string|null;details:string};
 
 async function deliverInBatches<T>(items:T[],send:(item:T)=>Promise<unknown>){
   for(let offset=0;offset<items.length;offset+=10){
@@ -20,9 +20,10 @@ export async function POST(request:Request){
   }
 
   const database=db();
-  const pending=(await database.prepare(`SELECT id,buyer_id AS buyerId,expires_at AS expiresAt,updated_at AS updatedAt,details
+  const pending=(await database.prepare(`SELECT id,buyer_id AS buyerId,payment_id AS paymentId,expires_at AS expiresAt,updated_at AS updatedAt,details
     FROM checkout_orders WHERE kind='PRO' AND status='PENDING_PAYMENT' AND created_at>=datetime('now','-7 days')
     ORDER BY created_at DESC LIMIT 500`).all<PendingProOrder>()).results;
+  const paymentReminderOrders:string[]=[];
   for(const order of pending){
     let details:Record<string,unknown>={};
     try{const parsed=JSON.parse(order.details) as unknown;if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))details=parsed as Record<string,unknown>}catch{}
@@ -36,6 +37,8 @@ export async function POST(request:Request){
       const expirySql=new Date(expiredAt).toISOString().slice(0,19).replace('T',' ');
       await database.prepare(`UPDATE checkout_orders SET status='EXPIRED',details=?,expires_at=?,updated_at=CURRENT_TIMESTAMP
         WHERE id=? AND kind='PRO' AND status='PENDING_PAYMENT'`).bind(JSON.stringify(details),expirySql,order.id).run();
+    }else if(expiredAt!==null&&expiredAt-Date.now()<=2*60*60*1000&&typeof details.ipaymuPaymentMethod==='string'&&order.paymentId&&!order.paymentId.startsWith('CREATING:')){
+      paymentReminderOrders.push(order.id);
     }
   }
 
@@ -56,6 +59,10 @@ export async function POST(request:Request){
   ]);
 
   const notificationJobs:Array<()=>Promise<unknown>>=[];
+  for(const orderId of paymentReminderOrders){
+    const order=pending.find(item=>item.id===orderId)!;
+    notificationJobs.push(()=>sendMarketEmailOnce(order.buyerId,'pro-payment-reminder','Market Pro',order.id,`payment-reminder:${order.id}`));
+  }
   for(const order of orders.results){
     if(order.status==='PAID'||order.status==='COMPLETED')notificationJobs.push(()=>sendMarketEmailOnce(order.buyerId,'pro-activated','Market Pro',order.id,`activated:${order.id}`));
     if(order.status==='EXPIRED')notificationJobs.push(()=>sendMarketEmailOnce(order.buyerId,'pro-payment-expired','Market Pro',order.id,`payment-expired:${order.id}`));
