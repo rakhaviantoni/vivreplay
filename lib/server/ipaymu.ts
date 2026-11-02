@@ -18,7 +18,18 @@ function configuration(){
   const production=mode==='production';
   if(production&&process.env.IPAYMU_PRODUCTION_READY==='false')throw new Error('Production payments are awaiting gateway approval.');
   const baseUrl=production?'https://my.ipaymu.com':'https://sandbox.ipaymu.com';
-  return {va,apiKey,baseUrl,mode};
+  const proxyUrl=(process.env.IPAYMU_EGRESS_PROXY_URL??'').trim();
+  const proxySecret=(process.env.IPAYMU_EGRESS_PROXY_SECRET??'').trim();
+  if(Boolean(proxyUrl)!==Boolean(proxySecret))throw new Error('The payment gateway connection is incomplete.');
+  if(proxySecret&&proxySecret.length<64)throw new Error('The payment gateway connection is incomplete.');
+  if(production&&!proxyUrl)throw new Error('Production payments require the approved VPS payment route.');
+  if(proxyUrl){
+    try{
+      const parsed=new URL(proxyUrl);
+      if(parsed.protocol!=='https:'||parsed.username||parsed.password||parsed.search||parsed.hash||parsed.pathname!=='/api/ipaymu-egress')throw new Error();
+    }catch{throw new Error('The payment gateway route is invalid.');}
+  }
+  return {va,apiKey,baseUrl,mode,proxyUrl,proxySecret};
 }
 
 export function getIpaymuMode():'sandbox'|'production'{
@@ -34,7 +45,7 @@ export async function getIpaymuMerchantBalance(){
   const body=JSON.stringify({account:va});
   const now=new Date();
   const timestamp=`${now.getUTCFullYear()}${String(now.getUTCMonth()+1).padStart(2,'0')}${String(now.getUTCDate()).padStart(2,'0')}${String(now.getUTCHours()).padStart(2,'0')}${String(now.getUTCMinutes()).padStart(2,'0')}${String(now.getUTCSeconds()).padStart(2,'0')}`;
-  const response=await fetch(`${baseUrl}/api/v2/balance`,{method:'POST',headers:{'Content-Type':'application/json',va,timestamp,signature:await requestSignature(body,va,apiKey)},body,cache:'no-store',signal:AbortSignal.timeout(12_000)});
+  const response=await ipaymuFetch(`${baseUrl}/api/v2/balance`,{method:'POST',headers:{'Content-Type':'application/json',va,timestamp,signature:await requestSignature(body,va,apiKey)},body,cache:'no-store',signal:AbortSignal.timeout(12_000)},getIpaymuMode());
   const payload=await response.json().catch(()=>null) as {Status?:number;Data?:{MerchantBalance?:string|number;MemberBalance?:string|number};Message?:string}|null;
   const merchantBalance=Number(payload?.Data?.MerchantBalance);
   const memberBalance=Number(payload?.Data?.MemberBalance??0);
@@ -68,12 +79,43 @@ async function hmac(value:string,key:string){
   return hex(await crypto.subtle.sign('HMAC',cryptoKey,encoder.encode(value)));
 }
 
+async function ipaymuFetch(targetUrl:string,init:RequestInit,mode:'sandbox'|'production'){
+  const {proxyUrl,proxySecret}=configuration();
+  if(!proxyUrl||!proxySecret)return fetch(targetUrl,init);
+  const target=new URL(targetUrl);
+  const allowedHosts=mode==='sandbox'?['sandbox.ipaymu.com']:['my.ipaymu.com'];
+  if(target.protocol!=='https:'||!allowedHosts.includes(target.hostname)||(target.port&&target.port!=='443')||target.search||target.hash||!target.pathname.startsWith('/api/v2/'))throw new Error('The payment gateway route is invalid.');
+  const method=String(init.method??'GET').toUpperCase();
+  const bodyText=typeof init.body==='string'?init.body:'';
+  const bodyDigest=hex(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(bodyText)));
+  const timestamp=String(Math.floor(Date.now()/1000));
+  const random=crypto.getRandomValues(new Uint8Array(16));
+  const nonce=[...random].map(value=>value.toString(16).padStart(2,'0')).join('');
+  const canonical=[method,target.pathname,mode,timestamp,nonce,bodyDigest].join('\n');
+  const signature=await hmac(canonical,proxySecret);
+  const upstreamHeaders=new Headers(init.headers);
+  const headers=new Headers({
+    'Content-Type':upstreamHeaders.get('Content-Type')??'application/json',
+    'X-Ipaymu-Method':method,
+    'X-Ipaymu-Path':target.pathname,
+    'X-Ipaymu-Mode':mode,
+    'X-Vivreplay-Timestamp':timestamp,
+    'X-Vivreplay-Nonce':nonce,
+    'X-Vivreplay-Signature':signature,
+  });
+  for(const name of ['va','timestamp','signature']){
+    const value=upstreamHeaders.get(name);
+    if(value)headers.set(`X-Ipaymu-${name}`,value);
+  }
+  return fetch(proxyUrl,{method:'POST',headers,body:bodyText||undefined,cache:'no-store',signal:init.signal??AbortSignal.timeout(12_000)});
+}
+
 async function signedIpaymuPost(path:string,body:Record<string,unknown>,timeoutMs=12_000){
   const {va,apiKey,baseUrl}=configuration();
   const bodyText=JSON.stringify(body);
   const now=new Date();
   const timestamp=`${now.getUTCFullYear()}${String(now.getUTCMonth()+1).padStart(2,'0')}${String(now.getUTCDate()).padStart(2,'0')}${String(now.getUTCHours()).padStart(2,'0')}${String(now.getUTCMinutes()).padStart(2,'0')}${String(now.getUTCSeconds()).padStart(2,'0')}`;
-  const response=await fetch(`${baseUrl}/api/v2/${path}`,{method:'POST',headers:{'Content-Type':'application/json',va,timestamp,signature:await requestSignature(bodyText,va,apiKey)},body:bodyText,cache:'no-store',signal:AbortSignal.timeout(timeoutMs)});
+  const response=await ipaymuFetch(`${baseUrl}/api/v2/${path}`,{method:'POST',headers:{'Content-Type':'application/json',va,timestamp,signature:await requestSignature(bodyText,va,apiKey)},body:bodyText,cache:'no-store',signal:AbortSignal.timeout(timeoutMs)},getIpaymuMode());
   const payload=await response.json().catch(()=>null) as {Status?:number;Success?:boolean;Data?:unknown}|null;
   if(!response.ok||payload?.Status!==200||!payload.Data)throw new Error('iPaymu transaction details could not be checked.');
   return payload.Data;
@@ -166,7 +208,7 @@ export class IpaymuPaymentStartError extends Error{
     this.name='IpaymuPaymentStartError';
   }
 }
-export type IpaymuPaymentChannel={method:PaymentMethodCode;channel:string;name:string;logo:string;fee:number;feeType:'FLAT'|'PERCENT';additionalFee:number};
+export type IpaymuPaymentChannel={method:PaymentMethodCode;channel:string;name:string;logo:string;fee:number;feeType:'FLAT'|'PERCENT';additionalFee:number;available?:boolean;unavailableReason?:'temporarily_unavailable'};
 let paymentChannelsCache:{expiresAt:number;channels:IpaymuPaymentChannel[]}|null=null;
 
 type PaymentSettingsDatabase={prepare:(query:string)=>{bind:(...values:unknown[])=>{first:<T>()=>Promise<T|null>}}};
@@ -198,7 +240,7 @@ export async function getIpaymuPaymentChannels(options:{forceRefresh?:boolean}={
   // canonical request body is an empty JSON object.
   const queryDigest=hex(await crypto.subtle.digest('SHA-256',new TextEncoder().encode('{}')));
   const signature=await hmac(`GET:${va}:${queryDigest}:${apiKey}`,apiKey);
-  const response=await fetch(`${baseUrl}/api/v2/payment-channels`,{method:'GET',headers:{'Content-Type':'application/json',va,timestamp,signature},cache:'no-store'});
+  const response=await ipaymuFetch(`${baseUrl}/api/v2/payment-channels`,{method:'GET',headers:{'Content-Type':'application/json',va,timestamp,signature},cache:'no-store'},getIpaymuMode());
   const payload=await response.json().catch(()=>null) as {Status?:number;Data?:Array<{Code?:string;Channels?:Array<{Code?:string;Name?:string;Logo?:string;FeatureStatus?:string;HealthStatus?:string;TransactionFee?:{ActualFee?:number;ActualFeeType?:string;AdditionalFee?:number}}>} >}|null;
   if(!response.ok||payload?.Status!==200||!Array.isArray(payload.Data))throw new Error('Payment options could not be loaded.');
   const allowedMethods=new Set<PaymentMethodCode>(['va','cstore','qris','cc','paylater','ewallet']);
@@ -224,7 +266,18 @@ export async function getIpaymuPaymentChannels(options:{forceRefresh?:boolean}={
 export async function getEnabledIpaymuPaymentChannels(database:PaymentSettingsDatabase,options:{forceRefresh?:boolean}={}):Promise<IpaymuPaymentChannel[]>{
   const [channels,settings]=await Promise.all([getIpaymuPaymentChannels(options),getIpaymuPaymentChannelSettings(database)]);
   const disabled=new Set(settings.disabledChannels);
-  return channels.filter(channel=>!disabled.has(paymentChannelKey(channel.method,channel.channel)));
+  return channels.filter(channel=>!disabled.has(paymentChannelKey(channel.method,channel.channel))&&!(channel.method==='ewallet'&&channel.channel==='shopeepay'));
+}
+
+export async function getIpaymuPaymentChannelChoices(database:PaymentSettingsDatabase,options:{forceRefresh?:boolean}={}):Promise<IpaymuPaymentChannel[]>{
+  const [channels,settings]=await Promise.all([getIpaymuPaymentChannels(options),getIpaymuPaymentChannelSettings(database)]);
+  const disabled=new Set(settings.disabledChannels);
+  const choices=channels.filter(channel=>!disabled.has(paymentChannelKey(channel.method,channel.channel)));
+  const shopeepay=choices.find(channel=>channel.method==='ewallet'&&channel.channel==='shopeepay');
+  if(shopeepay){
+    return choices.map(channel=>channel===shopeepay?{...channel,available:false,unavailableReason:'temporarily_unavailable'}:channel);
+  }
+  return choices;
 }
 
 export async function createIpaymuRedirect(input:{orderId:string;products:IpaymuProduct[];buyer:{name:string;email:string;phone:string};returnUrl:string;cancelUrl:string;notifyUrl:string;paymentMethod?:PaymentMethodCode;feeDirection?:'BUYER'|'MERCHANT'}){
@@ -249,7 +302,7 @@ export async function createIpaymuRedirect(input:{orderId:string;products:Ipaymu
   const bodyText=JSON.stringify(body);
   const now=new Date();
   const timestamp=`${now.getUTCFullYear()}${String(now.getUTCMonth()+1).padStart(2,'0')}${String(now.getUTCDate()).padStart(2,'0')}${String(now.getUTCHours()).padStart(2,'0')}${String(now.getUTCMinutes()).padStart(2,'0')}${String(now.getUTCSeconds()).padStart(2,'0')}`;
-  const response=await fetch(`${baseUrl}/api/v2/payment`,{method:'POST',headers:{'Content-Type':'application/json',va,timestamp,signature:await requestSignature(bodyText,va,apiKey)},body:bodyText,cache:'no-store'});
+  const response=await ipaymuFetch(`${baseUrl}/api/v2/payment`,{method:'POST',headers:{'Content-Type':'application/json',va,timestamp,signature:await requestSignature(bodyText,va,apiKey)},body:bodyText,cache:'no-store'},getIpaymuMode());
   const payload=await response.json().catch(()=>null) as {Status?:number;Message?:string;Data?:{SessionID?:string;Url?:string}}|null;
   const url=payload?.Data?.Url;
   const sessionId=payload?.Data?.SessionID;
@@ -287,7 +340,7 @@ export async function createIpaymuDirectPayment(input:{orderId:string;amount:num
   const bodyText=JSON.stringify(body);
   const now=new Date();
   const timestamp=`${now.getUTCFullYear()}${String(now.getUTCMonth()+1).padStart(2,'0')}${String(now.getUTCDate()).padStart(2,'0')}${String(now.getUTCHours()).padStart(2,'0')}${String(now.getUTCMinutes()).padStart(2,'0')}${String(now.getUTCSeconds()).padStart(2,'0')}`;
-  const response=await fetch(`${baseUrl}/api/v2/payment/direct`,{method:'POST',headers:{'Content-Type':'application/json',va,timestamp,signature:await requestSignature(bodyText,va,apiKey)},body:bodyText,cache:'no-store',signal:AbortSignal.timeout(40_000)});
+  const response=await ipaymuFetch(`${baseUrl}/api/v2/payment/direct`,{method:'POST',headers:{'Content-Type':'application/json',va,timestamp,signature:await requestSignature(bodyText,va,apiKey)},body:bodyText,cache:'no-store',signal:AbortSignal.timeout(40_000)},getIpaymuMode());
   const payload=await response.json().catch(()=>null) as {Status?:number;Message?:string;Data?:{SessionId?:string|number;SessionID?:string|number;TransactionId?:string|number;QrImage?:string;QrString?:string;Url?:string;PaymentNo?:string|number;PaymentName?:string;PaymentInstructionsDoc?:string;Total?:number|string;Fee?:number|string;Expired?:string;responseCode?:string|number;responseMessage?:string}}|null;
   const data=payload?.Data;
   const transactionId=data?.TransactionId;

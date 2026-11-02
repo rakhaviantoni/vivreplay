@@ -9,6 +9,7 @@ services:
       - ./data:/app/data
     environment:
       - PYTHONUNBUFFERED=1
+      - IPAYMU_PROXY_SECRET=${IPAYMU_PROXY_SECRET:-}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s

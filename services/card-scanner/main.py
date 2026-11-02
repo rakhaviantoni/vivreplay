@@ -3,12 +3,20 @@ FastAPI visual card scanning service.
 Provides instant card recognition via OpenCV Hough/contour detection and visual vector search.
 """
 
+import hashlib
+import hmac
+import os
+import re
+import sqlite3
 import time
 import uuid
+from pathlib import Path
 from typing import Optional
 import cv2
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+import httpx
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from pydantic import BaseModel
 
 from detector import extract_card
@@ -30,6 +38,85 @@ app.add_middleware(
 )
 
 matcher = CardMatcher(index_dir="data")
+
+IPAYMU_ROUTES = {
+    ("GET", "/api/v2/payment-channels"),
+    ("POST", "/api/v2/payment"),
+    ("POST", "/api/v2/payment/direct"),
+    ("POST", "/api/v2/balance"),
+    ("POST", "/api/v2/history"),
+    ("POST", "/api/v2/transaction"),
+}
+
+
+def consume_ipaymu_proxy_nonce(nonce: str, issued_at: int) -> bool:
+    db_path = Path(os.getenv("IPAYMU_PROXY_NONCE_DB", "data/ipaymu-proxy-nonces.sqlite3"))
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(db_path, timeout=5) as db:
+        db.execute("CREATE TABLE IF NOT EXISTS used_nonces (nonce TEXT PRIMARY KEY, issued_at INTEGER NOT NULL)")
+        db.execute("DELETE FROM used_nonces WHERE issued_at < ?", (int(time.time()) - 600,))
+        try:
+            db.execute("INSERT INTO used_nonces (nonce, issued_at) VALUES (?, ?)", (nonce, issued_at))
+            return True
+        except sqlite3.IntegrityError:
+            return False
+
+
+@app.post("/api/ipaymu-egress")
+async def ipaymu_egress(request: Request):
+    secret = os.getenv("IPAYMU_PROXY_SECRET", "").strip()
+    if len(secret) < 64:
+        raise HTTPException(status_code=503, detail="Payment relay is not configured")
+
+    method = request.headers.get("x-ipaymu-method", "").upper()
+    path = request.headers.get("x-ipaymu-path", "")
+    mode = request.headers.get("x-ipaymu-mode", "")
+    timestamp_header = request.headers.get("x-vivreplay-timestamp", "")
+    nonce = request.headers.get("x-vivreplay-nonce", "")
+    supplied_signature = request.headers.get("x-vivreplay-signature", "").lower()
+    if (method, path) not in IPAYMU_ROUTES or mode not in {"production", "sandbox"}:
+        raise HTTPException(status_code=400, detail="Unsupported payment request")
+    if not re.fullmatch(r"\d{10}", timestamp_header) or not re.fullmatch(r"[a-f0-9]{32}", nonce) or not re.fullmatch(r"[a-f0-9]{64}", supplied_signature):
+        raise HTTPException(status_code=401, detail="Invalid request")
+    issued_at = int(timestamp_header)
+    if abs(int(time.time()) - issued_at) > 120:
+        raise HTTPException(status_code=401, detail="Expired request")
+
+    body = await request.body()
+    if len(body) > 65_536 or (method == "GET" and body):
+        raise HTTPException(status_code=413, detail="Request is too large")
+    body_hash = hashlib.sha256(body).hexdigest()
+    canonical = "\n".join((method, path, mode, timestamp_header, nonce, body_hash)).encode()
+    expected_signature = hmac.new(secret.encode(), canonical, hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(expected_signature, supplied_signature):
+        raise HTTPException(status_code=401, detail="Invalid request")
+    try:
+        if not consume_ipaymu_proxy_nonce(nonce, issued_at):
+            raise HTTPException(status_code=409, detail="Request already used")
+    except sqlite3.Error:
+        raise HTTPException(status_code=503, detail="Payment relay is temporarily unavailable")
+
+    va = request.headers.get("x-ipaymu-va", "")
+    ipaymu_timestamp = request.headers.get("x-ipaymu-timestamp", "")
+    ipaymu_signature = request.headers.get("x-ipaymu-signature", "")
+    if not va or not re.fullmatch(r"\d{14}", ipaymu_timestamp) or not re.fullmatch(r"[a-fA-F0-9]{64}", ipaymu_signature):
+        raise HTTPException(status_code=400, detail="Payment request is incomplete")
+
+    gateway_host = "my.ipaymu.com" if mode == "production" else "sandbox.ipaymu.com"
+    headers = {
+        "Content-Type": request.headers.get("content-type", "application/json"),
+        "va": va,
+        "timestamp": ipaymu_timestamp,
+        "signature": ipaymu_signature,
+    }
+    try:
+        async with httpx.AsyncClient(timeout=httpx.Timeout(45.0, connect=8.0), follow_redirects=False) as client:
+            upstream = await client.request(method, f"https://{gateway_host}{path}", headers=headers, content=body or None)
+    except httpx.HTTPError:
+        raise HTTPException(status_code=502, detail="Payment provider could not be reached")
+
+    content_type = upstream.headers.get("content-type", "application/json")
+    return Response(content=upstream.content, status_code=upstream.status_code, headers={"Content-Type": content_type, "Cache-Control": "no-store"})
 
 
 @app.get("/health")

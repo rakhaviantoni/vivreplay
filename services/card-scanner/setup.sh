@@ -38,6 +38,7 @@ After=network.target
 Type=simple
 User=$SUDO_USER
 WorkingDirectory=$APP_DIR
+EnvironmentFile=-/etc/vivreplay/card-scanner.env
 ExecStart=$APP_DIR/venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000 --workers 2
 Restart=always
 RestartSec=3

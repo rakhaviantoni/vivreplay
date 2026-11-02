@@ -147,3 +147,11 @@ Obtain free SSL certificate:
 ```bash
 sudo certbot --nginx -d scan.yourdomain.com
 ```
+
+## Static iPaymu route
+
+The same VPS can relay VivrePlay's signed iPaymu API calls so the provider sees the VPS's outbound IP. The relay is separate from `/api/scan`, accepts only the iPaymu endpoints used by checkout, and requires a shared 32-byte-or-longer secret. It does not store iPaymu merchant credentials.
+
+Generate a 32-byte key with `openssl rand -hex 32`. For systemd, create `/etc/vivreplay/card-scanner.env`, set `IPAYMU_PROXY_SECRET` to that 64-character value, restrict the file to root (`chmod 600`), and restart `card-scanner`. For Docker Compose, set the same variable in a VPS-only `.env` file beside `docker-compose.yml` and rebuild the service. The scanner's `data` volume stores used request nonces so requests cannot be replayed across workers or restarts.
+
+Set `IPAYMU_EGRESS_PROXY_URL=https://scan.vivreplay.com/api/ipaymu-egress` on the Cloudflare Worker and store the same key as the `IPAYMU_EGRESS_PROXY_SECRET` Worker secret. Then register the VPS's actual outbound IP with iPaymu; do not use the DNS address for `scan.vivreplay.com` if it is proxied through Cloudflare. Production app requests require this route and do not fall back to Worker egress. Keep the shared key out of this repository.
