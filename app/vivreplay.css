@@ -4110,3 +4110,8 @@ html[data-theme='dark'] .market-sell-game-badge .market-game-mark-one-piece,
 html[data-theme='dark'] .market-listing-game-scope .market-game-mark-one-piece,
 html[data-theme='dark'] :is(.market-game-mark,.market-feed-game-mark) :is(.game-mode-one-piece,.market-game-mark-op) img{filter:brightness(0) invert(1)}
 html[data-theme='dark'] .market-game-switch.market-scope-switch .market-scope-logo.is-one-piece img{filter:brightness(0) invert(1)}
+/* Settlement-held proceeds stay visible without implying they can be withdrawn yet. */
+.market-payout-settlement-note,.payout-settlement-note{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:4px 12px;margin:0;padding:10px 13px;border:1px solid var(--line);border-radius:8px;background:var(--surface)}
+.market-payout-settlement-note>span,.payout-settlement-note>span{color:var(--muted);font-size:12px}
+.market-payout-settlement-note>strong,.payout-settlement-note>strong{font-size:13px;font-variant-numeric:tabular-nums}
+.market-payout-settlement-note>small,.payout-settlement-note>small{grid-column:1/-1;color:var(--muted);font-size:11px}

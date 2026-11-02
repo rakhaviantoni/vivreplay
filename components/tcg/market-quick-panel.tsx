@@ -77,7 +77,7 @@ function VaultQuickActions({account,locale,onOpenChange,onEdit}:{account:Account
 }
 
 type ProfileQuickTab='account'|'delivery'|'membership'|'payouts';
-type QuickPayoutSummary={earned:number;reserved:number;available:number;minimumPayout:number;defaultBankAccountId:string|null;requests:Array<{id:string;amount:number;currency:string;status:string;createdAt:string}>};
+type QuickPayoutSummary={earned:number;reserved:number;available:number;pendingSettlement:number;nextSettlementAt:string|null;minimumPayout:number;defaultBankAccountId:string|null;requests:Array<{id:string;amount:number;currency:string;status:string;createdAt:string}>};
 type QuickProPaymentView={id:string;status:string;paymentMethod:string|null;paymentName:string|null;paymentNo:string|null;paymentInstructionsUrl:string|null;paymentQrImage:string|null;checkoutUrl:string|null;paymentFee:number|null;paymentTotal:number;amount:number;currency:string;paymentNeedsHelp:boolean};
 const QUICK_COURIER_NAMES:Record<string,string>={jnt:'J&T Express',jne:'JNE Express',sicepat:'SiCepat',anteraja:'Anteraja',tiki:'TIKI',pos:'Pos Indonesia',lion:'Lion Parcel',ninja:'Ninja Xpress',wahana:'Wahana',grab:'GrabExpress',gojek:'GoSend'};
 const QUICK_POPULAR_COURIERS=['jnt','jne','sicepat','grab','gojek'];
@@ -325,6 +325,7 @@ function ProfileQuickEdit({profile,locale,onSaved,initialTab='account'}:{profile
         <div><small>{t('Available to withdraw','Saldo tersedia')}</small><strong>{payoutSummary?new Intl.NumberFormat(locale==='ID'?'id-ID':'en-US',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(payoutSummary.available):'—'}</strong></div>
         <span>{t('Processing','Diproses')} <b>{payoutSummary?new Intl.NumberFormat(locale==='ID'?'id-ID':'en-US',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(payoutSummary.reserved):'—'}</b></span>
       </div>
+      {Boolean(payoutSummary?.pendingSettlement)&&<p className="market-payout-settlement-note"><span>{t('Waiting for iPaymu settlement','Menunggu pencairan iPaymu')}</span><strong>{new Intl.NumberFormat(locale==='ID'?'id-ID':'en-US',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(payoutSummary!.pendingSettlement)}</strong>{payoutSummary?.nextSettlementAt&&<small>{t('Estimated availability','Perkiraan tersedia')} {new Intl.DateTimeFormat(locale==='ID'?'id-ID':'en-US',{dateStyle:'medium',timeZone:String(profile.timezone||'Asia/Jakarta')}).format(new Date(payoutSummary.nextSettlementAt))}</small>}</p>}
       {payoutSummary&&payoutAccounts.length>0&&payoutSummary.available>=payoutSummary.minimumPayout&&<form className="market-payout-request" onSubmit={event=>void requestPayout(event)}>
         <label>{t('Amount','Jumlah')}<input required type="number" inputMode="numeric" min={payoutSummary.minimumPayout} max={payoutSummary.available} step="1" value={payoutAmount} onChange={event=>setPayoutAmount(event.target.value)}/></label>
         <label>{t('Send to','Kirim ke')}<select required value={payoutBankAccountId} onChange={event=>setPayoutBankAccountId(event.target.value)}>{payoutAccounts.map(account=><option key={account.id} value={account.id}>{account.bankName} ···· {account.lastFour}{account.isDefault?` · ${t('Default','Utama')}`:''}</option>)}</select></label>
