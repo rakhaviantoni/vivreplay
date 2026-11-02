@@ -1,6 +1,6 @@
 import {db,errorResponse,guard,user,optionalUser,HttpError} from '@/lib/server/store';
 import {getCurrentUser} from '@/lib/server/auth';
-import {getEnabledIpaymuPaymentChannels,getIpaymuPaymentChannels,hasMarketIpaymuPaymentConfig,ipaymuExpiryTimestamp} from '@/lib/server/ipaymu';
+import {getEnabledIpaymuPaymentChannels,getIpaymuPaymentChannelChoices,getIpaymuPaymentChannels,hasMarketIpaymuPaymentConfig,ipaymuExpiryTimestamp} from '@/lib/server/ipaymu';
 import {fetchMarketPolicies,MARKET_BUYER_FEE_CAP,MARKET_PRO_SHIPPING_VOUCHERS_PER_MONTH,MARKET_PRO_SHIPPING_VOUCHERS_PER_YEAR,MARKET_PRO_SHIPPING_VOUCHER_SHARE,MARKET_PRO_SHIPPING_VOUCHER_CAP} from '@/lib/market/policy';
 import {getProPricing} from '@/lib/market/pro-pricing';
 
@@ -50,12 +50,12 @@ export async function GET(){
     const intro=await introStatus(profile?.id,true,pricing).catch(()=>({promoOpen:false,spotsRemaining:null,eligible:false,pendingOrderId:null,priorPaid:false}));
     const canBuyIntro=intro.eligible&&profile?.tier!=='pro';
     const available=hasMarketIpaymuPaymentConfig()&&Boolean(pricing.amount&&pricing.durationDays);
-    let paymentChannels=[] as Awaited<ReturnType<typeof getEnabledIpaymuPaymentChannels>>;
+    let paymentChannels=[] as Awaited<ReturnType<typeof getIpaymuPaymentChannelChoices>>;
     let paymentChannelStatus:'not_configured'|'provider_unavailable'|'settings_unavailable'|'no_active_channels'|'all_disabled'|'ready'='not_configured';
     if(hasMarketIpaymuPaymentConfig()){
       let reportedChannels:Awaited<ReturnType<typeof getIpaymuPaymentChannels>>=[];
       try{reportedChannels=await getIpaymuPaymentChannels()}catch{paymentChannelStatus='provider_unavailable'}
-      if(reportedChannels.length){try{paymentChannels=await getEnabledIpaymuPaymentChannels(database);paymentChannelStatus=paymentChannels.length?'ready':'all_disabled'}catch{paymentChannelStatus='settings_unavailable'}}
+      if(reportedChannels.length){try{paymentChannels=await getIpaymuPaymentChannelChoices(database);paymentChannelStatus=paymentChannels.some(channel=>channel.available!==false)?'ready':'all_disabled'}catch{paymentChannelStatus='settings_unavailable'}}
       else if(paymentChannelStatus!=='provider_unavailable')paymentChannelStatus='no_active_channels';
     }
     return Response.json({

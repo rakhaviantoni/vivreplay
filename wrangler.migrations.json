@@ -19,6 +19,7 @@
     "NEXT_PUBLIC_TURNSTILE_SITE_KEY": "0x4AAAAAAFLjvjAWmkfLwlgD",
     "NEXT_PUBLIC_CARD_SCANNER_URL": "https://scan.vivreplay.com",
     "IPAYMU_MODE": "production",
+    "IPAYMU_EGRESS_PROXY_URL": "https://scan.vivreplay.com/api/ipaymu-egress",
     "VIVREPLAY_MARKET_CHECKOUT_ENABLED": "true",
     "VIVREPLAY_MARKET_SELLER_OPERATIONS_READY": "true",
     "VIVREPLAY_MARKET_LIVE_PAYMENTS_ENABLED": "true",

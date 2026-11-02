@@ -75,7 +75,15 @@ export default defineConfig(async ({ command, mode }) => {
     command === "serve" ? "2026-05-22" : "2026-10-08";
 
   const localEnv = loadEnv(mode, process.cwd(), "");
+  if (command !== "serve") {
+    localBindingConfig.vars.IPAYMU_MODE = "production";
+    localBindingConfig.vars.IPAYMU_EGRESS_PROXY_URL =
+      "https://scan.vivreplay.com/api/ipaymu-egress";
+    localBindingConfig.vars.VIVREPLAY_MARKET_LIVE_PAYMENTS_ENABLED = "true";
+  }
   if (command === "serve") {
+    localBindingConfig.vars.IPAYMU_MODE = "sandbox";
+    localBindingConfig.vars.VIVREPLAY_MARKET_LIVE_PAYMENTS_ENABLED = "false";
     localBindingConfig.vars.BETTER_AUTH_URL = "http://localhost:5173";
     localBindingConfig.vars.VIVREPLAY_LOCAL_TURNSTILE_TEST_MODE = "true";
     localBindingConfig.vars.TURNSTILE_SECRET_KEY = "1x0000000000000000000000000000000AA";

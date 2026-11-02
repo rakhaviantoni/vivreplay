@@ -1,6 +1,6 @@
 import {db,errorResponse,user,HttpError} from '@/lib/server/store';
 import {getCurrentUser} from '@/lib/server/auth';
-import {clearIpaymuPaymentAttempt,createIpaymuDirectPayment,createIpaymuRedirect,findIpaymuTransactionsByReference,getEnabledIpaymuPaymentChannels,getIpaymuAttemptState,getIpaymuMode,getIpaymuPaymentChannels,getIpaymuTransaction,hasIpaymuPaymentConfig,hasMarketIpaymuPaymentConfig,IpaymuPaymentStartError,ipaymuCheckoutExpiresAt,ipaymuExpiryTimestamp,ipaymuPayableTotal,ipaymuQrImageUrl} from '@/lib/server/ipaymu';
+import {clearIpaymuPaymentAttempt,createIpaymuDirectPayment,createIpaymuRedirect,findIpaymuTransactionsByReference,getEnabledIpaymuPaymentChannels,getIpaymuPaymentChannelChoices,getIpaymuAttemptState,getIpaymuMode,getIpaymuPaymentChannels,getIpaymuTransaction,hasIpaymuPaymentConfig,hasMarketIpaymuPaymentConfig,IpaymuPaymentStartError,ipaymuCheckoutExpiresAt,ipaymuExpiryTimestamp,ipaymuPayableTotal,ipaymuQrImageUrl} from '@/lib/server/ipaymu';
 import {estimateIpaymuFee} from '@/lib/market/ipaymu-fees';
 import {sendMarketEmail,sendMarketEmailOnce} from '@/lib/server/market-notifications';
 import {sealedProductById,sealedProductKinds} from '@/lib/market/sealed-products';
@@ -118,12 +118,12 @@ export async function GET(_request:Request,{params}:{params:Promise<{id:string}>
       }catch(error){console.error('ipaymu_payment_recovery_failed',{orderId:order.id,error:error instanceof Error?error.message:'unknown'})}
     }
     const configured=order.kind==='MARKET'?hasMarketIpaymuPaymentConfig():hasIpaymuPaymentConfig();
-    let paymentChannels:Awaited<ReturnType<typeof getEnabledIpaymuPaymentChannels>>=[];
+    let paymentChannels:Awaited<ReturnType<typeof getIpaymuPaymentChannelChoices>>=[];
     let paymentChannelStatus:'not_configured'|'provider_unavailable'|'settings_unavailable'|'no_active_channels'|'all_disabled'|'ready'='not_configured';
     if(configured){
       try{
         const reported=await getIpaymuPaymentChannels({forceRefresh:true});
-        if(reported.length){paymentChannels=await getEnabledIpaymuPaymentChannels(database);paymentChannelStatus=paymentChannels.length?'ready':'all_disabled'}
+        if(reported.length){paymentChannels=await getIpaymuPaymentChannelChoices(database);paymentChannelStatus=paymentChannels.some(channel=>channel.available!==false)?'ready':'all_disabled'}
         else paymentChannelStatus='no_active_channels';
       }catch{paymentChannelStatus='provider_unavailable'}
     }
@@ -260,9 +260,13 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
       const providerWait=error instanceof Error&&(/(?:timeout|timed out|aborted|fetch failed|network)/i.test(error.message)||error.name==='TimeoutError'||error.name==='AbortError');
       const outcome=error instanceof IpaymuPaymentStartError?error.outcome:providerWait?'unknown':'rejected';
       if(outcome==='rejected'){
-        const clearedDetails=clearIpaymuPaymentAttempt(details);
-        const checkoutExpiry=ipaymuCheckoutExpiresAt(details.ipaymuCheckoutExpiresAt,order.createdAt);
-        await database.prepare("UPDATE checkout_orders SET payment_id=NULL,details=?,expires_at=COALESCE(?,expires_at),updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id=?").bind(JSON.stringify(clearedDetails),checkoutExpiry,id,paymentClaim).run();
+        if(order.kind==='PRO'){
+          await database.prepare("DELETE FROM checkout_orders WHERE id=? AND kind='PRO' AND status='PENDING_PAYMENT' AND payment_id=?").bind(id,paymentClaim).run();
+        }else{
+          const clearedDetails=clearIpaymuPaymentAttempt(details);
+          const checkoutExpiry=ipaymuCheckoutExpiresAt(details.ipaymuCheckoutExpiresAt,order.createdAt);
+          await database.prepare("UPDATE checkout_orders SET status='FAILED',payment_id=NULL,details=?,expires_at=COALESCE(?,expires_at),updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id=?").bind(JSON.stringify(clearedDetails),checkoutExpiry,id,paymentClaim).run();
+        }
       }
       const message=outcome==='unknown'
         ?'The payment provider is taking longer than expected. We’re checking this request before you try another method.'
@@ -289,6 +293,7 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     if(!paymentId){await database.prepare("UPDATE checkout_orders SET payment_id=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id=?").bind(id,paymentClaim).run();throw new HttpError(502,'Could not start payment. Please try again.');}
     const paymentExpirySql=payment.expiresAt?new Date(payment.expiresAt).toISOString().slice(0,19).replace('T',' '):order.expiresAt;
     const updated=await database.prepare("UPDATE checkout_orders SET payment_id=?,details=?,expires_at=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id IS ?").bind(paymentId,JSON.stringify(details),paymentExpirySql,id,paymentClaim).run();
+    if(updated.meta.changes&&order.kind==='PRO')await sendMarketEmailOnce(order.buyerId,'pro-payment-pending','Market Pro',order.id,`payment-pending:${order.id}`).catch(error=>console.error('market_pro_payment_email_failed',{orderId:order.id,error:error instanceof Error?error.message:'unknown'}));
     if(!updated.meta.changes){
       const latest=await database.prepare('SELECT payment_id AS paymentId,details FROM checkout_orders WHERE id=?').bind(id).first<{paymentId:string|null;details:string}>();
       let latestDetails:Record<string,unknown>={};try{latestDetails=JSON.parse(latest?.details??'{}') as Record<string,unknown>}catch{}
