@@ -123,6 +123,10 @@ export async function POST(request:Request){
     const phone=String(profile.phone??'').replace(/[\s().-]/g,'');
 
     const database=db();
+    const unresolvedOrder=await database.prepare(`SELECT id FROM checkout_orders
+      WHERE kind='PRO' AND buyer_id=? AND status IN ('EXPIRED','PAYMENT_REVIEW') AND payment_id LIKE 'CREATING:%'
+      ORDER BY updated_at DESC LIMIT 1`).bind(profile.id).first<{id:string}>();
+    if(unresolvedOrder)throw new HttpError(409,'We’re still confirming a previous payment. Contact support before trying again.');
     const pendingOrders=(await database.prepare(`SELECT id,payment_id AS paymentId,details,expires_at AS expiresAt,updated_at AS updatedAt
       FROM checkout_orders WHERE kind='PRO' AND buyer_id=? AND status='PENDING_PAYMENT'
       ORDER BY created_at DESC LIMIT 20`).bind(profile.id).all<{id:string;paymentId:string|null;details:string;expiresAt:string|null;updatedAt:string|null}>()).results;

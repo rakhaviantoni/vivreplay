@@ -51,7 +51,7 @@ export async function GET(){
         await sendMarketEmailOnce(profile.id,'pro-expired','Market Pro',expiryValue,`expired:${expiryValue}`);
       }
     }
-    const orders=rows.map(({id,status,amount,currency,createdAt,paidAt,paymentId,details:rawDetails,expiresAt,updatedAt})=>{
+    const orders=rows.filter(order=>order.status!=='EXPIRED').map(({id,status,amount,currency,createdAt,paidAt,paymentId,details:rawDetails,expiresAt,updatedAt})=>{
       let details:Record<string,unknown>={};try{const parsed=JSON.parse(rawDetails) as unknown;if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))details=parsed as Record<string,unknown>}catch{}
       return {id,status,amount,currency,createdAt,paidAt,billingPeriod:details.billingPeriod==='yearly'?'yearly':'monthly',paymentMethod:typeof details.ipaymuPaymentMethod==='string'?details.ipaymuPaymentMethod:null,paymentChannel:typeof details.ipaymuPaymentChannel==='string'?details.ipaymuPaymentChannel:null,paymentName:typeof details.ipaymuPaymentName==='string'?details.ipaymuPaymentName:null,selectedMethod:typeof details.ipaymuSelectedMethod==='string'?details.ipaymuSelectedMethod:null,selectedChannel:typeof details.ipaymuSelectedChannel==='string'?details.ipaymuSelectedChannel:null,paymentCreated:Boolean(paymentId&&!paymentId.startsWith('CREATING:')&&details.ipaymuPaymentMethod),paymentCreating:Boolean(paymentId?.startsWith('CREATING:')),expiresAt:details.ipaymuPaymentExpiresAt??expiresAt};
     });
