@@ -79,9 +79,31 @@ export function MarketProDialog({locale,member=false,profile=null,accountLoading
     setPaymentViewLoading(true);setError('');setPaymentView(null);
     try{
       if(createInstrument){
-        const instrumentResponse=await fetch(`/api/checkout/order/${encodeURIComponent(orderId)}/instrument`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({paymentMethod:selectedPayment.method,paymentChannel:selectedPayment.channel})});
-        const instrument=await instrumentResponse.json() as {error?:string};
-        if(!instrumentResponse.ok)throw new Error(instrument.error??t('Payment could not be started.','Pembayaran tidak dapat dimulai.'));
+        const instrumentUrl=`/api/checkout/order/${encodeURIComponent(orderId)}/instrument`;
+        const readInstrumentStatus=async()=>{
+          const response=await fetch(instrumentUrl,{cache:'no-store',headers:{'Cache-Control':'no-cache'}});
+          const status=await response.json() as {error?:string;canChange?:boolean;hasActivePayment?:boolean;paymentCreating?:boolean};
+          if(!response.ok)throw new Error(status.error??t('Payment status could not be loaded.','Status pembayaran tidak dapat dimuat.'));
+          return status;
+        };
+        let status=await readInstrumentStatus();
+        if(!status.hasActivePayment){
+          if(status.paymentCreating)throw new Error(t('This payment is still being checked. Refresh this checkout in a moment.','Pembayaran ini masih diperiksa. Muat ulang checkout sebentar lagi.'));
+          if(!status.canChange)throw new Error(t('This checkout cannot start another payment. Refresh to check its status.','Checkout ini belum dapat memulai pembayaran baru. Muat ulang untuk memeriksa statusnya.'));
+          try{
+            const instrumentResponse=await fetch(instrumentUrl,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({paymentMethod:selectedPayment.method,paymentChannel:selectedPayment.channel})});
+            const instrument=await instrumentResponse.json() as {error?:string};
+            if(!instrumentResponse.ok)throw new Error(instrument.error??t('Payment could not be started.','Pembayaran tidak dapat dimulai.'));
+          }catch(startError){
+            // A lost response can still mean the provider created the payment.
+            // Reconcile this order before showing an error or allowing another attempt.
+            status=await readInstrumentStatus().catch(()=>status);
+            if(!status.hasActivePayment){
+              if(status.paymentCreating)throw new Error(t('This payment is still being checked. Refresh this checkout in a moment.','Pembayaran ini masih diperiksa. Muat ulang checkout sebentar lagi.'));
+              throw startError;
+            }
+          }
+        }
       }
       const response=await fetch(`/api/checkout/order/${encodeURIComponent(orderId)}`,{cache:'no-store',headers:{'Cache-Control':'no-cache'}});
       const order=await response.json() as ProPaymentView&{error?:string};
@@ -93,6 +115,7 @@ export function MarketProDialog({locale,member=false,profile=null,accountLoading
 
   const join=async()=>{
     if(pendingOrder?.paymentCreated){await openPayment(pendingOrder.id,false);return}
+    if(pendingOrder){await openPayment(pendingOrder.id,true);return}
     if(!profile){
       setError(t('Sign in to continue.','Masuk untuk melanjutkan.'));
       window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));
