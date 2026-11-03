@@ -5672,6 +5672,8 @@ html[data-theme='dark'] .market-scope-picker > .market-scope-toggle { color:#edf
 .market-scope-picker { grid-template-rows:28px 22px!important; }
 .market-game-switch .market-scope-picker > .market-scope-toggle { min-height:28px!important; height:28px!important; }
 .market-scope-label { font-size:12px!important; font-weight:750!important; line-height:1!important; letter-spacing:0!important; }
+.market-game-switch.market-scope-switch .market-scope-label { color:#535d56!important; }
+html[data-theme='dark'] .market-game-switch.market-scope-switch .market-scope-label { color:#a9c1bf!important; }
 .market-game-switch .market-scope-picker > .market-scope-menu-toggle {
   display:grid!important;
   place-items:center!important;
