@@ -222,7 +222,7 @@ function drawRoundedRect(
 
 function drawVaultSlabLabel(ctx:CanvasRenderingContext2D,item:ShareCardItem,gameSlug:'one-piece'|'pokemon'|undefined,x:number,y:number,width:number,height:number,setYear?:number){
   const card=item.card as Card&{gameSlug?:string};
-  const game=card.gameSlug??gameSlug??'one-piece';
+  const game=card.gameSlug??(/^PK-/i.test(card.code)?'pokemon':gameSlug??'one-piece');
   const language=String(item.slabLabel?.language??card.language??'').toUpperCase().replace('JA','JP');
   const setCode=String(item.slabLabel?.setCode??card.setCode??'').toUpperCase();
   const number=String(item.slabLabel?.number??card.printingCode??card.code??'').match(/(\d+[A-Z]?)$/i)?.[1]??'';
@@ -346,7 +346,7 @@ async function generateListingCompositeBlob({
   const cardHeight = Math.round(cardWidth * (580 / 420));
   const rows = Math.ceil(count / cols);
   const gapY = 16;
-  const cardInfoHeight = entityType==='vault'?74:58;
+  const cardInfoHeight = entityType==='vault'||cards.some(item=>item.productType==='GRADED')?74:58;
   const headerHeight = 136;
   const footerHeight = 56;
   const cardsAreaHeight = rows * (cardHeight + cardInfoHeight) + (rows - 1) * gapY;
@@ -419,9 +419,9 @@ async function generateListingCompositeBlob({
     }),
   ]);
   const slabYears=new Map<ShareCardItem,number>();
-  if(entityType==='vault')await Promise.all(cards.filter(item=>item.productType==='GRADED').map(async item=>{
+  await Promise.all(cards.filter(item=>item.productType==='GRADED').map(async item=>{
     const card=item.card as Card&{gameSlug?:string};
-    const game=(card.gameSlug??gameSlug??'one-piece') as 'one-piece'|'pokemon';
+    const game=(card.gameSlug??(/^PK-/i.test(card.code)?'pokemon':gameSlug??'one-piece')) as 'one-piece'|'pokemon';
     const setCode=item.slabLabel?.setCode??card.setCode??'';
     const language=item.slabLabel?.language??card.language??'EN';
     const year=await shareSetYear(game,language,setCode);
@@ -689,7 +689,7 @@ async function generateListingCompositeBlob({
     const c = i % cols;
     const cardX = gridStartX + c * (cardWidth + gapX);
     const cardY = startY + r * (cardHeight + cardInfoHeight + gapY);
-    const isSlab=entityType==='vault'&&item.productType==='GRADED';
+    const isSlab=item.productType==='GRADED';
     const artX=cardX+(isSlab?8:0);
     const artY=cardY+(isSlab?cardInfoHeight:0);
     const artWidth=cardWidth-(isSlab?16:0);

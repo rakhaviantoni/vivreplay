@@ -868,8 +868,12 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
             card: item.card,
             printingId: item.id,
             quantity: item.quantity,
-          condition: item.productType==='GRADED'?`${item.gradingCompany} ${item.grade}`:item.condition,
+            condition: item.productType==='GRADED'?`${item.gradingCompany} ${item.grade}`:item.condition,
             unitAmount: item.unitAmount,
+            productType:item.productType==='GRADED'?'GRADED':'RAW',
+            gradingCompany:item.gradingCompany,
+            grade:item.grade,
+            certification:item.certification,
           }))}
           price={formatMoney(publicListingTotal, currency)}
           subtitle={language==='ID'?`${items.reduce((acc, it) => acc + it.quantity, 0)} kartu`:`${items.reduce((acc, it) => acc + it.quantity, 0)} ${items.reduce((acc, it) => acc + it.quantity, 0) === 1 ? 'card' : 'cards'}`}

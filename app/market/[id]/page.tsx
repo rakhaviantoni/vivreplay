@@ -31,6 +31,9 @@ type RawStoredListing = Listing & {
   cardCode?: string;
   catalogPrintingCode?:string|null;
   catalogAssetPath?:string|null;
+  gradingCompany?:string|null;
+  grade?:string|null;
+  certification?:string|null;
   cardName?: string;
   cardColor?: string;
   cardType?: string;
@@ -90,6 +93,9 @@ async function Page({params}:{params:Promise<{id:string}>}){
         ci.cost AS cardCost,
         ci.power AS cardPower,
         ci.effect AS cardEffect,
+        gp.short_name AS gradingCompany,
+        gc.grade AS grade,
+        gc.certification AS certification,
         o.label AS shippingOriginLabel
       FROM listings l
       JOIN profiles p ON p.id=l.seller_id
@@ -97,6 +103,8 @@ async function Page({params}:{params:Promise<{id:string}>}){
       LEFT JOIN tcg_card_printings tcp ON tcp.id=l.printing_id
       LEFT JOIN tcg_card_assets tca ON tca.printing_id=tcp.id AND tca.kind='small'
       LEFT JOIN card_identities ci ON ci.id=cp.identity_id
+      LEFT JOIN graded_cards gc ON gc.instance_id=l.instance_id
+      LEFT JOIN grading_providers gp ON gp.id=gc.provider_id
       LEFT JOIN seller_shipping_origins o ON o.owner_id=l.seller_id
       WHERE ${where}
       ORDER BY l.id
@@ -115,7 +123,13 @@ async function Page({params}:{params:Promise<{id:string}>}){
   if(stored?.itemsJson){
     try{
       const parsed=JSON.parse(stored.itemsJson);
-      if(Array.isArray(parsed))listing.items=normalizeListingItemPrices(parsed.filter(item=>item&&typeof item.printingId==='string'&&Number.isInteger(item.quantity)&&item.quantity>0),Math.max(0,Number(listing.amount)||0)) as Listing['items'];
+      if(Array.isArray(parsed)){
+        const validItems=parsed.filter(item=>item&&typeof item.printingId==='string'&&Number.isInteger(item.quantity)&&item.quantity>0);
+        listing.items=normalizeListingItemPrices(validItems,Math.max(0,Number(listing.amount)||0)).map(item=>{
+          const isLegacySlab=Boolean(stored.instanceId&&stored.grade&&(item.instanceId===stored.instanceId||(validItems.length===1&&item.printingId===stored.printingId)));
+          return isLegacySlab?{...item,productType:'GRADED' as const,gradingCompany:stored.gradingCompany??undefined,grade:stored.grade??undefined,certification:stored.certification??undefined}:item;
+        }) as Listing['items'];
+      }
     }catch{}
   }
   if(listing.amount<=0&&listing.items?.length){
@@ -157,7 +171,7 @@ async function Page({params}:{params:Promise<{id:string}>}){
     variant: stored.cardVariant,
   } : undefined;
 
-  const items=listing.items?.length?listing.items:!['SOLD','SOLD_PENDING'].includes(stored.status)?[{instanceId:stored.instanceId??undefined,printingId:listing.printingId,quantity:listing.quantity,condition:listing.condition,unitAmount:Math.round(listing.amount/Math.max(1,listing.quantity))}]:[];
+  const items=listing.items?.length?listing.items:!['SOLD','SOLD_PENDING'].includes(stored.status)?[{instanceId:stored.instanceId??undefined,printingId:listing.printingId,quantity:listing.quantity,condition:listing.condition,unitAmount:Math.round(listing.amount/Math.max(1,listing.quantity)),...(stored.grade?{productType:'GRADED' as const,gradingCompany:stored.gradingCompany??undefined,grade:stored.grade,certification:stored.certification??undefined}:{productType:'RAW' as const})}]:[];
   const soldRows=stored.type==='WTS'?(await db().prepare(`SELECT json_extract(j.value,'$.printingId') AS printingId,SUM(CAST(json_extract(j.value,'$.quantity') AS INTEGER)) AS quantity,MAX(CAST(json_extract(j.value,'$.unitAmount') AS INTEGER)) AS unitAmount,MAX(json_extract(j.value,'$.condition')) AS condition,MAX(CASE WHEN o.status IN ('PAID','DISPUTED','RECEIVING') OR (o.status='SHIPPED' AND (o.delivered_at IS NULL OR o.delivered_at>datetime('now','-48 hours'))) THEN 1 ELSE 0 END) AS salePending FROM checkout_orders o,json_each(o.items) j WHERE o.kind='MARKET' AND COALESCE(json_extract(j.value,'$.listingId'),o.listing_id)=? AND (o.status IN ('PAID','DISPUTED','RECEIVING','RECEIVED','COMPLETED','FULFILLED') OR (o.status='SHIPPED' AND (o.delivered_at IS NULL OR o.delivered_at>datetime('now','-48 hours')))) GROUP BY json_extract(j.value,'$.printingId')`).bind(stored.id).all<{printingId:string;quantity:number;unitAmount:number|null;condition:string|null;salePending:number}>()).results:[];
   const initialStatus=stored.status==='SOLD'&&soldRows.some(item=>item.salePending)?'SOLD_PENDING':stored.status;
   const displayedSoldRows=soldRows.length?soldRows:stored.status==='SOLD'?[{printingId:stored.printingId,quantity:1,unitAmount:Math.round(listing.amount/Math.max(1,listing.quantity)),condition:listing.condition,salePending:0}]:[];
