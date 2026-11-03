@@ -139,7 +139,8 @@ await writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`);
 const finalDeploy = run(["deploy", "--config", configPath]);
 process.stdout.write(finalDeploy);
 console.log(`Staging Worker: ${config.vars.BETTER_AUTH_URL}`);
-if (!(process.env.VIVREPLAY_STAGING_IPAYMU_VA && process.env.VIVREPLAY_STAGING_IPAYMU_API_KEY)) {
+if (!(process.env.VIVREPLAY_STAGING_IPAYMU_VA && process.env.VIVREPLAY_STAGING_IPAYMU_API_KEY) &&
+    !(existingSecrets.has("IPAYMU_VA") && existingSecrets.has("IPAYMU_API_KEY"))) {
   console.log("Checkout is disabled until staging iPaymu sandbox credentials are configured.");
 }
 if (!process.env.VIVREPLAY_STAGING_BITESHIP_API_KEY && !existingSecrets.has("BITESHIP_API_KEY")) {
