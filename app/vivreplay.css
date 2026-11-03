@@ -4121,3 +4121,9 @@ html[data-theme='dark'] .market-game-switch.market-scope-switch .market-scope-lo
 .market-payout-settlement-note>span,.payout-settlement-note>span{color:var(--muted);font-size:12px}
 .market-payout-settlement-note>strong,.payout-settlement-note>strong{font-size:13px;font-variant-numeric:tabular-nums}
 .market-payout-settlement-note>small,.payout-settlement-note>small{grid-column:1/-1;color:var(--muted);font-size:11px}
+
+.header-search-result .header-search-meta{display:flex!important;align-items:center;gap:8px!important;min-width:0!important;color:#626b70!important;font-size:10px!important;line-height:1.2}
+.header-search-result .header-search-meta>span{display:block!important;min-width:0!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.header-search-result .header-search-meta>span:first-child{color:#4f5b61;font-weight:750}
+html[data-theme='dark'] .header-search-result .header-search-meta{color:#9eb6b4!important}
+html[data-theme='dark'] .header-search-result .header-search-meta>span:first-child{color:#c5d8d3!important}
