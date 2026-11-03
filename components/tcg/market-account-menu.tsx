@@ -7,7 +7,7 @@ import type {AccountState} from '@/lib/client';
 type ActivityCounts={listings:number;offers:number;orders:number};
 type QuickPanel='profile'|'vault'|'wishlist';
 
-export function MarketAccountMenu({account,locale,activityCounts,proPaymentsCount,onOpenSection,onOpenQuick}:{account:AccountState;locale:'EN'|'ID';activityCounts:ActivityCounts;proPaymentsCount:number;onOpenSection:(panel:'listings'|'offers'|'orders'|'saved')=>void;onOpenQuick:(panel:QuickPanel)=>void}){
+export function MarketAccountMenu({account,locale,activityCounts,proPaymentsCount,onOpenSection,onOpenQuick,onSignOut}:{account:AccountState;locale:'EN'|'ID';activityCounts:ActivityCounts;proPaymentsCount:number;onOpenSection:(panel:'listings'|'offers'|'orders'|'saved')=>void;onOpenQuick:(panel:QuickPanel)=>void;onSignOut:()=>void}){
   const labels=locale==='ID';
   const unreadCount=activityCounts.listings+activityCounts.offers+activityCounts.orders+proPaymentsCount;
   const rows=[
@@ -25,7 +25,7 @@ export function MarketAccountMenu({account,locale,activityCounts,proPaymentsCoun
       <DropdownMenuItem className="market-account-menu-item" onSelect={()=>onOpenQuick('wishlist')}><Heart size={16}/>{labels?'Kartu incaran':'Wishlist'}</DropdownMenuItem>
       <DropdownMenuItem className="market-account-menu-item" onSelect={()=>onOpenQuick('profile')}><User size={16}/>{labels?'Profil':'Profile'}{proPaymentsCount>0&&<span className="market-activity-badge">{proPaymentsCount>99?'99+':proPaymentsCount}</span>}</DropdownMenuItem>
       <DropdownMenuSeparator/>
-      <DropdownMenuItem className="market-account-menu-item market-account-menu-signout" onSelect={()=>window.dispatchEvent(new Event('vivreplay:sign-out'))}><SignOut size={16}/>{labels?'Keluar':'Sign out'}</DropdownMenuItem>
+      <DropdownMenuItem className="market-account-menu-item market-account-menu-signout" onSelect={()=>onSignOut()}><SignOut size={16}/>{labels?'Keluar':'Sign out'}</DropdownMenuItem>
     </DropdownMenuContent>
   </DropdownMenu>;
 }

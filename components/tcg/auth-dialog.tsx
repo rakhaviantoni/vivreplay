@@ -21,6 +21,9 @@ import { authClient } from '@/lib/auth-client';
 import { VivreMark } from './brand-assets';
 import {TurnstileField,turnstileEnabled,turnstileHeaders} from './turnstile-field';
 
+const stagingMode=process.env.NEXT_PUBLIC_DEPLOY_ENV==='staging';
+const googleAuthEnabled=process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED!=='false';
+
 type Mode = 'sign-in' | 'sign-up';
 
 export function AuthDialog({ language, showTrigger = true }: { language: 'EN' | 'ID'; showTrigger?: boolean }) {
@@ -165,7 +168,7 @@ export function AuthDialog({ language, showTrigger = true }: { language: 'EN' | 
     if (authError) {
       setError(authError.message ?? copy.errorSignUp);
     } else {
-      setNotice(copy.verification);
+      setNotice(stagingMode?(isId?'Akun dibuat. Masuk dengan email dan kata sandi Anda.':'Account created. Sign in with your email and password.'):copy.verification);
     }
     setBusy(false);
   }
@@ -225,7 +228,7 @@ export function AuthDialog({ language, showTrigger = true }: { language: 'EN' | 
             </div>
           ) : (
             <>
-              <button
+              {googleAuthEnabled&&<button
                 className="auth-google"
                 type="button"
                 disabled={busy}
@@ -239,11 +242,11 @@ export function AuthDialog({ language, showTrigger = true }: { language: 'EN' | 
                   aria-hidden="true"
                 />
                 <span>{copy.google}</span>
-              </button>
+              </button>}
 
-              <div className="auth-divider">
+              {googleAuthEnabled&&<div className="auth-divider">
                 <span>{isId ? 'atau' : 'or'}</span>
-              </div>
+              </div>}
 
               <form onSubmit={submit} className="auth-form">
                 {mode === 'sign-up' && (
@@ -274,7 +277,7 @@ export function AuthDialog({ language, showTrigger = true }: { language: 'EN' | 
                 <label>
                   <div className="auth-label-row">
                     <span>{copy.password}</span>
-                    {mode === 'sign-in' && (
+                    {mode === 'sign-in' && !stagingMode && (
                       <LocalizedAnchor href="/forgot-password" className="auth-forgot-link">
                         {copy.forgot}
                       </LocalizedAnchor>

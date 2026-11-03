@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { AdminLoadingSkeleton } from '@/components/admin/admin-loading-skeleton';
 
 type Report = {
   id: string;
@@ -68,7 +69,7 @@ export function FeedbackInbox() {
           <p>{error}</p>
           <button type="button" className="admin-refresh" onClick={() => void load()} disabled={loading}>Try again</button>
         </div>
-      ) : (
+      ) : loading && !reports.length ? <AdminLoadingSkeleton variant="table" label="Loading feedback" columns={7} /> : (
         <div className="admin-table-wrap">
           <table className="admin-health-table">
             <thead><tr>{['When', 'Type', 'Summary', 'Card or listing', 'Page', 'Contact', 'Details'].map((item) => <th key={item}>{item}</th>)}</tr></thead>
@@ -85,7 +86,6 @@ export function FeedbackInbox() {
                 </tr>
               ))}
               {!loading && !reports.length && <tr><td colSpan={7}>No reports have been submitted.</td></tr>}
-              {loading && !reports.length && <tr><td colSpan={7}>Loading feedback…</td></tr>}
             </tbody>
           </table>
         </div>

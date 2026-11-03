@@ -1,4 +1,6 @@
 PRAGMA defer_foreign_keys = ON;
+-- Older deployments added this during app setup instead of recording it in D1 migrations.
+ALTER TABLE listings ADD COLUMN items TEXT;
 CREATE TABLE sealed_migration_offers AS SELECT * FROM listing_offers;
 CREATE TABLE sealed_migration_messages AS SELECT * FROM listing_offer_messages;
 CREATE TABLE sealed_migration_attachments AS SELECT * FROM listing_offer_attachments;

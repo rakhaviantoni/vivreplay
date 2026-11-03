@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { AdminLoadingSkeleton } from '@/components/admin/admin-loading-skeleton';
 import {
   FloppyDiskIcon as FloppyDisk,
   ArrowCounterClockwiseIcon as Reset,
@@ -250,12 +251,7 @@ export function MarketPolicyManager() {
 
   if (loading) {
     return (
-      <div className="admin-health-skeleton" aria-label="Loading market policy">
-        <i />
-        <i />
-        <i />
-        <i />
-      </div>
+      <AdminLoadingSkeleton variant="form" />
     );
   }
 

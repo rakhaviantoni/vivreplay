@@ -2,6 +2,7 @@
 
 import {useCallback,useEffect,useState} from 'react';
 import {ArrowClockwiseIcon as Refresh,ChartLineUpIcon as Trend,UsersThreeIcon as Users,CrownSimpleIcon as Crown,ShoppingBagOpenIcon as Orders} from '@phosphor-icons/react';
+import {AdminLoadingSkeleton} from '@/components/admin/admin-loading-skeleton';
 
 type Day={day:string;accounts:number;orders:number;volume:number};
 type Data={generatedAt:string;accounts:number;proAccounts:number;daily:Day[]};
@@ -41,7 +42,7 @@ export function AdminOverview(){
   return <section className="admin-overview" aria-label="Dashboard overview">
     <div className="admin-overview-heading"><div><p className="eyebrow">LAST 30 DAYS</p><h2>Market at a glance</h2><p>Accounts, paid orders, and sales activity.</p></div><button type="button" className="admin-refresh" onClick={()=>void load()} disabled={loading}><Refresh size={15} className={loading?'spin':''}/>Refresh</button></div>
     {error&&<p className="admin-error" role="alert">{error}</p>}
-    {loading&&!data?<div className="admin-overview-loading" aria-label="Loading dashboard"><i/><i/><i/><i/></div>:data&&<>
+    {loading&&!data?<AdminLoadingSkeleton variant="dashboard"/>:data&&<>
       <div className="admin-overview-stats">
         <article><span><Users size={16}/>Accounts</span><strong>{count.format(data.accounts)}</strong><small>All collector accounts</small></article>
         <article><span><Crown size={16}/>Market Pro</span><strong>{count.format(data.proAccounts)}</strong><small>Active memberships</small></article>
@@ -67,7 +68,7 @@ export function AdminCustomerManager(){
   const [tier,setTier]=useState('all');
   const [customers,setCustomers]=useState<Customer[]>([]);
   const [cursor,setCursor]=useState<string|null>(null);
-  const [loading,setLoading]=useState(false);
+  const [loading,setLoading]=useState(true);
   const [error,setError]=useState('');
   const [selected,setSelected]=useState<Customer|null>(null);
   const [append,setAppend]=useState(false);
@@ -88,10 +89,10 @@ export function AdminCustomerManager(){
     <header className="admin-customers-heading"><div><p className="eyebrow">CUSTOMER RECORDS</p><h2>Customers</h2><p>Find accounts and check membership details.</p></div><span>{loading?'Updating':`${customers.length}${cursor?'+':''} shown`}</span></header>
     <div className="admin-customers-toolbar"><label><span className="sr-only">Search email or username</span><input value={query} onChange={event=>setQuery(event.target.value)} placeholder="Search email or username" autoComplete="off"/><SearchMark/></label><div role="group" aria-label="Filter by membership"><button type="button" aria-pressed={tier==='all'} onClick={()=>setTier('all')}>All</button><button type="button" aria-pressed={tier==='free'} onClick={()=>setTier('free')}>Free</button><button type="button" aria-pressed={tier==='pro'} onClick={()=>setTier('pro')}>Pro</button></div></div>
     {error&&<p className="admin-error" role="alert">{error}</p>}
-    <div className="admin-table-wrap"><table className="admin-health-table"><thead><tr><th>Customer</th><th>Membership</th><th>Joined</th><th></th></tr></thead><tbody>
+    {loading&&!customers.length?<AdminLoadingSkeleton variant="table" label="Loading customer records" columns={4} rows={6}/>:<div className="admin-table-wrap"><table className="admin-health-table"><thead><tr><th>Customer</th><th>Membership</th><th>Joined</th><th></th></tr></thead><tbody>
       {customers.map(customer=><tr key={customer.id}><td><button type="button" className="admin-customer-open" onClick={()=>setSelected(customer)}><strong>{customer.display_name}</strong><small>{customer.username?`@${customer.username}`:'Account'}{customer.email?` / ${customer.email}`:''}</small></button></td><td><span className={`admin-customer-tier ${customer.tier==='pro'?'is-pro':''}`}>{customer.tier==='pro'?'Pro':'Free'}</span>{customer.tier==='pro'&&customer.pro_expires_at&&<small className="admin-customer-expiry">Until {dateFormat.format(asDate(customer.pro_expires_at))}</small>}</td><td>{dateFormat.format(asDate(customer.created_at))}</td><td><button type="button" className="admin-customer-detail" onClick={()=>setSelected(customer)}>Details</button></td></tr>)}
       {!loading&&!customers.length&&<tr><td colSpan={4}>No accounts found.</td></tr>}
-    </tbody></table></div>
+    </tbody></table></div>}
     {cursor&&<footer className="admin-customers-footer"><button type="button" className="admin-refresh" onClick={showMore} disabled={loading}>{append?'Loading…':'Load more'}</button></footer>}
     {selected&&<div className="admin-customer-overlay" role="presentation" onMouseDown={event=>{if(event.target===event.currentTarget)setSelected(null)}}><section className="admin-customer-dialog" role="dialog" aria-modal="true" aria-labelledby="admin-customer-title"><button className="admin-customer-close" type="button" onClick={()=>setSelected(null)} aria-label="Close customer details">×</button><p className="eyebrow">CUSTOMER</p><h3 id="admin-customer-title">{selected.display_name}</h3><dl><div><dt>Username</dt><dd>{selected.username?`@${selected.username}`:'Not set'}</dd></div><div><dt>Email</dt><dd>{selected.email||'Not available'}</dd></div><div><dt>Membership</dt><dd>{selected.tier==='pro'?'Market Pro':'Free'}{selected.tier==='pro'&&selected.pro_expires_at?` until ${dateFormat.format(asDate(selected.pro_expires_at))}`:''}</dd></div><div><dt>Joined</dt><dd>{dateFormat.format(asDate(selected.created_at))}</dd></div></dl>{selected.username&&<a href={`/players/${encodeURIComponent(selected.username)}`} target="_blank" rel="noreferrer">Open public profile ↗</a>}</section></div>}
   </section>;

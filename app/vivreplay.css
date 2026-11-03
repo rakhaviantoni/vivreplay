@@ -2462,6 +2462,12 @@ html[data-theme='dark'] .player-intro-meta{color:#a4bcc7!important}
 .checkout-rate-list label>span{display:grid;flex:1;gap:3px}
 .checkout-rate-list strong,.checkout-rate-list b{font-size:12px}
 .checkout-rate-list small{color:var(--muted,#716a5e);font-size:11px}
+.checkout-insurance-choice{display:flex;align-items:center;gap:10px;margin-top:10px;padding:11px 12px;border:1px solid var(--line,#dfd1b8);border-radius:10px;background:var(--surface-raised,#fffaf0);cursor:pointer}
+.checkout-insurance-choice input{width:16px;height:16px;margin:0;accent-color:var(--accent,#b78327);flex:0 0 auto}
+.checkout-insurance-choice span{display:grid;flex:1;gap:3px;min-width:0}
+.checkout-insurance-choice strong,.checkout-insurance-choice b{color:var(--ink,#29251f);font-size:12px}
+.checkout-insurance-choice small,.checkout-insurance-included{display:block;margin-top:2px;color:var(--muted,#716a5e);font-size:11px;font-weight:450;line-height:1.4}
+.checkout-insurance-choice b{white-space:nowrap}
 .checkout-pay-button{width:100%;justify-content:center;margin-top:18px}
 .checkout-pay-button:not(:disabled){background:#e6a12b;color:#211706;border:1px solid #a96708;font-weight:750}
 .checkout-pay-button:not(:disabled):hover{background:#d58d17;color:#211706}

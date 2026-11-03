@@ -6,6 +6,7 @@ import { z } from "zod";
 
 const authEnv = env as Cloudflare.Env;
 const baseURL = authEnv.BETTER_AUTH_URL || "https://vivreplay.com";
+const isStaging = authEnv.VIVREPLAY_DEPLOY_ENV === "staging";
 const trustedOrigins = [new URL(baseURL).origin];
 const authHostname = new URL(baseURL).hostname;
 if (authHostname === 'vivreplay.com') trustedOrigins.push('https://www.vivreplay.com');
@@ -35,7 +36,7 @@ export const auth = betterAuth({
   },
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: true,
+    requireEmailVerification: !isStaging,
     revokeSessionsOnPasswordReset: true,
     resetPasswordTokenExpiresIn: 60 * 60,
     sendResetPassword: async ({ user, url }) => {
@@ -46,21 +47,23 @@ export const auth = betterAuth({
     },
   },
   emailVerification: {
-    sendOnSignUp: true,
-    sendOnSignIn: true,
-    autoSignInAfterVerification: true,
+    sendOnSignUp: !isStaging,
+    sendOnSignIn: !isStaging,
+    autoSignInAfterVerification: !isStaging,
     expiresIn: 60 * 60,
     sendVerificationEmail: async ({ user, url }) => {
       await sendAuthEmail({ action: "verify", to: user.email, name: user.name, url, locale:await preferredEmailLocale(user.id) });
     },
   },
   socialProviders: {
-    google: {
+    ...(authEnv.GOOGLE_CLIENT_ID && authEnv.GOOGLE_CLIENT_SECRET
+      ? { google: {
       clientId: authEnv.GOOGLE_CLIENT_ID as string,
       clientSecret: authEnv.GOOGLE_CLIENT_SECRET as string,
       requireEmailVerification: true,
       prompt: "select_account",
-    },
+      } }
+      : {}),
   },
   plugins: [nextCookies()],
 });

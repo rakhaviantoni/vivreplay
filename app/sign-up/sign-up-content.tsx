@@ -11,6 +11,9 @@ import { authClient } from "@/lib/auth-client";
 import { VivreMark } from "@/components/tcg/brand-assets";
 import {TurnstileField,turnstileEnabled,turnstileHeaders} from '@/components/tcg/turnstile-field';
 
+const stagingMode=process.env.NEXT_PUBLIC_DEPLOY_ENV==='staging';
+const googleAuthEnabled=process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED!=='false';
+
 function safeReturnTo(value: string | null) {
   return value?.startsWith("/") && !value.startsWith("//") ? value : "/profile";
 }
@@ -103,7 +106,7 @@ export default function SignUpPage() {
       setBusy(false);
       return;
     }
-    setNotice("Check your inbox to verify your email before signing in.");
+    setNotice(stagingMode?'created':"Check your inbox to verify your email before signing in.");
     setBusy(false);
   }
 
@@ -139,8 +142,8 @@ export default function SignUpPage() {
           {notice ? (
             <div className="auth-success" role="status">
               <div style={{ display: "flex", alignItems: "center", gap: 7, fontWeight: 800 }}>
-                <CheckCircle size={17} weight="fill" />{t("Verification email sent")} </div>
-              <span>{t("Open the link in your inbox to verify your email. You’ll be signed in automatically.")} </span>
+                <CheckCircle size={17} weight="fill" />{stagingMode?(locale==='ID'?'Akun dibuat':'Account created'):t("Verification email sent")} </div>
+              <span>{stagingMode?(locale==='ID'?'Masuk dengan email dan kata sandi Anda.':'Sign in with your email and password.'):t("Open the link in your inbox to verify your email. You’ll be signed in automatically.")} </span>
             </div>
           ) : (
             <>
@@ -183,9 +186,11 @@ export default function SignUpPage() {
 
               {step==='email'&&<>
                 <p className="auth-divider"><span>{t("or")} </span></p>
-                <div className="auth-action-security"><TurnstileField onToken={setGoogleTurnstileToken} resetKey={googleTurnstileResetKey}/></div>
-                <button className="auth-google" type="button" disabled={busy} onClick={signUpWithGoogle}>
-                  <img src="/brand/google-g.svg" alt="" width="18" height="18" />{t("Continue with Google")} </button>
+                {googleAuthEnabled&&<>
+                  <div className="auth-action-security"><TurnstileField onToken={setGoogleTurnstileToken} resetKey={googleTurnstileResetKey}/></div>
+                  <button className="auth-google" type="button" disabled={busy} onClick={signUpWithGoogle}>
+                    <img src="/brand/google-g.svg" alt="" width="18" height="18" />{t("Continue with Google")} </button>
+                </>}
               </>}
 
               <p className="auth-mode-switch">{t("Already have an account?")} <Link href={`/sign-in?return_to=${encodeURIComponent(returnTo)}`}>{t("Sign in")} </Link>

@@ -20,6 +20,7 @@ import { MarketDisputesManager } from '@/components/admin/market-disputes-manage
 import { AdminCustomerManager, AdminOverview } from '@/components/admin/admin-overview';
 import { ProviderOperations } from '@/components/admin/provider-operations';
 import { PokemonCatalogStatus } from '@/components/admin/pokemon-catalog-status';
+import { AdminLoadingSkeleton } from '@/components/admin/admin-loading-skeleton';
 
 type Health={generatedAt:string;summary:{identities:number;printings:number;sets:number;storedSmall:number;missingImages:number;missingCards:number;unrepresentedSets:number};missingImages:Array<{id:string;code:string;name:string;setCode:string;language:string;variant:string;reason:string}>;missingCards:Array<{code:string;name:string}>;sets:Array<{setCode:string;setName:string;total:number;stored:number;sourceMissing:number}>;unrepresentedSets:Array<{setCode:string;setName:string;kind:string}>};
 type CoachRequest={id:string;actor_email:string|null;actor_subject:string|null;ip_address:string|null;user_agent:string|null;locale:string;model:string;question:string;leader_code:string|null;deck_size:number;candidate_count:number;response_text:string|null;status:string;error_code:string|null;duration_ms:number;created_at:string};
@@ -104,9 +105,7 @@ export function AdminDashboard({initialSection='overview'}:{initialSection?:Sect
           {section==='catalog'&&catalogGame==='pokemon'?<PokemonCatalogStatus/>:<>
           {error && <p className="admin-error">{error}</p>}
           {!data && loading ? (
-            <div className="admin-health-skeleton" aria-label="Loading catalog health">
-              <i/><i/><i/><i/>
-            </div>
+            <AdminLoadingSkeleton variant="catalog" />
           ) : data && (
             <>
               <section className="admin-metrics admin-catalog-metrics">

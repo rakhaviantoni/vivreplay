@@ -2,6 +2,7 @@ import {z} from 'zod';
 import {db,errorResponse,guard,HttpError,user} from '@/lib/server/store';
 import {fetchMarketPolicies} from '@/lib/market/policy';
 import {splitSellerEarnings,type SellerSettlementOrder} from '@/lib/market/payout-settlement';
+import {emailPayoutRequest} from '@/lib/server/admin-notifications';
 
 const requestSchema=z.object({bankAccountId:z.string().uuid(),amount:z.number().int().min(1000).max(100000000000)});
 async function balances(ownerId:string,commissionPercent:number,sellerFeeMinimum:number){
@@ -34,15 +35,17 @@ export async function POST(request:Request){
     const account=await d.prepare('SELECT id,encrypted_details AS encryptedDetails FROM seller_payout_accounts WHERE id=? AND owner_id=?').bind(input.bankAccountId,profile.id).first<{id:string;encryptedDetails:string}>();
     if(!account)throw new HttpError(404,'Choose a saved bank account.');
     const currentBalance=await balances(profile.id,policy.commissionPercent,policies.sellerFeeMinimum);
+    const payoutRequestId=crypto.randomUUID();
     const result=await d.prepare(`INSERT INTO seller_payout_requests(id,seller_id,bank_account_id,encrypted_bank_details,amount,currency,status)
       SELECT ?,?,?,?,?, 'IDR','REQUESTED'
       WHERE ? <= MAX(0,? - COALESCE((SELECT SUM(amount) FROM seller_payout_requests WHERE seller_id=? AND status IN ('REQUESTED','PROCESSING','PAID')),0))
-        AND NOT EXISTS(SELECT 1 FROM seller_payout_requests WHERE seller_id=? AND status IN ('REQUESTED','PROCESSING'))`).bind(crypto.randomUUID(),profile.id,account.id,account.encryptedDetails,input.amount,input.amount,currentBalance.availableBeforeRequests,profile.id,profile.id).run();
+        AND NOT EXISTS(SELECT 1 FROM seller_payout_requests WHERE seller_id=? AND status IN ('REQUESTED','PROCESSING'))`).bind(payoutRequestId,profile.id,account.id,account.encryptedDetails,input.amount,input.amount,currentBalance.availableBeforeRequests,profile.id,profile.id).run();
     if(!result.meta.changes){
       const balance=await balances(profile.id,policy.commissionPercent,policies.sellerFeeMinimum);
       if(input.amount>balance.available)throw new HttpError(409,'The withdrawal amount exceeds your available balance.');
       throw new HttpError(409,'You already have a withdrawal request being processed.');
     }
+    await emailPayoutRequest({requestId:payoutRequestId,seller:String(profile.display_name??profile.username??'A seller'),amount:input.amount,currency:'IDR'}).catch(error=>console.error('admin_payout_email_failed',{requestId:payoutRequestId,error:error instanceof Error?error.message:'unknown error'}));
     return Response.json({ok:true},{status:201,headers:{'Cache-Control':'no-store'}});
   }catch(error){return errorResponse(error)}
 }

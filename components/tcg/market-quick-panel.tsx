@@ -6,6 +6,7 @@ import Link from '@/components/ui/localized-link';
 import {ArrowRightIcon as ArrowRight,BookmarkSimpleIcon as Bookmark,CardsIcon as VaultIcon,ChatCircleDotsIcon as OffersIcon,CheckIcon as Check,ClipboardTextIcon as ListingsIcon,CrownSimpleIcon as Crown,HeartIcon as Heart,MapPinIcon as MapPin,PencilSimpleIcon as Pencil,PlusIcon as Plus,ShoppingBagIcon as OrdersIcon,SignOutIcon as SignOut,TruckIcon as Truck,UserIcon as User,WalletIcon as Wallet} from '@phosphor-icons/react';
 import {toast} from 'sonner';
 import {api,type AccountState} from '@/lib/client';
+import {MARKET_ACTIVITY_REWARDS,type MarketActivityAction} from '@/lib/market-activity';
 import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle} from '@/components/ui/dialog';
 import {SavedListings} from './market-saved';
 import {ListingsTab} from './vault/tabs/listings-tab';
@@ -42,7 +43,7 @@ const sections:[MarketAccountPanel,string,string,typeof ListingsIcon][]=[
   ['profile','Profile','Profil',User],
 ];
 
-export function MarketQuickPanel({panel,onOpenChange,onPanelChange,locale,account,activityCounts,onSaved,onRefresh=()=>{},onCreateListing,initialOrderId,initialConversationId,initialProfileTab='account'}:{panel:MarketAccountPanel|null;onOpenChange:(open:boolean)=>void;onPanelChange:(panel:MarketAccountPanel)=>void;locale:'EN'|'ID';account:AccountState;activityCounts:ActivityCounts;onSaved:()=>Promise<void>|void;onRefresh?:()=>Promise<void>|void;onCreateListing:()=>void;initialOrderId?:string|null;initialConversationId?:string|null;initialProfileTab?:ProfileQuickTab}){
+export function MarketQuickPanel({panel,onOpenChange,onPanelChange,locale,account,activityCounts,onSaved,onRefresh=()=>{},onCreateListing,onSignOut,initialOrderId,initialConversationId,initialProfileTab='account'}:{panel:MarketAccountPanel|null;onOpenChange:(open:boolean)=>void;onPanelChange:(panel:MarketAccountPanel)=>void;locale:'EN'|'ID';account:AccountState;activityCounts:ActivityCounts;onSaved:()=>Promise<void>|void;onRefresh?:()=>Promise<void>|void;onCreateListing:()=>void;onSignOut:()=>void;initialOrderId?:string|null;initialConversationId?:string|null;initialProfileTab?:ProfileQuickTab}){
   const [editorOpen,setEditorOpen]=useState(false);
   const [editingItem,setEditingItem]=useState<EnrichedCollectionItem|null>(null);
   const profile=account.profile;
@@ -52,7 +53,7 @@ export function MarketQuickPanel({panel,onOpenChange,onPanelChange,locale,accoun
       <div className="market-account-unified-avatar">{String(profile.display_name??profile.username??'V').slice(0,1).toUpperCase()}</div>
       <div><DialogHeader><DialogTitle>{String(profile.display_name||(locale==='ID'?'Akun':'Account'))}</DialogTitle><DialogDescription>@{String(profile.username??'')}</DialogDescription></DialogHeader></div>
       {String(profile.tier??'free').toLowerCase()==='pro'&&<span className="market-pro-user-badge"><Crown size={13} weight="fill"/>Pro</span>}
-      <button type="button" className="market-account-header-signout" onClick={()=>window.dispatchEvent(new Event('vivreplay:sign-out'))}><SignOut size={16}/>{locale==='ID'?'Keluar':'Sign out'}</button>
+      <button type="button" className="market-account-header-signout" onClick={onSignOut}><SignOut size={16}/>{locale==='ID'?'Keluar':'Sign out'}</button>
     </header>
     <nav className="market-account-unified-tabs" role="tablist" aria-label={locale==='ID'?'Menu akun':'Account sections'}>
       {sections.map(([key,en,id,Icon])=><button key={key} type="button" role="tab" aria-selected={panel===key} className={panel===key?'is-active':''} onClick={()=>choose(key)}><Icon size={16}/><span>{locale==='ID'?id:en}</span>{key in activityCounts&&activityCounts[key as keyof ActivityCounts]>0&&<b className="market-activity-badge">{activityCounts[key as keyof ActivityCounts]>99?'99+':activityCounts[key as keyof ActivityCounts]}</b>}</button>)}
@@ -77,6 +78,13 @@ function VaultQuickActions({account,locale,onOpenChange,onEdit}:{account:Account
 }
 
 type ProfileQuickTab='account'|'delivery'|'membership'|'payouts';
+type MarketActivityProgress={points:number;level:string;pointsToNext:number;progressPercent:number;taskCounts:Record<MarketActivityAction,number>};
+const marketActivityTasks=[
+  {action:'vault_added',en:'Add a card to Vault',id:'Tambahkan kartu ke Vault'},
+  {action:'listing_published',en:'Publish a listing',id:'Terbitkan listing'},
+  {action:'offer_replied',en:'Reply to an offer',id:'Balas penawaran'},
+  {action:'order_completed',en:'Complete an order',id:'Selesaikan pesanan'},
+] as const;
 type QuickPayoutSummary={earned:number;reserved:number;available:number;pendingSettlement:number;nextSettlementAt:string|null;minimumPayout:number;defaultBankAccountId:string|null;requests:Array<{id:string;amount:number;currency:string;status:string;createdAt:string}>};
 type QuickProPaymentView={id:string;status:string;paymentMethod:string|null;paymentName:string|null;paymentNo:string|null;paymentInstructionsUrl:string|null;paymentQrImage:string|null;checkoutUrl:string|null;paymentFee:number|null;paymentTotal:number;amount:number;currency:string;paymentNeedsHelp:boolean};
 const QUICK_COURIER_NAMES:Record<string,string>={jnt:'J&T Express',jne:'JNE Express',sicepat:'SiCepat',anteraja:'Anteraja',tiki:'TIKI',pos:'Pos Indonesia',lion:'Lion Parcel',ninja:'Ninja Xpress',wahana:'Wahana',grab:'GrabExpress',gojek:'GoSend'};
@@ -110,7 +118,7 @@ function ProfileQuickEdit({profile,locale,onSaved,initialTab='account'}:{profile
   const [preferredLocale,setPreferredLocale]=useState(String(profile.locale??'en'));
   const [currency,setCurrency]=useState(String(profile.currency??'IDR'));
   const [saving,setSaving]=useState(false);
-  const [activityProgress,setActivityProgress]=useState<{points:number;level:string;pointsToNext:number;progressPercent:number}|null>(null);
+  const [activityProgress,setActivityProgress]=useState<MarketActivityProgress|null>(null);
   const [tab,setTab]=useState<ProfileQuickTab>(initialTab);
   const [shipping,setShipping]=useState<Record<string,unknown>|null>(null);
   const [shippingLoadError,setShippingLoadError]=useState('');
@@ -214,7 +222,7 @@ function ProfileQuickEdit({profile,locale,onSaved,initialTab='account'}:{profile
     }).catch(()=>{if(active)setProPlan(current=>current?{...current,paymentChannels:[],paymentChannelStatus:'provider_unavailable'}:current)}).finally(()=>{if(active)setProPaymentLoading(false)});
     return()=>{active=false};
   },[confirmingPro]);
-  useEffect(()=>{let active=true;api<{points:number;level:string;pointsToNext:number;progressPercent:number}>('/api/market/progress').then(value=>{if(active)setActivityProgress(value)}).catch(()=>{if(active)setActivityProgress(null)});return()=>{active=false}},[profile.id]);
+  useEffect(()=>{let active=true;api<MarketActivityProgress>('/api/market/progress').then(value=>{if(active)setActivityProgress(value)}).catch(()=>{if(active)setActivityProgress(null)});return()=>{active=false}},[profile.id]);
   useEffect(()=>{let active=true;setAddressRegionLoading(current=>({...current,provinces:true}));void loadQuickRegions('provinces').then(items=>{if(active)setAddressProvinces(items)}).finally(()=>{if(active)setAddressRegionLoading(current=>({...current,provinces:false}))});return()=>{active=false}},[]);
   useEffect(()=>{if(!addressDraft.province){setAddressCities([]);setAddressRegionLoading(current=>({...current,cities:false}));return}let active=true;setAddressRegionLoading(current=>({...current,cities:true}));const parent=addressProvinces.find(item=>normalizeQuickRegion(item.name)===normalizeQuickRegion(addressDraft.province));void loadQuickRegions('regencies',parent?.id,{province:addressDraft.province}).then(items=>{if(active)setAddressCities(items)}).finally(()=>{if(active)setAddressRegionLoading(current=>({...current,cities:false}))});return()=>{active=false}},[addressDraft.province,addressProvinces]);
   useEffect(()=>{if(!addressDraft.city){setAddressDistricts([]);setAddressRegionLoading(current=>({...current,districts:false}));return}let active=true;setAddressRegionLoading(current=>({...current,districts:true}));const parent=addressCities.find(item=>normalizeQuickRegion(item.name)===normalizeQuickRegion(addressDraft.city));void loadQuickRegions('districts',parent?.id,{province:addressDraft.province,city:addressDraft.city}).then(items=>{if(active)setAddressDistricts(items)}).finally(()=>{if(active)setAddressRegionLoading(current=>({...current,districts:false}))});return()=>{active=false}},[addressDraft.province,addressDraft.city,addressCities]);
@@ -267,10 +275,24 @@ function ProfileQuickEdit({profile,locale,onSaved,initialTab='account'}:{profile
       <button className="button primary" type="submit" disabled={saving}><User size={16}/>{saving?t('Saving…','Menyimpan…'):t('Save changes','Simpan perubahan')}</button>
     </form>}
     {tab==='account'&&activityProgress&&<section className="market-activity-progress-card" aria-label={t('Market progress','Progres Market')}>
-      <div className="market-activity-progress-copy"><span>{t('MARKET ACTIVITY','AKTIVITAS MARKET')}</span><strong>{activityProgress.level}</strong><small>{t('Vault additions, listings, offer replies and completed orders count','Penambahan kartu ke Vault, listing, balasan penawaran, dan pesanan selesai dihitung')}</small></div>
+      <div className="market-activity-progress-copy"><span>{t('MARKET ACTIVITY','AKTIVITAS MARKET')}</span><strong>{activityProgress.level}</strong><small>{t('Earn points by using Vault and Market.','Dapatkan poin dengan memakai Vault dan Market.')}</small></div>
       <div className="market-activity-progress-score"><b>{activityProgress.points}</b><span>{t('points','poin')}</span></div>
       <div className="market-activity-progress-track" role="progressbar" aria-label={t('Progress to next level','Progres ke level berikutnya')} aria-valuemin={0} aria-valuemax={100} aria-valuenow={activityProgress.progressPercent}><i style={{width:`${activityProgress.progressPercent}%`}}/></div>
       <small className="market-activity-progress-next">{activityProgress.pointsToNext>0?t(`${activityProgress.pointsToNext} points to the next level`,`${activityProgress.pointsToNext} poin lagi ke level berikutnya`):t('Highest level reached','Level tertinggi tercapai')}</small>
+      <details className="market-activity-tasks">
+        <summary>{t('See all point-earning tasks','Lihat semua aktivitas penghasil poin')}</summary>
+        <div className="market-activity-task-list">
+          <small className="market-activity-task-period">{t('Counts use a rolling 30-day period.','Perhitungan memakai periode bergulir 30 hari.')}</small>
+          <ul>{marketActivityTasks.map(task=>{
+            const reward=MARKET_ACTIVITY_REWARDS[task.action];
+            const count=Math.min(reward.monthlyLimit,activityProgress.taskCounts?.[task.action]??0);
+            return <li key={task.action}>
+              <span className="market-activity-task-copy"><strong>{locale==='ID'?task.id:task.en}</strong><small>{t(`+${reward.points} point per action`,`+${reward.points} poin per aktivitas`)}</small></span>
+              <span className="market-activity-task-count"><b>{count} / {reward.monthlyLimit}</b><small>{t('this period','periode ini')}</small></span>
+            </li>;
+          })}</ul>
+        </div>
+      </details>
     </section>}
     {tab==='delivery'&&<section className="market-profile-quick-section">
       <div className="market-profile-quick-card">

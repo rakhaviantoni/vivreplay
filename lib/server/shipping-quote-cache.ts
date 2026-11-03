@@ -5,6 +5,7 @@ type Rate={courier_code:string;courier_service_code:string;price:number;courier_
 type Quote={pricing:Rate[];cacheMiss?:boolean;regularExpiresAt?:number;instantExpiresAt?:number};
 const REGULAR_RATE_TTL_MS=365*24*60*60_000;
 const INSTANT_RATE_TTL_MS=3*60_000;
+const INSURANCE_RATE_TTL_MS=15*60_000;
 const isInstant=(code:string)=>['grab','gojek'].includes(code);
 function freshRates(quote:Quote,now:number){return quote.pricing.filter(rate=>((isInstant(rate.courier_code)?quote.instantExpiresAt:quote.regularExpiresAt)??0)>now);}
 function requestedRatesFresh(quote:Quote,couriers:string[],now:number){return couriers.every(code=>((isInstant(code)?quote.instantExpiresAt:quote.regularExpiresAt)??0)>now);}
@@ -16,6 +17,7 @@ function canonical(value:unknown):unknown{
 
 export async function cachedShippingRates(buyerId:string|null,listingId:string,payload:Record<string,unknown>,context:unknown=null,cacheOnly=false,refresh=false):Promise<Quote>{
   const requested=String(payload.couriers??'').split(',');
+  const regularRateTtl=Number.isSafeInteger(payload.courier_insurance)&&Number(payload.courier_insurance)>0?INSURANCE_RATE_TTL_MS:REGULAR_RATE_TTL_MS;
   const load=async(codes=requested)=>{
     const data=await biteshipRates<{pricing?:Rate[]}>({...payload,couriers:codes.join(',')});
     const enabled=new Set(codes);
@@ -49,7 +51,7 @@ export async function cachedShippingRates(buyerId:string|null,listingId:string,p
           const fetched=await load(stale);
           const retained=previous&&!refresh?freshRates(previous,now).filter(rate=>!stale.includes(rate.courier_code)):[];
           const pricing=[...retained,...fetched.pricing].sort((a,b)=>a.price-b.price);
-          const regularExpiresAt=stale.some(code=>!isInstant(code))?now+(fetched.pricing.some(rate=>!isInstant(rate.courier_code))?REGULAR_RATE_TTL_MS:60_000):previous?.regularExpiresAt??0;
+          const regularExpiresAt=stale.some(code=>!isInstant(code))?now+(fetched.pricing.some(rate=>!isInstant(rate.courier_code))?regularRateTtl:60_000):previous?.regularExpiresAt??0;
           const instantExpiresAt=stale.some(isInstant)?now+(fetched.pricing.some(rate=>isInstant(rate.courier_code))?INSTANT_RATE_TTL_MS:60_000):previous?.instantExpiresAt??0;
           const quote={pricing,regularExpiresAt,instantExpiresAt};
           const expiresAt=Math.max(...[requested.some(code=>!isInstant(code))?regularExpiresAt:0,requested.some(isInstant)?instantExpiresAt:0]);
@@ -65,15 +67,16 @@ export async function cachedShippingRates(buyerId:string|null,listingId:string,p
   return work;
 }
 
-export async function shippingRateOptions(buyerId:string|null,listingId:string,options:{couriers:string[];origin:{areaId?:string;postalCode?:number};destination:{areaId?:string;postalCode?:number};originLatitude:number|null;originLongitude:number|null;destinationLatitude:number|null;destinationLongitude:number|null;items:unknown[];cacheOnly?:boolean;refresh?:boolean}){
+export async function shippingRateOptions(buyerId:string|null,listingId:string,options:{couriers:string[];origin:{areaId?:string;postalCode?:number};destination:{areaId?:string;postalCode?:number};originLatitude:number|null;originLongitude:number|null;destinationLatitude:number|null;destinationLongitude:number|null;items:unknown[];courierInsurance?:number;cacheOnly?:boolean;refresh?:boolean}){
   const {couriers,origin,destination,items}=options;
+  const courierInsurance=Number.isSafeInteger(options.courierInsurance)&&Number(options.courierInsurance)>0?Number(options.courierInsurance):undefined;
   const from=validCoordinates(options.originLatitude,options.originLongitude);const to=validCoordinates(options.destinationLatitude,options.destinationLongitude);
   const coordinates=from&&to?{origin_latitude:from.latitude,origin_longitude:from.longitude,destination_latitude:to.latitude,destination_longitude:to.longitude}:null;
   // Coordinates cover standard couriers too, avoiding a second billable request.
-  if(coordinates)return cachedShippingRates(buyerId,listingId,{...coordinates,couriers:[...couriers].sort().join(','),items},{origin,destination},options.cacheOnly,options.refresh);
+  if(coordinates)return cachedShippingRates(buyerId,listingId,{...coordinates,couriers:[...couriers].sort().join(','),items,courier_insurance:courierInsurance},{origin,destination},options.cacheOnly,options.refresh);
   const regular=couriers.filter(code=>!['grab','gojek'].includes(code));
   if(!regular.length)return {pricing:[]};
   const pickup=origin.areaId?{origin_area_id:origin.areaId}:from?{origin_latitude:from.latitude,origin_longitude:from.longitude}:{origin_postal_code:origin.postalCode};
   const dropoff=destination.areaId?{destination_area_id:destination.areaId}:to?{destination_latitude:to.latitude,destination_longitude:to.longitude}:{destination_postal_code:destination.postalCode};
-  return cachedShippingRates(buyerId,listingId,{...pickup,...dropoff,couriers:[...regular].sort().join(','),items},{origin,destination},options.cacheOnly,options.refresh);
+  return cachedShippingRates(buyerId,listingId,{...pickup,...dropoff,couriers:[...regular].sort().join(','),items,courier_insurance:courierInsurance},{origin,destination},options.cacheOnly,options.refresh);
 }

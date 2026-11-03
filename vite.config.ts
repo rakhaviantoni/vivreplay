@@ -8,6 +8,7 @@ const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
   "86245ee8-4a6e-450d-a4ed-dc6d843aa079";
 
 const { d1 } = hostingConfig;
+const stagingBuild = process.env.VIVREPLAY_DEPLOY_TARGET === "staging";
 
 // macOS Seatbelt blocks FSEvents, so Codex previews need polling for HMR.
 const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === "seatbelt";
@@ -151,6 +152,12 @@ export default defineConfig(async ({ command, mode }) => {
       ],
     },
     define: {
+      "process.env.NEXT_PUBLIC_DEPLOY_ENV": JSON.stringify(
+        stagingBuild ? "staging" : "production"
+      ),
+      "process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED": JSON.stringify(
+        stagingBuild ? "false" : "true"
+      ),
       "process.env.NEXT_PUBLIC_SUPABASE_URL": JSON.stringify(
         process.env.NEXT_PUBLIC_SUPABASE_URL ||
         localBindingConfig.vars.NEXT_PUBLIC_SUPABASE_URL
@@ -162,6 +169,8 @@ export default defineConfig(async ({ command, mode }) => {
       "process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY": JSON.stringify(
         command === "serve"
           ? "1x00000000000000000000AA"
+          : stagingBuild
+            ? ""
           : process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ||
             localEnv.NEXT_PUBLIC_TURNSTILE_SITE_KEY ||
             "0x4AAAAAAFLjvjAWmkfLwlgD"

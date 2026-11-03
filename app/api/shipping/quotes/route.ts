@@ -101,7 +101,13 @@ export async function POST(request:Request){
     if(!destination.areaId&&!destination.postalCode)throw new HttpError(400,'Choose a delivery area with a valid 5-digit postal code.');
     const parcel=marketParcel(selectedItems);
     const packageItems=[{name:selectedItems.some(item=>item.sealedProductId)?'Sealed products':combinedTitle,value:declaredValue,length:parcel.length,width:parcel.width,height:parcel.height,weight:Math.max(100,parcel.weight),quantity:1}];
-    const quote=await shippingRateOptions(buyer?.id??null,`${ids.sort().join(',')}${acceptedSealedOffer?`:${String(body.offerId)}`:''}`,{couriers:finalCouriers,origin,destination,originLatitude:row.originLatitude,originLongitude:row.originLongitude,destinationLatitude,destinationLongitude,items:packageItems,cacheOnly:body.cacheOnly===true,refresh:body.refresh===true&&body.cacheOnly!==true});
-    return Response.json({...quote,couriers:finalCouriers},{headers:{'Cache-Control':'private, no-store'}});
+    const quote=await shippingRateOptions(buyer?.id??null,`${ids.sort().join(',')}${acceptedSealedOffer?`:${String(body.offerId)}`:''}`,{couriers:finalCouriers,origin,destination,originLatitude:row.originLatitude,originLongitude:row.originLongitude,destinationLatitude,destinationLongitude,items:packageItems,courierInsurance:declaredValue,cacheOnly:body.cacheOnly===true,refresh:body.refresh===true&&body.cacheOnly!==true});
+    const pricing=(quote.pricing??[]).map(rate=>{
+      const insuranceFee=Number.isSafeInteger(rate.insurance_fee)&&Number(rate.insurance_fee)>0?Number(rate.insurance_fee):0;
+      const baseShippingFee=Math.max(0,rate.price-insuranceFee);
+      const insuranceMandatory=rate.courier_code==='jntcargo'&&insuranceFee>0;
+      return {...rate,price:insuranceMandatory?rate.price:baseShippingFee,baseShippingFee,insuranceFee,insuranceValue:insuranceFee?declaredValue:0,insuranceMandatory};
+    });
+    return Response.json({...quote,pricing,couriers:finalCouriers},{headers:{'Cache-Control':'private, no-store'}});
   }catch(error){return errorResponse(error)}
 }

@@ -6,6 +6,7 @@ import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle} from '@
 import {CardArt} from '@/components/tcg/card-art';
 import {MultiFilter as SharedMultiFilter} from '@/components/tcg/catalog';
 import {PokemonCardText,PokemonCardVitals,PokemonMechanicText} from '@/components/tcg/pokemon-card-text';
+import {AdminLoadingSkeleton} from '@/components/admin/admin-loading-skeleton';
 
 type Row={id:string;code:string;name:string;language:string;setCode:string;setName:string;printingCode:string|null;collectorNumber:string|null;variant:string;rarity:string;source:string;imageSource:string|null;status:'stored'|'source'|'missing';imageUrl:string|null;assetKey:string|null;cardType:string;effectText:string|null;cost:number;power:number};
 type Detail=Record<string,unknown>&{sourcePayload?:Record<string,unknown>;imageUrl?:string|null};
@@ -89,9 +90,9 @@ export function PokemonCatalogStatus(){
     {data&&<div className="pokemon-catalog-filter-summary"><span>{activeFilters?`${sets.length+languages.length+sources.length+(searchText.trim()?1:0)} filters applied`:''}</span>{activeFilters&&<button type="button" onClick={clearFilters}>Clear filters <XIcon size={13}/></button>}</div>}
     {data&&<div className="pokemon-catalog-status-tabs" role="tablist" aria-label="Image status">{statuses.map(item=><button key={item.id} type="button" role="tab" aria-selected={status===item.id} className={status===item.id?'active':''} onClick={()=>{setStatus(item.id);setPage(1)}}>{item.label}<b>{format.format(item.count)}</b></button>)}</div>}
     {error&&<p className="admin-error">{error}</p>}
-    <div className="pokemon-catalog-table-wrap" aria-busy={loading}>
+    {loading&&!data?<div className="pokemon-catalog-table-wrap" aria-busy="true"><AdminLoadingSkeleton variant="table" label="Loading Pokémon cards" columns={6} rows={8}/></div>:<div className="pokemon-catalog-table-wrap" aria-busy={loading}>
       <table className="admin-health-table pokemon-catalog-table"><thead><tr><th>Card</th><th>Set and printing</th><th>Language</th><th>Data source</th><th>Image</th><th aria-label="Open details"/></tr></thead><tbody>
-        {loading&&!data?<tr><td colSpan={6}>Loading Pokémon cards…</td></tr>:data?.printings.map(row=><tr key={row.id} className="pokemon-catalog-row" tabIndex={0} role="button" aria-label={`Open ${row.name} card details`} onClick={()=>selectRow(row)} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();selectRow(row)}}}>
+        {data?.printings.map(row=><tr key={row.id} className="pokemon-catalog-row" tabIndex={0} role="button" aria-label={`Open ${row.name} card details`} onClick={()=>selectRow(row)} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();selectRow(row)}}}>
           <td><strong>{row.name}</strong><small>{[row.collectorNumber,row.rarity,row.source==='cardtell'?null:row.code].filter(Boolean).join(' / ')}</small></td>
           <td>{row.setName}<small>{[row.setCode,row.collectorNumber??row.printingCode,row.variant].filter(Boolean).join(' / ')}</small></td>
           <td>{row.language}</td><td>{sourceLabel(row.source)}</td>
@@ -100,7 +101,7 @@ export function PokemonCatalogStatus(){
         </tr>)}
         {!loading&&data&&!data.printings.length&&<tr><td colSpan={6}>No printings match these filters.</td></tr>}
       </tbody></table>
-    </div>
+    </div>}
     {data&&<footer className="pokemon-catalog-pagination"><span>Page {data.page}{loading?' / Updating':''}</span><div><button type="button" onClick={()=>setPage(value=>Math.max(1,value-1))} disabled={page<=1||loading} aria-label="Previous page"><ArrowLeftIcon size={16}/></button><button type="button" onClick={()=>setPage(value=>value+1)} disabled={!data.hasNext||loading} aria-label="Next page"><ArrowRightIcon size={16}/></button></div></footer>}
     <Dialog open={Boolean(selected)} onOpenChange={open=>{if(!open){setSelected(null);setDetail(null)}}}><DialogContent className="pokemon-card-dialog pokemon-admin-card-dialog">{selected&&<div className="pokemon-card-dialog-layout">
       <div className="pokemon-card-dialog-art-column"><div className="pokemon-dialog-art-wrap"><CardArt priority card={{id:selected.id,code:selected.code,name:selected.name,color:'Colorless',type:'Character',cost:selected.cost,power:selected.power,rarity:selected.rarity,art:0,imageUrl:selected.imageUrl??undefined,imageSource:'generated',setCode:selected.setCode,language:selected.language,printingCode:selected.printingCode??undefined,localCardNumber:selected.collectorNumber??undefined,effect:selected.effectText??'',variant:selected.variant,gameSlug:'pokemon'}}/></div></div>

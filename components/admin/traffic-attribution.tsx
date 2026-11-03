@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { ArrowClockwiseIcon as RefreshCw, ChartLineUpIcon as Chart } from '@phosphor-icons/react';
+import { AdminLoadingSkeleton } from '@/components/admin/admin-loading-skeleton';
 
 type Campaign = { source: string; medium: string; campaign: string; visits: number; visitors: number; new_users: number };
 type Visit = { id: string; landing_path: string; referrer_origin: string | null; country_code: string | null; utm_source: string | null; utm_medium: string | null; utm_campaign: string | null; utm_term: string | null; utm_content: string | null; parameters: string; converted_at: string | null; created_at: string };
@@ -65,7 +66,7 @@ export function TrafficAttribution() {
       <header className="admin-attribution-header">
         <div className="admin-attribution-heading">
           <Chart size={19} aria-hidden="true" />
-          <span><h2 id="admin-attribution-title">Acquisition and campaign attribution</h2><small>Consented landing sessions and account conversions · country is inferred at the edge · raw visits are retained for 180 days</small></span>
+          <span><h2 id="admin-attribution-title">Acquisition and campaign attribution</h2><small>Consent-based visits and account conversions. Country is approximate. Visit records are kept for 180 days.</small></span>
         </div>
         <button className="admin-refresh" type="button" onClick={() => void refresh()} disabled={loading}>
           <RefreshCw size={15} className={loading ? 'spin' : ''} />{loading ? 'Loading…' : 'Refresh'}
@@ -78,12 +79,12 @@ export function TrafficAttribution() {
           <button className="admin-refresh" type="button" onClick={() => void refresh()} disabled={loading}>Try again</button>
         </div>
       ) : loading && !data ? (
-        <div className="admin-attribution-loading" role="status" aria-live="polite"><span className="admin-attribution-spinner" />Loading traffic data…</div>
+        <AdminLoadingSkeleton variant="dashboard" label="Loading traffic data" />
       ) : data ? (
         <>
           {error && <p className="admin-attribution-stale" role="status">Refresh failed: {error} Showing the last loaded data.</p>}
           <div className="admin-attribution-stats">
-            <article><span>Landing sessions · 90 days</span><strong>{number.format(data.summary.visits)}</strong></article>
+            <article><span>Landing sessions over 90 days</span><strong>{number.format(data.summary.visits)}</strong></article>
             <article><span>Unique browser tabs</span><strong>{number.format(data.summary.visitors)}</strong></article>
             <article><span>New accounts attributed</span><strong>{number.format(data.summary.new_users)}</strong></article>
             <article><span>Session to account</span><strong>{data.summary.visitors ? `${((data.summary.new_users / data.summary.visitors) * 100).toFixed(1)}%` : '0%'}</strong></article>
@@ -106,7 +107,7 @@ export function TrafficAttribution() {
               let extras = '';
               try {
                 const params = JSON.parse(row.parameters) as Record<string, string>;
-                extras = Object.entries(params).filter(([key]) => !['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'].includes(key)).map(([key, value]) => `${key}=${value}`).join(' · ');
+                extras = Object.entries(params).filter(([key]) => !['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'].includes(key)).map(([key, value]) => `${key}=${value}`).join(', ');
               } catch { /* Older visit rows can have empty or malformed optional tags. */ }
               return <tr key={row.id}><td>{new Date(`${row.created_at.replace(' ', 'T')}Z`).toLocaleString()}</td><td>{row.utm_source ?? '-'} / {row.utm_medium ?? '-'}</td><td>{row.utm_campaign ?? '-'}</td><td>{row.country_code ?? '-'}</td><td>{row.converted_at ? 'Yes' : '-'}</td><td>{row.landing_path}</td><td>{row.referrer_origin ?? '-'}</td><td>{extras || '-'}</td></tr>;
             })}

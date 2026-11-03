@@ -10,7 +10,15 @@ export class BiteshipError extends HttpError{
   constructor(message:string,status:number,readonly code?:number){super(status,message);this.name='BiteshipError';}
 }
 
-export function biteshipApiKey(){return process.env.BITESHIP_API_KEY?.trim()??'';}
+export function biteshipApiKey(){
+  const key=process.env.BITESHIP_API_KEY?.trim()??'';
+  const staging=process.env.VIVREPLAY_DEPLOY_ENV==='staging';
+  const sandbox=key.startsWith('biteship_test.');
+  const live=key.startsWith('biteship_live.');
+  if(staging&&!sandbox)return '';
+  if(!staging&&process.env.IPAYMU_MODE==='production'&&!live)return '';
+  return key;
+}
 
 function errorMessage(payload:BiteshipResponse|null,status:number){
   if(payload?.code===40001001)return 'That postal code didn’t match a delivery area. Search for your district or village and choose the right one.';

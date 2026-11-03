@@ -12,9 +12,10 @@ function configuration(){
   if(!va||!apiKey)throw new Error('iPaymu checkout is not configured.');
   const rawMode=(process.env.IPAYMU_MODE??'').trim().toLowerCase();
   const isSandboxKey=apiKey.toLowerCase().startsWith('sandbox');
-  const mode=rawMode==='production'||rawMode==='sandbox'
-    ? (rawMode==='sandbox'&&!isSandboxKey? 'production' : rawMode)
-    : (isSandboxKey?'sandbox':'production');
+  const staging=process.env.VIVREPLAY_DEPLOY_ENV==='staging';
+  const mode=staging?'sandbox':rawMode==='production'||rawMode==='sandbox'?rawMode:isSandboxKey?'sandbox':'production';
+  if(mode==='sandbox'&&!isSandboxKey)throw new Error('Sandbox checkout requires sandbox iPaymu credentials.');
+  if(mode==='production'&&isSandboxKey)throw new Error('Production checkout requires live iPaymu credentials.');
   const production=mode==='production';
   if(production&&process.env.IPAYMU_PRODUCTION_READY==='false')throw new Error('Production payments are awaiting gateway approval.');
   const baseUrl=production?'https://my.ipaymu.com':'https://sandbox.ipaymu.com';

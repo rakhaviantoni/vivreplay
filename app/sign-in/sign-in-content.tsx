@@ -12,6 +12,9 @@ import { authClient } from "@/lib/auth-client";
 import { VivreMark } from "@/components/tcg/brand-assets";
 import {TurnstileField,turnstileEnabled,turnstileHeaders} from '@/components/tcg/turnstile-field';
 
+const stagingMode=process.env.NEXT_PUBLIC_DEPLOY_ENV==='staging';
+const googleAuthEnabled=process.env.NEXT_PUBLIC_GOOGLE_AUTH_ENABLED!=='false';
+
 function safeReturnTo(value: string | null) {
   return value?.startsWith("/") && !value.startsWith("//") ? value : "/profile";
 }
@@ -120,13 +123,12 @@ export default function SignInPage() {
             </div>
           )}
 
-          <div className="auth-action-security"><TurnstileField onToken={setGoogleTurnstileToken} resetKey={googleTurnstileResetKey}/></div>
-          <button className="auth-google" type="button" disabled={busy} onClick={signInWithGoogle}>
-            <img src="/brand/google-g.svg" alt="" width="18" height="18" />{t("Continue with Google")} </button>
-
-          <p className="auth-divider">
-            <span>{t("or")} </span>
-          </p>
+          {googleAuthEnabled&&<>
+            <div className="auth-action-security"><TurnstileField onToken={setGoogleTurnstileToken} resetKey={googleTurnstileResetKey}/></div>
+            <button className="auth-google" type="button" disabled={busy} onClick={signInWithGoogle}>
+              <img src="/brand/google-g.svg" alt="" width="18" height="18" />{t("Continue with Google")} </button>
+            <p className="auth-divider"><span>{t("or")} </span></p>
+          </>}
 
           <form className="auth-form" onSubmit={submit}>
             <label>
@@ -138,8 +140,10 @@ export default function SignInPage() {
             </label>
 
             <div className="auth-form-links">
-              <Link href="/forgot-password">{t("Forgot password?")} </Link>
-              <Link href="/verify-email">{t("Resend verification")} </Link>
+              {!stagingMode&&<>
+                <Link href="/forgot-password">{t("Forgot password?")} </Link>
+                <Link href="/verify-email">{t("Resend verification")} </Link>
+              </>}
             </div>
 
             <TurnstileField onToken={setTurnstileToken} resetKey={turnstileResetKey}/>
