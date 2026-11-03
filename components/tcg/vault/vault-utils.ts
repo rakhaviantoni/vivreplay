@@ -11,6 +11,9 @@ function priceInIdr(amount:number,currency:string,rate:number):number|null{
 }
 
 export function estimateItemValue(item:CollectionItem,price:VaultMarketPrice|undefined,rate:number){
+  if(item.type==='GRADED'&&typeof item.marketValueEstimate==='number'&&item.marketValueEstimate>0){
+    return {value:item.marketValueEstimate,previousValue:null,perCard:item.marketValueEstimate,observations:0,hasEstimate:true};
+  }
   if(item.type!=='RAW'||!price)return {value:0,previousValue:null,perCard:null,observations:0,hasEstimate:false};
   const perCard=priceInIdr(price.amount,price.currency,rate);
   if(perCard===null||perCard<=0)return {value:0,previousValue:null,perCard:null,observations:price.observationCount,hasEstimate:false};
@@ -65,7 +68,7 @@ export function enrichCollectionItem(item: CollectionItem, favoritesSet: Set<str
     hasMarketEstimate:hasEstimate,
     marketPricePerCard:perCard,
     marketPriceCurrency:price?.currency??null,
-    marketPriceSource:price?.source??(price?'yuyutei':null),
+    marketPriceSource:item.type==='GRADED'&&typeof item.marketValueEstimate==='number'&&item.marketValueEstimate>0?'manual':price?.source??(price?'yuyutei':null),
     marketPriceUrl:price?.sourceUrl??null,
     marketObservedAt:price?.observedAt??null,
     marketObservationsCount:observations,

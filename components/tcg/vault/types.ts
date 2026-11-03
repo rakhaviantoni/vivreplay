@@ -56,7 +56,7 @@ export type EnrichedCollectionItem = CollectionItem & {
   hasMarketEstimate:boolean;
   marketPricePerCard:number|null;
   marketPriceCurrency:string|null;
-  marketPriceSource:'yuyutei'|'pricecharting'|null;
+  marketPriceSource:'yuyutei'|'pricecharting'|'manual'|null;
   marketPriceUrl:string|null;
   marketObservedAt:string|null;
   marketObservationsCount:number;

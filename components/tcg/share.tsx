@@ -220,7 +220,7 @@ function drawRoundedRect(
   ctx.closePath();
 }
 
-function drawVaultPsaLabel(ctx:CanvasRenderingContext2D,item:ShareCardItem,gameSlug:'one-piece'|'pokemon'|undefined,x:number,y:number,width:number,height:number,setYear?:number){
+function drawVaultSlabLabel(ctx:CanvasRenderingContext2D,item:ShareCardItem,gameSlug:'one-piece'|'pokemon'|undefined,x:number,y:number,width:number,height:number,setYear?:number){
   const card=item.card as Card&{gameSlug?:string};
   const game=card.gameSlug??gameSlug??'one-piece';
   const language=String(item.slabLabel?.language??card.language??'').toUpperCase().replace('JA','JP');
@@ -237,20 +237,21 @@ function drawVaultPsaLabel(ctx:CanvasRenderingContext2D,item:ShareCardItem,gameS
   const gradeNames:Record<string,string>={'10':'GEM MT','9.5':'MINT','9':'MINT','8.5':'NM-MT','8':'NM-MT','7':'NM','6':'EX-MT','5':'EX','4':'VG-EX','3':'VG','2':'GOOD','1':'PR'};
   const gradeLabel=gradeInput==='GEM MINT'?'GEM MT':gradeInput||gradeNames[gradeScore]||'GRADE';
   const certificate=String(item.certification??'');
-  const psa=String(item.gradingCompany??'PSA').toUpperCase()==='PSA';
-  const border=psa?'#ed1c2e':'#8b929b';
+  const grader=String(item.gradingCompany??'PSA').toUpperCase();
+  const psa=grader==='PSA';
+  const border=psa?'#ed1c2e':grader==='CGC'?'#243c62':grader==='BGS'?'#343434':grader==='TAG'?'#f3f5f6':'#8b929b';
   const frame=4;
   const left=x+8,right=x+width-8;
   const split=x+width*.69;
   const baseY=y+height;
   ctx.save();
-  ctx.fillStyle='#fbfcff';ctx.fillRect(x,y,width,height);
+  ctx.fillStyle=grader==='TAG'?'#202326':grader==='BGS'?'#191919':'#fbfcff';ctx.fillRect(x,y,width,height);
   ctx.save();ctx.beginPath();ctx.rect(x+frame,y+frame,width-frame*2,height-frame*2);ctx.clip();
-  ctx.strokeStyle='#e8eef7';ctx.lineWidth=2;
+  ctx.strokeStyle=grader==='TAG'?'rgba(255,255,255,.18)':'#e8eef7';ctx.lineWidth=2;
   for(let line=y+8;line<baseY;line+=8){ctx.beginPath();ctx.moveTo(x+frame,line);ctx.lineTo(x+width-frame,line);ctx.stroke();}
   ctx.restore();
   ctx.strokeStyle=border;ctx.lineWidth=frame;ctx.strokeRect(x+frame/2,y+frame/2,width-frame,height-frame);
-  ctx.fillStyle='#17202b';ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.font='900 9px Arial,sans-serif';
+  ctx.fillStyle=grader==='TAG'?'#fff':'#17202b';ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.font='900 9px Arial,sans-serif';
   const releaseYear=(card as Card&{releaseYear?:number}).releaseYear??setYear;
   const descriptor=[releaseYear,game==='pokemon'?'POKÉMON':'ONE PIECE',setCode,language].filter(Boolean).join(' ');
   ctx.fillText(fitCanvasText(ctx,descriptor,split-left-5),left,y+14,split-left-5);
@@ -418,7 +419,7 @@ async function generateListingCompositeBlob({
     }),
   ]);
   const slabYears=new Map<ShareCardItem,number>();
-  if(entityType==='vault')await Promise.all(cards.filter(item=>item.productType==='GRADED'&&String(item.gradingCompany??'PSA').toUpperCase()==='PSA').map(async item=>{
+  if(entityType==='vault')await Promise.all(cards.filter(item=>item.productType==='GRADED').map(async item=>{
     const card=item.card as Card&{gameSlug?:string};
     const game=(card.gameSlug??gameSlug??'one-piece') as 'one-piece'|'pokemon';
     const setCode=item.slabLabel?.setCode??card.setCode??'';
@@ -688,6 +689,22 @@ async function generateListingCompositeBlob({
     const c = i % cols;
     const cardX = gridStartX + c * (cardWidth + gapX);
     const cardY = startY + r * (cardHeight + cardInfoHeight + gapY);
+    const isSlab=entityType==='vault'&&item.productType==='GRADED';
+    const artX=cardX+(isSlab?8:0);
+    const artY=cardY+(isSlab?cardInfoHeight:0);
+    const artWidth=cardWidth-(isSlab?16:0);
+    const artHeight=cardHeight-(isSlab?10:0);
+
+    if(isSlab){
+      const caseHeight=cardInfoHeight+cardHeight;
+      ctx.save();
+      ctx.shadowColor=style==='light'?'rgba(49,38,19,.18)':'rgba(0,0,0,.42)';ctx.shadowBlur=12;ctx.shadowOffsetY=5;
+      ctx.fillStyle=style==='light'?'rgba(255,255,255,.74)':'rgba(255,255,255,.08)';
+      drawRoundedRect(ctx,cardX,cardY,cardWidth,caseHeight,10);ctx.fill();ctx.restore();
+      ctx.strokeStyle=style==='light'?'rgba(119,126,132,.72)':'rgba(220,228,236,.46)';ctx.lineWidth=2;
+      drawRoundedRect(ctx,cardX+1,cardY+1,cardWidth-2,caseHeight-2,10);ctx.stroke();
+      drawVaultSlabLabel(ctx,item,gameSlug==='all'?undefined:gameSlug,cardX+5,cardY+5,cardWidth-10,cardInfoHeight-10,slabYears.get(item));
+    }
 
     // Show duplicate copies as a small physical stack behind the top card.
     const stackLayers = Math.min(2, Math.max(0, Math.ceil((item.quantity ?? 1) - 1)));
@@ -721,37 +738,37 @@ async function generateListingCompositeBlob({
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 6;
     ctx.fillStyle = palette.panel;
-    drawRoundedRect(ctx, cardX, cardY, cardWidth, cardHeight, 7);
+    drawRoundedRect(ctx, artX, artY, artWidth, artHeight, isSlab?3:7);
     ctx.fill();
     ctx.restore();
 
     // Clipped card art
     ctx.save();
-    drawRoundedRect(ctx, cardX, cardY, cardWidth, cardHeight, 7);
+    drawRoundedRect(ctx, artX, artY, artWidth, artHeight, isSlab?3:7);
     ctx.clip();
     if (img) {
-      ctx.drawImage(img, cardX, cardY, cardWidth, cardHeight);
+      ctx.drawImage(img, artX, artY, artWidth, artHeight);
     } else {
       ctx.fillStyle = palette.cardFallback;
-      ctx.fillRect(cardX, cardY, cardWidth, cardHeight);
+      ctx.fillRect(artX, artY, artWidth, artHeight);
       ctx.fillStyle = palette.cardText;
       ctx.font = '700 13px "Plus Jakarta Sans", sans-serif';
-      ctx.fillText(item.card.name, cardX + 12, cardY + cardHeight / 2);
+      ctx.fillText(item.card.name, artX + 12, artY + artHeight / 2);
     }
     ctx.restore();
 
     // Card border
     ctx.strokeStyle = palette.line;
     ctx.lineWidth = 1.5;
-    drawRoundedRect(ctx, cardX, cardY, cardWidth, cardHeight, 7);
+    drawRoundedRect(ctx, artX, artY, artWidth, artHeight, isSlab?3:7);
     ctx.stroke();
 
     // VivrePlay stack badge for count > 1
     if (item.quantity && item.quantity > 1) {
       const badgeW = 38;
       const badgeH = 22;
-      const badgeX = cardX + cardWidth - badgeW - 6;
-      const badgeY = cardY + cardHeight - badgeH - 6;
+      const badgeX = artX + artWidth - badgeW - 6;
+      const badgeY = artY + artHeight - badgeH - 6;
 
       ctx.save();
       ctx.fillStyle = palette.badge;
@@ -769,10 +786,7 @@ async function generateListingCompositeBlob({
       ctx.restore();
     }
 
-    // Graded cards carry their details in the PSA label below the artwork.
-    if(entityType==='vault'&&item.productType==='GRADED'&&String(item.gradingCompany??'PSA').toUpperCase()==='PSA'){
-      drawVaultPsaLabel(ctx,item,gameSlug==='all'?undefined:gameSlug,cardX,cardY+cardHeight+2,cardWidth,cardInfoHeight-2,slabYears.get(item));
-    }else{
+    if(!isSlab){
       ctx.font = '700 13px "Plus Jakarta Sans", sans-serif';
       ctx.fillStyle = palette.ink;
       ctx.textAlign = 'center';
@@ -785,14 +799,7 @@ async function generateListingCompositeBlob({
       const cardDetails = [item.metaLine??item.card.code, item.productType==='GRADED'?'':item.condition].filter(Boolean).join('  ');
       ctx.fillText(cardDetails, cardX + cardWidth / 2, cardY + cardHeight + 32);
     }
-    if(entityType==='vault'&&item.productType==='GRADED'&&String(item.gradingCompany??'PSA').toUpperCase()!=='PSA'){
-      const label=`${item.gradingCompany??'PSA'}  ${item.grade??''}`.trim();
-      ctx.font='800 10px "Plus Jakarta Sans", sans-serif';ctx.textAlign='center';
-      const badgeWidth=Math.min(cardWidth-12,ctx.measureText(label).width+16),badgeX=cardX+(cardWidth-badgeWidth)/2,badgeY=cardY+cardHeight+42;
-      ctx.fillStyle=palette.badge;drawRoundedRect(ctx,badgeX,badgeY,badgeWidth,20,6);ctx.fill();
-      ctx.strokeStyle=palette.accent;ctx.lineWidth=1;drawRoundedRect(ctx,badgeX,badgeY,badgeWidth,20,6);ctx.stroke();
-      ctx.fillStyle=palette.badgeText;ctx.fillText(label,cardX+cardWidth/2,badgeY+14,cardWidth-20);
-    }
+    if(isSlab){ctx.strokeStyle=style==='light'?'rgba(119,126,132,.72)':'rgba(220,228,236,.46)';ctx.lineWidth=2;drawRoundedRect(ctx,cardX+1,cardY+1,cardWidth-2,cardInfoHeight+cardHeight-2,10);ctx.stroke();}
     if (typeof item.unitAmount === 'number' && item.unitAmount > 0) {
       ctx.font = '800 12px "Plus Jakarta Sans", sans-serif';
       ctx.fillStyle = palette.accent;

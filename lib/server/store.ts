@@ -72,7 +72,7 @@ async function consolidateRawStacks(ownerId:string){
 export async function collection(ownerId:string){
   await consolidateRawStacks(ownerId);
   const rows=(await db().prepare(`
-    SELECT c.id,c.printing_id AS printingId,c.type,c.quantity,c.condition,c.visibility,c.acquisition_amount AS acquisitionAmount,c.currency,c.acquired_at AS acquiredAt,c.notes,
+    SELECT c.id,c.printing_id AS printingId,c.type,c.quantity,c.condition,c.visibility,c.acquisition_amount AS acquisitionAmount,c.market_value_estimate AS marketValueEstimate,c.currency,c.acquired_at AS acquiredAt,c.notes,
       p.name AS provider,g.grade,g.certification,g.subgrades,g.population,g.verification_status AS verificationStatus,g.verification_source AS verificationSource,
       COALESCE((SELECT SUM(CASE WHEN l.items IS NULL THEN l.quantity ELSE 0 END) FROM listings l WHERE l.instance_id=c.id AND l.status='ACTIVE' AND (l.expires_at IS NULL OR l.expires_at>CURRENT_TIMESTAMP)),0)+COALESCE((SELECT SUM(CAST(json_extract(entry.value,'$.quantity') AS INTEGER)) FROM listings l,json_each(l.items) entry WHERE json_extract(entry.value,'$.instanceId')=c.id AND l.status='ACTIVE' AND (l.expires_at IS NULL OR l.expires_at>CURRENT_TIMESTAMP)),0) AS listedQuantity,
       COALESCE((SELECT l.id FROM listings l WHERE l.instance_id=c.id AND l.status='ACTIVE' AND (l.expires_at IS NULL OR l.expires_at>CURRENT_TIMESTAMP) ORDER BY l.created_at DESC LIMIT 1),(SELECT l.id FROM listings l,json_each(l.items) entry WHERE json_extract(entry.value,'$.instanceId')=c.id AND l.status='ACTIVE' AND (l.expires_at IS NULL OR l.expires_at>CURRENT_TIMESTAMP) ORDER BY l.created_at DESC LIMIT 1)) AS activeListingId,

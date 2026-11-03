@@ -63,7 +63,7 @@ export async function POST(req:Request){
         return Response.json({id:stack.id,merged:true,quantity});
       }
     }
-    const stmts=[d.prepare('INSERT INTO collectible_instances (id,owner_id,printing_id,type,quantity,condition,visibility,acquisition_amount,currency,acquired_at,notes) VALUES (?,?,?,?,?,?,?,?,?,?,?)').bind(id,p.id,v.printingId,v.type,v.quantity,v.condition,v.visibility,v.acquisitionAmount,v.currency,v.acquiredAt??null,v.notes??null)];
+    const stmts=[d.prepare('INSERT INTO collectible_instances (id,owner_id,printing_id,type,quantity,condition,visibility,acquisition_amount,market_value_estimate,currency,acquired_at,notes) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)').bind(id,p.id,v.printingId,v.type,v.quantity,v.condition,v.visibility,v.acquisitionAmount,v.marketValueEstimate??null,v.currency,v.acquiredAt??null,v.notes??null)];
     if(v.type==='GRADED'){
       const providerId=crypto.randomUUID();
       stmts.unshift(d.prepare('INSERT OR IGNORE INTO grading_providers (id,name,short_name) VALUES (?,?,?)').bind(providerId,v.provider,v.provider));
@@ -106,6 +106,9 @@ export async function PATCH(req:Request){
     const nextQuantity=typeof fields.quantity==='number'?fields.quantity:existing.quantity;
     const nextVisibility=typeof fields.visibility==='string'?fields.visibility:existing.visibility;
     const nextAmount=typeof fields.acquisitionAmount==='number'?fields.acquisitionAmount:existing.acquisitionAmount;
+    const nextMarketValueEstimate=fields.marketValueEstimate===null?null:typeof fields.marketValueEstimate==='number'&&Number.isSafeInteger(fields.marketValueEstimate)&&fields.marketValueEstimate>=0&&fields.marketValueEstimate<=100000000000?fields.marketValueEstimate:undefined;
+    if(fields.marketValueEstimate!==undefined&&fields.marketValueEstimate!==null&&nextMarketValueEstimate===undefined)throw new HttpError(400,'Enter a valid market estimate.');
+    if(fields.marketValueEstimate!==undefined&&existing.type!=='GRADED'&&nextType!=='GRADED')throw new HttpError(400,'A market estimate can only be saved for a slab.');
     const nextCurrency=typeof fields.currency==='string'?fields.currency:existing.currency;
     const nextAcquiredAt=typeof fields.acquiredAt==='string'?fields.acquiredAt:existing.acquiredAt;
     const nextNotes=typeof fields.notes==='string'?fields.notes:existing.notes;
@@ -141,6 +144,7 @@ export async function PATCH(req:Request){
       condition=COALESCE(?,condition),
       visibility=COALESCE(?,visibility),
       acquisition_amount=COALESCE(?,acquisition_amount),
+      market_value_estimate=CASE WHEN ?=1 THEN ? ELSE market_value_estimate END,
       currency=COALESCE(?,currency),
       notes=COALESCE(?,notes),
       acquired_at=COALESCE(?,acquired_at)
@@ -151,6 +155,8 @@ export async function PATCH(req:Request){
         fields.condition!==undefined?fields.condition:null,
         fields.visibility!==undefined?fields.visibility:null,
         fields.acquisitionAmount!==undefined?fields.acquisitionAmount:null,
+        fields.marketValueEstimate!==undefined?1:0,
+        fields.marketValueEstimate!==undefined?nextMarketValueEstimate:null,
         fields.currency!==undefined?fields.currency:null,
         fields.notes!==undefined?fields.notes:null,
         fields.acquiredAt!==undefined?fields.acquiredAt:null,

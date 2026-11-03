@@ -152,6 +152,7 @@ export function Vault() {
   const [editingItem, setEditingItem] = useState<EnrichedCollectionItem | null>(null);
   const [selectedRawItem, setSelectedRawItem] = useState<EnrichedCollectionItem | null>(null);
   const [selectedSlabItem, setSelectedSlabItem] = useState<EnrichedCollectionItem | null>(null);
+  const [selectedShareSlab, setSelectedShareSlab] = useState<EnrichedCollectionItem | null>(null);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [privacyModalOpen, setPrivacyModalOpen] = useState(false);
   const [importExportOpen, setImportExportOpen] = useState(false);
@@ -366,7 +367,10 @@ export function Vault() {
   };
 
   const handleSell = (item: EnrichedCollectionItem) => {
-    window.dispatchEvent(new CustomEvent('vivreplay:open-sell-printing',{detail:{printingId:item.printingId,gameSlug:(item.card as (typeof item.card&{gameSlug?:string})|undefined)?.gameSlug??(/^PK-/i.test(item.card.code)?'pokemon':'one-piece')}}));
+    const request={printingId:item.printingId,gameSlug:(item.card as (typeof item.card&{gameSlug?:string})|undefined)?.gameSlug??(/^PK-/i.test(item.card.code)?'pokemon':'one-piece')};
+    setSelectedRawItem(null);
+    setSelectedSlabItem(null);
+    window.setTimeout(()=>window.dispatchEvent(new CustomEvent('vivreplay:open-sell-printing',{detail:request})),0);
   };
 
   const handleFindListings = (code: string) => {
@@ -847,20 +851,22 @@ export function Vault() {
         }}
         onDelete={handleDeleteItem}
         onSell={handleSell}
+        onMarketEstimateSaved={async value=>{setSelectedSlabItem(current=>current?{...current,marketValueEstimate:value}:current);await refresh();}}
         onToggleHideValues={handleToggleHideValues}
         onShare={slab => {
           setSelectedSlabItem(null);
+          setSelectedShareSlab(slab);
           setShareModalOpen(true);
         }}
       />
 
       <ShareVaultModal
         open={shareModalOpen}
-        onClose={() => { setShareModalOpen(false); setSelectedShareSet(null); }}
+        onClose={() => { setShareModalOpen(false); setSelectedShareSet(null); setSelectedShareSlab(null); }}
         username={username}
         items={orderedShareItems}
         hideValues={hideValues}
-        selectedSlab={selectedSlabItem}
+        selectedSlab={selectedShareSlab}
         selectedSet={selectedShareSet}
         language={language}
         gameSlug={gameSlug}

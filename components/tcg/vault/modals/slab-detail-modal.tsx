@@ -38,6 +38,7 @@ interface SlabDetailModalProps {
   onEdit: (slab: EnrichedCollectionItem) => void;
   onDelete: (id: string) => void;
   onSell: (slab: EnrichedCollectionItem) => void;
+  onMarketEstimateSaved?: (value:number|null) => void | Promise<void>;
   onToggleHideValues: () => void;
   onShare: (slab: EnrichedCollectionItem) => void;
 }
@@ -52,6 +53,7 @@ export function SlabDetailModal({
   onEdit,
   onDelete,
   onSell,
+  onMarketEstimateSaved,
   onToggleHideValues,
   onShare,
 }: SlabDetailModalProps) {
@@ -62,6 +64,10 @@ export function SlabDetailModal({
   const [photoBusy,setPhotoBusy]=useState(false);
   const [pokemonPrintingData,setPokemonPrintingData]=useState<{printingId:string;source:Record<string,unknown>|null}|null>(null);
   const [estimateRate,setEstimateRate]=useState<{currency:string;rate:number}|null>(null);
+  const [marketEstimateDraft,setMarketEstimateDraft]=useState('');
+  const [marketEstimateSaving,setMarketEstimateSaving]=useState(false);
+  const [marketEstimateEditing,setMarketEstimateEditing]=useState(false);
+  const [savedMarketEstimateIdr,setSavedMarketEstimateIdr]=useState<number|null>(null);
   const portalTarget=typeof document==='undefined'?null:document.body;
 
   useEffect(()=>{
@@ -95,6 +101,37 @@ export function SlabDetailModal({
       .catch(()=>{});
     return()=>{active=false};
   },[estimateCurrency]);
+
+  useEffect(()=>{
+    setSavedMarketEstimateIdr(slab?.marketValueEstimate??null);
+    const amount=slab?.marketValueEstimate;
+    if(!amount){setMarketEstimateDraft('');return;}
+    if(estimateCurrency==='IDR'){setMarketEstimateDraft(String(amount));return;}
+    if(estimateRate?.currency===estimateCurrency){const converted=amount*estimateRate.rate;setMarketEstimateDraft(estimateCurrency==='USD'?converted.toFixed(2):String(Math.round(converted)));}
+    else setMarketEstimateDraft('');
+  },[slab?.id,slab?.marketValueEstimate,estimateCurrency,estimateRate]);
+
+  const saveMarketEstimate=async()=>{
+    if(!slab)return;
+    const amount=marketEstimateDraft.trim()===''?null:Number(marketEstimateDraft);
+    if(amount!==null&&(!Number.isFinite(amount)||amount<0||amount>100000000000)){toast.error('Enter a valid estimate.');return;}
+    let amountIdr=amount;
+    if(estimateCurrency!=='IDR'){
+      if(!estimateRate||estimateRate.currency!==estimateCurrency){toast.error('Currency conversion is still loading. Try again shortly.');return;}
+      if(amount!==null)amountIdr=Math.round(amount/estimateRate.rate);
+    }
+    setMarketEstimateSaving(true);
+    try{
+      const response=await fetch('/api/collection',{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({id:slab.id,marketValueEstimate:amountIdr})});
+      const result=await response.json() as {error?:string};
+      if(!response.ok)throw new Error(result.error??'Could not save this estimate.');
+      setSavedMarketEstimateIdr(amountIdr);
+      setMarketEstimateEditing(false);
+      toast.success('Estimate saved');
+      await onMarketEstimateSaved?.(amountIdr);
+    }catch(error){toast.error(error instanceof Error?error.message:'Could not save this estimate.');}
+    finally{setMarketEstimateSaving(false);}
+  };
 
   const formatEstimate=(amountIdr:number)=>{
     if(estimateCurrency==='IDR')return formatCompactMoney(amountIdr,'IDR');
@@ -329,10 +366,14 @@ export function SlabDetailModal({
 
               <div>
                 <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--vault-ink-muted)' }}>
-                  Market estimate{slab.hasMarketEstimate&&estimateCurrency!=='IDR'?` (${estimateRate?.currency===estimateCurrency?estimateCurrency:'IDR'})`:''}
+                  Market estimate ({estimateCurrency})
                 </span>
                 <div style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '18px', fontWeight: 600, color: 'var(--vault-gold)', marginTop: '2px' }}>
-                  {hideValues ? '••••••••' : slab.hasMarketEstimate ? formatEstimate(slab.estimatedValue) : 'No graded price data'}
+                  {hideValues ? '••••••••' : savedMarketEstimateIdr ? formatEstimate(savedMarketEstimateIdr) : 'Not set'}
+                </div>
+                <div style={{display:'flex',gap:6,marginTop:6}}>
+                  <input aria-label={`Market estimate in ${estimateCurrency}`} type="number" min="0" step={estimateCurrency==='USD'?'0.01':'1'} inputMode="decimal" className="vault-select-compact" value={hideValues&&!marketEstimateEditing?'':marketEstimateDraft} onFocus={()=>{if(hideValues&&!marketEstimateEditing){setMarketEstimateDraft('');setMarketEstimateEditing(true);}}} onChange={event=>setMarketEstimateDraft(event.target.value)} placeholder={hideValues&&!marketEstimateEditing?'Focus to enter a value':`Amount in ${estimateCurrency}`} style={{minWidth:0,width:'100%'}}/>
+                  <button type="button" className="vault-btn vault-btn-secondary" disabled={marketEstimateSaving||(hideValues&&!marketEstimateEditing)} onClick={()=>void saveMarketEstimate()}>{marketEstimateSaving?'Saving…':'Save'}</button>
                 </div>
               </div>
 

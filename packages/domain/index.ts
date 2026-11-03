@@ -13,6 +13,7 @@ export type CollectionItem={
   certification:string|null;
   visibility:'private'|'public'|'marketplace-only';
   acquisitionAmount:number;
+  marketValueEstimate?:number|null;
   currency:string;
   acquiredAt?:string|null;
   notes?:string|null;
@@ -69,6 +70,7 @@ export const collectionInput=z.object({
   certification:z.string().trim().min(1).max(100).nullable(),
   visibility:z.enum(['private','public','marketplace-only']).default('private'),
   acquisitionAmount:z.number().int().nonnegative().max(100000000000),
+  marketValueEstimate:z.number().int().nonnegative().max(100000000000).nullable().optional(),
   currency:z.enum(['IDR','USD','JPY']),
   acquiredAt:z.string().optional().nullable(),
   notes:z.string().max(2000).optional().nullable(),

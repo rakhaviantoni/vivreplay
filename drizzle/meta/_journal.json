@@ -15,6 +15,13 @@
       "when": 1789954022577,
       "tag": "0001_simple_layla_miller",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1793697940498,
+      "tag": "0002_fine_piledriver",
+      "breakpoints": true
     }
   ]
 }
