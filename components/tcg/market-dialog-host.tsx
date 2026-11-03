@@ -24,7 +24,7 @@ export function MarketDialogHost({accountActions=true}:{accountActions?:boolean}
     };
     const openPrinting=(event:Event)=>{
       const detail=(event as CustomEvent<string|{printingId?:string;gameSlug?:'one-piece'|'pokemon'}>).detail;
-      const printingId=typeof detail==='string'?detail:detail?.printingId;
+      const printingId=typeof detail==='string'?detail.trim():typeof detail?.printingId==='string'?detail.printingId.trim():'';
       if(printingId)setSellRequest({key:++sequence.current,printingId,gameSlug:typeof detail==='string'?currentGame():detail.gameSlug??currentGame()});
     };
     const openListing=(event:Event)=>{

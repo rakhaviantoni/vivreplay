@@ -1163,7 +1163,9 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
     setDirectSellLoading(false);
     setOpen(true);
   }
-  const sellPrinting=async(printingId:string)=>{
+  const sellPrinting=async(value:unknown)=>{
+    const printingId=typeof value==='string'?value.trim():value&&typeof value==='object'&&'printingId' in value&&typeof value.printingId==='string'?value.printingId.trim():'';
+    if(!printingId){toast.error(locale==='ID'?'Cetakan kartu tidak valid.':'This card printing could not be identified.');return;}
     if(accountLoading){toast.message(locale==='ID'?'Memeriksa akun Anda…':'Checking your account…');return;}
     if(!data){signInToContinue();return;}
     const readablePrinting=printingId.match(/^(.+)--(en|jp|kr|cn)$/i);
@@ -1184,7 +1186,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
   };
   useEffect(()=>{
     if(!modalOnly)return;
-    const onSell=(event:Event)=>{const printingId=(event as CustomEvent<string>).detail;if(printingId){if(accountLoading)queuedSellPrinting.current=printingId;else void sellPrinting(printingId)}};
+    const onSell=(event:Event)=>{const detail=(event as CustomEvent<unknown>).detail;const printingId=typeof detail==='string'?detail.trim():detail&&typeof detail==='object'&&'printingId' in detail&&typeof detail.printingId==='string'?detail.printingId.trim():'';if(printingId){if(accountLoading)queuedSellPrinting.current=printingId;else void sellPrinting(printingId)}};
     window.addEventListener('vivreplay:open-sell-printing',onSell);
     return()=>window.removeEventListener('vivreplay:open-sell-printing',onSell);
   },[modalOnly,accountLoading,sellPrinting]);
