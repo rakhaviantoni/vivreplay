@@ -46,6 +46,11 @@ jobs:
 
             cd "$APP_DIR/services/card-scanner"
 
+            if [ -x "venv/bin/python" ] && [ -f "data/catalog_seed.json.gz" ] && [ -f "data/catalog_embeddings.npy" ]; then
+              echo "Adding new catalog printings to the scanner index..."
+              venv/bin/python add_missing_cards.py
+            fi
+
             if [ -f "sync_metadata.py" ] && [ -f "data/catalog_metadata.json" ]; then
               echo "Syncing catalog metadata..."
               python3 sync_metadata.py || true
