@@ -6,6 +6,7 @@ import Link from '@/components/ui/localized-link';
 import {ArrowRightIcon as ArrowRight,BookmarkSimpleIcon as Bookmark,CardsIcon as VaultIcon,ChatCircleDotsIcon as OffersIcon,CheckIcon as Check,ClipboardTextIcon as ListingsIcon,CrownSimpleIcon as Crown,HeartIcon as Heart,MapPinIcon as MapPin,PencilSimpleIcon as Pencil,PlusIcon as Plus,ShoppingBagIcon as OrdersIcon,SignOutIcon as SignOut,TruckIcon as Truck,UserIcon as User,WalletIcon as Wallet} from '@phosphor-icons/react';
 import {toast} from 'sonner';
 import {api,type AccountState} from '@/lib/client';
+import {authClient} from '@/lib/auth-client';
 import {MARKET_ACTIVITY_REWARDS,type MarketActivityAction} from '@/lib/market-activity';
 import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle} from '@/components/ui/dialog';
 import {SavedListings} from './market-saved';
@@ -43,17 +44,18 @@ const sections:[MarketAccountPanel,string,string,typeof ListingsIcon][]=[
   ['profile','Profile','Profil',User],
 ];
 
-export function MarketQuickPanel({panel,onOpenChange,onPanelChange,locale,account,activityCounts,onSaved,onRefresh=()=>{},onCreateListing,onSignOut,initialOrderId,initialConversationId,initialProfileTab='account'}:{panel:MarketAccountPanel|null;onOpenChange:(open:boolean)=>void;onPanelChange:(panel:MarketAccountPanel)=>void;locale:'EN'|'ID';account:AccountState;activityCounts:ActivityCounts;onSaved:()=>Promise<void>|void;onRefresh?:()=>Promise<void>|void;onCreateListing:()=>void;onSignOut:()=>void;initialOrderId?:string|null;initialConversationId?:string|null;initialProfileTab?:ProfileQuickTab}){
+export function MarketQuickPanel({panel,onOpenChange,onPanelChange,locale,account,activityCounts,onSaved,onRefresh=()=>{},onCreateListing,onSignOut,initialOrderId,initialConversationId,initialProfileTab='account'}:{panel:MarketAccountPanel|null;onOpenChange:(open:boolean)=>void;onPanelChange:(panel:MarketAccountPanel)=>void;locale:'EN'|'ID';account:AccountState;activityCounts:ActivityCounts;onSaved:()=>Promise<void>|void;onRefresh?:()=>Promise<void>|void;onCreateListing:()=>void;onSignOut?:()=>void;initialOrderId?:string|null;initialConversationId?:string|null;initialProfileTab?:ProfileQuickTab}){
   const [editorOpen,setEditorOpen]=useState(false);
   const [editingItem,setEditingItem]=useState<EnrichedCollectionItem|null>(null);
   const profile=account.profile;
   const choose=(value:MarketAccountPanel)=>onPanelChange(value);
+  const handleSignOut=onSignOut??(async()=>{try{const result=await authClient.signOut();if(result.error)throw result.error;window.location.assign(locale==='ID'?'/id/market':'/market')}catch(error){toast.error(error instanceof Error&&error.message?error.message:locale==='ID'?'Gagal keluar. Coba lagi.':'Could not sign out. Please try again.')}});
   return <><Dialog open={Boolean(panel)} onOpenChange={onOpenChange}><DialogContent className="market-account-dialog market-account-unified">
     <header className="market-account-unified-heading">
       <div className="market-account-unified-avatar">{String(profile.display_name??profile.username??'V').slice(0,1).toUpperCase()}</div>
       <div><DialogHeader><DialogTitle>{String(profile.display_name||(locale==='ID'?'Akun':'Account'))}</DialogTitle><DialogDescription>@{String(profile.username??'')}</DialogDescription></DialogHeader></div>
       {String(profile.tier??'free').toLowerCase()==='pro'&&<span className="market-pro-user-badge"><Crown size={13} weight="fill"/>Pro</span>}
-      <button type="button" className="market-account-header-signout" onClick={onSignOut}><SignOut size={16}/>{locale==='ID'?'Keluar':'Sign out'}</button>
+      <button type="button" className="market-account-header-signout" onClick={()=>void handleSignOut()}><SignOut size={16}/>{locale==='ID'?'Keluar':'Sign out'}</button>
     </header>
     <nav className="market-account-unified-tabs" role="tablist" aria-label={locale==='ID'?'Menu akun':'Account sections'}>
       {sections.map(([key,en,id,Icon])=><button key={key} type="button" role="tab" aria-selected={panel===key} className={panel===key?'is-active':''} onClick={()=>choose(key)}><Icon size={16}/><span>{locale==='ID'?id:en}</span>{key in activityCounts&&activityCounts[key as keyof ActivityCounts]>0&&<b className="market-activity-badge">{activityCounts[key as keyof ActivityCounts]>99?'99+':activityCounts[key as keyof ActivityCounts]}</b>}</button>)}

@@ -16,7 +16,7 @@ async function balances(ownerId:string,commissionPercent:number,sellerFeeMinimum
     FROM seller_payout_requests WHERE seller_id=? ORDER BY created_at DESC LIMIT 50`).bind(ownerId).all()).results;
   const reservedAmount=Number(reserved?.total??0);
   const {availableBeforeRequests,...amounts}=earnings;
-  return {...amounts,reserved:reservedAmount,available:Math.max(0,availableBeforeRequests-reservedAmount),requests};
+  return {...amounts,availableBeforeRequests,reserved:reservedAmount,available:Math.max(0,availableBeforeRequests-reservedAmount),requests};
 }
 export async function GET(){
   try{
@@ -25,7 +25,8 @@ export async function GET(){
       balances(profile.id,policy.commissionPercent,policies.sellerFeeMinimum),
       d.prepare('SELECT id FROM seller_payout_accounts WHERE owner_id=? AND is_default=1').bind(profile.id).first<{id:string}>(),
     ]);
-    return Response.json({...balance,defaultBankAccountId:account?.id??null,minimumPayout:1000,sellerFeeMinimum:policies.sellerFeeMinimum},{headers:{'Cache-Control':'private, no-store'}});
+    const publicBalance=(({availableBeforeRequests,...visible})=>visible)(balance);
+    return Response.json({...publicBalance,defaultBankAccountId:account?.id??null,minimumPayout:1000,sellerFeeMinimum:policies.sellerFeeMinimum},{headers:{'Cache-Control':'private, no-store'}});
   }catch(error){return errorResponse(error)}
 }
 export async function POST(request:Request){
