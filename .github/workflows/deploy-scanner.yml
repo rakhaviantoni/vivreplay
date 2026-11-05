@@ -31,6 +31,8 @@ jobs:
             echo "=== Updating VivrePlay Card Scanner ==="
             if [ -d "$HOME/tcg-platform" ]; then
               APP_DIR="$HOME/tcg-platform"
+            elif [ -d "/opt/vivreplay/.git" ] && [ -d "/opt/vivreplay/services/card-scanner" ]; then
+              APP_DIR="/opt/vivreplay"
             elif [ -d "/home/ubuntu/tcg-platform" ]; then
               APP_DIR="/home/ubuntu/tcg-platform"
             elif [ -d "/root/tcg-platform" ]; then
