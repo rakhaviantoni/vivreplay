@@ -486,11 +486,12 @@ html[data-theme='dark'] .market-store-nav .market-store-locale:hover,html[data-t
 .market-card-lookup-meta .market-sell-code{color:var(--ink);font-weight:750}
 .market-card-lookup-meta .market-sell-rarity{color:var(--accent);font-weight:700}
 .market-card-lookup-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:6px;background:color-mix(in srgb,var(--accent) 12%,transparent);color:var(--accent);font-size:10px;font-weight:750;width:fit-content;margin-top:2px}
-.market-card-lookup-actions{display:flex;align-items:center;gap:6px;flex-shrink:0}
-.market-card-lookup-actions button{height:32px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface-muted);color:var(--ink);font:inherit;font-size:11px;font-weight:750;cursor:pointer;transition:all .15s ease;white-space:nowrap}
+.market-card-lookup-actions,.market-product-lookup-actions{display:flex;align-items:center;gap:7px;flex-shrink:0}
+.market-card-lookup-actions button,.market-product-lookup-actions button{min-height:34px;padding:0 11px;border:1px solid var(--line);border-radius:8px;background:var(--surface-muted);color:var(--ink);font:inherit;font-size:11px;font-weight:730;cursor:pointer;transition:background-color .15s ease,border-color .15s ease,color .15s ease;white-space:nowrap}
 .market-card-lookup-actions button.btn-accent{border-color:var(--accent);background:var(--accent);color:var(--accent-ink)}
-.market-card-lookup-actions button.btn-accent:hover{filter:brightness(1.08);transform:translateY(-1px)}
-.market-card-lookup-actions button:not(.btn-accent):hover{border-color:var(--ink);background:var(--surface-raised);transform:translateY(-1px)}
+.market-card-lookup-actions button.btn-accent:hover,.market-product-lookup-actions button.btn-accent:hover{filter:brightness(1.06)}
+.market-card-lookup-actions button:not(.btn-accent):hover,.market-product-lookup-actions button:not(.btn-accent):hover{border-color:var(--accent);background:var(--surface-raised);color:var(--accent)}
+.market-card-lookup-actions button:focus-visible,.market-product-lookup-actions button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .market-card-lookup-skeleton{display:grid;gap:1px}
 .market-card-lookup-skeleton i{display:block;height:68px;background:linear-gradient(90deg,var(--surface-muted),color-mix(in srgb,var(--surface-muted) 60%,white),var(--surface-muted));background-size:220% 100%;animation:market-skeleton 1.2s linear infinite}
 @keyframes market-skeleton{to{background-position:-220% 0}}
@@ -499,6 +500,7 @@ html[data-theme='dark'] .market-card-lookup{border-color:#294653;background:#091
 html[data-theme='dark'] .market-card-lookup>header{border-color:#294653;background:color-mix(in srgb,var(--accent) 8%,#091a24)}
 html[data-theme='dark'] .market-card-lookup article{border-color:#294653}
 html[data-theme='dark'] .market-card-lookup-actions button{border-color:#315463;background:#0b202a;color:#eaf4ee}
+html[data-theme='dark'] .market-card-lookup-actions button.btn-accent{border-color:var(--accent);background:var(--accent);color:var(--accent-ink)}
 .market-product-lookup{margin:0 0 20px;border:1px solid var(--line);border-radius:14px;background:var(--surface-raised);overflow:hidden;box-shadow:0 4px 16px rgb(0 0 0 / .04)}
 .market-product-lookup>header{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;background:color-mix(in srgb,var(--accent) 5%,var(--surface-raised));color:var(--accent);font-size:11px;font-weight:850;letter-spacing:.08em;text-transform:uppercase}
 .market-product-lookup>header>span{color:var(--muted);font-size:11px;font-weight:600;letter-spacing:normal;text-transform:none}
@@ -511,13 +513,14 @@ html[data-theme='dark'] .market-card-lookup-actions button{border-color:#315463;
 .market-product-lookup-copy{display:grid;gap:3px;min-width:0}
 .market-product-lookup-copy strong{overflow:hidden;color:var(--ink);font-size:13px;text-overflow:ellipsis;white-space:nowrap}
 .market-product-lookup-copy small{display:flex;gap:10px;color:var(--muted);font-size:10.5px}
-.market-product-lookup-action{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:10px;white-space:nowrap}
-.market-product-lookup-action button{min-height:32px;padding:0 11px;border:1px solid var(--line);border-radius:8px;background:var(--surface-muted);color:var(--ink);font:inherit;font-size:11px;font-weight:700;cursor:pointer}
-.market-product-lookup-action button:hover{border-color:var(--accent);color:var(--accent)}
+.market-product-lookup-actions{gap:7px;color:var(--muted);font-size:10px;white-space:nowrap}
+.market-product-lookup-actions>small{margin-right:3px}
+.market-product-lookup-actions button.btn-accent{border-color:var(--accent);background:var(--accent);color:var(--accent-ink)}
 html[data-theme='dark'] .market-product-lookup{border-color:#294653;background:#091a24}
 html[data-theme='dark'] .market-product-lookup>header{background:color-mix(in srgb,var(--accent) 8%,#091a24)}
 html[data-theme='dark'] .market-product-lookup article{border-color:#294653}
-html[data-theme='dark'] .market-product-lookup-action button{border-color:#315463;background:#0b202a;color:#eaf4ee}
+html[data-theme='dark'] .market-product-lookup-actions button{border-color:#315463;background:#0b202a;color:#eaf4ee}
+html[data-theme='dark'] .market-product-lookup-actions button.btn-accent{border-color:var(--accent);background:var(--accent);color:var(--accent-ink)}
 .market-card-lookup-actions{gap:7px}
 .market-lookup-detail-link{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:34px;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface-raised);color:var(--ink);font-size:11px;font-weight:720;text-decoration:none;white-space:nowrap}
 .market-lookup-detail-link:hover{border-color:var(--accent);color:var(--accent)}
@@ -529,9 +532,8 @@ html[data-theme='dark'] .market-product-lookup-action button{border-color:#31546
 .market-lookup-menu [data-slot='button']:hover{background:color-mix(in srgb,var(--accent) 9%,var(--surface-muted));color:var(--ink)}
 .market-lookup-menu button.button.secondary{display:flex;width:100%;min-height:38px;justify-content:flex-start;padding:0 8px;border:0;background:transparent;box-shadow:none;color:var(--ink);font:inherit;font-size:12px}
 .market-lookup-menu button.button.secondary:hover{background:color-mix(in srgb,var(--accent) 9%,var(--surface-muted));color:var(--ink);transform:none}
-.market-product-lookup-action{gap:6px}
-.market-product-lookup-action>small{margin-right:4px}
-.market-product-lookup-action button.market-product-details-trigger{background:transparent}
+.market-product-lookup-actions{gap:7px}
+.market-product-lookup-actions button.market-product-details-trigger{background:var(--surface-raised)}
 .market-product-details-dialog{width:min(500px,calc(100vw - 24px))!important;max-width:500px!important;max-height:min(86dvh,720px)!important;gap:16px!important;border-color:var(--line)!important;border-radius:14px!important;background:var(--surface-raised)!important;color:var(--ink)!important}
 .market-product-details-dialog [data-slot='dialog-body']{gap:14px!important}
 .market-product-details-dialog [data-slot='dialog-header']{padding-right:30px}
@@ -545,7 +547,8 @@ html[data-theme='dark'] .market-product-lookup-action button{border-color:#31546
 .market-product-details-contents{margin:0;padding:12px 0;border-block:1px solid var(--line);color:var(--muted);font-size:13px;line-height:1.5}
 .market-product-source-link{display:inline-flex;align-items:center;gap:6px;width:max-content;min-height:36px;color:var(--accent);font-size:12px;font-weight:700;text-decoration:none}
 .market-product-details-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px;padding-top:4px}
-.market-product-details-actions .button{min-height:40px;padding-inline:12px;font-size:12px}
+.market-product-details-actions .button{min-height:42px;padding-inline:12px;border-radius:8px;font-size:12px}
+.market-product-details-actions .button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .card-viewer .pokemon-preview-title{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin:0 0 8px}
 .card-viewer .pokemon-preview-title .card-detail-title{margin:0;min-width:0}
 .card-viewer .pokemon-preview-meta{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;margin:0 0 14px;color:var(--muted);font-size:11px}
@@ -554,7 +557,7 @@ html[data-theme='dark'] .market-product-lookup-action button{border-color:#31546
 .card-viewer .pokemon-preview-illustrator b{color:var(--ink);font-weight:700}
 html[data-theme='dark'] .market-lookup-menu{border-color:#315463;background:#0a1b25;color:#eaf4ee;box-shadow:0 16px 36px rgb(0 0 0 / .38)}
 html[data-theme='dark'] .market-product-details-art{background:#0e2029}
-@media(max-width:760px){.market-card-lookup-actions{flex-wrap:wrap;justify-content:flex-end}.market-lookup-detail-link{margin-right:auto}.market-product-lookup article{grid-template-columns:44px minmax(0,1fr);gap:10px;padding:10px 12px}.market-product-lookup-art{width:44px;height:56px}.market-product-lookup-action{grid-column:1/-1;display:flex;flex-wrap:wrap;justify-content:flex-end}.market-product-lookup-action>small{margin-right:auto}.market-product-details-main{grid-template-columns:minmax(96px,128px) minmax(0,1fr);gap:14px}.market-product-details-art{min-height:130px}}
+@media(max-width:760px){.market-card-lookup-actions{flex-wrap:wrap;justify-content:flex-end}.market-lookup-detail-link{margin-right:auto}.market-product-lookup article{grid-template-columns:44px minmax(0,1fr);gap:10px;padding:10px 12px}.market-product-lookup-art{width:44px;height:56px}.market-product-lookup-actions{grid-column:1/-1;display:flex;flex-wrap:wrap;justify-content:flex-end}.market-product-lookup-actions>small{margin-right:auto}.market-product-details-main{grid-template-columns:minmax(96px,128px) minmax(0,1fr);gap:14px}.market-product-details-art{min-height:130px}}
 @media(max-width:420px){.market-card-lookup-actions{justify-content:flex-start}.market-card-lookup-actions .market-lookup-detail-link{flex:1 1 auto}.market-product-details-dialog{padding:18px!important}.market-product-details-main{grid-template-columns:90px minmax(0,1fr);gap:12px}.market-product-details-art{min-height:112px}.market-product-details-actions{display:grid;grid-template-columns:1fr}.market-product-details-actions .button{width:100%;justify-content:center}}
 /* Market Feed Tabs & Controls */
 .market-feed-tabs{

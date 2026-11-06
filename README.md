@@ -15,11 +15,14 @@ Phase 1 working foundation for a connected TCG companion. Temporary visible bran
 ```sh
 npm install
 npm run dev
+npm run dev:local
 npm run typecheck
 npm run lint
 npm test
 npm run build
 ```
+
+Both `dev` and `dev:local` refresh the public card catalog from production into an isolated local D1 snapshot before starting the app. Account and marketplace data stay local. Use `npm run dev:offline` when you need the standalone local database without a catalog refresh.
 
 Hosted state uses Better Auth, D1, and the private Supabase `tcg-card-images` bucket. Cloudflare R2 is unused. Follow `docs/ARCHITECTURE.md` before production launch.
 

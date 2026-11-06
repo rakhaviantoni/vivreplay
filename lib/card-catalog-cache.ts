@@ -2,7 +2,7 @@
 // API uses it in the URL so Cloudflare and browsers stop using the old entry.
 // Bump this after catalog imports or corrections. Card and set snapshots are
 // immutable at the edge, so changing the revision is what exposes new D1 rows.
-export const CARD_CATALOG_CACHE_REVISION = '20261105083634854';
+export const CARD_CATALOG_CACHE_REVISION = '20261106064640';
 
 export function versionedCardImageUrl(path: string): string;
 export function versionedCardImageUrl(path: string | null | undefined): string | null | undefined;

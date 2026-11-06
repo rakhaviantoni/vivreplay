@@ -5639,9 +5639,9 @@ html[data-theme='dark'] .home-page.is-pokemon .home-market .market-board>div{bor
   .market-product-lookup{margin-inline:0;border-radius:12px;}
   .market-product-lookup article{grid-template-columns:44px minmax(0,1fr) auto;gap:10px;padding:10px 12px;}
   .market-product-lookup-art{width:44px;height:56px;}
-  .market-product-lookup-action{display:grid;justify-items:end;gap:4px;}
-  .market-product-lookup-action>small{max-width:76px;overflow:hidden;text-overflow:ellipsis;}
-  .market-product-lookup-action button{min-height:30px;padding-inline:9px;}
+  .market-product-lookup-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px;}
+  .market-product-lookup-actions>small{max-width:76px;overflow:hidden;text-overflow:ellipsis;align-self:center;}
+  .market-product-lookup-actions button{min-height:30px;padding-inline:9px;}
 }
 
 /* Keep three Market scopes in one row. Each scope has a switch above its item menu. */
