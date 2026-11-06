@@ -3,7 +3,7 @@
 import {useRouteLocale} from '@/components/locale-provider';
 import {useEffect, useState, type ReactNode} from 'react';
 import {toast} from 'sonner';
-import {MinusIcon as Minus,PlusIcon as Plus,SignInIcon as SignIn,SpinnerGapIcon as Spinner} from '@phosphor-icons/react';
+import {MinusIcon as Minus,PlusIcon as Plus,SpinnerGapIcon as Spinner} from '@phosphor-icons/react';
 import type {Card} from '@/packages/card-data/catalog';
 import type {CollectionItem} from '@/packages/domain';
 import {api} from '@/lib/client';
@@ -30,7 +30,7 @@ function PrintingVaultControl({printing,card,collection,signedIn,busy,locale,onC
   const count=allRows.reduce((sum,item)=>sum+item.quantity,0);
   const removable=rows.reduce((sum,item)=>sum+Math.max(0,item.quantity-(item.listedQuantity??0)),0);
   if(signedIn===null)return <div className="printing-vault-loading" aria-hidden="true"/>;
-  if(signedIn!==true)return <button type="button" className="printing-vault-add" onClick={()=>onChange(printing,card,1)} disabled={busy} aria-label={locale==='ID'?'Tambahkan cetakan mentah ke koleksi':'Add raw printing to Vault'}>{busy?<Spinner className="is-spinning" size={12}/>:<SignIn size={12}/>}<span>{locale==='ID'?'Simpan':'Add to Vault'}</span></button>;
+  if(signedIn!==true)return <button type="button" className="printing-vault-add" onClick={()=>onChange(printing,card,1)} disabled={busy} aria-label={locale==='ID'?'Tambahkan cetakan ini ke Vault':'Add this printing to Vault'} title={locale==='ID'?'Tambahkan ke Vault':'Add to Vault'}>{busy?<Spinner className="is-spinning" size={13}/>:<Plus size={13} weight="bold"/>}<span>{locale==='ID'?'Tambah':'Add'}</span></button>;
   return <div className="printing-vault-stepper" aria-label={locale==='ID'?`${count} salinan cetakan ini di koleksi, termasuk slab`:`${count} copies of this printing in Vault, including slabs`}><button type="button" onClick={()=>onChange(printing,card,-1)} disabled={busy||removable===0} aria-label="Remove one available raw copy"><Minus size={12}/></button><b>{count}</b><button type="button" onClick={()=>onChange(printing,card,1)} disabled={busy} aria-label="Add one raw copy">{busy?<Spinner className="is-spinning" size={12}/>:<Plus size={12}/>}</button></div>;
 }
 

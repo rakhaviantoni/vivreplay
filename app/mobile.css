@@ -376,9 +376,7 @@
   .printing-vault-stepper { box-sizing: border-box; width: 100% !important; min-width: 0 !important; min-height: 34px !important; justify-content: space-between; gap: 0 !important; padding: 1px !important; }
   .printing-vault-stepper > b { min-width: 16px !important; font-size: 10px !important; }
   .printing-vault-stepper button { box-sizing: border-box; width: 30px !important; min-width: 30px !important; min-height: 30px !important; max-width: 30px !important; height: 30px !important; padding: 0 !important; }
-  .printing-vault-add { width: 100% !important; min-height: 28px !important; height: 28px !important; max-width: none !important; justify-content: center; padding-inline: 6px !important; border-radius: 999px !important; font-size: 9px !important; }
   .printing-vault-loading { width: 100%; height: 28px; }
-  .printing-vault-add { width: 100% !important; min-height: 28px !important; height: 28px !important; max-width: none !important; justify-content: center; padding-inline: 6px !important; border-radius: 999px !important; font-size: 9px !important; }
   .printing-vault-loading { width: 100%; height: 28px; }
 
   .market-store-promo { min-height: 30px; padding-inline: var(--mobile-gutter); font-size: 11px; text-align: center; }
