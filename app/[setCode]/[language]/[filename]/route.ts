@@ -1,6 +1,8 @@
 import {env} from 'cloudflare:workers';
 import {database} from '@/lib/server/database';
 import {servePokemonArt} from '@/lib/server/pokemon-art-response';
+import {getCatalogImageObject} from '@/lib/server/catalog-image-storage';
+import {CARD_CATALOG_CACHE_REVISION} from '@/lib/card-catalog-cache';
 
 const filenamePattern=/^[A-Za-z0-9_-]+\.webp$/;
 
@@ -55,7 +57,7 @@ async function restoreMissingImage(setCode:string,language:string,filename:strin
   if(!/^(en|jp|id)$/i.test(language))return null;
   const rows=await catalogAssetKeys(setCode,language,filename);
   for(const row of rows){
-    if(row.objectKey){const existing=await env.CARD_IMAGES?.get(row.objectKey);if(existing)return {object:existing,key:row.objectKey};}
+    if(row.objectKey){const existing=await getCatalogImageObject(row.objectKey);if(existing)return {object:existing,key:row.objectKey};}
     let payloadImage='';
     try{payloadImage=String((JSON.parse(row.sourcePayload??'{}') as Record<string,unknown>).card_image??'')}catch{}
     for(const sourceValue of [row.sourceUrl,payloadImage].filter((value):value is string=>Boolean(value))){
@@ -68,7 +70,13 @@ async function restoreMissingImage(setCode:string,language:string,filename:strin
       // printing's catalog record and only from its static card-image directory.
       if(source.protocol!=='https:'||!approvedImageHosts.has(source.hostname)||(!optcgPayloadImage&&sourceFilename!==filename.toLowerCase()))continue;
       try{
-        const response=await fetch(source,{headers:{accept:'image/webp,image/*;q=0.8'},signal:AbortSignal.timeout(8_000)});
+        const response=await fetch(source,{headers:{
+          accept:'image/webp,image/*;q=0.8',
+          'accept-language':'en-US,en;q=0.9',
+          cookie:'NEXT_LOCALE=en',
+          referer:'https://oplaytcg.com/en/library',
+          'user-agent':'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36',
+        },signal:AbortSignal.timeout(8_000)});
         const contentType=response.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase()??'';
         if(!response.ok||!contentType.startsWith('image/'))continue;
         const declaredSize=Number(response.headers.get('content-length')??0);
@@ -88,7 +96,7 @@ async function restoreMissingImage(setCode:string,language:string,filename:strin
 export async function serveCardImage(setCode:string,language:string,filename:string,variant='small',requestedWidth?:number){
   if(!filenamePattern.test(filename)) return new Response('Not found',{status:404});
   const sizeQuery=requestedWidth?`?width=${requestedWidth}&v=2`:'';
-  const cacheKey=new Request(`https://vivreplay.com/${encodeURIComponent(setCode)}/${encodeURIComponent(language)}/${encodeURIComponent(filename)}${sizeQuery}`);
+  const cacheKey=new Request(`https://vivreplay.com/${encodeURIComponent(setCode)}/${encodeURIComponent(language)}/${encodeURIComponent(filename)}${sizeQuery}${sizeQuery?'&':'?'}catalogRevision=${CARD_CATALOG_CACHE_REVISION}`);
   const edgeCache=(globalThis.caches as (CacheStorage & {default?:Cache})|undefined)?.default;
   const cached=await edgeCache?.match(cacheKey);
   // Cache API responses have immutable headers in Workers. Return a fresh
@@ -99,7 +107,7 @@ export async function serveCardImage(setCode:string,language:string,filename:str
   try{catalogRows=await catalogAssetKeys(setCode,language,filename)}catch{catalogRows=[]}
   const candidateKeys=[...new Set([...catalogRows.map(row=>row.objectKey).filter((key):key is string=>Boolean(key)),...candidateObjectKeys(setCode,language,filename,variant)])];
   for(const objectKey of candidateKeys){
-    const stored=await env.CARD_IMAGES?.get(objectKey);
+    const stored=await getCatalogImageObject(objectKey);
     if(stored){
       const bytes=await stored.arrayBuffer();
       const headers={'Cache-Control':stored.httpMetadata?.cacheControl??'public, max-age=31536000, immutable','X-Content-Type-Options':'nosniff'};

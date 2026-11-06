@@ -7,6 +7,14 @@ import {MARKET_MAX_COPIES_PER_CARD,MARKET_ABSOLUTE_MAX_LISTING_COPIES} from '@/l
 import {enforceMarketListingLimits} from '@/lib/server/market-listing-limits';
 
 const addItemsSchema=z.object({action:z.literal('add-items'),items:z.array(z.object({instanceId:z.string().uuid(),printingId:z.string().min(1),quantity:z.number().int().min(1).max(MARKET_MAX_COPIES_PER_CARD),unitAmount:z.number().int().min(1).max(100000000000)})).min(1).max(MARKET_ABSOLUTE_MAX_LISTING_COPIES)});
+const removeItemSchema=z.object({action:z.literal('remove-item'),itemIndex:z.number().int().min(0).max(MARKET_ABSOLUTE_MAX_LISTING_COPIES-1)});
+
+function labelStyleFromSubgrades(value:string|Record<string,unknown>|null|undefined):'clear'|'standard'{
+  try{
+    const subgrades=typeof value==='string'?JSON.parse(value) as Record<string,unknown>:value;
+    return String(subgrades?.__labelStyle??'').toLowerCase()==='clear'?'clear':'standard';
+  }catch{return 'standard'}
+}
 
 export async function DELETE(req:Request,{params}:{params:Promise<{id:string}>}){
   try{
@@ -51,6 +59,30 @@ export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}){
       after(()=>notifyListingWatchers(id));
       return Response.json({ok:true,id});
     }
+    if(body.action==='remove-item'){
+      const input=removeItemSchema.parse(body);
+      const d=db();
+      const listing=await d.prepare("SELECT items,quantity,amount FROM listings WHERE id=? AND seller_id=? AND type='WTS' AND status IN ('ACTIVE','PAUSED')").bind(id,p.id).first<{items:string|null;quantity:number;amount:number}>();
+      if(!listing)throw new HttpError(404,'Listing not found or unavailable to edit.');
+      const openCheckout=await d.prepare(`SELECT 1 AS found FROM checkout_orders o,json_each(o.items) j WHERE (json_extract(j.value,'$.listingId')=? OR (json_extract(j.value,'$.listingId') IS NULL AND o.listing_id=?)) AND o.status IN ('PENDING_PAYMENT','PROCESSING') AND (o.expires_at IS NULL OR o.expires_at>CURRENT_TIMESTAMP) LIMIT 1`).bind(id,id).first<{found:number}>();
+      if(openCheckout)throw new HttpError(409,'This listing is in a buyer’s checkout. Try again after checkout closes.');
+      let entries:Array<Record<string,unknown>>=[];
+      try{const parsed=JSON.parse(listing.items??'[]') as unknown;if(Array.isArray(parsed))entries=parsed.filter((entry):entry is Record<string,unknown>=>Boolean(entry&&typeof entry==='object'&&typeof (entry as {printingId?:unknown}).printingId==='string'&&Number.isInteger((entry as {quantity?:unknown}).quantity)&&Number((entry as {quantity?:unknown}).quantity)>0));}catch{}
+      if(!entries.length||input.itemIndex>=entries.length)throw new HttpError(409,'The listing items changed. Refresh and try again.');
+      const remaining=entries.filter((_,index)=>index!==input.itemIndex);
+      if(!remaining.length)throw new HttpError(400,'Close the listing to remove its last item.');
+      const quantity=remaining.reduce((sum,entry)=>sum+Number(entry.quantity),0);
+      const fallbackUnitAmount=Math.max(1,Math.round(listing.amount/Math.max(1,listing.quantity)));
+      const amount=remaining.reduce((sum,entry)=>sum+Number(entry.quantity)*(Number.isSafeInteger(entry.unitAmount)&&Number(entry.unitAmount)>0?Number(entry.unitAmount):fallbackUnitAmount),0);
+      if(!Number.isSafeInteger(quantity)||quantity<1||!Number.isSafeInteger(amount)||amount<0||amount>100000000000)throw new HttpError(409,'The remaining listing total could not be updated. Refresh and try again.');
+      const items=JSON.stringify(remaining);
+      const changed=await d.prepare(`UPDATE listings SET items=?,quantity=?,amount=?
+        WHERE id=? AND seller_id=? AND type='WTS' AND status IN ('ACTIVE','PAUSED') AND quantity=? AND amount=? AND (items=? OR (items IS NULL AND ? IS NULL))
+        AND NOT EXISTS(SELECT 1 FROM checkout_orders o,json_each(o.items) j WHERE (json_extract(j.value,'$.listingId')=? OR (json_extract(j.value,'$.listingId') IS NULL AND o.listing_id=?)) AND o.status IN ('PENDING_PAYMENT','PROCESSING') AND (o.expires_at IS NULL OR o.expires_at>CURRENT_TIMESTAMP))`).bind(items,quantity,amount,id,p.id,listing.quantity,listing.amount,listing.items,listing.items,id,id).run();
+      if(!changed.meta.changes)throw new HttpError(409,'The listing changed. Refresh and try again.');
+      after(()=>notifyListingWatchers(id,amount<listing.amount));
+      return Response.json({ok:true,id,quantity,amount});
+    }
     if(body.action==='add-items'){
       const input=addItemsSchema.parse(body);
       const d=db();
@@ -58,24 +90,29 @@ export async function PATCH(req:Request,{params}:{params:Promise<{id:string}>}){
       if(!listing)throw new HttpError(404,'Listing not found or unavailable to edit.');
       const openCheckout=await d.prepare(`SELECT 1 AS found FROM checkout_orders o,json_each(o.items) j WHERE (json_extract(j.value,'$.listingId')=? OR (json_extract(j.value,'$.listingId') IS NULL AND o.listing_id=?)) AND o.status IN ('PENDING_PAYMENT','PROCESSING') AND (o.expires_at IS NULL OR o.expires_at>CURRENT_TIMESTAMP) LIMIT 1`).bind(id,id).first<{found:number}>();
       if(openCheckout)throw new HttpError(409,'Cards cannot be added while a buyer is checking out. Try again after that checkout closes.');
-      let entries:Array<{instanceId?:string;printingId:string;quantity:number;condition?:string;unitAmount:number}> = [];
-      try{const parsed=listing.items?JSON.parse(listing.items) as unknown:[];if(Array.isArray(parsed))entries=parsed.filter((entry):entry is {instanceId?:string;printingId:string;quantity:number;condition?:string;unitAmount:number}=>Boolean(entry&&typeof entry==='object'&&typeof entry.printingId==='string'&&Number.isInteger(entry.quantity)&&entry.quantity>0));}catch{}
+      type ListingEntry={instanceId?:string;printingId:string;quantity:number;condition?:string;unitAmount:number;productType?:'RAW'|'GRADED';gradingCompany?:string;grade?:string;certification?:string;slabLabelStyle?:'clear'|'standard'};
+      let entries:ListingEntry[] = [];
+      try{const parsed=listing.items?JSON.parse(listing.items) as unknown:[];if(Array.isArray(parsed))entries=parsed.filter((entry):entry is ListingEntry=>Boolean(entry&&typeof entry==='object'&&typeof entry.printingId==='string'&&Number.isInteger(entry.quantity)&&entry.quantity>0));}catch{}
       if(!entries.length)entries=[{instanceId:listing.instanceId??undefined,printingId:listing.printingId,quantity:listing.quantity,condition:listing.condition,unitAmount:Math.max(1,Math.round(listing.amount/listing.quantity))}];
-      const addedByInstance=new Map<string,{printingId:string;quantity:number;condition:string;unitAmount:number}>();
+      const addedByInstance=new Map<string,{printingId:string;quantity:number;condition:string;type:'RAW'|'GRADED';unitAmount:number;gradingCompany?:string;grade?:string;certification?:string;slabLabelStyle?:'clear'|'standard'}>();
       for(const item of input.items){
-        const owned=await d.prepare("SELECT printing_id AS printingId,quantity,condition,type FROM collectible_instances WHERE id=? AND owner_id=? AND deleted_at IS NULL").bind(item.instanceId,p.id).first<{printingId:string;quantity:number;condition:string;type:string}>();
-        if(!owned||owned.type!=='RAW'||owned.printingId!==item.printingId)throw new HttpError(400,'Choose an available card from your Vault.');
-        const matching=entries.find(entry=>entry.printingId===item.printingId&&entry.condition===owned.condition);
+        const owned=await d.prepare("SELECT c.printing_id AS printingId,c.quantity,c.condition,c.type,gp.short_name AS gradingCompany,g.grade,g.certification,g.subgrades FROM collectible_instances c LEFT JOIN graded_cards g ON g.instance_id=c.id LEFT JOIN grading_providers gp ON gp.id=g.provider_id WHERE c.id=? AND c.owner_id=? AND c.deleted_at IS NULL").bind(item.instanceId,p.id).first<{printingId:string;quantity:number;condition:string;type:string;gradingCompany:string|null;grade:string|null;certification:string|null;subgrades:string|Record<string,unknown>|null}>();
+        if(!owned||!['RAW','GRADED'].includes(owned.type)||owned.printingId!==item.printingId)throw new HttpError(400,'Choose an available card from your Vault.');
+        if(owned.type==='GRADED'&&(item.quantity!==1||!owned.gradingCompany||!owned.grade))throw new HttpError(400,'A graded slab can only be listed as one copy and must have its grading details.');
+        const matching=owned.type==='RAW'?entries.find(entry=>entry.printingId===item.printingId&&entry.condition===owned.condition&&entry.productType!=='GRADED'):undefined;
         const unitAmount=matching?.unitAmount??item.unitAmount;
         const prior=addedByInstance.get(item.instanceId);
-        addedByInstance.set(item.instanceId,{printingId:item.printingId,quantity:(prior?.quantity??0)+item.quantity,condition:owned.condition,unitAmount});
+        if(owned.type==='GRADED'&&(prior||item.quantity!==1))throw new HttpError(400,'A graded slab can only be added once.');
+        addedByInstance.set(item.instanceId,{printingId:item.printingId,quantity:(prior?.quantity??0)+item.quantity,condition:owned.condition,type:owned.type as 'RAW'|'GRADED',unitAmount,gradingCompany:owned.gradingCompany??undefined,grade:owned.grade??undefined,certification:owned.certification??undefined,slabLabelStyle:owned.type==='GRADED'?labelStyleFromSubgrades(owned.subgrades):undefined});
       }
       for(const [instanceId,addition] of addedByInstance){
         const existing=entries.find(entry=>entry.instanceId===instanceId);
         if(existing){
-          if(existing.printingId!==addition.printingId||existing.condition!==addition.condition)throw new HttpError(400,'This Vault item does not match the listing entry.');
+          if(addition.type!=='RAW'||existing.printingId!==addition.printingId||existing.condition!==addition.condition)throw new HttpError(400,'This Vault item does not match the listing entry.');
           existing.quantity+=addition.quantity;
-        }else entries.push({instanceId,printingId:addition.printingId,quantity:addition.quantity,condition:addition.condition,unitAmount:addition.unitAmount});
+        }else entries.push(addition.type==='GRADED'
+          ? {instanceId,printingId:addition.printingId,quantity:addition.quantity,unitAmount:addition.unitAmount,productType:'GRADED',gradingCompany:addition.gradingCompany,grade:addition.grade,certification:addition.certification,slabLabelStyle:addition.slabLabelStyle}
+          : {instanceId,printingId:addition.printingId,quantity:addition.quantity,condition:addition.condition,unitAmount:addition.unitAmount,productType:'RAW'});
       }
       const policy=await getDynamicListingPolicy(p.tier,d,p.pro_billing_period);
       await enforceMarketListingLimits(d,entries,policy);

@@ -16,7 +16,6 @@ import {displayCardName} from './card-name';
 import type {Card} from '@/packages/card-data/catalog';
 import {GAME_LOGOS, VivreMark} from './brand-assets';
 import {AuthDialog} from './auth-dialog';
-import {NewCardsAnnouncement} from './new-cards-announcement';
 import {FeedbackForm} from './feedback-form';
 import {FeedbackLaunchButton,type FeedbackRequest} from './feedback-launch';
 import {AnalyticsConsent} from './analytics-consent';
@@ -348,7 +347,6 @@ export function Shell({children,initialPath='/'}:{children:React.ReactNode;initi
     <CookieNotice language={language}/>
     <AnalyticsConsent/>
     {!adminRoute&&!marketRoute&&<MarketDialogHost accountActions={!marketCheckout}/>}
-    {!marketCheckout&&<NewCardsAnnouncement/>}
     {!marketCheckout&&<MiniRail language={language} game={game}/>}
     {!marketCheckout&&<nav className="mobile-nav" aria-label="Mobile navigation">
       {(game==='pokemon'?pokemonMobileNav:mobileNav).map(item=>{const Icon=item.icon;const href=item.label==='Cards'&&game==='pokemon'?'/pokemon/cards':game==='pokemon'&&item.label==='Vault'?'/vault?game=pokemon':game==='pokemon'&&item.label==='Market'?'/market?game=pokemon':item.href;const active=game==='pokemon'&&item.label==='Cards'?normalizedPath==='/pokemon/cards':selected(item.label==='Vault'?'/vault':item.label==='Market'?'/market':href);return <Link key={item.href} href={getHref(href)} className={active?'active':''} aria-current={active?'page':undefined}><Icon size={20}/><span>{language==='ID'?item.labelId:item.label}</span></Link>})}

@@ -8,6 +8,7 @@ import {marketListingPath} from '@/lib/market/listing-url';
 import {useEffect, useMemo, useState} from 'react';
 import {priceChartingFallback,PRICECHARTING_USD_TO_IDR_RATE} from '@/lib/market/pricecharting';
 import {pokemonPublicReference} from '@/lib/pokemon-public-reference';
+import {printingLabel as formatPrintingVariant} from './card-printing-selector';
 
 type Observation = {amount:number; currency:string; observed_at:string; source_kind:string; source_record?:{payload?:{card_url?:unknown}}|null};
 type SoldSale={unitAmount:number;quantity:number;soldAt:string};
@@ -74,7 +75,7 @@ export function CardMarketPanel({printingId,onMarketPrice,printing,disableExtern
     ?pokemonPublicReference({setCode:printing?.setCode,printingCode:printing?.printingCode,localCardNumber:printing?.localCardNumber})
     :printing?.printingCode;
   return <section className="card-market-panel" aria-label={id?'Aktivitas pasar kartu':'Card market activity'}>
-    <header><span>{id?'Aktivitas pasar':'Market activity'}</span>{printingLabel&&<small>{printingLabel}{printing?.variant&&printing.variant!=='Standard'?` | ${printing.variant}`:''}</small>}</header>
+    <header><span>{id?'Aktivitas pasar':'Market activity'}</span>{printingLabel&&<small className="card-market-printing-meta"><span>{printingLabel}</span>{printing?.variant&&printing.variant!=='Standard'&&<span>{formatPrintingVariant(printing.variant??null,printing.setCode,printing.printingCode)}</span>}</small>}</header>
     {usesYuyutei&&<div className="card-market-benchmark">
       <div className="card-market-benchmark-heading"><span>{id?'Harga referensi':'Reference price'}</span><small>Yuyutei</small></div>
       {!history?<div className="card-market-price-skeleton" role="status" aria-label={id?'Memuat harga referensi':'Loading reference price'}><i/><i/></div>:benchmark?<><div className="card-market-price"><strong>{money(benchmark.amount,benchmark.currency)}</strong><time dateTime={benchmark.observed_at}>{formatDate(benchmark.observed_at,language)}</time></div><PriceLine history={history} language={language}/>{listingUrl&&<LocalizedAnchor className="card-market-source" href={listingUrl} target="_blank" rel="noopener noreferrer">{id?'Lihat sumber':'Source'}<ArrowSquareOut size={14}/></LocalizedAnchor>}</>:fallback?<><div className="card-market-price"><strong>{money(fallback.amount,fallback.currency)}</strong><span>{id?'Panduan kartu tanpa grading':'Ungraded card guide'}</span></div><LocalizedAnchor className="card-market-source" href={fallback.url} target="_blank" rel="noopener noreferrer">{id?'Lihat sumber':'Source'}<ArrowSquareOut size={14}/></LocalizedAnchor></>:<p>{id?'Belum ada harga untuk cetakan ini.':'No reference price for this printing.'}</p>}

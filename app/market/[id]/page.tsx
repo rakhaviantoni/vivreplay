@@ -224,7 +224,7 @@ async function Page({params}:{params:Promise<{id:string}>}){
         reservedCount={reservedCount}
         renewDurationDays={renewDurationDays}
       />
-      <Market modalOnly/>
+      <Market modalOnly listenForDeliveryEvents/>
     </>
   );
 }

@@ -477,7 +477,7 @@ html[data-theme='dark'] .market-store-nav .market-store-locale:hover,html[data-t
 .market-card-lookup article{display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:14px;align-items:center;padding:12px 18px;border-bottom:1px solid var(--line);transition:background-color .15s ease}
 .market-card-lookup article:hover{background:color-mix(in srgb,var(--accent) 4%,var(--surface-raised))}
 .market-card-lookup article:last-child{border-bottom:0}
-.market-card-lookup-art{width:52px;aspect-ratio:63/88;overflow:hidden;border-radius:6px;box-shadow:0 2px 6px rgb(0 0 0 / .14);flex-shrink:0}
+.market-card-lookup-art{display:block;width:52px;aspect-ratio:63/88;padding:0;border:0;overflow:hidden;border-radius:6px;background:transparent;box-shadow:0 2px 6px rgb(0 0 0 / .14);flex-shrink:0;cursor:pointer}
 .market-card-lookup-art .tcg-card{width:100%;height:100%;border-radius:3px!important}
 .market-card-lookup-art .preview-card-badge{top:2px!important;left:2px!important;font-size:8px!important;padding:1px 4px!important}
 .market-card-lookup-details{display:flex;flex-direction:column;gap:3px;min-width:0}
@@ -505,6 +505,8 @@ html[data-theme='dark'] .market-card-lookup-actions button{border-color:#315463;
 .market-product-lookup>div{display:grid}
 .market-product-lookup article{display:grid;grid-template-columns:52px minmax(0,1fr) auto;align-items:center;gap:14px;padding:11px 18px;border-top:1px solid var(--line)}
 .market-product-lookup-art{display:grid;place-items:center;width:52px;height:64px;overflow:hidden;border-radius:6px;background:var(--surface-muted)}
+.market-product-lookup-art:is(button){padding:0;border:0;color:inherit;cursor:pointer;appearance:none}
+.market-product-lookup-art:is(button):focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .market-product-lookup-art img{width:100%;height:100%;object-fit:contain;padding:3px}
 .market-product-lookup-copy{display:grid;gap:3px;min-width:0}
 .market-product-lookup-copy strong{overflow:hidden;color:var(--ink);font-size:13px;text-overflow:ellipsis;white-space:nowrap}
@@ -516,6 +518,44 @@ html[data-theme='dark'] .market-product-lookup{border-color:#294653;background:#
 html[data-theme='dark'] .market-product-lookup>header{background:color-mix(in srgb,var(--accent) 8%,#091a24)}
 html[data-theme='dark'] .market-product-lookup article{border-color:#294653}
 html[data-theme='dark'] .market-product-lookup-action button{border-color:#315463;background:#0b202a;color:#eaf4ee}
+.market-card-lookup-actions{gap:7px}
+.market-lookup-detail-link{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:34px;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface-raised);color:var(--ink);font-size:11px;font-weight:720;text-decoration:none;white-space:nowrap}
+.market-lookup-detail-link:hover{border-color:var(--accent);color:var(--accent)}
+.market-card-lookup-actions .market-lookup-more{display:grid;place-items:center;width:36px;height:34px;padding:0;border-color:var(--line);background:transparent;color:var(--muted)}
+.market-card-lookup-actions .market-lookup-more:hover{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--surface-raised));color:var(--accent);transform:none}
+.market-lookup-menu{min-width:190px;padding:5px;border:1px solid var(--line);border-radius:10px;background:var(--surface-raised);color:var(--ink);box-shadow:0 12px 32px rgb(20 24 23 / .16)}
+.market-lookup-menu [role='menuitem']{min-height:38px;border-radius:6px;font-size:12px}
+.market-lookup-menu [data-slot='button']{width:100%;justify-content:flex-start;min-height:38px;padding:0 8px;border:0;background:transparent;box-shadow:none;color:var(--ink);font:inherit;font-size:12px}
+.market-lookup-menu [data-slot='button']:hover{background:color-mix(in srgb,var(--accent) 9%,var(--surface-muted));color:var(--ink)}
+.market-lookup-menu button.button.secondary{display:flex;width:100%;min-height:38px;justify-content:flex-start;padding:0 8px;border:0;background:transparent;box-shadow:none;color:var(--ink);font:inherit;font-size:12px}
+.market-lookup-menu button.button.secondary:hover{background:color-mix(in srgb,var(--accent) 9%,var(--surface-muted));color:var(--ink);transform:none}
+.market-product-lookup-action{gap:6px}
+.market-product-lookup-action>small{margin-right:4px}
+.market-product-lookup-action button.market-product-details-trigger{background:transparent}
+.market-product-details-dialog{width:min(500px,calc(100vw - 24px))!important;max-width:500px!important;max-height:min(86dvh,720px)!important;gap:16px!important;border-color:var(--line)!important;border-radius:14px!important;background:var(--surface-raised)!important;color:var(--ink)!important}
+.market-product-details-dialog [data-slot='dialog-body']{gap:14px!important}
+.market-product-details-dialog [data-slot='dialog-header']{padding-right:30px}
+.market-product-details-dialog [data-slot='dialog-title']{font-size:21px;font-weight:780;letter-spacing:-.025em}
+.market-product-details-dialog [data-slot='dialog-description']{color:var(--muted);font-size:13px}
+.market-product-details-main{display:grid;grid-template-columns:minmax(120px,160px) minmax(0,1fr);align-items:center;gap:18px}
+.market-product-details-art{display:grid;place-items:center;min-height:154px;overflow:hidden;border-radius:8px;background:var(--surface-muted)}
+.market-product-details-art img{display:block;width:100%;max-height:220px;object-fit:contain;padding:10px}
+.market-product-details-copy{display:grid;align-content:center;gap:7px;min-width:0;color:var(--muted);font-size:12px}
+.market-product-details-copy strong{color:var(--ink);font-size:14px}
+.market-product-details-contents{margin:0;padding:12px 0;border-block:1px solid var(--line);color:var(--muted);font-size:13px;line-height:1.5}
+.market-product-source-link{display:inline-flex;align-items:center;gap:6px;width:max-content;min-height:36px;color:var(--accent);font-size:12px;font-weight:700;text-decoration:none}
+.market-product-details-actions{display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px;padding-top:4px}
+.market-product-details-actions .button{min-height:40px;padding-inline:12px;font-size:12px}
+.card-viewer .pokemon-preview-title{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin:0 0 8px}
+.card-viewer .pokemon-preview-title .card-detail-title{margin:0;min-width:0}
+.card-viewer .pokemon-preview-meta{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;margin:0 0 14px;color:var(--muted);font-size:11px}
+.card-viewer .pokemon-preview-meta strong{color:var(--ink);font-weight:750}
+.card-viewer .pokemon-preview-illustrator{margin-left:auto}
+.card-viewer .pokemon-preview-illustrator b{color:var(--ink);font-weight:700}
+html[data-theme='dark'] .market-lookup-menu{border-color:#315463;background:#0a1b25;color:#eaf4ee;box-shadow:0 16px 36px rgb(0 0 0 / .38)}
+html[data-theme='dark'] .market-product-details-art{background:#0e2029}
+@media(max-width:760px){.market-card-lookup-actions{flex-wrap:wrap;justify-content:flex-end}.market-lookup-detail-link{margin-right:auto}.market-product-lookup article{grid-template-columns:44px minmax(0,1fr);gap:10px;padding:10px 12px}.market-product-lookup-art{width:44px;height:56px}.market-product-lookup-action{grid-column:1/-1;display:flex;flex-wrap:wrap;justify-content:flex-end}.market-product-lookup-action>small{margin-right:auto}.market-product-details-main{grid-template-columns:minmax(96px,128px) minmax(0,1fr);gap:14px}.market-product-details-art{min-height:130px}}
+@media(max-width:420px){.market-card-lookup-actions{justify-content:flex-start}.market-card-lookup-actions .market-lookup-detail-link{flex:1 1 auto}.market-product-details-dialog{padding:18px!important}.market-product-details-main{grid-template-columns:90px minmax(0,1fr);gap:12px}.market-product-details-art{min-height:112px}.market-product-details-actions{display:grid;grid-template-columns:1fr}.market-product-details-actions .button{width:100%;justify-content:center}}
 /* Market Feed Tabs & Controls */
 .market-feed-tabs{
   display: flex!important;
@@ -1315,17 +1355,20 @@ html[data-theme=dark] .live-detail-layout.is-resolving .viewer-art-skeleton{back
 /* Preview releases announce once per browser and retain a quiet visual marker in every card surface. */
 .new-cards-backdrop{position:fixed;z-index:120;inset:0;display:grid;place-items:center;padding:20px;background:#19211ab8;backdrop-filter:blur(4px)}
 .new-cards-dialog{width:min(470px,100%);overflow:hidden;border:1px solid #e5c777;border-radius:16px;background:#fffaf1;color:#30271d;box-shadow:0 26px 84px #111a14a8;animation:new-cards-enter .24s cubic-bezier(.2,.8,.2,1) both}.new-cards-dialog>header{display:flex;align-items:center;justify-content:space-between;padding:15px 20px;background:#75520e;color:#fffaf1;font:800 17px var(--game-font);text-transform:uppercase;letter-spacing:.04em}.new-cards-dialog>header span{display:flex;gap:9px;align-items:center}.new-cards-dialog>header button{display:grid;place-items:center;padding:4px;border:0;background:transparent;color:inherit;cursor:pointer}.new-cards-body{padding:25px}.new-cards-body .eyebrow{margin:0 0 7px;color:#80570e;font-weight:800;letter-spacing:.11em}.new-cards-body h2{margin:0;color:#2c2419;font:700 31px/1.06 var(--display-font)}.new-cards-body>p:not(.eyebrow){margin:11px 0 20px;color:#6e614e;font:600 15px/1.52 var(--game-font)}.new-cards-feature{display:flex;align-items:center;gap:16px;padding:12px;border:1px solid #e7d4aa;border-radius:12px;background:#fffdf8;text-decoration:none;color:inherit}.new-cards-feature .tcg-card{width:94px;flex:0 0 94px}.new-cards-feature>span{display:grid;gap:4px}.new-cards-feature small{color:#80570e;font:800 11px var(--game-font);text-transform:uppercase;letter-spacing:.08em}.new-cards-feature strong{font:700 24px var(--display-font)}.new-cards-feature em{color:#70634f;font:600 12px/1.35 var(--game-font);font-style:normal}.new-cards-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px}.new-cards-actions a{display:flex;align-items:center;gap:7px;padding:11px 15px;border:1px solid #d9c49b;border-radius:8px;color:#55472f;font:800 13px var(--game-font);text-decoration:none}.new-cards-actions .new-cards-primary{border-color:#75520e;background:#75520e;color:#fffaf1}@keyframes new-cards-enter{from{opacity:0;transform:translateY(10px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
-.tcg-card.is-preview-card{position:relative;isolation:isolate;border:0!important;overflow:hidden!important;box-shadow:0 0 10px 2px #d8992255,0 0 18px 4px #f0bd4a33!important;animation:preview-card-glow 2s ease-in-out infinite!important}
+.tcg-card.is-preview-card{position:relative;isolation:isolate;border:0!important;overflow:hidden!important;box-shadow:0 7px 14px #24262d26!important;animation:none!important}
 .tcg-card.is-preview-card img,.tcg-card.is-preview-card .card-image-skeleton{border-radius:2px}
-.preview-card-badge{position:absolute;z-index:5!important;top:8px;left:8px;padding:3px 6px;border-radius:4px;background:#75520e;color:#fffdf3;font:800 9px/1 var(--game-font);letter-spacing:.05em;text-transform:uppercase;box-shadow:0 2px 5px #38240966;animation:preview-badge-glow 1.7s ease-in-out infinite!important;pointer-events:none}
-:is(.market-card-lookup-art,.header-search-result,.listing-search-card,.leader-summary-art,.catalog-leader,.deck-leader-art,.deck-card-stack,.player-deck-art,.deck-art-choice,.market-feed-stack,.mini-card,.deck-board.is-compact) .preview-card-badge,.tcg-card.small .preview-card-badge{top:1px!important;left:1px!important;padding:.75px 1.75px!important;border-radius:1.25px!important;font-size:2.5px!important;letter-spacing:.03em!important;box-shadow:0 1px 3px #38240955!important}
-.new-cards-feature:has(.is-preview-card){position:relative;border-color:#c89428;animation:preview-feature-glow 1.7s ease-in-out infinite}
-@keyframes preview-card-glow{0%,100%{box-shadow:0 0 8px 1px #d8992244,0 0 14px 2px #f0bd4a25}50%{box-shadow:0 0 14px 2px #d8992266,0 0 22px 4px #f0bd4a40}}
-@keyframes preview-badge-glow{50%{background:#75520e;box-shadow:0 1px 13px 3px #f1bd4aaa}}
-@keyframes preview-feature-glow{50%{border-color:#f3c65c;box-shadow:0 0 0 1px #d39725,0 0 28px #e6b33d70}}
-.tcg-card.is-preview-card.printing-image::after,.tcg-card.is-preview-card.printing-image:after{content:""!important;position:absolute!important;z-index:3!important;inset:-50%!important;pointer-events:none!important;opacity:0!important;transform:translateX(-54%) rotate(20deg)!important;background:linear-gradient(105deg,transparent 28%,rgba(255,235,170,.03) 39%,rgba(255,248,220,.24) 47%,rgba(255,250,232,.4) 50%,rgba(255,248,220,.16) 56%,rgba(216,166,59,.03) 63%,transparent 72%)!important;transition:transform .88s cubic-bezier(.22,.7,.22,1),opacity .32s ease!important}
-:is(:hover,:focus-within,:focus-visible)>.tcg-card.is-preview-card.printing-image::after,:is(:hover,:focus-within,:focus-visible) .tcg-card.is-preview-card.printing-image::after,.tcg-card.is-preview-card.printing-image:hover::after,:is(:hover,:focus-within,:focus-visible)>.tcg-card.is-preview-card.printing-image:after,:is(:hover,:focus-within,:focus-visible) .tcg-card.is-preview-card.printing-image:after,.tcg-card.is-preview-card.printing-image:hover:after{opacity:.58!important;transform:translateX(54%) rotate(20deg)!important}
-@media(prefers-reduced-motion:reduce){.new-cards-dialog,.new-cards-feature:has(.is-preview-card),.tcg-card.is-preview-card,.preview-card-badge{animation:none!important}}
+.preview-card-badge{position:absolute;z-index:5!important;top:7px;left:7px;display:grid;place-items:center;width:23px;height:23px;padding:0;border:1px solid #d9bd77;border-radius:6px;background:#fff9e9;color:#624b1c}
+.preview-card-badge svg{flex:none}
+html[data-theme='dark'] .preview-card-badge{border-color:#6b5c3f;background:#262b32;color:#f0cf84}
+.tcg-card.small .preview-card-badge,:is(.market-card-lookup-art,.header-search-result,.listing-search-card,.leader-summary-art,.catalog-leader,.deck-leader-art,.deck-card-stack,.player-deck-art,.deck-art-choice,.market-feed-stack,.mini-card,.deck-board.is-compact) .preview-card-badge{top:4px!important;left:4px!important;width:19px;height:19px;justify-content:center;padding:0!important;border-radius:5px!important;box-shadow:none!important}
+.new-cards-feature:has(.is-preview-card){position:relative;border-color:#c89428;animation:none;box-shadow:none}
+.tcg-card.is-preview-card.printing-image::after,.tcg-card.is-preview-card.printing-image:after{display:none!important;content:none!important;opacity:0!important;animation:none!important}
+.viewer-archetypes{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:8px 0 0;color:var(--muted,#888)}
+.viewer-archetypes>span{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+.viewer-archetypes a{padding:3px 7px;border:1px solid var(--line,#d8d4ca);border-radius:5px;color:var(--ink,#242522);font-size:11px;text-decoration:none}
+.viewer-archetypes a:hover{border-color:var(--accent,#b27c23);color:var(--accent,#b27c23)}
+.viewer-details>.viewer-archetypes{opacity:0;animation:viewer-content-in .23s ease-out .43s forwards}
+html[data-theme=dark] .viewer-archetypes a{border-color:#3a4654;color:#d5dde5}
 @media(max-width:520px){.new-cards-backdrop{padding:12px}.new-cards-body{padding:21px}.new-cards-body h2{font-size:27px}.new-cards-feature{gap:12px}.new-cards-actions a{padding:10px 12px}.new-cards-feature strong{font-size:21px}}
 
 .market-feed-row:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
@@ -2382,35 +2425,38 @@ html[data-theme='dark'] .player-intro-meta{color:#a4bcc7!important}
 .market-reputation-inline:hover,.market-reputation-inline:focus-visible{background:color-mix(in srgb,var(--accent) 12%,transparent);color:var(--ink);outline:none}
 .market-reputation-inline:focus-visible{box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 60%,transparent)}
 .market-reputation-inline.is-profile{display:flex;width:max-content;margin:10px auto 0;padding:7px 10px;border:1px solid var(--line);border-radius:999px;background:var(--surface-muted);font-size:13px}
-.market-reputation-dialog{display:flex!important;flex-direction:column!important;width:min(600px,calc(100vw - 24px))!important;max-width:600px!important;max-height:min(84dvh,780px)!important;gap:16px!important;padding:24px!important;overflow:hidden!important;border:1px solid var(--line)!important;border-radius:14px!important;background:var(--surface-raised)!important;color:var(--ink)!important}
+.market-reputation-dialog{display:flex!important;flex-direction:column!important;width:min(620px,calc(100vw - 24px))!important;max-width:620px!important;max-height:min(84dvh,780px)!important;gap:16px!important;padding:24px!important;overflow:hidden!important;border:1px solid var(--line)!important;border-radius:14px!important;background:var(--surface-raised)!important;color:var(--ink)!important}
 .market-reputation-dialog [data-slot='dialog-body']{display:flex!important;flex-direction:column!important;gap:16px!important;min-height:0!important;overflow:hidden!important}
 .market-reputation-dialog [data-slot='dialog-header']{flex:none;padding-right:34px}
 .market-reputation-dialog [data-slot='dialog-title']{color:var(--ink);font-size:21px;font-weight:800;letter-spacing:-.025em}
 .market-reputation-dialog [data-slot='dialog-description']{margin-top:4px;color:var(--muted);font-size:13px}
-.market-reputation-summary{display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:0;border-block:1px solid var(--line)}
-.market-reputation-overall,.market-reputation-role{display:grid;align-content:center;justify-items:start;gap:5px;min-width:0;padding:13px 14px;background:transparent}
+.market-reputation-summary{display:grid;grid-template-columns:minmax(150px,1.1fr) minmax(0,1fr) minmax(0,1fr);gap:0;align-items:stretch;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.market-reputation-overall{display:grid;align-content:center;justify-items:start;gap:5px;min-width:0;padding:13px 15px;border-radius:9px;background:color-mix(in srgb,var(--accent) 9%,var(--surface-raised))}
+.market-reputation-overall-label{color:var(--muted);font-size:11px;font-weight:700;line-height:1.3}
+.market-reputation-overall-score{display:flex;align-items:center;gap:7px;color:var(--accent)}
+.market-reputation-overall-score strong{font-size:27px;line-height:1;font-variant-numeric:tabular-nums}
+.market-reputation-overall-count,.market-reputation-role small{color:var(--muted);font-size:11px;line-height:1.4}
+.market-reputation-role{display:grid;align-content:center;justify-items:start;gap:6px;min-width:0;padding:12px 17px}
 .market-reputation-role+.market-reputation-role{border-left:1px solid var(--line)}
-.market-reputation-overall svg,.market-reputation-overall strong{color:var(--accent)}
-.market-reputation-overall strong{font-size:26px;line-height:1}
-.market-reputation-overall span,.market-reputation-role span,.market-reputation-role small{color:var(--muted);font-size:11px;line-height:1.4}
-.market-reputation-role strong{font-size:16px;font-variant-numeric:tabular-nums}
-.market-reputation-review-list{display:grid;gap:0;min-height:0;max-height:48dvh;overflow:auto;overscroll-behavior:contain}
-.market-reputation-review-list article{display:grid;gap:7px;padding:14px 2px;border-bottom:1px solid var(--line)}
+.market-reputation-role>span{color:var(--muted);font-size:11px;font-weight:700;line-height:1.3}
+.market-reputation-role strong{display:inline-flex;align-items:center;gap:5px;color:var(--ink);font-size:17px;font-variant-numeric:tabular-nums}
+.market-reputation-role strong svg{color:var(--accent)}
+.market-reputation-review-list{display:grid;flex:1 1 auto;gap:0;min-height:0;max-height:48dvh;overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable}
+.market-reputation-review-list article{display:grid;gap:8px;padding:14px 2px;border-bottom:1px solid var(--line)}
 .market-reputation-review-list article header{display:flex;align-items:center;gap:8px;min-width:0}
 .market-reputation-review-list article header strong{overflow:hidden;font-size:13px;text-overflow:ellipsis;white-space:nowrap}
-.market-reputation-review-list article header span{color:var(--muted);font-size:11px}
 .market-reputation-review-list article header b{display:inline-flex;align-items:center;gap:3px;margin-left:auto;color:var(--accent);font-size:12px}
 .market-reputation-review-context{display:flex;align-items:center;justify-content:space-between;gap:12px;color:var(--muted);font-size:11px;line-height:1.4}
 .market-reputation-review-context span{min-width:0}
 .market-reputation-review-list article p{margin:0;color:var(--ink);font-size:13px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
 .market-reputation-review-list article time{color:var(--muted);font-size:11px}
-.market-reputation-empty{margin:0;padding:20px 0;color:var(--muted);font-size:13px}
+.market-reputation-empty{margin:auto 0;padding:24px 0;color:var(--muted);font-size:13px;text-align:center}
 .market-account-header-signout{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:36px;margin-left:auto;padding:0 11px;border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--ink);font:700 12px var(--game-font);cursor:pointer}
 .market-account-header-signout:hover{border-color:var(--accent);color:var(--accent)}
 .player-profile-counts{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin:12px 0 4px}
 .player-profile-counts span{display:inline-flex;align-items:center;gap:4px;padding:6px 9px;border-radius:6px;background:var(--surface-muted);color:var(--muted);font-size:10px}
 .player-profile-counts b{color:var(--ink);font-size:12px;font-variant-numeric:tabular-nums}
-@media(max-width:560px){.market-reputation-dialog{width:calc(100vw - 24px)!important;max-height:calc(100dvh - 32px)!important;padding:19px!important;gap:14px!important}.market-reputation-dialog [data-slot='dialog-body']{gap:14px!important}.market-reputation-summary{grid-template-columns:1fr 1fr}.market-reputation-overall{grid-column:1/-1;grid-template-columns:auto auto 1fr;align-items:center;border-bottom:1px solid var(--line)}.market-reputation-role{padding:11px 12px}.market-reputation-role+.market-reputation-role{border-left:1px solid var(--line)}.market-reputation-review-list{max-height:52dvh}.market-reputation-overall strong{font-size:22px}.market-reputation-review-context{align-items:flex-start;flex-direction:column;gap:3px}.market-account-header-signout{min-height:34px;padding:0 8px;font-size:11px}.player-profile-counts{gap:5px}}
+@media(max-width:560px){.market-reputation-dialog{width:calc(100vw - 24px)!important;max-height:calc(100dvh - 32px)!important;padding:18px!important;gap:14px!important}.market-reputation-dialog [data-slot='dialog-body']{gap:14px!important}.market-reputation-dialog [data-slot='dialog-title']{font-size:19px}.market-reputation-summary{grid-template-columns:1fr 1fr;row-gap:8px;padding-bottom:12px}.market-reputation-overall{grid-column:1/-1;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:8px;padding:11px 13px}.market-reputation-overall-label{grid-column:1}.market-reputation-overall-score{grid-column:2;grid-row:1 / span 2}.market-reputation-overall-score strong{font-size:23px}.market-reputation-overall-count{grid-column:1}.market-reputation-role{gap:5px;padding:9px 10px}.market-reputation-role+.market-reputation-role{border-left:1px solid var(--line)}.market-reputation-role strong{font-size:15px}.market-reputation-review-list{max-height:52dvh}.market-reputation-review-context{align-items:flex-start;flex-direction:column;gap:3px}.market-account-header-signout{min-height:34px;padding:0 8px;font-size:11px}.player-profile-counts{gap:5px}}
 
 /* Keep the same real-card rail on profile banners as on the card library. */
 .profile-intro,
@@ -2999,6 +3045,8 @@ html[data-theme='dark'] .market-price-mode-options button.is-selected{border-col
 
 .market-feed-shipping-availability{display:inline-flex;align-items:center;gap:4px;min-width:0;color:var(--muted);font-size:11px;font-weight:650;white-space:normal;overflow-wrap:anywhere}
 .market-feed-shipping-availability svg{flex-shrink:0}
+.market-feed-shipping-availability.is-action{padding:0;border:0;background:transparent;color:var(--accent);font:inherit;font-size:inherit;font-weight:750;text-align:left;cursor:pointer}
+.market-feed-shipping-availability.is-action:hover,.market-feed-shipping-availability.is-action:focus-visible{text-decoration:underline;text-underline-offset:2px}
 .shipping-options-enabled{margin:8px 18px 12px;line-height:1.5}
 
 .shipping-options-skeleton{padding:0 18px}
@@ -3810,6 +3858,11 @@ html[data-theme='dark'] .market-listing-game-chip :is(.game-mode-one-piece,.mark
 .market-cart-sheet-quantity>small{padding-inline:3px;color:var(--muted);font-size:10px;white-space:nowrap}
 .market-feed-add-cart.is-in-cart{border-color:color-mix(in srgb,#16845f 52%,var(--line));background:color-mix(in srgb,#16845f 10%,var(--surface-raised));color:#16845f}
 
+/* Center the visible pair as a group in listing detail. */
+.market-listing-art-rotator[data-card-count="2"]>.viewer-art-current{animation:none!important;transform:translateX(5.5px)!important}
+.market-listing-art-rotator[data-card-count="2"]>.viewer-art-underlay-0{transform:translate(14.5px,9px)!important}
+@media(max-width:700px){.market-listing-art-rotator[data-card-count="2"]>.viewer-art-current{transform:translateX(2.5px)!important}.market-listing-art-rotator[data-card-count="2"]>.viewer-art-underlay-0{transform:translate(11.5px,9px)!important}}
+
 /* A single printing has no stack offset or entrance drift. */
 .viewer-art-stack.is-single{padding:0!important;transform:none!important}
 .viewer-art-stack.is-single>.viewer-art-current{inset:0!important;animation:none!important;transform:none!important}
@@ -3985,6 +4038,22 @@ html[data-theme='dark'] .market-listing-view-as-toggle button[aria-pressed="true
 .market-listing-card.is-unavailable .market-listing-card-stage .deck-stack-art:has(img){filter:grayscale(.52) brightness(.74)}
 .market-listing-card-sold-count{position:absolute;z-index:4;right:6px;bottom:6px;max-width:calc(100% - 12px);padding:4px 7px;border-radius:4px;background:color-mix(in srgb,var(--accent) 92%,#5c3b0d);color:#fffdf6;font-size:9px;font-weight:800;line-height:1.1;pointer-events:none}
 
+/* Keep graded feed entries recognizable as slabs without changing mixed-stack sizing. */
+.market-feed-art.is-slab{width:52px!important;aspect-ratio:1/2!important;overflow:visible!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
+.market-feed-art.is-slab>.market-feed-slab-case{position:absolute;top:0;left:0;width:144px;transform:scale(.36);transform-origin:top left}
+.market-feed-slab-case>.vault-slab-case-art{width:100%}
+.market-feed-list.is-grid .market-feed-stack .market-feed-art.is-slab{width:64px!important}
+.market-feed-list.is-grid .market-feed-art.is-slab>.market-feed-slab-case{transform:scale(.445)}
+.market-feed-stack:has(>.market-feed-art.is-slab){height:112px}
+.market-feed-list.is-grid .market-feed-stack:has(>.market-feed-art.is-slab){height:142px!important}
+@media(max-width:760px){.market-feed-list.is-grid .market-feed-stack:has(>.market-feed-art.is-slab){height:136px!important}}
+
+.printing-title>div button{display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.printing-title>div button>b{padding:2px 4px;border-radius:4px;background:color-mix(in srgb,var(--line) 52%,transparent);font-size:9px;font-weight:800;line-height:1}
+.card-market-panel header small.card-market-printing-meta{display:flex;align-items:center;gap:9px}
+.card-market-printing-meta>span+span{padding-left:9px;border-left:1px solid color-mix(in srgb,var(--line) 78%,transparent)}
+html[data-theme='dark'] .printing-title>div button>b{background:#26343b;color:#d7e1dd}
+
 .checkout-receipt-confirm{display:grid;gap:10px;width:100%;margin:12px 0 4px;padding:13px 15px;border:1px solid color-mix(in srgb,var(--accent,#b78327) 34%,var(--line,#dfd1b8));border-radius:8px;background:color-mix(in srgb,var(--accent,#b78327) 5%,var(--surface-raised,#fffaf0));text-align:left}
 .checkout-receipt-confirm>p{margin:0;color:var(--ink,#28251f);font-size:12px;line-height:1.5}
 .checkout-receipt-confirm>div{display:flex;flex-wrap:wrap;gap:8px}
@@ -4127,3 +4196,59 @@ html[data-theme='dark'] .market-game-switch.market-scope-switch .market-scope-lo
 .header-search-result .header-search-meta>span:first-child{color:#4f5b61;font-weight:750}
 html[data-theme='dark'] .header-search-result .header-search-meta{color:#9eb6b4!important}
 html[data-theme='dark'] .header-search-result .header-search-meta>span:first-child{color:#c5d8d3!important}
+
+/* Graded listings use the Vault's slab case in the feature art and item grid. */
+.market-listing-art-rotator:has(.market-listing-slab-case){aspect-ratio:auto!important;padding:0!important}
+.market-listing-art-rotator:has(.market-listing-slab-case)>.viewer-art-underlay{display:none}
+.market-listing-art-rotator:has(.market-listing-slab-case)>.market-listing-art-current{position:relative!important;inset:auto!important;height:auto!important;overflow:visible!important}
+.market-listing-slab-case{box-sizing:border-box;width:100%;height:auto;overflow:hidden}
+.market-listing-slab-case .vault-slab-case-art .tcg-card{width:100%;height:auto;aspect-ratio:420/580}
+.market-listing-card-stage:has(.market-listing-slab-case){height:auto!important;aspect-ratio:auto!important}
+.market-listing-card .deck-printing-stack:has(.market-listing-slab-case){height:auto!important;aspect-ratio:auto!important}
+.market-listing-card .deck-printing-stack:has(.market-listing-slab-case) .stacked-printing{position:relative;inset:auto;height:auto;transform:none!important}
+.market-listing-card .deck-printing-stack:has(.market-listing-slab-case) .stacked-printing:not(:first-child){display:none}
+.market-listing-card .deck-printing-stack:has(.market-listing-slab-case) .deck-stack-art{height:auto}
+.market-listing-card-copy>.market-listing-card-condition{display:flex;align-items:center;flex-wrap:wrap;gap:5px 7px;min-width:0}
+.market-listing-card-copy>.market-listing-card-condition>span{max-width:100%;padding:3px 7px!important;border:1px solid color-mix(in srgb,var(--line) 78%,var(--ink))!important;border-radius:6px!important;background:var(--surface-raised);color:var(--ink)!important;font-size:9px!important;font-weight:720;line-height:1.2;letter-spacing:0!important;white-space:normal}
+.market-listing-card-copy>.market-listing-card-condition>em{padding:2px 5px;border-radius:4px;background:color-mix(in srgb,var(--accent) 10%,var(--surface-raised));color:var(--muted);font-size:9px;line-height:1.2}
+.market-listing-card-copy>.market-listing-card-condition>.market-listing-certification{padding:2px 5px;border:1px solid color-mix(in srgb,var(--line) 72%,transparent);border-radius:4px;color:var(--muted);font-size:9px;line-height:1.2;font-weight:600}
+.market-listing-card-copy>.market-listing-card-unit-price{padding:3px 7px!important;border-radius:6px;background:color-mix(in srgb,var(--accent) 10%,var(--surface-raised));font-size:11px!important;font-weight:820;line-height:1.25!important}
+html[data-theme='dark'] .market-listing-card-copy>.market-listing-card-condition>span{border-color:#3b4852!important;background:#19242d;color:#e2ece9!important}
+html[data-theme='dark'] .market-listing-card-copy>.market-listing-card-condition>em{background:#183532;color:#a8c7bd}
+html[data-theme='dark'] .market-listing-card-copy>.market-listing-card-condition>.market-listing-certification{border-color:#34434c;color:#aebcbf}
+html[data-theme='dark'] .market-listing-card-copy>.market-listing-card-unit-price{background:#362d1b;color:#f2c76d!important}
+.market-add-cards-source{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:0 0 10px;padding:4px;border:1px solid var(--vault-border);border-radius:8px;background:var(--vault-surface-warm)}
+.market-add-cards-source button{min-height:34px;padding:0 10px;border:0;border-radius:5px;background:transparent;color:var(--vault-ink-muted);font:650 12px/1.2 var(--game-font,var(--font-sans),sans-serif);cursor:pointer}
+.market-add-cards-source button.active,.market-add-cards-source button[aria-selected=true]{background:var(--vault-panel);color:var(--vault-ink);box-shadow:0 1px 3px rgb(20 24 20 / .12)}
+.market-add-catalog-result{display:grid;grid-template-columns:38px minmax(0,1fr) auto;align-items:center;gap:10px;min-width:0;padding:8px;border:1px solid var(--vault-border);border-radius:7px;background:var(--vault-slot-bg)}
+.market-add-catalog-result .vault-bulk-listing-art{width:38px}
+.market-add-catalog-result .vault-bulk-listing-copy{min-width:0}
+.market-add-catalog-result .vault-bulk-listing-copy strong,.market-add-catalog-result .vault-bulk-listing-copy small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.market-add-catalog-result .vault-bulk-listing-copy small{color:var(--vault-ink-muted);font-size:10px}
+.market-add-catalog-result>.vault-btn{min-height:32px;padding:0 9px;font-size:10px;white-space:nowrap}
+@media(max-width:480px){.market-add-catalog-result{grid-template-columns:34px minmax(0,1fr);gap:8px}.market-add-catalog-result .vault-bulk-listing-art{width:34px}.market-add-catalog-result>.vault-btn{grid-column:2;justify-self:start;min-height:30px}}
+html[data-theme='dark'] .market-add-cards-source{border-color:#36424d;background:#131c24}
+html[data-theme='dark'] .market-add-cards-source button{color:#a9b8bf}
+html[data-theme='dark'] .market-add-cards-source button.active,html[data-theme='dark'] .market-add-cards-source button[aria-selected=true]{background:#26333c;color:#f0c76c;box-shadow:none}
+html[data-theme='dark'] .market-add-catalog-result{border-color:#34434c;background:#18242c}
+
+@container (max-width:340px){
+  .market-listing-slab-case .vault-slot-slab-plate.is-egs,
+  .market-feed-slab-case .vault-slot-slab-plate.is-egs{height:clamp(56px,24cqi,68px);margin-bottom:clamp(8px,3.5cqi,12px)}
+}
+
+.market-listing-order-tools .market-listing-remove-item{color:#a44136}
+.market-listing-order-tools .market-listing-remove-item:hover:not(:disabled),.market-listing-order-tools .market-listing-remove-item:focus-visible{border-color:color-mix(in srgb,#b84336 32%,var(--line));background:color-mix(in srgb,#b84336 9%,var(--surface-raised));color:#a33228}
+html[data-theme='dark'] .market-listing-order-tools .market-listing-remove-item{color:#ef9c8d}
+html[data-theme='dark'] .market-listing-order-tools .market-listing-remove-item:hover:not(:disabled),html[data-theme='dark'] .market-listing-order-tools .market-listing-remove-item:focus-visible{border-color:#a64a425c;background:#462a29;color:#ffc0b3}
+
+@container (max-width:220px){
+  .vault-slot-egs-label:not(.vault-slot-egs-clear){grid-template-columns:minmax(0,19%) minmax(0,1fr) minmax(0,22%)!important;gap:2px!important;padding:2px 3px!important}
+  .vault-slot-egs-label:not(.vault-slot-egs-clear) .vault-slot-egs-details{font-size:clamp(5px,2.7cqi,7px)!important}
+  .vault-slot-egs-label:not(.vault-slot-egs-clear) .vault-slot-egs-details>strong:nth-child(2){font-size:1em!important;letter-spacing:0}
+  .vault-slot-egs-label:not(.vault-slot-egs-clear) .vault-slot-egs-grade>strong{font-size:clamp(16px,9cqi,22px)!important}
+  .vault-slot-egs-label:not(.vault-slot-egs-clear) .vault-slot-egs-grade>span{font-size:clamp(4px,2.2cqi,6px)!important}
+  .vault-slot-egs-label:not(.vault-slot-egs-clear) .vault-slot-egs-brand-logo{width:clamp(18px,8.5cqi,25px)!important;height:clamp(18px,8.5cqi,25px)!important}
+  .vault-slot-egs-label:not(.vault-slot-egs-clear) .vault-slot-egs-brand-logo>b{font-size:clamp(7px,3cqi,11px)!important}
+  .vault-slot-egs-label:not(.vault-slot-egs-clear) .vault-slot-egs-brand>span:not(.vault-slot-egs-brand-logo){font-size:clamp(4px,1.8cqi,6px)!important}
+}

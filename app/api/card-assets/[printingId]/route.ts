@@ -1,5 +1,6 @@
 import { env } from 'cloudflare:workers';
 import { database } from '@/lib/server/database';
+import { getCatalogImageObject } from '@/lib/server/catalog-image-storage';
 
 const allowedKinds = new Set(['small']);
 
@@ -16,7 +17,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ prin
   const objectKey = await getObjectKey(printingId, kind);
   if (!objectKey) return new Response('Not found', { status: 404 });
 
-  const stored = await env.CARD_IMAGES?.get(objectKey);
+  const stored = await getCatalogImageObject(objectKey);
   if (stored) {
     return new Response(stored.body, { headers: {
       'Content-Type': stored.httpMetadata?.contentType ?? 'image/webp',

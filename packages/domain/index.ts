@@ -44,6 +44,7 @@ export type ListingItem={
   /** Condition and price belong to an individual card line in a multi-card listing. */
   condition?:string;
   productType?:'RAW'|'GRADED'|'SEALED'|'GENERAL';
+  language?:string;
   sealedProductId?:string;
   generalProduct?:{category:string;brand?:string;model?:string;attributes?:Record<string,string>};
   parcel?:{weight:number;length:number;width:number;height:number};
@@ -53,6 +54,7 @@ export type ListingItem={
   gradingCompany?:string;
   grade?:string;
   certification?:string;
+  slabLabelStyle?:'clear'|'standard';
   unitAmount?:number;
   card?:Card;
 };

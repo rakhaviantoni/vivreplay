@@ -1,6 +1,6 @@
 import {db} from '@/lib/server/store';
 import {sealedProductById,sealedProductKinds} from '@/lib/market/sealed-products';
-import {CARD_CATALOG_CACHE_REVISION} from '@/lib/card-catalog-cache';
+import {CARD_CATALOG_CACHE_REVISION,versionedCardImageUrl} from '@/lib/card-catalog-cache';
 import {pokemonLocalCardNumber} from '@/lib/pokemon-set-aliases';
 import {pokemonArtRoute} from '@/lib/pokemon-art-route';
 
@@ -22,8 +22,8 @@ function publicImagePath(imageUrl:string|null,setCode:string,language:string,pri
   if(assetPath){
     const key=assetPath.replace(/^\/+/, '');
     const stored=key.match(/^one-piece\/([^/]+)\/([^/]+)\/(?:small\/|thumb\/|large\/)?(.+)$/);
-    if(stored)return `/${encodeURIComponent(stored[1].replaceAll('-',''))}/${encodeURIComponent(stored[2].toLowerCase())}/${stored[3].split('/').map(encodeURIComponent).join('/')}`;
-    if(!key.startsWith('http'))return `/${key.split('/').map(encodeURIComponent).join('/')}`;
+    if(stored)return versionedCardImageUrl(`/${encodeURIComponent(stored[1].replaceAll('-',''))}/${encodeURIComponent(stored[2].toLowerCase())}/${stored[3].split('/').map(encodeURIComponent).join('/')}`);
+    if(!key.startsWith('http'))return versionedCardImageUrl(`/${key.split('/').map(encodeURIComponent).join('/')}`);
   }
   if(imageUrl){
     try{
@@ -31,17 +31,17 @@ function publicImagePath(imageUrl:string|null,setCode:string,language:string,pri
       if(source.hostname==='cards.oplaytcg.com'){
         const [,folder,lang,...parts]=source.pathname.split('/');
         const filename=parts.at(-1);
-        if(folder&&lang&&filename&&folder.toLowerCase()!=='tcg'&&!filename.toLowerCase().startsWith('tcg-'))return `/${encodeURIComponent(folder)}/${encodeURIComponent(lang.toLowerCase())}/${encodeURIComponent(filename)}`;
+        if(folder&&lang&&filename&&folder.toLowerCase()!=='tcg'&&!filename.toLowerCase().startsWith('tcg-'))return versionedCardImageUrl(`/${encodeURIComponent(folder)}/${encodeURIComponent(lang.toLowerCase())}/${encodeURIComponent(filename)}`);
       }
       // Source hosts are provenance only. Public card images always resolve
       // through VivrePlay's own storage route.
     }catch{
-      if(imageUrl.startsWith('/')&&!imageUrl.startsWith('//'))return imageUrl;
+      if(imageUrl.startsWith('/')&&!imageUrl.startsWith('//'))return versionedCardImageUrl(imageUrl);
     }
-    if(imageUrl.startsWith('/')&&!imageUrl.startsWith('//'))return imageUrl;
+    if(imageUrl.startsWith('/')&&!imageUrl.startsWith('//'))return versionedCardImageUrl(imageUrl);
   }
   const set=setCode.replaceAll('-','');
-  return set&&printingCode?`/${encodeURIComponent(set)}/${encodeURIComponent(language.toLowerCase())}/${encodeURIComponent(printingCode)}.webp`:null;
+  return set&&printingCode?versionedCardImageUrl(`/${encodeURIComponent(set)}/${encodeURIComponent(language.toLowerCase())}/${encodeURIComponent(printingCode)}.webp`):null;
 }
 
 export async function marketCardThumbnails(printingIds:string[]){

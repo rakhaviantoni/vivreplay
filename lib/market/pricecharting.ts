@@ -14,5 +14,5 @@ export function priceChartingFallback(item:Pick<CollectionItem,'language'|'setCo
   const printingCode=String(item.printingCode??'').replace(/[^a-z0-9]/gi,'').toUpperCase();
   const variant=String(item.variant??'').toLowerCase();
   if(language!=='JP'||setCode!=='OP09'||printingCode!=='OP09119P3'||!/(alt|parallel|sp)/i.test(variant))return;
-  return {amount:OP09_LUFFY_SP_PRICE,currency:'USD',url:OP09_LUFFY_SP_URL,label:'PriceCharting · ungraded'};
+  return {amount:OP09_LUFFY_SP_PRICE,currency:'USD',url:OP09_LUFFY_SP_URL,label:'PriceCharting (ungraded)'};
 }

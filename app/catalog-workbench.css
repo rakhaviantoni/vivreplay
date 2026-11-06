@@ -169,10 +169,16 @@ html[data-theme=dark] .filter-trigger,html[data-theme=dark] .language-switch,htm
 html[data-theme=dark] .filter-menu.is-open .filter-trigger,html[data-theme=dark] .filter-menu.has-selection .filter-trigger { border-color:#d7a73c; background:#2b261b; color:#f0c969; }
 html[data-theme=dark] .filter-options { border-color:#344252; background:#151d27; box-shadow:0 18px 40px #000b; }
 html[data-theme=dark] .filter-options button { color:#d8dee6; }
+html[data-theme=dark] .filter-options button { border-color:#344252; border-radius:10px; background:#18212b; }
 html[data-theme=dark] .filter-options button:hover,html[data-theme=dark] .filter-options button[aria-pressed=true] { background:#273241; }
+html[data-theme=dark] .filter-options button:hover,html[data-theme=dark] .filter-options button[aria-pressed=true] { border-color:#d7a73c; }
 html[data-theme=dark] .colour-menu .filter-options button { border-color:#314154; }
 html[data-theme=dark] .colour-menu .filter-options button[aria-pressed=true] { border-color:#d7a73c; background:#2b261b; }
 html[data-theme=dark] .filter-status,html[data-theme=dark] .filter-status strong { color:#aeb9c6; }
+html[data-theme=dark] .viewer-kind .viewer-kind-rarity { border:1px solid #65532f; background:#2b261b; color:#f0c969; }
+html[data-theme=dark] .empty-state { border-color:#344252; background:#151d27; color:#e5e9ed; }
+html[data-theme=dark] .empty-state h1,html[data-theme=dark] .empty-state h2,html[data-theme=dark] .empty-state h3 { color:#edf2f5; }
+html[data-theme=dark] .empty-state p { color:#aeb9c6; }
 html[data-theme=dark] .card-grid .catalog-card { background:#151d27; border-color:#2c3947; box-shadow:0 10px 20px #0004; }
 html[data-theme=dark] .card-grid .catalog-card h3 { color:#edf0f3; }
 html[data-theme=dark] .card-grid .card-meta,html[data-theme=dark] .card-grid .card-bottom { color:#a1aebb; }

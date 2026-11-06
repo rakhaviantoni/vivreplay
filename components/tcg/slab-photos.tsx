@@ -72,7 +72,7 @@ export function SlabPhotos({id,photos,owner}:{id:string;photos:{id:string;role:s
           />
         </label>
         <label>
-          JPEG, PNG, WebP · Max 5 MB
+          JPEG, PNG, WebP, Max 5 MB
           <input name="photo" type="file" accept="image/jpeg,image/png,image/webp" required/>
         </label>
       </div>

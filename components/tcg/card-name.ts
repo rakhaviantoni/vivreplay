@@ -5,8 +5,8 @@ export function displayCardName(name:string, code?:string){
   let output=name.trim();
   if((output.match(/"/g)?.length??0)%2===1&&output.endsWith('"'))output=output.slice(0,-1).trimEnd();
   output=removeRepeatedName(output);
-  if(serial)output=output.replace(new RegExp(`\\s*\\(${serial.replace(/[.*+?^${}()|[\\]\\\\]/g,'\\$&')}\\)`,'ig'),'');
-  output=output.replace(/\s*\((?:alternate art|parallel|full art|jolly roger foil|pirate foil)\)/ig,'').replace(/\s{2,}/g,' ').trim();
+  if(serial)output=output.replace(new RegExp(`\\s*\\(${serial.replace(/[.*+?^${}()|[\\]\\\\]/g,'\\$&')}\\)(?:\\s*\\([^)]*\\))*\\s*$`,'ig'),'');
+  output=output.replace(/\s*\((?:alt(?:ernate)?[\s-]*art|parallel(?:[\s-]*art)?|full[\s-]*art|manga(?:[\s-]*art|[\s-]*rare)?|promo(?:tional)?|jolly roger foil|pirate foil)\)/ig,'').replace(/\s{2,}/g,' ').trim();
   return output;
 }
 

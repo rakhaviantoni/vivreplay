@@ -342,7 +342,7 @@ export function ImportExportModal({
                 <div style={{ maxHeight: '200px', overflowY: 'auto', marginBottom: '16px' }}>
                   {parsedPreview.recognized.map((item, i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--vault-border-light)', fontSize: '11.5px' }}>
-                      <span><b>{item.code}</b> · {item.name}</span>
+                      <span><b>{item.code}</b>, {item.name}</span>
                       <span style={{ color: 'var(--vault-ink-muted)' }}>{item.qty}x ({item.condition})</span>
                     </div>
                   ))}

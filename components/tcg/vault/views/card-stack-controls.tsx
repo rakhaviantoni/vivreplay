@@ -9,6 +9,7 @@ import { CardArt } from '../../card-art';
 import type { EnrichedCollectionItem, VaultPrinting } from '../types';
 import {onePieceVariantLabel} from './printing-labels';
 import {pokemonPublicReference} from '@/lib/pokemon-public-reference';
+import {printingLabel} from '../../card-printing-selector';
 
 type Props = {
   item: EnrichedCollectionItem;
@@ -34,6 +35,7 @@ export function CardStackControls({ item, stackItems, quantity, isAnonymous, onS
   const chosenVariant=isPokemonCard
     ? rawVariant
     : onePieceVariantLabel(rawVariant,chosen?.set_code??item.setCode??item.card.setCode,chosen?.printing_code??item.printingCode??item.card.printingCode)||'Standard';
+  const displayVariant=printingLabel(rawVariant,chosen?.set_code??item.setCode??item.card.setCode,chosen?.printing_code??item.printingCode??item.card.printingCode);
   const languages=[...new Set(options.map(option=>option.language||'EN'))];
   const [pickerLanguage,setPickerLanguage]=useState(chosen?.language??item.language??'EN');
   useEffect(()=>{setPickerLanguage(chosen?.language??item.language??'EN')},[currentPrintingId,item.language]);
@@ -129,7 +131,7 @@ export function CardStackControls({ item, stackItems, quantity, isAnonymous, onS
   return (
     <div className="vault-stack-control-wrap" onClick={event => event.stopPropagation()} onKeyDown={event => event.stopPropagation()}>
       <div className="vault-stack-controls">
-        {options.length > 1 && <button type="button" className="vault-printing-trigger" aria-label={hasActiveListing?'Remove the active listing before changing printing':'Change card printing'} aria-expanded={pickerOpen} aria-haspopup="dialog" title={hasActiveListing?'Remove the active listing before changing printing':'Change card printing'} disabled={busy||hasActiveListing} onClick={()=>setPickerOpen(value=>!value)}><Translate size={13}/><span><small>Printing</small><b><span>{chosenLanguage}</span><span>{chosenVariant}</span></b></span><span className="vault-printing-trigger-change">{hasActiveListing?'Listed':'Change'}</span></button>}
+        {options.length > 1 && <button type="button" className="vault-printing-trigger" aria-label={hasActiveListing?'Remove the active listing before changing printing':'Change card printing'} aria-expanded={pickerOpen} aria-haspopup="dialog" title={hasActiveListing?'Remove the active listing before changing printing':'Change card printing'} disabled={busy||hasActiveListing} onClick={()=>setPickerOpen(value=>!value)}><Translate size={13}/><span><small>Printing</small><b><span>{chosenLanguage}</span><span>{displayVariant}</span></b></span><span className="vault-printing-trigger-change">{hasActiveListing?'Listed':'Change'}</span></button>}
       <div className="vault-quantity-stepper" aria-label={`Quantity, ${quantity} copies`}>
         <button type="button" aria-label={removableQuantity===1?`Delete ${item.card.name} from Vault`:`Remove one ${item.card.name}`} title={removableQuantity===0?'All copies are listed':removableQuantity===1?'Delete unlisted copy from Vault':'Remove one unlisted copy'} disabled={busy||removableQuantity===0} onClick={() => {
           if(removableQuantity===1){if(window.confirm(`Remove ${item.card.name} from your Vault?`))void update({quantity:0});}
@@ -140,12 +142,12 @@ export function CardStackControls({ item, stackItems, quantity, isAnonymous, onS
       </div>
       </div>
       {pickerOpen&&options.length>1&&<section className="vault-printing-panel" role="dialog" aria-label={`Choose a printing for ${item.card.name}`}>
-        <header><div><strong>Choose printing</strong><span>{item.card.name} · {options.length} options</span></div><button type="button" onClick={()=>setPickerOpen(false)} aria-label="Close printing picker">×</button></header>
+        <header><div><strong>Choose printing</strong><span>{options.length} printings for {item.card.name}</span></div><button type="button" onClick={()=>setPickerOpen(false)} aria-label="Close printing picker">×</button></header>
         {languages.length>1&&<div className="vault-language-tabs" role="tablist" aria-label="Language">{languages.map(language=><button type="button" role="tab" key={language} aria-selected={activeLanguage===language} className={activeLanguage===language?'is-selected':''} disabled={busy} onClick={()=>setPickerLanguage(language)}>{language}<small>{options.filter(option=>(option.language||'EN')===language).length}</small></button>)}</div>}
         <div className="vault-printing-grid" role="list" aria-label={`${activeLanguage} printings`}>{languageOptions.map(option=>{
           const preview={...item.card,language:option.language,variant:option.variant,setCode:option.set_code??item.card.setCode,printingCode:option.printing_code??item.card.printingCode,imageUrl:option.card_image_url??item.card.imageUrl};
           const selected=String(option.id)===currentPrintingId&&(option.language??'EN')===chosenLanguage;
-          return <button type="button" role="listitem" key={option.id} className={`vault-printing-choice ${selected?'is-selected':''}`} aria-pressed={selected} disabled={busy} onClick={()=>selectPrinting(option.id)}><span className="vault-printing-choice-art"><CardArt card={preview} small/></span><span className="vault-printing-choice-meta"><b>{option.set_code?`${option.set_code} · `:''}{option.variant||'Standard'}</b><small>{isPokemonCard?pokemonPublicReference({code:item.card.code,setCode:option.set_code,printingCode:option.printing_code}):(option.printing_code??item.card.code)}</small></span><span className="vault-printing-choice-check">{selected&&<Check size={14}/>}</span></button>;
+          return <button type="button" role="listitem" key={option.id} className={`vault-printing-choice ${selected?'is-selected':''}`} aria-pressed={selected} disabled={busy} onClick={()=>selectPrinting(option.id)}><span className="vault-printing-choice-art"><CardArt card={preview} small/></span><span className="vault-printing-choice-meta"><b>{printingLabel(option.variant)}</b><small>{isPokemonCard?pokemonPublicReference({code:item.card.code,setCode:option.set_code,printingCode:option.printing_code}):(option.printing_code??item.card.code)}</small></span><span className="vault-printing-choice-check">{selected&&<Check size={14}/>}</span></button>;
         })}</div>
       </section>}
     </div>

@@ -1,5 +1,4 @@
 import { database } from '@/lib/server/database';
-import { supabaseAdmin } from '@/lib/server/supabase-storage';
 
 const printingIdPattern = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
 function parseJson(value: unknown) {
@@ -24,17 +23,6 @@ async function fromD1(printingId: string) {
   }));
 }
 
-async function fromSupabase(printingId: string) {
-  const db = supabaseAdmin();
-  if (!db) throw new Error('Price history is unavailable.');
-  const { data, error } = await db.from('tcg_price_observations')
-    .select('amount,currency,observed_at,source_kind,source_record:tcg_source_records(payload)')
-    .eq('printing_id', printingId).eq('source', 'yuyutei').eq('source_kind', 'market_price')
-    .order('observed_at', { ascending: false }).limit(60);
-  if (error) throw error;
-  return (data ?? []).reverse();
-}
-
 export async function GET(request: Request) {
   const configuredRate=Number(process.env.JPY_TO_IDR_RATE??'');
   const jpyToIdrRate=Number.isFinite(configuredRate)&&configuredRate>0?configuredRate:110;
@@ -42,10 +30,6 @@ export async function GET(request: Request) {
   if (!printingIdPattern.test(printingId)) return Response.json({ history: [] }, { status: 400 });
   let history:unknown[];
   try { history = await fromD1(printingId); }
-  catch { history = []; }
-  if (!history.length) {
-    try { history = await fromSupabase(printingId); }
-    catch { return Response.json({ history: [],jpyToIdrRate }, { status: 503 }); }
-  }
+  catch { return Response.json({ history: [],jpyToIdrRate }, { status: 503 }); }
   return Response.json({ history,jpyToIdrRate }, { headers: { 'Cache-Control': 'public, max-age=60, s-maxage=300' } });
 }

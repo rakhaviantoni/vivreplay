@@ -152,7 +152,7 @@ function CatalogTile({primary,variants,language,onOpen}:{primary:Card;variants:C
       {visible.map((variant,index)=><div className="stacked-printing" style={{'--stack-index':index} as React.CSSProperties} key={variant.id}><CardArt card={variant}/></div>)}
     </div>
     <div className="card-meta"><span>{primary.code}</span><span>{primary.language??language}</span><span className={`rarity rarity-${primary.rarity}`}>{primary.rarity}</span></div>
-    <div className="card-title"><i className="filter-colour identity-colour" title={primary.color || undefined} aria-label={primary.color ? `${primary.color} color` : undefined} style={{background:identityBackground}}/><h3>{primary.name}</h3><span className="card-bottom" aria-label={`${primary.color} ${primary.type}`}>{primary.type}</span></div>
+    <div className="card-title"><i className="filter-colour identity-colour" title={primary.color || undefined} aria-label={primary.color ? `${primary.color} color` : undefined} style={{background:identityBackground}}/><h3>{displayCardName(primary.name,primary.code)}</h3><span className="card-bottom" aria-label={`${primary.color} ${primary.type}`}>{primary.type}</span></div>
   </button>
 }
 
@@ -309,7 +309,7 @@ export function Catalog({home=false,initialSet,initialArchetype,initialCard,init
           <MultiFilter label="Counter" values={[...new Set(liveCards.map(card=>card.counter>0?`+${card.counter}`:(id?'Tanpa counter':'No counter')))].sort()} selected={counters} onToggle={value=>setCounters(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])}/>
           <MultiFilter label={id?'Kata Kunci':'Keyword'} values={[...new Set(liveCards.flatMap(card=>card.keywords))].sort()} selected={keywords} onToggle={value=>setKeywords(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])}/>
           <MultiFilter label={id?'Blok':'Block'} values={['1','2','3','4','5','X']} selected={blocks} onToggle={value=>setBlocks(current=>current.includes(value)?current.filter(item=>item!==value):[...current,value])}/>
-          {!setPage&&<MultiFilter label={id?'Set':'Set'} searchPlaceholder={id?'Cari set':'Find a set'} values={[...new Map(liveCards.map(card=>{const code=canonicalSetCode(card.setCode);return [code,{value:code,label:`${code} · ${canonicalSetName(card.setCode,card.setName)}`}] as const})).values()]} selected={sets.map(canonicalSetCode)} onToggle={value=>setSets(current=>{const canonical=canonicalSetCode(value);return current.some(item=>canonicalSetCode(item)===canonical)?current.filter(item=>canonicalSetCode(item)!==canonical):[...current,canonical]})}/>}
+          {!setPage&&<MultiFilter label={id?'Set':'Set'} searchPlaceholder={id?'Cari set':'Find a set'} values={[...new Map(liveCards.map(card=>{const code=canonicalSetCode(card.setCode);return [code,{value:code,label:`${code} ${canonicalSetName(card.setCode,card.setName)}`}] as const})).values()]} selected={sets.map(canonicalSetCode)} onToggle={value=>setSets(current=>{const canonical=canonicalSetCode(value);return current.some(item=>canonicalSetCode(item)===canonical)?current.filter(item=>canonicalSetCode(item)!==canonical):[...current,canonical]})}/>}
         </div>
         <div className="filter-secondary">
           <SortOrderPicker value={sortOrder} onChange={setSortOrder} locale={locale}/>

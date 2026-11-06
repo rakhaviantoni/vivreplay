@@ -1,6 +1,7 @@
 import {database} from '@/lib/server/database';
 import {pokemonArtRoute} from '@/lib/pokemon-art-route';
 import {pokemonLocalCardNumber} from '@/lib/pokemon-set-aliases';
+import {versionedCardImageUrl} from '@/lib/card-catalog-cache';
 
 const imagePath=(key:string|null,source:string|null)=>{
   if(key){
@@ -28,6 +29,6 @@ export async function GET(_request:Request,{params}:{params:Promise<{printingId:
     const imageUrl=row.gameSlug==='pokemon'&&row.setCode&&row.printingCode
       ?pokemonArtRoute(String(row.language),String(row.setCode),pokemonLocalCardNumber(sourcePayload,String(row.printingCode)),String(row.id))
       :imagePath(typeof row.objectKey==='string'?row.objectKey:null,typeof row.imageUrl==='string'?row.imageUrl:null);
-    return Response.json({...row,sourcePayload,imageUrl,objectKey:row.objectKey??null},{headers:{'Cache-Control':'public, max-age=300, stale-while-revalidate=86400','Cloudflare-CDN-Cache-Control':'public, max-age=86400'}});
+    return Response.json({...row,sourcePayload,imageUrl:versionedCardImageUrl(imageUrl),objectKey:row.objectKey??null},{headers:{'Cache-Control':'public, max-age=300, stale-while-revalidate=86400','Cloudflare-CDN-Cache-Control':'public, max-age=86400'}});
   }catch{return Response.json({error:'Card printing is temporarily unavailable.'},{status:503})}
 }

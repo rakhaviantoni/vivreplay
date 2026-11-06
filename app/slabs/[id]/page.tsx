@@ -127,7 +127,7 @@ async function Page({ params }: { params: Promise<{ id: string }> }) {
             </div>
 
             <p style={{ textAlign: 'center', fontSize: '11px', color: '#94a3b8', margin: '12px 0 0' }}>
-              Authenticated Slab Visual · Inspection Photos Below
+              Authenticated Slab Visual, Inspection Photos Below
             </p>
           </div>
 
@@ -141,7 +141,7 @@ async function Page({ params }: { params: Promise<{ id: string }> }) {
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
             <span style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.12em', color: 'var(--vault-gold)', textTransform: 'uppercase' }}>
-              {row.provider} {row.grade} · {row.visibility.toUpperCase()}
+              {row.provider} {row.grade}, {row.visibility.toUpperCase()}
             </span>
             {isVerified ? (
               <span style={{
@@ -170,7 +170,7 @@ async function Page({ params }: { params: Promise<{ id: string }> }) {
             {c.name}
           </h1>
           <p style={{ fontSize: '13px', color: 'var(--vault-ink-secondary)', margin: '0 0 20px' }}>
-            {c.code} · {lang} · {printing?.variant || 'Standard'} · Curated by @{row.username}
+            {c.code}, {lang}, {printing?.variant || 'Standard'}, Curated by @{row.username}
           </p>
 
           {/* Key Slab Stats Grid */}

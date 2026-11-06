@@ -12,6 +12,7 @@ import { printings } from '@/packages/card-data/catalog';
 import { formatCompactMoney, formatMoney } from '@/packages/domain';
 import type { EnrichedCollectionItem } from '../types';
 import { VaultSlotMetaIdentity } from './vault-slot-meta-identity';
+import {displayCardName} from '../../card-name';
 
 interface ListViewProps {
   items: EnrichedCollectionItem[];
@@ -97,7 +98,7 @@ export function ListView({
                     </button>
                     <div>
                       <strong style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '13.5px', color: 'var(--vault-ink)' }}>
-                        {item.card.name}
+                        {displayCardName(item.card.name,item.card.code)}
                       </strong>
                       <VaultSlotMetaIdentity item={item} printingLabel={[lang,printing?.variant].filter(Boolean).join(' ')}/>
                     </div>
@@ -113,7 +114,7 @@ export function ListView({
                     </span>
                   ) : (
                     <span className="vault-raw-pill">
-                      Raw · {item.condition || 'NM'}
+                      Raw, {item.condition || 'NM'}
                     </span>
                   )}
                 </td>

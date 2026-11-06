@@ -1,4 +1,5 @@
 import { env } from 'cloudflare:workers';
+import { getCatalogImageObject } from '@/lib/server/catalog-image-storage';
 
 const cacheHeaders = {
   'Cache-Control': 'public, max-age=31536000, immutable',
@@ -25,7 +26,7 @@ export async function tcgdexArtResponse(values: string | string[]) {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(source.toString()));
   const cacheKey = `catalog-images/pokemon/${Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')}`;
   try {
-    const cached = await env.CARD_IMAGES?.get(cacheKey);
+    const cached = await getCatalogImageObject(cacheKey);
     if (cached) return new Response(cached.body, { headers: { ...cacheHeaders, 'Content-Type': cached.httpMetadata?.contentType ?? 'image/webp', ETag: cached.httpEtag } });
   } catch { /* Use the source if the cache is unavailable. */ }
 

@@ -21,6 +21,7 @@ import {
 import { CardArt } from '../card-art';
 import { VaultSlabCase } from '../views/vault-slot-slab-plate';
 import { VaultSlotMetaIdentity } from '../views/vault-slot-meta-identity';
+import {displayCardName} from '../../card-name';
 import { EffectText } from '../../effect-text';
 import { PokemonCardText } from '../../pokemon-card-text';
 import { printings } from '@/packages/card-data/catalog';
@@ -38,7 +39,6 @@ interface SlabDetailModalProps {
   onEdit: (slab: EnrichedCollectionItem) => void;
   onDelete: (id: string) => void;
   onSell: (slab: EnrichedCollectionItem) => void;
-  onMarketEstimateSaved?: (value:number|null) => void | Promise<void>;
   onToggleHideValues: () => void;
   onShare: (slab: EnrichedCollectionItem) => void;
 }
@@ -53,7 +53,6 @@ export function SlabDetailModal({
   onEdit,
   onDelete,
   onSell,
-  onMarketEstimateSaved,
   onToggleHideValues,
   onShare,
 }: SlabDetailModalProps) {
@@ -64,9 +63,6 @@ export function SlabDetailModal({
   const [photoBusy,setPhotoBusy]=useState(false);
   const [pokemonPrintingData,setPokemonPrintingData]=useState<{printingId:string;source:Record<string,unknown>|null}|null>(null);
   const [estimateRate,setEstimateRate]=useState<{currency:string;rate:number}|null>(null);
-  const [marketEstimateDraft,setMarketEstimateDraft]=useState('');
-  const [marketEstimateSaving,setMarketEstimateSaving]=useState(false);
-  const [marketEstimateEditing,setMarketEstimateEditing]=useState(false);
   const [savedMarketEstimateIdr,setSavedMarketEstimateIdr]=useState<number|null>(null);
   const portalTarget=typeof document==='undefined'?null:document.body;
 
@@ -104,34 +100,7 @@ export function SlabDetailModal({
 
   useEffect(()=>{
     setSavedMarketEstimateIdr(slab?.marketValueEstimate??null);
-    const amount=slab?.marketValueEstimate;
-    if(!amount){setMarketEstimateDraft('');return;}
-    if(estimateCurrency==='IDR'){setMarketEstimateDraft(String(amount));return;}
-    if(estimateRate?.currency===estimateCurrency){const converted=amount*estimateRate.rate;setMarketEstimateDraft(estimateCurrency==='USD'?converted.toFixed(2):String(Math.round(converted)));}
-    else setMarketEstimateDraft('');
   },[slab?.id,slab?.marketValueEstimate,estimateCurrency,estimateRate]);
-
-  const saveMarketEstimate=async()=>{
-    if(!slab)return;
-    const amount=marketEstimateDraft.trim()===''?null:Number(marketEstimateDraft);
-    if(amount!==null&&(!Number.isFinite(amount)||amount<0||amount>100000000000)){toast.error('Enter a valid estimate.');return;}
-    let amountIdr=amount;
-    if(estimateCurrency!=='IDR'){
-      if(!estimateRate||estimateRate.currency!==estimateCurrency){toast.error('Currency conversion is still loading. Try again shortly.');return;}
-      if(amount!==null)amountIdr=Math.round(amount/estimateRate.rate);
-    }
-    setMarketEstimateSaving(true);
-    try{
-      const response=await fetch('/api/collection',{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({id:slab.id,marketValueEstimate:amountIdr})});
-      const result=await response.json() as {error?:string};
-      if(!response.ok)throw new Error(result.error??'Could not save this estimate.');
-      setSavedMarketEstimateIdr(amountIdr);
-      setMarketEstimateEditing(false);
-      toast.success('Estimate saved');
-      await onMarketEstimateSaved?.(amountIdr);
-    }catch(error){toast.error(error instanceof Error?error.message:'Could not save this estimate.');}
-    finally{setMarketEstimateSaving(false);}
-  };
 
   const formatEstimate=(amountIdr:number)=>{
     if(estimateCurrency==='IDR')return formatCompactMoney(amountIdr,'IDR');
@@ -163,7 +132,6 @@ export function SlabDetailModal({
 
   const printing = printings.find(p => p.id === slab.printingId);
   const lang = slab.language || slab.card.language || printing?.language || 'EN';
-  const variant = slab.variant || slab.card.variant || printing?.variant || '';
   const isPokemon=slab.card.gameSlug==='pokemon'||/^PK-/i.test(slab.card.code);
   const pokemonSource=pokemonPrintingData?.printingId===slab.printingId?pokemonPrintingData.source:slab.card.source_payload??null;
   const subgrades = slab.subgrades;
@@ -172,7 +140,9 @@ export function SlabDetailModal({
   const visibleSubgrades=Object.entries(subgrades??{}).filter(([key])=>!key.startsWith('__'));
   const certificationUrl=slab.certification&&providerDef?.id==='PSA'
     ? `https://www.psacard.com/cert/${encodeURIComponent(slab.certification)}/psa`
-    : providerDef?.website;
+    : slab.certification&&providerDef?.id==='EGS'
+      ? `https://emporiumgrading.com/card/${encodeURIComponent(slab.certification)}`
+      : providerDef?.website;
 
   // Verification badge details
   const getVerificationBadge = () => {
@@ -205,7 +175,7 @@ export function SlabDetailModal({
       justifyContent: 'center',
       padding: '20px',
     }}>
-      <div className="vault-detail-modal vault-slab-detail-modal" role="dialog" aria-modal="true" aria-label={`${slab.card.name} slab details`} style={{
+      <div className="vault-detail-modal vault-slab-detail-modal" role="dialog" aria-modal="true" aria-label={`${displayCardName(slab.card.name,slab.card.code)} slab details`} style={{
         width: '100%',
         maxWidth: '920px',
         maxHeight: 'calc(100dvh - 40px)',
@@ -224,11 +194,7 @@ export function SlabDetailModal({
         {/* Top Bar with Title & Close */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '0.12em', color: 'var(--vault-gold)' }}>
-                {slab.provider || 'PSA'} {slab.grade || '10'}
-              </span>
-              {vBadge&&VIcon&&<span style={{
+            {vBadge&&VIcon&&<span style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '4px',
@@ -243,19 +209,11 @@ export function SlabDetailModal({
                 <VIcon size={12} weight="fill" />
                 {vBadge.label}
               </span>}
-            </div>
             <h2 style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '28px', fontWeight: 600, margin: '4px 0 0', color: 'var(--vault-ink)' }}>
-              {slab.card.name}
+              {displayCardName(slab.card.name,slab.card.code)}
             </h2>
             <div className="vault-slab-detail-card-meta">
-              {isPokemon
-                ? <VaultSlotMetaIdentity item={slab} printingLabel="" />
-                : <span className="vault-slot-meta-identity">
-                    <b>{slab.card.code}</b>
-                    <span>{lang}</span>
-                    {variant && variant.toLowerCase() !== 'standard' && <span>{variant}</span>}
-                    <span>{slab.card.rarity}</span>
-                  </span>}
+              <VaultSlotMetaIdentity item={slab} printingLabel="" />
             </div>
           </div>
 
@@ -337,7 +295,7 @@ export function SlabDetailModal({
                 {photoBusy? 'Uploading…' : `Add ${activePhotoRole==='extra'?'additional':activePhotoRole} photo`}
                 <input type="file" accept="image/jpeg,image/png,image/webp" capture="environment" disabled={photoBusy||slabPhotos.length>=8} onChange={uploadSlabPhoto} style={{ display: 'none' }} />
               </label>
-              <small className="vault-slab-photo-help">{slabPhotos.length}/8 photos · JPEG, PNG or WebP · max 5 MB</small>
+              <small className="vault-slab-photo-help">{slabPhotos.length}/8 photos, JPEG, PNG or WebP, max 5 MB</small>
               </> : <small className="vault-slab-photo-help">Sign in to attach slab photos.</small>}
             </div>
           </div>
@@ -370,10 +328,6 @@ export function SlabDetailModal({
                 </span>
                 <div style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '18px', fontWeight: 600, color: 'var(--vault-gold)', marginTop: '2px' }}>
                   {hideValues ? '••••••••' : savedMarketEstimateIdr ? formatEstimate(savedMarketEstimateIdr) : 'Not set'}
-                </div>
-                <div style={{display:'flex',gap:6,marginTop:6}}>
-                  <input aria-label={`Market estimate in ${estimateCurrency}`} type="number" min="0" step={estimateCurrency==='USD'?'0.01':'1'} inputMode="decimal" className="vault-select-compact" value={hideValues&&!marketEstimateEditing?'':marketEstimateDraft} onFocus={()=>{if(hideValues&&!marketEstimateEditing){setMarketEstimateDraft('');setMarketEstimateEditing(true);}}} onChange={event=>setMarketEstimateDraft(event.target.value)} placeholder={hideValues&&!marketEstimateEditing?'Focus to enter a value':`Amount in ${estimateCurrency}`} style={{minWidth:0,width:'100%'}}/>
-                  <button type="button" className="vault-btn vault-btn-secondary" disabled={marketEstimateSaving||(hideValues&&!marketEstimateEditing)} onClick={()=>void saveMarketEstimate()}>{marketEstimateSaving?'Saving…':'Save'}</button>
                 </div>
               </div>
 
@@ -480,7 +434,7 @@ export function SlabDetailModal({
                     target="_blank"
                     rel="noreferrer"
                   >
-                    {providerDef?.id==='PSA'?'View PSA certificate, sales & population':'Open grading company site'} <ExternalLink size={13} />
+                    {providerDef?.id==='PSA'?'View PSA certificate, sales & population':providerDef?.id==='EGS'?'View EGS card record':'Open grading company site'} <ExternalLink size={13} />
                   </LocalizedAnchor>
                 )}
               </div>
@@ -524,7 +478,7 @@ export function SlabDetailModal({
                 <Share2 size={15} />
                 Share Slab Card
               </button>
-              <button
+              {Number(slab.listedQuantity??0)===0&&<button
                 type="button"
                 className="vault-btn vault-btn-secondary"
                 style={{ background: 'var(--vault-surface-warm)', borderColor: 'var(--vault-border)', color: 'var(--vault-ink)' }}
@@ -532,7 +486,7 @@ export function SlabDetailModal({
               >
                 <Store size={15} />
                 List for Sale
-              </button>
+              </button>}
               <button
                 type="button"
                 className="vault-btn vault-btn-secondary"

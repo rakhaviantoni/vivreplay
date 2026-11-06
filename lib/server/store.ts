@@ -243,6 +243,23 @@ export async function market(viewerId?:string,listingIds?:string[],gameSlug?:'on
     shippingOriginLabel?:string|null;
   }>()).results;
 
+  const gradedInstanceIds=[...new Set(rows.flatMap(row=>{
+    try{
+      const items=JSON.parse(row.itemsJson??'[]') as unknown;
+      return Array.isArray(items)?items.filter((item):item is {instanceId:string;productType?:string;slabLabelStyle?:string}=>Boolean(item&&typeof item==='object'&&typeof (item as {instanceId?:unknown}).instanceId==='string'&&(item as {productType?:unknown}).productType==='GRADED')).map(item=>item.instanceId):[];
+    }catch{return [];}
+  }))];
+  const slabLabelStyles=new Map<string,'clear'|'standard'>();
+  for(let offset=0;offset<gradedInstanceIds.length;offset+=80){
+    const chunk=gradedInstanceIds.slice(offset,offset+80);
+    const labelRows=(await db().prepare(`SELECT instance_id AS instanceId,subgrades FROM graded_cards WHERE instance_id IN (${chunk.map(()=>'?').join(',')})`).bind(...chunk).all<{instanceId:string;subgrades:string|Record<string,unknown>|null}>()).results;
+    for(const row of labelRows){
+      let subgrades:Record<string,unknown>={};
+      try{subgrades=typeof row.subgrades==='string'?JSON.parse(row.subgrades) as Record<string,unknown>:row.subgrades??{};}catch{}
+      slabLabelStyles.set(row.instanceId,String(subgrades.__labelStyle??'standard').toLowerCase()==='clear'?'clear':'standard');
+    }
+  }
+
   const pendingSoldRows=rows.length?(await db().prepare(`SELECT COALESCE(json_extract(j.value,'$.listingId'),o.listing_id) AS listingId,json_extract(j.value,'$.printingId') AS printingId,SUM(CAST(json_extract(j.value,'$.quantity') AS INTEGER)) AS quantity,MAX(CAST(json_extract(j.value,'$.unitAmount') AS INTEGER)) AS unitAmount,MAX(json_extract(j.value,'$.condition')) AS condition FROM checkout_orders o,json_each(o.items) j WHERE o.kind='MARKET' AND (o.status IN ('PAID','DISPUTED','RECEIVING') OR (o.status='SHIPPED' AND (o.delivered_at IS NULL OR o.delivered_at>datetime('now','-48 hours')))) AND COALESCE(json_extract(j.value,'$.listingId'),o.listing_id) IN (${rows.map(()=>'?').join(',')}) GROUP BY listingId,printingId`).bind(...rows.map(row=>row.id)).all<{listingId:string;printingId:string;quantity:number;unitAmount:number|null;condition:string|null}>()).results:[];
   const soldByListing=new Map<string,typeof pendingSoldRows>();for(const item of pendingSoldRows){const group=soldByListing.get(item.listingId)??[];group.push(item);soldByListing.set(item.listingId,group)}
   const printingIds=[...new Set([...rows.flatMap(row=>{
@@ -320,7 +337,7 @@ export async function market(viewerId?:string,listingIds?:string[],gameSlug?:'on
     const sourceItems=normalizeListingItemPrices(rawItems,r.amount);
     const listingSoldRows=soldByListing.get(r.id)??[];
     const soldByPrinting=new Map(listingSoldRows.map(item=>[item.printingId,item]));
-    const items=[...sourceItems.map(item=>{const held=r.type==='WTS'?(reservations.get(`${r.id}:${item.printingId}`)??0):0;const soldQuantity=Number(soldByPrinting.get(item.printingId)?.quantity)||0;return {...item,generalProduct:item.generalProduct??generalProducts.get(item.printingId),quantity:item.quantity+soldQuantity,availableQuantity:Math.max(0,item.quantity-held),heldQuantity:held,soldQuantity,condition:item.productType==='GRADED'?'':item.condition||r.condition,unitAmount:Number.isSafeInteger(item.unitAmount)&&Number(item.unitAmount)>0?Number(item.unitAmount):fallbackUnitAmount,photoUrls:item.photoIds?.map(photoId=>`/api/market/product-photos/${photoId}`),card:bundleCards.get(item.printingId)}}),...(r.status==='SOLD'?listingSoldRows.map(item=>({printingId:item.printingId,quantity:Number(item.quantity)||1,availableQuantity:0,heldQuantity:0,soldQuantity:Number(item.quantity)||1,sold:true,condition:item.condition||r.condition,unitAmount:Number(item.unitAmount)||fallbackUnitAmount,card:bundleCards.get(item.printingId)})):[])];
+    const items=[...sourceItems.map(item=>{const held=r.type==='WTS'?(reservations.get(`${r.id}:${item.printingId}`)??0):0;const soldQuantity=Number(soldByPrinting.get(item.printingId)?.quantity)||0;const storedLabelStyle=(item as typeof item&{slabLabelStyle?:unknown}).slabLabelStyle;return {...item,...(item.productType==='GRADED'?{slabLabelStyle:slabLabelStyles.get(item.instanceId??'')??(storedLabelStyle==='clear'||storedLabelStyle==='standard'?storedLabelStyle:undefined)}:{}),generalProduct:item.generalProduct??generalProducts.get(item.printingId),quantity:item.quantity+soldQuantity,availableQuantity:Math.max(0,item.quantity-held),heldQuantity:held,soldQuantity,condition:item.productType==='GRADED'?'':item.condition||r.condition,unitAmount:Number.isSafeInteger(item.unitAmount)&&Number(item.unitAmount)>0?Number(item.unitAmount):fallbackUnitAmount,photoUrls:item.photoIds?.map(photoId=>`/api/market/product-photos/${photoId}`),card:bundleCards.get(item.printingId)}}),...(r.status==='SOLD'?listingSoldRows.map(item=>({printingId:item.printingId,quantity:Number(item.quantity)||1,availableQuantity:0,heldQuantity:0,soldQuantity:Number(item.quantity)||1,sold:true,condition:item.condition||r.condition,unitAmount:Number(item.unitAmount)||fallbackUnitAmount,card:bundleCards.get(item.printingId)})):[])];
     const availableCount=items.reduce((sum,item)=>sum+item.availableQuantity,0);
     const availableAmount=items.reduce((sum,item)=>sum+item.availableQuantity*item.unitAmount,0);
     const storedAmount=r.amount>0?r.amount:items.reduce((sum,item)=>sum+item.quantity*item.unitAmount,0);

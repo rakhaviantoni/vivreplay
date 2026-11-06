@@ -11,6 +11,7 @@ const database = {
   migrations_dir: "../../drizzle",
 };
 const bucket = { binding: "CARD_IMAGES", bucket_name: "tcg-card-images-staging" };
+const catalogBucket = { binding: "CATALOG_IMAGES", bucket_name: "tcg-card-images" };
 const wrangler = "node_modules/.bin/wrangler";
 
 const build = spawnSync("npm", ["run", "build"], {
@@ -88,7 +89,7 @@ function stageConfig(base, existingSecrets) {
   };
   delete config.vars.IPAYMU_EGRESS_PROXY_URL;
   config.d1_databases = [database];
-  config.r2_buckets = [bucket];
+  config.r2_buckets = [bucket, catalogBucket];
   return config;
 }
 
@@ -115,6 +116,17 @@ run(["d1", "migrations", "apply", database.database_name, "--remote", "--config"
 const migrationStatus = run(["d1", "migrations", "list", database.database_name, "--remote", "--config", configPath]);
 if (!migrationStatus.includes("No migrations to apply")) {
   throw new Error("Staging D1 still has pending migrations; deployment stopped.");
+}
+
+console.log("Refreshing the staging card catalog from production.");
+if (process.env.SKIP_STAGING_CATALOG_SYNC === "1") {
+  console.log("Using the existing staging catalog snapshot.");
+} else {
+  const catalogSync = spawnSync(process.execPath, ["scripts/sync-production-catalog-to-staging.mjs", configPath], {
+    stdio: "inherit",
+    env: process.env,
+  });
+  if (catalogSync.status !== 0) throw new Error("The production catalog snapshot could not be applied to staging.");
 }
 
 const firstDeploy = run(["deploy", "--config", configPath]);

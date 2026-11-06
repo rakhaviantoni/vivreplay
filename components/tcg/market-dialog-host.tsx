@@ -8,7 +8,7 @@ const MarketSellDialog=lazy(()=>import('./market').then(module=>({default:module
 const MarketAccountDialog=lazy(()=>import('./market-quick-panel').then(module=>({default:module.MarketQuickPanel})));
 
 type SellRequest={key:number;printingId?:string;type?:'WTS'|'WTB';gameSlug:'one-piece'|'pokemon'};
-type AccountRequest={key:number;panel:MarketAccountPanel;profileTab?:'account'|'delivery'|'payouts';orderId?:string;conversationId?:string};
+type AccountRequest={key:number;panel:MarketAccountPanel;profileTab?:'account'|'delivery'|'payouts';editDeliveryAddress?:boolean;orderId?:string;conversationId?:string};
 
 export function MarketDialogHost({accountActions=true}:{accountActions?:boolean}){
   const {data,loading,refresh}=useAccount();
@@ -44,7 +44,7 @@ export function MarketDialogHost({accountActions=true}:{accountActions?:boolean}
       setAccountRequest({...request,key:++sequence.current});
     };
     const payouts=()=>open({panel:'profile',profileTab:'payouts'});
-    const delivery=()=>open({panel:'profile',profileTab:'delivery'});
+    const delivery=(event:Event)=>{const detail=(event as CustomEvent<{editAddress?:boolean}>).detail;open({panel:'profile',profileTab:'delivery',editDeliveryAddress:Boolean(detail?.editAddress)})};
     const profile=()=>open({panel:'profile'});
     const orders=(event:Event)=>open({panel:'orders',orderId:(event as CustomEvent<string>).detail});
     const offer=(event:Event)=>open({panel:'offers',conversationId:(event as CustomEvent<string>).detail});
@@ -68,6 +68,6 @@ export function MarketDialogHost({accountActions=true}:{accountActions?:boolean}
   const locale=typeof document!=='undefined'&&document.documentElement.lang.toLowerCase().startsWith('id')?'ID':'EN';
   return <>
     {sellRequest&&<Suspense fallback={null}><MarketSellDialog key={sellRequest.key} modalOnly initialSellPrinting={sellRequest.printingId} initialSellType={sellRequest.type} initialGameSlug={sellRequest.gameSlug}/></Suspense>}
-    {data&&accountRequest&&<Suspense fallback={null}><MarketAccountDialog key={accountRequest.key} panel={accountRequest.panel} onOpenChange={open=>{if(!open)setAccountRequest(null)}} onPanelChange={panel=>setAccountRequest(current=>current?{...current,panel}:null)} locale={locale} account={data} activityCounts={{listings:0,offers:0,orders:0}} onCreateListing={()=>{setAccountRequest(null);window.dispatchEvent(new CustomEvent('vivreplay:open-sell-listing',{detail:'WTS'}))}} initialOrderId={accountRequest.orderId} initialConversationId={accountRequest.conversationId} initialProfileTab={accountRequest.profileTab} onRefresh={refresh} onSaved={async()=>{await refresh();setAccountRequest(null)}}/></Suspense>}
+    {data&&accountRequest&&<Suspense fallback={null}><MarketAccountDialog key={accountRequest.key} panel={accountRequest.panel} onOpenChange={open=>{if(!open)setAccountRequest(null)}} onPanelChange={panel=>setAccountRequest(current=>current?{...current,panel}:null)} locale={locale} account={data} activityCounts={{listings:0,offers:0,orders:0}} onCreateListing={()=>{setAccountRequest(null);window.dispatchEvent(new CustomEvent('vivreplay:open-sell-listing',{detail:'WTS'}))}} initialOrderId={accountRequest.orderId} initialConversationId={accountRequest.conversationId} initialProfileTab={accountRequest.profileTab} initialEditDeliveryAddress={accountRequest.editDeliveryAddress} onRefresh={refresh} onSaved={async()=>{await refresh();setAccountRequest(null)}}/></Suspense>}
   </>;
 }

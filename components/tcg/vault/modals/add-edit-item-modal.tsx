@@ -18,6 +18,9 @@ import { pokemonPrintingRarity } from '@/lib/pokemon-rarity';
 import { api } from '@/lib/client';
 import {versionedCardCatalogUrl} from '@/lib/card-catalog-cache';
 import { addLocalVaultItem, deleteLocalVaultItem, getLocalVaultItems, updateLocalVaultItem } from '../local-vault';
+import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue} from '@/components/ui/select';
+import {displayCardName} from '../../card-name';
+import {onePieceVariantLabel} from '../views/printing-labels';
 import type { EnrichedCollectionItem } from '../types';
 import type { VaultPrinting } from '../types';
 
@@ -54,12 +57,6 @@ function uniquePrintings(printings:VaultPrinting[],preferredId?:string){
     seenPrintings.add(key);
     return true;
   });
-}
-
-function printingTitle(printing:VaultPrinting){
-  const set=printing.set_code?.trim();
-  const variant=(printing.variant??'Standard').trim();
-  return set?`${variant} / ${set}`:variant;
 }
 
 function PokemonPrintingMeta({printing,language,fallbackRarity}:{printing:VaultPrinting;language:string;fallbackRarity?:string}){
@@ -116,6 +113,7 @@ export function AddEditItemModal({
   const [grade, setGrade] = useState(editingItem?.grade || '10');
   const [certification, setCertification] = useState(editingItem?.certification || '');
   const [acquisitionCost, setAcquisitionCost] = useState(editingItem ? String(editingItem.acquisitionAmount || '') : '');
+  const [marketValueEstimate,setMarketValueEstimate]=useState(editingItem?.marketValueEstimate==null?'':String(editingItem.marketValueEstimate));
   const [acquiredDate, setAcquiredDate] = useState(editingItem?.acquiredAt?.slice(0, 10) || new Date().toISOString().slice(0, 10));
   const [visibility, setVisibility] = useState<'private' | 'public'>(editingItem?.visibility === 'public' ? 'public' : 'private');
   const [notes, setNotes] = useState(editingItem?.notes || '');
@@ -172,6 +170,7 @@ export function AddEditItemModal({
     setGrade(editingItem?.grade || '10');
     setCertification(editingItem?.certification || '');
     setAcquisitionCost(editingItem ? String(editingItem.acquisitionAmount || '') : '');
+    setMarketValueEstimate(editingItem?.marketValueEstimate==null?'':String(editingItem.marketValueEstimate));
     setAcquiredDate(editingItem?.acquiredAt?.slice(0, 10) || new Date().toISOString().slice(0, 10));
     setVisibility(editingItem?.visibility === 'public' ? 'public' : 'private');
     setNotes(editingItem?.notes || '');
@@ -209,10 +208,10 @@ export function AddEditItemModal({
     void Promise.all(languages.map(async language => {
       const response = await fetch(versionedCardCatalogUrl(`/api/cards/catalog?game=${gameSlug}&language=${language}&code=${encodeURIComponent(identityCode)}`), {signal: controller.signal});
       if (!response.ok) return [];
-      const payload = await response.json() as {cards?:Array<{id:string;language:string;variant:string|null;printing_code:string|null;card_image_url:string|null;set_code:string|null;rarity:string|null}>};
+      const payload = await response.json() as {cards?:Array<{id:string;language:string;variant:string|null;printing_code:string|null;card_image_url:string|null;set_code:string|null;set_name:string|null;rarity:string|null}>};
       return (payload.cards ?? []).map(printing => ({
         id:printing.id,language:printing.language,variant:printing.variant ?? 'Standard',printing_code:printing.printing_code ?? undefined,
-        card_image_url:printing.card_image_url,set_code:printing.set_code ?? undefined,rarity:printing.rarity ?? undefined,
+        card_image_url:printing.card_image_url,set_code:printing.set_code ?? undefined,set_name:printing.set_name ?? undefined,rarity:printing.rarity ?? undefined,
       } satisfies VaultPrinting));
     })).then(results => {if(active)setCatalogPrintings(results.flat());}).catch(() => {if(active)setCatalogPrintings([]);}).finally(() => {if(active)setCatalogLoading(false);});
     return () => {active = false;controller.abort();};
@@ -250,7 +249,7 @@ export function AddEditItemModal({
     || (isEditing && editingItem && selectedPrintingId === editingItem.printingId && (editingItem.language??editingItem.card.language??cardLanguage)===cardLanguage ? {id:editingItem.printingId,language:editingItem.language??editingItem.card.language??cardLanguage,variant:editingItem.variant??currentCard.variant??'Standard',printing_code:editingItem.printingCode??currentCard.printingCode??currentCard.code,set_code:editingItem.setCode??currentCard.setCode} : undefined);
   const targetLanguage = (targetPrinting?.language ?? cardLanguage) as 'EN'|'JP'|'ID';
   const hasMarketReference = gameSlug==='one-piece'&&targetLanguage === 'JP';
-  const selectedCardArt:Card = targetPrinting ? {...currentCard,id:targetPrinting.id,language:targetLanguage,variant:targetPrinting.variant??'Standard',setCode:targetPrinting.set_code??currentCard.setCode,printingCode:targetPrinting.printing_code??currentCard.printingCode,imageUrl:targetPrinting.card_image_url??currentCard.imageUrl} : currentCard;
+  const selectedCardArt:Card = targetPrinting ? ({...currentCard,id:targetPrinting.id,language:targetLanguage,variant:targetPrinting.variant??'Standard',setCode:targetPrinting.set_code??currentCard.setCode,printingCode:targetPrinting.printing_code??currentCard.printingCode,imageUrl:targetPrinting.card_image_url??undefined,assetPath:undefined,gameSlug} as Card) : currentCard;
   const availableLanguages = [...new Set(uniquePrintingOptions.map(printing => printing.language as 'EN'|'JP'|'ID'))];
   const languagePrintings = uniquePrintingOptions.filter(printing => printing.language === cardLanguage);
   const quantityValid = Number.isInteger(quantity) && quantity >= 1 && quantity <= 999;
@@ -260,6 +259,7 @@ export function AddEditItemModal({
     itemType === 'RAW' && !quantityValid ? 'Enter a quantity from 1 to 999.' : '',
     itemType === 'GRADED' && !grade.trim() ? 'Enter the slab grade.' : '',
     itemType === 'GRADED' && !certification.trim() ? 'Enter the certification number from the slab.' : '',
+    itemType === 'GRADED' && marketValueEstimate.trim() !== '' && (!Number.isSafeInteger(Number(marketValueEstimate)) || Number(marketValueEstimate) < 0 || Number(marketValueEstimate) > 100000000000) ? 'Enter a valid market estimate in IDR.' : '',
   ].filter(Boolean);
 
   useEffect(()=>{
@@ -325,7 +325,7 @@ export function AddEditItemModal({
       const payload = {
         id: editingItem?.id,
         printingId: targetPrinting.id,
-        catalogCard: { ...currentCard, gameSlug, language:targetLanguage, variant:targetPrinting.variant??'Standard', printingCode:targetPrinting.printing_code??currentCard.code, setCode:targetPrinting.set_code??currentCard.setCode, imageUrl:targetPrinting.card_image_url??currentCard.imageUrl },
+        catalogCard: { ...currentCard, gameSlug, language:targetLanguage, variant:targetPrinting.variant??'Standard', printingCode:targetPrinting.printing_code??currentCard.code, setCode:targetPrinting.set_code??currentCard.setCode, imageUrl:targetPrinting.card_image_url??undefined, assetPath:undefined },
         type: itemType,
         quantity: itemType === 'GRADED' ? 1 : Number(quantity),
         condition: itemType === 'GRADED' ? 'NM' : condition,
@@ -334,6 +334,7 @@ export function AddEditItemModal({
         certification: itemType === 'GRADED' ? certification.trim() : null,
         visibility,
         acquisitionAmount: Math.round(Number(acquisitionCost || 0)),
+        marketValueEstimate: itemType === 'GRADED' && marketValueEstimate.trim() !== '' ? Number(marketValueEstimate) : null,
         currency: 'IDR',
         acquiredAt: acquiredDate ? new Date(acquiredDate).toISOString() : new Date().toISOString(),
         notes,
@@ -483,12 +484,12 @@ export function AddEditItemModal({
             </div>}
             <div className="vault-printing-options">
               {languagePrintings.map(printing => {
-                const printingCard: Card = {...currentCard,id:printing.id,language:printing.language as 'EN'|'JP'|'ID',variant:printing.variant??'Standard',setCode:printing.set_code??currentCard.setCode,printingCode:printing.printing_code??currentCard.printingCode,imageUrl:printing.card_image_url??currentCard.imageUrl};
+                const printingCard: Card = {...currentCard,id:printing.id,language:printing.language as 'EN'|'JP'|'ID',variant:printing.variant??'Standard',setCode:printing.set_code??currentCard.setCode,printingCode:printing.printing_code??currentCard.printingCode,imageUrl:printing.card_image_url??undefined,gameSlug} as Card;
                 const selected = printing.id === targetPrinting?.id;
                 const printNumber=printing.printing_code?.match(/(?:[_-]p)(\d+)$/i)?.[1];
-                const detail=[currentCard.code,printing.set_code,printNumber?`p${printNumber}`:printing.printing_code!==currentCard.code?printing.printing_code:null].filter(Boolean).join(' / ');
+                const printingVariant=onePieceVariantLabel(printing.variant,printing.set_code,printing.printing_code);
                 return <button type="button" key={printing.id} className={`vault-printing-option ${selected ? 'selected' : ''}`} aria-pressed={selected} onClick={() => {setSelectedIdentity(currentCard);setSelectedCardCode(currentCard.code);setIdentityConfirmed(true);setSelectedPrintingId(printing.id);setCardLanguage(printing.language as 'EN'|'JP'|'ID');}}>
-                  <span className="vault-printing-option-art"><CardArt card={printingCard} small /></span><span className={`vault-printing-option-copy${gameSlug==='pokemon'?' is-pokemon':''}`}>{gameSlug==='pokemon'?<PokemonPrintingMeta printing={printing} language={printing.language} fallbackRarity={currentCard.rarity}/>:<><b>{printingTitle(printing)}</b><small>{detail || printing.printing_code || 'Standard printing'}</small></>}</span>{selected && <span className="vault-printing-selected-mark">{language==='ID'?'Dipilih':'Selected'}</span>}
+                  <span className="vault-printing-option-art"><CardArt card={{...printingCard,assetPath:undefined}} small /></span><span className={`vault-printing-option-copy${gameSlug==='pokemon'?' is-pokemon':''}`}>{gameSlug==='pokemon'?<PokemonPrintingMeta printing={printing} language={printing.language} fallbackRarity={currentCard.rarity}/>:<><b>{displayCardName(currentCard.name,currentCard.code)}</b><span className="vault-printing-option-meta">{printing.set_code&&<small className="vault-printing-set-code" title={printing.set_name??undefined}>{printing.set_code}</small>}{printing.set_name&&<small className="vault-printing-set-name">{printing.set_name}</small>}{printingVariant&&printingVariant.toLowerCase()!=='standard'&&<small>{printingVariant}</small>}{printNumber&&<small>{`p${printNumber}`}</small>}</span></>}</span>{selected && <span className="vault-printing-selected-mark">{language==='ID'?'Dipilih':'Selected'}</span>}
                 </button>;
               })}
               {!languagePrintings.length && <p className="vault-printing-empty">{catalogLoading ? 'Loading available printings…' : 'No printings are listed for this language.'}</p>}
@@ -576,19 +577,13 @@ export function AddEditItemModal({
                   <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--vault-ink-secondary)', display: 'block', marginBottom: '4px' }}>
                     Grading provider
                   </label>
-                  <select
-                    className="vault-select-compact"
-                    style={{ width: '100%' }}
-                    value={provider}
-                    onChange={e => setProvider(e.target.value)}
-                  >
-                    {editingItem&&['ESG','SGC'].includes(String(editingItem.provider??'').toUpperCase())&&<option value={normalizedProvider(editingItem.provider)}>{editingItem.provider} (saved slab)</option>}
-                    {GRADING_PROVIDERS.map(p => (
-                      <option key={p.id} value={p.shortName}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
+                  <Select value={provider} onValueChange={setProvider}>
+                    <SelectTrigger className="vault-select-compact vault-select-trigger"><SelectValue /></SelectTrigger>
+                    <SelectContent className="vault-select-content">
+                      {editingItem&&['ESG','SGC'].includes(String(editingItem.provider??'').toUpperCase())&&<SelectItem value={normalizedProvider(editingItem.provider)}>{editingItem.provider} (saved slab)</SelectItem>}
+                      {GRADING_PROVIDERS.map(p => <SelectItem key={p.id} value={p.shortName}>{p.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <label style={{ fontSize: '11px', fontWeight: 700, color: 'var(--vault-ink-secondary)', display: 'block', marginBottom: '4px' }}>
@@ -638,6 +633,30 @@ export function AddEditItemModal({
                   aria-describedby={submitAttempted && !certification.trim() ? 'vault-certification-error' : undefined}
                 />
                 {submitAttempted && !certification.trim() && <small id="vault-certification-error" className="vault-field-error">Enter the certification number from the slab.</small>}
+              </div>
+
+              <div>
+                <label htmlFor="vault-market-estimate-input" style={{ fontSize: '11px', fontWeight: 700, color: 'var(--vault-ink-secondary)', display: 'block', marginBottom: '4px' }}>
+                  Market estimate (IDR)
+                </label>
+                <input
+                  id="vault-market-estimate-input"
+                  type="number"
+                  min="0"
+                  max="100000000000"
+                  step="1"
+                  inputMode="numeric"
+                  className="vault-select-compact"
+                  style={{ width: '100%' }}
+                  value={marketValueEstimate}
+                  onChange={event=>setMarketValueEstimate(event.target.value)}
+                  placeholder="Optional"
+                  aria-describedby="vault-market-estimate-help"
+                  aria-invalid={submitAttempted && marketValueEstimate.trim() !== '' && (!Number.isSafeInteger(Number(marketValueEstimate)) || Number(marketValueEstimate) < 0 || Number(marketValueEstimate) > 100000000000)}
+                />
+                <small id="vault-market-estimate-help" style={{ fontSize: '10px', color: 'var(--vault-ink-muted)' }}>
+                  Leave blank if you do not have an estimate. Saved in IDR.
+                </small>
               </div>
 
               <div>
@@ -713,7 +732,7 @@ export function AddEditItemModal({
               <span style={{ fontSize: '10px', color: 'var(--vault-ink-muted)' }}>{language === 'ID' ? 'Harga pembelian Anda; hanya terlihat oleh Anda.' : 'Your purchase cost; private to you.'}</span>
             </div>
             <div className="vault-market-field">
-              <label className="vault-market-reference-label">{language === 'ID' ? 'Estimasi pasar (IDR)' : 'Market estimate (IDR)'}</label>
+              <label className="vault-market-reference-label">{language === 'ID' ? 'Referensi harga (IDR)' : 'Price reference (IDR)'}</label>
               <div className="vault-market-reference" aria-live="polite">
                 <strong className={marketEstimateIdr !== null ? 'has-estimate' : 'no-estimate'}>
                   {!hasMarketReference

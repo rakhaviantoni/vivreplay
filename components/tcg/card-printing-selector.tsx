@@ -8,12 +8,13 @@ import type {Card} from '@/packages/card-data/catalog';
 import type {CollectionItem} from '@/packages/domain';
 import {api} from '@/lib/client';
 import {authClient} from '@/lib/auth-client';
+import {onePieceVariantLabel} from './vault/views/printing-labels';
 
 export type CardPrinting={id:string;language:string;variant:string|null;printing_code:string|null;card_image_url:string|null;set_code?:string|null;rarity?:string|null};
 
-export function printingLabel(variant:string|null) {
+export function printingLabel(variant:string|null,setCode?:string|null,printingCode?:string|null) {
   if(!variant)return 'Standard';
-  const label=variant.replace(/(?:^|[\s·,/_-])p\d+(?=$|[\s·,/_-])/ig,'').replace(/[·,/_-]+\s*$/,'').trim();
+  const label=onePieceVariantLabel(variant,setCode,printingCode);
   return label||'Alt art';
 }
 
@@ -86,5 +87,5 @@ export function CardPrintingSelector<T extends CardPrinting>({printings,language
   const id=locale==='ID';
   const languages=[...new Set(printings.map(item=>item.language))].sort((a,b)=>a.localeCompare(b));
   const visible=uniquePrintings(orderPrintings(printings.filter(item=>item.language===language&&item.card_image_url)));
-  return <section className="viewer-printings"><div className="printing-title"><h3>{id?'Versi Cetak':'Printings'}</h3><div aria-label={id?'Bahasa':'Language'}>{languages.map(item=><button type="button" key={item} aria-pressed={language===item} className={language===item?'active':''} onClick={()=>onLanguageChange(item)}>{item==='JP'?'日本語 · JP':item==='ID'?'Indonesia · ID':'English · EN'}</button>)}</div></div><div className="printing-strip">{visible.map(item=>{const label=printingLabel(item.variant);return <div className="printing-option" key={item.id}><button type="button" className={`printing-choice ${item.id===selectedId?'selected':''}`} aria-pressed={item.id===selectedId} onClick={()=>onSelect(item.id)}>{renderCard(item)}<span>{id&&label==='Standard'?'Standar':label}</span></button>{vaultCard&&<PrintingVaultControl printing={item} card={vaultCard} collection={collection} signedIn={session?true:signedIn} busy={busyPrinting===item.id} locale={locale} onChange={changePrinting}/>}</div>})}</div></section>;
+  return <section className="viewer-printings"><div className="printing-title"><h3>{id?'Versi Cetak':'Printings'}</h3><div aria-label={id?'Bahasa':'Language'}>{languages.map(item=><button type="button" key={item} aria-pressed={language===item} className={language===item?'active':''} onClick={()=>onLanguageChange(item)}><span>{item==='JP'?'日本語':item==='ID'?'Bahasa Indonesia':'English'}</span></button>)}</div></div><div className="printing-strip">{visible.map(item=>{const label=printingLabel(item.variant,item.set_code,item.printing_code);return <div className="printing-option" key={item.id}><button type="button" className={`printing-choice ${item.id===selectedId?'selected':''}`} aria-pressed={item.id===selectedId} onClick={()=>onSelect(item.id)}>{renderCard(item)}<span>{id&&label==='Standard'?'Standar':label}</span></button>{vaultCard&&<PrintingVaultControl printing={item} card={vaultCard} collection={collection} signedIn={session?true:signedIn} busy={busyPrinting===item.id} locale={locale} onChange={changePrinting}/>}</div>})}</div></section>;
 }

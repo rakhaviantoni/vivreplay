@@ -10,12 +10,16 @@ import {ShareButton} from './share';
 import {Tabs,TabsList,TabsTrigger} from '@/components/ui/tabs';
 import {useAccount,api} from '@/lib/client';
 import {MarketSellAction} from './market-sell-action';
+import {displayCardName} from './card-name';
+import {onePieceVariantLabel} from './vault/views/printing-labels';
 export function CardDetail({card,initialLanguage}:{card:Card;initialLanguage:string}) {
   const [lang,setLang]=useState(initialLanguage);
   const [open,setOpen]=useState(false);
   const [vaultBusy,setVaultBusy]=useState(false);
   const {data,refresh,loading:accountLoading}=useAccount();
   const printing=printingFor(card.id,lang);
+  const cardName=displayCardName(card.name,card.code);
+  const variantLabel=onePieceVariantLabel(printing.variant,printing.set,printing.id)||'Standard';
   const wished=data?.wishlist.some(item=>item.printingId===printing.id);
   const rawItems=data?.collection.filter(item=>item.printingId===printing.id&&item.type==='RAW')??[];
   const vaultQuantity=rawItems.reduce((total,item)=>total+item.quantity,0);
@@ -43,12 +47,12 @@ export function CardDetail({card,initialLanguage}:{card:Card;initialLanguage:str
       <div className="detail-art"><CardArt card={card}/><p>Official One Piece Card Game printing</p></div>
       <div className="detail-info">
         <div className="eyebrow">{card.code} <span className="rarity">{card.rarity}</span></div>
-        <h1>{card.name}</h1>
+        <h1>{cardName}</h1>
         <div className="tags"><span style={{color:colors[card.color]}}>{card.color}</span><span>{card.type}</span><span>{card.setCode}</span></div>
         <div className="detail-stats"><div><small>COST</small><strong>{card.cost}</strong></div><div><small>POWER</small><strong>{card.power.toLocaleString()}</strong></div><div><small>IMPLEMENTATION</small><strong className="text-small">Data only</strong></div></div>
         <div className="effect-block"><h3>Card effect</h3><p>{card.effect}</p></div>
         <div className="printing-heading"><h3>Choose a printing</h3><Tabs value={lang} onValueChange={setLang}><TabsList><TabsTrigger value="EN">EN</TabsTrigger><TabsTrigger value="JP">JP</TabsTrigger></TabsList></Tabs></div>
-        <div className="printing-card"><Layers3 size={21}/><div><strong>{printing.variant}</strong><p>{lang==='EN'?'English':'Japanese'} · {printing.set} · {card.rarity}</p></div><span className="badge">{printing.set}</span></div>
+        <div className="printing-card"><Layers3 size={21}/><div><strong>{variantLabel}</strong><p>{lang==='EN'?'English':'日本語'}</p></div><span className="badge">{printing.set}</span></div>
         <div className="actions">
           {vaultQuantity>0?<div className="vault-quantity-stepper" aria-label={`${vaultQuantity} copies in your Vault`}><button type="button" className="button secondary" aria-label="Remove one copy from Vault" disabled={vaultBusy||rawItems.every(item=>item.quantity<=(item.listedQuantity??0))} onClick={()=>void changeVaultQuantity(-1)}><Minus size={16}/></button><span aria-live="polite">{vaultQuantity}</span><button type="button" className="button secondary" aria-label="Add one copy to Vault" disabled={vaultBusy} onClick={()=>void changeVaultQuantity(1)}><Plus size={16}/></button></div>:<button className="button" disabled={vaultBusy||(!data&&accountLoading)} onClick={()=>{if(!data){window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));return;}setOpen(true)}}><Plus size={17}/>{!data?'Sign in to add to Vault':'Add to Vault'}</button>}
           <button className="button secondary" aria-label={wished?'Remove from wishlist':'Add to wishlist'} onClick={async()=>{try { await api('/api/wishlist',{printingId:printing.id,saved:!wished}); await refresh(); toast.success(wished?'Removed from wishlist':'Saved to wishlist'); } catch(error) { toast.error((error as Error).message); }}}><Heart size={18} fill={wished?'currentColor':'none'}/></button>
@@ -58,6 +62,6 @@ export function CardDetail({card,initialLanguage}:{card:Card;initialLanguage:str
         <div className="provenance"><ShieldCheck size={17}/><div><strong>Card image source</strong><p>This card uses its official One Piece Card Game printing. Card language and printing remain independent fields.</p></div></div>
       </div>
     </div>
-    <CollectionForm key={printing.id} printingId={printing.id} name={`${card.name} · ${lang}`} previewCard={card} open={open} onClose={()=>setOpen(false)} onSaved={refresh}/>
+    <CollectionForm key={printing.id} printingId={printing.id} name={`${card.name}, ${lang}`} previewCard={card} open={open} onClose={()=>setOpen(false)} onSaved={refresh}/>
   </main>;
 }

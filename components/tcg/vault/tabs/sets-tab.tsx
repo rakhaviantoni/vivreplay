@@ -233,7 +233,7 @@ export function SetsTab({
                 tabIndex={0}
                 style={{ cursor: 'pointer' }}
                 onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();if(ownedItem)onSelectItem(ownedItem);else setPreview(card)}}}
-                title={isOwned ? `${card.name} (Owned)` : `${card.name} (Missing · Click to find listings)`}
+                title={isOwned ? `${card.name} (Owned)` : `${card.name} (Missing, Click to find listings)`}
               >
                 <div className="vault-slot-card-stage">
                   <CardArt card={card} />

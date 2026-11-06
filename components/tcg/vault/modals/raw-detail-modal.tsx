@@ -16,6 +16,7 @@ import {
   StackIcon as Deck
 } from '@phosphor-icons/react';
 import { CardArt } from '../card-art';
+import {displayCardName} from '../../card-name';
 import {marketListingPath} from '@/lib/market/listing-url';
 import { printings } from '@/packages/card-data/catalog';
 import { PRICECHARTING_USD_TO_IDR_RATE } from '@/lib/market/pricecharting';
@@ -74,7 +75,7 @@ export function RawDetailModal({
       justifyContent: 'center',
       padding: '20px',
     }}>
-      <div className="vault-detail-modal" role="dialog" aria-modal="true" aria-label={`${item.card.name} card details`} style={{
+      <div className="vault-detail-modal" role="dialog" aria-modal="true" aria-label={`${displayCardName(item.card.name,item.card.code)} card details`} style={{
         width: '100%',
         maxWidth: '760px',
         borderRadius: '18px',
@@ -121,7 +122,7 @@ export function RawDetailModal({
                 {item.card.code} / {item.card.rarity} / {(item.visibility==='marketplace-only'?'private':item.visibility).toUpperCase()}
               </span>}
               <h2 style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '24px', fontWeight: 600, margin: '2px 0 0', color: 'var(--vault-ink)' }}>
-                {item.card.name}
+                {displayCardName(item.card.name,item.card.code)}
               </h2>
               {!isPokemon&&<span style={{ fontSize: '11px', color: 'var(--vault-ink-muted)' }}>
                 {item.printingCode || item.card.printingCode || item.card.code} / {item.setCode || printing?.set || item.card.setCode || 'Set not listed'}
@@ -176,7 +177,7 @@ export function RawDetailModal({
               </strong>
               {!hideValues && item.marketPriceSource === 'pricecharting' && (
                 <small style={{ display: 'block', marginTop: 4, color: 'var(--vault-ink-muted)' }}>
-                  PriceCharting ungraded · USD converted at Rp {PRICECHARTING_USD_TO_IDR_RATE.toLocaleString('id-ID')}/USD
+                  PriceCharting ungraded, USD converted at Rp {PRICECHARTING_USD_TO_IDR_RATE.toLocaleString('id-ID')}/USD
                   {item.marketPriceUrl && <LocalizedAnchor href={item.marketPriceUrl} target="_blank" rel="noopener noreferrer"> View source</LocalizedAnchor>}
                 </small>
               )}

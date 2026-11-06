@@ -1,10 +1,10 @@
 /* eslint-disable react-hooks/set-state-in-effect */
 'use client';
 import {useRouteLocale} from '@/components/locale-provider';
-import {useEffect,useMemo,useRef,useState,type CSSProperties} from 'react';
+import {useCallback,useEffect,useMemo,useRef,useState,type CSSProperties} from 'react';
 import Link from '@/components/ui/localized-link';
 import {GAME_LOGOS} from './brand-assets';
-import {SaveListingButton} from './market-saved';
+import {SaveListingButton,WishlistButton} from './market-saved';
 import {useSearchParams} from 'next/navigation';
 import {useLocalizedRouter as useRouter} from '@/lib/use-localized-router';
 import {
@@ -23,6 +23,8 @@ import {
   SquaresFourIcon as Grid,
   UserIcon as UserRound,
   ClipboardTextIcon as ClipboardText,
+  DotsThreeIcon as MoreActions,
+  ArrowSquareOutIcon as OpenDetails,
   ShoppingCartIcon as Cart,
   SlidersHorizontalIcon as SlidersHorizontal,
   StorefrontIcon as Store,
@@ -44,6 +46,7 @@ import {CollectionItem,GRADING_PROVIDERS,Listing,formatMoney} from '@/packages/d
 import {api,useAccount,type AccountState} from '@/lib/client';
 import {loadMarketActivityCounts} from '@/lib/market/activity-client';
 import {CardArt} from './card-art';
+import {CardPreviewModal} from './card-preview-modal';
 import {CardLoadingSkeleton} from './card-loading-skeleton';
 import {CardScanButton,type CardScanCandidate} from './card-scan-button';
 import {FeedbackLaunchButton} from './feedback-launch';
@@ -56,17 +59,20 @@ import {AddEditItemModal} from './vault/modals/add-edit-item-modal';
 import {MarketTimestamp} from './market-timestamp';
 import {calculateSellerServiceFee,LISTING_POLICIES} from '@/lib/market/policy';
 import {ShippingCouriers} from './market-listing-items';
-import {Dialog,DialogContent,DialogDescription,DialogTitle} from '@/components/ui/dialog';
+import {Dialog,DialogContent,DialogDescription,DialogHeader,DialogTitle} from '@/components/ui/dialog';
+import {DropdownMenu,DropdownMenuContent,DropdownMenuItem,DropdownMenuTrigger} from '@/components/ui/dropdown-menu';
 import {MarketPriceMode} from './market-price-mode';
 import {ShareButton} from './share';
 import {BulkListingModal} from './vault/modals/bulk-listing-modal';
-import {matchesSealedProductQuery,normalizeSealedProductQuery,sealedProductById,sealedProductDisplayName,sealedProductPublicCode,sealedProducts,sealedProductKinds} from '@/lib/market/sealed-products';
+import {matchesSealedProductQuery,normalizeSealedProductQuery,sealedProductById,sealedProductDisplayName,sealedProductPublicCode,sealedProducts,sealedProductKinds,type SealedProduct} from '@/lib/market/sealed-products';
 import {generalMarketCategories,generalMarketCategoryLabel,type GeneralMarketCategory} from '@/lib/market/general-products';
 import {MarketSealedComposer,type BundleProductInput} from './market-sealed-composer';
 import {Slider} from '@/components/ui/slider';
 import {MarketQuickPanel} from './market-quick-panel';
 import {MarketStoreNav} from './market-store-nav';
 import {enrichCollectionItem,groupVaultStacks} from './vault/vault-utils';
+import {VaultSlabCase} from './vault/views/vault-slot-slab-plate';
+import type {EnrichedCollectionItem} from './vault/types';
 import {isPlayableSet} from '@/packages/domain/release-availability';
 import {uniquePrintingIds,matchingPrintingCopies,selectedPrintingCopy} from '@/lib/market/printing-selection';
 import {marketListingPath} from '@/lib/market/listing-url';
@@ -75,8 +81,8 @@ import {useMarketListingLimits} from '@/lib/market/use-listing-limits';
 import {versionedCardCatalogUrl} from '@/lib/card-catalog-cache';
 import '@/app/market-account.css';
 type MarketBenchmark={amount:number;currency:string;url:string|null;observedAt:string;confidence:string;normalizedAmount:number|null;normalizedCurrency:string|null};
-type CardPrintingItem={id:string;language:string;variant:string|null;printing_code:string|null;card_image_url:string|null;rarity?:string|null;set_code?:string;tcg_card_assets?:Array<{kind:string;object_key:string}>};
-type MarketCard=Card&{availablePrintings?:CardPrintingItem[];gameSlug?:'one-piece'|'pokemon';pokemonTypes?:string[];pokemonCategory?:string;pokemonSetName?:string;pokemonIllustrator?:string};
+type CardPrintingItem={id:string;language:string;variant:string|null;printing_code:string|null;card_image_url:string|null;rarity?:string|null;set_code?:string;source_payload?:PokemonMarketCard['source_payload'];tcg_card_assets?:Array<{kind:string;object_key:string}>};
+type MarketCard=Card&{availablePrintings?:CardPrintingItem[];gameSlug?:'one-piece'|'pokemon';pokemonTypes?:string[];pokemonCategory?:string;pokemonSetName?:string;pokemonIllustrator?:string;pokemonSourcePayload?:PokemonMarketCard['source_payload']};
 export type MarketGameScope='one-piece'|'pokemon'|'all';
 export function MarketGameMark({gameSlug,compact=false}:{gameSlug:MarketGameScope;compact?:boolean}){
   return <span className={`market-game-mark${compact?' market-game-mark-compact':''}`} aria-hidden="true">
@@ -135,9 +141,9 @@ function PokemonMarketType({card}:{card:MarketCard}){
   }
   return <span>{card.pokemonTypes?.join(' / ')||card.pokemonCategory||card.type}</span>;
 }
-function MarketLookupCardThumb({card,gameSlug}:{card:MarketCard;gameSlug:'one-piece'|'pokemon'}){
+function MarketLookupCardThumb({card,gameSlug,onOpen}:{card:MarketCard;gameSlug:'one-piece'|'pokemon';onOpen:(card:MarketCard,origin:DOMRect)=>void}){
   const [missing,setMissing]=useState(false);
-  return <div className="market-card-lookup-art-wrap"><Link href={gameSlug==='pokemon'?`/pokemon/cards?q=${encodeURIComponent(card.name)}`:`/cards/${card.code}`} className="market-card-lookup-art"><CardArt card={card} small onImageMissing={()=>setMissing(true)} onImageLoaded={()=>setMissing(false)}/></Link>{gameSlug==='pokemon'&&missing&&<FeedbackLaunchButton className="market-lookup-missing-image" request={{initialCategory:'missing-printing',cardCode:card.code,printingId:card.id}} title="Report this missing card image">Report</FeedbackLaunchButton>}</div>;
+  return <div className="market-card-lookup-art-wrap"><button type="button" className="market-card-lookup-art" aria-label={`View ${card.name} details`} onClick={event=>onOpen(card,event.currentTarget.getBoundingClientRect())}><CardArt card={card} small onImageMissing={()=>setMissing(true)} onImageLoaded={()=>setMissing(false)}/></button>{gameSlug==='pokemon'&&missing&&<FeedbackLaunchButton className="market-lookup-missing-image" request={{initialCategory:'missing-printing',cardCode:card.code,printingId:card.id}} title="Report this missing card image">Report</FeedbackLaunchButton>}</div>;
 }
 function addFeedListingToCart(listing:Listing,printingId:string,locale:'EN'|'ID'){
   const cartKey='vivreplay-market-cart-v1';
@@ -159,7 +165,7 @@ function MarketFeedCartButton({listing,printingId,locale}:{listing:Listing;print
     const sync=()=>{try{const cart=JSON.parse(window.localStorage.getItem('vivreplay-market-cart-v1')||'null');setInCart(Boolean(cart?.lines?.some((line:{listingId:string;items:{printingId:string}[]})=>line.listingId===listing.id&&line.items.some(item=>item.printingId===printingId))))}catch{setInCart(false)}};
     sync();window.addEventListener('vivreplay:market-cart-updated',sync);window.addEventListener('storage',sync);return()=>{window.removeEventListener('vivreplay:market-cart-updated',sync);window.removeEventListener('storage',sync)};
   },[listing.id,printingId]);
-  const label=locale==='ID'?(inCart?'Sudah di keranjang':'Tambahkan 1 kartu ke keranjang'):(inCart?'In cart · View cart':'Add 1 card to cart');
+  const label=locale==='ID'?(inCart?'Sudah di keranjang':'Tambahkan 1 kartu ke keranjang'):(inCart?'In cart, View cart':'Add 1 card to cart');
   return <button type="button" className={`button secondary is-icon-only market-icon-action market-feed-add-cart${inCart?' is-in-cart':''}`} title={label} aria-label={label} aria-pressed={inCart} onClick={event=>{event.preventDefault();event.stopPropagation();if(inCart){window.dispatchEvent(new Event('vivreplay:open-market-cart'));return;}addFeedListingToCart(listing,printingId,locale)}}>{inCart?<Check size={17}/>:<Cart size={17}/>}</button>;
 }
 function printingToCard(baseCard:MarketCard,p:CardPrintingItem):MarketCard{
@@ -248,11 +254,11 @@ async function searchMarketCards(value:string,limit:number,gameSlug:'one-piece'|
       const identity=item.tcg_card_identities;
       if(!identity)continue;
       const code=identity.code;
-      const printing:CardPrintingItem={id:item.id,language:item.language,variant:item.variant,printing_code:item.printing_code,card_image_url:item.card_image_url??null,rarity:item.rarity,set_code:item.set_code,tcg_card_assets:[]};
+      const printing:CardPrintingItem={id:item.id,language:item.language,variant:item.variant,printing_code:item.printing_code,card_image_url:item.card_image_url??null,rarity:item.rarity,set_code:item.set_code,source_payload:item.source_payload,tcg_card_assets:[]};
       const current=grouped.get(code);
       if(current){current.availablePrintings=[...(current.availablePrintings??[]),printing];continue;}
       const rarity=pokemonRarityLabel(item.rarity??item.source_payload?.rarity,item.language);
-      grouped.set(code,{id:item.id,code,name:displayCardName(identity.name,code),color:identity.color||'Colorless',type:(identity.card_type||item.source_payload?.category||'Pokémon') as Card['type'],cost:identity.cost??0,power:identity.power??0,rarity,art:0,effect:identity.effect_text??'',imageUrl:item.card_image_url??undefined,imageSource:'external',setCode:item.set_code,language:item.language,printingCode:item.printing_code,localCardNumber:pokemonLocalCardNumber(item.source_payload,item.printing_code),variant:item.variant,gameSlug:'pokemon',pokemonTypes:item.source_payload?.types??[],pokemonCategory:item.source_payload?.category,pokemonSetName:item.source_payload?.set?.name??item.set_name,pokemonIllustrator:item.source_payload?.illustrator,availablePrintings:[printing]});
+      grouped.set(code,{id:item.id,code,name:displayCardName(identity.name,code),color:identity.color||'Colorless',type:(identity.card_type||item.source_payload?.category||'Pokémon') as Card['type'],cost:identity.cost??0,power:identity.power??0,rarity,art:0,effect:identity.effect_text??'',imageUrl:item.card_image_url??undefined,imageSource:'external',setCode:item.set_code,language:item.language,printingCode:item.printing_code,localCardNumber:pokemonLocalCardNumber(item.source_payload,item.printing_code),variant:item.variant,gameSlug:'pokemon',pokemonTypes:item.source_payload?.types??[],pokemonCategory:item.source_payload?.category,pokemonSetName:item.source_payload?.set?.name??item.set_name,pokemonIllustrator:item.source_payload?.illustrator,pokemonSourcePayload:item.source_payload,availablePrintings:[printing]});
     }
     return [...grouped.values()].slice(0,limit);
   }
@@ -498,6 +504,7 @@ function MarketCardLookup({
   onViewListings,
   onAddToVault,
   onSell,
+  onBuy,
   locale = 'EN',
   hideWhenEmpty=false,
 }: {
@@ -507,11 +514,13 @@ function MarketCardLookup({
   onViewListings: (card: Card) => void;
   onAddToVault: (card: Card) => void;
   onSell: (card: Card) => void;
+  onBuy: (card:Card) => void;
   locale?: 'EN' | 'ID';
   hideWhenEmpty?:boolean;
 }) {
   const [results, setResults] = useState<MarketCard[]>([]);
   const [loading, setLoading] = useState(false);
+  const [preview,setPreview]=useState<{card:MarketCard;origin:DOMRect}|null>(null);
   useEffect(() => {
     const term = value.trim();
     if (term.length < 2) {
@@ -560,7 +569,7 @@ function MarketCardLookup({
             const cardGame=(card as MarketCard).gameSlug??'one-piece';
             return (
               <article key={card.id}>
-                <MarketLookupCardThumb card={card as MarketCard} gameSlug={cardGame}/>
+                <MarketLookupCardThumb card={card as MarketCard} gameSlug={cardGame} onOpen={(selected,origin)=>setPreview({card:selected,origin})}/>
                 <div className="market-card-lookup-details">
                   <strong>{card.name}</strong>
                   <div className="market-card-lookup-meta">
@@ -589,21 +598,17 @@ function MarketCardLookup({
                   )}
                 </div>
                 <div className="market-card-lookup-actions">
-                  <button
-                    type="button"
-                    className="btn-accent"
-                    onClick={() => onViewListings(card)}
-                  >
-                    {listingsCount > 0
-                      ? (locale === 'ID' ? `Lihat Listing (${listingsCount})` : `View Listings (${listingsCount})`)
-                      : (locale === 'ID' ? 'Lihat Listing' : 'View Listings')}
-                  </button>
-                  <button type="button" onClick={() => onSell(card)}>
-                    {locale === 'ID' ? 'Jual' : 'Sell'}
-                  </button>
-                  <button type="button" onClick={() => onAddToVault(card)}>
-                    {locale === 'ID' ? 'Tambahkan ke koleksi' : 'Add to Vault'}
-                  </button>
+                  <button type="button" className="market-lookup-detail-link" onClick={event=>setPreview({card:card as MarketCard,origin:event.currentTarget.getBoundingClientRect()})}><OpenDetails size={14}/>{locale==='ID'?'Detail kartu':'Card details'}</button>
+                  <button type="button" className="btn-accent" onClick={() => onViewListings(card)}>{listingsCount>0?(locale==='ID'?`Listing (${listingsCount})`:`Listings (${listingsCount})`):(locale==='ID'?'Lihat listing':'View listings')}</button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild><button type="button" className="market-lookup-more" aria-label={locale==='ID'?'Tindakan lainnya':'More card actions'} title={locale==='ID'?'Tindakan lainnya':'More actions'}><MoreActions size={19}/></button></DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="market-lookup-menu">
+                      <DropdownMenuItem onSelect={()=>onSell(card)}>{locale==='ID'?'Jual kartu':'Sell this card'}</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={()=>onBuy(card)}>{locale==='ID'?'Buat permintaan beli':'Looking to buy'}</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={()=>onAddToVault(card)}>{locale==='ID'?'Tambahkan ke Vault':'Add to Vault'}</DropdownMenuItem>
+                      <DropdownMenuItem asChild><WishlistButton printingId={card.id} language={locale}/></DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </article>
             );
@@ -620,11 +625,13 @@ function MarketCardLookup({
             : (locale==='ID'?'Cari kartu, produk tersegel, atau aksesori berdasarkan nama.':'Search cards, sealed products, or accessories by name.')}</p>
         </div>
       )}
+      {preview&&<CardPreviewModal card={preview.card} origin={preview.origin} language={preview.card.language==='JP'?'JP':preview.card.language==='ID'?'ID':'EN'} cards={results.filter(item=>((item as MarketCard).gameSlug??'one-piece')===(preview.card.gameSlug??'one-piece'))} initialPrintingId={preview.card.id} gameSlug={preview.card.gameSlug??'one-piece'} onClose={()=>setPreview(null)} onNavigate={card=>setPreview(current=>current?{...current,card:card as MarketCard}:current)}/>}
     </section>
   );
 }
-function MarketProductLookup({value,listings,locale,onViewListings}:{value:string;listings:Listing[];locale:'EN'|'ID';onViewListings:(name:string)=>void}){
+function MarketProductLookup({value,listings,locale,onViewListings,onCreateListing}:{value:string;listings:Listing[];locale:'EN'|'ID';onViewListings:(name:string)=>void;onCreateListing:(type:'WTS'|'WTB',product:SealedProduct)=>void}){
   const [visibleCount,setVisibleCount]=useState(8);
+  const [details,setDetails]=useState<SealedProduct>();
   const term=normalizeSealedProductQuery(value);
   if(term.length<2)return null;
   const matches=sealedProducts.filter(product=>matchesSealedProductQuery(`${product.name} ${product.setCode} ${sealedProductKinds[product.kind]} ${product.edition}`,term));
@@ -636,17 +643,18 @@ function MarketProductLookup({value,listings,locale,onViewListings}:{value:strin
       const count=listings.filter(listing=>listing.printingId===product.id||listing.items?.some(item=>item.sealedProductId===product.id)).length;
       const name=sealedProductDisplayName(product);
       return <article key={product.id}>
-        <span className="market-product-lookup-art"><img src={product.imageUrl} alt="" loading="lazy"/></span>
+        <button type="button" className="market-product-lookup-art" aria-label={locale==='ID'?`Lihat detail ${name}`:`View ${name} details`} onClick={()=>setDetails(product)}><img src={product.imageUrl} alt="" loading="lazy"/></button>
         <span className="market-product-lookup-copy"><strong>{name}</strong><small>{sealedProductKinds[product.kind]}</small><small>{sealedProductPublicCode(product)}<span>{product.edition==='asia'?'Asia':'Global'}</span></small></span>
-        <span className="market-product-lookup-action">{count>0?<small>{count} {locale==='ID'?'listing':'listings'}</small>:<small>{locale==='ID'?'Belum ada listing':'No listings yet'}</small>}<button type="button" onClick={()=>onViewListings(name)}>{locale==='ID'?'Lihat':'View'}</button></span>
+        <span className="market-product-lookup-action">{count>0?<small>{count} {locale==='ID'?'listing':'listings'}</small>:<small>{locale==='ID'?'Belum ada listing':'No listings yet'}</small>}<button type="button" className="market-product-details-trigger" onClick={()=>setDetails(product)}>{locale==='ID'?'Detail':'Details'}</button><button type="button" onClick={()=>onViewListings(name)}>{locale==='ID'?'Listing':'Listings'}</button></span>
       </article>;
     })}</div>
     {visibleCount<matches.length&&<footer className="market-product-load-more"><button type="button" onClick={()=>setVisibleCount(count=>count+16)}>{locale==='ID'?'Tampilkan produk lainnya':'Show more products'}</button></footer>}
     {generalMatches.length>0&&<div className="market-product-general-results"><header><strong>{locale==='ID'?'Barang dari penjual':'Items from sellers'}</strong><span>{generalMatches.length} {locale==='ID'?'listing':'listings'}</span></header>{generalMatches.map(({listing,item})=><article key={`${listing.id}:${item.printingId}`}><span className="market-product-lookup-art">{item.photoUrls?.[0]||item.card?.imageUrl?<img src={item.photoUrls?.[0]??item.card?.imageUrl} alt="" loading="lazy"/>:null}</span><span className="market-product-lookup-copy"><strong>{listing.title}</strong><small>{generalMarketCategoryLabel(item.generalProduct!.category,locale)}</small><small>{[item.generalProduct?.brand,item.generalProduct?.model].filter(Boolean).join(' ')}</small></span><span className="market-product-lookup-action"><small>{formatMoney(item.unitAmount??listing.amount,listing.currency)}</small><button type="button" onClick={()=>onViewListings(listing.title)}>{locale==='ID'?'Lihat':'View'}</button></span></article>)}</div>}
+    <Dialog open={Boolean(details)} onOpenChange={open=>{if(!open)setDetails(undefined)}}><DialogContent className="market-product-details-dialog"><DialogHeader><DialogTitle>{details?sealedProductDisplayName(details):''}</DialogTitle><DialogDescription>{details?sealedProductKinds[details.kind]:''}</DialogDescription></DialogHeader>{details&&<><div className="market-product-details-main"><span className="market-product-details-art">{details.imageUrl&&<img src={details.imageUrl} alt=""/>}</span><div className="market-product-details-copy"><strong>{sealedProductPublicCode(details)||details.setCode}</strong><span>{details.edition==='asia'?'Asia edition':'Global edition'}</span>{details.language&&<span>{details.language}</span>}{details.releaseDate&&<span>{new Intl.DateTimeFormat(locale==='ID'?'id-ID':'en-US',{dateStyle:'medium',timeZone:'UTC'}).format(new Date(`${details.releaseDate}T00:00:00Z`))}</span>}</div></div>{details.contents&&<p className="market-product-details-contents">{details.contents}</p>}<a className="market-product-source-link" href={details.sourceUrl} target="_blank" rel="noreferrer">{locale==='ID'?'Lihat detail produk resmi':'Official product details'}<OpenDetails size={14}/></a><div className="market-product-details-actions"><button type="button" className="button secondary" onClick={()=>{onViewListings(sealedProductDisplayName(details));setDetails(undefined)}}>{locale==='ID'?'Lihat listing':'View listings'}</button><button type="button" className="button secondary" onClick={()=>{onCreateListing('WTB',details);setDetails(undefined)}}>{locale==='ID'?'Cari untuk dibeli':'Looking to buy'}</button><button type="button" className="button" onClick={()=>{onCreateListing('WTS',details);setDetails(undefined)}}>{locale==='ID'?'Jual produk':'Sell product'}</button></div></>}</DialogContent></Dialog>
   </section>;
 }
 
-export function Market({initialCards=[],modalOnly=false,initialSellPrinting,initialSellType,initialGameSlug}:{initialCards?:string[];modalOnly?:boolean;initialSellPrinting?:string;initialSellType?:'WTS'|'WTB';initialGameSlug?:'one-piece'|'pokemon'}) {
+export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=false,initialSellPrinting,initialSellType,initialGameSlug}:{initialCards?:string[];modalOnly?:boolean;listenForDeliveryEvents?:boolean;initialSellPrinting?:string;initialSellType?:'WTS'|'WTB';initialGameSlug?:'one-piece'|'pokemon'}) {
   const {data,loading:accountLoading,refresh:refreshAccount}=useAccount();
   const listingLimits=useMarketListingLimits(`${data?.profile?.id??'anonymous'}:${data?.profile?.tier??'free'}:${data?.profile?.pro_billing_period??'monthly'}`);
   const router=useRouter();
@@ -695,6 +703,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
   const [bundleCards,setBundleCards]=useState<ListingBundleCard[]>([]);
   const [bundleProducts,setBundleProducts]=useState<ListingBundleProduct[]>([]);
   const [sealedMode,setSealedMode]=useState(false);
+  const [composerProduct,setComposerProduct]=useState<SealedProduct>();
   const [publishedShare,setPublishedShare]=useState<PublishedShare|null>(null);
   const [configuringCard,setConfiguringCard]=useState<MarketCard|null>(null);
   const [cardPrintings,setCardPrintings]=useState<CardPrintingItem[]>([]);
@@ -721,6 +730,35 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
   const [listingCity,setListingCity]=useState('');
   const [buyerCity,setBuyerCity]=useState('');
   const [profileQuickTab,setProfileQuickTab]=useState<'account'|'delivery'|'payouts'>(()=>!modalOnly&&searchParams.get('profile')==='payouts'?'payouts':'account');
+  const [profileQuickEditDeliveryAddress,setProfileQuickEditDeliveryAddress]=useState(false);
+  const pendingDeliverySetup=useRef<boolean|null>(null);
+  const openDeliverySetup=useCallback(()=>{
+    setProfileQuickTab('delivery');
+    setProfileQuickEditDeliveryAddress(true);
+    setAccountPanel(null);
+    setQuickPanel('profile');
+  },[]);
+  useEffect(()=>{
+    if(modalOnly&&!listenForDeliveryEvents)return;
+    const delivery=(event:Event)=>{
+      const detail=(event as CustomEvent<{editAddress?:boolean}>).detail;
+      const editAddress=Boolean(detail?.editAddress);
+      if(accountLoading){pendingDeliverySetup.current=editAddress;return;}
+      if(!data?.profile){window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));return;}
+      if(editAddress)openDeliverySetup();
+      else{setProfileQuickTab('delivery');setProfileQuickEditDeliveryAddress(false);setAccountPanel(null);setQuickPanel('profile');}
+    };
+    window.addEventListener('vivreplay:open-market-delivery',delivery);
+    return()=>window.removeEventListener('vivreplay:open-market-delivery',delivery);
+  },[modalOnly,listenForDeliveryEvents,accountLoading,data?.profile?.id,openDeliverySetup]);
+  useEffect(()=>{
+    if((modalOnly&&!listenForDeliveryEvents)||accountLoading||pendingDeliverySetup.current===null)return;
+    const editAddress=pendingDeliverySetup.current;
+    pendingDeliverySetup.current=null;
+    if(!data?.profile){window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}));return;}
+    if(editAddress)openDeliverySetup();
+    else{setProfileQuickTab('delivery');setProfileQuickEditDeliveryAddress(false);setAccountPanel(null);setQuickPanel('profile');}
+  },[modalOnly,listenForDeliveryEvents,accountLoading,data?.profile?.id,openDeliverySetup]);
   useEffect(()=>{
     if(!open||!data?.profile?.id)return;
     let active=true;
@@ -1120,8 +1158,9 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
   };
   function beginListing(type:'WTS'|'WTB'='WTS'){
     setSealedMode(false);
+    setComposerProduct(undefined);
     configLoadVersion.current++;
-    if(!signInToContinue())return;
+    if(!signInToContinue())return false;
     setListingType(type);
     setProfileQuickTab('account');
     setBundleCards([]);
@@ -1140,6 +1179,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
     const savedCity=type==='WTB'?buyerCity:(window.localStorage.getItem('vivreplay-seller-city')||'Jakarta');
     setListingCity(savedCity);
     setOpen(true);
+    return true;
   }
   useEffect(()=>{
     const openSellListing=(event:Event)=>{setAccountPanel(null);setQuickPanel(null);const type=(event as CustomEvent<'WTS'|'WTB'>).detail;beginListing(type==='WTB'?'WTB':'WTS')};
@@ -1148,6 +1188,8 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
   },[data,accountLoading,locale,buyerCity]);
   function sellCard(card:Card){
     if(!signInToContinue())return;
+    setSealedMode(false);
+    setComposerProduct(undefined);
     setListingType('WTS');
     setListingGameScope((card as MarketCard).gameSlug??gameSlug);
     setBundleCards([]);
@@ -1162,6 +1204,29 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
     loadCardForConfig(card);
     setDirectSellLoading(false);
     setOpen(true);
+  }
+  function requestCard(card:Card){
+    if(!signInToContinue())return;
+    setSealedMode(false);
+    setComposerProduct(undefined);
+    setListingType('WTB');
+    setListingGameScope((card as MarketCard).gameSlug??gameSlug);
+    setBundleCards([]);
+    setBundleProducts([]);
+    setCardSearch(card.name);
+    setSaveError('');
+    setListingTitle(card.name);
+    setIsAddingAnother(false);
+    setBenchmarkMultiplier(100);
+    setListingCity(buyerCity);
+    loadCardForConfig(card);
+    setDirectSellLoading(false);
+    setOpen(true);
+  }
+  function createProductListing(type:'WTS'|'WTB',product:SealedProduct){
+    if(!beginListing(type))return;
+    setComposerProduct(product);
+    setSealedMode(true);
   }
   const sellPrinting=async(value:unknown)=>{
     const printingId=typeof value==='string'?value.trim():value&&typeof value==='object'&&'printingId' in value&&typeof value.printingId==='string'?value.printingId.trim():'';
@@ -1516,14 +1581,15 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
             hideWhenEmpty={gameSlug!=='pokemon'&&query.trim().length>=2&&sealedProducts.some(product=>matchesSealedProductQuery(`${product.name} ${product.setCode} ${sealedProductKinds[product.kind]} ${product.edition}`,query))}
               gameSlug={gameSlug}
             onViewListings={(card) => {
-              setQuery(card.code || card.name);
+              setQuery((card as MarketCard).gameSlug==='pokemon'?card.name:(card.code||card.name));
               setFeedScope('listings');
             }}
             onAddToVault={addToVault}
             onSell={sellCard}
+            onBuy={requestCard}
             locale={locale}
           />
-            <MarketProductLookup key={`${marketCategory}:${gameSlug}:${query}`} value={query} listings={categoryListings} locale={locale} onViewListings={name=>{setQuery(name);setFeedScope('listings')}}/>
+            <MarketProductLookup key={`${marketCategory}:${gameSlug}:${query}`} value={query} listings={categoryListings} locale={locale} onViewListings={name=>{setQuery(name);setFeedScope('listings')}} onCreateListing={createProductListing}/>
           </>
         ) : (
           <>
@@ -1550,7 +1616,11 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                     <div className={`market-feed-stack ${totalCards===1?'is-single':''}`} style={{'--stack-last-index':Math.max(0,visibleStack.length-1)} as CSSProperties}>
                       {visibleStack.map(({item,itemIndex,copyIndex},index)=>{
                         const stackCard=item.card??(itemIndex===0?listing.card:undefined)??cardFor(item.printingId);
-                        return stackCard?<div key={`${item.printingId}-${itemIndex}-${copyIndex}`} className={`market-feed-art${item.sold?' is-sold':''}`} style={{'--stack-index':index} as CSSProperties}>{item.photoUrls?.[0]?<img className="market-sealed-listing-photo" src={item.photoUrls[0]} alt={stackCard.name} loading="lazy"/>:<CardArt card={stackCard}/>}{(item.sold||Number(item.soldQuantity)>0)&&copyIndex===0&&<span className="market-feed-art-sold">{item.sold?locale==='ID'?'Baru terjual':'Just sold':locale==='ID'?`${Number(item.soldQuantity)} terjual`:`${Number(item.soldQuantity)} sold`}</span>}</div>:null;
+                        if(!stackCard)return null;
+                        const marketStackCard=stackCard as MarketCard;
+                        const graded=item.productType==='GRADED';
+                        const slabItem=graded?{id:item.instanceId??item.printingId,printingId:item.printingId,type:'GRADED',quantity:1,condition:'',provider:item.gradingCompany??null,grade:item.grade??null,certification:item.certification??null,subgrades:item.slabLabelStyle?{__labelStyle:item.slabLabelStyle}:null,visibility:'private',acquisitionAmount:0,currency:'IDR',language:item.language??marketStackCard.language,variant:marketStackCard.variant,printingCode:marketStackCard.printingCode,setCode:marketStackCard.setCode,rarity:marketStackCard.rarity,card:{...marketStackCard,gameSlug:marketStackCard.gameSlug??(/^PK-/i.test(marketStackCard.code)?'pokemon':'one-piece')}} as EnrichedCollectionItem:null;
+                        return <div key={`${item.printingId}-${itemIndex}-${copyIndex}`} className={`market-feed-art${graded?' is-slab':''}${item.sold?' is-sold':''}`} style={{'--stack-index':index} as CSSProperties}>{graded&&slabItem?<VaultSlabCase item={slabItem} className="market-feed-slab-case"><CardArt card={marketStackCard}/></VaultSlabCase>:item.photoUrls?.[0]?<img className="market-sealed-listing-photo" src={item.photoUrls[0]} alt={marketStackCard.name} loading="lazy"/>:<CardArt card={marketStackCard}/>}{(item.sold||Number(item.soldQuantity)>0)&&copyIndex===0&&<span className="market-feed-art-sold">{item.sold?locale==='ID'?'Baru terjual':'Just sold':locale==='ID'?`${Number(item.soldQuantity)} terjual`:`${Number(item.soldQuantity)} sold`}</span>}</div>;
                       })}
                       {totalCards>1&&<span className="market-feed-quantity" aria-label={`${totalCards} ${isMixedInventory?(locale==='ID'?'item':'items'):isGeneralListing?(locale==='ID'?'barang':'items'):hasMarketProducts?(locale==='ID'?'produk':'products'):(locale==='ID'?'kartu':'cards')}`}>{totalCards}</span>}
                     </div>
@@ -1640,7 +1710,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
           </div>
           <div className="market-sell-body">
             {!configuringCard&&!hasBundleItems&&!sealedMode&&<div className="market-category-switch market-sealed-kind-switch" role="group" aria-label={locale==='ID'?'Jenis barang':'Item type'}><button type="button" className="is-active" aria-pressed="true" onClick={()=>setSealedMode(false)}>{locale==='ID'?'Kartu':'Cards'}</button><button type="button" aria-pressed="false" onClick={()=>setSealedMode(true)}>{locale==='ID'?'Produk':'Products'}</button></div>}
-            {sealedMode?<MarketSealedComposer type={listingType} modeControl={<div className="market-category-switch market-sealed-kind-switch" role="group" aria-label={locale==='ID'?'Jenis barang':'Item type'}><button type="button" aria-pressed="false" onClick={()=>setSealedMode(false)}>{locale==='ID'?'Kartu':'Cards'}</button><button type="button" className="is-active" aria-pressed="true" onClick={()=>setSealedMode(true)}>{locale==='ID'?'Produk':'Products'}</button></div>} onPublished={()=>{setOpen(false);setSealedMode(false);void refresh();void refreshAccount();}} onAddToBundle={listingType==='WTS'?item=>{const max=listingLimits.maxProductStock??10;const used=bundleProducts.reduce((sum,current)=>sum+current.quantity,0);if(used+item.quantity>max){toast.error(locale==='ID'?`Maksimal ${max} unit produk dalam satu listing.`:`A listing can include up to ${max} product units.`);return;}const next=[...bundleProducts,{...item,id:crypto.randomUUID()}];setBundleProducts(next);if(!hasBundleItems)setListingTitle(item.title);else if(bundleCards.length===1&&bundleProducts.length===0)setListingTitle(`${bundleCards[0].card.name} bundle`);setListingPrice(String(bundleCards.reduce((sum,card)=>sum+card.quantity*card.unitAmount,0)+next.reduce((sum,product)=>sum+product.unitAmount*product.quantity,0)));setSealedMode(false);setIsAddingAnother(false);}:undefined}/>:directSellLoading?<div className="market-direct-sell-loading" role="status" aria-label={locale==='ID'?'Memuat pilihan jual':'Loading sell options'}><span/><span/><span/></div>:<>
+            {sealedMode?<MarketSealedComposer type={listingType} initialProduct={composerProduct} modeControl={<div className="market-category-switch market-sealed-kind-switch" role="group" aria-label={locale==='ID'?'Jenis barang':'Item type'}><button type="button" aria-pressed="false" onClick={()=>setSealedMode(false)}>{locale==='ID'?'Kartu':'Cards'}</button><button type="button" className="is-active" aria-pressed="true" onClick={()=>setSealedMode(true)}>{locale==='ID'?'Produk':'Products'}</button></div>} onPublished={()=>{setOpen(false);setSealedMode(false);setComposerProduct(undefined);void refresh();void refreshAccount();}} onAddToBundle={listingType==='WTS'?item=>{const max=listingLimits.maxProductStock??10;const used=bundleProducts.reduce((sum,current)=>sum+current.quantity,0);if(used+item.quantity>max){toast.error(locale==='ID'?`Maksimal ${max} unit produk dalam satu listing.`:`A listing can include up to ${max} product units.`);return;}const next=[...bundleProducts,{...item,id:crypto.randomUUID()}];setBundleProducts(next);if(!hasBundleItems)setListingTitle(item.title);else if(bundleCards.length===1&&bundleProducts.length===0)setListingTitle(`${bundleCards[0].card.name} bundle`);setListingPrice(String(bundleCards.reduce((sum,card)=>sum+card.quantity*card.unitAmount,0)+next.reduce((sum,product)=>sum+product.unitAmount*product.quantity,0)));setSealedMode(false);setIsAddingAnother(false);}:undefined}/>:directSellLoading?<div className="market-direct-sell-loading" role="status" aria-label={locale==='ID'?'Memuat pilihan jual':'Loading sell options'}><span/><span/><span/></div>:<>
             {/* VIEW 1: Card Configuration Step */}
             {configuringCard&&activeCardObj?(
               <div className="listing-selection">
@@ -1674,7 +1744,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                       {activeCardObj.gameSlug==='pokemon'?<PokemonMarketType card={activeCardObj}/>:<span>{activeCardObj.type}</span>}
                       {activeCardObj.gameSlug==='pokemon'&&activeCardObj.language&&<span>{activeCardObj.language}</span>}
                       {marketRarity(activeCardObj)&&<span className="market-sell-rarity">{marketRarity(activeCardObj)}</span>}
-                      {activeCardObj.gameSlug!=='pokemon'&&activeCardObj.variant&&printingLabel(activeCardObj.variant)!=='Standard'&&<span className="listing-variant-tag">{locale==='ID'&&printingLabel(activeCardObj.variant)==='Alternate Art'?'Ilustrasi alternatif':printingLabel(activeCardObj.variant)}</span>}
+                      {activeCardObj.gameSlug!=='pokemon'&&activeCardObj.variant&&printingLabel(activeCardObj.variant,activeCardObj.setCode,activeCardObj.printingCode)!=='Standard'&&<span className="listing-variant-tag">{locale==='ID'&&/^Alt(?:ernate)? art$/i.test(printingLabel(activeCardObj.variant,activeCardObj.setCode,activeCardObj.printingCode))?'Ilustrasi alternatif':printingLabel(activeCardObj.variant,activeCardObj.setCode,activeCardObj.printingCode)}</span>}
                     </p>
                   </div>
                   {/* Printing Selector Strip */}
@@ -1705,7 +1775,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                       <div key={printingLang} className="listing-printings-strip" role="radiogroup" aria-label={locale==='ID'?'Versi cetak kartu':'Card printings'}>
                         {cardPrintings.filter(p=>p.language===printingLang).map(p=>{
                           const isSelected=p.id===selectedPrintingId;
-                          const label=printingLabel(p.variant);
+                          const label=printingLabel(p.variant,p.set_code,p.printing_code);
                           const displayLabel=label==='Standard'?(locale==='ID'?'Reguler':'Regular'):label;
                           const pillCard=printingToCard(configuringCard,p);
                           return (
@@ -1888,7 +1958,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
                   </div>
                   <div className="market-sell-bundle-list">
                     {bundleCards.map(item=>{
-                      const label=printingLabel(item.printing.variant);
+                      const label=printingLabel(item.printing.variant,item.printing.set_code,item.printing.printing_code);
                       const displayLabel=label==='Standard'?(locale==='ID'?'Reguler':'Regular'):label;
                       return (
                         <div key={item.id} className="market-sell-bundle-item">
@@ -2148,7 +2218,7 @@ export function Market({initialCards=[],modalOnly=false,initialSellPrinting,init
       {bulkListingOpen&&<BulkListingModal open={bulkListingOpen} onClose={wasPublished=>{setBulkListingOpen(false);if(!wasPublished)setOpen(true)}} language={locale} stacks={groupVaultStacks((data?.collection??[]).map(item=>enrichCollectionItem(item,new Set())))} onPublished={async()=>{await refresh();await refreshAccount()}}/>}
       {publishedShare&&<ShareButton title={publishedShare.title} path={listingHref(publishedShare)} cards={publishedShare.cards.map(item=>({card:printingToCard(item.card,item.printing),printingId:item.printing.id,quantity:item.quantity,condition:item.condition,unitAmount:item.unitAmount,productType:item.productType,gradingCompany:item.gradingCompany,grade:item.grade,certification:item.certification}))} subtitle={locale==='ID'?`${publishedShare.cards.reduce((sum,item)=>sum+item.quantity,0)} kartu${publishedShare.productUnits?` + ${publishedShare.productUnits} produk`:''}`:`${publishedShare.cards.reduce((sum,item)=>sum+item.quantity,0)} cards${publishedShare.productUnits?` + ${publishedShare.productUnits} products`:''}`} listingInfo={{seller:publishedShare.seller,city:publishedShare.city,expiresAt:publishedShare.expiresAt,timeZone:publishedShare.timeZone}} price={formatMoney(publishedShare.price,'IDR')} openOnMount hideTrigger onOpenChange={open=>{if(!open)setPublishedShare(null)}}/>}
 
-      {data&&<MarketQuickPanel panel={accountPanel??quickPanel} onOpenChange={open=>{if(!open){setAccountPanel(null);setQuickPanel(null)}}} onPanelChange={next=>{if(next==='listings'||next==='offers'||next==='orders'||next==='saved'){setQuickPanel(null);setAccountPanel(next)}else{setAccountPanel(null);setQuickPanel(next)}}} onCreateListing={()=>{setAccountPanel(null);setQuickPanel(null);beginListing()}} locale={locale} account={data} activityCounts={activityCounts} initialOrderId={modalOnly?null:searchParams.get('order')} initialConversationId={modalOnly?null:searchParams.get('conversation')} initialProfileTab={profileQuickTab} onRefresh={async()=>{await Promise.all([refreshAccount(),refresh()])}} onSaved={async()=>{await refreshAccount();setAccountPanel(null);setQuickPanel(null)}}/>}
+      {data&&<MarketQuickPanel panel={accountPanel??quickPanel} onOpenChange={open=>{if(!open){setAccountPanel(null);setQuickPanel(null);setProfileQuickEditDeliveryAddress(false)}}} onPanelChange={next=>{if(next==='listings'||next==='offers'||next==='orders'||next==='saved'){setQuickPanel(null);setAccountPanel(next)}else{setAccountPanel(null);setQuickPanel(next)}}} onCreateListing={()=>{setAccountPanel(null);setQuickPanel(null);beginListing()}} locale={locale} account={data} activityCounts={activityCounts} initialOrderId={modalOnly?null:searchParams.get('order')} initialConversationId={modalOnly?null:searchParams.get('conversation')} initialProfileTab={profileQuickTab} initialEditDeliveryAddress={profileQuickEditDeliveryAddress} onRefresh={async()=>{await Promise.all([refreshAccount(),refresh()])}} onSaved={async()=>{await refreshAccount();setAccountPanel(null);setQuickPanel(null)}}/>}
       <AddEditItemModal
         key={`${marketVaultCard?.id??'market-card'}-${marketVaultOpen?'open':'closed'}`}
         open={marketVaultOpen}

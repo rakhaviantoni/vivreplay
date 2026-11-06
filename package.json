@@ -23,6 +23,7 @@
     "catalog:import-sealed": "node --env-file=.env.local --import tsx scripts/import-sealed-products.ts",
     "catalog:import-pokemon": "node --import tsx scripts/import-tcgdex-pokemon.ts",
     "catalog:import-cardtell-pokemon": "node --import tsx scripts/import-cardtell-pokemon-id.ts",
+    "catalog:sync-yuyutei-prices": "node --env-file=.env.local scripts/sync-yuyutei-prices-d1.mjs",
     "catalog:ocr-cardtell": "node --env-file=.env.local scripts/cardtell-pokemon-ocr.mjs",
     "catalog:refresh-set-dates": "node --env-file=.env.local --import tsx scripts/refresh-tcg-set-release-dates.ts",
     "catalog:recover-pokemon-images": "node scripts/recover-pokepedia-images.mjs",

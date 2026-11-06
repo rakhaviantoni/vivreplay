@@ -65,7 +65,9 @@ const localBindingConfig = {
         },
     ]
     : [],
-  r2_buckets: [{ binding: "CARD_IMAGES", bucket_name: "tcg-card-images" }],
+  r2_buckets: [
+    { binding: "CARD_IMAGES", bucket_name: "tcg-card-images" },
+  ] as Array<{ binding: string; bucket_name: string; remote?: boolean }>,
   images: { binding: "IMAGES" },
 };
 
@@ -88,6 +90,14 @@ export default defineConfig(async ({ command, mode }) => {
     localBindingConfig.vars.BETTER_AUTH_URL = "http://localhost:5173";
     localBindingConfig.vars.VIVREPLAY_LOCAL_TURNSTILE_TEST_MODE = "true";
     localBindingConfig.vars.TURNSTILE_SECRET_KEY = "1x0000000000000000000000000000000AA";
+    // Local dev mirrors production catalog rows into D1, so read catalog art
+    // from the matching production bucket too. Keep CARD_IMAGES local for any
+    // development-only uploads or restored images.
+    localBindingConfig.r2_buckets.push({
+      binding: "CATALOG_IMAGES",
+      bucket_name: "tcg-card-images",
+      remote: true,
+    });
 
     // Cloudflare's local worker only receives explicit bindings. Keep the AI
     // gateway credential local to Miniflare, sourced from ignored .env files.

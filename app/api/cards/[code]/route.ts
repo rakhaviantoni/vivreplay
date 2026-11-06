@@ -1,4 +1,5 @@
 import { database } from '@/lib/server/database';
+import { versionedCardImageUrl } from '@/lib/card-catalog-cache';
 
 const publicCardPath = (key: string) => {
   const match=key.replace(/^\/+/, '').match(/^one-piece\/([^/]+)\/([^/]+)\/(?:small\/|thumb\/|large\/)?(.+)$/);
@@ -39,7 +40,7 @@ async function fromD1(code: string, gameSlug: 'one-piece'|'pokemon') {
   for (const printing of byPrinting.values()) {
     const assets = printing.tcg_card_assets as Array<{ kind: string; object_key: string }>;
     const asset = assets.find(item => item.kind === 'small') ?? assets[0];
-    if (asset?.object_key) printing.card_image_url = publicCardPath(asset.object_key);
+    if (asset?.object_key) printing.card_image_url = versionedCardImageUrl(publicCardPath(asset.object_key));
   }
   return { identity, printings: [...byPrinting.values()], rulings: rulingResult.results };
 }

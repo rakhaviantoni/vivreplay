@@ -1,6 +1,7 @@
 import {useEffect,useState,type ReactNode} from 'react';
 import {versionedCardCatalogUrl} from '@/lib/card-catalog-cache';
 import {pokemonPrintingRarity,pokemonRarityLabel} from '@/lib/pokemon-rarity';
+import {displayCardName} from '../../card-name';
 import type {EnrichedCollectionItem,VaultPrinting} from '../types';
 
 type PsaGrade={label:string;score:string};
@@ -112,8 +113,7 @@ function arsPrintingNumber(item:EnrichedCollectionItem,printing:VaultPrinting|un
 }
 
 function slabCardName(item:EnrichedCollectionItem){
-  const code=String(item.card.code??'').trim();
-  return item.card.name.replace(/\s*\(([^)]+)\)\s*$/,(_match,inside:string)=>inside.trim().toUpperCase()===code.toUpperCase()?'':' '+`(${inside})`);
+  return displayCardName(item.card.name,item.card.code);
 }
 
 function slabArchetype(item:EnrichedCollectionItem,printing:VaultPrinting|undefined){

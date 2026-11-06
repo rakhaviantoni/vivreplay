@@ -1,7 +1,7 @@
 import {database} from '@/lib/server/database';
 import {readPublicEdgeCache,storePublicEdgeCache} from '@/lib/server/public-edge-cache';
 import {isPlayableSet,PREVIEW_CARD_CODES} from '@/packages/domain/release-availability';
-import {CARD_CATALOG_CACHE_REVISION} from '@/lib/card-catalog-cache';
+import {CARD_CATALOG_CACHE_REVISION,versionedCardImageUrl} from '@/lib/card-catalog-cache';
 import {env} from 'cloudflare:workers';
 import {parseCardSearch,type ParsedCardSearch} from '@/lib/card-search';
 import {pokemonArtRoute} from '@/lib/pokemon-art-route';
@@ -15,8 +15,8 @@ const searchToken=(value:string)=>value.normalize('NFD').replace(/[\u0300-\u036f
 const localCardNumberSql=`COALESCE(NULLIF(trim(CASE WHEN json_valid(p.source_payload) THEN json_extract(p.source_payload,'$.localId') END),''),NULLIF(trim(CASE WHEN json_valid(p.source_payload) THEN json_extract(p.source_payload,'$.collectorNumber') END),''),NULLIF(CASE WHEN json_valid(p.source_payload) AND instr(json_extract(p.source_payload,'$.shortDescription'),' ')>0 THEN trim(substr(json_extract(p.source_payload,'$.shortDescription'),instr(json_extract(p.source_payload,'$.shortDescription'),' ')+1)) END,''),NULLIF(CASE WHEN json_valid(p.source_payload) AND instr(json_extract(p.source_payload,'$.description'),'·')>0 THEN trim(substr(json_extract(p.source_payload,'$.description'),instr(json_extract(p.source_payload,'$.description'),'·')+1)) END,''),p.printing_code)`;
 
 function internalImageUrl(value:string|undefined|null,setCode:string,language:string,printingCode:string,printingId?:string,localCardNumber=printingCode){
-  if(value?.startsWith('/'))return value;
-  if(value?.startsWith('one-piece/'))return publicCardPath(value);
+  if(value?.startsWith('/'))return versionedCardImageUrl(value);
+  if(value?.startsWith('one-piece/'))return versionedCardImageUrl(publicCardPath(value));
   if(value?.startsWith('http')){
     try{
       const source=new URL(value);

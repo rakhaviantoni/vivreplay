@@ -214,7 +214,7 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
       if(!products.length||products.some(item=>!item.printingId||!Number.isInteger(item.quantity)||item.quantity<1||!Number.isSafeInteger(item.unitAmount)||item.unitAmount<0))throw new HttpError(500,'The selected cards could not be loaded.');
     }
     const productLines=order.kind==='PRO'
-      ?[{name:'VivrePlay Market Pro',quantity:1,unitPrice:order.amount,description:`Market Pro membership · ${Number(details.durationDays)||0} days`}]
+      ?[{name:'VivrePlay Market Pro',quantity:1,unitPrice:order.amount,description:`Market Pro membership for ${Number(details.durationDays)||0} days`}]
       :[
         ...products.map(item=>{const product=sealedProductById(item.sealedProductId??item.printingId);return product?{name:product.name,quantity:item.quantity,unitPrice:item.unitAmount,description:`${sealedProductKinds[product.kind]} from ${product.setCode}`}:item.generalProduct?{name:order.title??item.generalProduct.model??'Market item',quantity:item.quantity,unitPrice:item.unitAmount,description:'Market item'}:{name:item.printingId,quantity:item.quantity,unitPrice:item.unitAmount,description:`Trading card ${item.printingId}`}}),
         ...(order.shippingFee>0?[{name:'Delivery',quantity:1,unitPrice:order.shippingFee,description:'Courier delivery for this Market order'}]:[]),

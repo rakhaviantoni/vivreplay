@@ -15,6 +15,7 @@ import { CardStackControls } from './card-stack-controls';
 import { groupVaultStacks } from '../vault-utils';
 import {VaultSlabCase} from './vault-slot-slab-plate';
 import {VaultSlotMetaIdentity} from './vault-slot-meta-identity';
+import {displayCardName} from '../../card-name';
 
 interface BinderViewProps {
   items: EnrichedCollectionItem[];
@@ -206,7 +207,7 @@ export function BinderView({
               onClick={() => {if(suppressClick.current){suppressClick.current=false;return;}onSelectItem(item)}}
               role="button"
               tabIndex={0}
-              aria-label={`${item.card.name}, ${lang}. Drag to reorder; press Alt and an arrow key to move.`}
+              aria-label={`${displayCardName(item.card.name,item.card.code)}, ${lang}. Drag to reorder; press Alt and an arrow key to move.`}
               onKeyDown={e => { if(e.altKey&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();const index=stacks.findIndex(stack=>stack.item.id===item.id);const delta=e.key==='ArrowLeft'||e.key==='ArrowUp'?-1:1;const target=stacks[index+delta];if(target)reorder(item.id,target.item.id);}else if (e.key === 'Enter') onSelectItem(item); }}
             >
               {/* Card Art Stage with depth and soft shadow */}
@@ -215,7 +216,7 @@ export function BinderView({
               {/* Slot Meta Information */}
               {!isGraded&&<div className={`vault-slot-info${isOnePiece?' is-one-piece':''}`}>
                 <div className="vault-slot-heading-row">
-                  <h4 className="vault-slot-name">{item.card.name}</h4>
+                  <h4 className="vault-slot-name">{displayCardName(item.card.name,item.card.code)}</h4>
                   {isOnePiece&&<div className="vault-slot-meta-row">
                     <VaultSlotMetaIdentity item={item} printingLabel={stack.printingLabel}/>
                     {!hideValues && stack.item.hasMarketEstimate && <span className="vault-slot-value">{formatCompactMoney(stack.estimatedValue, 'IDR')}</span>}
@@ -245,7 +246,7 @@ export function BinderView({
             role="button"
             tabIndex={0}
             onKeyDown={e => { if (e.key === 'Enter') onAddNewCard(); }}
-            title="Empty binder pocket · Click to add card"
+            title="Empty binder pocket, Click to add card"
           >
             <Plus size={22} style={{ opacity: 0.4 }} />
             <span style={{ fontSize: '11px', fontWeight: 600 }}>Empty Pocket</span>

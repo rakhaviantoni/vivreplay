@@ -153,7 +153,7 @@ export function QuickAddModal({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Zap size={20} weight="fill" color="var(--vault-gold)" />
-            <h3 style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '20px', fontWeight: 600, margin: 0 }}>
+            <h3 style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '20px', fontWeight: 650, margin: 0, color:'var(--vault-ink)' }}>
               Quick Add to Vault
             </h3>
           </div>
@@ -212,7 +212,7 @@ export function QuickAddModal({
                     {card.name}
                   </h4>
                   <span style={{ fontSize: '10.5px', color: 'var(--vault-ink-muted)' }}>
-                    {card.code} · {card.rarity} · {card.type} · {preferredPrinting(card)?.language??'EN'} {preferredPrinting(card)?.variant??'Standard'}
+                    {[card.code,card.rarity,card.type,preferredPrinting(card)?.language??'EN',preferredPrinting(card)?.variant??'Standard'].filter(Boolean).join('  ')}
                   </span>
                 </div>
               </div>

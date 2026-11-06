@@ -146,7 +146,7 @@ async function Page({params}: {params: Promise<{username: string}>}) {
           <p className="kicker">COLLECTOR</p>
           <h1>{p.display_name}</h1>
           <p className="player-intro-meta">
-            @{p.username} · {regionLabel} · Member since {joinedDate}
+            @{p.username}, {regionLabel}, Member since {joinedDate}
           </p>
         </div>
         <div className="player-intro-side">
@@ -230,7 +230,7 @@ async function Page({params}: {params: Promise<{username: string}>}) {
                       </Link>
                       <div className="player-listing-card-copy">
                         <strong>{item.title}</strong>
-                        <small>{item.condition}{item.city ? ` · ${item.city}` : ''}</small>
+                        <small>{item.condition}{item.city ? `, ${item.city}` : ''}</small>
                         <p>
                           <span className={item.type === 'WTB' ? 'is-wtb' : 'is-wts'}>{item.type === 'WTB' ? 'WTB' : 'WTS'}</span>
                           <b>{formatMoney(item.amount, item.currency)}</b>
@@ -261,7 +261,7 @@ async function Page({params}: {params: Promise<{username: string}>}) {
                       </div>
                       <div className="player-deck-info">
                         <h3>{d.name}</h3>
-                        <p>{leader ? `${leader.name} · Leader` : 'Custom Deck'}</p>
+                        <p>{leader ? `${leader.name}, Leader` : 'Custom Deck'}</p>
                       </div>
                     </Link>
                   );

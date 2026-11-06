@@ -10,6 +10,7 @@ import { VaultStackArt } from './vault-stack-art';
 import { groupVaultStacks } from '../vault-utils';
 import {VaultSlabCase} from './vault-slot-slab-plate';
 import {VaultSlotMetaIdentity} from './vault-slot-meta-identity';
+import {displayCardName} from '../../card-name';
 
 interface GridViewProps {
   items: EnrichedCollectionItem[];
@@ -80,7 +81,7 @@ export function GridView({
 
               {!isGraded&&<div className={`vault-slot-info${isOnePiece?' is-one-piece':''}`}>
                 <div className="vault-slot-heading-row">
-                  <h4 className="vault-slot-name">{item.card.name}</h4>
+                  <h4 className="vault-slot-name">{displayCardName(item.card.name,item.card.code)}</h4>
                   {isOnePiece&&<div className="vault-slot-meta-row">
                     <VaultSlotMetaIdentity item={item} printingLabel={stack.printingLabel}/>
                     {!hideValues && stack.item.hasMarketEstimate && <span className="vault-slot-value">{formatCompactMoney(stack.estimatedValue, 'IDR')}</span>}

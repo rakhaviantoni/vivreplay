@@ -57,14 +57,27 @@ function runWrangler(args, { json = false, quiet = false } = {}) {
   return resultSets.flatMap((set) => set.results ?? []);
 }
 
-function remoteRows(sql) {
-  return runWrangler([
-    "d1", "execute", "DB", "--remote", "--config", "wrangler.migrations.json",
-    "--json", "--command", sql,
-  ], { json: true });
+async function remoteRows(sql) {
+  let lastError;
+  for (let attempt = 1; attempt <= 5; attempt += 1) {
+    try {
+      return runWrangler([
+        "d1", "execute", "DB", "--remote", "--config", "wrangler.migrations.json",
+        "--json", "--command", sql,
+      ], { json: true });
+    } catch (error) {
+      lastError = error;
+      if (attempt < 5) {
+        const delay = 500 * attempt;
+        console.warn(`Production catalog read failed; retrying in ${delay}ms (${attempt}/5).`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+  }
+  throw lastError;
 }
 
-function remoteCatalogPage(table, offset, limit = 1000) {
+async function remoteCatalogPage(table, offset, limit = 1000) {
   if (!publicCatalogTables.includes(table)) throw new Error(`Refusing to mirror non-public table ${table}.`);
   return remoteRows(`SELECT * FROM \`${table}\` LIMIT ${limit} OFFSET ${offset}`);
 }
@@ -94,7 +107,7 @@ async function writeCatalogSnapshot() {
     let offset = 0;
     let copied = 0;
     while (true) {
-      const rows = remoteCatalogPage(table, offset);
+      const rows = await remoteCatalogPage(table, offset);
       if (!rows.length) break;
       const columns = Object.keys(rows[0]);
       const chunks = [];
@@ -165,10 +178,16 @@ try {
     "d1", "migrations", "apply", "DB", "--local", "--config", "wrangler.migrations.json",
     "--persist-to", stagingState,
   ], { quiet: true });
-  runWrangler([
+  const listingColumns = runWrangler([
     "d1", "execute", "DB", "--local", "--config", "wrangler.migrations.json",
-    "--persist-to", stagingState, "--command", "ALTER TABLE listings ADD COLUMN items TEXT;", "--yes",
-  ], { quiet: true });
+    "--persist-to", stagingState, "--json", "--command", "PRAGMA table_info(listings)",
+  ], { json: true });
+  if (!listingColumns.some((column) => column.name === "items")) {
+    runWrangler([
+      "d1", "execute", "DB", "--local", "--config", "wrangler.migrations.json",
+      "--persist-to", stagingState, "--command", "ALTER TABLE listings ADD COLUMN items TEXT;", "--yes",
+    ], { quiet: true });
+  }
   runWrangler([
     "d1", "execute", "DB", "--local", "--config", "wrangler.migrations.json",
     "--persist-to", stagingState, "--json", "--file", catalogSnapshot, "--yes",

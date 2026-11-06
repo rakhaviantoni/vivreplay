@@ -6,11 +6,12 @@ import {SaveListingButton,WishlistButton} from './market-saved';
 import {MarketReputation} from './market-reputation';
 import {useLocalizedRouter as useRouter} from '@/lib/use-localized-router';
 import {useCallback,useEffect,useMemo,useRef,useState,type FormEvent,type ReactNode} from 'react';
-import {ArrowClockwiseIcon as Renew, ArrowUpIcon, ArrowDownIcon, CheckCircleIcon, ClockIcon, DotsSixVerticalIcon, CheckIcon as Check, FlagIcon as Flag, InfoIcon as Info, ListIcon as List, MinusIcon as Minus, PlusIcon as Plus, ShoppingCartIcon as Cart, SquaresFourIcon as Grid, TruckIcon as Truck, WarningCircleIcon, XCircleIcon, XIcon as X} from '@phosphor-icons/react';
+import {ArrowClockwiseIcon as Renew, ArrowUpIcon, ArrowDownIcon, CheckCircleIcon, ClockIcon, DotsSixVerticalIcon, CheckIcon as Check, FlagIcon as Flag, InfoIcon as Info, ListIcon as List, MinusIcon as Minus, PlusIcon as Plus, ShoppingCartIcon as Cart, SquaresFourIcon as Grid, TrashIcon as Trash, TruckIcon as Truck, WarningCircleIcon, XCircleIcon, XIcon as X} from '@phosphor-icons/react';
 import type {Card} from '@/packages/card-data/catalog';
 import {formatMoney,Listing} from '@/packages/domain';
 import {MarketGameMark,type MarketGameScope} from './market';
 import {CardArt} from './card-art';
+import {displayCardName} from './card-name';
 import {CardPreviewModal} from './card-preview-modal';
 import {ShareButton} from './share';
 import {MarketTimestamp} from './market-timestamp';
@@ -26,6 +27,8 @@ import {MapPicker} from '@/components/tcg/map-picker';
 import {INDONESIAN_REGIONS,getCities,getDistricts,getSubdistricts} from '@/lib/indonesia-areas';
 import {MarketListingPriceEdit,MarketListingPriceTerms,MarketListingTitleEdit,MarketListingUnitPriceEdit} from '@/components/tcg/market-listing-inline-edit';
 import {MarketAddCardsModal} from '@/components/tcg/market-add-cards-modal';
+import {VaultSlabCase} from './vault/views/vault-slot-slab-plate';
+import type {EnrichedCollectionItem} from './vault/types';
 import {Slider} from '@/components/ui/slider';
 import {pokemonPublicReference} from '@/lib/pokemon-public-reference';
 import {sealedProductById} from '@/lib/market/sealed-products';
@@ -66,7 +69,8 @@ function marketCardReference(card:Card){
 
 export function ShippingCouriers({couriers,language,maxVisible=2}:{couriers:string[];language:'EN'|'ID';maxVisible?:number}){
   const labels=couriers.map(code=>COURIER_LABELS[code]??code);
-  return <span className="market-feed-shipping-availability" title={labels.join(', ')}><Truck size={11}/><span>{labels.length?`${labels.slice(0,maxVisible).join(', ')}${labels.length>maxVisible?` +${labels.length-maxVisible}`:''}`:language==='ID'?'Pengiriman belum diatur':'Shipping not configured'}</span></span>;
+  if(!labels.length)return <button type="button" className="market-feed-shipping-availability is-action" onClick={event=>{event.stopPropagation();window.dispatchEvent(new CustomEvent('vivreplay:open-market-delivery',{detail:{editAddress:true}}))}}><Truck size={11}/><span>{language==='ID'?'Atur pengiriman':'Set up delivery'}</span></button>;
+  return <span className="market-feed-shipping-availability" title={labels.join(', ')}><Truck size={11}/><span>{`${labels.slice(0,maxVisible).join(', ')}${labels.length>maxVisible?` +${labels.length-maxVisible}`:''}`}</span></span>;
 }
 
 export function ShippingOptions({listingId,courierCount=0,couriers=[],items=[]}:{listingId:string;courierCount?:number;couriers?:string[];items?:Array<{printingId:string;quantity:number;unitAmount:number}>}){
@@ -262,8 +266,8 @@ export function ShippingOptions({listingId,courierCount=0,couriers=[],items=[]}:
           {!loading&&activeRates.length===0&&!(quoteState==='needs-address'&&addressFormOpen)&&<div className="shipping-options-empty">
             <p>{quoteState==='needs-sign-in'?t('Sign in to check delivery fees for this listing.','Masuk untuk melihat ongkir listing ini.'):quoteState==='needs-address'?t('Add a delivery address to see rates for this listing.', 'Tambahkan alamat pengiriman untuk melihat ongkir listing ini.'):quoteState==='error'?quoteErrorMessage:courierCount>0?t('No live rates are available for this address. Check your delivery area and saved address.', 'Tarif tidak tersedia untuk alamat ini. Periksa wilayah dan alamat pengiriman Anda.'):t('The seller has not set up shipping yet.','Penjual belum mengatur pengiriman.')}</p>
             {quoteState==='needs-sign-in'&&<button type="button" className="shipping-options-address-btn" onClick={()=>window.dispatchEvent(new CustomEvent('vivreplay:open-auth',{detail:'sign-in'}))}>{t('Sign in','Masuk')}</button>}
-            {quoteState==='needs-address'&&!addressFormOpen&&<button type="button" className="shipping-options-address-btn" onClick={()=>void openAddressForm()}>{t('Add delivery address','Tambahkan alamat pengiriman')}</button>}
-            {(quoteState==='error'||quoteState==='unavailable')&&session?.user.id&&<button type="button" className="shipping-options-address-btn" onClick={()=>void openAddressForm()}>{t('Edit delivery address','Ubah alamat pengiriman')}</button>}
+            {quoteState==='needs-address'&&!addressFormOpen&&<button type="button" className="shipping-options-address-btn" onClick={()=>{setOpen(false);window.dispatchEvent(new CustomEvent('vivreplay:open-market-delivery',{detail:{editAddress:true}}))}}>{t('Add delivery address','Tambahkan alamat pengiriman')}</button>}
+            {(quoteState==='error'||quoteState==='unavailable')&&session?.user.id&&<button type="button" className="shipping-options-address-btn" onClick={()=>{setOpen(false);window.dispatchEvent(new CustomEvent('vivreplay:open-market-delivery',{detail:{editAddress:true}}))}}>{t('Edit delivery address','Ubah alamat pengiriman')}</button>}
             {quoteState==='error'&&courierCount>0&&!/postal code|delivery area/i.test(quoteError)&&<button type="button" className="shipping-options-retry" onClick={()=>void loadRates()}>{t('Check again','Cek lagi')}</button>}
           </div>}
           {quoteState==='needs-address'&&addressFormOpen&&<form className="shipping-options-address-form" onSubmit={saveDeliveryAddress}>
@@ -299,8 +303,8 @@ export function ShippingOptions({listingId,courierCount=0,couriers=[],items=[]}:
     <div className="shipping-options-fact">
       <dt><Truck size={11}/>{t('Shipping','Pengiriman')}</dt>
       <dd>
-        <button type="button" className="shipping-options-trigger" aria-busy={loading} onClick={openDialog} aria-haspopup="dialog" aria-expanded={open}>
-          {loading?t('Loading rates…','Memuat ongkir…'):startingFee!=null?`${t('Delivery from','Ongkir mulai')} ${formatMoney(startingFee,'IDR')}`:courierCount>0?t('Check delivery fees','Cek ongkir'):t('Shipping not configured','Pengiriman belum diatur')}
+        <button type="button" className="shipping-options-trigger" aria-busy={loading} onClick={courierCount===0?()=>window.dispatchEvent(new CustomEvent('vivreplay:open-market-delivery',{detail:{editAddress:true}})):openDialog} aria-haspopup={courierCount>0?'dialog':undefined} aria-expanded={courierCount>0?open:undefined}>
+          {loading?t('Loading rates…','Memuat ongkir…'):startingFee!=null?`${t('Delivery from','Ongkir mulai')} ${formatMoney(startingFee,'IDR')}`:courierCount>0?t('Check delivery fees','Cek ongkir'):t('Set up delivery','Atur pengiriman')}
         </button>
         {modal}
       </dd>
@@ -403,12 +407,18 @@ export type MarketListingCard={
   gradingCompany?:string;
   grade?:string;
   certification?:string;
+  slabLabelStyle?:'clear'|'standard';
   unitAmount:number;
   language:string;
 };
 
 function ListingItemArt({item,priority=false}:{item:MarketListingCard;priority?:boolean}){
   const photo=item.photoUrls?.[0];
+  if(item.productType==='GRADED'){
+    const gameSlug=/^PK-/i.test(item.card.code)?'pokemon':'one-piece';
+    const slabItem={id:item.instanceId??item.id,printingId:item.id,type:'GRADED',quantity:item.quantity,condition:item.condition,provider:item.gradingCompany??null,grade:item.grade??null,certification:item.certification??null,subgrades:item.slabLabelStyle?{__labelStyle:item.slabLabelStyle}:null,visibility:'private',acquisitionAmount:0,currency:'IDR',language:item.language,variant:item.card.variant,printingCode:item.card.printingCode,setCode:item.card.setCode,rarity:item.card.rarity,card:{...item.card,gameSlug}} as EnrichedCollectionItem;
+    return <VaultSlabCase item={slabItem} className="market-listing-slab-case"><CardArt card={item.card} priority={priority}/></VaultSlabCase>;
+  }
   return photo?<img className="market-sealed-listing-photo" src={photo} alt={item.card.name} loading={priority?'eager':'lazy'}/>:<CardArt card={item.card} priority={priority}/>;
 }
 
@@ -468,6 +478,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
   const [offerCheckComplete,setOfferCheckComplete]=useState(false);
   const [language,setLanguage]=useState<'EN'|'ID'>(useRouteLocale());
   const [cartQuantities,setCartQuantities]=useState<Record<string,number>>({});
+  const [removingItemIndex,setRemovingItemIndex]=useState<number|null>(null);
 
   useEffect(()=>{
     const sync=()=>{
@@ -567,6 +578,21 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
   );
 
   const clearAll=()=>setSelected({});
+
+  const removeListingItem=async(item:MarketListingCard,index:number)=>{
+    if(!canManageListing||listingType!=='WTS'||readOnly||previewOnly||items.length<=1||removingItemIndex!==null)return;
+    const confirmed=window.confirm(t(`Remove ${item.card.name} from this listing? It will stay in your Vault.`,`Hapus ${item.card.name} dari listing ini? Kartu tetap ada di Vault Anda.`));
+    if(!confirmed)return;
+    setRemovingItemIndex(index);
+    try{
+      const response=await fetch(`/api/listings/${encodeURIComponent(listingId)}`,{method:'PATCH',headers:{'content-type':'application/json'},body:JSON.stringify({action:'remove-item',itemIndex:index})});
+      const payload=await response.json() as {error?:string};
+      if(!response.ok)throw new Error(payload.error||t('This card could not be removed. Refresh and try again.','Kartu tidak dapat dihapus. Muat ulang dan coba lagi.'));
+      toast.success(t('Card removed from listing.','Kartu dihapus dari listing.'));
+      router.refresh();
+    }catch(error){toast.error(error instanceof Error?error.message:t('This card could not be removed. Refresh and try again.','Kartu tidak dapat dihapus. Muat ulang dan coba lagi.'))}
+    finally{setRemovingItemIndex(null)}
+  };
 
   const totalAvailable=useMemo(()=>items.reduce((sum,item)=>sum+availableFor(item),0),[items,readOnly]);
   const hasPlaysetOpportunities=useMemo(()=>items.some(item=>availableFor(item)>=4),[items,readOnly]);
@@ -700,7 +726,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
               </div>
             ))}
             {availableQuantity>1 && <b>×{availableQuantity}</b>}
-            {item.soldQuantity&&availableQuantity>0&&<span className="market-listing-card-sold-count">{language==='ID'?`${item.soldQuantity} terjual`:`${item.soldQuantity} sold`}</span>}
+            {Number(item.soldQuantity)>0&&availableQuantity>0&&<span className="market-listing-card-sold-count">{language==='ID'?`${item.soldQuantity} terjual`:`${item.soldQuantity} sold`}</span>}
             {!item.sealedProductId&&<button type="button" className="deck-info-action market-icon-action market-listing-info" onClick={()=>{setPreview(item.card);setPreviewPrintingId(item.id)}} aria-label={`View ${item.card.name} details`}><Info size={13}/></button>}
             {!readOnly&&!item.sealedProductId&&<div className="market-listing-card-utility-actions">
               {listingType==='WTS'&&<button type="button" className="button secondary is-icon-only market-icon-action market-listing-add-vault" disabled={previewOnly} onClick={()=>setVaultTarget(item)} aria-label={t('Add an owned copy to Vault','Simpan salinan milik Anda ke Koleksi')} title={t('Add an owned copy to Vault','Simpan salinan milik Anda ke Koleksi')}><Plus size={17}/></button>}
@@ -720,11 +746,11 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
             {listingType==='WTS'&&(item.sold||(!readOnly&&availableQuantity===0))&&<span className="market-listing-card-unavailable">{language==='ID'?(item.sold?(item.salePending?'Baru terjual':'Terjual'):item.heldQuantity?'Dipesan':'Baru terjual'):(item.sold?(item.salePending?'Just sold':'Sold'):item.heldQuantity?'Reserved':'Just sold')}</span>}
           </div>
           <div className="market-listing-card-copy">
-            <strong>{item.card.name}</strong>
-            {canManageListing&&listingType==='WTS'&&items.length>1&&<div className="market-listing-order-tools" aria-label={language==='ID'?'Urutan kartu listing':'Listing card order'} aria-busy={reordering}><button type="button" className="market-listing-drag-handle" draggable={!reordering} disabled={reordering} aria-label={language==='ID'?`Pindahkan ${item.card.name}`:`Reorder ${item.card.name}`} title={language==='ID'?'Seret untuk mengubah urutan':'Drag to reorder'} onDragStart={event=>{event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('text/plain',String(index));setDraggingIndex(index)}} onDragEnd={()=>setDraggingIndex(null)}><DotsSixVerticalIcon size={16}/></button><button type="button" aria-label={language==='ID'?`Pindahkan ${item.card.name} ke atas`:`Move ${item.card.name} up`} title={language==='ID'?'Pindah ke atas':'Move up'} disabled={reordering||index===0} onClick={()=>{const next=[...items];next.splice(index-1,0,next.splice(index,1)[0]);onReorder?.(next)}}><ArrowUpIcon size={14}/></button><button type="button" aria-label={language==='ID'?`Pindahkan ${item.card.name} ke bawah`:`Move ${item.card.name} down`} title={language==='ID'?'Pindah ke bawah':'Move down'} disabled={reordering||index===items.length-1} onClick={()=>{const next=[...items];next.splice(index+1,0,next.splice(index,1)[0]);onReorder?.(next)}}><ArrowDownIcon size={14}/></button></div>}
+            <strong>{displayCardName(item.card.name,item.card.code)}</strong>
+            {canManageListing&&listingType==='WTS'&&items.length>1&&<div className="market-listing-order-tools" aria-label={language==='ID'?'Pengaturan item listing':'Listing item controls'} aria-busy={reordering||removingItemIndex===index}><button type="button" className="market-listing-drag-handle" draggable={!reordering&&removingItemIndex===null} disabled={reordering||removingItemIndex!==null} aria-label={language==='ID'?`Pindahkan ${item.card.name}`:`Reorder ${item.card.name}`} title={language==='ID'?'Seret untuk mengubah urutan':'Drag to reorder'} onDragStart={event=>{event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('text/plain',String(index));setDraggingIndex(index)}} onDragEnd={()=>setDraggingIndex(null)}><DotsSixVerticalIcon size={16}/></button><button type="button" aria-label={language==='ID'?`Pindahkan ${item.card.name} ke atas`:`Move ${item.card.name} up`} title={language==='ID'?'Pindah ke atas':'Move up'} disabled={reordering||removingItemIndex!==null||index===0} onClick={()=>{const next=[...items];next.splice(index-1,0,next.splice(index,1)[0]);onReorder?.(next)}}><ArrowUpIcon size={14}/></button><button type="button" aria-label={language==='ID'?`Pindahkan ${item.card.name} ke bawah`:`Move ${item.card.name} down`} title={language==='ID'?'Pindah ke bawah':'Move down'} disabled={reordering||removingItemIndex!==null||index===items.length-1} onClick={()=>{const next=[...items];next.splice(index+1,0,next.splice(index,1)[0]);onReorder?.(next)}}><ArrowDownIcon size={14}/></button><button type="button" className="market-listing-remove-item" aria-label={t(`Remove ${item.card.name} from listing`,`Hapus ${item.card.name} dari listing`)} title={t('Remove from listing','Hapus dari listing')} disabled={reordering||removingItemIndex!==null} onClick={()=>void removeListingItem(item,index)}><Trash size={14}/></button></div>}
             <small className="market-card-meta">{item.generalProduct?<><span>{generalMarketCategoryLabel(item.generalProduct.category,language)}</span>{[item.generalProduct.brand,item.generalProduct.model].filter(Boolean).map(value=><span key={value}>{value}</span>)}</>:item.sealedProductId?<><span>{item.card.setCode}</span><span>{item.language}</span><span>{item.card.variant}</span></>:<><span>{marketCardReference(item.card)}</span><span>{item.card.rarity}</span><span>{item.language}</span></>}</small>
             {item.generalProduct?.attributes&&Object.entries(item.generalProduct.attributes).some(([,value])=>Boolean(value))&&<small className="market-general-product-specs">{Object.entries(item.generalProduct.attributes).filter(([,value])=>Boolean(value)).map(([key,value])=><span key={key}><b>{GENERAL_SPEC_LABELS[key]?.[language==='ID'?1:0]??key}</b> {value}</span>)}</small>}
-            <p className="market-listing-card-condition">{item.productType==='GRADED'?<span>{item.gradingCompany} {item.grade}{item.certification?` / Cert ${item.certification}`:''}</span>:item.sealedProductId?<span>{productConditionLabel(item.condition,language)}</span>:<span>{item.condition}</span>}{!readOnly&&!singleCopyListing&&availableQuantity>0&&<em>{amount}/{availableQuantity} {t('selected','dipilih')}</em>}{item.heldQuantity? <em>{item.heldQuantity} {t('reserved','dipesan')}</em>:null}</p>
+            <p className="market-listing-card-condition">{item.productType==='GRADED'?<><span>{[item.gradingCompany,item.grade].filter(Boolean).join(' ')}</span>{item.certification&&<small className="market-listing-certification">Cert {item.certification}</small>}</>:item.sealedProductId?<span>{productConditionLabel(item.condition,language)}</span>:<span>{item.condition}</span>}{!readOnly&&!singleCopyListing&&availableQuantity>0&&<em>{amount}/{availableQuantity} {t('selected','dipilih')}</em>}{item.heldQuantity? <em>{item.heldQuantity} {t('reserved','dipesan')}</em>:null}</p>
             <div className="market-listing-card-unit-price" aria-label={item.unitAmount>0?`${formatMoney(item.unitAmount,currency)} ${item.sealedProductId?t('per item','per item'):t('per card','per kartu')}: ${item.card.name}`:t('Price not set','Harga belum diatur')} title={item.unitAmount>0?`${formatMoney(item.unitAmount,currency)} ${item.sealedProductId?t('per item','per item'):t('per card','per kartu')}`:t('Price not set','Harga belum diatur')}>{canEditPrices?<MarketListingUnitPriceEdit listingId={listingId} title={listingTitle||''} listingType={listingType} cards={items.map(entry=>({printingId:entry.id,name:entry.card.name,quantity:entry.quantity,unitAmount:entry.unitAmount}))} cardIndex={index} currency={currency} language={language} onSaved={unitAmount=>onPriceSaved?.(index,unitAmount)}><span>{item.unitAmount>0?formatMoney(item.unitAmount,currency):t('Set price','Atur harga')}</span></MarketListingUnitPriceEdit>:item.unitAmount>0?formatMoney(item.unitAmount,currency):t('Price not set','Harga belum diatur')}</div>
 
             {!readOnly&&acceptsOffers&&offerCheckComplete&&!activeOffer&&!submitting&&amount>0 && (

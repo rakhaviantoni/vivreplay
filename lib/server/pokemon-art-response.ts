@@ -1,7 +1,7 @@
 import {database} from '@/lib/server/database';
-import {env} from 'cloudflare:workers';
 import {pokemonLocalCardNumber,pokemonSetAliases} from '@/lib/pokemon-set-aliases';
 import {tcgdexArtResponse} from '@/lib/server/tcgdex-art-response';
+import {getCatalogImageObject} from '@/lib/server/catalog-image-storage';
 
 const languageCodes:Record<string,string>={id:'ID',en:'EN',jp:'JP',ja:'JP'};
 const normalized=(value:string)=>value.trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
@@ -38,7 +38,7 @@ export async function servePokemonArt(request:Request,rawLanguage:string,rawSet:
       if((pathNumber!==rowNumber&&pathNumber!==legacyPrintingCode&&pathNumber!==privateAlias)||!aliases.includes(normalized(rawSet)))return new Response('Not found',{status:404});
     }
     if(row.objectKey){
-      const stored=await env.CARD_IMAGES?.get(row.objectKey);
+      const stored=await getCatalogImageObject(row.objectKey);
       if(stored)return new Response(stored.body,{headers:{'Content-Type':stored.httpMetadata?.contentType??'image/webp','Cache-Control':stored.httpMetadata?.cacheControl??'public, max-age=31536000, immutable','ETag':stored.httpEtag,'X-Content-Type-Options':'nosniff'}});
     }
     let payload:Record<string,unknown>={};

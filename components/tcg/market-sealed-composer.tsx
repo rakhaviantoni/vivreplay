@@ -1,5 +1,5 @@
 'use client';
-import {useMemo,useState,type ReactNode} from 'react';
+import {useEffect,useMemo,useState,type ReactNode} from 'react';
 import {useRouteLocale} from '@/components/locale-provider';
 import {ArrowRightIcon as ArrowRight,MagnifyingGlassIcon as Search} from '@phosphor-icons/react';
 import {matchesSealedProductQuery,normalizeSealedProductQuery,sealedProductDisplayName,sealedProductPublicCode,sealedProducts,sealedProductKinds,type SealedProduct,type SealedProductKind} from '@/lib/market/sealed-products';
@@ -10,15 +10,16 @@ import {RadioGroup,RadioGroupItem} from '@/components/ui/radio-group';
 import './market-sealed.css';
 
 export type BundleProductInput={productType:'SEALED'|'GENERAL';productId?:string;title:string;quantity:number;unitAmount:number;condition:string;notes:string;photoIds:string[];parcel?:{weight:number;length:number;width:number;height:number};generalProduct?:{category:string;brand:string;model:string;attributes:Record<string,string>};catalogProduct?:SealedProduct};
-export function MarketSealedComposer({type,onPublished,onAddToBundle,modeControl}:{type:'WTS'|'WTB';onPublished:()=>void;onAddToBundle?:(item:BundleProductInput)=>void;modeControl?:ReactNode}){
+export function MarketSealedComposer({type,onPublished,onAddToBundle,modeControl,initialProduct}:{type:'WTS'|'WTB';onPublished:()=>void;onAddToBundle?:(item:BundleProductInput)=>void;modeControl?:ReactNode;initialProduct?:SealedProduct}){
   const language=useRouteLocale();const isId=language==='ID';
   const productStockLimit=useMarketListingLimits().maxProductStock??10;
   const [query,setQuery]=useState('');const [edition,setEdition]=useState<'asia'|'global'|'all'>('asia');const [kind,setKind]=useState<SealedProductKind|'all'>('all');
   const [visibleCount,setVisibleCount]=useState(30);
   const [source,setSource]=useState<'catalog'|'general'>('catalog');
-  const [product,setProduct]=useState<SealedProduct>();const [quantity,setQuantity]=useState(1);const [price,setPrice]=useState('');
+  const [product,setProduct]=useState<SealedProduct|undefined>(initialProduct);const [quantity,setQuantity]=useState(1);const [price,setPrice]=useState('');
   const [condition,setCondition]=useState('SEALED');const [notes,setNotes]=useState('');const [photos,setPhotos]=useState<string[]>([]);
   const [parcel,setParcel]=useState({weight:'',length:'',width:'',height:''});const [busy,setBusy]=useState(false);const [error,setError]=useState('');
+  useEffect(()=>{if(!initialProduct)return;setProduct(initialProduct);setQuantity(1);setPrice('');setCondition(isAccessoryKind(initialProduct.kind)?'NEW':'SEALED');setNotes('');setPhotos([]);setParcel({weight:'',length:'',width:'',height:''});setError('')},[initialProduct?.id]);
   const kinds=useMemo(()=>(Object.keys(sealedProductKinds) as SealedProductKind[]).filter(kind=>sealedProducts.some(item=>item.kind===kind)),[]);
   const selectedConditionOptions=product?productConditionOptions(product.kind):[];
   const normalizedQuery=normalizeSealedProductQuery(query);

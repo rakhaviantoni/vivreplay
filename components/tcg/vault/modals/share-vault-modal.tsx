@@ -32,6 +32,7 @@ function slabShareLabel(item:EnrichedCollectionItem){
     language:printing?.language??item.language??item.card.language,
     number:printCode.match(/(\d+[A-Z]?)$/i)?.[1]??printCode,
     rarity:printing?.rarity??item.rarity??item.card.rarity,
+    labelStyle:item.subgrades?.__labelStyle==='clear'?'clear':'standard',
   };
 }
 
@@ -47,13 +48,13 @@ export function ShareVaultModal({open,onClose,username,items,selectedSlab,select
   const topItems=useMemo(()=>items.slice(0,9),[items]);
   const shareItems:ShareCardItem[]=useMemo(()=>topItems.map(item=>({
     card:item.card,printingId:item.printingId,quantity:item.quantity,metaLine:shareMeta(item),
-    productType:item.type,gradingCompany:item.provider??undefined,grade:item.grade??undefined,certification:item.certification??undefined,
+    productType:item.type,gradingCompany:item.provider??undefined,grade:item.grade??undefined,certification:item.certification??undefined,subgrades:item.subgrades??undefined,
     ...(item.type==='GRADED'?{slabLabel:slabShareLabel(item)}:{}),
   })),[topItems]);
   const origin=typeof window!=='undefined'&&['localhost','127.0.0.1'].includes(window.location.hostname)?window.location.origin:'https://vivreplay.com';
   const shareUrl=`${origin}/players/${username}`;
   const setData=useMemo(()=>selectedSet?{name:selectedSet.name,ownedCount:selectedSet.ownedCount,totalCards:selectedSet.totalCards,percentage:selectedSet.percentage,mainSetOwned:selectedSet.mainSetOwned,mainSetTotal:selectedSet.mainSetTotal,parallelsOwned:selectedSet.parallelsOwned,parallelsTotal:selectedSet.parallelsTotal}:undefined,[selectedSet]);
-  const cardsForImage=useMemo(()=>format==='top9'?shareItems:format==='slab'&&activeSlab?[{card:activeSlab.card,printingId:activeSlab.printingId,quantity:1,metaLine:shareMeta(activeSlab),productType:'GRADED' as const,gradingCompany:activeSlab.provider??undefined,grade:activeSlab.grade??undefined,certification:activeSlab.certification??undefined,slabLabel:slabShareLabel(activeSlab)}]:[],[format,shareItems,activeSlab]);
+  const cardsForImage=useMemo(()=>format==='top9'?shareItems:format==='slab'&&activeSlab?[{card:activeSlab.card,printingId:activeSlab.printingId,quantity:1,metaLine:shareMeta(activeSlab),productType:'GRADED' as const,gradingCompany:activeSlab.provider??undefined,grade:activeSlab.grade??undefined,certification:activeSlab.certification??undefined,subgrades:activeSlab.subgrades??undefined,slabLabel:slabShareLabel(activeSlab)}]:[],[format,shareItems,activeSlab]);
 
   useEffect(()=>{
     if(!open)return;

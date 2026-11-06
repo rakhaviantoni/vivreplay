@@ -1,7 +1,7 @@
 import { database } from '@/lib/server/database';
 import { readPublicEdgeCache, storePublicEdgeCache } from '@/lib/server/public-edge-cache';
 import { isPlayableSet, PREVIEW_CARD_CODES } from '@/packages/domain/release-availability';
-import { CARD_CATALOG_CACHE_REVISION } from '@/lib/card-catalog-cache';
+import { CARD_CATALOG_CACHE_REVISION, versionedCardImageUrl } from '@/lib/card-catalog-cache';
 import { parseCatalogRange } from '@/lib/card-catalog-query';
 import {tokenizeSearchTerms} from '@/lib/card-search';
 import { pokemonPrintingRarity } from '@/lib/pokemon-rarity';
@@ -275,7 +275,7 @@ async function fromD1(gameSlug: string, language: string, identityCode?: string,
       counter_amount: row.counter_amount,
       sub_types: parseJson(row.sub_types),
       source_payload: parseJson(row.source_payload),
-      card_image_url: imageUrl,
+      card_image_url: versionedCardImageUrl(imageUrl),
       tcg_card_assets: imageKey && !imageKey.startsWith('http') ? [{ kind: 'small', object_key: imageKey }] : [],
       tcg_card_identities: identity,
     }];
@@ -287,8 +287,11 @@ export async function GET(request: Request) {
   // Image repair queues need the live asset state after a batch attaches R2
   // objects. Serving an older cached gap list makes fixed printings reappear.
   const liveImageAudit = params.get('missingImages') === '1' && params.get('game') === 'pokemon';
+  const cacheUrl = new URL(request.url);
+  cacheUrl.pathname = `/__catalog-cache/${CARD_CATALOG_CACHE_REVISION}${cacheUrl.pathname}`;
+  const cacheRequest = new Request(cacheUrl, request);
   if (!liveImageAudit) {
-    const cached = await readPublicEdgeCache(request);
+    const cached = await readPublicEdgeCache(cacheRequest);
     if (cached) return cached;
   }
   const rawIds=params.get('ids');
@@ -343,7 +346,7 @@ export async function GET(request: Request) {
           'Cache-Control':'public, max-age=300, stale-while-revalidate=86400',
           'Cloudflare-CDN-Cache-Control':'public, max-age=31536000, immutable',
         }});
-        return storePublicEdgeCache(request, response);
+        return storePublicEdgeCache(cacheRequest, response);
       }
     } catch {
       // Fall through to the catalog source if the snapshot is unavailable.
@@ -377,5 +380,5 @@ export async function GET(request: Request) {
       // The catalog response can still be served when snapshot storage is unavailable.
     }
   }
-  return liveImageAudit ? response : storePublicEdgeCache(request, response);
+  return liveImageAudit ? response : storePublicEdgeCache(cacheRequest, response);
 }

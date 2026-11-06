@@ -5,6 +5,8 @@ import type {ReactNode} from 'react';
 import {Card, colors} from '@/packages/card-data/catalog';
 import {isPreviewCard} from '@/packages/domain/release-availability';
 import {pokemonArtRoute} from '@/lib/pokemon-art-route';
+import {ClockCountdownIcon as ClockCountdown} from '@phosphor-icons/react';
+import {displayCardName} from './card-name';
 
 export function cardPrintingImageUrl(printing:{id?:string|null;assetPath?:string|null;imageUrl?:string|null;setCode?:string|null;language?:string|null;printingCode?:string|null;localCardNumber?:string|null;code?:string|null;gameSlug?:string|null}){
   if(printing.assetPath){
@@ -43,6 +45,7 @@ export function cardPrintingImageUrl(printing:{id?:string|null;assetPath?:string
 export function cardImageUrl(card:Omit<Partial<Card>,'imageUrl'|'assetPath'>&{imageUrl?:string|null;assetPath?:string|null;gameSlug?:string|null}){return cardPrintingImageUrl(card)}
 
 export function CardArt({card,small=false,priority=false,imageWidth,onImageMissing,onImageLoaded,missingImageAction}:{card:Card&{gameSlug?:string};small?:boolean;priority?:boolean;imageWidth?:160|220|280|360;onImageMissing?:()=>void;onImageLoaded?:()=>void;missingImageAction?:ReactNode}) {
+  const cardName=displayCardName(card.name,card.code);
   const preview=isPreviewCard(card.code,card.setCode,card.variant);
   const baseImage=cardImageUrl(card);
   const resolvedImage=baseImage&&imageWidth?`${baseImage}${baseImage.includes('?')?'&':'?'}width=${imageWidth}`:baseImage;
@@ -72,13 +75,13 @@ export function CardArt({card,small=false,priority=false,imageWidth,onImageMissi
   },[resolvedImage]);
   if(card.sealedProduct)return <div className="market-sealed-art" style={{width:'100%',aspectRatio:'3 / 4',display:'grid',placeItems:'center'}}><img src={card.imageUrl} alt={card.name} style={{width:'100%',height:'100%',objectFit:'contain'}} loading={priority?'eager':'lazy'}/></div>;
   if (resolvedImage&&!imageFailed) return <div className={`tcg-card printing-image ${small?'small':''} ${loaded?'is-loaded':'is-loading'} ${preview?'is-preview-card':''}`} aria-label={preview?"Preview of a set that hasn’t launched yet. You can play it in Casual, New Cards, and Extended, but not Ranked. Its image and text may still change.":undefined}>
-    {preview&&<span className="preview-card-badge" aria-hidden="true">Preview</span>}<span className="card-image-skeleton" aria-hidden="true"/>
-    <img ref={imageRef} src={resolvedImage} alt={`${card.name} card printing`} draggable={false} loading={priority?"eager":"lazy"} fetchPriority={priority?"high":undefined} decoding="async" width={imageWidth??420} height={imageWidth?Math.round(imageWidth*580/420):580} onLoad={()=>{settledImageUrl.current=resolvedImage;setImageResult({url:resolvedImage,status:'loaded'});onImageLoadedRef.current?.();}} onError={()=>{settledImageUrl.current=resolvedImage;setImageResult({url:resolvedImage,status:'failed'});onImageMissingRef.current?.();}}/>
+    {preview&&<span className="preview-card-badge" role="img" aria-label="Unreleased card" title="Unreleased card"><ClockCountdown size={13} weight="bold"/></span>}<span className="card-image-skeleton" aria-hidden="true"/>
+    <img ref={imageRef} src={resolvedImage} alt={`${cardName} card printing`} draggable={false} loading={priority?"eager":"lazy"} fetchPriority={priority?"high":undefined} decoding="async" width={imageWidth??420} height={imageWidth?Math.round(imageWidth*580/420):580} onLoad={()=>{settledImageUrl.current=resolvedImage;setImageResult({url:resolvedImage,status:'loaded'});onImageLoadedRef.current?.();}} onError={()=>{settledImageUrl.current=resolvedImage;setImageResult({url:resolvedImage,status:'failed'});onImageMissingRef.current?.();}}/>
   </div>;
-  if(card.gameSlug==='pokemon')return <div className={`tcg-card missing-printing pokemon-missing-printing ${small?'small':''}`} aria-label={`Card is missing: ${card.name}`}><strong>Card is missing</strong>{missingImageAction}</div>;
-  return <div className={`tcg-card missing-printing ${small?'small':''} ${preview?'is-preview-card':''}`} style={{'--card-color':colors[card.color]} as React.CSSProperties} aria-label={`${card.name} artwork unavailable`}>
-    {preview&&<span className="preview-card-badge" aria-hidden="true">Preview</span>}
+  if(card.gameSlug==='pokemon')return <div className={`tcg-card missing-printing pokemon-missing-printing ${small?'small':''}`} aria-label={`Card is missing: ${cardName}`}><strong>Card is missing</strong>{missingImageAction}</div>;
+  return <div className={`tcg-card missing-printing ${small?'small':''} ${preview?'is-preview-card':''}`} style={{'--card-color':colors[card.color]} as React.CSSProperties} aria-label={preview?`${cardName}, unreleased card`: `${cardName} artwork unavailable`}>
+    {preview&&<span className="preview-card-badge" role="img" aria-label="Unreleased card" title="Unreleased card"><ClockCountdown size={13} weight="bold"/></span>}
     <div className="card-top"><b>{card.type==='Leader'?'L':card.cost}</b><strong>{card.power>0?card.power.toLocaleString():card.type.toUpperCase()}</strong></div>
-    <div className="card-caption"><span>{card.type.toUpperCase()}</span><strong>{card.name}</strong><div>{card.code} <span>Image unavailable</span></div></div>
+    <div className="card-caption"><span>{card.type.toUpperCase()}</span><strong>{cardName}</strong><div>{card.code}{!preview&&<span>Image unavailable</span>}</div></div>
   </div>;
 }

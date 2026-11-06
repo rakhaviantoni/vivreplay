@@ -1,4 +1,5 @@
 import { env } from 'cloudflare:workers';
+import { getCatalogImageObject } from '@/lib/server/catalog-image-storage';
 
 export async function GET(request: Request) {
   const requested = new URL(request.url).searchParams.get('url');
@@ -17,7 +18,7 @@ export async function GET(request: Request) {
   const digest=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(source.toString()));
   const cacheKey=`catalog-images/pokemon/${Array.from(new Uint8Array(digest),value=>value.toString(16).padStart(2,'0')).join('')}`;
   try{
-    const cached=await env.CARD_IMAGES?.get(cacheKey);
+    const cached=await getCatalogImageObject(cacheKey);
     if(cached)return new Response(cached.body,{headers:{'Content-Type':cached.httpMetadata?.contentType??'image/webp','Cache-Control':'public, max-age=31536000, immutable','Cloudflare-CDN-Cache-Control':'public, max-age=31536000, immutable','ETag':cached.httpEtag,'X-Content-Type-Options':'nosniff'}});
   }catch{}
 

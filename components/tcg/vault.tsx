@@ -851,7 +851,6 @@ export function Vault() {
         }}
         onDelete={handleDeleteItem}
         onSell={handleSell}
-        onMarketEstimateSaved={async value=>{setSelectedSlabItem(current=>current?{...current,marketValueEstimate:value}:current);await refresh();}}
         onToggleHideValues={handleToggleHideValues}
         onShare={slab => {
           setSelectedSlabItem(null);

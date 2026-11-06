@@ -10,8 +10,15 @@ import {createGeneralListing} from '@/lib/server/general-listings';
 import {createMixedListing} from '@/lib/server/mixed-listings';
 import {recordMarketActivity} from '@/lib/server/market-activity-progress';
 
-const itemSchema=z.object({instanceId:z.string().uuid().optional(),printingId:z.string(),quantity:z.number().int().positive().max(MARKET_MAX_COPIES_PER_CARD),condition:z.string().optional(),productType:z.enum(['RAW','GRADED']).optional(),gradingCompany:z.string().trim().max(40).optional(),grade:z.string().trim().max(20).optional(),certification:z.string().trim().max(100).optional(),unitAmount:z.number().int().nonnegative().optional()});
+const itemSchema=z.object({instanceId:z.string().uuid().optional(),printingId:z.string(),quantity:z.number().int().positive().max(MARKET_MAX_COPIES_PER_CARD),condition:z.string().optional(),productType:z.enum(['RAW','GRADED']).optional(),gradingCompany:z.string().trim().max(40).optional(),grade:z.string().trim().max(20).optional(),certification:z.string().trim().max(100).optional(),slabLabelStyle:z.enum(['clear','standard']).optional(),unitAmount:z.number().int().nonnegative().optional()});
 const schema=z.object({instanceId:z.string().uuid().optional(),amount:z.number().int().positive().max(100000000000),quantity:z.number().int().positive().max(MARKET_ABSOLUTE_MAX_LISTING_COPIES),city:z.string().trim().min(2).max(60),title:z.string().trim().min(3).max(100),type:z.enum(['WTS','WTB']).default('WTS'),negotiable:z.boolean().default(true),items:z.array(itemSchema).min(1).max(MARKET_ABSOLUTE_MAX_LISTING_COPIES).optional()});
+
+function labelStyleFromSubgrades(value:string|Record<string,unknown>|null|undefined):'clear'|'standard'{
+  try{
+    const subgrades=typeof value==='string'?JSON.parse(value) as Record<string,unknown>:value;
+    return String(subgrades?.__labelStyle??'').toLowerCase()==='clear'?'clear':'standard';
+  }catch{return 'standard'}
+}
 
 async function ensureMarketPrintings(database:ReturnType<typeof db>,printingIds:string[]){
   const placeholders=printingIds.map(()=>'?').join(',');
@@ -112,7 +119,7 @@ export async function POST(request:Request){
     const primary=await database.prepare('SELECT printing_id,quantity,condition FROM collectible_instances WHERE id=? AND owner_id=? AND deleted_at IS NULL').bind(value.instanceId,profile.id).first<{printing_id:string;quantity:number;condition:string}>();
     if(!primary)throw new HttpError(400,'Choose an owned item and available quantity.');
 
-    const verifiedCopies=new Map<string,{printingId:string;quantity:number;type:string;condition:string;gradingCompany:string|null;grade:string|null;certification:string|null}>();
+    const verifiedCopies=new Map<string,{printingId:string;quantity:number;type:string;condition:string;gradingCompany:string|null;grade:string|null;certification:string|null;subgrades:string|Record<string,unknown>|null}>();
     if(bundle){
       await enforceMarketListingLimits(database,bundle,policy);
       if(bundle[0].instanceId!==value.instanceId||bundle[0].printingId!==primary.printing_id)throw new HttpError(400,'The first bundle card must match the selected Vault item.');
@@ -126,7 +133,7 @@ export async function POST(request:Request){
         byInstance.set(item.instanceId,{printingId:item.printingId,quantity:(current?.quantity??0)+item.quantity});
       }
       for(const [instanceId,item] of byInstance){
-        const owned=await database.prepare(`SELECT c.printing_id AS printingId,c.quantity,c.type,c.condition,p.short_name AS gradingCompany,g.grade,g.certification FROM collectible_instances c LEFT JOIN graded_cards g ON g.instance_id=c.id LEFT JOIN grading_providers p ON p.id=g.provider_id WHERE c.id=? AND c.owner_id=? AND c.deleted_at IS NULL`).bind(instanceId,profile.id).first<{printingId:string;quantity:number;type:string;condition:string;gradingCompany:string|null;grade:string|null;certification:string|null}>();
+        const owned=await database.prepare(`SELECT c.printing_id AS printingId,c.quantity,c.type,c.condition,p.short_name AS gradingCompany,g.grade,g.certification,g.subgrades FROM collectible_instances c LEFT JOIN graded_cards g ON g.instance_id=c.id LEFT JOIN grading_providers p ON p.id=g.provider_id WHERE c.id=? AND c.owner_id=? AND c.deleted_at IS NULL`).bind(instanceId,profile.id).first<{printingId:string;quantity:number;type:string;condition:string;gradingCompany:string|null;grade:string|null;certification:string|null;subgrades:string|Record<string,unknown>|null}>();
         if(!owned||owned.printingId!==item.printingId||item.quantity>owned.quantity)throw new HttpError(400,'One or more items in the bundle exceeds your available Vault quantity.');
         if(owned.type==='GRADED'&&item.quantity!==1)throw new HttpError(400,'A graded slab can only be listed as one copy.');
         if(owned.type==='GRADED'&&(!owned.gradingCompany||!owned.grade))throw new HttpError(400,'This Vault slab is missing its grading details. Update it before listing.');
@@ -147,7 +154,7 @@ export async function POST(request:Request){
       const owned=item.instanceId?verifiedCopies.get(item.instanceId):undefined;
       if(!owned)return item;
       return owned.type==='GRADED'
-        ? {...item,condition:undefined,productType:'GRADED',gradingCompany:owned.gradingCompany??undefined,grade:owned.grade??undefined,certification:owned.certification??undefined}
+        ? {...item,condition:undefined,productType:'GRADED',gradingCompany:owned.gradingCompany??undefined,grade:owned.grade??undefined,certification:owned.certification??undefined,slabLabelStyle:labelStyleFromSubgrades(owned.subgrades)}
         : {...item,condition:owned.condition,productType:'RAW',gradingCompany:undefined,grade:undefined,certification:undefined};
     })):null;
     const result=await database.prepare(`

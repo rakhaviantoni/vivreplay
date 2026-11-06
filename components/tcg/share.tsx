@@ -32,7 +32,8 @@ export type ShareCardItem = {
   gradingCompany?: string;
   grade?: string;
   certification?: string;
-  slabLabel?: {setCode?:string;language?:string;number?:string;rarity?:string};
+  subgrades?: Record<string,string|number>;
+  slabLabel?: {setCode?:string;language?:string;number?:string;rarity?:string;labelStyle?:string};
 };
 
 export type ShareVaultSetProgress={name:string;ownedCount:number;totalCards:number;percentage:number;mainSetOwned:number;mainSetTotal:number;parallelsOwned:number;parallelsTotal:number};
@@ -237,37 +238,120 @@ function drawVaultSlabLabel(ctx:CanvasRenderingContext2D,item:ShareCardItem,game
   const gradeNames:Record<string,string>={'10':'GEM MT','9.5':'MINT','9':'MINT','8.5':'NM-MT','8':'NM-MT','7':'NM','6':'EX-MT','5':'EX','4':'VG-EX','3':'VG','2':'GOOD','1':'PR'};
   const gradeLabel=gradeInput==='GEM MINT'?'GEM MT':gradeInput||gradeNames[gradeScore]||'GRADE';
   const certificate=String(item.certification??'');
-  const grader=String(item.gradingCompany??'PSA').toUpperCase();
+  const grader=String(item.gradingCompany??'PSA').toUpperCase().replace(/[^A-Z]/g,'');
   const psa=grader==='PSA';
-  const border=psa?'#ed1c2e':grader==='CGC'?'#243c62':grader==='BGS'?'#343434':grader==='TAG'?'#f3f5f6':'#8b929b';
-  const frame=4;
-  const left=x+8,right=x+width-8;
+  const cgc=grader==='CGC'||grader==='CGCCARDS'||grader==='CERTIFIEDGUARANTYCOMPANY';
+  const bgs=grader==='BGS'||grader==='BECKETT'||grader==='BECKETTGRADINGSERVICES';
+  const tag=grader==='TAG'||grader==='TAGGRADING';
+  const egs=grader==='EGS'||grader.includes('EMPORIUMGRADINGSERVICE');
+  const ars=grader==='ARS'||grader.startsWith('ARS');
+  const pristine=/\bPRISTINE\b/i.test(rawGrade)||(bgs&&gradeScore==='10');
+  const blackLabel=bgs&&gradeScore==='10'&&Object.entries(item.subgrades??{}).filter(([key])=>/centering|corners|edges|surface/i.test(key)).length===4&&Object.entries(item.subgrades??{}).filter(([key])=>/centering|corners|edges|surface/i.test(key)).every(([,value])=>Number(value)===10);
+  const clearEgs=egs&&item.slabLabel?.labelStyle==='clear';
+  const inset=Math.max(3,width*.012);
+  const left=x+inset+2,right=x+width-inset-2;
   const split=x+width*.69;
   const baseY=y+height;
-  ctx.save();
-  ctx.fillStyle=grader==='TAG'?'#202326':grader==='BGS'?'#191919':'#fbfcff';ctx.fillRect(x,y,width,height);
-  ctx.save();ctx.beginPath();ctx.rect(x+frame,y+frame,width-frame*2,height-frame*2);ctx.clip();
-  ctx.strokeStyle=grader==='TAG'?'rgba(255,255,255,.18)':'#e8eef7';ctx.lineWidth=2;
-  for(let line=y+8;line<baseY;line+=8){ctx.beginPath();ctx.moveTo(x+frame,line);ctx.lineTo(x+width-frame,line);ctx.stroke();}
-  ctx.restore();
-  ctx.strokeStyle=border;ctx.lineWidth=frame;ctx.strokeRect(x+frame/2,y+frame/2,width-frame,height-frame);
-  ctx.fillStyle=grader==='TAG'?'#fff':'#17202b';ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.font='900 9px Arial,sans-serif';
+  const small=Math.max(6,Math.min(10,width*.022));
+  const write=(value:string,tx:number,ty:number,maxWidth:number,align:CanvasTextAlign='left',fontWeight=800,color='#1b2025')=>{
+    if(!value)return;
+    ctx.textAlign=align;ctx.fillStyle=color;ctx.font=`${fontWeight} ${small}px Arial,sans-serif`;
+    ctx.fillText(fitCanvasText(ctx,value,maxWidth),tx,ty,maxWidth);
+  };
+  const line=(x1:number,y1:number,x2:number,y2:number,color:string,thickness=1)=>{ctx.strokeStyle=color;ctx.lineWidth=thickness;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();};
   const releaseYear=(card as Card&{releaseYear?:number}).releaseYear??setYear;
-  const descriptor=[releaseYear,game==='pokemon'?'POKÉMON':'ONE PIECE',setCode,language].filter(Boolean).join(' ');
-  ctx.fillText(fitCanvasText(ctx,descriptor,split-left-5),left,y+14,split-left-5);
-  ctx.textAlign='right';ctx.fillText(number?`#${number}`:'',right,y+14,width*.27);
-  ctx.textAlign='left';ctx.fillText(fitCanvasText(ctx,card.name.toUpperCase(),split-left-5),left,y+27,split-left-5);
-  ctx.textAlign='right';ctx.fillText(fitCanvasText(ctx,gradeLabel, right-split-4),right,y+27,right-split-4);
-  ctx.textAlign='left';ctx.fillText(fitCanvasText(ctx,rarity,split-left-5),left,y+40,split-left-5);
-  ctx.textAlign='right';ctx.fillText(gradeScore,right,y+40,right-split-4);
+  const slabYearText=releaseYear?String(releaseYear):'';
+  const gameText=game==='pokemon'?'POKÉMON':'ONE PIECE';
+  const topLine=[slabYearText,gameText,setCode,language].filter(Boolean).join(' ');
+  const name=card.name.toUpperCase();
+  const numberText=number?`#${number}`:'';
   let seed=2166136261;for(const char of certificate||'UNVERIFIED')seed=Math.imul(seed^char.charCodeAt(0),16777619)>>>0;
-  let barcodeX=left;const barcodeY=y+height-14;const barcodeW=Math.max(20,width*.34);
-  while(barcodeX<left+barcodeW){seed=(Math.imul(seed,1664525)+1013904223)>>>0;const barWidth=Math.min(1+seed%3,left+barcodeW-barcodeX);ctx.fillStyle='#17202b';ctx.fillRect(barcodeX,barcodeY,barWidth,7);barcodeX+=barWidth+1+(seed>>>8)%2;}
-  ctx.textAlign='right';ctx.fillText(certificate,right,y+height-7,right-split-4);
+  ctx.save();
+  ctx.textBaseline='alphabetic';
+
   if(psa){
-    const stampW=Math.min(36,width*.15),stampH=19,stampX=x+(width-stampW)/2,stampY=baseY-stampH/2;
-    ctx.fillStyle='#d8dee5';ctx.fillRect(stampX,stampY,stampW,stampH);ctx.strokeStyle='#53677f';ctx.lineWidth=1;ctx.strokeRect(stampX,stampY,stampW,stampH);
-    ctx.textAlign='center';ctx.font='italic 900 12px Arial,sans-serif';ctx.fillStyle='#064e9a';ctx.fillText('P',stampX+10,stampY+14);ctx.fillStyle='#e52d41';ctx.fillText('S',stampX+18,stampY+14);ctx.fillStyle='#064e9a';ctx.fillText('A',stampX+26,stampY+14);
+    ctx.fillStyle='#fbfcff';ctx.fillRect(x,y,width,height);
+    ctx.strokeStyle='#ed1c2e';ctx.lineWidth=Math.max(3,width*.012);ctx.strokeRect(x+1,y+1,width-2,height-2);
+    ctx.save();ctx.beginPath();ctx.rect(x+3,y+3,width-6,height-6);ctx.clip();ctx.strokeStyle='#e8eef7';ctx.lineWidth=1;
+    for(let yy=y+4;yy<baseY;yy+=4)line(x+3,yy,x+width-3,yy,'#e8eef7',.7);ctx.restore();
+    write(topLine,left,y+small+2,split-left-5);write(numberText,right,y+small+2,right-split-3,'right');
+    write(name,left,y+small*2+4,split-left-5);write(gradeLabel,right,y+small*2+4,right-split-3,'right');
+    write(rarity,left,y+small*3+5,split-left-5);write(gradeScore,right,y+small*3+5,right-split-3,'right');
+    let bx=left;const barcodeW=Math.min(width*.34,Math.max(20,split-left-6));
+    while(bx<left+barcodeW){seed=(Math.imul(seed,1664525)+1013904223)>>>0;const bar=Math.min(1+seed%3,left+barcodeW-bx);ctx.fillStyle='#17202b';ctx.fillRect(bx,baseY-9,bar,5);bx+=bar+1+(seed>>>8)%2;}
+    write(certificate,right,baseY-3,right-split-3,'right',800,'#17202b');
+    const stampW=Math.min(31,width*.12),stampH=14,sx=x+(width-stampW)/2,sy=baseY-stampH/2;
+    ctx.fillStyle='#d8dee5';ctx.fillRect(sx,sy,stampW,stampH);ctx.strokeStyle='#53677f';ctx.lineWidth=.8;ctx.strokeRect(sx,sy,stampW,stampH);
+    ctx.textAlign='center';ctx.font=`italic 900 ${Math.max(8,small*1.05)}px Arial,sans-serif`;ctx.fillStyle='#064e9a';ctx.fillText('P',sx+stampW*.33,sy+stampH*.72);ctx.fillStyle='#e52d41';ctx.fillText('S',sx+stampW*.5,sy+stampH*.72);ctx.fillStyle='#064e9a';ctx.fillText('A',sx+stampW*.67,sy+stampH*.72);
+  }else if(cgc){
+    ctx.fillStyle='#111315';ctx.fillRect(x,y,width,height);ctx.fillStyle='#17191c';ctx.fillRect(x+2,y+2,width-4,height*.25);
+    ctx.fillStyle='#fbfbfb';ctx.fillRect(x+2,y+height*.25,width-4,height*.75-2);
+    ctx.fillStyle='#647a9a';ctx.fillRect(x+2,y+2,width*.13,height*.25);ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font=`italic 900 ${small*1.3}px Arial,sans-serif`;ctx.fillText('CGC',x+width*.075,y+height*.2);
+    write('CERTIFIED GUARANTY COMPANY',x+width-5,y+height*.18,width*.72,'right',850,'#fff');
+    write(name,left,y+height*.42,split-left-5);write(`${gameText}${releaseYear?` (${releaseYear})`:''} ${language||'EN'}`,left,y+height*.59,split-left-5, 'left',750,'#202226');
+    write(`${setCode} ${numberText}`,left,y+height*.75,split-left-5,'left',750,'#202226');write(rarity,left,y+height*.91,split-left-5,'left',750,'#202226');
+    line(split,y+height*.34,split,baseY-3,'#24282c',1);
+    const cgcLabel=pristine?'PRISTINE':gradeLabel;write(cgcLabel,right-3,y+height*.51,right-split-6,'right',900,pristine?'#b68a19':'#191b1e');
+    ctx.textAlign='right';ctx.fillStyle=pristine?'#b68a19':'#17191c';ctx.font=`900 ${Math.max(18,small*3.1)}px Arial,sans-serif`;ctx.fillText(gradeScore,right-3,baseY-4);
+    let bx=left;while(bx<split-width*.13){seed=(Math.imul(seed,1664525)+1013904223)>>>0;const bar=Math.min(1+seed%3,split-width*.13-bx);ctx.fillStyle='#17191c';ctx.fillRect(bx,baseY-9,bar,5);bx+=bar+1;}
+    write(certificate,split-width*.12,baseY-3,width*.12,'left',750,'#17191c');
+  }else if(bgs){
+    const gold=pristine;ctx.fillStyle=blackLabel?'#101114':gold?'#e5cc71':'#e9ebee';ctx.fillRect(x,y,width,height);
+    if(!blackLabel){ctx.fillStyle='#111214';ctx.fillRect(x,y,width*.19,height);}
+    const brandWidth=width*.19;ctx.fillStyle=blackLabel?'#fff':gold?'#0f1114':'#fff';ctx.textAlign='center';ctx.font=`900 ${small*2.1}px Georgia,serif`;ctx.fillText('B',x+brandWidth*.5,y+height*.61);
+    ctx.font=`800 ${Math.max(4,small*.54)}px Arial,sans-serif`;ctx.fillText('BECKETT',x+brandWidth*.5,y+height*.82);
+    const detailLeft=x+brandWidth+3;write(topLine,detailLeft,y+small+1,split-detailLeft-3,'left',800,blackLabel?'#fff':'#111');
+    write(name,detailLeft,y+small*2+3,split-detailLeft-3,'left',850,blackLabel?'#fff':'#111');
+    write(`${rarity} ${numberText}`.trim(),detailLeft,y+small*3+4,split-detailLeft-3,'left',750,blackLabel?'#fff':'#111');
+    const rightW=right-split;ctx.fillStyle=blackLabel?'#101114':gold?'#e5cc71':'#e9ebee';ctx.fillRect(split,y,rightW,height);
+    ctx.textAlign='center';ctx.fillStyle=blackLabel?'#fff':'#111';ctx.font=`900 ${Math.max(16,small*2.8)}px Arial,sans-serif`;ctx.fillText(gradeScore,split+rightW/2,y+height*.63);
+    ctx.font=`850 ${Math.max(6,small*.75)}px Arial,sans-serif`;ctx.fillText(blackLabel?'BLACK LABEL':gold?'PRISTINE':gradeLabel,split+rightW/2,y+height*.82);
+    ctx.font=`700 ${Math.max(5,small*.68)}px Arial,sans-serif`;ctx.fillText(certificate,split+rightW/2,baseY-2);
+  }else if(tag){
+    ctx.fillStyle='rgba(66,76,83,.32)';ctx.fillRect(x,y,width,height);ctx.strokeStyle='rgba(255,255,255,.94)';ctx.lineWidth=Math.max(1,width*.0035);ctx.strokeRect(x+3,y+height*.14,width-6,height*.82);
+    ctx.fillStyle='rgba(255,255,255,.13)';ctx.fillRect(x+width*.42,y+1,width*.16,small+5);ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.strokeRect(x+width*.42,y+1,width*.16,small+5);
+    ctx.textAlign='center';ctx.fillStyle='#fff';ctx.font=`900 ${small*1.15}px Georgia,serif`;ctx.fillText('TAG',x+width*.5,y+small+1);
+    const infoEnd=x+width*.57;write(name,left,y+height*.38,infoEnd-left-4,'left',850,'#fff');write(`${releaseYear?`${releaseYear} `:''}${gameText} ${language}`.trim(),left,y+height*.54,infoEnd-left-4,'left',750,'#fff');
+    write(`${rarity} ${numberText}`.trim(),left,y+height*.7,infoEnd-left-4,'left',800,'#fff');
+    ctx.fillStyle='#fff';ctx.textAlign='center';ctx.font=`700 ${small*.66}px Arial,sans-serif`;
+    for(let row=0;row<11;row++)for(let col=0;col<11;col++){seed=(Math.imul(seed,1664525)+1013904223)>>>0;if((seed>>>29)!==0)ctx.fillRect(x+width*.61+col*small*.42,y+height*.33+row*small*.42,small*.25,small*.25);}
+    ctx.textAlign='center';ctx.font=`900 ${small*2.1}px Arial,sans-serif`;ctx.fillText(gradeScore,x+width*.87,y+height*.62);ctx.font=`850 ${Math.max(5,small*.68)}px Arial,sans-serif`;ctx.fillText(pristine?'PRISTINE':gradeLabel,x+width*.87,y+height*.78);
+    ctx.save();ctx.translate(x+width*.75,baseY-5);ctx.rotate(-Math.PI/2);ctx.font=`800 ${Math.max(4,small*.58)}px Arial,sans-serif`;ctx.fillText(certificate,0,0);ctx.restore();
+  }else if(egs){
+    ctx.fillStyle=clearEgs?'rgba(7,10,13,.94)':'#121315';ctx.fillRect(x,y,width,height);const ink=clearEgs?'#fff':'#f3f3f3';
+    if(clearEgs){ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.strokeRect(x+3,y+3,width-6,height-6);line(x+width*.22,y+height*.12,x+width*.22,y+height*.84,'#fff',1.5);line(x+width*.78,y+height*.12,x+width*.78,y+height*.84,'#fff',1.5);}
+    else {ctx.fillStyle=pristine?'#d7bf56':'#161719';ctx.fillRect(x+width*.24,y+3,width*.5,height-6);}
+    if(!clearEgs){ctx.fillStyle='#f8f8f8';ctx.fillRect(x+3,y+3,width*.18,height-6);ctx.fillStyle='#161719';ctx.textAlign='center';ctx.font=`900 ${small*1.25}px Arial,sans-serif`;ctx.fillText('♛',x+width*.09,y+height*.38);ctx.font=`900 ${small*1.25}px Arial,sans-serif`;ctx.fillText('EGS',x+width*.09,y+height*.64);write(certificate,x+width*.09,baseY-4,width*.16,'center',750,'#111');}
+    const infoLeft=x+width*.25;const infoRight=clearEgs?x+width*.75:x+width*.74;
+    if(clearEgs){
+      const center=(infoLeft+infoRight)/2;
+      ctx.textAlign='center';ctx.fillStyle=ink;
+      ctx.font=`800 ${Math.max(6,small*.82)}px Arial,sans-serif`;ctx.fillText(fitCanvasText(ctx,topLine,infoRight-infoLeft),center,y+height*.27);
+      ctx.font=`900 ${Math.max(10,small*1.28)}px Arial,sans-serif`;ctx.fillText(fitCanvasText(ctx,name,infoRight-infoLeft),center,y+height*.57);
+      ctx.font=`800 ${Math.max(7,small*.94)}px Arial,sans-serif`;ctx.fillText(fitCanvasText(ctx,`${rarity} - ${numberText}`.trim(),infoRight-infoLeft),center,y+height*.79);
+      const qrSize=Math.min(height*.48,width*.12);const qrX=x+width*.11-qrSize/2;const qrY=y+height*.24;
+      ctx.fillStyle='#07090b';ctx.fillRect(qrX,qrY,qrSize,qrSize);
+      const module=Math.max(1,qrSize/13);ctx.fillStyle='#fff';
+      for(let row=0;row<13;row++)for(let col=0;col<13;col++){seed=(Math.imul(seed,1664525)+1013904223)>>>0;const inFinder=(col<5&&row<5)||(col>7&&row<5)||(col<5&&row>7);if(!inFinder&&(seed>>>29)!==0)ctx.fillRect(qrX+col*module,qrY+row*module,module*.72,module*.72);}
+      const finder=(fx:number,fy:number)=>{ctx.fillStyle='#fff';ctx.fillRect(qrX+fx*module,qrY+fy*module,module*5,module*5);ctx.fillStyle='#07090b';ctx.fillRect(qrX+(fx+1)*module,qrY+(fy+1)*module,module*3,module*3);ctx.fillStyle='#fff';ctx.fillRect(qrX+(fx+2)*module,qrY+(fy+2)*module,module,module);};
+      finder(0,0);finder(8,0);finder(0,8);
+      write(certificate,x+width*.11,y+height*.24+qrSize+small*.85,width*.2,'center',850,'#fff');
+      ctx.textAlign='center';ctx.fillStyle=ink;ctx.font=`900 ${Math.max(19,small*3.1)}px Arial,sans-serif`;ctx.fillText(gradeScore,x+width*.88,y+height*.6);
+      ctx.font=`850 ${Math.max(6,small*.76)}px Arial,sans-serif`;ctx.fillText(pristine?'PRISTINE':gradeLabel,x+width*.88,y+height*.76);
+      ctx.font=`900 ${Math.max(7,small*1.15)}px Arial,sans-serif`;ctx.fillText('EGS',x+width*.5,baseY-2);
+    }else{
+      write(topLine,infoLeft,y+small+1,infoRight-infoLeft,'center',800,'#111');write(name,infoLeft,y+small*2+4,infoRight-infoLeft,'center',900,'#111');
+      write(`${rarity} ${numberText}`.trim(),infoLeft,y+small*3+6,infoRight-infoLeft,'center',800,'#111');
+      ctx.textAlign='center';ctx.fillStyle=pristine?'#8c7015':'#fff';ctx.font=`900 ${Math.max(16,small*2.7)}px Arial,sans-serif`;ctx.fillText(gradeScore,x+width*.88,y+height*.63);ctx.font=`850 ${Math.max(5,small*.7)}px Arial,sans-serif`;ctx.fillText(pristine?'PRISTINE':gradeLabel,x+width*.88,baseY-5);
+    }
+  }else if(ars){
+    const plaqueY=y+height*.13;ctx.fillStyle='#d7c6a0';ctx.fillRect(x+2,plaqueY,width-4,height*.82);ctx.strokeStyle='#9a8564';ctx.lineWidth=1.2;ctx.strokeRect(x+4,plaqueY+2,width-8,height*.82-4);
+    ctx.textAlign='center';ctx.fillStyle='#57462f';ctx.font=`900 ${small*1.05}px Georgia,serif`;ctx.fillText(card.name.toUpperCase(),x+width*.5,plaqueY+height*.27);
+    ctx.font=`750 ${small*.78}px Arial,sans-serif`;ctx.fillText(`${gameText} ${setCode} ${releaseYear??''}`.trim(),x+width*.5,plaqueY+height*.45);
+    ctx.font=`800 ${small*.85}px Arial,sans-serif`;ctx.fillText(`${rarity}  ${number}`.trim(),x+width*.5,plaqueY+height*.65);
+  }else{
+    ctx.fillStyle='#e6e7e8';ctx.fillRect(x,y,width,height);write(topLine,left,y+small+1,width*.7);write(name,left,y+small*2+4,width*.7);write(rarity,left,y+small*3+5,width*.7);
+    ctx.textAlign='right';ctx.fillStyle='#181a1c';ctx.font=`900 ${Math.max(14,small*2.2)}px Arial,sans-serif`;ctx.fillText(gradeScore,right,baseY-3);
   }
   ctx.restore();ctx.textAlign='left';
 }
@@ -288,6 +372,16 @@ function shareCardImageUrls(card:Card,printingId?:string):string[]{
   const resolved=cardImageUrl(card);
   if(resolved?.startsWith('/')&&!resolved.startsWith('//'))urls.push(resolved);
   return [...new Set(urls)];
+}
+
+function shareSlabPlateHeight(item:ShareCardItem){
+  const grader=String(item.gradingCompany??'PSA').toUpperCase().replace(/[^A-Z]/g,'');
+  if(grader==='TAG'||grader==='TAGGRADING')return 110;
+  if(grader==='CGC'||grader==='CGCCARDS'||grader==='CERTIFIEDGUARANTYCOMPANY')return 90;
+  if(grader==='EGS'||grader.includes('EMPORIUMGRADINGSERVICE'))return 92;
+  if(grader==='ARS'||grader.startsWith('ARS'))return 90;
+  if(grader==='BGS'||grader==='BECKETT'||grader==='BECKETTGRADINGSERVICES')return 86;
+  return 84;
 }
 
 async function generateListingCompositeBlob({
@@ -346,7 +440,7 @@ async function generateListingCompositeBlob({
   const cardHeight = Math.round(cardWidth * (580 / 420));
   const rows = Math.ceil(count / cols);
   const gapY = 16;
-  const cardInfoHeight = entityType==='vault'||cards.some(item=>item.productType==='GRADED')?74:58;
+  const cardInfoHeight = entityType==='vault'||cards.some(item=>item.productType==='GRADED')?Math.max(74,...cards.filter(item=>item.productType==='GRADED').map(shareSlabPlateHeight)):58;
   const headerHeight = 136;
   const footerHeight = 56;
   const cardsAreaHeight = rows * (cardHeight + cardInfoHeight) + (rows - 1) * gapY;
@@ -690,20 +784,26 @@ async function generateListingCompositeBlob({
     const cardX = gridStartX + c * (cardWidth + gapX);
     const cardY = startY + r * (cardHeight + cardInfoHeight + gapY);
     const isSlab=item.productType==='GRADED';
+    const grader=String(item.gradingCompany??'PSA').toUpperCase().replace(/[^A-Z]/g,'');
+    const isArsSlab=isSlab&&(grader==='ARS'||grader.startsWith('ARS'));
+    const plateHeight=isSlab?shareSlabPlateHeight(item):cardInfoHeight;
+    const clearSlab=isSlab&&(grader==='TAG'||grader==='TAGGRADING'||((grader==='EGS'||grader.includes('EMPORIUMGRADINGSERVICE'))&&item.slabLabel?.labelStyle==='clear'));
     const artX=cardX+(isSlab?8:0);
-    const artY=cardY+(isSlab?cardInfoHeight:0);
+    const artY=cardY+(isSlab?(isArsSlab?5:plateHeight):0);
     const artWidth=cardWidth-(isSlab?16:0);
     const artHeight=cardHeight-(isSlab?10:0);
 
     if(isSlab){
-      const caseHeight=cardInfoHeight+cardHeight;
+      const caseHeight=plateHeight+cardHeight;
       ctx.save();
       ctx.shadowColor=style==='light'?'rgba(49,38,19,.18)':'rgba(0,0,0,.42)';ctx.shadowBlur=12;ctx.shadowOffsetY=5;
-      ctx.fillStyle=style==='light'?'rgba(255,255,255,.74)':'rgba(255,255,255,.08)';
+      ctx.fillStyle=clearSlab?'rgba(8,11,14,.96)':style==='light'?'rgba(255,255,255,.74)':'rgba(255,255,255,.08)';
       drawRoundedRect(ctx,cardX,cardY,cardWidth,caseHeight,10);ctx.fill();ctx.restore();
       ctx.strokeStyle=style==='light'?'rgba(119,126,132,.72)':'rgba(220,228,236,.46)';ctx.lineWidth=2;
       drawRoundedRect(ctx,cardX+1,cardY+1,cardWidth-2,caseHeight-2,10);ctx.stroke();
-      drawVaultSlabLabel(ctx,item,gameSlug==='all'?undefined:gameSlug,cardX+5,cardY+5,cardWidth-10,cardInfoHeight-10,slabYears.get(item));
+      if(clearSlab){ctx.fillStyle='rgba(7,10,13,.88)';drawRoundedRect(ctx,cardX+4,artY-1,cardWidth-8,artHeight+2,5);ctx.fill();ctx.strokeStyle='rgba(236,242,246,.62)';ctx.lineWidth=1.4;drawRoundedRect(ctx,cardX+4,artY-1,cardWidth-8,artHeight+2,5);ctx.stroke();}
+      const labelY=isArsSlab?cardY+cardHeight+5:cardY+5;
+      drawVaultSlabLabel(ctx,item,gameSlug==='all'?undefined:gameSlug,cardX+5,labelY,cardWidth-10,plateHeight-10,slabYears.get(item));
     }
 
     // Show duplicate copies as a small physical stack behind the top card.
@@ -799,7 +899,7 @@ async function generateListingCompositeBlob({
       const cardDetails = [item.metaLine??item.card.code, item.productType==='GRADED'?'':item.condition].filter(Boolean).join('  ');
       ctx.fillText(cardDetails, cardX + cardWidth / 2, cardY + cardHeight + 32);
     }
-    if(isSlab){ctx.strokeStyle=style==='light'?'rgba(119,126,132,.72)':'rgba(220,228,236,.46)';ctx.lineWidth=2;drawRoundedRect(ctx,cardX+1,cardY+1,cardWidth-2,cardInfoHeight+cardHeight-2,10);ctx.stroke();}
+    if(isSlab){ctx.strokeStyle=style==='light'?'rgba(119,126,132,.72)':'rgba(220,228,236,.46)';ctx.lineWidth=2;drawRoundedRect(ctx,cardX+1,cardY+1,cardWidth-2,plateHeight+cardHeight-2,10);ctx.stroke();}
     if (typeof item.unitAmount === 'number' && item.unitAmount > 0) {
       ctx.font = '800 12px "Plus Jakarta Sans", sans-serif';
       ctx.fillStyle = palette.accent;
