@@ -2512,6 +2512,9 @@ html[data-theme='dark'] .player-intro-meta{color:#a4bcc7!important}
 .checkout-rate-list label{display:flex;align-items:center;gap:10px;padding:12px;border:1px solid var(--line,#dfd1b8);border-radius:10px;cursor:pointer}
 .checkout-rate-list label.is-selected{border-color:var(--accent,#b78327);background:color-mix(in srgb,var(--accent,#b78327) 8%,var(--surface-raised,#fffaf0))}
 .checkout-rate-list label>span{display:grid;flex:1;gap:3px}
+.checkout-rate-list .checkout-rate-logo{display:grid;flex:0 0 46px;width:46px;height:34px;place-items:center;overflow:hidden;border:1px solid var(--line,#dfd1b8);border-radius:6px;background:#fff}
+.checkout-rate-list .checkout-rate-logo img{display:block;width:100%;height:100%;padding:4px;object-fit:contain}
+.checkout-rate-list .checkout-rate-logo.is-fallback{color:var(--muted,#716a5e)}
 .checkout-rate-list strong,.checkout-rate-list b{font-size:12px}
 .checkout-rate-list small{color:var(--muted,#716a5e);font-size:11px}
 .checkout-insurance-choice{display:flex;align-items:center;gap:10px;margin-top:10px;padding:11px 12px;border:1px solid var(--line,#dfd1b8);border-radius:10px;background:var(--surface-raised,#fffaf0);cursor:pointer}

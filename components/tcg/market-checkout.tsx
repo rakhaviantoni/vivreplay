@@ -30,6 +30,14 @@ type Rate={courier_name:string;courier_service_name:string;courier_code:string;c
 type CheckoutLine={printingId:string;quantity:number;unitAmount?:number;sealedProductId?:string;generalProduct?:{category:string;brand?:string;model?:string};condition?:string;notes?:string;photoIds?:string[];photoUrls?:string[];parcel?:{weight:number;length:number;width:number;height:number}};
 type CartLine={listingId:string;listingTitle:string;items:CheckoutLine[]};
 
+function CheckoutCourierLogo({code}:{code:string}){
+  const [failed,setFailed]=useState(false);
+  useEffect(()=>setFailed(false),[code]);
+  return <span className={`checkout-rate-logo${failed?' is-fallback':''}`} aria-hidden="true">
+    {failed?<Truck size={18}/>:<img src={`/api/market-assets/couriers/${encodeURIComponent(code.toLowerCase())}`} alt="" loading="lazy" onError={()=>setFailed(true)}/>}
+  </span>;
+}
+
 export function MarketCheckout(){
   const params=useSearchParams();
   const router=useRouter();
@@ -329,7 +337,7 @@ export function MarketCheckout(){
         {addressReady&&!editingAddress&&<>
           <div className="checkout-quote-row" id="checkout-delivery-services" tabIndex={-1}><div className="checkout-section-title"><Truck size={18}/><h2>{t('Delivery options','Opsi pengiriman')}</h2></div></div>
           {quoting&&<div className="shipping-options-skeleton" role="status" aria-label={t('Loading shipping options','Memuat opsi pengiriman')}>{[0,1,2].map(index=><div key={index}><span><i/><i/></span><i/></div>)}</div>}
-          {!quoting&&rates.length>0&&<div className="checkout-rate-list">{rates.map(rate=>{const key=`${rate.courier_code}:${rate.courier_service_code}`;return <label key={key} className={selectedRate===key?'is-selected':''}><input type="radio" name="shipping-rate" value={key} checked={selectedRate===key} onChange={()=>{setSelectedRate(key);setUseShippingInsurance(false)}}/><span><strong><span>{courierName(rate.courier_code)}</span><span>{rate.courier_service_name}</span></strong>{rate.duration&&<small>{rate.duration}</small>}{rate.insuranceMandatory&&<small>{t('Insurance included','Asuransi sudah termasuk')}</small>}</span><b>{formatMoney(rate.price,listing.currency)}</b></label>})}</div>}
+          {!quoting&&rates.length>0&&<div className="checkout-rate-list">{rates.map(rate=>{const key=`${rate.courier_code}:${rate.courier_service_code}`;return <label key={key} className={selectedRate===key?'is-selected':''}><input type="radio" name="shipping-rate" value={key} checked={selectedRate===key} onChange={()=>{setSelectedRate(key);setUseShippingInsurance(false)}}/><CheckoutCourierLogo code={rate.courier_code}/><span><strong><span>{courierName(rate.courier_code)}</span><span>{rate.courier_service_name}</span></strong>{rate.duration&&<small>{rate.duration}</small>}{rate.insuranceMandatory&&<small>{t('Insurance included','Asuransi sudah termasuk')}</small>}</span><b>{formatMoney(rate.price,listing.currency)}</b></label>})}</div>}
           {currentRate&&insuranceFee>0&&!currentRate.insuranceMandatory&&<label className="checkout-insurance-choice"><input type="checkbox" checked={useShippingInsurance} onChange={event=>setUseShippingInsurance(event.target.checked)}/><span><strong>{t('Add shipping insurance','Tambahkan asuransi pengiriman')}</strong><small>{t(`Covers ${formatMoney(currentRate.insuranceValue??subtotal,listing.currency)}.`, `Melindungi barang senilai ${formatMoney(currentRate.insuranceValue??subtotal,listing.currency)}.`)}</small></span><b>{formatMoney(insuranceFee,listing.currency)}</b></label>}
           {quoteError&&<div><p className="checkout-error" role="alert">{quoteError}</p><button type="button" className="button secondary" onClick={()=>{setEditingAddress(true);setRates([]);setSelectedRate('')}}>{t('Edit delivery address','Ubah alamat pengiriman')}</button></div>}
         </>}
