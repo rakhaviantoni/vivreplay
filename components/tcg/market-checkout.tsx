@@ -281,11 +281,11 @@ export function MarketCheckout(){
     <Link href={cartMode?'/market':marketListingPath('',listingId)} className="back-link"><ArrowLeft size={16}/>{cartMode?t('Back to Market','Kembali ke Market'):t('Back to listing','Kembali ke listing')}</Link>
     <header className="checkout-page-heading"><div><h1>{t('Review your order','Periksa pesanan')}</h1><p>{hasMixedItems?t('Check the items, delivery address, and total before paying.','Periksa item, alamat pengiriman, dan total sebelum membayar.'):hasSealedProducts?t('Check the products, delivery address, and total before paying.','Periksa produk, alamat pengiriman, dan total sebelum membayar.'):t('Check the cards, delivery address, and total before paying.','Periksa kartu, alamat pengiriman, dan total sebelum membayar.')}</p></div></header>
     <div className="checkout-layout">
-      <section className="checkout-panel checkout-order-summary"><h2>{cartMode?t(`${activeCartLines.length} ${activeCartLines.length===1?'listing':'listings'}`,`${activeCartLines.length} listing`):listing.title}</h2><p className="checkout-seller"><strong>{listing.seller}</strong><span>{listing.city}</span></p>
+      <section className="checkout-panel checkout-order-summary"><header className="checkout-order-summary-heading"><h2>{cartMode?t('Items in your order','Item dalam pesanan'):t('Items in this listing','Item di listing ini')}</h2>{cartMode&&<span>{t(`${selectedCards.reduce((sum,item)=>sum+item.quantity,0)} items`,`${selectedCards.reduce((sum,item)=>sum+item.quantity,0)} item`)}</span>}</header>
         <div className="checkout-items">{checkoutGroups.map(group=>{
           const sourceListing=cartListings.find(row=>row.id===group.id)??listing;
           return <section className="checkout-listing-group" key={group.id}>
-            <header className="checkout-listing-group-heading"><strong>{group.title}</strong></header>
+            <header className="checkout-listing-group-heading"><div className="checkout-listing-group-copy"><strong>{group.title}</strong><small><span>{sourceListing.seller}</span>{sourceListing.city&&<span><MapPin size={12}/>{sourceListing.city}</span>}</small></div></header>
             {group.items.map(item=>{
               const card=item.card??sourceListing?.items?.find(entry=>entry.printingId===item.printingId)?.card??(item.printingId===sourceListing?.printingId?sourceListing.card:undefined);
               const variant=card?.variant?onePieceVariantLabel(card.variant,card.setCode,card.printingCode):'';
