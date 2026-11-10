@@ -14,6 +14,7 @@ import {formatMoney,Listing} from '@/packages/domain';
 import {cardFor,Card} from '@/packages/card-data/catalog';
 import {api,useAccount} from '@/lib/client';
 import {CardArt} from './card-art';
+import {onePieceVariantLabel} from './vault/views/printing-labels';
 import {MarketBuyerFeeCapTable} from '@/components/tcg/market-buyer-fee-cap-table';
 import {PhoneInput} from '@/components/tcg/phone-input';
 import {MapPicker} from '@/components/tcg/map-picker';
@@ -275,18 +276,30 @@ export function MarketCheckout(){
       <section className="checkout-panel checkout-order-summary"><h2>{cartMode?t(`${activeCartLines.length} ${activeCartLines.length===1?'listing':'listings'}`,`${activeCartLines.length} listing`):listing.title}</h2><p className="checkout-seller"><strong>{listing.seller}</strong><span>{listing.city}</span></p>
         <div className="checkout-items">{checkoutGroups.map(group=>{
           const sourceListing=cartListings.find(row=>row.id===group.id)??listing;
-          const artworkItems=group.items.map(item=>({card:item.card??sourceListing?.items?.find(entry=>entry.printingId===item.printingId)?.card??(item.printingId===sourceListing?.printingId?sourceListing.card:undefined),quantity:item.quantity,printingId:item.printingId,photoUrl:item.photoUrl})).filter((item):item is typeof item&{card:Card}=>Boolean(item.card));
-          const groupCount=artworkItems.reduce((total,item)=>total+item.quantity,0);
-          const stack=artworkItems.flatMap(item=>Array.from({length:Math.max(1,Math.min(3,item.quantity))},(_,copy)=>({card:item.card!,photoUrl:item.photoUrl,key:`${item.printingId}-${copy}`}))).slice(0,3);
           return <section className="checkout-listing-group" key={group.id}>
-            <header className="checkout-listing-group-heading">
-              <div className={`market-feed-stack checkout-card-stack${groupCount===1?' is-single':''}`} style={{'--stack-last-index':Math.max(0,stack.length-1)} as React.CSSProperties}>
-              {stack.map(({card,photoUrl,key},index)=><div key={key} className="market-feed-art" style={{'--stack-index':index} as React.CSSProperties}>{photoUrl?<img src={photoUrl} alt=""/>:<CardArt card={card}/>}</div>)}
-                {groupCount>1&&<span aria-label={`${groupCount} ${id?'kartu':'cards'}`}>{groupCount}</span>}
-              </div>
-              <strong>{group.title}</strong>
-            </header>
-            {group.items.map(item=><div className="checkout-item-row" key={`${item.listingId}-${item.printingId}`}><div className="checkout-item-copy"><strong>{item.card?.name||item.listingTitle||listing.title}</strong><small>{item.generalProduct?<><span>{generalMarketCategoryLabel(item.generalProduct.category,locale)}</span>{item.generalProduct.brand&&<span>{item.generalProduct.brand}</span>}{item.generalProduct.model&&<span>{item.generalProduct.model}</span>}</>:<><span>{item.card?.code||item.card?.printingCode||item.printingId}</span>{item.card?.language&&<span>{item.card.language}</span>}{item.card?.variant&&<span>{item.card.variant}</span>}{item.card?.setCode&&<span>{item.card.setCode}</span>}</>}<span>{item.sealedProductId?productConditionLabel(item.condition,locale):item.condition}</span></small>{cartMode&&<div className="checkout-cart-quantity"><button type="button" aria-label={t('Remove one','Kurangi satu')} disabled={item.quantity<=1} onClick={()=>updateCartQuantity(item.listingId!,item.printingId,item.quantity-1)}><Minus size={14}/></button><b>{item.quantity}</b><button type="button" aria-label={t('Add one','Tambah satu')} onClick={()=>updateCartQuantity(item.listingId!,item.printingId,item.quantity+1)}><Plus size={14}/></button><button type="button" className="checkout-cart-remove" onClick={()=>updateCartQuantity(item.listingId!,item.printingId,0)}><X size={13}/>{t('Remove','Hapus')}</button></div>}</div><b>{formatMoney(item.unitAmount*item.quantity,listing.currency)}</b></div>)}
+            <header className="checkout-listing-group-heading"><strong>{group.title}</strong></header>
+            {group.items.map(item=>{
+              const card=item.card??sourceListing?.items?.find(entry=>entry.printingId===item.printingId)?.card??(item.printingId===sourceListing?.printingId?sourceListing.card:undefined);
+              const variant=card?.variant?onePieceVariantLabel(card.variant,card.setCode,card.printingCode):'';
+              const itemName=card?.name||item.listingTitle||listing.title;
+              const itemNumber=card?.gameSlug==='pokemon'&&card.localCardNumber
+                ? `${card.setCode?`${card.setCode} `:''}${card.localCardNumber}`
+                : card?(card.printingCode?.replace(/_p\d+$/i,'')||card.code).replace(/^PK-/i,''):'';
+              const numberContainsSet=Boolean(card?.setCode&&itemNumber.toUpperCase().replace(/[^A-Z0-9]/g,'').includes(card.setCode.toUpperCase().replace(/[^A-Z0-9]/g,'')));
+              const displayVariant=id&&/^Alt art$/i.test(variant)?'Ilustrasi alternatif':variant;
+              return <div className="checkout-item-row" key={`${item.listingId}-${item.printingId}`}>
+                <div className="checkout-item-art">{card?<CardArt card={card} small/>:item.photoUrl?<img src={item.photoUrl} alt="" loading="lazy"/>:<span aria-hidden="true"/>}</div>
+                <div className="checkout-item-copy">
+                  <strong>{itemName}</strong>
+                  <small className="checkout-item-meta">
+                    {item.generalProduct?<><span>{generalMarketCategoryLabel(item.generalProduct.category,locale)}</span>{item.generalProduct.brand&&<span>{item.generalProduct.brand}</span>}{item.generalProduct.model&&<span>{item.generalProduct.model}</span>}</>:<>{itemNumber&&<span>{itemNumber}</span>}{card?.language&&<span>{card.language}</span>}{displayVariant&&displayVariant!=='Standard'&&<span>{displayVariant}</span>}{card?.setCode&&!numberContainsSet&&<span>{card.setCode}</span>}</>}
+                    <span>{item.sealedProductId?productConditionLabel(item.condition,locale):item.condition}</span>
+                  </small>
+                  {cartMode&&<div className="checkout-cart-quantity"><button type="button" aria-label={t('Remove one','Kurangi satu')} disabled={item.quantity<=1} onClick={()=>updateCartQuantity(item.listingId!,item.printingId,item.quantity-1)}><Minus size={14}/></button><b>{item.quantity}</b><button type="button" aria-label={t('Add one','Tambah satu')} onClick={()=>updateCartQuantity(item.listingId!,item.printingId,item.quantity+1)}><Plus size={14}/></button><button type="button" className="checkout-cart-remove" onClick={()=>updateCartQuantity(item.listingId!,item.printingId,0)}><X size={13}/>{t('Remove','Hapus')}</button></div>}
+                </div>
+                <b>{formatMoney(item.unitAmount*item.quantity,listing.currency)}</b>
+              </div>;
+            })}
           </section>;
         })}</div>
         <dl className="checkout-totals"><div><dt>{hasMixedItems?t('Items','Item'):hasSealedProducts?t('Products','Produk'):t('Cards','Kartu')}</dt><dd>{formatMoney(subtotal,listing.currency)}</dd></div><div><dt>{t('Delivery','Pengiriman')}</dt><dd><button type="button" className="checkout-delivery-action" aria-controls={addressReady&&!editingAddress?'checkout-delivery-services':undefined} onClick={chooseDelivery}>{currentRate&&addressReady&&!editingAddress?`${formatMoney(baseShippingFee,listing.currency)} - ${t('Change','Ubah')}`:quoting?t('Loading rates…','Memuat ongkir…'):addressReady&&!editingAddress?t('Choose a service','Pilih layanan'):editingAddress?t('Save delivery address','Simpan alamat pengiriman'):t('Add delivery address','Tambahkan alamat pengiriman')}</button></dd></div>{(optionalInsuranceFee>0||includedInsuranceFee>0)&&<div><dt>{t('Shipping insurance','Asuransi pengiriman')}{currentRate?.insuranceMandatory&&<small className="checkout-insurance-included">{t('Required for this service','Wajib untuk layanan ini')}</small>}</dt><dd>{formatMoney(optionalInsuranceFee+includedInsuranceFee,listing.currency)}</dd></div>}{voucherEligible&&addressReady&&!editingAddress&&currentRate&&<div className="checkout-pro-voucher-choice"><dt><label><input type="checkbox" checked={useShippingVoucher} onChange={event=>setUseShippingVoucher(event.target.checked)}/><span>{t('Use a Pro delivery voucher','Gunakan voucher ongkir Pro')}<small>{shippingVoucherPeriod==='annual'?t(`${shippingVouchersRemaining} left for your annual plan. 50% off, up to ${formatMoney(MARKET_PRO_SHIPPING_VOUCHER_CAP,'IDR')}`,`${shippingVouchersRemaining} tersisa untuk paket tahunan. Diskon 50%, maksimal ${formatMoney(MARKET_PRO_SHIPPING_VOUCHER_CAP,'IDR')}`):t(`${shippingVouchersRemaining} left this month. 50% off, up to ${formatMoney(MARKET_PRO_SHIPPING_VOUCHER_CAP,'IDR')}`,`${shippingVouchersRemaining} tersisa bulan ini. Diskon 50%, maksimal ${formatMoney(MARKET_PRO_SHIPPING_VOUCHER_CAP,'IDR')}`)}</small></span></label></dt><dd>{shippingDiscount>0?`−${formatMoney(shippingDiscount,listing.currency)}`:formatMoney(0,listing.currency)}</dd></div>}<div><dt>{buyerFeeLabel}</dt><dd>{formatMoney(buyerServiceFee,listing.currency)}</dd></div>{selectedPaymentOption&&selectedPaymentOption.method!=='qris'&&<div><dt>{t('Payment fee (estimate)','Perkiraan biaya pembayaran')}</dt><dd>{formatMoney(estimatedGatewayFee,listing.currency)}</dd></div>}<div className="checkout-grand-total"><dt>{t('Total','Total')}</dt><dd>{formatMoney(paymentBaseTotal+estimatedGatewayFee,listing.currency)}</dd></div></dl>
