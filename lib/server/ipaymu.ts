@@ -267,18 +267,13 @@ export async function getIpaymuPaymentChannels(options:{forceRefresh?:boolean}={
 export async function getEnabledIpaymuPaymentChannels(database:PaymentSettingsDatabase,options:{forceRefresh?:boolean}={}):Promise<IpaymuPaymentChannel[]>{
   const [channels,settings]=await Promise.all([getIpaymuPaymentChannels(options),getIpaymuPaymentChannelSettings(database)]);
   const disabled=new Set(settings.disabledChannels);
-  return channels.filter(channel=>!disabled.has(paymentChannelKey(channel.method,channel.channel))&&!(channel.method==='ewallet'&&channel.channel==='shopeepay'));
+  return channels.filter(channel=>channel.method==='qris'&&!disabled.has(paymentChannelKey(channel.method,channel.channel)));
 }
 
 export async function getIpaymuPaymentChannelChoices(database:PaymentSettingsDatabase,options:{forceRefresh?:boolean}={}):Promise<IpaymuPaymentChannel[]>{
   const [channels,settings]=await Promise.all([getIpaymuPaymentChannels(options),getIpaymuPaymentChannelSettings(database)]);
   const disabled=new Set(settings.disabledChannels);
-  const choices=channels.filter(channel=>!disabled.has(paymentChannelKey(channel.method,channel.channel)));
-  const shopeepay=choices.find(channel=>channel.method==='ewallet'&&channel.channel==='shopeepay');
-  if(shopeepay){
-    return choices.map(channel=>channel===shopeepay?{...channel,available:false,unavailableReason:'temporarily_unavailable'}:channel);
-  }
-  return choices;
+  return channels.filter(channel=>channel.method==='qris'&&!disabled.has(paymentChannelKey(channel.method,channel.channel)));
 }
 
 export async function createIpaymuRedirect(input:{orderId:string;products:IpaymuProduct[];buyer:{name:string;email:string;phone:string};returnUrl:string;cancelUrl:string;notifyUrl:string;paymentMethod?:PaymentMethodCode;feeDirection?:'BUYER'|'MERCHANT'}){
