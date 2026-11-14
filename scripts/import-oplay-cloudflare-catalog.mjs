@@ -11,6 +11,7 @@ const skipR2Upload = process.argv.includes('--skip-r2-upload');
 const wrangler = path.join(root, 'node_modules/.bin/wrangler');
 const execFileAsync = promisify(execFile);
 const configPath = process.env.CLOUDFLARE_CONFIG ?? 'dist/server/wrangler.json';
+const requestedSetCodes = new Set((process.env.OPLAY_IMPORT_SETS ?? '').split(',').map((value) => normalizeSetCode(value)).filter(Boolean));
 const logPath = path.join(tmpdir(), 'vivreplay-oplay-import-wrangler.log');
 const env = { ...process.env, WRANGLER_WRITE_LOGS: 'false', WRANGLER_SEND_METRICS: 'false', WRANGLER_LOG_PATH: logPath };
 const browserHeaders = {
@@ -34,9 +35,6 @@ const setConfigs = [
   { query: 'ST37,ST38', code: 'ST-37', name: 'Starter Deck 37', releaseDate: '2026-12-18', kind: 'starter' },
   { query: 'ST37,ST38', code: 'ST-38', name: 'Starter Deck 38', releaseDate: '2026-12-18', kind: 'starter' },
 ];
-const setByQueryCode = new Map([
-  ['OP18', setConfigs[0]], ['EB05', setConfigs[1]], ['ST37', setConfigs[2]], ['ST38', setConfigs[3]],
-]);
 const id = (value) => {
   const bytes = createHash('sha256').update(`vivreplay-oplay:${value}`).digest().subarray(0, 16);
   bytes[6] = (bytes[6] & 0x0f) | 0x50;
@@ -187,33 +185,42 @@ function uniqueVariant(base, siblingRows) {
 }
 
 async function main() {
+  const selectedSetConfigs = requestedSetCodes.size
+    ? setConfigs.filter((set) => requestedSetCodes.has(set.code))
+    : setConfigs;
+  if (!selectedSetConfigs.length) throw new Error(`No configured sets match OPLAY_IMPORT_SETS=${[...requestedSetCodes].join(',')}.`);
+  const importSt012Repair = requestedSetCodes.size === 0;
+  const setByQueryCode = new Map(selectedSetConfigs.map((set) => [set.query, set]));
+  const selectedCodes = new Set(selectedSetConfigs.map((set) => set.code));
   const languageLists = await Promise.all(['en', 'jp'].map(async (language) => {
-    const results = await Promise.all([...new Set(setConfigs.map((item) => item.query))].map((setQuery) => getSetPages(setQuery, language)));
+    const results = await Promise.all([...new Set(selectedSetConfigs.map((item) => item.query))].map((setQuery) => getSetPages(setQuery, language)));
     return { language, records: results.flat().map((record) => ({ ...record, requestedLanguage: language })) };
   }));
-  const listRecords = languageLists.flatMap(({ language, records }) => records.filter((record) => record.srcLang === language));
+  const listRecords = languageLists.flatMap(({ language, records }) => records.filter((record) => record.srcLang === language && selectedCodes.has(normalizeSetCode(record.setCode))));
   const byIdentity = new Map();
   for (const record of listRecords) {
     const current = byIdentity.get(record.code);
     if (!current || record.requestedLanguage === 'en') byIdentity.set(record.code, record);
   }
   const codes = [...byIdentity.keys()];
-  const detailCodes = codes.filter((code) => listRecords.some((record) => record.code === code && (record.imageStatus === 'official' || record.srcLang === 'jp')));
+  const detailCodes = codes.filter((code) => listRecords.some((record) => record.setCode && selectedCodes.has(normalizeSetCode(record.setCode)) && record.code === code && (record.imageStatus === 'official' || record.srcLang === 'jp')));
   const detailEntries = await bounded(detailCodes, 1, async (code) => {
     const entry = [code, await fetchJson(`https://oplaytcg.com/api/cards/${encodeURIComponent(code)}?lang=en`)];
     await new Promise((resolve) => setTimeout(resolve, 350));
     return entry;
   });
   const details = new Map(detailEntries);
-  let st012Detail;
-  try { st012Detail = JSON.parse(await readFile('/private/tmp/oplay-st01-012-live.json', 'utf8')); }
-  catch { st012Detail = await fetchJson('https://oplaytcg.com/api/cards/ST01-012?lang=en'); }
+  let st012Detail = { printings: [] };
+  if (importSt012Repair) {
+    try { st012Detail = JSON.parse(await readFile('/private/tmp/oplay-st01-012-live.json', 'utf8')); }
+    catch { st012Detail = await fetchJson('https://oplaytcg.com/api/cards/ST01-012?lang=en'); }
+  }
 
   const gameRows = query("SELECT id,slug FROM tcg_games WHERE slug='one-piece'");
   if (!gameRows[0]) throw new Error('One Piece game record is missing from production D1.');
   const gameId = gameRows[0].id;
-  const normalizedSets = [...new Map(setConfigs.map((item) => [item.code, item])).values()];
-  const neededSetCodes = [...new Set([...normalizedSets.map((item) => item.code), 'ST-01', 'OP-03', 'OP-05'])];
+  const normalizedSets = [...new Map(selectedSetConfigs.map((item) => [item.code, item])).values()];
+  const neededSetCodes = [...new Set([...normalizedSets.map((item) => item.code), ...(importSt012Repair ? ['ST-01', 'OP-03', 'OP-05'] : [])])];
   const setRows = query(`SELECT id,external_set_id,name,release_date FROM tcg_sets WHERE game_id=${quote(gameId)} AND external_set_id IN (${neededSetCodes.map(quote).join(',')})`);
   const setIdByCode = new Map(setRows.map((row) => [row.external_set_id, row.id]));
   for (const set of normalizedSets) if (!setIdByCode.has(set.code)) setIdByCode.set(set.code, id(`set:${set.code}`));
@@ -222,7 +229,7 @@ async function main() {
   for (const code of codes) if (!identityIdByCode.has(code)) identityIdByCode.set(code, id(`identity:${code}`));
   const identityIds = [...identityIdByCode.values()];
   const existingPrintings = query(`SELECT p.id,p.identity_id,p.language,p.set_code,p.variant,p.printing_code,p.card_image_url,p.source_payload FROM tcg_card_printings p WHERE p.identity_id IN (${identityIds.map(quote).join(',')})`);
-  const currentSt012 = query("SELECT p.id,p.identity_id,p.language,p.set_code,p.variant,p.printing_code,p.card_image_url,p.source_payload FROM tcg_card_printings p JOIN tcg_card_identities i ON i.id=p.identity_id WHERE i.code='ST01-012'");
+  const currentSt012 = importSt012Repair ? query("SELECT p.id,p.identity_id,p.language,p.set_code,p.variant,p.printing_code,p.card_image_url,p.source_payload FROM tcg_card_printings p JOIN tcg_card_identities i ON i.id=p.identity_id WHERE i.code='ST01-012'") : [];
   const imageUrls = [...new Set([...listRecords.map((row) => row.image), ...(st012Detail.printings ?? []).map((printing) => printing.image)].filter(Boolean))];
   const existingSources = query(`SELECT id,source_url FROM tcg_card_asset_sources WHERE source_url IN (${imageUrls.map(quote).join(',') || "''"})`);
   const existingAssets = query(`SELECT id,printing_id,kind FROM tcg_card_assets WHERE printing_id IN (${[...new Set([...existingPrintings.map((row) => row.id), ...currentSt012.map((row) => row.id)])].map(quote).join(',') || "''"})`);
