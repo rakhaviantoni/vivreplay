@@ -20,14 +20,16 @@ function rank(code:string){const featured=featuredReleaseOrder.indexOf(code.toUp
 function family(code:string):Exclude<SetFamily,'all'>{const prefix=code.toUpperCase().match(/^[A-Z]+/)?.[0]??'other';return prefix==='OP'||prefix==='EB'||prefix==='ST'?prefix:'other'}
 function rarityScore(row:Row){const rarity=(row.rarity??'').toUpperCase();const base=rarity==='SP'?100:rarity==='SEC'?90:rarity==='L'?80:rarity==='SR'?70:rarity==='R'?50:rarity==='UC'?30:rarity==='C'?20:rarity==='PR'?65:10;return base+(/parallel|alternate|alt.?art|_p\d+/i.test(row.variant??'')?8:0)}
 function card(row:Row):Card{const i=row.tcg_card_identities;return{id:row.id,code:i.code,name:displayCardName(i.name,i.code),color:i.color,type:i.card_type,cost:i.cost,power:i.power,rarity:row.rarity??'',art:0,effect:'',imageUrl:row.card_image_url??undefined,imageSource:'external',setCode:row.set_code,language:row.language,printingCode:row.printing_code??i.code,assetPath:row.tcg_card_assets?.find(asset=>asset.kind==='small')?.object_key}}
-function ReleaseTile({release,language}:{release:Release;language:'EN'|'ID'}){
+function ReleaseTile({release,language,compact=false}:{release:Release;language:'EN'|'ID';compact?:boolean}){
   const router=useRouter();
   const id=language==='ID';
-  return <article className="set-release"><header><div><span>{release.code}</span><h3>{release.name}</h3></div><small>{release.count} {id?'kartu':'cards'}</small></header><DepthCarousel className="set-card-carousel" label={`${release.code} ${id?'kartu unggulan':'featured cards'}`} items={release.cards.map(item=>({id:item.id,label:`${id?'Buka':'Open'} ${item.name}`,onSelect:()=>router.push(`/cards/${item.code}?lang=${item.language}`),content:<CardArt card={item}/>}))}/><Link href={`/sets/${encodeURIComponent(release.code)}`} className="set-all-link">{id?`Lihat semua kartu ${release.code}`:`View all ${release.code} cards`} <ArrowUpRight size={15}/></Link></article>;
+  const Heading=compact?'h3':'h2';
+  return <article className="set-release"><header><div><span>{release.code}</span><Heading>{release.name}</Heading></div><small>{release.count.toLocaleString(id?'id-ID':'en-US')} {id?'kartu':'cards'}</small></header><DepthCarousel className="set-card-carousel" label={`${release.code} ${id?'kartu unggulan':'featured cards'}`} items={release.cards.map(item=>({id:item.id,label:`${id?'Buka':'Open'} ${item.name}`,onSelect:()=>router.push(`/cards/${item.code}?lang=${item.language}`),content:<CardArt card={item}/>}))}/><Link href={`/sets/${encodeURIComponent(release.code)}`} className="set-all-link">{id?`Lihat semua kartu ${release.code}`:`View all ${release.code} cards`} <ArrowUpRight size={15}/></Link></article>;
 }
 
 export function SetsExperience({compact=false}:{compact?:boolean}){
   const [rows,setRows]=useState<Row[]>([]);const [query,setQuery]=useState('');const [setFamily,setSetFamily]=useState<SetFamily>('all');
+  const [loading,setLoading]=useState(true);const [loadError,setLoadError]=useState(false);const [reloadTick,setReloadTick]=useState(0);
   const [language,setLanguage]=useState<'EN'|'ID'>(useRouteLocale());
   const rootRef=useRef<HTMLElement>(null);
   useEffect(()=>{
@@ -38,7 +40,7 @@ export function SetsExperience({compact=false}:{compact?:boolean}){
     return()=>window.removeEventListener('vivreplay:locale',onLocale);
   },[]);
   const id=language==='ID';
-  useEffect(()=>{let live=true;let started=false;let observer:IntersectionObserver|undefined;const load=async()=>{if(started)return;started=true;try{const all:Row[]=[];for(let offset=0;;offset+=500){const response=await fetch(versionedCardCatalogUrl(`/api/cards/catalog?language=EN&limit=500&offset=${offset}`),{cache:'force-cache'});if(!response.ok)throw new Error('Catalog unavailable');const page=await response.json() as {cards:Row[]};all.push(...page.cards.filter(row=>isPlayableSet(row.set_code)));if(page.cards.length<500)break}if(live)setRows(compact?all.filter(row=>featuredReleaseOrder.includes(row.set_code.toUpperCase())):all)}catch(err){console.warn('Failed to load sets:',err)}};if(!compact){void load()}else if(typeof IntersectionObserver==='undefined'){void load()}else if(rootRef.current){observer=new IntersectionObserver(entries=>{if(entries.some(entry=>entry.isIntersecting)){observer?.disconnect();void load()}},{rootMargin:'900px 0px'});observer.observe(rootRef.current)}return()=>{live=false;observer?.disconnect()}},[compact]);
+  useEffect(()=>{let live=true;let started=false;let observer:IntersectionObserver|undefined;const controller=new AbortController();const load=async()=>{if(started)return;started=true;setLoading(true);setLoadError(false);try{const all:Row[]=[];const compactFilter=compact?`&${featuredReleaseOrder.map(code=>`set=${encodeURIComponent(code)}`).join('&')}`:'';for(let offset=0;;offset+=500){const response=await fetch(versionedCardCatalogUrl(`/api/cards/catalog?language=EN&limit=500&offset=${offset}${compactFilter}`),{cache:'force-cache',signal:controller.signal});if(!response.ok)throw new Error('Catalog unavailable');const page=await response.json() as {cards:Row[]};all.push(...page.cards.filter(row=>isPlayableSet(row.set_code)));if(page.cards.length<500)break}if(live)setRows(compact?all.filter(row=>featuredReleaseOrder.includes(row.set_code.toUpperCase())):all)}catch(err){if(live&&!(err instanceof Error&&err.name==='AbortError'))setLoadError(true)}finally{if(live)setLoading(false)}};if(!compact){void load()}else if(typeof IntersectionObserver==='undefined'){void load()}else if(rootRef.current){observer=new IntersectionObserver(entries=>{if(entries.some(entry=>entry.isIntersecting)){observer?.disconnect();void load()}},{rootMargin:'900px 0px'});observer.observe(rootRef.current)}return()=>{live=false;observer?.disconnect();controller.abort()}},[compact,reloadTick]);
   const sets=useMemo<Release[]>(()=>{const groups=new Map<string,Row[]>();rows.forEach(row=>groups.set(row.set_code,[...(groups.get(row.set_code)??[]),row]));return [...groups.entries()].map(([code,cards])=>{const bestByIdentity=new Map<string,Row>();for(const printing of [...cards].sort((a,b)=>rarityScore(b)-rarityScore(a)||a.id.localeCompare(b.id))){if(!bestByIdentity.has(printing.tcg_card_identities.code))bestByIdentity.set(printing.tcg_card_identities.code,printing)}return {code,name:cards[0].set_name,count:new Set(cards.map(item=>item.tcg_card_identities.code)).size,cards:[...bestByIdentity.values()].slice(0,4).map(card)}}).sort((a,b)=>rank(b.code)-rank(a.code))},[rows]);
   const visible=useMemo(()=>sets.filter(set=>(setFamily==='all'||family(set.code)===setFamily)&&`${set.code} ${set.name}`.toLowerCase().includes(query.trim().toLowerCase())),[sets,query,setFamily]);
   const shown=compact?sets.slice(0,6):visible;
@@ -58,13 +60,14 @@ export function SetsExperience({compact=false}:{compact?:boolean}){
     ['other','Other releases'],
   ];
 
+  const numLocale=id?'id-ID':'en-US';
   return <Wrapper ref={rootRef} className={compact?'home-sets home-reveal':'page sets-page'}>
     {!compact ? (
       <header className="directory-hero sets-hero page-intro-surface">
         <p className="eyebrow"><Stack size={15}/> {id?'Arsip rilis':'Set archive'}</p>
         <h1>{id?'Setiap rilis, kartu demi kartu':'Every release, card by card'}</h1>
         <p>{id?'Cari berdasarkan nama atau kode set, saring kelompok rilis, lalu buka seluruh kartu yang tersedia.':'Search by set name or code, filter the release family, then open the exact card pool.'}</p>
-        <b>{id?`${sets.length} rilis dengan ${rows.length.toLocaleString()} versi cetak`:`${sets.length} releases with ${rows.length.toLocaleString()} printings`}</b>
+        <b>{id?`${sets.length.toLocaleString(numLocale)} rilis dengan ${rows.length.toLocaleString(numLocale)} versi cetak`:`${sets.length.toLocaleString(numLocale)} releases with ${rows.length.toLocaleString(numLocale)} printings`}</b>
       </header>
     ) : (
       <div className="section-heading">
@@ -76,8 +79,8 @@ export function SetsExperience({compact=false}:{compact?:boolean}){
         <Link className="text-action" href="/sets">{id?'Lihat semua rilis':'View all sets'} <ArrowUpRight size={15}/></Link>
       </div>
     )}
-    {!compact&&<div className="sets-controls" aria-label={id?'Kontrol arsip rilis':'Set archive controls'}><label><Search size={16}/><input value={query} onChange={event=>setQuery(event.target.value)} placeholder={id?'Cari set berdasarkan nama atau kode':'Find a set by name or code'}/></label><div className="sets-family" role="group" aria-label={id?'Kelompok set':'Set family'}>{familyOptions.map(([value,label])=><button type="button" key={value} aria-pressed={setFamily===value} onClick={()=>setSetFamily(value)}>{label}</button>)}</div>{(query||setFamily!=='all')&&<button className="sets-clear" type="button" onClick={()=>{setQuery('');setSetFamily('all')}}><X size={14}/>{id?'Hapus':'Clear'}</button>}</div>}
-    {!rows.length?<div className="sets-skeleton" aria-label={id?'Memuat set':'Loading sets'}><i/><i/><i/></div>:<div className="set-release-grid">{shown.map(release=><ReleaseTile key={release.code} release={release} language={language}/>)}</div>}
-    {!compact&&rows.length>0&&!shown.length&&<div className="sets-empty"><h2>{id?'Tidak ada rilis yang sesuai dengan filter':'No releases match that filter'}</h2><button type="button" onClick={()=>{setQuery('');setSetFamily('all')}}>{id?'Atur ulang filter set':'Reset set filters'}</button></div>}
+    {!compact&&<div className="sets-controls" aria-label={id?'Kontrol arsip rilis':'Set archive controls'}><label><span className="sr-only">{id?'Cari set berdasarkan nama atau kode':'Find a set by name or code'}</span><Search size={16}/><input value={query} onChange={event=>setQuery(event.target.value)} placeholder={id?'Cari set berdasarkan nama atau kode':'Find a set by name or code'}/></label><div className="sets-family" role="group" aria-label={id?'Kelompok set':'Set family'}>{familyOptions.map(([value,label])=><button type="button" key={value} aria-pressed={setFamily===value} onClick={()=>setSetFamily(value)}>{label}</button>)}</div>{(query||setFamily!=='all')&&<button className="sets-clear" type="button" onClick={()=>{setQuery('');setSetFamily('all')}}><X size={14}/>{id?'Hapus':'Clear'}</button>}</div>}
+    {loading?<div className="sets-skeleton" aria-label={id?'Memuat set':'Loading sets'}><i/><i/><i/></div>:loadError?<div className="sets-empty" role="status"><h2>{id?'Rilis gagal dimuat':'Could not load releases'}</h2><button type="button" onClick={()=>setReloadTick(t=>t+1)}>{id?'Coba lagi':'Try again'}</button></div>:<div className="set-release-grid">{shown.map(release=><ReleaseTile key={release.code} release={release} language={language} compact={compact}/>)}</div>}
+    {!compact&&!loading&&!loadError&&rows.length>0&&!shown.length&&<div className="sets-empty"><h2>{id?'Tidak ada rilis yang sesuai dengan filter':'No releases match that filter'}</h2><button type="button" onClick={()=>{setQuery('');setSetFamily('all')}}>{id?'Atur ulang filter set':'Reset set filters'}</button></div>}
   </Wrapper>;
 }

@@ -1070,7 +1070,7 @@ html[data-theme=dark] .admin-health-table tr:hover td { background:#142a34; }
 .admin-chart-panel h2{margin:0;color:#283a31;font:800 15px/1.25 var(--game-font)}
 .admin-chart-panel header p{margin:4px 0 0;color:#798076;font:600 10px/1.4 var(--game-font)}
 .admin-chart-panel header>strong{flex:none;color:#aa6a13;font:800 13px var(--game-font)}
-.admin-chart-panel svg{display:block;width:100%;height:180px;margin-top:12px;overflow:visible}
+.admin-chart-panel svg{display:block;width:100%;height:auto;aspect-ratio:680/210;margin-top:12px;overflow:visible}
 .admin-chart-gridline{stroke:#e7dbc8;stroke-width:1;stroke-dasharray:3 5}
 .admin-chart-panel footer{display:flex;justify-content:space-between;gap:8px;color:#798076;font:600 9px var(--game-font)}
 .admin-overview-updated{margin:0;color:#798076;font:600 10px var(--game-font);text-align:right}
@@ -1268,6 +1268,9 @@ html[data-theme=dark] .admin-payout-manager>header p:not(.eyebrow),html[data-the
 html[data-theme=dark] .admin-payout-byline,html[data-theme=dark] .admin-dispute-byline,html[data-theme=dark] .admin-payout-byline strong{color:#b7c8c1}
 html[data-theme=dark] .admin-disputes>aside{border-color:#284753;background:#10232d;color:#b7c8c1}
 html[data-theme=dark] .admin-payout-list>article,html[data-theme=dark] .admin-dispute-list>article{border-color:#284753;background:#0b1c25}
+html[data-theme=dark] .admin-dispute-list blockquote{border-left-color:#d8a63b;background:#10232d;color:#eaf2eb}
+html[data-theme=dark] .admin-dispute-decision{border-top-color:#284753}
+html[data-theme=dark] .admin-dispute-decision input:not([type=checkbox]),html[data-theme=dark] .admin-dispute-decision select,html[data-theme=dark] .admin-dispute-decision textarea{border-color:#284753;background:#07101a;color:#eaf2eb}
 @media(max-width:900px){.admin-workspace-page{padding-inline:22px}.admin-loading-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-loading-skeleton.is-catalog .admin-loading-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:640px){.admin-workspace-page{padding:1px 14px 34px}.admin-workspace-page>.admin-health{padding-top:25px!important;padding-bottom:42px!important}.admin-health-heading{gap:16px;padding-bottom:20px}.admin-payout-manager,.admin-disputes{gap:12px;margin-top:16px}.admin-payout-manager>header,.admin-disputes>header{align-items:flex-start;flex-direction:column;gap:12px;padding-bottom:14px}.admin-payout-manager>header h2,.admin-disputes>header h2{font-size:20px}.admin-payout-manager>header .admin-refresh,.admin-disputes>header .admin-refresh{min-height:35px}.admin-payout-list>article,.admin-dispute-list>article{padding:14px}.admin-loading-skeleton{gap:12px;margin-top:14px}.admin-loading-metrics,.admin-loading-skeleton.is-catalog .admin-loading-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.admin-loading-metrics i{height:82px}.admin-loading-panels{grid-template-columns:1fr;gap:10px}.admin-loading-panels i{height:155px}.admin-loading-table,.admin-loading-skeleton.is-catalog .admin-loading-table{grid-template-columns:repeat(4,minmax(58px,1fr));overflow-x:hidden}.admin-loading-table i{height:42px}.admin-loading-form{grid-template-columns:1fr;gap:9px}.admin-loading-form i{height:49px}.admin-loading-list{gap:10px}.admin-loading-list i{height:150px}.admin-loading-skeleton.is-disputes .admin-loading-list i{height:190px}}
 @media(prefers-reduced-motion:reduce){.admin-loading-skeleton i{animation:none}}
@@ -1479,3 +1482,908 @@ html[data-theme=dark] .pokemon-catalog-status-tabs button.active{border-color:#3
 @media(max-width:1050px){.admin-catalog-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}.pokemon-catalog-filters{grid-template-columns:minmax(220px,1fr) repeat(3,minmax(120px,150px))}}
 @media(max-width:760px){.admin-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-metric-coverage{grid-column:1/-1}.admin-catalog-game-tabs button{min-width:0;flex:1;padding-inline:10px}.admin-catalog-game-tabs{width:100%}.admin-catalog-game-tabs button img{max-width:104px;max-height:27px}.pokemon-catalog-filters{grid-template-columns:minmax(0,1fr) repeat(3,minmax(0,1fr));gap:6px;padding:0 10px 10px}.pokemon-catalog-search{grid-column:1/-1}.pokemon-catalog-filters .filter-trigger{gap:4px;padding-inline:8px;font-size:10px}.pokemon-catalog-status-tabs button{padding-inline:8px}.pokemon-catalog-status-tabs{gap:3px}.pokemon-catalog-filter-summary{min-height:26px}}
 @media(max-width:420px){.pokemon-catalog-filters{grid-template-columns:1fr 1fr}.pokemon-catalog-search{grid-column:1/-1}.pokemon-catalog-filters .filter-menu:first-of-type{grid-column:1/-1}}
+
+/* Cross-section archival polish: active filter chips, directory quick-jump, tabular numerals, focus rings & motion-safe elevation. */
+.active-filter-bar{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:6px;
+  margin:10px 0 6px;
+}
+.active-filter-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  min-height:28px;
+  padding:4px 9px;
+  border:1px solid #d5c7ae;
+  border-radius:999px;
+  background:#fffaf0;
+  color:#4f4638;
+  font:600 11px/1 var(--game-font);
+  cursor:pointer;
+  transition:border-color .15s ease,background-color .15s ease,color .15s ease;
+}
+.active-filter-chip span{color:#867761;font-weight:600}
+.active-filter-chip b{font-weight:800}
+.active-filter-chip:hover{border-color:#b88628;background:#f8eed9;color:#2e2519}
+.active-filter-clear{
+  min-height:28px;
+  padding:4px 10px;
+  border:1px solid transparent;
+  border-radius:999px;
+  background:transparent;
+  color:#9c4328;
+  font:800 11px/1 var(--game-font);
+  cursor:pointer;
+}
+.active-filter-clear:hover{background:#f5e5dc}
+html[data-theme='dark'] .active-filter-chip{
+  border-color:#2c4755;
+  background:#10222b;
+  color:#dce8e3;
+}
+html[data-theme='dark'] .active-filter-chip span{color:#8fa6a0}
+html[data-theme='dark'] .active-filter-chip:hover{border-color:#d7a73c;background:#1a333f;color:#fff}
+html[data-theme='dark'] .active-filter-clear{color:#e69b75}
+html[data-theme='dark'] .active-filter-clear:hover{background:#2a201b}
+
+.directory-search .search-clear,
+.pokemon-set-search .search-clear{
+  flex:none;
+  display:grid;
+  place-items:center;
+  width:24px;
+  height:24px;
+  border:0;
+  border-radius:999px;
+  background:#00000010;
+  color:#6c5e4b;
+  cursor:pointer;
+}
+.directory-search .search-clear:hover,
+.pokemon-set-search .search-clear:hover{background:#00000020;color:#2b2318}
+html[data-theme='dark'] .directory-search .search-clear,
+html[data-theme='dark'] .pokemon-set-search .search-clear{background:#ffffff1a;color:#b0c2ce}
+html[data-theme='dark'] .directory-search .search-clear:hover,
+html[data-theme='dark'] .pokemon-set-search .search-clear:hover{background:#ffffff30;color:#fff}
+
+.directory-jump-bar{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  overflow-x:auto;
+  scrollbar-width:none;
+  margin:0 0 18px;
+  padding:4px 0;
+}
+.directory-jump-bar::-webkit-scrollbar{display:none}
+.directory-jump-bar a{
+  flex:0 0 auto;
+  padding:5px 10px;
+  border:1px solid #dccfb8;
+  border-radius:999px;
+  background:#fffaf0;
+  color:#5b4d3a;
+  font:800 11px/1 var(--game-font);
+  letter-spacing:.03em;
+  text-decoration:none;
+  transition:border-color .15s ease,background-color .15s ease,color .15s ease;
+}
+.directory-jump-bar a:hover{border-color:#c28b29;background:#f7ebd4;color:#2b2113}
+html[data-theme='dark'] .directory-jump-bar a{
+  border-color:#2a4552;
+  background:#102128;
+  color:#bfd1cc;
+}
+html[data-theme='dark'] .directory-jump-bar a:hover{border-color:#d7a73c;background:#19313b;color:#f6f0df}
+
+.set-index-section{scroll-margin-top:88px}
+.set-index-section>div>a,.archetype-item>div a{
+  padding:5px 7px;
+  border-radius:6px;
+  transition:background-color .12s ease,color .12s ease;
+}
+.set-index-section>div>a:hover,.archetype-item>div a:hover{background:#f3ead9}
+html[data-theme='dark'] .set-index-section>div>a:hover,
+html[data-theme='dark'] .archetype-item>div a:hover{background:#162d37;color:#f1d385}
+
+.archetype-item>button{cursor:pointer;transition:background-color .14s ease}
+.archetype-item>button:hover{background:#f7efe0}
+html[data-theme='dark'] .archetype-item>button:hover{background:#152b34}
+
+/* Tabular numerals for dense counts, prices, quantities & deck curves across all sections. */
+.pokemon-library-count,
+.catalog-result-count,
+.set-index-section header span,
+.set-index-section>div b,
+.archetype-item>button b,
+.archetype-item>div b,
+.set-release header small,
+.pokemon-set-results span,
+.vault-kpi b,
+.vault-grid-qty,
+.vault-list-qty,
+.vault-list-price,
+.market-price,
+.market-delta,
+.deck-count,
+.deck-curve-count{
+  font-variant-numeric:tabular-nums;
+}
+
+/* Crisp keyboard focus rings across interactive cards & controls. */
+.catalog-card-button:focus-visible,
+.pokemon-card-tile:focus-visible,
+.set-release:focus-within,
+.vault-grid-card:focus-visible,
+.vault-list-row:focus-visible,
+.market-card:focus-visible,
+.deck-release:focus-visible,
+.archetype-item>button:focus-visible,
+.active-filter-chip:focus-visible,
+.active-filter-clear:focus-visible,
+.directory-jump-bar a:focus-visible{
+  outline:2px solid #c69128;
+  outline-offset:2px;
+}
+
+@media (hover: hover){
+  .set-release,
+  .vault-grid-card,
+  .market-card,
+  .deck-release{
+    transition:transform .18s cubic-bezier(.2,.8,.2,1),border-color .18s ease,box-shadow .18s ease;
+  }
+  .set-release:hover,
+  .vault-grid-card:hover,
+  .market-card:hover,
+  .deck-release:hover{
+    transform:translateY(-2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .set-release,.vault-grid-card,.market-card,.deck-release,
+  .catalog-card-button,.pokemon-card-tile{
+    transition:none !important;
+    transform:none !important;
+  }
+}
+
+@media (max-width: 760px){
+  .active-filter-bar{gap:5px}
+  .active-filter-chip,.active-filter-clear{min-height:32px;padding:5px 10px}
+}
+
+.checkout-payment-single{
+  display:flex;
+  align-items:center;
+  gap:11px;
+  padding:11px 13px;
+  border:1px solid var(--vp-line,#d9ccb4);
+  border-radius:11px;
+  background:var(--vp-surface,#fffaf0);
+}
+.checkout-payment-single .checkout-payment-method-copy{
+  display:grid;
+  gap:2px;
+}
+.checkout-payment-single .checkout-payment-method-copy strong{font-size:13px}
+.checkout-payment-single .checkout-payment-method-copy small{font-size:12px;color:var(--vp-muted,#6f6454)}
+html[data-theme='dark'] .checkout-payment-single{
+  border-color:#2a4552;
+  background:#102128;
+}
+html[data-theme='dark'] .checkout-payment-single .checkout-payment-method-copy small{color:#a8bbb5}
+
+/* VivrePlay Quests & Rewards modal + header trigger */
+.quests-mark{
+  position:relative;
+  display:grid;
+  place-items:center;
+  width:36px;
+  height:36px;
+  border:1px solid var(--vp-line,#d7cab4);
+  border-radius:999px;
+  background:var(--vp-surface,#fffaf0);
+  color:var(--vp-ink,#2c251d);
+  cursor:pointer;
+  transition:border-color .15s ease,background-color .15s ease;
+}
+.quests-mark:hover{border-color:#c69128;background:#f7ebd4}
+.quests-mark-dot{
+  position:absolute;
+  top:-4px;
+  right:-4px;
+  display:grid;
+  place-items:center;
+  min-width:17px;
+  height:17px;
+  padding:0 4px;
+  border-radius:999px;
+  background:#b84524;
+  color:#fff;
+  font:800 10px/1 var(--game-font);
+  font-variant-numeric:tabular-nums;
+}
+html[data-theme='dark'] .quests-mark{
+  border-color:#2a4552;
+  background:#102128;
+  color:#dce8e3;
+}
+html[data-theme='dark'] .quests-mark:hover{border-color:#d7a73c;background:#19313b}
+
+.quests-dialog[data-slot='dialog-content']{
+  width:min(760px,calc(100vw - 24px))!important;
+  max-width:760px!important;
+  max-height:min(88dvh,860px)!important;
+  padding:22px!important;
+  border:1px solid var(--vp-line,#d9ccb4)!important;
+  border-radius:16px!important;
+  background:var(--vp-surface,#fffaf0)!important;
+  color:var(--vp-ink,#2b2319)!important;
+}
+html[data-theme='dark'] .quests-dialog[data-slot='dialog-content']{
+  border-color:#2c4755!important;
+  background:#0d1e26!important;
+  color:#edf5f1!important;
+}
+.quests-dialog-title{display:flex;align-items:center;gap:8px;font-size:20px;font-weight:800}
+.quests-loading{padding:36px 0;text-align:center;color:var(--vp-muted,#6f6454);font-size:13px}
+.quests-body{display:grid;gap:16px;margin-top:8px}
+.quests-summary{
+  display:grid;
+  gap:8px;
+  padding:14px 16px;
+  border:1px solid var(--vp-line,#dfd2bc);
+  border-radius:12px;
+  background:color-mix(in srgb,var(--vp-surface,#fffaf0) 70%,var(--vp-page,#f3ecdc));
+}
+.quests-summary-numbers{display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-variant-numeric:tabular-nums}
+.quests-summary-numbers strong{font-size:18px;font-weight:800}
+.quests-summary-numbers span{font-size:12px;color:var(--vp-muted,#6f6454)}
+.quests-progress-track{height:7px;overflow:hidden;border-radius:999px;background:#e4d9c4}
+.quests-progress-track b{display:block;height:100%;border-radius:inherit;background:#c28b29;transition:width .25s ease}
+html[data-theme='dark'] .quests-summary{border-color:#27424f;background:#11252f}
+html[data-theme='dark'] .quests-progress-track{background:#1b3642}
+
+.quests-milestone{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  padding:15px 16px;
+  border:1px solid #d5bf95;
+  border-radius:12px;
+  background:#fbf1dc;
+}
+.quests-milestone.is-ready{border-color:#c28b29}
+.quests-milestone.is-claimed{border-color:#699b7d;background:#edf6f0}
+.quests-milestone-eyebrow{display:block;font:800 10px/1 var(--game-font);letter-spacing:.08em;color:#9b6b19;margin-bottom:4px}
+.quests-milestone strong{display:block;font-size:15px;font-weight:800}
+.quests-milestone p{margin:3px 0 0;font-size:12px;color:#5c5142}
+html[data-theme='dark'] .quests-milestone{border-color:#444b2c;background:#16251f}
+html[data-theme='dark'] .quests-milestone-eyebrow{color:#e6bc5c}
+html[data-theme='dark'] .quests-milestone p{color:#b6c8c2}
+
+.quests-group{display:grid;gap:10px}
+.quests-group h3{margin:0;font:800 12px/1 var(--game-font);letter-spacing:.05em;text-transform:uppercase;color:var(--vp-muted,#6f6454)}
+.quests-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.quest-card{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  padding:13px 14px;
+  border:1px solid var(--vp-line,#dfd2bc);
+  border-radius:12px;
+  background:var(--vp-surface,#fffaf0);
+}
+.quest-card.is-ready{border-color:#c28b29}
+.quest-card.is-claimed{opacity:.82}
+.quest-card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.quest-card-top strong{font-size:13px;font-weight:800;line-height:1.3}
+.quest-points-pill{
+  flex:none;
+  padding:3px 7px;
+  border-radius:999px;
+  background:#f1e4c9;
+  color:#8f5e11;
+  font:800 11px/1 var(--game-font);
+  font-variant-numeric:tabular-nums;
+}
+.quest-card p{margin:0;font-size:12px;line-height:1.4;color:var(--vp-muted,#6f6454)}
+.quest-card-progress{display:flex;align-items:center;gap:8px;font-size:11px;font-variant-numeric:tabular-nums;color:var(--vp-muted,#6f6454)}
+.quest-card-progress i{flex:1;height:5px;overflow:hidden;border-radius:999px;background:#e4d9c4}
+.quest-card-progress i b{display:block;height:100%;border-radius:inherit;background:#c28b29}
+.quest-card-actions{margin-top:auto;padding-top:4px;display:flex;align-items:center}
+.quest-claim-btn,.quest-go-btn{min-height:32px!important;padding:5px 12px!important;font-size:12px!important;display:inline-flex;align-items:center;gap:5px}
+.quest-claimed-badge{display:inline-flex;align-items:center;gap:5px;font:700 12px/1 var(--game-font);color:#267b56}
+html[data-theme='dark'] .quest-card{border-color:#26404c;background:#10232c}
+html[data-theme='dark'] .quest-points-pill{background:#24392c;color:#e7be5f}
+html[data-theme='dark'] .quest-card-progress i{background:#1b3642}
+html[data-theme='dark'] .quest-claimed-badge{color:#65c997}
+
+@media (max-width: 640px){
+  .quests-grid{grid-template-columns:1fr}
+  .quests-milestone{flex-direction:column;align-items:flex-start}
+}
+
+/* Payment Method & Loading Payment Details */
+@keyframes checkoutShimmer{
+  0%{background-position:160% 0}
+  100%{background-position:-60% 0}
+}
+@keyframes checkoutPulseDot{
+  0%,100%{opacity:1;transform:scale(1)}
+  50%{opacity:.45;transform:scale(.82)}
+}
+
+.checkout-payment-methods-single .checkout-payment-single{
+  padding:14px 16px;
+  border:1px solid var(--vp-line,#dfd2bc);
+  border-radius:14px;
+  background:var(--vp-surface,#fffaf0);
+  gap:13px;
+}
+.checkout-payment-methods-single .checkout-payment-method-mark{
+  width:40px;
+  height:40px;
+  border-radius:10px;
+  border:1px solid #e4d8c3;
+  background:#f7efe0;
+  color:#8f5e11;
+}
+.checkout-payment-methods-single .checkout-payment-method-copy{
+  gap:3px;
+}
+.checkout-payment-methods-single .checkout-payment-method-copy strong{
+  font-size:15px;
+  line-height:1.25;
+}
+.checkout-payment-methods-single .checkout-payment-method-copy small{
+  font-size:12.5px;
+  line-height:1.4;
+}
+html[data-theme='dark'] .checkout-payment-methods-single .checkout-payment-single{
+  border-color:#26404c;
+  background:#10232c;
+}
+html[data-theme='dark'] .checkout-payment-methods-single .checkout-payment-method-mark{
+  border-color:#2d4956;
+  background:#17303b;
+  color:#e7be5f;
+}
+
+.checkout-payment-method-loading{
+  display:grid;
+  gap:8px;
+}
+.checkout-payment-skeleton-card{
+  display:flex;
+  align-items:center;
+  gap:13px;
+  padding:14px 16px;
+  border:1px solid var(--vp-line,#dfd2bc);
+  border-radius:14px;
+  background:var(--vp-surface,#fffaf0);
+}
+.checkout-payment-skeleton-icon,
+.checkout-payment-skeleton-pill,
+.checkout-payment-skeleton-lines i,
+.checkout-skeleton-line,
+.checkout-order-skeleton-icon,
+.checkout-order-skeleton-head-lines i,
+.checkout-order-skeleton-pill,
+.checkout-order-skeleton-cta,
+.checkout-order-skeleton-summary .is-summary-title,
+.checkout-order-skeleton-thumb,
+.checkout-order-skeleton-item-lines i,
+.checkout-order-skeleton-item .is-price,
+.checkout-order-skeleton-rows i{
+  display:block;
+  border-radius:8px;
+  background:linear-gradient(100deg,#ece2cf 25%,#f7efe0 45%,#ece2cf 65%);
+  background-size:220% 100%;
+  animation:checkoutShimmer 1.4s ease-in-out infinite;
+}
+html[data-theme='dark'] .checkout-payment-skeleton-card{
+  border-color:#26404c;
+  background:#10232c;
+}
+html[data-theme='dark'] .checkout-payment-skeleton-icon,
+html[data-theme='dark'] .checkout-payment-skeleton-pill,
+html[data-theme='dark'] .checkout-payment-skeleton-lines i,
+html[data-theme='dark'] .checkout-skeleton-line,
+html[data-theme='dark'] .checkout-order-skeleton-icon,
+html[data-theme='dark'] .checkout-order-skeleton-head-lines i,
+html[data-theme='dark'] .checkout-order-skeleton-pill,
+html[data-theme='dark'] .checkout-order-skeleton-cta,
+html[data-theme='dark'] .checkout-order-skeleton-summary .is-summary-title,
+html[data-theme='dark'] .checkout-order-skeleton-thumb,
+html[data-theme='dark'] .checkout-order-skeleton-item-lines i,
+html[data-theme='dark'] .checkout-order-skeleton-item .is-price,
+html[data-theme='dark'] .checkout-order-skeleton-rows i{
+  background:linear-gradient(100deg,#16303b 25%,#1e3d4b 45%,#16303b 65%);
+  background-size:220% 100%;
+}
+
+.checkout-payment-skeleton-icon{
+  width:40px;
+  height:40px;
+  border-radius:10px;
+  flex:none;
+}
+.checkout-payment-skeleton-lines{
+  flex:1;
+  display:grid;
+  gap:7px;
+  min-width:0;
+}
+.checkout-payment-skeleton-lines .is-title{
+  width:38%;
+  min-width:92px;
+  height:14px;
+}
+.checkout-payment-skeleton-lines .is-sub{
+  width:76%;
+  max-width:250px;
+  height:11px;
+}
+.checkout-payment-skeleton-pill{
+  width:78px;
+  height:22px;
+  border-radius:999px;
+  flex:none;
+}
+.checkout-payment-skeleton-caption{
+  font-size:12px;
+  color:var(--vp-muted,#6f6454);
+}
+html[data-theme='dark'] .checkout-payment-skeleton-caption{
+  color:#9bb2bc;
+}
+
+.checkout-skeleton-line.is-heading{
+  width:min(320px,78vw);
+  height:30px;
+  margin:8px 0 10px;
+}
+.checkout-skeleton-status{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  margin:0;
+  font-size:13.5px;
+  font-weight:600;
+  color:var(--vp-muted,#6f6454);
+}
+.checkout-skeleton-dot{
+  width:8px;
+  height:8px;
+  border-radius:999px;
+  background:#c28b29;
+  animation:checkoutPulseDot 1.2s ease-in-out infinite;
+}
+html[data-theme='dark'] .checkout-skeleton-status{
+  color:#a8bec8;
+}
+html[data-theme='dark'] .checkout-skeleton-dot{
+  background:#e7be5f;
+}
+
+.checkout-order-skeleton-panel,
+.checkout-order-skeleton-summary{
+  display:grid;
+  gap:16px;
+}
+.checkout-order-skeleton-head{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.checkout-order-skeleton-icon{
+  width:42px;
+  height:42px;
+  border-radius:11px;
+  flex:none;
+}
+.checkout-order-skeleton-head-lines{
+  flex:1;
+  display:grid;
+  gap:6px;
+}
+.checkout-order-skeleton-head-lines .is-eyebrow{
+  width:72px;
+  height:10px;
+}
+.checkout-order-skeleton-head-lines .is-title{
+  width:140px;
+  height:17px;
+}
+.checkout-order-skeleton-pill{
+  width:96px;
+  height:32px;
+  border-radius:999px;
+  flex:none;
+}
+.checkout-order-skeleton-cta{
+  width:100%;
+  height:44px;
+  border-radius:12px;
+}
+.checkout-order-skeleton-summary .is-summary-title{
+  width:136px;
+  height:18px;
+}
+.checkout-order-skeleton-item{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding-bottom:14px;
+  border-bottom:1px solid var(--vp-line,#dfd2bc);
+}
+html[data-theme='dark'] .checkout-order-skeleton-item{
+  border-bottom-color:#233b46;
+}
+.checkout-order-skeleton-thumb{
+  width:46px;
+  height:64px;
+  border-radius:8px;
+  flex:none;
+}
+.checkout-order-skeleton-item-lines{
+  flex:1;
+  display:grid;
+  gap:7px;
+}
+.checkout-order-skeleton-item-lines .is-title{
+  width:72%;
+  height:14px;
+}
+.checkout-order-skeleton-item-lines .is-sub{
+  width:48%;
+  height:11px;
+}
+.checkout-order-skeleton-item .is-price{
+  width:68px;
+  height:15px;
+  flex:none;
+}
+.checkout-order-skeleton-rows{
+  display:grid;
+  gap:10px;
+}
+.checkout-order-skeleton-rows > div{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.checkout-order-skeleton-rows .is-label{
+  width:110px;
+  height:12px;
+}
+.checkout-order-skeleton-rows .is-label.is-wide{
+  width:148px;
+}
+.checkout-order-skeleton-rows .is-val{
+  width:74px;
+  height:12px;
+}
+
+.checkout-qris-preparing-card{
+  display:grid;
+  justify-items:center;
+  text-align:center;
+  gap:6px;
+  padding:24px 18px;
+  border:1px dashed #d3c2a2;
+  border-radius:16px;
+  background:#fbf5e9;
+}
+.checkout-qris-preparing-frame{
+  width:76px;
+  height:76px;
+  border-radius:14px;
+  border:1px solid #dfd0b3;
+  background:#fffaf0;
+  color:#8f5e11;
+  display:grid;
+  place-items:center;
+  margin-bottom:4px;
+  animation:checkoutPulseDot 1.4s ease-in-out infinite;
+}
+.checkout-qris-preparing-card strong{
+  font-size:15px;
+  font-weight:800;
+}
+.checkout-qris-preparing-card small{
+  font-size:12.5px;
+  color:var(--vp-muted,#6f6454);
+}
+html[data-theme='dark'] .checkout-qris-preparing-card{
+  border-color:#2b4a58;
+  background:#0f2129;
+}
+html[data-theme='dark'] .checkout-qris-preparing-frame{
+  border-color:#2f5261;
+  background:#152c36;
+  color:#e7be5f;
+}
+html[data-theme='dark'] .checkout-qris-preparing-card small{
+  color:#9db4be;
+}
+
+.checkout-qris-code{
+  width:min(100%,324px)!important;
+  padding:0!important;
+  border:0!important;
+  background:transparent!important;
+  gap:14px!important;
+}
+.checkout-qris-frame{
+  width:100%;
+  padding:12px;
+  border-radius:24px;
+  border:0;
+  background:linear-gradient(180deg,#bb3d2f 0%,#df7a28 55%,#e5a334 100%);
+  box-shadow:0 12px 30px rgba(187,61,47,.22), 0 4px 14px rgba(23,25,30,.12);
+}
+.checkout-qris-card{
+  display:grid;
+  justify-items:center;
+  gap:7px;
+  padding:16px 14px 18px;
+  border-radius:18px;
+  background:#ffffff;
+  color:#17191e;
+  text-align:center;
+}
+.checkout-qris-brand-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  width:100%;
+  padding:0 4px 4px;
+}
+.checkout-qris-brand{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  color:#17191e;
+  font:800 16px/1 var(--game-font),var(--font-sans);
+  letter-spacing:-.01em;
+}
+.checkout-qris-brand img{
+  width:22px;
+  height:22px;
+  object-fit:contain;
+}
+.checkout-qris-headline{
+  font-size:22px;
+  font-weight:800;
+  line-height:1.15;
+  color:#bb3d2f;
+  margin:2px 0 0;
+  letter-spacing:-.01em;
+}
+.checkout-qris-qr-box{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:100%;
+  padding:4px;
+  background:#fff;
+}
+.checkout-qris-qr-box img{
+  width:min(100%,228px);
+  height:auto;
+  aspect-ratio:1;
+  object-fit:contain;
+  background:#fff;
+  border-radius:6px;
+}
+.checkout-qris-nmid{
+  font-size:12px;
+  font-weight:650;
+  color:#2d3139;
+  letter-spacing:.02em;
+}
+.checkout-qris-accepted{
+  display:grid;
+  justify-items:center;
+  gap:5px;
+  width:100%;
+  margin-top:2px;
+}
+.checkout-qris-accepted > span{
+  font-size:13.5px;
+  font-weight:700;
+  color:#17191e;
+}
+.checkout-qris-wallets{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  margin-top:2px;
+}
+.checkout-qris-wallets-note{
+  font-size:10.5px;
+  font-weight:500;
+  color:#4b5563;
+  line-height:1.3;
+}
+.checkout-qris-amount{
+  display:grid;
+  gap:2px;
+  margin-top:4px;
+  padding:7px 12px;
+  width:100%;
+  border-radius:10px;
+  background:#fff9f0;
+  border:1px solid #eed8b3;
+}
+.checkout-qris-amount span{
+  font-size:10.5px;
+  font-weight:600;
+  color:#716550;
+}
+.checkout-qris-amount strong{
+  font-size:17px;
+  font-weight:850;
+  font-variant-numeric:tabular-nums;
+  color:#bb3d2f;
+}
+.checkout-qris-actions{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:8px;
+  width:100%;
+}
+.checkout-qris-download-btn{
+  width:100%;
+  min-height:42px!important;
+  display:inline-flex!important;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  border-radius:8px!important;
+  background:#bb3d2f!important;
+  border:1px solid #a33225!important;
+  color:#ffffff!important;
+  font-size:13.5px!important;
+  font-weight:750!important;
+  text-decoration:none!important;
+  cursor:pointer;
+  box-shadow:0 2px 6px rgba(187,61,47,.25);
+  transition:background-color .15s ease,transform .12s ease;
+}
+.checkout-qris-download-btn:hover:not(:disabled){
+  background:#a83427!important;
+  transform:translateY(-1px);
+}
+.checkout-qris-download-btn:disabled{
+  opacity:.65;
+  cursor:not-allowed;
+}
+.checkout-qris-open-btn{
+  width:100%;
+  min-height:38px!important;
+  display:inline-flex!important;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  border-radius:8px!important;
+  font-size:12.5px!important;
+  font-weight:700!important;
+  text-decoration:none!important;
+  cursor:pointer;
+}
+
+.checkout-qris-code.is-compact{
+  width:min(100%,278px)!important;
+  margin:8px auto 4px!important;
+}
+.checkout-qris-code.is-compact .checkout-qris-frame{
+  padding:10px;
+  border-radius:20px;
+}
+.checkout-qris-code.is-compact .checkout-qris-card{
+  padding:12px 10px 14px;
+  border-radius:14px;
+  gap:5px;
+}
+.checkout-qris-code.is-compact .checkout-qris-headline{
+  font-size:18px;
+}
+.checkout-qris-code.is-compact .checkout-qris-qr-box img{
+  width:min(100%,184px);
+}
+.checkout-qris-code.is-compact .checkout-qris-nmid{
+  font-size:11px;
+}
+.checkout-qris-code.is-compact .checkout-qris-accepted > span{
+  font-size:12px;
+}
+.checkout-qris-code.is-compact .checkout-qris-wallets{
+  gap:8px;
+}
+.checkout-qris-code.is-compact .checkout-qris-wallets-note{
+  font-size:9.5px;
+}
+.checkout-qris-code.is-compact .checkout-qris-amount{
+  padding:5px 8px;
+}
+.checkout-qris-code.is-compact .checkout-qris-amount strong{
+  font-size:15px;
+}
+.market-order-qris-wrap{
+  display:grid;
+  justify-items:center;
+  gap:6px;
+  width:100%;
+}
+
+.vivre-payment-details-skeleton{
+  display:grid;
+  gap:12px;
+  padding:14px 16px;
+  border:1px solid var(--vp-line,#dfd2bc);
+  border-radius:14px;
+  background:var(--vp-surface,#fffaf0);
+}
+.vivre-payment-details-skeleton-head{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.vivre-payment-details-skeleton-qr{
+  width:min(100%,200px);
+  aspect-ratio:1;
+  margin:4px auto;
+  border-radius:12px;
+  background:linear-gradient(100deg,#ece2cf 25%,#f7efe0 45%,#ece2cf 65%);
+  background-size:220% 100%;
+  animation:checkoutShimmer 1.4s ease-in-out infinite;
+}
+html[data-theme='dark'] .vivre-payment-details-skeleton{
+  border-color:#26404c;
+  background:#10232c;
+}
+html[data-theme='dark'] .vivre-payment-details-skeleton-qr{
+  background:linear-gradient(100deg,#16303b 25%,#1e3d4b 45%,#16303b 65%);
+  background-size:220% 100%;
+}
+
+@media (max-width: 640px){
+  .checkout-payment-skeleton-pill{
+    display:none;
+  }
+  .checkout-order-skeleton-pill{
+    width:72px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .checkout-payment-skeleton-icon,
+  .checkout-payment-skeleton-pill,
+  .checkout-payment-skeleton-lines i,
+  .checkout-skeleton-line,
+  .checkout-order-skeleton-icon,
+  .checkout-order-skeleton-head-lines i,
+  .checkout-order-skeleton-pill,
+  .checkout-order-skeleton-cta,
+  .checkout-order-skeleton-summary .is-summary-title,
+  .checkout-order-skeleton-thumb,
+  .checkout-order-skeleton-item-lines i,
+  .checkout-order-skeleton-item .is-price,
+  .checkout-order-skeleton-rows i,
+  .checkout-skeleton-dot,
+  .checkout-qris-preparing-frame,
+  .vivre-payment-details-skeleton-qr{
+    animation:none;
+  }
+}

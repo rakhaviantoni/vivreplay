@@ -1,7 +1,7 @@
 'use client';
 
 import LocalizedAnchor from '@/components/ui/localized-link';
-import React from 'react';
+import React, { useEffect } from 'react';
 import Link from '@/components/ui/localized-link';
 import { 
   XIcon as X, 
@@ -51,6 +51,13 @@ export function RawDetailModal({
   onDelete,
   onShare,
 }: RawDetailModalProps) {
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [open, onClose]);
+
   if (!open || !item) return null;
 
   const printing = printings.find(p => p.id === item.printingId);
@@ -227,19 +234,20 @@ export function RawDetailModal({
               <Plus size={15} />
               Add Copy (+1)
             </button>
-            {listedQuantity > 0 ? (
+            {listedQuantity > 0 && (
               <Link href={activeListingHref ?? '/market'} className="vault-btn vault-btn-secondary">
                 <Store size={15} />
                 {activeListingHref ? 'View Active Listing' : 'Manage Listings'}
               </Link>
-            ) : (
+            )}
+            {availableQuantity > 0 && (
               <button
                 type="button"
                 className="vault-btn vault-btn-secondary"
                 onClick={() => onSell(item)}
               >
                 <Store size={15} />
-                List for Sale
+                {listedQuantity > 0 ? `List Remaining (${availableQuantity})` : 'List for Sale'}
               </button>
             )}
             <button

@@ -23,7 +23,7 @@ export function SetProductArtwork({code,id,language}:{code:string;id:boolean;lan
   const images=product.images as {pack?:string;box?:string};
   const deck=/^(ST|SD|LD)/.test(product.code);
   return <div className={`set-product-images${images.box?' has-box':''}`}>
-    {images.pack&&<figure><img src={images.pack} alt={`${product.code} ${deck?'starter deck':'booster pack'}`}/><figcaption>{deck?'Starter deck':(id?'Paket booster':'Booster pack')}</figcaption></figure>}
+    {images.pack&&<figure><img src={images.pack} alt={`${product.code} ${deck?'starter deck':'booster pack'}`}/><figcaption>{deck?(id?'Deck pemula':'Starter deck'):(id?'Paket booster':'Booster pack')}</figcaption></figure>}
     {images.box&&<figure><img src={images.box} alt={`${product.code} ${deck?'product contents':'booster box'}`}/><figcaption>{deck?(id?'Isi produk':'Product contents'):(id?'Boks booster':'Booster box')}</figcaption></figure>}
   </div>;
 }

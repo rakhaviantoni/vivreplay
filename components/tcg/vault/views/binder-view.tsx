@@ -205,10 +205,7 @@ export function BinderView({
               onDragLeave={event=>{if(!event.currentTarget.contains(event.relatedTarget as Node|null))setDropTargetId(null);}}
               onDrop={event=>{event.preventDefault();const source=event.dataTransfer.getData('text/plain')||draggedId.current;if(source)reorder(source,item.id);draggedId.current=null;setDraggingId(null);setDropTargetId(null);}}
               onClick={() => {if(suppressClick.current){suppressClick.current=false;return;}onSelectItem(item)}}
-              role="button"
-              tabIndex={0}
-              aria-label={`${displayCardName(item.card.name,item.card.code)}, ${lang}. Drag to reorder; press Alt and an arrow key to move.`}
-              onKeyDown={e => { if(e.altKey&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();const index=stacks.findIndex(stack=>stack.item.id===item.id);const delta=e.key==='ArrowLeft'||e.key==='ArrowUp'?-1:1;const target=stacks[index+delta];if(target)reorder(item.id,target.item.id);}else if (e.key === 'Enter') onSelectItem(item); }}
+              onKeyDown={e => { if(e.altKey&&['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)){e.preventDefault();const index=stacks.findIndex(stack=>stack.item.id===item.id);const delta=e.key==='ArrowLeft'||e.key==='ArrowUp'?-1:1;const target=stacks[index+delta];if(target)reorder(item.id,target.item.id);} }}
             >
               {/* Card Art Stage with depth and soft shadow */}
               {isGraded?<VaultSlabCase item={item}>{artStage}</VaultSlabCase>:artStage}
@@ -216,7 +213,7 @@ export function BinderView({
               {/* Slot Meta Information */}
               {!isGraded&&<div className={`vault-slot-info${isOnePiece?' is-one-piece':''}`}>
                 <div className="vault-slot-heading-row">
-                  <h4 className="vault-slot-name">{displayCardName(item.card.name,item.card.code)}</h4>
+                  <h4 className="vault-slot-name"><button type="button" onClick={e=>{e.stopPropagation();onSelectItem(item)}} aria-label={`${displayCardName(item.card.name,item.card.code)}, ${lang}. View card details; Alt+Arrow reorders.`} style={{all:'inherit',cursor:'pointer',width:'100%',textAlign:'left'}}>{displayCardName(item.card.name,item.card.code)}</button></h4>
                   {isOnePiece&&<div className="vault-slot-meta-row">
                     <VaultSlotMetaIdentity item={item} printingLabel={stack.printingLabel}/>
                     {!hideValues && stack.item.hasMarketEstimate && <span className="vault-slot-value">{formatCompactMoney(stack.estimatedValue, 'IDR')}</span>}
@@ -239,18 +236,16 @@ export function BinderView({
 
         {/* Faint Empty Placeholder Slots to complete the binder page */}
         {Array.from({ length: remainingSlots }).map((_, index) => (
-          <div
+          <button
+            type="button"
             key={`empty-slot-${index}`}
             className="vault-slot-empty"
             onClick={onAddNewCard}
-            role="button"
-            tabIndex={0}
-            onKeyDown={e => { if (e.key === 'Enter') onAddNewCard(); }}
             title="Empty binder pocket, Click to add card"
           >
             <Plus size={22} style={{ opacity: 0.4 }} />
             <span style={{ fontSize: '11px', fontWeight: 600 }}>Empty Pocket</span>
-          </div>
+          </button>
         ))}
       </div>
     </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   EnvelopeSimpleIcon as EnvelopeSimple,
   DeviceMobileIcon as DeviceMobile,
@@ -123,17 +123,35 @@ export function AdminEmailsDashboard() {
   const [sentPreviewTheme,setSentPreviewTheme]=useState<'light'|'dark'>('light');
   const [sentQuery,setSentQuery]=useState('');
   const [sentStatus,setSentStatus]=useState('all');
+  const [previewError, setPreviewError] = useState('');
+  const copyTimerRef = useRef<number | undefined>(undefined);
+
+  useEffect(() => () => {
+    if (copyTimerRef.current) window.clearTimeout(copyTimerRef.current);
+  }, []);
 
   useEffect(() => {
-    fetch(`/api/admin/emails/preview?locale=${previewLanguage}&theme=${previewTheme}&role=${previewRole}`)
-      .then((res) => res.json() as Promise<{ emails: EmailData[] }>)
-      .then((data) => {
-        if (data?.emails) {
+    const controller = new AbortController();
+    void (async () => {
+      await Promise.resolve();
+      if (controller.signal.aborted) return;
+      setLoading(true);
+      setPreviewError('');
+      try {
+        const res = await fetch(`/api/admin/emails/preview?locale=${previewLanguage}&theme=${previewTheme}&role=${previewRole}`, { signal: controller.signal });
+        if (!res.ok) throw new Error('Could not load email previews.');
+        const data = (await res.json()) as { emails?: EmailData[] };
+        if (!controller.signal.aborted && data?.emails) {
           setEmails(data.emails);
         }
-      })
-      .catch((err) => console.error('Failed to load email previews:', err))
-      .finally(() => setLoading(false));
+      } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') return;
+        if (!controller.signal.aborted) setPreviewError(err instanceof Error ? err.message : 'Could not load email previews.');
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    })();
+    return () => controller.abort();
   }, [previewLanguage,previewTheme,previewRole]);
 
   const currentEmail = emails.find((e) => e.action === selectedAction) || emails[0];
@@ -146,10 +164,15 @@ export function AdminEmailsDashboard() {
     return matchesQuery&&matchesStatus;
   });
 
-  const handleCopy = (content: string) => {
-    navigator.clipboard.writeText(content);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const handleCopy = async (content: string) => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopied(true);
+      if (copyTimerRef.current) window.clearTimeout(copyTimerRef.current);
+      copyTimerRef.current = window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setSendResult({ success: false, message: 'Clipboard copy is unavailable in this browser.' });
+    }
   };
 
   const handleSendTest = async (e: React.FormEvent) => {
@@ -624,12 +647,16 @@ export function AdminEmailsDashboard() {
             }}
           >
             {loading ? (
-              <div style={{ display: 'grid', placeItems: 'center', color: '#8fa7b7', fontSize: 14 }}>
+              <div style={{ display: 'grid', placeItems: 'center', color: 'var(--mail-admin-muted)', fontSize: 14 }}>
                 Rendering template…
+              </div>
+            ) : previewError ? (
+              <div style={{ display: 'grid', placeItems: 'center', color: 'var(--mail-admin-error-ink)', fontSize: 14 }} role="alert">
+                {previewError}
               </div>
             ) : viewMode === 'preview' ? (
             <div
-              className="admin-email-viewport-segment"
+              className="admin-email-preview-frame-wrap"
               style={{
                   width: viewport === 'mobile' ? 380 : 600,
                   maxWidth: '100%',
@@ -723,15 +750,15 @@ export function AdminEmailsDashboard() {
 
             <div style={{ display: 'grid', gap: 12, fontSize: 12 }}>
               <div>
-                <span style={{ display: 'block', color: '#7b93a4', fontWeight: 700, marginBottom: 2 }}>From:</span>
-                <span style={{ color: '#d5e2e8', fontFamily: 'monospace' }}>{currentEmail?.from || 'VivrePlay <noreply@vivreplay.com>'}</span>
+                <span style={{ display: 'block', color: 'var(--mail-admin-muted)', fontWeight: 700, marginBottom: 2 }}>From:</span>
+                <span style={{ color: 'var(--mail-admin-ink)', fontFamily: 'monospace' }}>{currentEmail?.from || 'VivrePlay <noreply@vivreplay.com>'}</span>
               </div>
               <div>
-                <span style={{ display: 'block', color: '#7b93a4', fontWeight: 700, marginBottom: 2 }}>Reply-To:</span>
-                <span style={{ color: '#d5e2e8', fontFamily: 'monospace' }}>{currentEmail?.replyTo || 'support@vivreplay.com'}</span>
+                <span style={{ display: 'block', color: 'var(--mail-admin-muted)', fontWeight: 700, marginBottom: 2 }}>Reply-To:</span>
+                <span style={{ color: 'var(--mail-admin-ink)', fontFamily: 'monospace' }}>{currentEmail?.replyTo || 'support@vivreplay.com'}</span>
               </div>
               <div>
-                <span style={{ display: 'block', color: '#7b93a4', fontWeight: 700, marginBottom: 2 }}>Action Category:</span>
+                <span style={{ display: 'block', color: 'var(--mail-admin-muted)', fontWeight: 700, marginBottom: 2 }}>Action Category:</span>
                 <span
                   className="admin-email-category"
                   style={{
@@ -748,12 +775,12 @@ export function AdminEmailsDashboard() {
                 </span>
               </div>
               <div>
-                <span style={{ display: 'block', color: '#7b93a4', fontWeight: 700, marginBottom: 2 }}>Subject Line:</span>
-                <span style={{ color: '#f3f6f8', fontWeight: 600 }}>{currentEmail?.subject}</span>
+                <span style={{ display: 'block', color: 'var(--mail-admin-muted)', fontWeight: 700, marginBottom: 2 }}>Subject Line:</span>
+                <span style={{ color: 'var(--mail-admin-ink)', fontWeight: 600 }}>{currentEmail?.subject}</span>
               </div>
               <div>
-                <span style={{ display: 'block', color: '#7b93a4', fontWeight: 700, marginBottom: 2 }}>Font Stack:</span>
-                <span style={{ color: '#9cb1c0' }}>Plus Jakarta Sans (Headings), Manrope (Body)</span>
+                <span style={{ display: 'block', color: 'var(--mail-admin-muted)', fontWeight: 700, marginBottom: 2 }}>Font Stack:</span>
+                <span style={{ color: 'var(--mail-admin-muted)' }}>Plus Jakarta Sans (Headings), Manrope (Body)</span>
               </div>
             </div>
           </div>
@@ -782,12 +809,12 @@ export function AdminEmailsDashboard() {
             >
               <PaperPlaneTilt size={18} color="#d8a63b" /> Send Live Test Email
             </h3>
-            <p style={{ margin: '0 0 16px', color: '#8fa7b7', fontSize: 12, lineHeight: 1.5 }}>
+            <p style={{ margin: '0 0 16px', color: 'var(--mail-admin-muted)', fontSize: 12, lineHeight: 1.5 }}>
               Dispatch the currently selected <b>{getActionLabel(selectedAction)}</b> email through your verified Resend domain to any real inbox.
             </p>
 
             <form onSubmit={handleSendTest} data-lpignore="true" data-form-type="other" style={{ display: 'grid', gap: 12 }}>
-              <label htmlFor="admin-test-email" style={{ display: 'grid', gap: 6, fontSize: 12, color: '#c2d3df', fontWeight: 700 }}>
+              <label htmlFor="admin-test-email" style={{ display: 'grid', gap: 6, fontSize: 12, color: 'var(--mail-admin-ink)', fontWeight: 700 }}>
                 Recipient Email
               </label>
               <input
@@ -873,7 +900,7 @@ export function AdminEmailsDashboard() {
               borderRadius: 12,
               padding: 18,
               fontSize: 12,
-              color: '#7b93a4',
+              color: 'var(--mail-admin-muted)',
               lineHeight: 1.6,
             }}
           >

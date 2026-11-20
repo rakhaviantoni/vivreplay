@@ -33,33 +33,61 @@ function promptCard(card:CardSnapshot|null, effectLimit:number){
   if(!card)return null;
   return {...card,effect:typeof card.effect==='string'?card.effect.slice(0,effectLimit):undefined};
 }
+function summarizeDeck(deck:CardSnapshot[]){
+  const byType:Record<string,number>={};
+  const costCurve:Record<string,number>={};
+  const traits=new Map<string,number>();
+  let totalCards=0,counter2000=0,counter1000=0,noCounter=0,triggers=0,blockers=0,weightedCost=0;
+  for(const card of deck){
+    const qty=typeof card.quantity==='number'&&card.quantity>0?card.quantity:1;
+    totalCards+=qty;
+    const type=typeof card.type==='string'&&card.type?card.type:'Card';
+    byType[type]=(byType[type]??0)+qty;
+    const cost=typeof card.cost==='number'&&Number.isFinite(card.cost)?Math.max(0,Math.trunc(card.cost)):0;
+    const costBucket=cost>=10?'10+':String(cost);
+    costCurve[costBucket]=(costCurve[costBucket]??0)+qty;
+    weightedCost+=cost*qty;
+    const counter=typeof card.counter==='number'&&Number.isFinite(card.counter)?card.counter:0;
+    if(counter>=2000)counter2000+=qty;
+    else if(counter>=1000)counter1000+=qty;
+    else noCounter+=qty;
+    const effect=typeof card.effect==='string'?card.effect:'';
+    if(/\[Trigger\]/i.test(effect))triggers+=qty;
+    if(/\[Blocker\]/i.test(effect))blockers+=qty;
+    if(Array.isArray(card.subtypes)){
+      for(const subtype of card.subtypes){
+        if(typeof subtype==='string'&&subtype.trim())traits.set(subtype,(traits.get(subtype)??0)+qty);
+      }
+    }
+  }
+  const topTraits=[...traits.entries()].sort((a,b)=>b[1]-a[1]).slice(0,5).map(([name,count])=>`${name} (${count})`);
+  return {totalCards,averageCost:totalCards?Number((weightedCost/totalCards).toFixed(2)):0,byType,costCurve,counter2000,counter1000,noCounter,triggers,blockers,topTraits};
+}
+
 function localCoachFallback(input:{leader:CardSnapshot|null;deckSize:number;deck:CardSnapshot[];locale:'EN'|'ID'}){
-  const cards=input.deck.map(card=>({...card,quantity:typeof card.quantity==='number'?card.quantity:1}));
-  const weighted=cards.reduce((total,card)=>total+card.quantity,0);
-  const byType=cards.reduce<Record<string,number>>((result,card)=>{const type=typeof card.type==='string'?card.type:'Card';result[type]=(result[type]??0)+card.quantity;return result;},{});
-  const colours=[...new Set(cards.flatMap(card=>typeof card.colour==='string'?card.colour.split(/\s+/):[]).filter(Boolean))];
-  const average=weighted?cards.reduce((total,card)=>total+(Number(card.cost)||0)*card.quantity,0)/weighted:0;
+  const summary=summarizeDeck(input.deck);
+  const colours=[...new Set(input.deck.flatMap(card=>typeof card.colour==='string'?card.colour.split(/\s+/):[]).filter(Boolean))];
   const leader=input.leader?.name&&input.leader?.code?`${input.leader.name} [${input.leader.code}]`:input.leader?.name??input.leader?.code??null;
   if(input.locale==='ID')return `## Ringkasan deck saat ini
 
 - **Leader:** ${leader??'belum dipilih'}
-- **Ukuran deck:** ${input.deckSize}/50
-- **Kartu unik:** ${cards.length}
+- **Ukuran deck:** ${input.deckSize}/50 (${input.deck.length} kartu unik)
 - **Warna kartu:** ${colours.join(', ')||'belum ada'}
-- **Rata-rata cost:** ${average?average.toFixed(1):'-'}
-- **Komposisi:** ${Object.entries(byType).map(([type,count])=>`${type} ${count}`).join(', ')||'belum ada kartu'}
+- **Rata-rata cost:** ${summary.averageCost?summary.averageCost.toFixed(1):'-'}
+- **Komposisi:** ${Object.entries(summary.byType).map(([type,count])=>`${type} ${count}`).join(', ')||'belum ada kartu'}
+- **Counter:** +2000 (${summary.counter2000}), +1000 (${summary.counter1000}), tanpa counter (${summary.noCounter}) · **Blocker:** ${summary.blockers} · **Trigger:** ${summary.triggers}
 
-Model Coach sedang tidak memberikan teks, tetapi konteks deck Anda terbaca. Pilih Leader bila belum ada, lengkapi hingga 50 kartu, lalu coba lagi untuk rekomendasi spesifik.`;
+Model Coach sedang tidak tersedia sementara, tetapi analisis deck Anda terbaca. Pilih Leader bila belum ada, jaga rasio +2000 counter dan kurva cost, lalu coba lagi untuk saran kartu spesifik.`;
   return `## Current deck snapshot
 
 - **Leader:** ${leader??'not selected'}
-- **Deck size:** ${input.deckSize}/50
-- **Unique cards:** ${cards.length}
+- **Deck size:** ${input.deckSize}/50 (${input.deck.length} unique cards)
 - **Card colours:** ${colours.join(', ')||'none yet'}
-- **Average cost:** ${average?average.toFixed(1):'-'}
-- **Mix:** ${Object.entries(byType).map(([type,count])=>`${type} ${count}`).join(', ')||'no cards yet'}
+- **Average cost:** ${summary.averageCost?summary.averageCost.toFixed(1):'-'}
+- **Mix:** ${Object.entries(summary.byType).map(([type,count])=>`${type} ${count}`).join(', ')||'no cards yet'}
+- **Counters:** +2000 (${summary.counter2000}), +1000 (${summary.counter1000}), no counter (${summary.noCounter}) · **Blockers:** ${summary.blockers} · **Triggers:** ${summary.triggers}
 
-The Coach provider did not return text, but your deck context was received. Select a Leader if needed, complete the 50-card list, then try again for card-specific advice.`;
+The Coach provider is temporarily unavailable, but your deck breakdown was computed. Select a Leader if needed, balance +2000 counters and your cost curve, then try again for card-specific advice.`;
 }
 function clientIp(request:Request){const forwarded=request.headers.get('cf-connecting-ip')??request.headers.get('x-forwarded-for')??'';return forwarded.split(',')[0]?.trim().slice(0,64)||null;}
 async function record(input:{request:Request;question:string;locale:'EN'|'ID';leaderCode:string|null;deckSize:number;candidateCount:number;status:string;durationMs:number;responseText?:string;errorCode?:string}){try{await database().prepare('INSERT INTO ai_coach_requests (id,actor_id,actor_subject,actor_email,ip_address,user_agent,locale,model,question,leader_code,deck_size,candidate_count,response_text,status,error_code,duration_ms) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(),null,null,null,clientIp(input.request),input.request.headers.get('user-agent')?.slice(0,500)??null,input.locale,model,input.question,input.leaderCode,input.deckSize,input.candidateCount,input.responseText??null,input.status,input.errorCode??null,input.durationMs).run();}catch(error){console.error('ai_coach_audit_failed',error instanceof Error?error.message:'Unknown error');}}
@@ -119,25 +147,35 @@ export async function POST(request:Request){
     const opponentLeaderCode=typeof opponentLeader?.code==='string'?opponentLeader.code:questionLeaderCodes.find(code=>code!==leaderCode)??(mirrorQuestion?leaderCode:null);
     const [examples,matchup,matchSummaries]=await Promise.all([tournamentExamples([...(leaderCode?[leaderCode]:[]),...(opponentLeaderCode?[opponentLeaderCode]:[])]),tournamentMatchup(leaderCode,opponentLeaderCode),tournamentMatchSummaries(leaderCode,opponentLeaderCode)]);
     const tournamentEvidence={tournamentDeckExamples:examples,verifiedMatchupRecords:matchup?[matchup]:[],videoMatchSummaries:matchSummaries};
-    const promptContext={leader:promptCard(leader,420),opponentLeader:promptCard(opponentLeader,240),deckSize,deck:deck.map(card=>promptCard(card,240)),candidates:candidates.map(card=>promptCard(card,140)),...tournamentEvidence};
-    const retryContext={leader:promptCard(leader,420),opponentLeader:promptCard(opponentLeader,80),deckSize,deck:deck.map(card=>promptCard(card,80)),candidates:candidates.slice(0,30).map(card=>promptCard(card,0)),...tournamentEvidence};
+    const deckSummary=summarizeDeck(deck);
+    const promptContext={leader:promptCard(leader,420),opponentLeader:promptCard(opponentLeader,240),deckSize,deckSummary,deck:deck.map(card=>promptCard(card,240)),candidates:candidates.map(card=>promptCard(card,140)),...tournamentEvidence};
+    const retryContext={leader:promptCard(leader,420),opponentLeader:promptCard(opponentLeader,80),deckSize,deckSummary,deck:deck.map(card=>promptCard(card,80)),candidates:candidates.slice(0,30).map(card=>promptCard(card,0)),...tournamentEvidence};
     if(!apiKey){await record({request,question,locale,leaderCode,deckSize,candidateCount,status:'CONFIGURATION_ERROR',durationMs:Date.now()-started,errorCode:'AI_GATEWAY_TOKEN_MISSING'});return Response.json({error:locale==='ID'?'Deck Coach belum dikonfigurasi.':'Deck Coach is not configured.'},{status:503});}
     const language=locale==='ID'?'Indonesian (Bahasa Indonesia)':'English';
-    const completion={model,temperature:.25,max_tokens:900,messages:[{role:'system',content:`You are VivrePlay’s One Piece Card Game coach. Respond in ${language}, even when card names and effects remain in their printed language. Use the supplied deck, candidates, and VivrePlay context only. Do not invent cards, effects, rules, prices, benchmarks, tournaments, or market availability. Tournament deck examples represent published decklists and final placements; they are not head-to-head match records and must never be presented as matchup win rates. Verified head-to-head records include match results transcribed from video analysis summaries and approved by the user. Count only completed series as series results; partial match summaries contribute only the games observed, and a partial score must never be presented as the final series score. State sample sizes alongside any rate. For mirror matchups, compare the listed deck-build variants; do not report a leader-versus-itself win rate. When verified records are absent, empirical matchup performance and win rates are unknown; you may still give qualitative matchup/card advice from the supplied card text and decklists. When you recommend a card, name its code. If no leader is supplied, explain that a leader is needed before a legal list can be completed. Treat every recommendation as a testing suggestion. Use short headings and bullets; stay under 450 words.`},...history,{role:'user',content:`Question: ${question}\n\nDECK CONTEXT:\n${JSON.stringify(promptContext)}`}]};
-    const requestCompletion=(payload=completion)=>fetch(`${baseUrl}/chat/completions`,{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${apiKey}`},body:JSON.stringify({...payload,stream:false})});
+    const completion={model,temperature:.25,max_tokens:900,messages:[{role:'system',content:`You are VivrePlay’s One Piece Card Game coach. Respond in ${language}, even when card names and effects remain in their printed language. Use the supplied deck, deckSummary, candidates, and VivrePlay context only. Do not invent cards, effects, rules, prices, benchmarks, tournaments, or market availability. Tournament deck examples represent published decklists and final placements; they are not head-to-head match records and must never be presented as matchup win rates. Verified head-to-head records include match results transcribed from video analysis summaries and approved by the user. Count only completed series as series results; partial match summaries contribute only the games observed, and a partial score must never be presented as the final series score. State sample sizes alongside any rate. For mirror matchups, compare the listed deck-build variants; do not report a leader-versus-itself win rate. When verified records are absent, empirical matchup performance and win rates are unknown; you may still give qualitative matchup/card advice from the supplied card text and decklists. When you recommend a card, name its code. If no leader is supplied, explain that a leader is needed before a legal list can be completed. Treat every recommendation as a testing suggestion. Use short headings and bullets; stay under 450 words.`},...history,{role:'user',content:`Question: ${question}\n\nDECK CONTEXT:\n${JSON.stringify(promptContext)}`}]};
+    const requestCompletion=(payload=completion)=>fetch(`${baseUrl}/chat/completions`,{method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${apiKey}`},body:JSON.stringify({...payload,stream:false}),signal:AbortSignal.timeout(22_000)});
     type ProviderResponse={choices?:Array<{message?:unknown;text?:unknown}>;output_text?:unknown;output?:unknown;error?:{message?:string}};
-    let response=await requestCompletion();
-    let data=await response.json().catch(()=>null) as ProviderResponse|null;
-    if(!response.ok){const error=data?.error?.message??'Deck Coach could not respond.';await record({request,question,locale,leaderCode,deckSize,candidateCount,status:'PROVIDER_ERROR',durationMs:Date.now()-started,errorCode:`HTTP_${response.status}`});return Response.json({error},{status:response.status});}
-    let reply=responseText(data).trim();
-    if(!reply){
-      const compactCompletion={...completion,messages:[completion.messages[0],{role:'user',content:`Question: ${question}
+    let reply='';
+    try{
+      let response=await requestCompletion();
+      let data=await response.json().catch(()=>null) as ProviderResponse|null;
+      if(!response.ok&&response.status<500){
+        const error=data?.error?.message??'Deck Coach could not respond.';
+        await record({request,question,locale,leaderCode,deckSize,candidateCount,status:'PROVIDER_ERROR',durationMs:Date.now()-started,errorCode:`HTTP_${response.status}`});
+        return Response.json({error},{status:response.status});
+      }
+      reply=response.ok?responseText(data).trim():'';
+      if(!reply){
+        const compactCompletion={...completion,messages:[completion.messages[0],{role:'user',content:`Question: ${question}
 
 DECK CONTEXT (compact):
 ${JSON.stringify(retryContext)}`}]};
-      response=await requestCompletion(compactCompletion);
-      data=await response.json().catch(()=>null) as ProviderResponse|null;
-      reply=response.ok?responseText(data).trim():'';
+        response=await requestCompletion(compactCompletion);
+        data=await response.json().catch(()=>null) as ProviderResponse|null;
+        reply=response.ok?responseText(data).trim():'';
+      }
+    }catch{
+      reply='';
     }
     const usedLocalFallback=!reply;
     if(usedLocalFallback) reply=localCoachFallback({leader,deckSize,deck,locale});

@@ -17,23 +17,11 @@ import {CardDetailContent, cardIdentityBackground} from './card-detail-content';
 import {EffectText} from './effect-text';
 import {MarketSellAction} from './market-sell-action';
 import {pokemonLocalCardNumber} from '@/lib/pokemon-set-aliases';
+import {blockForSet} from '@/lib/one-piece-card-helpers';
 export {EffectText} from './effect-text';
 
 type Printing = CardPrinting & {rarity:string|null;set_code:string|null;set_name:string|null;counter_amount:number|null;life:number|null;attribute:string|null;sub_types:string[]|string|null;source_payload?:{block?:string|number;block_value?:string|number;[key:string]:unknown}|null;tcg_card_assets?:Array<{kind:string;object_key:string}>};
 type IdentityRecord={id:string;code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number;effect_text:string|null};
-
-
-function blockForSet(code:string,payload?:{block?:string|number;block_value?:string|number}|null){
-  const direct=payload?.block_value??payload?.block;
-  if(direct!==undefined&&direct!==null&&String(direct).trim()) return String(direct).toUpperCase();
-  const match=code.toUpperCase().match(/^(OP|EB|ST|PRB)[-_ ]?0*(\d+)/);
-  if(!match) return 'X';
-  const number=Number(match[2]);
-  if(match[1]==='OP') return String(Math.min(5,Math.max(1,Math.ceil(number/4))));
-  if(match[1]==='EB') return String(Math.min(5,Math.max(1,Math.ceil((number+1)/2)+1)));
-  if(match[1]==='ST') return number>=28?'5':number>=20?'4':number>=11?'3':number>=5?'2':'1';
-  return number>=2?'5':'4';
-}
 
 function splitDisclaimer(text:string) {
   const match=text.match(/(?:\r?\n){1,}\s*(Disclaimer:\s*[\s\S]+)$/i);
@@ -76,9 +64,26 @@ export function CardPreviewModal({card, origin, language, cards, printingIds, in
   const artStack=active?availablePrintings.filter(item=>item.language===active.language&&item.id!==active.id&&item.card_image_url).slice(0,2):[];
   useEffect(()=>{const url=active?.card_image_url;if(!url){setArtLoading(false);return}let mounted=true;setArtLoading(true);const image=new Image();image.onload=image.onerror=()=>{if(mounted)setArtLoading(false)};image.src=url;return()=>{mounted=false}},[active?.id,active?.card_image_url]);
   const effect=splitDisclaimer(resolvedCard.effect||'');
-  const languages=useMemo(()=>[...new Set(availablePrintings.map(item=>item.language))],[availablePrintings]); const printingIndex=printingIds?.findIndex(id=>id===selected)??-1; const index=printingIndex>=0?printingIndex:cards.findIndex(item=>item.id===card.id);
+  const printingIndex=printingIds?.findIndex(id=>id===selected)??-1; const index=printingIndex>=0?printingIndex:cards.findIndex(item=>item.id===card.id);
+  const dialogRef=useRef<HTMLElement>(null);
   function navigate(amount:number){if(cards.length<2)return;const nextIndex=(Math.max(0,index)+amount+cards.length)%cards.length;onNavigate(cards[nextIndex],nextIndex);}
-  useEffect(()=>{function keys(event:KeyboardEvent){if(event.key==='Escape')onClose();if(cards.length>1&&event.key==='ArrowLeft')navigate(-1);if(cards.length>1&&event.key==='ArrowRight')navigate(1);}window.addEventListener('keydown',keys);return()=>window.removeEventListener('keydown',keys);});
+  useEffect(()=>{
+    const previousFocus=document.activeElement instanceof HTMLElement?document.activeElement:null;
+    dialogRef.current?.focus({preventScroll:true});
+    return()=>{previousFocus?.focus?.({preventScroll:true})};
+  },[]);
+  useEffect(()=>{
+    function keys(event:KeyboardEvent){
+      if(event.key==='Escape'){onClose();return;}
+      if(event.altKey||event.ctrlKey||event.metaKey)return;
+      const target=event.target;
+      if(target instanceof HTMLElement&&(target.isContentEditable||target.matches('input,textarea,select')))return;
+      if(cards.length>1&&event.key==='ArrowLeft')navigate(-1);
+      if(cards.length>1&&event.key==='ArrowRight')navigate(1);
+    }
+    window.addEventListener('keydown',keys);
+    return()=>window.removeEventListener('keydown',keys);
+  });
   useLayoutEffect(()=>{
     if(!origin||origin.width<60||hasFlown.current){setPhase('shell');return}
     if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){hasFlown.current=true;setPhase('shell');return}
@@ -113,7 +118,7 @@ export function CardPreviewModal({card, origin, language, cards, printingIds, in
     {phase==='landed'&&landingStyle&&<div className="viewer-landing-card" aria-hidden="true" style={landingStyle}><CardArt card={current}/></div>}
     {phase!=='flight'&&<>
     {cards.length>1&&<button className="viewer-nav viewer-prev" aria-label={id?'Kartu sebelumnya':'Previous card'} onMouseDown={event=>event.stopPropagation()} onClick={event=>{event.stopPropagation();navigate(-1)}}><ChevronLeft/></button>}
-    <section className="card-viewer" role="dialog" aria-modal="true" aria-labelledby="card-preview-title" onMouseDown={event=>event.stopPropagation()}>
+    <section ref={dialogRef} tabIndex={-1} className="card-viewer" role="dialog" aria-modal="true" aria-labelledby="card-preview-title" onMouseDown={event=>event.stopPropagation()}>
       <header><div><i className="filter-colour identity-colour" title={resolvedCard.color || undefined} aria-label={resolvedCard.color ? `${resolvedCard.color} color` : undefined} style={{background:cardIdentityBackground(resolvedCard.color)}}/><span>{viewerIdentity}</span></div><button onClick={onClose} aria-label={id?'Tutup peninjau kartu':'Close card viewer'}><X size={20}/></button></header>
       <div className={`card-viewer-body ${detailsLoading?'is-resolving':''}`}><aside className="viewer-primary-art" aria-busy={detailsLoading||artLoading}><div className={`viewer-art-stack ${artStack.length===0?'is-single':''}`}>{artStack.map((printing,index)=><div key={printing.id} className={`viewer-art-underlay viewer-art-underlay-${index}`} aria-hidden="true"><CardArt card={cardFromPrinting(resolvedCard,printing)} priority/></div>)}<div key={current.id} className="viewer-art-current"><CardArt card={current} priority/></div><div className="viewer-art-skeleton" aria-hidden="true"/></div><p><b>{id?'Versi cetak':'Printing'}</b><span>{active?.set_code||'-'}</span><span>{active?.language||language}</span></p></aside>
       <div className="viewer-details" aria-busy={detailsLoading}><div className="viewer-detail-skeleton" aria-hidden="true"><i/><i/><span/><span/><span/><b/><b/><b/></div><CardDetailContent code={resolvedCard.code} color={resolvedCard.color} title={resolvedCard.name} titleId="card-preview-title" heading="h2" type={resolvedCard.type} rarity={detailPrinting?.rarity||resolvedCard.rarity} attribute={detailPrinting?.attribute} cost={resolvedCard.cost} power={resolvedCard.power} life={detailPrinting?.life} block={block} setCode={detailPrinting?.set_code} setName={detailPrinting?.set_name} subTypes={detailPrinting?.sub_types} pokemonSource={gameSlug==='pokemon'?(detailPrinting?.source_payload??(resolvedCard as Card&{pokemonSourcePayload?:Printing['source_payload']}).pokemonSourcePayload??undefined):undefined} language={active?.language??language} hasEffect={Boolean(effect.effect.trim())} effect={<>{effect.effect&&<p><EffectText text={effect.effect}/></p>}{effect.disclaimer&&<p className="effect-disclaimer">{effect.disclaimer}</p>}</>}/><CardPrintingSelector printings={availablePrintings} language={active?.language??language} selectedId={active?.id} onLanguageChange={nextLanguage=>setSelected(availablePrintings.find(printing=>printing.language===nextLanguage&&printing.card_image_url)?.id??selected)} onSelect={setSelected} vaultCard={resolvedCard} renderCard={item=><CardArt card={cardFromPrinting(resolvedCard,item)}/>}/>{active&&<CardMarketPanel game={gameSlug==='pokemon'?'pokemon':'onepiece'} printingId={active.id} printing={{language:active.language,setCode:active.set_code??undefined,printingCode:active.printing_code??undefined,localCardNumber:gameSlug==='pokemon'?pokemonNumber:undefined,variant:active.variant??undefined}}/>}<div className="viewer-actions">{marketActions&&<WishlistButton printingId={active?.id??''} language={id?'ID':'EN'}/>}{marketActions&&<ShareButton title={displayCardName(resolvedCard.name,resolvedCard.code)} path={shareHref} card={detailPrinting?cardFromPrinting(resolvedCard,detailPrinting):resolvedCard} cardDetails={{gameLabel:gameSlug==='pokemon'?'Pokémon TCG':'ONE PIECE CARD GAME',language:active?.language??language,setName:detailPrinting?.set_name??undefined,setCode:detailPrinting?.set_code??undefined,number:detailPrinting?.printing_code??resolvedCard.code,rarity:detailPrinting?.rarity??undefined}} entityType="card"/>}{gameSlug==='one-piece'&&context!=='builder'&&<Link className="button" href={`/decks/builder?card=${active?.id??card.id}`}><Plus size={16}/>{id?'Susun dengan kartu ini':'Build with card'}</Link>}<Link className={`${context==='builder'?'button':'button secondary'}`} href={cardLibraryHref}><ExternalLink size={16}/>{id?'Buka halaman kartu':'Open card page'}</Link>{marketActions&&<div className="viewer-market-actions"><Link className="button secondary" href={marketHref}><Store size={16}/>{id?'Beli kartu':'Buy a copy'}</Link><MarketSellAction className="button secondary" printingId={active?.id??card.id}><Store size={16}/>{id?'Jual kartu ini':'Sell a copy'}</MarketSellAction></div>}</div><span className="sr-only" role="status">{detailsLoading||artLoading?(id?'Memuat rincian kartu':'Loading card details'):''}</span></div></div>

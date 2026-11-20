@@ -30,9 +30,15 @@ export async function tcgdexArtResponse(values: string | string[]) {
     if (cached) return new Response(cached.body, { headers: { ...cacheHeaders, 'Content-Type': cached.httpMetadata?.contentType ?? 'image/webp', ETag: cached.httpEtag } });
   } catch { /* Use the source if the cache is unavailable. */ }
 
-  let upstream: Response;
-  try { upstream = await fetch(source, { headers: { Accept: 'image/avif,image/webp,image/png,image/*' }, signal: AbortSignal.timeout(10_000) }); }
-  catch { continue; }
+  let upstream: Response | undefined;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      upstream = await fetch(source, { headers: { Accept: 'image/avif,image/webp,image/png,image/*' }, signal: AbortSignal.timeout(12_000) });
+      if (upstream.ok || (upstream.status !== 429 && upstream.status < 500)) break;
+    } catch { /* Retry once on transient timeout/network errors. */ }
+    if (attempt === 0) await new Promise(resolve => setTimeout(resolve, 300));
+  }
+  if (!upstream) continue;
   const contentType = upstream.headers.get('content-type')?.split(';')[0].toLowerCase() ?? '';
   if (!upstream.ok || !contentType.startsWith('image/')) continue;
   const declaredLength = Number(upstream.headers.get('content-length') ?? 0);

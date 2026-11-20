@@ -311,13 +311,14 @@ export function Profile(){
 }
 
 function ProfileSkeleton(){
+  const id=useRouteLocale()==='ID';
   return (
-    <main className="page profile-page profile-skeleton-page" aria-busy="true" aria-label="Loading profile">
+    <main className="page profile-page profile-skeleton-page" aria-busy="true" aria-label={id?'Memuat profil':'Loading profile'}>
       <section className="library-intro profile-intro">
         <div className="library-intro-copy">
-          <p className="kicker">PLAYER PROFILE</p>
-          <h1>Player profile & settings.</h1>
-          <p>Manage your collector identity, display preferences, and shipping address.</p>
+          <p className="kicker">{id?'PROFIL PEMAIN':'PLAYER PROFILE'}</p>
+          <h1>{id?'Profil pemain & pengaturan.':'Player profile & settings.'}</h1>
+          <p>{id?'Kelola identitas kolektor, preferensi tampilan, dan alamat pengiriman Anda.':'Manage your collector identity, display preferences, and shipping address.'}</p>
         </div>
         <IntroCardRail/>
       </section>
@@ -413,7 +414,7 @@ function ProfileForm({
   data,
   refresh,
 }: {
-  profile: Record<string, string>;
+  profile: AccountState['profile'];
   data: AccountState;
   refresh: () => Promise<void>;
 }){
@@ -425,6 +426,9 @@ function ProfileForm({
     searchParams.get('tab') === 'bank' ? 'bank' : searchParams.get('tab') === 'shipping' ? 'shipping' : 'general'
   );
 
+  const [displayName, setDisplayName] = useState(profile.display_name || '');
+  const [username, setUsername] = useState(profile.username || '');
+  const [phone, setPhone] = useState(profile.phone || '');
   const [currency, setCurrency] = useState(profile.currency || 'IDR');
   const [locale, setLocale] = useState(profile.locale || 'en');
   const [region, setRegion] = useState((profile.region || 'ID').toUpperCase());
@@ -872,7 +876,11 @@ function ProfileForm({
         setShippingLatitude(saved.origin.latitude??null);
         setShippingLongitude(saved.origin.longitude??null);
         if(Array.isArray(saved.origin.shippingMethods))setShippingMethods(normalizeCourierMethods(saved.origin.shippingMethods));
-        window.dispatchEvent(new Event('vivreplay:shipping-updated'));
+        const resolvedCity=saved.origin.regionNames?.city||saved.origin.city||shippingCity.trim();
+        if(typeof window!=='undefined'){
+          window.localStorage.setItem('vivreplay-seller-city',resolvedCity);
+          window.dispatchEvent(new CustomEvent('vivreplay:shipping-updated',{detail:{city:resolvedCity}}));
+        }
         toast.success(t('Shipping settings saved successfully!','Alamat & metode pengiriman berhasil disimpan!'));
       }
     }catch(err){
@@ -906,7 +914,6 @@ function ProfileForm({
             {session.user.email}
           </span>
         )}
-        <span className="badge">{t('EARLY ACCESS COLLECTOR','KOLEKTOR AKSES AWAL')}</span>
 
         {/* Vault & Activity Overview */}
         <div className="profile-stats-grid">
@@ -994,11 +1001,11 @@ function ProfileForm({
             <div className="form-row">
               <label>
                 {t('Display name','Nama tampilan')}
-                <input name="displayName" defaultValue={profile.display_name} minLength={2} maxLength={50} required/>
+                <input name="displayName" value={displayName} onChange={e=>setDisplayName(e.target.value)} minLength={2} maxLength={50} required/>
               </label>
               <label>
                 {t('Username','Nama pengguna')}
-                <input name="username" defaultValue={profile.username} pattern="[a-z0-9_-]{3,30}" required/>
+                <input name="username" value={username} onChange={e=>setUsername(e.target.value)} pattern="[a-z0-9_-]{3,30}" required/>
               </label>
             </div>
 
@@ -1023,7 +1030,7 @@ function ProfileForm({
               </label>
             </div>
 
-            <div><PhoneInput name="phone" label={t('Phone number','Nomor telepon')} autoComplete="tel" defaultValue={profile.phone||shippingPhone||''} locale={language}/><small>{t('Used for delivery, never shown on your public profile','Digunakan untuk pengiriman, tidak ditampilkan di profil publik')}</small></div>
+            <div><PhoneInput name="phone" label={t('Phone number','Nomor telepon')} autoComplete="tel" value={phone||shippingPhone||''} onChange={setPhone} locale={language}/><small>{t('Used for delivery, never shown on your public profile','Digunakan untuk pengiriman, tidak ditampilkan di profil publik')}</small></div>
             <div className="profile-section-header" style={{marginTop: '12px'}}>
               <h2>{t('Regional & Currency Preferences','Preferensi Regional & Mata Uang')}</h2>
               <p>{t('Choose your preferred Market currency and website interface language.','Pilih mata uang transaksi Market dan bahasa antarmuka situs.')}</p>
@@ -1148,18 +1155,19 @@ function ProfileForm({
               {showAreaDropdown && areaSearchResults.length > 0 && (
                 <div className="shipping-area-dropdown" role="listbox">
                   {areaSearchResults.map(item => (
-                    <div
+                    <button
+                      type="button"
                       key={item.id}
                       className="shipping-area-item"
                       onClick={() => handleSelectArea(item)}
                       role="option"
                       aria-selected={shippingSubdistrict === item.subdistrict && shippingDistrict === item.district}
                     >
-                      <div className="shipping-area-item-title">{item.name}</div>
-                      <div className="shipping-area-item-sub">
+                      <span className="shipping-area-item-title">{item.name}</span>
+                      <span className="shipping-area-item-sub">
                         {t('Postal Code:','Kode Pos:')} {item.postalCode} | {item.city}, {item.province}
-                      </div>
-                    </div>
+                      </span>
+                    </button>
                   ))}
                 </div>
               )}
@@ -1355,26 +1363,24 @@ function ProfileForm({
                 {BITESHIP_COURIERS.filter(c => c.category === 'instant').map(courier => {
                   const active = shippingMethods.includes(courier.id);
                   return (
-                    <div
+                    <button
+                      type="button"
                       key={courier.id}
                       className={`shipping-method-item ${active ? 'is-active' : ''}`}
                       onClick={() => toggleShippingMethod(courier.id)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggleShippingMethod(courier.id); } }}
                       aria-pressed={active}
                     >
-                      <div className="shipping-method-main">
-                        <div className="shipping-method-title-row">
+                      <span className="shipping-method-main">
+                        <span className="shipping-method-title-row">
                           <strong>{courier.name}</strong>
                           <span className="shipping-method-badge">{language === 'ID' ? courier.badge.id : courier.badge.en}</span>
-                        </div>
+                        </span>
                         <p>{language === 'ID' ? courier.desc.id : courier.desc.en}</p>
-                      </div>
-                      <div className={`shipping-method-toggle ${active ? 'is-on' : ''}`} aria-hidden="true">
+                      </span>
+                      <span className={`shipping-method-toggle ${active ? 'is-on' : ''}`} aria-hidden="true">
                         <span className="shipping-toggle-thumb"/>
-                      </div>
-                    </div>
+                      </span>
+                    </button>
                   );
                 })}
 
@@ -1384,26 +1390,24 @@ function ProfileForm({
                 {BITESHIP_COURIERS.filter(c => c.category === 'regular').map(courier => {
                   const active = shippingMethods.includes(courier.id);
                   return (
-                    <div
+                    <button
+                      type="button"
                       key={courier.id}
                       className={`shipping-method-item ${active ? 'is-active' : ''}`}
                       onClick={() => toggleShippingMethod(courier.id)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggleShippingMethod(courier.id); } }}
                       aria-pressed={active}
                     >
-                      <div className="shipping-method-main">
-                        <div className="shipping-method-title-row">
+                      <span className="shipping-method-main">
+                        <span className="shipping-method-title-row">
                           <strong>{courier.name}</strong>
                           <span className="shipping-method-badge">{language === 'ID' ? courier.badge.id : courier.badge.en}</span>
-                        </div>
+                        </span>
                         <p>{language === 'ID' ? courier.desc.id : courier.desc.en}</p>
-                      </div>
-                      <div className={`shipping-method-toggle ${active ? 'is-on' : ''}`} aria-hidden="true">
+                      </span>
+                      <span className={`shipping-method-toggle ${active ? 'is-on' : ''}`} aria-hidden="true">
                         <span className="shipping-toggle-thumb"/>
-                      </div>
-                    </div>
+                      </span>
+                    </button>
                   );
                 })}
               </div>

@@ -1,8 +1,8 @@
 import {readFileSync,writeFileSync} from 'node:fs';
 import {scenarios} from './card-effect-scenarios';
-import {compileEffectDocument} from '../packages/domain/effect-rules';
+import {compileEffectDocument, type EffectDocument} from '../packages/domain/effect-rules';
 
-type SnapshotCard={code:string;name:string;color:string;cardType:'Character'|'Leader'|'Event'|'Stage';cost:number;power:number;printedText:string;publishedText:string|null;published:boolean;textMatches:boolean;schemaMatches:boolean;localSchema:any;databaseSchema:any};
+type SnapshotCard={code:string;name:string;color:string;cardType:'Character'|'Leader'|'Event'|'Stage';cost:number;power:number;printedText:string;publishedText:string|null;published:boolean;textMatches:boolean;schemaMatches:boolean;localSchema?:EffectDocument;databaseSchema?:EffectDocument};
 const path='reports/effects/per-card.json';
 const canonical=(value:unknown)=>JSON.stringify(value,(_key,item)=>item&&typeof item==='object'&&!Array.isArray(item)?Object.fromEntries(Object.entries(item).sort(([a],[b])=>a.localeCompare(b))):item);
 const clean=(value:string|null|undefined)=>value?.replace(/^NULL$/i,'').trim()??'';

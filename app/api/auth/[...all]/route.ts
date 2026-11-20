@@ -12,7 +12,16 @@ const protectedAuthActions=new Set([
   '/send-verification-email',
 ]);
 
-export const GET=handler.GET;
+export async function GET(request:Request){
+  const response=await handler.GET(request);
+  const path=new URL(request.url).pathname.replace(/^\/api\/auth/,'');
+  if(path.startsWith('/callback/')&&response.headers.getSetCookie?.().some(c=>c.startsWith('__Secure-better-auth.session_token='))){
+    const headers=new Headers(response.headers);
+    headers.append('Set-Cookie','__Secure-better-auth.session_token=; Domain=vivreplay.com; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax');
+    return new Response(response.body,{status:response.status,statusText:response.statusText,headers});
+  }
+  return response;
+}
 export const PATCH=handler.PATCH;
 export const PUT=handler.PUT;
 export const DELETE=handler.DELETE;

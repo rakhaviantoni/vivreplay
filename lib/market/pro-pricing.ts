@@ -14,7 +14,7 @@ export const DEFAULT_PRO_PRICING: ProPricing = {
   annualAmount: 249_000,
   annualDurationDays: 365,
   introAmount: 19_900,
-  introEndsAt: '2026-11-19T16:59:59.000Z',
+  introEndsAt: '2026-12-31T16:59:59.000Z',
   introLimit: 100,
 };
 

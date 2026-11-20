@@ -18,12 +18,50 @@ const pokemonPrintedSetAliases:Record<string,string[]>={
   SV7A:['SV7a','SV07a'],
   SV8A:['SV8a','SV08a'],
   SV9:['SV9','SV09'],
+  SV10:['SV10','DRI'],
+  M6A:['M6a','MA6','ME06'],
+  MA6:['MA6','M6a','30th','30th-c'],
+  ME06:['ME06','M6a','MA6'],
+  '30TH':['30th','MA6'],
+  '30THC':['30th-c','MA6'],
 };
+
+const POKEMON_RARITY_ALIASES:Record<string,string[]>={
+  SAR:['SAR','SPECIALARTRARE','SPECIALILLUSTRATIONRARE'],
+  SIR:['SIR','SPECIALILLUSTRATIONRARE'],
+  SSR:['SSR','SHINYULTRARARE'],
+  RR:['RR','DOUBLERARE'],
+  RRR:['RRR','TRIPLERARE'],
+  UR:['UR','ULTRARARE'],
+  HR:['HR','HYPERRARE'],
+  AR:['AR','ARTRARE'],
+  IR:['IR','ILLUSTRATIONRARE'],
+  R:['R','RARE'],
+  U:['U','UNCOMMON'],
+  C:['C','COMMON'],
+};
+
+function pokemonRarityAliases(rarity:string,language?:string){
+  const upper=rarity.toUpperCase();
+  if(upper==='SR')return language==='EN'?['SR','SUPERRARE','SECRETRARE']:['SR','SUPERRARE'];
+  return POKEMON_RARITY_ALIASES[upper]??[upper];
+}
+
+function pokemonCardCodeSql(){
+  const shortDescription="trim(CASE WHEN json_valid(p.source_payload) THEN json_extract(p.source_payload,'$.shortDescription') END)";
+  const description="trim(CASE WHEN json_valid(p.source_payload) THEN json_extract(p.source_payload,'$.description') END)";
+  const describedNumber=`CASE WHEN instr(${shortDescription},' ')>0 THEN substr(${shortDescription},instr(${shortDescription},' ')+1) WHEN instr(${description},'·')>0 THEN trim(substr(${description},instr(${description},'·')+1)) ELSE NULL END`;
+  const cardCode=`COALESCE(NULLIF(trim(CASE WHEN json_valid(p.source_payload) THEN json_extract(p.source_payload,'$.localId') END),''),NULLIF(trim(CASE WHEN json_valid(p.source_payload) THEN json_extract(p.source_payload,'$.collectorNumber') END),''),NULLIF(${describedNumber},''),p.printing_code)`;
+  const cardNumber=`CASE WHEN instr(CAST(${cardCode} AS TEXT),'/')>0 THEN substr(CAST(${cardCode} AS TEXT),1,instr(CAST(${cardCode} AS TEXT),'/')-1) ELSE CAST(${cardCode} AS TEXT) END`;
+  const printedTotal=`CASE WHEN instr(CAST(${cardCode} AS TEXT),'/')>0 THEN CAST(substr(CAST(${cardCode} AS TEXT),instr(CAST(${cardCode} AS TEXT),'/')+1) AS INTEGER) ELSE CAST(json_extract(CASE WHEN json_valid(p.source_payload) THEN p.source_payload ELSE '{}' END,'$.set.cardCount.official') AS INTEGER) END`;
+  return {cardCode,cardNumber,printedTotal};
+}
 
 const pokemonKatakanaAliases:Record<string,string>={
   'ケルディオ':'Keldeo',
   'ピカチュウ':'Pikachu',
   'リザードン':'Charizard',
+  'リザード':'Charmeleon',
   'カメックス':'Blastoise',
   'フシギバナ':'Venusaur',
   'ミュウツー':'Mewtwo',
@@ -42,6 +80,7 @@ const pokemonKatakanaAliases:Record<string,string>={
   'キチキギス':'Fezandipiti',
   'イイネイヌ':'Okidogi',
   'マシマシラ':'Munkidori',
+  'モモワロウ':'Pecharunt',
   'オーガポン':'Ogerpon',
   'テラパゴス':'Terapagos',
   'タケルライコ':'Raging Bolt',
@@ -55,6 +94,22 @@ const pokemonKatakanaAliases:Record<string,string>={
   'サーナイト':'Gardevoir',
   'ゲンガー':'Gengar',
   'ミミッキュ':'Mimikyu',
+  'ルカリオ':'Lucario',
+  'ゲッコウガ':'Greninja',
+  'ドラパルト':'Dragapult',
+  'サーフゴー':'Gholdengo',
+  'コライドン':'Koraidon',
+  'ミライドン':'Miraidon',
+  'ソウブレイズ':'Ceruledge',
+  'ヨノワール':'Dusknoir',
+  'ピジョット':'Pidgeot',
+  'ロトム':'Rotom',
+  'ラティアス':'Latias',
+  'ラティオス':'Latios',
+  'カビゴン':'Snorlax',
+  'カイリュー':'Dragonite',
+  'バンギラス':'Tyranitar',
+  'メタグロス':'Metagross',
 };
 
 function catalogSetCandidates(candidates:string[]){
@@ -79,16 +134,13 @@ async function catalogMatches(parsed:NonNullable<ReturnType<typeof parseText>>,r
   const {read,setCandidates,identityCode,numberCandidates}=parsed;
   const conditions=['g.slug=?'];
   const values:(string|number)[]=[read.game];
-  const shortDescription="trim(CASE WHEN json_valid(p.source_payload) THEN json_extract(p.source_payload,'$.shortDescription') END)";
-  const description="trim(CASE WHEN json_valid(p.source_payload) THEN json_extract(p.source_payload,'$.description') END)";
-  const describedNumber=`CASE WHEN instr(${shortDescription},' ')>0 THEN substr(${shortDescription},instr(${shortDescription},' ')+1) WHEN instr(${description},'·')>0 THEN trim(substr(${description},instr(${description},'·')+1)) ELSE NULL END`;
-  const cardCode=`COALESCE(NULLIF(trim(CASE WHEN json_valid(p.source_payload) THEN json_extract(p.source_payload,'$.localId') END),''),NULLIF(trim(CASE WHEN json_valid(p.source_payload) THEN json_extract(p.source_payload,'$.collectorNumber') END),''),NULLIF(${describedNumber},''),p.printing_code)`;
-  const cardNumber=`CASE WHEN instr(CAST(${cardCode} AS TEXT),'/')>0 THEN substr(CAST(${cardCode} AS TEXT),1,instr(CAST(${cardCode} AS TEXT),'/')-1) ELSE CAST(${cardCode} AS TEXT) END`;
-  const printedTotal=`CASE WHEN instr(CAST(${cardCode} AS TEXT),'/')>0 THEN CAST(substr(CAST(${cardCode} AS TEXT),instr(CAST(${cardCode} AS TEXT),'/')+1) AS INTEGER) ELSE CAST(json_extract(CASE WHEN json_valid(p.source_payload) THEN p.source_payload ELSE '{}' END,'$.set.cardCount.official') AS INTEGER) END`;
+  const {cardCode,cardNumber,printedTotal}=pokemonCardCodeSql();
   if(read.game==='one-piece'&&identityCode){
+    const normalizedSet=read.setCode.replace(/[^A-Z0-9]/g,'');
+    const setOptions=normalizedSet==='OP15'?['OP15','OP15EB04']:normalizedSet==='EB04'?['EB04','OP15EB04']:[normalizedSet];
     conditions.push('(UPPER(i.code)=? OR UPPER(p.printing_code)=? OR UPPER(p.printing_code) LIKE ?)');
-    conditions.push("UPPER(REPLACE(REPLACE(REPLACE(p.set_code,'-',''),'_',''),' ',''))=?");
-    values.push(identityCode,identityCode,`${identityCode}_P%`,read.setCode.replace(/[^A-Z0-9]/g,''));
+    conditions.push(`UPPER(REPLACE(REPLACE(REPLACE(p.set_code,'-',''),'_',''),' ','')) IN (${setOptions.map(()=>'?').join(',')})`);
+    values.push(identityCode,identityCode,`${identityCode}_P%`,...setOptions);
   }else{
     const numbers=numberCandidates?.length?numberCandidates:[Number.parseInt(read.cardNumber,10)];
     conditions.push(`CAST(CASE WHEN ${cardNumber} GLOB '[0-9]*' THEN ${cardNumber} ELSE '' END AS INTEGER) IN (${numbers.map(()=>'?').join(',')})`);
@@ -106,13 +158,7 @@ async function catalogMatches(parsed:NonNullable<ReturnType<typeof parseText>>,r
       conditions.push('UPPER(p.language)=?');values.push(read.language);
     }
     if(rarityOnlyFallback&&read.rarity){
-      const rarityAliases:Record<string,string[]>={
-        SR:read.language==='EN'?['SR','SUPERRARE','SECRETRARE']:['SR','SUPERRARE'],
-        SAR:['SAR','SPECIALARTRARE','SPECIALILLUSTRATIONRARE'],SIR:['SIR','SPECIALILLUSTRATIONRARE'],
-        SSR:['SSR','SHINYULTRARARE'],RR:['RR','DOUBLERARE'],RRR:['RRR','TRIPLERARE'],UR:['UR','ULTRARARE'],
-        HR:['HR','HYPERRARE'],AR:['AR','ARTRARE'],IR:['IR','ILLUSTRATIONRARE'],R:['R','RARE'],U:['U','UNCOMMON'],C:['C','COMMON'],
-      };
-      const aliases=rarityAliases[read.rarity]??[read.rarity];
+      const aliases=pokemonRarityAliases(read.rarity,read.language);
       conditions.push(`UPPER(REPLACE(REPLACE(COALESCE(p.rarity,''),' ',''),'-','')) IN (${aliases.map(()=>'?').join(',')})`);
       values.push(...aliases);
     }
@@ -163,14 +209,8 @@ async function recoverPokemonSetOcr(parsed:NonNullable<ReturnType<typeof parseTe
   const {read,numberCandidates}=parsed;
   if(read.game!=='pokemon'||!read.rarity)return [];
   const numbers=numberCandidates?.length?numberCandidates:[Number.parseInt(read.cardNumber,10)];
-  const rarityAliases:Record<string,string[]>={SAR:['SAR','SPECIALARTRARE','SPECIALILLUSTRATIONRARE'],SIR:['SIR','SPECIALILLUSTRATIONRARE'],SSR:['SSR','SHINYULTRARARE'],RR:['RR','DOUBLERARE'],RRR:['RRR','TRIPLERARE'],UR:['UR','ULTRARARE'],HR:['HR','HYPERRARE'],AR:['AR','ARTRARE'],IR:['IR','ILLUSTRATIONRARE'],SR:['SR','SUPERRARE','SECRETRARE']};
-  const aliases=rarityAliases[read.rarity]??[read.rarity];
-  const shortDescription="trim(CASE WHEN json_valid(p.source_payload) THEN json_extract(p.source_payload,'$.shortDescription') END)";
-  const description="trim(CASE WHEN json_valid(p.source_payload) THEN json_extract(p.source_payload,'$.description') END)";
-  const describedNumber=`CASE WHEN instr(${shortDescription},' ')>0 THEN substr(${shortDescription},instr(${shortDescription},' ')+1) WHEN instr(${description},'·')>0 THEN trim(substr(${description},instr(${description},'·')+1)) ELSE NULL END`;
-  const cardCode=`COALESCE(NULLIF(trim(CASE WHEN json_valid(p.source_payload) THEN json_extract(p.source_payload,'$.localId') END),''),NULLIF(trim(CASE WHEN json_valid(p.source_payload) THEN json_extract(p.source_payload,'$.collectorNumber') END),''),NULLIF(${describedNumber},''),p.printing_code)`;
-  const cardNumber=`CASE WHEN instr(CAST(${cardCode} AS TEXT),'/')>0 THEN substr(CAST(${cardCode} AS TEXT),1,instr(CAST(${cardCode} AS TEXT),'/')-1) ELSE CAST(${cardCode} AS TEXT) END`;
-  const printedTotal=`CASE WHEN instr(CAST(${cardCode} AS TEXT),'/')>0 THEN CAST(substr(CAST(${cardCode} AS TEXT),instr(CAST(${cardCode} AS TEXT),'/')+1) AS INTEGER) ELSE CAST(json_extract(CASE WHEN json_valid(p.source_payload) THEN p.source_payload ELSE '{}' END,'$.set.cardCount.official') AS INTEGER) END`;
+  const aliases=pokemonRarityAliases(read.rarity,read.language);
+  const {cardCode,cardNumber,printedTotal}=pokemonCardCodeSql();
   const rows=await database().prepare(`
     SELECT p.id AS id,g.slug AS game,i.code AS code,COALESCE(NULLIF(l.name,''),i.name) AS name,p.set_code AS setCode,
       ${cardCode} AS cardNumber,p.language AS language,COALESCE(p.rarity,'') AS rarity,COALESCE(p.variant,'') AS variant,p.card_image_url AS imageUrl,
@@ -204,13 +244,7 @@ async function matchPokemonByKatakana(text:string,rarity?:string):Promise<Candid
     }
   }
   if(!englishName)return [];
-  const rarityAliases:Record<string,string[]>={
-    SAR:['SAR','SPECIALARTRARE','SPECIALILLUSTRATIONRARE'],SIR:['SIR','SPECIALILLUSTRATIONRARE'],
-    SSR:['SSR','SHINYULTRARARE'],RR:['RR','DOUBLERARE'],RRR:['RRR','TRIPLERARE'],UR:['UR','ULTRARARE'],
-    HR:['HR','HYPERRARE'],AR:['AR','ARTRARE'],IR:['IR','ILLUSTRATIONRARE'],SR:['SR','SUPERRARE','SECRETRARE'],
-    R:['R','RARE'],U:['U','UNCOMMON'],C:['C','COMMON'],
-  };
-  const aliases=rarity?rarityAliases[rarity.toUpperCase()]??[rarity]:[];
+  const aliases=rarity?pokemonRarityAliases(rarity):[];
   const conditions=['g.slug=?','(UPPER(i.name) LIKE ? OR UPPER(l.name) LIKE ?)'];
   const values:(string|number)[]=['pokemon',`%${englishName.toUpperCase()}%`,`%${englishName.toUpperCase()}%`];
   if(aliases.length){
@@ -232,6 +266,37 @@ async function matchPokemonByKatakana(text:string,rarity?:string):Promise<Candid
   return deduplicateScanCandidates(rows.results).map(c=>({...c,imageUrl:pokemonArtRoute(c.language,c.setCode,c.cardNumber,c.id)}));
 }
 
+const scanNoiseWords=new Set(['pokemon','basic','stage','evolves','from','weakness','resistance','retreat','cost','illustrator','illus','hp','one','piece','card','game','leader','character','event','counter','power','life','don','effect','trigger','blocker','rush','banish','double','attack','play','main','turn']);
+
+async function matchCardByNameFallback(text:string,game:'pokemon'|'one-piece'|'auto'):Promise<Candidate[]>{
+  const lines=text.split(/[\r\n]+/).map(line=>line.replace(/[^A-Za-z0-9\s.'-]/g,' ').replace(/\s+/g,' ').trim()).filter(line=>{
+    if(line.length<4||line.length>42)return false;
+    const words=line.toLowerCase().split(/\s+/).filter(Boolean);
+    return words.some(word=>word.length>=4&&!scanNoiseWords.has(word));
+  });
+  const candidateTerm=lines.find(line=>!/^\d+$/.test(line));
+  if(!candidateTerm)return [];
+  const gameFilter=game==='auto'?'':"AND g.slug=?";
+  const rows=await database().prepare(`
+    SELECT DISTINCT p.id AS id,g.slug AS game,i.code AS code,COALESCE(NULLIF(l.name,''),i.name) AS name,
+      p.set_code AS setCode,p.printing_code AS cardNumber,p.language AS language,
+      COALESCE(p.rarity,'') AS rarity,COALESCE(p.variant,'') AS variant,p.card_image_url AS imageUrl,
+      CASE WHEN json_valid(p.source_payload) AND CAST(json_extract(p.source_payload,'$.set.cardCount.official') AS INTEGER)>0 THEN printf('%03d',CAST(json_extract(p.source_payload,'$.set.cardCount.official') AS INTEGER)) ELSE '' END AS setCardCount
+    FROM tcg_card_printings p
+    JOIN tcg_card_identities i ON i.id=p.identity_id
+    JOIN tcg_games g ON g.id=i.game_id
+    LEFT JOIN tcg_card_localizations l ON l.identity_id=i.id AND l.language=p.language
+    WHERE (UPPER(i.name) LIKE ? OR UPPER(l.name) LIKE ?) ${gameFilter}
+    ORDER BY CASE WHEN UPPER(i.name)=? OR UPPER(l.name)=? THEN 0 ELSE 1 END,
+      CASE WHEN p.variant='Standard' THEN 0 ELSE 1 END,p.language,p.set_code DESC LIMIT 16
+  `).bind(`%${candidateTerm.toUpperCase()}%`,`%${candidateTerm.toUpperCase()}%`,...(game==='auto'?[]:[game]),candidateTerm.toUpperCase(),candidateTerm.toUpperCase()).all<Candidate>();
+  return deduplicateScanCandidates(rows.results).map(candidate=>({...candidate,name:candidate.game==='one-piece'
+    ?displayCardName(candidate.name,candidate.code).replace(new RegExp(`\\s*\\(${candidate.code.replace(/[.*+?^${}()|[\\]\\\\]/g,'\\$&')}\\)$`,'i'),'')
+    :candidate.name,imageUrl:candidate.game==='pokemon'
+    ?pokemonArtRoute(candidate.language,candidate.setCode,candidate.cardNumber,candidate.id)
+    :`/${encodeURIComponent(candidate.setCode.replace(/[^A-Z0-9]/gi,''))}/${encodeURIComponent(candidate.language.toLowerCase())}/${encodeURIComponent(candidate.cardNumber)}.webp`}));
+}
+
 export async function POST(request:Request){
   try{
     const payload=await request.json() as {text?:unknown;game?:unknown};
@@ -245,6 +310,10 @@ export async function POST(request:Request){
         if(katakanaCandidates.length>0){
           return Response.json({read:{game:'pokemon',name:'',setCode:'',cardNumber:'',cardNumberTotal:'',language:'JP',rarity:'',variant:'',block:''},candidates:katakanaCandidates});
         }
+      }
+      const nameCandidates=await matchCardByNameFallback(text,game);
+      if(nameCandidates.length>0){
+        return Response.json({read:{game:nameCandidates[0]!.game,name:'',setCode:'',cardNumber:'',cardNumberTotal:'',language:'',rarity:'',variant:'',block:''},candidates:nameCandidates});
       }
       return Response.json({error:'Could not read the set and card number. Keep the lower edge in focus and try again.'},{status:422});
     }

@@ -12,7 +12,8 @@ export async function verifyTurnstile(request:Request):Promise<Response|null>{
   if(!secret)return null;
 
   if(!token||token.length>2048){
-    return Response.json({error:'Complete the security check and try again.'},{status:403});
+    const message='Complete the security check and try again.';
+    return Response.json({error:message,message},{status:403});
   }
 
   try{
@@ -31,5 +32,6 @@ export async function verifyTurnstile(request:Request):Promise<Response|null>{
   }catch{
     // Fail closed when verification is configured but Cloudflare cannot be reached.
   }
-  return Response.json({error:'The security check expired or could not be verified. Please try again.'},{status:403});
+  const message='The security check expired or could not be verified. Please try again.';
+  return Response.json({error:message,message},{status:403});
 }

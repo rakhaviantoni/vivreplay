@@ -649,20 +649,21 @@ export function CardScanButton({game='auto',locale='EN',onSelect,selectionPurpos
         signal:AbortSignal.timeout(4500),
       });
       if(!res.ok)return null;
-      const data=await res.json() as {status:string;product?:CardScanCandidate;candidates?:any[]};
-      const rawList:any[]=data.candidates?.length?data.candidates:data.product?[data.product]:[];
+      type RawScanCandidate=CardScanCandidate&{card?:Partial<CardScanCandidate>};
+      const data=await res.json() as {status:string;product?:RawScanCandidate;candidates?:RawScanCandidate[]};
+      const rawList:RawScanCandidate[]=data.candidates?.length?data.candidates:data.product?[data.product]:[];
       if(rawList.length>0){
-        const candidates:CardScanCandidate[]=rawList.map((c:any)=>{
-          const card=c.card||c;
+        const candidates:CardScanCandidate[]=rawList.map(c=>{
+          const card=(c.card??c) as Partial<CardScanCandidate>;
           return {
-            id:card.id,
-            game:card.game,
-            code:card.code,
-            name:card.name,
-            setCode:card.setCode,
+            id:String(card.id??''),
+            game:card.game==='pokemon'?'pokemon':'one-piece',
+            code:String(card.code??''),
+            name:String(card.name??''),
+            setCode:String(card.setCode??''),
             cardNumber:cleanCardNumber(card.cardNumber),
-            language:card.language,
-            rarity:card.rarity,
+            language:String(card.language??'EN'),
+            rarity:String(card.rarity??''),
             variant:card.variant||'Standard',
             imageUrl:card.imageUrl||null,
             score:c.score??c.confidence??card.score??card.confidence??0,

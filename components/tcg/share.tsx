@@ -2,6 +2,7 @@
 
 import LocalizedAnchor from '@/components/ui/localized-link';
 import {useRouteLocale} from '@/components/locale-provider';
+import {localeHref} from '@/lib/locale-path';
 import {useEffect, useMemo, useState} from 'react';
 import {
   CopyIcon as Copy,
@@ -9,10 +10,12 @@ import {
   WhatsappLogoIcon as WhatsappLogo,
   XLogoIcon as XLogo,
   TelegramLogoIcon as TelegramLogo,
+  InstagramLogoIcon as InstagramLogo,
   DownloadSimpleIcon as DownloadSimple,
   MoonIcon as Moon,
   SunIcon as Sun,
 } from '@phosphor-icons/react';
+import {MarketSocialSyndicationDialog} from './market-social-syndication-dialog';
 import {ShareRouteIcon, VivreMark} from './brand-assets';
 import {toast} from 'sonner';
 import {Dialog, DialogContent, DialogTitle, DialogDescription, DialogHeader} from '@/components/ui/dialog';
@@ -331,17 +334,20 @@ function drawVaultSlabLabel(ctx:CanvasRenderingContext2D,item:ShareCardItem,game
       ctx.font=`800 ${Math.max(7,small*.94)}px Arial,sans-serif`;ctx.fillText(fitCanvasText(ctx,`${rarity} - ${numberText}`.trim(),infoRight-infoLeft),center,y+height*.79);
       const qrSize=Math.min(height*.48,width*.12);const qrX=x+width*.11-qrSize/2;const qrY=y+height*.24;
       ctx.fillStyle='#07090b';ctx.fillRect(qrX,qrY,qrSize,qrSize);
-      const module=Math.max(1,qrSize/13);ctx.fillStyle='#fff';
-      for(let row=0;row<13;row++)for(let col=0;col<13;col++){seed=(Math.imul(seed,1664525)+1013904223)>>>0;const inFinder=(col<5&&row<5)||(col>7&&row<5)||(col<5&&row>7);if(!inFinder&&(seed>>>29)!==0)ctx.fillRect(qrX+col*module,qrY+row*module,module*.72,module*.72);}
-      const finder=(fx:number,fy:number)=>{ctx.fillStyle='#fff';ctx.fillRect(qrX+fx*module,qrY+fy*module,module*5,module*5);ctx.fillStyle='#07090b';ctx.fillRect(qrX+(fx+1)*module,qrY+(fy+1)*module,module*3,module*3);ctx.fillStyle='#fff';ctx.fillRect(qrX+(fx+2)*module,qrY+(fy+2)*module,module,module);};
+      const moduleSize=Math.max(1,qrSize/13);ctx.fillStyle='#fff';
+      for(let row=0;row<13;row++)for(let col=0;col<13;col++){seed=(Math.imul(seed,1664525)+1013904223)>>>0;const inFinder=(col<5&&row<5)||(col>7&&row<5)||(col<5&&row>7);if(!inFinder&&(seed>>>29)!==0)ctx.fillRect(qrX+col*moduleSize,qrY+row*moduleSize,moduleSize*.72,moduleSize*.72);}
+      const finder=(fx:number,fy:number)=>{ctx.fillStyle='#fff';ctx.fillRect(qrX+fx*moduleSize,qrY+fy*moduleSize,moduleSize*5,moduleSize*5);ctx.fillStyle='#07090b';ctx.fillRect(qrX+(fx+1)*moduleSize,qrY+(fy+1)*moduleSize,moduleSize*3,moduleSize*3);ctx.fillStyle='#fff';ctx.fillRect(qrX+(fx+2)*moduleSize,qrY+(fy+2)*moduleSize,moduleSize,moduleSize);};
       finder(0,0);finder(8,0);finder(0,8);
       write(certificate,x+width*.11,y+height*.24+qrSize+small*.85,width*.2,'center',850,'#fff');
       ctx.textAlign='center';ctx.fillStyle=ink;ctx.font=`900 ${Math.max(19,small*3.1)}px Arial,sans-serif`;ctx.fillText(gradeScore,x+width*.88,y+height*.6);
       ctx.font=`850 ${Math.max(6,small*.76)}px Arial,sans-serif`;ctx.fillText(pristine?'PRISTINE':gradeLabel,x+width*.88,y+height*.76);
       ctx.font=`900 ${Math.max(7,small*1.15)}px Arial,sans-serif`;ctx.fillText('EGS',x+width*.5,baseY-2);
     }else{
-      write(topLine,infoLeft,y+small+1,infoRight-infoLeft,'center',800,'#111');write(name,infoLeft,y+small*2+4,infoRight-infoLeft,'center',900,'#111');
-      write(`${rarity} ${numberText}`.trim(),infoLeft,y+small*3+6,infoRight-infoLeft,'center',800,'#111');
+      const textColor=pristine?'#111111':'#ffffff';
+      const center=(infoLeft+infoRight)/2;
+      write(topLine,center,y+small+1,infoRight-infoLeft,'center',800,textColor);
+      write(name,center,y+small*2+4,infoRight-infoLeft,'center',900,textColor);
+      write(`${rarity} ${numberText}`.trim(),center,y+small*3+6,infoRight-infoLeft,'center',800,textColor);
       ctx.textAlign='center';ctx.fillStyle=pristine?'#8c7015':'#fff';ctx.font=`900 ${Math.max(16,small*2.7)}px Arial,sans-serif`;ctx.fillText(gradeScore,x+width*.88,y+height*.63);ctx.font=`850 ${Math.max(5,small*.7)}px Arial,sans-serif`;ctx.fillText(pristine?'PRISTINE':gradeLabel,x+width*.88,baseY-5);
     }
   }else if(ars){
@@ -357,9 +363,12 @@ function drawVaultSlabLabel(ctx:CanvasRenderingContext2D,item:ShareCardItem,game
 }
 
 function loadImg(src: string): Promise<HTMLImageElement | null> {
+  if(!src)return Promise.resolve(null);
   return new Promise((resolve) => {
     const img = new Image();
-    img.crossOrigin = 'anonymous';
+    if(src.startsWith('http://')||src.startsWith('https://')){
+      img.crossOrigin = 'anonymous';
+    }
     img.onload = () => resolve(img);
     img.onerror = () => resolve(null);
     img.src = src;
@@ -369,19 +378,25 @@ function loadImg(src: string): Promise<HTMLImageElement | null> {
 function shareCardImageUrls(card:Card,printingId?:string):string[]{
   void printingId;
   const urls:string[]=[];
+  if(card.imageUrl)urls.push(card.imageUrl);
+  if((card as {assetPath?:string}).assetPath){
+    const p=(card as {assetPath:string}).assetPath;
+    urls.push(p.startsWith('/')?p:`/${p}`);
+  }
   const resolved=cardImageUrl(card);
-  if(resolved?.startsWith('/')&&!resolved.startsWith('//'))urls.push(resolved);
-  return [...new Set(urls)];
+  if(resolved)urls.push(resolved);
+  return [...new Set(urls.filter(Boolean))];
 }
 
-function shareSlabPlateHeight(item:ShareCardItem){
+function shareSlabPlateHeight(item:ShareCardItem,cardWidth=280){
   const grader=String(item.gradingCompany??'PSA').toUpperCase().replace(/[^A-Z]/g,'');
-  if(grader==='TAG'||grader==='TAGGRADING')return 110;
-  if(grader==='CGC'||grader==='CGCCARDS'||grader==='CERTIFIEDGUARANTYCOMPANY')return 90;
-  if(grader==='EGS'||grader.includes('EMPORIUMGRADINGSERVICE'))return 92;
-  if(grader==='ARS'||grader.startsWith('ARS'))return 90;
-  if(grader==='BGS'||grader==='BECKETT'||grader==='BECKETTGRADINGSERVICES')return 86;
-  return 84;
+  let base=84;
+  if(grader==='TAG'||grader==='TAGGRADING')base=110;
+  else if(grader==='CGC'||grader==='CGCCARDS'||grader==='CERTIFIEDGUARANTYCOMPANY')base=90;
+  else if(grader==='EGS'||grader.includes('EMPORIUMGRADINGSERVICE'))base=92;
+  else if(grader==='ARS'||grader.startsWith('ARS'))base=90;
+  else if(grader==='BGS'||grader==='BECKETT'||grader==='BECKETTGRADINGSERVICES')base=86;
+  return Math.round(base*Math.max(0.78,Math.min(1.18,cardWidth/280)));
 }
 
 async function generateListingCompositeBlob({
@@ -431,16 +446,19 @@ async function generateListingCompositeBlob({
     cols = 5;
     cardWidth = 175;
   }
-  if(entityType==='vault'){
+  const hasGradedSlabs=cards.some(item=>item.productType==='GRADED');
+  if(entityType==='vault'||hasGradedSlabs){
     if(count<=1){cols=1;cardWidth=430}
     else if(count<=2){cols=2;cardWidth=350}
-    else {cols=3;cardWidth=280}
+    else if(count<=3){cols=3;cardWidth=280}
+    else if(entityType==='vault'||count<=6){cols=3;cardWidth=260}
+    else{cols=4;cardWidth=215}
   }
 
   const cardHeight = Math.round(cardWidth * (580 / 420));
   const rows = Math.ceil(count / cols);
   const gapY = 16;
-  const cardInfoHeight = entityType==='vault'||cards.some(item=>item.productType==='GRADED')?Math.max(74,...cards.filter(item=>item.productType==='GRADED').map(shareSlabPlateHeight)):58;
+  const cardInfoHeight = entityType==='vault'||hasGradedSlabs?Math.max(74,...cards.filter(item=>item.productType==='GRADED').map(item=>shareSlabPlateHeight(item,cardWidth))):58;
   const headerHeight = 136;
   const footerHeight = 56;
   const cardsAreaHeight = rows * (cardHeight + cardInfoHeight) + (rows - 1) * gapY;
@@ -500,7 +518,7 @@ async function generateListingCompositeBlob({
   // Load brand compass mark & card images concurrently
   const [compassImg, gameLogoImg, ...loadedCardImages] = await Promise.all([
     loadImg('/brand/vivreplay-compass.png'),
-    entityType==='vault'&&gameSlug==='all'?Promise.resolve(null):entityType==='vault'?loadImg(gameSlug==='pokemon'?'https://upload.wikimedia.org/wikipedia/commons/1/1a/Pok%C3%A9mon_Trading_Card_Game_logo.svg':'/assets/one-piece-card-game-logo.png'):Promise.resolve(null),
+    entityType==='vault'&&gameSlug==='all'?Promise.resolve(null):entityType==='vault'?loadImg(gameSlug==='pokemon'?'/assets/pokemon-card-game-logo.png':'/assets/one-piece-card-game-logo.png'):Promise.resolve(null),
     ...cards.map(async (item) => {
       // Share previews should use the exact printing selected for the listing.
       // Catalog URL reconstruction can point at the standard art when an
@@ -528,7 +546,7 @@ async function generateListingCompositeBlob({
     const gameLabel = cardDetails?.gameLabel || ((item.card as Card & {gameSlug?:string}).gameSlug === 'pokemon' ? 'Pokémon TCG' : 'ONE PIECE CARD GAME');
     const isPokemon = gameLabel === 'Pokémon TCG';
     const gameLogoImg = await loadImg(isPokemon
-      ? 'https://upload.wikimedia.org/wikipedia/commons/1/1a/Pok%C3%A9mon_Trading_Card_Game_logo.svg'
+      ? '/assets/pokemon-card-game-logo.png'
       : '/assets/one-piece-card-game-logo.png');
     const artX = 64, artY = 118, artW = 400, artH = 552;
     ctx.save();
@@ -573,17 +591,21 @@ async function generateListingCompositeBlob({
     ctx.fillText('VivrePlay', 118, 62);
 
     const panelX = 510, panelW = 624;
+    const isId = language === 'ID';
     const details = cardDetails ?? {
       language: item.card.language,
       setCode: item.card.setCode,
       number: item.card.printingCode || item.card.code,
       rarity: item.card.rarity,
       facts: [
-        {label:'Color',value:item.card.color}, {label:'Card type',value:item.card.type},
-        {label:'Cost',value:String(item.card.cost)}, ...(item.card.power ? [{label:'Power',value:String(item.card.power)}] : []),
-        ...(item.card.counter ? [{label:'Counter',value:String(item.card.counter)}] : []), ...(item.card.attribute ? [{label:'Attribute',value:item.card.attribute}] : []),
+        {label: isId ? 'Warna' : 'Color', value: item.card.color},
+        {label: isId ? 'Tipe kartu' : 'Card type', value: item.card.type},
+        {label: isId ? 'Biaya' : 'Cost', value: String(item.card.cost)},
+        ...(item.card.power ? [{label: isId ? 'Kekuatan' : 'Power', value: String(item.card.power)}] : []),
+        ...(item.card.counter ? [{label: 'Counter', value: String(item.card.counter)}] : []),
+        ...(item.card.attribute ? [{label: isId ? 'Atribut' : 'Attribute', value: item.card.attribute}] : []),
       ],
-      sections: item.card.effect ? [{title:'Effect',text:item.card.effect}] : [],
+      sections: item.card.effect ? [{title: isId ? 'Efek' : 'Effect', text: item.card.effect}] : [],
     };
     const energyAssets = [...new Set([...(details.facts ?? []).flatMap(fact => fact.energyTypes ?? []), ...(details.sections ?? []).flatMap(section => section.energyTypes ?? [])].map(energyAssetFromName).filter((value):value is string => Boolean(value)))];
     const energyImages = new Map(await Promise.all(energyAssets.map(async asset => [asset, await loadImg(`/assets/pokemon/energy/${asset}.png`)] as const)));
@@ -681,9 +703,11 @@ async function generateListingCompositeBlob({
     const outputCtx=output.getContext('2d');if(!outputCtx)return null;
     outputCtx.drawImage(canvas,0,0,canvasWidth,finalHeight,0,0,canvasWidth,finalHeight);
     const footerY=finalHeight-24;
-    outputCtx.font='600 10px "Manrope", sans-serif';outputCtx.fillStyle=palette.muted;outputCtx.fillText('Powered by',paddingX,footerY);
-    if(compassImg)outputCtx.drawImage(compassImg,paddingX+67,footerY-13,16,16);
-    outputCtx.font='800 12px "Plus Jakarta Sans", sans-serif';outputCtx.fillStyle=palette.ink;outputCtx.fillText('VivrePlay',paddingX+87,footerY);
+    const poweredLabel=language==='ID'?'Didukung oleh':'Powered by';
+    outputCtx.font='600 10px "Manrope", sans-serif';outputCtx.fillStyle=palette.muted;outputCtx.fillText(poweredLabel,paddingX,footerY);
+    const poweredWidth=outputCtx.measureText(poweredLabel).width;
+    if(compassImg)outputCtx.drawImage(compassImg,paddingX+poweredWidth+8,footerY-13,16,16);
+    outputCtx.font='800 12px "Plus Jakarta Sans", sans-serif';outputCtx.fillStyle=palette.ink;outputCtx.fillText('VivrePlay',paddingX+poweredWidth+28,footerY);
     outputCtx.textAlign='right';outputCtx.fillStyle=palette.muted;outputCtx.font='600 11px "Manrope", sans-serif';outputCtx.fillText(link,canvasWidth-paddingX,footerY,500);outputCtx.textAlign='left';
     return new Promise<Blob|null>(resolve=>output.toBlob(blob=>resolve(blob),'image/png'));
   }
@@ -786,7 +810,7 @@ async function generateListingCompositeBlob({
     const isSlab=item.productType==='GRADED';
     const grader=String(item.gradingCompany??'PSA').toUpperCase().replace(/[^A-Z]/g,'');
     const isArsSlab=isSlab&&(grader==='ARS'||grader.startsWith('ARS'));
-    const plateHeight=isSlab?shareSlabPlateHeight(item):cardInfoHeight;
+    const plateHeight=isSlab?shareSlabPlateHeight(item,cardWidth):cardInfoHeight;
     const clearSlab=isSlab&&(grader==='TAG'||grader==='TAGGRADING'||((grader==='EGS'||grader.includes('EMPORIUMGRADINGSERVICE'))&&item.slabLabel?.labelStyle==='clear'));
     const artX=cardX+(isSlab?8:0);
     const artY=cardY+(isSlab?(isArsSlab?5:plateHeight):0);
@@ -903,7 +927,7 @@ async function generateListingCompositeBlob({
     if (typeof item.unitAmount === 'number' && item.unitAmount > 0) {
       ctx.font = '800 12px "Plus Jakarta Sans", sans-serif';
       ctx.fillStyle = palette.accent;
-      const unitPrice = new Intl.NumberFormat(language === 'ID' ? 'id-ID' : 'en-ID', {style: 'currency', currency: 'IDR', maximumFractionDigits: 0}).format(item.unitAmount);
+      const unitPrice = new Intl.NumberFormat(language === 'ID' ? 'id-ID' : 'en-US', {style: 'currency', currency: 'IDR', maximumFractionDigits: 0}).format(item.unitAmount);
       ctx.fillText(`${unitPrice} / ${language === 'ID' ? 'kartu' : 'card'}`, cardX + cardWidth / 2, cardY + cardHeight + 50);
     }
     ctx.textAlign = 'left';
@@ -919,9 +943,11 @@ async function generateListingCompositeBlob({
 
   const footerY = canvasHeight - 24;
   if (entityType==='vault'){
-    ctx.font='600 10px "Manrope", sans-serif';ctx.fillStyle=palette.muted;ctx.fillText('Powered by',paddingX,footerY);
-    if (compassImg) ctx.drawImage(compassImg,paddingX+62,footerY-13,16,16);
-    ctx.font='800 12px "Plus Jakarta Sans", sans-serif';ctx.fillStyle=palette.ink;ctx.fillText('VivrePlay',paddingX+82,footerY);
+    const poweredLabel=language==='ID'?'Didukung oleh':'Powered by';
+    ctx.font='600 10px "Manrope", sans-serif';ctx.fillStyle=palette.muted;ctx.fillText(poweredLabel,paddingX,footerY);
+    const poweredWidth=ctx.measureText(poweredLabel).width;
+    if (compassImg) ctx.drawImage(compassImg,paddingX+poweredWidth+8,footerY-13,16,16);
+    ctx.font='800 12px "Plus Jakarta Sans", sans-serif';ctx.fillStyle=palette.ink;ctx.fillText('VivrePlay',paddingX+poweredWidth+28,footerY);
   } else {
   if (compassImg) ctx.drawImage(compassImg, paddingX, footerY - 13, 18, 18);
   ctx.font = '800 13px "Plus Jakarta Sans", sans-serif';
@@ -935,7 +961,11 @@ async function generateListingCompositeBlob({
   ctx.textAlign = 'left';
 
   return new Promise<Blob | null>((resolve) => {
-    canvas.toBlob((blob) => resolve(blob), 'image/png');
+    try {
+      canvas.toBlob((blob) => resolve(blob), 'image/png');
+    } catch {
+      resolve(null);
+    }
   });
 }
 
@@ -966,6 +996,7 @@ export function ShareButton({
   const [shareStyle, setShareStyle] = useState<'light' | 'dark'>('light');
   const [imagePreview, setImagePreview] = useState('');
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [socialOpen, setSocialOpen] = useState(false);
 
   useEffect(() => {
     const sync = () => setLanguage(window.localStorage.getItem('vivreplay-locale') === 'ID' ? 'ID' : 'EN');
@@ -980,8 +1011,9 @@ export function ShareButton({
   const cardDetailsKey = JSON.stringify(cardDetails ?? null);
   const stableCardDetails = useMemo(() => JSON.parse(cardDetailsKey) as ShareCardDetails | null, [cardDetailsKey]);
 
-  const url = typeof window === 'undefined' ? path : new URL(path, window.location.origin).href;
-  const sharePath = new URL(path, 'https://vivreplay.com');
+  const localizedPath = localeHref(path, language);
+  const url = typeof window === 'undefined' ? localizedPath : new URL(localizedPath, window.location.origin).href;
+  const sharePath = new URL(localizedPath, 'https://vivreplay.com');
   const imageLink = `vivreplay.com${sharePath.pathname}${sharePath.search}`;
   const imageSubtitle=[subtitle,listingInfo?.city,listingInfo?.seller?`${language==='ID'?'oleh':'by'} ${listingInfo.seller}`:'',listingInfo?.expiresAt?shareExpiry(listingInfo.expiresAt,language,listingInfo.timeZone):''].filter(Boolean).join(' | ');
   const entityLabel = entityType === 'card' ? (language === 'ID' ? 'kartu' : 'card') : 'listing';
@@ -1193,6 +1225,33 @@ export function ShareButton({
                 <TelegramLogo size={18} weight="fill" />
                 <span>Telegram</span>
               </LocalizedAnchor>
+              {entityType === 'listing' && (
+                <button
+                  type="button"
+                  className="share-channel-btn instagram"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '7px',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    cursor: 'pointer',
+                    background: 'linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)',
+                    color: '#ffffff',
+                    border: '0',
+                    fontWeight: 700,
+                    fontSize: '12px',
+                  }}
+                  onClick={() => {
+                    setOpen(false);
+                    setSocialOpen(true);
+                  }}
+                >
+                  <InstagramLogo size={18} weight="fill" />
+                  <span>{language === 'ID' ? 'Auto-Publish (PostForMe)' : 'Auto-Publish (PostForMe)'}</span>
+                </button>
+              )}
             </div>
           )}
 
@@ -1208,6 +1267,22 @@ export function ShareButton({
           )}
         </DialogContent>
       </Dialog>
+      {entityType === 'listing' && (
+        <MarketSocialSyndicationDialog
+          open={socialOpen}
+          onOpenChange={setSocialOpen}
+          listing={{
+            id: path.split('/market/')[1]?.split('?')[0] || path,
+            title,
+            amount: price ? Number(price.replace(/[^0-9]/g, '')) || 0 : 0,
+            seller: listingInfo?.seller,
+            city: listingInfo?.city,
+            condition: cardList[0]?.condition,
+            game: cardList[0]?.card.gameSlug,
+          }}
+          language={language}
+        />
+      )}
     </>
   );
 }

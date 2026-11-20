@@ -120,29 +120,28 @@ export async function GET(request: Request) {
     const db = database();
     const game = await db.prepare('SELECT id FROM tcg_games WHERE slug=? LIMIT 1').bind(gameSlug).first<{ id: string }>();
     if (!game) return Response.json({ sets: [] }, { headers: publicHeaders });
+    const sourcePayloadSql = includeCards
+      ? `CASE WHEN json_valid(p.source_payload) THEN json_object('localId',json_extract(p.source_payload,'$.localId'),'collectorNumber',json_extract(p.source_payload,'$.collectorNumber'),'shortDescription',json_extract(p.source_payload,'$.shortDescription'),'description',json_extract(p.source_payload,'$.description'),'rarity',COALESCE(json_extract(p.source_payload,'$.rarity'),json_extract(p.source_payload,'$.rarityName'),json_extract(p.source_payload,'$.rarity_code')),'set',json_object('cardCount',json_object('official',json_extract(p.source_payload,'$.set.cardCount.official')))) ELSE NULL END AS source_payload`
+      : `NULL AS source_payload`;
     const rows = (await db.prepare(`
       SELECT p.id,p.card_image_url,p.set_code,p.set_name,p.identity_id,p.variant,COALESCE(s.release_date,p.release_date) AS release_date
-          ,s.description,s.official_url,s.product_image_url,p.printing_code,p.language,p.rarity,p.source_payload,
-          (SELECT COALESCE(NULLIF(trim(matching.rarity),''),CASE WHEN json_valid(matching.source_payload) THEN NULLIF(trim(CAST(json_extract(matching.source_payload,'$.rarity') AS TEXT)),'') END)
-            FROM tcg_card_printings matching
-            WHERE matching.set_code=p.set_code AND matching.printing_code=p.printing_code AND matching.variant=p.variant
-              AND matching.language<>p.language
-              AND COALESCE(NULLIF(trim(matching.rarity),''),CASE WHEN json_valid(matching.source_payload) THEN NULLIF(trim(CAST(json_extract(matching.source_payload,'$.rarity') AS TEXT)),'') END) IS NOT NULL
-              AND lower(trim(COALESCE(NULLIF(matching.rarity,''),CASE WHEN json_valid(matching.source_payload) THEN json_extract(matching.source_payload,'$.rarity') END,''))) NOT IN ('unknown','none','null')
-            ORDER BY CASE matching.language WHEN 'JP' THEN 0 WHEN 'EN' THEN 1 WHEN 'ID' THEN 2 ELSE 3 END
-            LIMIT 1) AS matching_language_rarity,
-          i.code AS identity_code,COALESCE(l.name,i.name) AS identity_name,i.color AS identity_color,i.card_type AS identity_type,i.cost AS identity_cost,i.power AS identity_power,COALESCE(l.effect_text,i.effect_text) AS identity_effect,
+          ,s.description,s.official_url,s.product_image_url,p.printing_code,p.language,p.rarity,${sourcePayloadSql},
+          NULL AS matching_language_rarity,
+          i.code AS identity_code,COALESCE(l.name,i.name) AS identity_name,i.color AS identity_color,i.card_type AS identity_type,i.cost AS identity_cost,i.power AS identity_power,${includeCards ? 'COALESCE(l.effect_text,i.effect_text)' : 'NULL'} AS identity_effect,
           CASE WHEN json_valid(p.source_payload) THEN json_extract(p.source_payload,'$.set.serie.name') ELSE NULL END AS series
         FROM tcg_card_printings p
         JOIN tcg_card_identities i ON i.id=p.identity_id
-        LEFT JOIN tcg_card_localizations l ON l.identity_id=i.id AND l.language=p.language
+        ${includeCards ? 'LEFT JOIN tcg_card_localizations l ON l.identity_id=i.id AND l.language=p.language' : 'LEFT JOIN tcg_card_localizations l ON 0'}
         LEFT JOIN tcg_sets s ON s.id=p.set_id
         WHERE p.identity_id IS NOT NULL AND i.game_id=?${language === 'ALL' ? '' : ' AND p.language=?'}
       `).bind(...(language === 'ALL' ? [game.id] : [game.id, language])).all<Row>()).results;
     const sets = summarize(rows, gameSlug,includeCards);
-    try { await env.CARD_IMAGES?.put(snapshotKey, JSON.stringify({ sets }), { httpMetadata: { contentType: 'application/json; charset=utf-8', cacheControl: 'public, max-age=86400' } }); }
-    catch { /* Keep serving the catalog if snapshot storage is unavailable. */ }
-    return storePublicEdgeCache(request, Response.json({ sets }, { headers: publicHeaders }));
+    if(sets.length>0){
+      try { await env.CARD_IMAGES?.put(snapshotKey, JSON.stringify({ sets }), { httpMetadata: { contentType: 'application/json; charset=utf-8', cacheControl: 'public, max-age=86400' } }); }
+      catch { /* Keep serving the catalog if snapshot storage is unavailable. */ }
+      return storePublicEdgeCache(request, Response.json({ sets }, { headers: publicHeaders }));
+    }
+    return Response.json({ sets }, { headers: { 'Cache-Control': 'no-store' } });
   } catch {
     return Response.json({ error: 'Set progress is temporarily unavailable.' }, { status: 503 });
   }

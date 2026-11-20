@@ -132,12 +132,17 @@ export function DepthCarousel({items,label,className=''}:{items:DepthCarouselIte
       onDragStart={e=>e.preventDefault()}
     >
       <div className="depth-stage" onDragStart={e=>e.preventDefault()}>
-        {items.map((item,index)=>(
-          <button
+        {items.map((item,index)=>{
+          let dist=(index-active+items.length)%items.length;
+          if(dist>items.length/2)dist-=items.length;
+          const isHidden=Math.abs(dist)>3.2;
+          return <button
             ref={node=>{cards.current[index]=node}}
             key={item.id}
             type="button"
             className="depth-card"
+            tabIndex={isHidden?-1:0}
+            aria-hidden={isHidden||undefined}
             aria-current={index===active?'true':undefined}
             aria-label={item.label}
             onClick={()=>{
@@ -149,8 +154,8 @@ export function DepthCarousel({items,label,className=''}:{items:DepthCarouselIte
             }}
           >
             {item.content}
-          </button>
-        ))}
+          </button>;
+        })}
       </div>
       <div className="depth-controls" aria-label="Carousel controls" onPointerDown={event=>event.stopPropagation()}>
         <button

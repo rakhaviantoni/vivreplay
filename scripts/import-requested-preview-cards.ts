@@ -182,9 +182,10 @@ async function scrapeCard(pageUrl: string): Promise<ScrapedCard> {
 
   const attribute = raw.attribute || raw.attributeCode || null;
 
-  const traitsArray: string[] = Array.isArray(raw.traits)
-    ? raw.traits.map((t: any) => (typeof t === 'string' ? t.trim() : (t.name || t.code || '').trim())).filter(Boolean)
-    : (typeof raw.traits === 'string' ? raw.traits.split(/\s*\/\s*/).filter(Boolean) : []);
+  const rawTraits = raw.traits as Array<string | { name?: string; code?: string }> | string | undefined;
+  const traitsArray: string[] = Array.isArray(rawTraits)
+    ? rawTraits.map(t => (typeof t === 'string' ? t.trim() : (t.name || t.code || '').trim())).filter(Boolean)
+    : (typeof rawTraits === 'string' ? rawTraits.split(/\s*\/\s*/).filter(Boolean) : []);
   const traits = traitsArray.join(' / ');
 
   const effect: string = (raw.effect || raw.texts?.[0]?.effect || '').trim();

@@ -1,5 +1,6 @@
 'use client';
 
+import {useRouteLocale} from '@/components/locale-provider';
 import {useEffect, useRef, useState} from 'react';
 import type {ReactNode} from 'react';
 import {Card, colors} from '@/packages/card-data/catalog';
@@ -45,43 +46,60 @@ export function cardPrintingImageUrl(printing:{id?:string|null;assetPath?:string
 export function cardImageUrl(card:Omit<Partial<Card>,'imageUrl'|'assetPath'>&{imageUrl?:string|null;assetPath?:string|null;gameSlug?:string|null}){return cardPrintingImageUrl(card)}
 
 export function CardArt({card,small=false,priority=false,imageWidth,onImageMissing,onImageLoaded,missingImageAction}:{card:Card&{gameSlug?:string};small?:boolean;priority?:boolean;imageWidth?:160|220|280|360;onImageMissing?:()=>void;onImageLoaded?:()=>void;missingImageAction?:ReactNode}) {
+  const id=useRouteLocale()==='ID';
   const cardName=displayCardName(card.name,card.code);
   const preview=isPreviewCard(card.code,card.setCode,card.variant);
   const baseImage=cardImageUrl(card);
   const resolvedImage=baseImage&&imageWidth?`${baseImage}${baseImage.includes('?')?'&':'?'}width=${imageWidth}`:baseImage;
   const [imageResult,setImageResult]=useState<{url:string;status:'loaded'|'failed'}|null>(null);
+  const [retryState,setRetryState]=useState<{url:string;count:number}>({url:'',count:0});
   const imageRef=useRef<HTMLImageElement|null>(null);
   const settledImageUrl=useRef('');
-  const loaded=Boolean(resolvedImage&&imageResult?.url===resolvedImage&&imageResult.status==='loaded');
+  const retryTimerRef=useRef<number|null>(null);
+  const retryCount=resolvedImage&&retryState.url===resolvedImage?retryState.count:0;
+  const activeImageSrc=resolvedImage?(retryCount>0?`${resolvedImage}${resolvedImage.includes('?')?'&':'?'}retry=${retryCount}`:resolvedImage):undefined;
+  const loaded=Boolean(activeImageSrc&&resolvedImage&&imageResult?.url===resolvedImage&&imageResult?.status==='loaded');
   const imageFailed=Boolean(resolvedImage&&imageResult?.url===resolvedImage&&imageResult.status==='failed');
   const onImageMissingRef=useRef(onImageMissing);
   const onImageLoadedRef=useRef(onImageLoaded);
   useEffect(()=>{onImageMissingRef.current=onImageMissing},[onImageMissing]);
   useEffect(()=>{onImageLoadedRef.current=onImageLoaded},[onImageLoaded]);
   useEffect(()=>{
+    return()=>{
+      if(retryTimerRef.current!==null){
+        window.clearTimeout(retryTimerRef.current);
+        retryTimerRef.current=null;
+      }
+    };
+  },[resolvedImage]);
+  useEffect(()=>{
     if(!resolvedImage)onImageMissingRef.current?.();
   },[resolvedImage]);
   useEffect(()=>{
     const image=imageRef.current;
-    if(!resolvedImage||!image||settledImageUrl.current===resolvedImage||image.getAttribute('src')!==resolvedImage||!image.complete)return;
-    settledImageUrl.current=resolvedImage;
+    if(!resolvedImage||!activeImageSrc||!image||settledImageUrl.current===activeImageSrc||image.getAttribute('src')!==activeImageSrc||!image.complete)return;
+    settledImageUrl.current=activeImageSrc;
     if(image.naturalWidth>0){
       setImageResult({url:resolvedImage,status:'loaded'});
       onImageLoadedRef.current?.();
+    }else if(retryCount<2){
+      retryTimerRef.current=window.setTimeout(()=>setRetryState({url:resolvedImage,count:retryCount+1}),retryCount===0?750:1800);
     }else{
       setImageResult({url:resolvedImage,status:'failed'});
       onImageMissingRef.current?.();
     }
-  },[resolvedImage]);
+  },[resolvedImage,activeImageSrc,retryCount]);
   if(card.sealedProduct)return <div className="market-sealed-art" style={{width:'100%',aspectRatio:'3 / 4',display:'grid',placeItems:'center'}}><img src={card.imageUrl} alt={card.name} style={{width:'100%',height:'100%',objectFit:'contain'}} loading={priority?'eager':'lazy'}/></div>;
-  if (resolvedImage&&!imageFailed) return <div className={`tcg-card printing-image ${small?'small':''} ${loaded?'is-loaded':'is-loading'} ${preview?'is-preview-card':''}`} aria-label={preview?"Preview of a set that hasn’t launched yet. You can play it in Casual, New Cards, and Extended, but not Ranked. Its image and text may still change.":undefined}>
-    {preview&&<span className="preview-card-badge" role="img" aria-label="Unreleased card" title="Unreleased card"><ClockCountdown size={13} weight="bold"/></span>}<span className="card-image-skeleton" aria-hidden="true"/>
-    <img ref={imageRef} src={resolvedImage} alt={`${cardName} card printing`} draggable={false} loading={priority?"eager":"lazy"} fetchPriority={priority?"high":undefined} decoding="async" width={imageWidth??420} height={imageWidth?Math.round(imageWidth*580/420):580} onLoad={()=>{settledImageUrl.current=resolvedImage;setImageResult({url:resolvedImage,status:'loaded'});onImageLoadedRef.current?.();}} onError={()=>{settledImageUrl.current=resolvedImage;setImageResult({url:resolvedImage,status:'failed'});onImageMissingRef.current?.();}}/>
+  const previewLabel=id?'Pratinjau set yang belum dirilis. Dapat dimainkan di mode Kasual, Kartu Baru, dan Extended, tetapi belum di Ranked. Gambar dan teks masih dapat berubah.':'Preview of a set that hasn’t launched yet. You can play it in Casual, New Cards, and Extended, but not Ranked. Its image and text may still change.';
+  const unreleasedText=id?'Kartu belum dirilis':'Unreleased card';
+  if (activeImageSrc&&resolvedImage&&!imageFailed) return <div className={`tcg-card printing-image ${small?'small':''} ${loaded?'is-loaded':'is-loading'} ${preview?'is-preview-card':''}`} aria-label={preview?previewLabel:undefined}>
+    {preview&&<span className="preview-card-badge" role="img" aria-label={unreleasedText} title={unreleasedText}><ClockCountdown size={13} weight="bold"/></span>}<span className="card-image-skeleton" aria-hidden="true"/>
+    <img ref={imageRef} src={activeImageSrc} alt={id?`Cetakan kartu ${cardName}`:`${cardName} card printing`} draggable={false} loading={priority?"eager":"lazy"} fetchPriority={priority?"high":undefined} decoding="async" width={imageWidth??420} height={imageWidth?Math.round(imageWidth*580/420):580} onLoad={()=>{settledImageUrl.current=activeImageSrc;setImageResult({url:resolvedImage,status:'loaded'});onImageLoadedRef.current?.();}} onError={()=>{settledImageUrl.current=activeImageSrc;if(retryCount<2){if(retryTimerRef.current!==null)window.clearTimeout(retryTimerRef.current);retryTimerRef.current=window.setTimeout(()=>setRetryState({url:resolvedImage,count:retryCount+1}),retryCount===0?750:1800);return;}setImageResult({url:resolvedImage,status:'failed'});onImageMissingRef.current?.();}}/>
   </div>;
-  if(card.gameSlug==='pokemon')return <div className={`tcg-card missing-printing pokemon-missing-printing ${small?'small':''}`} aria-label={`Card is missing: ${cardName}`}><strong>Card is missing</strong>{missingImageAction}</div>;
-  return <div className={`tcg-card missing-printing ${small?'small':''} ${preview?'is-preview-card':''}`} style={{'--card-color':colors[card.color]} as React.CSSProperties} aria-label={preview?`${cardName}, unreleased card`: `${cardName} artwork unavailable`}>
-    {preview&&<span className="preview-card-badge" role="img" aria-label="Unreleased card" title="Unreleased card"><ClockCountdown size={13} weight="bold"/></span>}
+  if(card.gameSlug==='pokemon')return <div className={`tcg-card missing-printing pokemon-missing-printing ${small?'small':''}`} aria-label={id?`Kartu belum tersedia: ${cardName}`:`Card is missing: ${cardName}`}><strong>{id?'Gambar belum tersedia':'Card is missing'}</strong>{missingImageAction}</div>;
+  return <div className={`tcg-card missing-printing ${small?'small':''} ${preview?'is-preview-card':''}`} style={{'--card-color':colors[card.color]} as React.CSSProperties} aria-label={preview?(id?`${cardName}, kartu belum dirilis`:`${cardName}, unreleased card`):(id?`Gambar ${cardName} tidak tersedia`:`${cardName} artwork unavailable`)}>
+    {preview&&<span className="preview-card-badge" role="img" aria-label={unreleasedText} title={unreleasedText}><ClockCountdown size={13} weight="bold"/></span>}
     <div className="card-top"><b>{card.type==='Leader'?'L':card.cost}</b><strong>{card.power>0?card.power.toLocaleString():card.type.toUpperCase()}</strong></div>
-    <div className="card-caption"><span>{card.type.toUpperCase()}</span><strong>{cardName}</strong><div>{card.code}{!preview&&<span>Image unavailable</span>}</div></div>
+    <div className="card-caption"><span>{card.type.toUpperCase()}</span><strong>{cardName}</strong><div>{card.code}{!preview&&<span>{id?'Gambar tidak tersedia':'Image unavailable'}</span>}</div></div>
   </div>;
 }

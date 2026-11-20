@@ -10,6 +10,7 @@ if (!apiKey) throw new Error('PARSE_API_KEY is required.');
 
 const now = new Date();
 const dryRun = process.argv.includes('--dry-run');
+const local = process.argv.includes('--local');
 const option = (name) => {
   const index = process.argv.indexOf(name);
   return index >= 0 ? process.argv[index + 1] : undefined;
@@ -32,6 +33,7 @@ const wranglerEnv = {
   WRANGLER_WRITE_LOGS: 'false',
   WRANGLER_LOG_PATH: '/tmp/vivreplay-wrangler-logs',
   WRANGLER_SEND_METRICS: 'false',
+  ...(local ? { XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME ?? '/tmp/vivreplay-xdg' } : {}),
 };
 const sqlString = (value) => `'${String(value ?? '').replaceAll("'", "''")}'`;
 const stableId = (value) => {
@@ -45,7 +47,14 @@ const normalize = (value) => String(value ?? '').trim().toUpperCase().replace(/[
 const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function execute(target, command, json = true) {
-  const args = ['d1', 'execute', target.name, '--remote', '--config', target.config];
+  const args = [
+    'd1',
+    'execute',
+    local ? 'DB' : target.name,
+    ...(local ? ['--local', '--persist-to', '.wrangler/state', '--yes'] : ['--remote']),
+    '--config',
+    local ? 'wrangler.migrations.json' : target.config,
+  ];
   if (json) args.push('--json');
   args.push('--command', command);
   return execFileSync(wrangler, args, {

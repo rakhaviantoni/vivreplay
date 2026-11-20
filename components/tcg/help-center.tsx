@@ -20,7 +20,7 @@ export function HelpCenter({locale}: {locale: HelpLocale}) {
     const text = [article.title[locale], article.summary[locale], ...article.keywords[locale]].join(' ').toLocaleLowerCase(locale === 'id' ? 'id-ID' : 'en-US');
     return text.includes(needle);
   }), [category, locale, needle]);
-  const featured = helpArticles.find((article) => article.slug === 'report-a-market-order-problem')!;
+  const featured = helpArticles.find((article) => article.slug === 'report-a-market-order-problem');
 
   return <main className="page help-page">
     <header className="directory-hero page-intro-surface help-hero">
@@ -34,7 +34,7 @@ export function HelpCenter({locale}: {locale: HelpLocale}) {
       </label>
     </header>
 
-    {!needle && category === 'all' && <section className="help-featured" aria-labelledby="help-featured-title">
+    {!needle && category === 'all' && featured && <section className="help-featured" aria-labelledby="help-featured-title">
       <div><span>{id ? 'PANDUAN PESANAN' : 'ORDER GUIDE'}</span><h2 id="help-featured-title">{featured.title[locale]}</h2><p>{featured.summary[locale]}</p></div>
       <Link href={localizedHref(`/help/${featured.slug}`, locale)} aria-label={id ? 'Buka panduan masalah pesanan' : 'Open the order problem guide'}><ArrowRight size={19}/></Link>
     </section>}

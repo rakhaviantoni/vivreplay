@@ -161,7 +161,7 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
     const method=typeof input.paymentMethod==='string'?input.paymentMethod:typeof details.ipaymuSelectedMethod==='string'?details.ipaymuSelectedMethod:'qris';
     const channel=typeof input.paymentChannel==='string'?input.paymentChannel:typeof details.ipaymuSelectedChannel==='string'?details.ipaymuSelectedChannel:'mpm';
     if(!['va','cstore','qris','cc','paylater','ewallet'].includes(method)||!(/^[a-z0-9_]{2,24}$/.test(channel)))throw new HttpError(400,'Choose a valid payment method.');
-    let existingPaymentExpiry=order.paymentId&&details.ipaymuPaymentMethod?ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt,details.ipaymuPaymentCreatedAt,order.updatedAt):null;
+    const existingPaymentExpiry=order.paymentId&&details.ipaymuPaymentMethod?ipaymuExpiryTimestamp(details.ipaymuPaymentExpiresAt,details.ipaymuPaymentCreatedAt,order.updatedAt):null;
     if(order.paymentId&&!order.paymentId.startsWith('CREATING:')&&existingPaymentExpiry!==null&&existingPaymentExpiry<=Date.now()){
       const state=await getIpaymuAttemptState(String(details.ipaymuTransactionId??''),order.id);
       if(state==='paid')throw new HttpError(409,'Payment received. Refresh this order while we confirm it.');
@@ -275,7 +275,7 @@ export async function POST(request:Request,{params}:{params:Promise<{id:string}>
         }else{
           const clearedDetails=clearIpaymuPaymentAttempt(details);
           const checkoutExpiry=ipaymuCheckoutExpiresAt(details.ipaymuCheckoutExpiresAt,order.createdAt);
-          await database.prepare("UPDATE checkout_orders SET status='FAILED',payment_id=NULL,details=?,expires_at=COALESCE(?,expires_at),updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id=?").bind(JSON.stringify(clearedDetails),checkoutExpiry,id,paymentClaim).run();
+          await database.prepare("UPDATE checkout_orders SET payment_id=NULL,details=?,expires_at=COALESCE(?,expires_at),updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='PENDING_PAYMENT' AND payment_id=?").bind(JSON.stringify(clearedDetails),checkoutExpiry,id,paymentClaim).run();
         }
       }
       const message=outcome==='unknown'

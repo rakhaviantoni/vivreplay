@@ -59,15 +59,16 @@ async function resolveEnglishImageUrl(code: string, folder: string, setCode: str
       const rawJson = match[1].replace(/\\"/g, '"').replace(/\\\\/g, '\\');
       const raw = JSON.parse(rawJson);
 
-      const enPrinting = raw.printings?.find(
-        (p: any) => p.language_code === 'en' && (p.source_variant === 'base' || !p.source_variant)
-      ) || raw.printings?.find((p: any) => p.language_code === 'en');
+      const printings = (raw.printings ?? []) as Array<{ language_code?: string; source_variant?: string; imageFull?: string; image?: string }>;
+      const enPrinting = printings.find(
+        p => p.language_code === 'en' && (p.source_variant === 'base' || !p.source_variant)
+      ) || printings.find(p => p.language_code === 'en');
 
       if (!enPrinting) {
         throw new Error(`No English printing found for ${code}`);
       }
 
-      const enImageUrl: string = enPrinting.imageFull || enPrinting.image;
+      const enImageUrl: string = enPrinting.imageFull || enPrinting.image || '';
       if (!enImageUrl || enImageUrl.includes('/cn/')) {
         throw new Error(`Resolved image URL is still non-English: ${enImageUrl}`);
       }

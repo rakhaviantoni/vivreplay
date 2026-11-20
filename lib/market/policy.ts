@@ -1,3 +1,5 @@
+import type { D1Database } from '@cloudflare/workers-types';
+
 export type AccountTier = 'free' | 'pro';
 
 export interface ListingTierPolicy {
@@ -147,16 +149,17 @@ export function parseMarketPolicies(rawJson: string | null | undefined): MarketP
   }
 }
 
-export async function fetchMarketPolicies(db: any): Promise<MarketPolicies> {
+export async function fetchMarketPolicies(db: D1Database | null | undefined): Promise<MarketPolicies> {
   try {
-    const row = await (db.prepare("SELECT value FROM app_settings WHERE key='market_policy'") as any).first() as { value: string } | null;
+    if (!db) return LISTING_POLICIES;
+    const row = await db.prepare("SELECT value FROM app_settings WHERE key='market_policy'").first<{ value: string }>();
     return parseMarketPolicies(row?.value);
   } catch {
     return LISTING_POLICIES;
   }
 }
 
-export async function getDynamicListingPolicy(tier: string | null | undefined, db: any, billingPeriod: string | null | undefined = 'monthly'): Promise<ListingTierPolicy> {
+export async function getDynamicListingPolicy(tier: string | null | undefined, db: D1Database | null | undefined, billingPeriod: string | null | undefined = 'monthly'): Promise<ListingTierPolicy> {
   const policies = await fetchMarketPolicies(db);
   const normalized = (tier ?? '').trim().toLowerCase();
   if (normalized === 'pro') return billingPeriod === 'yearly' ? policies.proAnnual : policies.pro;

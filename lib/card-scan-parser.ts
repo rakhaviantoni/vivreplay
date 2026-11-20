@@ -45,11 +45,13 @@ function pokemonSetCandidates(word:string){
   return [...new Set([token,...(isPlausibleSetCode?[corrected]:[])])];
 }
 
+const modernEnSetCodes=new Set(['PAL','PRE','JTG','DRI','BLK','WHT','MEP','MEE','ASC','TWM','SFA','SCR','SSP','OBF','MEW','PAR','PAF','TEF']);
+
 function isPokemonSetCodeCandidate(value:string){
   // A single letter followed by a digit is only a valid set prefix for the
   // established S/M eras (for example S6A). The broader old pattern treated
   // a name like T0NY as a set code when OCR confused O with 0.
-  return value==='PAL'||/^(?:MATS|MATK|MATL|MATH|MAAF|MAAL)$/.test(value)||/^(?:[A-Z]{2,5}\d[A-Z0-9]{0,3}|[SM]\d[A-Z]{1,2})$/.test(value);
+  return modernEnSetCodes.has(value)||value==='30TH'||value==='30THC'||/^(?:MATS|MATK|MATL|MATH|MAAF|MAAL)$/.test(value)||/^(?:[A-Z]{2,5}\d[A-Z0-9]{0,3}|[SM]\d[A-Z]{1,2})$/.test(value);
 }
 
 export function parsePokemonScanCode(text:string):PokemonScanCode|null{

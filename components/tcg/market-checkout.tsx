@@ -123,7 +123,7 @@ export function MarketCheckout(){
           if(preferred){selectedPaymentChoice.current={method:preferred.method,channel:preferred.channel};setSelectedPaymentMethod(preferred.method);setSelectedPaymentChannel(preferred.channel)}
         }
       }catch{
-        if(active){setPaymentOptions([]);setPaymentChannelStatus('provider_unavailable')}
+        if(active){setPaymentOptions(current=>{if(current.length)return current;setPaymentChannelStatus('provider_unavailable');return [];})}
       }
     };
     const timer=window.setInterval(()=>void refreshPaymentChannels(),30_000);
@@ -169,7 +169,7 @@ export function MarketCheckout(){
       setShippingVoucherPeriod(checkout.shippingVoucherPeriod??'none');
     }).catch(cause=>{if(active)setDetailsError(cause instanceof Error?cause.message:'Checkout details could not load.')}).finally(()=>{if(active)setLoading(false)});
     return()=>{active=false};
-  },[account?.profile.id,accountLoading,listingId,cartMode,cartReady,cartSelectionReady,activeCartLines,requestedListingIds,hasRequestedListings,hasLegacyListingParam,requestedListingsParam,locale]);
+  },[account?.profile.id,accountLoading,listingId,cartMode,cartReady,cartSelectionReady,activeCartLines,requestedListingIds,hasRequestedListings,hasLegacyListingParam,requestedListingsParam]);
 
   const selectedCards=useMemo(()=>{
     const sourceLines=cartMode?activeCartLines.map(line=>({listing:cartListings.find(row=>row.id===line.listingId),items:line.items})).filter(line=>line.listing):[{listing,items}];

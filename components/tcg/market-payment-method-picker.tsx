@@ -55,12 +55,38 @@ function MethodMarks({method,options}:{method:PaymentMethod;options:PaymentOptio
 export function MarketPaymentMethodPicker({locale='EN',options=defaultPaymentOptions,amount,selectedMethod,selectedChannel,onChange,unavailableReason,layout='grid',loading=false}:{locale?:'EN'|'ID';options?:PaymentOption[];amount:number;selectedMethod:PaymentMethod;selectedChannel:string;onChange:(method:PaymentMethod,channel:string)=>void;unavailableReason?:'not_configured'|'provider_unavailable'|'settings_unavailable'|'no_active_channels'|'all_disabled'|'ready';layout?:'grid'|'compact';loading?:boolean}){
   const t=(en:string,id:string)=>locale==='ID'?id:en;
   const methodOrder:PaymentMethod[]=['qris','va','ewallet','cc','paylater','cstore'];
+  const activeOptions=options.filter(option=>option.available!==false);
+  const singleOption=activeOptions.length===1&&options.length===1?activeOptions[0]:undefined;
   const orderedMethods=[...new Set(options.map(option=>option.method))].sort((a,b)=>methodOrder.indexOf(a)-methodOrder.indexOf(b));
   const selectedOption=options.find(option=>option.method===selectedMethod&&option.channel===selectedChannel&&option.available!==false);
   const fee=estimatePaymentFee(selectedOption,amount);
+  if(!loading&&singleOption){
+    const singleFee=estimatePaymentFee(singleOption,amount);
+    const isQris=singleOption.method==='qris';
+    return <section className={`checkout-payment-methods checkout-payment-methods-single${layout==='compact'?' is-compact':''}`} aria-labelledby="checkout-payment-method-title">
+      <h2 id="checkout-payment-method-title">{t('Payment method','Metode pembayaran')}</h2>
+      <div className="checkout-payment-single">
+        <span className="checkout-payment-method-mark"><PaymentMethodIcon method={singleOption.method}/></span>
+        <span className="checkout-payment-method-copy">
+          <strong>{paymentMethodLabel(singleOption.method,locale)}</strong>
+          <small>{isQris?t('No extra fee. Works with GoPay, OVO, DANA, ShopeePay, and mobile banking.','Tanpa biaya tambahan. Mendukung GoPay, OVO, DANA, ShopeePay, dan mobile banking.'):t(`Estimated payment fee: ${formatMoney(singleFee,'IDR')}`,`Perkiraan biaya pembayaran: ${formatMoney(singleFee,'IDR')}`)}</small>
+        </span>
+      </div>
+    </section>;
+  }
   return <section className={`checkout-payment-methods${layout==='compact'?' is-compact':''}`} aria-labelledby="checkout-payment-method-title">
     <h2 id="checkout-payment-method-title">{t('Payment method','Metode pembayaran')}</h2>
-    {loading?<div className={`checkout-payment-method-loading${layout==='compact'?' is-compact':''}`} aria-busy="true" role="status" aria-label={t('Loading payment methods','Memuat metode pembayaran')}>{layout==='compact'?<i/>:<><i/><i/><i/></>}</div>:orderedMethods.length===0?<p className="checkout-payment-method-empty" role="status">{unavailableReason==='provider_unavailable'||unavailableReason==='settings_unavailable'?t('Payment options could not be loaded. Please try again later.','Opsi pembayaran tidak dapat dimuat. Silakan coba lagi nanti.'):unavailableReason==='all_disabled'?t('Payment methods are turned off right now. Please try again later.','Metode pembayaran sedang dinonaktifkan. Silakan coba lagi nanti.'):unavailableReason==='no_active_channels'?t('No payment methods are available for this checkout right now.','Belum ada metode pembayaran untuk checkout ini.'):t('Payment methods are unavailable right now. Please try again shortly.','Metode pembayaran belum tersedia. Silakan coba lagi sebentar.')}</p>:layout==='compact'?null:<div className="checkout-payment-method-grid">{orderedMethods.map(method=>{
+    {loading?<div className={`checkout-payment-method-loading${layout==='compact'?' is-compact':''}`} aria-busy="true" role="status" aria-label={t('Loading payment methods','Memuat metode pembayaran')}>
+      <div className="checkout-payment-skeleton-card">
+        <span className="checkout-payment-skeleton-icon" aria-hidden="true"/>
+        <span className="checkout-payment-skeleton-lines" aria-hidden="true">
+          <i className="is-title"/>
+          <i className="is-sub"/>
+        </span>
+        <span className="checkout-payment-skeleton-pill" aria-hidden="true"/>
+      </div>
+      <span className="checkout-payment-skeleton-caption">{t('Loading payment methods…','Memuat metode pembayaran…')}</span>
+    </div>:orderedMethods.length===0?<p className="checkout-payment-method-empty" role="status">{unavailableReason==='provider_unavailable'||unavailableReason==='settings_unavailable'?t('Payment options could not be loaded. Please try again later.','Opsi pembayaran tidak dapat dimuat. Silakan coba lagi nanti.'):unavailableReason==='all_disabled'?t('Payment methods are turned off right now. Please try again later.','Metode pembayaran sedang dinonaktifkan. Silakan coba lagi nanti.'):unavailableReason==='no_active_channels'?t('No payment methods are available for this checkout right now.','Belum ada metode pembayaran untuk checkout ini.'):t('Payment methods are unavailable right now. Please try again shortly.','Metode pembayaran belum tersedia. Silakan coba lagi sebentar.')}</p>:layout==='compact'?null:<div className="checkout-payment-method-grid">{orderedMethods.map(method=>{
       const methodOptions=options.filter(option=>option.method===method);
       const activeMethodOptions=methodOptions.filter(option=>option.available!==false);
       const first=activeMethodOptions[0];

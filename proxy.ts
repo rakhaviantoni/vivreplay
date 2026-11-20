@@ -2,6 +2,12 @@ import {NextResponse} from 'next/server';
 import type {NextRequest} from 'next/server';
 
 export function proxy(request:NextRequest){
+  const host=request.headers.get('host')?.split(':')[0]?.toLowerCase();
+  if(host==='www.vivreplay.com'){
+    const canonical=new URL(request.url);
+    canonical.hostname='vivreplay.com';
+    return NextResponse.redirect(canonical,308);
+  }
   const {pathname,search}=request.nextUrl;
   const requestHeaders=new Headers(request.headers);
   requestHeaders.set('x-vivreplay-path',pathname);

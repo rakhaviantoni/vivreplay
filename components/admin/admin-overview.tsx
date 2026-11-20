@@ -17,7 +17,7 @@ function TrendChart({title,caption,values,dates,color,formatter=count.format}:{t
   const labels=[dates[0],dates[Math.floor((dates.length-1)/2)],dates.at(-1)].map(value=>value?new Intl.DateTimeFormat('en',{month:'short',day:'numeric',timeZone:'UTC'}).format(new Date(`${value}T00:00:00Z`)):'');
   return <section className="admin-chart-panel">
     <header><div><h2>{title}</h2><p>{caption}</p></div><strong>{formatter(values.reduce((sum,value)=>sum+value,0))}</strong></header>
-    <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${title} trend for the last 30 days`} preserveAspectRatio="none">
+    <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${title} trend for the last 30 days`}>
       {[0,1,2,3].map(line=><line key={line} x1={padX} x2={width-padX} y1={padY+(height-padY*2)*line/3} y2={padY+(height-padY*2)*line/3} className="admin-chart-gridline"/>)}
       <polygon points={area} fill={color} opacity=".12"/>
       <polyline points={points} fill="none" stroke={color} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"/>

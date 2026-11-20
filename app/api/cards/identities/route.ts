@@ -71,7 +71,8 @@ async function readSearchIndex(request:Request,gameSlug:'one-piece'|'pokemon'):P
   if(cached){try{return await cached.json<SearchIndexCard[]>();}catch{}}
   const key=`catalog-snapshots/identity-search-${gameSlug}-${CARD_CATALOG_CACHE_REVISION}.json`;
   try{
-    let object=await env.CARD_IMAGES?.get(key),index:SearchIndexCard[];
+    const object=await env.CARD_IMAGES?.get(key);
+    let index:SearchIndexCard[];
     if(object)index=await object.json<SearchIndexCard[]>();
     else{
       index=await buildSearchIndex(gameSlug);

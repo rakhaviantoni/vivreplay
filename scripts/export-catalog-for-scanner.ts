@@ -42,7 +42,22 @@ const result = execFileSync('npx', [
   '--command', query
 ], { encoding: 'utf8', maxBuffer: 100 * 1024 * 1024 });
 
-const parsed = JSON.parse(result) as Array<{ results: Array<any> }>;
+interface ScannerExportRow {
+  id: string;
+  game: 'pokemon' | 'one-piece';
+  code: string;
+  name: string;
+  setCode: string;
+  cardNumber: string;
+  language: string;
+  rarity: string;
+  variant: string;
+  imageUrl: string;
+  setCardCount?: string | null;
+  sourcePayload?: string | null;
+}
+
+const parsed = JSON.parse(result) as Array<{ results: Array<ScannerExportRow> }>;
 const cards = parsed[0]?.results ?? [];
 
 console.log(`Found ${cards.length} cards with images. Sanitizing card numbers...`);

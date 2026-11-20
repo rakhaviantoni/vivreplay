@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   XIcon as X, 
   DownloadSimpleIcon as Download, 
@@ -35,15 +35,28 @@ export function ImportExportModal({
   } | null>(null);
   const [busy, setBusy] = useState(false);
 
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [open, onClose]);
+
   if (!open) return null;
+
+  const triggerDownload = (content: string, mimeType: string, filename: string) => {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
   // Handle CSV / JSON Export
   const handleExportJSON = () => {
-    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(items, null, 2));
-    const dlAnchorElem = document.createElement('a');
-    dlAnchorElem.setAttribute('href', dataStr);
-    dlAnchorElem.setAttribute('download', `vivreplay-vault-${new Date().toISOString().slice(0, 10)}.json`);
-    dlAnchorElem.click();
+    triggerDownload(JSON.stringify(items, null, 2), 'application/json;charset=utf-8', `vivreplay-vault-${new Date().toISOString().slice(0, 10)}.json`);
     toast.success('Collection exported to JSON');
   };
 
@@ -64,12 +77,8 @@ export function ImportExportModal({
       i.acquiredAt || '',
       `"${(i.notes || '').replaceAll('"', '""')}"`,
     ]);
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `vivreplay-vault-${new Date().toISOString().slice(0, 10)}.csv`);
-    link.click();
+    const csvBody = [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    triggerDownload(csvBody, 'text/csv;charset=utf-8', `vivreplay-vault-${new Date().toISOString().slice(0, 10)}.csv`);
     toast.success('Collection exported to CSV');
   };
 
@@ -80,7 +89,7 @@ export function ImportExportModal({
     const recognized: Array<{ code: string; name: string; type: string; condition: string; qty: number; printingId: string }> = [];
     const unrecognized: Array<{ line: string; reason: string }> = [];
 
-    lines.forEach((line, idx) => {
+    lines.forEach((line) => {
       const trimmed = line.trim();
       if (!trimmed || trimmed.startsWith('#') || trimmed.toLowerCase().startsWith('code')) return;
 
@@ -88,11 +97,11 @@ export function ImportExportModal({
       const parts = trimmed.split(/,|\t/);
       const codeCandidate = parts[0]?.trim().toUpperCase().replace(/\s+/g, '');
       const card = cards.find(c => c.code.toUpperCase().replace(/\s+/g, '') === codeCandidate);
+      const printing = card ? printings.find(p => p.cardId === card.id) : undefined;
 
-      if (card) {
-        const qty = parseInt(parts[1]?.replace(/[^\d]/g, '') || '1') || 1;
+      if (card && printing) {
+        const qty = parseInt(parts[1]?.replace(/[^\d]/g, '') || '1', 10) || 1;
         const condition = (parts[2]?.trim().toUpperCase() || 'NM');
-        const printing = printings.find(p => p.cardId === card.id) || printings[0];
         recognized.push({
           code: card.code,
           name: card.name,
@@ -140,7 +149,7 @@ export function ImportExportModal({
   };
 
   return (
-    <div style={{
+    <div role="presentation" onMouseDown={event => { if (event.target === event.currentTarget) onClose(); }} style={{
       position: 'fixed',
       inset: 0,
       zIndex: 160,
@@ -151,7 +160,7 @@ export function ImportExportModal({
       justifyContent: 'center',
       padding: '20px',
     }}>
-      <div style={{
+      <div role="dialog" aria-modal="true" aria-label="Import and export collection" style={{
         width: '100%',
         maxWidth: '600px',
         maxHeight: '92vh',
@@ -165,15 +174,16 @@ export function ImportExportModal({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <div>
             <span style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '0.12em', color: 'var(--vault-gold)', textTransform: 'uppercase' }}>
-              Collection Data Portability & Safety
+              Vault Archive
             </span>
             <h3 style={{ fontFamily: 'var(--display-font, var(--font-sans))', fontSize: '22px', fontWeight: 600, margin: '2px 0 0' }}>
-              Import & Export Archive
+              Import & Export
             </h3>
           </div>
           <button
             type="button"
             onClick={onClose}
+            aria-label="Close"
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--vault-ink-muted)' }}
           >
             <X size={20} />
@@ -281,13 +291,6 @@ export function ImportExportModal({
                   style={{ width: '100%', height: 'auto', padding: '10px 12px', fontFamily: 'var(--font-mono, monospace)', fontSize: '11.5px', marginBottom: '12px' }}
                 />
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                  <button
-                    type="button"
-                    className="vault-btn vault-btn-secondary"
-                    onClick={() => setImportText('OP05-119, 1, NM\nOP01-025, 4, NM\nOP09-001, 1, NM\nOP02-004, 1, NM')}
-                  >
-                    Load Sample Batch
-                  </button>
                   <button
                     type="button"
                     className="vault-btn vault-btn-primary"

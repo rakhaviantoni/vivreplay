@@ -14,6 +14,7 @@ import {getDynamicListingPolicy} from '@/lib/market/policy';
 import {listingIdFromMarketPath,marketListingPath,marketListingSelectorFromPath} from '@/lib/market/listing-url';
 import {isCurrentUserAdmin} from '@/lib/server/admin-auth';
 import {normalizeListingItemPrices} from '@/lib/market/normalize-listing-prices';
+import {normalizeSlabLabelStyle,slabLabelStyleFromSubgrades,type SlabLabelStyle} from '@/lib/market/slab-label-style';
 
 export const dynamic='force-dynamic';
 
@@ -34,6 +35,7 @@ type RawStoredListing = Listing & {
   gradingCompany?:string|null;
   grade?:string|null;
   certification?:string|null;
+  gradedSubgrades?:string|Record<string,unknown>|null;
   cardName?: string;
   cardColor?: string;
   cardType?: string;
@@ -48,7 +50,57 @@ type RawStoredListing = Listing & {
 export async function generateMetadata({params}:{params:Promise<{id:string}>}){
   const {id}=await params;
   const listingId=listingIdFromMarketPath(id);
-  return pageMetadata({title:'Market listing',description:'View this VivrePlay Market listing.',path:listingId?marketListingPath('',listingId):`/market/${encodeURIComponent(id)}`});
+  const selector=marketListingSelectorFromPath(id);
+  if(!selector){
+    return pageMetadata({title:'Market listing',description:'View this VivrePlay Market listing.',path:`/market/${encodeURIComponent(id)}`,image:'/brand/vivreplay-market-og.png'});
+  }
+  const where=selector.kind==='id'?'l.id=?':'l.id>=? AND l.id<?';
+  const values=selector.kind==='id'?[selector.id]:[selector.lower,selector.upper];
+  try {
+    const row = await db().prepare(`
+      SELECT
+        l.id,
+        l.title,
+        l.amount,
+        l.currency,
+        l.condition,
+        l.type,
+        l.city,
+        p.display_name AS seller,
+        cp.image_url AS cardImageUrl
+      FROM listings l
+      JOIN profiles p ON p.id=l.seller_id
+      LEFT JOIN card_printings cp ON cp.id=l.printing_id
+      WHERE ${where}
+      LIMIT 1
+    `).bind(...values).first<{id:string;title:string;amount:number;currency:string;condition:string;type:string;city:string;seller:string;cardImageUrl:string|null}>();
+
+    if(row){
+      const formattedPrice = row.amount > 0 ? new Intl.NumberFormat('id-ID',{style:'currency',currency:row.currency||'IDR',maximumFractionDigits:0}).format(row.amount) : '';
+      const typeLabel = row.type === 'WTB' ? '[WTB / Buying]' : '[WTS / Selling]';
+      const descParts = [
+        formattedPrice,
+        row.condition ? `Condition: ${row.condition}` : '',
+        row.city ? `Ships from ${row.city}` : '',
+        row.seller ? `by ${row.seller}` : '',
+      ].filter(Boolean);
+      const desc = `${descParts.join(' | ')}. Verified escrow via VivrePlay Market.`;
+
+      return pageMetadata({
+        title: `${typeLabel} ${row.title}${formattedPrice ? ` - ${formattedPrice}` : ''}`,
+        description: desc,
+        path: marketListingPath(row.title, row.id),
+        image: row.cardImageUrl || '/brand/vivreplay-market-og.png'
+      });
+    }
+  } catch {}
+
+  return pageMetadata({
+    title: 'Market listing',
+    description: 'View this VivrePlay Market listing for authentic cards, slabs, and products.',
+    path: listingId ? marketListingPath('', listingId) : `/market/${encodeURIComponent(id)}`,
+    image: '/brand/vivreplay-market-og.png'
+  });
 }
 
 async function Page({params}:{params:Promise<{id:string}>}){
@@ -96,6 +148,7 @@ async function Page({params}:{params:Promise<{id:string}>}){
         gp.short_name AS gradingCompany,
         gc.grade AS grade,
         gc.certification AS certification,
+        gc.subgrades AS gradedSubgrades,
         o.label AS shippingOriginLabel
       FROM listings l
       JOIN profiles p ON p.id=l.seller_id
@@ -193,13 +246,23 @@ async function Page({params}:{params:Promise<{id:string}>}){
   const soldByPrinting=new Map(displayedSoldRows.map(item=>[item.printingId,item]));
   const activePrintings=new Set(items.map(item=>item.printingId));
   const soldOnlyRows=stored.status==='ACTIVE'?displayedSoldRows.filter(item=>!activePrintings.has(item.printingId)):displayedSoldRows;
+  const itemInstanceId=(item:object)=>{const value=(item as {instanceId?:unknown}).instanceId;return typeof value==='string'&&value?value:undefined};
+  // The listing keeps the Vault slab's EGS label style (Clear or Standard); read it so the Market plate matches the Vault.
+  const slabLabelStyles=new Map<string,SlabLabelStyle>();
+  if(stored.instanceId&&stored.grade)slabLabelStyles.set(stored.instanceId,slabLabelStyleFromSubgrades(stored.gradedSubgrades));
+  const unresolvedSlabIds=[...new Set(items.filter(item=>item.productType==='GRADED').map(item=>itemInstanceId(item)??stored.instanceId??'').filter(instanceId=>instanceId&&!slabLabelStyles.has(instanceId)))];
+  for(let offset=0;offset<unresolvedSlabIds.length;offset+=80){
+    const chunk=unresolvedSlabIds.slice(offset,offset+80);
+    const labelRows=await db().prepare(`SELECT instance_id AS instanceId,subgrades FROM graded_cards WHERE instance_id IN (${chunk.map(()=>'?').join(',')})`).bind(...chunk).all<{instanceId:string;subgrades:string|Record<string,unknown>|null}>();
+    for(const row of labelRows.results)slabLabelStyles.set(row.instanceId,slabLabelStyleFromSubgrades(row.subgrades));
+  }
   const listingCards:MarketListingCard[]=[...items.flatMap((item,index)=>{
     const card=sealedDisplayCard(item.printingId)??(item.printingId === stored?.printingId ? storedCard : undefined) ?? bundleCards.get(item.printingId) ?? item.card ?? cardFor(item.printingId);
     const printing=printings.find(candidate=>candidate.id===item.printingId);
     const language=item.printingId===stored?.printingId?stored?.cardLanguage??printing?.language??'EN':bundleLanguages.get(item.printingId)??printing?.language??'EN';
     const held=heldByPrinting.get(item.printingId)??0;
     const sold=stored.status==='ACTIVE'&&index===items.findIndex(entry=>entry.printingId===item.printingId)?soldByPrinting.get(item.printingId):undefined;
-    return card?[{id:item.printingId,instanceId:'instanceId'in item?item.instanceId:undefined,card,quantity:item.quantity,availableQuantity:Math.max(0,item.quantity-held),heldQuantity:Math.min(item.quantity,held),soldQuantity:Number(sold?.quantity)||0,condition:item.condition??listing.condition,productType:item.productType,sealedProductId:item.sealedProductId,generalProduct:item.generalProduct,parcel:item.parcel,photoUrls:item.photoIds?.map(photoId=>`/api/market/product-photos/${photoId}`),notes:item.notes,gradingCompany:item.gradingCompany,grade:item.grade,certification:item.certification,unitAmount:item.unitAmount??Math.round(listing.amount/listing.quantity),language}]:[];
+    return card?[{id:item.printingId,instanceId:'instanceId'in item?item.instanceId:undefined,card,quantity:item.quantity,availableQuantity:Math.max(0,item.quantity-held),heldQuantity:Math.min(item.quantity,held),soldQuantity:Number(sold?.quantity)||0,condition:item.condition??listing.condition,productType:item.productType,sealedProductId:item.sealedProductId,generalProduct:item.generalProduct,parcel:item.parcel,photoUrls:item.photoIds?.map(photoId=>`/api/market/product-photos/${photoId}`),notes:item.notes,gradingCompany:item.gradingCompany,grade:item.grade,certification:item.certification,slabLabelStyle:item.productType==='GRADED'?(slabLabelStyles.get(itemInstanceId(item)??stored.instanceId??'')??normalizeSlabLabelStyle((item as {slabLabelStyle?:unknown}).slabLabelStyle)):undefined,unitAmount:item.unitAmount??Math.round(listing.amount/listing.quantity),language}]:[];
   }),...soldOnlyRows.flatMap(item=>{const card=(item.printingId===stored.printingId?storedCard:undefined)??bundleCards.get(item.printingId)??cardFor(item.printingId);const printing=printings.find(candidate=>candidate.id===item.printingId);const language=item.printingId===stored.printingId?stored.cardLanguage??printing?.language??'EN':bundleLanguages.get(item.printingId)??printing?.language??'EN';return card?[{id:item.printingId,card,quantity:Number(item.quantity)||1,availableQuantity:0,soldQuantity:Number(item.quantity)||1,sold:true,salePending:Boolean(item.salePending),condition:item.condition??listing.condition,unitAmount:Number(item.unitAmount)||Math.round(listing.amount/Math.max(1,listing.quantity)),language}]:[]})];
   const primary=listingCards[0];
   if(!primary)notFound();

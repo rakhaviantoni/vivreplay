@@ -1,6 +1,5 @@
 import { env } from "cloudflare:workers";
 import { betterAuth } from "better-auth";
-import { nextCookies } from "better-auth/next-js";
 import { sendAuthEmail } from "@/lib/auth-email";
 import { z } from "zod";
 
@@ -65,5 +64,4 @@ export const auth = betterAuth({
       } }
       : {}),
   },
-  plugins: [nextCookies()],
 });

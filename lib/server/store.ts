@@ -300,7 +300,7 @@ export async function market(viewerId?:string,listingIds?:string[],gameSlug?:'on
     const chunk=printingIds.slice(offset,offset+80);
     const printingRows=(await db().prepare(`SELECT p.id AS printingId,p.image_url AS imageUrl,p.language,p.variant,p.printing_code AS printingCode,COALESCE(p.rarity,tcp.rarity) AS rarity,p.set_code AS setCode,i.id AS identityId,i.code,i.name,i.color,i.type,i.cost,i.power,i.effect,g.slug AS gameSlug,tcp.printing_code AS catalogPrintingCode,tca.object_key AS assetPath FROM card_printings p LEFT JOIN card_identities i ON i.id=p.identity_id LEFT JOIN games g ON g.id=i.game_id LEFT JOIN tcg_card_printings tcp ON tcp.id=p.id LEFT JOIN tcg_card_assets tca ON tca.printing_id=tcp.id AND tca.kind='small' WHERE p.id IN (${chunk.map(()=>'?').join(',')})`).bind(...chunk).all<{printingId:string;imageUrl:string|null;language:string;variant:string|null;printingCode:string|null;rarity:string|null;setCode:string|null;identityId:string|null;code:string|null;name:string|null;color:string|null;type:string|null;cost:number|null;power:number|null;effect:string|null;gameSlug:string|null;catalogPrintingCode:string|null;assetPath:string|null}>()).results;
     for(const item of printingRows){
-      bundleCards.set(item.printingId,{id:item.identityId??item.printingId,code:item.code??item.printingCode??item.printingId,name:item.name??item.code??item.printingCode??item.printingId,color:item.color??'Red',type:(item.type as Card['type'])??'Character',cost:item.cost??0,power:item.power??0,rarity:item.rarity??'',art:0,effect:item.effect??'',imageUrl:item.imageUrl??undefined,imageSource:'external',setCode:item.setCode??undefined,language:item.language,printingCode:item.catalogPrintingCode??item.printingCode??item.code??undefined,assetPath:item.assetPath??undefined,variant:item.variant??'Standard',gameSlug:item.gameSlug??'one-piece'} as Card);
+      bundleCards.set(item.printingId,{id:item.identityId??item.printingId,code:item.code??item.printingCode??item.printingId,name:item.name??item.code??item.printingCode??item.printingId,color:item.color??'Red',type:(item.type as Card['type'])??'Character',cost:item.cost??0,power:item.power??0,rarity:item.rarity??'',art:0,effect:item.effect??'',imageUrl:item.imageUrl??undefined,imageSource:'external',setCode:item.setCode??undefined,language:item.language,printingCode:item.catalogPrintingCode??item.printingCode??item.code??undefined,assetPath:item.assetPath??undefined,variant:item.variant??'Standard',gameSlug:item.gameSlug==='pokemon'?'pokemon':'one-piece'} as Card);
     }
   }
 
@@ -326,7 +326,7 @@ export async function market(viewerId?:string,listingIds?:string[],gameSlug?:'on
       printingCode,
       assetPath:r.catalogAssetPath??undefined,
       variant: r.cardVariant,
-      gameSlug:r.cardGameSlug??'one-piece',
+      gameSlug:(r.cardGameSlug==='pokemon'?'pokemon':'one-piece'),
     } : undefined;
 
     const parsedItems = r.itemsJson ? (()=>{try{return JSON.parse(r.itemsJson);}catch{return undefined;}})() : undefined;

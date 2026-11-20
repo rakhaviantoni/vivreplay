@@ -24,6 +24,7 @@ import {
 import { useAccount, api } from '@/lib/client';
 import { cards, printings, Card } from '@/packages/card-data/catalog';
 
+import type { SetProgress } from './vault/types';
 import {
   getLocalVaultItems,
   updateLocalVaultItem,
@@ -157,7 +158,7 @@ export function Vault() {
   const [privacyModalOpen, setPrivacyModalOpen] = useState(false);
   const [importExportOpen, setImportExportOpen] = useState(false);
   const [bulkListingOpen, setBulkListingOpen] = useState(false);
-  const [selectedShareSet, setSelectedShareSet] = useState<any>(null);
+  const [selectedShareSet, setSelectedShareSet] = useState<SetProgress | null>(null);
 
   // Local-first vault state for anonymous visitors and offline capability
   const [localVaultItems, setLocalVaultItems] = useState<CollectionItem[]>([]);
@@ -394,13 +395,19 @@ export function Vault() {
         id: item.id,
         quantity: item.quantity + 1,
       }, 'PATCH');
-      toast.success(`Added 1 copy to ${item.card.name} (${item.quantity + 1} total)`);
+      toast.success(
+        language === 'ID'
+          ? `Menambahkan 1 salinan ke ${item.card.name} (${item.quantity + 1} total)`
+          : `Added 1 copy to ${item.card.name} (${item.quantity + 1} total)`
+      );
       await refresh();
       setSelectedRawItem(null);
     } catch {
-      // Local fallback optimistic update
-      toast.success(`Added copy to ${item.card.name}`);
-      setSelectedRawItem(null);
+      toast.error(
+        language === 'ID'
+          ? 'Gagal menambahkan salinan. Coba lagi.'
+          : 'Could not add copy. Please try again.'
+      );
     }
   };
 
@@ -432,10 +439,10 @@ export function Vault() {
     }
     try {
       await api('/api/wishlist', { printingId: item.printingId, saved: true });
-      toast.success(`Added ${item.card.name} to your Wishlist`);
+      toast.success(language === 'ID' ? `${item.card.name} ditambahkan ke Wishlist` : `Added ${item.card.name} to your Wishlist`);
       await refresh();
     } catch {
-      toast.error('Could not add this card to your Wishlist. Please try again.');
+      toast.error(language === 'ID' ? 'Gagal menambahkan kartu ke Wishlist. Coba lagi.' : 'Could not add this card to your Wishlist. Please try again.');
     }
   };
 
@@ -445,6 +452,7 @@ export function Vault() {
     try {
       const itemsToSync = getLocalVaultItems().filter(item=>!item.id.startsWith(LOCAL_SLAB_EXAMPLE_ID_PREFIX));
       let syncedCount = 0;
+      const failedIds = new Set<string>();
       for (const item of itemsToSync) {
         try {
           await api('/api/collection', {
@@ -464,15 +472,27 @@ export function Vault() {
             catalogCard: item.card ? {code:item.card.code,name:item.card.name,color:item.card.color,type:item.card.type,cost:item.card.cost,power:item.card.power,rarity:item.rarity??item.card.rarity,effect:item.card.effect,setCode:item.setCode??item.card.setCode,language:item.language??item.card.language,variant:item.variant??item.card.variant,printingCode:item.printingCode??item.card.printingCode,imageUrl:item.card.imageUrl}:undefined,
           }, 'POST');
           syncedCount++;
-        } catch {}
+          deleteLocalVaultItem(item.id);
+        } catch {
+          failedIds.add(item.id);
+        }
       }
-      clearLocalVault();
-      setHasCustomLocalItems(false);
-      toast.success(
-        language === 'ID'
-          ? `Berhasil menyinkronkan ${syncedCount} kartu ke akun Anda!`
-          : `Successfully synced ${syncedCount} cards to your account!`
-      );
+      if (failedIds.size === 0) {
+        clearLocalVault();
+        setHasCustomLocalItems(false);
+        toast.success(
+          language === 'ID'
+            ? `Berhasil menyinkronkan ${syncedCount} kartu ke akun Anda!`
+            : `Successfully synced ${syncedCount} cards to your account!`
+        );
+      } else {
+        setHasCustomLocalItems(true);
+        toast.error(
+          language === 'ID'
+            ? `${syncedCount} kartu tersinkron, ${failedIds.size} gagal dan tetap disimpan lokal.`
+            : `Synced ${syncedCount} cards; ${failedIds.size} failed and remain saved locally.`
+        );
+      }
       await refresh();
     } catch {
       toast.error(

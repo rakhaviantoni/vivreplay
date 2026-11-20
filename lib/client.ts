@@ -13,7 +13,18 @@ export type WishlistItem = {
   currency?: string;
   notes?: string;
 };
-export type AccountState={profile:Record<string,any>;collection:CollectionItem[];decks:SavedDeck[];wishlist:WishlistItem[]};
+export type AccountProfile = {
+  id: string;
+  username?: string;
+  display_name?: string;
+  phone?: string;
+  currency?: string;
+  timezone?: string;
+  locale?: string;
+  tier?: string;
+  [key: string]: string | undefined;
+};
+export type AccountState={profile:AccountProfile;collection:CollectionItem[];decks:SavedDeck[];wishlist:WishlistItem[]};
 export async function api<T>(url:string,body?:unknown,method='POST',extraHeaders:Record<string,string>={}):Promise<T>{const r=await fetch(url,{method:body===undefined?'GET':method,headers:body===undefined?undefined:{'Content-Type':'application/json',...extraHeaders},body:body===undefined?undefined:JSON.stringify(body)});const data=await r.json().catch(()=>null) as {error?:string}|null;if(!r.ok)throw new Error(data?.error||'Unable to complete this request.');return data as T;}
 export function useAccount(){
   const sessionState=authClient.useSession();

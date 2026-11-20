@@ -1312,8 +1312,18 @@ html[data-theme='dark'] .card-viewer > header { background: #101d2b !important; 
   .market-listing-detail>.back-link{margin:0 0 10px;font-size:12px}
   .market-listing-detail .market-listing-layout{display:grid!important;grid-template-columns:minmax(96px,34%) minmax(0,1fr)!important;align-items:start;gap:10px 13px!important;margin:0!important;padding:14px!important;border-radius:12px}
   .market-listing-detail .market-listing-primary{grid-column:1;grid-row:1;max-width:none!important;width:100%;margin:0!important}
-  .market-listing-detail .market-listing-primary .viewer-art-stack{width:100%;max-width:none!important;margin:0!important}
-  .market-listing-detail .market-listing-primary .viewer-art-current{width:100%}
+  .market-listing-detail .market-listing-primary .viewer-art-stack,
+  .live-detail-art.viewer-primary-art.market-listing-primary .viewer-art-stack{width:100%;max-width:none!important;margin:0!important;aspect-ratio:420/580!important}
+  .market-listing-detail .market-listing-primary .viewer-art-current,
+  .market-listing-detail .market-listing-primary .viewer-art-underlay,
+  .live-detail-art.viewer-primary-art.market-listing-primary .viewer-art-current,
+  .live-detail-art.viewer-primary-art.market-listing-primary .viewer-art-underlay{width:100%!important;height:100%!important;border-radius:4px!important}
+  .market-listing-detail .market-listing-primary .tcg-card:not(.vault-slab-case),
+  .live-detail-art.viewer-primary-art.market-listing-primary .tcg-card:not(.vault-slab-case),
+  .market-listing-detail .market-listing-primary img:not(.preview-card-badge *),
+  .live-detail-art.viewer-primary-art.market-listing-primary img:not(.preview-card-badge *){border-radius:4px!important;width:100%!important;height:100%!important;object-fit:cover!important}
+  .live-detail-art.viewer-primary-art.market-listing-primary .viewer-art-current .tcg-card:not(.vault-slab-case),
+  .live-detail-art.viewer-primary-art.market-listing-primary .viewer-art-underlay .tcg-card:not(.vault-slab-case){border-radius:4px!important}
   .market-listing-detail .market-listing-copy{display:contents!important}
   .market-listing-detail .market-listing-heading{grid-column:2;grid-row:1;display:flex;align-items:flex-start;flex-direction:column;gap:8px;min-width:0;padding:0!important}
   .market-listing-detail .market-listing-heading>div{width:100%;min-width:0}
@@ -1338,7 +1348,7 @@ html[data-theme='dark'] .card-viewer > header { background: #101d2b !important; 
   .market-listing-detail .market-listing-seller-toolbar{margin:0!important;padding:10px 0!important}
   .market-listing-detail .market-listing-seller-toolbar .market-listing-utility-actions{width:auto!important;min-height:40px}
   .market-listing-detail .market-listing-cards{padding:8px 0 110px!important}
-  .market-listing-detail .market-listing-cards-header{align-items:flex-start;flex-direction:column;gap:8px}
+  .market-listing-detail .market-listing-cards-header{display:flex!important;align-items:center!important;justify-content:space-between!important;flex-wrap:wrap!important;gap:8px!important}
   .market-listing-detail .market-listing-cards h2{font-size:20px}
   .market-listing-detail .market-listing-card-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
   .market-listing-detail .market-listing-card-copy{min-width:0}
@@ -1366,18 +1376,19 @@ html[data-theme='dark'] .card-viewer > header { background: #101d2b !important; 
 /* Mobile market feed: let titles breathe and keep card actions in their own row. */
 @media (max-width: 600px) {
   .market-feed-list.is-list .market-feed-row {
-    grid-template-columns: 62px minmax(0, 1fr) !important;
-    grid-template-rows: auto auto auto !important;
+    position: relative !important;
+    grid-template-columns: 70px minmax(0, 1fr) !important;
+    grid-template-rows: auto auto !important;
     align-items: start !important;
-    column-gap: 11px !important;
-    row-gap: 8px !important;
+    column-gap: 12px !important;
+    row-gap: 6px !important;
     padding: 13px 12px !important;
   }
   .market-feed-list.is-list .market-feed-stack {
     grid-column: 1 !important;
-    grid-row: 1 / span 3 !important;
-    width: 62px !important;
-    min-width: 62px !important;
+    grid-row: 1 / span 2 !important;
+    width: 70px !important;
+    min-width: 70px !important;
     height: 88px !important;
     align-self: start !important;
   }
@@ -1390,6 +1401,7 @@ html[data-theme='dark'] .card-viewer > header { background: #101d2b !important; 
     grid-row: 1 !important;
     width: 100% !important;
     padding: 0 !important;
+    padding-right: 38px !important;
   }
   .market-feed-list.is-list .market-feed-copy h2 {
     margin: 0 0 3px !important;
@@ -1408,10 +1420,19 @@ html[data-theme='dark'] .card-viewer > header { background: #101d2b !important; 
     margin-top: 7px !important;
     line-height: 1.4 !important;
   }
+  .market-feed-list.is-list .market-feed-meta-separator {
+    display: none !important;
+  }
+  .market-feed-list.is-list .market-feed-meta-primary-line {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 2px !important;
+  }
   .market-feed-list.is-list .market-feed-meta-primary {
     display: flex !important;
-    flex-wrap: wrap !important;
-    gap: 2px 7px !important;
+    flex-direction: column !important;
+    gap: 2px !important;
     font-size: 11px !important;
     line-height: 1.4 !important;
   }
@@ -1428,25 +1449,29 @@ html[data-theme='dark'] .card-viewer > header { background: #101d2b !important; 
   .market-feed-list.is-list .market-feed-trade {
     grid-column: 2 !important;
     grid-row: 2 !important;
-    min-height: 34px !important;
-    padding: 7px 0 0 !important;
+    min-height: 32px !important;
+    padding: 4px 0 0 !important;
   }
   .market-feed-list.is-list .market-feed-price strong { font-size: 14px !important; }
   .market-feed-list.is-list .market-feed-entry.has-row-action .market-feed-row-actions {
-    position: static !important;
-    grid-column: 2 !important;
-    grid-row: 3 !important;
-    justify-content: flex-start !important;
-    gap: 7px !important;
-    min-height: 36px !important;
+    position: absolute !important;
+    top: 10px !important;
+    right: 10px !important;
+    z-index: 4 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 6px !important;
+    width: auto !important;
+    min-height: 0 !important;
     padding: 0 !important;
   }
   .market-feed-list.is-list .market-feed-entry.has-row-action .market-feed-row-actions .button.is-icon-only {
-    width: 36px !important;
-    min-width: 36px !important;
-    height: 36px !important;
-    min-height: 36px !important;
-    border-radius: 9px !important;
+    width: 32px !important;
+    min-width: 32px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    border-radius: 8px !important;
   }
 
   .market-feed-list.is-grid .market-feed-row {
@@ -1918,9 +1943,9 @@ html[data-theme='dark'] .card-viewer > header { background: #101d2b !important; 
 @media (max-width: 760px) {
   .market-store-nav:has(+ .market-mobile-nav) {
     display: grid !important;
-    grid-template-columns: minmax(0, 1fr) 40px 40px 40px !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
     grid-template-rows: 42px 44px !important;
-    grid-template-areas: "brand pro locale theme" "search search search search" !important;
+    grid-template-areas: "brand actions" "search search" !important;
     align-items: center !important;
     gap: 7px 8px !important;
     height: auto !important;
@@ -1929,7 +1954,13 @@ html[data-theme='dark'] .card-viewer > header { background: #101d2b !important; 
     background: var(--page-bg) !important;
     backdrop-filter: none !important;
   }
-  .market-store-nav:has(+ .market-mobile-nav) .market-store-actions { display: contents !important; }
+  .market-store-nav:has(+ .market-mobile-nav) .market-store-actions {
+    grid-area: actions !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 6px !important;
+  }
   .market-store-nav:has(+ .market-mobile-nav) .market-back-link {
     grid-area: brand !important;
     display: inline-flex !important;
@@ -1946,26 +1977,45 @@ html[data-theme='dark'] .card-viewer > header { background: #101d2b !important; 
   .market-store-nav:has(+ .market-mobile-nav) .market-store-wordmark { display: none !important; }
   .market-store-nav:has(+ .market-mobile-nav) .market-back-link > span { display: inline !important; font-size: 15px !important; font-weight: 800 !important; }
   .market-store-nav:has(+ .market-mobile-nav) .market-store-search { grid-area: search !important; width: 100% !important; max-width: none !important; height: 44px !important; min-height: 44px !important; }
-  .market-store-nav:has(+ .market-mobile-nav) .market-store-locale,
-  .market-store-nav:has(+ .market-mobile-nav) .market-store-theme {
-    position: relative !important;
-    width: 40px !important;
-    min-width: 40px !important;
-    height: 40px !important;
-    min-height: 40px !important;
-    border-radius: 11px !important;
-  }
-  .market-store-nav:has(+ .market-mobile-nav) .market-store-locale { grid-area: locale !important; }
-  .market-store-nav:has(+ .market-mobile-nav) .market-store-theme { grid-area: theme !important; }
-  .market-store-nav:has(+ .market-mobile-nav) .market-pro-nav-link {
-    grid-area: pro !important;
+  .market-store-nav:has(+ .market-mobile-nav) .quests-mark {
+    order: 1 !important;
     display: inline-flex !important;
-    width: 40px !important;
-    min-width: 40px !important;
-    height: 40px !important;
-    min-height: 40px !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 38px !important;
+    min-width: 38px !important;
+    height: 38px !important;
+    min-height: 38px !important;
     padding: 0 !important;
-    border-radius: 11px !important;
+    border-radius: 10px !important;
+  }
+  .market-store-nav:has(+ .market-mobile-nav) .market-pro-nav-link {
+    order: 2 !important;
+    display: inline-flex !important;
+    width: 38px !important;
+    min-width: 38px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    padding: 0 !important;
+    border-radius: 10px !important;
+  }
+  .market-store-nav:has(+ .market-mobile-nav) .market-store-locale {
+    order: 3 !important;
+    position: relative !important;
+    width: 38px !important;
+    min-width: 38px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    border-radius: 10px !important;
+  }
+  .market-store-nav:has(+ .market-mobile-nav) .market-store-theme {
+    order: 4 !important;
+    position: relative !important;
+    width: 38px !important;
+    min-width: 38px !important;
+    height: 38px !important;
+    min-height: 38px !important;
+    border-radius: 10px !important;
   }
   .market-store-nav:has(+ .market-mobile-nav) .market-pro-nav-long,
   .market-store-nav:has(+ .market-mobile-nav) .market-pro-nav-short { display: none !important; }
@@ -2226,33 +2276,45 @@ html:not([data-theme='dark']) .pro-calculator-total dd.is-negative { color: #8b2
     padding: 14px 0 130px !important;
   }
   .market-listing-detail .market-listing-cards-header {
-    display: grid !important;
-    grid-template-columns: minmax(0, 1fr) !important;
-    align-items: start !important;
-    gap: 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
   }
-  .market-listing-detail .market-listing-cards h2 {
+  .market-listing-detail .market-listing-cards-heading {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  .market-listing-detail .market-listing-cards-heading h2 {
     margin: 0 !important;
-    font-size: 19px !important;
+    font-size: 18px !important;
     line-height: 1.25 !important;
+    flex-shrink: 0 !important;
   }
   .market-listing-detail .market-listing-bulk-actions {
-    display: flex !important;
-    flex-wrap: nowrap !important;
-    gap: 7px !important;
-    width: 100% !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    width: auto !important;
     max-width: 100% !important;
-    overflow-x: auto !important;
-    overscroll-behavior-x: contain;
-    padding: 1px 1px 4px !important;
-    scrollbar-width: none;
+    overflow-x: visible !important;
+    padding: 0 !important;
   }
-  .market-listing-detail .market-listing-bulk-actions::-webkit-scrollbar { display: none; }
   .market-listing-detail .market-listing-bulk-actions .market-bulk-btn {
     flex: 0 0 auto !important;
-    min-height: 36px !important;
-    padding-inline: 11px !important;
+    min-height: 32px !important;
+    padding-inline: 9px !important;
     font-size: 11px !important;
+  }
+  .market-listing-detail .market-listing-view-toggle {
+    margin-left: auto !important;
   }
   .market-listing-detail .market-listing-card-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
@@ -2509,12 +2571,12 @@ html[data-theme='dark'] .market-icon-action[aria-pressed='true'] {
 }
 
 @media (max-width: 760px) {
-  .market-listing-detail .market-listing-cards-header { display:flex!important; align-items:center!important; justify-content:space-between!important; flex-wrap:wrap!important; gap:10px!important; }
-  .market-listing-detail .market-listing-cards-heading { display:flex; align-items:center; justify-content:space-between; gap:10px; width:100%; min-width:0; }
-  .market-listing-detail .market-listing-cards-heading h2 { min-width:0; font-size:19px!important; line-height:1.25!important; }
-  .market-listing-detail .market-listing-view-toggle { display:inline-flex!important; flex:0 0 auto; margin:0!important; }
+  .market-listing-detail .market-listing-cards-header { display:flex!important; align-items:center!important; justify-content:space-between!important; flex-wrap:wrap!important; gap:8px!important; }
+  .market-listing-detail .market-listing-cards-heading { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; width:100%; min-width:0; }
+  .market-listing-detail .market-listing-cards-heading h2 { min-width:0; font-size:18px!important; line-height:1.25!important; flex-shrink:0!important; }
+  .market-listing-detail .market-listing-view-toggle { display:inline-flex!important; flex:0 0 auto; margin-left:auto!important; }
   .market-listing-detail .market-listing-view-toggle button { width:34px!important; height:34px!important; min-height:34px!important; }
-  .market-listing-detail .market-listing-bulk-actions { width:100%!important; }
+  .market-listing-detail .market-listing-bulk-actions { display:inline-flex!important; align-items:center!important; flex-wrap:wrap!important; gap:6px!important; width:auto!important; max-width:100%!important; }
   .market-listing-detail .market-listing-card-grid.is-grid { grid-template-columns:repeat(2,minmax(0,1fr))!important; gap:16px 11px!important; }
   .market-listing-detail .market-listing-card-grid.is-list { grid-template-columns:minmax(0,1fr)!important; gap:10px!important; }
   .market-listing-detail .market-listing-card-grid.is-list .market-listing-card { display:grid!important; grid-template-columns:76px minmax(0,1fr); align-items:start; column-gap:12px; width:100%!important; min-height:0!important; margin:0!important; padding:10px 0!important; border-bottom:1px solid var(--line)!important; }
@@ -3654,9 +3716,9 @@ html[data-theme="dark"] body :is(
 @media (min-width: 761px) and (max-width: 1024px) {
   .market-store-nav:has(+ .market-mobile-nav) {
     display: grid !important;
-    grid-template-columns: minmax(0, 1fr) 42px 42px 42px !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
     grid-template-rows: 44px 44px !important;
-    grid-template-areas: "brand pro locale theme" "search search search search" !important;
+    grid-template-areas: "brand actions" "search search" !important;
     align-items: center !important;
     gap: 8px 10px !important;
     height: auto !important;
@@ -3664,7 +3726,13 @@ html[data-theme="dark"] body :is(
     background: var(--page-bg) !important;
     backdrop-filter: none !important;
   }
-  .market-store-nav:has(+ .market-mobile-nav) .market-store-actions { display: contents !important; }
+  .market-store-nav:has(+ .market-mobile-nav) .market-store-actions {
+    grid-area: actions !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 8px !important;
+  }
   .market-store-nav:has(+ .market-mobile-nav) .market-back-link {
     grid-area: brand !important;
     display: inline-flex !important;
@@ -3692,12 +3760,11 @@ html[data-theme="dark"] body :is(
     height: 44px !important;
     min-height: 44px !important;
   }
-  .market-store-nav:has(+ .market-mobile-nav) .market-store-locale,
-  .market-store-nav:has(+ .market-mobile-nav) .market-store-theme,
-  .market-store-nav:has(+ .market-mobile-nav) .market-pro-nav-link {
-    position: relative !important;
+  .market-store-nav:has(+ .market-mobile-nav) .quests-mark {
+    order: 1 !important;
     display: inline-flex !important;
-    grid-area: auto !important;
+    align-items: center !important;
+    justify-content: center !important;
     width: 42px !important;
     min-width: 42px !important;
     height: 42px !important;
@@ -3705,9 +3772,37 @@ html[data-theme="dark"] body :is(
     padding: 0 !important;
     border-radius: 12px !important;
   }
-  .market-store-nav:has(+ .market-mobile-nav) .market-store-locale { grid-area: locale !important; }
-  .market-store-nav:has(+ .market-mobile-nav) .market-store-theme { grid-area: theme !important; }
-  .market-store-nav:has(+ .market-mobile-nav) .market-pro-nav-link { grid-area: pro !important; }
+  .market-store-nav:has(+ .market-mobile-nav) .market-pro-nav-link {
+    order: 2 !important;
+    position: relative !important;
+    display: inline-flex !important;
+    width: 42px !important;
+    min-width: 42px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    padding: 0 !important;
+    border-radius: 12px !important;
+  }
+  .market-store-nav:has(+ .market-mobile-nav) .market-store-locale {
+    order: 3 !important;
+    position: relative !important;
+    display: inline-flex !important;
+    width: 42px !important;
+    min-width: 42px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    border-radius: 12px !important;
+  }
+  .market-store-nav:has(+ .market-mobile-nav) .market-store-theme {
+    order: 4 !important;
+    position: relative !important;
+    display: inline-flex !important;
+    width: 42px !important;
+    min-width: 42px !important;
+    height: 42px !important;
+    min-height: 42px !important;
+    border-radius: 12px !important;
+  }
   .market-store-nav:has(+ .market-mobile-nav) .market-pro-nav-long,
   .market-store-nav:has(+ .market-mobile-nav) .market-pro-nav-short { display: none !important; }
   .market-store-nav:has(+ .market-mobile-nav) .market-pro-nav-link svg { display: block !important; }
@@ -4265,10 +4360,9 @@ html[data-theme='dark'] .pokemon-empty { border-top-color: color-mix(in srgb,#e6
 }
 
 /* The card dialog can open the same Vault form as the Vault screen. */
-.vault-dialog-overlay[data-slot='dialog-overlay'] { position:fixed!important; inset:0!important; z-index:10010!important; pointer-events:auto!important; }
+.vault-dialog-overlay[data-slot='dialog-overlay'] { position:fixed!important; inset:0!important; pointer-events:auto!important; }
 [data-slot='dialog-content'].vault-dialog {
   position:fixed!important;
-  z-index:10011!important;
   pointer-events:auto!important;
   width:min(680px,calc(100vw - 28px))!important;
   max-width:680px!important;
@@ -5257,7 +5351,8 @@ html[data-theme='dark'] .site-shell.game-pokemon .market-footer-pokemon { backgr
     grid-row:2!important;
     width:max-content;
     min-width:102px;
-    min-height:36px;
+    height:44px;
+    min-height:44px;
     align-items:center;
     justify-content:center;
     gap:7px;
@@ -5277,9 +5372,9 @@ html[data-theme='dark'] .site-shell.game-pokemon .market-footer-pokemon { backgr
   .pokemon-library-controls:not(.mobile-filters-open) .pokemon-filter-actions { display:flex!important; align-items:center!important; justify-content:flex-end!important; flex-wrap:wrap!important; gap:5px!important; }
   .pokemon-library-controls:not(.mobile-filters-open) .pokemon-sort-picker { flex:1 1 92px!important; width:auto!important; }
   .pokemon-library-controls:not(.mobile-filters-open) .pokemon-sort-picker [data-slot='select-trigger'] { min-width:0!important; padding-inline:7px!important; }
-  .pokemon-library-controls:not(.mobile-filters-open) .pokemon-library-language .language-switch { gap:0!important; padding:2px!important; }
-  .pokemon-library-controls:not(.mobile-filters-open) .pokemon-library-language .language-switch button { min-width:29px!important; height:30px!important; }
-  .pokemon-library-controls:not(.mobile-filters-open) .pokemon-clear-filters { min-height:32px!important; padding-inline:7px!important; }
+  .pokemon-library-controls:not(.mobile-filters-open) .pokemon-library-language .language-switch { gap:2px!important; padding:3px!important; min-height:44px!important; }
+  .pokemon-library-controls:not(.mobile-filters-open) .pokemon-library-language .language-switch button { min-width:34px!important; height:36px!important; }
+  .pokemon-library-controls:not(.mobile-filters-open) .pokemon-clear-filters { min-height:40px!important; padding-inline:9px!important; }
   .pokemon-library-count { min-height:18px; margin-top:8px!important; }
   .pokemon-card-grid { gap:11px 8px!important; padding-top:2px!important; }
   .card-grid { gap:18px 10px!important; padding-top:8px!important; }
@@ -5628,9 +5723,9 @@ html[data-theme='dark'] .home-page.is-pokemon .home-market .market-board>div{bor
   .market-listing-preview-control>span{display:none;}
 }
 
-/* Pokémon has four destinations until its own Arena exists; give each one equal width. */
+/* Keep five equal destinations in the Pokémon mobile bar. */
 @media(max-width:900px){
-  .site-shell.game-pokemon > .mobile-nav{grid-template-columns:repeat(4,minmax(0,1fr))!important;}
+  .site-shell.game-pokemon > .mobile-nav{grid-template-columns:repeat(5,minmax(0,1fr))!important;}
 }
 
 @media(max-width:620px){
@@ -5639,7 +5734,7 @@ html[data-theme='dark'] .home-page.is-pokemon .home-market .market-board>div{bor
   .market-product-lookup-art{width:44px;height:56px;}
   .market-product-lookup-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px;}
   .market-product-lookup-actions>small{max-width:76px;overflow:hidden;text-overflow:ellipsis;align-self:center;}
-  .market-product-lookup-actions button{min-height:30px;padding-inline:9px;}
+  .market-product-lookup-actions button{min-height:38px;padding-inline:10px;}
 }
 
 /* Keep three Market scopes in one row. Each scope has a switch above its item menu. */

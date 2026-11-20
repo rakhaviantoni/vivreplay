@@ -65,7 +65,7 @@ export function CardDetailContent({code,color,title,titleId,heading,type,rarity,
     return <>
       <p className="eyebrow"><i className="filter-colour identity-colour" title={color||undefined} aria-label={color?`${color} color`:undefined} style={{background:identityBackground}}/><span>{setCode||code}</span></p>
       <div className="pokemon-preview-title"><Heading id={titleId} className="card-detail-title"><PokemonMechanicText text={cardTitle}/></Heading><PokemonCardVitals source={pokemonSource} language={language}/></div>
-      <div className="pokemon-preview-meta">{setName&&<span>{setName}</span>}{setCode&&<strong>{setCode}</strong>}{pokemonSource.localId&&<span>{String(pokemonSource.localId)}</span>}{rarity&&<span>{rarity}</span>}{typeof pokemonSource.regulationMark==='string'&&<span>{pokemonSource.regulationMark}</span>}{pokemonSource.illustrator&&<span className="pokemon-preview-illustrator">Illus. <b>{String(pokemonSource.illustrator)}</b></span>}</div>
+      <div className="pokemon-preview-meta">{setName&&<span>{setName}</span>}{setCode&&<strong>{setCode}</strong>}{Boolean(pokemonSource.localId)&&<span>{String(pokemonSource.localId)}</span>}{rarity&&<span>{rarity}</span>}{typeof pokemonSource.regulationMark==='string'&&<span>{pokemonSource.regulationMark}</span>}{Boolean(pokemonSource.illustrator)&&<span className="pokemon-preview-illustrator">Illus. <b>{String(pokemonSource.illustrator)}</b></span>}</div>
       <PokemonCardText code={code} name={title} language={language} source={pokemonSource}/>
     </>;
   }

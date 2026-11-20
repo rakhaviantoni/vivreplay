@@ -276,6 +276,15 @@ export async function getIpaymuPaymentChannelChoices(database:PaymentSettingsDat
   return channels.filter(channel=>channel.method==='qris'&&!disabled.has(paymentChannelKey(channel.method,channel.channel)));
 }
 
+function ipaymuStartFailureMessage(channel:string,providerMessage:string|null,providerResponse:string|null){
+  const combined=`${providerMessage??''} ${providerResponse??''}`;
+  if(/integrasi|integration/i.test(combined))return 'Online payments are temporarily unavailable while iPaymu website integration is being finalized.';
+  if(/limit|maksimal|maximum|minimum|minimal|melebihi|exceed|kyc|verifikasi|verified/i.test(combined))return 'This transaction exceeds the current iPaymu account limit or requires merchant verification.';
+  const failedFromPartner=/failed from partner/i.test(combined);
+  const channelName=channel==='shopeepay'?'ShopeePay':channel==='dana'?'DANA':channel==='gopay'?'GoPay':channel==='ovo'?'OVO':channel==='linkaja'?'LinkAja':channel==='akulaku'?'Akulaku':channel.replace(/_/g,' ').replace(/\b\w/g,letter=>letter.toUpperCase());
+  return failedFromPartner?`${channelName} is temporarily unavailable. Choose another payment method.`:'This payment method is unavailable right now. Choose another one or try again later.';
+}
+
 export async function createIpaymuRedirect(input:{orderId:string;products:IpaymuProduct[];buyer:{name:string;email:string;phone:string};returnUrl:string;cancelUrl:string;notifyUrl:string;paymentMethod?:PaymentMethodCode;feeDirection?:'BUYER'|'MERCHANT'}){
   const {va,apiKey,baseUrl}=configuration();
   if(!input.products.length||input.products.length>50)throw new Error('This checkout has an invalid product list.');
@@ -302,7 +311,10 @@ export async function createIpaymuRedirect(input:{orderId:string;products:Ipaymu
   const payload=await response.json().catch(()=>null) as {Status?:number;Message?:string;Data?:{SessionID?:string;Url?:string}}|null;
   const url=payload?.Data?.Url;
   const sessionId=payload?.Data?.SessionID;
-  if(!response.ok||payload?.Status!==200||!sessionId||!url)throw new Error('We couldn’t start this payment. Please try again.');
+  if(!response.ok||payload?.Status!==200||!sessionId||!url){
+    const providerMessage=typeof payload?.Message==='string'?payload.Message.replace(/[\r\n\t]+/g,' ').slice(0,180):null;
+    throw new IpaymuPaymentStartError(ipaymuStartFailureMessage(input.paymentMethod??'cc',providerMessage,null),'rejected');
+  }
   const parsed=new URL(url);
   const allowedHosts=baseUrl==='https://sandbox.ipaymu.com'?['sandbox-payment.ipaymu.com','sandbox.ipaymu.com']:['my.ipaymu.com','payment.ipaymu.com'];
   if(parsed.protocol!=='https:'||!allowedHosts.includes(parsed.hostname))throw new Error('The payment page could not be opened. Choose another method or try again.');
@@ -349,10 +361,7 @@ export async function createIpaymuDirectPayment(input:{orderId:string;amount:num
     const providerMessage=typeof payload?.Message==='string'?payload.Message.replace(/[\r\n\t]+/g,' ').slice(0,180):null;
     const providerResponse=typeof data?.responseMessage==='string'?data.responseMessage.replace(/[\r\n\t]+/g,' ').slice(0,180):null;
     console.error('ipaymu_direct_payment_failed',{method:input.method,channel:input.channel,httpStatus:response.status,providerStatus:payload?.Status??null,providerMessage,providerResponseCode:data?.responseCode??null,providerResponse,responseFields:data?Object.keys(data).sort():[]});
-    const failedFromPartner=/failed from partner/i.test(`${providerMessage??''} ${providerResponse??''}`);
-    const channelName=input.channel==='shopeepay'?'ShopeePay':input.channel==='dana'?'DANA':input.channel==='gopay'?'GoPay':input.channel==='ovo'?'OVO':input.channel==='linkaja'?'LinkAja':input.channel==='akulaku'?'Akulaku':input.channel.replace(/_/g,' ').replace(/\b\w/g,letter=>letter.toUpperCase());
-    const message=failedFromPartner?`${channelName} is temporarily unavailable. Choose another payment method.`:'This payment method is unavailable right now. Choose another one or try again later.';
-    throw new IpaymuPaymentStartError(message,'rejected');
+    throw new IpaymuPaymentStartError(ipaymuStartFailureMessage(input.channel,providerMessage,providerResponse),'rejected');
   }
   if(transactionId===undefined||sessionId===undefined)throw new IpaymuPaymentStartError('The payment provider did not return a confirmation.','unknown');
   const providerTotal=Number(data.Total);

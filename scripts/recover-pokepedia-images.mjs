@@ -1,7 +1,8 @@
 const origin = (process.env.POKEPEDIA_RECOVERY_ORIGIN || 'https://vivreplay.com').replace(/\/$/, '');
 const languages = (process.env.POKEPEDIA_RECOVERY_LANGUAGES || 'ID,JP').split(',').map(value => value.trim().toUpperCase()).filter(value => ['ID','JP'].includes(value));
-const concurrency = Math.max(1, Math.min(5, Number(process.env.POKEPEDIA_RECOVERY_CONCURRENCY || 3) || 3));
-const delayMs = Math.max(250, Number(process.env.POKEPEDIA_RECOVERY_DELAY_MS || 350) || 350);
+const requestedSets = (process.env.POKEPEDIA_RECOVERY_SETS || '').split(',').map(value => value.trim()).filter(Boolean);
+const concurrency = Math.max(1, Math.min(8, Number(process.env.POKEPEDIA_RECOVERY_CONCURRENCY || 3) || 3));
+const delayMs = Math.max(100, Number(process.env.POKEPEDIA_RECOVERY_DELAY_MS || 350) || 350);
 const apply = process.argv.includes('--apply');
 const limit = Math.max(0, Number(process.env.POKEPEDIA_RECOVERY_LIMIT || 0) || 0);
 const offset = Math.max(0, Number(process.env.POKEPEDIA_RECOVERY_OFFSET || 0) || 0);
@@ -9,20 +10,27 @@ const pageSize = 250;
 
 if (!languages.length) throw new Error('Choose ID and/or JP in POKEPEDIA_RECOVERY_LANGUAGES.');
 
+const isRecoverablePokemonImageUrl = (value) =>
+  typeof value === 'string' && (value.startsWith('/pokemon/art/') || /^\/[A-Za-z0-9._-]+\/(?:id|jp|en)\/[^/]+\.webp/i.test(value));
+
 const jobs = [];
+const setFilterList = requestedSets.length ? requestedSets : [null];
 for (const language of languages) {
-  for (let offset = 0; ; offset += pageSize) {
-    const params = new URLSearchParams({ game: 'pokemon', language, missingImages: '1', limit: String(pageSize), offset: String(offset), sort: 'latest' });
-    const response = await fetch(`${origin}/api/cards/catalog?${params}`, { headers: { accept: 'application/json' } });
-    if (!response.ok) throw new Error(`Could not read ${language} catalog page at offset ${offset} (${response.status}).`);
-    const body = await response.json();
-    if (!Array.isArray(body.cards)) throw new Error(`The ${language} catalog response did not include cards.`);
-    for (const card of body.cards) {
-      const imageUrl = card.card_image_url;
-      if (typeof imageUrl !== 'string' || !imageUrl.startsWith('/pokemon/art/')) continue;
-      jobs.push({ language, id: card.id, set: card.set_code, number: card.printing_code, url: new URL(imageUrl, origin).toString() });
+  for (const setCode of setFilterList) {
+    for (let offset = 0; ; offset += pageSize) {
+      const params = new URLSearchParams({ game: 'pokemon', language, missingImages: '1', limit: String(pageSize), offset: String(offset), sort: 'latest' });
+      if (setCode) params.set('set', setCode);
+      const response = await fetch(`${origin}/api/cards/catalog?${params}`, { headers: { accept: 'application/json' } });
+      if (!response.ok) throw new Error(`Could not read ${language} catalog page at offset ${offset} (${response.status}).`);
+      const body = await response.json();
+      if (!Array.isArray(body.cards)) throw new Error(`The ${language} catalog response did not include cards.`);
+      for (const card of body.cards) {
+        const imageUrl = card.card_image_url;
+        if (!isRecoverablePokemonImageUrl(imageUrl)) continue;
+        jobs.push({ language, id: card.id, set: card.set_code, number: card.printing_code, url: new URL(imageUrl, origin).toString() });
+      }
+      if (body.cards.length < pageSize) break;
     }
-    if (body.cards.length < pageSize) break;
   }
 }
 

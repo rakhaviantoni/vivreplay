@@ -157,7 +157,7 @@ export function ListView({
                       type="button"
                       className="vault-btn vault-btn-secondary"
                       style={{ height: '30px', padding: '0 8px', fontSize: '11px' }}
-                      onClick={e => onSellItem(item, e)}
+                      onClick={e => { e.stopPropagation(); onSellItem(item, e); }}
                       title="Sell on VivrePlay Market"
                     >
                       <Store size={13} />
@@ -167,7 +167,7 @@ export function ListView({
                       type="button"
                       className="vault-btn vault-btn-ghost"
                       style={{ height: '30px', width: '30px', padding: 0 }}
-                      onClick={() => onSelectItem(item)}
+                      onClick={e => { e.stopPropagation(); onSelectItem(item); }}
                       title="View details"
                     >
                       <ArrowUpRight size={14} />

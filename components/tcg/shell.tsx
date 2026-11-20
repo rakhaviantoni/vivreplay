@@ -21,6 +21,7 @@ import {FeedbackLaunchButton,type FeedbackRequest} from './feedback-launch';
 import {AnalyticsConsent} from './analytics-consent';
 import {MarketStoreNav} from './market-store-nav';
 import {MarketDialogHost} from './market-dialog-host';
+import {QuestsDialog} from './quests-dialog';
 import {CardScanButton} from './card-scan-button';
 
 type Locale='EN'|'ID';
@@ -37,7 +38,7 @@ const collectionMenu={label:'Collection',labelId:'Koleksi',items:[{href:'/vault'
 const arenaMenu={label:'Arena',labelId:'Arena',items:[{href:'/play',label:'Arena lobby',labelId:'Lobi arena',icon:Gamepad2},{href:'/play/tutorial',label:'Learn to play',labelId:'Belajar bermain',icon:Gamepad2},{href:'/events',label:'Events',labelId:'Acara',icon:Trophy}]} satisfies {label:string;labelId:string;items:NavItem[]};
 const market:NavItem={href:'/market',label:'Market',labelId:'Market',icon:Store};
 const mobileNav:NavItem[]=[{href:'/',label:'Home',labelId:'Beranda',icon:Home},{href:'/cards',label:'Cards',labelId:'Kartu',icon:Layers3},{href:'/vault',label:'Vault',labelId:'Koleksi',icon:ShieldCheck},market,{href:'/play',label:'Arena',labelId:'Arena',icon:Gamepad2}];
-const pokemonMobileNav:NavItem[]=[{href:'/pokemon/cards',label:'Cards',labelId:'Kartu',icon:Layers3},{href:'/pokemon/sets',label:'Sets',labelId:'Set',icon:Library},{href:'/vault',label:'Vault',labelId:'Koleksi',icon:ShieldCheck},market];
+const pokemonMobileNav:NavItem[]=[{href:'/pokemon',label:'Home',labelId:'Beranda',icon:Home},{href:'/pokemon/cards',label:'Cards',labelId:'Kartu',icon:Layers3},{href:'/pokemon/sets',label:'Sets',labelId:'Set',icon:Library},{href:'/vault',label:'Vault',labelId:'Koleksi',icon:ShieldCheck},market];
 const rail=[
   {title:'Build a deck',titleId:'Susun deck',body:'Choose a leader, then tune the curve with live cards.',bodyId:'Pilih leader, lalu atur kurva dengan kartu langsung.',action:'Open builder',actionId:'Buka pembuat deck',href:'/decks/builder'},
   {title:'Curate your vault',titleId:'Atur koleksi',body:'Keep the exact art and language you own together.',bodyId:'Simpan art dan bahasa cetakan yang Anda miliki.',action:'Open vault',actionId:'Buka koleksi',href:'/vault'},
@@ -49,7 +50,7 @@ const pokemonRail=[
   {title:'Find a Pokémon card',titleId:'Cari kartu Pokémon',body:'Search the catalog by name, number, set, or illustrator.',bodyId:'Cari katalog berdasarkan nama, nomor, set, atau ilustrator.',action:'Open card library',actionId:'Buka katalog kartu',href:'/pokemon/cards'},
 ] as const;
 
-function CookieNotice({language}:{language:Locale}) { const [open,setOpen]=useState(false); useEffect(()=>{const restore=()=>setOpen(true);setOpen(!window.localStorage.getItem('vivreplay-cookies'));window.addEventListener('vivreplay:cookie-preferences',restore);return()=>window.removeEventListener('vivreplay:cookie-preferences',restore)},[]); const dismiss=(choice:string)=>{window.localStorage.setItem('vivreplay-cookies',choice);window.dispatchEvent(new CustomEvent('vivreplay:consent-change',{detail:choice}));window.dispatchEvent(new Event('vivreplay:track-attribution'));setOpen(false)}; if(!open)return null; const copy=language==='ID'?{title:'Pilihan privasi',body:'Preferensi bahasa dan tampilan disimpan secara esensial. Terima pengukuran analitik dan kampanye opsional; tolak untuk menonaktifkannya.',accept:'Terima analitik',reject:'Tolak analitik'}:{title:'Privacy choices',body:'Language and display preferences use essential storage. Accept optional usage and UTM campaign measurement, or reject it.',accept:'Accept analytics',reject:'Reject analytics'}; return <aside className="cookie-notice" aria-label={copy.title}><Cookie size={17}/><div><strong>{copy.title}</strong><p>{copy.body}</p><div><button type="button" onClick={()=>dismiss('essential')}>{copy.reject}</button><button type="button" className="cookie-accept" onClick={()=>dismiss('all')}>{copy.accept}</button></div></div><button type="button" className="cookie-close" aria-label="Reject analytics and close cookie choices" onClick={()=>dismiss('essential')}><X size={14}/></button></aside>; }
+function CookieNotice({language}:{language:Locale}) { const [open,setOpen]=useState(false); useEffect(()=>{const restore=()=>setOpen(true);const frame=requestAnimationFrame(()=>setOpen(!window.localStorage.getItem('vivreplay-cookies')));window.addEventListener('vivreplay:cookie-preferences',restore);return()=>{cancelAnimationFrame(frame);window.removeEventListener('vivreplay:cookie-preferences',restore)}},[]); const dismiss=(choice:string)=>{window.localStorage.setItem('vivreplay-cookies',choice);window.dispatchEvent(new CustomEvent('vivreplay:consent-change',{detail:choice}));window.dispatchEvent(new Event('vivreplay:track-attribution'));setOpen(false)}; if(!open)return null; const copy=language==='ID'?{title:'Pilihan privasi',body:'Preferensi bahasa dan tampilan disimpan secara esensial. Terima pengukuran analitik dan kampanye opsional; tolak untuk menonaktifkannya.',accept:'Terima analitik',reject:'Tolak analitik',close:'Tolak analitik dan tutup pilihan privasi'}:{title:'Privacy choices',body:'Language and display preferences use essential storage. Accept optional usage and UTM campaign measurement, or reject it.',accept:'Accept analytics',reject:'Reject analytics',close:'Reject analytics and close cookie choices'}; return <aside className="cookie-notice" aria-label={copy.title}><Cookie size={17}/><div><strong>{copy.title}</strong><p>{copy.body}</p><div><button type="button" onClick={()=>dismiss('essential')}>{copy.reject}</button><button type="button" className="cookie-accept" onClick={()=>dismiss('all')}>{copy.accept}</button></div></div><button type="button" className="cookie-close" aria-label={copy.close} onClick={()=>dismiss('essential')}><X size={14}/></button></aside>; }
 
 function MiniRail({language,game}:{language:Locale;game:'one-piece'|'pokemon'}) {
   const actions=game==='pokemon'?pokemonRail:rail;
@@ -66,15 +67,45 @@ function MiniRail({language,game}:{language:Locale;game:'one-piece'|'pokemon'}) 
   </aside>;
 }
 
+type PokemonCatalogSearchRow={id:string;card_image_url?:string|null;rarity?:string|null;set_code:string;language:string;printing_code:string;source_payload?:{localId?:string};tcg_card_identities?:{code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number;effect_text?:string}};
 function cardFrom(identity:SearchIdentity):Card|undefined { if(!identity.imageUrl)return undefined;return {id:identity.printingId??identity.id,code:identity.code,name:displayCardName(identity.name,identity.code),color:identity.color,type:identity.card_type,cost:identity.cost,power:identity.power,rarity:identity.rarity??'',art:0,effect:identity.effect_text,imageUrl:identity.imageUrl,setCode:identity.set_code??undefined,language:identity.language??'EN',printingCode:identity.printingCode??identity.code,imageSource:'external'}; }
+function pokemonCardFrom(row:PokemonCatalogSearchRow):Card|undefined { const identity=row.tcg_card_identities; if(!identity)return undefined; const localNumber=String(row.source_payload?.localId??row.printing_code??identity.code).replace(/_p\d+$/i,''); return {id:row.id,code:identity.code,name:identity.name,color:identity.color,type:identity.card_type,cost:identity.cost,power:identity.power,rarity:row.rarity??'',art:0,effect:identity.effect_text??'',imageUrl:row.card_image_url??undefined,setCode:row.set_code,language:row.language??'EN',printingCode:row.printing_code??identity.code,localCardNumber:localNumber,imageSource:'external',gameSlug:'pokemon'}; }
 function headerSearchRank(card:Card,query:string){const normalize=(value:string)=>value.toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\p{L}\p{N}]/gu,'');const term=normalize(query),code=normalize(card.code),name=normalize(card.name);if(code===term)return 0;if(name===term)return 1;if(code.startsWith(term))return 2;if(name.startsWith(term))return 3;return 4;}
 function HeaderSearch({language,game}:{language:Locale;game:'one-piece'|'pokemon'}) {
   const [open,setOpen]=useState(false);const [query,setQuery]=useState('');const [results,setResults]=useState<Card[]>([]);const [setMatches,setSetMatches]=useState<SearchSet[]>([]);const [loading,setLoading]=useState(false);
-  useEffect(()=>{if(game==='pokemon'||!open||query.trim().length<2){setResults([]);setSetMatches([]);setLoading(false);return}let live=true;const timer=window.setTimeout(async()=>{setLoading(true);const term=query.trim().replaceAll(',',' ');try{const [cards,sets]=await Promise.all([fetch(versionedCardCatalogUrl(`/api/cards/identities?q=${encodeURIComponent(term)}`),{cache:'force-cache'}).then(async response=>response.ok?response.json() as Promise<{cards:SearchIdentity[]}>:{cards:[]}),fetch('/api/cards/sets?language=EN',{cache:'force-cache'}).then(async response=>response.ok?response.json() as Promise<{sets:SearchSet[]}>:{sets:[]})]);if(live){setResults(cards.cards.map(cardFrom).filter((card):card is Card=>Boolean(card)).sort((a,b)=>headerSearchRank(a,term)-headerSearchRank(b,term)));setSetMatches(sets.sets.filter(set=>matchesSearchText([set.code,set.name],term)).slice(0,4));setLoading(false)}}catch{if(live){setResults([]);setSetMatches([]);setLoading(false)}}},170);return()=>{live=false;window.clearTimeout(timer)}},[open,query,game]);
+  const hasQuery=open&&query.trim().length>=2;
+  const visibleResults=hasQuery?results:[];
+  const visibleSetMatches=hasQuery?setMatches:[];
+  const isLoading=hasQuery&&loading;
+  const handleOpenChange=(next:boolean)=>{setOpen(next);if(!next){setResults([]);setSetMatches([]);setLoading(false)}};
+  useEffect(()=>{
+    const onShortcut=(event:KeyboardEvent)=>{
+      if((event.metaKey||event.ctrlKey)&&!event.altKey&&event.key.toLowerCase()==='k'){
+        event.preventDefault();
+        setOpen(current=>!current);
+      }
+    };
+    window.addEventListener('keydown',onShortcut);
+    return()=>window.removeEventListener('keydown',onShortcut);
+  },[]);
+  useEffect(()=>{if(!hasQuery)return;let live=true;const timer=window.setTimeout(async()=>{setLoading(true);const term=query.trim().replaceAll(',',' ');try{
+    if(game==='pokemon'){
+      const [cards,sets]=await Promise.all([
+        fetch(versionedCardCatalogUrl(`/api/cards/catalog?game=pokemon&language=${language==='ID'?'ID':'ALL'}&q=${encodeURIComponent(term)}&limit=8`),{cache:'force-cache'}).then(async response=>response.ok?response.json() as Promise<{cards:PokemonCatalogSearchRow[]}>:{cards:[]}),
+        fetch(versionedCardCatalogUrl(`/api/cards/sets?game=pokemon&language=${language==='ID'?'ID':'EN'}`),{cache:'force-cache'}).then(async response=>response.ok?response.json() as Promise<{sets:SearchSet[]}>:{sets:[]}),
+      ]);
+      if(live){setResults((cards.cards??[]).map(pokemonCardFrom).filter((card):card is Card=>Boolean(card)).sort((a,b)=>headerSearchRank(a,term)-headerSearchRank(b,term)));setSetMatches((sets.sets??[]).filter(set=>matchesSearchText([set.code,set.name],term)).slice(0,4));setLoading(false)}
+    }else{
+      const [cards,sets]=await Promise.all([fetch(versionedCardCatalogUrl(`/api/cards/identities?q=${encodeURIComponent(term)}`),{cache:'force-cache'}).then(async response=>response.ok?response.json() as Promise<{cards:SearchIdentity[]}>:{cards:[]}),fetch('/api/cards/sets?language=EN',{cache:'force-cache'}).then(async response=>response.ok?response.json() as Promise<{sets:SearchSet[]}>:{sets:[]})]);
+      if(live){setResults(cards.cards.map(cardFrom).filter((card):card is Card=>Boolean(card)).sort((a,b)=>headerSearchRank(a,term)-headerSearchRank(b,term)));setSetMatches(sets.sets.filter(set=>matchesSearchText([set.code,set.name],term)).slice(0,4));setLoading(false)}
+    }
+  }catch{if(live){setResults([]);setSetMatches([]);setLoading(false)}}},170);return()=>{live=false;window.clearTimeout(timer)}},[hasQuery,query,game,language]);
   const copy=language==='ID'?{button:'Cari',title:game==='pokemon'?'Cari kartu Pokémon':'Temukan kartu atau set',hint:game==='pokemon'?'Cari nama, nomor kartu, rarity, atau set.':'Cari nama, set, warna, tipe, biaya, atau rarity. Contoh: OP17 leader, 5c Luffy.',empty:'Cari kartu atau set dengan nama atau kode.',none:'Tidak ada kartu atau set yang cocok.',cards:'Kartu',sets:'Set'}:{button:'Find',title:game==='pokemon'?'Search Pokémon cards':'Find cards or sets',hint:game==='pokemon'?'Search by name, card number, rarity, or set.':'Search name, set, color, type, cost, or rarity. Try OP17 leader or 5c Luffy.',empty:'Search a card or set by name or code.',none:'No cards or sets matched that search.',cards:'Cards',sets:'Sets'};
   const getHref=(href:string)=>language==='ID'?(href==='/'?'/id':`/id${href}`):href;
   const pokemonSearchHref=getHref(`/pokemon/cards?q=${encodeURIComponent(query.trim())}`);
-  return <Dialog open={open} onOpenChange={setOpen}><button type="button" aria-label={copy.button} className="search-link" onClick={()=>setOpen(true)}><Search size={16}/><span>{copy.button}</span><kbd>⌘ K</kbd></button><DialogContent className="header-search-dialog"><DialogHeader><DialogTitle>{copy.title}</DialogTitle><DialogDescription>{copy.hint}</DialogDescription></DialogHeader><div className="header-search-input"><Search size={18}/><input autoFocus value={query} onChange={event=>setQuery(event.target.value)} placeholder={copy.hint}/><CardScanButton game={game} locale={language}/><kbd>ESC</kbd></div><div className="header-search-results" aria-live="polite">{game==='pokemon'&&query.trim().length>=2&&<Link href={pokemonSearchHref} onClick={()=>setOpen(false)} className="header-search-result header-search-set"><Search size={18}/><span><b>{language==='ID'?'Cari di katalog Pokémon':'Search Pokémon catalog'}</b><small>{query.trim()}</small></span><ChevronRight size={16}/></Link>}{loading&&<CardLoadingSkeleton count={4} className="header-search-loading"/>}{!loading&&query.trim().length<2&&<p>{copy.empty}</p>}{game!=='pokemon'&&!loading&&query.trim().length>=2&&!results.length&&!setMatches.length&&<p>{copy.none}</p>}{!loading&&Boolean(setMatches.length)&&<><small className="header-search-group">{copy.sets}</small>{setMatches.map(set=><Link href={getHref(`/cards?set=${encodeURIComponent(set.code)}`)} onClick={()=>setOpen(false)} key={set.code} className="header-search-result header-search-set"><Layers3 size={18}/><span><b>{set.name}</b><small className="header-search-meta"><span>{set.code}</span>{set.setKind&&<span>{set.setKind}</span>}</small></span><ChevronRight size={16}/></Link>)}</>}{!loading&&Boolean(results.length)&&<><small className="header-search-group">{copy.cards}</small>{results.map(card=><Link href={getHref(`/cards/${card.code}`)} onClick={()=>setOpen(false)} key={card.id} className="header-search-result"><CardArt card={card}/><span><b>{card.name}</b><small className="header-search-meta"><span>{card.code}</span><span>{card.type}</span><span>{card.language}</span></small></span><ChevronRight size={16}/></Link>)}</>}</div></DialogContent></Dialog>;
+  const setResultHref=(code:string)=>getHref(game==='pokemon'?`/pokemon/cards?set=${encodeURIComponent(code)}`:`/cards?set=${encodeURIComponent(code)}`);
+  const cardResultHref=(card:Card)=>getHref(game==='pokemon'?`/pokemon/cards?${new URLSearchParams({set:card.setCode??'',number:card.localCardNumber??card.printingCode??card.code,lang:card.language??'EN'}).toString()}`:`/cards/${card.code}`);
+  return <Dialog open={open} onOpenChange={handleOpenChange}><button type="button" aria-label={copy.button} className="search-link" onClick={()=>handleOpenChange(true)}><Search size={16}/><span>{copy.button}</span><kbd>⌘ K</kbd></button><DialogContent className="header-search-dialog"><DialogHeader><DialogTitle>{copy.title}</DialogTitle><DialogDescription>{copy.hint}</DialogDescription></DialogHeader><div className="header-search-input"><Search size={18}/><input autoFocus value={query} onChange={event=>setQuery(event.target.value)} placeholder={copy.hint}/><CardScanButton game={game} locale={language}/><kbd>ESC</kbd></div><div className="header-search-results" aria-live="polite">{game==='pokemon'&&query.trim().length>=2&&<Link href={pokemonSearchHref} onClick={()=>handleOpenChange(false)} className="header-search-result header-search-set"><Search size={18}/><span><b>{language==='ID'?'Cari di katalog Pokémon':'Search Pokémon catalog'}</b><small>{query.trim()}</small></span><ChevronRight size={16}/></Link>}{isLoading&&<CardLoadingSkeleton count={4} className="header-search-loading"/>}{!isLoading&&query.trim().length<2&&<p>{copy.empty}</p>}{!isLoading&&query.trim().length>=2&&!visibleResults.length&&!visibleSetMatches.length&&<p>{copy.none}</p>}{!isLoading&&Boolean(visibleSetMatches.length)&&<><small className="header-search-group">{copy.sets}</small>{visibleSetMatches.map(set=><Link href={setResultHref(set.code)} onClick={()=>handleOpenChange(false)} key={set.code} className="header-search-result header-search-set"><Layers3 size={18}/><span><b>{set.name}</b><small className="header-search-meta"><span>{set.code}</span>{set.setKind&&<span>{set.setKind}</span>}</small></span><ChevronRight size={16}/></Link>)}</>}{!isLoading&&Boolean(visibleResults.length)&&<><small className="header-search-group">{copy.cards}</small>{visibleResults.map(card=><Link href={cardResultHref(card)} onClick={()=>handleOpenChange(false)} key={card.id} className="header-search-result"><CardArt card={card}/><span><b>{card.name}</b><small className="header-search-meta"><span>{card.setCode??card.code}</span><span>{card.printingCode??card.code}</span><span>{card.language}</span></small></span><ChevronRight size={16}/></Link>)}</>}</div></DialogContent></Dialog>;
 }
 function PrimaryNav({language,selected,game,path}:{language:Locale;selected:(url:string)=>boolean;game:'one-piece'|'pokemon';path:string}) {
   const root=useRef<HTMLElement>(null);
@@ -88,7 +119,7 @@ function PrimaryNav({language,selected,game,path}:{language:Locale;selected:(url
   const menus=game==='pokemon'
     ?[{label:'Library',labelId:'Katalog',items:libraryItems}]
     :[{label:'Library',labelId:'Katalog',items:libraryItems},collectionMenu,arenaMenu];
-  return <nav ref={root} aria-label="Primary navigation" className="primary-nav">{menus.map(menu=><details key={menu.label} className="nav-more" onPointerEnter={event=>openMenu(event.currentTarget)} onPointerLeave={event=>event.currentTarget.removeAttribute('open')} onToggle={event=>{if(!event.currentTarget.open)return;root.current?.querySelectorAll('details[open]').forEach(item=>{if(item!==event.currentTarget)item.removeAttribute('open')})}}><summary className={menu.items.some(item=>selected(item.href))?'active':''}>{language==='ID'?menu.labelId:menu.label}<ChevronDown size={13}/></summary><div>{menu.items.map(item=>{const Icon=item.icon;return <Link key={item.href} href={getHref(item.href)} onClick={closeAll} className={selected(item.href)?'active':''}><Icon size={14}/>{language==='ID'?item.labelId:item.label}</Link>})}</div></details>)}{game==='pokemon'&&<Link href={getHref('/vault?game=pokemon')} onClick={closeAll} className={selected('/vault')?'active market-nav':''}><ShieldCheck size={14}/>{language==='ID'?'Vault':'Vault'}</Link>}<Link href={getHref(game==='pokemon'?'/market?game=pokemon':market.href)} onClick={closeAll} className={selected(market.href)?'active market-nav':''}><Store size={14}/>{language==='ID'?market.labelId:market.label}</Link></nav>;
+  return <nav ref={root} aria-label={language==='ID'?'Navigasi utama':'Primary navigation'} className="primary-nav">{menus.map(menu=><details key={menu.label} className="nav-more" onPointerEnter={event=>openMenu(event.currentTarget)} onPointerLeave={event=>event.currentTarget.removeAttribute('open')} onToggle={event=>{if(!event.currentTarget.open)return;root.current?.querySelectorAll('details[open]').forEach(item=>{if(item!==event.currentTarget)item.removeAttribute('open')})}}><summary className={menu.items.some(item=>selected(item.href))?'active':''}>{language==='ID'?menu.labelId:menu.label}<ChevronDown size={13}/></summary><div>{menu.items.map(item=>{const Icon=item.icon;return <Link key={item.href} href={getHref(item.href)} onClick={closeAll} className={selected(item.href)?'active':''}><Icon size={14}/>{language==='ID'?item.labelId:item.label}</Link>})}</div></details>)}{game==='pokemon'&&<Link href={getHref('/vault?game=pokemon')} onClick={closeAll} className={selected('/vault')?'active market-nav':''}><ShieldCheck size={14}/>{language==='ID'?'Vault':'Vault'}</Link>}<Link href={getHref(game==='pokemon'?'/market?game=pokemon':market.href)} onClick={closeAll} className={selected(market.href)?'active market-nav':''}><Store size={14}/>{language==='ID'?market.labelId:market.label}</Link></nav>;
 }
 
 function GameModeSwitch({language,game,path,search}:{language:Locale;game:'one-piece'|'pokemon';path:string;search:string}) {
@@ -146,8 +177,7 @@ function Footer({language,game}:{language:Locale;game:'one-piece'|'pokemon'}) {
       </div>
       <nav className="footer-column" aria-label={id?'Jelajahi':'Explore'}>
         <b>{id?'Jelajahi':'Explore'}</b>
-        <Link href={getHref(game==='pokemon'?'/pokemon/cards':'/cards')}>{id?'Katalog kartu':'Cards'}</Link>
-        {game==='pokemon'?<><Link href={getHref('/pokemon/sets')}>{id?'Set Pokémon':'Sets'}</Link><Link href={getHref('/vault?game=pokemon')}>{id?'Vault Pokémon':'Pokémon Vault'}</Link></>:<><Link href={getHref('/cards/index')}>{id?'Indeks kartu':'Card index'}</Link><Link href={getHref('/archetypes')}>{id?'Arketipe':'Archetypes'}</Link><Link href={getHref('/sets')}>{id?'Arsip set':'Sets'}</Link></>}
+        {game==='pokemon'?<><Link href={getHref('/pokemon')}>{id?'Beranda Pokémon':'Pokémon home'}</Link><Link href={getHref('/pokemon/cards')}>{id?'Katalog kartu':'Cards'}</Link><Link href={getHref('/pokemon/sets')}>{id?'Set Pokémon':'Sets'}</Link></>:<><Link href={getHref('/cards')}>{id?'Katalog kartu':'Cards'}</Link><Link href={getHref('/cards/index')}>{id?'Indeks kartu':'Card index'}</Link><Link href={getHref('/archetypes')}>{id?'Arketipe':'Archetypes'}</Link><Link href={getHref('/sets')}>{id?'Arsip set':'Sets'}</Link></>}
       </nav>
       <nav className="footer-column" aria-label={id?(game==='pokemon'?'Koleksi':'Deck dan permainan'):(game==='pokemon'?'Collection':'Decks and play')}>
         <b>{id?(game==='pokemon'?'Koleksi':'Deck dan permainan'):(game==='pokemon'?'Collection':'Decks & play')}</b>
@@ -155,7 +185,7 @@ function Footer({language,game}:{language:Locale;game:'one-piece'|'pokemon'}) {
       </nav>
       <nav className="footer-column" aria-label={id?'Market dan bantuan':'Market and help'}>
         <b>{id?'Market dan bantuan':'Market & help'}</b>
-        <Link href={getHref('/market')}>Market</Link>
+        <Link href={getHref(game==='pokemon'?'/market?game=pokemon':'/market')}>Market</Link>
         <Link href={getHref('/help')}>{id?'Pusat bantuan':'Help center'}</Link>
         <Link href={getHref('/faq')}>FAQ</Link>
         <FeedbackLaunchButton request={{initialCategory:'feedback'}} className="footer-feedback-trigger">{id?'Masukan & laporan':'Feedback & reports'}</FeedbackLaunchButton>
@@ -204,7 +234,9 @@ export function Shell({children,initialPath='/'}:{children:React.ReactNode;initi
   const adminRoute=normalizedPath==='/admin'||normalizedPath.startsWith('/admin/');
   const {data}=useAccount();
   const [theme,setTheme]=useState<'light'|'dark'>('light');
-  const [language,setLanguage]=useState<Locale>(()=>initialPath==='/id'||initialPath.startsWith('/id/')?'ID':'EN');
+  const routeLocale:Locale=isIdPath?'ID':'EN';
+  const [localeOverride,setLocaleOverride]=useState<{path:string;value:Locale}|null>(null);
+  const language=localeOverride&&localeOverride.path===path?localeOverride.value:routeLocale;
   const [scrolled,setScrolled]=useState(false);
   const [feedbackOpen,setFeedbackOpen]=useState(false);
   const [feedbackRequest,setFeedbackRequest]=useState<(FeedbackRequest&{key:number})|null>(null);
@@ -261,61 +293,45 @@ export function Shell({children,initialPath='/'}:{children:React.ReactNode;initi
   useEffect(()=>{const update=()=>setScrolled(window.scrollY>72);update();window.addEventListener('scroll',update,{passive:true});return()=>window.removeEventListener('scroll',update)},[]);
 
   useEffect(()=>{
-    const storedTheme=window.localStorage.getItem('vivreplay-theme');
-    const storedLocale=window.localStorage.getItem('vivreplay-locale');
-    const pathHasId=window.location.pathname==='/id'||window.location.pathname.startsWith('/id/');
-    const nextTheme=storedTheme==='dark'?'dark':'light';
-    const nextLocale:Locale=pathHasId?'ID':'EN';
-    setTheme(nextTheme);
-    setLanguage(nextLocale);
-    document.documentElement.dataset.theme=nextTheme;
-    document.documentElement.lang=nextLocale==='ID'?'id':'en';
-    if(pathHasId&&storedLocale!=='ID'){
-      window.localStorage.setItem('vivreplay-locale','ID');
-      document.cookie='vivreplay-locale=ID; path=/; max-age=31536000';
-    }
-    window.dispatchEvent(new CustomEvent('vivreplay:locale',{detail:nextLocale}));
-  },[data]);
+    const frame=requestAnimationFrame(()=>{
+      const storedTheme=window.localStorage.getItem('vivreplay-theme');
+      const nextTheme=storedTheme==='dark'?'dark':'light';
+      setTheme(nextTheme);
+      document.documentElement.dataset.theme=nextTheme;
+    });
+    return()=>cancelAnimationFrame(frame);
+  },[]);
 
   useEffect(()=>{
-    const pathHasId=window.location.pathname==='/id'||window.location.pathname.startsWith('/id/');
-    const storedLocale=window.localStorage.getItem('vivreplay-locale');
-    const nextLocale:Locale=pathHasId?'ID':'EN';
-    setLanguage(nextLocale);
-    document.documentElement.lang=nextLocale==='ID'?'id':'en';
-    window.localStorage.setItem('vivreplay-locale',nextLocale);
-    document.cookie=`vivreplay-locale=${nextLocale}; path=/; max-age=31536000; SameSite=Lax`;
-    window.dispatchEvent(new CustomEvent('vivreplay:locale',{detail:nextLocale}));
-  },[path,data]);
+    document.documentElement.lang=routeLocale==='ID'?'id':'en';
+    window.localStorage.setItem('vivreplay-locale',routeLocale);
+    document.cookie=`vivreplay-locale=${routeLocale}; path=/; max-age=31536000; SameSite=Lax`;
+  },[routeLocale]);
 
   useEffect(()=>{
     const syncTheme=(event:Event)=>{const next=(event as CustomEvent<'light'|'dark'>).detail??(window.localStorage.getItem('vivreplay-theme')==='dark'?'dark':'light');setTheme(next);document.documentElement.dataset.theme=next};
-    const syncLocale=(event:Event)=>{const next=(event as CustomEvent<Locale>).detail??(window.localStorage.getItem('vivreplay-locale')==='ID'?'ID':'EN');setLanguage(next);document.documentElement.lang=next==='ID'?'id':'en'};
+    const syncLocale=(event:Event)=>{const next=(event as CustomEvent<Locale>).detail??(window.localStorage.getItem('vivreplay-locale')==='ID'?'ID':'EN');setLocaleOverride({path,value:next});document.documentElement.lang=next==='ID'?'id':'en'};
     window.addEventListener('vivreplay:theme',syncTheme);
     window.addEventListener('vivreplay:locale',syncLocale);
     return()=>{window.removeEventListener('vivreplay:theme',syncTheme);window.removeEventListener('vivreplay:locale',syncLocale)};
-  },[]);
+  },[path]);
 
   const toggleTheme=()=>setTheme(current=>{const next=current==='light'?'dark':'light';document.documentElement.dataset.theme=next;window.localStorage.setItem('vivreplay-theme',next);return next});
 
   const toggleLanguage=()=>{
     const next:Locale=language==='EN'?'ID':'EN';
-    setLanguage(next);
+    setLocaleOverride({path,value:next});
     document.documentElement.lang=next==='ID'?'id':'en';
     window.localStorage.setItem('vivreplay-locale',next);
     document.cookie=`vivreplay-locale=${next}; path=/; max-age=31536000; SameSite=Lax`;
     window.dispatchEvent(new CustomEvent('vivreplay:locale',{detail:next}));
-    if(next==='ID'){
-      const target=normalizedPath==='/'?'/id':`/id${normalizedPath}`;
-      router.push(`${target}${window.location.search}${window.location.hash}`);
-    }else{
-      router.push(`${normalizedPath}${window.location.search}${window.location.hash}`);
-    }
     return next;
   };
 
   const selected=(url:string)=>normalizedPath===url||(url!=='/'&&normalizedPath.startsWith(`${url}/`));
-  const crumb=normalizedPath==='/'?(language==='ID'?'Beranda':'Home'):normalizedPath.split('/')[1].replace(/^./,char=>char.toUpperCase());
+  const crumbKey=normalizedPath.split('/')[1]||'';
+  const crumbMapId:Record<string,string>={cards:'Kartu',sets:'Set',pokemon:'Pokémon',market:'Market',vault:'Vault',decks:'Dek',play:'Arena',meta:'Meta',archetypes:'Arketipe',help:'Bantuan',faq:'FAQ',about:'Tentang',contact:'Kontak',profile:'Profil',events:'Acara',slabs:'Slab',legal:'Legal',feedback:'Masukan'};
+  const crumb=normalizedPath==='/'?(language==='ID'?'Beranda':'Home'):language==='ID'?(crumbMapId[crumbKey]??crumbKey.replace(/^./,char=>char.toUpperCase())):crumbKey.replace(/^./,char=>char.toUpperCase());
   const getHref=(href:string)=>language==='ID'?(href==='/'?'/id':`/id${href}`):href;
 
   if(adminRoute)return <div className="admin-shell"><div className="admin-shell-content">{children}</div><Toaster theme={theme}/></div>;
@@ -327,8 +343,9 @@ export function Shell({children,initialPath='/'}:{children:React.ReactNode;initi
       <PrimaryNav language={language} selected={selected} game={game} path={normalizedPath}/>
       <div className="masthead-actions">
         <HeaderSearch language={language} game={game}/>
-        <button className="locale-toggle" type="button" onClick={toggleLanguage} aria-label="Switch language">{language}</button>
-        <button className="theme-toggle" type="button" onClick={toggleTheme} aria-label={`Use ${theme==='light'?'dark':'light'} mode`}>{theme==='light'?<Moon size={16}/>:<Sun size={16}/>}</button>
+        <button className="locale-toggle" type="button" onClick={toggleLanguage} aria-label={language==='ID'?'Ganti bahasa ke Inggris':'Switch language to Indonesian'}>{language}</button>
+        <button className="theme-toggle" type="button" onClick={toggleTheme} aria-label={language==='ID'?(theme==='light'?'Gunakan mode gelap':'Gunakan mode terang'):`Use ${theme==='light'?'dark':'light'} mode`}>{theme==='light'?<Moon size={16}/>:<Sun size={16}/>}</button>
+        <QuestsDialog language={language} signedIn={Boolean(data)}/>
         {data?<button type="button" aria-label={language==='ID'?'Buka profil':'Open your profile'} className="profile-mark" onClick={()=>window.dispatchEvent(new Event('vivreplay:open-public-profile'))}><UserRound size={17}/></button>:<AuthDialog language={language}/>}
       </div>
     </header>}
@@ -348,8 +365,8 @@ export function Shell({children,initialPath='/'}:{children:React.ReactNode;initi
     <AnalyticsConsent/>
     {!adminRoute&&!marketRoute&&<MarketDialogHost accountActions={!marketCheckout}/>}
     {!marketCheckout&&<MiniRail language={language} game={game}/>}
-    {!marketCheckout&&<nav className="mobile-nav" aria-label="Mobile navigation">
-      {(game==='pokemon'?pokemonMobileNav:mobileNav).map(item=>{const Icon=item.icon;const href=item.label==='Cards'&&game==='pokemon'?'/pokemon/cards':game==='pokemon'&&item.label==='Vault'?'/vault?game=pokemon':game==='pokemon'&&item.label==='Market'?'/market?game=pokemon':item.href;const active=game==='pokemon'&&item.label==='Cards'?normalizedPath==='/pokemon/cards':selected(item.label==='Vault'?'/vault':item.label==='Market'?'/market':href);return <Link key={item.href} href={getHref(href)} className={active?'active':''} aria-current={active?'page':undefined}><Icon size={20}/><span>{language==='ID'?item.labelId:item.label}</span></Link>})}
+    {!marketCheckout&&<nav className="mobile-nav" aria-label={language==='ID'?'Navigasi seluler':'Mobile navigation'}>
+      {(game==='pokemon'?pokemonMobileNav:mobileNav).map(item=>{const Icon=item.icon;const href=item.label==='Cards'&&game==='pokemon'?'/pokemon/cards':game==='pokemon'&&item.label==='Vault'?'/vault?game=pokemon':game==='pokemon'&&item.label==='Market'?'/market?game=pokemon':item.href;const active=item.href==='/pokemon'?normalizedPath==='/pokemon':game==='pokemon'&&item.label==='Cards'?normalizedPath==='/pokemon/cards':selected(item.label==='Vault'?'/vault':item.label==='Market'?'/market':href);return <Link key={item.href} href={getHref(href)} className={active?'active':''} aria-current={active?'page':undefined}><Icon size={20}/><span>{language==='ID'?item.labelId:item.label}</span></Link>})}
     </nav>}
     <Toaster theme={theme}/>
   </div>;

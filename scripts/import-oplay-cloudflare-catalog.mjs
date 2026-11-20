@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { execFile, execFileSync } from 'node:child_process';
 import { promisify } from 'node:util';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
@@ -7,13 +7,16 @@ import path from 'node:path';
 
 const root = process.cwd();
 const apply = process.argv.includes('--apply');
+const local = process.argv.includes('--local');
 const skipR2Upload = process.argv.includes('--skip-r2-upload');
 const wrangler = path.join(root, 'node_modules/.bin/wrangler');
 const execFileAsync = promisify(execFile);
-const configPath = process.env.CLOUDFLARE_CONFIG ?? 'dist/server/wrangler.json';
+const configPath = process.env.CLOUDFLARE_CONFIG ?? (local ? 'wrangler.migrations.json' : 'dist/server/wrangler.json');
+const d1Target = process.env.OPLAY_D1_NAME ?? (local ? 'DB' : 'vivreplay');
+const d1Flags = local ? ['--local', '--persist-to', '.wrangler/state', '--yes'] : ['--remote'];
 const requestedSetCodes = new Set((process.env.OPLAY_IMPORT_SETS ?? '').split(',').map((value) => normalizeSetCode(value)).filter(Boolean));
 const logPath = path.join(tmpdir(), 'vivreplay-oplay-import-wrangler.log');
-const env = { ...process.env, WRANGLER_WRITE_LOGS: 'false', WRANGLER_SEND_METRICS: 'false', WRANGLER_LOG_PATH: logPath };
+const env = { ...process.env, WRANGLER_WRITE_LOGS: 'false', WRANGLER_SEND_METRICS: 'false', WRANGLER_LOG_PATH: logPath, ...(local ? { XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME ?? '/tmp/vivreplay-xdg' } : {}) };
 const browserHeaders = {
   accept: '*/*',
   'accept-language': 'en-US,en;q=0.9',
@@ -87,8 +90,8 @@ function d1Rows(output) {
   return JSON.parse(output).flatMap((batch) => batch.results ?? []);
 }
 
-function query(sql, config = configPath, dbName = 'vivreplay') {
-  return d1Rows(run(['d1', 'execute', dbName, '--remote', '--config', config, '--json', '--command', sql]));
+function query(sql, config = configPath, dbName = d1Target) {
+  return d1Rows(run(['d1', 'execute', dbName, ...d1Flags, '--config', config, '--json', '--command', sql]));
 }
 
 async function fetchJson(url) {
@@ -299,7 +302,7 @@ async function main() {
     const language = String(record.srcLang).toUpperCase();
     if (!['EN', 'JP'].includes(language)) continue;
     const actual = (detail.printings ?? []).find((printing) => printing.source_id === sourceId && printing.language_code.toUpperCase() === language);
-    if (!actual && !record.st012Repair && record.imageStatus === 'official') throw new Error(`OPlay detail is missing ${record.code} ${sourceId} ${language}.`);
+    if (!actual && !record.st012Repair && record.imageStatus === 'official' && language === 'EN') throw new Error(`OPlay detail is missing ${record.code} ${sourceId} ${language}.`);
     const printingDetail = actual ?? { source_variant: sourceId === record.code ? 'base' : 'p1', image: record.image, variants: [], stamps: [] };
     const preview = Boolean(record.spoiler || record.imageStatus === 'placeholder');
     const setCode = record.st012Repair ? printingSetCode(actual) : normalizeSetCode(record.setCode);
@@ -374,6 +377,12 @@ async function main() {
     const temporaryDirectory = await mkdtemp(path.join(tmpdir(), 'vivreplay-oplay-r2-'));
     const failures = [];
     let uploaded = 0;
+    let localR2Lock = Promise.resolve();
+    const putLocalSerialized = (fn) => {
+      const next = localR2Lock.then(fn, fn);
+      localR2Lock = next.catch(() => {});
+      return next;
+    };
     try {
       await bounded(imageJobs, 5, async (job) => {
         try {
@@ -396,7 +405,8 @@ async function main() {
           if (!bytes.length || bytes.length > 12 * 1024 * 1024) throw new Error(`Unexpected image size ${bytes.length}`);
           const file = path.join(temporaryDirectory, `${createHash('sha1').update(job.key).digest('hex')}.webp`);
           await writeFile(file, bytes, { mode: 0o600 });
-          await runAsync(['r2', 'object', 'put', `tcg-card-images/${job.key}`, '--file', file, '--remote', '--force', '--content-type', 'image/webp', '--cache-control', 'public, max-age=31536000, immutable', '--config', configPath]);
+          const doPut = () => runAsync(['r2', 'object', 'put', `tcg-card-images/${job.key}`, '--file', file, ...(local ? ['--local', '--persist-to', '.wrangler/state'] : ['--remote']), '--force', '--content-type', 'image/webp', '--cache-control', 'public, max-age=31536000, immutable', '--config', configPath]);
+          await (local ? putLocalSerialized(doPut) : doPut());
           uploaded += 1;
           if (uploaded % 25 === 0 || uploaded === imageJobs.length) console.log(`Uploaded ${uploaded}/${imageJobs.length} OPlay images to the shared catalog bucket.`);
         } catch (error) {
@@ -437,12 +447,12 @@ async function main() {
   for (let index = 0; index < statements.length; index += 25) {
     const sqlFile = path.join(tmpdir(), `vivreplay-oplay-${index}.sql`);
     await writeFile(sqlFile, `${statements.slice(index, index + 25).join('\n')}\n`, { mode: 0o600 });
-    try { runRemoteWithRetry(['d1', 'execute', 'vivreplay', '--remote', '--config', configPath, '--file', sqlFile, '--yes']); }
+    try { runRemoteWithRetry(['d1', 'execute', d1Target, ...d1Flags, '--config', configPath, '--file', sqlFile, '--yes']); }
     finally { await rm(sqlFile, { force: true }); }
   }
   const stalePreviewAssets = `DELETE FROM tcg_card_assets WHERE printing_id IN (SELECT p.id FROM tcg_card_printings p JOIN tcg_sets s ON s.id=p.set_id WHERE s.external_set_id='OP-18' AND p.source_kind='oplaytcg-preview' AND p.card_image_url IS NULL);`;
-  runRemoteWithRetry(['d1', 'execute', 'vivreplay', '--remote', '--config', configPath, '--command', stalePreviewAssets, '--yes']);
-  console.log('Production D1 and shared catalog R2 updated. Staging reads the same catalog bucket; rebuild/deploy to publish the new cache revision.');
+  runRemoteWithRetry(['d1', 'execute', d1Target, ...d1Flags, '--config', configPath, '--command', stalePreviewAssets, '--yes']);
+  console.log(local ? 'Local D1 and local R2 updated.' : 'Production D1 and shared catalog R2 updated. Staging reads the same catalog bucket; rebuild/deploy to publish the new cache revision.');
 }
 
 await main();

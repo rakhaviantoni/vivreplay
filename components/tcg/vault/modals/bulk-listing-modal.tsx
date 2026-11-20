@@ -44,7 +44,39 @@ export function BulkListingModal({open,onClose,stacks,onPublished,language}:{ope
   const chosenTypeCount=new Set(chosen.map(cardIdentity)).size;
   const copiesForIdentity=(stack:VaultStackGroup,exceptId?:string)=>choices.reduce((sum,candidate)=>sum+(cardIdentity(candidate)===cardIdentity(stack)&&candidate.item.id!==exceptId?selectedQuantity(candidate):0),0);
   const maxForStack=(stack:VaultStackGroup)=>Math.max(0,Math.min(lineQuantity(stack),listingLimits.maxCopiesPerCard-copiesForIdentity(stack,stack.item.id),listingLimits.maxListingCopies-quantity+selectedQuantity(stack)));
-  useEffect(()=>{if(!open)return;let active=true;void fetch('/api/shipping/origin',{cache:'no-store'}).then(response=>response.json() as Promise<{origin?:{city?:string}|null}>).then(data=>{if(active)setCity(data.origin?.city?.trim()??'')}).catch(()=>{}).finally(()=>{if(active)setOriginLoaded(true)});return()=>{active=false}},[open]);
+  useEffect(()=>{
+    if(!open)return;
+    let active=true;
+    const loadOrigin=(event?:Event)=>{
+      const customCity=(event as CustomEvent<{city?:string}>)?.detail?.city?.trim();
+      if(customCity){
+        setCity(customCity);
+        setOriginLoaded(true);
+      }
+      void fetch('/api/shipping/origin',{cache:'no-store'})
+        .then(response=>response.json() as Promise<{origin?:{city?:string}|null}>)
+        .then(data=>{
+          if(!active)return;
+          const remoteCity=data.origin?.city?.trim()??'';
+          if(remoteCity){
+            setCity(remoteCity);
+          }else if(!customCity){
+            const localCity=typeof window!=='undefined'?window.localStorage.getItem('vivreplay-seller-city'):null;
+            if(localCity)setCity(localCity);
+          }
+        })
+        .catch(()=>{})
+        .finally(()=>{if(active)setOriginLoaded(true)});
+    };
+    loadOrigin();
+    window.addEventListener('vivreplay:shipping-updated',loadOrigin);
+    window.addEventListener('vivreplay:market-data-updated',loadOrigin);
+    return()=>{
+      active=false;
+      window.removeEventListener('vivreplay:shipping-updated',loadOrigin);
+      window.removeEventListener('vivreplay:market-data-updated',loadOrigin);
+    };
+  },[open]);
   useEffect(()=>{if(!open&&!published)return;const previousOverflow=document.body.style.overflow;document.body.style.overflow='hidden';const onKeyDown=(event:KeyboardEvent)=>{if(event.key==='Escape'&&!busy){const wasPublished=Boolean(published);setPublished(null);onClose(wasPublished)}};document.addEventListener('keydown',onKeyDown);return()=>{document.body.style.overflow=previousOverflow;document.removeEventListener('keydown',onKeyDown)}},[open,published,busy,onClose]);
   if((!open&&!published)||typeof document==='undefined')return null;
   const close=()=>{if(busy)return;const wasPublished=Boolean(published);setPublished(null);onClose(wasPublished)};
@@ -60,10 +92,21 @@ export function BulkListingModal({open,onClose,stacks,onPublished,language}:{ope
     if(!Number.isSafeInteger(totalAmount)||totalAmount<=0){setError(id?'Total harga listing tidak valid.':'The listing total is invalid.');return}
     setBusy(true);
     try{
-      const bundle=chosen.flatMap(stack=>allocation(stack).map(({copy,quantity:copyQuantity})=>({instanceId:copy.id,printingId:copy.printingId,quantity:copyQuantity,condition:copy.condition,unitAmount:Number(prices[stack.item.id])})));
+      const bundle=chosen.flatMap(stack=>allocation(stack).map(({copy,quantity:copyQuantity})=>({
+        instanceId:copy.id,
+        printingId:copy.printingId,
+        quantity:copyQuantity,
+        condition:copy.condition,
+        unitAmount:Number(prices[stack.item.id]),
+        productType:copy.type,
+        gradingCompany:copy.type==='GRADED'?copy.provider??undefined:undefined,
+        grade:copy.type==='GRADED'?copy.grade??undefined:undefined,
+        certification:copy.type==='GRADED'?copy.certification??undefined:undefined,
+        slabLabelStyle:copy.type==='GRADED'?(copy.subgrades?.__labelStyle==='clear'?'clear':'standard'):undefined,
+      })));
       const response=await fetch('/api/listings',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({instanceId:bundle[0].instanceId,title:title.trim(),amount:totalAmount,quantity,city:city.trim(),type:'WTS',negotiable,items:bundle})});
       const result=await response.json() as {error?:string;id?:string;expiresAt?:string};if(!response.ok)throw new Error(result.error||'Listing could not be published.');if(!result.id)throw new Error(id?'Listing berhasil dibuat, tetapi tautannya tidak tersedia. Muat ulang koleksi Anda.':'Listing was created, but its link is missing. Refresh your Vault.');
-      setPublished({id:result.id,title:title.trim(),amount:totalAmount,cards:chosen.map(stack=>({card:stack.item.card,printingId:stack.item.printingId,quantity:selectedQuantity(stack),condition:stack.item.type==='RAW'?stack.items[0]?.condition:undefined,unitAmount:Number(prices[stack.item.id]),productType:stack.item.type,gradingCompany:stack.item.type==='GRADED'?stack.item.provider??undefined:undefined,grade:stack.item.type==='GRADED'?stack.item.grade??undefined:undefined,certification:stack.item.type==='GRADED'?stack.item.certification??undefined:undefined,metaLine:stack.item.type==='GRADED'?[stack.item.provider,stack.item.grade,stack.item.certification?`Cert #${stack.item.certification}`:null].filter(Boolean).join(' '):undefined})),city:city.trim(),expiresAt:result.expiresAt});toast.success(id?'Listing berhasil dipublikasikan':'Listing published');
+      setPublished({id:result.id,title:title.trim(),amount:totalAmount,cards:chosen.map(stack=>({card:stack.item.card,printingId:stack.item.printingId,quantity:selectedQuantity(stack),condition:stack.item.type==='RAW'?stack.items[0]?.condition:undefined,unitAmount:Number(prices[stack.item.id]),productType:stack.item.type,gradingCompany:stack.item.type==='GRADED'?stack.item.provider??undefined:undefined,grade:stack.item.type==='GRADED'?stack.item.grade??undefined:undefined,certification:stack.item.type==='GRADED'?stack.item.certification??undefined:undefined,slabLabel:stack.item.type==='GRADED'?{setCode:stack.item.setCode??stack.item.card.setCode,language:stack.item.language??stack.item.card.language,number:(stack.item.printingCode??stack.item.card.printingCode??stack.item.card.code??'').match(/(\d+[A-Z]?)$/i)?.[1],rarity:stack.item.rarity??stack.item.card.rarity,labelStyle:stack.item.subgrades?.__labelStyle==='clear'?'clear':'standard'}:undefined,metaLine:stack.item.type==='GRADED'?[stack.item.provider,stack.item.grade,stack.item.certification?`Cert #${stack.item.certification}`:null].filter(Boolean).join(' '):undefined})),city:city.trim(),expiresAt:result.expiresAt});toast.success(id?'Listing berhasil dipublikasikan':'Listing published');
       try{await onPublished()}catch{/* The listing is already published; keep the success state visible. */}
     }catch(cause){setError(cause instanceof Error?cause.message:'Listing could not be published.')}
     finally{setBusy(false)}

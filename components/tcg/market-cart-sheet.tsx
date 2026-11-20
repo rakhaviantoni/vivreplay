@@ -48,13 +48,13 @@ export function MarketCartSheet({locale='EN'}:{locale:'EN'|'ID'}){
       const params=new URLSearchParams({ids:next.lines.map(line=>line.listingId).join(',')});
       const response=await fetch(`/api/market/cart-preview?${params}`,{cache:'no-store'});
       const data=await response.json() as {listings?:CartPreview[];unavailableIds?:string[];error?:string};
-      if(!response.ok)throw new Error(data.error||'Cart details could not be loaded.');
+      if(!response.ok)throw new Error(data.error||(isId?'Detail keranjang tidak dapat dimuat.':'Cart details could not be loaded.'));
       setListings(data.listings??[]);setUnavailableIds(data.unavailableIds??[]);
       const groups=new Map((data.listings??[]).map(listing=>[listing.sellerGroupId,listing.sellerGroupId]));
       setSelectedSellerGroupId(current=>current&&groups.has(current)?current:[...groups.keys()][0]??'');
-    }catch(reason){setListings([]);setError(reason instanceof Error?reason.message:'Cart details could not be loaded.');}
+    }catch(reason){setListings([]);setError(reason instanceof Error?reason.message:(isId?'Detail keranjang tidak dapat dimuat.':'Cart details could not be loaded.'));}
     finally{setLoading(false);}
-  },[]);
+  },[isId]);
 
   const changeOpen=useCallback((next:boolean)=>{
     if(openState.current===next)return;
@@ -64,14 +64,14 @@ export function MarketCartSheet({locale='EN'}:{locale:'EN'|'ID'}){
   },[sync]);
 
   useEffect(()=>{
-    const update=()=>setCart(readCart());
+    const update=()=>{if(openState.current){void sync();return;}setCart(readCart())};
     const initialUpdate=window.setTimeout(update,0);
     const openCart=()=>changeOpen(true);
     window.addEventListener('vivreplay:market-cart-updated',update);
     window.addEventListener('storage',update);
     window.addEventListener('vivreplay:open-market-cart',openCart);
     return()=>{window.clearTimeout(initialUpdate);window.removeEventListener('vivreplay:market-cart-updated',update);window.removeEventListener('storage',update);window.removeEventListener('vivreplay:open-market-cart',openCart)};
-  },[changeOpen]);
+  },[changeOpen,sync]);
 
   const removeListing=(listingId:string)=>{
     const lines=cart.lines.filter(line=>line.listingId!==listingId);

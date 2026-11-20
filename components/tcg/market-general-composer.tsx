@@ -18,8 +18,8 @@ export function MarketGeneralComposer({type,onPublished,onBack,onAddToBundle}:{t
 
   async function upload(files:FileList|null){
     if(!files?.length)return;const selected=Array.from(files).slice(0,6-photos.length);if(!selected.length)return;setBusy(true);setError('');
-    try{const added:string[]=[];for(const file of selected){const form=new FormData();form.set('photo',file);const response=await fetch('/api/market/product-photos',{method:'POST',body:form});const data=await response.json() as {error?:string;id:string};if(!response.ok)throw new Error(data.error||'Photo upload failed.');added.push(data.id);}setPhotos(current=>[...current,...added]);}
-    catch(caught){setError(caught instanceof Error?caught.message:'Photo upload failed.');}finally{setBusy(false);}
+    try{const added:string[]=[];for(const file of selected){const form=new FormData();form.set('photo',file);const response=await fetch('/api/market/product-photos',{method:'POST',body:form});const data=await response.json() as {error?:string;id:string};if(!response.ok)throw new Error(data.error||copy('Photo upload failed.','Gagal mengunggah foto.'));added.push(data.id);}setPhotos(current=>[...current,...added]);}
+    catch(caught){setError(caught instanceof Error?caught.message:copy('Photo upload failed.','Gagal mengunggah foto.'));}finally{setBusy(false);}
   }
 
   async function publish(){
@@ -30,8 +30,8 @@ export function MarketGeneralComposer({type,onPublished,onBack,onAddToBundle}:{t
         return;
       }
       const response=await fetch('/api/listings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({productType:'GENERAL',type,title:title.trim(),category,brand:brand.trim(),model:model.trim(),attributes:fields,quantity,unitAmount:Number(price),condition,notes,photoIds:photos,...(type==='WTS'?{parcel:Object.fromEntries(Object.entries(parcel).map(([key,value])=>[key,Number(value)]))}:{})})});
-      const data=await response.json() as {error?:string};if(!response.ok)throw new Error(data.error||'Could not publish the listing.');onPublished();
-    }catch(caught){setError(caught instanceof Error?caught.message:'Could not publish the listing.');}finally{setBusy(false);}
+      const data=await response.json() as {error?:string};if(!response.ok)throw new Error(data.error||copy('Could not publish the listing.','Listing tidak dapat diterbitkan.'));onPublished();
+    }catch(caught){setError(caught instanceof Error?caught.message:copy('Could not publish the listing.','Listing tidak dapat diterbitkan.'));}finally{setBusy(false);}
   }
 
   const validTitle=title.trim().length>=3;const validPrice=Number(price)>0;const validParcel=Object.values(parcel).every(value=>Number(value)>0);
@@ -46,16 +46,16 @@ export function MarketGeneralComposer({type,onPublished,onBack,onAddToBundle}:{t
       <label>{type==='WTS'?copy('Quantity available','Jumlah tersedia'):copy('Quantity wanted','Jumlah yang dicari')}<input type="number" min={1} max={productStockLimit} value={quantity} onChange={event=>setQuantity(Math.min(productStockLimit,Math.max(1,Number(event.target.value)||1)))}/><small>{copy(`Up to ${productStockLimit} units per listing`,`Maksimal ${productStockLimit} unit per listing`)}</small></label>
       <label>{type==='WTS'?copy('Price per item (IDR)','Harga per barang (IDR)'):copy('Offer per item (IDR)','Tawaran per barang (IDR)')}<input type="number" min={1} value={price} onChange={event=>setPrice(event.target.value)}/></label>
       <fieldset className="market-general-condition-field"><legend>{type==='WTB'?copy('Condition wanted','Kondisi yang dicari'):copy('Condition','Kondisi')}</legend><RadioGroup value={condition} onValueChange={value=>setCondition(value as typeof condition)} className="market-general-condition-options" aria-label={type==='WTB'?copy('Condition wanted','Kondisi yang dicari'):copy('Condition','Kondisi')}>
-        {generalMarketConditionOptions.map(value=><div key={value} className={condition===value?'is-selected':''}><RadioGroupItem value={value}/><span className="market-product-radio-mark" aria-hidden="true"/><span>{generalMarketConditionLabel(value,language)}</span></div>)}
+        {generalMarketConditionOptions.map(value=><label key={value} htmlFor={`general-condition-${value}`} className={condition===value?'is-selected':''}><RadioGroupItem id={`general-condition-${value}`} value={value}/><span className="market-product-radio-mark" aria-hidden="true"/><span>{generalMarketConditionLabel(value,language)}</span></label>)}
       </RadioGroup></fieldset>
     </div>
     <label className="market-general-notes">{copy('Details','Detail')}<textarea maxLength={1000} value={notes} onChange={event=>setNotes(event.target.value)} placeholder={type==='WTB'?copy('Describe the version, condition, or features you want.','Jelaskan versi, kondisi, atau fitur yang dicari.'):copy('Describe its condition, included parts, and any defects.','Jelaskan kondisi, kelengkapan, dan kerusakan jika ada.')}/></label>
     {type==='WTS'&&<>
-      <fieldset className="market-product-parcel"><legend>{copy('Packed size','Ukuran paket')}</legend><p>{copy('Enter the parcel measurements after packaging the item.','Masukkan ukuran paket setelah barang dikemas.')}</p><div className="market-general-fields market-general-parcel">{Object.entries(parcel).map(([key,value])=><label key={key}>{key==='weight'?copy('Weight (g)','Berat (g)'):`${key.charAt(0).toUpperCase()+key.slice(1)} (cm)`}<input type="number" min={1} value={value} onChange={event=>setParcel(current=>({...current,[key]:event.target.value}))}/></label>)}</div></fieldset>
+      <fieldset className="market-product-parcel"><legend>{copy('Packed size','Ukuran paket')}</legend><p>{copy('Enter the parcel measurements after packaging the item.','Masukkan ukuran paket setelah barang dikemas.')}</p><div className="market-general-fields market-general-parcel">{Object.entries(parcel).map(([key,value])=><label key={key}>{({weight:copy('Weight (g)','Berat (g)'),length:copy('Length (cm)','Panjang (cm)'),width:copy('Width (cm)','Lebar (cm)'),height:copy('Height (cm)','Tinggi (cm)')} as Record<string,string>)[key]??key}<input type="number" min={1} value={value} onChange={event=>setParcel(current=>({...current,[key]:event.target.value}))}/></label>)}</div></fieldset>
       <label className="market-product-photo-upload">{copy('Photos','Foto')}<input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={busy||photos.length>=6} onChange={event=>{void upload(event.target.files);event.target.value='';}}/><small>{copy('Show the item from several angles, including any wear or damage.','Tampilkan barang dari beberapa sisi, termasuk tanda pemakaian atau kerusakan.')}</small></label>
       <div className="market-sealed-photos">{photos.map(photo=><div key={photo}><img src={`/api/market/product-photos/${photo}`} alt={copy('Item photo','Foto barang')}/><button type="button" onClick={()=>setPhotos(current=>current.filter(id=>id!==photo))}>{copy('Remove','Hapus')}</button></div>)}</div>
     </>}
     {error&&<p role="alert" className="market-product-error">{error}</p>}
-    <div className="market-product-publish-row"><span>{copy('Total','Total')}<strong>IDR {(quantity*Number(price||0)).toLocaleString('en-US')}</strong></span><button type="button" className="button" disabled={busy||!validTitle||!validPrice||quantity<1||quantity>productStockLimit||(type==='WTS'&&(!photos.length||!validParcel))} onClick={()=>void publish()}>{busy?copy('Saving…','Menyimpan…'):onAddToBundle?copy('Add to bundle','Tambahkan ke paket'):type==='WTS'?copy('Publish listing','Terbitkan listing'):copy('Post buying request','Buat permintaan beli')}</button></div>
+    <div className="market-product-publish-row"><span>{copy('Total','Total')}<strong>IDR {(quantity*Number(price||0)).toLocaleString(isId?'id-ID':'en-US')}</strong></span><button type="button" className="button" disabled={busy||!validTitle||!validPrice||quantity<1||quantity>productStockLimit||(type==='WTS'&&(!photos.length||!validParcel))} onClick={()=>void publish()}>{busy?copy('Saving…','Menyimpan…'):onAddToBundle?copy('Add to bundle','Tambahkan ke paket'):type==='WTS'?copy('Publish listing','Terbitkan listing'):copy('Post buying request','Buat permintaan beli')}</button></div>
   </div>;
 }

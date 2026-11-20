@@ -131,15 +131,16 @@ async function scrapeCard(code: string): Promise<ScrapedCard> {
       const attribute = raw.attribute || raw.attributeCode || null;
 
       const traitsArray: string[] = Array.isArray(raw.traits)
-        ? raw.traits.map((t: any) => (typeof t === 'string' ? t.trim() : (t.name || t.code || '').trim())).filter(Boolean)
+        ? raw.traits.map((t: string | { name?: string; code?: string }) => (typeof t === 'string' ? t.trim() : (t.name || t.code || '').trim())).filter(Boolean)
         : (typeof raw.traits === 'string' ? raw.traits.split(/\s*\/\s*/).filter(Boolean) : []);
       const traits = traitsArray.join(' / ');
 
       const effect: string = (raw.effect || raw.texts?.[0]?.effect || '').trim();
 
-      const enPrinting = raw.printings?.find(
-        (p: any) => p.language_code === 'en' && (p.source_variant === 'base' || !p.source_variant)
-      ) || raw.printings?.find((p: any) => p.language_code === 'en');
+      const rawPrintings = (raw.printings ?? []) as Array<{ language_code?: string; source_variant?: string; imageFull?: string; image?: string }>;
+      const enPrinting = rawPrintings.find(
+        p => p.language_code === 'en' && (p.source_variant === 'base' || !p.source_variant)
+      ) || rawPrintings.find(p => p.language_code === 'en');
       const imageUrl: string = enPrinting?.imageFull || enPrinting?.image || raw.printings?.[0]?.imageFull || raw.printings?.[0]?.image || `https://cards.oplaytcg.com/${meta.folder}/en/${code}.webp`;
 
       return {

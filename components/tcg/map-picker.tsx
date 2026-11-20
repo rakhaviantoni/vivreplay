@@ -3,6 +3,36 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { MapPin, Crosshair, Plus, Minus, Compass } from '@phosphor-icons/react';
 
+interface LeafletMouseEvent {
+  latlng: { lat: number; lng: number };
+}
+
+interface LeafletMarkerInstance {
+  on(event: 'dragend', handler: () => void): void;
+  getLatLng(): { lat: number; lng: number };
+  setLatLng(coords: [number, number]): void;
+  addTo(map: LeafletMapInstance): LeafletMarkerInstance;
+}
+
+interface LeafletMapInstance {
+  on(event: 'click', handler: (e: LeafletMouseEvent) => void): void;
+  flyTo(coords: [number, number], zoom: number, options?: { animate?: boolean; duration?: number }): void;
+  setView(coords: [number, number], zoom: number, options?: { animate?: boolean }): void;
+  getZoom(): number;
+  zoomIn(): void;
+  zoomOut(): void;
+}
+
+interface LeafletNamespace {
+  map(container: HTMLElement, options: { center: [number, number]; zoom: number; zoomControl: boolean }): LeafletMapInstance;
+  tileLayer(url: string, options: { maxZoom: number; attribution: string }): { addTo(map: LeafletMapInstance): void };
+  divIcon(options: { className: string; html: string; iconSize: [number, number]; iconAnchor: [number, number] }): unknown;
+  marker(coords: [number, number], options: { draggable: boolean; icon: unknown }): LeafletMarkerInstance;
+}
+
+const getLeaflet = (): LeafletNamespace | undefined =>
+  typeof window === 'undefined' ? undefined : (window as unknown as { L?: LeafletNamespace }).L;
+
 interface MapPickerProps {
   latitude: number | null;
   longitude: number | null;
@@ -23,8 +53,8 @@ export function MapPicker({
   purpose = 'pickup',
 }: MapPickerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
-  const markerRef = useRef<any>(null);
+  const mapInstanceRef = useRef<LeafletMapInstance | null>(null);
+  const markerRef = useRef<LeafletMarkerInstance | null>(null);
 
   // Default coordinates to Central Jakarta / Monas if unset
   const defaultLat = -6.2088;
@@ -42,8 +72,8 @@ export function MapPicker({
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    if ((window as any).L) {
-      setLeafletLoaded(true);
+    if (getLeaflet()) {
+      queueMicrotask(() => setLeafletLoaded(true));
       return;
     }
 
@@ -68,7 +98,7 @@ export function MapPicker({
   // Initialize or update Leaflet map once loaded
   useEffect(() => {
     if (!leafletLoaded || !containerRef.current) return;
-    const L = (window as any).L;
+    const L = getLeaflet();
     if (!L) return;
 
     if (!mapInstanceRef.current) {
@@ -104,7 +134,7 @@ export function MapPicker({
         });
       });
 
-      map.on('click', (e: any) => {
+      map.on('click', (e: LeafletMouseEvent) => {
         const { lat, lng } = e.latlng;
         marker.setLatLng([lat, lng]);
         onChange({

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {pokemonPrintingRarity, pokemonRarityLabel} from '../lib/pokemon-rarity';
 import {pokemonArtRoute} from '../lib/pokemon-art-route';
+import {versionedCardImageUrl} from '../lib/card-catalog-cache';
 
 test('Pokemon rarity labels use the same short forms across library and market',()=>{
   assert.equal(pokemonRarityLabel('Double rare'),'RR');
@@ -37,10 +38,10 @@ test('Pokemon rarity labels preserve unrecognized values and omit missing values
 });
 
 test('Pokemon artwork routes use catalog set and printing identifiers for each language',()=>{
-  assert.equal(pokemonArtRoute('JP','sv4a','327'),'/sv4a/jp/327.webp');
-  assert.equal(pokemonArtRoute('JA','sv5s','088'),'/sv5s/jp/088.webp');
-  assert.equal(pokemonArtRoute('ID','sv8a','217'),'/sv8a/id/217.webp');
-  assert.equal(pokemonArtRoute('EN','sv2a','331'),'/sv2a/en/331.webp');
-  assert.equal(pokemonArtRoute('ID','S6a','073/069','fbf45d27-b735-5928-9fa9-63ca65c7bbd1'),'/S6a/id/073.webp?printingId=fbf45d27-b735-5928-9fa9-63ca65c7bbd1');
+  assert.equal(pokemonArtRoute('JP','sv4a','327'),versionedCardImageUrl('/sv4a/jp/327.webp'));
+  assert.equal(pokemonArtRoute('JA','sv5s','088'),versionedCardImageUrl('/sv5s/jp/088.webp'));
+  assert.equal(pokemonArtRoute('ID','sv8a','217'),versionedCardImageUrl('/sv8a/id/217.webp'));
+  assert.equal(pokemonArtRoute('EN','sv2a','331'),versionedCardImageUrl('/sv2a/en/331.webp'));
+  assert.equal(pokemonArtRoute('ID','S6a','073/069','fbf45d27-b735-5928-9fa9-63ca65c7bbd1'),versionedCardImageUrl('/S6a/id/073.webp?printingId=fbf45d27-b735-5928-9fa9-63ca65c7bbd1'));
   assert.equal(pokemonArtRoute('JP','../sv4a','327'),'');
 });

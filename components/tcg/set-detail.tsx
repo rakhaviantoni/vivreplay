@@ -31,7 +31,7 @@ export function SetDetail({code}:{code:string}){
       if(!live)return;
       const match=sets.find(row=>normalizeSetCode(row.code)===normalizedCode);
       setSet(match?{code:match.code,name:match.name,set_kind:'booster',release_date:match.releaseDate??null,description:match.description??null,official_url:match.officialUrl??null,product_image_url:match.productImageUrl??null}:undefined);
-    });
+    }).catch(()=>{});
     return()=>{live=false};
   },[normalizedCode]);
 

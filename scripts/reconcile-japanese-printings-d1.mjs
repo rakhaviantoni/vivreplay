@@ -75,7 +75,7 @@ if(!skipImages){
   let uploadCursor=0,uploaded=0;
   try{
     await Promise.all(Array.from({length:4},async()=>{while(uploadCursor<jobs.length){const job=jobs[uploadCursor++];const objectPath=`tcg-card-images/${job.assetKey}`;execFileSync(wrangler,['r2','object','put',objectPath,'--remote','--config',config,'--file',job.file,'--content-type','image/webp','--cache-control','public, max-age=31536000, immutable','--force'],{stdio:'ignore',env});uploaded++;if(uploaded%25===0)console.log(JSON.stringify({r2Uploaded:uploaded,total:jobs.length}));}}));
-  }catch(error){rmSync(tempDirectory,{recursive:true,force:true});throw new Error(`Uploaded ${uploaded} verified images; D1 was left unchanged because an R2 upload failed. Rerun with --apply to safely retry.`);}
+  }catch{rmSync(tempDirectory,{recursive:true,force:true});throw new Error(`Uploaded ${uploaded} verified images; D1 was left unchanged because an R2 upload failed. Rerun with --apply to safely retry.`);}
 }
 const statements=jobs.flatMap(job=>[job.printingSql,job.assetSql]);
 const chunks=[];let group=[],size=0;

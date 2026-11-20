@@ -16,7 +16,9 @@ type ApiCard = {
 type ApiSet = { id: string; name?: string; releaseDate?: string; logo?: string; cardCount?: { total?: number; official?: number }; cards?: Array<{ id: string }>; serie?: { name?: string } };
 
 const api = 'https://api.tcgdex.net/v2';
-const langs: TcgLanguage[] = ['id', 'en', 'ja'];
+const requestedLangs = (process.env.TCGDEX_LANGS ?? 'id,en,ja').split(',').map(v => v.trim().toLowerCase()).filter((v): v is TcgLanguage => v === 'en' || v === 'id' || v === 'ja');
+const langs: TcgLanguage[] = requestedLangs.length ? requestedLangs : ['id', 'en', 'ja'];
+const requestedSetIds = new Set((process.env.TCGDEX_SET_IDS ?? '').split(',').map(v => v.trim().toLowerCase()).filter(Boolean));
 const concurrency = Math.max(1, Math.min(5, Number(process.env.TCGDEX_CONCURRENCY ?? 3) || 3));
 const delayMs = Math.max(150, Number(process.env.TCGDEX_DELAY_MS ?? 300) || 300);
 const maxSets = Number(process.env.TCGDEX_MAX_SETS ?? 0) || 0;
@@ -155,8 +157,9 @@ if (offline) {
     if (aDate && bDate && aDate !== bDate) return bDate.localeCompare(aDate);
     return 0;
   });
-  const selected = maxSets ? ordered.slice(0, maxSets) : ordered;
-  console.log(`${language}: ${selected.length} sets queued (${ordered[0]?.name ?? 'latest set'} first).`);
+  const filteredSets = ordered.filter(setStub => !/^cs/i.test(setStub.id) && (!requestedSetIds.size || requestedSetIds.has(setStub.id.toLowerCase())));
+  const selected = maxSets ? filteredSets.slice(0, maxSets) : filteredSets;
+  console.log(`${language}: ${selected.length} sets queued (${selected[0]?.name ?? 'none'} first).`);
   let languageCount = 0;
   for (const setStub of selected) {
     const file = setCachePath(language, setStub.id);
@@ -263,11 +266,11 @@ if (!apply) {
 }
 
 let gameId = stableId('game:pokemon');
-if (apply && !local) {
+if (apply) {
   const existing = execFileSync('node_modules/.bin/wrangler', [
-    'd1', 'execute', d1Name, '--remote', '--config', d1Config, '--json',
+    'd1', 'execute', local ? 'DB' : d1Name, ...(local ? ['--local', '--persist-to', '.wrangler/state', '--yes'] : ['--remote']), '--config', d1Config, '--json',
     '--command', "SELECT id FROM tcg_games WHERE slug='pokemon' LIMIT 1",
-  ], { encoding: 'utf8', env: { ...process.env, WRANGLER_LOG_PATH: join(tmpdir(), 'vivreplay-tcgdex-import.log') } });
+  ], { encoding: 'utf8', env: { ...process.env, WRANGLER_SEND_METRICS: 'false', ...(local ? { XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME ?? '/tmp/vivreplay-xdg' } : {}), WRANGLER_LOG_PATH: join(tmpdir(), 'vivreplay-tcgdex-import.log') } });
   const parsed = JSON.parse(existing) as Array<{ results?: Array<{ id?: string }> }>;
   gameId = parsed[0]?.results?.[0]?.id ?? gameId;
 }
@@ -331,8 +334,8 @@ insert('tcg_card_asset_sources', assetSourceRows);
 const sqlPath = join(tmpdir(), `vivreplay-tcgdex-pokemon-${Date.now()}.sql`);
 writeFileSync(sqlPath, batches.join('\n'), { mode: 0o600 });
 try {
-  execFileSync('node_modules/.bin/wrangler', ['d1', 'execute', d1Name, ...(local ? ['--local', '--persist-to', '.wrangler/state'] : ['--remote']), '--config', d1Config, '--file', sqlPath, ...(local ? ['--yes'] : [])], {
-    stdio: 'inherit', env: { ...process.env, WRANGLER_LOG_PATH: join(tmpdir(), 'vivreplay-tcgdex-import.log') },
+  execFileSync('node_modules/.bin/wrangler', ['d1', 'execute', local ? 'DB' : d1Name, ...(local ? ['--local', '--persist-to', '.wrangler/state'] : ['--remote']), '--config', d1Config, '--file', sqlPath, '--yes'], {
+    stdio: 'inherit', env: { ...process.env, WRANGLER_SEND_METRICS: 'false', ...(local ? { XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME ?? '/tmp/vivreplay-xdg' } : {}), WRANGLER_LOG_PATH: join(tmpdir(), 'vivreplay-tcgdex-import.log') },
   });
 } finally { rmSync(sqlPath, { force: true }); }
 console.log(`Imported ${summary.sets} sets and ${summary.cards} localized printings into ${local ? 'local' : 'production'} D1. Images are served through VivrePlay's R2-backed cache proxy.`);

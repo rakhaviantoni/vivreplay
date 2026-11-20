@@ -241,7 +241,7 @@ export function MarketPolicyManager() {
       const saved=await res.json() as {policies:MarketPolicies;proPricing:ProPricing};
       setInitialPolicies(saved.policies);
       setInitialPricing(saved.proPricing);
-      toast.success('Market policies updated live in D1 storage!');
+      toast.success('Market policies updated.');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to save policies');
     } finally {
@@ -265,7 +265,7 @@ export function MarketPolicyManager() {
           </p>
         </div>
         <div className="admin-policy-presets">
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#798076' }}>Presets:</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--muted, #798076)' }}>Presets:</span>
           <button
             type="button"
             className="admin-preset-btn"
@@ -375,11 +375,11 @@ export function MarketPolicyManager() {
                 style={{
                   padding: '10px 12px',
                   borderRadius: 8,
-                  border: '1px solid #e2d5c0',
-                  background: 'rgba(0,0,0,0.02)',
+                  border: '1px solid var(--line, #e2d5c0)',
+                  background: 'var(--surface-muted, rgba(128,128,128,0.06))',
                   fontSize: 11,
                   fontWeight: 700,
-                  color: '#6e7a71',
+                  color: 'var(--muted, #6e7a71)',
                 }}
               >
                 Disabled for Free tier (drives user to log in and renew manually).
@@ -496,7 +496,7 @@ export function MarketPolicyManager() {
           ) : (
             <FloppyDisk size={16} />
           )}
-          {saving ? 'Saving to D1...' : 'Save Market Policies'}
+          {saving ? 'Saving policies...' : 'Save Market Policies'}
         </button>
       </footer>
     </form>

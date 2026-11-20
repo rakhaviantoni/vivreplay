@@ -13,7 +13,7 @@ async function Page({ searchParams }: { searchParams: Promise<{ set?: string; q?
   const initialCard = card?.slice(0, 40);
   const initialNumber = number?.slice(0, 20);
   const initialLanguage = lang?.toUpperCase();
-  return <PokemonLibrary key={`${initialSet ?? ''}:${initialQuery ?? ''}:${initialIllustrator ?? ''}:${initialRarity ?? ''}:${initialCard ?? ''}:${initialPrinting ?? ''}:${initialNumber ?? ''}:${initialLanguage ?? ''}`} initialSet={initialSet} initialQuery={initialQuery} initialIllustrator={initialIllustrator} initialRarity={initialRarity} initialCard={initialCard} initialPrinting={initialPrinting} initialNumber={initialNumber} initialLanguage={initialLanguage} />;
+  return <PokemonLibrary key={`${initialSet ?? ''}:${initialQuery ?? ''}:${initialIllustrator ?? ''}:${initialRarity ?? ''}:${initialCard ?? ''}:${initialPrinting ?? ''}:${initialNumber ?? ''}`} initialSet={initialSet} initialQuery={initialQuery} initialIllustrator={initialIllustrator} initialRarity={initialRarity} initialCard={initialCard} initialPrinting={initialPrinting} initialNumber={initialNumber} initialLanguage={initialLanguage} />;
 }
 
 export default withRequestLocale(Page);

@@ -13,7 +13,7 @@ import {MarketGameMark,type MarketGameScope} from './market';
 import {CardArt} from './card-art';
 import {displayCardName} from './card-name';
 import {CardPreviewModal} from './card-preview-modal';
-import {ShareButton} from './share';
+import {ShareButton,type ShareCardItem} from './share';
 import {MarketTimestamp} from './market-timestamp';
 import {authClient} from '@/lib/auth-client';
 import {toast} from 'sonner';
@@ -293,6 +293,12 @@ export function ShippingOptions({listingId,courierCount=0,couriers=[],items=[]}:
         </div>
         <footer className="shipping-options-footer">
           {startingFee!=null&&<p>{t('Rates use your saved delivery address. The final fee is confirmed at checkout.','Tarif memakai alamat pengiriman tersimpan. Ongkir final terlihat saat checkout.')}</p>}
+          {activeRates.length>0&&(()=>{
+            const missingCouriers=couriers.filter(code=>!activeRates.some(rate=>rate.courier_code===code));
+            if(!missingCouriers.length)return null;
+            const names=missingCouriers.map(code=>COURIER_LABELS[code]||code).join(', ');
+            return <p>{language==='ID'?`${names} tidak tersedia untuk rute ini.`:`${names} ${missingCouriers.length===1?'is':'are'} not available for this route.`}</p>;
+          })()}
         </footer>
       </div>
     </div>
@@ -412,14 +418,40 @@ export type MarketListingCard={
   language:string;
 };
 
+/** Share-image cards for a listing; slabs keep their Vault label style so EGS Clear stays Clear. */
+function marketShareCards(items:MarketListingCard[]):ShareCardItem[]{
+  return items.map(item=>{
+    const graded=item.productType==='GRADED';
+    const printingCode=item.card.printingCode??item.card.code??'';
+    return {
+      card:item.card,
+      printingId:item.id,
+      quantity:item.quantity,
+      condition:graded?`${item.gradingCompany} ${item.grade}`:item.condition,
+      unitAmount:item.unitAmount,
+      productType:graded?'GRADED':'RAW',
+      gradingCompany:item.gradingCompany,
+      grade:item.grade,
+      certification:item.certification,
+      ...(graded?{slabLabel:{
+        setCode:item.card.setCode,
+        language:item.language||item.card.language,
+        number:printingCode.match(/(\d+[A-Z]?)$/i)?.[1]??printingCode,
+        rarity:item.card.rarity,
+        labelStyle:item.slabLabelStyle??'standard',
+      }}:{}),
+    };
+  });
+}
+
 function ListingItemArt({item,priority=false}:{item:MarketListingCard;priority?:boolean}){
   const photo=item.photoUrls?.[0];
   if(item.productType==='GRADED'){
     const gameSlug=/^PK-/i.test(item.card.code)?'pokemon':'one-piece';
     const slabItem={id:item.instanceId??item.id,printingId:item.id,type:'GRADED',quantity:item.quantity,condition:item.condition,provider:item.gradingCompany??null,grade:item.grade??null,certification:item.certification??null,subgrades:item.slabLabelStyle?{__labelStyle:item.slabLabelStyle}:null,visibility:'private',acquisitionAmount:0,currency:'IDR',language:item.language,variant:item.card.variant,printingCode:item.card.printingCode,setCode:item.card.setCode,rarity:item.card.rarity,card:{...item.card,gameSlug}} as EnrichedCollectionItem;
-    return <VaultSlabCase item={slabItem} className="market-listing-slab-case"><CardArt card={item.card} priority={priority}/></VaultSlabCase>;
+    return <VaultSlabCase item={slabItem} className="market-listing-slab-case">{photo?<img className="market-sealed-listing-photo market-item-real-photo" src={photo} alt={item.card.name} loading={priority?'eager':'lazy'}/>:<CardArt card={item.card} priority={priority}/>}</VaultSlabCase>;
   }
-  return photo?<img className="market-sealed-listing-photo" src={photo} alt={item.card.name} loading={priority?'eager':'lazy'}/>:<CardArt card={item.card} priority={priority}/>;
+  return photo?<img className="market-sealed-listing-photo market-item-real-photo" src={photo} alt={item.card.name} loading={priority?'eager':'lazy'}/>:<CardArt card={item.card} priority={priority}/>;
 }
 
 type ActiveListingOffer={
@@ -446,7 +478,9 @@ export function ListingArtRotator({items, badge}:{items:MarketListingCard[]; bad
   // make a single copy render as a stack.
   const cardCount=items.reduce((total,item)=>total+(item.sold?0:Math.min(Math.max(0,item.quantity),Math.max(0,(item.availableQuantity??item.quantity)+(item.heldQuantity??0)))),0);
   const visibleStackCount=Math.min(3,Math.max(1,cardCount));
-  const underlays=Array.from({length:visibleStackCount-1},(_,index)=>items[(activeIndex+index+1)%items.length]??active);
+  const underlays=active.photoUrls&&active.photoUrls.length>1
+    ? Array.from({length:Math.min(visibleStackCount-1,active.photoUrls.length-1)},(_,index)=>({...active,photoUrls:[active.photoUrls![index+1]]}))
+    : Array.from({length:visibleStackCount-1},(_,index)=>items[(activeIndex+index+1)%items.length]??active);
 
   return <div className={`viewer-art-stack market-listing-art-rotator ${visibleStackCount===1?'is-single':''}`} data-card-count={cardCount} aria-label={`Featured card: ${active.card.name}; ${cardCount} ${cardCount===1?'card':'cards'} in this listing`}>
     {underlays.map((item,index)=><div key={`${item.id}-${index}`} className={`viewer-art-underlay viewer-art-underlay-${index}`} aria-hidden="true"><ListingItemArt item={item}/></div>)}
@@ -662,41 +696,41 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
       <div className="market-listing-cards-heading">
         <h2>{isMixedListing?t('Cards and products','Kartu dan produk'):items.some(item=>item.sealedProductId)?t('Products in this listing','Produk dalam listing ini'):t('Cards in this listing','Kartu dalam listing ini')}</h2>
         {canManageListing&&listingType==='WTS'&&!items.some(item=>item.sealedProductId)&&<button type="button" className="button secondary market-listing-add-cards" onClick={()=>setAddCardsOpen(true)}><Plus size={15}/>{t('Add cards','Tambah kartu')}</button>}
+        {!readOnly&&totalAvailable>0&&offerCheckComplete&&!activeOffer&&!submitting&&!singleCopyListing&&<div className="market-listing-bulk-actions" role="toolbar" aria-label={t('Bulk card selection','Pilihan borongan kartu')}>
+          <button
+            type="button"
+            className={`market-bulk-btn ${selectedCount===totalAvailable?'is-active':''}`}
+            onClick={selectAll}
+            title={t('Select all available cards across this listing','Pilih semua kartu yang tersedia di listing ini')}
+          >
+            {t('Take all','Ambil semua')} <small>({totalAvailable})</small>
+          </button>
+          {hasPlaysetOpportunities && (
+            <button
+              type="button"
+              className="market-bulk-btn"
+              onClick={selectPlaysets}
+              title={t('Select up to 4 copies (playset) for each card','Pilih hingga 4 salinan (playset) per kartu')}
+            >
+              {t('Playset (4×) all','Playset (4×) semua')}
+            </button>
+          )}
+          {selectedCount>0 && (
+            <button
+              type="button"
+              className="market-bulk-btn is-clear"
+              onClick={clearAll}
+              title={t('Clear selected cards','Hapus pilihan kartu')}
+            >
+              {t('Reset','Reset')}
+            </button>
+          )}
+        </div>}
         <div className="market-view-toggle market-listing-view-toggle" role="group" aria-label={t('Card layout','Tata letak kartu')}>
           <button type="button" className={cardsView==='grid'?'active':''} onClick={()=>setCardsView('grid')} aria-label={t('Grid view','Tampilan kisi')} aria-pressed={cardsView==='grid'}><Grid size={16}/></button>
           <button type="button" className={cardsView==='list'?'active':''} onClick={()=>setCardsView('list')} aria-label={t('List view','Tampilan daftar')} aria-pressed={cardsView==='list'}><List size={16}/></button>
         </div>
       </div>
-      {!readOnly&&totalAvailable>0&&offerCheckComplete&&!activeOffer&&!submitting&&!singleCopyListing&&<div className="market-listing-bulk-actions" role="toolbar" aria-label={t('Bulk card selection','Pilihan borongan kartu')}>
-        <button
-          type="button"
-          className={`market-bulk-btn ${selectedCount===totalAvailable?'is-active':''}`}
-          onClick={selectAll}
-          title={t('Select all available cards across this listing','Pilih semua kartu yang tersedia di listing ini')}
-        >
-          {t('Take all','Ambil semua')} <small>({totalAvailable})</small>
-        </button>
-        {hasPlaysetOpportunities && (
-          <button
-            type="button"
-            className="market-bulk-btn"
-            onClick={selectPlaysets}
-            title={t('Select up to 4 copies (playset) for each card','Pilih hingga 4 salinan (playset) per kartu')}
-          >
-            {t('Playset (4×) all','Playset (4×) semua')}
-          </button>
-        )}
-        {selectedCount>0 && (
-          <button
-            type="button"
-            className="market-bulk-btn is-clear"
-            onClick={clearAll}
-            title={t('Clear selected cards','Hapus pilihan kartu')}
-          >
-            {t('Reset','Reset')}
-          </button>
-        )}
-      </div>}
     </header>
     <div className={`market-listing-card-grid is-${cardsView}`}>
       {items.map((item,index)=>{
@@ -890,17 +924,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
         <ShareButton
           title={listingTitle ?? t('Card listing','Listing kartu')}
           path={marketListingPath(listingTitle??'Card listing',listingId)}
-          cards={items.map(item => ({
-            card: item.card,
-            printingId: item.id,
-            quantity: item.quantity,
-            condition: item.productType==='GRADED'?`${item.gradingCompany} ${item.grade}`:item.condition,
-            unitAmount: item.unitAmount,
-            productType:item.productType==='GRADED'?'GRADED':'RAW',
-            gradingCompany:item.gradingCompany,
-            grade:item.grade,
-            certification:item.certification,
-          }))}
+          cards={marketShareCards(items)}
           price={formatMoney(publicListingTotal, currency)}
           subtitle={language==='ID'?`${items.reduce((acc, it) => acc + it.quantity, 0)} kartu`:`${items.reduce((acc, it) => acc + it.quantity, 0)} ${items.reduce((acc, it) => acc + it.quantity, 0) === 1 ? 'card' : 'cards'}`}
           listingInfo={listingInfo}
@@ -1100,16 +1124,27 @@ export function MarketListingDetailView({
                       <span>{renewing ? t('Saving…', 'Menyimpan…') : isExpired ? t('Renew', 'Perbarui') : t('Extend', 'Perpanjang')}</span>
                     </button>
                     {!isExpired && (
-                      <button
-                        type="button"
-                        className="btn-close"
-                        disabled={closing}
-                        onClick={handleClose}
-                        aria-label={t('Close listing', 'Tutup listing')}
-                      >
-                        <X size={14} />
-                        <span>{closing ? t('Closing…', 'Menutup…') : t('Close', 'Tutup')}</span>
-                      </button>
+                      <>
+                        <ShareButton
+                          title={listingTitle}
+                          path={marketListingPath(listingTitle,listing.id)}
+                          cards={marketShareCards(editableCards)}
+                          price={formatMoney(listingAmount, listing.currency)}
+                          subtitle={language==='ID'?`${editableCards.reduce((acc, it) => acc + it.quantity, 0)} kartu`:`${editableCards.reduce((acc, it) => acc + it.quantity, 0)} ${editableCards.reduce((acc, it) => acc + it.quantity, 0) === 1 ? 'card' : 'cards'}`}
+                          listingInfo={{seller:listing.seller,city:listing.city,expiresAt:expiresAt??undefined}}
+                          className="market-listing-share"
+                        />
+                        <button
+                          type="button"
+                          className="btn-close"
+                          disabled={closing}
+                          onClick={handleClose}
+                          aria-label={t('Close listing', 'Tutup listing')}
+                        >
+                          <X size={14} />
+                          <span>{closing ? t('Closing…', 'Menutup…') : t('Close', 'Tutup')}</span>
+                        </button>
+                      </>
                     )}
                   </div>
                 )}
@@ -1167,6 +1202,17 @@ export function MarketListingDetailView({
               </div>
             </section>
             <div className="market-listing-utility-actions">
+              {ownerView && (
+                <ShareButton
+                  title={listingTitle}
+                  path={marketListingPath(listingTitle,listing.id)}
+                  cards={marketShareCards(editableCards)}
+                  price={formatMoney(listingAmount, listing.currency)}
+                  subtitle={language==='ID'?`${editableCards.reduce((acc, it) => acc + it.quantity, 0)} kartu`:`${editableCards.reduce((acc, it) => acc + it.quantity, 0)} ${editableCards.reduce((acc, it) => acc + it.quantity, 0) === 1 ? 'card' : 'cards'}`}
+                  listingInfo={{seller:listing.seller,city:listing.city,expiresAt:expiresAt??undefined}}
+                  className="market-listing-share"
+                />
+              )}
               {!ownerView&&<><FeedbackLaunchButton request={{initialCategory:'market-report',listingId:listing.id,cardCode:editableCards.length===1?editableCards[0].card.code:undefined,printingId:editableCards.length===1?editableCards[0].id:undefined,cardOptions:editableCards.map(item=>({cardCode:item.card.code,printingId:item.id,label:`${item.card.name} (${marketCardReference(item.card)})${item.card.variant?` / ${item.card.variant}`:''} / ${item.language}`}))}} className="market-report-link" disabled={counterpartyPreview} title={t('Report listing','Laporkan listing')} ariaLabel={t('Report listing','Laporkan listing')}><Flag size={16} aria-hidden="true"/><span>{t('Report','Laporkan')}</span></FeedbackLaunchButton><SaveListingButton listingId={listing.id} language={language} iconOnly disabled={counterpartyPreview}/></>}
               {canPreviewAsBuyer&&<div className="market-listing-preview-control"><span>{t('View as','Lihat sebagai')}</span><div className="market-listing-view-as-toggle" role="group" aria-label={t('Preview listing as','Pratinjau listing sebagai')}><button type="button" aria-pressed={previewRole==='buyer'} onClick={()=>setPreviewRole('buyer')}>{t('Buyer','Pembeli')}</button><button type="button" aria-pressed={previewRole==='seller'} onClick={()=>setPreviewRole('seller')}>{t('Seller','Penjual')}</button></div></div>}
             </div>

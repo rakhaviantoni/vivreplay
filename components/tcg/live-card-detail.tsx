@@ -17,11 +17,11 @@ import {ShareButton} from './share';
 import {FeedbackLaunchButton} from './feedback-launch';
 import type {Card} from '@/packages/card-data/catalog';
 import {versionedCardCatalogUrl} from '@/lib/card-catalog-cache';
+import {blockForSet} from '@/lib/one-piece-card-helpers';
 
 type Identity={id:string;code:string;name:string;color:string;card_type:Card['type'];cost:number;power:number;effect_text:string};
 type Printing=CardPrinting & {rarity:string|null;set_code:string|null;set_name:string|null;counter_amount:number|null;attribute:string|null;life:number|null;sub_types:string[]|string|null;source_payload?:{block?:string|number;block_value?:string|number}|null;tcg_card_assets?:Array<{kind:string;object_key:string}>};
 type Ruling={id:string;printing_id:string|null;language:string;question:string;answer:string;source_url:string;source_reference:string|null;published_at:string|null};
-function blockForSet(code:string,payload?:{block?:string|number;block_value?:string|number}|null){const direct=payload?.block_value??payload?.block;if(direct!==undefined&&direct!==null&&String(direct).trim())return String(direct).toUpperCase();const match=code.toUpperCase().match(/^(OP|EB|ST|PRB)[-_ ]?0*(\d+)/);if(!match)return 'X';const number=Number(match[2]);if(match[1]==='OP')return String(Math.min(5,Math.max(1,Math.ceil(number/4))));if(match[1]==='EB')return String(Math.min(5,Math.max(1,Math.ceil((number+1)/2)+1)));if(match[1]==='ST')return number>=28?'5':number>=20?'4':number>=11?'3':number>=5?'2':'1';return number>=2?'5':'4'}
 
 export function LiveCardDetail({code,initialLanguage}:{code:string;initialLanguage:string}){
  const [identity,setIdentity]=useState<Identity>(); const [printings,setPrintings]=useState<Printing[]>([]); const [rulings,setRulings]=useState<Ruling[]>([]); const [language,setLanguage]=useState(initialLanguage==='JP'?'JP':'EN');
@@ -50,22 +50,10 @@ export function LiveCardDetail({code,initialLanguage}:{code:string;initialLangua
    }catch(error){if(error instanceof Error&&error.name==='AbortError')return;setLoadState('error');}
  },[code,initialLanguage]);
  useEffect(()=>{
-   const controller=new AbortController();let active=true;
-   fetch(versionedCardCatalogUrl(`/api/cards/${encodeURIComponent(code)}`),{signal:controller.signal}).then(async response=>{
-     if(!active)return;
-     if(response.status===404){setIdentity(undefined);setPrintings([]);setRulings([]);setLoadState('missing');return;}
-     if(!response.ok)throw new Error('Card details could not be loaded.');
-     const payload=await response.json() as {identity:Identity;printings:Printing[];rulings:Ruling[]};
-     if(!active)return;
-     const rows=payload.printings??[];
-     if(!rows.length){setIdentity(payload.identity);setPrintings([]);setRulings(payload.rulings??[]);setLoadState('missing');return;}
-     setIdentity(payload.identity);setPrintings(rows);setRulings(payload.rulings??[]);
-     const preferred=initialLanguage==='JP'?'JP':'EN';
-     if(!rows.some(row=>row.language===preferred))setLanguage(rows[0].language==='JP'?'JP':'EN');
-     setLoadState('ready');
-   }).catch(error=>{if(active&&!(error instanceof Error&&error.name==='AbortError'))setLoadState('error')});
-   return()=>{active=false;controller.abort()};
- },[code,initialLanguage]);
+   const controller=new AbortController();
+   void loadCard(controller.signal);
+   return()=>controller.abort();
+ },[loadCard]);
  const available=useMemo(()=>uniquePrintings(orderPrintings(printings.filter(p=>p.language===language))),[printings,language]); const [selected,setSelected]=useState<string>();
  const printing=available.find(p=>p.id===selected)??available[0];
  const card=identity&&printing?{id:printing.id,code:identity.code,name:displayCardName(identity.name,identity.code),color:identity.color,type:identity.card_type,cost:identity.cost,power:identity.power,rarity:printing.rarity??'',art:0,effect:identity.effect_text,imageUrl:printing.card_image_url??undefined,imageSource:'external' as const,setCode:printing.set_code??undefined,language:printing.language,printingCode:printing.printing_code??undefined,assetPath:printing.tcg_card_assets?.find(asset=>asset.kind==='small')?.object_key}:undefined;

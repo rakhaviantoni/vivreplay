@@ -59,7 +59,7 @@ export function ProCheckout(){
         setPlan(current=>current?{...current,paymentChannels:options}:result);
         const preferred=preferredPaymentOption(options);
         if(preferred)setSelectedPayment(current=>options.some(option=>option.method===current.method&&option.channel===current.channel&&option.available!==false)?current:{method:preferred.method,channel:preferred.channel});
-      }catch{if(active)setPlan(current=>current?{...current,paymentChannels:[],paymentChannelStatus:'provider_unavailable'}:current)}
+      }catch{if(active)setPlan(current=>current&&Array.isArray(current.paymentChannels)&&current.paymentChannels.length?current:current?{...current,paymentChannels:[],paymentChannelStatus:'provider_unavailable'}:current)}
     };
     const timer=window.setInterval(()=>void refreshPaymentChannels(),30_000);
     document.addEventListener('visibilitychange',refreshPaymentChannels);
@@ -124,7 +124,7 @@ export function ProCheckout(){
   const averagePurchaseSubtotal=numberValue(monthlyPurchases)/purchaseCount;
   const buyerSavings=purchaseCount*Math.max(0,calculateBuyerServiceFee(averagePurchaseSubtotal,plan?.freeCommissionPercent??1.5,plan?.buyerFeeMinimum??MARKET_BUYER_FEE_MINIMUM)-calculateBuyerServiceFee(averagePurchaseSubtotal,plan?.commissionPercent??0.75,plan?.buyerFeeMinimum??MARKET_BUYER_FEE_MINIMUM));
   const voucherLimit=billingPeriod==='yearly'?(plan?.shippingVouchersPerYear??24):(plan?.shippingVouchersPerMonth??2);
-  const voucherSavings=Math.min(Math.max(0,Math.floor(Number(voucherCount)||0)),voucherLimit)*Math.min(Math.round(numberValue(averageDelivery)*(plan?.shippingVoucherSharePercent??100)/100),plan?.shippingVoucherCap??10000);
+  const voucherSavings=Math.min(Math.max(0,Math.floor(Number(voucherCount)||0)),voucherLimit)*Math.min(Math.round(numberValue(averageDelivery)*(plan?.shippingVoucherSharePercent??50)/100),plan?.shippingVoucherCap??5000);
   const estimateMultiplier=billingPeriod==='yearly'?12:1;
   const displayedSellerSavings=sellerSavings*estimateMultiplier;
   const displayedBuyerSavings=buyerSavings*estimateMultiplier;

@@ -4,7 +4,7 @@ import {useRouteLocale} from '@/components/locale-provider';
 import {useEffect, useMemo, useState} from 'react';
 import Link from '@/components/ui/localized-link';
 import {useLocalizedRouter as useRouter} from '@/lib/use-localized-router';
-import {ArrowUpRightIcon, MagnifyingGlassIcon, StackIcon} from '@phosphor-icons/react';
+import {ArrowUpRightIcon, MagnifyingGlassIcon, StackIcon, XIcon} from '@phosphor-icons/react';
 import {CardArt} from '@/components/tcg/card-art';
 import {DepthCarousel} from '@/components/tcg/depth-carousel';
 import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue} from '@/components/ui/select';
@@ -22,29 +22,35 @@ export function PokemonSets(){
   const id=useRouteLocale()==='ID';
   const localize=(href:string)=>id?`/id${href}`:href;
   const router=useRouter();
-  const [language,setLanguage]=useState<'ID'|'EN'|'JP'>(id?'ID':'EN');
+  const [selectedLanguage,setSelectedLanguage]=useState<{baseId:boolean;value:'ID'|'EN'|'JP'}|null>(null);
+  const language=selectedLanguage&&selectedLanguage.baseId===id?selectedLanguage.value:(id?'ID':'EN');
   const [sets,setSets]=useState<SetRecord[]>([]);
   const [query,setQuery]=useState('');
   const [year,setYear]=useState('all');
   const [series,setSeries]=useState('all');
   const [sort,setSort]=useState<'newest'|'oldest'|'name'>('newest');
   const [loading,setLoading]=useState(true);
-
-  useEffect(()=>setLanguage(id?'ID':'EN'),[id]);
+  const [loadError,setLoadError]=useState(false);
+  const [reloadTick,setReloadTick]=useState(0);
 
   useEffect(()=>{
     const controller=new AbortController();
-    setLoading(true);
-    fetch(versionedCardCatalogUrl(`/api/cards/sets?game=pokemon&language=${language}&includeCards=9`),{signal:controller.signal,cache:'no-store'})
+    void Promise.resolve().then(()=>{
+      if(controller.signal.aborted)return;
+      setLoading(true);
+      setLoadError(false);
+      return fetch(versionedCardCatalogUrl(`/api/cards/sets?game=pokemon&language=${language}&includeCards=9`),{signal:controller.signal,cache:'no-store'});
+    })
       .then(async response=>{
+        if(!response)return;
         if(!response.ok)throw new Error('Sets unavailable');
         const result=await response.json() as {sets?:SetRecord[]};
         setSets(result.sets??[]);
       })
-      .catch(error=>{if(error.name!=='AbortError')setSets([])})
+      .catch(error=>{if(error.name!=='AbortError'){setSets([]);setLoadError(true)}})
       .finally(()=>{if(!controller.signal.aborted)setLoading(false)});
     return()=>controller.abort();
-  },[language]);
+  },[language,reloadTick]);
 
   const years=useMemo(()=>[...new Set(sets.map(set=>set.releaseYear).filter(value=>value>0))].sort((a,b)=>b-a),[sets]);
   const seriesOptions=useMemo(()=>[...new Set(sets.map(set=>set.series?.trim()).filter((value):value is string=>Boolean(value)))].sort((a,b)=>a.localeCompare(b)),[sets]);
@@ -68,19 +74,19 @@ export function PokemonSets(){
       {!loading&&<b>{sets.length.toLocaleString(id?'id-ID':'en-US')} {id?'set tersedia':'sets available'}</b>}
     </header>
     <div className="pokemon-set-toolbar">
-      <label className="pokemon-set-search"><MagnifyingGlassIcon size={16}/><input value={query} onChange={event=>setQuery(event.target.value)} placeholder={id?'Cari nama atau kode set':'Search set name or code'} /></label>
+      <div className="pokemon-set-search"><MagnifyingGlassIcon size={16}/><input aria-label={id?'Cari set Pokémon':'Search Pokémon sets'} value={query} onChange={event=>setQuery(event.target.value)} placeholder={id?'Cari nama atau kode set':'Search set name or code'} />{query&&<button type="button" className="search-clear" onClick={()=>setQuery('')} aria-label={id?'Hapus pencarian':'Clear search'}><XIcon size={13}/></button>}</div>
       <div className="pokemon-set-filters">
         <Select value={year} onValueChange={setYear}><SelectTrigger aria-label={id?'Tahun rilis':'Release year'}><SelectValue placeholder={id?'Tahun':'Year'}/></SelectTrigger><SelectContent><SelectItem value="all">{id?'Semua tahun':'All years'}</SelectItem>{years.map(value=><SelectItem key={value} value={String(value)}>{value}</SelectItem>)}</SelectContent></Select>
         {seriesOptions.length>0&&<Select value={series} onValueChange={setSeries}><SelectTrigger aria-label={id?'Seri Pokémon':'Pokémon series'}><SelectValue placeholder={id?'Semua seri':'All series'}/></SelectTrigger><SelectContent><SelectItem value="all">{id?'Semua seri':'All series'}</SelectItem>{seriesOptions.map(value=><SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectContent></Select>}
         <Select value={sort} onValueChange={value=>setSort(value as typeof sort)}><SelectTrigger aria-label={id?'Urutkan set':'Sort sets'}><SelectValue/></SelectTrigger><SelectContent><SelectItem value="newest">{id?'Terbaru':'Newest'}</SelectItem><SelectItem value="oldest">{id?'Terlama':'Oldest'}</SelectItem><SelectItem value="name">{id?'Nama A–Z':'Name A–Z'}</SelectItem></SelectContent></Select>
       </div>
-      <div className="language-switch" role="group" aria-label={id?'Bahasa kartu':'Card language'}>{(['ID','EN','JP'] as const).map(option=><button type="button" key={option} aria-pressed={language===option} onClick={()=>setLanguage(option)}>{option}</button>)}</div>
+      <div className="language-switch" role="group" aria-label={id?'Bahasa kartu':'Card language'}>{(['ID','EN','JP'] as const).map(option=><button type="button" key={option} aria-pressed={language===option} onClick={()=>setSelectedLanguage({baseId:id,value:option})}>{option}</button>)}</div>
     </div>
     {!loading&&<div className="pokemon-set-results"><span>{visibleSets.length.toLocaleString(id?'id-ID':'en-US')} {id?'set':'sets'}</span>{hasFilters&&<button type="button" onClick={clearFilters}>{id?'Hapus filter':'Clear filters'}</button>}</div>}
-    {loading?<div className="sets-skeleton" aria-label={id?'Memuat set Pokémon':'Loading Pokémon sets'}><i/><i/><i/></div>:visibleSets.length?<div className="set-release-grid">{visibleSets.map(set=>{
+    {loading?<div className="sets-skeleton" aria-label={id?'Memuat set Pokémon':'Loading Pokémon sets'}><i/><i/><i/></div>:loadError?<section className="sets-empty" role="status"><h2>{id?'Set Pokémon gagal dimuat':'Could not load Pokémon sets'}</h2><button type="button" onClick={()=>setReloadTick(v=>v+1)}>{id?'Coba lagi':'Try again'}</button></section>:visibleSets.length?<div className="set-release-grid">{visibleSets.map(set=>{
       const featured=(set.featuredCards??[]).map(displayCard);
       return <article className="set-release" key={set.code}>
-        <header><div><span>{set.code}</span><h3>{set.name}</h3></div><small>{set.mainSetTotal.toLocaleString(id?'id-ID':'en-US')} {id?'kartu':set.mainSetTotal===1?'card':'cards'}</small></header>
+        <header><div><span>{set.code}</span><h2>{set.name}</h2></div><small>{set.mainSetTotal.toLocaleString(id?'id-ID':'en-US')} {id?'kartu':set.mainSetTotal===1?'card':'cards'}</small></header>
         {featured.length>0&&<DepthCarousel className="set-card-carousel" label={`${set.code} ${id?'kartu unggulan':'featured cards'}`} items={featured.map(card=>({id:card.id,label:`${id?'Buka':'Open'} ${card.name}`,onSelect:()=>router.push(localize(`/pokemon/cards?set=${encodeURIComponent(card.setCode??set.code)}&number=${encodeURIComponent(card.localCardNumber??card.printingCode??card.code)}&lang=${encodeURIComponent(card.language??language)}`)),content:<CardArt card={card}/> }))}/>}
         <Link href={localize(`/pokemon/cards?set=${encodeURIComponent(set.code)}`)} className="set-all-link">{id?`Lihat semua kartu ${set.code}`:`View all ${set.code} cards`}<ArrowUpRightIcon size={15}/></Link>
       </article>;
