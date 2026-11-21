@@ -69,21 +69,33 @@ export async function fetchSocialAuthUrl({
       throw new Error('Instagram App ID not configured. Set INSTAGRAM_APP_ID or FACEBOOK_APP_ID in environment.');
     }
 
-    // Generate random state for CSRF protection
-    const state = crypto.randomUUID();
+    // Encode platform in state so the shared callback knows which Meta flow returned
+    const state = `instagram:${crypto.randomUUID()}`;
     
-    // Request specific permissions for Instagram Business Account access
+    // IMPORTANT: When using config_id, Meta IGNORES the scope parameter!
+    // The scopes MUST be configured in the Instagram Login Configuration in Meta Dashboard.
+    // Required scopes for posting:
+    // - instagram_basic (required)
+    // - instagram_content_publish (required for posting)
+    // - pages_show_list (required to see Facebook Pages)
+    // - pages_read_engagement (required to read page data)
+    // - business_management (recommended for Business accounts)
+    
+    // Try WITHOUT config_id first - this gives us more control over scopes
     const params = new URLSearchParams({
       client_id: clientId,
-      config_id: configId,
-      display: 'popup',
-      override_default_response_type: 'true',
       redirect_uri: redirectUri,
       response_type: 'code',
       state: state,
-      prompt: 'login',
+      // Explicit scopes - will be used when config_id is not present
       scope: 'instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement,business_management',
     });
+    
+    // Restore config_id: the configuration was confirmed to have the right
+    // permissions, and Facebook Login for Business apps require it.
+    if (configId) {
+      params.set('config_id', configId);
+    }
 
     return { 
       url: `https://www.facebook.com/dialog/oauth?${params.toString()}` 
@@ -99,14 +111,14 @@ export async function fetchSocialAuthUrl({
       throw new Error('Facebook App ID not configured');
     }
 
-    const state = crypto.randomUUID();
+    const state = `facebook:${crypto.randomUUID()}`;
     
     const params = new URLSearchParams({
       client_id: clientId,
       redirect_uri: redirectUri,
       response_type: 'code',
       state: state,
-      scope: 'pages_manage_posts,pages_read_engagement,public_profile',
+      scope: 'pages_manage_posts,pages_read_engagement,pages_show_list,public_profile',
     });
 
     return { 
@@ -123,7 +135,7 @@ export async function fetchSocialAuthUrl({
       throw new Error('Threads App ID not configured');
     }
 
-    const state = crypto.randomUUID();
+    const state = `threads:${crypto.randomUUID()}`;
     
     const params = new URLSearchParams({
       client_id: clientId,
@@ -212,77 +224,256 @@ export async function listConnectedAccounts(sellerId: string): Promise<Connected
   return rows.results;
 }
 
+type StoredSocialAccount = {
+  id: string;
+  platform: string;
+  platformAccountId: string;
+  username: string;
+  accessToken: string | null;
+};
+
 /**
- * Post directly to Instagram using Graph API
- * Requires INSTAGRAM_ACCESS_TOKEN to be set
+ * Post directly to Instagram using Graph API (supports single image or carousel up to 10 items)
  */
 export async function publishToInstagram({
   igUserId,
+  accessToken,
   caption,
-  imageUrl,
-  isCarouselItem = false,
+  mediaUrls = [],
 }: {
   igUserId: string;
+  accessToken?: string | null;
   caption: string;
-  imageUrl?: string;
-  isCarouselItem?: boolean;
+  mediaUrls?: string[];
 }): Promise<{ success: boolean; postId?: string; error?: string }> {
-  const accessToken = process.env.INSTAGRAM_ACCESS_TOKEN;
-
-  if (!accessToken) {
-    throw new Error('INSTAGRAM_ACCESS_TOKEN not configured');
+  const token = accessToken || process.env.INSTAGRAM_ACCESS_TOKEN;
+  if (!token) {
+    return { success: false, error: 'Missing Instagram access token for this account' };
+  }
+  if (mediaUrls.length === 0) {
+    return { success: false, error: 'Instagram requires at least 1 image URL' };
   }
 
   try {
-    // Step 1: Create container (prepare the post)
-    const containerParams = new URLSearchParams({
-      access_token: accessToken,
-      caption,
-      ...(imageUrl ? { image_url: imageUrl } : {}),
-      ...(isCarouselItem ? { is_carousel_item: 'true' } : {}),
-    });
+    let creationId: string;
 
-    const containerResponse = await fetch(
-      `https://graph.facebook.com/v21.0/${igUserId}/media?${containerParams.toString()}`,
-      { method: 'POST' }
-    );
+    if (mediaUrls.length === 1) {
+      const containerParams = new URLSearchParams({
+        access_token: token,
+        caption,
+        image_url: mediaUrls[0],
+      });
+      const res = await fetch(
+        `https://graph.facebook.com/v21.0/${igUserId}/media?${containerParams.toString()}`,
+        { method: 'POST' }
+      );
+      if (!res.ok) throw new Error(`Instagram media container failed: ${await res.text()}`);
+      creationId = ((await res.json()) as { id: string }).id;
+    } else {
+      const itemIds: string[] = [];
+      for (const url of mediaUrls.slice(0, 10)) {
+        const itemParams = new URLSearchParams({
+          access_token: token,
+          image_url: url,
+          is_carousel_item: 'true',
+        });
+        const itemRes = await fetch(
+          `https://graph.facebook.com/v21.0/${igUserId}/media?${itemParams.toString()}`,
+          { method: 'POST' }
+        );
+        if (!itemRes.ok) throw new Error(`Instagram carousel item failed: ${await itemRes.text()}`);
+        itemIds.push(((await itemRes.json()) as { id: string }).id);
+      }
 
-    if (!containerResponse.ok) {
-      const error = await containerResponse.text();
-      throw new Error(`Failed to create container: ${error}`);
+      const carouselParams = new URLSearchParams({
+        access_token: token,
+        media_type: 'CAROUSEL',
+        caption,
+        children: itemIds.join(','),
+      });
+      const carouselRes = await fetch(
+        `https://graph.facebook.com/v21.0/${igUserId}/media?${carouselParams.toString()}`,
+        { method: 'POST' }
+      );
+      if (!carouselRes.ok) throw new Error(`Instagram carousel failed: ${await carouselRes.text()}`);
+      creationId = ((await carouselRes.json()) as { id: string }).id;
     }
 
-    const containerData = (await containerResponse.json()) as { id: string };
-    const creationId = containerData.id;
+    const publishParams = new URLSearchParams({
+      access_token: token,
+      creation_id: creationId,
+    });
+    const publishRes = await fetch(
+      `https://graph.facebook.com/v21.0/${igUserId}/media_publish?${publishParams.toString()}`,
+      { method: 'POST' }
+    );
+    if (!publishRes.ok) throw new Error(`Instagram publish failed: ${await publishRes.text()}`);
+    const publishData = (await publishRes.json()) as { id: string };
 
-    // Step 2: Publish the container
+    return { success: true, postId: publishData.id };
+  } catch (error) {
+    console.error('[Instagram] Publish error:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Instagram publish failed' };
+  }
+}
+
+/**
+ * Post directly to a Facebook Page using Graph API
+ */
+export async function publishToFacebookPage({
+  pageId,
+  accessToken,
+  message,
+  mediaUrls = [],
+}: {
+  pageId: string;
+  accessToken: string | null;
+  message: string;
+  mediaUrls?: string[];
+}): Promise<{ success: boolean; postId?: string; error?: string }> {
+  if (!accessToken) {
+    return { success: false, error: 'Missing Facebook Page access token' };
+  }
+
+  try {
+    if (mediaUrls.length === 1) {
+      const params = new URLSearchParams({
+        access_token: accessToken,
+        url: mediaUrls[0],
+        caption: message,
+      });
+      const res = await fetch(`https://graph.facebook.com/v21.0/${pageId}/photos?${params.toString()}`, {
+        method: 'POST',
+      });
+      if (!res.ok) throw new Error(`Facebook photo post failed: ${await res.text()}`);
+      const data = (await res.json()) as { id?: string; post_id?: string };
+      return { success: true, postId: data.post_id || data.id };
+    }
+
+    const attachedMedia: Array<{ media_fbid: string }> = [];
+    for (const url of mediaUrls.slice(0, 10)) {
+      const uploadParams = new URLSearchParams({
+        access_token: accessToken,
+        url,
+        published: 'false',
+      });
+      const uploadRes = await fetch(
+        `https://graph.facebook.com/v21.0/${pageId}/photos?${uploadParams.toString()}`,
+        { method: 'POST' }
+      );
+      if (!uploadRes.ok) throw new Error(`Facebook photo upload failed: ${await uploadRes.text()}`);
+      const uploadData = (await uploadRes.json()) as { id: string };
+      attachedMedia.push({ media_fbid: uploadData.id });
+    }
+
+    const feedRes = await fetch(`https://graph.facebook.com/v21.0/${pageId}/feed`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        access_token: accessToken,
+        message,
+        ...(attachedMedia.length > 0 ? { attached_media: attachedMedia } : {}),
+      }),
+    });
+    if (!feedRes.ok) throw new Error(`Facebook feed post failed: ${await feedRes.text()}`);
+    const feedData = (await feedRes.json()) as { id: string };
+    return { success: true, postId: feedData.id };
+  } catch (error) {
+    console.error('[Facebook] Publish error:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Facebook publish failed' };
+  }
+}
+
+/**
+ * Post directly to Threads using Threads Graph API
+ */
+export async function publishToThreads({
+  threadsUserId,
+  accessToken,
+  text,
+  mediaUrls = [],
+}: {
+  threadsUserId: string;
+  accessToken: string | null;
+  text: string;
+  mediaUrls?: string[];
+}): Promise<{ success: boolean; postId?: string; error?: string }> {
+  if (!accessToken) {
+    return { success: false, error: 'Missing Threads access token' };
+  }
+
+  try {
+    let creationId: string;
+
+    if (mediaUrls.length === 0) {
+      const params = new URLSearchParams({
+        access_token: accessToken,
+        media_type: 'TEXT',
+        text,
+      });
+      const res = await fetch(`https://graph.threads.net/v1.0/${threadsUserId}/threads?${params.toString()}`, {
+        method: 'POST',
+      });
+      if (!res.ok) throw new Error(`Threads text container failed: ${await res.text()}`);
+      creationId = ((await res.json()) as { id: string }).id;
+    } else if (mediaUrls.length === 1) {
+      const params = new URLSearchParams({
+        access_token: accessToken,
+        media_type: 'IMAGE',
+        image_url: mediaUrls[0],
+        text,
+      });
+      const res = await fetch(`https://graph.threads.net/v1.0/${threadsUserId}/threads?${params.toString()}`, {
+        method: 'POST',
+      });
+      if (!res.ok) throw new Error(`Threads image container failed: ${await res.text()}`);
+      creationId = ((await res.json()) as { id: string }).id;
+    } else {
+      const itemIds: string[] = [];
+      for (const url of mediaUrls.slice(0, 10)) {
+        const itemParams = new URLSearchParams({
+          access_token: accessToken,
+          media_type: 'IMAGE',
+          image_url: url,
+          is_carousel_item: 'true',
+        });
+        const itemRes = await fetch(
+          `https://graph.threads.net/v1.0/${threadsUserId}/threads?${itemParams.toString()}`,
+          { method: 'POST' }
+        );
+        if (!itemRes.ok) throw new Error(`Threads carousel item failed: ${await itemRes.text()}`);
+        itemIds.push(((await itemRes.json()) as { id: string }).id);
+      }
+
+      const carouselParams = new URLSearchParams({
+        access_token: accessToken,
+        media_type: 'CAROUSEL',
+        children: itemIds.join(','),
+        text,
+      });
+      const carouselRes = await fetch(
+        `https://graph.threads.net/v1.0/${threadsUserId}/threads?${carouselParams.toString()}`,
+        { method: 'POST' }
+      );
+      if (!carouselRes.ok) throw new Error(`Threads carousel failed: ${await carouselRes.text()}`);
+      creationId = ((await carouselRes.json()) as { id: string }).id;
+    }
+
     const publishParams = new URLSearchParams({
       access_token: accessToken,
       creation_id: creationId,
     });
-
-    const publishResponse = await fetch(
-      `https://graph.facebook.com/v21.0/${igUserId}/media_publish?${publishParams.toString()}`,
+    const publishRes = await fetch(
+      `https://graph.threads.net/v1.0/${threadsUserId}/threads_publish?${publishParams.toString()}`,
       { method: 'POST' }
     );
+    if (!publishRes.ok) throw new Error(`Threads publish failed: ${await publishRes.text()}`);
+    const publishData = (await publishRes.json()) as { id: string };
 
-    if (!publishResponse.ok) {
-      const error = await publishResponse.text();
-      throw new Error(`Failed to publish: ${error}`);
-    }
-
-    const publishData = (await publishResponse.json()) as { id: string };
-
-    return {
-      success: true,
-      postId: publishData.id,
-    };
+    return { success: true, postId: publishData.id };
   } catch (error) {
-    console.error('[Instagram] Publish error:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    };
+    console.error('[Threads] Publish error:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Threads publish failed' };
   }
 }
 
@@ -304,46 +495,162 @@ export async function publishOrScheduleDrop({
   const apiKey = getPostForMeApiKey();
   const db = database();
   const logId = crypto.randomUUID();
+  const publicOrigin = process.env.VIVREPLAY_PUBLIC_URL || 'https://vivreplay.com';
+  const absoluteMediaUrls = mediaUrls.map((u) =>
+    u.startsWith('http://') || u.startsWith('https://')
+      ? u
+      : `${publicOrigin}${u.startsWith('/') ? '' : '/'}${u}`
+  );
 
-  // If PostForMe API key is not yet configured on this instance, simulate successful staging response
+  // Direct Meta Publishing when PostForMe API key is not configured
   if (!apiKey) {
-    const simulatedStatus = scheduledAt ? 'SCHEDULED' : 'PUBLISHED';
-    try {
-      await db
-        .prepare(
-          `INSERT INTO social_publish_logs (id, seller_id, listing_id, platform, status, post_id, scheduled_at, published_at, caption)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
-        )
-        .bind(
-          logId,
-          sellerId,
-          listingId ?? null,
-          'instagram',
-          simulatedStatus,
-          `sim_${Date.now()}`,
-          scheduledAt ?? null,
-          scheduledAt ? null : new Date().toISOString(),
-          text
-        )
-        .run();
-    } catch {
-      // Table may not yet be migrated
+    if (accountIds.length === 0) {
+      return {
+        success: false,
+        status: 'FAILED',
+        error: 'Please connect and select at least one social account.',
+      };
+    }
+
+    const placeholders = accountIds.map(() => '?').join(',');
+    const accountsResult = await db
+      .prepare(
+        `SELECT id, platform, platform_account_id AS platformAccountId, username, access_token AS accessToken
+         FROM seller_social_connections
+         WHERE seller_id = ? AND id IN (${placeholders})`
+      )
+      .bind(sellerId, ...accountIds)
+      .all<StoredSocialAccount>();
+
+    const selectedAccounts = accountsResult.results ?? [];
+    if (selectedAccounts.length === 0) {
+      return {
+        success: false,
+        status: 'FAILED',
+        error: 'No valid connected social accounts found.',
+      };
+    }
+
+    // If scheduled for later, store queued entry in social_publish_logs
+    if (scheduledAt) {
+      try {
+        await db
+          .prepare(
+            `INSERT INTO social_publish_logs (id, seller_id, listing_id, platform, status, post_id, scheduled_at, published_at, caption)
+             VALUES (?, ?, ?, ?, 'SCHEDULED', ?, ?, NULL, ?)`
+          )
+          .bind(
+            logId,
+            sellerId,
+            listingId ?? null,
+            selectedAccounts.map((a) => a.platform).join(','),
+            `sched_${Date.now()}`,
+            new Date(scheduledAt).toISOString(),
+            text
+          )
+          .run();
+      } catch {
+        // Ignore if table not migrated
+      }
+
+      return {
+        success: true,
+        postId: `sched_${Date.now()}`,
+        scheduledAt: new Date(scheduledAt).toISOString(),
+        status: 'SCHEDULED',
+      };
+    }
+
+    // Publish immediately to each selected Meta account
+    const errors: string[] = [];
+    const postIds: string[] = [];
+
+    for (const acc of selectedAccounts) {
+      let res: { success: boolean; postId?: string; error?: string };
+      const p = acc.platform.toLowerCase();
+
+      if (p === 'instagram') {
+        res = await publishToInstagram({
+          igUserId: acc.platformAccountId,
+          accessToken: acc.accessToken,
+          caption: text,
+          mediaUrls: absoluteMediaUrls,
+        });
+      } else if (p === 'facebook') {
+        res = await publishToFacebookPage({
+          pageId: acc.platformAccountId,
+          accessToken: acc.accessToken,
+          message: text,
+          mediaUrls: absoluteMediaUrls,
+        });
+      } else if (p === 'threads') {
+        res = await publishToThreads({
+          threadsUserId: acc.platformAccountId,
+          accessToken: acc.accessToken,
+          text,
+          mediaUrls: absoluteMediaUrls,
+        });
+      } else {
+        res = { success: false, error: `Direct publishing for ${acc.platform} is not supported yet` };
+      }
+
+      const itemLogId = crypto.randomUUID();
+      if (res.success && res.postId) {
+        postIds.push(res.postId);
+        try {
+          await db
+            .prepare(
+              `INSERT INTO social_publish_logs (id, seller_id, listing_id, platform, status, post_id, scheduled_at, published_at, caption)
+               VALUES (?, ?, ?, ?, 'PUBLISHED', ?, NULL, ?, ?)`
+            )
+            .bind(
+              itemLogId,
+              sellerId,
+              listingId ?? null,
+              acc.platform,
+              res.postId,
+              new Date().toISOString(),
+              text
+            )
+            .run();
+        } catch {
+          // Ignore migration lag
+        }
+      } else {
+        const errText = res.error || 'Publish failed';
+        errors.push(`@${acc.username} (${acc.platform}): ${errText}`);
+        try {
+          await db
+            .prepare(
+              `INSERT INTO social_publish_logs (id, seller_id, listing_id, platform, status, error_message, caption)
+               VALUES (?, ?, ?, ?, 'FAILED', ?, ?)`
+            )
+            .bind(itemLogId, sellerId, listingId ?? null, acc.platform, errText, text)
+            .run();
+        } catch {
+          // Ignore
+        }
+      }
+    }
+
+    if (postIds.length === 0) {
+      return {
+        success: false,
+        status: 'FAILED',
+        error: errors.join(' | ') || 'Failed to publish to selected accounts',
+      };
     }
 
     return {
       success: true,
-      postId: `sim_${Date.now()}`,
-      scheduledAt: scheduledAt ?? null,
-      status: simulatedStatus,
+      postId: postIds.join(','),
+      scheduledAt: null,
+      status: 'PUBLISHED',
+      ...(errors.length > 0 ? { error: `Published with warnings: ${errors.join(' | ')}` } : {}),
     };
   }
 
   try {
-    const absoluteMediaUrls = mediaUrls.map((u) => {
-      if (u.startsWith('http://') || u.startsWith('https://')) return u;
-      return `https://vivreplay.com${u.startsWith('/') ? '' : '/'}${u}`;
-    });
-
     const payload: Record<string, unknown> = {
       social_account_ids: accountIds,
       text,

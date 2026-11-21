@@ -45,17 +45,63 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  const platformPart = (state || '').split(':')[0];
+  const platform: 'instagram' | 'facebook' | 'threads' =
+    platformPart === 'facebook' || platformPart === 'threads' ? platformPart : 'instagram';
+
   try {
-    // Exchange code for access token
-    const tokenResponse = await exchangeCodeForToken(code);
-    
-    // Get user info from platform
-    const userInfo = await fetchInstagramUserInfo(tokenResponse.access_token);
+    let accountId: string;
+    let username: string;
+    let displayName: string | null = null;
+    let avatarUrl: string | null = null;
+    let accessToken: string;
+    let expiresAt: string | null = null;
+
+    if (platform === 'threads') {
+      const threadsToken = await exchangeThreadsCodeForToken(code);
+      accessToken = threadsToken.access_token;
+      expiresAt = threadsToken.expires_in
+        ? new Date(Date.now() + threadsToken.expires_in * 1000).toISOString()
+        : null;
+      const profile = await fetchThreadsProfile(accessToken);
+      accountId = profile.id;
+      username = profile.username;
+      displayName = profile.name || null;
+      avatarUrl = profile.threads_profile_picture_url || null;
+    } else {
+      // Instagram or Facebook Page via Meta Graph API
+      const tokenResponse = await exchangeCodeForToken(code);
+      const longLived = await exchangeForLongLivedFbToken(tokenResponse.access_token);
+      const userAccessToken = longLived.access_token;
+      const userExpiresIn = longLived.expires_in ?? tokenResponse.expires_in;
+
+      if (platform === 'facebook') {
+        const page = await fetchFacebookPageInfo(userAccessToken);
+        accountId = page.id;
+        username = page.name;
+        displayName = page.name;
+        avatarUrl = page.pictureUrl;
+        // Page tokens derived from a long-lived user token do not expire
+        accessToken = page.access_token;
+        expiresAt = null;
+      } else {
+        const userInfo = await fetchInstagramUserInfo(userAccessToken);
+        accountId = userInfo.id;
+        username = userInfo.username;
+        displayName = userInfo.name || null;
+        avatarUrl = userInfo.profile_picture_url || null;
+        accessToken = userAccessToken;
+        expiresAt = userExpiresIn
+          ? new Date(Date.now() + userExpiresIn * 1000).toISOString()
+          : null;
+      }
+    }
 
     // Save to database
     const db = database();
     const connectionId = crypto.randomUUID();
-    
+    const nowIso = new Date().toISOString();
+
     await db
       .prepare(
         `INSERT INTO seller_social_connections 
@@ -63,6 +109,9 @@ export async function GET(request: NextRequest) {
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(seller_id, platform, platform_account_id) 
          DO UPDATE SET 
+           username = excluded.username,
+           display_name = excluded.display_name,
+           avatar_url = excluded.avatar_url,
            access_token = excluded.access_token,
            refresh_token = excluded.refresh_token,
            expires_at = excluded.expires_at,
@@ -71,34 +120,36 @@ export async function GET(request: NextRequest) {
       .bind(
         connectionId,
         session.user.id,
-        'instagram',
-        userInfo.id,
-        userInfo.username,
-        userInfo.name || null,
-        userInfo.profile_picture_url || null,
-        tokenResponse.access_token,
-        null, // Facebook/Instagram user access token has no refresh_token
-        tokenResponse.expires_in ? new Date(Date.now() + tokenResponse.expires_in * 1000).toISOString() : null,
-        new Date().toISOString(),
-        new Date().toISOString()
+        platform,
+        accountId,
+        username,
+        displayName,
+        avatarUrl,
+        accessToken,
+        null,
+        expiresAt,
+        nowIso,
+        nowIso
       )
       .run();
+
+    const platformLabel = platform === 'facebook' ? 'Facebook Page' : platform === 'threads' ? 'Threads' : 'Instagram';
 
     // Return HTML that notifies opener and closes popup, or redirects
     return new NextResponse(
       `<!DOCTYPE html><html><body style="font-family:sans-serif;text-align:center;padding:40px;background:#fffaf0;color:#2b2319;">
-        <h3>Connected Instagram: @${userInfo.username}</h3>
+        <h3>Connected ${platformLabel}: @${username}</h3>
         <p>Closing window...</p>
         <script>
           try {
             if (window.opener) {
-              window.opener.postMessage({ type: 'vivreplay:social:connected', platform: 'instagram', username: ${JSON.stringify(userInfo.username)} }, '*');
+              window.opener.postMessage({ type: 'vivreplay:social:connected', platform: ${JSON.stringify(platform)}, username: ${JSON.stringify(username)} }, '*');
               setTimeout(() => window.close(), 600);
             } else {
-              window.location.href = '/market?social_connected=instagram';
+              window.location.href = '/market?social_connected=' + encodeURIComponent(${JSON.stringify(platform)});
             }
           } catch (e) {
-            window.location.href = '/market?social_connected=instagram';
+            window.location.href = '/market?social_connected=' + encodeURIComponent(${JSON.stringify(platform)});
           }
         </script>
       </body></html>`,
@@ -186,6 +237,24 @@ async function fetchInstagramUserInfo(accessToken: string) {
     name?: string;
   };
 
+  // Check what permissions we actually have
+  console.log('[Instagram OAuth] Checking granted permissions...');
+  const permissionsResponse = await fetch(
+    `https://graph.facebook.com/v21.0/me/permissions?access_token=${accessToken}`
+  );
+  let grantedPermissions = 'unknown';
+  if (permissionsResponse.ok) {
+    const permissionsData = (await permissionsResponse.json()) as {
+      data?: Array<{ permission: string; status: string }>;
+    };
+    grantedPermissions =
+      permissionsData.data
+        ?.filter((p) => p.status === 'granted')
+        .map((p) => p.permission)
+        .join(', ') || 'none';
+    console.log('[Instagram OAuth] Granted permissions:', grantedPermissions);
+  }
+
   // Get Instagram Business accounts connected to this user's pages
   // Include more fields for debugging
   const accountsResponse = await fetch(
@@ -213,6 +282,16 @@ async function fetchInstagramUserInfo(accessToken: string) {
 
   console.log('[Instagram OAuth] Pages data:', JSON.stringify(accountsData, null, 2));
 
+  // Alternative: Try getting Instagram Business accounts directly
+  console.log('[Instagram OAuth] Trying alternative method: /me/instagram_accounts...');
+  const igAccountsResponse = await fetch(
+    `https://graph.facebook.com/v21.0/me/instagram_accounts?access_token=${accessToken}`
+  );
+  if (igAccountsResponse.ok) {
+    const igAccountsData = await igAccountsResponse.json();
+    console.log('[Instagram OAuth] Direct IG accounts:', JSON.stringify(igAccountsData, null, 2));
+  }
+
   // Find first page with Instagram Business Account
   const pageWithIG = accountsData.data?.find((page) => page.instagram_business_account);
   
@@ -220,7 +299,10 @@ async function fetchInstagramUserInfo(accessToken: string) {
     // More helpful error message
     const hasPages = accountsData.data && accountsData.data.length > 0;
     if (!hasPages) {
-      throw new Error('No Facebook Pages found. Please create a Facebook Page and connect your Instagram Business account to it.');
+      throw new Error(
+        `No Facebook Pages found. Permissions granted to this login: ${grantedPermissions}. ` +
+          'Make sure you select your Page on the Facebook consent screen and that your Instagram Business account is linked to it.'
+      );
     } else {
       const pageNames = accountsData.data?.map(p => p.name).join(', ') || 'Unknown';
       throw new Error(`Found Facebook Pages (${pageNames}), but no Instagram Business Account is connected. Please go to your Facebook Page settings and connect your Instagram Business account.`);
@@ -254,5 +336,147 @@ async function fetchInstagramUserInfo(accessToken: string) {
     name: igAccount.name,
     profile_picture_url: igAccount.profile_picture_url,
     followers_count: igAccount.followers_count,
+  };
+}
+
+async function exchangeForLongLivedFbToken(shortLivedToken: string): Promise<{
+  access_token: string;
+  expires_in?: number;
+}> {
+  const clientId = process.env.INSTAGRAM_APP_ID || process.env.FACEBOOK_APP_ID;
+  const clientSecret = process.env.INSTAGRAM_APP_SECRET || process.env.FACEBOOK_APP_SECRET;
+  if (!clientId || !clientSecret) {
+    return { access_token: shortLivedToken };
+  }
+
+  const params = new URLSearchParams({
+    grant_type: 'fb_exchange_token',
+    client_id: clientId,
+    client_secret: clientSecret,
+    fb_exchange_token: shortLivedToken,
+  });
+
+  const res = await fetch(
+    `https://graph.facebook.com/v21.0/oauth/access_token?${params.toString()}`,
+    { method: 'GET' }
+  );
+
+  if (!res.ok) {
+    console.warn('[Social OAuth] Long-lived token exchange skipped:', await res.text());
+    return { access_token: shortLivedToken };
+  }
+
+  const data = (await res.json()) as { access_token?: string; expires_in?: number };
+  return {
+    access_token: data.access_token || shortLivedToken,
+    expires_in: data.expires_in,
+  };
+}
+
+async function fetchFacebookPageInfo(accessToken: string): Promise<{
+  id: string;
+  name: string;
+  access_token: string;
+  pictureUrl: string | null;
+}> {
+  const res = await fetch(
+    `https://graph.facebook.com/v21.0/me/accounts?fields=id,name,access_token,picture{url}&access_token=${accessToken}`
+  );
+
+  if (!res.ok) {
+    throw new Error(`Failed to fetch Facebook Pages: ${await res.text()}`);
+  }
+
+  const data = (await res.json()) as {
+    data?: Array<{
+      id: string;
+      name: string;
+      access_token: string;
+      picture?: { data?: { url?: string } };
+    }>;
+  };
+
+  const page = data.data?.[0];
+  if (!page) {
+    throw new Error('No Facebook Pages found. Make sure you select a Facebook Page during login.');
+  }
+
+  return {
+    id: page.id,
+    name: page.name,
+    access_token: page.access_token,
+    pictureUrl: page.picture?.data?.url ?? null,
+  };
+}
+
+async function exchangeThreadsCodeForToken(code: string): Promise<{
+  access_token: string;
+  expires_in?: number;
+}> {
+  const clientId = process.env.THREADS_APP_ID || process.env.INSTAGRAM_APP_ID;
+  const clientSecret = process.env.THREADS_APP_SECRET || process.env.INSTAGRAM_APP_SECRET;
+  const redirectUri =
+    process.env.THREADS_REDIRECT_URI ||
+    `${process.env.VIVREPLAY_PUBLIC_URL || 'https://vivreplay.com'}/api/market/social/callback`;
+
+  if (!clientId || !clientSecret) {
+    throw new Error('Threads app credentials not configured');
+  }
+
+  const body = new URLSearchParams({
+    client_id: clientId,
+    client_secret: clientSecret,
+    grant_type: 'authorization_code',
+    redirect_uri: redirectUri,
+    code,
+  });
+
+  const shortRes = await fetch('https://graph.threads.net/oauth/access_token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: body.toString(),
+  });
+
+  if (!shortRes.ok) {
+    throw new Error(`Threads token exchange failed: ${await shortRes.text()}`);
+  }
+
+  const shortData = (await shortRes.json()) as { access_token: string };
+
+  const longParams = new URLSearchParams({
+    grant_type: 'th_exchange_token',
+    client_secret: clientSecret,
+    access_token: shortData.access_token,
+  });
+
+  const longRes = await fetch(`https://graph.threads.net/access_token?${longParams.toString()}`);
+  if (!longRes.ok) {
+    return { access_token: shortData.access_token };
+  }
+
+  const longData = (await longRes.json()) as { access_token?: string; expires_in?: number };
+  return {
+    access_token: longData.access_token || shortData.access_token,
+    expires_in: longData.expires_in,
+  };
+}
+
+async function fetchThreadsProfile(accessToken: string): Promise<{
+  id: string;
+  username: string;
+  name?: string;
+  threads_profile_picture_url?: string;
+}> {
+  const res = await fetch(
+    `https://graph.threads.net/v1.0/me?fields=id,username,name,threads_profile_picture_url&access_token=${accessToken}`
+  );
+  if (!res.ok) {
+    throw new Error(`Failed to fetch Threads profile: ${await res.text()}`);
+  }
+  return (await res.json()) as {
+    id: string;
+    username: string;
+    name?: string;
+    threads_profile_picture_url?: string;
   };
 }
