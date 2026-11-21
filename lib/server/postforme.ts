@@ -73,9 +73,10 @@ export async function fetchSocialAuthUrl({
     };
   }
 
-  // 2) Instagram OAuth via Facebook Login (connects IG Business Account linked to a Facebook Page)
+  // 2) Instagram API with Unified Login (Facebook Login for Business with config_id)
   if (platform === 'instagram') {
     const clientId = process.env.INSTAGRAM_APP_ID || process.env.FACEBOOK_APP_ID;
+    const configId = process.env.INSTAGRAM_CONFIG_ID || '1455450343222088';
     const redirectUri = process.env.INSTAGRAM_REDIRECT_URI || 
       `${process.env.VIVREPLAY_PUBLIC_URL || 'https://vivreplay.com'}/api/market/social/callback`;
 
@@ -86,10 +87,12 @@ export async function fetchSocialAuthUrl({
     const state = `instagram:${crypto.randomUUID()}`;
     const params = new URLSearchParams({
       client_id: clientId,
+      config_id: configId,
       redirect_uri: redirectUri,
       response_type: 'code',
+      display: 'popup',
+      prompt: 'login',
       state: state,
-      scope: 'instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement,business_management',
     });
 
     return { 

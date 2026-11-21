@@ -236,7 +236,31 @@ async function exchangeCodeForToken(code: string) {
 }
 
 async function fetchInstagramUserInfo(accessToken: string) {
-  // First, get the user's Instagram Business Account ID via Facebook Pages
+  // 1) Unified Login (System User Access Token): check /me/assigned_instagram_accounts first
+  const assignedRes = await fetch(
+    `https://graph.facebook.com/v21.0/me/assigned_instagram_accounts?fields=id,username,name,profile_picture_url&access_token=${accessToken}`
+  );
+  if (assignedRes.ok) {
+    const assignedData = (await assignedRes.json()) as {
+      data?: Array<{
+        id: string;
+        username?: string;
+        name?: string;
+        profile_picture_url?: string;
+      }>;
+    };
+    const ig = assignedData.data?.[0];
+    if (ig?.id) {
+      return {
+        id: ig.id,
+        username: ig.username || 'instagram_user',
+        name: ig.name,
+        profile_picture_url: ig.profile_picture_url,
+      };
+    }
+  }
+
+  // 2) Fallback: check Facebook user and linked Pages
   const meResponse = await fetch(
     `https://graph.facebook.com/v21.0/me?fields=id,name&access_token=${accessToken}`
   );
