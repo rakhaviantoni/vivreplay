@@ -46,6 +46,7 @@ export async function GET(request: NextRequest) {
   }
 
   const platformPart = (state || '').split(':')[0];
+  const isDirectIgLogin = platformPart === 'instagram_direct';
   const platform: 'instagram' | 'facebook' | 'threads' =
     platformPart === 'facebook' || platformPart === 'threads' ? platformPart : 'instagram';
 
@@ -55,9 +56,22 @@ export async function GET(request: NextRequest) {
     let displayName: string | null = null;
     let avatarUrl: string | null = null;
     let accessToken: string;
+    let refreshTokenMarker: string | null = null;
     let expiresAt: string | null = null;
 
-    if (platform === 'threads') {
+    if (isDirectIgLogin) {
+      const igToken = await exchangeDirectInstagramCode(code);
+      accessToken = igToken.access_token;
+      refreshTokenMarker = 'ig_login';
+      expiresAt = igToken.expires_in
+        ? new Date(Date.now() + igToken.expires_in * 1000).toISOString()
+        : null;
+      const igProfile = await fetchDirectInstagramProfile(accessToken);
+      accountId = igProfile.user_id || igProfile.id;
+      username = igProfile.username;
+      displayName = igProfile.name || null;
+      avatarUrl = igProfile.profile_picture_url || null;
+    } else if (platform === 'threads') {
       const threadsToken = await exchangeThreadsCodeForToken(code);
       accessToken = threadsToken.access_token;
       expiresAt = threadsToken.expires_in
@@ -126,7 +140,7 @@ export async function GET(request: NextRequest) {
         displayName,
         avatarUrl,
         accessToken,
-        null,
+        refreshTokenMarker,
         expiresAt,
         nowIso,
         nowIso
@@ -551,5 +565,79 @@ async function fetchThreadsProfile(accessToken: string): Promise<{
     username: string;
     name?: string;
     threads_profile_picture_url?: string;
+  };
+}
+
+async function exchangeDirectInstagramCode(code: string): Promise<{
+  access_token: string;
+  expires_in?: number;
+}> {
+  const clientId = process.env.INSTAGRAM_LOGIN_APP_ID;
+  const clientSecret = process.env.INSTAGRAM_LOGIN_APP_SECRET;
+  const redirectUri =
+    process.env.INSTAGRAM_REDIRECT_URI ||
+    `${process.env.VIVREPLAY_PUBLIC_URL || 'https://vivreplay.com'}/api/market/social/callback`;
+
+  if (!clientId || !clientSecret) {
+    throw new Error('INSTAGRAM_LOGIN_APP_ID / INSTAGRAM_LOGIN_APP_SECRET not configured');
+  }
+
+  const form = new URLSearchParams({
+    client_id: clientId,
+    client_secret: clientSecret,
+    grant_type: 'authorization_code',
+    redirect_uri: redirectUri,
+    code,
+  });
+
+  const shortRes = await fetch('https://api.instagram.com/oauth/access_token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: form.toString(),
+  });
+
+  if (!shortRes.ok) {
+    throw new Error(`Instagram token exchange failed: ${await shortRes.text()}`);
+  }
+
+  const shortData = (await shortRes.json()) as { access_token: string };
+
+  const longParams = new URLSearchParams({
+    grant_type: 'ig_exchange_token',
+    client_secret: clientSecret,
+    access_token: shortData.access_token,
+  });
+
+  const longRes = await fetch(`https://graph.instagram.com/access_token?${longParams.toString()}`);
+  if (!longRes.ok) {
+    return { access_token: shortData.access_token };
+  }
+
+  const longData = (await longRes.json()) as { access_token?: string; expires_in?: number };
+  return {
+    access_token: longData.access_token || shortData.access_token,
+    expires_in: longData.expires_in,
+  };
+}
+
+async function fetchDirectInstagramProfile(accessToken: string): Promise<{
+  id: string;
+  user_id?: string;
+  username: string;
+  name?: string;
+  profile_picture_url?: string;
+}> {
+  const res = await fetch(
+    `https://graph.instagram.com/v21.0/me?fields=user_id,username,name,profile_picture_url&access_token=${accessToken}`
+  );
+  if (!res.ok) {
+    throw new Error(`Failed to fetch Instagram profile: ${await res.text()}`);
+  }
+  return (await res.json()) as {
+    id: string;
+    user_id?: string;
+    username: string;
+    name?: string;
+    profile_picture_url?: string;
   };
 }

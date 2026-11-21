@@ -45,10 +45,6 @@ export function isThreadsConfigured(): boolean {
   return !!(process.env.THREADS_APP_ID || process.env.INSTAGRAM_APP_ID);
 }
 
-export function isTwitterConfigured(): boolean {
-  return !!process.env.TWITTER_CLIENT_ID;
-}
-
 export async function fetchSocialAuthUrl({
   platform,
   redirectUrl,
@@ -56,23 +52,38 @@ export async function fetchSocialAuthUrl({
   platform: SupportedPlatform;
   redirectUrl?: string;
 }): Promise<{ url: string }> {
-  // Direct Instagram OAuth via Facebook
-  // Note: This connects Instagram BUSINESS accounts via Facebook Page
-  // Users must have Instagram Business/Creator account connected to Facebook Page
+  // 1) Direct Instagram Login (no Facebook Page required) when INSTAGRAM_LOGIN_APP_ID is configured
+  if (platform === 'instagram' && process.env.INSTAGRAM_LOGIN_APP_ID) {
+    const redirectUri =
+      process.env.INSTAGRAM_REDIRECT_URI ||
+      `${process.env.VIVREPLAY_PUBLIC_URL || 'https://vivreplay.com'}/api/market/social/callback`;
+    const state = `instagram_direct:${crypto.randomUUID()}`;
+    const params = new URLSearchParams({
+      enable_fb_login: '0',
+      force_authentication: '1',
+      client_id: process.env.INSTAGRAM_LOGIN_APP_ID,
+      redirect_uri: redirectUri,
+      response_type: 'code',
+      scope: 'instagram_business_basic,instagram_business_content_publish',
+      state,
+    });
+
+    return {
+      url: `https://www.instagram.com/oauth/authorize?${params.toString()}`,
+    };
+  }
+
+  // 2) Instagram OAuth via Facebook Login (connects IG Business Account linked to a Facebook Page)
   if (platform === 'instagram') {
     const clientId = process.env.INSTAGRAM_APP_ID || process.env.FACEBOOK_APP_ID;
     const redirectUri = process.env.INSTAGRAM_REDIRECT_URI || 
       `${process.env.VIVREPLAY_PUBLIC_URL || 'https://vivreplay.com'}/api/market/social/callback`;
 
     if (!clientId) {
-      throw new Error('Instagram App ID not configured. Set INSTAGRAM_APP_ID or FACEBOOK_APP_ID in environment.');
+      throw new Error('Instagram App ID not configured. Set INSTAGRAM_LOGIN_APP_ID or FACEBOOK_APP_ID in environment.');
     }
 
-    // Encode platform in state so the shared callback knows which Meta flow returned
     const state = `instagram:${crypto.randomUUID()}`;
-    
-    // Do NOT pass config_id here: Meta ignores the `scope` parameter whenever `config_id`
-    // is present, and config 1455450343222088 omits `pages_show_list` (causing /me/accounts to return []).
     const params = new URLSearchParams({
       client_id: clientId,
       redirect_uri: redirectUri,
@@ -86,7 +97,7 @@ export async function fetchSocialAuthUrl({
     };
   }
 
-  // Facebook OAuth (same as Instagram but different scopes)
+  // Facebook OAuth
   if (platform === 'facebook') {
     const clientId = process.env.FACEBOOK_APP_ID || process.env.INSTAGRAM_APP_ID;
     const redirectUri = `${process.env.VIVREPLAY_PUBLIC_URL || 'https://vivreplay.com'}/api/market/social/callback`;
@@ -96,7 +107,6 @@ export async function fetchSocialAuthUrl({
     }
 
     const state = `facebook:${crypto.randomUUID()}`;
-    
     const params = new URLSearchParams({
       client_id: clientId,
       redirect_uri: redirectUri,
@@ -110,7 +120,7 @@ export async function fetchSocialAuthUrl({
     };
   }
 
-  // Threads OAuth (similar to Instagram)
+  // Threads OAuth
   if (platform === 'threads') {
     const clientId = process.env.THREADS_APP_ID || process.env.INSTAGRAM_APP_ID;
     const redirectUri = `${process.env.VIVREPLAY_PUBLIC_URL || 'https://vivreplay.com'}/api/market/social/callback`;
@@ -120,7 +130,6 @@ export async function fetchSocialAuthUrl({
     }
 
     const state = `threads:${crypto.randomUUID()}`;
-    
     const params = new URLSearchParams({
       client_id: clientId,
       redirect_uri: redirectUri,
@@ -131,33 +140,6 @@ export async function fetchSocialAuthUrl({
 
     return { 
       url: `https://threads.net/oauth/authorize?${params.toString()}` 
-    };
-  }
-
-  // Twitter/X OAuth flow
-  if (platform === 'twitter' || (platform as string) === 'x') {
-    const clientId = process.env.TWITTER_CLIENT_ID;
-    
-    if (!clientId) {
-      throw new Error('Twitter OAuth not configured. Set TWITTER_CLIENT_ID in environment.');
-    }
-
-    const redirectUri = `${process.env.VIVREPLAY_PUBLIC_URL || 'https://vivreplay.com'}/api/market/social/callback`;
-    const state = crypto.randomUUID();
-    const codeChallenge = crypto.randomUUID(); // In production, use proper PKCE
-
-    const params = new URLSearchParams({
-      client_id: clientId,
-      redirect_uri: redirectUri,
-      response_type: 'code',
-      state: state,
-      code_challenge: codeChallenge,
-      code_challenge_method: 'plain',
-      scope: 'tweet.read tweet.write users.read offline.access',
-    });
-
-    return { 
-      url: `https://twitter.com/i/oauth2/authorize?${params.toString()}` 
     };
   }
 
@@ -214,6 +196,7 @@ type StoredSocialAccount = {
   platformAccountId: string;
   username: string;
   accessToken: string | null;
+  refreshToken: string | null;
 };
 
 /**
@@ -224,11 +207,13 @@ export async function publishToInstagram({
   accessToken,
   caption,
   mediaUrls = [],
+  graphHost = 'graph.facebook.com',
 }: {
   igUserId: string;
   accessToken?: string | null;
   caption: string;
   mediaUrls?: string[];
+  graphHost?: 'graph.facebook.com' | 'graph.instagram.com';
 }): Promise<{ success: boolean; postId?: string; error?: string }> {
   const token = accessToken || process.env.INSTAGRAM_ACCESS_TOKEN;
   if (!token) {
@@ -240,6 +225,7 @@ export async function publishToInstagram({
 
   try {
     let creationId: string;
+    const base = `https://${graphHost}/v21.0/${igUserId}`;
 
     if (mediaUrls.length === 1) {
       const containerParams = new URLSearchParams({
@@ -248,7 +234,7 @@ export async function publishToInstagram({
         image_url: mediaUrls[0],
       });
       const res = await fetch(
-        `https://graph.facebook.com/v21.0/${igUserId}/media?${containerParams.toString()}`,
+        `${base}/media?${containerParams.toString()}`,
         { method: 'POST' }
       );
       if (!res.ok) throw new Error(`Instagram media container failed: ${await res.text()}`);
@@ -262,7 +248,7 @@ export async function publishToInstagram({
           is_carousel_item: 'true',
         });
         const itemRes = await fetch(
-          `https://graph.facebook.com/v21.0/${igUserId}/media?${itemParams.toString()}`,
+          `${base}/media?${itemParams.toString()}`,
           { method: 'POST' }
         );
         if (!itemRes.ok) throw new Error(`Instagram carousel item failed: ${await itemRes.text()}`);
@@ -276,7 +262,7 @@ export async function publishToInstagram({
         children: itemIds.join(','),
       });
       const carouselRes = await fetch(
-        `https://graph.facebook.com/v21.0/${igUserId}/media?${carouselParams.toString()}`,
+        `${base}/media?${carouselParams.toString()}`,
         { method: 'POST' }
       );
       if (!carouselRes.ok) throw new Error(`Instagram carousel failed: ${await carouselRes.text()}`);
@@ -288,7 +274,7 @@ export async function publishToInstagram({
       creation_id: creationId,
     });
     const publishRes = await fetch(
-      `https://graph.facebook.com/v21.0/${igUserId}/media_publish?${publishParams.toString()}`,
+      `${base}/media_publish?${publishParams.toString()}`,
       { method: 'POST' }
     );
     if (!publishRes.ok) throw new Error(`Instagram publish failed: ${await publishRes.text()}`);
@@ -499,7 +485,7 @@ export async function publishOrScheduleDrop({
     const placeholders = accountIds.map(() => '?').join(',');
     const accountsResult = await db
       .prepare(
-        `SELECT id, platform, platform_account_id AS platformAccountId, username, access_token AS accessToken
+        `SELECT id, platform, platform_account_id AS platformAccountId, username, access_token AS accessToken, refresh_token AS refreshToken
          FROM seller_social_connections
          WHERE seller_id = ? AND id IN (${placeholders})`
       )
@@ -559,6 +545,7 @@ export async function publishOrScheduleDrop({
           accessToken: acc.accessToken,
           caption: text,
           mediaUrls: absoluteMediaUrls,
+          graphHost: acc.refreshToken === 'ig_login' ? 'graph.instagram.com' : 'graph.facebook.com',
         });
       } else if (p === 'facebook') {
         res = await publishToFacebookPage({

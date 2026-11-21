@@ -166,7 +166,6 @@ export function MarketSocialSyndicationDialog({
   const [availablePlatforms, setAvailablePlatforms] = useState<Record<string, boolean>>({
     instagram: true,
     facebook: false,
-    twitter: false,
     threads: false,
   });
 
@@ -181,8 +180,7 @@ export function MarketSocialSyndicationDialog({
         setAvailablePlatforms(platformsData.platforms);
       })
       .catch(() => {
-        // Default to Instagram only
-        setAvailablePlatforms({ instagram: true, facebook: false, twitter: false, threads: false });
+        setAvailablePlatforms({ instagram: true, facebook: false, threads: false });
       });
     
     // Listen for OAuth popup messages
