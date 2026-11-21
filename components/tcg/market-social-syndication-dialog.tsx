@@ -184,6 +184,52 @@ export function MarketSocialSyndicationDialog({
         // Default to Instagram only
         setAvailablePlatforms({ instagram: true, facebook: false, twitter: false, threads: false });
       });
+    
+    // Listen for OAuth popup messages
+    const handleMessage = (event: MessageEvent) => {
+      // Security: verify message origin in production
+      if (event.data?.type === 'vivreplay:social:connected') {
+        const { platform, username } = event.data;
+        console.log(`[Social] Connected ${platform}: @${username}`);
+        
+        // Show success toast
+        toast.success(
+          isId 
+            ? `✅ Tersambung ke ${platform}: @${username}`
+            : `✅ Connected to ${platform}: @${username}`
+        );
+        
+        // Refresh accounts list
+        setLoadingAccounts(true);
+        void fetch('/api/market/social/accounts')
+          .then((res) => res.json())
+          .then((data: unknown) => {
+            const accountsData = data as { accounts?: typeof accounts };
+            const list = accountsData.accounts ?? [];
+            setAccounts(list);
+            // Auto-select the newly connected account
+            const newAccount = list.find((acc) => acc.username === username);
+            if (newAccount && !selectedAccountIds.includes(newAccount.id)) {
+              setSelectedAccountIds([...selectedAccountIds, newAccount.id]);
+            }
+          })
+          .finally(() => setLoadingAccounts(false));
+      } else if (event.data?.type === 'vivreplay:social:error') {
+        const { error } = event.data;
+        console.error('[Social] OAuth error:', error);
+        toast.error(
+          isId 
+            ? `❌ Gagal menyambungkan: ${error}`
+            : `❌ Connection failed: ${error}`
+        );
+      }
+    };
+    
+    window.addEventListener('message', handleMessage);
+    
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
   }, []);
 
   const cardLink =
