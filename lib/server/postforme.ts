@@ -127,6 +127,80 @@ export async function listConnectedAccounts(sellerId: string): Promise<Connected
   return rows.results;
 }
 
+/**
+ * Post directly to Instagram using Graph API
+ * Requires INSTAGRAM_ACCESS_TOKEN to be set
+ */
+export async function publishToInstagram({
+  igUserId,
+  caption,
+  imageUrl,
+  isCarouselItem = false,
+}: {
+  igUserId: string;
+  caption: string;
+  imageUrl?: string;
+  isCarouselItem?: boolean;
+}): Promise<{ success: boolean; postId?: string; error?: string }> {
+  const accessToken = process.env.INSTAGRAM_ACCESS_TOKEN;
+
+  if (!accessToken) {
+    throw new Error('INSTAGRAM_ACCESS_TOKEN not configured');
+  }
+
+  try {
+    // Step 1: Create container (prepare the post)
+    const containerParams = new URLSearchParams({
+      access_token: accessToken,
+      caption,
+      ...(imageUrl ? { image_url: imageUrl } : {}),
+      ...(isCarouselItem ? { is_carousel_item: 'true' } : {}),
+    });
+
+    const containerResponse = await fetch(
+      `https://graph.facebook.com/v21.0/${igUserId}/media?${containerParams.toString()}`,
+      { method: 'POST' }
+    );
+
+    if (!containerResponse.ok) {
+      const error = await containerResponse.text();
+      throw new Error(`Failed to create container: ${error}`);
+    }
+
+    const containerData = (await containerResponse.json()) as { id: string };
+    const creationId = containerData.id;
+
+    // Step 2: Publish the container
+    const publishParams = new URLSearchParams({
+      access_token: accessToken,
+      creation_id: creationId,
+    });
+
+    const publishResponse = await fetch(
+      `https://graph.facebook.com/v21.0/${igUserId}/media_publish?${publishParams.toString()}`,
+      { method: 'POST' }
+    );
+
+    if (!publishResponse.ok) {
+      const error = await publishResponse.text();
+      throw new Error(`Failed to publish: ${error}`);
+    }
+
+    const publishData = (await publishResponse.json()) as { id: string };
+
+    return {
+      success: true,
+      postId: publishData.id,
+    };
+  } catch (error) {
+    console.error('[Instagram] Publish error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+}
+
 export async function publishOrScheduleDrop({
   sellerId,
   listingId,
