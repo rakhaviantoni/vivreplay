@@ -75,7 +75,7 @@ export async function fetchSocialAuthUrl({
   }
 
   // Twitter/X OAuth flow
-  if (platform === 'twitter' || platform === 'x') {
+  if (platform === 'twitter' || (platform as string) === 'x') {
     // TODO: Implement Twitter OAuth 2.0 flow
     throw new Error('Twitter/X connection not yet implemented');
   }

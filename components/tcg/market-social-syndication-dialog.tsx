@@ -424,18 +424,18 @@ export function MarketSocialSyndicationDialog({
               return (
                 <Button
                   key={s}
-                  variant={isActive ? 'default' : 'ghost'}
+                  variant={isActive ? 'default' : 'secondary'}
                   size="sm"
                   onClick={() => setStep(s)}
                   className={cn(
-                    'h-8 px-3 text-xs font-semibold gap-1.5 rounded-lg transition-colors',
-                    !isActive && 'text-muted-foreground hover:text-foreground'
+                    'market-social-step-btn button h-8 px-3 text-xs font-semibold gap-1.5 rounded-lg transition-colors',
+                    isActive ? 'is-active' : 'secondary'
                   )}
                 >
                   <span
                     className={cn(
-                      'flex size-4 items-center justify-center rounded-full text-[10px] font-bold',
-                      isActive ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-muted text-muted-foreground'
+                      'market-social-step-num flex size-4 items-center justify-center rounded-full text-[10px] font-bold',
+                      isActive && 'is-active'
                     )}
                   >
                     {i + 1}
@@ -460,40 +460,40 @@ export function MarketSocialSyndicationDialog({
                   </span>
                   <div className="flex flex-wrap items-center gap-1.5">
                     <Button
-                      variant="outline"
+                      variant="secondary"
                       size="xs"
                       onClick={() => void connectAccount('instagram')}
-                      className="gap-1 text-[11px] h-7"
+                      className="market-social-connect-btn button secondary gap-1.5 text-[11px] h-7 font-semibold"
                     >
                       <Plus size={11} weight="bold" />
                       <InstagramLogo size={13} weight="fill" className="text-[#E1306C]" />
                       <span>Instagram</span>
                     </Button>
                     <Button
-                      variant="outline"
+                      variant="secondary"
                       size="xs"
                       onClick={() => void connectAccount('twitter')}
-                      className="gap-1 text-[11px] h-7"
+                      className="market-social-connect-btn button secondary gap-1.5 text-[11px] h-7 font-semibold"
                     >
                       <Plus size={11} weight="bold" />
                       <XLogo size={12} weight="fill" />
                       <span>X / Twitter</span>
                     </Button>
                     <Button
-                      variant="outline"
+                      variant="secondary"
                       size="xs"
                       onClick={() => void connectAccount('facebook')}
-                      className="gap-1 text-[11px] h-7"
+                      className="market-social-connect-btn button secondary gap-1.5 text-[11px] h-7 font-semibold"
                     >
                       <Plus size={11} weight="bold" />
                       <FacebookLogo size={13} weight="fill" className="text-[#1877F2]" />
                       <span>Facebook</span>
                     </Button>
                     <Button
-                      variant="outline"
+                      variant="secondary"
                       size="xs"
                       onClick={() => void connectAccount('threads')}
-                      className="gap-1 text-[11px] h-7"
+                      className="market-social-connect-btn button secondary gap-1.5 text-[11px] h-7 font-semibold"
                     >
                       <Plus size={11} weight="bold" />
                       <ThreadsLogo size={12} weight="fill" />
@@ -530,10 +530,13 @@ export function MarketSocialSyndicationDialog({
                       return (
                         <Button
                           key={acc.id}
-                          variant={active ? 'default' : 'outline'}
+                          variant={active ? 'default' : 'secondary'}
                           size="sm"
                           onClick={() => toggleAccount(acc.id)}
-                          className={cn('h-8 gap-2 rounded-xl text-xs font-medium', active && 'shadow-sm')}
+                          className={cn(
+                            'market-social-account-pill button h-8 gap-2 rounded-xl text-xs font-semibold',
+                            active ? 'is-active' : 'secondary'
+                          )}
                         >
                           {getPlatformIcon(acc.platform, 14)}
                           <span>@{acc.username}</span>
@@ -558,10 +561,10 @@ export function MarketSocialSyndicationDialog({
                   </div>
 
                   <Button
-                    variant="outline"
+                    variant="secondary"
                     size="xs"
                     onClick={() => setShowAddUrlInput((v) => !v)}
-                    className="gap-1 text-[11px] h-7"
+                    className="market-social-btn-secondary button secondary gap-1.5 text-[11px] h-7 font-semibold"
                   >
                     <Plus size={11} weight="bold" />
                     <ImageIcon size={13} />
@@ -584,18 +587,18 @@ export function MarketSocialSyndicationDialog({
                       size="xs"
                       disabled={!customUrlInput.trim()}
                       onClick={handleAddCustomUrl}
-                      className="h-7 px-3 text-xs font-medium"
+                      className="button h-7 px-3 text-xs font-bold"
                     >
                       {t('Add', 'Tambah')}
                     </Button>
                     <Button
-                      variant="ghost"
+                      variant="secondary"
                       size="xs"
                       onClick={() => {
                         setShowAddUrlInput(false);
                         setCustomUrlInput('');
                       }}
-                      className="h-7 text-xs"
+                      className="button secondary h-7 text-xs font-medium"
                     >
                       {t('Cancel', 'Batal')}
                     </Button>
@@ -669,7 +672,7 @@ export function MarketSocialSyndicationDialog({
                                   e.stopPropagation();
                                   makeCover(item.url);
                                 }}
-                                className="w-full h-6 text-[10px] gap-1 px-1 bg-background/90 backdrop-blur-xs shadow-xs font-semibold"
+                                className="market-social-cover-btn button secondary w-full text-[10px] gap-1 px-1 font-bold shadow-sm"
                               >
                                 <Star size={11} weight="fill" className="text-amber-500" />
                                 <span>{t('Set Cover', 'Set Cover')}</span>
@@ -718,10 +721,13 @@ export function MarketSocialSyndicationDialog({
                     return (
                       <Button
                         key={tmpl.id}
-                        variant={isSelected ? 'default' : 'outline'}
+                        variant={isSelected ? 'default' : 'secondary'}
                         size="xs"
                         onClick={() => setSelectedTemplateId(tmpl.id)}
-                        className="h-7 text-xs font-medium gap-1"
+                        className={cn(
+                          'market-social-template-btn button h-7 text-xs font-semibold gap-1 rounded-lg',
+                          isSelected ? 'is-active' : 'secondary'
+                        )}
                       >
                         {tmpl.custom && <Star size={11} weight="fill" className="text-amber-500 shrink-0" />}
                         <span>{tmpl.name}</span>
@@ -739,13 +745,13 @@ export function MarketSocialSyndicationDialog({
                   {AI_STYLES.map(({ key, labelEN, labelID, icon }) => (
                     <Button
                       key={key}
-                      variant="outline"
+                      variant="secondary"
                       size="xs"
                       disabled={aiBusy}
                       onClick={() => void improveWithAi(key as 'consign' | 'hype' | 'minimal')}
                       className={cn(
-                        'h-7 text-xs font-medium gap-1.5',
-                        activeAiStyle === key && aiBusy && 'border-amber-500 bg-amber-500/10'
+                        'market-social-ai-btn button secondary h-7 text-xs font-semibold gap-1.5 rounded-lg',
+                        activeAiStyle === key && aiBusy && 'is-active'
                       )}
                     >
                       {activeAiStyle === key && aiBusy ? (
@@ -789,27 +795,27 @@ export function MarketSocialSyndicationDialog({
                         size="xs"
                         disabled={savingTemplate || !templateName.trim()}
                         onClick={() => void saveCustomTemplate()}
-                        className="h-7 px-3 text-xs font-medium"
+                        className="button h-7 px-3 text-xs font-bold"
                       >
                         {savingTemplate ? t('Saving…', 'Menyimpan…') : t('Save', 'Simpan')}
                       </Button>
                       <Button
-                        variant="ghost"
+                        variant="secondary"
                         size="xs"
                         onClick={() => setShowSaveTemplate(false)}
-                        className="h-7 text-xs"
+                        className="button secondary h-7 text-xs"
                       >
                         <Trash size={13} />
                       </Button>
                     </div>
                   ) : (
                     <Button
-                      variant="ghost"
+                      variant="secondary"
                       size="xs"
                       onClick={() => setShowSaveTemplate(true)}
-                      className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                      className="market-social-btn-secondary button secondary h-7 gap-1.5 text-xs font-semibold"
                     >
-                      <BookmarkSimple size={13} />
+                      <BookmarkSimple size={13} weight="bold" />
                       <span>{t('Save as template', 'Simpan sebagai template')}</span>
                     </Button>
                   )}
@@ -892,10 +898,13 @@ export function MarketSocialSyndicationDialog({
                           return (
                             <Button
                               key={preset.value}
-                              variant={isSelected ? 'default' : 'outline'}
+                              variant={isSelected ? 'default' : 'secondary'}
                               size="xs"
                               onClick={() => setScheduledTime(preset.value)}
-                              className="h-8 gap-1.5 text-xs font-medium"
+                              className={cn(
+                                'market-social-time-preset button h-8 gap-1.5 text-xs font-semibold rounded-lg',
+                                isSelected ? 'is-active' : 'secondary'
+                              )}
                             >
                               {preset.icon}
                               <span>{isId ? preset.labelID : preset.labelEN}</span>
@@ -1081,20 +1090,20 @@ export function MarketSocialSyndicationDialog({
             <div className="flex items-center gap-2">
               {step !== 'compose' && (
                 <Button
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
                   onClick={() => setStep((s) => (s === 'preview' ? 'schedule' : 'compose'))}
-                  className="h-8 text-xs font-semibold"
+                  className="market-social-footer-btn button secondary h-8 text-xs font-semibold px-3"
                 >
                   ← {t('Back', 'Kembali')}
                 </Button>
               )}
               <Button
-                variant="ghost"
+                variant="secondary"
                 size="sm"
                 onClick={() => onOpenChange(false)}
                 disabled={publishing}
-                className="h-8 text-xs"
+                className="market-social-footer-cancel button secondary h-8 text-xs font-semibold px-3 opacity-80 hover:opacity-100"
               >
                 {t('Cancel', 'Batal')}
               </Button>
@@ -1103,10 +1112,10 @@ export function MarketSocialSyndicationDialog({
             <div className="flex items-center gap-2">
               {step === 'compose' && (
                 <Button
-                  variant="secondary"
+                  variant="default"
                   size="sm"
                   onClick={() => setStep('schedule')}
-                  className="h-8 text-xs font-semibold gap-1"
+                  className="market-social-footer-next button h-8 text-xs font-bold gap-1 px-4"
                 >
                   <span>{t('Next: Schedule', 'Lanjut: Jadwal')}</span>
                   <span>→</span>
@@ -1114,10 +1123,10 @@ export function MarketSocialSyndicationDialog({
               )}
               {step === 'schedule' && (
                 <Button
-                  variant="secondary"
+                  variant="default"
                   size="sm"
                   onClick={() => setStep('preview')}
-                  className="h-8 text-xs font-semibold gap-1"
+                  className="market-social-footer-next button h-8 text-xs font-bold gap-1 px-4"
                 >
                   <span>{t('Next: Review', 'Lanjut: Tinjau')}</span>
                   <span>→</span>
@@ -1129,7 +1138,7 @@ export function MarketSocialSyndicationDialog({
                   size="sm"
                   onClick={() => void handlePublish()}
                   disabled={publishing || !canPublish}
-                  className="h-8 text-xs font-bold gap-2 px-4 shadow-sm"
+                  className="market-social-footer-submit button h-8 text-xs font-bold gap-2 px-5 shadow-sm"
                 >
                   {publishing ? (
                     <>

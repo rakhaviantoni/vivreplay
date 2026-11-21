@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
         userInfo.name || null,
         userInfo.profile_picture_url || null,
         tokenResponse.access_token,
-        tokenResponse.refresh_token || null,
+        null, // Facebook/Instagram user access token has no refresh_token
         tokenResponse.expires_in ? new Date(Date.now() + tokenResponse.expires_in * 1000).toISOString() : null,
         new Date().toISOString(),
         new Date().toISOString()
