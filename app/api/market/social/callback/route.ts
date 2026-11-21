@@ -186,9 +186,10 @@ async function fetchInstagramUserInfo(accessToken: string) {
     name?: string;
   };
 
-  // Get Instagram Business accounts connected to this user
+  // Get Instagram Business accounts connected to this user's pages
+  // Include more fields for debugging
   const accountsResponse = await fetch(
-    `https://graph.facebook.com/v21.0/me/accounts?fields=instagram_business_account&access_token=${accessToken}`
+    `https://graph.facebook.com/v21.0/me/accounts?fields=id,name,instagram_business_account{id,username,name,profile_picture_url,followers_count}&access_token=${accessToken}`
   );
 
   if (!accountsResponse.ok) {
@@ -198,36 +199,60 @@ async function fetchInstagramUserInfo(accessToken: string) {
 
   const accountsData = (await accountsResponse.json()) as {
     data?: Array<{
+      id: string;
+      name?: string;
       instagram_business_account?: {
         id: string;
+        username?: string;
+        name?: string;
+        profile_picture_url?: string;
+        followers_count?: number;
       };
     }>;
   };
 
-  const igAccount = accountsData.data?.find((page) => page.instagram_business_account);
-  if (!igAccount?.instagram_business_account) {
-    throw new Error('No Instagram Business Account found. Please convert your Instagram account to a Business account and connect it to a Facebook Page.');
+  console.log('[Instagram OAuth] Pages data:', JSON.stringify(accountsData, null, 2));
+
+  // Find first page with Instagram Business Account
+  const pageWithIG = accountsData.data?.find((page) => page.instagram_business_account);
+  
+  if (!pageWithIG?.instagram_business_account) {
+    // More helpful error message
+    const hasPages = accountsData.data && accountsData.data.length > 0;
+    if (!hasPages) {
+      throw new Error('No Facebook Pages found. Please create a Facebook Page and connect your Instagram Business account to it.');
+    } else {
+      const pageNames = accountsData.data.map(p => p.name).join(', ');
+      throw new Error(`Found Facebook Pages (${pageNames}), but no Instagram Business Account is connected. Please go to your Facebook Page settings and connect your Instagram Business account.`);
+    }
   }
 
-  const igAccountId = igAccount.instagram_business_account.id;
-
-  // Get Instagram account details
-  const igResponse = await fetch(
-    `https://graph.facebook.com/v21.0/${igAccountId}?fields=id,username,name,profile_picture_url,followers_count&access_token=${accessToken}`
-  );
-
-  if (!igResponse.ok) {
-    const error = await igResponse.text();
-    throw new Error(`Failed to fetch Instagram profile: ${error}`);
+  const igAccount = pageWithIG.instagram_business_account;
+  
+  // If username is missing from the nested query, fetch it separately
+  if (!igAccount.username) {
+    const igDetailResponse = await fetch(
+      `https://graph.facebook.com/v21.0/${igAccount.id}?fields=id,username,name,profile_picture_url,followers_count&access_token=${accessToken}`
+    );
+    
+    if (igDetailResponse.ok) {
+      const igDetailData = (await igDetailResponse.json()) as {
+        id: string;
+        username: string;
+        name?: string;
+        profile_picture_url?: string;
+        followers_count?: number;
+      };
+      
+      return igDetailData;
+    }
   }
 
-  const igData = (await igResponse.json()) as {
-    id: string;
-    username: string;
-    name?: string;
-    profile_picture_url?: string;
-    followers_count?: number;
+  return {
+    id: igAccount.id,
+    username: igAccount.username || 'instagram_user',
+    name: igAccount.name,
+    profile_picture_url: igAccount.profile_picture_url,
+    followers_count: igAccount.followers_count,
   };
-
-  return igData;
 }

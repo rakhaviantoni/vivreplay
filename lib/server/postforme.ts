@@ -72,6 +72,7 @@ export async function fetchSocialAuthUrl({
     // Generate random state for CSRF protection
     const state = crypto.randomUUID();
     
+    // Request specific permissions for Instagram Business Account access
     const params = new URLSearchParams({
       client_id: clientId,
       config_id: configId,
@@ -81,6 +82,7 @@ export async function fetchSocialAuthUrl({
       response_type: 'code',
       state: state,
       prompt: 'login',
+      scope: 'instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement,business_management',
     });
 
     return { 
