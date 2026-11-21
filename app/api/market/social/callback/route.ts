@@ -22,8 +22,20 @@ export async function GET(request: NextRequest) {
   if (error) {
     const errorMsg = errorDescription || error;
     console.error('[Social OAuth] Error:', errorMsg);
-    return NextResponse.redirect(
-      new URL(`/market?social_error=${encodeURIComponent(errorMsg)}`, request.url)
+    return new NextResponse(
+      `<!DOCTYPE html><html><body><script>
+        try {
+          if (window.opener) {
+            window.opener.postMessage({ type: 'vivreplay:social:error', error: ${JSON.stringify(errorMsg)} }, '*');
+            setTimeout(() => window.close(), 600);
+          } else {
+            window.location.href = '/market?social_error=' + encodeURIComponent(${JSON.stringify(errorMsg)});
+          }
+        } catch (e) {
+          window.location.href = '/market?social_error=' + encodeURIComponent(${JSON.stringify(errorMsg)});
+        }
+      </script><p>Connection cancelled. Closing...</p></body></html>`,
+      { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
     );
   }
 
@@ -72,13 +84,47 @@ export async function GET(request: NextRequest) {
       )
       .run();
 
-    // Redirect back to market with success
-    return NextResponse.redirect(new URL('/market?social_connected=instagram', request.url));
+    // Return HTML that notifies opener and closes popup, or redirects
+    return new NextResponse(
+      `<!DOCTYPE html><html><body style="font-family:sans-serif;text-align:center;padding:40px;background:#fffaf0;color:#2b2319;">
+        <h3>Connected Instagram: @${userInfo.username}</h3>
+        <p>Closing window...</p>
+        <script>
+          try {
+            if (window.opener) {
+              window.opener.postMessage({ type: 'vivreplay:social:connected', platform: 'instagram', username: ${JSON.stringify(userInfo.username)} }, '*');
+              setTimeout(() => window.close(), 600);
+            } else {
+              window.location.href = '/market?social_connected=instagram';
+            }
+          } catch (e) {
+            window.location.href = '/market?social_connected=instagram';
+          }
+        </script>
+      </body></html>`,
+      { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+    );
   } catch (err) {
     console.error('[Social OAuth] Failed to connect account:', err);
     const errorMsg = err instanceof Error ? err.message : 'connection_failed';
-    return NextResponse.redirect(
-      new URL(`/market?social_error=${encodeURIComponent(errorMsg)}`, request.url)
+    return new NextResponse(
+      `<!DOCTYPE html><html><body style="font-family:sans-serif;text-align:center;padding:40px;background:#fffaf0;color:#2b2319;">
+        <h3>Connection Failed</h3>
+        <p>${errorMsg}</p>
+        <script>
+          try {
+            if (window.opener) {
+              window.opener.postMessage({ type: 'vivreplay:social:error', error: ${JSON.stringify(errorMsg)} }, '*');
+              setTimeout(() => window.close(), 1500);
+            } else {
+              window.location.href = '/market?social_error=' + encodeURIComponent(${JSON.stringify(errorMsg)});
+            }
+          } catch (e) {
+            window.location.href = '/market?social_error=' + encodeURIComponent(${JSON.stringify(errorMsg)});
+          }
+        </script>
+      </body></html>`,
+      { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
     );
   }
 }

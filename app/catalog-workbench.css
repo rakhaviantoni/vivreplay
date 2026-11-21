@@ -2735,6 +2735,25 @@ html[data-theme='dark'] .market-social-step-btn:not(.is-active) .market-social-s
   color: #94a7b3 !important;
 }
 
+/* ── Connect Account Buttons (Compact Icon Action Pills) ── */
+.market-social-connect-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 2.5px !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  padding: 0 6px !important;
+  border-radius: 8px !important;
+  transition: transform 0.14s ease, border-color 0.14s ease, background 0.14s ease !important;
+}
+.market-social-connect-btn:hover {
+  transform: translateY(-1px) !important;
+}
+.market-social-connect-btn svg:first-child {
+  opacity: 0.75;
+}
+
 /* ── Active / Selected Pills (Accounts, Templates, Time Slots) ── */
 .market-social-dialog .is-active.button,
 .market-social-dialog .is-active.button.secondary {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Dialog,
   DialogContent,
@@ -16,6 +17,8 @@ import {
   BookmarkSimpleIcon as BookmarkSimple,
   CalendarBlankIcon as CalendarBlank,
   CardsIcon as Cards,
+  CaretLeftIcon as CaretLeft,
+  CaretRightIcon as CaretRight,
   CheckCircleIcon as CheckCircle,
   CheckIcon as Check,
   ClockIcon as Clock,
@@ -35,6 +38,7 @@ import {
   ThreadsLogoIcon as ThreadsLogo,
   TrashIcon as Trash,
   WarningCircleIcon as WarningCircle,
+  XIcon as X,
   XLogoIcon as XLogo,
 } from '@phosphor-icons/react';
 import { toast } from 'sonner';
@@ -137,6 +141,8 @@ export function MarketSocialSyndicationDialog({
   const [selectedMediaUrls, setSelectedMediaUrls] = useState<string[]>([]);
   const [showAddUrlInput, setShowAddUrlInput] = useState(false);
   const [customUrlInput, setCustomUrlInput] = useState('');
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   // Scheduling
   const [scheduleMode, setScheduleMode] = useState<'now' | 'schedule'>('now');
@@ -155,6 +161,10 @@ export function MarketSocialSyndicationDialog({
 
   // Step
   const [step, setStep] = useState<Step>('compose');
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const cardLink =
     typeof window !== 'undefined'
@@ -177,6 +187,60 @@ export function MarketSocialSyndicationDialog({
     link: cardLink,
     game: listing.game,
   };
+
+  const loadAccounts = async () => {
+    setLoadingAccounts(true);
+    try {
+      const res = await fetch('/api/market/social/accounts');
+      const data = (await res.json()) as { accounts?: ConnectedAccount[] };
+      const list = data.accounts ?? [];
+      setAccounts(list);
+      if (list.length > 0) {
+        setSelectedAccountIds((prev) => (prev.length > 0 ? prev : [list[0].id]));
+      }
+    } catch {
+      // ignore
+    } finally {
+      setLoadingAccounts(false);
+    }
+  };
+
+  // Listen for OAuth completion message from popup window
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'vivreplay:social:connected') {
+        const platformName = event.data.platform === 'instagram' ? 'Instagram' : 'Social';
+        const user = event.data.username ? `@${event.data.username}` : '';
+        toast.success(
+          t(
+            `Connected ${platformName} ${user} successfully!`,
+            `Akun ${platformName} ${user} berhasil terhubung!`
+          )
+        );
+        void loadAccounts();
+      } else if (event.data?.type === 'vivreplay:social:error') {
+        toast.error(event.data.error || t('Failed to connect', 'Gagal menyambungkan'));
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [isId]);
+
+  // Keyboard navigation for Lightbox
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setLightboxIndex(null);
+      if (e.key === 'ArrowLeft') {
+        setLightboxIndex((prev) => (prev !== null && prev > 0 ? prev - 1 : medias.length - 1));
+      }
+      if (e.key === 'ArrowRight') {
+        setLightboxIndex((prev) => (prev !== null && prev < medias.length - 1 ? prev + 1 : 0));
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [lightboxIndex, medias.length]);
 
   useEffect(() => {
     if (!open) return;
@@ -206,16 +270,7 @@ export function MarketSocialSyndicationDialog({
     setShowAddUrlInput(false);
     setCustomUrlInput('');
 
-    setLoadingAccounts(true);
-    void fetch('/api/market/social/accounts')
-      .then(async (res) => (await res.json()) as { accounts?: ConnectedAccount[] })
-      .then((data) => {
-        const list = data.accounts ?? [];
-        setAccounts(list);
-        if (list.length > 0) setSelectedAccountIds([list[0].id]);
-      })
-      .catch(() => {})
-      .finally(() => setLoadingAccounts(false));
+    void loadAccounts();
 
     void fetch('/api/market/social/templates')
       .then(async (res) => (await res.json()) as { templates?: SavedCaptionTemplate[] })
@@ -242,8 +297,22 @@ export function MarketSocialSyndicationDialog({
       });
       const data = (await res.json()) as { url?: string; error?: string };
       if (!res.ok || !data.url) throw new Error(data.error || 'Connection URL failed');
-      window.open(data.url, '_blank', 'width=600,height=700');
-      toast.info(t('Connect your account in the popup window.', 'Sambungkan akun di jendela yang terbuka.'));
+      
+      const w = 640;
+      const h = 740;
+      const left = typeof window !== 'undefined' ? Math.max(0, (window.screen.width - w) / 2) : 100;
+      const top = typeof window !== 'undefined' ? Math.max(0, (window.screen.height - h) / 2) : 100;
+      window.open(
+        data.url,
+        'vivreplay_oauth',
+        `width=${w},height=${h},top=${top},left=${left},status=no,resizable=yes`
+      );
+      toast.info(
+        t(
+          'Log into your Instagram/Meta account in the popup window.',
+          'Masuk ke akun Instagram/Meta Anda di jendela popup.'
+        )
+      );
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t('Failed to connect', 'Gagal menyambungkan'));
     }
@@ -458,46 +527,39 @@ export function MarketSocialSyndicationDialog({
                   <span className="market-social-section-title">
                     {t('Target Accounts', 'Akun Tujuan')}
                   </span>
-                  <div className="flex flex-wrap items-center gap-1.5">
+                  <div className="flex items-center gap-1.5">
                     <Button
                       variant="secondary"
                       size="xs"
                       onClick={() => void connectAccount('instagram')}
-                      className="market-social-connect-btn button secondary gap-1.5 text-[11px] h-7 font-semibold"
+                      className="market-social-connect-btn button secondary gap-1 text-xs h-7 px-2 font-semibold"
+                      title={t('Connect Instagram account', 'Hubungkan akun Instagram')}
+                      aria-label="Connect Instagram"
                     >
                       <Plus size={11} weight="bold" />
-                      <InstagramLogo size={13} weight="fill" className="text-[#E1306C]" />
-                      <span>Instagram</span>
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="xs"
-                      onClick={() => void connectAccount('twitter')}
-                      className="market-social-connect-btn button secondary gap-1.5 text-[11px] h-7 font-semibold"
-                    >
-                      <Plus size={11} weight="bold" />
-                      <XLogo size={12} weight="fill" />
-                      <span>X / Twitter</span>
+                      <InstagramLogo size={14} weight="fill" className="text-[#E1306C]" />
                     </Button>
                     <Button
                       variant="secondary"
                       size="xs"
                       onClick={() => void connectAccount('facebook')}
-                      className="market-social-connect-btn button secondary gap-1.5 text-[11px] h-7 font-semibold"
+                      className="market-social-connect-btn button secondary gap-1 text-xs h-7 px-2 font-semibold"
+                      title={t('Connect Facebook Page', 'Hubungkan Halaman Facebook')}
+                      aria-label="Connect Facebook"
                     >
                       <Plus size={11} weight="bold" />
-                      <FacebookLogo size={13} weight="fill" className="text-[#1877F2]" />
-                      <span>Facebook</span>
+                      <FacebookLogo size={14} weight="fill" className="text-[#1877F2]" />
                     </Button>
                     <Button
                       variant="secondary"
                       size="xs"
                       onClick={() => void connectAccount('threads')}
-                      className="market-social-connect-btn button secondary gap-1.5 text-[11px] h-7 font-semibold"
+                      className="market-social-connect-btn button secondary gap-1 text-xs h-7 px-2 font-semibold"
+                      title={t('Connect Threads profile', 'Hubungkan profil Threads')}
+                      aria-label="Connect Threads"
                     >
                       <Plus size={11} weight="bold" />
-                      <ThreadsLogo size={12} weight="fill" />
-                      <span>Threads</span>
+                      <ThreadsLogo size={13} weight="fill" />
                     </Button>
                   </div>
                 </div>
@@ -516,8 +578,8 @@ export function MarketSocialSyndicationDialog({
                       </p>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
                         {t(
-                          'Connect your Instagram, X, or Threads above to publish drops automatically.',
-                          'Sambungkan Instagram, X, atau Threads di atas untuk terbit otomatis.'
+                          'Connect your Instagram, Facebook, or Threads to syndicate drops automatically.',
+                          'Sambungkan Instagram, Facebook, atau Threads untuk menerbitkan drop otomatis.'
                         )}
                       </p>
                     </div>
@@ -624,28 +686,30 @@ export function MarketSocialSyndicationDialog({
                       const selIndex = selectedMediaUrls.indexOf(item.url);
                       const isSelected = selIndex >= 0;
                       const isCover = selIndex === 0;
+                      const mediaIndex = medias.findIndex((m) => m.url === item.url);
 
                       return (
                         <div
                           key={item.url}
                           onClick={() => toggleMediaUrl(item.url)}
+                          onDoubleClick={() => setLightboxIndex(mediaIndex)}
                           className={cn(
-                            'group relative aspect-square overflow-hidden rounded-xl border-2 cursor-pointer transition-all',
+                            'group relative aspect-[3/4] overflow-hidden rounded-xl border-2 cursor-pointer transition-all flex items-center justify-center p-1.5',
                             isSelected
-                              ? 'border-primary ring-2 ring-primary/20 shadow-sm'
-                              : 'border-transparent opacity-60 hover:opacity-90'
+                              ? 'border-primary ring-2 ring-primary/20 shadow-sm bg-muted/40'
+                              : 'border-border/60 opacity-70 hover:opacity-100 hover:border-border bg-muted/20'
                           )}
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={item.url}
                             alt={item.label ?? 'Media'}
-                            className="h-full w-full object-cover"
+                            className="h-full w-full object-contain drop-shadow-xs transition-transform duration-200 group-hover:scale-[1.02]"
                           />
 
                           {/* Selected order indicator */}
                           {isSelected && (
-                            <div className="absolute top-1.5 right-1.5">
+                            <div className="absolute top-1.5 right-1.5 z-10">
                               <span className="flex size-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground shadow">
                                 {selIndex + 1}
                               </span>
@@ -654,17 +718,31 @@ export function MarketSocialSyndicationDialog({
 
                           {/* Cover badge */}
                           {isCover && (
-                            <div className="absolute top-1.5 left-1.5">
-                              <Badge variant="secondary" className="gap-1 text-[9px] px-1.5 py-0 font-bold bg-background/90 backdrop-blur-xs">
+                            <div className="absolute top-1.5 left-1.5 z-10">
+                              <Badge variant="secondary" className="gap-1 text-[9px] px-1.5 py-0 font-bold bg-background/90 backdrop-blur-xs shadow-xs">
                                 <Star size={10} weight="fill" className="text-amber-500" />
                                 {t('Cover', 'Cover')}
                               </Badge>
                             </div>
                           )}
 
+                          {/* Lightbox / Zoom view button */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setLightboxIndex(mediaIndex);
+                            }}
+                            title={t('View full size in lightbox', 'Lihat ukuran penuh di lightbox')}
+                            aria-label={t('View full size in lightbox', 'Lihat ukuran penuh di lightbox')}
+                            className="absolute bottom-1.5 right-1.5 z-10 size-6 rounded-md bg-background/90 text-foreground flex items-center justify-center shadow-xs border border-border/80 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background"
+                          >
+                            <Eye size={12} weight="bold" />
+                          </button>
+
                           {/* Action to set as cover if selected but not cover */}
                           {isSelected && !isCover && (
-                            <div className="absolute inset-x-1 bottom-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="absolute inset-x-1.5 bottom-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10 pr-7">
                               <Button
                                 variant="secondary"
                                 size="xs"
@@ -682,7 +760,7 @@ export function MarketSocialSyndicationDialog({
 
                           {/* Kind tag if not cover */}
                           {!isCover && item.kind && (
-                            <div className="absolute bottom-1 left-1 pointer-events-none">
+                            <div className="absolute bottom-1.5 left-1.5 pointer-events-none z-10">
                               <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-md bg-black/60 text-white backdrop-blur-xs">
                                 {item.kind === 'share-graphic'
                                   ? t('Graphic', 'Grafik')
@@ -701,8 +779,8 @@ export function MarketSocialSyndicationDialog({
                 )}
                 <p className="mt-1.5 text-[11px] text-muted-foreground">
                   {t(
-                    'Tap media to toggle inclusion. Drag or set cover to prioritize first slide.',
-                    'Ketuk media untuk memilih. Jadikan cover untuk slide pertama.'
+                    'Tap media to toggle inclusion. Tap eye icon or double-click to view in lightbox.',
+                    'Ketuk media untuk memilih. Ketuk ikon mata atau klik ganda untuk melihat di lightbox.'
                   )}
                 </p>
               </section>
@@ -1162,6 +1240,146 @@ export function MarketSocialSyndicationDialog({
           </div>
         </div>
       </DialogContent>
+
+      {/* Lightbox Viewer Portal */}
+      {mounted && lightboxIndex !== null && medias[lightboxIndex] && createPortal(
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={t('Media Lightbox Viewer', 'Pratinjau Lightbox Media')}
+          className="fixed inset-0 z-[12000] flex flex-col items-center justify-between bg-black/92 backdrop-blur-md p-4 sm:p-6 select-none animate-in fade-in-0 duration-150"
+          onClick={() => setLightboxIndex(null)}
+        >
+          {/* Lightbox Header Bar */}
+          <div
+            className="w-full max-w-4xl flex items-center justify-between z-10 py-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-2.5 text-white">
+              <Badge variant="secondary" className="bg-white/15 text-white border-white/20 text-xs px-2.5 py-0.5 font-bold">
+                {medias[lightboxIndex].label || t('Listing Media', 'Media Listing')}
+              </Badge>
+              <span className="text-xs text-white/70 font-mono font-semibold">
+                {lightboxIndex + 1} / {medias.length}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {/* Set Cover Action */}
+              {selectedMediaUrls.indexOf(medias[lightboxIndex].url) !== 0 && (
+                <Button
+                  variant="secondary"
+                  size="xs"
+                  onClick={() => makeCover(medias[lightboxIndex].url)}
+                  className="market-social-cover-btn button secondary h-8 text-xs font-bold gap-1.5 px-3"
+                >
+                  <Star size={13} weight="fill" className="text-amber-500" />
+                  <span>{t('Set as Cover', 'Jadikan Cover')}</span>
+                </Button>
+              )}
+
+              {/* Selection Toggle */}
+              <Button
+                variant={selectedMediaUrls.includes(medias[lightboxIndex].url) ? 'default' : 'secondary'}
+                size="xs"
+                onClick={() => toggleMediaUrl(medias[lightboxIndex].url)}
+                className="button h-8 text-xs font-bold gap-1.5 px-3"
+              >
+                <Check size={13} weight="bold" />
+                <span>
+                  {selectedMediaUrls.includes(medias[lightboxIndex].url)
+                    ? t('Included in Drop', 'Dipilih untuk Drop')
+                    : t('Include in Drop', 'Pilih untuk Drop')}
+                </span>
+              </Button>
+
+              {/* Close Button */}
+              <button
+                type="button"
+                onClick={() => setLightboxIndex(null)}
+                className="size-8 rounded-full bg-white/10 hover:bg-white/25 text-white flex items-center justify-center transition-colors ml-2"
+                aria-label={t('Close lightbox', 'Tutup lightbox')}
+              >
+                <X size={18} weight="bold" />
+              </button>
+            </div>
+          </div>
+
+          {/* Lightbox Main Stage */}
+          <div
+            className="relative flex-1 flex items-center justify-center w-full max-w-5xl my-auto overflow-hidden py-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Previous Image Chevron */}
+            {medias.length > 1 && (
+              <button
+                type="button"
+                onClick={() => setLightboxIndex((prev) => (prev! > 0 ? prev! - 1 : medias.length - 1))}
+                className="absolute left-2 sm:left-4 z-20 size-11 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center transition-all border border-white/20 backdrop-blur-xs shadow-lg"
+                aria-label={t('Previous media', 'Media sebelumnya')}
+              >
+                <CaretLeft size={24} weight="bold" />
+              </button>
+            )}
+
+            {/* Centered High-Res Image */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={medias[lightboxIndex].url}
+              alt={medias[lightboxIndex].label ?? 'Media preview'}
+              className="max-h-[76vh] max-w-[85vw] object-contain rounded-xl shadow-2xl transition-all select-none"
+            />
+
+            {/* Next Image Chevron */}
+            {medias.length > 1 && (
+              <button
+                type="button"
+                onClick={() => setLightboxIndex((prev) => (prev! < medias.length - 1 ? prev! + 1 : 0))}
+                className="absolute right-2 sm:right-4 z-20 size-11 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center transition-all border border-white/20 backdrop-blur-xs shadow-lg"
+                aria-label={t('Next media', 'Media berikutnya')}
+              >
+                <CaretRight size={24} weight="bold" />
+              </button>
+            )}
+          </div>
+
+          {/* Lightbox Thumbnails Strip */}
+          {medias.length > 1 && (
+            <div
+              className="flex items-center gap-2 max-w-2xl overflow-x-auto py-2 px-3 rounded-2xl bg-black/60 backdrop-blur-md z-10 border border-white/10"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {medias.map((m, idx) => {
+                const isCur = idx === lightboxIndex;
+                const isSel = selectedMediaUrls.includes(m.url);
+                const isCov = selectedMediaUrls[0] === m.url;
+                return (
+                  <button
+                    key={m.url}
+                    type="button"
+                    onClick={() => setLightboxIndex(idx)}
+                    className={cn(
+                      'relative size-12 rounded-lg overflow-hidden border-2 shrink-0 transition-all p-0.5 bg-black/40',
+                      isCur
+                        ? 'border-amber-400 scale-105 ring-2 ring-amber-400/30'
+                        : isSel
+                        ? 'border-white/50 opacity-80 hover:opacity-100'
+                        : 'border-white/20 opacity-40 hover:opacity-75'
+                    )}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={m.url} alt="" className="h-full w-full object-contain" />
+                    {isCov && (
+                      <span className="absolute top-1 left-1 size-2 rounded-full bg-amber-400 shadow-xs" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>,
+        document.body
+      )}
     </Dialog>
   );
 }
