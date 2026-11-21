@@ -222,7 +222,7 @@ async function fetchInstagramUserInfo(accessToken: string) {
     if (!hasPages) {
       throw new Error('No Facebook Pages found. Please create a Facebook Page and connect your Instagram Business account to it.');
     } else {
-      const pageNames = accountsData.data.map(p => p.name).join(', ');
+      const pageNames = accountsData.data?.map(p => p.name).join(', ') || 'Unknown';
       throw new Error(`Found Facebook Pages (${pageNames}), but no Instagram Business Account is connected. Please go to your Facebook Page settings and connect your Instagram Business account.`);
     }
   }
