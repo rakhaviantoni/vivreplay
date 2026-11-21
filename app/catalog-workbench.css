@@ -2503,15 +2503,32 @@ html[data-theme='dark'] .market-social-panel {
 .market-social-input,
 .market-social-textarea {
   border: 1px solid var(--vp-line, #d8cbbe);
-  border-radius: 12px;
+  border-radius: 10px;
   background: #ffffff;
   color: var(--vp-ink, #2b2319);
+  font-size: 12px;
+}
+.market-social-input {
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 0 10px !important;
+  border-radius: 9px !important;
+}
+.market-social-input::placeholder,
+.market-social-textarea::placeholder {
+  color: #8c806f;
+  opacity: 1;
 }
 html[data-theme='dark'] .market-social-input,
 html[data-theme='dark'] .market-social-textarea {
   border-color: #274052;
   background: #091722;
   color: #edf5f1;
+}
+html[data-theme='dark'] .market-social-input::placeholder,
+html[data-theme='dark'] .market-social-textarea::placeholder {
+  color: #7e94a2;
+  opacity: 1;
 }
 
 .market-social-preview-card {
@@ -2565,6 +2582,29 @@ html[data-theme='dark'] .market-social-mode-card.is-active {
 html[data-theme='dark'] .market-social-mode-card.is-active div.p-2 {
   background: #c69232 !important;
   color: #10191d !important;
+}
+
+/* ── Shared Sizing Override (prevent globals.css min-height:40px / padding:11px 16px bloat) ── */
+.market-social-dialog .button,
+.market-social-dialog button[data-slot='button'] {
+  height: 36px !important;
+  min-height: 36px !important;
+  padding: 0 14px !important;
+  border-radius: 10px !important;
+  font-size: 12px !important;
+  line-height: 1 !important;
+}
+.market-social-dialog button[data-size='xs'],
+.market-social-dialog .market-social-panel .button,
+.market-social-dialog .market-social-template-btn,
+.market-social-dialog .market-social-ai-btn,
+.market-social-dialog .market-social-btn-secondary,
+.market-social-dialog .market-social-time-preset {
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 0 10px !important;
+  border-radius: 9px !important;
+  font-size: 12px !important;
 }
 
 /* ── Primary Buttons inside Dialog (Publish, Next, Add, Save) ── */
@@ -2788,8 +2828,11 @@ html[data-theme='dark'] .market-social-dialog .is-active.button svg:not(.text-\[
 }
 
 /* ── "Set Cover" (Make Cover) Button on Thumbnail Hover ── */
+.market-social-dialog .market-social-cover-btn,
 .market-social-cover-btn {
   height: 26px !important;
+  min-height: 26px !important;
+  padding: 0 8px !important;
   border-radius: 6px !important;
   font-size: 10px !important;
   font-weight: 750 !important;

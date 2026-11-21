@@ -497,13 +497,44 @@ export async function publishOrScheduleDrop({
       .bind(sellerId, ...accountIds)
       .all<StoredSocialAccount>();
 
-    const selectedAccounts = accountsResult.results ?? [];
+    let selectedAccounts = accountsResult.results ?? [];
     if (selectedAccounts.length === 0) {
       return {
         success: false,
         status: 'FAILED',
         error: 'No valid connected social accounts found.',
       };
+    }
+
+    // Prevent duplicate publish/schedule for the same listing & platform
+    if (listingId) {
+      try {
+        const existing = await db
+          .prepare(
+            `SELECT platform FROM social_publish_logs
+             WHERE seller_id = ? AND listing_id = ? AND status IN ('PUBLISHED', 'SCHEDULED')`
+          )
+          .bind(sellerId, listingId)
+          .all<{ platform: string }>();
+        const alreadyDone = new Set<string>();
+        for (const row of existing.results ?? []) {
+          for (const p of row.platform.split(',')) {
+            if (p.trim()) alreadyDone.add(p.trim().toLowerCase());
+          }
+        }
+        selectedAccounts = selectedAccounts.filter(
+          (a) => !alreadyDone.has(a.platform.toLowerCase())
+        );
+        if (selectedAccounts.length === 0) {
+          return {
+            success: false,
+            status: 'FAILED',
+            error: 'This listing has already been published or scheduled to the selected platform(s).',
+          };
+        }
+      } catch {
+        // Ignore if table not migrated
+      }
     }
 
     // If scheduled for later, store queued entry in social_publish_logs

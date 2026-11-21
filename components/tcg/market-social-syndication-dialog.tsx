@@ -151,6 +151,9 @@ export function MarketSocialSyndicationDialog({
 
   // Actions
   const [publishing, setPublishing] = useState(false);
+  const [publishLogs, setPublishLogs] = useState<
+    Array<{ id: string; platform: string; status: string; scheduledAt?: string | null; publishedAt?: string | null }>
+  >([]);
   const [aiBusy, setAiBusy] = useState(false);
   const [activeAiStyle, setActiveAiStyle] = useState<string | null>(null);
 
@@ -336,6 +339,13 @@ export function MarketSocialSyndicationDialog({
 
     void loadAccounts();
 
+    if (listing.id) {
+      void fetch(`/api/market/social/publish?listingId=${encodeURIComponent(listing.id)}`)
+        .then(async (res) => (await res.json()) as { logs?: typeof publishLogs })
+        .then((data) => setPublishLogs(data.logs ?? []))
+        .catch(() => setPublishLogs([]));
+    }
+
     void fetch('/api/market/social/templates')
       .then(async (res) => (await res.json()) as { templates?: SavedCaptionTemplate[] })
       .then((data) => setTemplates(data.templates ?? []))
@@ -500,7 +510,7 @@ export function MarketSocialSyndicationDialog({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           listingId: listing.id,
-          accountIds: selectedAccountIds,
+          accountIds: eligibleSelectedIds,
           text: caption,
           mediaUrls: resolvedMediaUrls,
           scheduledAt,
@@ -530,8 +540,27 @@ export function MarketSocialSyndicationDialog({
       })
     : t('Pick a date', 'Pilih tanggal');
 
+  const publishedPlatformMap = new Map<string, { status: string; scheduledAt?: string | null; publishedAt?: string | null }>();
+  for (const log of publishLogs) {
+    for (const p of log.platform.split(',')) {
+      const key = p.trim().toLowerCase();
+      if (key && !publishedPlatformMap.has(key)) {
+        publishedPlatformMap.set(key, log);
+      }
+    }
+  }
+
+  const eligibleSelectedIds = selectedAccountIds.filter((id) => {
+    const acc = accounts.find((a) => a.id === id);
+    return acc && !publishedPlatformMap.has(acc.platform.toLowerCase());
+  });
+
+  const allConnectedAlreadyPublished =
+    accounts.length > 0 && accounts.every((a) => publishedPlatformMap.has(a.platform.toLowerCase()));
+
   const canPublish =
     caption.trim().length > 0 &&
+    eligibleSelectedIds.length > 0 &&
     (scheduleMode === 'now' || (scheduleMode === 'schedule' && !!scheduledDate));
 
   const allTemplates = [
@@ -684,21 +713,33 @@ export function MarketSocialSyndicationDialog({
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {accounts.map((acc) => {
-                      const active = selectedAccountIds.includes(acc.id);
+                      const pubInfo = publishedPlatformMap.get(acc.platform.toLowerCase());
+                      const isDone = Boolean(pubInfo);
+                      const active = !isDone && selectedAccountIds.includes(acc.id);
                       return (
                         <Button
                           key={acc.id}
                           variant={active ? 'default' : 'secondary'}
                           size="sm"
-                          onClick={() => toggleAccount(acc.id)}
+                          disabled={isDone}
+                          onClick={() => !isDone && toggleAccount(acc.id)}
                           className={cn(
                             'market-social-account-pill button h-9 px-3.5 gap-2 rounded-xl text-xs font-semibold',
-                            active ? 'is-active' : 'secondary'
+                            active ? 'is-active' : 'secondary',
+                            isDone && 'opacity-75 cursor-not-allowed'
                           )}
                         >
                           {getPlatformIcon(acc.platform, 14)}
                           <span>@{acc.username}</span>
-                          {active && <Check size={12} weight="bold" />}
+                          {isDone ? (
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-bold">
+                              {pubInfo?.status === 'SCHEDULED'
+                                ? t('Scheduled', 'Terjadwal')
+                                : t('Published', 'Terbit')}
+                            </Badge>
+                          ) : (
+                            active && <Check size={12} weight="bold" />
+                          )}
                         </Button>
                       );
                     })}
@@ -1318,6 +1359,11 @@ export function MarketSocialSyndicationDialog({
                     <>
                       <ArrowsClockwise size={13} className="animate-spin" />
                       <span>{t('Publishing…', 'Menerbitkan…')}</span>
+                    </>
+                  ) : allConnectedAlreadyPublished ? (
+                    <>
+                      <CheckCircle size={14} weight="fill" />
+                      <span>{t('Already Published', 'Sudah Diterbitkan')}</span>
                     </>
                   ) : scheduleMode === 'schedule' ? (
                     <>
