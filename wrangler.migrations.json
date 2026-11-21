@@ -23,7 +23,11 @@
     "VIVREPLAY_MARKET_CHECKOUT_ENABLED": "true",
     "VIVREPLAY_MARKET_SELLER_OPERATIONS_READY": "true",
     "VIVREPLAY_MARKET_LIVE_PAYMENTS_ENABLED": "true",
-    "SUPABASE_JWKS_URL": "https://shqwaqxpxsyjafxdcibj.supabase.co/auth/v1/.well-known/jwks.json"
+    "SUPABASE_JWKS_URL": "https://shqwaqxpxsyjafxdcibj.supabase.co/auth/v1/.well-known/jwks.json",
+    "INSTAGRAM_CONFIG_ID": "1455450343222088",
+    "INSTAGRAM_REDIRECT_URI": "https://vivreplay.com/api/market/social/callback",
+    "INSTAGRAM_WEBHOOK_VERIFY_TOKEN": "vivreplay_instagram_webhook_2024",
+    "WHATSAPP_WEBHOOK_VERIFY_TOKEN": "vivreplay_whatsapp_webhook_2024"
   },
   "durable_objects": {
     "bindings": []
