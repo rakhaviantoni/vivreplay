@@ -67,13 +67,13 @@ export async function fetchSocialAuthUrl({
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`PostForMe error (${response.status}): ${errorText}`);
+    throw new Error(`Social connection error (${response.status}): ${errorText}`);
   }
 
   const data = (await response.json()) as { url?: string; data?: { url?: string } };
   const authUrl = data.url || data.data?.url;
   if (!authUrl) {
-    throw new Error('No authorization URL returned by PostForMe.');
+    throw new Error('No authorization URL returned by social service.');
   }
 
   return { url: authUrl };
@@ -147,10 +147,15 @@ export async function publishOrScheduleDrop({
   }
 
   try {
+    const absoluteMediaUrls = mediaUrls.map((u) => {
+      if (u.startsWith('http://') || u.startsWith('https://')) return u;
+      return `https://vivreplay.com${u.startsWith('/') ? '' : '/'}${u}`;
+    });
+
     const payload: Record<string, unknown> = {
       social_account_ids: accountIds,
       text,
-      ...(mediaUrls.length > 0 ? { media_urls: mediaUrls } : {}),
+      ...(absoluteMediaUrls.length > 0 ? { media_urls: absoluteMediaUrls } : {}),
       ...(scheduledAt ? { scheduled_at: new Date(scheduledAt).toISOString() } : {}),
     };
 
@@ -165,7 +170,7 @@ export async function publishOrScheduleDrop({
 
     if (!response.ok) {
       const err = await response.text();
-      throw new Error(`PostForMe error (${response.status}): ${err}`);
+      throw new Error(`Social publishing error (${response.status}): ${err}`);
     }
 
     const data = (await response.json()) as { id?: string; data?: { id?: string } };

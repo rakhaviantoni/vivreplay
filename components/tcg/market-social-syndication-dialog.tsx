@@ -8,24 +8,23 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Calendar } from '@/components/ui/calendar';
 import {
   CalendarBlankIcon as CalendarBlank,
   CheckCircleIcon as CheckCircle,
   ClockIcon as Clock,
-  ImageIcon as ImageIcon,
+  ImageIcon,
   InstagramLogoIcon as Instagram,
   LightningIcon as Lightning,
   PlusIcon as Plus,
   SparkleIcon as Sparkle,
   TrashIcon as Trash,
-  XLogoIcon as Twitter,
+  XLogoIcon as XLogo,
   CheckIcon as Check,
   WarningCircleIcon as WarningCircle,
   ArrowsClockwiseIcon as ArrowsClockwise,
-  EyeIcon as Eye,
   BookmarkSimpleIcon as Bookmark,
 } from '@phosphor-icons/react';
 import { toast } from 'sonner';
@@ -37,7 +36,6 @@ import {
   type SavedCaptionTemplate,
 } from '@/lib/social-captions';
 
-
 type ConnectedAccount = {
   id: string;
   platform: string;
@@ -46,22 +44,16 @@ type ConnectedAccount = {
   avatarUrl?: string | null;
 };
 
-const PLATFORM_COLORS: Record<string, string> = {
-  instagram: '#E1306C',
-  twitter: '#000000',
-  x: '#000000',
-};
-
 const PLATFORM_ICONS: Record<string, React.ReactNode> = {
   instagram: <Instagram size={15} weight="fill" />,
-  twitter: <Twitter size={15} weight="fill" />,
-  x: <Twitter size={15} weight="fill" />,
+  twitter: <XLogo size={15} weight="fill" />,
+  x: <XLogo size={15} weight="fill" />,
 };
 
 const AI_STYLES = [
-  { key: 'consign', labelEN: 'Consign Drop', labelID: 'Format Consign', emoji: '🃏' },
-  { key: 'hype', labelEN: 'Grail Hype', labelID: 'Gaya Grail', emoji: '🔥' },
-  { key: 'minimal', labelEN: 'Minimalist', labelID: 'Minimalis', emoji: '✦' },
+  { key: 'consign', labelEN: 'Consignment', labelID: 'Consign', emoji: '🃏' },
+  { key: 'hype', labelEN: 'Hype', labelID: 'Hype', emoji: '🔥' },
+  { key: 'minimal', labelEN: 'Minimal', labelID: 'Minimal', emoji: '✦' },
 ] as const;
 
 type Step = 'compose' | 'schedule' | 'preview';
@@ -90,36 +82,24 @@ export function MarketSocialSyndicationDialog({
   const isId = language === 'ID';
   const t = (en: string, id: string) => (isId ? id : en);
 
-  // Data
+  const [step, setStep] = useState<Step>('compose');
   const [accounts, setAccounts] = useState<ConnectedAccount[]>([]);
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
   const [loadingAccounts, setLoadingAccounts] = useState(false);
   const [templates, setTemplates] = useState<SavedCaptionTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('consign-drop');
   const [caption, setCaption] = useState('');
-
-  // Media selection
   const photos = listing.photoUrls ?? [];
   const [selectedPhotoIndexes, setSelectedPhotoIndexes] = useState<number[]>([]);
-
-  // Scheduling
   const [scheduleMode, setScheduleMode] = useState<'now' | 'schedule'>('now');
   const [scheduledDate, setScheduledDate] = useState<Date | undefined>(undefined);
   const [scheduledTime, setScheduledTime] = useState('19:00');
-  const [calendarOpen, setCalendarOpen] = useState(false);
-
-  // Actions
   const [publishing, setPublishing] = useState(false);
   const [aiBusy, setAiBusy] = useState(false);
   const [activeAiStyle, setActiveAiStyle] = useState<string | null>(null);
-
-  // Template saving
   const [templateName, setTemplateName] = useState('');
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
-
-  // Step
-  const [step, setStep] = useState<Step>('compose');
 
   const cardLink =
     typeof window !== 'undefined'
@@ -163,7 +143,7 @@ export function MarketSocialSyndicationDialog({
       .then(async (res) => (await res.json()) as { templates?: SavedCaptionTemplate[] })
       .then((data) => setTemplates(data.templates ?? []))
       .catch(() => {});
-  }, [open]);
+  }, [open, photos.length]);
 
   useEffect(() => {
     const custom = templates.find((tmpl) => tmpl.id === selectedTemplateId);
@@ -180,11 +160,11 @@ export function MarketSocialSyndicationDialog({
         body: JSON.stringify({ platform, redirectUrl: window.location.href }),
       });
       const data = (await res.json()) as { url?: string; error?: string };
-      if (!res.ok || !data.url) throw new Error(data.error || 'Connection URL failed');
+      if (!res.ok || !data.url) throw new Error(data.error || 'Connection failed');
       window.open(data.url, '_blank', 'width=600,height=700');
-      toast.info(t('Connect your account in the popup.', 'Sambungkan akun di jendela yang terbuka.'));
+      toast.info(t('Connect in the popup window', 'Sambungkan di jendela popup'));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('Failed to connect', 'Gagal menyambungkan'));
+      toast.error(err instanceof Error ? err.message : t('Connection failed', 'Gagal menyambungkan'));
     }
   };
 
@@ -198,11 +178,11 @@ export function MarketSocialSyndicationDialog({
         body: JSON.stringify({ caption, style, locale: language, cardDetails: captionVars }),
       });
       const data = (await res.json()) as { caption?: string; error?: string };
-      if (!res.ok || !data.caption) throw new Error(data.error || 'AI improvement failed');
+      if (!res.ok || !data.caption) throw new Error(data.error || 'AI failed');
       setCaption(data.caption);
-      toast.success(t('Caption updated with AI ✨', 'Caption diperbarui dengan AI ✨'));
+      toast.success(t('Caption updated', 'Caption diperbarui'));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('AI improvement failed', 'Gagal mengoptimasi'));
+      toast.error(err instanceof Error ? err.message : t('Update failed', 'Gagal memperbarui'));
     } finally {
       setAiBusy(false);
       setActiveAiStyle(null);
@@ -211,7 +191,7 @@ export function MarketSocialSyndicationDialog({
 
   const saveCustomTemplate = async () => {
     if (!templateName.trim() || !caption.trim()) {
-      toast.error(t('Provide a template name', 'Beri nama template'));
+      toast.error(t('Enter template name', 'Masukkan nama template'));
       return;
     }
     setSavingTemplate(true);
@@ -222,13 +202,13 @@ export function MarketSocialSyndicationDialog({
         body: JSON.stringify({ name: templateName.trim(), body: caption, isDefault: false }),
       });
       const data = (await res.json()) as { templates?: SavedCaptionTemplate[]; error?: string };
-      if (!res.ok || !data.templates) throw new Error(data.error || 'Failed to save');
+      if (!res.ok || !data.templates) throw new Error(data.error || 'Save failed');
       setTemplates(data.templates);
       setShowSaveTemplate(false);
       setTemplateName('');
-      toast.success(t('Template saved!', 'Template berhasil disimpan!'));
+      toast.success(t('Template saved', 'Template tersimpan'));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('Failed to save template', 'Gagal menyimpan template'));
+      toast.error(err instanceof Error ? err.message : t('Save failed', 'Gagal menyimpan'));
     } finally {
       setSavingTemplate(false);
     }
@@ -236,7 +216,7 @@ export function MarketSocialSyndicationDialog({
 
   const handlePublish = async () => {
     if (!caption.trim()) {
-      toast.error(t('Caption cannot be empty', 'Caption tidak boleh kosong'));
+      toast.error(t('Caption required', 'Caption wajib diisi'));
       return;
     }
     setPublishing(true);
@@ -263,12 +243,12 @@ export function MarketSocialSyndicationDialog({
       if (!res.ok || !data.success) throw new Error(data.error || 'Publish failed');
       toast.success(
         scheduledAt
-          ? t('Post scheduled!', 'Postingan berhasil dijadwalkan!')
-          : t('Published to socials!', 'Berhasil dipublikasikan!')
+          ? t('Post scheduled', 'Postingan dijadwalkan')
+          : t('Published', 'Dipublikasikan')
       );
       onOpenChange(false);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : t('Publishing failed', 'Gagal mempublikasikan'));
+      toast.error(err instanceof Error ? err.message : t('Publish failed', 'Gagal mempublikasikan'));
     } finally {
       setPublishing(false);
     }
@@ -290,7 +270,7 @@ export function MarketSocialSyndicationDialog({
     ? scheduledDate.toLocaleDateString(isId ? 'id-ID' : 'en-US', {
         weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
       })
-    : t('Pick a date', 'Pilih tanggal');
+    : t('Select date', 'Pilih tanggal');
 
   const canPublish =
     caption.trim().length > 0 &&
@@ -303,103 +283,79 @@ export function MarketSocialSyndicationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="market-social-dialog"
-        style={{ maxWidth: 680, padding: 0, overflow: 'hidden' }}
-      >
-        {/* ── Header ── */}
-        <div className="border-b border-border px-6 pt-5 pb-4">
+      <DialogContent className="sm:max-w-[680px] p-0 gap-0">
+        <div className="border-b px-6 pt-5 pb-4">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base font-semibold">
-              <div
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: 7,
-                  background: 'linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Instagram size={15} weight="fill" color="#fff" />
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <div className="size-7 rounded-lg bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center">
+                <Instagram size={14} weight="fill" className="text-white" />
               </div>
               PostForMe
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-semibold tracking-wide">
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-semibold">
                 BETA
               </Badge>
             </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+            <DialogDescription className="text-xs mt-1">
               {t(
-                'Publish or schedule this drop to your connected social accounts.',
-                'Terbitkan atau jadwalkan drop ini ke akun media sosial yang terhubung.'
+                'Publish or schedule this drop to connected social accounts',
+                'Publikasikan atau jadwalkan drop ke akun sosial media'
               )}
             </DialogDescription>
           </DialogHeader>
 
-          {/* Step tabs */}
           <div className="flex gap-1 mt-4">
             {(['compose', 'schedule', 'preview'] as Step[]).map((s, i) => {
               const labels = {
-                compose: t('Compose', 'Konten'),
+                compose: t('Content', 'Konten'),
                 schedule: t('Schedule', 'Jadwal'),
                 preview: t('Review', 'Tinjau'),
               };
               return (
-                <button
+                <Button
                   key={s}
-                  type="button"
+                  variant={step === s ? 'default' : 'ghost'}
+                  size="sm"
                   onClick={() => setStep(s)}
-                  className={cn(
-                    'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
-                    step === s
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                  )}
+                  className="gap-1.5"
                 >
-                  <span
-                    className={cn(
-                      'flex size-4 items-center justify-center rounded-full text-[10px] font-bold',
-                      step === s ? 'bg-primary-foreground/20' : 'bg-muted-foreground/20'
-                    )}
-                  >
+                  <span className={cn(
+                    'flex size-4 items-center justify-center rounded-full text-[10px] font-bold',
+                    step === s ? 'bg-primary-foreground/20' : 'bg-muted'
+                  )}>
                     {i + 1}
                   </span>
                   {labels[s]}
-                </button>
+                </Button>
               );
             })}
           </div>
         </div>
 
-        {/* ── Body ── */}
-        <div className="overflow-y-auto" style={{ maxHeight: 'calc(100dvh - 240px)', minHeight: 300 }}>
-          {/* ═══ COMPOSE STEP ═══ */}
+        <div className="overflow-y-auto max-h-[calc(100dvh-240px)] min-h-[300px]">
           {step === 'compose' && (
             <div className="flex flex-col gap-5 p-6">
-              {/* Accounts */}
               <section>
                 <div className="flex items-center justify-between mb-2.5">
                   <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {t('Post to', 'Kirim ke')}
+                    {t('Accounts', 'Akun')}
                   </span>
                   <div className="flex gap-1.5">
-                    <button
-                      type="button"
+                    <Button
+                      variant="outline"
+                      size="xs"
                       onClick={() => void connectAccount('instagram')}
-                      className="flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] font-medium hover:bg-muted transition-colors"
                     >
                       <Plus size={10} weight="bold" />
                       Instagram
-                    </button>
-                    <button
-                      type="button"
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="xs"
                       onClick={() => void connectAccount('twitter')}
-                      className="flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] font-medium hover:bg-muted transition-colors"
                     >
                       <Plus size={10} weight="bold" />
-                      X / Twitter
-                    </button>
+                      X
+                    </Button>
                   </div>
                 </div>
 
@@ -410,13 +366,13 @@ export function MarketSocialSyndicationDialog({
                     ))}
                   </div>
                 ) : accounts.length === 0 ? (
-                  <div className="flex items-center justify-between rounded-xl border border-dashed border-border bg-muted/30 px-4 py-3">
+                  <div className="flex items-center justify-between rounded-xl border border-dashed bg-muted/30 px-4 py-3">
                     <div>
                       <p className="text-xs font-medium">
-                        {t('No connected accounts', 'Belum ada akun terhubung')}
+                        {t('No accounts connected', 'Belum ada akun terhubung')}
                       </p>
                       <p className="text-[11px] text-muted-foreground">
-                        {t('Add Instagram or X above to get started.', 'Tambahkan Instagram atau X di atas.')}
+                        {t('Connect Instagram or X above', 'Hubungkan Instagram atau X di atas')}
                       </p>
                     </div>
                     <WarningCircle size={20} className="text-muted-foreground" />
@@ -427,67 +383,54 @@ export function MarketSocialSyndicationDialog({
                       const active = selectedAccountIds.includes(acc.id);
                       const icon = PLATFORM_ICONS[acc.platform.toLowerCase()] ?? <Instagram size={14} />;
                       return (
-                        <button
+                        <Button
                           key={acc.id}
-                          type="button"
+                          variant={active ? 'default' : 'outline'}
+                          size="sm"
                           onClick={() => toggleAccount(acc.id)}
-                          className={cn(
-                            'flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium transition-all',
-                            active
-                              ? 'border-primary bg-primary/8 text-primary shadow-sm'
-                              : 'border-border hover:border-muted-foreground/50 hover:bg-muted'
-                          )}
+                          className="gap-2"
                         >
-                          <span className={active ? 'text-primary' : 'text-muted-foreground'}>{icon}</span>
-                          <span>@{acc.username}</span>
-                          {active && <Check size={12} weight="bold" className="text-primary" />}
-                        </button>
+                          {icon}
+                          @{acc.username}
+                          {active && <Check size={12} weight="bold" />}
+                        </Button>
                       );
                     })}
                   </div>
                 )}
               </section>
 
-              {/* Template picker */}
               <section>
                 <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-2.5">
-                  {t('Caption Template', 'Template Caption')}
+                  {t('Template', 'Template')}
                 </span>
                 <div className="flex flex-wrap gap-1.5 mb-3">
                   {allTemplates.map((tmpl) => (
-                    <button
+                    <Button
                       key={tmpl.id}
-                      type="button"
+                      variant={selectedTemplateId === tmpl.id ? 'default' : 'outline'}
+                      size="xs"
                       onClick={() => setSelectedTemplateId(tmpl.id)}
-                      className={cn(
-                        'rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-all',
-                        selectedTemplateId === tmpl.id
-                          ? 'border-primary bg-primary text-primary-foreground'
-                          : 'border-border hover:border-muted-foreground/50 hover:bg-muted text-muted-foreground'
-                      )}
                     >
-                      {tmpl.custom ? '⭐ ' : ''}{tmpl.name}
-                    </button>
+                      {tmpl.custom && '⭐ '}{tmpl.name}
+                    </Button>
                   ))}
                 </div>
 
-                {/* AI polish row */}
-                <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2 mb-3">
+                <div className="flex items-center gap-2 rounded-xl border bg-muted/30 px-3 py-2 mb-3">
                   <Sparkle size={14} className="text-amber-500 shrink-0" />
                   <span className="text-[11px] font-semibold text-muted-foreground mr-1">
-                    {t('AI Polish', 'Optimalkan AI')}
+                    {t('AI Style', 'Gaya AI')}
                   </span>
                   {AI_STYLES.map(({ key, labelEN, labelID, emoji }) => (
-                    <button
+                    <Button
                       key={key}
-                      type="button"
+                      variant="ghost"
+                      size="xs"
                       disabled={aiBusy}
                       onClick={() => void improveWithAi(key as 'consign' | 'hype' | 'minimal')}
                       className={cn(
-                        'flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-medium transition-all',
-                        activeAiStyle === key && aiBusy
-                          ? 'border-amber-400 bg-amber-50 text-amber-700'
-                          : 'border-border hover:border-amber-400 hover:bg-amber-50 hover:text-amber-700 text-muted-foreground disabled:opacity-50'
+                        activeAiStyle === key && aiBusy && 'bg-amber-50 text-amber-700'
                       )}
                     >
                       {activeAiStyle === key && aiBusy ? (
@@ -496,71 +439,68 @@ export function MarketSocialSyndicationDialog({
                         <span>{emoji}</span>
                       )}
                       {isId ? labelID : labelEN}
-                    </button>
+                    </Button>
                   ))}
                 </div>
 
-                {/* Caption textarea */}
                 <div className="relative">
                   <textarea
                     value={caption}
                     onChange={(e) => setCaption(e.target.value)}
                     rows={9}
-                    className="w-full resize-none rounded-xl border border-border bg-background px-4 py-3 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring"
-                    placeholder={t('Write your caption here…', 'Tulis caption di sini…')}
+                    className="w-full resize-none rounded-xl border bg-background px-4 py-3 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-ring/50"
+                    placeholder={t('Caption text...', 'Teks caption...')}
                   />
                   <div className="absolute bottom-3 right-3 text-[10px] text-muted-foreground tabular-nums">
                     {caption.length}
                   </div>
                 </div>
 
-                {/* Save template row */}
                 <div className="mt-2 flex items-center justify-end gap-2">
                   {showSaveTemplate ? (
-                    <div className="flex flex-1 items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2">
+                    <div className="flex flex-1 items-center gap-2 rounded-xl border bg-muted/30 px-3 py-2">
                       <Bookmark size={13} className="shrink-0 text-muted-foreground" />
                       <input
                         type="text"
-                        placeholder={t('Template name…', 'Nama template…')}
+                        placeholder={t('Template name', 'Nama template')}
                         value={templateName}
                         onChange={(e) => setTemplateName(e.target.value)}
                         className="flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground"
                       />
-                      <button
-                        type="button"
+                      <Button
+                        variant="default"
+                        size="xs"
                         disabled={savingTemplate || !templateName.trim()}
                         onClick={() => void saveCustomTemplate()}
-                        className="rounded-md bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground disabled:opacity-50"
                       >
-                        {savingTemplate ? t('Saving…', 'Menyimpan…') : t('Save', 'Simpan')}
-                      </button>
-                      <button
-                        type="button"
+                        {savingTemplate ? t('Saving', 'Menyimpan') : t('Save', 'Simpan')}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
                         onClick={() => setShowSaveTemplate(false)}
-                        className="text-muted-foreground hover:text-foreground"
                       >
                         <Trash size={13} />
-                      </button>
+                      </Button>
                     </div>
                   ) : (
-                    <button
-                      type="button"
+                    <Button
+                      variant="ghost"
+                      size="xs"
                       onClick={() => setShowSaveTemplate(true)}
-                      className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
                     >
                       <Bookmark size={12} />
-                      {t('Save as template', 'Simpan sebagai template')}
-                    </button>
+                      {t('Save template', 'Simpan template')}
+                    </Button>
                   )}
                 </div>
               </section>
 
-              {/* Media / photos */}
               {photos.length > 0 && (
                 <section>
                   <div className="flex items-center justify-between mb-2.5">
                     <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      {t('Media to Post', 'Foto yang Dikirim')}
+                      {t('Media', 'Media')}
                     </span>
                     <span className="text-[11px] text-muted-foreground">
                       {selectedPhotoIndexes.length}/{photos.length} {t('selected', 'dipilih')}
@@ -577,14 +517,14 @@ export function MarketSocialSyndicationDialog({
                           className={cn(
                             'relative aspect-square overflow-hidden rounded-xl border-2 transition-all',
                             sel
-                              ? 'border-primary shadow-sm shadow-primary/20'
+                              ? 'border-primary shadow-sm'
                               : 'border-transparent opacity-50 hover:opacity-80'
                           )}
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={url}
-                            alt={`Photo ${i + 1}`}
+                            alt={`${i + 1}`}
                             className="h-full w-full object-cover"
                           />
                           {sel && (
@@ -594,36 +534,20 @@ export function MarketSocialSyndicationDialog({
                               </span>
                             </div>
                           )}
-                          {i === 0 && (
-                            <div className="absolute bottom-1 left-1">
-                              <Badge variant="secondary" className="text-[8px] px-1 py-0 leading-tight">
-                                {t('Cover', 'Cover')}
-                              </Badge>
-                            </div>
-                          )}
                         </button>
                       );
                     })}
                   </div>
-                  <p className="mt-1.5 text-[11px] text-muted-foreground">
-                    {t(
-                      'Tap to select which photos to include. Numbers show post order.',
-                      'Ketuk untuk memilih foto. Angka menunjukkan urutan posting.'
-                    )}
-                  </p>
                 </section>
               )}
 
               {photos.length === 0 && (
-                <div className="flex items-center gap-3 rounded-xl border border-dashed border-border bg-muted/20 px-4 py-3">
+                <div className="flex items-center gap-3 rounded-xl border border-dashed bg-muted/20 px-4 py-3">
                   <ImageIcon size={18} className="shrink-0 text-muted-foreground" />
                   <div>
-                    <p className="text-xs font-medium">{t('No photos attached', 'Tidak ada foto')}</p>
+                    <p className="text-xs font-medium">{t('No photos', 'Tidak ada foto')}</p>
                     <p className="text-[11px] text-muted-foreground">
-                      {t(
-                        'Listings with photos get significantly more reach on social.',
-                        'Listing dengan foto mendapat jangkauan lebih besar di media sosial.'
-                      )}
+                      {t('Photos improve reach on social media', 'Foto meningkatkan jangkauan di sosial media')}
                     </p>
                   </div>
                 </div>
@@ -631,65 +555,46 @@ export function MarketSocialSyndicationDialog({
             </div>
           )}
 
-          {/* ═══ SCHEDULE STEP ═══ */}
           {step === 'schedule' && (
             <div className="flex flex-col gap-5 p-6">
-              {/* Mode toggle */}
               <section>
                 <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-3">
-                  {t('When to Post', 'Waktu Posting')}
+                  {t('Timing', 'Waktu')}
                 </span>
                 <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
+                  <Button
+                    variant={scheduleMode === 'now' ? 'default' : 'outline'}
                     onClick={() => setScheduleMode('now')}
-                    className={cn(
-                      'flex flex-col items-center gap-2 rounded-2xl border-2 px-4 py-5 text-sm font-medium transition-all',
-                      scheduleMode === 'now'
-                        ? 'border-primary bg-primary/5 text-primary'
-                        : 'border-border hover:border-muted-foreground/50 text-muted-foreground hover:text-foreground'
-                    )}
+                    className="flex flex-col h-auto py-5 gap-2"
                   >
                     <Lightning size={22} weight={scheduleMode === 'now' ? 'fill' : 'regular'} />
-                    <span className="font-semibold">{t('Post Now', 'Terbitkan Sekarang')}</span>
-                    <span className="text-[11px] opacity-70 text-center">
-                      {t('Goes live immediately', 'Langsung tayang sekarang')}
+                    <span className="font-semibold">{t('Now', 'Sekarang')}</span>
+                    <span className="text-[11px] opacity-70">
+                      {t('Publish immediately', 'Publikasikan langsung')}
                     </span>
-                    {scheduleMode === 'now' && (
-                      <CheckCircle size={16} weight="fill" className="mt-1" />
-                    )}
-                  </button>
+                  </Button>
 
-                  <button
-                    type="button"
+                  <Button
+                    variant={scheduleMode === 'schedule' ? 'default' : 'outline'}
                     onClick={() => setScheduleMode('schedule')}
-                    className={cn(
-                      'flex flex-col items-center gap-2 rounded-2xl border-2 px-4 py-5 text-sm font-medium transition-all',
-                      scheduleMode === 'schedule'
-                        ? 'border-primary bg-primary/5 text-primary'
-                        : 'border-border hover:border-muted-foreground/50 text-muted-foreground hover:text-foreground'
-                    )}
+                    className="flex flex-col h-auto py-5 gap-2"
                   >
                     <CalendarBlank size={22} weight={scheduleMode === 'schedule' ? 'fill' : 'regular'} />
                     <span className="font-semibold">{t('Schedule', 'Jadwalkan')}</span>
-                    <span className="text-[11px] opacity-70 text-center">
-                      {t('Pick a date & time', 'Pilih tanggal & waktu')}
+                    <span className="text-[11px] opacity-70">
+                      {t('Select date & time', 'Pilih tanggal & waktu')}
                     </span>
-                    {scheduleMode === 'schedule' && (
-                      <CheckCircle size={16} weight="fill" className="mt-1" />
-                    )}
-                  </button>
+                  </Button>
                 </div>
               </section>
 
-              {/* Calendar + time picker */}
               {scheduleMode === 'schedule' && (
                 <section className="flex flex-col gap-4">
                   <div>
                     <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-2.5">
                       {t('Date', 'Tanggal')}
                     </span>
-                    <div className="rounded-2xl border border-border overflow-hidden">
+                    <div className="rounded-2xl border overflow-hidden">
                       <Calendar
                         mode="single"
                         selected={scheduledDate}
@@ -704,47 +609,37 @@ export function MarketSocialSyndicationDialog({
                     <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-2.5">
                       {t('Time', 'Waktu')}
                     </span>
-                    <div className="flex flex-col gap-2">
-                      {/* Quick presets */}
-                      <div className="flex flex-wrap gap-2">
-                        {[
-                          { label: t('Morning 9am', 'Pagi 09.00'), value: '09:00' },
-                          { label: t('Noon 12pm', 'Siang 12.00'), value: '12:00' },
-                          { label: t('Evening 7pm', 'Sore 19.00'), value: '19:00' },
-                          { label: t('Night 9pm', 'Malam 21.00'), value: '21:00' },
-                        ].map((preset) => (
-                          <button
-                            key={preset.value}
-                            type="button"
-                            onClick={() => setScheduledTime(preset.value)}
-                            className={cn(
-                              'rounded-lg border px-3 py-1.5 text-xs font-medium transition-all',
-                              scheduledTime === preset.value
-                                ? 'border-primary bg-primary text-primary-foreground'
-                                : 'border-border hover:border-primary/50 hover:bg-muted text-muted-foreground'
-                            )}
-                          >
-                            {preset.label}
-                          </button>
-                        ))}
-                      </div>
-                      {/* Custom time */}
-                      <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2">
-                        <Clock size={14} className="text-muted-foreground shrink-0" />
-                        <span className="text-xs text-muted-foreground">
-                          {t('Custom', 'Kustom')}
-                        </span>
-                        <input
-                          type="time"
-                          value={scheduledTime}
-                          onChange={(e) => setScheduledTime(e.target.value)}
-                          className="ml-auto bg-transparent text-sm font-medium outline-none"
-                        />
-                      </div>
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {[
+                        { label: t('Morning 9am', 'Pagi 09.00'), value: '09:00' },
+                        { label: t('Noon 12pm', 'Siang 12.00'), value: '12:00' },
+                        { label: t('Evening 7pm', 'Sore 19.00'), value: '19:00' },
+                        { label: t('Night 9pm', 'Malam 21.00'), value: '21:00' },
+                      ].map((preset) => (
+                        <Button
+                          key={preset.value}
+                          variant={scheduledTime === preset.value ? 'default' : 'outline'}
+                          size="xs"
+                          onClick={() => setScheduledTime(preset.value)}
+                        >
+                          {preset.label}
+                        </Button>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-2 rounded-xl border bg-muted/30 px-3 py-2">
+                      <Clock size={14} className="text-muted-foreground shrink-0" />
+                      <span className="text-xs text-muted-foreground">
+                        {t('Custom', 'Kustom')}
+                      </span>
+                      <input
+                        type="time"
+                        value={scheduledTime}
+                        onChange={(e) => setScheduledTime(e.target.value)}
+                        className="ml-auto bg-transparent text-sm font-medium outline-none"
+                      />
                     </div>
                   </div>
 
-                  {/* Summary card */}
                   {scheduledDate && (
                     <div className="flex items-center gap-3 rounded-2xl border border-primary/30 bg-primary/5 px-4 py-3">
                       <CalendarBlank size={20} className="text-primary shrink-0" />
@@ -753,40 +648,27 @@ export function MarketSocialSyndicationDialog({
                           {t('Scheduled for', 'Dijadwalkan pada')}
                         </p>
                         <p className="text-sm font-medium">
-                          {scheduledDateLabel} {t('at', 'pukul')} {scheduledTime}
+                          {scheduledDateLabel} {scheduledTime}
                         </p>
                       </div>
                     </div>
                   )}
-
-                  {/* Best time tip */}
-                  <div className="rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-4 py-3 flex gap-2.5">
-                    <Sparkle size={15} className="text-amber-500 shrink-0 mt-0.5" />
-                    <p className="text-[11px] text-amber-800 dark:text-amber-200 leading-relaxed">
-                      {t(
-                        'Best engagement times for TCG in Indonesia: 7–9 PM on weekdays, 12–2 PM on weekends.',
-                        'Waktu terbaik untuk TCG di Indonesia: 19.00–21.00 hari kerja, 12.00–14.00 akhir pekan.'
-                      )}
-                    </p>
-                  </div>
                 </section>
               )}
             </div>
           )}
 
-          {/* ═══ PREVIEW / REVIEW STEP ═══ */}
           {step === 'preview' && (
             <div className="flex flex-col gap-5 p-6">
               <section>
                 <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-3">
-                  {t('Post Summary', 'Ringkasan Postingan')}
+                  {t('Summary', 'Ringkasan')}
                 </span>
 
-                {/* Account targets */}
                 <div className="mb-4 flex flex-wrap gap-1.5">
                   {selectedAccountIds.length === 0 ? (
                     <Badge variant="outline" className="text-destructive border-destructive/40">
-                      {t('No accounts selected', 'Belum pilih akun')}
+                      {t('No accounts', 'Tidak ada akun')}
                     </Badge>
                   ) : (
                     accounts
@@ -800,32 +682,29 @@ export function MarketSocialSyndicationDialog({
                   )}
                 </div>
 
-                {/* Caption preview */}
-                <div className="rounded-2xl border border-border bg-muted/20 overflow-hidden">
-                  {/* Mock post header */}
-                  <div className="flex items-center gap-2.5 border-b border-border px-4 py-3">
+                <div className="rounded-2xl border overflow-hidden">
+                  <div className="flex items-center gap-2.5 border-b px-4 py-3">
                     <div className="size-8 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center">
                       <Instagram size={14} color="#fff" weight="fill" />
                     </div>
                     <div>
                       <p className="text-xs font-semibold leading-none">
                         {selectedAccountIds.length > 0
-                          ? `@${accounts.find((a) => selectedAccountIds.includes(a.id))?.username ?? 'yourhandle'}`
-                          : '@yourhandle'}
+                          ? `@${accounts.find((a) => selectedAccountIds.includes(a.id))?.username ?? 'account'}`
+                          : '@account'}
                       </p>
                       <p className="text-[10px] text-muted-foreground mt-0.5">
                         {scheduleMode === 'now'
                           ? t('Now', 'Sekarang')
                           : scheduledDate
                           ? `${scheduledDateLabel} · ${scheduledTime}`
-                          : t('Not scheduled yet', 'Belum dijadwalkan')}
+                          : t('Not scheduled', 'Belum dijadwalkan')}
                       </p>
                     </div>
                   </div>
 
-                  {/* Media preview strip */}
                   {selectedPhotoIndexes.length > 0 && (
-                    <div className="flex gap-1 p-2 bg-black/5">
+                    <div className="flex gap-1 p-2 bg-muted/20">
                       {selectedPhotoIndexes.slice(0, 5).map((photoIdx) => (
                         <div
                           key={photoIdx}
@@ -840,19 +719,18 @@ export function MarketSocialSyndicationDialog({
                         </div>
                       ))}
                       {selectedPhotoIndexes.length > 5 && (
-                        <div className="flex aspect-square flex-1 max-w-[80px] items-center justify-center rounded-lg bg-black/20 text-xs font-semibold text-white">
+                        <div className="flex aspect-square flex-1 max-w-[80px] items-center justify-center rounded-lg bg-muted text-xs font-semibold">
                           +{selectedPhotoIndexes.length - 5}
                         </div>
                       )}
                     </div>
                   )}
 
-                  {/* Caption text */}
                   <div className="px-4 py-3">
                     <p className="whitespace-pre-wrap text-xs leading-relaxed">
                       {caption || (
                         <span className="text-muted-foreground italic">
-                          {t('No caption yet', 'Caption belum diisi')}
+                          {t('No caption', 'Tidak ada caption')}
                         </span>
                       )}
                     </p>
@@ -860,7 +738,6 @@ export function MarketSocialSyndicationDialog({
                 </div>
               </section>
 
-              {/* Checklist */}
               <section className="flex flex-col gap-1.5">
                 {[
                   {
@@ -869,16 +746,16 @@ export function MarketSocialSyndicationDialog({
                   },
                   {
                     ok: caption.trim().length > 0,
-                    label: t('Caption written', 'Caption sudah diisi'),
+                    label: t('Caption written', 'Caption terisi'),
                   },
                   {
                     ok: selectedPhotoIndexes.length > 0,
-                    label: t('Media attached', 'Foto terlampir'),
+                    label: t('Media attached', 'Media terlampir'),
                     soft: true,
                   },
                   {
                     ok: scheduleMode === 'now' || !!scheduledDate,
-                    label: t('Schedule set', 'Jadwal ditetapkan'),
+                    label: t('Schedule set', 'Jadwal diatur'),
                   },
                 ].map(({ ok, label, soft }) => (
                   <div key={label} className="flex items-center gap-2 text-xs">
@@ -895,11 +772,6 @@ export function MarketSocialSyndicationDialog({
                     />
                     <span className={ok ? 'text-foreground' : 'text-muted-foreground'}>
                       {label}
-                      {soft && !ok && (
-                        <span className="ml-1 text-amber-500">
-                          ({t('optional but recommended', 'opsional tapi disarankan')})
-                        </span>
-                      )}
                     </span>
                   </div>
                 ))}
@@ -908,79 +780,74 @@ export function MarketSocialSyndicationDialog({
           )}
         </div>
 
-        {/* ── Footer ── */}
-        <div className="border-t border-border px-6 py-4">
+        <div className="border-t px-6 py-4">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               {step !== 'compose' && (
-                <button
-                  type="button"
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() =>
                     setStep((s) => (s === 'preview' ? 'schedule' : 'compose'))
                   }
-                  className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted transition-colors"
                 >
-                  ← {t('Back', 'Kembali')}
-                </button>
+                  {t('Back', 'Kembali')}
+                </Button>
               )}
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => onOpenChange(false)}
                 disabled={publishing}
-                className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted transition-colors text-muted-foreground"
               >
                 {t('Cancel', 'Batal')}
-              </button>
+              </Button>
             </div>
 
             <div className="flex items-center gap-2">
               {step === 'compose' && (
-                <button
-                  type="button"
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={() => setStep('schedule')}
-                  className="rounded-lg bg-muted px-4 py-1.5 text-xs font-semibold hover:bg-muted/80 transition-colors"
                 >
-                  {t('Next: Schedule', 'Lanjut: Jadwal')} →
-                </button>
+                  {t('Next', 'Lanjut')}
+                </Button>
               )}
               {step === 'schedule' && (
-                <button
-                  type="button"
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={() => setStep('preview')}
-                  className="rounded-lg bg-muted px-4 py-1.5 text-xs font-semibold hover:bg-muted/80 transition-colors"
                 >
-                  {t('Next: Review', 'Lanjut: Tinjau')} →
-                </button>
+                  {t('Next', 'Lanjut')}
+                </Button>
               )}
               {step === 'preview' && (
-                <button
-                  type="button"
+                <Button
+                  variant="default"
+                  size="sm"
                   onClick={() => void handlePublish()}
                   disabled={publishing || !canPublish}
-                  className={cn(
-                    'flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-semibold transition-all',
-                    canPublish && !publishing
-                      ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm'
-                      : 'bg-muted text-muted-foreground cursor-not-allowed'
-                  )}
+                  className="gap-2"
                 >
                   {publishing ? (
                     <>
                       <ArrowsClockwise size={14} className="animate-spin" />
-                      {t('Publishing…', 'Menerbitkan…')}
+                      {t('Publishing', 'Mempublikasikan')}
                     </>
                   ) : scheduleMode === 'schedule' ? (
                     <>
                       <CalendarBlank size={14} weight="fill" />
-                      {t('Schedule Post', 'Jadwalkan Postingan')}
+                      {t('Schedule', 'Jadwalkan')}
                     </>
                   ) : (
                     <>
                       <Lightning size={14} weight="fill" />
-                      {t('Publish Now', 'Terbitkan Sekarang')}
+                      {t('Publish', 'Publikasikan')}
                     </>
                   )}
-                </button>
+                </Button>
               )}
             </div>
           </div>

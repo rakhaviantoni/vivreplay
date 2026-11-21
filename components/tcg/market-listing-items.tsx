@@ -433,6 +433,7 @@ function marketShareCards(items:MarketListingCard[]):ShareCardItem[]{
       gradingCompany:item.gradingCompany,
       grade:item.grade,
       certification:item.certification,
+      photoUrls:item.photoUrls,
       ...(graded?{slabLabel:{
         setCode:item.card.setCode,
         language:item.language||item.card.language,

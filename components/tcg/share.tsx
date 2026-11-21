@@ -37,6 +37,7 @@ export type ShareCardItem = {
   certification?: string;
   subgrades?: Record<string,string|number>;
   slabLabel?: {setCode?:string;language?:string;number?:string;rarity?:string;labelStyle?:string};
+  photoUrls?: string[];
 };
 
 export type ShareVaultSetProgress={name:string;ownedCount:number;totalCards:number;percentage:number;mainSetOwned:number;mainSetTotal:number;parallelsOwned:number;parallelsTotal:number};
@@ -1249,7 +1250,7 @@ export function ShareButton({
                   }}
                 >
                   <InstagramLogo size={18} weight="fill" />
-                  <span>{language === 'ID' ? 'Auto-Publish (PostForMe)' : 'Auto-Publish (PostForMe)'}</span>
+                  <span>{language === 'ID' ? 'Terbitkan ke Media Sosial' : 'Publish to Social Media'}</span>
                 </button>
               )}
             </div>
@@ -1279,6 +1280,33 @@ export function ShareButton({
             city: listingInfo?.city,
             condition: cardList[0]?.condition,
             game: cardList[0]?.card.gameSlug,
+            availableMedias: [
+              ...(imagePreview
+                ? [
+                    {
+                      url: imagePreview,
+                      label: language === 'ID' ? 'Grafik Share VivrePlay' : 'VivrePlay Share Graphic',
+                      kind: 'share-graphic' as const,
+                    },
+                  ]
+                : []),
+              ...cardList.flatMap((item, itemIdx) => [
+                ...(item.photoUrls ?? []).map((photoUrl, pIdx) => ({
+                  url: photoUrl,
+                  label: language === 'ID' ? `Foto Asli ${itemIdx + 1}.${pIdx + 1}` : `Real Photo ${itemIdx + 1}.${pIdx + 1}`,
+                  kind: 'seller-photo' as const,
+                })),
+                ...(cardImageUrl(item.card)
+                  ? [
+                      {
+                        url: cardImageUrl(item.card)!,
+                        label: language === 'ID' ? `Artwork Resmi ${item.card.name}` : `Official Art ${item.card.name}`,
+                        kind: 'card-art' as const,
+                      },
+                    ]
+                  : []),
+              ]),
+            ],
           }}
           language={language}
         />
