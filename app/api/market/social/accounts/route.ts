@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
 import { database } from '@/lib/server/database';
 import { listConnectedAccounts } from '@/lib/server/postforme';
+import { user } from '@/lib/server/store';
 
-export async function GET(request: NextRequest) {
-  const session = await auth.api.getSession({ headers: request.headers });
-  if (!session?.user) {
+export async function GET() {
+  const profile = await user().catch(() => null);
+  if (!profile) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
-    const accounts = await listConnectedAccounts(session.user.id);
+    const accounts = await listConnectedAccounts(profile.id);
     return NextResponse.json({ accounts });
   } catch (error) {
     return NextResponse.json(
@@ -21,8 +21,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const session = await auth.api.getSession({ headers: request.headers });
-  if (!session?.user) {
+  const profile = await user().catch(() => null);
+  if (!profile) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
       )
       .bind(
         id,
-        session.user.id,
+        profile.id,
         body.platform.toLowerCase(),
         body.platformAccountId,
         body.username,
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       )
       .run();
 
-    const accounts = await listConnectedAccounts(session.user.id);
+    const accounts = await listConnectedAccounts(profile.id);
     return NextResponse.json({ success: true, accounts });
   } catch (error) {
     return NextResponse.json(
@@ -74,8 +74,8 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const session = await auth.api.getSession({ headers: request.headers });
-  if (!session?.user) {
+  const profile = await user().catch(() => null);
+  if (!profile) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -90,10 +90,10 @@ export async function DELETE(request: NextRequest) {
   try {
     await db
       .prepare(`DELETE FROM seller_social_connections WHERE id = ? AND seller_id = ?`)
-      .bind(connectionId, session.user.id)
+      .bind(connectionId, profile.id)
       .run();
 
-    const accounts = await listConnectedAccounts(session.user.id);
+    const accounts = await listConnectedAccounts(profile.id);
     return NextResponse.json({ success: true, accounts });
   } catch (error) {
     return NextResponse.json(

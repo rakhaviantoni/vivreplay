@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
 import { database } from '@/lib/server/database';
+import { user } from '@/lib/server/store';
 import { DEFAULT_CAPTION_TEMPLATES, type SavedCaptionTemplate } from '@/lib/social-captions';
 
-export async function GET(request: NextRequest) {
-  const session = await auth.api.getSession({ headers: request.headers });
-  if (!session?.user) {
+export async function GET() {
+  const profile = await user().catch(() => null);
+  if (!profile) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
          WHERE seller_id = ?
          ORDER BY is_default DESC, created_at DESC`
       )
-      .bind(session.user.id)
+      .bind(profile.id)
       .all<SavedCaptionTemplate>();
 
     return NextResponse.json({
@@ -35,8 +35,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const session = await auth.api.getSession({ headers: request.headers });
-  if (!session?.user) {
+  const profile = await user().catch(() => null);
+  if (!profile) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     if (body.isDefault) {
       await db
         .prepare(`UPDATE seller_caption_templates SET is_default = 0 WHERE seller_id = ?`)
-        .bind(session.user.id)
+        .bind(profile.id)
         .run();
     }
 
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
         `INSERT INTO seller_caption_templates (id, seller_id, name, body, is_default)
          VALUES (?, ?, ?, ?, ?)`
       )
-      .bind(id, session.user.id, body.name.trim(), body.body.trim(), body.isDefault ? 1 : 0)
+      .bind(id, profile.id, body.name.trim(), body.body.trim(), body.isDefault ? 1 : 0)
       .run();
 
     const rows = await db
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
          WHERE seller_id = ?
          ORDER BY is_default DESC, created_at DESC`
       )
-      .bind(session.user.id)
+      .bind(profile.id)
       .all<SavedCaptionTemplate>();
 
     return NextResponse.json({ success: true, templates: rows.results });
@@ -89,8 +89,8 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
-  const session = await auth.api.getSession({ headers: request.headers });
-  if (!session?.user) {
+  const profile = await user().catch(() => null);
+  if (!profile) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -105,7 +105,7 @@ export async function DELETE(request: NextRequest) {
   try {
     await db
       .prepare(`DELETE FROM seller_caption_templates WHERE id = ? AND seller_id = ?`)
-      .bind(templateId, session.user.id)
+      .bind(templateId, profile.id)
       .run();
 
     const rows = await db
@@ -115,7 +115,7 @@ export async function DELETE(request: NextRequest) {
          WHERE seller_id = ?
          ORDER BY is_default DESC, created_at DESC`
       )
-      .bind(session.user.id)
+      .bind(profile.id)
       .all<SavedCaptionTemplate>();
 
     return NextResponse.json({ success: true, templates: rows.results });

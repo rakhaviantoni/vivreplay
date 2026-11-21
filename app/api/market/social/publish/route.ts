@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
 import { publishOrScheduleDrop } from '@/lib/server/postforme';
+import { user } from '@/lib/server/store';
 
 export async function POST(request: NextRequest) {
-  const session = await auth.api.getSession({ headers: request.headers });
-  if (!session?.user) {
+  const profile = await user().catch(() => null);
+  if (!profile) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const result = await publishOrScheduleDrop({
-      sellerId: session.user.id,
+      sellerId: profile.id,
       listingId: body.listingId,
       accountIds: body.accountIds ?? [],
       text: body.text.trim(),

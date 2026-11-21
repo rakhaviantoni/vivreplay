@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
 import { database } from '@/lib/server/database';
+import { user } from '@/lib/server/store';
 
 /**
- * OAuth callback handler for Instagram (via Facebook/Meta)
+ * OAuth callback handler for Meta (Instagram, Facebook, Threads)
  * This endpoint receives the auth code after user grants permissions
  */
 export async function GET(request: NextRequest) {
-  const session = await auth.api.getSession({ headers: request.headers });
-  if (!session?.user) {
+  const profile = await user().catch(() => null);
+  if (!profile) {
     return NextResponse.redirect(new URL('/auth/signin?error=unauthorized', request.url));
   }
 
@@ -133,7 +133,7 @@ export async function GET(request: NextRequest) {
       )
       .bind(
         connectionId,
-        session.user.id,
+        profile.id,
         platform,
         accountId,
         username,
