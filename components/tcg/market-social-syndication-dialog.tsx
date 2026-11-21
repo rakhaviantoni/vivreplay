@@ -8,25 +8,34 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Calendar } from '@/components/ui/calendar';
 import {
-  CalendarBlankIcon as CalendarBlank,
-  CheckCircleIcon as CheckCircle,
-  ClockIcon as Clock,
-  ImageIcon as ImageIcon,
-  InstagramLogoIcon as Instagram,
-  LightningIcon as Lightning,
-  PlusIcon as Plus,
-  SparkleIcon as Sparkle,
-  TrashIcon as Trash,
-  XLogoIcon as Twitter,
-  CheckIcon as Check,
-  WarningCircleIcon as WarningCircle,
   ArrowsClockwiseIcon as ArrowsClockwise,
+  BookmarkSimpleIcon as BookmarkSimple,
+  CalendarBlankIcon as CalendarBlank,
+  CardsIcon as Cards,
+  CheckCircleIcon as CheckCircle,
+  CheckIcon as Check,
+  ClockIcon as Clock,
+  CoffeeIcon as Coffee,
   EyeIcon as Eye,
-  BookmarkSimpleIcon as Bookmark,
+  FacebookLogoIcon as FacebookLogo,
+  FlameIcon as Flame,
+  ImageIcon,
+  InstagramLogoIcon as InstagramLogo,
+  LightningIcon as Lightning,
+  MoonIcon as Moon,
+  PlusIcon as Plus,
+  ShareNetworkIcon as ShareNetwork,
+  SparkleIcon as Sparkle,
+  StarIcon as Star,
+  SunIcon as Sun,
+  ThreadsLogoIcon as ThreadsLogo,
+  TrashIcon as Trash,
+  WarningCircleIcon as WarningCircle,
+  XLogoIcon as XLogo,
 } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -37,6 +46,11 @@ import {
   type SavedCaptionTemplate,
 } from '@/lib/social-captions';
 
+export type SocialListingMedia = {
+  url: string;
+  label?: string;
+  kind?: 'share-graphic' | 'seller-photo' | 'card-art' | 'custom';
+};
 
 type ConnectedAccount = {
   id: string;
@@ -46,23 +60,42 @@ type ConnectedAccount = {
   avatarUrl?: string | null;
 };
 
-const PLATFORM_COLORS: Record<string, string> = {
-  instagram: '#E1306C',
-  twitter: '#000000',
-  x: '#000000',
-};
-
-const PLATFORM_ICONS: Record<string, React.ReactNode> = {
-  instagram: <Instagram size={15} weight="fill" />,
-  twitter: <Twitter size={15} weight="fill" />,
-  x: <Twitter size={15} weight="fill" />,
-};
+function getPlatformIcon(platform: string, size = 15) {
+  const p = platform.toLowerCase();
+  if (p === 'instagram') return <InstagramLogo size={size} weight="fill" className="text-[#E1306C]" />;
+  if (p === 'twitter' || p === 'x') return <XLogo size={size} weight="fill" />;
+  if (p === 'facebook') return <FacebookLogo size={size} weight="fill" className="text-[#1877F2]" />;
+  if (p === 'threads') return <ThreadsLogo size={size} weight="fill" />;
+  return <ShareNetwork size={size} weight="fill" />;
+}
 
 const AI_STYLES = [
-  { key: 'consign', labelEN: 'Consign Drop', labelID: 'Format Consign', emoji: '🃏' },
-  { key: 'hype', labelEN: 'Grail Hype', labelID: 'Gaya Grail', emoji: '🔥' },
-  { key: 'minimal', labelEN: 'Minimalist', labelID: 'Minimalis', emoji: '✦' },
+  {
+    key: 'consign',
+    labelEN: 'Consign Drop',
+    labelID: 'Format Consign',
+    icon: <Cards size={13} weight="bold" />,
+  },
+  {
+    key: 'hype',
+    labelEN: 'Grail Hype',
+    labelID: 'Gaya Grail',
+    icon: <Flame size={13} weight="fill" />,
+  },
+  {
+    key: 'minimal',
+    labelEN: 'Minimalist',
+    labelID: 'Minimalis',
+    icon: <Sparkle size={13} weight="bold" />,
+  },
 ] as const;
+
+const TIME_PRESETS = [
+  { labelEN: 'Morning 09:00', labelID: 'Pagi 09.00', value: '09:00', icon: <Coffee size={13} /> },
+  { labelEN: 'Lunch 12:15', labelID: 'Siang 12.15', value: '12:15', icon: <Sun size={13} /> },
+  { labelEN: 'Evening 19:00', labelID: 'Sore 19.00', value: '19:00', icon: <Moon size={13} /> },
+  { labelEN: 'Prime 20:30', labelID: 'Malam 20.30', value: '20:30', icon: <Lightning size={13} /> },
+];
 
 type Step = 'compose' | 'schedule' | 'preview';
 
@@ -84,6 +117,7 @@ export function MarketSocialSyndicationDialog({
     city?: string;
     game?: string;
     photoUrls?: string[];
+    availableMedias?: SocialListingMedia[];
   };
   language?: 'EN' | 'ID';
 }) {
@@ -98,15 +132,16 @@ export function MarketSocialSyndicationDialog({
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('consign-drop');
   const [caption, setCaption] = useState('');
 
-  // Media selection
-  const photos = listing.photoUrls ?? [];
-  const [selectedPhotoIndexes, setSelectedPhotoIndexes] = useState<number[]>([]);
+  // Medias
+  const [medias, setMedias] = useState<SocialListingMedia[]>([]);
+  const [selectedMediaUrls, setSelectedMediaUrls] = useState<string[]>([]);
+  const [showAddUrlInput, setShowAddUrlInput] = useState(false);
+  const [customUrlInput, setCustomUrlInput] = useState('');
 
   // Scheduling
   const [scheduleMode, setScheduleMode] = useState<'now' | 'schedule'>('now');
   const [scheduledDate, setScheduledDate] = useState<Date | undefined>(undefined);
   const [scheduledTime, setScheduledTime] = useState('19:00');
-  const [calendarOpen, setCalendarOpen] = useState(false);
 
   // Actions
   const [publishing, setPublishing] = useState(false);
@@ -146,7 +181,30 @@ export function MarketSocialSyndicationDialog({
   useEffect(() => {
     if (!open) return;
     setStep('compose');
-    setSelectedPhotoIndexes(photos.length > 0 ? [0] : []);
+
+    // Build initial media pool
+    const pool: SocialListingMedia[] = [
+      ...(listing.availableMedias ?? []),
+      ...(!listing.availableMedias
+        ? (listing.photoUrls ?? []).map((url, i) => ({
+            url,
+            label: isId ? `Foto ${i + 1}` : `Photo ${i + 1}`,
+            kind: 'seller-photo' as const,
+          }))
+        : []),
+    ];
+
+    const seen = new Set<string>();
+    const unique = pool.filter((m) => {
+      if (!m.url || seen.has(m.url)) return false;
+      seen.add(m.url);
+      return true;
+    });
+
+    setMedias(unique);
+    setSelectedMediaUrls(unique.length > 0 ? [unique[0].url] : []);
+    setShowAddUrlInput(false);
+    setCustomUrlInput('');
 
     setLoadingAccounts(true);
     void fetch('/api/market/social/accounts')
@@ -163,11 +221,14 @@ export function MarketSocialSyndicationDialog({
       .then(async (res) => (await res.json()) as { templates?: SavedCaptionTemplate[] })
       .then((data) => setTemplates(data.templates ?? []))
       .catch(() => {});
-  }, [open]);
+  }, [open, isId, listing.availableMedias, listing.photoUrls]);
 
   useEffect(() => {
     const custom = templates.find((tmpl) => tmpl.id === selectedTemplateId);
-    if (custom) { setCaption(renderCaptionTemplate(custom.body, captionVars)); return; }
+    if (custom) {
+      setCaption(renderCaptionTemplate(custom.body, captionVars));
+      return;
+    }
     const def = DEFAULT_CAPTION_TEMPLATES.find((tmpl) => tmpl.id === selectedTemplateId);
     if (def) setCaption(renderCaptionTemplate(def.body, captionVars));
   }, [selectedTemplateId, templates]);
@@ -182,7 +243,7 @@ export function MarketSocialSyndicationDialog({
       const data = (await res.json()) as { url?: string; error?: string };
       if (!res.ok || !data.url) throw new Error(data.error || 'Connection URL failed');
       window.open(data.url, '_blank', 'width=600,height=700');
-      toast.info(t('Connect your account in the popup.', 'Sambungkan akun di jendela yang terbuka.'));
+      toast.info(t('Connect your account in the popup window.', 'Sambungkan akun di jendela yang terbuka.'));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t('Failed to connect', 'Gagal menyambungkan'));
     }
@@ -200,7 +261,7 @@ export function MarketSocialSyndicationDialog({
       const data = (await res.json()) as { caption?: string; error?: string };
       if (!res.ok || !data.caption) throw new Error(data.error || 'AI improvement failed');
       setCaption(data.caption);
-      toast.success(t('Caption updated with AI ✨', 'Caption diperbarui dengan AI ✨'));
+      toast.success(t('Caption enhanced with AI', 'Caption diperbarui dengan AI'));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t('AI improvement failed', 'Gagal mengoptimasi'));
     } finally {
@@ -226,12 +287,48 @@ export function MarketSocialSyndicationDialog({
       setTemplates(data.templates);
       setShowSaveTemplate(false);
       setTemplateName('');
-      toast.success(t('Template saved!', 'Template berhasil disimpan!'));
+      toast.success(t('Template saved successfully', 'Template berhasil disimpan'));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t('Failed to save template', 'Gagal menyimpan template'));
     } finally {
       setSavingTemplate(false);
     }
+  };
+
+  const toggleMediaUrl = (url: string) => {
+    setSelectedMediaUrls((prev) =>
+      prev.includes(url) ? prev.filter((u) => u !== url) : [...prev, url]
+    );
+  };
+
+  const makeCover = (url: string) => {
+    setSelectedMediaUrls((prev) => [url, ...prev.filter((u) => u !== url)]);
+    toast.success(t('Set as cover image', 'Ditetapkan sebagai cover'));
+  };
+
+  const handleAddCustomUrl = () => {
+    const val = customUrlInput.trim();
+    if (!val) return;
+    if (!val.startsWith('http://') && !val.startsWith('https://') && !val.startsWith('/')) {
+      toast.error(t('Please provide a valid image URL', 'Masukkan URL gambar yang valid'));
+      return;
+    }
+    const newMedia: SocialListingMedia = {
+      url: val,
+      label: t('Custom Media', 'Media Kustom'),
+      kind: 'custom',
+    };
+    setMedias((prev) => [newMedia, ...prev]);
+    setSelectedMediaUrls((prev) => [val, ...prev.filter((u) => u !== val)]);
+    setCustomUrlInput('');
+    setShowAddUrlInput(false);
+    toast.success(t('Image added and set as cover', 'Gambar ditambahkan dan dijadikan cover'));
+  };
+
+  const toggleAccount = (id: string) => {
+    setSelectedAccountIds((curr) =>
+      curr.includes(id) ? curr.filter((x) => x !== id) : [...curr, id]
+    );
   };
 
   const handlePublish = async () => {
@@ -255,7 +352,7 @@ export function MarketSocialSyndicationDialog({
           listingId: listing.id,
           accountIds: selectedAccountIds,
           text: caption,
-          mediaUrls: selectedPhotoIndexes.map((i) => photos[i]).filter(Boolean),
+          mediaUrls: selectedMediaUrls,
           scheduledAt,
         }),
       });
@@ -263,8 +360,8 @@ export function MarketSocialSyndicationDialog({
       if (!res.ok || !data.success) throw new Error(data.error || 'Publish failed');
       toast.success(
         scheduledAt
-          ? t('Post scheduled!', 'Postingan berhasil dijadwalkan!')
-          : t('Published to socials!', 'Berhasil dipublikasikan!')
+          ? t('Post scheduled successfully', 'Postingan berhasil dijadwalkan')
+          : t('Published to social channels', 'Berhasil dipublikasikan ke media sosial')
       );
       onOpenChange(false);
     } catch (err) {
@@ -274,21 +371,12 @@ export function MarketSocialSyndicationDialog({
     }
   };
 
-  const togglePhoto = (index: number) => {
-    setSelectedPhotoIndexes((prev) =>
-      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]
-    );
-  };
-
-  const toggleAccount = (id: string) => {
-    setSelectedAccountIds((curr) =>
-      curr.includes(id) ? curr.filter((x) => x !== id) : [...curr, id]
-    );
-  };
-
   const scheduledDateLabel = scheduledDate
     ? scheduledDate.toLocaleDateString(isId ? 'id-ID' : 'en-US', {
-        weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
       })
     : t('Pick a date', 'Pilih tanggal');
 
@@ -297,477 +385,566 @@ export function MarketSocialSyndicationDialog({
     (scheduleMode === 'now' || (scheduleMode === 'schedule' && !!scheduledDate));
 
   const allTemplates = [
-    ...DEFAULT_CAPTION_TEMPLATES.map((t) => ({ id: t.id, name: t.name[language], custom: false })),
-    ...templates.map((t) => ({ id: t.id, name: t.name, custom: true })),
+    ...DEFAULT_CAPTION_TEMPLATES.map((tmpl) => ({ id: tmpl.id, name: tmpl.name[language], custom: false })),
+    ...templates.map((tmpl) => ({ id: tmpl.id, name: tmpl.name, custom: true })),
   ];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="market-social-dialog"
-        style={{ maxWidth: 680, padding: 0, overflow: 'hidden' }}
-      >
-        {/* ── Header ── */}
-        <div className="border-b border-border px-6 pt-5 pb-4">
+      <DialogContent className="market-social-dialog">
+        {/* ── Dialog Header ── */}
+        <div className="market-social-header px-6 pt-5 pb-4">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base font-semibold">
-              <div
-                style={{
-                  width: 28,
-                  height: 28,
-                  borderRadius: 7,
-                  background: 'linear-gradient(135deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Instagram size={15} weight="fill" color="#fff" />
+            <DialogTitle className="flex items-center gap-2.5 text-base font-bold">
+              <div className="size-7 rounded-lg bg-primary/15 text-primary flex items-center justify-center shrink-0">
+                <ShareNetwork size={16} weight="bold" />
               </div>
-              PostForMe
-              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-semibold tracking-wide">
-                BETA
+              <span>{t('Publish Drop to Social Media', 'Terbitkan Drop ke Media Sosial')}</span>
+              <Badge variant="secondary" className="text-[10px] px-2 py-0 font-semibold uppercase tracking-wider">
+                {t('Auto-Drop', 'Auto-Drop')}
               </Badge>
             </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+            <DialogDescription className="text-xs text-muted-foreground mt-1">
               {t(
-                'Publish or schedule this drop to your connected social accounts.',
-                'Terbitkan atau jadwalkan drop ini ke akun media sosial yang terhubung.'
+                'Syndicate and schedule your market listing to your connected seller accounts.',
+                'Sindikasikan dan jadwalkan listing market Anda ke akun media sosial penjual yang terhubung.'
               )}
             </DialogDescription>
           </DialogHeader>
 
-          {/* Step tabs */}
-          <div className="flex gap-1 mt-4">
+          {/* Stepper Tabs */}
+          <div className="flex gap-1.5 mt-4">
             {(['compose', 'schedule', 'preview'] as Step[]).map((s, i) => {
               const labels = {
                 compose: t('Compose', 'Konten'),
                 schedule: t('Schedule', 'Jadwal'),
                 preview: t('Review', 'Tinjau'),
               };
+              const isActive = step === s;
               return (
-                <button
+                <Button
                   key={s}
-                  type="button"
+                  variant={isActive ? 'default' : 'ghost'}
+                  size="sm"
                   onClick={() => setStep(s)}
                   className={cn(
-                    'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
-                    step === s
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                    'h-8 px-3 text-xs font-semibold gap-1.5 rounded-lg transition-colors',
+                    !isActive && 'text-muted-foreground hover:text-foreground'
                   )}
                 >
                   <span
                     className={cn(
                       'flex size-4 items-center justify-center rounded-full text-[10px] font-bold',
-                      step === s ? 'bg-primary-foreground/20' : 'bg-muted-foreground/20'
+                      isActive ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-muted text-muted-foreground'
                     )}
                   >
                     {i + 1}
                   </span>
-                  {labels[s]}
-                </button>
+                  <span>{labels[s]}</span>
+                </Button>
               );
             })}
           </div>
         </div>
 
-        {/* ── Body ── */}
-        <div className="overflow-y-auto" style={{ maxHeight: 'calc(100dvh - 240px)', minHeight: 300 }}>
+        {/* ── Dialog Body ── */}
+        <div className="overflow-y-auto px-6 py-5" style={{ maxHeight: 'calc(90dvh - 200px)', minHeight: 320 }}>
           {/* ═══ COMPOSE STEP ═══ */}
           {step === 'compose' && (
-            <div className="flex flex-col gap-5 p-6">
-              {/* Accounts */}
+            <div className="flex flex-col gap-6">
+              {/* Target Accounts */}
               <section>
                 <div className="flex items-center justify-between mb-2.5">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {t('Post to', 'Kirim ke')}
+                  <span className="market-social-section-title">
+                    {t('Target Accounts', 'Akun Tujuan')}
                   </span>
-                  <div className="flex gap-1.5">
-                    <button
-                      type="button"
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <Button
+                      variant="outline"
+                      size="xs"
                       onClick={() => void connectAccount('instagram')}
-                      className="flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] font-medium hover:bg-muted transition-colors"
+                      className="gap-1 text-[11px] h-7"
                     >
-                      <Plus size={10} weight="bold" />
-                      Instagram
-                    </button>
-                    <button
-                      type="button"
+                      <Plus size={11} weight="bold" />
+                      <InstagramLogo size={13} weight="fill" className="text-[#E1306C]" />
+                      <span>Instagram</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="xs"
                       onClick={() => void connectAccount('twitter')}
-                      className="flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] font-medium hover:bg-muted transition-colors"
+                      className="gap-1 text-[11px] h-7"
                     >
-                      <Plus size={10} weight="bold" />
-                      X / Twitter
-                    </button>
+                      <Plus size={11} weight="bold" />
+                      <XLogo size={12} weight="fill" />
+                      <span>X / Twitter</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="xs"
+                      onClick={() => void connectAccount('facebook')}
+                      className="gap-1 text-[11px] h-7"
+                    >
+                      <Plus size={11} weight="bold" />
+                      <FacebookLogo size={13} weight="fill" className="text-[#1877F2]" />
+                      <span>Facebook</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="xs"
+                      onClick={() => void connectAccount('threads')}
+                      className="gap-1 text-[11px] h-7"
+                    >
+                      <Plus size={11} weight="bold" />
+                      <ThreadsLogo size={12} weight="fill" />
+                      <span>Threads</span>
+                    </Button>
                   </div>
                 </div>
 
                 {loadingAccounts ? (
                   <div className="flex gap-2">
                     {[1, 2].map((n) => (
-                      <div key={n} className="h-10 w-28 animate-pulse rounded-lg bg-muted" />
+                      <div key={n} className="h-9 w-32 animate-pulse rounded-xl bg-muted" />
                     ))}
                   </div>
                 ) : accounts.length === 0 ? (
-                  <div className="flex items-center justify-between rounded-xl border border-dashed border-border bg-muted/30 px-4 py-3">
+                  <div className="market-social-panel p-4 flex items-center justify-between">
                     <div>
-                      <p className="text-xs font-medium">
-                        {t('No connected accounts', 'Belum ada akun terhubung')}
+                      <p className="text-xs font-semibold">
+                        {t('No connected seller accounts', 'Belum ada akun terhubung')}
                       </p>
-                      <p className="text-[11px] text-muted-foreground">
-                        {t('Add Instagram or X above to get started.', 'Tambahkan Instagram atau X di atas.')}
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {t(
+                          'Connect your Instagram, X, or Threads above to publish drops automatically.',
+                          'Sambungkan Instagram, X, atau Threads di atas untuk terbit otomatis.'
+                        )}
                       </p>
                     </div>
-                    <WarningCircle size={20} className="text-muted-foreground" />
+                    <WarningCircle size={22} className="text-muted-foreground shrink-0" />
                   </div>
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {accounts.map((acc) => {
                       const active = selectedAccountIds.includes(acc.id);
-                      const icon = PLATFORM_ICONS[acc.platform.toLowerCase()] ?? <Instagram size={14} />;
                       return (
-                        <button
+                        <Button
                           key={acc.id}
-                          type="button"
+                          variant={active ? 'default' : 'outline'}
+                          size="sm"
                           onClick={() => toggleAccount(acc.id)}
-                          className={cn(
-                            'flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-medium transition-all',
-                            active
-                              ? 'border-primary bg-primary/8 text-primary shadow-sm'
-                              : 'border-border hover:border-muted-foreground/50 hover:bg-muted'
-                          )}
+                          className={cn('h-8 gap-2 rounded-xl text-xs font-medium', active && 'shadow-sm')}
                         >
-                          <span className={active ? 'text-primary' : 'text-muted-foreground'}>{icon}</span>
+                          {getPlatformIcon(acc.platform, 14)}
                           <span>@{acc.username}</span>
-                          {active && <Check size={12} weight="bold" className="text-primary" />}
-                        </button>
+                          {active && <Check size={12} weight="bold" />}
+                        </Button>
                       );
                     })}
                   </div>
                 )}
               </section>
 
-              {/* Template picker */}
+              {/* Media Selection */}
               <section>
-                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-2.5">
-                  {t('Caption Template', 'Template Caption')}
-                </span>
-                <div className="flex flex-wrap gap-1.5 mb-3">
-                  {allTemplates.map((tmpl) => (
-                    <button
-                      key={tmpl.id}
-                      type="button"
-                      onClick={() => setSelectedTemplateId(tmpl.id)}
-                      className={cn(
-                        'rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-all',
-                        selectedTemplateId === tmpl.id
-                          ? 'border-primary bg-primary text-primary-foreground'
-                          : 'border-border hover:border-muted-foreground/50 hover:bg-muted text-muted-foreground'
-                      )}
-                    >
-                      {tmpl.custom ? '⭐ ' : ''}{tmpl.name}
-                    </button>
-                  ))}
+                <div className="flex items-center justify-between mb-2.5">
+                  <div className="flex items-center gap-2">
+                    <span className="market-social-section-title">
+                      {t('Media & Artwork', 'Media & Artwork')}
+                    </span>
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-medium">
+                      {selectedMediaUrls.length} {t('selected', 'dipilih')}
+                    </Badge>
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="xs"
+                    onClick={() => setShowAddUrlInput((v) => !v)}
+                    className="gap-1 text-[11px] h-7"
+                  >
+                    <Plus size={11} weight="bold" />
+                    <ImageIcon size={13} />
+                    <span>{t('Add Image URL', 'Tambah URL Gambar')}</span>
+                  </Button>
                 </div>
 
-                {/* AI polish row */}
-                <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2 mb-3">
-                  <Sparkle size={14} className="text-amber-500 shrink-0" />
-                  <span className="text-[11px] font-semibold text-muted-foreground mr-1">
-                    {t('AI Polish', 'Optimalkan AI')}
+                {showAddUrlInput && (
+                  <div className="market-social-panel p-2.5 flex items-center gap-2 mb-3">
+                    <ImageIcon size={14} className="text-muted-foreground shrink-0" />
+                    <input
+                      type="url"
+                      value={customUrlInput}
+                      onChange={(e) => setCustomUrlInput(e.target.value)}
+                      placeholder="https://... (JPG, PNG, WebP)"
+                      className="market-social-input flex-1 px-3 py-1.5 text-xs outline-none"
+                    />
+                    <Button
+                      variant="default"
+                      size="xs"
+                      disabled={!customUrlInput.trim()}
+                      onClick={handleAddCustomUrl}
+                      className="h-7 px-3 text-xs font-medium"
+                    >
+                      {t('Add', 'Tambah')}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      onClick={() => {
+                        setShowAddUrlInput(false);
+                        setCustomUrlInput('');
+                      }}
+                      className="h-7 text-xs"
+                    >
+                      {t('Cancel', 'Batal')}
+                    </Button>
+                  </div>
+                )}
+
+                {medias.length === 0 ? (
+                  <div className="market-social-panel p-4 flex items-center gap-3">
+                    <ImageIcon size={20} className="text-muted-foreground shrink-0" />
+                    <div>
+                      <p className="text-xs font-semibold">{t('No media attached', 'Belum ada media')}</p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {t(
+                          'Add an image URL above to enrich your drop post.',
+                          'Tambahkan URL gambar di atas untuk melengkapi postingan drop.'
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-4 sm:grid-cols-5 gap-2.5">
+                    {medias.map((item) => {
+                      const selIndex = selectedMediaUrls.indexOf(item.url);
+                      const isSelected = selIndex >= 0;
+                      const isCover = selIndex === 0;
+
+                      return (
+                        <div
+                          key={item.url}
+                          onClick={() => toggleMediaUrl(item.url)}
+                          className={cn(
+                            'group relative aspect-square overflow-hidden rounded-xl border-2 cursor-pointer transition-all',
+                            isSelected
+                              ? 'border-primary ring-2 ring-primary/20 shadow-sm'
+                              : 'border-transparent opacity-60 hover:opacity-90'
+                          )}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={item.url}
+                            alt={item.label ?? 'Media'}
+                            className="h-full w-full object-cover"
+                          />
+
+                          {/* Selected order indicator */}
+                          {isSelected && (
+                            <div className="absolute top-1.5 right-1.5">
+                              <span className="flex size-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground shadow">
+                                {selIndex + 1}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Cover badge */}
+                          {isCover && (
+                            <div className="absolute top-1.5 left-1.5">
+                              <Badge variant="secondary" className="gap-1 text-[9px] px-1.5 py-0 font-bold bg-background/90 backdrop-blur-xs">
+                                <Star size={10} weight="fill" className="text-amber-500" />
+                                {t('Cover', 'Cover')}
+                              </Badge>
+                            </div>
+                          )}
+
+                          {/* Action to set as cover if selected but not cover */}
+                          {isSelected && !isCover && (
+                            <div className="absolute inset-x-1 bottom-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                variant="secondary"
+                                size="xs"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  makeCover(item.url);
+                                }}
+                                className="w-full h-6 text-[10px] gap-1 px-1 bg-background/90 backdrop-blur-xs shadow-xs font-semibold"
+                              >
+                                <Star size={11} weight="fill" className="text-amber-500" />
+                                <span>{t('Set Cover', 'Set Cover')}</span>
+                              </Button>
+                            </div>
+                          )}
+
+                          {/* Kind tag if not cover */}
+                          {!isCover && item.kind && (
+                            <div className="absolute bottom-1 left-1 pointer-events-none">
+                              <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-md bg-black/60 text-white backdrop-blur-xs">
+                                {item.kind === 'share-graphic'
+                                  ? t('Graphic', 'Grafik')
+                                  : item.kind === 'card-art'
+                                  ? t('Art', 'Art')
+                                  : item.kind === 'custom'
+                                  ? t('URL', 'URL')
+                                  : t('Photo', 'Foto')}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                <p className="mt-1.5 text-[11px] text-muted-foreground">
+                  {t(
+                    'Tap media to toggle inclusion. Drag or set cover to prioritize first slide.',
+                    'Ketuk media untuk memilih. Jadikan cover untuk slide pertama.'
+                  )}
+                </p>
+              </section>
+
+              {/* Caption Template & Content */}
+              <section>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="market-social-section-title">
+                    {t('Caption Template', 'Template Caption')}
                   </span>
-                  {AI_STYLES.map(({ key, labelEN, labelID, emoji }) => (
-                    <button
+                </div>
+
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {allTemplates.map((tmpl) => {
+                    const isSelected = selectedTemplateId === tmpl.id;
+                    return (
+                      <Button
+                        key={tmpl.id}
+                        variant={isSelected ? 'default' : 'outline'}
+                        size="xs"
+                        onClick={() => setSelectedTemplateId(tmpl.id)}
+                        className="h-7 text-xs font-medium gap-1"
+                      >
+                        {tmpl.custom && <Star size={11} weight="fill" className="text-amber-500 shrink-0" />}
+                        <span>{tmpl.name}</span>
+                      </Button>
+                    );
+                  })}
+                </div>
+
+                {/* AI Polish Tools */}
+                <div className="market-social-panel p-2.5 flex flex-wrap items-center gap-2 mb-3">
+                  <div className="flex items-center gap-1.5 mr-1 text-xs font-bold text-muted-foreground">
+                    <Sparkle size={14} weight="fill" className="text-amber-500 shrink-0" />
+                    <span>{t('AI Polish', 'Optimalkan AI')}</span>
+                  </div>
+                  {AI_STYLES.map(({ key, labelEN, labelID, icon }) => (
+                    <Button
                       key={key}
-                      type="button"
+                      variant="outline"
+                      size="xs"
                       disabled={aiBusy}
                       onClick={() => void improveWithAi(key as 'consign' | 'hype' | 'minimal')}
                       className={cn(
-                        'flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-medium transition-all',
-                        activeAiStyle === key && aiBusy
-                          ? 'border-amber-400 bg-amber-50 text-amber-700'
-                          : 'border-border hover:border-amber-400 hover:bg-amber-50 hover:text-amber-700 text-muted-foreground disabled:opacity-50'
+                        'h-7 text-xs font-medium gap-1.5',
+                        activeAiStyle === key && aiBusy && 'border-amber-500 bg-amber-500/10'
                       )}
                     >
                       {activeAiStyle === key && aiBusy ? (
-                        <ArrowsClockwise size={10} className="animate-spin" />
+                        <ArrowsClockwise size={12} className="animate-spin" />
                       ) : (
-                        <span>{emoji}</span>
+                        icon
                       )}
-                      {isId ? labelID : labelEN}
-                    </button>
+                      <span>{isId ? labelID : labelEN}</span>
+                    </Button>
                   ))}
                 </div>
 
-                {/* Caption textarea */}
+                {/* Caption Textarea */}
                 <div className="relative">
                   <textarea
                     value={caption}
                     onChange={(e) => setCaption(e.target.value)}
-                    rows={9}
-                    className="w-full resize-none rounded-xl border border-border bg-background px-4 py-3 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-ring/50 focus:border-ring"
-                    placeholder={t('Write your caption here…', 'Tulis caption di sini…')}
+                    rows={8}
+                    className="market-social-textarea w-full resize-none p-3.5 text-xs sm:text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    placeholder={t('Write your drop caption here…', 'Tulis caption drop di sini…')}
                   />
-                  <div className="absolute bottom-3 right-3 text-[10px] text-muted-foreground tabular-nums">
-                    {caption.length}
+                  <div className="absolute bottom-3 right-3 text-[10px] text-muted-foreground tabular-nums bg-background/80 px-1.5 py-0.5 rounded-md">
+                    {caption.length} {t('chars', 'karakter')}
                   </div>
                 </div>
 
-                {/* Save template row */}
-                <div className="mt-2 flex items-center justify-end gap-2">
+                {/* Save as Template */}
+                <div className="mt-2 flex items-center justify-end">
                   {showSaveTemplate ? (
-                    <div className="flex flex-1 items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2">
-                      <Bookmark size={13} className="shrink-0 text-muted-foreground" />
+                    <div className="market-social-panel flex flex-1 items-center gap-2 p-2">
+                      <BookmarkSimple size={14} className="shrink-0 text-muted-foreground ml-1" />
                       <input
                         type="text"
                         placeholder={t('Template name…', 'Nama template…')}
                         value={templateName}
                         onChange={(e) => setTemplateName(e.target.value)}
-                        className="flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground"
+                        className="market-social-input flex-1 px-2.5 py-1 text-xs outline-none"
                       />
-                      <button
-                        type="button"
+                      <Button
+                        variant="default"
+                        size="xs"
                         disabled={savingTemplate || !templateName.trim()}
                         onClick={() => void saveCustomTemplate()}
-                        className="rounded-md bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground disabled:opacity-50"
+                        className="h-7 px-3 text-xs font-medium"
                       >
                         {savingTemplate ? t('Saving…', 'Menyimpan…') : t('Save', 'Simpan')}
-                      </button>
-                      <button
-                        type="button"
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="xs"
                         onClick={() => setShowSaveTemplate(false)}
-                        className="text-muted-foreground hover:text-foreground"
+                        className="h-7 text-xs"
                       >
                         <Trash size={13} />
-                      </button>
+                      </Button>
                     </div>
                   ) : (
-                    <button
-                      type="button"
+                    <Button
+                      variant="ghost"
+                      size="xs"
                       onClick={() => setShowSaveTemplate(true)}
-                      className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                      className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
                     >
-                      <Bookmark size={12} />
-                      {t('Save as template', 'Simpan sebagai template')}
-                    </button>
+                      <BookmarkSimple size={13} />
+                      <span>{t('Save as template', 'Simpan sebagai template')}</span>
+                    </Button>
                   )}
                 </div>
               </section>
-
-              {/* Media / photos */}
-              {photos.length > 0 && (
-                <section>
-                  <div className="flex items-center justify-between mb-2.5">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      {t('Media to Post', 'Foto yang Dikirim')}
-                    </span>
-                    <span className="text-[11px] text-muted-foreground">
-                      {selectedPhotoIndexes.length}/{photos.length} {t('selected', 'dipilih')}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-5 gap-2">
-                    {photos.map((url, i) => {
-                      const sel = selectedPhotoIndexes.includes(i);
-                      return (
-                        <button
-                          key={url}
-                          type="button"
-                          onClick={() => togglePhoto(i)}
-                          className={cn(
-                            'relative aspect-square overflow-hidden rounded-xl border-2 transition-all',
-                            sel
-                              ? 'border-primary shadow-sm shadow-primary/20'
-                              : 'border-transparent opacity-50 hover:opacity-80'
-                          )}
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={url}
-                            alt={`Photo ${i + 1}`}
-                            className="h-full w-full object-cover"
-                          />
-                          {sel && (
-                            <div className="absolute inset-0 flex items-start justify-end p-1">
-                              <span className="flex size-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground shadow">
-                                {selectedPhotoIndexes.indexOf(i) + 1}
-                              </span>
-                            </div>
-                          )}
-                          {i === 0 && (
-                            <div className="absolute bottom-1 left-1">
-                              <Badge variant="secondary" className="text-[8px] px-1 py-0 leading-tight">
-                                {t('Cover', 'Cover')}
-                              </Badge>
-                            </div>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <p className="mt-1.5 text-[11px] text-muted-foreground">
-                    {t(
-                      'Tap to select which photos to include. Numbers show post order.',
-                      'Ketuk untuk memilih foto. Angka menunjukkan urutan posting.'
-                    )}
-                  </p>
-                </section>
-              )}
-
-              {photos.length === 0 && (
-                <div className="flex items-center gap-3 rounded-xl border border-dashed border-border bg-muted/20 px-4 py-3">
-                  <ImageIcon size={18} className="shrink-0 text-muted-foreground" />
-                  <div>
-                    <p className="text-xs font-medium">{t('No photos attached', 'Tidak ada foto')}</p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {t(
-                        'Listings with photos get significantly more reach on social.',
-                        'Listing dengan foto mendapat jangkauan lebih besar di media sosial.'
-                      )}
-                    </p>
-                  </div>
-                </div>
-              )}
             </div>
           )}
 
           {/* ═══ SCHEDULE STEP ═══ */}
           {step === 'schedule' && (
-            <div className="flex flex-col gap-5 p-6">
-              {/* Mode toggle */}
+            <div className="flex flex-col gap-6">
+              {/* Publication Mode */}
               <section>
-                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-3">
-                  {t('When to Post', 'Waktu Posting')}
+                <span className="market-social-section-title block mb-3">
+                  {t('Publication Timing', 'Waktu Penerbitan')}
                 </span>
                 <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
+                  <div
                     onClick={() => setScheduleMode('now')}
                     className={cn(
-                      'flex flex-col items-center gap-2 rounded-2xl border-2 px-4 py-5 text-sm font-medium transition-all',
-                      scheduleMode === 'now'
-                        ? 'border-primary bg-primary/5 text-primary'
-                        : 'border-border hover:border-muted-foreground/50 text-muted-foreground hover:text-foreground'
+                      'market-social-mode-card flex flex-col items-center gap-2 p-5 text-center cursor-pointer',
+                      scheduleMode === 'now' && 'is-active'
                     )}
                   >
-                    <Lightning size={22} weight={scheduleMode === 'now' ? 'fill' : 'regular'} />
-                    <span className="font-semibold">{t('Post Now', 'Terbitkan Sekarang')}</span>
-                    <span className="text-[11px] opacity-70 text-center">
-                      {t('Goes live immediately', 'Langsung tayang sekarang')}
+                    <div className={cn('p-2 rounded-full', scheduleMode === 'now' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground')}>
+                      <Lightning size={22} weight="fill" />
+                    </div>
+                    <strong className="text-sm">{t('Publish Now', 'Terbitkan Sekarang')}</strong>
+                    <span className="text-[11px] text-muted-foreground">
+                      {t('Goes live immediately on selected channels', 'Langsung tayang sekarang di channel terpilih')}
                     </span>
-                    {scheduleMode === 'now' && (
-                      <CheckCircle size={16} weight="fill" className="mt-1" />
-                    )}
-                  </button>
+                  </div>
 
-                  <button
-                    type="button"
+                  <div
                     onClick={() => setScheduleMode('schedule')}
                     className={cn(
-                      'flex flex-col items-center gap-2 rounded-2xl border-2 px-4 py-5 text-sm font-medium transition-all',
-                      scheduleMode === 'schedule'
-                        ? 'border-primary bg-primary/5 text-primary'
-                        : 'border-border hover:border-muted-foreground/50 text-muted-foreground hover:text-foreground'
+                      'market-social-mode-card flex flex-col items-center gap-2 p-5 text-center cursor-pointer',
+                      scheduleMode === 'schedule' && 'is-active'
                     )}
                   >
-                    <CalendarBlank size={22} weight={scheduleMode === 'schedule' ? 'fill' : 'regular'} />
-                    <span className="font-semibold">{t('Schedule', 'Jadwalkan')}</span>
-                    <span className="text-[11px] opacity-70 text-center">
-                      {t('Pick a date & time', 'Pilih tanggal & waktu')}
+                    <div className={cn('p-2 rounded-full', scheduleMode === 'schedule' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground')}>
+                      <CalendarBlank size={22} weight="fill" />
+                    </div>
+                    <strong className="text-sm">{t('Schedule Drop', 'Jadwalkan Drop')}</strong>
+                    <span className="text-[11px] text-muted-foreground">
+                      {t('Pick calendar date & prime engagement time', 'Pilih tanggal kalender & jam interaksi puncak')}
                     </span>
-                    {scheduleMode === 'schedule' && (
-                      <CheckCircle size={16} weight="fill" className="mt-1" />
-                    )}
-                  </button>
+                  </div>
                 </div>
               </section>
 
-              {/* Calendar + time picker */}
+              {/* Schedule Configuration */}
               {scheduleMode === 'schedule' && (
-                <section className="flex flex-col gap-4">
+                <section className="flex flex-col gap-5">
+                  {/* Calendar Grid */}
                   <div>
-                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-2.5">
-                      {t('Date', 'Tanggal')}
+                    <span className="market-social-section-title block mb-2.5">
+                      {t('Calendar Date', 'Tanggal Kalender')}
                     </span>
-                    <div className="rounded-2xl border border-border overflow-hidden">
+                    <div className="market-social-panel p-3 flex justify-center">
                       <Calendar
                         mode="single"
                         selected={scheduledDate}
                         onSelect={(date) => setScheduledDate(date ?? undefined)}
                         disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                        className="w-full p-4"
+                        className="rounded-xl"
                       />
                     </div>
                   </div>
 
+                  {/* Time Presets */}
                   <div>
-                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-2.5">
-                      {t('Time', 'Waktu')}
+                    <span className="market-social-section-title block mb-2.5">
+                      {t('Time Slots (WIB)', 'Jam Tayang (WIB)')}
                     </span>
-                    <div className="flex flex-col gap-2">
-                      {/* Quick presets */}
+                    <div className="flex flex-col gap-2.5">
                       <div className="flex flex-wrap gap-2">
-                        {[
-                          { label: t('Morning 9am', 'Pagi 09.00'), value: '09:00' },
-                          { label: t('Noon 12pm', 'Siang 12.00'), value: '12:00' },
-                          { label: t('Evening 7pm', 'Sore 19.00'), value: '19:00' },
-                          { label: t('Night 9pm', 'Malam 21.00'), value: '21:00' },
-                        ].map((preset) => (
-                          <button
-                            key={preset.value}
-                            type="button"
-                            onClick={() => setScheduledTime(preset.value)}
-                            className={cn(
-                              'rounded-lg border px-3 py-1.5 text-xs font-medium transition-all',
-                              scheduledTime === preset.value
-                                ? 'border-primary bg-primary text-primary-foreground'
-                                : 'border-border hover:border-primary/50 hover:bg-muted text-muted-foreground'
-                            )}
-                          >
-                            {preset.label}
-                          </button>
-                        ))}
+                        {TIME_PRESETS.map((preset) => {
+                          const isSelected = scheduledTime === preset.value;
+                          return (
+                            <Button
+                              key={preset.value}
+                              variant={isSelected ? 'default' : 'outline'}
+                              size="xs"
+                              onClick={() => setScheduledTime(preset.value)}
+                              className="h-8 gap-1.5 text-xs font-medium"
+                            >
+                              {preset.icon}
+                              <span>{isId ? preset.labelID : preset.labelEN}</span>
+                            </Button>
+                          );
+                        })}
                       </div>
-                      {/* Custom time */}
-                      <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2">
-                        <Clock size={14} className="text-muted-foreground shrink-0" />
-                        <span className="text-xs text-muted-foreground">
-                          {t('Custom', 'Kustom')}
+
+                      {/* Custom Time Input */}
+                      <div className="market-social-panel flex items-center gap-2 px-3 py-2">
+                        <Clock size={15} className="text-muted-foreground shrink-0" />
+                        <span className="text-xs text-muted-foreground font-medium">
+                          {t('Custom Time', 'Jam Kustom')}
                         </span>
                         <input
                           type="time"
                           value={scheduledTime}
                           onChange={(e) => setScheduledTime(e.target.value)}
-                          className="ml-auto bg-transparent text-sm font-medium outline-none"
+                          className="market-social-input ml-auto px-2.5 py-1 text-xs font-semibold outline-none"
                         />
                       </div>
                     </div>
                   </div>
 
-                  {/* Summary card */}
+                  {/* Confirmation Summary */}
                   {scheduledDate && (
-                    <div className="flex items-center gap-3 rounded-2xl border border-primary/30 bg-primary/5 px-4 py-3">
-                      <CalendarBlank size={20} className="text-primary shrink-0" />
+                    <div className="market-social-panel p-3.5 flex items-center gap-3 border-primary/40 bg-primary/5">
+                      <CalendarBlank size={22} className="text-primary shrink-0" weight="fill" />
                       <div>
-                        <p className="text-xs font-semibold text-primary">
-                          {t('Scheduled for', 'Dijadwalkan pada')}
+                        <p className="text-xs font-bold text-primary">
+                          {t('Scheduled Publication', 'Jadwal Penerbitan')}
                         </p>
-                        <p className="text-sm font-medium">
-                          {scheduledDateLabel} {t('at', 'pukul')} {scheduledTime}
+                        <p className="text-sm font-semibold">
+                          {scheduledDateLabel} {t('at', 'pukul')} {scheduledTime} WIB
                         </p>
                       </div>
                     </div>
                   )}
 
-                  {/* Best time tip */}
-                  <div className="rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-4 py-3 flex gap-2.5">
-                    <Sparkle size={15} className="text-amber-500 shrink-0 mt-0.5" />
-                    <p className="text-[11px] text-amber-800 dark:text-amber-200 leading-relaxed">
+                  {/* Best Engagement Tip */}
+                  <div className="market-social-tip p-3 flex gap-2.5 text-[11px] leading-relaxed">
+                    <Sparkle size={15} weight="fill" className="text-amber-500 shrink-0 mt-0.5" />
+                    <div>
+                      <strong>{t('Prime TCG Hours in Indonesia:', 'Jam Puncak TCG di Indonesia:')}</strong>{' '}
                       {t(
-                        'Best engagement times for TCG in Indonesia: 7–9 PM on weekdays, 12–2 PM on weekends.',
-                        'Waktu terbaik untuk TCG di Indonesia: 19.00–21.00 hari kerja, 12.00–14.00 akhir pekan.'
+                        '19:00–21:00 on weekdays, 12:00–14:00 on weekends for maximum buyer reach.',
+                        '19.00–21.00 hari kerja, 12.00–14.00 akhir pekan untuk jangkauan pembeli maksimal.'
                       )}
-                    </p>
+                    </div>
                   </div>
                 </section>
               )}
@@ -776,83 +953,85 @@ export function MarketSocialSyndicationDialog({
 
           {/* ═══ PREVIEW / REVIEW STEP ═══ */}
           {step === 'preview' && (
-            <div className="flex flex-col gap-5 p-6">
+            <div className="flex flex-col gap-6">
+              {/* Post Summary */}
               <section>
-                <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-3">
-                  {t('Post Summary', 'Ringkasan Postingan')}
+                <span className="market-social-section-title block mb-3">
+                  {t('Post Summary & Target Channels', 'Ringkasan Post & Target Channel')}
                 </span>
 
-                {/* Account targets */}
-                <div className="mb-4 flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap gap-1.5 mb-4">
                   {selectedAccountIds.length === 0 ? (
-                    <Badge variant="outline" className="text-destructive border-destructive/40">
-                      {t('No accounts selected', 'Belum pilih akun')}
+                    <Badge variant="outline" className="text-destructive border-destructive/40 text-xs">
+                      {t('No accounts selected', 'Belum ada akun dipilih')}
                     </Badge>
                   ) : (
                     accounts
                       .filter((a) => selectedAccountIds.includes(a.id))
                       .map((acc) => (
-                        <Badge key={acc.id} variant="secondary" className="gap-1">
-                          {PLATFORM_ICONS[acc.platform.toLowerCase()] ?? <Instagram size={11} />}
-                          @{acc.username}
+                        <Badge key={acc.id} variant="secondary" className="gap-1.5 text-xs py-1 px-2.5">
+                          {getPlatformIcon(acc.platform, 13)}
+                          <span>@{acc.username}</span>
                         </Badge>
                       ))
                   )}
                 </div>
 
-                {/* Caption preview */}
-                <div className="rounded-2xl border border-border bg-muted/20 overflow-hidden">
-                  {/* Mock post header */}
-                  <div className="flex items-center gap-2.5 border-b border-border px-4 py-3">
-                    <div className="size-8 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center">
-                      <Instagram size={14} color="#fff" weight="fill" />
+                {/* Preview Post Card */}
+                <div className="market-social-preview-card overflow-hidden">
+                  <div className="flex items-center gap-2.5 px-4 py-3 border-b border-border/60">
+                    <div className="size-7 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-xs">
+                      {selectedAccountIds.length > 0 ? (
+                        getPlatformIcon(
+                          accounts.find((a) => selectedAccountIds.includes(a.id))?.platform ?? 'instagram',
+                          14
+                        )
+                      ) : (
+                        <ShareNetwork size={14} />
+                      )}
                     </div>
                     <div>
-                      <p className="text-xs font-semibold leading-none">
+                      <p className="text-xs font-bold leading-none">
                         {selectedAccountIds.length > 0
                           ? `@${accounts.find((a) => selectedAccountIds.includes(a.id))?.username ?? 'yourhandle'}`
                           : '@yourhandle'}
                       </p>
                       <p className="text-[10px] text-muted-foreground mt-0.5">
                         {scheduleMode === 'now'
-                          ? t('Now', 'Sekarang')
+                          ? t('Instant Publication', 'Terbit Langsung')
                           : scheduledDate
-                          ? `${scheduledDateLabel} · ${scheduledTime}`
-                          : t('Not scheduled yet', 'Belum dijadwalkan')}
+                          ? `${scheduledDateLabel} · ${scheduledTime} WIB`
+                          : t('Schedule not selected', 'Jadwal belum ditentukan')}
                       </p>
                     </div>
                   </div>
 
-                  {/* Media preview strip */}
-                  {selectedPhotoIndexes.length > 0 && (
-                    <div className="flex gap-1 p-2 bg-black/5">
-                      {selectedPhotoIndexes.slice(0, 5).map((photoIdx) => (
+                  {/* Media Strip */}
+                  {selectedMediaUrls.length > 0 && (
+                    <div className="flex gap-1.5 p-2.5 overflow-x-auto bg-muted/20">
+                      {selectedMediaUrls.map((url, i) => (
                         <div
-                          key={photoIdx}
-                          className="relative aspect-square overflow-hidden rounded-lg flex-1 max-w-[80px]"
+                          key={url}
+                          className="relative aspect-square size-16 shrink-0 overflow-hidden rounded-lg border border-border"
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={photos[photoIdx]}
-                            alt=""
-                            className="h-full w-full object-cover"
-                          />
+                          <img src={url} alt="" className="h-full w-full object-cover" />
+                          <div className="absolute top-0.5 right-0.5">
+                            <span className="flex size-4 items-center justify-center rounded-full bg-primary text-[8px] font-bold text-primary-foreground">
+                              {i + 1}
+                            </span>
+                          </div>
                         </div>
                       ))}
-                      {selectedPhotoIndexes.length > 5 && (
-                        <div className="flex aspect-square flex-1 max-w-[80px] items-center justify-center rounded-lg bg-black/20 text-xs font-semibold text-white">
-                          +{selectedPhotoIndexes.length - 5}
-                        </div>
-                      )}
                     </div>
                   )}
 
-                  {/* Caption text */}
-                  <div className="px-4 py-3">
+                  {/* Caption preview */}
+                  <div className="p-4">
                     <p className="whitespace-pre-wrap text-xs leading-relaxed">
                       {caption || (
                         <span className="text-muted-foreground italic">
-                          {t('No caption yet', 'Caption belum diisi')}
+                          {t('No caption written', 'Caption belum diisi')}
                         </span>
                       )}
                     </p>
@@ -860,46 +1039,34 @@ export function MarketSocialSyndicationDialog({
                 </div>
               </section>
 
-              {/* Checklist */}
-              <section className="flex flex-col gap-1.5">
+              {/* Publication Checklist */}
+              <section className="market-social-panel p-3.5 flex flex-col gap-2">
                 {[
                   {
                     ok: selectedAccountIds.length > 0,
-                    label: t('Account selected', 'Akun dipilih'),
+                    label: t('Target accounts connected & selected', 'Akun tujuan terhubung & dipilih'),
                   },
                   {
                     ok: caption.trim().length > 0,
-                    label: t('Caption written', 'Caption sudah diisi'),
+                    label: t('Caption formulated & reviewed', 'Caption sudah dirumuskan & ditinjau'),
                   },
                   {
-                    ok: selectedPhotoIndexes.length > 0,
-                    label: t('Media attached', 'Foto terlampir'),
-                    soft: true,
+                    ok: selectedMediaUrls.length > 0,
+                    label: t('Drop media & artwork attached', 'Media & artwork terlampir'),
                   },
                   {
                     ok: scheduleMode === 'now' || !!scheduledDate,
-                    label: t('Schedule set', 'Jadwal ditetapkan'),
+                    label: t('Timing mode confirmed', 'Mode waktu penerbitan terkonfirmasi'),
                   },
-                ].map(({ ok, label, soft }) => (
+                ].map(({ ok, label }) => (
                   <div key={label} className="flex items-center gap-2 text-xs">
                     <CheckCircle
                       size={15}
                       weight="fill"
-                      className={cn(
-                        ok
-                          ? 'text-emerald-500'
-                          : soft
-                          ? 'text-amber-400'
-                          : 'text-muted-foreground/40'
-                      )}
+                      className={ok ? 'text-emerald-500' : 'text-muted-foreground/40'}
                     />
-                    <span className={ok ? 'text-foreground' : 'text-muted-foreground'}>
+                    <span className={ok ? 'text-foreground font-medium' : 'text-muted-foreground'}>
                       {label}
-                      {soft && !ok && (
-                        <span className="ml-1 text-amber-500">
-                          ({t('optional but recommended', 'opsional tapi disarankan')})
-                        </span>
-                      )}
                     </span>
                   </div>
                 ))}
@@ -908,79 +1075,79 @@ export function MarketSocialSyndicationDialog({
           )}
         </div>
 
-        {/* ── Footer ── */}
-        <div className="border-t border-border px-6 py-4">
+        {/* ── Dialog Footer ── */}
+        <div className="market-social-footer px-6 py-4">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               {step !== 'compose' && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    setStep((s) => (s === 'preview' ? 'schedule' : 'compose'))
-                  }
-                  className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted transition-colors"
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setStep((s) => (s === 'preview' ? 'schedule' : 'compose'))}
+                  className="h-8 text-xs font-semibold"
                 >
                   ← {t('Back', 'Kembali')}
-                </button>
+                </Button>
               )}
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => onOpenChange(false)}
                 disabled={publishing}
-                className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium hover:bg-muted transition-colors text-muted-foreground"
+                className="h-8 text-xs"
               >
                 {t('Cancel', 'Batal')}
-              </button>
+              </Button>
             </div>
 
             <div className="flex items-center gap-2">
               {step === 'compose' && (
-                <button
-                  type="button"
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={() => setStep('schedule')}
-                  className="rounded-lg bg-muted px-4 py-1.5 text-xs font-semibold hover:bg-muted/80 transition-colors"
+                  className="h-8 text-xs font-semibold gap-1"
                 >
-                  {t('Next: Schedule', 'Lanjut: Jadwal')} →
-                </button>
+                  <span>{t('Next: Schedule', 'Lanjut: Jadwal')}</span>
+                  <span>→</span>
+                </Button>
               )}
               {step === 'schedule' && (
-                <button
-                  type="button"
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={() => setStep('preview')}
-                  className="rounded-lg bg-muted px-4 py-1.5 text-xs font-semibold hover:bg-muted/80 transition-colors"
+                  className="h-8 text-xs font-semibold gap-1"
                 >
-                  {t('Next: Review', 'Lanjut: Tinjau')} →
-                </button>
+                  <span>{t('Next: Review', 'Lanjut: Tinjau')}</span>
+                  <span>→</span>
+                </Button>
               )}
               {step === 'preview' && (
-                <button
-                  type="button"
+                <Button
+                  variant="default"
+                  size="sm"
                   onClick={() => void handlePublish()}
                   disabled={publishing || !canPublish}
-                  className={cn(
-                    'flex items-center gap-2 rounded-xl px-5 py-2 text-sm font-semibold transition-all',
-                    canPublish && !publishing
-                      ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm'
-                      : 'bg-muted text-muted-foreground cursor-not-allowed'
-                  )}
+                  className="h-8 text-xs font-bold gap-2 px-4 shadow-sm"
                 >
                   {publishing ? (
                     <>
-                      <ArrowsClockwise size={14} className="animate-spin" />
-                      {t('Publishing…', 'Menerbitkan…')}
+                      <ArrowsClockwise size={13} className="animate-spin" />
+                      <span>{t('Publishing…', 'Menerbitkan…')}</span>
                     </>
                   ) : scheduleMode === 'schedule' ? (
                     <>
                       <CalendarBlank size={14} weight="fill" />
-                      {t('Schedule Post', 'Jadwalkan Postingan')}
+                      <span>{t('Schedule Drop', 'Jadwalkan Drop')}</span>
                     </>
                   ) : (
                     <>
                       <Lightning size={14} weight="fill" />
-                      {t('Publish Now', 'Terbitkan Sekarang')}
+                      <span>{t('Publish Now', 'Terbitkan Sekarang')}</span>
                     </>
                   )}
-                </button>
+                </Button>
               )}
             </div>
           </div>
