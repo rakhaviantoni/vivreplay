@@ -2735,16 +2735,16 @@ html[data-theme='dark'] .market-social-step-btn:not(.is-active) .market-social-s
   color: #94a7b3 !important;
 }
 
-/* ── Connect Account Buttons (Compact Icon Action Pills) ── */
+/* ── Connect Account Buttons (Navbar-matched 36px Icon Action Pills) ── */
 .market-social-connect-btn {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 2.5px !important;
-  height: 28px !important;
-  min-height: 28px !important;
-  padding: 0 6px !important;
-  border-radius: 8px !important;
+  gap: 5px !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  padding: 0 11px !important;
+  border-radius: 12px !important;
   transition: transform 0.14s ease, border-color 0.14s ease, background 0.14s ease !important;
 }
 .market-social-connect-btn:hover {

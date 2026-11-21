@@ -578,7 +578,7 @@ export function MarketSocialSyndicationDialog({
                   size="sm"
                   onClick={() => setStep(s)}
                   className={cn(
-                    'market-social-step-btn button h-8 px-3 text-xs font-semibold gap-1.5 rounded-lg transition-colors',
+                    'market-social-step-btn button h-9 px-3.5 text-xs font-semibold gap-1.5 rounded-xl transition-colors',
                     isActive ? 'is-active' : 'secondary'
                   )}
                 >
@@ -604,64 +604,60 @@ export function MarketSocialSyndicationDialog({
             <div className="flex flex-col gap-6">
               {/* Target Accounts */}
               <section>
-                <div className="flex items-center justify-between mb-2.5">
+                <div className="flex items-center justify-between mb-2.5 min-h-9">
                   <span className="market-social-section-title">
                     {t('Target Accounts', 'Akun Tujuan')}
                   </span>
-                  <div className="flex items-center gap-1.5">
-                    {availablePlatforms.instagram && (
-                      <Button
-                        variant="secondary"
-                        size="xs"
-                        onClick={() => void connectAccount('instagram')}
-                        className="market-social-connect-btn button secondary gap-1 text-xs h-7 px-2 font-semibold"
-                        title={t('Connect Instagram Business account', 'Hubungkan akun Instagram Business')}
-                        aria-label="Connect Instagram"
-                      >
-                        <Plus size={11} weight="bold" />
-                        <InstagramLogo size={14} weight="fill" className="text-[#E1306C]" />
-                      </Button>
-                    )}
-                    {availablePlatforms.facebook && (
-                      <Button
-                        variant="secondary"
-                        size="xs"
-                        onClick={() => void connectAccount('facebook')}
-                        className="market-social-connect-btn button secondary gap-1 text-xs h-7 px-2 font-semibold"
-                        title={t('Connect Facebook Page', 'Hubungkan Halaman Facebook')}
-                        aria-label="Connect Facebook"
-                      >
-                        <Plus size={11} weight="bold" />
-                        <FacebookLogo size={14} weight="fill" className="text-[#1877F2]" />
-                      </Button>
-                    )}
-                    {availablePlatforms.threads && (
-                      <Button
-                        variant="secondary"
-                        size="xs"
-                        onClick={() => void connectAccount('threads')}
-                        className="market-social-connect-btn button secondary gap-1 text-xs h-7 px-2 font-semibold"
-                        title={t('Connect Threads profile', 'Hubungkan profil Threads')}
-                        aria-label="Connect Threads"
-                      >
-                        <Plus size={11} weight="bold" />
-                        <ThreadsLogo size={13} weight="fill" />
-                      </Button>
-                    )}
-                    {availablePlatforms.twitter && (
-                      <Button
-                        variant="secondary"
-                        size="xs"
-                        onClick={() => void connectAccount('twitter')}
-                        className="market-social-connect-btn button secondary gap-1 text-xs h-7 px-2 font-semibold"
-                        title={t('Connect Twitter/X account', 'Hubungkan akun Twitter/X')}
-                        aria-label="Connect Twitter"
-                      >
-                        <Plus size={11} weight="bold" />
-                        <XLogo size={13} weight="fill" />
-                      </Button>
-                    )}
-                  </div>
+                  {(() => {
+                    const connectedSet = new Set(accounts.map((a) => a.platform.toLowerCase()));
+                    const showIg = availablePlatforms.instagram && !connectedSet.has('instagram');
+                    const showFb = availablePlatforms.facebook && !connectedSet.has('facebook');
+                    const showTh = availablePlatforms.threads && !connectedSet.has('threads');
+                    if (!showIg && !showFb && !showTh) return null;
+                    return (
+                      <div className="flex items-center gap-2">
+                        {showIg && (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => void connectAccount('instagram')}
+                            className="market-social-connect-btn button secondary gap-1.5 text-xs h-9 px-3 font-semibold"
+                            title={t('Connect Instagram Business account', 'Hubungkan akun Instagram Business')}
+                            aria-label="Connect Instagram"
+                          >
+                            <Plus size={13} weight="bold" />
+                            <InstagramLogo size={16} weight="fill" className="text-[#E1306C]" />
+                          </Button>
+                        )}
+                        {showFb && (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => void connectAccount('facebook')}
+                            className="market-social-connect-btn button secondary gap-1.5 text-xs h-9 px-3 font-semibold"
+                            title={t('Connect Facebook Page', 'Hubungkan Halaman Facebook')}
+                            aria-label="Connect Facebook"
+                          >
+                            <Plus size={13} weight="bold" />
+                            <FacebookLogo size={16} weight="fill" className="text-[#1877F2]" />
+                          </Button>
+                        )}
+                        {showTh && (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => void connectAccount('threads')}
+                            className="market-social-connect-btn button secondary gap-1.5 text-xs h-9 px-3 font-semibold"
+                            title={t('Connect Threads profile', 'Hubungkan profil Threads')}
+                            aria-label="Connect Threads"
+                          >
+                            <Plus size={13} weight="bold" />
+                            <ThreadsLogo size={15} weight="fill" />
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {loadingAccounts ? (
@@ -696,7 +692,7 @@ export function MarketSocialSyndicationDialog({
                           size="sm"
                           onClick={() => toggleAccount(acc.id)}
                           className={cn(
-                            'market-social-account-pill button h-8 gap-2 rounded-xl text-xs font-semibold',
+                            'market-social-account-pill button h-9 px-3.5 gap-2 rounded-xl text-xs font-semibold',
                             active ? 'is-active' : 'secondary'
                           )}
                         >
@@ -1271,7 +1267,7 @@ export function MarketSocialSyndicationDialog({
                   variant="secondary"
                   size="sm"
                   onClick={() => setStep((s) => (s === 'preview' ? 'schedule' : 'compose'))}
-                  className="market-social-footer-btn button secondary h-8 text-xs font-semibold px-3"
+                  className="market-social-footer-btn button secondary h-9 rounded-xl text-xs font-semibold px-3.5"
                 >
                   ← {t('Back', 'Kembali')}
                 </Button>
@@ -1281,7 +1277,7 @@ export function MarketSocialSyndicationDialog({
                 size="sm"
                 onClick={() => onOpenChange(false)}
                 disabled={publishing}
-                className="market-social-footer-cancel button secondary h-8 text-xs font-semibold px-3 opacity-80 hover:opacity-100"
+                className="market-social-footer-cancel button secondary h-9 rounded-xl text-xs font-semibold px-3.5 opacity-80 hover:opacity-100"
               >
                 {t('Cancel', 'Batal')}
               </Button>
@@ -1293,7 +1289,7 @@ export function MarketSocialSyndicationDialog({
                   variant="default"
                   size="sm"
                   onClick={() => setStep('schedule')}
-                  className="market-social-footer-next button h-8 text-xs font-bold gap-1 px-4"
+                  className="market-social-footer-next button h-9 rounded-xl text-xs font-bold gap-1.5 px-4"
                 >
                   <span>{t('Next: Schedule', 'Lanjut: Jadwal')}</span>
                   <span>→</span>
@@ -1304,7 +1300,7 @@ export function MarketSocialSyndicationDialog({
                   variant="default"
                   size="sm"
                   onClick={() => setStep('preview')}
-                  className="market-social-footer-next button h-8 text-xs font-bold gap-1 px-4"
+                  className="market-social-footer-next button h-9 rounded-xl text-xs font-bold gap-1.5 px-4"
                 >
                   <span>{t('Next: Review', 'Lanjut: Tinjau')}</span>
                   <span>→</span>
@@ -1316,7 +1312,7 @@ export function MarketSocialSyndicationDialog({
                   size="sm"
                   onClick={() => void handlePublish()}
                   disabled={publishing || !canPublish}
-                  className="market-social-footer-submit button h-8 text-xs font-bold gap-2 px-5 shadow-sm"
+                  className="market-social-footer-submit button h-9 rounded-xl text-xs font-bold gap-2 px-5 shadow-sm"
                 >
                   {publishing ? (
                     <>
