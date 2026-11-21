@@ -84,28 +84,27 @@ export async function GET(request: NextRequest) {
 }
 
 async function exchangeCodeForToken(code: string) {
-  const appId = process.env.INSTAGRAM_APP_ID || process.env.FACEBOOK_APP_ID;
-  const appSecret = process.env.INSTAGRAM_APP_SECRET || process.env.FACEBOOK_APP_SECRET;
+  const clientId = process.env.INSTAGRAM_APP_ID || process.env.FACEBOOK_APP_ID;
+  const clientSecret = process.env.INSTAGRAM_APP_SECRET || process.env.FACEBOOK_APP_SECRET;
   const redirectUri = process.env.INSTAGRAM_REDIRECT_URI || 
     `${process.env.VIVREPLAY_PUBLIC_URL || 'https://vivreplay.com'}/api/market/social/callback`;
 
-  if (!appId || !appSecret) {
+  if (!clientId || !clientSecret) {
     throw new Error('Instagram/Facebook app credentials not configured');
   }
 
+  // Exchange authorization code for access token using Facebook Graph API
   const params = new URLSearchParams({
-    client_id: appId,
-    client_secret: appSecret,
-    grant_type: 'authorization_code',
+    client_id: clientId,
+    client_secret: clientSecret,
     redirect_uri: redirectUri,
     code,
   });
 
-  const response = await fetch(`https://api.instagram.com/oauth/access_token`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: params.toString(),
-  });
+  const response = await fetch(
+    `https://graph.facebook.com/v21.0/oauth/access_token?${params.toString()}`,
+    { method: 'GET' }
+  );
 
   if (!response.ok) {
     const error = await response.text();
@@ -114,31 +113,75 @@ async function exchangeCodeForToken(code: string) {
 
   const data = (await response.json()) as {
     access_token: string;
-    user_id: number;
+    token_type: string;
     expires_in?: number;
-    refresh_token?: string;
   };
 
-  return data;
+  return {
+    access_token: data.access_token,
+    user_id: 0, // Will be fetched from user info
+    expires_in: data.expires_in,
+  };
 }
 
 async function fetchInstagramUserInfo(accessToken: string) {
-  const response = await fetch(
-    `https://graph.instagram.com/me?fields=id,username,account_type,media_count&access_token=${accessToken}`
+  // First, get the user's Instagram Business Account ID via Facebook Pages
+  const meResponse = await fetch(
+    `https://graph.facebook.com/v21.0/me?fields=id,name&access_token=${accessToken}`
   );
 
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Failed to fetch user info: ${error}`);
+  if (!meResponse.ok) {
+    const error = await meResponse.text();
+    throw new Error(`Failed to fetch Facebook user: ${error}`);
   }
 
-  const data = (await response.json()) as {
+  const meData = (await meResponse.json()) as {
+    id: string;
+    name?: string;
+  };
+
+  // Get Instagram Business accounts connected to this user
+  const accountsResponse = await fetch(
+    `https://graph.facebook.com/v21.0/me/accounts?fields=instagram_business_account&access_token=${accessToken}`
+  );
+
+  if (!accountsResponse.ok) {
+    const error = await accountsResponse.text();
+    throw new Error(`Failed to fetch Instagram accounts: ${error}`);
+  }
+
+  const accountsData = (await accountsResponse.json()) as {
+    data?: Array<{
+      instagram_business_account?: {
+        id: string;
+      };
+    }>;
+  };
+
+  const igAccount = accountsData.data?.find((page) => page.instagram_business_account);
+  if (!igAccount?.instagram_business_account) {
+    throw new Error('No Instagram Business Account found. Please convert your Instagram account to a Business account and connect it to a Facebook Page.');
+  }
+
+  const igAccountId = igAccount.instagram_business_account.id;
+
+  // Get Instagram account details
+  const igResponse = await fetch(
+    `https://graph.facebook.com/v21.0/${igAccountId}?fields=id,username,name,profile_picture_url,followers_count&access_token=${accessToken}`
+  );
+
+  if (!igResponse.ok) {
+    const error = await igResponse.text();
+    throw new Error(`Failed to fetch Instagram profile: ${error}`);
+  }
+
+  const igData = (await igResponse.json()) as {
     id: string;
     username: string;
     name?: string;
     profile_picture_url?: string;
-    account_type?: string;
+    followers_count?: number;
   };
 
-  return data;
+  return igData;
 }
