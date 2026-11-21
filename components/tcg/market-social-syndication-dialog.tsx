@@ -478,6 +478,23 @@ export function MarketSocialSyndicationDialog({
       scheduledAt = d.toISOString();
     }
     try {
+      // Upload any client-side blob: graphics (e.g. VivrePlay Share Graphic) to public R2 URL first
+      const resolvedMediaUrls = await Promise.all(
+        selectedMediaUrls.map(async (url) => {
+          if (!url.startsWith('blob:')) return url;
+          const blobRes = await fetch(url);
+          const blob = await blobRes.blob();
+          const form = new FormData();
+          form.append('file', new File([blob], 'vivreplay-drop.png', { type: blob.type || 'image/png' }));
+          const uploadRes = await fetch('/api/market/social/media', { method: 'POST', body: form });
+          const uploadData = (await uploadRes.json()) as { url?: string; error?: string };
+          if (!uploadRes.ok || !uploadData.url) {
+            throw new Error(uploadData.error || 'Failed to upload share graphic');
+          }
+          return uploadData.url;
+        })
+      );
+
       const res = await fetch('/api/market/social/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -485,7 +502,7 @@ export function MarketSocialSyndicationDialog({
           listingId: listing.id,
           accountIds: selectedAccountIds,
           text: caption,
-          mediaUrls: selectedMediaUrls,
+          mediaUrls: resolvedMediaUrls,
           scheduledAt,
         }),
       });

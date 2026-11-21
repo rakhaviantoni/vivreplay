@@ -469,11 +469,13 @@ export async function publishOrScheduleDrop({
   const db = database();
   const logId = crypto.randomUUID();
   const publicOrigin = process.env.VIVREPLAY_PUBLIC_URL || 'https://vivreplay.com';
-  const absoluteMediaUrls = mediaUrls.map((u) =>
-    u.startsWith('http://') || u.startsWith('https://')
-      ? u
-      : `${publicOrigin}${u.startsWith('/') ? '' : '/'}${u}`
-  );
+  const absoluteMediaUrls = mediaUrls.map((u) => {
+    if (u.startsWith('http://') || u.startsWith('https://')) return u;
+    if (u.startsWith('blob:') || u.startsWith('data:')) {
+      throw new Error('Local browser media URL must be uploaded before publishing.');
+    }
+    return `${publicOrigin}${u.startsWith('/') ? '' : '/'}${u}`;
+  });
 
   // Direct Meta Publishing when PostForMe API key is not configured
   if (!apiKey) {
