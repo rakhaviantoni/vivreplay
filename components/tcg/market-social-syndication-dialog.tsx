@@ -161,9 +161,28 @@ export function MarketSocialSyndicationDialog({
 
   // Step
   const [step, setStep] = useState<Step>('compose');
+  
+  // Available platforms (fetched from server)
+  const [availablePlatforms, setAvailablePlatforms] = useState<Record<string, boolean>>({
+    instagram: true,
+    facebook: false,
+    twitter: false,
+    threads: false,
+  });
 
   useEffect(() => {
     setMounted(true);
+    
+    // Fetch available platforms
+    void fetch('/api/market/social/available-platforms')
+      .then((res) => res.json())
+      .then((data: { platforms: Record<string, boolean> }) => {
+        setAvailablePlatforms(data.platforms);
+      })
+      .catch(() => {
+        // Default to Instagram only
+        setAvailablePlatforms({ instagram: true, facebook: false, twitter: false, threads: false });
+      });
   }, []);
 
   const cardLink =
@@ -528,39 +547,58 @@ export function MarketSocialSyndicationDialog({
                     {t('Target Accounts', 'Akun Tujuan')}
                   </span>
                   <div className="flex items-center gap-1.5">
-                    <Button
-                      variant="secondary"
-                      size="xs"
-                      onClick={() => void connectAccount('instagram')}
-                      className="market-social-connect-btn button secondary gap-1 text-xs h-7 px-2 font-semibold"
-                      title={t('Connect Instagram account', 'Hubungkan akun Instagram')}
-                      aria-label="Connect Instagram"
-                    >
-                      <Plus size={11} weight="bold" />
-                      <InstagramLogo size={14} weight="fill" className="text-[#E1306C]" />
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="xs"
-                      onClick={() => void connectAccount('facebook')}
-                      className="market-social-connect-btn button secondary gap-1 text-xs h-7 px-2 font-semibold"
-                      title={t('Connect Facebook Page', 'Hubungkan Halaman Facebook')}
-                      aria-label="Connect Facebook"
-                    >
-                      <Plus size={11} weight="bold" />
-                      <FacebookLogo size={14} weight="fill" className="text-[#1877F2]" />
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="xs"
-                      onClick={() => void connectAccount('threads')}
-                      className="market-social-connect-btn button secondary gap-1 text-xs h-7 px-2 font-semibold"
-                      title={t('Connect Threads profile', 'Hubungkan profil Threads')}
-                      aria-label="Connect Threads"
-                    >
-                      <Plus size={11} weight="bold" />
-                      <ThreadsLogo size={13} weight="fill" />
-                    </Button>
+                    {availablePlatforms.instagram && (
+                      <Button
+                        variant="secondary"
+                        size="xs"
+                        onClick={() => void connectAccount('instagram')}
+                        className="market-social-connect-btn button secondary gap-1 text-xs h-7 px-2 font-semibold"
+                        title={t('Connect Instagram Business account', 'Hubungkan akun Instagram Business')}
+                        aria-label="Connect Instagram"
+                      >
+                        <Plus size={11} weight="bold" />
+                        <InstagramLogo size={14} weight="fill" className="text-[#E1306C]" />
+                      </Button>
+                    )}
+                    {availablePlatforms.facebook && (
+                      <Button
+                        variant="secondary"
+                        size="xs"
+                        onClick={() => void connectAccount('facebook')}
+                        className="market-social-connect-btn button secondary gap-1 text-xs h-7 px-2 font-semibold"
+                        title={t('Connect Facebook Page', 'Hubungkan Halaman Facebook')}
+                        aria-label="Connect Facebook"
+                      >
+                        <Plus size={11} weight="bold" />
+                        <FacebookLogo size={14} weight="fill" className="text-[#1877F2]" />
+                      </Button>
+                    )}
+                    {availablePlatforms.threads && (
+                      <Button
+                        variant="secondary"
+                        size="xs"
+                        onClick={() => void connectAccount('threads')}
+                        className="market-social-connect-btn button secondary gap-1 text-xs h-7 px-2 font-semibold"
+                        title={t('Connect Threads profile', 'Hubungkan profil Threads')}
+                        aria-label="Connect Threads"
+                      >
+                        <Plus size={11} weight="bold" />
+                        <ThreadsLogo size={13} weight="fill" />
+                      </Button>
+                    )}
+                    {availablePlatforms.twitter && (
+                      <Button
+                        variant="secondary"
+                        size="xs"
+                        onClick={() => void connectAccount('twitter')}
+                        className="market-social-connect-btn button secondary gap-1 text-xs h-7 px-2 font-semibold"
+                        title={t('Connect Twitter/X account', 'Hubungkan akun Twitter/X')}
+                        aria-label="Connect Twitter"
+                      >
+                        <Plus size={11} weight="bold" />
+                        <XLogo size={13} weight="fill" />
+                      </Button>
+                    )}
                   </div>
                 </div>
 

@@ -37,6 +37,18 @@ export function getPostForMeApiKey(): string | null {
   );
 }
 
+export function isFacebookConfigured(): boolean {
+  return !!(process.env.FACEBOOK_APP_ID || process.env.INSTAGRAM_APP_ID);
+}
+
+export function isThreadsConfigured(): boolean {
+  return !!(process.env.THREADS_APP_ID || process.env.INSTAGRAM_APP_ID);
+}
+
+export function isTwitterConfigured(): boolean {
+  return !!process.env.TWITTER_CLIENT_ID;
+}
+
 export async function fetchSocialAuthUrl({
   platform,
   redirectUrl,
@@ -45,6 +57,8 @@ export async function fetchSocialAuthUrl({
   redirectUrl?: string;
 }): Promise<{ url: string }> {
   // Direct Instagram OAuth via Facebook
+  // Note: This connects Instagram BUSINESS accounts via Facebook Page
+  // Users must have Instagram Business/Creator account connected to Facebook Page
   if (platform === 'instagram') {
     const clientId = process.env.INSTAGRAM_APP_ID || process.env.FACEBOOK_APP_ID;
     const configId = process.env.INSTAGRAM_CONFIG_ID || '1455450343222088';
@@ -74,10 +88,79 @@ export async function fetchSocialAuthUrl({
     };
   }
 
+  // Facebook OAuth (same as Instagram but different scopes)
+  if (platform === 'facebook') {
+    const clientId = process.env.FACEBOOK_APP_ID || process.env.INSTAGRAM_APP_ID;
+    const redirectUri = `${process.env.VIVREPLAY_PUBLIC_URL || 'https://vivreplay.com'}/api/market/social/callback`;
+
+    if (!clientId) {
+      throw new Error('Facebook App ID not configured');
+    }
+
+    const state = crypto.randomUUID();
+    
+    const params = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      response_type: 'code',
+      state: state,
+      scope: 'pages_manage_posts,pages_read_engagement,public_profile',
+    });
+
+    return { 
+      url: `https://www.facebook.com/v21.0/dialog/oauth?${params.toString()}` 
+    };
+  }
+
+  // Threads OAuth (similar to Instagram)
+  if (platform === 'threads') {
+    const clientId = process.env.THREADS_APP_ID || process.env.INSTAGRAM_APP_ID;
+    const redirectUri = `${process.env.VIVREPLAY_PUBLIC_URL || 'https://vivreplay.com'}/api/market/social/callback`;
+
+    if (!clientId) {
+      throw new Error('Threads App ID not configured');
+    }
+
+    const state = crypto.randomUUID();
+    
+    const params = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      response_type: 'code',
+      state: state,
+      scope: 'threads_basic,threads_content_publish',
+    });
+
+    return { 
+      url: `https://threads.net/oauth/authorize?${params.toString()}` 
+    };
+  }
+
   // Twitter/X OAuth flow
   if (platform === 'twitter' || (platform as string) === 'x') {
-    // TODO: Implement Twitter OAuth 2.0 flow
-    throw new Error('Twitter/X connection not yet implemented');
+    const clientId = process.env.TWITTER_CLIENT_ID;
+    
+    if (!clientId) {
+      throw new Error('Twitter OAuth not configured. Set TWITTER_CLIENT_ID in environment.');
+    }
+
+    const redirectUri = `${process.env.VIVREPLAY_PUBLIC_URL || 'https://vivreplay.com'}/api/market/social/callback`;
+    const state = crypto.randomUUID();
+    const codeChallenge = crypto.randomUUID(); // In production, use proper PKCE
+
+    const params = new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      response_type: 'code',
+      state: state,
+      code_challenge: codeChallenge,
+      code_challenge_method: 'plain',
+      scope: 'tweet.read tweet.write users.read offline.access',
+    });
+
+    return { 
+      url: `https://twitter.com/i/oauth2/authorize?${params.toString()}` 
+    };
   }
 
   // Fallback to PostForMe API for other platforms
