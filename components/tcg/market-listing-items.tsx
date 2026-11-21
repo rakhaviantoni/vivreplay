@@ -2,6 +2,7 @@
 
 import {useRouteLocale} from '@/components/locale-provider';
 import Link from '@/components/ui/localized-link';
+import {Button} from '@/components/ui/button';
 import {SaveListingButton,WishlistButton} from './market-saved';
 import {MarketReputation} from './market-reputation';
 import {useLocalizedRouter as useRouter} from '@/lib/use-localized-router';
@@ -696,7 +697,18 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
     <header className="market-listing-cards-header">
       <div className="market-listing-cards-heading">
         <h2>{isMixedListing?t('Cards and products','Kartu dan produk'):items.some(item=>item.sealedProductId)?t('Products in this listing','Produk dalam listing ini'):t('Cards in this listing','Kartu dalam listing ini')}</h2>
-        {canManageListing&&listingType==='WTS'&&!items.some(item=>item.sealedProductId)&&<button type="button" className="button secondary market-listing-add-cards" onClick={()=>setAddCardsOpen(true)}><Plus size={15}/>{t('Add cards','Tambah kartu')}</button>}
+        {canManageListing&&listingType==='WTS'&&!items.some(item=>item.sealedProductId)&&(
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="button secondary market-listing-add-cards font-bold gap-1.5"
+            onClick={()=>setAddCardsOpen(true)}
+          >
+            <Plus size={15} weight="bold"/>
+            <span>{t('Add cards','Tambah kartu')}</span>
+          </Button>
+        )}
         {!readOnly&&totalAvailable>0&&offerCheckComplete&&!activeOffer&&!submitting&&!singleCopyListing&&<div className="market-listing-bulk-actions" role="toolbar" aria-label={t('Bulk card selection','Pilihan borongan kartu')}>
           <button
             type="button"

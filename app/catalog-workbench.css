@@ -2504,3 +2504,200 @@ html[data-theme='dark'] .market-social-mode-card.is-active {
   background: color-mix(in srgb, #dfbd7f 10%, #11252f);
 }
 
+/* Market Store Nav CTA (market-list-button.join-link) */
+.market-store-nav .market-list-button.join-link,
+.market-list-button.join-link {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  padding: 0 14px !important;
+  border-radius: 12px !important;
+  font: 800 12px/1 var(--game-font) !important;
+  letter-spacing: 0.01em !important;
+  white-space: nowrap !important;
+  cursor: pointer !important;
+  transition: transform 0.18s ease, filter 0.18s ease, background-color 0.18s ease, border-color 0.18s ease !important;
+}
+
+/* Light Mode: High-contrast Dark Slate Green Pill with Warm Cream Text & Icon */
+html:not([data-theme='dark']) .market-store-nav .market-list-button.join-link,
+html[data-theme='light'] .market-store-nav .market-list-button.join-link,
+.market-store-nav .market-list-button.join-link,
+.market-list-button.join-link {
+  border: 1px solid #1a2722 !important;
+  background: #263832 !important;
+  color: #fff9ed !important;
+  box-shadow: 0 2px 6px rgba(38, 56, 50, 0.2) !important;
+}
+html:not([data-theme='dark']) .market-store-nav .market-list-button.join-link svg,
+html[data-theme='light'] .market-store-nav .market-list-button.join-link svg,
+.market-store-nav .market-list-button.join-link svg,
+.market-list-button.join-link svg {
+  color: #fff9ed !important;
+  flex-shrink: 0 !important;
+}
+html:not([data-theme='dark']) .market-store-nav .market-list-button.join-link span,
+html[data-theme='light'] .market-store-nav .market-list-button.join-link span,
+.market-store-nav .market-list-button.join-link span,
+.market-list-button.join-link span {
+  color: #fff9ed !important;
+}
+.market-store-nav .market-list-button.join-link:hover,
+.market-list-button.join-link:hover {
+  background: #334c44 !important;
+  color: #ffffff !important;
+}
+
+/* Dark Mode: High-contrast Rich Gold Pill with Deep Ink Text & Icon */
+html[data-theme='dark'] .market-store-nav .market-list-button.join-link,
+html[data-theme='dark'] .market-list-button.join-link {
+  border: 1px solid #c69232 !important;
+  background: #c69232 !important;
+  color: #10191d !important;
+  box-shadow: 0 2px 8px rgba(198, 146, 50, 0.25) !important;
+}
+html[data-theme='dark'] .market-store-nav .market-list-button.join-link svg,
+html[data-theme='dark'] .market-list-button.join-link svg {
+  color: #10191d !important;
+  flex-shrink: 0 !important;
+}
+html[data-theme='dark'] .market-store-nav .market-list-button.join-link span,
+html[data-theme='dark'] .market-list-button.join-link span {
+  color: #10191d !important;
+}
+html[data-theme='dark'] .market-store-nav .market-list-button.join-link:hover,
+html[data-theme='dark'] .market-list-button.join-link:hover {
+  background: #d8a33f !important;
+  border-color: #d8a33f !important;
+  color: #080d0f !important;
+}
+
+/* Market Listing Add Cards Button (market-listing-add-cards) */
+.market-listing-add-cards,
+.market-listing-add-cards.button.secondary,
+button.market-listing-add-cards {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  min-height: 36px !important;
+  padding: 0 12px !important;
+  border-radius: 10px !important;
+  font: 700 12px/1 var(--font-sans) !important;
+  white-space: nowrap !important;
+  cursor: pointer !important;
+  transition: all 0.18s ease !important;
+}
+
+/* Light mode: Clean raised card surface with dark ink text and rich amber icon */
+.market-listing-add-cards,
+.market-listing-add-cards.button.secondary,
+button.market-listing-add-cards,
+html:not([data-theme='dark']) .market-listing-add-cards,
+html[data-theme='light'] .market-listing-add-cards {
+  border: 1px solid var(--vp-line, #d8cdb8) !important;
+  background: var(--vp-surface-raised, #ffffff) !important;
+  color: var(--vp-ink, #1d241f) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
+}
+.market-listing-add-cards svg,
+.market-listing-add-cards.button.secondary svg,
+button.market-listing-add-cards svg,
+html:not([data-theme='dark']) .market-listing-add-cards svg,
+html[data-theme='light'] .market-listing-add-cards svg {
+  color: #b47a19 !important;
+  flex-shrink: 0 !important;
+}
+.market-listing-add-cards span,
+.market-listing-add-cards.button.secondary span,
+button.market-listing-add-cards span,
+html:not([data-theme='dark']) .market-listing-add-cards span,
+html[data-theme='light'] .market-listing-add-cards span {
+  color: var(--vp-ink, #1d241f) !important;
+}
+.market-listing-add-cards:hover,
+.market-listing-add-cards.button.secondary:hover,
+button.market-listing-add-cards:hover {
+  border-color: #b47a19 !important;
+  background: #fbf6ec !important;
+  color: #1d241f !important;
+}
+
+/* Dark mode: Deep slate surface with crisp light text and bright gold icon */
+html[data-theme='dark'] .market-listing-add-cards,
+html[data-theme='dark'] .market-listing-add-cards.button.secondary,
+html[data-theme='dark'] button.market-listing-add-cards {
+  border-color: #294653 !important;
+  background: #11252f !important;
+  color: #edf5f1 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+}
+html[data-theme='dark'] .market-listing-add-cards svg,
+html[data-theme='dark'] .market-listing-add-cards.button.secondary svg,
+html[data-theme='dark'] button.market-listing-add-cards svg {
+  color: #e5ad3b !important;
+  flex-shrink: 0 !important;
+}
+html[data-theme='dark'] .market-listing-add-cards span,
+html[data-theme='dark'] .market-listing-add-cards.button.secondary span,
+html[data-theme='dark'] button.market-listing-add-cards span {
+  color: #edf5f1 !important;
+}
+html[data-theme='dark'] .market-listing-add-cards:hover,
+html[data-theme='dark'] .market-listing-add-cards.button.secondary:hover,
+html[data-theme='dark'] button.market-listing-add-cards:hover {
+  border-color: #e5ad3b !important;
+  background: #183341 !important;
+  color: #ffffff !important;
+}
+
+/* Heading Wrapper: market-listing-cards-heading */
+.market-listing-cards-heading {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 10px !important;
+  min-width: 0 !important;
+}
+.market-listing-cards-heading h2 {
+  margin: 0 !important;
+  font-size: 18px !important;
+  font-weight: 800 !important;
+  color: var(--vp-ink, #1d241f) !important;
+}
+html[data-theme='dark'] .market-listing-cards-heading h2 {
+  color: #edf5f1 !important;
+}
+
+@media (max-width: 760px) {
+  .market-listing-detail .market-listing-cards-heading {
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  .market-listing-detail .market-listing-cards-heading h2 {
+    width: 100% !important;
+    margin-bottom: 2px !important;
+  }
+  .market-listing-detail .market-listing-add-cards {
+    min-height: 36px !important;
+    padding-inline: 10px !important;
+    font-size: 11px !important;
+  }
+  .market-listing-detail .market-listing-bulk-actions {
+    display: inline-flex !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+  }
+  .market-listing-detail .market-listing-view-toggle {
+    margin-left: auto !important;
+  }
+}
+
+

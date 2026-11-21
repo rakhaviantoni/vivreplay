@@ -44,13 +44,46 @@ export async function fetchSocialAuthUrl({
   platform: SupportedPlatform;
   redirectUrl?: string;
 }): Promise<{ url: string }> {
+  // Direct Instagram OAuth via Facebook
+  if (platform === 'instagram') {
+    const clientId = process.env.INSTAGRAM_APP_ID || process.env.FACEBOOK_APP_ID;
+    const configId = process.env.INSTAGRAM_CONFIG_ID || '1455450343222088';
+    const redirectUri = process.env.INSTAGRAM_REDIRECT_URI || 
+      `${process.env.VIVREPLAY_PUBLIC_URL || 'https://vivreplay.com'}/api/market/social/callback`;
+
+    if (!clientId) {
+      throw new Error('Instagram App ID not configured. Set INSTAGRAM_APP_ID or FACEBOOK_APP_ID in environment.');
+    }
+
+    // Generate random state for CSRF protection
+    const state = crypto.randomUUID();
+    
+    const params = new URLSearchParams({
+      client_id: clientId,
+      config_id: configId,
+      display: 'popup',
+      override_default_response_type: 'true',
+      redirect_uri: redirectUri,
+      response_type: 'code',
+      state: state,
+      prompt: 'login',
+    });
+
+    return { 
+      url: `https://www.facebook.com/dialog/oauth?${params.toString()}` 
+    };
+  }
+
+  // Twitter/X OAuth flow
+  if (platform === 'twitter' || platform === 'x') {
+    // TODO: Implement Twitter OAuth 2.0 flow
+    throw new Error('Twitter/X connection not yet implemented');
+  }
+
+  // Fallback to PostForMe API for other platforms
   const apiKey = getPostForMeApiKey();
   if (!apiKey) {
-    // Graceful fallback for development / testing when env is not set yet
-    const fallbackUrl = `https://postforme.dev/oauth/connect?platform=${encodeURIComponent(
-      platform
-    )}&redirect=${encodeURIComponent(redirectUrl || 'https://vivreplay.com/market')}`;
-    return { url: fallbackUrl };
+    throw new Error(`${platform} connection requires PostForMe API key or direct OAuth implementation`);
   }
 
   const response = await fetch(`${POSTFORME_BASE_URL}/social-accounts/auth-url`, {

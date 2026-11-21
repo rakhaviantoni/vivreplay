@@ -2146,7 +2146,8 @@ html[data-theme='dark'] .card-viewer > header { background: #101d2b !important; 
 /* Keep small Market labels readable against the warm light surfaces. */
 html:not([data-theme='dark']) .market-store-nav .market-store-wordmark b { color: #78520e !important; }
 @media (max-width: 760px) {
-  html:not([data-theme='dark']) .market-store-nav .market-list-button.join-link { color: #272114 !important; }
+  html:not([data-theme='dark']) .market-store-nav .market-list-button.join-link { color: #fff9ed !important; }
+  html:not([data-theme='dark']) .market-store-nav .market-list-button.join-link svg { color: #fff9ed !important; }
 }
 html:not([data-theme='dark']) .market-mobile-nav > a[aria-current='page'],
 html:not([data-theme='dark']) .market-mobile-nav > button.is-sell { color: #78520e !important; }
