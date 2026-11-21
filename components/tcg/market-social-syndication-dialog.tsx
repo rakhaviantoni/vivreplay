@@ -9,25 +9,24 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
 import {
   CalendarBlankIcon as CalendarBlank,
   CheckCircleIcon as CheckCircle,
   ClockIcon as Clock,
-  ImageIcon,
+  ImageIcon as ImageIcon,
   InstagramLogoIcon as Instagram,
   LightningIcon as Lightning,
   PlusIcon as Plus,
   SparkleIcon as Sparkle,
   TrashIcon as Trash,
-  XLogoIcon as XLogo,
+  XLogoIcon as Twitter,
   CheckIcon as Check,
   WarningCircleIcon as WarningCircle,
   ArrowsClockwiseIcon as ArrowsClockwise,
+  EyeIcon as Eye,
   BookmarkSimpleIcon as Bookmark,
-  CardsIcon as Cards,
-  FireIcon as Fire,
-  MinusIcon as Minus,
 } from '@phosphor-icons/react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -38,6 +37,7 @@ import {
   type SavedCaptionTemplate,
 } from '@/lib/social-captions';
 
+
 type ConnectedAccount = {
   id: string;
   platform: string;
@@ -46,16 +46,22 @@ type ConnectedAccount = {
   avatarUrl?: string | null;
 };
 
+const PLATFORM_COLORS: Record<string, string> = {
+  instagram: '#E1306C',
+  twitter: '#000000',
+  x: '#000000',
+};
+
 const PLATFORM_ICONS: Record<string, React.ReactNode> = {
   instagram: <Instagram size={15} weight="fill" />,
-  twitter: <XLogo size={15} weight="fill" />,
-  x: <XLogo size={15} weight="fill" />,
+  twitter: <Twitter size={15} weight="fill" />,
+  x: <Twitter size={15} weight="fill" />,
 };
 
 const AI_STYLES = [
-  { key: 'consign', labelEN: 'Consign Drop', labelID: 'Format Consign', icon: <Cards size={11} /> },
-  { key: 'hype', labelEN: 'Grail Hype', labelID: 'Gaya Grail', icon: <Fire size={11} weight="fill" /> },
-  { key: 'minimal', labelEN: 'Minimalist', labelID: 'Minimalis', icon: <Minus size={11} /> },
+  { key: 'consign', labelEN: 'Consign Drop', labelID: 'Format Consign', emoji: '🃏' },
+  { key: 'hype', labelEN: 'Grail Hype', labelID: 'Gaya Grail', emoji: '🔥' },
+  { key: 'minimal', labelEN: 'Minimalist', labelID: 'Minimalis', emoji: '✦' },
 ] as const;
 
 type Step = 'compose' | 'schedule' | 'preview';
@@ -84,23 +90,35 @@ export function MarketSocialSyndicationDialog({
   const isId = language === 'ID';
   const t = (en: string, id: string) => (isId ? id : en);
 
+  // Data
   const [accounts, setAccounts] = useState<ConnectedAccount[]>([]);
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
   const [loadingAccounts, setLoadingAccounts] = useState(false);
   const [templates, setTemplates] = useState<SavedCaptionTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>('consign-drop');
   const [caption, setCaption] = useState('');
+
+  // Media selection
   const photos = listing.photoUrls ?? [];
   const [selectedPhotoIndexes, setSelectedPhotoIndexes] = useState<number[]>([]);
+
+  // Scheduling
   const [scheduleMode, setScheduleMode] = useState<'now' | 'schedule'>('now');
   const [scheduledDate, setScheduledDate] = useState<Date | undefined>(undefined);
   const [scheduledTime, setScheduledTime] = useState('19:00');
+  const [calendarOpen, setCalendarOpen] = useState(false);
+
+  // Actions
   const [publishing, setPublishing] = useState(false);
   const [aiBusy, setAiBusy] = useState(false);
   const [activeAiStyle, setActiveAiStyle] = useState<string | null>(null);
+
+  // Template saving
   const [templateName, setTemplateName] = useState('');
   const [savingTemplate, setSavingTemplate] = useState(false);
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
+
+  // Step
   const [step, setStep] = useState<Step>('compose');
 
   const cardLink =
@@ -289,6 +307,7 @@ export function MarketSocialSyndicationDialog({
         className="market-social-dialog"
         style={{ maxWidth: 680, padding: 0, overflow: 'hidden' }}
       >
+        {/* ── Header ── */}
         <div className="border-b border-border px-6 pt-5 pb-4">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base font-semibold">
@@ -318,6 +337,7 @@ export function MarketSocialSyndicationDialog({
             </DialogDescription>
           </DialogHeader>
 
+          {/* Step tabs */}
           <div className="flex gap-1 mt-4">
             {(['compose', 'schedule', 'preview'] as Step[]).map((s, i) => {
               const labels = {
@@ -352,9 +372,12 @@ export function MarketSocialSyndicationDialog({
           </div>
         </div>
 
+        {/* ── Body ── */}
         <div className="overflow-y-auto" style={{ maxHeight: 'calc(100dvh - 240px)', minHeight: 300 }}>
+          {/* ═══ COMPOSE STEP ═══ */}
           {step === 'compose' && (
             <div className="flex flex-col gap-5 p-6">
+              {/* Accounts */}
               <section>
                 <div className="flex items-center justify-between mb-2.5">
                   <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -425,6 +448,7 @@ export function MarketSocialSyndicationDialog({
                 )}
               </section>
 
+              {/* Template picker */}
               <section>
                 <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-2.5">
                   {t('Caption Template', 'Template Caption')}
@@ -447,12 +471,13 @@ export function MarketSocialSyndicationDialog({
                   ))}
                 </div>
 
+                {/* AI polish row */}
                 <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2 mb-3">
                   <Sparkle size={14} className="text-amber-500 shrink-0" />
                   <span className="text-[11px] font-semibold text-muted-foreground mr-1">
                     {t('AI Polish', 'Optimalkan AI')}
                   </span>
-                  {AI_STYLES.map(({ key, labelEN, labelID, icon }) => (
+                  {AI_STYLES.map(({ key, labelEN, labelID, emoji }) => (
                     <button
                       key={key}
                       type="button"
@@ -468,13 +493,14 @@ export function MarketSocialSyndicationDialog({
                       {activeAiStyle === key && aiBusy ? (
                         <ArrowsClockwise size={10} className="animate-spin" />
                       ) : (
-                        icon
+                        <span>{emoji}</span>
                       )}
                       {isId ? labelID : labelEN}
                     </button>
                   ))}
                 </div>
 
+                {/* Caption textarea */}
                 <div className="relative">
                   <textarea
                     value={caption}
@@ -488,6 +514,7 @@ export function MarketSocialSyndicationDialog({
                   </div>
                 </div>
 
+                {/* Save template row */}
                 <div className="mt-2 flex items-center justify-end gap-2">
                   {showSaveTemplate ? (
                     <div className="flex flex-1 items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2">
@@ -528,6 +555,7 @@ export function MarketSocialSyndicationDialog({
                 </div>
               </section>
 
+              {/* Media / photos */}
               {photos.length > 0 && (
                 <section>
                   <div className="flex items-center justify-between mb-2.5">
@@ -603,8 +631,10 @@ export function MarketSocialSyndicationDialog({
             </div>
           )}
 
+          {/* ═══ SCHEDULE STEP ═══ */}
           {step === 'schedule' && (
             <div className="flex flex-col gap-5 p-6">
+              {/* Mode toggle */}
               <section>
                 <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block mb-3">
                   {t('When to Post', 'Waktu Posting')}
@@ -652,6 +682,7 @@ export function MarketSocialSyndicationDialog({
                 </div>
               </section>
 
+              {/* Calendar + time picker */}
               {scheduleMode === 'schedule' && (
                 <section className="flex flex-col gap-4">
                   <div>
@@ -674,6 +705,7 @@ export function MarketSocialSyndicationDialog({
                       {t('Time', 'Waktu')}
                     </span>
                     <div className="flex flex-col gap-2">
+                      {/* Quick presets */}
                       <div className="flex flex-wrap gap-2">
                         {[
                           { label: t('Morning 9am', 'Pagi 09.00'), value: '09:00' },
@@ -696,6 +728,7 @@ export function MarketSocialSyndicationDialog({
                           </button>
                         ))}
                       </div>
+                      {/* Custom time */}
                       <div className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2">
                         <Clock size={14} className="text-muted-foreground shrink-0" />
                         <span className="text-xs text-muted-foreground">
@@ -711,6 +744,7 @@ export function MarketSocialSyndicationDialog({
                     </div>
                   </div>
 
+                  {/* Summary card */}
                   {scheduledDate && (
                     <div className="flex items-center gap-3 rounded-2xl border border-primary/30 bg-primary/5 px-4 py-3">
                       <CalendarBlank size={20} className="text-primary shrink-0" />
@@ -725,6 +759,7 @@ export function MarketSocialSyndicationDialog({
                     </div>
                   )}
 
+                  {/* Best time tip */}
                   <div className="rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-4 py-3 flex gap-2.5">
                     <Sparkle size={15} className="text-amber-500 shrink-0 mt-0.5" />
                     <p className="text-[11px] text-amber-800 dark:text-amber-200 leading-relaxed">
@@ -739,6 +774,7 @@ export function MarketSocialSyndicationDialog({
             </div>
           )}
 
+          {/* ═══ PREVIEW / REVIEW STEP ═══ */}
           {step === 'preview' && (
             <div className="flex flex-col gap-5 p-6">
               <section>
@@ -746,6 +782,7 @@ export function MarketSocialSyndicationDialog({
                   {t('Post Summary', 'Ringkasan Postingan')}
                 </span>
 
+                {/* Account targets */}
                 <div className="mb-4 flex flex-wrap gap-1.5">
                   {selectedAccountIds.length === 0 ? (
                     <Badge variant="outline" className="text-destructive border-destructive/40">
@@ -763,7 +800,9 @@ export function MarketSocialSyndicationDialog({
                   )}
                 </div>
 
+                {/* Caption preview */}
                 <div className="rounded-2xl border border-border bg-muted/20 overflow-hidden">
+                  {/* Mock post header */}
                   <div className="flex items-center gap-2.5 border-b border-border px-4 py-3">
                     <div className="size-8 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center">
                       <Instagram size={14} color="#fff" weight="fill" />
@@ -784,6 +823,7 @@ export function MarketSocialSyndicationDialog({
                     </div>
                   </div>
 
+                  {/* Media preview strip */}
                   {selectedPhotoIndexes.length > 0 && (
                     <div className="flex gap-1 p-2 bg-black/5">
                       {selectedPhotoIndexes.slice(0, 5).map((photoIdx) => (
@@ -807,6 +847,7 @@ export function MarketSocialSyndicationDialog({
                     </div>
                   )}
 
+                  {/* Caption text */}
                   <div className="px-4 py-3">
                     <p className="whitespace-pre-wrap text-xs leading-relaxed">
                       {caption || (
@@ -819,6 +860,7 @@ export function MarketSocialSyndicationDialog({
                 </div>
               </section>
 
+              {/* Checklist */}
               <section className="flex flex-col gap-1.5">
                 {[
                   {
@@ -866,6 +908,7 @@ export function MarketSocialSyndicationDialog({
           )}
         </div>
 
+        {/* ── Footer ── */}
         <div className="border-t border-border px-6 py-4">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
