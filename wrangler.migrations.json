@@ -27,7 +27,8 @@
     "INSTAGRAM_CONFIG_ID": "1455450343222088",
     "INSTAGRAM_REDIRECT_URI": "https://vivreplay.com/api/market/social/callback",
     "INSTAGRAM_WEBHOOK_VERIFY_TOKEN": "vivreplay_instagram_webhook_2024",
-    "WHATSAPP_WEBHOOK_VERIFY_TOKEN": "vivreplay_whatsapp_webhook_2024"
+    "WHATSAPP_WEBHOOK_VERIFY_TOKEN": "vivreplay_whatsapp_webhook_2024",
+    "THREADS_WEBHOOK_VERIFY_TOKEN": "vivreplay_threads_webhook_2024"
   },
   "durable_objects": {
     "bindings": []
