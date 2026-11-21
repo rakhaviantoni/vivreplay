@@ -296,6 +296,79 @@ async function fetchInstagramUserInfo(accessToken: string) {
   const pageWithIG = accountsData.data?.find((page) => page.instagram_business_account);
   
   if (!pageWithIG?.instagram_business_account) {
+    // Fallback: inspect debug_token granular_scopes target_ids (Meta Business Login may grant
+    // specific IG or Page IDs even when /me/accounts is empty)
+    const appId = process.env.INSTAGRAM_APP_ID || process.env.FACEBOOK_APP_ID;
+    const appSecret = process.env.INSTAGRAM_APP_SECRET || process.env.FACEBOOK_APP_SECRET;
+    if (appId && appSecret) {
+      try {
+        const dbgRes = await fetch(
+          `https://graph.facebook.com/v21.0/debug_token?input_token=${encodeURIComponent(accessToken)}&access_token=${encodeURIComponent(`${appId}|${appSecret}`)}`
+        );
+        if (dbgRes.ok) {
+          const dbg = (await dbgRes.json()) as {
+            data?: { granular_scopes?: Array<{ scope: string; target_ids?: string[] }> };
+          };
+          const igTargetId = dbg.data?.granular_scopes?.find(
+            (g) => (g.scope === 'instagram_basic' || g.scope === 'instagram_content_publish') && g.target_ids?.length
+          )?.target_ids?.[0];
+          if (igTargetId) {
+            const igDirectRes = await fetch(
+              `https://graph.facebook.com/v21.0/${igTargetId}?fields=id,username,name,profile_picture_url,followers_count&access_token=${accessToken}`
+            );
+            if (igDirectRes.ok) {
+              const igDirect = (await igDirectRes.json()) as {
+                id: string;
+                username?: string;
+                name?: string;
+                profile_picture_url?: string;
+                followers_count?: number;
+              };
+              if (igDirect.id) {
+                return {
+                  id: igDirect.id,
+                  username: igDirect.username || 'instagram_user',
+                  name: igDirect.name,
+                  profile_picture_url: igDirect.profile_picture_url,
+                  followers_count: igDirect.followers_count,
+                };
+              }
+            }
+          }
+          const pageTargetId = dbg.data?.granular_scopes?.find(
+            (g) => (g.scope === 'pages_show_list' || g.scope === 'pages_read_engagement') && g.target_ids?.length
+          )?.target_ids?.[0];
+          if (pageTargetId) {
+            const pageDirectRes = await fetch(
+              `https://graph.facebook.com/v21.0/${pageTargetId}?fields=id,name,instagram_business_account{id,username,name,profile_picture_url,followers_count}&access_token=${accessToken}`
+            );
+            if (pageDirectRes.ok) {
+              const pageDirect = (await pageDirectRes.json()) as {
+                instagram_business_account?: {
+                  id: string;
+                  username?: string;
+                  name?: string;
+                  profile_picture_url?: string;
+                  followers_count?: number;
+                };
+              };
+              if (pageDirect.instagram_business_account) {
+                return {
+                  id: pageDirect.instagram_business_account.id,
+                  username: pageDirect.instagram_business_account.username || 'instagram_user',
+                  name: pageDirect.instagram_business_account.name,
+                  profile_picture_url: pageDirect.instagram_business_account.profile_picture_url,
+                  followers_count: pageDirect.instagram_business_account.followers_count,
+                };
+              }
+            }
+          }
+        }
+      } catch {
+        // Fall through to error message below
+      }
+    }
+
     // More helpful error message
     const hasPages = accountsData.data && accountsData.data.length > 0;
     if (!hasPages) {

@@ -61,7 +61,6 @@ export async function fetchSocialAuthUrl({
   // Users must have Instagram Business/Creator account connected to Facebook Page
   if (platform === 'instagram') {
     const clientId = process.env.INSTAGRAM_APP_ID || process.env.FACEBOOK_APP_ID;
-    const configId = process.env.INSTAGRAM_CONFIG_ID || '1455450343222088';
     const redirectUri = process.env.INSTAGRAM_REDIRECT_URI || 
       `${process.env.VIVREPLAY_PUBLIC_URL || 'https://vivreplay.com'}/api/market/social/callback`;
 
@@ -72,33 +71,18 @@ export async function fetchSocialAuthUrl({
     // Encode platform in state so the shared callback knows which Meta flow returned
     const state = `instagram:${crypto.randomUUID()}`;
     
-    // IMPORTANT: When using config_id, Meta IGNORES the scope parameter!
-    // The scopes MUST be configured in the Instagram Login Configuration in Meta Dashboard.
-    // Required scopes for posting:
-    // - instagram_basic (required)
-    // - instagram_content_publish (required for posting)
-    // - pages_show_list (required to see Facebook Pages)
-    // - pages_read_engagement (required to read page data)
-    // - business_management (recommended for Business accounts)
-    
-    // Try WITHOUT config_id first - this gives us more control over scopes
+    // Do NOT pass config_id here: Meta ignores the `scope` parameter whenever `config_id`
+    // is present, and config 1455450343222088 omits `pages_show_list` (causing /me/accounts to return []).
     const params = new URLSearchParams({
       client_id: clientId,
       redirect_uri: redirectUri,
       response_type: 'code',
       state: state,
-      // Explicit scopes - will be used when config_id is not present
       scope: 'instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement,business_management',
     });
-    
-    // Restore config_id: the configuration was confirmed to have the right
-    // permissions, and Facebook Login for Business apps require it.
-    if (configId) {
-      params.set('config_id', configId);
-    }
 
     return { 
-      url: `https://www.facebook.com/dialog/oauth?${params.toString()}` 
+      url: `https://www.facebook.com/v21.0/dialog/oauth?${params.toString()}` 
     };
   }
 
