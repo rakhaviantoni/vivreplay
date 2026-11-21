@@ -176,8 +176,9 @@ export function MarketSocialSyndicationDialog({
     // Fetch available platforms
     void fetch('/api/market/social/available-platforms')
       .then((res) => res.json())
-      .then((data: { platforms: Record<string, boolean> }) => {
-        setAvailablePlatforms(data.platforms);
+      .then((data: unknown) => {
+        const platformsData = data as { platforms: Record<string, boolean> };
+        setAvailablePlatforms(platformsData.platforms);
       })
       .catch(() => {
         // Default to Instagram only
