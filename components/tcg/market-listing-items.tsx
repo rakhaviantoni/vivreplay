@@ -935,6 +935,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
         {activeOffer&&<button type="button" className="button market-listing-offer-action" onClick={()=>openOfferConversation(activeOffer.id)}>{activeOffer.viewerIsActor?t('See offer','Lihat penawaran'):t('Review counteroffer','Tinjau penawaran balik')}</button>}
         {!activeOffer&&acceptsOffers&&<button type="button" className="button market-listing-offer-action" disabled={!selectedCount||submitting||sealedPhotoBusy||(isSealedRequest&&!sealedOfferReady)||!offerCheckComplete||previewOnly} onClick={continueOffer}>{submitting?t('Sending...','Mengirim...'):!offerCheckComplete?t('Checking offer…','Memeriksa penawaran…'):session?(hasPriceAdjustments?t('Submit offer','Kirim penawaran'):actionLabel):(language==='ID'?`Masuk untuk ${isBuying?'menawar':'menawarkan'}`:`Sign in to ${actionLabel.toLowerCase()}`)}</button>}
         <ShareButton
+          listingId={listingId}
           title={listingTitle ?? t('Card listing','Listing kartu')}
           path={marketListingPath(listingTitle??'Card listing',listingId)}
           cards={marketShareCards(items)}
@@ -1139,6 +1140,7 @@ export function MarketListingDetailView({
                     {!isExpired && (
                       <>
                         <ShareButton
+                          listingId={listing.id}
                           title={listingTitle}
                           path={marketListingPath(listingTitle,listing.id)}
                           cards={marketShareCards(editableCards)}
@@ -1217,6 +1219,7 @@ export function MarketListingDetailView({
             <div className="market-listing-utility-actions">
               {ownerView && (
                 <ShareButton
+                  listingId={listing.id}
                   title={listingTitle}
                   path={marketListingPath(listingTitle,listing.id)}
                   cards={marketShareCards(editableCards)}

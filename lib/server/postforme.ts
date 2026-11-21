@@ -1,4 +1,5 @@
 import { database } from '@/lib/server/database';
+import { marketListingSelectorFromPath } from '@/lib/market/listing-url';
 
 export type SupportedPlatform =
   | 'instagram'
@@ -450,6 +451,46 @@ export async function publishToThreads({
   }
 }
 
+export async function resolveCanonicalListingId(
+  db: ReturnType<typeof database>,
+  rawListingId?: string | null
+): Promise<string | null> {
+  const trimmed = rawListingId?.trim();
+  if (!trimmed) return null;
+
+  let segment = trimmed;
+  if (segment.includes('/market/')) {
+    segment = segment.split('/market/')[1]?.split('?')[0]?.split('#')[0] ?? segment;
+  }
+  segment = decodeURIComponent(segment).replace(/^\/+|\/+$/g, '');
+  if (!segment) return null;
+
+  try {
+    const selector = marketListingSelectorFromPath(segment);
+    if (selector?.kind === 'id') {
+      const row = await db
+        .prepare(`SELECT id FROM listings WHERE id = ? LIMIT 1`)
+        .bind(selector.id)
+        .first<{ id: string }>();
+      return row?.id ?? null;
+    }
+    if (selector?.kind === 'prefix') {
+      const row = await db
+        .prepare(`SELECT id FROM listings WHERE id >= ? AND id < ? LIMIT 1`)
+        .bind(selector.lower, selector.upper)
+        .first<{ id: string }>();
+      return row?.id ?? null;
+    }
+    const row = await db
+      .prepare(`SELECT id FROM listings WHERE id = ? LIMIT 1`)
+      .bind(segment)
+      .first<{ id: string }>();
+    return row?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function publishOrScheduleDrop({
   sellerId,
   listingId,
@@ -467,6 +508,7 @@ export async function publishOrScheduleDrop({
 }): Promise<PublishResult> {
   const apiKey = getPostForMeApiKey();
   const db = database();
+  const canonicalListingId = await resolveCanonicalListingId(db, listingId);
   const logId = crypto.randomUUID();
   const publicOrigin = process.env.VIVREPLAY_PUBLIC_URL || 'https://vivreplay.com';
   const absoluteMediaUrls = mediaUrls.map((u) => {
@@ -507,14 +549,14 @@ export async function publishOrScheduleDrop({
     }
 
     // Prevent duplicate publish/schedule for the same listing & platform
-    if (listingId) {
+    if (canonicalListingId) {
       try {
         const existing = await db
           .prepare(
             `SELECT platform FROM social_publish_logs
              WHERE seller_id = ? AND listing_id = ? AND status IN ('PUBLISHED', 'SCHEDULED')`
           )
-          .bind(sellerId, listingId)
+          .bind(sellerId, canonicalListingId)
           .all<{ platform: string }>();
         const alreadyDone = new Set<string>();
         for (const row of existing.results ?? []) {
@@ -548,7 +590,7 @@ export async function publishOrScheduleDrop({
           .bind(
             logId,
             sellerId,
-            listingId ?? null,
+            canonicalListingId,
             selectedAccounts.map((a) => a.platform).join(','),
             `sched_${Date.now()}`,
             new Date(scheduledAt).toISOString(),
@@ -613,7 +655,7 @@ export async function publishOrScheduleDrop({
             .bind(
               itemLogId,
               sellerId,
-              listingId ?? null,
+              canonicalListingId,
               acc.platform,
               res.postId,
               new Date().toISOString(),
@@ -632,7 +674,7 @@ export async function publishOrScheduleDrop({
               `INSERT INTO social_publish_logs (id, seller_id, listing_id, platform, status, error_message, caption)
                VALUES (?, ?, ?, ?, 'FAILED', ?, ?)`
             )
-            .bind(itemLogId, sellerId, listingId ?? null, acc.platform, errText, text)
+            .bind(itemLogId, sellerId, canonicalListingId, acc.platform, errText, text)
             .run();
         } catch {
           // Ignore
@@ -692,7 +734,7 @@ export async function publishOrScheduleDrop({
         .bind(
           logId,
           sellerId,
-          listingId ?? null,
+          canonicalListingId,
           'social',
           status,
           postId,
@@ -719,7 +761,7 @@ export async function publishOrScheduleDrop({
           `INSERT INTO social_publish_logs (id, seller_id, listing_id, platform, status, error_message, caption)
            VALUES (?, ?, ?, ?, 'FAILED', ?, ?)`
         )
-        .bind(logId, sellerId, listingId ?? null, 'social', errorMsg, text)
+        .bind(logId, sellerId, canonicalListingId, 'social', errorMsg, text)
         .run();
     } catch {
       // Ignore
@@ -731,4 +773,224 @@ export async function publishOrScheduleDrop({
       error: errorMsg,
     };
   }
+}
+
+export type SocialPublishLogItem = {
+  id: string;
+  platform: string;
+  status: string;
+  postId: string | null;
+  scheduledAt: string | null;
+  publishedAt: string | null;
+  caption: string | null;
+  username: string | null;
+  permalink: string | null;
+  mediaUrl: string | null;
+  canRemoteDelete: boolean;
+};
+
+function isMetaDeletedError(status: number, body: Record<string, unknown> | null): boolean {
+  if (status === 404) return true;
+  const err = body?.error as { code?: number; error_subcode?: number; message?: string } | undefined;
+  if (!err) return false;
+  if (err.code === 100 || err.error_subcode === 33) return true;
+  const msg = (err.message ?? '').toLowerCase();
+  return (
+    msg.includes('does not exist') ||
+    msg.includes('unsupported get request') ||
+    msg.includes('object with id') ||
+    msg.includes('cannot be loaded')
+  );
+}
+
+async function fetchMetaPostState(
+  platform: string,
+  postId: string,
+  acc: StoredSocialAccount
+): Promise<{
+  deleted: boolean;
+  permalink?: string | null;
+  mediaUrl?: string | null;
+  caption?: string | null;
+}> {
+  if (!acc.accessToken) return { deleted: false };
+  const p = platform.toLowerCase();
+  let url = '';
+  if (p === 'instagram') {
+    const host = acc.refreshToken === 'ig_login' ? 'graph.instagram.com' : 'graph.facebook.com';
+    const ver = host === 'graph.instagram.com' ? 'v22.0' : 'v22.0';
+    url = `https://${host}/${ver}/${encodeURIComponent(postId)}?fields=id,permalink,caption,media_url,thumbnail_url,timestamp&access_token=${encodeURIComponent(acc.accessToken)}`;
+  } else if (p === 'facebook') {
+    url = `https://graph.facebook.com/v22.0/${encodeURIComponent(postId)}?fields=id,permalink_url,message,full_picture,created_time&access_token=${encodeURIComponent(acc.accessToken)}`;
+  } else if (p === 'threads') {
+    url = `https://graph.threads.net/v1.0/${encodeURIComponent(postId)}?fields=id,permalink,text,media_url,thumbnail_url,timestamp&access_token=${encodeURIComponent(acc.accessToken)}`;
+  } else {
+    return { deleted: false };
+  }
+
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    const data = (await res.json().catch(() => null)) as Record<string, unknown> | null;
+    if (!res.ok) {
+      if (isMetaDeletedError(res.status, data)) {
+        return { deleted: true };
+      }
+      return { deleted: false };
+    }
+    return {
+      deleted: false,
+      permalink: (data?.permalink as string | undefined) ?? (data?.permalink_url as string | undefined) ?? null,
+      mediaUrl:
+        (data?.thumbnail_url as string | undefined) ??
+        (data?.media_url as string | undefined) ??
+        (data?.full_picture as string | undefined) ??
+        null,
+      caption:
+        (data?.caption as string | undefined) ??
+        (data?.message as string | undefined) ??
+        (data?.text as string | undefined) ??
+        null,
+    };
+  } catch {
+    return { deleted: false };
+  }
+}
+
+export async function fetchAndVerifySocialPublishLogs(
+  sellerId: string,
+  rawListingId: string
+): Promise<SocialPublishLogItem[]> {
+  const db = database();
+  const canonicalListingId = await resolveCanonicalListingId(db, rawListingId);
+  if (!canonicalListingId) return [];
+
+  const [logsRes, accsRes] = await Promise.all([
+    db
+      .prepare(
+        `SELECT id, platform, status, post_id AS postId, scheduled_at AS scheduledAt, published_at AS publishedAt, caption
+         FROM social_publish_logs
+         WHERE seller_id = ? AND listing_id = ? AND status IN ('PUBLISHED', 'SCHEDULED')
+         ORDER BY created_at DESC`
+      )
+      .bind(sellerId, canonicalListingId)
+      .all<{
+        id: string;
+        platform: string;
+        status: string;
+        postId: string | null;
+        scheduledAt: string | null;
+        publishedAt: string | null;
+        caption: string | null;
+      }>(),
+    db
+      .prepare(
+        `SELECT id, platform, platform_account_id AS platformAccountId, username, access_token AS accessToken, refresh_token AS refreshToken
+         FROM seller_social_connections
+         WHERE seller_id = ?`
+      )
+      .bind(sellerId)
+      .all<StoredSocialAccount>(),
+  ]);
+
+  const accountsByPlatform = new Map<string, StoredSocialAccount>();
+  for (const acc of accsRes.results ?? []) {
+    const key = acc.platform.toLowerCase();
+    if (!accountsByPlatform.has(key)) accountsByPlatform.set(key, acc);
+  }
+
+  const activeLogs: SocialPublishLogItem[] = [];
+  for (const row of logsRes.results ?? []) {
+    const p = row.platform.split(',')[0]?.trim().toLowerCase() ?? row.platform.toLowerCase();
+    const acc = accountsByPlatform.get(p);
+
+    let permalink: string | null = null;
+    let mediaUrl: string | null = null;
+    let liveCaption: string | null = row.caption;
+
+    if (row.status === 'PUBLISHED' && row.postId && acc?.accessToken) {
+      const state = await fetchMetaPostState(p, row.postId, acc);
+      if (state.deleted) {
+        await db
+          .prepare(`UPDATE social_publish_logs SET status = 'DELETED' WHERE id = ? AND seller_id = ?`)
+          .bind(row.id, sellerId)
+          .run()
+          .catch(() => {});
+        continue;
+      }
+      if (state.permalink) permalink = state.permalink;
+      if (state.mediaUrl) mediaUrl = state.mediaUrl;
+      if (state.caption) liveCaption = state.caption;
+    }
+
+    activeLogs.push({
+      id: row.id,
+      platform: row.platform,
+      status: row.status,
+      postId: row.postId,
+      scheduledAt: row.scheduledAt,
+      publishedAt: row.publishedAt,
+      caption: liveCaption,
+      username: acc?.username ?? null,
+      permalink,
+      mediaUrl,
+      canRemoteDelete: p === 'facebook' || p === 'threads',
+    });
+  }
+
+  return activeLogs;
+}
+
+export async function deleteOrUnlinkSocialPublishLog(
+  sellerId: string,
+  logId: string
+): Promise<{ success: boolean; remoteDeleted: boolean; error?: string }> {
+  const db = database();
+  const row = await db
+    .prepare(
+      `SELECT id, platform, status, post_id AS postId
+       FROM social_publish_logs
+       WHERE id = ? AND seller_id = ?
+       LIMIT 1`
+    )
+    .bind(logId, sellerId)
+    .first<{ id: string; platform: string; status: string; postId: string | null }>();
+
+  if (!row) {
+    return { success: false, remoteDeleted: false, error: 'Publish record not found' };
+  }
+
+  const p = row.platform.split(',')[0]?.trim().toLowerCase() ?? row.platform.toLowerCase();
+  let remoteDeleted = false;
+
+  if (row.status === 'PUBLISHED' && row.postId && (p === 'facebook' || p === 'threads')) {
+    const acc = await db
+      .prepare(
+        `SELECT id, platform, platform_account_id AS platformAccountId, username, access_token AS accessToken, refresh_token AS refreshToken
+         FROM seller_social_connections
+         WHERE seller_id = ? AND LOWER(platform) = ?
+         LIMIT 1`
+      )
+      .bind(sellerId, p)
+      .first<StoredSocialAccount>();
+
+    if (acc?.accessToken) {
+      const deleteUrl =
+        p === 'facebook'
+          ? `https://graph.facebook.com/v22.0/${encodeURIComponent(row.postId)}?access_token=${encodeURIComponent(acc.accessToken)}`
+          : `https://graph.threads.net/v1.0/${encodeURIComponent(row.postId)}?access_token=${encodeURIComponent(acc.accessToken)}`;
+      try {
+        const res = await fetch(deleteUrl, { method: 'DELETE', signal: AbortSignal.timeout(5000) });
+        if (res.ok) remoteDeleted = true;
+      } catch {
+        // Proceed with local DELETED status even if remote already gone
+      }
+    }
+  }
+
+  await db
+    .prepare(`UPDATE social_publish_logs SET status = 'DELETED' WHERE id = ? AND seller_id = ?`)
+    .bind(row.id, sellerId)
+    .run();
+
+  return { success: true, remoteDeleted };
 }

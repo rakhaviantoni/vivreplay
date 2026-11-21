@@ -162,6 +162,7 @@ export type ShareButtonProps = {
   onOpenChange?: (open: boolean) => void;
   entityType?: 'listing' | 'card';
   cardDetails?: ShareCardDetails;
+  listingId?: string;
 };
 
 function shareExpiry(value:string,language:'EN'|'ID',preferredTimeZone?:string){
@@ -989,6 +990,7 @@ export function ShareButton({
   onOpenChange,
   entityType = 'listing',
   cardDetails,
+  listingId,
 }: ShareButtonProps) {
   const [open, setOpen] = useState(openOnMount);
   const [copied, setCopied] = useState(false);
@@ -1273,7 +1275,7 @@ export function ShareButton({
           open={socialOpen}
           onOpenChange={setSocialOpen}
           listing={{
-            id: path.split('/market/')[1]?.split('?')[0] || path,
+            id: listingId || path.split('/market/')[1]?.split('?')[0] || path,
             title,
             amount: price ? Number(price.replace(/[^0-9]/g, '')) || 0 : 0,
             seller: listingInfo?.seller,

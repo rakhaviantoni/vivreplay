@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
 import {
+  ArrowSquareOutIcon as ArrowSquareOut,
   ArrowsClockwiseIcon as ArrowsClockwise,
   BookmarkSimpleIcon as BookmarkSimple,
   CalendarBlankIcon as CalendarBlank,
@@ -151,8 +152,22 @@ export function MarketSocialSyndicationDialog({
 
   // Actions
   const [publishing, setPublishing] = useState(false);
+  const [loadingLogs, setLoadingLogs] = useState(false);
+  const [deletingLogId, setDeletingLogId] = useState<string | null>(null);
   const [publishLogs, setPublishLogs] = useState<
-    Array<{ id: string; platform: string; status: string; scheduledAt?: string | null; publishedAt?: string | null }>
+    Array<{
+      id: string;
+      platform: string;
+      status: string;
+      postId?: string | null;
+      scheduledAt?: string | null;
+      publishedAt?: string | null;
+      caption?: string | null;
+      username?: string | null;
+      permalink?: string | null;
+      mediaUrl?: string | null;
+      canRemoteDelete?: boolean;
+    }>
   >([]);
   const [aiBusy, setAiBusy] = useState(false);
   const [activeAiStyle, setActiveAiStyle] = useState<string | null>(null);
@@ -272,6 +287,44 @@ export function MarketSocialSyndicationDialog({
     }
   };
 
+  const loadPublishLogs = async () => {
+    if (!listing.id) {
+      setPublishLogs([]);
+      return;
+    }
+    setLoadingLogs(true);
+    try {
+      const res = await fetch(`/api/market/social/publish?listingId=${encodeURIComponent(listing.id)}`);
+      const data = (await res.json()) as { logs?: typeof publishLogs };
+      setPublishLogs(data.logs ?? []);
+    } catch {
+      setPublishLogs([]);
+    } finally {
+      setLoadingLogs(false);
+    }
+  };
+
+  const handleDeletePublishLog = async (logId: string, canRemoteDelete?: boolean) => {
+    setDeletingLogId(logId);
+    try {
+      const res = await fetch(`/api/market/social/publish?logId=${encodeURIComponent(logId)}`, {
+        method: 'DELETE',
+      });
+      const data = (await res.json()) as { success?: boolean; remoteDeleted?: boolean; error?: string };
+      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to delete');
+      setPublishLogs((prev) => prev.filter((item) => item.id !== logId));
+      toast.success(
+        canRemoteDelete && data.remoteDeleted
+          ? t('Post deleted. You can publish again now.', 'Postingan dihapus. Anda bisa terbitkan ulang sekarang.')
+          : t('Publish lock cleared. You can publish again now.', 'Status terbit dihapus. Anda bisa terbitkan ulang sekarang.')
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t('Failed to delete post', 'Gagal menghapus postingan'));
+    } finally {
+      setDeletingLogId(null);
+    }
+  };
+
   // Listen for OAuth completion message from popup window
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -338,13 +391,7 @@ export function MarketSocialSyndicationDialog({
     setCustomUrlInput('');
 
     void loadAccounts();
-
-    if (listing.id) {
-      void fetch(`/api/market/social/publish?listingId=${encodeURIComponent(listing.id)}`)
-        .then(async (res) => (await res.json()) as { logs?: typeof publishLogs })
-        .then((data) => setPublishLogs(data.logs ?? []))
-        .catch(() => setPublishLogs([]));
-    }
+    void loadPublishLogs();
 
     void fetch('/api/market/social/templates')
       .then(async (res) => (await res.json()) as { templates?: SavedCaptionTemplate[] })
@@ -743,6 +790,111 @@ export function MarketSocialSyndicationDialog({
                         </Button>
                       );
                     })}
+                  </div>
+                )}
+
+                {publishLogs.length > 0 && (
+                  <div className="market-social-panel mt-3 p-3 flex flex-col gap-2.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                        {t('Current Post on Social Media', 'Postingan Aktif di Media Sosial')}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="xs"
+                        disabled={loadingLogs}
+                        onClick={() => void loadPublishLogs()}
+                        className="button secondary gap-1 text-[11px] font-semibold"
+                        title={t('Re-check post status on social media', 'Periksa ulang status postingan')}
+                      >
+                        <ArrowsClockwise size={12} className={loadingLogs ? 'animate-spin' : ''} />
+                        <span>{t('Refresh', 'Segarkan')}</span>
+                      </Button>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      {publishLogs.map((log) => {
+                        const isScheduled = log.status === 'SCHEDULED';
+                        const dateStr = log.publishedAt || log.scheduledAt;
+                        const formattedDate = dateStr
+                          ? new Date(dateStr).toLocaleString(isId ? 'id-ID' : 'en-US', {
+                              day: 'numeric',
+                              month: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })
+                          : '';
+                        return (
+                          <div
+                            key={log.id}
+                            className="flex items-start gap-2.5 rounded-lg border border-border/60 bg-background/50 p-2.5"
+                          >
+                            {log.mediaUrl && (
+                              <img
+                                src={log.mediaUrl}
+                                alt={log.platform}
+                                className="w-12 h-12 rounded-md object-cover shrink-0 border border-border/50"
+                              />
+                            )}
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                {getPlatformIcon(log.platform, 13)}
+                                <span className="text-xs font-bold">
+                                  {log.username ? `@${log.username}` : log.platform}
+                                </span>
+                                <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-bold">
+                                  {isScheduled ? t('Scheduled', 'Terjadwal') : t('Published', 'Terbit')}
+                                </Badge>
+                                {formattedDate && (
+                                  <span className="text-[10px] text-muted-foreground">{formattedDate}</span>
+                                )}
+                              </div>
+                              {log.caption && (
+                                <p className="mt-1 text-[11px] text-muted-foreground line-clamp-2 whitespace-pre-line">
+                                  {log.caption}
+                                </p>
+                              )}
+                              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                                {log.permalink && (
+                                  <a
+                                    href={log.permalink}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="button secondary inline-flex items-center gap-1 text-[11px] font-semibold no-underline"
+                                  >
+                                    <ArrowSquareOut size={12} />
+                                    <span>{t('View Post', 'Lihat Post')}</span>
+                                  </a>
+                                )}
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  size="xs"
+                                  disabled={deletingLogId === log.id}
+                                  onClick={() => void handleDeletePublishLog(log.id, log.canRemoteDelete)}
+                                  className="button secondary gap-1 text-[11px] font-semibold text-destructive"
+                                  title={
+                                    log.canRemoteDelete
+                                      ? t('Delete post and allow re-publishing', 'Hapus postingan agar bisa terbit ulang')
+                                      : t('Remove publish lock (delete on Instagram app too if needed)', 'Hapus status terbit agar bisa terbit ulang')
+                                  }
+                                >
+                                  <Trash size={12} />
+                                  <span>
+                                    {deletingLogId === log.id
+                                      ? t('Removing…', 'Menghapus…')
+                                      : log.canRemoteDelete
+                                      ? t('Delete Post', 'Hapus Post')
+                                      : t('Remove & Re-publish', 'Hapus & Terbit Ulang')}
+                                  </span>
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 )}
               </section>
@@ -1329,11 +1481,21 @@ export function MarketSocialSyndicationDialog({
                 <Button
                   variant="default"
                   size="sm"
+                  disabled={allConnectedAlreadyPublished}
                   onClick={() => setStep('schedule')}
                   className="market-social-footer-next button h-9 rounded-xl text-xs font-bold gap-1.5 px-4"
                 >
-                  <span>{t('Next: Schedule', 'Lanjut: Jadwal')}</span>
-                  <span>→</span>
+                  {allConnectedAlreadyPublished ? (
+                    <>
+                      <CheckCircle size={13} weight="fill" />
+                      <span>{t('Already Published', 'Sudah Diterbitkan')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>{t('Next: Schedule', 'Lanjut: Jadwal')}</span>
+                      <span>→</span>
+                    </>
+                  )}
                 </Button>
               )}
               {step === 'schedule' && (

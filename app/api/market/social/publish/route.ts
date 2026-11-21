@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { database } from '@/lib/server/database';
-import { publishOrScheduleDrop } from '@/lib/server/postforme';
+import {
+  deleteOrUnlinkSocialPublishLog,
+  fetchAndVerifySocialPublishLogs,
+  publishOrScheduleDrop,
+} from '@/lib/server/postforme';
 import { user } from '@/lib/server/store';
 
 export async function GET(request: NextRequest) {
@@ -14,28 +17,36 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ logs: [] });
   }
 
-  const db = database();
   try {
-    const rows = await db
-      .prepare(
-        `SELECT id, platform, status, post_id AS postId, scheduled_at AS scheduledAt, published_at AS publishedAt
-         FROM social_publish_logs
-         WHERE seller_id = ? AND listing_id = ? AND status IN ('PUBLISHED', 'SCHEDULED')
-         ORDER BY created_at DESC`
-      )
-      .bind(profile.id, listingId)
-      .all<{
-        id: string;
-        platform: string;
-        status: string;
-        postId: string | null;
-        scheduledAt: string | null;
-        publishedAt: string | null;
-      }>();
-
-    return NextResponse.json({ logs: rows.results ?? [] });
+    const logs = await fetchAndVerifySocialPublishLogs(profile.id, listingId);
+    return NextResponse.json({ logs });
   } catch {
     return NextResponse.json({ logs: [] });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  const profile = await user().catch(() => null);
+  if (!profile) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const logId = request.nextUrl.searchParams.get('logId');
+  if (!logId) {
+    return NextResponse.json({ error: 'Missing logId' }, { status: 400 });
+  }
+
+  try {
+    const result = await deleteOrUnlinkSocialPublishLog(profile.id, logId);
+    if (!result.success) {
+      return NextResponse.json({ error: result.error || 'Delete failed' }, { status: 404 });
+    }
+    return NextResponse.json(result);
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Delete failed' },
+      { status: 500 }
+    );
   }
 }
 
