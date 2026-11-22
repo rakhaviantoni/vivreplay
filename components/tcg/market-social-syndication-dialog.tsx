@@ -395,7 +395,7 @@ export function MarketSocialSyndicationDialog({
     void loadAccounts();
     void loadPublishLogs();
 
-    void fetch('/api/market/social/templates')
+    void fetch('/api/market/social/templates', { cache: 'no-store' })
       .then(async (res) => (await res.json()) as { templates?: SavedCaptionTemplate[] })
       .then((data) => setTemplates(data.templates ?? []))
       .catch(() => {});
@@ -474,9 +474,10 @@ export function MarketSocialSyndicationDialog({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: templateName.trim(), body: caption, isDefault: false }),
       });
-      const data = (await res.json()) as { templates?: SavedCaptionTemplate[]; error?: string };
+      const data = (await res.json()) as { savedId?: string; templates?: SavedCaptionTemplate[]; error?: string };
       if (!res.ok || !data.templates) throw new Error(data.error || 'Failed to save');
       setTemplates(data.templates);
+      if (data.savedId) setSelectedTemplateId(data.savedId);
       setShowSaveTemplate(false);
       setTemplateName('');
       toast.success(t('Template saved successfully', 'Template berhasil disimpan'));

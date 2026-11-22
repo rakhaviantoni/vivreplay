@@ -21,10 +21,13 @@ export async function GET() {
       .bind(profile.id)
       .all<SavedCaptionTemplate>();
 
-    return NextResponse.json({
-      templates: rows.results,
-      defaults: DEFAULT_CAPTION_TEMPLATES,
-    });
+    return NextResponse.json(
+      {
+        templates: rows.results,
+        defaults: DEFAULT_CAPTION_TEMPLATES,
+      },
+      { headers: { 'Cache-Control': 'no-store' } }
+    );
   } catch {
     // If table doesn't exist yet, return defaults
     return NextResponse.json({
@@ -79,7 +82,7 @@ export async function POST(request: NextRequest) {
       .bind(profile.id)
       .all<SavedCaptionTemplate>();
 
-    return NextResponse.json({ success: true, templates: rows.results });
+    return NextResponse.json({ success: true, savedId: id, templates: rows.results });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Could not save template' },
