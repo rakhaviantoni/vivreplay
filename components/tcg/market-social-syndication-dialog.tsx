@@ -566,13 +566,37 @@ export function MarketSocialSyndicationDialog({
           scheduledAt,
         }),
       });
-      const data = (await res.json()) as { success?: boolean; error?: string };
+      const data = (await res.json()) as {
+        success?: boolean;
+        publishedAccounts?: Array<{ platform: string; username: string }>;
+        error?: string;
+      };
       if (!res.ok || !data.success) throw new Error(data.error || 'Publish failed');
+      const targetAccounts =
+        data.publishedAccounts && data.publishedAccounts.length > 0
+          ? data.publishedAccounts
+          : eligibleSelectedIds
+              .map((id) => accounts.find((a) => a.id === id))
+              .filter((a): a is ConnectedAccount => Boolean(a))
+              .map((a) => ({ platform: a.platform, username: a.username }));
+      const targetLabel = targetAccounts
+        .map((a) => {
+          const name = a.platform.charAt(0).toUpperCase() + a.platform.slice(1).toLowerCase();
+          return a.username ? `${name} (@${a.username})` : name;
+        })
+        .join(', ');
       toast.success(
         scheduledAt
-          ? t('Post scheduled successfully', 'Postingan berhasil dijadwalkan')
+          ? targetLabel
+            ? t(`Scheduled for ${targetLabel}`, `Dijadwalkan untuk ${targetLabel}`)
+            : t('Post scheduled successfully', 'Postingan berhasil dijadwalkan')
+          : targetLabel
+          ? t(`Published to ${targetLabel}`, `Berhasil diterbitkan ke ${targetLabel}`)
           : t('Published to social channels', 'Berhasil dipublikasikan ke media sosial')
       );
+      if (data.error) {
+        toast.warning(data.error);
+      }
       onOpenChange(false);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : t('Publishing failed', 'Gagal mempublikasikan'));

@@ -25,6 +25,7 @@ export type PublishResult = {
   postId?: string;
   scheduledAt?: string | null;
   status: 'PUBLISHED' | 'SCHEDULED' | 'FAILED';
+  publishedAccounts?: Array<{ platform: string; username: string }>;
   error?: string;
 };
 
@@ -606,12 +607,17 @@ export async function publishOrScheduleDrop({
         postId: `sched_${Date.now()}`,
         scheduledAt: new Date(scheduledAt).toISOString(),
         status: 'SCHEDULED',
+        publishedAccounts: selectedAccounts.map((a) => ({
+          platform: a.platform,
+          username: a.username,
+        })),
       };
     }
 
     // Publish immediately to each selected Meta account
     const errors: string[] = [];
     const postIds: string[] = [];
+    const publishedAccounts: Array<{ platform: string; username: string }> = [];
 
     for (const acc of selectedAccounts) {
       let res: { success: boolean; postId?: string; error?: string };
@@ -646,6 +652,7 @@ export async function publishOrScheduleDrop({
       const itemLogId = crypto.randomUUID();
       if (res.success && res.postId) {
         postIds.push(res.postId);
+        publishedAccounts.push({ platform: acc.platform, username: acc.username });
         try {
           await db
             .prepare(
@@ -695,6 +702,7 @@ export async function publishOrScheduleDrop({
       postId: postIds.join(','),
       scheduledAt: null,
       status: 'PUBLISHED',
+      publishedAccounts,
       ...(errors.length > 0 ? { error: `Published with warnings: ${errors.join(' | ')}` } : {}),
     };
   }
