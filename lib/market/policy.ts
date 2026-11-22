@@ -84,6 +84,7 @@ export const MARKET_PRO_SHIPPING_VOUCHERS_PER_YEAR = MARKET_PRO_SHIPPING_VOUCHER
 export const MARKET_PRO_SHIPPING_VOUCHER_MIN_SUBTOTAL = 500_000;
 export const MARKET_PRO_SHIPPING_VOUCHER_SHARE = 0.5;
 export const MARKET_PRO_SHIPPING_VOUCHER_CAP = 5_000;
+export const MARKET_FREE_SOCIAL_POSTS_PER_MONTH = 3;
 
 export function getMarketBuyerFeeCap(subtotal: number): number {
   const safeSubtotal = Math.max(0, subtotal);

@@ -3,6 +3,7 @@ import {
   deleteOrUnlinkSocialPublishLog,
   fetchAllSellerSocialPublishLogs,
   fetchAndVerifySocialPublishLogs,
+  getSellerSocialPublishQuota,
   publishOrScheduleDrop,
 } from '@/lib/server/postforme';
 import { user } from '@/lib/server/store';
@@ -17,15 +18,16 @@ export async function GET(request: NextRequest) {
   const includeAll = request.nextUrl.searchParams.get('all') === '1';
 
   try {
+    const quota = await getSellerSocialPublishQuota(profile.id, (profile as { tier?: string }).tier);
     if (listingId) {
       const logs = await fetchAndVerifySocialPublishLogs(profile.id, listingId);
-      return NextResponse.json({ logs });
+      return NextResponse.json({ logs, quota });
     }
     if (includeAll) {
       const logs = await fetchAllSellerSocialPublishLogs(profile.id);
-      return NextResponse.json({ logs });
+      return NextResponse.json({ logs, quota });
     }
-    return NextResponse.json({ logs: [] });
+    return NextResponse.json({ logs: [], quota });
   } catch {
     return NextResponse.json({ logs: [] });
   }
@@ -76,6 +78,25 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const quota = await getSellerSocialPublishQuota(profile.id, (profile as { tier?: string }).tier);
+    if (body.scheduledAt && !quota.canSchedule) {
+      return NextResponse.json(
+        {
+          error:
+            'Scheduled social drops are a Market Pro feature. Upgrade to Market Pro for scheduled and unlimited auto-posts.',
+        },
+        { status: 403 }
+      );
+    }
+    if (quota.remainingThisMonth !== null && quota.remainingThisMonth <= 0) {
+      return NextResponse.json(
+        {
+          error: `You have reached the Free limit of ${quota.monthlyLimit} social auto-posts per month. Upgrade to Market Pro for unlimited auto-posts.`,
+        },
+        { status: 403 }
+      );
+    }
+
     const result = await publishOrScheduleDrop({
       sellerId: profile.id,
       listingId: body.listingId,
@@ -86,7 +107,8 @@ export async function POST(request: NextRequest) {
       includeSoldPrice: Boolean(body.includeSoldPrice),
     });
 
-    return NextResponse.json(result);
+    const updatedQuota = await getSellerSocialPublishQuota(profile.id, (profile as { tier?: string }).tier);
+    return NextResponse.json({ ...result, quota: updatedQuota });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Publish failed' },

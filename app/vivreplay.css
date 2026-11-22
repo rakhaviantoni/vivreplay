@@ -4539,6 +4539,7 @@ html[data-theme='dark'] .market-listing-order-tools .market-listing-remove-item:
 .profile-socials-head h2{display:flex;align-items:center;gap:7px;margin:0 0 4px;font-size:16px;font-weight:750;color:var(--ink,#1d1914)}
 .profile-socials-head h2 svg{color:var(--accent)}
 .profile-socials-head p{margin:0;color:var(--muted,#716a5e);font-size:12.5px;line-height:1.45;max-width:600px}
+.profile-social-quota-row{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:8px}
 .profile-socials-muted{margin:0;color:var(--muted,#716a5e);font-size:13px}
 .profile-socials-accounts{display:grid;gap:14px}
 .profile-socials-connected-list{display:grid;gap:10px}

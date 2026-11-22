@@ -1,5 +1,6 @@
 import { database } from '@/lib/server/database';
 import { marketListingPath, marketListingSelectorFromPath } from '@/lib/market/listing-url';
+import { MARKET_FREE_SOCIAL_POSTS_PER_MONTH } from '@/lib/market/policy';
 import type { PublicSocialConnection } from '@/lib/social-links';
 
 export type SupportedPlatform =
@@ -1503,4 +1504,53 @@ export async function updateSocialTesterRequestStatus(
     .bind(status, id)
     .run();
   return Number(res.meta?.changes ?? 0) > 0;
+}
+
+export type SocialPublishQuotaInfo = {
+  tier: 'free' | 'pro';
+  usedThisMonth: number;
+  monthlyLimit: number | null;
+  remainingThisMonth: number | null;
+  canSchedule: boolean;
+};
+
+export async function getSellerSocialPublishQuota(
+  sellerId: string,
+  tier?: string | null
+): Promise<SocialPublishQuotaInfo> {
+  const db = database();
+  let resolvedTier = (tier ?? '').trim().toLowerCase();
+  if (!resolvedTier) {
+    const profileRow = await db
+      .prepare(`SELECT tier FROM profiles WHERE id = ?`)
+      .bind(sellerId)
+      .first<{ tier?: string | null }>()
+      .catch(() => null);
+    resolvedTier = (profileRow?.tier ?? 'free').trim().toLowerCase();
+  }
+  const isPro = resolvedTier === 'pro';
+
+  const countRow = await db
+    .prepare(
+      `SELECT COUNT(*) AS count
+       FROM social_publish_logs
+       WHERE seller_id = ?
+         AND status IN ('PUBLISHED', 'SCHEDULED')
+         AND created_at >= datetime('now', '-30 days')`
+    )
+    .bind(sellerId)
+    .first<{ count: number }>()
+    .catch(() => ({ count: 0 }));
+
+  const usedThisMonth = Number(countRow?.count ?? 0);
+  const monthlyLimit = isPro ? null : MARKET_FREE_SOCIAL_POSTS_PER_MONTH;
+  const remainingThisMonth = isPro ? null : Math.max(0, MARKET_FREE_SOCIAL_POSTS_PER_MONTH - usedThisMonth);
+
+  return {
+    tier: isPro ? 'pro' : 'free',
+    usedThisMonth,
+    monthlyLimit,
+    remainingThisMonth,
+    canSchedule: isPro,
+  };
 }

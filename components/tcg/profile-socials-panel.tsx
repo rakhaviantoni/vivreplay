@@ -111,6 +111,13 @@ export function ProfileSocialsPanel({
 
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'PUBLISHED' | 'SCHEDULED'>('ALL');
   const [platformFilter, setPlatformFilter] = useState<string>('ALL');
+  const [quota, setQuota] = useState<{
+    tier: 'free' | 'pro';
+    usedThisMonth: number;
+    monthlyLimit: number | null;
+    remainingThisMonth: number | null;
+    canSchedule: boolean;
+  } | null>(null);
 
   // Tester access form state
   const [testerRequest, setTesterRequest] = useState<TesterRequestItem | null>(null);
@@ -135,7 +142,7 @@ export function ProfileSocialsPanel({
         .then((r) => r.json() as Promise<{ platforms?: string[] }>)
         .catch(() => null),
       fetch('/api/market/social/publish?all=1', { cache: 'no-store' })
-        .then((r) => r.json() as Promise<{ logs?: SellerSocialPostItem[] }>)
+        .then((r) => r.json() as Promise<{ logs?: SellerSocialPostItem[]; quota?: typeof quota }>)
         .catch(() => null),
       fetch('/api/market/social/tester-request', { cache: 'no-store' })
         .then((r) => r.json() as Promise<{ request?: TesterRequestItem | null }>)
@@ -150,6 +157,9 @@ export function ProfileSocialsPanel({
     }
     if (Array.isArray(postRes?.logs)) {
       setPosts(postRes.logs);
+    }
+    if (postRes?.quota) {
+      setQuota(postRes.quota);
     }
     if (reqRes?.request) {
       const r = reqRes.request as TesterRequestItem;
@@ -495,6 +505,23 @@ export function ProfileSocialsPanel({
                 'Setiap postingan media sosial dari listing Anda, lengkap dengan tautan ke postingan dan listing Market.'
               )}
             </p>
+            {quota && (
+              <div className="profile-social-quota-row">
+                <span className={`profile-tester-status ${quota.tier === 'pro' ? 'is-approved' : 'is-pending'}`}>
+                  {quota.tier === 'pro'
+                    ? t('Market Pro: Unlimited auto-posts & scheduling', 'Market Pro: Auto-post & jadwal tanpa batas')
+                    : t(
+                        `Free plan: ${quota.remainingThisMonth ?? 0} of ${quota.monthlyLimit ?? 3} auto-posts remaining this month`,
+                        `Paket Gratis: ${quota.remainingThisMonth ?? 0} dari ${quota.monthlyLimit ?? 3} auto-post tersisa bulan ini`
+                      )}
+                </span>
+                {quota.tier === 'free' && (
+                  <Link href="/checkout/pro" className="market-listing-social-manage-link">
+                    {t('Upgrade to Market Pro', 'Upgrade ke Market Pro')}
+                  </Link>
+                )}
+              </div>
+            )}
           </div>
           {posts.length > 0 && (
             <div className="profile-socials-filters">

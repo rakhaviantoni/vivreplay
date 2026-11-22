@@ -157,6 +157,13 @@ export function MarketSocialSyndicationDialog({
   const [publishing, setPublishing] = useState(false);
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [deletingLogId, setDeletingLogId] = useState<string | null>(null);
+  const [publishQuota, setPublishQuota] = useState<{
+    tier: 'free' | 'pro';
+    usedThisMonth: number;
+    monthlyLimit: number | null;
+    remainingThisMonth: number | null;
+    canSchedule: boolean;
+  } | null>(null);
   const [publishLogs, setPublishLogs] = useState<
     Array<{
       id: string;
@@ -298,8 +305,9 @@ export function MarketSocialSyndicationDialog({
     setLoadingLogs(true);
     try {
       const res = await fetch(`/api/market/social/publish?listingId=${encodeURIComponent(listing.id)}`);
-      const data = (await res.json()) as { logs?: typeof publishLogs };
+      const data = (await res.json()) as { logs?: typeof publishLogs; quota?: typeof publishQuota };
       setPublishLogs(data.logs ?? []);
+      if (data.quota) setPublishQuota(data.quota);
     } catch {
       setPublishLogs([]);
     } finally {
@@ -656,7 +664,11 @@ export function MarketSocialSyndicationDialog({
               </div>
               <span>{t('Publish Drop to Social Media', 'Terbitkan Drop ke Media Sosial')}</span>
               <Badge variant="secondary" className="text-[10px] px-2 py-0 font-semibold uppercase tracking-wider">
-                {t('Auto-Drop', 'Auto-Drop')}
+                {publishQuota
+                  ? publishQuota.tier === 'pro'
+                    ? t('Pro Unlimited', 'Pro Tanpa Batas')
+                    : t(`${publishQuota.remainingThisMonth ?? 0}/${publishQuota.monthlyLimit ?? 3} Free left`, `${publishQuota.remainingThisMonth ?? 0}/${publishQuota.monthlyLimit ?? 3} Gratis tersisa`)
+                  : t('Auto-Drop', 'Auto-Drop')}
               </Badge>
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground mt-1">
