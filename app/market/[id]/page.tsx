@@ -6,6 +6,7 @@ import {db,optionalUser} from '@/lib/server/store';
 import {cardFor,printings,type Card} from '@/packages/card-data/catalog';
 import {Listing} from '@/packages/domain';
 import {MarketListingDetailView,type MarketListingCard} from '@/components/tcg/market-listing-items';
+import {getPublicSellerSocials} from '@/lib/server/postforme';
 import {MarketStoreNav} from '@/components/tcg/market-store-nav';
 import {Market} from '@/components/tcg/market';
 import {pageMetadata} from '@/lib/site-metadata';
@@ -270,12 +271,15 @@ async function Page({params}:{params:Promise<{id:string}>}){
   const reservedCount=listingCards.reduce((total,item)=>total+(item.heldQuantity??0),0);
   if(stored.type==='WTS'&&reservedCount>0&&!isOwner){listing.quantity=cardCount;if(cardCount>0)listing.amount=listingCards.reduce((total,item)=>total+(item.availableQuantity??item.quantity)*item.unitAmount,0);}
 
+  const sellerSocials = stored?.sellerId ? await getPublicSellerSocials(stored.sellerId) : [];
+
   return (
     <>
       <MarketStoreNav showPromo={false} sellHref={`/market?sell=${encodeURIComponent(`${primary.card.printingCode??primary.card.code}--${primary.language.toLowerCase()}`)}`}/>
       <MarketListingDetailView
         listing={listing}
         stored={stored}
+        sellerSocials={sellerSocials}
         listingCards={listingCards}
         primary={primary}
         cardCount={cardCount}

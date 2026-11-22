@@ -7,7 +7,8 @@ import {SaveListingButton,WishlistButton} from './market-saved';
 import {MarketReputation} from './market-reputation';
 import {useLocalizedRouter as useRouter} from '@/lib/use-localized-router';
 import {useCallback,useEffect,useMemo,useRef,useState,type FormEvent,type ReactNode} from 'react';
-import {ArrowClockwiseIcon as Renew, ArrowUpIcon, ArrowDownIcon, CheckCircleIcon, ClockIcon, DotsSixVerticalIcon, CheckIcon as Check, FlagIcon as Flag, InfoIcon as Info, ListIcon as List, MinusIcon as Minus, PlusIcon as Plus, ShoppingCartIcon as Cart, SquaresFourIcon as Grid, TrashIcon as Trash, TruckIcon as Truck, WarningCircleIcon, XCircleIcon, XIcon as X} from '@phosphor-icons/react';
+import {ArrowClockwiseIcon as Renew, ArrowUpIcon, ArrowDownIcon, CheckCircleIcon, ClockIcon, DotsSixVerticalIcon, CheckIcon as Check, FacebookLogoIcon as FacebookLogo, FlagIcon as Flag, GlobeIcon as Globe, InfoIcon as Info, InstagramLogoIcon as InstagramLogo, ListIcon as List, MinusIcon as Minus, PlusIcon as Plus, SealCheckIcon as SealCheck, ShoppingCartIcon as Cart, SquaresFourIcon as Grid, ThreadsLogoIcon as ThreadsLogo, TrashIcon as Trash, TruckIcon as Truck, WarningCircleIcon, XCircleIcon, XIcon as X} from '@phosphor-icons/react';
+import {socialDisplayHandle, socialProfileUrl, type PublicSocialConnection} from '@/lib/social-links';
 import type {Card} from '@/packages/card-data/catalog';
 import {formatMoney,Listing} from '@/packages/domain';
 import {MarketGameMark,type MarketGameScope} from './market';
@@ -953,6 +954,7 @@ export function MarketListingItems({items,currency,listingType,listingId,listing
 export function MarketListingDetailView({
   listing,
   stored,
+  sellerSocials = [],
   listingCards,
   primary,
   cardCount,
@@ -966,6 +968,7 @@ export function MarketListingDetailView({
 }: {
   listing: Listing;
   stored?: (Listing & { username: string }) | null;
+  sellerSocials?: PublicSocialConnection[];
   listingCards: MarketListingCard[];
   primary: MarketListingCard;
   cardCount: number;
@@ -1214,6 +1217,43 @@ export function MarketListingDetailView({
               <div className="market-listing-seller-copy">
                 <small>{isBuying ? t('Buyer', 'Pembeli') : t('Seller', 'Penjual')}</small>
                 <div className="market-listing-seller-name"><strong>{stored ? <Link href={`/players/${stored.username}`}>{listing.seller}</Link> : listing.seller}</strong><MarketReputation listingId={listing.id} username={stored?.username} language={language} role={isBuying?'buyer':'seller'}/></div>
+                {sellerSocials.length > 0 && (
+                  <div className="market-seller-socials" aria-label={t('Verified seller socials', 'Media sosial penjual terverifikasi')}>
+                    {sellerSocials.map((conn) => {
+                      const url = socialProfileUrl(conn);
+                      const label = socialDisplayHandle(conn);
+                      const pLower = conn.platform.toLowerCase();
+                      const icon =
+                        pLower === 'instagram' ? <InstagramLogo size={12} weight="fill" /> :
+                        pLower === 'facebook' ? <FacebookLogo size={12} weight="fill" /> :
+                        pLower === 'threads' ? <ThreadsLogo size={12} weight="fill" /> :
+                        <Globe size={12} />;
+                      const inner = (
+                        <>
+                          <span className={`market-seller-social-icon is-${pLower}`}>{icon}</span>
+                          <span>{label}</span>
+                          <SealCheck size={11} weight="fill" className="market-seller-social-verified" aria-hidden="true" />
+                        </>
+                      );
+                      return url ? (
+                        <a
+                          key={`${conn.platform}:${conn.platformAccountId}`}
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="market-seller-social-chip"
+                          title={t(`Verified ${conn.platform}: ${label}`, `${conn.platform} terverifikasi: ${label}`)}
+                        >
+                          {inner}
+                        </a>
+                      ) : (
+                        <span key={`${conn.platform}:${conn.platformAccountId}`} className="market-seller-social-chip">
+                          {inner}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </section>
             <div className="market-listing-utility-actions">

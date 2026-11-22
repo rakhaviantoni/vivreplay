@@ -9,9 +9,15 @@ import {
   StackIcon as Layers3,
   ArrowSquareOutIcon as ArrowSquareOut,
   CardsIcon as Cards,
+  FacebookLogoIcon as FacebookLogo,
+  InstagramLogoIcon as InstagramLogo,
+  SealCheckIcon as SealCheck,
+  ThreadsLogoIcon as ThreadsLogo,
 } from '@phosphor-icons/react/dist/ssr';
 import {privateMetadata} from '@/lib/site-metadata';
 import {db} from '@/lib/server/store';
+import {getPublicSellerSocials} from '@/lib/server/postforme';
+import {socialDisplayHandle, socialProfileUrl} from '@/lib/social-links';
 import {ShareButton} from '@/components/tcg/share';
 import {formatMoney} from '@/packages/domain';
 import {cardFor,type Card} from '@/packages/card-data/catalog';
@@ -52,7 +58,7 @@ async function Page({params}: {params: Promise<{username: string}>}) {
 
   if (!p) notFound();
 
-  const [listingsRes, decksRes, listingCount, deckCount] = await Promise.all([
+  const [listingsRes, decksRes, listingCount, deckCount, sellerSocials] = await Promise.all([
     db().prepare(`
       SELECT
         l.id,
@@ -127,6 +133,7 @@ async function Page({params}: {params: Promise<{username: string}>}) {
     }>(),
     db().prepare("SELECT COUNT(*) AS count FROM listings WHERE seller_id=? AND status='ACTIVE' AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)").bind(p.id).first<{count:number}>(),
     db().prepare("SELECT COUNT(*) AS count FROM decks WHERE owner_id=? AND visibility='public' AND deleted_at IS NULL").bind(p.id).first<{count:number}>(),
+    getPublicSellerSocials(p.id),
   ]);
 
   const listings = listingsRes.results || [];
@@ -179,6 +186,46 @@ async function Page({params}: {params: Promise<{username: string}>}) {
             <span><Calendar size={15}/>Member since {joinedDate}</span>
             <span><ShieldCheck size={15}/>Only shared decks and active listings appear here</span>
           </div>
+
+          {sellerSocials.length > 0 && (
+            <div className="player-social-links" aria-label="Connected social accounts">
+              <span className="player-social-heading">Verified Socials</span>
+              <div className="player-social-list">
+                {sellerSocials.map((conn) => {
+                  const url = socialProfileUrl(conn);
+                  const label = socialDisplayHandle(conn);
+                  const pLower = conn.platform.toLowerCase();
+                  const icon =
+                    pLower === 'instagram' ? <InstagramLogo size={14} weight="fill" /> :
+                    pLower === 'facebook' ? <FacebookLogo size={14} weight="fill" /> :
+                    pLower === 'threads' ? <ThreadsLogo size={14} weight="fill" /> :
+                    <Globe size={14} />;
+                  const inner = (
+                    <>
+                      <span className={`player-social-icon is-${pLower}`}>{icon}</span>
+                      <span className="player-social-handle">{label}</span>
+                      <SealCheck size={13} weight="fill" className="player-social-verified" aria-label="Verified connection" />
+                    </>
+                  );
+                  return url ? (
+                    <a
+                      key={`${conn.platform}:${conn.platformAccountId}`}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="player-social-chip"
+                    >
+                      {inner}
+                    </a>
+                  ) : (
+                    <span key={`${conn.platform}:${conn.platformAccountId}`} className="player-social-chip">
+                      {inner}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="profile-card-actions">
             <Link className="button secondary profile-market-link-btn" href="/market">

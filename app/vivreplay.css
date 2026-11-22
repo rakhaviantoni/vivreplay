@@ -4304,6 +4304,19 @@ html[data-theme='dark'] .checkout-payment-compact-logo{border-color:#e3ddcf;back
 .market-listing-preview-control>span{color:var(--muted);font-size:11px;font-weight:650;white-space:nowrap;}
 .market-listing-preview-control .market-listing-view-as-toggle{margin:0;}
 html[data-theme='dark'] .market-listing-detail .market-listing-seller-toolbar{border-color:var(--line);background:var(--surface-raised);}
+.player-social-links{display:grid;gap:8px;width:100%;margin-top:14px;padding-top:14px;border-top:1px solid var(--line);text-align:left}
+.player-social-heading{color:var(--muted);font-size:10px;font-weight:800;letter-spacing:.09em;text-transform:uppercase}
+.player-social-list{display:flex;flex-wrap:wrap;gap:6px}
+.player-social-chip,.market-seller-social-chip{display:inline-flex;align-items:center;gap:5px;min-width:0;max-width:100%;padding:4px 9px;border:1px solid var(--line);border-radius:999px;background:var(--surface-muted);color:var(--ink);font-size:11.5px;font-weight:650;line-height:1.2;text-decoration:none;transition:border-color .15s ease,background-color .15s ease}
+.player-social-chip:hover,.market-seller-social-chip:hover{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 7%,var(--surface-raised))}
+.player-social-handle,.market-seller-social-chip>span:nth-child(2){overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.player-social-icon,.market-seller-social-icon{display:inline-flex;align-items:center;flex:none;color:var(--muted)}
+.player-social-icon.is-instagram,.market-seller-social-icon.is-instagram{color:#e1306c}
+.player-social-icon.is-facebook,.market-seller-social-icon.is-facebook{color:#1877f2}
+.player-social-icon.is-threads,.market-seller-social-icon.is-threads{color:var(--ink)}
+.player-social-verified,.market-seller-social-verified{flex:none;color:#16845f}
+.market-seller-socials{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+.market-seller-social-chip{padding:2px 7px;font-size:11px}
 @media(prefers-reduced-motion:reduce){.market-listing-detail .market-listing-seller-toolbar .market-report-link{transition:none}}
 
 /* A compact, clear affordance for the desktop quick-actions rail. */

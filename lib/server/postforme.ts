@@ -1,5 +1,6 @@
 import { database } from '@/lib/server/database';
 import { marketListingSelectorFromPath } from '@/lib/market/listing-url';
+import type { PublicSocialConnection } from '@/lib/social-links';
 
 export type SupportedPlatform =
   | 'instagram'
@@ -178,6 +179,25 @@ export async function fetchSocialAuthUrl({
   }
 
   return { url: authUrl };
+}
+
+export async function getPublicSellerSocials(sellerId: string): Promise<PublicSocialConnection[]> {
+  if (!sellerId) return [];
+  const db = database();
+  try {
+    const rows = await db
+      .prepare(
+        `SELECT platform, platform_account_id AS platformAccountId, username, display_name AS displayName
+         FROM seller_social_connections
+         WHERE seller_id = ?
+         ORDER BY created_at ASC`
+      )
+      .bind(sellerId)
+      .all<PublicSocialConnection>();
+    return rows.results ?? [];
+  } catch {
+    return [];
+  }
 }
 
 export async function listConnectedAccounts(sellerId: string): Promise<ConnectedAccount[]> {
