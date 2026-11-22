@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
   deleteOrUnlinkSocialPublishLog,
+  fetchAllSellerSocialPublishLogs,
   fetchAndVerifySocialPublishLogs,
   publishOrScheduleDrop,
 } from '@/lib/server/postforme';
@@ -13,13 +14,18 @@ export async function GET(request: NextRequest) {
   }
 
   const listingId = request.nextUrl.searchParams.get('listingId');
-  if (!listingId) {
-    return NextResponse.json({ logs: [] });
-  }
+  const includeAll = request.nextUrl.searchParams.get('all') === '1';
 
   try {
-    const logs = await fetchAndVerifySocialPublishLogs(profile.id, listingId);
-    return NextResponse.json({ logs });
+    if (listingId) {
+      const logs = await fetchAndVerifySocialPublishLogs(profile.id, listingId);
+      return NextResponse.json({ logs });
+    }
+    if (includeAll) {
+      const logs = await fetchAllSellerSocialPublishLogs(profile.id);
+      return NextResponse.json({ logs });
+    }
+    return NextResponse.json({ logs: [] });
   } catch {
     return NextResponse.json({ logs: [] });
   }

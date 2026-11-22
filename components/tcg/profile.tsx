@@ -1,6 +1,7 @@
 'use client';
 import {useRouteLocale} from '@/components/locale-provider';
 import {PayoutAccountSettings} from './payout-account-settings';
+import {ProfileSocialsPanel} from './profile-socials-panel';
 import {enabledShippingCouriers} from '@/lib/shipping/couriers';
 import {useEffect, useMemo, useRef, useState} from 'react';
 import Link from '@/components/ui/localized-link';
@@ -20,6 +21,7 @@ import {
   ArrowSquareOutIcon as ArrowSquareOut,
   CheckCircleIcon as CheckCircle,
   GearIcon as Gear,
+  ShareNetworkIcon as ShareNetwork,
   MagnifyingGlassIcon as Search,
   XIcon as XMark,
   MapPinIcon as MapPin,
@@ -422,8 +424,8 @@ function ProfileForm({
   const searchParams = useSearchParams();
   const {data: session} = authClient.useSession();
 
-  const [activeTab, setActiveTab] = useState<'general' | 'shipping' | 'bank'>(
-    searchParams.get('tab') === 'bank' ? 'bank' : searchParams.get('tab') === 'shipping' ? 'shipping' : 'general'
+  const [activeTab, setActiveTab] = useState<'general' | 'shipping' | 'bank' | 'socials'>(
+    searchParams.get('tab') === 'socials' ? 'socials' : searchParams.get('tab') === 'bank' ? 'bank' : searchParams.get('tab') === 'shipping' ? 'shipping' : 'general'
   );
 
   const [displayName, setDisplayName] = useState(profile.display_name || '');
@@ -988,6 +990,10 @@ function ProfileForm({
             {shippingOrigin?.postalCode && <CheckCircle size={14} className="profile-tab-check"/>}
           </button>
           <button type="button" role="tab" aria-selected={activeTab==='bank'} className={`profile-tab ${activeTab==='bank'?'is-active':''}`} onClick={()=>setActiveTab('bank')}><span>{t('Bank accounts','Rekening bank')}</span></button>
+          <button type="button" role="tab" aria-selected={activeTab==='socials'} className={`profile-tab ${activeTab==='socials'?'is-active':''}`} onClick={()=>setActiveTab('socials')}>
+            <ShareNetwork size={16}/>
+            <span>{t('Socials & Auto-Post','Sosial & Auto-Post')}</span>
+          </button>
         </div>
 
         {activeTab === 'general' ? (
@@ -1079,7 +1085,13 @@ function ProfileForm({
           </form>
           <PushNotificationSettings language={language}/>
           </>
-        ) : activeTab === 'bank' ? <PayoutAccountSettings language={language}/> : (
+        ) : activeTab === 'bank' ? <PayoutAccountSettings language={language}/> : activeTab === 'socials' ? (
+          <ProfileSocialsPanel
+            language={language}
+            onNotice={(msg) => toast.success(msg)}
+            onError={(msg) => toast.error(msg)}
+          />
+        ) : (
           <form className="form-stack profile-tab-content" onSubmit={saveShipping}>
             <div className="shipping-banner">
               <Truck size={22}/>

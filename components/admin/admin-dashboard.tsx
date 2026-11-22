@@ -13,6 +13,7 @@ import {
 import { MarketPolicyManager } from '@/components/admin/market-policy-manager';
 import { PaymentMethodsManager } from '@/components/admin/payment-methods-manager';
 import { MarketplaceManager } from '@/components/admin/marketplace-manager';
+import { AdminSocialTestersPanel } from '@/components/admin/admin-social-testers-panel';
 import { FeedbackInbox } from '@/components/admin/feedback-inbox';
 import { TrafficAttribution } from '@/components/admin/traffic-attribution';
 import { PayoutManager } from '@/components/admin/payout-manager';
@@ -90,7 +91,10 @@ export function AdminDashboard({initialSection='overview'}:{initialSection?:Sect
       ) : section === 'operations' ? (
         <ProviderOperations />
       ) : section === 'marketplace' ? (
-        <MarketplaceManager />
+        <>
+          <MarketplaceManager />
+          <AdminSocialTestersPanel />
+        </>
       ) : section === 'feedback' ? (
         <FeedbackInbox />
       ) : section === 'traffic' ? (

@@ -16,6 +16,7 @@ import {CardArt} from './card-art';
 import {displayCardName} from './card-name';
 import {CardPreviewModal} from './card-preview-modal';
 import {ShareButton,type ShareCardItem} from './share';
+import {MarketListingSocialStatus} from './market-listing-social-status';
 import {MarketTimestamp} from './market-timestamp';
 import {authClient} from '@/lib/auth-client';
 import {toast} from 'sonner';
@@ -1273,6 +1274,10 @@ export function MarketListingDetailView({
               {canPreviewAsBuyer&&<div className="market-listing-preview-control"><span>{t('View as','Lihat sebagai')}</span><div className="market-listing-view-as-toggle" role="group" aria-label={t('Preview listing as','Pratinjau listing sebagai')}><button type="button" aria-pressed={previewRole==='buyer'} onClick={()=>setPreviewRole('buyer')}>{t('Buyer','Pembeli')}</button><button type="button" aria-pressed={previewRole==='seller'} onClick={()=>setPreviewRole('seller')}>{t('Seller','Penjual')}</button></div></div>}
             </div>
           </div>
+
+          {ownerView && !counterpartyPreview && (
+            <MarketListingSocialStatus listingId={listing.id} language={language} />
+          )}
 
           <MarketListingItems
               items={editableCards}

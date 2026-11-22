@@ -1,5 +1,5 @@
 import { database } from '@/lib/server/database';
-import { marketListingSelectorFromPath } from '@/lib/market/listing-url';
+import { marketListingPath, marketListingSelectorFromPath } from '@/lib/market/listing-url';
 import type { PublicSocialConnection } from '@/lib/social-links';
 
 export type SupportedPlatform =
@@ -1191,4 +1191,316 @@ export async function syncSocialListingStage({
       // Never block order/checkout lifecycle on social sync failures
     }
   }
+}
+
+export type SellerSocialPublishLogItem = SocialPublishLogItem & {
+  listingId: string | null;
+  listingTitle: string | null;
+  listingHref: string | null;
+  listingType: string | null;
+  listingStatus: string | null;
+  listingAmount: number | null;
+  listingCurrency: string | null;
+  createdAt: string | null;
+};
+
+export async function fetchAllSellerSocialPublishLogs(
+  sellerId: string
+): Promise<SellerSocialPublishLogItem[]> {
+  const db = database();
+  const [logsRes, accsRes] = await Promise.all([
+    db
+      .prepare(
+        `SELECT
+           s.id,
+           s.listing_id AS listingId,
+           s.platform,
+           s.status,
+           s.post_id AS postId,
+           s.scheduled_at AS scheduledAt,
+           s.published_at AS publishedAt,
+           s.caption,
+           s.created_at AS createdAt,
+           l.title AS listingTitle,
+           l.type AS listingType,
+           l.status AS listingStatus,
+           l.amount AS listingAmount,
+           l.currency AS listingCurrency
+         FROM social_publish_logs s
+         LEFT JOIN listings l ON l.id = s.listing_id
+         WHERE s.seller_id = ? AND s.status IN ('PUBLISHED', 'SCHEDULED')
+         ORDER BY s.created_at DESC
+         LIMIT 60`
+      )
+      .bind(sellerId)
+      .all<{
+        id: string;
+        listingId: string | null;
+        platform: string;
+        status: string;
+        postId: string | null;
+        scheduledAt: string | null;
+        publishedAt: string | null;
+        caption: string | null;
+        createdAt: string | null;
+        listingTitle: string | null;
+        listingType: string | null;
+        listingStatus: string | null;
+        listingAmount: number | null;
+        listingCurrency: string | null;
+      }>(),
+    db
+      .prepare(
+        `SELECT id, platform, platform_account_id AS platformAccountId, username, access_token AS accessToken, refresh_token AS refreshToken
+         FROM seller_social_connections
+         WHERE seller_id = ?`
+      )
+      .bind(sellerId)
+      .all<StoredSocialAccount>(),
+  ]);
+
+  const accountsByPlatform = new Map<string, StoredSocialAccount>();
+  for (const acc of accsRes.results ?? []) {
+    const key = acc.platform.toLowerCase();
+    if (!accountsByPlatform.has(key)) accountsByPlatform.set(key, acc);
+  }
+
+  const rows = logsRes.results ?? [];
+  // Hydrate live Meta permalinks & thumbnails in parallel for up to the most recent 24 published logs
+  const results = await Promise.all(
+    rows.map(async (row, index): Promise<SellerSocialPublishLogItem | null> => {
+      const p = row.platform.split(',')[0]?.trim().toLowerCase() ?? row.platform.toLowerCase();
+      const acc = accountsByPlatform.get(p);
+
+      let permalink: string | null = null;
+      let mediaUrl: string | null = null;
+      let liveCaption: string | null = row.caption;
+
+      if (index < 24 && row.status === 'PUBLISHED' && row.postId && acc?.accessToken) {
+        const state = await fetchMetaPostState(p, row.postId, acc);
+        if (state.deleted) {
+          await db
+            .prepare(`UPDATE social_publish_logs SET status = 'DELETED' WHERE id = ? AND seller_id = ?`)
+            .bind(row.id, sellerId)
+            .run()
+            .catch(() => {});
+          return null;
+        }
+        if (state.permalink) permalink = state.permalink;
+        if (state.mediaUrl) mediaUrl = state.mediaUrl;
+        if (state.caption) liveCaption = state.caption;
+      }
+
+      const listingHref =
+        row.listingId && row.listingTitle
+          ? marketListingPath(row.listingTitle, row.listingId)
+          : row.listingId
+            ? `/market/${encodeURIComponent(row.listingId)}`
+            : null;
+
+      return {
+        id: row.id,
+        listingId: row.listingId,
+        listingTitle: row.listingTitle,
+        listingHref,
+        listingType: row.listingType,
+        listingStatus: row.listingStatus,
+        listingAmount: row.listingAmount,
+        listingCurrency: row.listingCurrency,
+        createdAt: row.createdAt,
+        platform: row.platform,
+        status: row.status,
+        postId: row.postId,
+        scheduledAt: row.scheduledAt,
+        publishedAt: row.publishedAt,
+        caption: liveCaption,
+        username: acc?.username ?? null,
+        permalink,
+        mediaUrl,
+        canRemoteDelete: p === 'facebook' || p === 'threads',
+      };
+    })
+  );
+
+  return results.filter((item): item is SellerSocialPublishLogItem => item !== null);
+}
+
+export type SocialTesterRequestStatus = 'PENDING' | 'INVITED' | 'APPROVED' | 'DECLINED';
+
+export type SocialTesterRequestRecord = {
+  id: string;
+  userId: string;
+  username: string;
+  displayName?: string | null;
+  instagramHandle: string | null;
+  facebookProfile: string | null;
+  threadsHandle: string | null;
+  platforms: string[];
+  notes: string | null;
+  status: SocialTesterRequestStatus;
+  createdAt: string;
+  updatedAt: string;
+};
+
+async function ensureSocialTesterRequestsTable() {
+  const db = database();
+  await db
+    .prepare(
+      `CREATE TABLE IF NOT EXISTS social_tester_requests (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        username TEXT NOT NULL,
+        instagram_handle TEXT,
+        facebook_profile TEXT,
+        threads_handle TEXT,
+        platforms TEXT NOT NULL,
+        notes TEXT,
+        status TEXT NOT NULL DEFAULT 'PENDING',
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )`
+    )
+    .run();
+}
+
+function parsePlatformsJson(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+export async function getUserSocialTesterRequest(
+  userId: string
+): Promise<SocialTesterRequestRecord | null> {
+  await ensureSocialTesterRequestsTable();
+  const db = database();
+  const row = await db
+    .prepare(
+      `SELECT id, user_id AS userId, username, instagram_handle AS instagramHandle, facebook_profile AS facebookProfile, threads_handle AS threadsHandle, platforms, notes, status, created_at AS createdAt, updated_at AS updatedAt
+       FROM social_tester_requests
+       WHERE user_id = ?
+       ORDER BY updated_at DESC
+       LIMIT 1`
+    )
+    .bind(userId)
+    .first<{
+      id: string;
+      userId: string;
+      username: string;
+      instagramHandle: string | null;
+      facebookProfile: string | null;
+      threadsHandle: string | null;
+      platforms: string;
+      notes: string | null;
+      status: SocialTesterRequestStatus;
+      createdAt: string;
+      updatedAt: string;
+    }>();
+
+  if (!row) return null;
+  return {
+    ...row,
+    platforms: parsePlatformsJson(row.platforms),
+  };
+}
+
+export async function upsertUserSocialTesterRequest(
+  userId: string,
+  username: string,
+  input: {
+    instagramHandle?: string | null;
+    facebookProfile?: string | null;
+    threadsHandle?: string | null;
+    platforms: string[];
+    notes?: string | null;
+  }
+): Promise<SocialTesterRequestRecord> {
+  await ensureSocialTesterRequestsTable();
+  const db = database();
+  const existing = await getUserSocialTesterRequest(userId);
+
+  const ig = input.instagramHandle?.trim().replace(/^@+/, '') || null;
+  const fb = input.facebookProfile?.trim() || null;
+  const th = input.threadsHandle?.trim().replace(/^@+/, '') || null;
+  const notes = input.notes?.trim().slice(0, 400) || null;
+  const platformsJson = JSON.stringify(
+    Array.from(new Set(input.platforms.map((p) => p.toLowerCase()).filter(Boolean)))
+  );
+
+  if (existing) {
+    await db
+      .prepare(
+        `UPDATE social_tester_requests
+         SET username = ?, instagram_handle = ?, facebook_profile = ?, threads_handle = ?, platforms = ?, notes = ?,
+             status = CASE WHEN status = 'DECLINED' THEN 'PENDING' ELSE status END,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = ? AND user_id = ?`
+      )
+      .bind(username, ig, fb, th, platformsJson, notes, existing.id, userId)
+      .run();
+  } else {
+    const id = `str_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`;
+    await db
+      .prepare(
+        `INSERT INTO social_tester_requests (id, user_id, username, instagram_handle, facebook_profile, threads_handle, platforms, notes, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PENDING')`
+      )
+      .bind(id, userId, username, ig, fb, th, platformsJson, notes)
+      .run();
+  }
+
+  const updated = await getUserSocialTesterRequest(userId);
+  if (!updated) throw new Error('Failed to save tester request');
+  return updated;
+}
+
+export async function listAdminSocialTesterRequests(): Promise<SocialTesterRequestRecord[]> {
+  await ensureSocialTesterRequestsTable();
+  const db = database();
+  const res = await db
+    .prepare(
+      `SELECT r.id, r.user_id AS userId, r.username, p.display_name AS displayName,
+              r.instagram_handle AS instagramHandle, r.facebook_profile AS facebookProfile, r.threads_handle AS threadsHandle,
+              r.platforms, r.notes, r.status, r.created_at AS createdAt, r.updated_at AS updatedAt
+       FROM social_tester_requests r
+       LEFT JOIN profiles p ON p.id = r.user_id
+       ORDER BY CASE r.status WHEN 'PENDING' THEN 0 WHEN 'INVITED' THEN 1 WHEN 'APPROVED' THEN 2 ELSE 3 END, r.updated_at DESC
+       LIMIT 100`
+    )
+    .all<{
+      id: string;
+      userId: string;
+      username: string;
+      displayName: string | null;
+      instagramHandle: string | null;
+      facebookProfile: string | null;
+      threadsHandle: string | null;
+      platforms: string;
+      notes: string | null;
+      status: SocialTesterRequestStatus;
+      createdAt: string;
+      updatedAt: string;
+    }>();
+
+  return (res.results ?? []).map((row) => ({
+    ...row,
+    platforms: parsePlatformsJson(row.platforms),
+  }));
+}
+
+export async function updateSocialTesterRequestStatus(
+  id: string,
+  status: SocialTesterRequestStatus
+): Promise<boolean> {
+  await ensureSocialTesterRequestsTable();
+  const db = database();
+  const res = await db
+    .prepare(`UPDATE social_tester_requests SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`)
+    .bind(status, id)
+    .run();
+  return Number(res.meta?.changes ?? 0) > 0;
 }
