@@ -198,7 +198,7 @@ export function PlayerListingsGrid({
                   <strong>{item.title}</strong>
                 </Link>
                 <small>
-                  {[item.categoryLabel, item.condition, item.city].filter(Boolean).join(' · ')}
+                  {[item.categoryLabel, item.condition, item.city].filter(Boolean).join(', ')}
                 </small>
                 <p>
                   <span className={item.type === 'WTB' ? 'is-wtb' : 'is-wts'}>

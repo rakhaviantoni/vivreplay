@@ -314,11 +314,9 @@ async function Page({params}: {params: Promise<{username: string}>}) {
           <p className="kicker">{dynamicKicker}</p>
           <h1>{p.display_name}</h1>
           <p className="player-intro-meta">
-            <span>@{p.username}</span>
-            <span aria-hidden="true">·</span>
-            <span>{regionLabel}</span>
-            <span aria-hidden="true">·</span>
-            <span>Member since {joinedDate}</span>
+            <span className="player-intro-handle">@{p.username}</span>
+            <span><Globe size={14}/>{regionLabel}</span>
+            <span><Calendar size={14}/>Member since {joinedDate}</span>
           </p>
         </div>
         <div className="player-intro-side">
@@ -347,25 +345,35 @@ async function Page({params}: {params: Promise<{username: string}>}) {
 
       <div className="player-layout">
         {/* Left Sidebar: Collector Identity Card */}
-        <section className="profile-card player-card">
-          <div className="profile-emblem">
-            <span>{initial}</span>
+        <aside className="player-card">
+          <div className="player-card-head">
+            <div className="player-card-avatar" aria-hidden="true">
+              <span>{initial}</span>
+            </div>
+            <div className="player-card-identity">
+              <h2>{p.display_name}</h2>
+              <p className="player-card-handle">@{p.username}</p>
+            </div>
           </div>
-          <h2>{p.display_name}</h2>
-          <p className="profile-handle">@{p.username}</p>
-          <MarketReputation username={p.username} language="EN" profile/>
+
+          <div className="player-card-rep">
+            <MarketReputation username={p.username} language="EN" profile/>
+          </div>
 
           {activityMix.length > 0 && (
-            <div className="player-activity-mix" aria-label="Activity focus">
-              {activityMix.map((entry) => (
-                <span key={entry.key} className={`player-activity-pill is-${entry.key}`}>
-                  {entry.label} <b>{entry.count}</b>
-                </span>
-              ))}
+            <div className="player-card-block" aria-label="Activity focus">
+              <span className="player-card-label">Storefront Focus</span>
+              <div className="player-activity-mix">
+                {activityMix.map((entry) => (
+                  <span key={entry.key} className={`player-activity-pill is-${entry.key}`}>
+                    {entry.label} <b>{entry.count}</b>
+                  </span>
+                ))}
+              </div>
             </div>
           )}
 
-          <div className="profile-facts">
+          <div className="player-card-facts">
             <span><Globe size={15}/>{regionLabel} ({p.region})</span>
             <span><Calendar size={15}/>Member since {joinedDate}</span>
             <span><ShieldCheck size={15}/>Only shared decks and active listings appear here</span>
@@ -411,13 +419,13 @@ async function Page({params}: {params: Promise<{username: string}>}) {
             </div>
           )}
 
-          <div className="profile-card-actions">
-            <Link className="button secondary profile-market-link-btn" href="/market">
+          <div className="player-card-actions">
+            <Link className="button secondary player-market-link-btn" href="/market">
               <Store size={16}/>
               Browse Market
             </Link>
           </div>
-        </section>
+        </aside>
 
         {/* Right Area: Active Listings & Public Decks or Clean Empty State */}
         <div className="player-content">
