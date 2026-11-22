@@ -22,6 +22,7 @@
     "db:mirror-supabase": "node --env-file=.env.local scripts/mirror-supabase-catalog-to-d1.mjs",
     "catalog:export-scanner": "tsx scripts/export-catalog-for-scanner.ts",
     "catalog:import-sealed": "node --env-file=.env.local --import tsx scripts/import-sealed-products.ts",
+    "catalog:refresh-pokemon-sealed": "node scripts/refresh-pokemon-sealed-products.mjs",
     "catalog:import-pokemon": "node --import tsx scripts/import-tcgdex-pokemon.ts",
     "catalog:import-cardtell-pokemon": "node --import tsx scripts/import-cardtell-pokemon-id.ts",
     "catalog:sync-yuyutei-prices": "node --env-file=.env.local scripts/sync-yuyutei-prices-d1.mjs",

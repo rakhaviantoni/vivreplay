@@ -25,7 +25,10 @@ test('catalog products keep distinct identities and valid names across both edit
   for(const product of sealedProducts){
     assert.ok(product.name.trim());
     assert.doesNotMatch(product.name,/Select Display Language|^PRODUCTS$|<[^>]+>/i);
-    assert.ok(existsSync(path.join(process.cwd(),'public',product.imageUrl)),product.id);
+    assert.ok(
+      /^https:\/\//i.test(product.imageUrl) || existsSync(path.join(process.cwd(), 'public', product.imageUrl)),
+      product.id
+    );
   }
   const sleeves=accessories.filter(product=>product.code==='SLEEVE047'&&product.edition==='asia');
   assert.equal(sleeves.length,4);
