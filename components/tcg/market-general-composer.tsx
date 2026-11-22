@@ -70,7 +70,14 @@ export function MarketGeneralComposer({type,onPublished,onBack,onAddToBundle}:{t
           <input
             value={presetQuery}
             onChange={event=>setPresetQuery(event.target.value)}
-            placeholder={copy('Search RTX 4070, Ryzen, Switch OLED, Gundam…','Cari RTX 4070, Ryzen, Switch OLED, Gundam…')}
+            placeholder={
+              category==='HOBBY'?copy('Search Hot Wheels, Tomica, LEGO, Gundam, Pop Mart…','Cari Hot Wheels, Tomica, LEGO, Gundam, Pop Mart…'):
+              category==='COMPUTER_PART'?copy('Search RTX 4070, Ryzen, DDR5, SSD…','Cari RTX 4070, Ryzen, DDR5, SSD…'):
+              category==='CONSOLE'?copy('Search Switch OLED, PS5, Steam Deck…','Cari Switch OLED, PS5, Steam Deck…'):
+              category==='PHYSICAL_GAME'?copy('Search Pokemon, Zelda, Monster Hunter…','Cari Pokemon, Zelda, Monster Hunter…'):
+              category==='ACCESSORY'?copy('Search Dragon Shield, DualSense, Artisan…','Cari Dragon Shield, DualSense, Artisan…'):
+              copy('Search MacBook, ROG, Legion…','Cari MacBook, ROG, Legion…')
+            }
           />
         </div>
       </label>
