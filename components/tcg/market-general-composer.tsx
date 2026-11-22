@@ -1,5 +1,6 @@
 'use client';
-import {useState} from 'react';
+import {useEffect,useState} from 'react';
+import {MagnifyingGlassIcon as Search} from '@phosphor-icons/react';
 import {useRouteLocale} from '@/components/locale-provider';
 import {generalMarketCategories,generalMarketConditionLabel,generalMarketConditionOptions,type GeneralMarketCategory} from '@/lib/market/general-products';
 import {useMarketListingLimits} from '@/lib/market/use-listing-limits';
@@ -13,8 +14,31 @@ export function MarketGeneralComposer({type,onPublished,onBack,onAddToBundle}:{t
   const language=useRouteLocale();const isId=language==='ID';const copy=(en:string,id:string)=>isId?id:en;
   const productStockLimit=useMarketListingLimits().maxProductStock??10;
   const [category,setCategory]=useState<GeneralMarketCategory>('HOBBY');const [title,setTitle]=useState('');const [brand,setBrand]=useState('');const [model,setModel]=useState('');const [fields,setFields]=useState<Record<string,string>>({});const [condition,setCondition]=useState<(typeof generalMarketConditionOptions)[number]>('NEW');const [quantity,setQuantity]=useState(1);const [price,setPrice]=useState('');const [notes,setNotes]=useState('');const [photos,setPhotos]=useState<string[]>([]);const [parcel,setParcel]=useState<Parcel>(emptyParcel());const [busy,setBusy]=useState(false);const [error,setError]=useState('');
+  const [presetQuery,setPresetQuery]=useState('');
+  const [presets,setPresets]=useState<Array<{id:string;brand:string;model:string;attributes:Record<string,string>}>>([]);
   const config=generalMarketCategories[category];
-  const changeCategory=(next:GeneralMarketCategory)=>{setCategory(next);setFields({});};
+  const changeCategory=(next:GeneralMarketCategory)=>{setCategory(next);setFields({});setPresetQuery('');setPresets([]);};
+
+  useEffect(()=>{
+    const q=presetQuery.trim();
+    if(!q){setPresets([]);return;}
+    const timer=window.setTimeout(()=>{
+      void fetch(`/api/market/general-catalog?category=${encodeURIComponent(category)}&q=${encodeURIComponent(q)}`)
+        .then(async res=>(await res.json()) as {presets?:typeof presets})
+        .then(data=>setPresets(data.presets??[]))
+        .catch(()=>setPresets([]));
+    },180);
+    return ()=>window.clearTimeout(timer);
+  },[category,presetQuery]);
+
+  const applyPreset=(preset:{brand:string;model:string;attributes:Record<string,string>})=>{
+    setBrand(preset.brand);
+    setModel(preset.model);
+    if(!title.trim())setTitle(preset.model.startsWith(preset.brand)?preset.model:`${preset.brand} ${preset.model}`.slice(0,100));
+    setFields(preset.attributes);
+    setPresetQuery('');
+    setPresets([]);
+  };
 
   async function upload(files:FileList|null){
     if(!files?.length)return;const selected=Array.from(files).slice(0,6-photos.length);if(!selected.length)return;setBusy(true);setError('');
@@ -38,6 +62,29 @@ export function MarketGeneralComposer({type,onPublished,onBack,onAddToBundle}:{t
   return <div className="market-general-composer">
     <div className="market-general-intro"><div><strong>{copy('List an item','Buat listing barang')}</strong><p>{copy('For hobby gear, electronics, games, and accessories outside the card catalog.','Untuk hobi, elektronik, game, dan aksesori di luar katalog kartu.')}</p></div><button type="button" onClick={onBack}>{copy('Browse TCG products','Lihat produk TCG')}</button></div>
     <fieldset className="market-general-categories"><legend>{copy('Category','Kategori')}</legend><div>{(Object.keys(generalMarketCategories) as GeneralMarketCategory[]).map(key=><button key={key} type="button" aria-pressed={category===key} onClick={()=>changeCategory(key)}>{isId?({HOBBY:'Hobi & koleksi',COMPUTER:'Komputer & laptop',COMPUTER_PART:'Komponen PC',CONSOLE:'Konsol & handheld',PHYSICAL_GAME:'Game fisik',ACCESSORY:'Aksesori'} as Record<GeneralMarketCategory,string>)[key]:generalMarketCategories[key].label}</button>)}</div></fieldset>
+    <div className="market-general-preset-box">
+      <label className="market-product-search">
+        <span>{copy('Quick-fill from catalog (optional)','Isi cepat dari katalog (opsional)')}</span>
+        <div>
+          <Search size={16} aria-hidden="true"/>
+          <input
+            value={presetQuery}
+            onChange={event=>setPresetQuery(event.target.value)}
+            placeholder={copy('Search RTX 4070, Ryzen, Switch OLED, Gundam…','Cari RTX 4070, Ryzen, Switch OLED, Gundam…')}
+          />
+        </div>
+      </label>
+      {presets.length>0&&(
+        <div className="market-general-preset-results" role="listbox" aria-label={copy('Catalog suggestions','Saran katalog')}>
+          {presets.map(item=>(
+            <button key={item.id} type="button" onClick={()=>applyPreset(item)}>
+              <strong>{item.model.startsWith(item.brand)?item.model:`${item.brand} ${item.model}`}</strong>
+              <small>{Object.values(item.attributes).filter(Boolean).slice(0,2).join(' · ')}</small>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
     <div className="market-general-fields">
       <label>{copy('Item name','Nama barang')}<input value={title} maxLength={100} onChange={event=>setTitle(event.target.value)} placeholder={copy('e.g. Nintendo Switch OLED','mis. Nintendo Switch OLED')}/></label>
       <label>{copy('Brand','Merek')}<input value={brand} maxLength={60} onChange={event=>setBrand(event.target.value)} placeholder={copy('Brand name','Nama merek')}/></label>
