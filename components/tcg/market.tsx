@@ -123,6 +123,7 @@ type ListingBundleCard={
   card:Card;
   printing:CardPrintingItem;
   instanceId?:string;
+  photoIds?:string[];
   quantity:number;
   condition:string;
   productType:'RAW'|'GRADED';
@@ -722,6 +723,8 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
   const [wantedGradingCompany,setWantedGradingCompany]=useState('PSA');
   const [wantedGrade,setWantedGrade]=useState('10');
   const [itemInstance,setItemInstance]=useState('');
+  const [itemPhotoIds,setItemPhotoIds]=useState<string[]>([]);
+  const [itemPhotoUploading,setItemPhotoUploading]=useState(false);
   // Overall Listing Inputs
   const [listingTitle,setListingTitle]=useState('');
   const [listingPrice,setListingPrice]=useState('');
@@ -1296,6 +1299,30 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
     setMarketVaultCard(card);
     setMarketVaultOpen(true);
   };
+  useEffect(()=>{setItemPhotoIds([])},[configuringCard?.id]);
+  async function uploadCardPhotos(files:FileList|null){
+    if(!files?.length)return;
+    const remaining=6-itemPhotoIds.length;
+    const selected=Array.from(files).slice(0,remaining);
+    if(!selected.length)return;
+    setItemPhotoUploading(true);
+    try{
+      const added:string[]=[];
+      for(const file of selected){
+        const form=new FormData();
+        form.set('photo',file);
+        const response=await fetch('/api/market/product-photos',{method:'POST',body:form});
+        const result=await response.json() as {error?:string;id?:string};
+        if(!response.ok||!result.id)throw new Error(result.error||(locale==='ID'?'Gagal mengunggah foto.':'Photo upload failed.'));
+        added.push(result.id);
+      }
+      setItemPhotoIds(current=>[...current,...added]);
+    }catch(cause){
+      toast.error(cause instanceof Error?cause.message:(locale==='ID'?'Gagal mengunggah foto.':'Photo upload failed.'));
+    }finally{
+      setItemPhotoUploading(false);
+    }
+  }
   const addConfiguredCardToBundle=()=>{
     if(!activeCardObj||!selectedPrintingId)return;
     const identity=marketCardIdentity(activeCardObj);
@@ -1332,6 +1359,7 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
       grade:productType==='GRADED'?(listingType==='WTB'?wantedGrade:matchedCopy?.grade??undefined):undefined,
       certification:productType==='GRADED'&&listingType==='WTS'?matchedCopy?.certification??undefined:undefined,
       slabLabelStyle:productType==='GRADED'?(matchedCopy?.subgrades?.__labelStyle==='clear'?'clear':'standard'):undefined,
+      photoIds:listingType==='WTS'&&itemPhotoIds.length?itemPhotoIds:undefined,
       unitAmount:Number(itemPrice)||0,
       availableQuantity:listingType==='WTS'?(matchedCopy?.quantity||listingLimits.maxCopiesPerCard):listingLimits.maxCopiesPerCard,
     };
@@ -1348,6 +1376,7 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
       return next;
     });
     setConfiguringCard(null);
+    setItemPhotoIds([]);
     setIsAddingAnother(false);
   };
   const handlePublishListing=async(event:React.FormEvent)=>{
@@ -1391,6 +1420,7 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
           grade:item.grade,
           certification:item.certification,
           slabLabelStyle:item.slabLabelStyle,
+          ...(item.photoIds?.length?{photoIds:item.photoIds}:{}),
           unitAmount:item.unitAmount,
         })),...bundleProducts.map(item=>({
           productType:item.productType,
@@ -1954,10 +1984,29 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
                       <small id="market-unit-price-help">{locale==='ID'?'Harga saran bisa diubah langsung sebelum ditambahkan.':'You can edit the suggested price before adding this card.'}</small>
                     </label>
                   </div>
+                  {listingType==='WTS'&&(
+                    <div className="market-card-photo-upload-box">
+                      <label className="market-product-photo-upload">
+                        <span>{locale==='ID'?'Foto asli kartu (opsional)':'Real card photos (optional)'}</span>
+                        <input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={itemPhotoUploading||itemPhotoIds.length>=6} onChange={event=>{void uploadCardPhotos(event.target.files);event.target.value='';}}/>
+                        <small>{locale==='ID'?'Pembeli akan melihat artwork resmi dan foto asli Anda (maks. 6 foto).':'Buyers see both the official card art and your real photos (up to 6).'}</small>
+                      </label>
+                      {itemPhotoIds.length>0&&(
+                        <div className="market-sealed-photos">
+                          {itemPhotoIds.map(photoId=>(
+                            <div key={photoId}>
+                              <img src={`/api/market/product-photos/${photoId}`} alt={locale==='ID'?'Foto kartu':'Card photo'}/>
+                              <button type="button" onClick={()=>setItemPhotoIds(current=>current.filter(id=>id!==photoId))}>{locale==='ID'?'Hapus':'Remove'}</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <button
                     type="button"
                     className="market-list-button"
-                    disabled={!itemPrice||Number(itemPrice)<=0||(listingType==='WTB'&&configuredProductType==='GRADED'&&!wantedGrade.trim())}
+                    disabled={itemPhotoUploading||!itemPrice||Number(itemPrice)<=0||(listingType==='WTB'&&configuredProductType==='GRADED'&&!wantedGrade.trim())}
                     onClick={addConfiguredCardToBundle}
                   >
                     {!hasBundleItems
@@ -2246,7 +2295,7 @@ export function Market({initialCards=[],modalOnly=false,listenForDeliveryEvents=
         </DialogContent>
       </Dialog>
       {bulkListingOpen&&<BulkListingModal open={bulkListingOpen} onClose={wasPublished=>{setBulkListingOpen(false);if(!wasPublished)setOpen(true)}} language={locale} stacks={groupVaultStacks((data?.collection??[]).map(item=>enrichCollectionItem(item,new Set())))} onPublished={async()=>{await refresh();await refreshAccount()}}/>}
-      {publishedShare&&<ShareButton title={publishedShare.title} listingId={publishedShare.id} path={listingHref(publishedShare)} cards={publishedShare.cards.map(item=>({card:printingToCard(item.card,item.printing),printingId:item.printing.id,quantity:item.quantity,condition:item.condition,unitAmount:item.unitAmount,productType:item.productType,gradingCompany:item.gradingCompany,grade:item.grade,certification:item.certification,...(item.productType==='GRADED'?{slabLabel:{setCode:item.printing.set_code??item.card.setCode,language:item.printing.language??item.card.language,number:(item.printing.printing_code??item.card.code??'').match(/(\d+[A-Z]?)$/i)?.[1],rarity:item.printing.rarity??item.card.rarity,labelStyle:item.slabLabelStyle??'standard'}}:{})}))} subtitle={locale==='ID'?`${publishedShare.cards.reduce((sum,item)=>sum+item.quantity,0)} kartu${publishedShare.productUnits?` + ${publishedShare.productUnits} produk`:''}`:`${publishedShare.cards.reduce((sum,item)=>sum+item.quantity,0)} cards${publishedShare.productUnits?` + ${publishedShare.productUnits} products`:''}`} listingInfo={{seller:publishedShare.seller,city:publishedShare.city,expiresAt:publishedShare.expiresAt,timeZone:publishedShare.timeZone}} price={formatMoney(publishedShare.price,'IDR')} openOnMount hideTrigger onOpenChange={open=>{if(!open)setPublishedShare(null)}}/>}
+      {publishedShare&&<ShareButton title={publishedShare.title} listingId={publishedShare.id} path={listingHref(publishedShare)} cards={publishedShare.cards.map(item=>({card:printingToCard(item.card,item.printing),printingId:item.printing.id,quantity:item.quantity,condition:item.condition,unitAmount:item.unitAmount,productType:item.productType,gradingCompany:item.gradingCompany,grade:item.grade,certification:item.certification,photoUrls:item.photoIds?.map(photoId=>`/api/market/product-photos/${photoId}`),...(item.productType==='GRADED'?{slabLabel:{setCode:item.printing.set_code??item.card.setCode,language:item.printing.language??item.card.language,number:(item.printing.printing_code??item.card.code??'').match(/(\d+[A-Z]?)$/i)?.[1],rarity:item.printing.rarity??item.card.rarity,labelStyle:item.slabLabelStyle??'standard'}}:{})}))} subtitle={locale==='ID'?`${publishedShare.cards.reduce((sum,item)=>sum+item.quantity,0)} kartu${publishedShare.productUnits?` + ${publishedShare.productUnits} produk`:''}`:`${publishedShare.cards.reduce((sum,item)=>sum+item.quantity,0)} cards${publishedShare.productUnits?` + ${publishedShare.productUnits} products`:''}`} listingInfo={{seller:publishedShare.seller,city:publishedShare.city,expiresAt:publishedShare.expiresAt,timeZone:publishedShare.timeZone}} price={formatMoney(publishedShare.price,'IDR')} openOnMount hideTrigger onOpenChange={open=>{if(!open)setPublishedShare(null)}}/>}
 
       {data&&<MarketQuickPanel panel={accountPanel??quickPanel} onOpenChange={open=>{if(!open){setAccountPanel(null);setQuickPanel(null);setProfileQuickEditDeliveryAddress(false)}}} onPanelChange={next=>{if(next==='listings'||next==='offers'||next==='orders'||next==='saved'){setQuickPanel(null);setAccountPanel(next)}else{setAccountPanel(null);setQuickPanel(next)}}} onCreateListing={()=>{setAccountPanel(null);setQuickPanel(null);beginListing()}} locale={locale} account={data} activityCounts={activityCounts} initialOrderId={modalOnly?null:searchParams.get('order')} initialConversationId={modalOnly?null:searchParams.get('conversation')} initialProfileTab={profileQuickTab} initialEditDeliveryAddress={profileQuickEditDeliveryAddress} onRefresh={async()=>{await Promise.all([refreshAccount(),refresh()])}} onSaved={async()=>{await refreshAccount();setAccountPanel(null);setQuickPanel(null)}}/>}
       <AddEditItemModal
