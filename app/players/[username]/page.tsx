@@ -313,11 +313,11 @@ async function Page({params}: {params: Promise<{username: string}>}) {
         <div className="library-intro-copy">
           <p className="kicker">{dynamicKicker}</p>
           <h1>{p.display_name}</h1>
-          <p className="player-intro-meta">
-            <span className="player-intro-handle">@{p.username}</span>
-            <span><Globe size={14}/>{regionLabel}</span>
-            <span><Calendar size={14}/>Member since {joinedDate}</span>
-          </p>
+          <div className="player-intro-meta" aria-label="Collector details">
+            <span className="player-intro-chip is-handle">@{p.username}</span>
+            <span className="player-intro-chip"><Globe size={13}/>{regionLabel} ({p.region})</span>
+            <span className="player-intro-chip"><Calendar size={13}/>Member since {joinedDate}</span>
+          </div>
         </div>
         <div className="player-intro-side">
           <div className="player-kpi-strip" aria-label="Storefront summary">
@@ -344,20 +344,18 @@ async function Page({params}: {params: Promise<{username: string}>}) {
       </section>
 
       <div className="player-layout">
-        {/* Left Sidebar: Collector Identity Card */}
+        {/* Left Sidebar: Collector Trust & Storefront Focus */}
         <aside className="player-card">
           <div className="player-card-head">
             <div className="player-card-avatar" aria-hidden="true">
               <span>{initial}</span>
             </div>
             <div className="player-card-identity">
-              <h2>{p.display_name}</h2>
-              <p className="player-card-handle">@{p.username}</p>
+              <span className="player-card-label">Collector Reputation</span>
+              <div className="player-card-rep">
+                <MarketReputation username={p.username} language="EN" profile/>
+              </div>
             </div>
-          </div>
-
-          <div className="player-card-rep">
-            <MarketReputation username={p.username} language="EN" profile/>
           </div>
 
           {activityMix.length > 0 && (
@@ -372,12 +370,6 @@ async function Page({params}: {params: Promise<{username: string}>}) {
               </div>
             </div>
           )}
-
-          <div className="player-card-facts">
-            <span><Globe size={15}/>{regionLabel} ({p.region})</span>
-            <span><Calendar size={15}/>Member since {joinedDate}</span>
-            <span><ShieldCheck size={15}/>Only shared decks and active listings appear here</span>
-          </div>
 
           {sellerSocials.length > 0 && (
             <div className="player-social-links" aria-label="Connected social accounts">
@@ -418,6 +410,10 @@ async function Page({params}: {params: Promise<{username: string}>}) {
               </div>
             </div>
           )}
+
+          <div className="player-card-facts">
+            <span><ShieldCheck size={15}/>Only shared decks and active listings appear here</span>
+          </div>
 
           <div className="player-card-actions">
             <Link className="button secondary player-market-link-btn" href="/market">
