@@ -21,7 +21,6 @@ import {socialDisplayHandle, socialProfileUrl} from '@/lib/social-links';
 import {ShareButton} from '@/components/tcg/share';
 import {cardFor,type Card} from '@/packages/card-data/catalog';
 import {CardArt} from '@/components/tcg/card-art';
-import {IntroCardRail} from '@/components/tcg/intro-card-rail';
 import {marketListingPath} from '@/lib/market/listing-url';
 import {MarketReputation} from '@/components/tcg/market-reputation';
 import {sealedProductById, sealedDisplayCard} from '@/lib/market/sealed-products';
@@ -60,7 +59,7 @@ async function Page({params}: {params: Promise<{username: string}>}) {
 
   if (!p) notFound();
 
-  const [listingsRes, decksRes, listingCount, deckCount, sellerSocials] = await Promise.all([
+  const [listingsRes, decksRes, listingCount, deckCount, completedTradesCount, sellerSocials] = await Promise.all([
     db().prepare(`
       SELECT
         l.id,
@@ -142,6 +141,7 @@ async function Page({params}: {params: Promise<{username: string}>}) {
     }>(),
     db().prepare("SELECT COUNT(*) AS count FROM listings WHERE seller_id=? AND status='ACTIVE' AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)").bind(p.id).first<{count:number}>(),
     db().prepare("SELECT COUNT(*) AS count FROM decks WHERE owner_id=? AND visibility='public' AND deleted_at IS NULL").bind(p.id).first<{count:number}>(),
+    db().prepare("SELECT COUNT(*) AS count FROM checkout_orders WHERE (seller_id=? OR buyer_id=?) AND kind='MARKET' AND status IN ('PAID','SHIPPED','RECEIVED','COMPLETED','FULFILLED')").bind(p.id, p.id).first<{count:number}>(),
     getPublicSellerSocials(p.id),
   ]);
 
@@ -260,6 +260,52 @@ async function Page({params}: {params: Promise<{username: string}>}) {
     ? new Date(p.created_at).toLocaleDateString('en-US', {month: 'short', year: 'numeric'})
     : 'Recently';
 
+  const activeListingsTotal = listingCount?.count ?? 0;
+  const completedTradesTotal = completedTradesCount?.count ?? 0;
+  const deckFirst = publicDecksTotal > listings.length;
+
+  const listingsSection = listings.length > 0 ? (
+    <section key="listings" className="player-section">
+      <div className="player-section-head">
+        <div>
+          <h2>Active Market Listings ({listings.length})</h2>
+          <p>Items currently listed on Market by {p.display_name}.</p>
+        </div>
+        <Link href="/market" className="player-section-link">
+          Browse Market <ArrowSquareOut size={14}/>
+        </Link>
+      </div>
+      <PlayerListingsGrid items={listingViewItems} />
+    </section>
+  ) : null;
+
+  const decksSection = decks.length > 0 ? (
+    <section key="decks" className="player-section">
+      <div className="player-section-head">
+        <div>
+          <h2>Public Decks ({decks.length})</h2>
+          <p>Deck builds shared publicly by {p.display_name}.</p>
+        </div>
+      </div>
+      <div className="player-decks-grid">
+        {decks.map(d => {
+          const leader = d.leaderId ? cardFor(d.leaderId) : null;
+          return (
+            <Link key={d.id} href={`/decks/${d.id}`} className="player-deck-card">
+              <div className="player-deck-art">
+                {leader ? <CardArt card={leader}/> : <Layers3 size={24}/>}
+              </div>
+              <div className="player-deck-info">
+                <h3>{d.name}</h3>
+                <p>{leader ? `${leader.name}, Leader` : 'Custom Deck'}</p>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+    </section>
+  ) : null;
+
   return (
     <main className="page player-profile-page">
       {/* Shared Global Intro Banner */}
@@ -268,11 +314,28 @@ async function Page({params}: {params: Promise<{username: string}>}) {
           <p className="kicker">{dynamicKicker}</p>
           <h1>{p.display_name}</h1>
           <p className="player-intro-meta">
-            @{p.username}, {regionLabel}, Member since {joinedDate}
+            <span>@{p.username}</span>
+            <span aria-hidden="true">·</span>
+            <span>{regionLabel}</span>
+            <span aria-hidden="true">·</span>
+            <span>Member since {joinedDate}</span>
           </p>
         </div>
         <div className="player-intro-side">
-          <IntroCardRail/>
+          <div className="player-kpi-strip" aria-label="Storefront summary">
+            <div className="player-kpi-item">
+              <b>{activeListingsTotal}</b>
+              <span>Active {activeListingsTotal === 1 ? 'listing' : 'listings'}</span>
+            </div>
+            <div className="player-kpi-item">
+              <b>{publicDecksTotal}</b>
+              <span>Public {publicDecksTotal === 1 ? 'deck' : 'decks'}</span>
+            </div>
+            <div className="player-kpi-item">
+              <b>{completedTradesTotal}</b>
+              <span>Completed {completedTradesTotal === 1 ? 'trade' : 'trades'}</span>
+            </div>
+          </div>
           <div className="library-intro-actions">
             <ShareButton
               title={`${p.display_name} (@${p.username}) | VivrePlay`}
@@ -291,10 +354,6 @@ async function Page({params}: {params: Promise<{username: string}>}) {
           <h2>{p.display_name}</h2>
           <p className="profile-handle">@{p.username}</p>
           <MarketReputation username={p.username} language="EN" profile/>
-          <div className="player-profile-counts" aria-label="Public profile activity">
-            <span><b>{listingCount?.count??0}</b> Active {(listingCount?.count??0)===1?'listing':'listings'}</span>
-            <span><b>{deckCount?.count??0}</b> Public {(deckCount?.count??0)===1?'deck':'decks'}</span>
-          </div>
 
           {activityMix.length > 0 && (
             <div className="player-activity-mix" aria-label="Activity focus">
@@ -362,47 +421,7 @@ async function Page({params}: {params: Promise<{username: string}>}) {
 
         {/* Right Area: Active Listings & Public Decks or Clean Empty State */}
         <div className="player-content">
-          {listings.length > 0 && (
-            <section className="player-section">
-              <div className="player-section-head">
-                <div>
-                  <h2>Active Market Listings ({listings.length})</h2>
-                  <p>Items currently listed on Market by {p.display_name}.</p>
-                </div>
-                <Link href="/market" className="player-section-link">
-                  Browse Market <ArrowSquareOut size={14}/>
-                </Link>
-              </div>
-              <PlayerListingsGrid items={listingViewItems} />
-            </section>
-          )}
-
-          {decks.length > 0 && (
-            <section className="player-section">
-              <div className="player-section-head">
-                <div>
-                  <h2>Public Decks ({decks.length})</h2>
-                  <p>Deck builds shared publicly by {p.display_name}.</p>
-                </div>
-              </div>
-              <div className="player-decks-grid">
-                {decks.map(d => {
-                  const leader = d.leaderId ? cardFor(d.leaderId) : null;
-                  return (
-                    <Link key={d.id} href={`/decks/${d.id}`} className="player-deck-card">
-                      <div className="player-deck-art">
-                        {leader ? <CardArt card={leader}/> : <Layers3 size={24}/>}
-                      </div>
-                      <div className="player-deck-info">
-                        <h3>{d.name}</h3>
-                        <p>{leader ? `${leader.name}, Leader` : 'Custom Deck'}</p>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            </section>
-          )}
+          {deckFirst ? [decksSection, listingsSection] : [listingsSection, decksSection]}
 
           {listings.length === 0 && decks.length === 0 && (
             <div className="player-empty-showcase">

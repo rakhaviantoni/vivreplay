@@ -2538,6 +2538,46 @@ html[data-theme='dark'] .profile-intro,
 html[data-theme='dark'] .player-intro{border-bottom-color:#294653!important;background-image:linear-gradient(105deg,rgb(7 22 30 / .76),rgb(10 30 39 / .42)),url('/assets/one-piece-header-bg.webp')!important}
 html[data-theme='dark'] .player-intro-meta{color:#a4bcc7!important}
 
+.player-intro-side{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end}
+.player-kpi-strip{display:grid;grid-template-columns:repeat(3,minmax(92px,1fr));gap:10px}
+.player-kpi-item{display:flex;flex-direction:column;gap:2px;padding:10px 14px;border:1px solid var(--line,#dfd1b8);border-radius:12px;background:color-mix(in srgb,var(--surface-raised,#fffaf0) 92%,transparent);backdrop-filter:blur(6px)}
+.player-kpi-item b{font-size:18px;line-height:1.15;color:var(--ink,#1d1914);font-weight:700;letter-spacing:-0.01em}
+.player-kpi-item span{font-size:11.5px;color:var(--muted,#716a5e);white-space:nowrap}
+
+.player-listings-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 18px}
+.player-listings-search{position:relative;display:flex;align-items:center;gap:8px;flex:1 1 220px;max-width:320px;padding:0 11px;height:36px;border:1px solid var(--line,#dfd1b8);border-radius:10px;background:var(--surface,#fbf7ef);color:var(--muted,#716a5e);transition:border-color .16s ease,box-shadow .16s ease}
+.player-listings-search:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 16%,transparent);color:var(--ink)}
+.player-listings-search input{width:100%;border:0;background:transparent;color:var(--ink,#1d1914);font:inherit;font-size:13px;outline:none;min-width:0}
+.player-listings-search input::placeholder{color:var(--muted,#716a5e)}
+.player-listings-search-clear{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border:0;border-radius:999px;background:transparent;color:var(--muted,#716a5e);cursor:pointer;padding:0}
+.player-listings-search-clear:hover{background:color-mix(in srgb,var(--ink) 8%,transparent);color:var(--ink)}
+
+.player-listings-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.player-trade-filters{display:inline-flex;align-items:center;gap:2px;padding:3px;border:1px solid var(--line,#dfd1b8);border-radius:10px;background:var(--surface,#fbf7ef)}
+.player-trade-filters button{border:0;background:transparent;color:var(--muted,#716a5e);font:inherit;font-size:12px;font-weight:600;padding:5px 10px;border-radius:7px;cursor:pointer;transition:background-color .15s ease,color .15s ease}
+.player-trade-filters button:hover{color:var(--ink)}
+.player-trade-filters button.is-active{background:var(--surface-raised,#fffaf0);color:var(--ink,#1d1914);box-shadow:0 1px 3px rgba(0,0,0,0.08)}
+.player-listings-toolbar .player-listing-filters{margin:0}
+
+.player-listing-card-title{color:inherit;text-decoration:none}
+.player-listing-card-title:hover strong{color:var(--accent)}
+
+.player-empty-filter{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:36px 20px;border:1px dashed var(--line,#dfd1b8);border-radius:14px;background:var(--surface,#fbf7ef);text-align:center}
+.player-empty-filter p{margin:0;color:var(--muted,#716a5e);font-size:14px}
+
+html[data-theme='dark'] .player-kpi-item{border-color:#294653;background:rgba(11,27,37,0.86)}
+html[data-theme='dark'] .player-kpi-item b{color:#edf5f0}
+html[data-theme='dark'] .player-kpi-item span{color:#a4bcc7}
+html[data-theme='dark'] .player-listings-search{border-color:#294653;background:#081620;color:#a4bcc7}
+html[data-theme='dark'] .player-listings-search input{color:#edf5f0}
+html[data-theme='dark'] .player-listings-search input::placeholder{color:#7f9aa6}
+html[data-theme='dark'] .player-trade-filters{border-color:#294653;background:#081620}
+html[data-theme='dark'] .player-trade-filters button{color:#a4bcc7}
+html[data-theme='dark'] .player-trade-filters button:hover{color:#edf5f0}
+html[data-theme='dark'] .player-trade-filters button.is-active{background:#122936;color:#edf5f0}
+html[data-theme='dark'] .player-empty-filter{border-color:#294653;background:#081620}
+html[data-theme='dark'] .player-empty-filter p{color:#a4bcc7}
+
 @media(max-width:960px){
   .profile-layout{grid-template-columns:1fr!important;gap:20px!important}
   .form-row{grid-template-columns:1fr!important}
@@ -2551,6 +2591,11 @@ html[data-theme='dark'] .player-intro-meta{color:#a4bcc7!important}
     align-items:flex-start!important;
     gap:16px!important;
   }
+  .player-intro-side{width:100%;justify-content:space-between}
+  .player-kpi-strip{width:100%;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .player-kpi-item{padding:8px 10px}
+  .player-kpi-item b{font-size:16px}
+  .player-listings-search{max-width:none;width:100%}
 }
 
 /* Public feedback is interactive on listing details and on collector profiles. */
