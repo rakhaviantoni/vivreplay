@@ -13,6 +13,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
 import {
+  ArrowLeftIcon as ArrowLeft,
+  ArrowRightIcon as ArrowRight,
   ArrowSquareOutIcon as ArrowSquareOut,
   ArrowsClockwiseIcon as ArrowsClockwise,
   BookmarkSimpleIcon as BookmarkSimple,
@@ -397,7 +399,7 @@ export function MarketSocialSyndicationDialog({
       .then(async (res) => (await res.json()) as { templates?: SavedCaptionTemplate[] })
       .then((data) => setTemplates(data.templates ?? []))
       .catch(() => {});
-  }, [open, isId, listing.availableMedias, listing.photoUrls]);
+  }, [open, isId, listing.id, listing.availableMedias, listing.photoUrls]);
 
   useEffect(() => {
     const custom = templates.find((tmpl) => tmpl.id === selectedTemplateId);
@@ -1460,9 +1462,10 @@ export function MarketSocialSyndicationDialog({
                   variant="secondary"
                   size="sm"
                   onClick={() => setStep((s) => (s === 'preview' ? 'schedule' : 'compose'))}
-                  className="market-social-footer-btn button secondary h-9 rounded-xl text-xs font-semibold px-3.5"
+                  className="market-social-footer-btn button secondary h-9 rounded-xl text-xs font-semibold gap-1.5 px-3.5"
                 >
-                  ← {t('Back', 'Kembali')}
+                  <ArrowLeft size={13} weight="bold" />
+                  <span>{t('Back', 'Kembali')}</span>
                 </Button>
               )}
               <Button
@@ -1493,7 +1496,7 @@ export function MarketSocialSyndicationDialog({
                   ) : (
                     <>
                       <span>{t('Next: Schedule', 'Lanjut: Jadwal')}</span>
-                      <span>→</span>
+                      <ArrowRight size={13} weight="bold" />
                     </>
                   )}
                 </Button>
@@ -1506,7 +1509,7 @@ export function MarketSocialSyndicationDialog({
                   className="market-social-footer-next button h-9 rounded-xl text-xs font-bold gap-1.5 px-4"
                 >
                   <span>{t('Next: Review', 'Lanjut: Tinjau')}</span>
-                  <span>→</span>
+                  <ArrowRight size={13} weight="bold" />
                 </Button>
               )}
               {step === 'preview' && (
