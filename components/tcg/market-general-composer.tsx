@@ -1,6 +1,6 @@
 'use client';
 import {useEffect,useState} from 'react';
-import {MagnifyingGlassIcon as Search} from '@phosphor-icons/react';
+import {MagnifyingGlassIcon as Search,XIcon as X} from '@phosphor-icons/react';
 import {useRouteLocale} from '@/components/locale-provider';
 import {generalMarketCategories,generalMarketConditionLabel,generalMarketConditionOptions,type GeneralMarketCategory} from '@/lib/market/general-products';
 import {useMarketListingLimits} from '@/lib/market/use-listing-limits';
@@ -10,13 +10,15 @@ import type {BundleProductInput} from './market-sealed-composer';
 type Parcel={weight:string;length:string;width:string;height:string};
 const emptyParcel=():Parcel=>({weight:'',length:'',width:'',height:''});
 
-export function MarketGeneralComposer({type,onPublished,onBack,onAddToBundle}:{type:'WTS'|'WTB';onPublished:()=>void;onBack:()=>void;onAddToBundle?:(item:BundleProductInput)=>void}){
+export function MarketGeneralComposer({type,onPublished,onBack,onAddToBundle,initialCategory,initialTitle}:{type:'WTS'|'WTB';onPublished:()=>void;onBack:()=>void;onAddToBundle?:(item:BundleProductInput)=>void;initialCategory?:GeneralMarketCategory;initialTitle?:string}){
   const language=useRouteLocale();const isId=language==='ID';const copy=(en:string,id:string)=>isId?id:en;
   const productStockLimit=useMarketListingLimits().maxProductStock??10;
-  const [category,setCategory]=useState<GeneralMarketCategory>('HOBBY');const [title,setTitle]=useState('');const [brand,setBrand]=useState('');const [model,setModel]=useState('');const [fields,setFields]=useState<Record<string,string>>({});const [condition,setCondition]=useState<(typeof generalMarketConditionOptions)[number]>('NEW');const [quantity,setQuantity]=useState(1);const [price,setPrice]=useState('');const [notes,setNotes]=useState('');const [photos,setPhotos]=useState<string[]>([]);const [parcel,setParcel]=useState<Parcel>(emptyParcel());const [busy,setBusy]=useState(false);const [error,setError]=useState('');
+  const [category,setCategory]=useState<GeneralMarketCategory>(initialCategory??'HOBBY');const [title,setTitle]=useState(initialTitle??'');const [brand,setBrand]=useState('');const [model,setModel]=useState('');const [fields,setFields]=useState<Record<string,string>>({});const [condition,setCondition]=useState<(typeof generalMarketConditionOptions)[number]>('NEW');const [quantity,setQuantity]=useState(1);const [price,setPrice]=useState('');const [notes,setNotes]=useState('');const [photos,setPhotos]=useState<string[]>([]);const [parcel,setParcel]=useState<Parcel>(emptyParcel());const [busy,setBusy]=useState(false);const [error,setError]=useState('');
   const [presetQuery,setPresetQuery]=useState('');
   const [presets,setPresets]=useState<Array<{id:string;brand:string;model:string;attributes:Record<string,string>}>>([]);
   const config=generalMarketCategories[category];
+  useEffect(()=>{if(initialCategory)setCategory(initialCategory);},[initialCategory]);
+  useEffect(()=>{if(initialTitle)setTitle(initialTitle);},[initialTitle]);
   const changeCategory=(next:GeneralMarketCategory)=>{setCategory(next);setFields({});setPresetQuery('');setPresets([]);};
 
   useEffect(()=>{
@@ -60,9 +62,9 @@ export function MarketGeneralComposer({type,onPublished,onBack,onAddToBundle}:{t
 
   const validTitle=title.trim().length>=3;const validPrice=Number(price)>0;const validParcel=Object.values(parcel).every(value=>Number(value)>0);
   return <div className="market-general-composer">
-    <div className="market-general-intro"><div><strong>{copy('List an item','Buat listing barang')}</strong><p>{copy('For hobby gear, electronics, games, and accessories outside the card catalog.','Untuk hobi, elektronik, game, dan aksesori di luar katalog kartu.')}</p></div><button type="button" onClick={onBack}>{copy('Browse TCG products','Lihat produk TCG')}</button></div>
-    <fieldset className="market-general-categories"><legend>{copy('Category','Kategori')}</legend><div>{(Object.keys(generalMarketCategories) as GeneralMarketCategory[]).map(key=><button key={key} type="button" aria-pressed={category===key} onClick={()=>changeCategory(key)}>{isId?({HOBBY:'Hobi & koleksi',COMPUTER:'Komputer & laptop',COMPUTER_PART:'Komponen PC',CONSOLE:'Konsol & handheld',PHYSICAL_GAME:'Game fisik',ACCESSORY:'Aksesori'} as Record<GeneralMarketCategory,string>)[key]:generalMarketCategories[key].label}</button>)}</div></fieldset>
-    <div className="market-general-preset-box">
+    <div className="market-general-intro"><div><strong>{category==='TCG_PRODUCT'?copy('List custom TCG product','Buat listing produk TCG kustom'):copy('List an item','Buat listing barang')}</strong><p>{category==='TCG_PRODUCT'?copy('For booster packs, boxes, sleeves, or regional editions not listed in the TCG catalog.','Untuk booster pack, box, sleeve, atau edisi regional yang belum ada di katalog TCG.'):copy('For hobby gear, electronics, games, and accessories outside the card catalog.','Untuk hobi, elektronik, game, dan aksesori di luar katalog kartu.')}</p></div><button type="button" onClick={onBack}>{copy('Browse TCG products','Lihat produk TCG')}</button></div>
+    <fieldset className="market-general-categories"><legend>{copy('Category','Kategori')}</legend><div>{(Object.keys(generalMarketCategories) as GeneralMarketCategory[]).map(key=><button key={key} type="button" aria-pressed={category===key} onClick={()=>changeCategory(key)}>{isId?({TCG_PRODUCT:'Produk TCG',HOBBY:'Hobi & koleksi',COMPUTER:'Komputer & laptop',COMPUTER_PART:'Komponen PC',CONSOLE:'Konsol & handheld',PHYSICAL_GAME:'Game fisik',ACCESSORY:'Aksesori'} as Record<GeneralMarketCategory,string>)[key]:generalMarketCategories[key].label}</button>)}</div></fieldset>
+    {category!=='TCG_PRODUCT'&&<div className="market-general-preset-box">
       <label className="market-product-search">
         <span>{copy('Quick-fill from catalog (optional)','Isi cepat dari katalog (opsional)')}</span>
         <div>
@@ -79,6 +81,7 @@ export function MarketGeneralComposer({type,onPublished,onBack,onAddToBundle}:{t
               copy('Search MacBook, ROG, Legion…','Cari MacBook, ROG, Legion…')
             }
           />
+          {presetQuery&&<button type="button" className="market-product-search-clear" onClick={()=>{setPresetQuery('');setPresets([]);}} aria-label={copy('Clear search','Hapus pencarian')}><X size={14}/></button>}
         </div>
       </label>
       {presets.length>0&&(
@@ -86,17 +89,17 @@ export function MarketGeneralComposer({type,onPublished,onBack,onAddToBundle}:{t
           {presets.map(item=>(
             <button key={item.id} type="button" onClick={()=>applyPreset(item)}>
               <strong>{item.model.startsWith(item.brand)?item.model:`${item.brand} ${item.model}`}</strong>
-              <small>{Object.values(item.attributes).filter(Boolean).slice(0,2).join(' · ')}</small>
+              <small>{Object.values(item.attributes).filter(Boolean).slice(0,2).join(', ')}</small>
             </button>
           ))}
         </div>
       )}
-    </div>
+    </div>}
     <div className="market-general-fields">
-      <label>{copy('Item name','Nama barang')}<input value={title} maxLength={100} onChange={event=>setTitle(event.target.value)} placeholder={copy('e.g. Nintendo Switch OLED','mis. Nintendo Switch OLED')}/></label>
-      <label>{copy('Brand','Merek')}<input value={brand} maxLength={60} onChange={event=>setBrand(event.target.value)} placeholder={copy('Brand name','Nama merek')}/></label>
-      {category!=='COMPUTER_PART'&&<label>{copy('Model','Model')}<input value={model} maxLength={80} onChange={event=>setModel(event.target.value)} placeholder={copy('Model or version','Model atau versi')}/></label>}
-      {config.fields.map(field=><label key={field.key}>{isId?({series:'Seri atau koleksi',processor:'Prosesor',graphics:'Grafis',memory:'Memori',storage:'Penyimpanan',partType:'Komponen',model:'Merek dan model',compatibility:'Kompatibilitas',platform:'Platform',region:'Wilayah',format:'Format',language:'Bahasa',compatibleWith:'Kompatibel dengan'} as Record<string,string>)[field.key]??field.label:field.label}<input value={fields[field.key]??''} maxLength={100} onChange={event=>setFields(current=>({...current,[field.key]:event.target.value}))} placeholder={field.placeholder}/></label>)}
+      <label className="is-full">{copy('Item name','Nama barang')}<input value={title} maxLength={100} onChange={event=>setTitle(event.target.value)} placeholder={category==='TCG_PRODUCT'?copy('e.g. Pokémon Scarlet & Violet Booster Box (ID)','mis. Pokémon Booster Box Indonesia'):copy('e.g. Nintendo Switch OLED','mis. Nintendo Switch OLED')}/></label>
+      <label>{copy('Brand','Merek')}<input value={brand} maxLength={60} onChange={event=>setBrand(event.target.value)} placeholder={category==='TCG_PRODUCT'?copy('e.g. The Pokémon Company, Bandai','mis. The Pokémon Company, Bandai'):copy('Brand name','Nama merek')}/></label>
+      {category!=='COMPUTER_PART'&&<label>{copy('Model','Model')}<input value={model} maxLength={80} onChange={event=>setModel(event.target.value)} placeholder={category==='TCG_PRODUCT'?copy('e.g. Booster Box, Sleeves, Deck Box','mis. Booster Box, Sleeves, Deck Box'):copy('Model or version','Model atau versi')}/></label>}
+      {config.fields.map(field=><label key={field.key}>{isId?({game:'Game',edition:'Edisi / Bahasa',setCode:'Kode set atau produk',series:'Seri atau koleksi',processor:'Prosesor',graphics:'Grafis',memory:'Memori',storage:'Penyimpanan',partType:'Komponen',model:'Merek dan model',compatibility:'Kompatibilitas',platform:'Platform',region:'Wilayah',format:'Format',language:'Bahasa',compatibleWith:'Kompatibel dengan'} as Record<string,string>)[field.key]??field.label:field.label}<input value={fields[field.key]??''} maxLength={100} onChange={event=>setFields(current=>({...current,[field.key]:event.target.value}))} placeholder={field.placeholder}/></label>)}
       <label>{type==='WTS'?copy('Quantity available','Jumlah tersedia'):copy('Quantity wanted','Jumlah yang dicari')}<input type="number" min={1} max={productStockLimit} value={quantity} onChange={event=>setQuantity(Math.min(productStockLimit,Math.max(1,Number(event.target.value)||1)))}/><small>{copy(`Up to ${productStockLimit} units per listing`,`Maksimal ${productStockLimit} unit per listing`)}</small></label>
       <label>{type==='WTS'?copy('Price per item (IDR)','Harga per barang (IDR)'):copy('Offer per item (IDR)','Tawaran per barang (IDR)')}<input type="number" min={1} value={price} onChange={event=>setPrice(event.target.value)}/></label>
       <fieldset className="market-general-condition-field"><legend>{type==='WTB'?copy('Condition wanted','Kondisi yang dicari'):copy('Condition','Kondisi')}</legend><RadioGroup value={condition} onValueChange={value=>setCondition(value as typeof condition)} className="market-general-condition-options" aria-label={type==='WTB'?copy('Condition wanted','Kondisi yang dicari'):copy('Condition','Kondisi')}>
