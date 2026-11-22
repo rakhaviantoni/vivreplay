@@ -19,12 +19,14 @@ import {db} from '@/lib/server/store';
 import {getPublicSellerSocials} from '@/lib/server/postforme';
 import {socialDisplayHandle, socialProfileUrl} from '@/lib/social-links';
 import {ShareButton} from '@/components/tcg/share';
-import {formatMoney} from '@/packages/domain';
 import {cardFor,type Card} from '@/packages/card-data/catalog';
 import {CardArt} from '@/components/tcg/card-art';
 import {IntroCardRail} from '@/components/tcg/intro-card-rail';
 import {marketListingPath} from '@/lib/market/listing-url';
 import {MarketReputation} from '@/components/tcg/market-reputation';
+import {sealedProductById, sealedDisplayCard} from '@/lib/market/sealed-products';
+import {generalMarketCategoryLabel} from '@/lib/market/general-products';
+import {PlayerListingsGrid, type PlayerListingCategory, type PlayerListingViewItem} from '@/components/tcg/player-listings-grid';
 
 export const metadata = privateMetadata('Player profile', 'Player profiles are available by direct link only.');
 export const dynamic = 'force-dynamic';
@@ -63,6 +65,8 @@ async function Page({params}: {params: Promise<{username: string}>}) {
       SELECT
         l.id,
         l.printing_id AS printingId,
+        l.sealed_product_id AS sealedProductId,
+        l.items,
         l.title,
         l.amount,
         l.currency,
@@ -84,16 +88,20 @@ async function Page({params}: {params: Promise<{username: string}>}) {
         ci.type AS cardType,
         ci.cost AS cardCost,
         ci.power AS cardPower,
-        ci.effect AS cardEffect
+        ci.effect AS cardEffect,
+        g.slug AS gameSlug
       FROM listings l
       LEFT JOIN card_printings cp ON cp.id=l.printing_id
       LEFT JOIN card_identities ci ON ci.id=cp.identity_id
+      LEFT JOIN games g ON g.id=ci.game_id
       WHERE l.seller_id=? AND l.status='ACTIVE' AND (l.expires_at IS NULL OR l.expires_at > CURRENT_TIMESTAMP)
       ORDER BY l.created_at DESC
-      LIMIT 12
+      LIMIT 24
     `).bind(p.id).all<{
       id: string;
       printingId: string;
+      sealedProductId?: string | null;
+      items?: string | null;
       title: string;
       amount: number;
       currency: string;
@@ -116,6 +124,7 @@ async function Page({params}: {params: Promise<{username: string}>}) {
       cardCost?: number;
       cardPower?: number;
       cardEffect?: string;
+      gameSlug?: string | null;
     }>(),
     db().prepare(`
       SELECT d.id, d.name, d.created_at AS createdAt, v.leader_id AS leaderId
@@ -139,6 +148,112 @@ async function Page({params}: {params: Promise<{username: string}>}) {
   const listings = listingsRes.results || [];
   const decks = decksRes.results || [];
 
+  const listingViewItems: PlayerListingViewItem[] = listings.map((item) => {
+    let parsedItems: Array<{
+      productType?: string;
+      sealedProductId?: string;
+      photoIds?: string[];
+      generalProduct?: { category?: string };
+    }> = [];
+    try {
+      const parsed = JSON.parse(item.items ?? '[]') as unknown;
+      if (Array.isArray(parsed)) parsedItems = parsed;
+    } catch {
+      // ignore
+    }
+    const firstEntry = parsedItems[0];
+    const sealedId = item.sealedProductId || firstEntry?.sealedProductId || (firstEntry?.productType === 'SEALED' ? item.printingId : undefined);
+    const sealedProd = sealedId ? sealedProductById(sealedId) : undefined;
+    const isGeneral = firstEntry?.productType === 'GENERAL' || Boolean(firstEntry?.generalProduct);
+    const firstPhotoId = firstEntry?.photoIds?.[0];
+
+    const filenameCode = item.cardImageUrl ? item.cardImageUrl.split('?')[0].split('#')[0].split('/').pop()?.replace(/\.[^.]+$/, '') : undefined;
+    const printingCode = filenameCode ?? item.cardCode;
+    const card: Card | undefined = sealedProd
+      ? sealedDisplayCard(sealedProd.id)
+      : !isGeneral
+      ? ((item.cardCode || item.cardImageUrl) ? {
+          id: item.cardIdentityId ?? item.printingId,
+          code: item.cardCode ?? '',
+          name: item.cardName ?? item.title,
+          color: item.cardColor ?? 'Red',
+          type: (item.cardType==='Leader'||item.cardType==='Event')?item.cardType as Card['type']:'Character',
+          cost: item.cardCost ?? 0,
+          power: item.cardPower ?? 0,
+          rarity: item.cardRarity ?? '',
+          art: 0,
+          effect: item.cardEffect ?? '',
+          imageUrl: item.cardImageUrl,
+          imageSource: 'external' as const,
+          gameSlug: item.gameSlug === 'pokemon' || /^PK-/i.test(item.cardCode ?? '') ? 'pokemon' : 'one-piece',
+          setCode: item.cardSetCode,
+          language: item.cardLanguage,
+          printingCode,
+          variant: item.cardVariant,
+        } : undefined) ?? cardFor(item.printingId)
+      : undefined;
+
+    let category: PlayerListingCategory = 'one-piece';
+    let categoryLabel = 'One Piece';
+    if (isGeneral) {
+      category = 'general';
+      categoryLabel = firstEntry?.generalProduct?.category
+        ? generalMarketCategoryLabel(firstEntry.generalProduct.category, 'EN')
+        : 'Hobby & Gear';
+    } else if (sealedProd) {
+      category = sealedProd.game === 'pokemon' ? 'pokemon' : 'one-piece';
+      categoryLabel = sealedProd.game === 'pokemon' ? 'Pokémon Sealed' : 'One Piece Sealed';
+    } else if (item.gameSlug === 'pokemon' || /^PK-/i.test(item.cardCode ?? '') || card?.gameSlug === 'pokemon') {
+      category = 'pokemon';
+      categoryLabel = 'Pokémon';
+    }
+
+    const photoUrl = firstPhotoId
+      ? `/api/market/product-photos/${firstPhotoId}`
+      : sealedProd?.imageUrl ?? null;
+
+    return {
+      id: item.id,
+      href: marketListingPath(item.title, item.id),
+      title: item.title,
+      amount: item.amount,
+      currency: item.currency,
+      condition: item.condition,
+      city: item.city,
+      type: item.type,
+      category,
+      categoryLabel,
+      photoUrl,
+      card,
+    };
+  });
+
+  const opCount = listingViewItems.filter((i) => i.category === 'one-piece').length;
+  const pkCount = listingViewItems.filter((i) => i.category === 'pokemon').length;
+  const genCount = listingViewItems.filter((i) => i.category === 'general').length;
+  const publicDecksTotal = deckCount?.count ?? 0;
+
+  let dynamicKicker = 'COLLECTOR';
+  const hasOp = opCount > 0 || publicDecksTotal > 0;
+  const hasPk = pkCount > 0;
+  const hasGen = genCount > 0;
+  if (hasOp && hasPk && hasGen) dynamicKicker = 'TCG & HOBBY MARKET SELLER';
+  else if (hasOp && hasPk) dynamicKicker = 'ONE PIECE & POKÉMON COLLECTOR';
+  else if (hasOp && hasGen) dynamicKicker = 'ONE PIECE TCG & HOBBY SELLER';
+  else if (hasPk && hasGen) dynamicKicker = 'POKÉMON TCG & HOBBY SELLER';
+  else if (hasPk) dynamicKicker = 'POKÉMON TCG COLLECTOR & SELLER';
+  else if (hasGen) dynamicKicker = 'HOBBY & GEAR SELLER';
+  else if (opCount > 0 && publicDecksTotal > 0) dynamicKicker = 'ONE PIECE TCG PLAYER & SELLER';
+  else if (publicDecksTotal > 0) dynamicKicker = 'ONE PIECE TCG DECK BUILDER';
+  else if (opCount > 0) dynamicKicker = 'ONE PIECE TCG COLLECTOR & SELLER';
+
+  const activityMix = [
+    ...(opCount > 0 ? [{ key: 'one-piece', label: 'One Piece', count: opCount }] : []),
+    ...(pkCount > 0 ? [{ key: 'pokemon', label: 'Pokémon', count: pkCount }] : []),
+    ...(genCount > 0 ? [{ key: 'general', label: 'Hobby & Gear', count: genCount }] : []),
+    ...(publicDecksTotal > 0 ? [{ key: 'decks', label: 'Public Decks', count: publicDecksTotal }] : []),
+  ];
+
   const initial = (p.display_name || p.username || 'P').charAt(0).toUpperCase();
   const regionLabel = REGION_NAMES[p.region] || p.region;
   const joinedDate = p.created_at
@@ -150,7 +265,7 @@ async function Page({params}: {params: Promise<{username: string}>}) {
       {/* Shared Global Intro Banner */}
       <section className="library-intro player-intro">
         <div className="library-intro-copy">
-          <p className="kicker">COLLECTOR</p>
+          <p className="kicker">{dynamicKicker}</p>
           <h1>{p.display_name}</h1>
           <p className="player-intro-meta">
             @{p.username}, {regionLabel}, Member since {joinedDate}
@@ -180,6 +295,16 @@ async function Page({params}: {params: Promise<{username: string}>}) {
             <span><b>{listingCount?.count??0}</b> Active {(listingCount?.count??0)===1?'listing':'listings'}</span>
             <span><b>{deckCount?.count??0}</b> Public {(deckCount?.count??0)===1?'deck':'decks'}</span>
           </div>
+
+          {activityMix.length > 0 && (
+            <div className="player-activity-mix" aria-label="Activity focus">
+              {activityMix.map((entry) => (
+                <span key={entry.key} className={`player-activity-pill is-${entry.key}`}>
+                  {entry.label} <b>{entry.count}</b>
+                </span>
+              ))}
+            </div>
+          )}
 
           <div className="profile-facts">
             <span><Globe size={15}/>{regionLabel} ({p.region})</span>
@@ -242,51 +367,13 @@ async function Page({params}: {params: Promise<{username: string}>}) {
               <div className="player-section-head">
                 <div>
                   <h2>Active Market Listings ({listings.length})</h2>
-                  <p>Cards currently listed on Market by {p.display_name}.</p>
+                  <p>Items currently listed on Market by {p.display_name}.</p>
                 </div>
                 <Link href="/market" className="player-section-link">
                   Browse Market <ArrowSquareOut size={14}/>
                 </Link>
               </div>
-              <div className="player-listings-grid">
-                {listings.map(item => {
-                  const filenameCode = item.cardImageUrl ? item.cardImageUrl.split('?')[0].split('#')[0].split('/').pop()?.replace(/\.[^.]+$/, '') : undefined;
-                  const printingCode = filenameCode ?? item.cardCode;
-                  const card = ((item.cardCode || item.cardImageUrl) ? {
-                    id: item.cardIdentityId ?? item.printingId,
-                    code: item.cardCode ?? '',
-                    name: item.cardName ?? item.title,
-                    color: item.cardColor ?? 'Red',
-                    type: (item.cardType==='Leader'||item.cardType==='Event')?item.cardType as Card['type']:'Character',
-                    cost: item.cardCost ?? 0,
-                    power: item.cardPower ?? 0,
-                    rarity: item.cardRarity ?? '',
-                    art: 0,
-                    effect: item.cardEffect ?? '',
-                    imageUrl: item.cardImageUrl,
-                    imageSource: 'external' as const,
-                    setCode: item.cardSetCode,
-                    language: item.cardLanguage,
-                    printingCode,
-                    variant: item.cardVariant,
-                  } : undefined) ?? cardFor(item.printingId);
-                  return (
-                    <article key={item.id} className="player-listing-card">
-                      <Link href={marketListingPath(item.title,item.id)} className="player-listing-card-art">
-                        {card ? <CardArt card={card}/> : <div className="player-listing-art-placeholder"><Cards size={32}/></div>}
-                      </Link>
-                      <div className="player-listing-card-copy">
-                        <strong>{item.title}</strong>
-                        <small>{item.condition}{item.city ? `, ${item.city}` : ''}</small>
-                        <p>
-                          <span className={item.type === 'WTB' ? 'is-wtb' : 'is-wts'}>{item.type === 'WTB' ? 'WTB' : 'WTS'}</span>
-                          <b>{formatMoney(item.amount, item.currency)}</b>
-                        </p>
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
+              <PlayerListingsGrid items={listingViewItems} />
             </section>
           )}
 

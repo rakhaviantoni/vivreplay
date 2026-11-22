@@ -4315,8 +4315,20 @@ html[data-theme='dark'] .market-listing-detail .market-listing-seller-toolbar{bo
 .player-social-icon.is-facebook,.market-seller-social-icon.is-facebook{color:#1877f2}
 .player-social-icon.is-threads,.market-seller-social-icon.is-threads{color:var(--ink)}
 .player-social-verified,.market-seller-social-verified{flex:none;color:#16845f}
-.market-seller-socials{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+.player-seller-socials,.market-seller-socials{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
 .market-seller-social-chip{padding:2px 7px;font-size:11px}
+.player-activity-mix{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;width:100%;margin-top:10px}
+.player-activity-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border:1px solid var(--line);border-radius:999px;background:var(--surface-muted);color:var(--muted);font-size:11px;font-weight:650}
+.player-activity-pill b{color:var(--ink);font-weight:800}
+.player-activity-pill.is-one-piece{border-color:color-mix(in srgb,#d97706 32%,var(--line))}
+.player-activity-pill.is-pokemon{border-color:color-mix(in srgb,#2563eb 32%,var(--line))}
+.player-activity-pill.is-general{border-color:color-mix(in srgb,#16845f 32%,var(--line))}
+.player-listing-filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.player-listing-filters>button{min-height:32px;padding:0 12px;border:1px solid var(--line);border-radius:999px;background:var(--surface-raised);color:var(--muted);font:inherit;font-size:12px;font-weight:650;cursor:pointer;transition:border-color .15s ease,background-color .15s ease,color .15s ease}
+.player-listing-filters>button:hover{border-color:var(--accent);color:var(--ink)}
+.player-listing-filters>button.is-active{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,var(--surface-raised));color:var(--ink)}
+.player-listing-photo-frame{position:relative;width:100%;aspect-ratio:420/580;overflow:hidden;border-radius:5px;border:1px solid var(--line);background:var(--surface-muted)}
+.player-listing-photo-frame img{width:100%;height:100%;object-fit:cover;display:block}
 @media(prefers-reduced-motion:reduce){.market-listing-detail .market-listing-seller-toolbar .market-report-link{transition:none}}
 
 /* A compact, clear affordance for the desktop quick-actions rail. */
